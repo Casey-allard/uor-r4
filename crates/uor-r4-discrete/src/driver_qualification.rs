@@ -552,6 +552,7 @@ fn corpus_schedule_resume(context: &mut Context<'_>) -> Result<()> {
             normalization_mode:
                 crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             position: None,
+            address_metric: Default::default(),
             objective_policy: crate::ObjectivePolicy::NearestAddressMarginV1,
             schema: DRIVER_SCHEMA.into(),
             spec: Spec {

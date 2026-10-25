@@ -1,5 +1,6 @@
 //! Snapshot storage types and exact serialization hash domains; no model execution.
 
+use crate::address_cells::AddressMetric;
 use crate::normalization_mechanism::NormalizationMode;
 use crate::position_mechanism::PositionConfig;
 use crate::{Error, ObjectivePolicy, ReadInitialization, ReadSpec, Result, Spec};
@@ -29,6 +30,8 @@ pub struct Snapshot {
     pub normalization_mode: NormalizationMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<PositionConfig>,
+    #[serde(default, skip_serializing_if = "AddressMetric::is_outer")]
+    pub address_metric: AddressMetric,
     pub seed: u32,
     pub epoch: u64,
     pub table: Vec<i32>,

@@ -237,6 +237,11 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
             "D11 export refuses position transport: the integer engine has no position read",
         ));
     }
+    if !snapshot.address_metric.is_outer() {
+        return Err(invalid(
+            "D11 export refuses a full-vector address metric: the integer engine admits by the outer key",
+        ));
+    }
     let cells = validate_and_extract_cells(snapshot)?;
     let stages = BinderPlan::new(snapshot.spec.context as usize)?.stages() as u32;
     let (read_mode, read_kept, read_sweeps) = match snapshot.read_spec {
@@ -477,6 +482,7 @@ pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
         read_initialization,
         normalization_mode: crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
         position: None,
+        address_metric: Default::default(),
         seed: header.shape.seed,
         epoch: header.shape.epoch,
         table,
@@ -546,6 +552,7 @@ mod tests {
             normalization_mode:
                 crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             position: None,
+            address_metric: Default::default(),
             seed: 7,
             epoch: 3,
             table: tokens.iter().flatten().flatten().copied().collect(),
@@ -626,6 +633,27 @@ mod tests {
         ));
         let error = export_d11(&positioned).unwrap_err().to_string();
         assert!(error.contains("position"), "{error}");
+        assert_eq!(export_d11(&default).unwrap(), bytes);
+    }
+
+    #[test]
+    fn export_refuses_a_full_vector_address_metric() {
+        use crate::address_cells::AddressMetric;
+
+        let default = sample_snapshot(
+            ReadSpec::Flock { kept: 2 },
+            ReadInitialization::ActiveLeafV1,
+        );
+        let bytes = export_d11(&default).unwrap();
+        for metric in [
+            AddressMetric::CellEnvelopeL1V1,
+            AddressMetric::FullVectorCellL1V1,
+        ] {
+            let mut full = default.clone();
+            full.address_metric = metric;
+            let error = export_d11(&full).unwrap_err().to_string();
+            assert!(error.contains("full-vector address metric"), "{error}");
+        }
         assert_eq!(export_d11(&default).unwrap(), bytes);
     }
 

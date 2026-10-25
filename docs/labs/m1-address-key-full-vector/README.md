@@ -58,3 +58,33 @@ Verified via `~/.cargo/bin/cargo test -p uor-r4-discrete --lib address_cells`:
 | Predecessor-query (`q = table[t/2]`) target cell admitted at $K = 8$ (`511` edges) | `186 / 511` (`36.4%`) | `349 / 511` (`68.3%`) | `446 / 511` (`87.3%`) |
 
 - Note on D24 / CHARTER §3.5: All numbers in the table above are finite synthetic-fixture CPU controls in `address_cells::tests`. Real corpus/model admission is never estimated on the host and will be measured exclusively on the GPU under [`docs/harness/prep/m1-address-key-full-vector-DRAFT-2026-10-23.md`](../../harness/prep/m1-address-key-full-vector-DRAFT-2026-10-23.md) after non-author `TEST FITNESS: FIT` and owner/PM release.
+
+---
+
+## GPU pre-flight result (claude-110, 25 Oct 2026): PASS
+
+- **Sheet:** [`m1-address-key-full-vector-2026-10-25.md`](../../harness/prep/m1-address-key-full-vector-2026-10-25.md), which supersedes the draft above. TEST FITNESS: FIT, and D67 pre-run review PASS (#2834). D67 replaced the owner/PM release.
+- **Run:** one RTX 5090 (`vast-57698566`), source `77123dd995be44d5b0a5f482c8b82e270dd9aa42`, job [`address-key-job.sh`](address-key-job.sh), configs in [`configs/`](configs/).
+- **Outputs:** HF store `results/claude/address-key-2026-10-25/run/` (30 files, SHA256SUMS verified). Two earlier runs stopped as instrument faults and are kept as `fault1/` and `fault2/`. The grade is [`grade.json`](grade.json), written by `address-key-grade`.
+
+| Arm | P_succ admitted (of 3,847) | Full-DEV admitted (of 14,287) | Top-1 | Top-8 |
+|---|---:|---:|---:|---:|
+| A8-Outer (outer key) | 1,351 | 4,244 | 133 | 513 |
+| FV8-Env (cell envelope) | 1,980 | 5,709 | 118 | 1,126 |
+| FV8-TwoScale | 1,802 | 5,666 | 118 | 1,179 |
+| FVS8-Env (shuffled control) | 645 | 1,998 | 34 | 856 |
+| FVS8-TwoScale (shuffled control) | 663 | 2,028 | 34 | 865 |
+| FV16-TwoScale (bracket) | — | 7,207 | 118 | 1,185 |
+
+Paired on P_succ, the rule is that b − c must exceed max(24, 2√(b+c)):
+
+| Comparison | b / c |
+|---|---:|
+| FV8-Env against A8 | 730 / 101 |
+| FV8-Env against FVS8-Env | 1,726 / 391 |
+| FV8-TwoScale against A8 | 562 / 111 |
+| FV8-TwoScale against FVS8-TwoScale | 1,555 / 416 |
+
+- **Instrument gates:** G-Q passed. A8-Outer reproduced 4,244 / 1,351 / 133 exactly. Both tables show 4,096 distinct vectors, 256 occupied cells, zero tie mass, and an alias ceiling of 14,287.
+- **What it means:** a full-vector metric on a predecessor-pulled full-vector placement admits the target's cell for 1,980 of 3,847 P_succ rows at checkpoint 0, against A8's 1,351. The shuffled arms keep the metric and change only the placement, and they admit about half of A8. So the predecessor-pulled placement matters under a full-vector metric, beyond packing balance. No arm reads the full-vector table with the outer key, so the metric's own share of the gain over A8 is not separated here.
+- **What it does not establish:** top-1 falls at checkpoint 0, from 133 to 118. Training and serving under a full-vector metric are not registered: update capabilities and the D11 exporter refuse it.

@@ -21,6 +21,35 @@ fn invalid(msg: impl Into<String>) -> Error {
     Error::Invalid(msg.into())
 }
 
+/// The writer's cell address metric (#2834), device spec word `s[15]`.
+///
+/// `OuterL1V1` is the two-block outer key every existing model uses. The other
+/// two are the host oracles [`cell_envelope_l1`] and [`full_vector_cell_l1`] on
+/// the device. Their sheet registers zero updates only, so update capabilities
+/// refuse them. The default is omitted when serialized, so existing configs,
+/// snapshots and lineages keep their bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AddressMetric {
+    #[default]
+    OuterL1V1,
+    CellEnvelopeL1V1,
+    FullVectorCellL1V1,
+}
+
+impl AddressMetric {
+    pub fn is_outer(&self) -> bool {
+        *self == Self::OuterL1V1
+    }
+    pub fn device_word(self) -> u32 {
+        match self {
+            Self::OuterL1V1 => 0,
+            Self::CellEnvelopeL1V1 => 1,
+            Self::FullVectorCellL1V1 => 2,
+        }
+    }
+}
+
 /// Which placement is built.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AddressCellsMode {

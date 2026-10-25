@@ -7,6 +7,7 @@
 use crate::carrier::{CarrierMode, CarrierSelection};
 use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
+    address_cells::AddressMetric,
     metadata::{BinderPlan, ABSENT},
     normalization_mechanism::NormalizationMode,
     objective::{self, ExactRatio, HingeDistribution},
@@ -332,6 +333,7 @@ pub struct Binding {
     pub read_initialization: ReadInitialization,
     pub normalization_mode: NormalizationMode,
     pub position: Option<PositionConfig>,
+    pub address_metric: AddressMetric,
     pub seed: u32,
     pub geometry_sha256: [u8; 32],
     pub source_sha256: [u8; 32],
@@ -824,6 +826,7 @@ fn make_binding(
         read_initialization,
         normalization_mode,
         position,
+        address_metric: AddressMetric::OuterL1V1,
         seed,
         geometry_sha256: geometry_digest(geometry),
         source_sha256: source_sha256(),
@@ -1118,6 +1121,14 @@ impl Device {
     pub fn position(&self) -> Option<&PositionConfig> {
         self.binding.position.as_ref()
     }
+    pub fn address_metric(&self) -> AddressMetric {
+        self.binding.address_metric
+    }
+    /// Set before any batch is carried: a carried batch is bound to this
+    /// binding, so a later change makes it foreign, not silently re-scored.
+    pub fn set_address_metric(&mut self, metric: AddressMetric) {
+        self.binding.address_metric = metric;
+    }
     pub fn objective_policy(&self) -> ObjectivePolicy {
         self.binding.objective_policy
     }
@@ -1215,6 +1226,7 @@ impl Device {
             read_initialization: self.read_initialization(),
             normalization_mode: self.normalization_mode(),
             position: self.binding.position.clone(),
+            address_metric: self.binding.address_metric,
             seed: self.binding.seed,
             epoch: self.epoch()?,
             table: self.stream.clone_dtoh(&self.table).map_err(cuda)?,
@@ -1286,6 +1298,7 @@ impl Device {
             model.position_steps = model.stream.clone_htod(&position_words).map_err(cuda)?;
             model.binding.position = Some(config);
         }
+        model.binding.address_metric = snapshot.address_metric;
         let spec = model.gpu_spec(1)?;
         let mut status = model.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
         let items = u32::try_from(
@@ -1335,6 +1348,7 @@ impl Device {
                     .position
                     .as_ref()
                     .map_or(0, |config| config.mode.device_word()),
+                self.binding.address_metric.device_word(),
             ])
             .map_err(cuda)
     }
@@ -2332,6 +2346,7 @@ mod snapshot_hash_tests {
             read_initialization: ReadInitialization::ZeroGatesV1,
             normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
             position: None,
+            address_metric: Default::default(),
             seed: 1,
             epoch: 0,
             table: vec![0; 16],
@@ -2607,6 +2622,9 @@ mod unit_snap_device_tests {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod address_metric_device_tests;
 
 #[cfg(test)]
 mod position_device_tests {

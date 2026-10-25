@@ -183,8 +183,15 @@ pub fn scope(config: &DriverConfig) -> Result<String> {
             format!("injective-{prefix}-")
         }
     };
+    // A full-vector address metric (#2834) is its own zero-update arm; the
+    // outer default adds nothing, so every existing scope keeps its bytes.
+    let metric = match config.address_metric {
+        crate::address_cells::AddressMetric::OuterL1V1 => "",
+        crate::address_cells::AddressMetric::CellEnvelopeL1V1 => "address-envelope-",
+        crate::address_cells::AddressMetric::FullVectorCellL1V1 => "address-two-scale-",
+    };
     Ok(format!(
-        "m1-attention-learning-{lineage}{arm}-k8-seed{}-batches0..16404",
+        "m1-attention-learning-{lineage}{metric}{arm}-k8-seed{}-batches0..16404",
         config.seed
     ))
 }
@@ -1538,6 +1545,7 @@ mod tests {
             normalization_mode:
                 crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             position: None,
+            address_metric: Default::default(),
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
             counterfactual_path: training::CounterfactualPath::LanesV1,
             codebook_initialization: training::CodebookInitialization::SeededDeviceV1,
@@ -1782,6 +1790,19 @@ mod tests {
         assert_eq!(
             scope(&control)?,
             "m1-attention-learning-injective-aaaaaaaaaaaa-relation-frozen-zero-k8-seed1-batches0..16404"
+        );
+        // Each full-vector address metric (#2834) is its own scope on one table.
+        let mut envelope = pinned.clone();
+        envelope.address_metric = crate::address_cells::AddressMetric::CellEnvelopeL1V1;
+        assert_eq!(
+            scope(&envelope)?,
+            "m1-attention-learning-injective-aaaaaaaaaaaa-address-envelope-relation-k8-seed1-batches0..16404"
+        );
+        let mut two_scale = pinned.clone();
+        two_scale.address_metric = crate::address_cells::AddressMetric::FullVectorCellL1V1;
+        assert_eq!(
+            scope(&two_scale)?,
+            "m1-attention-learning-injective-aaaaaaaaaaaa-address-two-scale-relation-k8-seed1-batches0..16404"
         );
         Ok(())
     }

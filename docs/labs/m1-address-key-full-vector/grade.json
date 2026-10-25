@@ -1,0 +1,107 @@
+{
+  "manifest": {
+    "a8": {
+      "dev_b3": "arm-a8-outer/devb3/report.json",
+      "eval": "arm-a8-outer/eval/report.json"
+    },
+    "fv8_env": {
+      "dev_b3": "arm-fv8-env/devb3/report.json",
+      "eval": "arm-fv8-env/eval/report.json"
+    },
+    "fv8_two_scale": {
+      "dev_b3": "arm-fv8-two-scale/devb3/report.json",
+      "eval": "arm-fv8-two-scale/eval/report.json"
+    },
+    "fv_census": "census-fv8-two-scale/census.json",
+    "fvs8_env": {
+      "dev_b3": "arm-fvs8-env/devb3/report.json",
+      "eval": "arm-fvs8-env/eval/report.json"
+    },
+    "fvs8_two_scale": {
+      "dev_b3": "arm-fvs8-two-scale/devb3/report.json",
+      "eval": "arm-fvs8-two-scale/eval/report.json"
+    },
+    "fvs_census": "census-fvs8-two-scale/census.json",
+    "g_q": "g-q.log"
+  },
+  "outcome": "PASS",
+  "schema": "uor-r4.address-key-grade-run/1",
+  "treatments": [
+    {
+      "a8": {
+        "full_admitted": 4244,
+        "psucc_admitted": 1351,
+        "top1": 133
+      },
+      "arm": "FV8-Env",
+      "capacity": true,
+      "g_exact": true,
+      "g_occ": {
+        "fv": true,
+        "fvs": true
+      },
+      "outcome": "PASS",
+      "reach": true,
+      "rule": "reach: P_succ admitted > 1,351 and b - c > max(24, 2·sqrt(b + c)) on P_succ against A8-Outer; PASS also against the same-metric shuffled arm; capacity: min(alias ceiling, full admitted) > 1,941",
+      "schema": "uor-r4.address-key-grade/1",
+      "shuffled": {
+        "full_admitted": 1998,
+        "psucc_admitted": 645,
+        "top1": 34
+      },
+      "treatment": {
+        "full_admitted": 5709,
+        "psucc_admitted": 1980,
+        "top1": 118
+      },
+      "vs_a8": {
+        "b": 730,
+        "c": 101,
+        "clears": true
+      },
+      "vs_shuffled": {
+        "b": 1726,
+        "c": 391,
+        "clears": true
+      }
+    },
+    {
+      "a8": {
+        "full_admitted": 4244,
+        "psucc_admitted": 1351,
+        "top1": 133
+      },
+      "arm": "FV8-TwoScale",
+      "capacity": true,
+      "g_exact": true,
+      "g_occ": {
+        "fv": true,
+        "fvs": true
+      },
+      "outcome": "PASS",
+      "reach": true,
+      "rule": "reach: P_succ admitted > 1,351 and b - c > max(24, 2·sqrt(b + c)) on P_succ against A8-Outer; PASS also against the same-metric shuffled arm; capacity: min(alias ceiling, full admitted) > 1,941",
+      "schema": "uor-r4.address-key-grade/1",
+      "shuffled": {
+        "full_admitted": 2028,
+        "psucc_admitted": 663,
+        "top1": 34
+      },
+      "treatment": {
+        "full_admitted": 5666,
+        "psucc_admitted": 1802,
+        "top1": 118
+      },
+      "vs_a8": {
+        "b": 562,
+        "c": 111,
+        "clears": true
+      },
+      "vs_shuffled": {
+        "b": 1555,
+        "c": 416,
+        "clears": true
+      }
+    }
+  ]
+}

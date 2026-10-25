@@ -2,6 +2,7 @@
 //! Static geometry compilation is a build dependency, excluded from the runtime graph.
 //! The routing atlas is one sixteen-root E8 orbit; this is not full-orbit learnability.
 pub mod address_cells;
+pub mod address_key_grade;
 pub mod attention_anchor;
 pub mod attention_anchor_device;
 pub mod attention_audit;

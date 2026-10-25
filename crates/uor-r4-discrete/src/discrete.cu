@@ -355,21 +355,38 @@ __device__ W checked_scaled_add(W value,U times) {
 __device__ bool cell_precedes(U distance,U cell,U other_distance,U other_cell) {
     return distance<other_distance || (distance==other_distance && cell<other_cell);
 }
+// The writer's cell address metric, s[15] (#2834): 0 the two-block outer key
+// above; 1 the cell envelope, min over the cell's tokens of token_distance;
+// 2 the two-scale (envelope << 8) + the sum of the cell's token distances.
+// env and sum are filled only when s[15] != 0. Host oracles: address_cells.rs
+// cell_outer_l1, cell_envelope_l1 and full_vector_cell_l1. The two-scale metric
+// orders admission and rank; its address hinge keeps the envelope's scale (the
+// sum term only breaks ties), so the evaluation's hinge range contract holds.
+__device__ W cell_distance(const int* q,const U* g,const U* s,U cell,const U* env,const W* sum) {
+    if(s[15]==0u)return address_distance(q,g,s,cell);
+    return s[15]==1u?(W)env[cell]:((W)env[cell]<<8)+sum[cell];
+}
+__device__ bool cell_precedes_w(W distance,U cell,W other_distance,U other_cell) {
+    return distance<other_distance || (distance==other_distance && cell<other_cell);
+}
 // Product addresses derive from current codebook geometry, including virtual
 // moves. Full bounded vocabulary scans retain every crowded-cell identity.
 // An absent comparison has zero hinge and an explicit eligibility count.
 __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target,U kind,U index,U candidate,U* prediction,U* token_rivals,U* address_rivals,U* admitted,W* token_hinge=0,W* address_hinge=0,W* telemetry=0,U* arithmetic_status=0) {
-    bool occupied[256],used[256];for(U i=0;i<256;++i){occupied[i]=false;used[i]=false;}
-    for(U token=0;token<s[0];++token){U c=token_cell(table,g,s,token,kind,index,candidate);if(c==ABSENT)return ~(W)0;occupied[c]=true;}
-    U best_token=ABSENT,best_distance=ABSENT,rival_distance=ABSENT,rival_address=ABSENT;
+    if(s[15]>2u){if(arithmetic_status)*arithmetic_status=13;return ~(W)0;}
+    bool occupied[256],used[256];U env[256];W sum[256];for(U i=0;i<256;++i){occupied[i]=false;used[i]=false;}
+    if(s[15]!=0u)for(U i=0;i<256;++i){env[i]=ABSENT;sum[i]=0;}
+    for(U token=0;token<s[0];++token){U c=token_cell(table,g,s,token,kind,index,candidate);if(c==ABSENT)return ~(W)0;occupied[c]=true;
+        if(s[15]!=0u){U e=token_distance(q,table,g,s,token,kind,index,candidate);if(e<env[c])env[c]=e;sum[c]+=e;}}
+    U best_token=ABSENT,best_distance=ABSENT,rival_distance=ABSENT;W rival_address=~(W)0;
     U target_cell=token_cell(table,g,s,target,kind,index,candidate);
     *token_rivals=0;*address_rivals=0;if(admitted)for(U i=0;i<16;++i)admitted[i]=ABSENT;
     for(U k=0;k<s[3];++k) {
-        U cell=ABSENT,cost=ABSENT;
-        for(U c=0;c<256;++c)if(occupied[c] && !used[c]){U d=address_distance(q,g,s,c);if(cell_precedes(d,c,cost,cell)){cell=c;cost=d;}}
+        U cell=ABSENT;W cost=~(W)0;
+        for(U c=0;c<256;++c)if(occupied[c] && !used[c]){W d=cell_distance(q,g,s,c,env,sum);if(cell_precedes_w(d,c,cost,cell)){cell=c;cost=d;}}
         if(cell==ABSENT)break;
         used[cell]=true;if(admitted)admitted[k]=cell;
-        if(cell!=target_cell){++*address_rivals;if(cost<rival_address)rival_address=cost;}
+        if(cell!=target_cell){++*address_rivals;W h=s[15]==2u?(W)env[cell]:cost;if(h<rival_address)rival_address=h;}
         for(U token=0;token<s[0];++token)if(token_cell(table,g,s,token,kind,index,candidate)==cell){
             U d=token_distance(q,table,g,s,token,kind,index,candidate);
             if(d<best_distance || (d==best_distance && token<best_token)){best_token=token;best_distance=d;}
@@ -377,13 +394,14 @@ __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target
         }
     }
     *prediction=best_token;if(best_token==ABSENT)return ~(W)0;
-    U width=s[1]*8,td=token_distance(q,table,g,s,target,kind,index,candidate),ad=address_distance(q,g,s,target_cell);
+    U width=s[1]*8,td=token_distance(q,table,g,s,target,kind,index,candidate);W ad=cell_distance(q,g,s,target_cell,env,sum);
     W tm=rival_distance==ABSENT || width+td<=rival_distance ? 0 : width+td-rival_distance;
-    W am=rival_address==ABSENT || 8+ad<=rival_address ? 0 : 8+ad-rival_address;
+    W ah=s[15]==2u?(W)env[target_cell]:ad;
+    W am=rival_address==~(W)0 || 8+ah<=rival_address ? 0 : 8+ah-rival_address;
     U rank=1,occupancy=0;
     if(s[11]==1 || telemetry)for(U cell=0;cell<256;++cell)if(occupied[cell]){
-        ++occupancy;U distance=address_distance(q,g,s,cell);
-        if(cell_precedes(distance,cell,ad,target_cell))++rank;
+        ++occupancy;W distance=cell_distance(q,g,s,cell,env,sum);
+        if(cell_precedes_w(distance,cell,ad,target_cell))++rank;
     }
     W rm=rank>s[3]?rank-s[3]:0;
     W weighted_token=checked_scaled_add(tm,8),weighted_address=checked_scaled_add(am,width),weighted_rank=checked_scaled_add(rm,width);
@@ -399,7 +417,7 @@ __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target
 }
 // Statuses added with the flock/relation read: 9 = read-mode/proposal-kind mismatch
 // (Gate in Route mode, Route in Flock/Relation mode); 10 = gate trit outside {-1,0,1}
-// or read mode/K/sweeps out of range.
+// or read mode/K/sweeps out of range. 13 = writer address metric word s[15] > 2.
 extern "C" __global__ void discrete_init(int* table,U* routes,int* gates,const U* g,const U* s,U seed,U* status) {
     U i=blockIdx.x*blockDim.x+threadIdx.x;
     U elements=s[0]*s[1]*8;

@@ -3,7 +3,7 @@ id: m1-address-key-full-vector
 title: Replace the 5-value address key with a full-vector metric
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-w2-capacity-capture]

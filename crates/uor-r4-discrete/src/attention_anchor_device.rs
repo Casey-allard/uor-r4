@@ -476,6 +476,7 @@ mod tests {
             read_initialization: crate::ReadInitialization::default(),
             normalization_mode: crate::normalization_mechanism::NormalizationMode::default(),
             position: None,
+            address_metric: Default::default(),
             relation_learning_policy: RelationLearningPolicy::LearnV1,
             counterfactual_path: CounterfactualPath::LanesV1,
             codebook_initialization: CodebookInitialization::SeededDeviceV1,
