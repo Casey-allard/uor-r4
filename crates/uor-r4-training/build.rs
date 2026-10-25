@@ -2,7 +2,8 @@
 //! compilation) project-wide on 13 October 2026, and D29 makes the compiled
 //! module the compliance boundary. Every kernel module is therefore compiled
 //! by nvcc when the crate builds with the `cuda` feature, into PTX in
-//! `OUT_DIR`, and loaded by the driver at run time. Without the `cuda`
+//! `OUT_DIR`, and loaded by the driver at run time. The sieve frame
+//! compiler's module also builds alone, under `sieve-cuda`. Without either
 //! feature nothing runs.
 //!
 //! `NVCC` names the compiler (default `nvcc`); `UOR_NVCC_ARCH` the virtual
@@ -19,19 +20,21 @@ use std::process::Command;
 /// flush-to-zero (fused multiply-add stays at the compiler default).
 const PRECISE: [&str; 3] = ["-ftz=false", "-prec-div=true", "-prec-sqrt=true"];
 
-/// One PTX module: its sources (concatenated in order), output name and extra
-/// options.
+/// One PTX module: its sources (concatenated in order), output name, extra
+/// options and the Cargo feature that builds it.
 struct Module {
     sources: &'static [&'static str],
     ptx: &'static str,
     options: &'static [&'static str],
+    feature: &'static str,
 }
 
-const MODULES: [Module; 3] = [
+const MODULES: [Module; 4] = [
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
         ptx: "cuda_stack_f32.ptx",
         options: &PRECISE,
+        feature: CUDA,
     },
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
@@ -42,13 +45,24 @@ const MODULES: [Module; 3] = [
             "-prec-sqrt=true",
             "-DUOR_STORAGE_BF16",
         ],
+        feature: CUDA,
     },
     Module {
         sources: &["src/starling_native.cu"],
         ptx: "starling_native.ptx",
         options: &["--fmad=false"],
+        feature: CUDA,
+    },
+    Module {
+        sources: &["src/sieve_frame.cu"],
+        ptx: "sieve_frame.ptx",
+        options: &[],
+        feature: "CARGO_FEATURE_SIEVE_CUDA",
     },
 ];
+
+/// The feature every Candle-era module builds under.
+const CUDA: &str = "CARGO_FEATURE_CUDA";
 
 fn main() {
     for module in &MODULES {
@@ -58,7 +72,11 @@ fn main() {
     }
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
-    if env::var_os("CARGO_FEATURE_CUDA").is_none() {
+    let built: Vec<&Module> = MODULES
+        .iter()
+        .filter(|module| env::var_os(module.feature).is_some())
+        .collect();
+    if built.is_empty() {
         return;
     }
     let out = PathBuf::from(env::var("OUT_DIR").unwrap_or_else(|_| {
@@ -66,7 +84,7 @@ fn main() {
     }));
     let nvcc = env::var("NVCC").unwrap_or_else(|_| "nvcc".to_string());
     let arch = env::var("UOR_NVCC_ARCH").unwrap_or_else(|_| "compute_80".to_string());
-    for module in &MODULES {
+    for module in built {
         let input = combined_source(&out, module);
         let status = Command::new(&nvcc)
             .arg("-ptx")

@@ -1,5 +1,7 @@
 # Non-relation prose panel baseline evaluation on `world=v2` (`m3-nonrelation-prose-panel`)
 
+> **Superseded (25 Oct 2026, claude-94).** This sheet's run is replaced by [`preregistration-sieve-2026-10-25.md`](preregistration-sieve-2026-10-25.md). The saved compiler pinned in §2b has `SparseSoftmax` heads, which CHARTER §3.2 bans, and its module is test-only. The v25 pins are replaced by the sieve frame-table digest (`379c2ecc…`) and the PTX digest recorded at the run (owner log on #2856, comment `6394013509`). The panel, grader and owner bar below are unchanged. This sheet is kept as history.
+
 - **Status:** draft pre-registration, **`TEST FITNESS: NOT_FIT`** (non-author review `deepseek-41`, 2026-10-23; see [Verdict](#verdict)); **the artifact-pin prerequisite is now addressed in §2b (deepseek-58, 2026-10-23) and a fresh non-author FIT is requested.** No compute is cleared.
   - Running the `world=v2` compiler over the panel is a GPU evaluation run and stays HELD until a non-author FIT review passes, the owner decides the pass bar (`#2028`), and Casey types the D40 release.
 - **Line:** M3 durable conversation memory (`#2031`, item `m3-nonrelation-prose-panel` `#2856`, folds `#1718`). **Lab:** antigravity.

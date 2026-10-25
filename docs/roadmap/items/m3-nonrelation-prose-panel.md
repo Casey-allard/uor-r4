@@ -3,7 +3,7 @@ id: m3-nonrelation-prose-panel
 title: Build a pre-registered non-relation prose panel
 milestone: M3
 area: evaluation
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
@@ -17,6 +17,8 @@ M3 acceptance requires that non-memory prose never overwrites stored facts. Toda
 ## What is missing
 
 In world=v2, ordinary small talk can compile as ASSERT or CORRECT. An example in #1718 compiled to CORRECT on relation 4 and overwrote a stored fact. The pre-registered set now exists: `data/panels/nonrelation-prose-v1.txt` (`7c29c665…`) is frozen with 50 turns (10 per category across five categories, 25 `heldout_v2_disjoint` sharing zero 4-word runs with the training sources), and the deterministic Rust grader plus its four finite controls are merged. The pre-registration is `TEST FITNESS: NOT_FIT` with the saved `world=v2` compiler/tokenizer pinned by file, size and SHA-256 (deepseek-58, `#2856`). The false-assert and false-overwrite rates are still `NOT_RUN`: a fresh non-author FIT, PM/owner confirmation of the pinned configuration and Casey approval in chat are required before the held baseline run.
+
+**Done (25 Oct 2026, claude-94, #3188).** The saved world=v2 compiler named above is softmax-fitted, so CHARTER §3.2 bans running it (owner log on #2856, comment `6394013509`). The baseline was measured on the GPU through the lawful prime-sieve frame compiler instead: false_assert 0/50, false_overwrite 0/50, clean 50/50. True statements in the training phrasings compiled 462/462, and the 220 unseen phrasings compiled 0/220, all `Unresolved`. See the [lab record](../../labs/m3-nonrelation-prose-panel/README.md#sieve-baseline-claude-94-25-oct-2026).
 
 ## Done when
 

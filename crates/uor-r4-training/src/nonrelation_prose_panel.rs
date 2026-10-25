@@ -14,11 +14,11 @@ use std::fs;
 use std::path::Path;
 
 use crate::sha256_bytes;
-use crate::stack_grounded_session::{
+use crate::stack_store::{HistoryView, StackStore, StoreRead, Update};
+use crate::turn_action::{
     CompiledAction, CompilerIdentity, GroundedSessionError, MemoryEffect, RelationLabel,
     SourceSpan, TurnCompiler,
 };
-use crate::stack_store::{HistoryView, StackStore, StoreRead, Update, Written};
 
 /// Relative path from the repository root to the frozen v1 non-relation prose panel.
 pub const NONRELATION_PROSE_PANEL_PATH: &str = "data/panels/nonrelation-prose-v1.txt";

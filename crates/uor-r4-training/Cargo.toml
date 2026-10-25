@@ -17,7 +17,9 @@ parquet-input = ["dep:parquet"]
 default = ["native-rung0"]
 native-rung0 = []
 metal = []
-cuda = ["native-rung0", "candle-core/cuda", "candle-nn/cuda", "dep:cudarc"]
+cuda = ["native-rung0", "candle-core/cuda", "candle-nn/cuda", "dep:cudarc", "sieve-cuda"]
+# The sieve frame compiler's kernel alone: cudarc and its ahead-of-time PTX, without Candle.
+sieve-cuda = ["dep:cudarc"]
 cpu-accelerate = []
 reference-accelerate = []
 # Compatibility marker for retained teacher/integrity targets. Selecting this
@@ -75,8 +77,13 @@ name = "chat-grade"
 path = "src/bin/chat-grade.rs"
 required-features = ["native-rung0"]
 
+[[bin]]
+name = "prose-panel-sieve"
+path = "src/bin/prose-panel-sieve.rs"
+required-features = ["sieve-cuda"]
+
 [[test]]
 name = "d29_compiled_modules"
 path = "tests/d29_compiled_modules.rs"
-required-features = ["cuda"]
+required-features = ["sieve-cuda"]
 

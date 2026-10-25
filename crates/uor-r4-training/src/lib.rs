@@ -5,11 +5,14 @@
 //! evidence; no compatibility feature can reactivate it. Build admission and
 //! finite qualification do not release the owner's training holds.
 
-// Without the `cuda` feature the crate forbids unsafe code. With it, only the
-// CUDA kernel launchers (`cuda_stack_kernels::cuda` and
-// `native_geometric_cuda_kernels`) opt in.
-#![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
-#![cfg_attr(feature = "cuda", deny(unsafe_code))]
+// Without a GPU feature (`cuda` or `sieve-cuda`) the crate forbids unsafe code.
+// With one, only the CUDA kernel launchers (`cuda_stack_kernels::cuda`,
+// `native_geometric_cuda_kernels` and `sieve_frame_compiler::device`) opt in.
+#![cfg_attr(
+    not(any(feature = "cuda", feature = "sieve-cuda")),
+    forbid(unsafe_code)
+)]
+#![cfg_attr(any(feature = "cuda", feature = "sieve-cuda"), deny(unsafe_code))]
 
 #[cfg(any(
     feature = "historical-reference",
@@ -162,11 +165,7 @@ pub mod lawful_pointer;
 pub mod lut_export;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod metal_stack_kernels;
-#[cfg(test)]
-// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod milestone_world;
-#[cfg(test)]
-// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod milestone_world_v2;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world_v2_probe;
@@ -176,8 +175,6 @@ pub mod native_starling_spec;
 pub mod native_vector_writer;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod ngram;
-#[cfg(test)]
-// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod nonrelation_prose_panel;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod paraphrase_review;
@@ -192,6 +189,7 @@ pub mod reference_eval;
 pub mod relation_compiler;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod s8_panel_count;
+pub mod sieve_frame_compiler;
 pub mod spiralcore_fbs;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_address;
@@ -227,6 +225,7 @@ pub mod stack_store;
 pub mod stack_tracking;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod temporal_compiler;
+pub mod turn_action;
 
 #[cfg(test)]
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
