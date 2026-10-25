@@ -3,7 +3,7 @@ id: m3-memory-turn-discriminator-gate
 title: Add a memory-turn discriminator or margin gate
 milestone: M3
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m3-nonrelation-prose-panel]

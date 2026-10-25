@@ -29,7 +29,8 @@ use uor_r4_training::sieve_frame_compiler::{
 };
 use uor_r4_training::sieve_marker_gate::device::{GateDevice, GateTables};
 use uor_r4_training::sieve_marker_gate::{
-    decode_gated, gate_frames, DeviceMarkers, GatedDecision, MarkerTable, MAX_MARKERS,
+    decode_gated, CoreCofactorTable, DeviceMarkers, GatedDecision, MarkerTable, MAX_MARKERS,
+    WORLD_V2_CORE_COFACTOR_TABLE_SHA256, WORLD_V2_MARKER_TABLE_SHA256,
 };
 use uor_r4_training::turn_action::{
     CompiledAction, CompilerIdentity, GroundedSessionError, TurnCompiler,
@@ -134,14 +135,18 @@ fn controls(device: &GateDevice) -> Result<Value> {
     // 3: [8 1 2 3] {v}     update 21 (marker 8 followed by frame 0)
     // 4: [9 2] {v}         assert 26, 39
     // 5: [2] {v}           assert 34, 51
+    // 6: [6] {v} [10 7]    update 33 (suffix extension of frame 2; explains 10)
+    // 7: [6 11] {v}        assert 22, 33 (same expert as frame 2, non-nested span)
     // Markers: [8] update, [9] neutral.
-    let frames: [(&[u32], &[u32], bool, u32, u64, u64); 6] = [
+    let frames: [(&[u32], &[u32], bool, u32, u64, u64); 8] = [
         (&[1, 2, 3], &[], true, 0, 14, 21),
         (&[4, 5], &[], false, 2, 35, 0),
         (&[6], &[7], true, 0, 22, 33),
         (&[8, 1, 2, 3], &[], true, 1, 21, 21),
         (&[9, 2], &[], true, 0, 26, 39),
         (&[2], &[], true, 0, 34, 51),
+        (&[6], &[10, 7], true, 1, 33, 33),
+        (&[6, 11], &[], true, 0, 22, 33),
     ];
     let mut flat = DeviceFrames {
         sig_words: 1,
@@ -167,7 +172,7 @@ fn controls(device: &GateDevice) -> Result<Value> {
         length: vec![1, 1],
         update: vec![1, 0],
     };
-    let cases: [(&str, &[u32], GatedDecision); 14] = [
+    let cases: [(&str, &[u32], GatedDecision); 16] = [
         ("plain frame", &[1, 2, 3, 0], decision(1, 0, 0, 3, 1, 1)),
         (
             "update frame and its marker reading agree",
@@ -218,6 +223,16 @@ fn controls(device: &GateDevice) -> Result<Value> {
             decision(2, 4, 0, 2, 1, 2),
         ),
         ("empty turn", &[], decision(0, 0, 0, 0, 0, 0)),
+        (
+            "nested slot span refines outer span",
+            &[6, 0, 10, 7],
+            decision(1, 6, 1, 1, 1, 2),
+        ),
+        (
+            "non-nested slot spans disagree",
+            &[6, 11, 7],
+            decision(2, 2, 0, 1, 1, 2),
+        ),
     ];
     let mut turns = DeviceTurns::default();
     for (_, turn, _) in &cases {
@@ -230,6 +245,7 @@ fn controls(device: &GateDevice) -> Result<Value> {
         frames: &flat,
         frame_act: &frame_act,
         frame_expert_update: &frame_expert_update,
+        frame_base: None,
         markers: &markers,
         max_value_words: MAX_VALUE_WORDS,
         max_markers: MAX_MARKERS,
@@ -286,15 +302,23 @@ fn measure(
 ) -> Result<(Value, Vec<u8>)> {
     let err = |e: &dyn std::fmt::Display| e.to_string();
     let table = FrameTable::world_v2().map_err(|e| err(&e))?;
-    let markers = MarkerTable::derive(&table).map_err(|e| err(&e))?;
+    let base_markers = MarkerTable::derive(&table).map_err(|e| err(&e))?;
+    let cc = CoreCofactorTable::derive(&table).map_err(|e| err(&e))?;
     let table_bytes = table.canonical_bytes().map_err(|e| err(&e))?;
-    let marker_bytes = markers.canonical_bytes().map_err(|e| err(&e))?;
+    let base_marker_bytes = base_markers.canonical_bytes().map_err(|e| err(&e))?;
+    let cc_bytes = cc.canonical_bytes().map_err(|e| err(&e))?;
     let table_sha = sha256_bytes(&table_bytes);
-    let marker_sha = sha256_bytes(&marker_bytes);
+    let base_marker_sha = sha256_bytes(&base_marker_bytes);
+    let cc_sha = sha256_bytes(&cc_bytes);
     let ptx_sha = ptx_sha256();
     let pins = [
         ("frame_table_sha256", table_sha == expect_table),
-        ("marker_table_sha256", marker_sha == expect_markers),
+        (
+            "marker_table_sha256",
+            base_marker_sha == WORLD_V2_MARKER_TABLE_SHA256
+                && cc_sha == WORLD_V2_CORE_COFACTOR_TABLE_SHA256
+                && (cc_sha == expect_markers || base_marker_sha == expect_markers),
+        ),
         ("ptx_sha256", ptx_sha == expect_ptx),
         (
             "relation_labels",
@@ -315,16 +339,16 @@ fn measure(
         .chain(train.iter().chain(&development).map(|c| c.source.clone()))
         .collect();
     let (split, turns) = table.encode_turns(&sources).map_err(|e| err(&e))?;
-    let frames = table.device_frames().map_err(|e| err(&e))?;
-    let (frame_act, frame_expert_update) = gate_frames(&table);
-    let device_markers = markers.device_markers().map_err(|e| err(&e))?;
+    let gate_frame_set = cc.device_frames(&table).map_err(|e| err(&e))?;
+    let device_markers = cc.device_markers().map_err(|e| err(&e))?;
     let tables = GateTables {
-        frames: &frames,
-        frame_act: &frame_act,
-        frame_expert_update: &frame_expert_update,
+        frames: &gate_frame_set.frames,
+        frame_act: &gate_frame_set.frame_act,
+        frame_expert_update: &gate_frame_set.frame_expert_update,
+        frame_base: Some(&gate_frame_set.frame_base),
         markers: &device_markers,
         max_value_words: table.max_value_words,
-        max_markers: markers.max_markers,
+        max_markers: cc.max_markers,
     };
     let (first, micros) = device.compile(&tables, &turns).map_err(|e| err(&e))?;
     let (second, micros_again) = device.compile(&tables, &turns).map_err(|e| err(&e))?;
@@ -341,7 +365,7 @@ fn measure(
         actions.push(decode_gated(&table, words, *decision).map_err(|e| err(&e))?);
     }
     let mut artifact = table_bytes.clone();
-    artifact.extend(&marker_bytes);
+    artifact.extend(&cc_bytes);
     let compiler = GatedCompiler {
         identity: CompilerIdentity {
             schema: "uor-r4.sieve-marker-gate/1".into(),
@@ -411,12 +435,15 @@ fn measure(
         "pins": {
             "panel_sha256": report.panel_sha256,
             "frame_table_sha256": table_sha,
-            "marker_table_sha256": marker_sha,
+            "marker_table_sha256": base_marker_sha,
+            "core_cofactor_table_sha256": cc_sha,
             "compiler_artifact_sha256": report.compiler_artifact_sha256,
             "ptx_sha256": ptx_sha,
-            "markers": markers.markers.len(),
-            "max_markers": markers.max_markers,
-            "frames": table.frames.len(),
+            "markers": cc.markers.len(),
+            "max_markers": cc.max_markers,
+            "base_frames": table.frames.len(),
+            "derived_frames": cc.derived_frames.len(),
+            "frames": gate_frame_set.frames.prefix.len(),
             "max_value_words": table.max_value_words,
             "seed": seed,
             "values_per_phrasing": values_per_phrasing,

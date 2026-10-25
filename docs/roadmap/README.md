@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 39 |
+| ready | 38 |
 | held | 11 |
 | decision | 1 |
-| done | 41 |
+| done | 42 |
 | total | 92 |
 
 ## Start here
@@ -85,10 +85,10 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | ready | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | [#2855](https://github.com/UOR-Foundation/uor-r4/issues/2855) |
 | [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m2-train-grounded-replies](items/m2-train-grounded-replies.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | [#2858](https://github.com/UOR-Foundation/uor-r4/issues/2858) |
 | [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | held | anyone | no | none | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
 | [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | done | anyone | no | none | [#2854](https://github.com/UOR-Foundation/uor-r4/issues/2854) |
+| [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | done | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | [#2855](https://github.com/UOR-Foundation/uor-r4/issues/2855) |
 | [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | done | anyone | no | none | [#2856](https://github.com/UOR-Foundation/uor-r4/issues/2856) |
 | [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | done | anyone | no | none | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
 

@@ -179,8 +179,23 @@ __device__ static void sieve_marked_reading(
             *act = a;
             *hole_start = hs;
             *hole_len = hl;
-        } else if (e != *expert || hs != *hole_start || hl != *hole_len) {
-            *disagree = 1;
+        } else if (hs == *hole_start && hl == *hole_len) {
+            if (e != *expert) {
+                *disagree |= 1u;
+            }
+        } else if (frame_slot[f] && *act != 2u && hs >= *hole_start &&
+                   (hs + hl) <= (*hole_start + *hole_len) && hl < *hole_len) {
+            *first = f;
+            *expert = e;
+            *act = a;
+            *hole_start = hs;
+            *hole_len = hl;
+            *disagree &= ~1u;
+        } else if (frame_slot[f] && *act != 2u && *hole_start >= hs &&
+                   (*hole_start + *hole_len) <= (hs + hl) && *hole_len < hl) {
+            // Current reading explains a strict superset of turn words; keep it.
+        } else {
+            *disagree |= 2u;
         }
         *survivors += 1;
     }
@@ -202,7 +217,16 @@ extern "C" __global__ void sieve_frame_compile_marked(
     unsigned int* out_hole_start, unsigned int* out_hole_len, unsigned int* out_survivors)
 {
     const unsigned int t = blockIdx.x * blockDim.x + threadIdx.x;
-    if (t >= n_turns || sig_words > SIEVE_MAX_SIG_WORDS) {
+    if (t >= n_turns) {
+        return;
+    }
+    if (sig_words > SIEVE_MAX_SIG_WORDS) {
+        out_status[t] = 0u;
+        out_frame[t] = 0u;
+        out_act[t] = 0u;
+        out_hole_start[t] = 0u;
+        out_hole_len[t] = 0u;
+        out_survivors[t] = 0u;
         return;
     }
     const unsigned int* tok = turn_tokens + turn_off[t];
