@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 29 |
+| ready | 26 |
 | held | 16 |
 | decision | 1 |
-| done | 46 |
+| done | 49 |
 | total | 92 |
 
 ## Start here
@@ -34,7 +34,6 @@ These items are ready and open to anyone.
 |---|---|---|
 | [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | M1 | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
 | [Design a lawful position mechanism](items/m1-position-mechanism.md) | M1 | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
-| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | M4 | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
 | [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | M5 | [#2862](https://github.com/UOR-Foundation/uor-r4/issues/2862) |
 | [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | M7 | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
 | [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | M8 | [#2869](https://github.com/UOR-Foundation/uor-r4/issues/2869) |
@@ -95,9 +94,9 @@ These items are ready and open to anyone.
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
 | [Serve the chosen model as UORLUT01 through the uor-chat CLI](items/m4-export-uorlut01-cli.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [m4-lawful-likelihood-bpb](items/m4-lawful-likelihood-bpb.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m3-qualify-memory](items/m3-qualify-memory.md) | [#2859](https://github.com/UOR-Foundation/uor-r4/issues/2859) |
-| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | ready | anyone | no | none | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
 | [Build a lawful likelihood so bits per byte can be scored](items/m4-lawful-likelihood-bpb.md) | ready | a lab | no | none | [#2861](https://github.com/UOR-Foundation/uor-r4/issues/2861) |
 | [Write the D11 exporter for a D37 float trunk](items/d11-exporter-float-trunk.md) | held | a lab | no | [float-training-module](items/float-training-module.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2820](https://github.com/UOR-Foundation/uor-r4/issues/2820) |
+| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | done | anyone | no | none | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
 
 ## M5
 

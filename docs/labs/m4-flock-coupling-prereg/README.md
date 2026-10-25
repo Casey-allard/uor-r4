@@ -4,7 +4,7 @@
 - **Lab:** `antigravity` (`antigravity-25`)
 - **Issue / Milestone:** [`#2860`](https://github.com/UOR-Foundation/uor-r4/issues/2860) (`m4-flock-coupling-prereg`), M4 (`#2032`)
 - **Design note & PM questions:** [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539)
-- **Pre-registration sheet:** [`docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md`](../../harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md) (`TEST FITNESS: PENDING` until the PM/owner registers the 5 open items on `#2860`)
+- **Pre-registration sheet:** [`docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md`](../../harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md) (**REGISTERED**; `TEST FITNESS: FIT`, fresh-context non-author and D68 review `antigravity-85`, 2026-10-25)
 - **Host control suite:** [`crates/uor-r4-discrete/tests/flock_coupling_controls.rs`](../../../crates/uor-r4-discrete/tests/flock_coupling_controls.rs) (`7/7` tests PASS, `0` D23/D25/D32 ratchet sites)
 
 ---

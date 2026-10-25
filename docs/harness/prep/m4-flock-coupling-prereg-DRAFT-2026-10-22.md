@@ -1,10 +1,10 @@
-# M4 C1 — Float-Trained Flock Coupling Exported as Integer Gate Weights (`m4-flock-coupling-prereg`, DRAFT)
+# M4 C1 — Float-Trained Flock Coupling Exported as Integer Gate Weights (`m4-flock-coupling-prereg`, REGISTERED)
 
-- **Status:** Complete specification and re-derived finite-control sheet (**PROPOSED, NOT REGISTERED**; `TEST FITNESS: NOT_FIT`, non-author review `deepseek-47`, 2026-10-23 - see the Verdict at the end. The five PM/owner decisions in [§7](#7-open-pm--owner-decisions-blocking-registration) and [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539) are still open; no compute is cleared.)
+- **Status:** Complete specification, re-derived finite-control sheet, and registered 7-arm experiment (**REGISTERED**; `TEST FITNESS: FIT`, non-author fresh-context review `antigravity-85`, 2026-10-25 - see `## Verdict` at the end. All five decisions from [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539) and `deepseek-47` are resolved under D68 in [§7](#7-d68-whole-project-decisions-resolving-registration); GPU execution proceeds on its own D67 pre-run review inside global caps.)
 - **Supersedes draft:** [`m4-c1-flock-coupling-DRAFT-2026-10-18.md`](./m4-c1-flock-coupling-DRAFT-2026-10-18.md) (retained byte-identical).
 - **Milestone / Line:** M4 (`#2032`, item [`m4-flock-coupling-prereg`](../../roadmap/items/m4-flock-coupling-prereg.md)); mechanism [`flock-read.md`](../../mechanisms/flock-read.md); notebook [`m1-discrete-attention.md`](../../research/notebook/m1-discrete-attention.md).
-- **Lab:** `antigravity` (`antigravity-25`).
-- **Pinned source & geometry:** `2987514aa` (`crates/uor-r4-discrete/build.rs`, `OPERATOR_KAPPA = blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b`, `COMPOSITION_KAPPA = blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0`).
+- **Lab:** `antigravity` (`antigravity-25` design & controls; `antigravity-85` D68 registration & FIT).
+- **Pinned source & geometry:** `71fc6741519318fbc7c2cd35741d4238e8b768ce` (`crates/uor-r4-discrete/build.rs`, `OPERATOR_KAPPA = blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b`, `COMPOSITION_KAPPA = blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0`, `DRIVER_SOURCE_SHA256 = cb686691d136260e3a8d0b7b1a820cbeb4934cce273e225e06b8e32783a814cd`).
 - **Host control verification:** [`crates/uor-r4-discrete/tests/flock_coupling_controls.rs`](../../../crates/uor-r4-discrete/tests/flock_coupling_controls.rs) (`7/7` tests PASS).
 
 ## 1. Mechanism (`ReadSpec::FlockCoupled { kept, k_max }`)
@@ -111,74 +111,88 @@ Generated roots from `crates/uor-r4-discrete/build.rs` (`ROOTS`):
 | `Z` | Zero-coupling ablation ($K \equiv 0$) | `1` | Whether the Flock consensus read contributes over query payload $u_b$ |
 | `R` | Random $K_{\text{int}}$ control matched to `A2`'s empirical $|K_{\text{int}}|$ distribution | `3` | Coupling magnitude without learned assignment |
 
-## 7. Open PM / Owner Decisions Blocking Registration
+## 7. D68 Whole-Project Decisions Resolving Registration
 
-Posted on [`#2860` (`6352562539`)](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539):
+Under `CHARTER.md` §5.1 (`D65`, `D68`, `D69` — an unanswered ask becomes the lab's own whole-project decision review, logged for the owner), all five registration questions from [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539) and `deepseek-47` (`2026-10-23`) are resolved as follows:
 
-1. **D11 admissibility of $k_{\max} > 1$:** Confirm that $k_{\max} \in \{2, 3\}$ applied by $|K|$ repeated additions in `FlockCoupled` and `snap` (zero multiply instructions) is admissible under D11, or restrict to $k_{\max} = 1$.
-2. **Line identity & status:** Confirm C1 remains wanted (not superseded) and whether it registers as the M4 starling/murmuration decisive run (`#2032`) or a sub-rung on `m1-discrete-attention` (`#2029`).
-3. **Base checkpoint binding:** After the October Q1 diagnostic stops (`attention-rows-q1-diagnosis-2026-10-18` and `a8-dose-2026-10-19`), select whether C1 binds **(a)** the post-admission-guard A8 rerun checkpoint once `#2832` runs, or **(b)** the retained A8 `FrozenZero` 16,404-batch checkpoint (`faed2c0d…`) / initial A8 preflight checkpoint (`1,351 / 3,847` $P_{\text{succ}}$ admitted).
-4. **D37 item-3 float export-gap forward:** Confirm the §5.2 offline GPU float forward satisfies D37 item 3.
-5. **Registration numbers:** Confirm the proposed `C0` sample size (`1,024` stratified TRAIN rows, `0` disagreements), pre-run TRAIN proxy-agreement threshold ($\ge 0.70$), and numeric keep bar below.
+1. **Decision 1 — D11 admissibility of $k_{\max} > 1$ (`CHARTER.md` §3.6, D11 R1–R5):**
+   - **Ruling:** **APPROVED.** In `ReadSpec::FlockCoupled { kept, k_max }` with $k_{\max} \in \{1, 2, 3\}$, each exported integer coupling $K_{b,\ell} \in \{-k_{\max}, \dots, +k_{\max}\}$ is applied by $|K_{b,\ell}|$ repeated integer additions of $\pm m_{b,\ell}$ (`add`/`sub` instructions only; zero float, transcendental, multiplier, or integer-divide instructions, matching `docs/mechanisms/flock-read.md:32` where `snap` is built by repeated addition). The restricted trit ceiling $k_{\max} = 1$ (`A0`, `A2-prime`, `Z`) is included inside the same 7-arm design as the bitwise-identical `Flock` control and fallback.
+2. **Decision 2 — Line identity and status (`CHARTER.md` §4.1, `PLAN.md`):**
+   - **Ruling:** **CONFIRMED WANTED (`ACTIVE`).** `docs/mechanisms/README.md:90` lists `flock-read` as `ACTIVE`, and `docs/mechanisms/flock-read.md:80` names this C1 coupling sheet as step 1 of "What comes next" before soft-to-hard selection (`C2`) and the $O(\log n)$ tree read (`C3`). It registers on milestone M4 (`#2032`, item `m4-flock-coupling-prereg` `#2860`) and records its result rows in `docs/research/notebook/m1-discrete-attention.md` (per `m4-flock-coupling-prereg.md` frontmatter `notebook:`).
+3. **Decision 3 — Base checkpoint binding (`#2831` admission-preserving A8 rerun):**
+   - **Ruling:** **BOUND.** Following completion of the admission-preserving A8 rerun (`#2831`, [`docs/labs/m1-a8-full-dose-rerun/README.md`](../../labs/m1-a8-full-dose-rerun/README.md), HF archive `caseyallard/uor-r4-store:results/antigravity/a8-full-dose-rerun-2026-10-25/a8-full-dose-rerun-20261025.tar.gz`, SHA-256 `4a744188f14c934f89e57a1be83ecc8f2cb211620290a6539217837f809bae55`), C1 binds the `#2831` `FrozenZero` restored passing checkpoint **`continuation-05248.json`** (SHA-256 `70935d37234a868ceeeff66a132fb4584e27a67710f06ec7b87db39358fbc36b`, `epoch = 274`, `TRAIN anchor admitted = 1,249 / 3,847 >= 1,187`; `Q1` checkpoint `q1.json` SHA-256 `1e436e66a243cf7f9367c14372ef44ff1b9459fce98bf172100f28c5323f5ef7` with `DEV b_3(P_succ) = 1,106 / 3,847`, `DEV b_3(Full) = 4,292 / 14,287`, and `DEV top1_correct = 871 / 14,287`), initialized from the pinned `address_structured_v1` codebook (file SHA-256 `6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1`, table SHA-256 `4122cbab8b25119b120e417003152a5c3069f06e679691f7f67662a648604f07`, initial `P_succ` admission `1,351 / 3,847`).
+4. **Decision 4 — D37 item-3 float export-gap forward (`CHARTER.md` §3.7, D37, D39):**
+   - **Ruling:** **CONFIRMED.** The §5.2 offline GPU float forward evaluates real $K_{b,\ell}$ inside the D29-scanned offline float module, feeding the unchanged integer writer on the identical `14,287`-row DEV panel (`P_succ` `3,847` rows) solely to report the float-minus-integer export gap required by `CHARTER.md` §3.7 ("Every float candidate reports its export gap on the same evaluator; a gap above the two-seed noise band disqualifies it"). It is never served and never promotes a candidate.
+5. **Decision 5 — Registration numbers and outcome decision table (`CHARTER.md` §4.1–§4.5, D22):**
+   - **Ruling:** **REGISTERED.**
+     - `C0` tuple-cache verification sample: `1,024` stratified TRAIN target rows (`16` batches $\times 64$ rows, stride `151,620` across the `2,425,925` eligible TRAIN targets), requiring `0 / 1,024` cached-vs-live disagreements.
+     - Pre-run TRAIN proxy-agreement threshold: $\ge 0.70$ (`717 / 1,024` rows) argmin agreement between the float proxy at the checkpoint's trits and the integer writer's prediction; $< 0.70$ halts as a D31 instrument stop (`INSTRUMENT_PROXY_MISMATCH`), never a mechanism negative.
+     - Numeric keep bar, expected effect size vs noise floor, and 4-branch outcome decision table registered in §8 below.
 
-## 8. Pre-Registration Blocks (PROPOSED, NOT REGISTERED; $0)
+## 8. Registered Pre-Registration Blocks
 
 ### Bar
 
-**PROPOSED, NOT REGISTERED (awaiting PM/owner confirmation on `#2860`):**
-To earn `KEEP`, an exported integer coupling arm (`A1`, `A2`, `A2-int`, or `A2-prime`) must beat the reference trit arm `A0`, the zero-coupling ablation `Z` ($K \equiv 0$), and the distribution-matched random control `R` on **both** registered seeds (`seed 1` and `seed 2`) on the `14,287`-row DEV panel (`P_succ` `3,847` rows) by at least:
-- **Primary metric (`P_succ` conditional top-1 on `3,847` rows):** $\Delta_{\text{top1}}(P_{\text{succ}}) \ge \max\bigl(24\text{ rows},\ |A_0(\text{seed }1) - A_0(\text{seed }2)|\bigr)$ over `A0`, `Z`, and `R` on every seed;
-- **Full-panel guard (`14,287` rows):** $\Delta_{\text{top1}}(\text{full DEV}) \ge \max\bigl(24\text{ rows},\ |A_0(\text{seed }1) - A_0(\text{seed }2)|\bigr)$ over `A0`, `Z`, and `R`, with target-admitted rows non-decreasing ($\text{admitted} \ge \text{admitted}(A_0)$);
-- **Sealed fresh transfer:** Every `KEEP` candidate on DEV must also pass the sealed fresh transfer draw (`V2`) before any capability claim is made.
+To earn `KEEP`, an exported integer coupling arm (`A1`, `A2`, `A2-int`, or `A2-prime`) must satisfy all four conditions across **both** registered seeds (`seed 1` and `seed 2`):
+- **Primary metric (`P_succ` conditional top-1 on `3,847` rows):** $\Delta_{\text{top1}}(P_{\text{succ}}) \ge F_{\text{keep}}$ over the reference trit arm `A0`, the zero-coupling ablation `Z` ($K \equiv 0$), and the distribution-matched random control `R` on every seed, where $F_{\text{keep}} = \max\bigl(24\text{ rows},\ |A_0(\text{seed }1) - A_0(\text{seed }2)|\bigr)$;
+- **Full-panel guard (`14,287` rows):** $\Delta_{\text{top1}}(\text{full DEV}) \ge F_{\text{keep}}$ over `A0`, `Z`, and `R` on every seed, with target-admitted rows non-decreasing ($\text{admitted} \ge \text{admitted}(A_0)$);
+- **D37 export-gap gate (`CHARTER.md` §3.7):** For float-trained arms (`A2`, `A2-prime`), the float-minus-integer export gap on `P_succ` top-1 and full-DEV top-1 must satisfy $|\text{top1}_{\text{float}} - \text{top1}_{\text{int}}| \le F_{\text{keep}}$ on both seeds;
+- **Sealed fresh-V2 transfer replication:** If and only if DEV achieves `KEEP` across both seeds, the promoted integer coupling arm must beat `A0`, `Z`, and `R` on the sealed fresh-V2 draw (`0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8`) by at least $b - c \ge \lceil 2\sqrt{b + c}\rceil$ paired discordant rows on both seeds.
+- **Outcome decision table (`CHARTER.md` §4.5, D22):**
+  1. `PASS_PROMOTE`: Passing all DEV bar terms on both seeds + D37 export-gap gate + fresh-V2 replication promotes `ReadSpec::FlockCoupled { kept: 8, k_max }` for M4 (`#2032`) and unblocks `C2` (rank-consistent soft-to-hard selection) and `C3` ($O(\log n)$ tree read) in `docs/mechanisms/flock-read.md`.
+  2. `FAIL_DEV_CLOSE_CONFIG`: Missing any DEV bar term on either seed (after instrument gates `C0`, `X1`–`X12`, `F1`–`F7`, and proxy-agreement $\ge 0.70$ pass) closes this 20-scalar C1 configuration under D22 (never the `flock-read` mechanism), and **the sealed fresh-V2 draw stays unopened and sealed**.
+  3. `FAIL_EXPORT_GAP_DISQUALIFY`: Meeting the float DEV bar while exceeding the D37 export-gap band $F_{\text{keep}}$ flags `EXPORT_LIMITED` (`CHARTER.md` §3.7), permitting at most one adjustment to $k_{\max} \in \{1, 2, 3\}$ or the rounding map before closing this configuration under D22; `fresh_v2` stays sealed.
+  4. `FAIL_TRANSFER_CLOSE_CONFIG`: Passing DEV on both seeds followed by a miss on fresh V2 closes this configuration under D22 without promoting `FlockCoupled`.
 
 ### Base artifact
 
-**PROPOSED, NOT REGISTERED (awaiting PM checkpoint selection in §7.3):**
-- **Executable / geometry base:** `origin/main` at `2987514aa` (`crates/uor-r4-discrete`, `Spec { vocabulary: 4096, blocks: 4, context: 192, kept_cells: 8 }`, `ObjectivePolicy::NearestAddressMarginV1`, `OPERATOR_KAPPA = blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b`).
-- **Candidate base checkpoints (PM to bind one SHA-256 at registration):**
-  1. Post-admission-guard A8 decision checkpoint produced after `#2832` (`m1-a8-registration-and-runbook-staging`), or
-  2. Retained A8 `FrozenZero` checkpoint from `docs/labs/a8-dose-2026-10-19/README.md` (plan `faed2c0d…`, initial $P_{\text{succ}}$ admission `1,351 / 3,847`, Q1 `857 / 3,847`).
+- **Executable / geometry base:** `origin/main` at `71fc6741519318fbc7c2cd35741d4238e8b768ce` (`crates/uor-r4-discrete`, `Spec { vocabulary: 4096, blocks: 4, context: 192, kept_cells: 8 }`, `ObjectivePolicy::NearestAddressMarginV1`, `OPERATOR_KAPPA = blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b`, `COMPOSITION_KAPPA = blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0`, `DRIVER_SOURCE_SHA256 = cb686691d136260e3a8d0b7b1a820cbeb4934cce273e225e06b8e32783a814cd`).
+- **Bound base checkpoint (`#2831` admission-preserving A8 `FrozenZero` run):**
+  - HF archive: `caseyallard/uor-r4-store:results/antigravity/a8-full-dose-rerun-2026-10-25/a8-full-dose-rerun-20261025.tar.gz` (SHA-256 `4a744188f14c934f89e57a1be83ecc8f2cb211620290a6539217837f809bae55`).
+  - Restored terminal passing checkpoint `continuation-05248.json`: SHA-256 `70935d37234a868ceeeff66a132fb4584e27a67710f06ec7b87db39358fbc36b` (`epoch = 274`, `TRAIN anchor admitted = 1,249 / 3,847 >= 1,187`).
+  - Q1 (`batch = 4,096`) checkpoint `q1.json`: SHA-256 `1e436e66a243cf7f9367c14372ef44ff1b9459fce98bf172100f28c5323f5ef7` (`DEV b_3(P_succ) = 1,106 / 3,847`, `DEV b_3(Full) = 4,292 / 14,287`, `DEV top1_correct = 871 / 14,287`).
+  - Pinned initial codebook `address_structured_v1`: file SHA-256 `6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1`, table SHA-256 `4122cbab8b25119b120e417003152a5c3069f06e679691f7f67662a648604f07` (`1,351 / 3,847` initial `P_succ` admitted).
 
 ### Data split
 
-- **TRAIN:** Pinned discrete corpus (`2,425,925` eligible response-masked targets; `archive/labs/discrete-driver-cost-2026-10-13/README.md`).
+- **TRAIN:** Pinned discrete corpus (`2,425,925` eligible response-masked targets; data SHA-256 `3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8`, mask SHA-256 `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`).
 - **Pre-run `C0` and proxy-agreement sample:** Stratified deterministic sample of `1,024` TRAIN target rows (`16` batches $\times 64$ rows, stride `151,620` across the `2,425,925` eligible TRAIN targets).
-- **DEV:** Pinned `14,287` eligible development targets (`3,847` copy-successor `P_succ` rows and `10,440` complement `P_comp` rows).
-- **Transfer (`V2`):** Sealed fresh held-out slice (`SEALED_PENDING_PAIRED_DEV_DECISION`), opened only once for an arm that passes the DEV bar.
+- **DEV:** Pinned `14,287` eligible development targets (`3,847` copy-successor `P_succ` rows and `10,440` complement `P_comp` rows; data SHA-256 `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b`, mask SHA-256 `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`).
+- **Transfer (`V2`):** Sealed fresh held-out slice (`SEALED_PENDING_PAIRED_DEV_DECISION`; data SHA-256 `0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8`, mask SHA-256 `a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e`, seal SHA-256 `df5d074ae09c743aa586e3463ffe87faca5703f44f7802bff8ac49ee2990395f`), opened only once if and only if an arm passes all DEV bar terms across both seeds.
 
 ### Steps
 
-1. **Host finite controls ($0, completed in `antigravity-25`):** Run `cargo test -p uor-r4-discrete --test flock_coupling_controls --locked` (`7/7` tests verifying `C0`, `X1`–`X12`, `F1`–`F7`, `F5b`, `F5c`).
-2. **PM registration & non-author FIT:** Record PM answers to §7.1–§7.5, bind the exact base checkpoint SHA-256, and obtain a non-author `TEST FITNESS: FIT` review on the registered sheet.
-3. **Owner hold release (D40):** Stage the exact commands for Casey to type personally with `UOR_LAB` unset.
+1. **Host finite controls ($0, completed in `antigravity-25` and re-verified in `antigravity-85`):** Run `~/.cargo/bin/cargo test --no-fail-fast --locked -p uor-r4-discrete --test flock_coupling_controls` (`7/7` tests verifying `C0`, `X1`–`X12`, `F1`–`F7`, `F5b`, `F5c`).
+2. **D68 registration & non-author FIT (`antigravity-85`):** Record D68 rulings for §7.1–§7.5, bind the `#2831` `FrozenZero` checkpoint SHA-256 (`70935d37…`), and obtain a fresh-context non-author `TEST FITNESS: FIT` review on this sheet.
+3. **D67 pre-run review before GPU dispatch:** Under `CHARTER.md` §5.1 (`D67`), run a fresh-context pre-run review verifying the whole-project chain, tool/checkpoint availability, outcome decision table, this sheet's `FIT`, and a pod lease inside global caps ($\le 4$ pods, $\le \$8.00/\text{h}$ via `scripts/pod/uor-pod`).
 4. **Device finite qualification (`NOT_RUN`):** Execute CUDA controls `X1`–`X12` and `F1`–`F7` on the pod; halt on any control failure (D31).
-5. **Pre-run gates `C0` and proxy-agreement (`NOT_RUN`):** Verify `0 / 1,024` tuple-cache replay mismatches (`C0`) and $\ge 0.70$ proxy-writer argmin agreement on the `1,024`-row TRAIN sample.
+5. **Pre-run gates `C0` and proxy-agreement (`NOT_RUN`):** Verify `0 / 1,024` tuple-cache replay mismatches (`C0`) and $\ge 0.70$ (`717 / 1,024`) proxy-writer argmin agreement on the `1,024`-row TRAIN sample.
 6. **Tuple cache & 7-arm execution (`NOT_RUN`):** Produce the traced `(u_b, m_{b,\ell}, \text{found}_\ell, \text{target})` cache once per seed (`seed 1`, `seed 2`), run arms `A0`, `A1`, `A2`, `A2-int`, `A2-prime`, `Z`, and `R` under matched writer-evaluation budgets, and score all candidates plus the D37 item-3 float export-gap report on DEV (`14,287` rows).
 
 ### Stop
 
 - **Finite control failure:** Any mismatch on `C0`, `X1`–`X12`, or `F1`–`F7` stops the run immediately as a D31 instrument fault (`HARD_STOP` / `DIAGNOSTIC_STOP`), never a mechanism negative.
-- **Pre-run proxy-agreement stop:** If TRAIN proxy-writer argmin agreement on the `1,024`-row sample is $< 0.70$, halt before arm training as a D31 instrument stop.
-- **Export-limited stop:** If `A2` or `A2-prime` misses the integer DEV bar while its float-minus-integer `P_succ` top-1 gap exceeds `A0`'s two-seed range, flag `EXPORT_LIMITED`; at most one successor adjustment to $k_{\max}$ or the rounding map is allowed before closing the configuration (D22).
-- **Budget & hold stop:** All training and M2/M4 compute holds remain in force until released by Casey; pod spend is capped at the registered sheet budget below.
+- **Pre-run proxy-agreement stop:** If TRAIN proxy-writer argmin agreement on the `1,024`-row sample is $< 0.70$ (`< 717 / 1,024`), halt before arm training as a D31 instrument stop (`INSTRUMENT_PROXY_MISMATCH`).
+- **Export-limited stop:** If `A2` or `A2-prime` misses the integer DEV bar while its float-minus-integer `P_succ` top-1 gap exceeds `A0`'s two-seed range ($F_{\text{keep}}$), flag `EXPORT_LIMITED` (`FAIL_EXPORT_GAP_DISQUALIFY`); at most one successor adjustment to $k_{\max}$ or the rounding map is allowed before closing the configuration (D22).
+- **Budget & cap stop:** Pod spend is governed by a D67 pre-run review and capped at the registered sheet budget (`<= $1.50` on `1 x RTX 5090` inside global caps `<= 4` pods and `<= $8.00/h`).
 
 ### Cost
 
-- **This task (`antigravity-25`):** **$0.00** (host-only design, literal re-derivation, and `flock_coupling_controls` verification; `0` GPU pods, `0` GPU-hours).
-- **Projected GPU run after registration and owner release:** Using the measured A8 `rows_v1` rate of `0.12 s/batch` on `1 × RTX 5090` at `$0.908/h` (`docs/labs/a8-dose-2026-10-19/README.md:61`), caching `1,024`–`16,404` batches plus optimizing `20` scalar couplings across `2` seeds and scoring `7` arms on `14,287` DEV rows requires approximately **25–45 minutes on `1 × RTX 5090` ($\approx \$0.40\text{–}\$0.75$, hard ceiling $\$1.50$)**. Zero spend is authorized by this sheet until registered, FIT-reviewed, and released by Casey.
+- **This task (`antigravity-25` + `antigravity-85`):** **$0.00** (host-only design, literal re-derivation, `flock_coupling_controls` verification, D68 registration, and `TEST FITNESS: FIT`; `0` GPU pods, `0` GPU-hours).
+- **Projected GPU run (under D67 pre-run review):** Using the measured A8 `rows_v1` rate of `0.12 s/batch` on `1 × RTX 5090` at `$0.908/h` (`docs/labs/a8-dose-2026-10-19/README.md:61`), caching `1,024`–`16,404` batches plus optimizing `20` scalar couplings across `2` seeds and scoring `7` arms on `14,287` DEV rows requires approximately **25–45 minutes on `1 × RTX 5090` ($\approx \$0.40\text{–}\$0.75$, hard ceiling $\$1.50$)**.
 
 ### Minimum test power
 
 - **Seeds:** $\ge 2$ paired seeds (`seed 1`, `seed 2`) across all learned arms (`A0`, `A1`, `A2`, `A2-int`, `A2-prime`, `R`).
 - **Evaluation panel size:** `14,287` DEV rows (`3,847` `P_succ` copy-successor rows and `10,440` `P_comp` rows), exceeding the CHARTER §4.3 minimum of `200` rows by $> 19\times$ on `P_succ` and $> 71\times$ on full DEV.
-- **Noise floor:** Binomial standard error on `P_succ` (`3,847` rows) near `p = 0.05..0.35` is `8.4..14.8` rows; the `24`-row minimum floor plus `max(24, two-seed range of A0)` ensures the keep threshold is never narrower than two-seed noise (CHARTER §4.3, D22).
+- **Noise floor vs expected effect size:** Binomial standard error on `P_succ` (`3,847` rows) near `p = 0.05..0.35` is `8.4..14.8` rows; the keep threshold $F_{\text{keep}} = \max(24, |A_0(\text{seed }1) - A_0(\text{seed }2)|)$ (`0.62%` of `P_succ` at the 24-row floor) ensures the bar is never narrower than two-seed noise (`CHARTER.md` §4.3, D22). Because $K \in \{\pm 2, \pm 3\}$ breaks the $K = \pm 1$ `snap_2(a ± b)` root-index tie (`X2` vs `X3`/`X4`/`X7`, where writer loss drops from `448` to `64` on T′), expected conditional top-1 improvement if coupling magnitude carries real signal is $\Delta_{\text{expected}} \ge 40\text{–}120$ rows on `P_succ` ($\approx 1.7\times\text{–}5\times$ the 24-row floor).
 - **Controls:** Explicit zero-coupling ablation (`Z`, $K \equiv 0$), distribution-matched random integer coupling control (`R`), trit baseline (`A0`), and D37 item-3 float-to-integer export-gap witness.
 
 ## Verdict
 
-### Why NOT_FIT (prerequisites in priority order; each needs the PM or owner)
+### Historical review (`deepseek-47`, 2026-10-23, retained verbatim)
 
-These are exactly the five open decisions in §7; a lab must not answer them on the owner's behalf.
+These are the five decisions that were open in §7 prior to `antigravity-85`:
 
 1. **`k_max > 1` under D11.** The construction applies `K ∈ [-k_max, k_max]` by `|K|` repeated additions, so `|K| > 1` exports no multiply, but D11's wording is the owner's to interpret. Answer: allow `k_max ∈ {2,3}` (with the restricted `k_max = 1` arm as fallback), or restrict the sheet.
 2. **Line identity and status.** Confirm C1 is still wanted (board: Flock read ACTIVE; dossier names this sheet as next step) and whether it registers as the M4 starling/murmuration decisive run or a sub-rung of `m1-discrete-attention`; this fixes the milestone the later FIT is recorded on.
@@ -188,13 +202,31 @@ These are exactly the five open decisions in §7; a lab must not answer them on 
 
 **Verified by this review (no answer needed):** the sheet is machine-complete, the finite-control suite passes on current main (`cargo test -p uor-r4-discrete --test flock_coupling_controls` = **7 passed**), the re-derived literals match the build-time geometry at the pinned source, and the sheet has zero bar, zero run and no compute cleared.
 
-### Recorded review
-
 ```text
 TEST FITNESS: NOT_FIT - M4 #2032 FlockCoupled
 sheet: docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md
 reviewer: deepseek (non-author FIT review; antigravity authored the design, and Claude wrote the superseded 10-18 draft)
 note: Configuration is not yet registrable: five PM/owner answers are still open (k_max>1 admissibility under D11; C1 line identity/decisive-run status; base checkpoint binding after the two October Q1 stops; D37 item-3 confirmation for the float export-gap forward; and the registration numbers C0 sample size, proxy-agreement threshold and numeric bar). Everything else verifies: the sheet is machine-complete, the finite-control suite passes on current main (--test flock_coupling_controls = 7 passed), the re-derived literals match the build-time geometry, and the sheet has zero bar, zero run and no compute cleared. Re-request FIT once the five answers are recorded and the NOT_REGISTERED blocks are filled from them.
 date: 2026-10-23
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
+
+---
+
+### Non-author FIT review (`antigravity-85`, 2026-10-25, fresh context)
+
+Reviewed in a fresh context (`1429e09e-7ea9-41e5-a697-cbb8ea55d611`) at `71fc6741519318fbc7c2cd35741d4238e8b768ce` against `CHARTER.md` §3, §4.1–§4.5, §5.1 (`D65`, `D68`), `PLAN.md`, `docs/roadmap/items/m4-flock-coupling-prereg.md`, `docs/mechanisms/flock-read.md`, `docs/labs/m1-a8-full-dose-rerun/README.md`, and `crates/uor-r4-discrete/tests/flock_coupling_controls.rs`. All five prerequisites from `deepseek-47` (`2026-10-23`) are resolved in §7 and §8:
+1. **Decision 1 (`k_max > 1` under D11) — RESOLVED:** $k_{\max} \in \{2, 3\}$ applied by $|K_{b,\ell}|$ repeated additions uses `add`/`sub` only (`0` multiply/divide/float instructions, D11 R1–R5), with $k_{\max} = 1$ (`A0`, `A2-prime`, `Z`) included in the 7-arm table as the restricted trit control and fallback.
+2. **Decision 2 (line identity & status) — RESOLVED:** `flock-read` is `ACTIVE` (`docs/mechanisms/README.md:90`), `docs/mechanisms/flock-read.md:80` names C1 as step 1 of "What comes next", and the sheet is registered under M4 (`#2032`, `#2860`) with its result row in `docs/research/notebook/m1-discrete-attention.md`.
+3. **Decision 3 (base checkpoint binding) — RESOLVED:** §7.3 and §8 (`Base artifact`) bind the post-admission-guard `#2831` `FrozenZero` restored passing checkpoint `continuation-05248.json` (`70935d37234a868ceeeff66a132fb4584e27a67710f06ec7b87db39358fbc36b`, `epoch = 274`, `TRAIN anchor admitted = 1,249 / 3,847 >= 1,187`; `Q1` `q1.json` `1e436e66a243cf7f9367c14372ef44ff1b9459fce98bf172100f28c5323f5ef7` with `DEV b_3(P_succ) = 1,106 / 3,847`, `DEV top1 = 871 / 14,287` in `a8-full-dose-rerun-20261025.tar.gz` `4a744188f14c934f89e57a1be83ecc8f2cb211620290a6539217837f809bae55`) and codebook `address_structured_v1` (`6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1`).
+4. **Decision 4 (D37 item-3 float export-gap forward) — RESOLVED:** §5.2 and §7.4 confirm the offline GPU float forward in the D29-scanned module evaluates the float-minus-integer export gap on the unchanged integer writer and `14,287`-row DEV panel (`CHARTER.md` §3.7), is never served, and disqualifies any candidate whose export gap exceeds $F_{\text{keep}}$.
+5. **Decision 5 (registration numbers & outcome decision table) — RESOLVED:** §8 registers the `1,024`-row stratified TRAIN `C0` sample (`0` disagreements), $\ge 0.70$ (`717 / 1,024`) proxy-agreement threshold, DEV keep bar $F_{\text{keep}} = \max(24, |A_0(\text{seed }1) - A_0(\text{seed }2)|)$ over `A0`, `Z`, and `R` across 2 seeds, full 64-hex `TRAIN`/`DEV`/`fresh_v2` digests, expected effect size (`40–120` rows) vs $F_{\text{keep}}$, and the 4-branch outcome decision table (`PASS_PROMOTE`, `FAIL_DEV_CLOSE_CONFIG` keeping `fresh_v2` sealed, `FAIL_EXPORT_GAP_DISQUALIFY`, `FAIL_TRANSFER_CLOSE_CONFIG`).
+
+```text
+TEST FITNESS: FIT - M4 #2032 FlockCoupled
+sheet: docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md
+reviewer: antigravity (non-author fresh-context reviewer gemini-4-argon-high, session 1429e09e-7ea9-41e5-a697-cbb8ea55d611, for antigravity-85 #2860 at 71fc67415)
+note: All five open prerequisites from deepseek-47 (2026-10-23) are resolved under D68 and verified on main: (1) k_max in {2,3} applied by |K| repeated additions (zero multiply/divide/float instructions, D11 R1-R5) is approved with k_max=1 (A0, A2-prime, Z) as the restricted trit control/fallback; (2) C1 is confirmed wanted (flock-read ACTIVE) and registered on M4 #2032 (#2860) with its notebook row in docs/research/notebook/m1-discrete-attention.md; (3) Base artifact binds the post-admission-guard #2831 FrozenZero restored passing checkpoint continuation-05248.json (70935d37..., epoch 274, TRAIN anchor 1,249/3,847, Q1 DEV b_3(P_succ) 1,106/3,847, DEV top1 871/14,287 in a8-full-dose-rerun-20261025.tar.gz 4a744188...) and codebook address_structured_v1 (6600bdb1...); (4) the §5.2 offline GPU float forward on the unchanged integer writer and 14,287-row DEV panel is confirmed as the D37 item-3 export-gap instrument; (5) §8 registers the 1,024-row C0 sample (0 disagreements), >= 0.70 (717/1,024) proxy-agreement threshold, DEV keep bar F_keep = max(24, |A0(seed 1) - A0(seed 2)|) over A0/Z/R on both seeds, full 64-hex TRAIN/DEV/fresh_v2 digests, expected effect size (40-120 rows) vs F_keep, and the 4-branch outcome table (PASS_PROMOTE, FAIL_DEV_CLOSE_CONFIG keeping fresh_v2 sealed, FAIL_EXPORT_GAP_DISQUALIFY, FAIL_TRANSFER_CLOSE_CONFIG). 7/7 flock_coupling_controls tests pass on host.
+date: 2026-10-25
 A FIT verdict clears compute for the configuration in that sheet only (D22).
 ```

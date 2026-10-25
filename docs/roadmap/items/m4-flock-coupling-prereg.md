@@ -3,7 +3,7 @@ id: m4-flock-coupling-prereg
 title: Finish the flock-coupling pre-registration
 milestone: M4
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
