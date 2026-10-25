@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, r-secant-surrogate-descent]
 notebook: docs/research/notebook/float-training.md
-scope: [crates/uor-r4-float-train/**, crates/uor-r4-integer/**, docs/mechanisms/recurrence-gates.md, docs/harness/prep/recurrence-gates-six-recurrence-fit*, docs/labs/recurrence-gates-six-recurrence-fit/**, docs/loop/tasks/recurrence-gates-six-recurrence-fit/**]
+scope: [docs/mechanisms/recurrence-gates.md, docs/harness/prep/recurrence-gates-six-recurrence-fit*, docs/labs/recurrence-gates-six-recurrence-fit/**, docs/loop/tasks/recurrence-gates-six-recurrence-fit/**]
 ---
 
 ## Why it matters

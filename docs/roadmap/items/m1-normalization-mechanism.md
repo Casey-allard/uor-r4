@@ -7,7 +7,8 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
-scope: [crates/uor-r4-discrete/**, docs/geometry/e8-h4-and-the-600-cell.md, docs/geometry/quaternions-and-rotation.md, docs/harness/prep/m1-normalization-mechanism*, docs/mechanisms/hamilton-gate.md, docs/model/architecture.md, docs/labs/m1-normalization-mechanism/**]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [docs/geometry/e8-h4-and-the-600-cell.md, docs/geometry/quaternions-and-rotation.md, docs/harness/prep/m1-normalization-mechanism*, docs/mechanisms/hamilton-gate.md, docs/model/architecture.md, docs/labs/m1-normalization-mechanism/**, docs/loop/tasks/m1-normalization-mechanism/**]
 ---
 
 ## Why it matters
