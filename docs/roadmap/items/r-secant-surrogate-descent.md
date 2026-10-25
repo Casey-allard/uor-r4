@@ -3,7 +3,7 @@ id: r-secant-surrogate-descent
 title: Check whether a secant surrogate gives descent for recurrence gates
 milestone: research
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
