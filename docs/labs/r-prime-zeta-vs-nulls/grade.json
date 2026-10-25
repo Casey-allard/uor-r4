@@ -1,0 +1,156 @@
+{
+  "capacity": {
+    "p8": {
+      "cell_collision_pairs": 30720,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 16,
+      "min_cell": 16,
+      "occupied_cells": 256
+    },
+    "q0": {
+      "cell_collision_pairs": 30720,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 16,
+      "min_cell": 16,
+      "occupied_cells": 256
+    },
+    "q1": {
+      "cell_collision_pairs": 30720,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 16,
+      "min_cell": 16,
+      "occupied_cells": 256
+    },
+    "q2": {
+      "cell_collision_pairs": 30720,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 16,
+      "min_cell": 16,
+      "occupied_cells": 256
+    },
+    "r0": {
+      "cell_collision_pairs": 32493,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 27,
+      "min_cell": 8,
+      "occupied_cells": 256
+    },
+    "r1": {
+      "cell_collision_pairs": 32802,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 27,
+      "min_cell": 3,
+      "occupied_cells": 256
+    },
+    "r2": {
+      "cell_collision_pairs": 32659,
+      "dev_alias_ceiling_rows": 14287,
+      "distinct_vectors": 4096,
+      "max_cell": 26,
+      "min_cell": 8,
+      "occupied_cells": 256
+    }
+  },
+  "crowding_descriptive": {
+    "q0_vs_r0": {
+      "b": 169,
+      "c": 174,
+      "outcome": "tie"
+    },
+    "q1_vs_r1": {
+      "b": 159,
+      "c": 163,
+      "outcome": "tie"
+    },
+    "q2_vs_r2": {
+      "b": 122,
+      "c": 92,
+      "outcome": "win"
+    }
+  },
+  "pairs": {
+    "p8_vs_q0": {
+      "b": 122,
+      "c": 173,
+      "outcome": "loss"
+    },
+    "p8_vs_q1": {
+      "b": 122,
+      "c": 179,
+      "outcome": "loss"
+    },
+    "p8_vs_q2": {
+      "b": 122,
+      "c": 121,
+      "outcome": "tie"
+    },
+    "p8_vs_r0": {
+      "b": 119,
+      "c": 175,
+      "outcome": "loss"
+    },
+    "p8_vs_r1": {
+      "b": 125,
+      "c": 186,
+      "outcome": "loss"
+    },
+    "p8_vs_r2": {
+      "b": 125,
+      "c": 94,
+      "outcome": "win"
+    }
+  },
+  "reach": {
+    "p8": {
+      "b3_full": 427,
+      "b3_psucc": 127,
+      "top1": 38,
+      "top8": 95
+    },
+    "q0": {
+      "b3_full": 564,
+      "b3_psucc": 178,
+      "top1": 36,
+      "top8": 74
+    },
+    "q1": {
+      "b3_full": 560,
+      "b3_psucc": 184,
+      "top1": 49,
+      "top8": 133
+    },
+    "q2": {
+      "b3_full": 696,
+      "b3_psucc": 126,
+      "top1": 52,
+      "top8": 158
+    },
+    "r0": {
+      "b3_full": 553,
+      "b3_psucc": 183,
+      "top1": 24,
+      "top8": 72
+    },
+    "r1": {
+      "b3_full": 485,
+      "b3_psucc": 188,
+      "top1": 25,
+      "top8": 116
+    },
+    "r2": {
+      "b3_full": 373,
+      "b3_psucc": 96,
+      "top1": 27,
+      "top8": 73
+    }
+  },
+  "rule": "win: clears(Paired{b,c}); loss: clears(Paired{b:c,c:b}); verdict by Q wins (card B)",
+  "schema": "uor-r4.pz-nulls-grade/1",
+  "verdict": "negative (loss)"
+}

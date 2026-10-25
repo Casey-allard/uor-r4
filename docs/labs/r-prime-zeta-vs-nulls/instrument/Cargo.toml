@@ -1,0 +1,22 @@
+[package]
+name = "r-prime-zeta-vs-nulls-instrument"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# instrument can never change what the workspace builds, and this item's scope
+# holds no crate path. It reads uor-r4-discrete (default features, so no
+# `cuda`) and never edits it.
+[workspace]
+
+[[bin]]
+name = "pz-nulls-grade"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
+
+[dev-dependencies]
+sha2 = "0.10"

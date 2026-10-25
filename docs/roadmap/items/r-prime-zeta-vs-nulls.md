@@ -3,7 +3,7 @@ id: r-prime-zeta-vs-nulls
 title: Test the prime-zeta code against injective nulls at zero updates
 milestone: research
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []
