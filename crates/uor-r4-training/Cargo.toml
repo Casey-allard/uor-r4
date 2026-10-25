@@ -87,6 +87,11 @@ name = "prose-panel-gate"
 path = "src/bin/prose-panel-gate.rs"
 required-features = ["sieve-cuda"]
 
+[[bin]]
+name = "lawful-pointer-oracle"
+path = "src/bin/lawful-pointer-oracle.rs"
+required-features = ["sieve-cuda"]
+
 [[test]]
 name = "d29_compiled_modules"
 path = "tests/d29_compiled_modules.rs"

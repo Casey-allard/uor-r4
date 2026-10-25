@@ -29,7 +29,7 @@ struct Module {
     feature: &'static str,
 }
 
-const MODULES: [Module; 4] = [
+const MODULES: [Module; 5] = [
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
         ptx: "cuda_stack_f32.ptx",
@@ -56,6 +56,12 @@ const MODULES: [Module; 4] = [
     Module {
         sources: &["src/sieve_frame.cu"],
         ptx: "sieve_frame.ptx",
+        options: &[],
+        feature: "CARGO_FEATURE_SIEVE_CUDA",
+    },
+    Module {
+        sources: &["src/lawful_pointer.cu"],
+        ptx: "lawful_pointer.ptx",
         options: &[],
         feature: "CARGO_FEATURE_SIEVE_CUDA",
     },

@@ -11,11 +11,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// The sources build.rs compiles (keep in step with its `MODULES`).
-const COMPILED: [&str; 4] = [
+const COMPILED: [&str; 5] = [
     "src/cuda_stack.cu",
     "src/spiralcore_fbs.cu",
     "src/starling_native.cu",
     "src/sieve_frame.cu",
+    "src/lawful_pointer.cu",
 ];
 
 fn crate_path(relative: &str) -> PathBuf {
@@ -171,7 +172,7 @@ fn nothing_in_the_crate_calls_a_runtime_compiler() {
 #[test]
 fn built_ptx_modules_carry_no_banned_instruction() {
     let out = Path::new(env!("OUT_DIR"));
-    let mut modules = vec!["sieve_frame.ptx"];
+    let mut modules = vec!["sieve_frame.ptx", "lawful_pointer.ptx"];
     if cfg!(feature = "cuda") {
         modules.extend([
             "cuda_stack_f32.ptx",

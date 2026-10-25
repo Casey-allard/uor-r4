@@ -3,7 +3,7 @@ id: r-lawful-pointer-forced-copy-oracle
 title: Build a lawful pointer, then run the forced-copy oracle
 milestone: research
 area: mechanism
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
