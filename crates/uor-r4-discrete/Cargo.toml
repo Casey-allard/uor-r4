@@ -57,3 +57,7 @@ path = "src/bin/w2-capacity.rs"
 [[bin]]
 name = "w2-assemble"
 path = "src/bin/w2-assemble.rs"
+
+[[bin]]
+name = "a8-qualify-stage"
+path = "src/bin/a8-qualify-stage.rs"

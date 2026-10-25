@@ -3,7 +3,7 @@ id: m1-a8-finite-cuda-qualification
 title: Run A8 admission-anchor controller CUDA qualification and restoration
 milestone: M1
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-registration-and-runbook-staging]

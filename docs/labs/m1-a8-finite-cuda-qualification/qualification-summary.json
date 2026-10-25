@@ -1,0 +1,378 @@
+{
+  "bookkeeping": {
+    "boundary_envelope_bytes": 65536,
+    "breach_restore_ack_ns": 27105652,
+    "max_step_sample_ns": 2909154,
+    "maximum_boundary_shape_bytes": 37381,
+    "maximum_progress_shape_bytes": 1202016,
+    "maximum_step_shape_bytes": 2132,
+    "pass_boundary_ns": 25491179,
+    "step_envelope_bytes": 16384
+  },
+  "bookkeeping_measurement_sha256": "95c64e51c67504cb1c2d1382b698fd5df5d249c07439cb20068754c311b8d301",
+  "dose_qualification": "WITHHELD",
+  "failure_sha256": "79be9c6cc128e28dd9b437cd3240cc4a7bbc047237bfc5a7f483fe4fd82d7feb",
+  "finite_qualification_controls_status": "PASS",
+  "frozen_zero": {
+    "calibration": {
+      "audits_both_arms": 516,
+      "passes_15_percent_gate": false,
+      "projected_added_gate_ns": 4947754777700,
+      "readiness_bar_bps": 1500,
+      "readiness_ratio_bps_ceil": 7842,
+      "replan_stop_error": "invalid discrete model: gate readiness exceeds 15 percent; replan BEFORE training",
+      "ungated_two_arm_dose_ns": 6309716689996
+    },
+    "production_restore": {
+      "accepted_updates_before_restore": 54,
+      "advanced_attempts": 384,
+      "advanced_cursor": {
+        "accepted_updates": 0,
+        "completed_batches": 384,
+        "corpus_pass": 0,
+        "next_coordinate": 384,
+        "next_target": 24576
+      },
+      "anchor_equal_before_after_restore": true,
+      "continuation_file_distinct": true,
+      "fresh_binding": true,
+      "initial_anchor_sha256": "9aa2ac512233b461f4bc7f532d662c59b8f59523a4afee23c27ff8f51a983a78",
+      "passing_snapshot_restored": true,
+      "passing_storage_restored": true,
+      "production_proof_sha256": "bfbe30f8d109763aa8e8212188433bc7e6aa22edcc2467edc31fec453fc7d775",
+      "restored_anchor_sha256": "59c7803f81da3882a371562992b1dae19e1adb63fa15c6f531ade18b30018fbc",
+      "restored_epoch": 0,
+      "stale_handles_refused": true,
+      "status": "PASS",
+      "train_anchor": {
+        "admitted_strict_win_rows": 43,
+        "baseline_anchor_elapsed_ns": 4417197591,
+        "loss_denominator_per_row": 256,
+        "model_snapshot_sha256": "3a06d4ba0790608c2275d892bd9909748dd6d7a34cf1a4793c4fb2cdb6acc950",
+        "model_storage_sha256": "a66a201618c11ac3a4077f522edfbdfc91da79ad06bc6c6aeef5c230a802446c",
+        "objective_loss_numerator_sum": 3656320,
+        "restore_elapsed_ns": 3984920202,
+        "scored_rows": 3847,
+        "target_admitted_rows": 1211,
+        "top1_correct": 43,
+        "top8_correct": 147
+      }
+    },
+    "qualification": {
+      "b3_full": 4244,
+      "b3_psucc": 1351,
+      "bar_i": 86,
+      "combine_sensitive": 1,
+      "distinct_vectors": 4096,
+      "execution": {
+        "base_source": "ef9d30999700be11e103f96590e9e3b83b6807c7",
+        "config_sha256": "c3fbffe08d13008b8b7ab400a4ef946f2c49632906d88e431d5e80314b9f5536",
+        "driver_source_sha256": "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d",
+        "executable_sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c",
+        "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+        "kernel_sha256": "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6",
+        "lineage_sha256": "e4c3efc99f51bc3eb4c13844cc3e7dc12e9e42d32a2cde39603e6052d649e79a",
+        "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+        "sheet_sha256": "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450",
+        "source_sha256": "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084"
+      },
+      "occupied_cells": 256,
+      "psucc_reference_top1": 194,
+      "qualification_sha256": "312b5370522afddbf46675220ba5e05a93e1eab5e0cf75a2f448aeb59032badc",
+      "relation_sensitive": 1,
+      "stages": [
+        {
+          "facts": {
+            "applied_updates": 0,
+            "controls": 9
+          },
+          "name": "canonical_initlock_c2",
+          "sha256": "226cf4e8546bb226fdbd47b3621f906ff7583330c564a9c5d048de4d144e356c",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "native_exits": [
+              2,
+              2
+            ],
+            "required_reasons_verified": true
+          },
+          "name": "required_negatives",
+          "sha256": "8aff96274fab2fdfd3567eb7efeb118b155c06c6f9e27e24b897fb4a256ec604",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "b3_full": 4244,
+            "b3_psucc": 1351,
+            "distinct_vectors": 4096,
+            "full_rows": 14287,
+            "occupied_cells": 256,
+            "psucc_reference_top1": 194,
+            "psucc_rows": 3847,
+            "tie_mass": 0,
+            "top1": 133,
+            "updates_applied": 0
+          },
+          "name": "g_occ",
+          "sha256": "34ab202abe363030357d3a3f0f015c4d1136042c61d31d2acaadeb385beae778",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "combine_sensitive": 1,
+            "predicate": "both_probes_any_active_candidate_cost_differs_v1",
+            "relation_sensitive": 1
+          },
+          "name": "sensitivity",
+          "sha256": "c88565e6a71cfa05e7fc80bae251ba6db8fdd4120f6cb807c00b4a5a9fba3452",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "accepted_updates_before_restore": 54,
+            "advanced_attempts": 384,
+            "anchor_equal_before_after_restore": true,
+            "continuation_file_distinct": true,
+            "exercise": "CONTROLLED_PRODUCTION_RESTORE_EXERCISE",
+            "failure_intent_durable_before_restore": true,
+            "fresh_binding": true,
+            "natural_audit_breach_claimed": false,
+            "passing_snapshot_restored": true,
+            "passing_storage_restored": true,
+            "production_proof": {
+              "path": "/workspace/a8s1/qual-out/frozen-zero/production-proof.json",
+              "sha256": "bfbe30f8d109763aa8e8212188433bc7e6aa22edcc2467edc31fec453fc7d775"
+            },
+            "restored_epoch": 0,
+            "scope": "actual-a8-post-update-restore-and-train-anchor-v1",
+            "stale_handles_refused": true
+          },
+          "name": "audited_restore_epoch_cursor",
+          "sha256": "7f76f040ce8523cec54b9ac56db8f2461a0d4869a7093559ee670595ddace23b",
+          "status": "PASS"
+        }
+      ],
+      "tie_mass": 0,
+      "top1": 133
+    }
+  },
+  "mechanism_negative": false,
+  "readiness_gate_status": "REPLAN_BEFORE_TRAINING",
+  "relation": {
+    "calibration": {
+      "audits_both_arms": 516,
+      "passes_15_percent_gate": false,
+      "projected_added_gate_ns": 4947754777700,
+      "readiness_bar_bps": 1500,
+      "readiness_ratio_bps_ceil": 7842,
+      "replan_stop_error": "invalid discrete model: gate readiness exceeds 15 percent; replan BEFORE training",
+      "ungated_two_arm_dose_ns": 6309716689996
+    },
+    "production_restore": {
+      "accepted_updates_before_restore": 58,
+      "advanced_attempts": 384,
+      "advanced_cursor": {
+        "accepted_updates": 0,
+        "completed_batches": 384,
+        "corpus_pass": 0,
+        "next_coordinate": 384,
+        "next_target": 24576
+      },
+      "anchor_equal_before_after_restore": true,
+      "continuation_file_distinct": true,
+      "fresh_binding": true,
+      "initial_anchor_sha256": "41905d9a7fc164384af24038a89a0df7690ce2c89dcf7261b454e72cdd768f20",
+      "passing_snapshot_restored": true,
+      "passing_storage_restored": true,
+      "production_proof_sha256": "85fd0e9ea9f69ffaefca5f9aa9c6fe63e6519a5f528aab24184b4c75de4bd780",
+      "restored_anchor_sha256": "f898d87871d7c6b5100c90f628f9a05c9e1cd2016c27e93ff1d34a6147915983",
+      "restored_epoch": 0,
+      "stale_handles_refused": true,
+      "status": "PASS",
+      "train_anchor": {
+        "admitted_strict_win_rows": 43,
+        "baseline_anchor_elapsed_ns": 4443590804,
+        "loss_denominator_per_row": 256,
+        "model_snapshot_sha256": "3a06d4ba0790608c2275d892bd9909748dd6d7a34cf1a4793c4fb2cdb6acc950",
+        "model_storage_sha256": "a66a201618c11ac3a4077f522edfbdfc91da79ad06bc6c6aeef5c230a802446c",
+        "objective_loss_numerator_sum": 3656320,
+        "restore_elapsed_ns": 4926717208,
+        "scored_rows": 3847,
+        "target_admitted_rows": 1211,
+        "top1_correct": 43,
+        "top8_correct": 147
+      }
+    },
+    "qualification": {
+      "b3_full": 4244,
+      "b3_psucc": 1351,
+      "bar_i": 86,
+      "combine_sensitive": 1,
+      "distinct_vectors": 4096,
+      "execution": {
+        "base_source": "ef9d30999700be11e103f96590e9e3b83b6807c7",
+        "config_sha256": "f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd",
+        "driver_source_sha256": "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d",
+        "executable_sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c",
+        "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+        "kernel_sha256": "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6",
+        "lineage_sha256": "f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3",
+        "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+        "sheet_sha256": "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450",
+        "source_sha256": "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084"
+      },
+      "occupied_cells": 256,
+      "psucc_reference_top1": 194,
+      "qualification_sha256": "73876b488bdb2123457d46fd28b0e4b1296cc398a930db5542b67f72cc9fc2d4",
+      "relation_sensitive": 1,
+      "stages": [
+        {
+          "facts": {
+            "applied_updates": 0,
+            "controls": 9
+          },
+          "name": "canonical_initlock_c2",
+          "sha256": "e16b10b4dfed08ad51979925a810e82dded5089d148075af3828e957a0644f90",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "native_exits": [
+              2,
+              2
+            ],
+            "required_reasons_verified": true
+          },
+          "name": "required_negatives",
+          "sha256": "72b3da82860e4f4c65c5a39d0c1f60072451aaee18b4a34d3eec6576aaff124a",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "b3_full": 4244,
+            "b3_psucc": 1351,
+            "distinct_vectors": 4096,
+            "full_rows": 14287,
+            "occupied_cells": 256,
+            "psucc_reference_top1": 194,
+            "psucc_rows": 3847,
+            "tie_mass": 0,
+            "top1": 133,
+            "updates_applied": 0
+          },
+          "name": "g_occ",
+          "sha256": "a6ec05082dcf4e8d69d02c71a65156d983fde74750dad12829c55dbe1324e3df",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "combine_sensitive": 1,
+            "predicate": "both_probes_any_active_candidate_cost_differs_v1",
+            "relation_sensitive": 1
+          },
+          "name": "sensitivity",
+          "sha256": "b214528313a1c9c6f4365163791683b145e88169de0dda2a7352b27e08ac193c",
+          "status": "PASS"
+        },
+        {
+          "facts": {
+            "accepted_updates_before_restore": 58,
+            "advanced_attempts": 384,
+            "anchor_equal_before_after_restore": true,
+            "continuation_file_distinct": true,
+            "exercise": "CONTROLLED_PRODUCTION_RESTORE_EXERCISE",
+            "failure_intent_durable_before_restore": true,
+            "fresh_binding": true,
+            "natural_audit_breach_claimed": false,
+            "passing_snapshot_restored": true,
+            "passing_storage_restored": true,
+            "production_proof": {
+              "path": "/workspace/a8s1/qual-out/relation/production-proof.json",
+              "sha256": "85fd0e9ea9f69ffaefca5f9aa9c6fe63e6519a5f528aab24184b4c75de4bd780"
+            },
+            "restored_epoch": 0,
+            "scope": "actual-a8-post-update-restore-and-train-anchor-v1",
+            "stale_handles_refused": true
+          },
+          "name": "audited_restore_epoch_cursor",
+          "sha256": "e0b3fdbf5c7e00490cdda4e05397f85d36490e79038bdc9d430f4aa5f07f6c95",
+          "status": "PASS"
+        }
+      ],
+      "tie_mass": 0,
+      "top1": 133
+    }
+  },
+  "schema": "uor-r4.a8-finite-cuda-qualification-summary/1",
+  "status": "FINITE_CONTROLS_PASS_READINESS_GATE_REPLAN_REQUIRED",
+  "synthetic_control": {
+    "accepted_updates": 1,
+    "fresh_binding": true,
+    "observed_restored_epoch": 0,
+    "stale_apply_refusals": 1,
+    "stale_carry_refusals": 1,
+    "status": "PASS"
+  },
+  "synthetic_control_sha256": "69eb5866e3e66d658602a463ff236a2f59647347764a97e569ada86b17f762ea",
+  "timing_protocol": {
+    "arm_family_counts": [
+      [
+        336,
+        23,
+        25
+      ],
+      [
+        336,
+        23,
+        25
+      ]
+    ],
+    "arm_family_elapsed_ns": [
+      [
+        91860297786,
+        3244655721,
+        10865641990
+      ],
+      [
+        36034291782,
+        2355685424,
+        2895767894
+      ]
+    ],
+    "full_family_counts": [
+      [
+        14354,
+        920,
+        1130
+      ],
+      [
+        14354,
+        920,
+        1130
+      ]
+    ],
+    "gate_samples_ns": [
+      4443590804
+    ],
+    "passes_15_percent_gate": false,
+    "projected_added_gate_ns": 4947754777700,
+    "projected_boundary_bookkeeping_ns": 13153448364,
+    "projected_gate_ns": 2292892854864,
+    "projected_restore_ns": 2546264950040,
+    "projected_step_bookkeeping_ns": 95443524432,
+    "projected_ungated_two_arm_ns": 6309716689996,
+    "protocol": "train61-synthetic1-interval64-two-arm-throughput-v1",
+    "readiness_bar_bps": 1500,
+    "readiness_ratio_bps_ceil": 7842,
+    "restore_samples_ns": [
+      4926717208,
+      3984920202
+    ],
+    "shared_setup_ns": 926807762
+  },
+  "timing_protocol_sha256": "d97bb13a8f30b24c2c4ad99c63308adbd4f537e31d776f697eeb5036aa651f86",
+  "verified_bookkeeping_artifact_count": 142,
+  "verified_raw_artifact_count": 792
+}
