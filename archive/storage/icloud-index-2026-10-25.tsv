@@ -1,0 +1,7 @@
+name	bytes	md5	remote_path	uploaded_utc	lab
+antigravity-local-closeout-20261024	1034240	a3a198616939f874a9ff347a11d81235	results/antigravity/antigravity-local-closeout-20261024.tar	2026-10-24T22:47:49Z	antigravity
+claude-local-closeout-20261025	236091904	c9fba7f3586f0ecef852285c7b69db14	results/claude/claude-local-closeout-20261025.tar	2026-10-25T01:07:59Z	claude
+codex-cf1-worktree-closeout-20261024	72192	6f76a6b53a317ebee458520c7f7c11ac	results/codex/codex-cf1-worktree-closeout-20261024.tar	2026-10-24T22:47:49Z	codex
+deepseek-local-closeout-20261024	103424	0f74803ac77488179b9967b611a92240	results/deepseek/deepseek-local-closeout-20261024.tar	2026-10-24T22:47:49Z	deepseek
+kimi-local-closeout-20261024	565321216	f9f9ce1845a964d39e97cd59d6a9edb0	results/kimi/kimi-local-closeout-20261024.tar	2026-10-24T22:47:49Z	kimi
+vast-archive-20261025	226766336	de332250eaf0474a9ac365aeec5c3b20	results/shared/vast-archive-20261025.tar	2026-10-25T01:08:00Z	shared
