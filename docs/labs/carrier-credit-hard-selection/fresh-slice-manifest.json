@@ -1,0 +1,18 @@
+{
+  "candidates_scanned": 68773,
+  "context": 192,
+  "duplicates_dropped": 3237,
+  "first_fresh_document_start": 3251242,
+  "first_kept_position": 3251315,
+  "fresh_mask_sha256": "557131bca30514b6728e00e66bc945b43abbcbf6b7a96ed9ec3e817057915e9b",
+  "fresh_payload_tokens": 211846,
+  "fresh_tokens_sha256": "4d9ead83fa05f959502c6d4b1a176cc34b7134b9adef41e13d1bf7f4ba9eef61",
+  "kept_targets": 65536,
+  "last_kept_position": 3463003,
+  "last_visited_position": 3251164,
+  "rule": "whole TRAIN documents starting after the last visited target; first fresh_targets eligible targets whose (in-document window, target) repeats no visited row exactly",
+  "schema": "uor-r4.carrier-fresh-slice/1",
+  "source_mask_sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3",
+  "source_tokens_sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8",
+  "visited_targets": 1049856
+}

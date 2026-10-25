@@ -1,0 +1,60 @@
+{
+  "schema": "uor-r4.carrier-arms-release/1",
+  "item": "carrier-credit-hard-selection",
+  "issue": 2819,
+  "sheet": {
+    "path": "docs/harness/prep/carrier-credit-hard-selection-2026-10-25.md",
+    "sha256": "b2561a85ea9c4fa0ce5ec6f4ac1edff2104a28eb34b070608800301c09e303af"
+  },
+  "fit_url": "https://github.com/UOR-Foundation/uor-r4/issues/2819#issuecomment-6395832768",
+  "prerun_url": "https://github.com/UOR-Foundation/uor-r4/issues/2819#issuecomment-6395854890",
+  "max_completed_batches": 16404,
+  "fresh": {
+    "tokens_sha256": "4d9ead83fa05f959502c6d4b1a176cc34b7134b9adef41e13d1bf7f4ba9eef61",
+    "mask_sha256": "557131bca30514b6728e00e66bc945b43abbcbf6b7a96ed9ec3e817057915e9b",
+    "visited_targets": 1049856,
+    "kept_targets": 65536
+  },
+  "arms": [
+    {
+      "lineage_sha256": "08dd86e74e287bd4b70159282b7d4a0a9f8a60b90b834ce3edf2d4818aa4b91d",
+      "schedule": "carrier_credit_v1",
+      "seed": 1001
+    },
+    {
+      "lineage_sha256": "9cb3a96aca73082a69cfdb9e01bf4fd5952af342366ae793000c5ec7c1054201",
+      "schedule": "carrier_uniform_target_v1",
+      "seed": 1001
+    },
+    {
+      "lineage_sha256": "97639152971c05c0774a284a365e82c77d8692f070ca32d0cf6bdc5a462fcf34",
+      "schedule": "carrier_uniform_row_v1",
+      "seed": 1001
+    },
+    {
+      "lineage_sha256": "ff92a588f973eab548bc9a0d408c53eb5bb7398f12d3199ba2e2ec51f549311e",
+      "schedule": "interleaved_read_every8_v1",
+      "seed": 1001
+    },
+    {
+      "lineage_sha256": "87581a45e1a8abff9592c447552b182ca9d225456e284fa6d7139f5d418243ff",
+      "schedule": "carrier_credit_v1",
+      "seed": 2001
+    },
+    {
+      "lineage_sha256": "aa7de4acfb1b0d18fa48b4ffdaa5d5c9f7256c706c76b7dd692b9a05ee5e88e3",
+      "schedule": "carrier_uniform_target_v1",
+      "seed": 2001
+    },
+    {
+      "lineage_sha256": "eb447ca3ee684a67f50768c42bed73da6e0532023f21e231b6e25f038a898559",
+      "schedule": "carrier_uniform_row_v1",
+      "seed": 2001
+    },
+    {
+      "lineage_sha256": "7e7f53472a4d0160c441cd8b7a7e68f517d7426c07639deffabad61cede801d9",
+      "schedule": "interleaved_read_every8_v1",
+      "seed": 2001
+    }
+  ]
+}

@@ -16,7 +16,7 @@ mod rows_source;
 #[path = "src/rowsk_source.rs"]
 mod rowsk_source;
 
-const ENTRIES: [&str; 12] = [
+const ENTRIES: [&str; 13] = [
     "discrete_init",
     "discrete_encode",
     "discrete_export_token_cells",
@@ -29,6 +29,7 @@ const ENTRIES: [&str; 12] = [
     "discrete_evaluation_aggregate",
     "discrete_count",
     "discrete_count_score",
+    "discrete_carrier_select",
 ];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as

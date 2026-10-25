@@ -88,6 +88,7 @@ impl Device {
                 validate: k.validate.clone(),
                 evaluate: k.evaluate.clone(),
                 evaluation_aggregate: k.evaluation_aggregate.clone(),
+                carrier_select: k.carrier_select.clone(),
             },
             binding: self.binding.clone(),
             rows_cache: std::sync::OnceLock::new(),

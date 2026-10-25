@@ -615,6 +615,7 @@ fn measure_bookkeeping(execution: &ExecutionIdentity, out: &Path) -> Result<File
                 applied: true,
                 apply_refused_by_policy: false,
                 any_candidate_cost_differs_from_identity: true,
+                carrier: None,
             };
             let mut shape = serde_json::to_value(&receipt).map_err(|e| invalid(e.to_string()))?;
             maximum_numeric_width(&mut shape);
@@ -3041,6 +3042,7 @@ mod tests {
             applied: true,
             apply_refused_by_policy: false,
             any_candidate_cost_differs_from_identity: true,
+            carrier: None,
         };
         assert!(validate_receipt_policy(&config, &receipt).is_err());
         receipt.applied = false;

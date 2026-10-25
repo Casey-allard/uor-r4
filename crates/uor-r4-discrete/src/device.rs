@@ -4,6 +4,7 @@
 //! Module loading consumes exact AOT cubins assembled from admitted PTX; there
 //! is no PTX-JIT fallback, runtime source compiler, or CPU model.
 
+use crate::carrier::{CarrierMode, CarrierSelection};
 use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
     metadata::{BinderPlan, ABSENT},
@@ -259,6 +260,57 @@ fn invalid(message: impl Into<String>) -> Error {
 fn cuda(error: impl std::fmt::Display) -> Error {
     Error::Cuda(error.to_string())
 }
+
+/// Run `discrete_carrier_select` over device rows. Its only download is the
+/// two-word result; `rows.top8` and `rows.metrics` stay on the device.
+fn select_carrier(
+    stream: &Arc<CudaStream>,
+    kernel: &CudaFunction,
+    rows: &EvaluatedRows,
+    count: u32,
+    vocabulary: u32,
+    mode: CarrierMode,
+    key: u64,
+) -> Result<CarrierSelection> {
+    let mut scratch = stream
+        .alloc_zeros::<u64>(vocabulary as usize)
+        .map_err(cuda)?;
+    let mut out = stream.alloc_zeros::<u64>(2).map_err(cuda)?;
+    let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+    let mode_word = mode.word();
+    let mut launch = stream.launch_builder(kernel);
+    launch
+        .arg(&rows.targets)
+        .arg(&rows.top8)
+        .arg(&rows.metrics)
+        .arg(&count)
+        .arg(&vocabulary)
+        .arg(&mode_word)
+        .arg(&key)
+        .arg(&mut scratch)
+        .arg(&mut out)
+        .arg(&mut status);
+    // SAFETY: one block of CARRIER_THREADS over `count` rows of 8 IDs and
+    // ROW_WORDS metrics each, a `vocabulary`-word scratch and a 2-word result,
+    // all allocated above or by the evaluate launch; the kernel bounds-checks
+    // every target and rival ID against `vocabulary`.
+    let config = LaunchConfig {
+        grid_dim: (1, 1, 1),
+        block_dim: (CARRIER_THREADS, 1, 1),
+        shared_mem_bytes: 0,
+    };
+    unsafe { launch.launch(config) }.map_err(cuda)?;
+    check_status(stream, &status, "carrier selection")?;
+    let out = stream.clone_dtoh(&out).map_err(cuda)?;
+    Ok(CarrierSelection {
+        mode,
+        token: u32::try_from(out[0]).map_err(|_| invalid("carrier token exceeds u32"))?,
+        value: out[1],
+    })
+}
+
+/// `CARRIER_THREADS` in `discrete.cu`; the kernel refuses any other shape.
+const CARRIER_THREADS: u32 = 256;
 
 fn launch_config(items: u32) -> LaunchConfig {
     // The generic cudarc helper always requests 1024 threads, even for one
@@ -705,6 +757,15 @@ struct Kernels {
     validate: CudaFunction,
     evaluate: CudaFunction,
     evaluation_aggregate: CudaFunction,
+    carrier_select: CudaFunction,
+}
+
+/// One batch's `discrete_evaluate` rows, still on the device.
+struct EvaluatedRows {
+    epoch: u64,
+    targets: CudaSlice<u32>,
+    top8: CudaSlice<u32>,
+    metrics: CudaSlice<u64>,
 }
 
 pub struct Device {
@@ -915,6 +976,9 @@ impl Device {
             evaluate: module.load_function("discrete_evaluate").map_err(cuda)?,
             evaluation_aggregate: module
                 .load_function("discrete_evaluation_aggregate")
+                .map_err(cuda)?,
+            carrier_select: module
+                .load_function("discrete_carrier_select")
                 .map_err(cuda)?,
         };
         let geometry = stream.clone_htod(&packed).map_err(cuda)?;
@@ -1575,9 +1639,9 @@ impl Device {
         })
     }
 
-    /// Evaluate exact hits, component hinges and eligibility on CUDA. Top-eight
-    /// ranking is global over admitted identities; the target is never inserted.
-    pub fn evaluate(&self, batch: &CarriedBatch, targets: &[u32]) -> Result<Evaluation> {
+    /// Launch `discrete_evaluate` on one admitted batch. The per-row top-eight
+    /// identities and metrics stay on the device.
+    fn launch_evaluate(&self, batch: &CarriedBatch, targets: &[u32]) -> Result<EvaluatedRows> {
         let epoch = self.admit_batch(batch, targets)?;
         let targets = self.stream.clone_htod(targets).map_err(cuda)?;
         let spec = self.gpu_spec(batch.rows)?;
@@ -1614,6 +1678,23 @@ impl Device {
         // per-row eight-word result allocations. The read/writer runs on CUDA.
         unsafe { launch.launch(launch_config(batch.rows)) }.map_err(cuda)?;
         check_status(&self.stream, &status, "evaluation")?;
+        Ok(EvaluatedRows {
+            epoch,
+            targets,
+            top8,
+            metrics,
+        })
+    }
+
+    /// Evaluate exact hits, component hinges and eligibility on CUDA. Top-eight
+    /// ranking is global over admitted identities; the target is never inserted.
+    pub fn evaluate(&self, batch: &CarriedBatch, targets: &[u32]) -> Result<Evaluation> {
+        let EvaluatedRows {
+            epoch,
+            top8,
+            metrics,
+            ..
+        } = self.launch_evaluate(batch, targets)?;
         let summary_words = aggregate_gpu(
             &self.stream,
             &self.kernels.evaluation_aggregate,
@@ -1665,6 +1746,69 @@ impl Device {
             binding: self.binding.clone(),
             epoch,
         })
+    }
+
+    /// Carrier hard selection on one batch (#2819): `discrete_evaluate`, then
+    /// `discrete_carrier_select`, both on CUDA. The per-row rows never leave the
+    /// device; the host receives only the selector's two words.
+    pub fn carrier_select(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        mode: CarrierMode,
+        key: u64,
+    ) -> Result<CarrierSelection> {
+        let rows = self.launch_evaluate(batch, targets)?;
+        select_carrier(
+            &self.stream,
+            &self.kernels.carrier_select,
+            &rows,
+            batch.rows,
+            self.spec().vocabulary,
+            mode,
+            key,
+        )
+    }
+
+    /// The selector alone on caller-built rows, for its finite CUDA controls.
+    /// It reads no model; `top8` holds 8 IDs per row and `metrics`
+    /// `objective::ROW_WORDS` words per row, laid out as `discrete_evaluate`
+    /// writes them.
+    pub fn carrier_select_rows(
+        vocabulary: u32,
+        targets: &[u32],
+        top8: &[u32],
+        metrics: &[u64],
+        mode: CarrierMode,
+        key: u64,
+        ordinal: usize,
+    ) -> Result<CarrierSelection> {
+        let rows = u32::try_from(targets.len())
+            .map_err(|_| invalid("carrier rows exceed the CUDA index bound"))?;
+        if rows == 0
+            || top8.len() != targets.len() * 8
+            || metrics.len() != targets.len() * objective::ROW_WORDS
+        {
+            return Err(invalid(
+                "carrier rows need 8 top IDs and ROW_WORDS metrics per target",
+            ));
+        }
+        let context = CudaContext::new(ordinal).map_err(cuda)?;
+        admit_cuda_target(&context)?;
+        let stream = context.default_stream();
+        let module = context
+            .load_module(Ptx::from_binary(ORDINARY_CUBIN.to_vec()))
+            .map_err(cuda)?;
+        let kernel = module
+            .load_function("discrete_carrier_select")
+            .map_err(cuda)?;
+        let evaluated = EvaluatedRows {
+            epoch: 0,
+            targets: stream.clone_htod(targets).map_err(cuda)?,
+            top8: stream.clone_htod(top8).map_err(cuda)?,
+            metrics: stream.clone_htod(metrics).map_err(cuda)?,
+        };
+        select_carrier(&stream, &kernel, &evaluated, rows, vocabulary, mode, key)
     }
 
     /// CUDA aggregation of completed batch receipts at one model/epoch. Private

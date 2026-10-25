@@ -65,3 +65,11 @@ path = "src/bin/a8-qualify-stage.rs"
 [[bin]]
 name = "position-qualify"
 path = "src/bin/position-qualify.rs"
+
+[[bin]]
+name = "carrier-fresh-slice"
+path = "src/bin/carrier-fresh-slice.rs"
+
+[[bin]]
+name = "carrier-arms"
+path = "src/bin/carrier-arms.rs"

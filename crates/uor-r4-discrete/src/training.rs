@@ -40,6 +40,7 @@ pub fn driver_source_sha256() -> String {
     bytes.extend_from_slice(include_bytes!("snapshot.rs"));
     bytes.extend_from_slice(include_bytes!("position_mechanism.rs"));
     bytes.extend_from_slice(include_bytes!("main.rs"));
+    bytes.extend_from_slice(include_bytes!("carrier.rs"));
     corpus::sha256(&bytes)
 }
 
@@ -48,6 +49,29 @@ pub fn driver_source_sha256() -> String {
 pub enum SchedulePolicy {
     CanonicalVectorThenReadV1,
     InterleavedReadEvery8V1,
+    /// Reads as `InterleavedReadEvery8V1`; each other batch tries a vector
+    /// block of the token chosen on CUDA by carrier credit (#2819).
+    CarrierCreditV1,
+    /// The model-blind control: a uniform draw over the batch's distinct targets.
+    CarrierUniformTargetV1,
+    /// The model-blind control: a uniform draw over the batch's rows.
+    CarrierUniformRowV1,
+}
+impl SchedulePolicy {
+    /// The selector mode of a carrier schedule; `None` for the fixed schedules.
+    pub fn carrier_mode(self) -> Option<crate::carrier::CarrierMode> {
+        use crate::carrier::CarrierMode;
+        match self {
+            Self::CanonicalVectorThenReadV1 | Self::InterleavedReadEvery8V1 => None,
+            Self::CarrierCreditV1 => Some(CarrierMode::CreditV1),
+            Self::CarrierUniformTargetV1 => Some(CarrierMode::UniformTargetV1),
+            Self::CarrierUniformRowV1 => Some(CarrierMode::UniformRowV1),
+        }
+    }
+    /// Reads land on `completed_batches % 8 == 7`, as in `InterleavedReadEvery8V1`.
+    pub fn interleaves_reads(self) -> bool {
+        self != Self::CanonicalVectorThenReadV1
+    }
 }
 /// Whether genuine Relation proposals may commit their relation-tail coordinate.
 /// This does not change the read operator, proposal inventory or schedule.
@@ -261,6 +285,11 @@ impl DriverConfig {
         if !(1..=64).contains(&self.coordinate_block.get()) {
             return Err(invalid("coordinate_block must be 1..=64"));
         }
+        if self.schedule.carrier_mode().is_some() && !self.coordinate_block.is_one() {
+            return Err(invalid(
+                "carrier schedules choose one coordinate per batch (coordinate_block 1)",
+            ));
+        }
         if !self.coordinate_block.is_one() && self.counterfactual_path != CounterfactualPath::RowsV1
         {
             return Err(invalid(
@@ -394,7 +423,10 @@ pub fn family_cursors(
     let vector_blocks = vectors.div_ceil(k);
     let read_blocks = reads.div_ceil(k);
     let (vector_batches, read_batches) = match schedule {
-        SchedulePolicy::InterleavedReadEvery8V1 => (
+        SchedulePolicy::InterleavedReadEvery8V1
+        | SchedulePolicy::CarrierCreditV1
+        | SchedulePolicy::CarrierUniformTargetV1
+        | SchedulePolicy::CarrierUniformRowV1 => (
             completed_batches - completed_batches / 8,
             completed_batches / 8,
         ),
@@ -501,7 +533,10 @@ impl PreparedDriver {
             .ok_or_else(|| invalid("coordinate inventory overflow"))?;
         let schedule_cycle = match config.schedule {
             SchedulePolicy::CanonicalVectorThenReadV1 => coordinates,
-            SchedulePolicy::InterleavedReadEvery8V1 => vectors
+            SchedulePolicy::InterleavedReadEvery8V1
+            | SchedulePolicy::CarrierCreditV1
+            | SchedulePolicy::CarrierUniformTargetV1
+            | SchedulePolicy::CarrierUniformRowV1 => vectors
                 .checked_add(config.spec.blocks * stages)
                 .ok_or_else(|| invalid("schedule cycle overflow"))?,
         };
@@ -616,12 +651,27 @@ impl PreparedDriver {
                 },
                 index: ((completed_batches / 8) % u64::from(reads)) as u32,
             })
+        } else if self.config.schedule.carrier_mode().is_some() {
+            Err(invalid(
+                "carrier schedules choose vector blocks on CUDA per batch, not from the ordinal",
+            ))
         } else {
             Ok(Coordinate {
                 kind: CoordinateKind::VectorBlock,
                 index: ((completed_batches - completed_batches / 8) % u64::from(vectors)) as u32,
             })
         }
+    }
+    /// The vector block a carrier schedule tries for `token` at this batch.
+    pub fn carrier_block(&self, token: u32, completed_batches: u64) -> Result<Coordinate> {
+        let blocks = self.config.spec.blocks;
+        if token >= self.config.spec.vocabulary {
+            return Err(invalid("carrier token outside the vocabulary"));
+        }
+        Ok(Coordinate {
+            kind: CoordinateKind::VectorBlock,
+            index: token * blocks + (completed_batches % u64::from(blocks)) as u32,
+        })
     }
     pub fn coordinate(&self, index: u32) -> Result<Coordinate> {
         if index >= self.coordinates {
@@ -702,7 +752,10 @@ impl PreparedDriver {
     }
     fn is_read_batch(&self, completed_batches: u64) -> bool {
         match self.config.schedule {
-            SchedulePolicy::InterleavedReadEvery8V1 => completed_batches % 8 == 7,
+            SchedulePolicy::InterleavedReadEvery8V1
+            | SchedulePolicy::CarrierCreditV1
+            | SchedulePolicy::CarrierUniformTargetV1
+            | SchedulePolicy::CarrierUniformRowV1 => completed_batches % 8 == 7,
             SchedulePolicy::CanonicalVectorThenReadV1 => {
                 let (vectors, reads) = self.families();
                 let k = u64::from(self.config.coordinate_block.get());
@@ -813,9 +866,12 @@ impl PreparedDriver {
             .read_spec
             .gate_count(self.config.spec.blocks, plan.stages() as u32)?;
         let mut record = json!({"schema":DRIVER_SCHEMA,"lineage":self.lineage,"lineage_sha256":self.lineage_sha256()?,"seed":self.config.seed,"schedule":{"policy":self.config.schedule,"parameters":self.coordinates,"vector_parameters":self.config.spec.vocabulary*self.config.spec.blocks,"read_parameters":read_parameters,"one_coordinate_per_batch":true,"corpus_order":"ascending response-masked target positions; wraps after complete coverage; common across seeds","initial_cursor":Cursor::initial()},"train_batches_per_pass":(self.train.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"dev_batches":(self.dev.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"training":"HELD","applied_updates":0,"throughput":"UNMEASURED"});
-        if self.config.schedule == SchedulePolicy::InterleavedReadEvery8V1 {
+        if self.config.schedule.interleaves_reads() {
             record["schedule"]["cycle"] = json!(self.schedule_cycle);
             record["schedule"]["coordinate_basis"] = json!("absolute completed_batches");
+        }
+        if let Some(mode) = self.config.schedule.carrier_mode() {
+            record["schedule"]["carrier"] = json!({"mode":mode,"selector":"discrete_carrier_select on CUDA after discrete_evaluate","block":"completed_batches mod blocks","key":"(seed << 32) xor completed_batches"});
         }
         Ok(record)
     }
@@ -1138,7 +1194,10 @@ mod tests {
         let coordinates = vectors + read_spec.gate_count(spec.blocks, stages)?;
         let schedule_cycle = match schedule {
             SchedulePolicy::CanonicalVectorThenReadV1 => coordinates,
-            SchedulePolicy::InterleavedReadEvery8V1 => vectors + spec.blocks * stages,
+            SchedulePolicy::InterleavedReadEvery8V1
+            | SchedulePolicy::CarrierCreditV1
+            | SchedulePolicy::CarrierUniformTargetV1
+            | SchedulePolicy::CarrierUniformRowV1 => vectors + spec.blocks * stages,
         };
         let lineage = Lineage {
             schema: DRIVER_SCHEMA.into(),
@@ -1789,6 +1848,103 @@ mod tests {
         driver.config.counterfactual_path = CounterfactualPath::RowsV1;
         Ok(driver)
     }
+    /// Negative gate (#2819): the carrier variants leave the fixed schedules'
+    /// config bytes, and their lineage bytes under a fixed driver-source string,
+    /// as they were before the variants existed.
+    #[test]
+    fn carrier_variants_keep_the_fixed_schedules_bytes() -> Result<()> {
+        let name = |s: SchedulePolicy| serde_json::to_string(&s).expect("schedule name");
+        assert_eq!(
+            name(SchedulePolicy::CanonicalVectorThenReadV1),
+            "\"canonical_vector_then_read_v1\""
+        );
+        assert_eq!(
+            name(SchedulePolicy::InterleavedReadEvery8V1),
+            "\"interleaved_read_every8_v1\""
+        );
+        for (schedule, config_sha, lineage_sha) in [
+            // Computed by this same fixture on origin/main 14fc2cbe4, before
+            // the carrier variants existed.
+            (
+                SchedulePolicy::CanonicalVectorThenReadV1,
+                "37100e45d0e9ca151aa0631d80eb2da36a853b1f57f24d2dc31eb10d73a85dd5",
+                "eec594780b411695e6196290b5ab2613d751469255e17bf280227b810497e1d1",
+            ),
+            (
+                SchedulePolicy::InterleavedReadEvery8V1,
+                "41f29b58b0edf804e8148c27a37f9e620ec97de6cdc532a771a4c303fa2f0812",
+                "18f61be7497ebe99e9df80f1e97ec1a5e21a6b5919a14f46b2cf3f7d0e62e036",
+            ),
+        ] {
+            let read = ReadSpec::Relation { kept: 2, sweeps: 1 };
+            let driver = metadata_schedule_fixture(1, read, SPEC24, schedule)?;
+            let config = serde_json::to_vec(&driver.config).expect("config bytes");
+            let mut lineage = driver.lineage().clone();
+            lineage.driver_source_sha256 = "fixed-driver-source".into();
+            let lineage = serde_json::to_vec(&lineage).expect("lineage bytes");
+            assert_eq!(corpus::sha256(&config), config_sha, "{schedule:?} config");
+            assert_eq!(
+                corpus::sha256(&lineage),
+                lineage_sha,
+                "{schedule:?} lineage"
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn carrier_schedules_interleave_reads_and_choose_blocks_by_token() -> Result<()> {
+        let read = ReadSpec::Relation { kept: 2, sweeps: 1 };
+        let fixed =
+            metadata_schedule_fixture(1, read, SPEC24, SchedulePolicy::InterleavedReadEvery8V1)?;
+        for (schedule, name) in [
+            (SchedulePolicy::CarrierCreditV1, "\"carrier_credit_v1\""),
+            (
+                SchedulePolicy::CarrierUniformTargetV1,
+                "\"carrier_uniform_target_v1\"",
+            ),
+            (
+                SchedulePolicy::CarrierUniformRowV1,
+                "\"carrier_uniform_row_v1\"",
+            ),
+        ] {
+            assert_eq!(serde_json::to_string(&schedule).expect("name"), name);
+            assert!(schedule.carrier_mode().is_some() && schedule.interleaves_reads());
+            let driver = metadata_schedule_fixture(1, read, SPEC24, schedule)?;
+            assert_eq!(driver.schedule_cycle, fixed.schedule_cycle);
+            for n in 0..64u64 {
+                if n % 8 == 7 {
+                    assert_eq!(driver.coordinate_at(n)?, fixed.coordinate_at(n)?);
+                    assert!(driver.is_read_batch(n));
+                } else {
+                    assert!(refusal(driver.coordinate_at(n)).contains("carrier schedules"));
+                    let block = driver.carrier_block(5, n)?;
+                    assert_eq!(block.kind, CoordinateKind::VectorBlock);
+                    assert_eq!(
+                        block.index,
+                        5 * SPEC24.blocks + (n % u64::from(SPEC24.blocks)) as u32
+                    );
+                }
+            }
+            assert!(refusal(driver.carrier_block(SPEC24.vocabulary, 0)).contains("vocabulary"));
+            let mut blocked = driver.config.clone();
+            blocked.coordinate_block = CoordinateBlock(2);
+            blocked.counterfactual_path = CounterfactualPath::RowsV1;
+            assert!(refusal(blocked.validate()).contains("coordinate_block 1"));
+        }
+        Ok(())
+    }
+    #[test]
+    fn a_receipt_carries_its_selection_only_when_present() {
+        let selection = crate::carrier::CarrierSelection {
+            mode: crate::carrier::CarrierMode::CreditV1,
+            token: 9,
+            value: 41,
+        };
+        let text = serde_json::to_string(&selection).expect("selection");
+        assert_eq!(text, r#"{"mode":"credit_v1","token":9,"value":41}"#);
+        let back: crate::carrier::CarrierSelection = serde_json::from_str(&text).expect("back");
+        assert_eq!(back, selection);
+    }
     fn refusal<T: std::fmt::Debug>(result: Result<T>) -> String {
         match result {
             Err(Error::Invalid(message)) => message,
@@ -1855,6 +2011,7 @@ mod tests {
                             8 * (2 * vectors.div_ceil(u64::from(k))).div_ceil(7)
                         }
                         SchedulePolicy::CanonicalVectorThenReadV1 => 2 * cycle,
+                        _ => unreachable!("block fixtures use the fixed schedules only"),
                     };
                     for step in 0..steps {
                         let block = driver.block_at(&cursor)?;
@@ -2451,6 +2608,7 @@ mod tests {
             applied: false,
             apply_refused_by_policy: false,
             any_candidate_cost_differs_from_identity: true,
+            carrier: None,
         };
         let cursor = r#"{"completed_batches":0,"accepted_updates":0,"corpus_pass":0,"next_target":0,"next_coordinate":0}"#;
         assert_eq!(
@@ -2684,6 +2842,25 @@ pub(crate) fn issue_corpus_update_admission(
     })
 }
 
+/// The carrier arms' D67 capability (#2819). Its one caller,
+/// `carrier_arms::run_arm`, validates the release record against the sheet
+/// bytes, this lineage and the dose first; the bound is that released dose.
+#[cfg(feature = "cuda")]
+pub(crate) fn issue_carrier_arm_admission(
+    driver: &PreparedDriver,
+    max_completed_batches: u64,
+) -> Result<CorpusUpdateAdmission> {
+    if driver.config.schedule.carrier_mode().is_none()
+        && driver.config.schedule != SchedulePolicy::InterleavedReadEvery8V1
+    {
+        return Err(invalid("carrier arms run only the registered schedules"));
+    }
+    Ok(CorpusUpdateAdmission {
+        lineage_sha256: driver.lineage_sha256()?,
+        max_completed_batches,
+    })
+}
+
 /// Finite qualification has a separate opaque release; it cannot inherit a
 /// full-dose capability or enlarge the approved source protocol's bound.
 #[cfg(feature = "cuda")]
@@ -2718,6 +2895,10 @@ pub struct StepReceipt {
     /// Device comparison of every active candidate against CURRENT, including
     /// worse candidates. No accepted update is not the same as no sensitivity.
     pub any_candidate_cost_differs_from_identity: bool,
+    /// The CUDA carrier selection that chose this vector block (#2819). Absent
+    /// for the fixed schedules and for read batches, so their bytes are unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<crate::carrier::CarrierSelection>,
 }
 fn is_false(value: &bool) -> bool {
     !*value
@@ -2839,6 +3020,26 @@ impl PreparedDriver {
             CounterfactualPath::RowsV1 => model.propose_rows_cached(carried, targets, parameter),
         }
     }
+    /// The coordinate this batch tries. The fixed schedules read it from the
+    /// absolute ordinal. A carrier schedule's vector batch first runs the CUDA
+    /// selector on this same carried batch; read batches stay on the ordinal.
+    fn scheduled_coordinate(
+        &self,
+        model: &crate::device::Device,
+        carried: &crate::device::CarriedBatch,
+        targets: &[u32],
+        completed_batches: u64,
+    ) -> Result<(Coordinate, Option<crate::carrier::CarrierSelection>)> {
+        match self.config.schedule.carrier_mode() {
+            Some(mode) if !self.is_read_batch(completed_batches) => {
+                let key = crate::carrier::schedule_key(self.config.seed, completed_batches);
+                let selection = model.carrier_select(carried, targets, mode, key)?;
+                let coordinate = self.carrier_block(selection.token, completed_batches)?;
+                Ok((coordinate, Some(selection)))
+            }
+            _ => Ok((self.coordinate_at(completed_batches)?, None)),
+        }
+    }
     /// Deterministic virtual proposal. The returned next cursor changes no model state.
     pub fn propose_next(
         &self,
@@ -2852,7 +3053,8 @@ impl PreparedDriver {
         self.advance(cursor, false)?;
         let batch = self.batch(cursor)?;
         let carried = model.carry_windows(&batch.windows)?;
-        let coordinate = self.coordinate_at(cursor.completed_batches)?;
+        let (coordinate, carrier) =
+            self.scheduled_coordinate(model, &carried, &batch.targets, cursor.completed_batches)?;
         let observation = self
             .propose_with_path(model, &carried, &batch.targets, coordinate.parameter())?
             .observation()?;
@@ -2870,6 +3072,7 @@ impl PreparedDriver {
             apply_refused_by_policy: false,
             any_candidate_cost_differs_from_identity: observation
                 .any_candidate_cost_differs_from_identity,
+            carrier,
         })
     }
     /// Complete transition path, inaccessible without a genuinely issued owner capability.
@@ -2890,7 +3093,8 @@ impl PreparedDriver {
         self.advance(cursor, false)?;
         let batch = self.batch(cursor)?;
         let carried = model.carry_windows(&batch.windows)?;
-        let coordinate = self.coordinate_at(cursor.completed_batches)?;
+        let (coordinate, carrier) =
+            self.scheduled_coordinate(model, &carried, &batch.targets, cursor.completed_batches)?;
         let proposal =
             self.propose_with_path(model, &carried, &batch.targets, coordinate.parameter())?;
         let observation = proposal.observation()?;
@@ -2918,6 +3122,7 @@ impl PreparedDriver {
             apply_refused_by_policy,
             any_candidate_cost_differs_from_identity: observation
                 .any_candidate_cost_differs_from_identity,
+            carrier,
         })
     }
     pub fn run_transitions(
@@ -2956,6 +3161,11 @@ impl PreparedDriver {
     ) -> Result<BlockReceipt> {
         if admission.lineage_sha256 != self.lineage_sha256()? {
             return Err(invalid("owner admission belongs to another driver lineage"));
+        }
+        if self.config.schedule.carrier_mode().is_some() {
+            return Err(invalid(
+                "carrier schedules run through transition, not block apply",
+            ));
         }
         if cursor.completed_batches >= admission.max_completed_batches {
             return Err(invalid("admitted diagnostic pilot dose exhausted"));
@@ -3079,7 +3289,7 @@ impl PreparedDriver {
     }
     fn validate_transfer_content(&self, transfer: &PreparedCorpus) -> Result<()> {
         let binding = transfer.binding();
-        if binding.source.split != Split::Dev
+        if !matches!(binding.source.split, Split::Dev | Split::Fresh)
             || binding.vocabulary != self.config.spec.vocabulary
             || binding.bos != self.config.bos
             || binding.source.tokens.sha256 == self.config.train.tokens.sha256

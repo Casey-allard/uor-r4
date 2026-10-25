@@ -631,3 +631,70 @@ extern "C" __global__ void discrete_count_score(const W* counts,U vocabulary,con
         if(counts[target]==0)++metrics[3];
     }
 }
+// Carrier hard selection (carrier-credit-hard-selection, #2819). One block of
+// CARRIER_THREADS; integer only. Reads one batch's discrete_evaluate rows and
+// writes out[0]=token, out[1]=value. Mode 0 (credit): a row's token+address
+// hinge goes to its target and, when top-1 is wrong, to its strongest admitted
+// rival top8[0]; the largest credit wins, ties to the lowest id, and zero credit
+// falls back to the lowest target (value = credit). Mode 1: the k-th distinct
+// target, k = mix(key) mod D (value = D). Mode 2: the target of row mix(key) mod
+// rows (value = row). Modes 1 and 2 never read a model score.
+#define CARRIER_THREADS 256u
+__device__ W carrier_mix(W z) {
+    z+=0x9E3779B97F4A7C15ull;
+    z=(z^(z>>30))*0xBF58476D1CE4E5B9ull;
+    z=(z^(z>>27))*0x94D049BB133111EBull;
+    return z^(z>>31);
+}
+extern "C" __global__ void discrete_carrier_select(const U* targets,const U* top8,const W* metrics,U rows,U vocabulary,U mode,W key,W* scratch,W* out,U* status) {
+    __shared__ W value[CARRIER_THREADS];
+    __shared__ U token[CARRIER_THREADS];
+    __shared__ U low[CARRIER_THREADS];
+    U t=threadIdx.x;
+    if(blockDim.x!=CARRIER_THREADS || gridDim.x!=1u || rows==0u || vocabulary==0u || mode>2u){if(t==0u)atomicExch(status,4u);return;}
+    U chunk=(vocabulary+CARRIER_THREADS-1u)/CARRIER_THREADS,first=t*chunk,last=first+chunk;
+    if(first>vocabulary)first=vocabulary;
+    if(last>vocabulary)last=vocabulary;
+    for(U v=first;v<last;++v)scratch[v]=0;
+    __syncthreads();
+    U lowest=ABSENT;
+    for(U r=t;r<rows;r+=CARRIER_THREADS){
+        U target=targets[r];
+        if(target>=vocabulary){atomicExch(status,4u);continue;}
+        if(target<lowest)lowest=target;
+        if(mode==0u){
+            W h=metrics[r*14u]+metrics[r*14u+1u];
+            if(h==0)continue;
+            atomicAdd(scratch+target,h);
+            U rival=top8[r*8u];
+            if(metrics[r*14u+5u]==0 && rival<vocabulary && rival!=target)atomicAdd(scratch+rival,h);
+        }else if(mode==1u)atomicExch(scratch+target,(W)1);
+    }
+    low[t]=lowest;
+    __syncthreads();
+    W best=0;U at=ABSENT;
+    for(U v=first;v<last;++v){W c=scratch[v];if(mode==0u){if(c>best){best=c;at=v;}}else best+=c;}
+    value[t]=best;token[t]=at;
+    __syncthreads();
+    if(t!=0u)return;
+    U lowest_target=ABSENT;
+    for(U i=0;i<CARRIER_THREADS;++i)if(low[i]<lowest_target)lowest_target=low[i];
+    if(lowest_target==ABSENT){atomicExch(status,4u);return;}
+    if(mode==2u){W r=carrier_mix(key)%(W)rows;out[0]=targets[r];out[1]=r;return;}
+    if(mode==0u){
+        W credit=0;U winner=ABSENT;
+        for(U i=0;i<CARRIER_THREADS;++i)if(value[i]>credit){credit=value[i];winner=token[i];}
+        if(credit==0){winner=lowest_target;}
+        out[0]=winner;out[1]=credit;return;
+    }
+    W distinct=0;
+    for(U i=0;i<CARRIER_THREADS;++i)distinct+=value[i];
+    if(distinct==0){atomicExch(status,4u);return;}
+    W k=carrier_mix(key)%distinct;
+    for(U i=0;i<CARRIER_THREADS;++i){
+        if(k>=value[i]){k-=value[i];continue;}
+        U from=i*chunk,to=from+chunk;if(to>vocabulary)to=vocabulary;
+        for(U v=from;v<to;++v)if(scratch[v]){if(k==0){out[0]=v;out[1]=distinct;return;}--k;}
+    }
+    atomicExch(status,4u);
+}
