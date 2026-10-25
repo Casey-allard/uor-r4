@@ -1,6 +1,6 @@
 # Geometric recurrence gates
 
-**Status: READY.** The clamped opening, the table of fade rates, the secant credit rule and the Hamilton output gate are built, and 18 finite controls (11 on CUDA, 7 metadata or argument checks) pass. The gates have never been trained, and the fit that was meant to test them never ran.
+**Status: READY.** The clamped opening, the table of fade rates, the secant credit rule and the Hamilton output gate are built, 18 finite controls (11 on CUDA, 7 metadata or argument checks) pass, and the pre-registered 256-step offline float secant surrogate descent check (`#2886`) passed (`G-Rec-Descent = PASS (mechanism descent)` across two seeds on an RTX 5090). Full-rung six-recurrence training (`#2890`) and integer export have not yet run.
 
 Labels used below: **proof** means derived from definitions or code, **measurement** means a recorded run or test, **hypothesis** means an untested idea. See [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
 
@@ -59,15 +59,15 @@ Rows before 13 October test related recurrences, not this table.
 | 13 Oct | The geometric gates themselves: clamp, rate and keep tables, secant credit, Hamilton output gate | Implemented, source only. Rate table error $5\times10^{-13}$, keep $4.6\times10^{-10}$ relative, secant $5.5\times10^{-8}$ relative. Squash tokens 0 against 8 in the historical branches | inconclusive | [record](../../archive/labs/recurrence-geometric-gates-2026-10-13/README.md) |
 | 13 Oct | 18 finite controls (11 on CUDA, 7 metadata or argument checks) at the first-rung shape (batch 16 by context 384, six recurrences, width 256, vocabulary 4,096) | 18 of 18 pass on source `05c84bece`. Opening and decay credit is nonzero in all six layers. Five defects repaired, including ordinary recurrence still entering the old sigmoid-exp-GELU core. No optimizer update, no quality number | positive, controls only | [record](../../archive/labs/rung0-complete-path-2026-10-13/README.md) |
 | 22 Oct | Discrete `Cl(0,6)` prefix-holonomy position mechanism (`PositionHolonomyV1`, `#2843`): 64-frame causal prefix scan $F_{p,b}=\mathrm{COMPOSE}[u_{p,b}\cdot 64 + F_{p-1,b}]$, relative holonomy $F_{t,b}\circ F_{s,b}^{-1}$, parameter-matched endpoint control and shuffled-prefix null | 5 of 5 finite CPU controls pass in [`position_mechanism.rs`](../../crates/uor-r4-discrete/src/position_mechanism.rs); pre-registration drafted ([sheet](../harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md), `TEST FITNESS: PENDING`); GPU order test not yet run | positive, controls only | [record](../labs/m1-position-mechanism/README.md) |
+| 25 Oct | Pre-registered 256-step offline float secant surrogate descent check (`r-secant-surrogate-descent`, `#2886`, [sheet](../harness/prep/r-secant-surrogate-descent-2026-10-25.md)) on `crates/uor-r4-float-train` (`pattern="rrrrrr"`, `width=256`, `batch=4`, `context=192`, `Objective::MarginHinge { rivals: 8 }`, `layers.*.rec.decay` isolated, seeds `1` and `2`, 1 $\times$ RTX 5090 `sm_120`, ~8,790 training tokens/s) | `RecSecant_Active` reduces `MarginHinge` loss by $\Delta L = +0.059740$ (seed 1) and $+0.078261$ / $+0.065333$ (seed 2, Builds A/B) against `RecZeroCredit_Null` ($\Delta L = 0.000000$) and `RecRandomRefit_Null` ($\Delta L = -0.003647 / -0.003860$ seed 1, $-0.002389$ seed 2), beating both null controls on both seeds by $+0.059740$ and $+0.078261$ ($3.23\times$ and $4.23\times$ $\Delta_{\text{noise}} = 0.018522$ on Build A; $10.68\times$ and $11.68\times$ $\Delta_{\text{noise}} = 0.005594$ on Build B), while crossing discrete rate cells on `30.73%` (`118/384`) and `35.42%` (`136/384`) of decay parameters (`I-1..3` PASS). Scope: 256-step offline float surrogate descent gate only; not a full-rung fit or D11 integer export | positive | [record](../labs/r-secant-surrogate-descent/README.md) |
 
-**Reading these honestly.** The failures are failures of other configurations: an unbounded dense state, a 28-event fixture, a quantisation recipe on the continuous learner, one paired seed with a control that is not worse. The quaternion-against-identity result (+0.07 nats) shows transport matters; the quaternion-against-reflection tie shows rotation is not yet shown better. None of the 13 October rows trains the table, and the stack results used the older squashing gates.
+**Reading these honestly.** The failures are failures of other configurations: an unbounded dense state, a 28-event fixture, a quantisation recipe on the continuous learner, one paired seed with a control that is not worse. The quaternion-against-identity result (+0.07 nats) shows transport matters; the quaternion-against-reflection tie shows rotation is not yet shown better. The 25 October row establishes that the 16-entry dyadic secant surrogate (`rate_select_bwd`) crosses discrete rate boundaries (`>30%` of decay parameters) and yields genuine descent beating both zero-credit and norm-matched Rademacher random-refit controls beyond the two-seed noise band; full-rung six-recurrence training (`#2890`) and integer export remain open.
 
 ## What has never been tested
 
-- **The first-rung six-recurrence fit,** which was held and then superseded by the discrete direction. No geometric-against-historical gates comparison exists on any data.
-- **Whether 16 table entries are fine enough,** compared with a learned continuous decay.
-- **Whether the secant surrogate gives descent.**
-- **A standalone device test for the rate-select kernel.** None appears in the parity suite, and there is no half-precision margin kernel.
+- **The first-rung six-recurrence fit,** which was held and then superseded by the discrete direction (`#2890`, now unblocked by `#2886`). No geometric-against-historical gates comparison exists on a full training run.
+- **Whether 16 table entries are fine enough** at full-rung training horizons compared with a learned continuous decay (256-step secant descent passed in `#2886`).
+- **A standalone device test for the rate-select kernel** outside the 18 finite controls and the `#2886` 256-step descent check, and a half-precision margin kernel.
 - **A fused geometric recurrence kernel.** The mode runs as a composition of operations.
 - **Integer export** of the geometric mode.
 - **The quaternion arm against its Householder control** with more than one paired seed, or on the geometric-gates trunk.
@@ -76,9 +76,9 @@ Rows before 13 October test related recurrences, not this table.
 
 The gates are READY, so these are the steps to make them ACTIVE.
 
-1. A new D37 offline-float sheet (separately scanned module, fresh test-fitness review, owner release) that runs the six-recurrence fit with `rec_gates=geometric`. The old plan compared against a historical-gates arm that uses sigmoid and exponential, which is banned for new runs, so that comparison must use stored outputs of the earlier runs or a lawful read.
-2. A device qualification that names these kernels. The CUDA path is exercised only inside the 18 controls.
-3. Evidence that the secant surrogate gives descent: a falling loss, or a comparison with a random-refit control.
+1. A new D37 offline-float sheet (separately scanned module, fresh test-fitness review, pre-run review) that runs the six-recurrence fit with `rec_gates=geometric` (`#2890`, now unblocked by `#2886`). The old plan compared against a historical-gates arm that uses sigmoid and exponential, which is banned for new runs, so that comparison must use stored outputs of the earlier runs or a lawful read.
+2. A device qualification that names these kernels at full-rung scale.
+3. ~~Evidence that the secant surrogate gives descent: a falling loss, or a comparison with a random-refit control.~~ Answered in `#2886` (`G-Rec-Descent = PASS`, [record](../labs/r-secant-surrogate-descent/README.md)).
 4. Fresh transfer, at least 2 seeds and the export gap on the same evaluator. A table-served form needs the integer engine to bind the new rate scores instead of the historical decay parameter.
 
 Open questions: do hard-selected rates train stably under the secant credit or does the table plateau; does rotation beat reflection as the carry at scale and under a finite-precision export; is a recurrence the right sequence mixer at all, now that the active model reads context through the routed and flock reads; and what the export gap looks like. These are **hypotheses**.

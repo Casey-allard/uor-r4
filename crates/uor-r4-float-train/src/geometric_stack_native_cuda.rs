@@ -228,6 +228,7 @@ fn spiralcore_fbs_device_error(device: &CudaDevice, flag: &CudaSlice<u32>) -> CR
             values
         );
     }
+    crate::secant_descent::record_cuda_error_check_ok();
     Ok(())
 }
 pub(crate) fn spiralcore_fbs_fwd(
@@ -346,10 +347,9 @@ pub(crate) fn spiralcore_fbs_bwd(
     }
     drop(args);
     spiralcore_fbs_device_error(device, &error)?;
-    Ok((
-        tensor(dq, device, q.shape()),
-        tensor(dx, device, x.shape()).to_dtype(x.dtype())?,
-    ))
+    let raw_dq = tensor(dq, device, q.shape());
+    let raw_dx = tensor(dx, device, x.shape()).to_dtype(x.dtype())?;
+    crate::secant_descent::transform_spiralcore_fbs_bwd(&q, raw_dq, raw_dx)
 }
 pub(super) fn rate_select_fwd(s: &CudaStorage, l: &Layout) -> Forward {
     let Some(score) = input(s, l)? else {
@@ -368,6 +368,10 @@ pub(super) fn rate_select_fwd(s: &CudaStorage, l: &Layout) -> Forward {
             Arg::U32(u32_of(total, "size")?),
         ],
     )?;
+    if crate::secant_descent::is_capturing_rate_fwd() {
+        let host_pairs = device.clone_dtoh(&out)?;
+        crate::secant_descent::on_rate_select_fwd_values(&host_pairs);
+    }
     let mut dims = l.shape().dims().to_vec();
     dims.push(2);
     Ok((storage(out, device), Shape::from_dims(&dims)))
@@ -396,7 +400,8 @@ pub(super) fn rate_select_bwd(
             Arg::U32(u32_of(total, "size")?),
         ],
     )?;
-    Ok(tensor(d_score, device, score.shape()))
+    let raw_d_score = tensor(d_score, device, score.shape());
+    crate::secant_descent::transform_rate_select_bwd(&s, &g, raw_d_score)
 }
 pub(super) fn rms_norm_fwd(
     s1: &CudaStorage,

@@ -1084,6 +1084,22 @@ impl StackModel {
     pub fn variables(&self) -> &BTreeMap<String, Var> {
         &self.variables
     }
+    pub fn projection_plan_for_variable(
+        &self,
+        name: &str,
+    ) -> Option<&Arc<crate::spiralcore_fbs::ProjectionPlan>> {
+        let var = self.variables.get(name)?;
+        if var.rank() != 3 || !name.ends_with(".spiralcore_fbs") {
+            return None;
+        }
+        let output_width = var.dim(0).ok()? * 8;
+        let input_width = if name.ends_with("mlp.down.spiralcore_fbs") {
+            self.config.mlp_hidden
+        } else {
+            self.config.width
+        };
+        self.spiralcore_fbs_plans.get(&(input_width, output_width))
+    }
     pub fn device(&self) -> &Device {
         &self.device
     }
@@ -1969,14 +1985,27 @@ impl StackAdamW {
         grads: &candle_core::backprop::GradStore,
         lr: f64,
     ) -> Result<f64> {
+        self.update_filtered(model, grads, lr, |_| true)
+    }
+
+    /// One update at learning rate `lr` restricted to variables matching `include(name)`;
+    /// returns the gradient norm across the included variable group before clipping.
+    pub fn update_filtered(
+        &mut self,
+        model: &StackModel,
+        grads: &candle_core::backprop::GradStore,
+        lr: f64,
+        include: impl Fn(&str) -> bool,
+    ) -> Result<f64> {
         model.validate_native_learning_path()?;
         let mut total = 0f64;
         let mut device_scale = None;
         if model.device().is_cuda() {
             let present: Vec<&Tensor> = model
                 .variables()
-                .values()
-                .filter_map(|var| grads.get(var.as_tensor()))
+                .iter()
+                .filter(|(name, _)| include(name))
+                .filter_map(|(_, var)| grads.get(var.as_tensor()))
                 .collect();
             if !present.is_empty() {
                 let (norm, scale) = cuda_gradient_clip(&present, self.clip)?;
@@ -2009,6 +2038,9 @@ impl StackAdamW {
         let first = 1.0 - self.beta1.powi(self.step as i32);
         let second = 1.0 - self.beta2.powi(self.step as i32);
         for (name, var) in model.variables() {
+            if !include(name) {
+                continue;
+            }
             let Some(grad) = grads.get(var.as_tensor()) else {
                 continue;
             };
