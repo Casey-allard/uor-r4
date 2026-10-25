@@ -32,6 +32,14 @@ The record of the count reference (`archive/labs/count-reference-2026-10-13/READ
 
 What is not settled is what that sheet is today. Amendment 7 (D32, 13 October) froze it as a design record that is not executable, because its training law is a floating-point optimizer, and it called for a new pre-registration on a discrete learning law. D37 (18 October, `docs/integration/DECISIONS.md`) later revised D32's learning-path float ban: floating point is legal in offline training with a reported export gap. No record says whether D37 makes the Amendment 6 sheet live again or whether a new sheet is still wanted. M2 training and rental stay HELD until the owner releases them, and a FIT releases nothing.
 
+**Note (25 Oct 2026, claude-100, #3199): the 13 Oct discrete rung-0 sheet does not meet the discrete-law branch.** `docs/harness/prep/m1-discrete-rung0-training-2026-10-13.md` names itself the successor to the Amendment 6 record, and it carries the tar, mask and count pins. A decision review found it is not the sheet this done-when asks for:
+- **Gates 1-3 are not on record as done.** Its Verdict puts three gates before any release: qualify the admission diff, review it, and bind the identities. No record shows them done, and it says "Today's source still refuses corpus training".
+- **Its FIT is stale.** It is a design FIT from 14 Oct on source `e7d926fbe`, and the sheet marks fresh transfer unavailable, though `m2-fresh-heldout-panel` is now done.
+- **It is the wrong shape.** It is a 392-line M1 dev-panel sheet with no M2 bar, and it does not carry the count-reference source `2fd6358bb`.
+- **The owner relay still counts it as work to file.** On 24 Oct it said a discrete-law sheet "is also wanted" and is to be filed as an item.
+
+So the discrete-law branch still needs a one-page M2 sheet on the current discrete law. It should carry the mask, count and source pins, the M2 bar and the sealed fresh panel, with a non-author FIT at a current head.
+
 ## Done when
 
 A recorded answer from the PM or owner on whether the Amendment 6 sheet is live under D37 or superseded, and a one-page sheet that is ready for an owner hold-release decision: either the pins re-verified against current main and restated in a refreshed sheet, or the pins carried into the new discrete-law sheet, with a non-author FIT. The sheet itself runs nothing: no training or optimizer update is authorised by it.
