@@ -3,11 +3,12 @@ id: r-secant-surrogate-descent
 title: Check whether a secant surrogate gives descent for recurrence gates
 milestone: research
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
-depends_on: []
-scope: [docs/harness/prep/r-secant-surrogate-descent*, docs/labs/r-secant-surrogate-descent/**, docs/loop/tasks/r-secant-surrogate-descent/**]
+depends_on: [float-training-module]
+notebook: docs/research/notebook/float-training.md
+scope: [crates/uor-r4-float-train/**, docs/mechanisms/recurrence-gates.md, docs/mechanisms/spiralcore-fbs.md, docs/harness/prep/r-secant-surrogate-descent*, docs/labs/r-secant-surrogate-descent/**, docs/loop/tasks/r-secant-surrogate-descent/**]
 ---
 
 ## Why it matters

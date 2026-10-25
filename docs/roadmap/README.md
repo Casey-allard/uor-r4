@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 30 |
-| held | 17 |
+| ready | 31 |
+| held | 16 |
 | decision | 1 |
 | done | 44 |
 | total | 92 |
@@ -139,8 +139,9 @@ These items are ready and open to anyone.
 | [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | ready | a lab | yes | none | [#2881](https://github.com/UOR-Foundation/uor-r4/issues/2881) |
 | [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | ready | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | [#2882](https://github.com/UOR-Foundation/uor-r4/issues/2882) |
 | [Compare read-off and read-on for Route and Flock on checkpoints](items/r-read-off-vs-read-on.md) | ready | a lab | yes | none | [#2885](https://github.com/UOR-Foundation/uor-r4/issues/2885) |
+| [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md) | [#2886](https://github.com/UOR-Foundation/uor-r4/issues/2886) |
 | [Compare 4,096 and 16,384 tokenizer pieces](items/r-vocab-4096-vs-16384.md) | ready | a lab | yes | [m1-faster-writer](items/m1-faster-writer.md) | [#2887](https://github.com/UOR-Foundation/uor-r4/issues/2887) |
-| [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | ready | a lab | yes | [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2890](https://github.com/UOR-Foundation/uor-r4/issues/2890) |
+| [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2890](https://github.com/UOR-Foundation/uor-r4/issues/2890) |
 | [Measure SpiralCore/FBS descent and tokens per second in a float sheet](items/spiralcore-fbs-offline-float-sheet.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2891](https://github.com/UOR-Foundation/uor-r4/issues/2891) |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
@@ -150,7 +151,6 @@ These items are ready and open to anyone.
 | [Build a lawful pointer, then run the forced-copy oracle](items/r-lawful-pointer-forced-copy-oracle.md) | held | a lab | yes | none | [#2880](https://github.com/UOR-Foundation/uor-r4/issues/2880) |
 | [Design a rank objective that keeps cells occupied](items/r-rank-objective-keeps-cells.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2883](https://github.com/UOR-Foundation/uor-r4/issues/2883) |
 | [Test ranking with admission intact](items/r-ranking-with-admission-intact.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2884](https://github.com/UOR-Foundation/uor-r4/issues/2884) |
-| [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | held | a lab | yes | none | [#2886](https://github.com/UOR-Foundation/uor-r4/issues/2886) |
 | [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
 | [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | done | anyone | no | none | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
@@ -268,6 +268,8 @@ flowchart LR
   n_float_training_module --> n_d11_exporter_float_trunk
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
+  n_float_training_module --> n_r_secant_surrogate_descent
+  n_float_training_module --> n_recurrence_gates_six_recurrence_fit
   n_float_training_module --> n_spiralcore_fbs_offline_float_sheet
   n_infra_loop_harness --> n_infra_loop_render_review
   n_infra_loop_pr02_item_keys --> n_infra_loop_pr03_render

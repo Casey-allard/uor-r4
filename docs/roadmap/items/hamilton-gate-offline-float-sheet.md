@@ -7,7 +7,8 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, r-secant-surrogate-descent]
-scope: [docs/harness/prep/hamilton-gate-offline-float-sheet*, docs/labs/hamilton-gate-offline-float-sheet/**, docs/loop/tasks/hamilton-gate-offline-float-sheet/**]
+notebook: docs/research/notebook/float-training.md
+scope: [crates/uor-r4-float-train/**, crates/uor-r4-integer/**, docs/mechanisms/hamilton-gate.md, docs/harness/prep/hamilton-gate-offline-float-sheet*, docs/labs/hamilton-gate-offline-float-sheet/**, docs/loop/tasks/hamilton-gate-offline-float-sheet/**]
 ---
 
 ## Why it matters
