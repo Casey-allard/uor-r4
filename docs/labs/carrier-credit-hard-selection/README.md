@@ -46,4 +46,24 @@ A second 2×5090 was refused by the $8/h cap guard.
 
 ## Results
 
-Pending. The control arms finish about 18:30Z. A docs-only follow-up unit grades all eight with `carrier-arms grade` and records the result here and in the notebook.
+**Configuration negative (D22): credit and selection are both tie or loss.** Graded by `carrier-arms grade` (#3203) in [`grade.json`](grade.json). The REPORT is claude-110 in this item's task folder.
+
+| Arm (seed 1001 / seed 2001) | FRESH top-1 (of 65,536) | FRESH top-8 | DEV top-1 (of 14,287) | DEV top-8 | Accepted updates |
+|---|---:|---:|---:|---:|---:|
+| ON | 274 / 269 | 848 / 864 | 54 / 53 | 178 / 191 | 11,771 / 11,770 |
+| CONTROL-U | 171 / 166 | 1,009 / 1,008 | 32 / 37 | 221 / 220 | 13,215 / 13,135 |
+| CONTROL-F | 143 / 139 | 795 / 941 | 35 / 41 | 188 / 223 | 13,196 / 13,273 |
+| OFF | 184 / 2,173 | 897 / 5,123 | 37 / 493 | 201 / 1,063 | 1,471 / 1,410 |
+| Unigram / next-word tables | 5,711 / 30,815 | — | 1,226 / 6,300 | — | — |
+
+- **The registered noise**, |OFF(1001) − OFF(2001)|, is 1,989 on FRESH and 456 on DEV.
+  - ON leads CONTROL-U by 103 and CONTROL-F by 130 to 131 at both seeds. That passes the binomial condition, but not the noise, so neither seed counts for credit and the leads are ungraded.
+  - CONTROL-F trails OFF at both seeds, so selection does not count.
+- **OFF at seed 2001 sets the noise.** It scores high on both DEV and FRESH, and it accepted about a ninth as many updates as the carrier arms. One reading, untested here, is a good seeded start that OFF barely moved. DEV and FRESH agree, so it is not a scoring fault; a fault in that training run is not ruled out.
+- **The audit** found ON informative:
+  - 0 zero-credit fallbacks;
+  - ON matched CONTROL-F on 7.1% and 6.8% of vector batches;
+  - but only 183 and 173 distinct tokens, with about 40% of batches on its top token.
+- **ON's top-8 is below CONTROL-U's** at both seeds. This is ungraded, and it is not below CONTROL-F's at seed 1001. Every arm is below the unigram table.
+
+Outputs: HF store `results/claude/carrier-credit-2026-10-25/` (`podA/`, `podB/`, `podC/`), each verified after download. The selector's CUDA controls passed 9 of 9 (c1–c9) in phase 1 on all three pods, and all 10, c10 included, on pods B and C at merged `main`. Pod A's `seed-*-seq` jobs end with `FAULT: arm run` by design (the CONTROL-U folders moved to pod B). Its ON records are complete.

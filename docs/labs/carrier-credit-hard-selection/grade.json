@@ -1,0 +1,86 @@
+{
+  "credit": "tie_or_loss",
+  "credit_label": "none",
+  "rule": "a beats b when a - b > seed noise and (a-b)^2*n > 8*h*(n-h), h = floor((a+b)/2); seed noise = |OFF(1001) - OFF(2001)| on the same set; fresh rows decide",
+  "schema": "uor-r4.carrier-arms-grade/1",
+  "seed_noise": {
+    "dev": 456,
+    "fresh": 1989
+  },
+  "seeds": [
+    {
+      "credit_counts": false,
+      "dev_credit_counts": false,
+      "dev_selection_counts": false,
+      "fresh_gaps": {
+        "binomial_only": {
+          "control_f_beats_off": false,
+          "on_beats_control_f": true,
+          "on_beats_control_u": true
+        },
+        "control_f_minus_off": -41,
+        "on_minus_control_f": 131,
+        "on_minus_control_u": 103,
+        "on_minus_off": 90
+      },
+      "fresh_rows": 65536,
+      "fresh_top1": {
+        "control_f": 143,
+        "control_u": 171,
+        "off": 184,
+        "on": 274
+      },
+      "on_beats_off": false,
+      "seed": 1001,
+      "selection_counts": false
+    },
+    {
+      "credit_counts": false,
+      "dev_credit_counts": false,
+      "dev_selection_counts": false,
+      "fresh_gaps": {
+        "binomial_only": {
+          "control_f_beats_off": false,
+          "on_beats_control_f": true,
+          "on_beats_control_u": true
+        },
+        "control_f_minus_off": -2034,
+        "on_minus_control_f": 130,
+        "on_minus_control_u": 103,
+        "on_minus_off": -1904
+      },
+      "fresh_rows": 65536,
+      "fresh_top1": {
+        "control_f": 139,
+        "control_u": 166,
+        "off": 2173,
+        "on": 269
+      },
+      "on_beats_off": false,
+      "seed": 2001,
+      "selection_counts": false
+    }
+  ],
+  "selection": "tie_or_loss",
+  "selection_audits": [
+    {
+      "on_distinct_tokens": 183,
+      "on_equals_control_f": 1025,
+      "on_equals_control_u": 253,
+      "on_top_token_batches": 6112,
+      "on_zero_credit": 0,
+      "seed": 1001,
+      "vector_batches": 14354
+    },
+    {
+      "on_distinct_tokens": 173,
+      "on_equals_control_f": 982,
+      "on_equals_control_u": 240,
+      "on_top_token_batches": 5703,
+      "on_zero_credit": 0,
+      "seed": 2001,
+      "vector_batches": 14354
+    }
+  ],
+  "selection_label": "none"
+}

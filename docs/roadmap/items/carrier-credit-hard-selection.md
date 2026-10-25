@@ -3,7 +3,7 @@ id: carrier-credit-hard-selection
 title: Build a hard-selection step for carrier credit
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []
