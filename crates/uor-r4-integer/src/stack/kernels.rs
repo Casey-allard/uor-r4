@@ -474,6 +474,26 @@ pub(crate) fn stack_quantize16(values: &[i64], exp: i32, out: &mut [i16]) -> i32
 /// exponent. `scratch` has the length of `x`.
 #[inline(never)]
 pub(crate) fn stack_rms_norm(x: &[i32], eps: Fixed, scratch: &mut [i64], out: &mut [i16]) -> i32 {
+    rms_norm_into(x, eps, scratch, 48, false);
+    stack_quantize16(scratch, -14, out)
+}
+
+/// The exponent of [`stack_rms_norm_fine`]'s output.
+pub(crate) const NORM_FINE_EXP: i32 = -24;
+
+/// RMSNorm without its gain, `x / rms(x)` for `x` at the residual exponent,
+/// into `out` at [`NORM_FINE_EXP`], rounded to nearest (claude-127). The
+/// SpiralCore/FBS step reads it: its query is then rounded to Q12 once, as the
+/// float reference rounds it, not from a truncated 2^-14 value.
+#[inline(never)]
+pub(crate) fn stack_rms_norm_fine(x: &[i32], eps: Fixed, out: &mut [i64]) {
+    rms_norm_into(x, eps, out, 38, true);
+}
+
+/// `x / rms(x) 2^(62 - final_shift)` into `scratch`: truncated, or rounded to
+/// nearest when `round`.
+#[inline(always)]
+fn rms_norm_into(x: &[i32], eps: Fixed, scratch: &mut [i64], final_shift: u32, round: bool) {
     let max = stack_max_abs_i32(x);
     let sh = (bit_length(u64::from(max)) - 24).max(0);
     // After the shift every value is within 2^24, so each square is at most
@@ -509,10 +529,13 @@ pub(crate) fn stack_rms_norm(x: &[i32], eps: Fixed, scratch: &mut [i64], out: &m
         } else {
             magnitude as i128
         };
-        let y = product >> 48;
+        let y = if round {
+            product.wrapping_add(1i128 << (final_shift - 1)) >> final_shift
+        } else {
+            product >> final_shift
+        };
         *v = y.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64;
     }
-    stack_quantize16(scratch, -14, out)
 }
 
 /// The activation tables of a 16-bit vector: for column `c`, entry `u` is

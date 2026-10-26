@@ -2618,10 +2618,47 @@ fn fbs_shape_takes_its_own_schema_and_refuses_unlawful_shapes() {
     );
 }
 
+/// The shape and value ranges of a synthetic FBS trunk (claude-127: a trained
+/// trunk is wider, deeper, non-square and has larger tables than the small one).
+#[derive(Clone, Copy, Debug)]
+struct FbsSynth {
+    vocab: usize,
+    d: usize,
+    mlp: usize,
+    layers: usize,
+    context: usize,
+    kept: usize,
+    /// RMS gains are drawn from `gain_lo + [0, gain_span)`.
+    gain_lo: f32,
+    gain_span: f32,
+    /// Convolution taps and biases are drawn from `±table`.
+    table: f32,
+    /// Lane `i`'s decay offset is `decay_step (i + ½)`.
+    decay_step: f32,
+}
+
+/// claude-122's small trunk.
+const FBS_SYNTH_SMALL: FbsSynth = FbsSynth {
+    vocab: 256,
+    d: 32,
+    mlp: 32,
+    layers: 2,
+    context: 8,
+    kept: 2,
+    gain_lo: 0.75,
+    gain_span: 0.5,
+    table: 0.25,
+    decay_step: 0.0625,
+};
+
 /// A synthetic SpiralCore/FBS trunk whose export has exactly [`fbs_shape`].
 fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
+    synthetic_fbs_trunk_with(seed, FBS_SYNTH_SMALL)
+}
+
+fn synthetic_fbs_trunk_with(seed: u64, s: FbsSynth) -> super::FbsTrunkSnapshot {
     let mut rng = Lcg(seed);
-    let (vocab, d, mlp, context) = (256usize, 32usize, 32usize, 8usize);
+    let (vocab, d, mlp, context) = (s.vocab, s.d, s.mlp, s.context);
     let lanes = d / 4;
     let g = lanes + d;
     let rand_vec = |rng: &mut Lcg, len: usize, scale: f32| -> Vec<f32> {
@@ -2631,7 +2668,7 @@ fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
     };
     let rand_pos = |rng: &mut Lcg, len: usize| -> Vec<f32> {
         (0..len)
-            .map(|_| 0.75 + (rng.next() % 1000) as f32 / 2000.0)
+            .map(|_| s.gain_lo + (rng.next() % 1000) as f32 / 1000.0 * s.gain_span)
             .collect()
     };
     let routes = |rng: &mut Lcg, in_dim: usize, out_dim: usize| -> super::FbsRoutes {
@@ -2645,7 +2682,7 @@ fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
             states: (0..out_blocks).map(|_| (rng.next() % 64) as u8).collect(),
         }
     };
-    let layers = (0..2)
+    let layers = (0..s.layers)
         .map(|_| super::FbsTrunkLayer {
             rec_norm: rand_pos(&mut rng, d),
             mlp_norm: rand_pos(&mut rng, d),
@@ -2655,10 +2692,10 @@ fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
             mlp_gate: routes(&mut rng, d, mlp),
             mlp_up: routes(&mut rng, d, mlp),
             mlp_down: routes(&mut rng, mlp, d),
-            conv_taps: rand_vec(&mut rng, 4 * d, 0.25),
-            conv_bias: rand_vec(&mut rng, d, 0.25),
-            gate_bias: rand_vec(&mut rng, g, 0.25),
-            decay: (0..lanes).map(|i| 0.0625 * (i as f32 + 0.5)).collect(),
+            conv_taps: rand_vec(&mut rng, 4 * d, s.table),
+            conv_bias: rand_vec(&mut rng, d, s.table),
+            gate_bias: rand_vec(&mut rng, g, s.table),
+            decay: (0..lanes).map(|i| s.decay_step * (i as f32 + 0.5)).collect(),
         })
         .collect();
     super::FbsTrunkSnapshot {
@@ -2667,7 +2704,7 @@ fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
         mlp,
         context,
         rms_eps: 1e-5,
-        kept_cells: 2,
+        kept_cells: s.kept,
         embed: rand_vec(&mut rng, vocab * d, 1.5),
         final_norm: rand_pos(&mut rng, d),
         layers,
@@ -3286,4 +3323,92 @@ fn fbs_trunk_export_matches_float_reference_across_full_vocabulary() {
     .expect("parse");
     assert!(dense.session().step_native(0).is_err());
     assert!(model.session().step(0).expect("step").is_empty());
+}
+
+#[test]
+fn fbs_writer_matches_reference_when_its_address_gains_are_tiny() {
+    // claude-127: a trained trunk shrank the final gains of the 16 channels
+    // the writer scores its cells from (the query's first and last 8-blocks)
+    // to about 6e-4, so those blocks sit at a few Q12 steps and one LSB
+    // reorders the cells. The query must then reach Q12 from a norm rounded to
+    // nearest at 2^-24, as unbiased as the reference's: a 2^-14 norm truncated
+    // and then rounded again to Q12 chose different cells on 30% of tokens.
+    let s = FbsSynth {
+        vocab: 512,
+        d: 64,
+        mlp: 64,
+        layers: 1,
+        context: 8,
+        kept: 8,
+        ..FBS_SYNTH_SMALL
+    };
+    let mut snap = synthetic_fbs_trunk_with(20261026, s);
+    let d = snap.width;
+    for (i, g) in (0..8).chain(d - 8..d).enumerate() {
+        snap.final_norm[g] = 6e-4 * (1.0 + i as f32 / 16.0);
+    }
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export"))
+        .expect("parse");
+    let (mut tokens, mut cells, mut close) = (0usize, 0usize, 0usize);
+    for tok in 0..snap.vocab as u32 {
+        let got = model.session().step_native(tok).expect("integer step");
+        let want = &snap.forward_f32(&[tok], true).expect("reference")[0];
+        tokens += usize::from(got.token == want.token);
+        cells += usize::from(got.kept_cells == want.kept_cells);
+        let worst = got
+            .query_q12
+            .iter()
+            .zip(&want.query)
+            .map(|(&g, &w)| (g - (w * 4096.0).round() as i32).abs())
+            .max()
+            .unwrap_or(i32::MAX);
+        close += usize::from(worst <= 2);
+    }
+    eprintln!("fbs tiny-address control: tokens {tokens}/512, kept cells {cells}/512, queries within 2 LSB {close}/512");
+    assert!(cells >= 500, "kept cells agree on only {cells} of 512");
+    assert!(tokens >= 500, "tokens agree on only {tokens} of 512");
+    assert!(close >= 500, "queries within 2 LSB on only {close} of 512");
+}
+
+#[test]
+fn fbs_trunk_matches_reference_at_a_non_square_multi_token_shape() {
+    // claude-127: the small control is square (MLP = width), holds one token
+    // per writer cell and keeps 2 cells. This one is non-square (MLP 96, width
+    // 64), holds two tokens per cell (vocabulary 512), keeps 8 cells, runs 3
+    // layers and has larger tables, as a trained trunk does. A snap near a tie
+    // may break either way under fixed point, so a few positions may differ.
+    let s = FbsSynth {
+        vocab: 512,
+        d: 64,
+        mlp: 96,
+        layers: 3,
+        context: 16,
+        kept: 8,
+        gain_lo: 0.75,
+        gain_span: 1.5,
+        table: 0.5,
+        decay_step: 0.25,
+    };
+    let snap = synthetic_fbs_trunk_with(20261026, s);
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export"))
+        .expect("parse");
+    let (mut tokens, mut cells, mut close) = (0usize, 0usize, 0usize);
+    for tok in 0..snap.vocab as u32 {
+        let got = model.session().step_native(tok).expect("integer step");
+        let want = &snap.forward_f32(&[tok], true).expect("reference")[0];
+        tokens += usize::from(got.token == want.token);
+        cells += usize::from(got.kept_cells == want.kept_cells);
+        let worst = got
+            .query_q12
+            .iter()
+            .zip(&want.query)
+            .map(|(&g, &w)| (g - (w * 4096.0).round() as i32).abs())
+            .max()
+            .unwrap_or(i32::MAX);
+        close += usize::from(worst <= 2);
+    }
+    eprintln!("fbs large control: tokens {tokens}/512, kept cells {cells}/512, queries within 2 LSB {close}/512");
+    assert!(tokens >= 504, "tokens agree on only {tokens} of 512");
+    assert!(cells >= 496, "kept cells agree on only {cells} of 512");
+    assert!(close >= 480, "queries within 2 LSB on only {close} of 512");
 }

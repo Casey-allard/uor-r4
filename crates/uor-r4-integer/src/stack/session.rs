@@ -40,9 +40,10 @@ use super::kernels::{
     stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
     stack_hamilton, stack_isqrt, stack_l2_distance, stack_lift, stack_lorentz_distance,
     stack_mix_row, stack_mul_u128, stack_mul_u64, stack_pair_tables, stack_pointer_mixture,
-    stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31, stack_snap_rotation,
+    stack_quantize16, stack_query_tables, stack_rms_norm, stack_rms_norm_fine, stack_sigmoid_q31,
+    stack_snap_rotation,
     stack_snap_select, stack_square, to_exp_i32, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP,
-    RESIDUAL_EXP,
+    NORM_FINE_EXP, RESIDUAL_EXP,
 };
 use super::StackError;
 
@@ -319,9 +320,6 @@ impl Recurrence {
     }
 }
 
-/// The exponent of `stack_rms_norm`'s unrounded normalized values in its
-/// scratch (`x / rms(x)` at `2^-14`).
-const NORM_SCRATCH_EXP: i32 = -14;
 /// The Q12 exponent of the writer table and its query.
 const Q12_EXP: i32 = -12;
 
@@ -2859,19 +2857,19 @@ fn stack_step_fbs(
             debug_assert!(false, "an FBS layer's state is not a recurrence");
             return Err(StackError::SessionState);
         };
-        stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+        stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
-        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.branches);
-        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.gate_out);
+        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_FINE_EXP, &mut b.branches);
+        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate_out);
         let act_exp = stack_recurrence_core(model, layer.tables(), state, history, b, false);
         stack_fbs_gather(&layer.rec_out, &b.act[..d], act_exp, &mut b.proj);
         for (x, p) in b.x.iter_mut().zip(&b.proj) {
             *x = x.saturating_add(*p);
         }
-        stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+        stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.mlp_gain);
-        stack_fbs_gather(&layer.mlp_gate, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.gate);
-        stack_fbs_gather(&layer.mlp_up, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.up);
+        stack_fbs_gather(&layer.mlp_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate);
+        stack_fbs_gather(&layer.mlp_up, &b.scratch[..d], NORM_FINE_EXP, &mut b.up);
         stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
         let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
         stack_fbs_gather(&layer.mlp_down, &b.act[..mlp], act_exp, &mut b.proj);
@@ -2879,10 +2877,10 @@ fn stack_step_fbs(
             *x = x.saturating_add(*p);
         }
     }
-    stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+    stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
     stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
     for (q, &v) in b.query_q12.iter_mut().zip(&b.scratch[..d]) {
-        *q = to_exp_i32(v, NORM_SCRATCH_EXP, Q12_EXP).clamp(-32768, 32767);
+        *q = to_exp_i32(v, NORM_FINE_EXP, Q12_EXP).clamp(-32768, 32767);
     }
     b.native_token = stack_native_writer(
         fbs,
