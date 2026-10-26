@@ -58,6 +58,8 @@ pub(crate) mod kernels;
 #[cfg(feature = "serving-wasm")]
 pub mod simd;
 mod session;
+#[cfg(any(test, feature = "fbs-synthetic"))]
+pub mod synthetic;
 #[cfg(test)]
 mod tests;
 
@@ -81,8 +83,8 @@ pub use format::{
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
 pub use session::{
     sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
-    validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text,
-    IntegerStackModel, IntegerStackSession, NativeStep, ProtocolV3ValidationError, SerializedStackLayerState,
+    validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text, FbsImage,
+    FbsLayerImage, FbsMapImage, IntegerStackModel, IntegerStackSession, NativeStep, ProtocolV3ValidationError, SerializedStackLayerState,
     SerializedStackSession, SnapTraceEntry, StackParameterBreakdown, StackPhaseParameters,
     StepPhaseTimingNs, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
 };

@@ -1,0 +1,41 @@
+[package]
+name = "d11-fbs-evaluator-instrument"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# instrument can never change what the workspace builds, takes no crate lock,
+# and keeps CUDA out of the serving crate, which forbids unsafe code (CHARTER
+# §3.13). It reads uor-r4-integer's public FBS image and synthetic controls and
+# never edits the crate. Modelled on docs/labs/m1-d11-artifact-scorer.
+[workspace]
+
+# Build and test with an explicit `--target` (for example
+# `--target aarch64-apple-darwin` on the Mac, `--target x86_64-unknown-linux-gnu`
+# on a pod). uor-r4-integer's `cdylib` crate type drops the metadata hash from
+# its output name, and without `--target` the host and target builds collide on
+# one file (cargo #6313), which then fails as E0463.
+
+[lib]
+name = "d11_fbs_evaluator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "d11-fbs-eval"
+path = "src/main.rs"
+required-features = ["cuda"]
+
+[features]
+default = []
+# The GPU evaluator: nvcc builds src/evaluator.cu ahead of time (UOR_NVCC_ARCH).
+cuda = ["dep:cudarc"]
+
+[dependencies]
+cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }
+serde_json = "1"
+sha2 = "0.10.8"
+uor-r4-integer = { path = "../../../../crates/uor-r4-integer", features = ["serving-wasm", "fbs-synthetic"] }
+
+[build-dependencies]
+cc = "1"

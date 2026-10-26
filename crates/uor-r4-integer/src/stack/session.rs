@@ -298,6 +298,96 @@ struct FbsModel {
     kept_cells: usize,
 }
 
+/// A read-only, zero-copy view of a parsed SpiralCore/FBS model's integers,
+/// for an evaluator outside this crate that must compute exactly what
+/// [`IntegerStackSession::step_native`] computes (claude-128's GPU evaluator).
+/// It adds no arithmetic. An FBS shape always has geometric gates, the
+/// icosian-snapped transport, learned rotations and the Hamilton gate, so the
+/// step reads none of the model's exp, SiLU or GELU tables. The shape and
+/// [`StackNumerics::rms_eps`] come from [`IntegerStackModel::shape`] and
+/// [`IntegerStackModel::numerics`]; the icosian roots from
+/// [`crate::h4_classifier::H4_ROOT_COEFFICIENTS`] and `lambda phi`'s constant
+/// from [`super::PHI_Q32`].
+pub struct FbsImage<'a> {
+    /// The layers, in order.
+    pub layers: Vec<FbsLayerImage<'a>>,
+    /// The final norm's grid-coded gains, `width` codes.
+    pub final_gain: &'a [i16],
+    /// `vocab * width` Q12 values, row `t` at `t * width`: token `t`'s input
+    /// embedding and its row of the native writer.
+    pub writer_table: &'a [i16],
+    /// The writer's 16 orbit roots at Q12, scored against the query's first
+    /// and last 8-blocks.
+    pub roots_q12: &'a [[i32; 8]; 16],
+    /// Cells the writer keeps (1 to 16).
+    pub kept_cells: usize,
+}
+
+/// One FBS layer of an [`FbsImage`].
+pub struct FbsLayerImage<'a> {
+    /// The recurrence norm's grid-coded gains, `width` codes.
+    pub rec_gain: &'a [i16],
+    /// The feed-forward norm's grid-coded gains, `width` codes.
+    pub mlp_gain: &'a [i16],
+    /// The drive and output gate: `2 width` outputs, `2 width / 8` blocks.
+    pub rec_in: FbsMapImage<'a>,
+    /// Decay logits (`width / 4`) then raw rotations (`width`): `gate_rows / 8`
+    /// blocks.
+    pub rec_gate: FbsMapImage<'a>,
+    /// The recurrence's output map from its 16-bit activations: `width / 8`
+    /// blocks.
+    pub rec_out: FbsMapImage<'a>,
+    /// The Hamilton gate's left operand: `mlp / 8` blocks.
+    pub mlp_gate: FbsMapImage<'a>,
+    /// The Hamilton gate's right operand: `mlp / 8` blocks.
+    pub mlp_up: FbsMapImage<'a>,
+    /// The feed-forward output map from its 16-bit activations: `width / 8`
+    /// blocks over `mlp / 8` atoms.
+    pub mlp_down: FbsMapImage<'a>,
+    /// Convolution grid codes `[tap][channel]`, `CONVOLUTION_WIDTH * width`;
+    /// tap `s` weights the drive `s` positions back.
+    pub taps: &'a [i16],
+    /// Convolution biases at the residual exponent, `width` values.
+    pub conv_bias: &'a [i32],
+    /// Gate biases at the residual exponent, `gate_rows` values.
+    pub gate_bias: &'a [i32],
+    /// Geometric decay offsets (Q16), `width / 4` values.
+    pub decay_offset: &'a [i32],
+}
+
+/// One FBS projection of an [`FbsImage`]: per output 8-block, the input atom
+/// (8 consecutive inputs) it reads and the eight codes of its state, `code & 7`
+/// the source lane within the atom and `code & 8` a negation.
+#[derive(Clone, Copy)]
+pub struct FbsMapImage<'a> {
+    pub atoms: &'a [u16],
+    pub codes: &'a [[u8; 8]],
+}
+
+impl FbsImage<'_> {
+    /// Exponent of the residual stream and projection outputs.
+    pub const RESIDUAL_EXP: i32 = RESIDUAL_EXP;
+    /// Exponent of a product of two residual values.
+    pub const PRODUCT_EXP: i32 = PRODUCT_EXP;
+    /// Exponent of the recurrence state.
+    pub const STATE_EXP: i32 = STATE_EXP;
+    /// Exponent of the fine RMSNorm output (claude-127).
+    pub const NORM_FINE_EXP: i32 = NORM_FINE_EXP;
+    /// Exponent of the writer table and its query.
+    pub const Q12_EXP: i32 = Q12_EXP;
+    /// The geometric lanes' drive weights, Q31, by dyadic rate index.
+    pub const GEOMETRIC_KEEP_Q31: [u64; 16] = GEOMETRIC_KEEP_Q31;
+}
+
+impl<'a> FbsMapImage<'a> {
+    fn of(map: &'a FbsMap) -> Self {
+        Self {
+            atoms: &map.atoms,
+            codes: &map.codes,
+        }
+    }
+}
+
 /// What a recurrence reads besides its three maps.
 struct RecurrenceTables<'a> {
     /// Grid codes `[tap][channel]`; tap `s` weights the drive `s` positions back.
@@ -853,6 +943,37 @@ impl IntegerStackModel {
     /// The RMSNorm epsilon.
     pub fn rms_epsilon(&self) -> Fixed {
         self.numerics.rms_eps
+    }
+
+    /// The parsed SpiralCore/FBS trunk and writer as a read-only view, for an
+    /// out-of-crate evaluator; `None` for a dense stack.
+    pub fn fbs_image(&self) -> Option<FbsImage<'_>> {
+        let fbs = self.fbs.as_deref()?;
+        let layers = fbs
+            .layers
+            .iter()
+            .map(|l| FbsLayerImage {
+                rec_gain: &l.rec_gain,
+                mlp_gain: &l.mlp_gain,
+                rec_in: FbsMapImage::of(&l.rec_in),
+                rec_gate: FbsMapImage::of(&l.rec_gate),
+                rec_out: FbsMapImage::of(&l.rec_out),
+                mlp_gate: FbsMapImage::of(&l.mlp_gate),
+                mlp_up: FbsMapImage::of(&l.mlp_up),
+                mlp_down: FbsMapImage::of(&l.mlp_down),
+                taps: &l.taps,
+                conv_bias: &l.conv_bias,
+                gate_bias: &l.gate_bias,
+                decay_offset: &l.decay_offset,
+            })
+            .collect();
+        Some(FbsImage {
+            layers,
+            final_gain: &fbs.final_gain,
+            writer_table: &fbs.writer_table,
+            roots_q12: &fbs.roots_q12,
+            kept_cells: fbs.kept_cells,
+        })
     }
 
     /// SHA-256 of the artifact bytes.

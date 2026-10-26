@@ -6,18 +6,7 @@ use serde_json::{json, Value};
 
 use super::format::MAX_READ_CACHE_BYTES;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
-
-struct Lcg(u64);
-
-impl Lcg {
-    fn next(&mut self) -> u64 {
-        self.0 = self
-            .0
-            .wrapping_mul(6_364_136_223_846_793_005)
-            .wrapping_add(1_442_695_040_888_963_407);
-        self.0 >> 33
-    }
-}
+use super::synthetic::{fbs_synthetic_non_square, fbs_synthetic_tiny_gain, synthetic_fbs_trunk, Lcg};
 
 /// A container under construction: the header's section lists and the data.
 struct Builder {
@@ -2618,97 +2607,58 @@ fn fbs_shape_takes_its_own_schema_and_refuses_unlawful_shapes() {
     );
 }
 
-/// The shape and value ranges of a synthetic FBS trunk (claude-127: a trained
-/// trunk is wider, deeper, non-square and has larger tables than the small one).
-#[derive(Clone, Copy, Debug)]
-struct FbsSynth {
-    vocab: usize,
-    d: usize,
-    mlp: usize,
-    layers: usize,
-    context: usize,
-    kept: usize,
-    /// RMS gains are drawn from `gain_lo + [0, gain_span)`.
-    gain_lo: f32,
-    gain_span: f32,
-    /// Convolution taps and biases are drawn from `±table`.
-    table: f32,
-    /// Lane `i`'s decay offset is `decay_step (i + ½)`.
-    decay_step: f32,
-}
-
-/// claude-122's small trunk.
-const FBS_SYNTH_SMALL: FbsSynth = FbsSynth {
-    vocab: 256,
-    d: 32,
-    mlp: 32,
-    layers: 2,
-    context: 8,
-    kept: 2,
-    gain_lo: 0.75,
-    gain_span: 0.5,
-    table: 0.25,
-    decay_step: 0.0625,
-};
-
-/// A synthetic SpiralCore/FBS trunk whose export has exactly [`fbs_shape`].
-fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
-    synthetic_fbs_trunk_with(seed, FBS_SYNTH_SMALL)
-}
-
-fn synthetic_fbs_trunk_with(seed: u64, s: FbsSynth) -> super::FbsTrunkSnapshot {
-    let mut rng = Lcg(seed);
-    let (vocab, d, mlp, context) = (s.vocab, s.d, s.mlp, s.context);
-    let lanes = d / 4;
-    let g = lanes + d;
-    let rand_vec = |rng: &mut Lcg, len: usize, scale: f32| -> Vec<f32> {
-        (0..len)
-            .map(|_| ((rng.next() % 2001) as i32 - 1000) as f32 / 1000.0 * scale)
-            .collect()
-    };
-    let rand_pos = |rng: &mut Lcg, len: usize| -> Vec<f32> {
-        (0..len)
-            .map(|_| s.gain_lo + (rng.next() % 1000) as f32 / 1000.0 * s.gain_span)
-            .collect()
-    };
-    let routes = |rng: &mut Lcg, in_dim: usize, out_dim: usize| -> super::FbsRoutes {
-        let (in_blocks, out_blocks) = (in_dim / 8, out_dim / 8);
-        super::FbsRoutes {
-            in_blocks,
-            out_blocks,
-            atoms: (0..out_blocks)
-                .map(|_| (rng.next() % in_blocks as u64) as u16)
-                .collect(),
-            states: (0..out_blocks).map(|_| (rng.next() % 64) as u8).collect(),
+#[test]
+fn fbs_image_matches_its_shape() {
+    // claude-128: the read-only view an out-of-crate evaluator ports the FBS
+    // step from holds every table at the length the shape implies, and the
+    // writer table is the snapshot's embedding rounded to Q12.
+    for snap in [
+        synthetic_fbs_trunk(20261025),
+        fbs_synthetic_non_square(20261026),
+        fbs_synthetic_tiny_gain(20261026),
+    ] {
+        let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export"))
+            .expect("parse");
+        let image = model.fbs_image().expect("an FBS model has an image");
+        let (d, m, s) = (snap.width, snap.mlp, model.shape());
+        let (lanes, g) = (d / 4, s.gate_rows());
+        assert_eq!(g, lanes + d);
+        assert_eq!(image.layers.len(), snap.layers.len());
+        assert_eq!(image.kept_cells, snap.kept_cells);
+        assert_eq!(image.final_gain.len(), d);
+        assert_eq!(image.writer_table.len(), snap.vocab * d);
+        for (&q, &v) in image.writer_table.iter().zip(&snap.embed) {
+            assert_eq!(i64::from(q), (f64::from(v) * 4096.0).round() as i64);
         }
-    };
-    let layers = (0..s.layers)
-        .map(|_| super::FbsTrunkLayer {
-            rec_norm: rand_pos(&mut rng, d),
-            mlp_norm: rand_pos(&mut rng, d),
-            rec_in: routes(&mut rng, d, 2 * d),
-            rec_gate: routes(&mut rng, d, g),
-            rec_out: routes(&mut rng, d, d),
-            mlp_gate: routes(&mut rng, d, mlp),
-            mlp_up: routes(&mut rng, d, mlp),
-            mlp_down: routes(&mut rng, mlp, d),
-            conv_taps: rand_vec(&mut rng, 4 * d, s.table),
-            conv_bias: rand_vec(&mut rng, d, s.table),
-            gate_bias: rand_vec(&mut rng, g, s.table),
-            decay: (0..lanes).map(|i| s.decay_step * (i as f32 + 0.5)).collect(),
-        })
-        .collect();
-    super::FbsTrunkSnapshot {
-        vocab,
-        width: d,
-        mlp,
-        context,
-        rms_eps: 1e-5,
-        kept_cells: s.kept,
-        embed: rand_vec(&mut rng, vocab * d, 1.5),
-        final_norm: rand_pos(&mut rng, d),
-        layers,
+        for (layer, routes) in image.layers.iter().zip(&snap.layers) {
+            assert_eq!((layer.rec_gain.len(), layer.mlp_gain.len()), (d, d));
+            // Each map's atoms are the snapshot's routes for that map, so a
+            // swapped map or layer would differ.
+            for (map, route, out_dim, in_dim) in [
+                (layer.rec_in, &routes.rec_in, 2 * d, d),
+                (layer.rec_gate, &routes.rec_gate, g, d),
+                (layer.rec_out, &routes.rec_out, d, d),
+                (layer.mlp_gate, &routes.mlp_gate, m, d),
+                (layer.mlp_up, &routes.mlp_up, m, d),
+                (layer.mlp_down, &routes.mlp_down, d, m),
+            ] {
+                assert_eq!((map.atoms.len(), map.codes.len()), (out_dim / 8, out_dim / 8));
+                assert_eq!(map.atoms, route.atoms.as_slice());
+                assert!(map.atoms.iter().all(|&a| usize::from(a) < in_dim / 8));
+                assert!(map.codes.iter().flatten().all(|&c| c < 16));
+            }
+            assert_eq!(layer.taps.len(), super::CONVOLUTION_WIDTH * d);
+            assert_eq!(
+                (layer.conv_bias.len(), layer.gate_bias.len(), layer.decay_offset.len()),
+                (d, g, lanes)
+            );
+        }
     }
+    let dense = IntegerStackModel::parse(
+        &super::export_float_trunk_uorlut01(&synthetic_float_trunk(7, "dot")).expect("export"),
+    )
+    .expect("parse");
+    assert!(dense.fbs_image().is_none());
 }
 
 #[test]
@@ -3333,20 +3283,7 @@ fn fbs_writer_matches_reference_when_its_address_gains_are_tiny() {
     // reorders the cells. The query must then reach Q12 from a norm rounded to
     // nearest at 2^-24, as unbiased as the reference's: a 2^-14 norm truncated
     // and then rounded again to Q12 chose different cells on 30% of tokens.
-    let s = FbsSynth {
-        vocab: 512,
-        d: 64,
-        mlp: 64,
-        layers: 1,
-        context: 8,
-        kept: 8,
-        ..FBS_SYNTH_SMALL
-    };
-    let mut snap = synthetic_fbs_trunk_with(20261026, s);
-    let d = snap.width;
-    for (i, g) in (0..8).chain(d - 8..d).enumerate() {
-        snap.final_norm[g] = 6e-4 * (1.0 + i as f32 / 16.0);
-    }
+    let snap = fbs_synthetic_tiny_gain(20261026);
     let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export"))
         .expect("parse");
     let (mut tokens, mut cells, mut close) = (0usize, 0usize, 0usize);
@@ -3377,19 +3314,7 @@ fn fbs_trunk_matches_reference_at_a_non_square_multi_token_shape() {
     // 64), holds two tokens per cell (vocabulary 512), keeps 8 cells, runs 3
     // layers and has larger tables, as a trained trunk does. A snap near a tie
     // may break either way under fixed point, so a few positions may differ.
-    let s = FbsSynth {
-        vocab: 512,
-        d: 64,
-        mlp: 96,
-        layers: 3,
-        context: 16,
-        kept: 8,
-        gain_lo: 0.75,
-        gain_span: 1.5,
-        table: 0.5,
-        decay_step: 0.25,
-    };
-    let snap = synthetic_fbs_trunk_with(20261026, s);
+    let snap = fbs_synthetic_non_square(20261026);
     let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export"))
         .expect("parse");
     let (mut tokens, mut cells, mut close) = (0usize, 0usize, 0usize);
