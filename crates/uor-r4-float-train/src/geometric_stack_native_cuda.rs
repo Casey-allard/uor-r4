@@ -639,3 +639,150 @@ struct SpiralcoreFbsDevicePlan {
     branch_targets: CudaSlice<u32>,
     roots: CudaSlice<f32>,
 }
+
+// The SpiralCore/FBS sheet arms (`src/spiralcore_fbs_arms.cu`, spiralcore-fbs-offline-float-sheet,
+// claude-119), launched from their own ahead-of-time module (`build.rs`, no runtime compiler).
+// `arm` is 1 (identity transport) or 2 (two routed query paths); F32 carriers only, as qualified
+// execution is F32. The pinned `spiralcore_fbs_fwd`/`spiralcore_fbs_bwd` above are untouched.
+const SPIRALCORE_FBS_ARMS_MODULE: &str = "uor_r4_spiralcore_fbs_arms";
+pub(crate) const SPIRALCORE_FBS_ARMS_PTX: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/spiralcore_fbs_arms_f32.ptx"));
+fn spiralcore_fbs_arm_paths(arm: u32) -> CResult<usize> {
+    match arm {
+        1 => Ok(1),
+        2 => Ok(2),
+        _ => candle_core::bail!("unknown SpiralCore/FBS sheet arm code {arm}"),
+    }
+}
+fn spiralcore_fbs_arm_rows(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    q: &[usize],
+    x: &[usize],
+    elements: usize,
+    paths: usize,
+) -> CResult<usize> {
+    let [outputs, stages, eight] = plan.query_shape();
+    if q != [outputs, stages * paths, eight]
+        || x.last() != Some(&(plan.input_blocks * 8))
+        || elements == 0
+    {
+        candle_core::bail!("arm projection buffers disagree with their static plan");
+    }
+    let rows = elements / (plan.input_blocks * 8);
+    let threads = rows
+        .checked_mul(plan.output_blocks)
+        .ok_or_else(|| candle_core::Error::Msg("arm projection launch size overflow".into()))?;
+    u32_of(threads, "arm projection carriers")?;
+    Ok(rows)
+}
+pub(crate) fn spiralcore_fbs_arm_fwd(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    q: &CudaStorage,
+    ql: &Layout,
+    x: &CudaStorage,
+    xl: &Layout,
+    arm: u32,
+) -> Forward {
+    if q.device.id() != x.device.id() {
+        candle_core::bail!("arm routing points and carriers need the same CUDA context");
+    }
+    if x.dtype() != DType::F32 {
+        candle_core::bail!("sheet arms run on F32 carriers only");
+    }
+    let paths = spiralcore_fbs_arm_paths(arm)?;
+    let rows = spiralcore_fbs_arm_rows(
+        plan,
+        ql.shape().dims(),
+        xl.shape().dims(),
+        xl.shape().elem_count(),
+        paths,
+    )?;
+    let Some(query) = input(q, ql)? else {
+        candle_core::bail!("arm queries need contiguous F32 masters");
+    };
+    let device = &q.device;
+    let metadata = spiralcore_fbs_device_plan(plan, device)?;
+    let error = zeros::<u32>(device, 1)?;
+    let threads = rows * plan.output_blocks;
+    let mut dims = xl.shape().dims().to_vec();
+    let last = dims.len() - 1;
+    dims[last] = 8 * plan.output_blocks;
+    let out = uninit::<f32>(device, threads * 8)?;
+    let mut args = vec![Arg::F(query), spiralcore_fbs_activation(x, xl)?];
+    args.extend(spiralcore_fbs_metadata(plan, &metadata));
+    args.push(Arg::f(&out));
+    args.push(Arg::u(&error));
+    args.extend(spiralcore_fbs_dimensions(plan, rows)?);
+    args.push(Arg::U32(arm));
+    crate::cuda_stack_kernels::cuda::launch_prebuilt(
+        device,
+        SPIRALCORE_FBS_ARMS_MODULE,
+        SPIRALCORE_FBS_ARMS_PTX,
+        "spiralcore_fbs_arm_fwd",
+        threads,
+        &args,
+    )?;
+    drop(args);
+    spiralcore_fbs_device_error(device, &error)?;
+    Ok((storage(out, device), Shape::from_dims(&dims)))
+}
+pub(crate) fn spiralcore_fbs_arm_bwd(
+    plan: &crate::spiralcore_fbs::ProjectionPlan,
+    device: &CudaDevice,
+    q: &Tensor,
+    x: &Tensor,
+    grad: &Tensor,
+    arm: u32,
+) -> CResult<(Tensor, Tensor)> {
+    let (q, x, grad) = (q.contiguous()?, x.contiguous()?, grad.contiguous()?);
+    if x.dtype() != DType::F32 || grad.dtype() != DType::F32 {
+        candle_core::bail!("sheet arms run on F32 carriers only");
+    }
+    let paths = spiralcore_fbs_arm_paths(arm)?;
+    let rows = spiralcore_fbs_arm_rows(plan, q.dims(), x.dims(), x.elem_count(), paths)?;
+    let mut output_dims = x.dims().to_vec();
+    let last = output_dims.len() - 1;
+    output_dims[last] = plan.output_blocks * 8;
+    if grad.dims() != output_dims {
+        candle_core::bail!("arm projection gradient shape differs from its output");
+    }
+    let (qs, ql) = q.storage_and_layout();
+    let (xs, xl) = x.storage_and_layout();
+    let (gs, gl) = grad.storage_and_layout();
+    let (Storage::Cuda(qs), Storage::Cuda(xs), Storage::Cuda(gs)) = (&*qs, &*xs, &*gs) else {
+        candle_core::bail!("arm adjoint is CUDA-only; no host fallback");
+    };
+    if qs.device.id() != device.id()
+        || xs.device.id() != device.id()
+        || gs.device.id() != device.id()
+    {
+        candle_core::bail!("arm adjoint tensors need the same CUDA context");
+    }
+    let Some(query) = input(qs, ql)? else {
+        candle_core::bail!("arm query adjoint needs F32 masters");
+    };
+    let metadata = spiralcore_fbs_device_plan(plan, device)?;
+    let dq = zeros::<f32>(device, q.elem_count())?;
+    let dx = zeros::<f32>(device, x.elem_count())?;
+    let error = zeros::<u32>(device, 1)?;
+    let mut args = vec![
+        Arg::F(query),
+        spiralcore_fbs_activation(xs, xl)?,
+        spiralcore_fbs_activation(gs, gl)?,
+    ];
+    args.extend(spiralcore_fbs_metadata(plan, &metadata));
+    args.extend([Arg::f(&dq), Arg::f(&dx), Arg::u(&error)]);
+    args.extend(spiralcore_fbs_dimensions(plan, rows)?);
+    args.push(Arg::U32(arm));
+    crate::cuda_stack_kernels::cuda::launch_prebuilt(
+        device,
+        SPIRALCORE_FBS_ARMS_MODULE,
+        SPIRALCORE_FBS_ARMS_PTX,
+        "spiralcore_fbs_arm_bwd",
+        rows * plan.output_blocks,
+        &args,
+    )?;
+    drop(args);
+    spiralcore_fbs_device_error(device, &error)?;
+    Ok((tensor(dq, device, q.shape()), tensor(dx, device, x.shape())))
+}

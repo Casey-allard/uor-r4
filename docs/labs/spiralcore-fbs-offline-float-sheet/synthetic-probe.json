@@ -1,0 +1,84 @@
+{
+  "arms": [
+    {
+      "arm": "Fbs_1Atom_Active",
+      "credit_nonzero_when_trained": true,
+      "losses": [
+        2.796783208847046,
+        2.797417163848877,
+        2.812997817993164,
+        2.8256921768188477,
+        2.6945371627807617,
+        2.6602020263671875,
+        2.689365863800049,
+        2.6926069259643555
+      ],
+      "step0_query_credit_l2": 0.23272000068030244
+    },
+    {
+      "arm": "Fbs_2Atom_Mix",
+      "credit_nonzero_when_trained": true,
+      "losses": [
+        2.8055105209350586,
+        2.7910618782043457,
+        2.8169593811035156,
+        2.797872543334961,
+        2.7385988235473633,
+        2.7385406494140625,
+        2.6995930671691895,
+        2.69105863571167
+      ],
+      "step0_query_credit_l2": 0.22284203568013103
+    },
+    {
+      "arm": "Fbs_IdentityTransport_Control",
+      "credit_nonzero_when_trained": true,
+      "losses": [
+        2.8418829441070557,
+        2.831134557723999,
+        2.8254880905151367,
+        2.829507827758789,
+        2.740201711654663,
+        2.7154364585876465,
+        2.6971993446350098,
+        2.6790473461151123
+      ],
+      "step0_query_credit_l2": 0.2037296891630897
+    },
+    {
+      "arm": "Fbs_FrozenQueries_Null",
+      "credit_nonzero_when_trained": true,
+      "losses": [
+        2.796783208847046,
+        2.7974295616149902,
+        2.8118510246276855,
+        2.8171513080596924,
+        2.688261032104492,
+        2.6844606399536133,
+        2.6692004203796387,
+        2.656952381134033
+      ],
+      "step0_query_credit_l2": 0.0
+    }
+  ],
+  "i_export_exactness": {
+    "fixture_rows": 8,
+    "integer_mismatches": 0,
+    "mixed_atom_blocks": 0,
+    "output_blocks": 48,
+    "pass": true,
+    "unlawful_actions": 0
+  },
+  "i_finite_cuda_pass": true,
+  "kernels": {
+    "arms_kernel_sha256": "43c680c67efb4106d73f035bdd9282bd09dcd160961190bec984c023b3a51f7f",
+    "arms_prelude_sha256": "6d3e6ff6f8eb483d66419a8cbe06a64de406981605835ff92b3824680405fcd7",
+    "arms_ptx_sha256": "415e0d85ea1285d27c8c8a1087048baf06f7e8f96f8bc5080dbc4a62a6b4839f",
+    "cuda_stack_cu_sha256": "c577fce92ab965798857bd3f9d19ab86f65326dd501d8f8daf1537c0c9e9cb17",
+    "pins_match_sheet": true,
+    "spiralcore_fbs_cu_sha256": "517bffcc3c2029ddd171e75fd8fc1eb532755b30e683c66bd230382416480b0d",
+    "spiralcore_fbs_rs_sha256": "6eb2b09d5602322b7628a83f4cd3c2ee35c59d78786cb349fd92c4519ebbe3cd"
+  },
+  "pass": true,
+  "probe": "synthetic-probe"
+}

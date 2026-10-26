@@ -19,6 +19,8 @@ pub mod native_starling_spec;
 pub mod native_vector_writer;
 pub mod secant_descent;
 pub mod spiralcore_fbs;
+pub mod spiralcore_fbs_arms;
+pub mod spiralcore_fbs_sheet;
 
 /// The 24 `__global__` CUDA kernel entry points in the D37 float-training extract
 /// (`22` in `src/cuda_stack.cu` + `2` in `src/spiralcore_fbs.cu`), in declaration order.

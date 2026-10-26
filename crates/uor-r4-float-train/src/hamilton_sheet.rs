@@ -1659,6 +1659,37 @@ pub fn build_hamilton_model(seed: u64, device: &Device) -> Result<StackModel> {
     Ok(model)
 }
 
+/// Runs `f` with the gate hook on `arm`, in the D11-compatible export mode (Q12 gate, icosian
+/// snap) or in float, then turns the export mode off again. The SpiralCore/FBS sheet scores its DEV
+/// loss through it (`spiralcore_fbs_sheet`, claude-119).
+pub fn with_gate_mode<T>(
+    arm: HamiltonArm,
+    seed: u64,
+    step: usize,
+    export_mode: bool,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    // The arm, seed and step stay set afterwards, as `evaluate_dev_panel` leaves them; the two
+    // flags this call changes only for its own duration are restored.
+    let prior = GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        let prior = (st.icosian_export_mode, st.capture_telemetry);
+        st.active_arm = Some(arm);
+        st.seed = seed;
+        st.step = step;
+        st.fwd_call_idx = 0;
+        st.icosian_export_mode = export_mode;
+        st.capture_telemetry = false;
+        prior
+    });
+    let out = f();
+    GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        (st.icosian_export_mode, st.capture_telemetry) = prior;
+    });
+    out
+}
+
 /// Computes the response-masked margin loss for one training batch on CUDA.
 fn response_masked_batch_loss(
     model: &StackModel,

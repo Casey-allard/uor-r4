@@ -3,7 +3,7 @@ id: spiralcore-fbs-offline-float-sheet
 title: Measure SpiralCore/FBS descent and tokens per second in a float sheet
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, r-secant-surrogate-descent]

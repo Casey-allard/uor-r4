@@ -2,8 +2,10 @@
 //!
 //! Runtime CUDA compilation (NVRTC) is banned project-wide. When compiled with `--features cuda`,
 //! `nvcc` compiles the 24-kernel extract (`src/cuda_stack.cu` + `src/spiralcore_fbs.cu`) ahead of
-//! time into `cuda_stack_f32.ptx` and `cuda_stack_bf16.ptx` inside `OUT_DIR`. On CPU-only laptop
-//! builds, `build.rs` exits immediately without invoking `nvcc`.
+//! time into `cuda_stack_f32.ptx` and `cuda_stack_bf16.ptx` inside `OUT_DIR`. The SpiralCore/FBS
+//! sheet arms (`src/spiralcore_fbs_arms.cu`) build as their own module, `spiralcore_fbs_arms_f32.ptx`,
+//! from a prelude, the unchanged `src/spiralcore_fbs.cu` (for its route helpers) and the arms. On
+//! CPU-only laptop builds, `build.rs` exits immediately without invoking `nvcc`.
 
 use std::env;
 use std::fs;
@@ -21,7 +23,7 @@ struct Module {
 
 const CUDA: &str = "CARGO_FEATURE_CUDA";
 
-const MODULES: [Module; 2] = [
+const MODULES: [Module; 3] = [
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
         ptx: "cuda_stack_f32.ptx",
@@ -37,6 +39,16 @@ const MODULES: [Module; 2] = [
             "-prec-sqrt=true",
             "-DUOR_STORAGE_BF16",
         ],
+        feature: CUDA,
+    },
+    Module {
+        sources: &[
+            "src/spiralcore_fbs_arms_prelude.cu",
+            "src/spiralcore_fbs.cu",
+            "src/spiralcore_fbs_arms.cu",
+        ],
+        ptx: "spiralcore_fbs_arms_f32.ptx",
+        options: &PRECISE,
         feature: CUDA,
     },
 ];

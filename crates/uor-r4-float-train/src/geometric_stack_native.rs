@@ -819,6 +819,40 @@ impl StackModel {
         self.quaternion_weights = mode;
         Ok(())
     }
+    /// The `Fbs_2Atom_Mix` arm of spiralcore-fbs-offline-float-sheet (#2891): every SpiralCore/FBS
+    /// query `[outputs, stages, 8]` becomes `[outputs, 2 stages, 8]`. Each output's first path keeps
+    /// its seed values; its second path is fresh, independently seeded normals. Run it only with
+    /// that arm set (`spiralcore_fbs_arms::set_fbs_arm`), which reads both paths.
+    pub fn widen_fbs_queries_two_path(&mut self) -> Result<()> {
+        if self.quaternion_weights != QuaternionWeights::SpiralcoreFbs {
+            return Err(invalid("two-path queries need a SpiralCore/FBS model"));
+        }
+        let mut rng = Initializer(self.config.seed ^ 0x3241_544F_4D5F_4D49);
+        let names: Vec<String> = self
+            .variables
+            .keys()
+            .filter(|name| name.ends_with(".spiralcore_fbs"))
+            .cloned()
+            .collect();
+        for name in names {
+            let var = &self.variables[&name];
+            let &[outputs, stages, eight] = var.dims() else {
+                return Err(invalid(
+                    "SpiralCore/FBS queries must be [outputs, stages, 8]",
+                ));
+            };
+            let first = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let row = stages * eight;
+            let mut values = Vec::with_capacity(outputs * 2 * row);
+            for output in 0..outputs {
+                values.extend_from_slice(&first[output * row..(output + 1) * row]);
+                values.extend((0..row).map(|_| rng.normal() as f32));
+            }
+            let widened = Var::from_vec(values, (outputs, 2 * stages, eight), &self.device)?;
+            self.variables.insert(name, widened);
+        }
+        Ok(())
+    }
     fn params(&self) -> Result<Params<'_>> {
         if !self.device.is_cuda()
             || self.precision != Precision::F32
@@ -947,6 +981,10 @@ impl StackModel {
                 .spiralcore_fbs_plans
                 .get(&(input_width, output_width))
                 .ok_or_else(|| invalid("missing bound native projection"))?;
+            // A SpiralCore/FBS sheet arm (spiralcore-fbs-offline-float-sheet), when one is set.
+            if let Some(arm) = crate::spiralcore_fbs_arms::fbs_arm() {
+                return crate::spiralcore_fbs_arms::project(plan, weight, input, arm);
+            }
             return plan.forward(weight, input);
         }
         if weight.dims() == [self.config.vocab_size, self.config.width]
