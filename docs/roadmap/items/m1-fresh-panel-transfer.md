@@ -3,7 +3,7 @@ id: m1-fresh-panel-transfer
 title: Evaluate the gain on the fresh sealed panel
 milestone: M1
 area: evaluation
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [m1-export-gap-and-toks]
@@ -20,6 +20,8 @@ M1 bar (e) stops a result that only fits its development panel from closing M1. 
 M1 bar (e) needs the gain to hold on a fresh, sealed test panel registered in advance. The fresh slice is still sealed: the 19 October outcome call records fresh transfer as `NOT_TRIGGERED` (the fresh slice, binding `4bd108ad…`, stays unopened), and G-Trans runs only when an arm reaches KEEP. The later A8 dose (19 October) also left it sealed: no paired DEV decision exists (`docs/integration/NOW.md` line 85). The A8 sheet names the fresh V2 tokens, mask and seal as `0b7e754c…`, `a1cda529…` and `df5d074a…`. No saved model has passed bars (a) to (d), so nothing exists to score yet. Frozen `ft/dev` is not reported as fresh.
 
 The size, noise floor and threshold for the fresh panel are not yet registered. CHARTER §4.3 requires decisive runs to use at least 2 seeds or at least 200 fresh rows, with bars no narrower than measured noise and a fresh transfer number with every development gain.
+
+**Steps 1–3 and 5 are complete on `main`; Step 4 is held on a two-seed DEV bar-(a)–(d)-passing model (`antigravity-99` #3292, `antigravity-100` #3293).** `antigravity-99` (#3292) landed `inst::fresh_transfer` (`refuse_sealed_fresh_source`, `validate_fresh_transfer_gate`, `fresh_rows`, `fresh_rows_from_corpus`, `build_train_count_tables`, `score_fresh_against_count_tables`, `evaluate_fresh_transfer_two_seeds`, and `d11-scorer fresh-score` in `docs/labs/m1-d11-artifact-scorer/instrument/`, `18 / 18` tests), posted the Step 2 design note on `#2841` (`#issuecomment-6423580146`), stream-verified the sealed archives (`codex-attention-dose1-fresh-v2-preservation.tar` `2cd13ef6…`: `0b7e754c…` / `a1cda529…` / `df5d074a…` / `c2d4c7e5…`; `admission-redirect-transfer-20261015-codex-v2.tar` `004523df…`: `4bd108ad…` / `82ead8db…` / `8287d20d…`) without opening or scoring any row, registered [`docs/harness/prep/m1-fresh-panel-transfer-2026-10-26.md`](../../harness/prep/m1-fresh-panel-transfer-2026-10-26.md) with non-author `TEST FITNESS: FIT` and D68 review (`#issuecomment-6423732020`), and recorded [`docs/labs/m1-fresh-panel-transfer/README.md`](../../labs/m1-fresh-panel-transfer/README.md) and the notebook row. Because the Stage T checkpoints scored in `#3287` (`455/506` and `371/337` `< 6,300` on `ft/dev`) do not yet pass DEV bars (a)–(d), this item is `held` until `m1-close-saved-model` (`#2837`) produces a saved discrete model that passes bars (a)–(d) on `ft/dev` across two seeds.
 
 ## Done when
 
