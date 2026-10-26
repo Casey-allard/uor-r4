@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from b1b1ef6f0a5d59d8198207c198431701fff5fd63; do not edit -->
+<!-- rendered by uor-harness loop render from 66b8a75059e6c014d5f4d81ab567b2490f24faa4; do not edit -->
 # STATE
 
 Rendered from committed inputs at the commit in the stamp above.
@@ -25,9 +25,9 @@ Source: `docs/roadmap/items/*.md` frontmatter.
 | Status | Items |
 |---|---|
 | decision | 1 |
-| done | 57 |
+| done | 58 |
 | held | 15 |
-| ready | 20 |
+| ready | 19 |
 | **total** | 93 |
 
 ## Newest notebook row per research line
@@ -44,7 +44,7 @@ Source: `docs/research/notebook/*.md`; the row with the latest date, the last su
 | m1-prime-zeta | 2026-10-14 | 4,096 of 4,096 tokens get distinct vectors (0 collisions, 256 of 256 writer cells occupied); 17 of 17 base and 6 of 6 prime-zeta CUDA controls pass; 0 updates applied, 0 corpus rows | Bit-exact table across seeds 0, 1 and 2; no floating-point instruction in the GPU code; 0 collisions over all 4,096 tokens; 17 of 17 base controls; the codebook must separate structurally from both nulls | positive (construction only; the learned comparison against the nulls is deferred to a training sheet) |
 | m2-grounded-reply | no rows yet | | | |
 | m3-durable-memory | 2026-10-25 | **896,898 tokens/s** (732 turns, 4,280 words, 4.8 ms upload to download). Panel: false_assert **0/50**, false_overwrite **0/50**, clean **50/50**. R1 **462/462** exact. R2 **0/220** (every miss `Unresolved`, no wrong write). Finite CUDA controls 12/12. A second build's decisions are byte-identical (`d3f05ecf…`) | Owner bar (#2028 comment `6356034555`): 0/50, 0/50, 50/50, counted only together with R1 ≥ 95% (decision review on #2856). R2 has no bar | positive, at this scope only: the sieve compiler on world=v2. It is not a pass of `m3-memory-turn-discriminator-gate` |
-| m4-serving | 2026-10-25 | **Decode:** 13,259 tok/s median, which is 4,826 µs per 64 tokens; p95 13,176 tok/s. **Prefill:** 2,967,175 tok/s median, which is 64 µs per 192-token prompt; p95 2,765,893 tok/s. All 21 decode runs wrote the same reply. | none registered (qualification check) | inconclusive (no bar registered; it qualifies the protocol and is not step 6's measurement) |
+| m4-serving | 2026-10-26 | **Control:** the exported container's integer session matches the quantized float reference on all 256 single tokens and an 8-token sequence: same kept cells, same token, Q12 query within 2 LSBs, with 0 near-tie exceptions in 264 positions. **Float reference:** its plain and quantized forms agree on 224 of 256 tokens. **Audit:** zero-multiply `FULL PASS` on the rlib (40 call-graph functions) and on `uor-r4-stack` (97). | the integer forward reproduces the float reference on every input of a small vocabulary (the item's step-2 finite control); the audits stay green | positive (finite controls only: not an export gap of a trained model) |
 | m6-reasoning-coding | no rows yet | | | |
 
 ## Mechanisms

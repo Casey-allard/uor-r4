@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from b1b1ef6f0a5d59d8198207c198431701fff5fd63; do not edit -->
+<!-- rendered by uor-harness loop render from 66b8a75059e6c014d5f4d81ab567b2490f24faa4; do not edit -->
 # HANDOFF
 
 Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each open-item row gives the first sentence of the item's `Done when` and `Cancel if` sections; blocked items are listed once, in the blocked table, with their owner; `not recorded` means the item has no such section or key yet.
@@ -7,7 +7,7 @@ Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each o
 
 Items not `held`, `decision` or `done`. Held and decision items are listed once, in the blocked table below.
 
-### ready (20)
+### ready (19)
 
 | Item | Title | Done when | Cancel if | Size | Stands |
 |---|---|---|---|---|---|
@@ -29,7 +29,6 @@ Items not `held`, `decision` or `done`. Held and decision items are listed once,
 | m7-parity-library-cli-browser | Build the library, CLI and browser bit-identity parity harness | M7 bar: "giving bit-identical tokens across the library, command line and browser", with identical session snapshots, on the accepted `UORLUT01` artifact. | not recorded | not recorded | ready; after m7-studio-connect-wasm-engine, m4-export-uorlut01-cli |
 | m8-independent-verification | Independently verify the alpha on consumer hardware | A third party reproduces the install and the M1 to M7 bars from the checksum-pinned artifact: the serving-side bars on consumer hardware, and the panel-scored bars on a GPU as CHARTER §3.6 requires. | not recorded | not recorded | ready; after m8-release-packaging |
 | m8-release-packaging | Prepare the checksummed alpha release package and install path | M8 bar ([`ROADMAP.md`](ROADMAP.md) line 21): "One versioned, checksum-pinned model file, declared alpha by the owner". | not recorded | not recorded | ready; after m4-export-uorlut01-cli, m5-laptop-full-path-measurement, m6-qualify-reasoning-coding, m7-parity-library-cli-browser |
-| r-quaternion-transport-order | De-confound the quaternion-transport ordering result | A matched on/off comparison of quaternion transport in a lawful model with the confound removed, recorded as a notebook row. | not recorded | not recorded | ready; after m1-position-mechanism |
 | r-vocab-4096-vs-16384 | Compare 4,096 and 16,384 tokenizer pieces | Matched runs at 4,096 and 16,384 pieces with the same registered bars, recorded as notebook rows. | not recorded | not recorded | ready; after m1-faster-writer |
 
 ## Blocked
