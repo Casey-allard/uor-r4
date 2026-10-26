@@ -20,3 +20,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
 uor-r4-core = { path = "../uor-r4-core" }
+# The FBS snapshot types and the Cl(0,6) tables (fbs_export, claude-123); no
+# features, so the native graph never compiles the serving build (D29).
+uor-r4-integer = { path = "../uor-r4-integer" }

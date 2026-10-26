@@ -2360,6 +2360,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "uor-r4-core",
+ "uor-r4-integer",
 ]
 
 [[package]]

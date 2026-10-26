@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub mod cuda_stack_kernels;
+pub mod fbs_export;
 #[path = "geometric_stack_native.rs"]
 pub mod geometric_stack;
 pub mod hamilton_sheet;

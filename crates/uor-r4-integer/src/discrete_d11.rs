@@ -585,6 +585,19 @@ pub(crate) fn cl06_action(a: usize, x: &[i32; 8]) -> [i32; 8] {
     action(a, x)
 }
 
+/// The 64-state Cl(0,6) signed-axis table, state `a` in row `a*8..a*8 + 8`:
+/// `code & 7` is the source axis, `code & 8` negates. A converter checks a
+/// float geometry against it (d11-exporter-float-trunk).
+pub fn spiralcore_signed_axes() -> &'static [u8; 512] {
+    &AXES
+}
+
+/// The 16 orbit roots of the Cl(0,6) anchor `[2, 2, 0, 0, 0, 0, 0, 0]`, anchor
+/// first. The native vector writer's cell `a*16 + b` pairs roots `a` and `b`.
+pub fn spiralcore_orbit_roots() -> &'static [[i8; 8]; 16] {
+    &ROOTS
+}
+
 /// The eight signed-axis codes of Cl(0,6) state `a`: `code & 7` is the source
 /// axis, `code & 8` negates.
 pub(crate) fn cl06_axes(a: usize) -> [u8; 8] {

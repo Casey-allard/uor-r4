@@ -22,7 +22,7 @@ use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
 #[path = "geometric_stack_native_cuda.rs"]
 pub(crate) mod cuda_ops;
 const CONVOLUTION_WIDTH: usize = 4;
-const RMS_EPSILON: f64 = 1e-5;
+pub(crate) const RMS_EPSILON: f64 = 1e-5;
 const INITIAL_STD: f64 = 0.02;
 const ROTATION_STD: f64 = 0.002;
 pub const QUATERNION_WEIGHTS_FIELD: &str = "quaternion_weights";
@@ -967,7 +967,7 @@ impl StackModel {
         self.native_vector_head = Some(spec);
         Ok(())
     }
-    fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
+    pub(crate) fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
         if weight.rank() == 3 {
             let input_width = *input
                 .dims()

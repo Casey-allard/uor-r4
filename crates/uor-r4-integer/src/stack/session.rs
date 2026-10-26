@@ -2752,7 +2752,9 @@ fn stack_fbs_gather<T: Copy + Into<i64>>(map: &FbsMap, x: &[T], x_exp: i32, out:
         for (slot, &code) in block.iter_mut().zip(codes) {
             let v: i64 = values[usize::from(code & 7)].into();
             let v = if code & 8 == 0 { v } else { v.saturating_neg() };
-            *slot = to_exp_i32(v, x_exp, RESIDUAL_EXP);
+            // `black_box` keeps LLVM from packing the block's eight lanes into
+            // SIMD registers, which the step audit refuses (as `kernels.rs`).
+            *slot = core::hint::black_box(to_exp_i32(v, x_exp, RESIDUAL_EXP));
         }
     }
 }

@@ -2706,6 +2706,29 @@ fn fbs_trunk_export_is_deterministic_and_parses() {
 }
 
 #[test]
+fn fbs_trunk_snapshot_json_round_trips_exactly() {
+    // The float converter hands the snapshot over as JSON (`fbs-export`); every
+    // f32 must read back to the same bits, so the export is the same bytes.
+    let snap = synthetic_fbs_trunk(20261026);
+    let json = serde_json::to_vec(&snap).expect("serialize");
+    let back: super::FbsTrunkSnapshot = serde_json::from_slice(&json).expect("deserialize");
+    assert_eq!(back, snap);
+    assert!(back
+        .embed
+        .iter()
+        .zip(&snap.embed)
+        .all(|(a, b)| a.to_bits() == b.to_bits()));
+    assert_eq!(
+        super::export_fbs_trunk_uorlut01(&back).expect("export"),
+        super::export_fbs_trunk_uorlut01(&snap).expect("export")
+    );
+    // An unknown field is refused, never ignored.
+    let mut value: serde_json::Value = serde_json::from_slice(&json).expect("value");
+    value["head_scale"] = serde_json::json!(1.0);
+    assert!(serde_json::from_value::<super::FbsTrunkSnapshot>(value).is_err());
+}
+
+#[test]
 fn fbs_trunk_export_refuses_bad_snapshots() {
     let good = synthetic_fbs_trunk(20261026);
     assert!(super::export_fbs_trunk_uorlut01(&good).is_ok());

@@ -21,6 +21,8 @@ include!("serving_root.rs");
 #[cfg(not(feature = "serving-wasm"))]
 pub mod discrete_d11;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod fbs_snapshot;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod geometric_potential;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod geometric_span;
