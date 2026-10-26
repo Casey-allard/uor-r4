@@ -1865,18 +1865,23 @@ pub(crate) fn d11_transition_unit(raw: &Tensor) -> Result<Tensor> {
 }
 
 /// The scored query at Q12, as the D11 head reads it: `round(4096 q) / 4096`, clamped to i16.
-/// Under [`with_d11_training`] its gradient passes straight through (claude-130); otherwise the
+/// Under [`with_d11_training`] its gradient passes straight through (claude-130) where the clamp
+/// does not bind, and none where it saturates, as the forward does (claude-131); otherwise the
 /// rounding passes none.
 pub(crate) fn q12_query(query: &Tensor) -> Result<Tensor> {
-    let rounded = query
-        .affine(f64::from(Q12_SCALE), 0.0)?
+    let scaled = query.affine(f64::from(Q12_SCALE), 0.0)?;
+    let rounded = scaled
         .round()?
         .clamp(Q12_I16_MIN, Q12_I16_MAX)?
         .affine(1.0 / f64::from(Q12_SCALE), 0.0)?;
     if !is_bridging_d11() {
         return Ok(rounded);
     }
-    Ok((query + (rounded - query)?.detach())?)
+    let dtype = query.dtype();
+    let inside = (scaled.ge(f64::from(Q12_I16_MIN))?.to_dtype(dtype)?
+        * scaled.le(f64::from(Q12_I16_MAX))?.to_dtype(dtype)?)?;
+    let free = (query * inside)?;
+    Ok((&free + (rounded - &free)?.detach())?)
 }
 
 /// The nearest of the 120 icosians to each 4-vector of `raw` (last axis 4):
@@ -2596,7 +2601,8 @@ mod tests {
     /// On one GPU (claude-130): in the evaluation's D11 mode the transition is the snap itself
     /// and passes no gradient; in D11-mode training its forward is the snap (to float rounding)
     /// and its gradient the unit normalization's, the S^3 tangent bridge. The Q12 query likewise:
-    /// rounded in evaluation, rounded forward with a straight-through gradient in training.
+    /// rounded in evaluation, rounded forward with a straight-through gradient in training, none
+    /// where the i16 clamp saturates.
     #[cfg(feature = "cuda")]
     #[test]
     fn gpu_d11_bridges_pass_the_tangent_and_straight_gradients() -> Result<()> {
@@ -2656,6 +2662,21 @@ mod tests {
             .get(query.as_tensor())
             .expect("the Q12 bridge passes a gradient");
         assert!(max_diff(got, &weights)? <= 1e-6);
+
+        // Where the i16 clamp saturates (|q| past 8), the bridge passes no gradient (claude-131).
+        let wide = Var::from_vec(vec![9.0f32, -9.0, 0.25, -0.5], (1, 4), &device)?;
+        let clamped = with_d11_training(1, 0, || q12_query(wide.as_tensor()))?;
+        assert!(
+            max_diff(
+                &clamped,
+                &Tensor::from_vec(vec![32767.0f32 / 4096.0, -8.0, 0.25, -0.5], (1, 4), &device)?
+            )? <= 1e-6
+        );
+        let grads = clamped.sum_all()?.backward()?;
+        let got = grads
+            .get(wide.as_tensor())
+            .expect("the Q12 bridge passes a gradient");
+        assert_eq!(got.to_vec2::<f32>()?, vec![vec![0.0, 0.0, 1.0, 1.0]]);
         Ok(())
     }
 

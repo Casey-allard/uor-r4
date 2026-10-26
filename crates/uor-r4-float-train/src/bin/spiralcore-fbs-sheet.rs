@@ -16,10 +16,13 @@
 //! `--evaluator`, `--windows-sha256`, `--artifact-sha256` (the seed's pinned artifact),
 //! `--stage4b`, `--stored-preds` and `--seed`.
 //!
-//! `d11-train-probe` runs 32 D11-mode training steps and projects the full run.
-//! `d11-train-export` trains the export arm on both seeds in the D11 mode and saves each model,
-//! snapshot and float predictions under `--save-dir`, with Stage 4b's noise band from `--stage4b`
-//! (claude-130, `docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md`).
+//! `d11-train-probe` runs 32 D11-trained steps and projects the full run.
+//! `d11-train-export` trains the export arm on both seeds and saves each model, snapshot and float
+//! predictions under `--save-dir`, with Stage 4b's noise band from `--stage4b`. Both train as
+//! `--train-forward` says: `d11` (the default; claude-130,
+//! `docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md`) or `dual`, the plain
+//! loss plus the D11-mode loss (claude-131,
+//! `docs/harness/prep/d11-exporter-float-trunk-dual-train-2026-10-26.md`).
 
 use std::collections::BTreeMap;
 use std::env;
@@ -29,11 +32,12 @@ use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
     d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_train_export,
     run_d11_train_probe, run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
+    TrainForward,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-/// The options of `d11-artifact-gap`.
-const GAP_OPTIONS: [&str; 7] = [
+/// The options of `d11-artifact-gap`, `d11-train-probe` and `d11-train-export`.
+const GAP_OPTIONS: [&str; 8] = [
     "--model-dir",
     "--evaluator",
     "--windows-sha256",
@@ -41,6 +45,7 @@ const GAP_OPTIONS: [&str; 7] = [
     "--stage4b",
     "--stored-preds",
     "--seed",
+    "--train-forward",
 ];
 
 type Args = (
@@ -90,6 +95,8 @@ fn main() -> Result<()> {
             .cloned()
             .ok_or_else(|| FloatTrainError::Invalid(format!("{mode} needs {name}")))
     };
+    let train_forward =
+        TrainForward::parse(extra.get("--train-forward").map_or("d11", String::as_str))?;
     let device = Device::new_cuda(0)?;
     match mode.as_str() {
         "synthetic-probe" => {
@@ -173,9 +180,10 @@ fn main() -> Result<()> {
             write_receipt(&out, &value)
         }
         "d11-train-probe" => {
-            let value = run_d11_train_probe(&data_root, &device)?;
+            let value = run_d11_train_probe(&data_root, train_forward, &device)?;
             println!(
-                "[d11-train-probe] train_learns={} learns={} train_loss_0={} train_loss_31={} dev_loss_0={} dev_loss_32={} s_per_step={} projected_full_s={} under_one_hour_per_seed={}",
+                "[d11-train-probe] forward={} train_learns={} learns={} train_loss_0={} train_loss_31={} dev_loss_0={} dev_loss_32={} s_per_step={} projected_full_s={} under_one_hour_per_seed={}",
+                value["train_forward"],
                 value["train_learns"],
                 value["learns"],
                 value["train_loss_step_0"],
@@ -196,12 +204,18 @@ fn main() -> Result<()> {
                 &data_root,
                 &save_dir,
                 &PathBuf::from(option("--stage4b")?),
+                train_forward,
                 &device,
             )?;
             for s in value["seeds"].as_array().into_iter().flatten() {
                 println!(
-                    "[d11-train-export] seed={} top1_float={} loss_float={} save_load={}",
-                    s["seed"], s["float"]["top1_hits"], s["loss_float"], s["i_save_load"],
+                    "[d11-train-export] forward={} seed={} top1_float={} top1_export_mode={} loss_float={} save_load={}",
+                    s["train_forward"],
+                    s["seed"],
+                    s["float"]["top1_hits"],
+                    s["export_mode"]["top1_hits"],
+                    s["loss_float"],
+                    s["i_save_load"],
                 );
             }
             write_receipt(&out, &value)
