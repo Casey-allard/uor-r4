@@ -55,6 +55,14 @@ mod bvgk_device;
 pub use bvgk_device::{
     bvgk_extends_rowsk_source, compiled_bvgk_image_sha256, BlockProposal, BvgkKernels,
 };
+#[path = "writer_bucket_device.rs"]
+pub mod writer_bucket_device;
+pub use writer_bucket_device::{
+    bucket_extends_ordinary_source, compiled_bucket_image_sha256, BucketIndexDevice,
+    BucketIndexSnapshot, BucketWriterEngine, CounterRow, DirectTripleTimed, DirectWriterOutput,
+    FAULT_CORRUPTED_CSR, FAULT_NONE, FAULT_OVER_PRUNED, FAULT_REVERSED_TIE, FAULT_STALE_BUCKET,
+    WALK_ID_ORDER, WALK_SERVING_PRUNED,
+};
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:

@@ -9,6 +9,7 @@ pub mod attention_audit;
 pub mod baseline_reuse;
 #[cfg(test)]
 mod baseline_reuse_source;
+pub mod bucket_source;
 pub mod bvgk_block;
 pub mod bvgk_source;
 pub mod carrier;
@@ -45,6 +46,8 @@ pub mod trunk;
 pub mod w2_capacity;
 pub mod w2_capture;
 pub mod w2_record;
+#[cfg(feature = "cuda")]
+pub mod writer_bucket_qualification;
 
 pub const SCHEMA: &str = "uor-r4.discrete-spiralcore-fbs/2";
 #[derive(Debug)]

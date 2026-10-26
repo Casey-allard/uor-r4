@@ -86,4 +86,8 @@ path = "src/bin/stage-t-run.rs"
 name = "trunk-run"
 path = "src/bin/trunk-run.rs"
 
+[[bin]]
+name = "writer-bucket-qualify"
+path = "src/bin/writer-bucket-qualify.rs"
+
 

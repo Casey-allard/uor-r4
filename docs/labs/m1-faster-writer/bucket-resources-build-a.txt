@@ -1,0 +1,36 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function 'discrete_bucket_evaluate' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_evaluate
+    22144 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 75 registers, used 0 barriers, 22144 bytes cumulative stack size
+ptxas info    : Compile time = 412.901 ms
+ptxas info    : Compiling entry function 'discrete_bucket_counterfactual' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_counterfactual
+    22560 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 96 registers, used 0 barriers, 22560 bytes cumulative stack size
+ptxas info    : Compile time = 1261.850 ms
+ptxas info    : Compiling entry function 'discrete_bucket_forward' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_forward
+    22080 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 76 registers, used 0 barriers, 22080 bytes cumulative stack size
+ptxas info    : Compile time = 436.752 ms
+ptxas info    : Compiling entry function 'discrete_fullscan_writer_eval' for 'sm_120'
+ptxas info    : Function properties for discrete_fullscan_writer_eval
+    4912 bytes stack frame, 344 bytes spill stores, 180 bytes spill loads
+ptxas info    : Used 255 registers, used 0 barriers, 4912 bytes cumulative stack size
+ptxas info    : Compile time = 305.137 ms
+ptxas info    : Compiling entry function 'discrete_bucket_writer_eval' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_writer_eval
+    2816 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 0 barriers, 2816 bytes cumulative stack size
+ptxas info    : Compile time = 136.502 ms
+ptxas info    : Compiling entry function 'discrete_bucket_update' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_update
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 91.583 ms
+ptxas info    : Compiling entry function 'discrete_bucket_build' for 'sm_120'
+ptxas info    : Function properties for discrete_bucket_build
+    1024 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 1024 bytes cumulative stack size
+ptxas info    : Compile time = 94.752 ms

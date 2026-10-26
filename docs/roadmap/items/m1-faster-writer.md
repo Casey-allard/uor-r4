@@ -3,7 +3,7 @@ id: m1-faster-writer
 title: Replace the full-vocabulary writer scan
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []

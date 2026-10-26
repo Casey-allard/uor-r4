@@ -1,6 +1,6 @@
 # Bucketed CUDA writer: finite qualification against the full scan (DRAFT)
 
-- **Status:** DRAFT, `TEST FITNESS: NOT_FIT` (non-author audit recorded below; awaits owner/PM bar registration and pinning of the §5/§6 configuration choices). Nothing is trained. A FIT releases nothing; the GPU run needs FIT plus the registered bar.
+- **Status:** SUPERSEDED by [`m1-faster-writer-2026-10-26.md`](m1-faster-writer-2026-10-26.md), `TEST FITNESS: NOT_FIT` (historical 23 Oct non-author audit recorded below; all three prerequisites are resolved in `m1-faster-writer-2026-10-26.md`). Nothing is trained. A FIT releases nothing; the GPU run needs FIT plus the registered bar.
 - **Line:** M1 (#2029). **Item:** `m1-faster-writer` (#2840), step 4. **Lab:** claude.
 - **Parent:** none. **Design note:** #2840 comment 6346787358. **Host controls:** `e10d109` (#2983), `crates/uor-r4-discrete/tests/writer_bucket_controls.rs`, 6 tests, and `docs/loop/tasks/m1-faster-writer/claude-34/REPORT.md`.
 - **Rules:** CHARTER §3.1–3.6 (geometry only; no normalized-exponential read and no squashing; no dense matrix product; GPU-only research compute; integer artifact) and §3.9 (D5-b per-token sparsity); §4.5 pre-registration with a non-author FIT.

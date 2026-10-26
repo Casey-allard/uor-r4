@@ -7,6 +7,8 @@ use uor_r4_core::spiralcore_operator::{
 };
 #[path = "src/baseline_reuse_source.rs"]
 mod baseline_reuse_source;
+#[path = "src/bucket_source.rs"]
+mod bucket_source;
 #[path = "src/bvgk_source.rs"]
 mod bvgk_source;
 #[path = "src/decomposition_source.rs"]
@@ -355,6 +357,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/rows_source.rs");
     println!("cargo:rerun-if-changed=src/rowsk_source.rs");
     println!("cargo:rerun-if-changed=src/bvgk_source.rs");
+    println!("cargo:rerun-if-changed=src/bucket_source.rs");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -477,6 +480,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fs::read_to_string(out.join("bvgk.ptx"))?,
         &bvgk_source::ENTRIES,
     )?;
+    // Opt-in CSR bucketed writer (m1-faster-writer, #2840): separate generated
+    // source, admitted seven-entry PTX and cubin. Earlier images stay untouched.
+    let bucket = bucket_source::generate(&fs::read_to_string("src/discrete.cu")?)?;
+    fs::write(out.join("bucket.cu"), bucket)?;
+    let status = Command::new(&nvcc)
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .arg("-o")
+        .arg(out.join("bucket.ptx"))
+        .arg(out.join("bucket.cu"))
+        .status()?;
+    if !status.success() {
+        return Err(format!("bucket writer PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("bucket.ptx"))?,
+        &bucket_source::ENTRIES,
+    )?;
     // Assemble the exact PTX admitted above, rather than compiling the CUDA
     // source a second time. These same cubins and their assembly reports are
     // embedded by the driver; no CUDA context or model executes during build.
@@ -488,6 +509,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("rows", out.join("rows.ptx")),
         ("rowsk", out.join("rowsk.ptx")),
         ("bvgk", out.join("bvgk.ptx")),
+        ("bucket", out.join("bucket.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.
