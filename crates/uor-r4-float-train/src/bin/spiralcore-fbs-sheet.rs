@@ -1,4 +1,4 @@
-//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export --data-root DIR --out FILE [--save-dir DIR] [options below]`
+//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export|d11-residual --data-root DIR --out FILE [--save-dir DIR] [options below]`
 //!
 //! The runner of `docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`
 //! (spiralcore-fbs-offline-float-sheet, #2891). GPU only. `--data-root` holds `mw-balp/train/`,
@@ -23,6 +23,13 @@
 //! `docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md`) or `dual`, the plain
 //! loss plus the D11-mode loss (claude-131,
 //! `docs/harness/prep/d11-exporter-float-trunk-dual-train-2026-10-26.md`).
+//!
+//! `d11-residual` is the residual check (claude-132,
+//! `docs/harness/prep/d11-exporter-float-trunk-residual-2026-10-26.md`): one saved model's D11
+//! panel, plain and export-mode panels, and head on the artifact's queries, paired against the
+//! artifact's stored evaluator run. It takes `--model-dir`, `--evaluator`, `--windows-sha256`,
+//! `--artifact-sha256`, `--model-sha256`, `--stored-preds`, `--seed`, `--label` (the configuration's name) and,
+//! where the D11 panel was stored at training (Stage 4b), `--stored-d11-preds`.
 
 use std::collections::BTreeMap;
 use std::env;
@@ -30,14 +37,14 @@ use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
-    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_train_export,
-    run_d11_train_probe, run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
-    TrainForward,
+    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_residual,
+    run_d11_train_export, run_d11_train_probe, run_full_sheet, run_synthetic_probe,
+    run_throughput_probe, write_receipt, TrainForward,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-/// The options of `d11-artifact-gap`, `d11-train-probe` and `d11-train-export`.
-const GAP_OPTIONS: [&str; 8] = [
+/// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export` and `d11-residual`.
+const GAP_OPTIONS: [&str; 11] = [
     "--model-dir",
     "--evaluator",
     "--windows-sha256",
@@ -46,6 +53,9 @@ const GAP_OPTIONS: [&str; 8] = [
     "--stored-preds",
     "--seed",
     "--train-forward",
+    "--label",
+    "--stored-d11-preds",
+    "--model-sha256",
 ];
 
 type Args = (
@@ -55,6 +65,42 @@ type Args = (
     Option<PathBuf>,
     BTreeMap<String, String>,
 );
+
+/// The options of `d11-residual` (claude-132): every one required but `--stored-d11-preds`.
+#[derive(Debug, PartialEq)]
+struct ResidualArgs {
+    model_dir: PathBuf,
+    evaluator: PathBuf,
+    windows_sha256: String,
+    artifact_sha256: String,
+    model_sha256: String,
+    stored_preds: PathBuf,
+    stored_d11_preds: Option<PathBuf>,
+    seed: u64,
+    label: String,
+}
+
+fn residual_args(extra: &BTreeMap<String, String>) -> Result<ResidualArgs> {
+    let option = |name: &str| {
+        extra
+            .get(name)
+            .cloned()
+            .ok_or_else(|| FloatTrainError::Invalid(format!("d11-residual needs {name}")))
+    };
+    Ok(ResidualArgs {
+        model_dir: PathBuf::from(option("--model-dir")?),
+        evaluator: PathBuf::from(option("--evaluator")?),
+        windows_sha256: option("--windows-sha256")?,
+        artifact_sha256: option("--artifact-sha256")?,
+        model_sha256: option("--model-sha256")?,
+        stored_preds: PathBuf::from(option("--stored-preds")?),
+        stored_d11_preds: extra.get("--stored-d11-preds").map(PathBuf::from),
+        seed: option("--seed")?
+            .parse()
+            .map_err(|_| FloatTrainError::Invalid("--seed must be an integer".to_owned()))?,
+        label: option("--label")?,
+    })
+}
 
 fn parse_args() -> Result<Args> {
     let mut mode = String::from("full");
@@ -264,8 +310,103 @@ fn main() -> Result<()> {
             );
             write_receipt(&out, &value)
         }
+        "d11-residual" => {
+            let a = residual_args(&extra)?;
+            let value = run_d11_residual(
+                &data_root,
+                &a.model_dir,
+                &a.evaluator,
+                &a.windows_sha256,
+                &a.artifact_sha256,
+                &a.model_sha256,
+                &a.stored_preds,
+                a.stored_d11_preds.as_deref(),
+                a.seed,
+                &a.label,
+                &device,
+            )?;
+            let p = &value["pairs"]["d11_vs_artifact"];
+            println!(
+                "[d11-residual] label={} seed={} top1_float={} top1_export_mode={} top1_d11={} top1_head={} top1_artifact={} d11_vs_artifact_b={} c={} net={} F_I={} differ={} head_vs_artifact_differ={} max_drift={} instruments={} classification={}",
+                value["label"],
+                value["seed"],
+                value["top1"]["float"],
+                value["top1"]["export_mode"],
+                value["top1"]["d11"],
+                value["top1"]["head_on_artifact_queries"],
+                value["top1"]["artifact"],
+                p["b"],
+                p["c"],
+                p["net"],
+                p["f_i"],
+                p["rows_differ"],
+                value["pairs"]["head_vs_artifact"]["rows_differ"],
+                value["q12_drift_d11_vs_artifact"]["all"]["max_codes"],
+                value["instruments_pass"],
+                value["classification"],
+            );
+            write_receipt(&out, &value)
+        }
         other => Err(FloatTrainError::Invalid(format!(
             "unsupported --mode {other}"
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn residual_extra() -> BTreeMap<String, String> {
+        [
+            ("--model-dir", "m"),
+            ("--evaluator", "e.json"),
+            ("--windows-sha256", "w"),
+            ("--artifact-sha256", "a"),
+            ("--model-sha256", "s"),
+            ("--stored-preds", "p.json"),
+            ("--seed", "2"),
+            ("--label", "dual-c131"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect()
+    }
+
+    #[test]
+    fn the_residual_options_parse_and_only_the_stored_panel_is_optional() -> Result<()> {
+        let mut extra = residual_extra();
+        // Every option the mode reads is one the parser accepts.
+        assert!(extra.keys().all(|k| GAP_OPTIONS.contains(&k.as_str())));
+        assert!(GAP_OPTIONS.contains(&"--stored-d11-preds"));
+        // Each option lands in its own field, so no two can be swapped unnoticed.
+        assert_eq!(
+            residual_args(&extra)?,
+            ResidualArgs {
+                model_dir: PathBuf::from("m"),
+                evaluator: PathBuf::from("e.json"),
+                windows_sha256: "w".to_owned(),
+                artifact_sha256: "a".to_owned(),
+                model_sha256: "s".to_owned(),
+                stored_preds: PathBuf::from("p.json"),
+                stored_d11_preds: None,
+                seed: 2,
+                label: "dual-c131".to_owned(),
+            }
+        );
+        extra.insert("--stored-d11-preds".to_owned(), "d.json".to_owned());
+        assert_eq!(
+            residual_args(&extra)?.stored_d11_preds,
+            Some(PathBuf::from("d.json"))
+        );
+        for required in residual_extra().keys() {
+            let mut missing = residual_extra();
+            missing.remove(required);
+            assert!(residual_args(&missing).is_err(), "{required} is required");
+        }
+        let mut bad_seed = residual_extra();
+        bad_seed.insert("--seed".to_owned(), "two".to_owned());
+        assert!(residual_args(&bad_seed).is_err());
+        Ok(())
     }
 }

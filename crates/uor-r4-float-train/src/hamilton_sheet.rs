@@ -1416,6 +1416,70 @@ pub fn evaluate_dev_panel_d11(
     with_d11_mode(|| score_dev_panel(model, dev_windows, true))
 }
 
+/// The DEV panel's scored queries at Q12 (`code / 4096`, rows × width, in panel order) under the
+/// gate hook as it is set: the `eval_hidden` that [`score_dev_panel`] writes with `q12_writer`
+/// (claude-132). Under [`with_d11_mode`] they are the D11 panel's queries. GPU.
+pub fn dev_panel_q12_queries(model: &StackModel, dev_windows: &[CausalWindow]) -> Result<Vec<f32>> {
+    let mut rows = Vec::new();
+    for chunk in dev_windows.chunks(SHEET_EVAL_BATCH) {
+        let batch_len = chunk.len();
+        let mut flat_ids = Vec::with_capacity(batch_len * SHEET_CONTEXT);
+        let mut scored_indices = Vec::new();
+        for (b_idx, win) in chunk.iter().enumerate() {
+            flat_ids.extend_from_slice(&win.input_ids);
+            for (&off, _) in win.scored_offsets.iter().zip(&win.scored_targets) {
+                scored_indices.push((b_idx * SHEET_CONTEXT + off) as u32);
+            }
+        }
+        if scored_indices.is_empty() {
+            continue;
+        }
+        let hidden = model.hidden(&flat_ids, batch_len, SHEET_CONTEXT)?;
+        let count = scored_indices.len();
+        let idx_tensor = Tensor::from_vec(scored_indices, count, model.device())?;
+        let query = hidden
+            .index_select(&idx_tensor, 0)?
+            .affine(f64::from(Q12_SCALE), 0.0)?
+            .round()?
+            .clamp(Q12_I16_MIN, Q12_I16_MAX)?
+            .affine(1.0 / f64::from(Q12_SCALE), 0.0)?;
+        rows.extend(query.flatten_all()?.to_vec1::<f32>()?);
+    }
+    Ok(rows)
+}
+
+/// The writer head's top-1 on given scored queries (`code / 4096`, rows × width) with the table at
+/// Q12, as [`score_dev_panel`] writes them with `q12_writer` (claude-132). GPU.
+pub fn write_q12_rows(model: &StackModel, queries: &[f32]) -> Result<Vec<u32>> {
+    let width = model.config.width;
+    if width == 0 || !queries.len().is_multiple_of(width) {
+        return Err(invalid(
+            "the queries are not whole rows of the model's width",
+        ));
+    }
+    let spec = WriterSpec {
+        vocabulary: model.config.vocab_size,
+        width,
+        kept_cells: SHEET_KEPT_CELLS,
+    };
+    let table = model
+        .variables()
+        .get("embedding.weight")
+        .ok_or_else(|| invalid("missing embedding.weight"))?
+        .as_tensor()
+        .affine(f64::from(Q12_SCALE), 0.0)?
+        .round()?
+        .clamp(Q12_I16_MIN, Q12_I16_MAX)?
+        .affine(1.0 / f64::from(Q12_SCALE), 0.0)?;
+    let writer = NativeVectorWriter::new(&table, spec)?;
+    let mut preds = Vec::with_capacity(queries.len() / width);
+    for chunk in queries.chunks(SHEET_EVAL_BATCH * SHEET_CONTEXT * width) {
+        let query = Tensor::from_vec(chunk.to_vec(), (chunk.len() / width, width), model.device())?;
+        preds.extend(writer.write(&query)?.to_vec1::<u32>()?);
+    }
+    Ok(preds)
+}
+
 /// Score `model` on `dev_windows` under the gate hook as it is set, the
 /// query and the writer table at Q12 when `q12_writer`.
 fn score_dev_panel(

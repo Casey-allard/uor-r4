@@ -1590,6 +1590,255 @@ pub fn run_d11_artifact_gap(
     }))
 }
 
+/// Per row, the largest distance in Q12 codes between two sets of scored queries (`code / 4096`,
+/// rows × `width`).
+fn q12_drift(a: &[f32], b: &[f32], width: usize) -> Result<Vec<u32>> {
+    if width == 0 || a.len() != b.len() || !a.len().is_multiple_of(width) {
+        return Err(invalid("the two query sets are not the same whole rows"));
+    }
+    let code = |v: f32| (v * hs::Q12_SCALE).round() as i32;
+    Ok(a.chunks(width)
+        .zip(b.chunks(width))
+        .map(|(ra, rb)| {
+            ra.iter()
+                .zip(rb)
+                .map(|(&x, &y)| code(x).abs_diff(code(y)))
+                .max()
+                .unwrap_or(0)
+        })
+        .collect())
+}
+
+/// How far two sets of queries drift, over all rows and over the rows `selected`.
+fn drift_summary(drift: &[u32], selected: impl Fn(usize) -> bool) -> serde_json::Value {
+    let summary = |rows: Vec<u32>| {
+        serde_json::json!({
+            "rows": rows.len(),
+            "max_codes": rows.iter().copied().max().unwrap_or(0),
+            "rows_exact": rows.iter().filter(|&&d| d == 0).count(),
+            "rows_within_1": rows.iter().filter(|&&d| d <= 1).count(),
+            "rows_within_2": rows.iter().filter(|&&d| d <= 2).count(),
+        })
+    };
+    serde_json::json!({
+        "all": summary(drift.to_vec()),
+        "selected": summary(
+            drift.iter().enumerate().filter(|(i, _)| selected(*i)).map(|(_, &d)| d).collect()
+        ),
+    })
+}
+
+fn rows_differ(a: &[u32], b: &[u32]) -> usize {
+    a.iter().zip(b).filter(|(x, y)| x != y).count()
+}
+
+/// The share of rows on which D and A may differ for a faithful artifact, in percent: three times
+/// claude-127's measured integer residual at 6 layers (4 to 5 of 512 tokens, about 1%).
+const RESIDUAL_FAITHFUL_PERCENT: usize = 3;
+/// The share beyond which D and A differ as a different forward does, in percent: claude-127's
+/// norm-bias defect changed 91 of 512 tokens (18%).
+const RESIDUAL_DEPARTURE_PERCENT: usize = 10;
+
+/// The residual check's classification of one model, as its sheet fixes it (claude-132):
+/// - `faithful`: every instrument green, H and A identical on every row, D and A differing on at
+///   most [`RESIDUAL_FAITHFUL_PERCENT`] of the rows, and D against A within the paired test;
+/// - `departure`: H and A differ on any row, D and A differ on more than
+///   [`RESIDUAL_DEPARTURE_PERCENT`] of the rows, or D against A is outside the paired test;
+/// - `indeterminate`: otherwise, an instrument investigation;
+/// - `not counted`: an instrument check failed.
+fn classify_residual(
+    instruments_ok: bool,
+    head_differ: usize,
+    d_a_differ: usize,
+    rows: usize,
+    paired_within: bool,
+) -> &'static str {
+    if !instruments_ok || rows == 0 {
+        "not counted"
+    } else if head_differ > 0
+        || d_a_differ * 100 > RESIDUAL_DEPARTURE_PERCENT * rows
+        || !paired_within
+    {
+        "departure"
+    } else if d_a_differ * 100 <= RESIDUAL_FAITHFUL_PERCENT * rows {
+        "faithful"
+    } else {
+        "indeterminate"
+    }
+}
+
+/// The residual check of claude-131's pivot note (claude-132), for one saved model and its
+/// artifact's stored, verified evaluator run, on the GPU.
+/// - **F**, the plain-float panel, which must reproduce `stored_preds` (`I-Save-Load`);
+/// - **E**, the export-mode panel, on the tables as trained;
+/// - **D**, the D11 panel, with the tables rounded as exported;
+/// - **H**, the writer head at Q12 on the artifact's own queries;
+/// - **A**, the artifact's tokens at the scored offsets.
+///
+/// [`classify_residual`] decides whether the artifact computes its D11 forward: H against A for
+/// the head, D against A row by row and under the paired test for the whole. The Q12 drift
+/// between D's and A's queries says where a departure sits.
+#[allow(clippy::too_many_arguments)]
+pub fn run_d11_residual(
+    data_root: &Path,
+    model_dir: &Path,
+    evaluator: &Path,
+    windows_sha256: &str,
+    artifact_sha256: &str,
+    model_sha256_pin: &str,
+    stored_preds: &Path,
+    stored_d11_preds: Option<&Path>,
+    seed: u64,
+    label: &str,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::round_tables_as_exported;
+
+    let stored_d11: Option<Vec<u32>> = match stored_d11_preds {
+        Some(path) => Some(serde_json::from_slice(&fs::read(path)?)?),
+        None => None,
+    };
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let targets: Vec<u32> = dev_windows
+        .iter()
+        .flat_map(|w| w.scored_targets.iter().copied())
+        .collect();
+    let stored: Vec<u32> = serde_json::from_slice(&fs::read(stored_preds)?)?;
+    let loaded = StackModel::load(model_dir, device)?;
+    let model_sha256 = sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
+    let panel = |export_mode: bool| {
+        hs::evaluate_dev_panel(
+            &loaded,
+            &dev_windows,
+            HamiltonArm::HamiltonActive,
+            seed,
+            STEPS,
+            export_mode,
+            false,
+        )
+    };
+    let (f_metrics, f_preds) = panel(false)?;
+    let (e_metrics, e_preds) = panel(true)?;
+    hs::clear_active_arm();
+    let i_save_load = f_preds == stored;
+
+    let run: EvaluatorRun = serde_json::from_slice(&fs::read(evaluator)?)?;
+    let width = loaded.config.width;
+    let shape_ok = run.sequences == dev_windows.len()
+        && run.len == SHEET_CONTEXT
+        && run.width == width
+        && run.tokens.len() == run.sequences * run.len
+        && run.queries.len() == run.tokens.len() * width;
+    if !shape_ok {
+        return Err(invalid(
+            "the evaluator's run does not cover the DEV windows",
+        ));
+    }
+    let i_inputs = run.sequences_sha256 == windows_sha256
+        && run.artifact_sha256 == artifact_sha256
+        && model_sha256 == model_sha256_pin;
+    let i_verify = run.verify.as_array().is_some_and(|checks| {
+        checks.len() == 2
+            && checks.iter().all(|c| c["equal"] == serde_json::json!(true))
+            && checks
+                .iter()
+                .all(|c| c["positions"].as_u64() == Some((run.sequences * run.len) as u64))
+    });
+    let (a_preds, a_queries) =
+        artifact_rows(&dev_windows, &run.tokens, &run.queries, run.len, width)?;
+    let i_dev = a_preds.len() == hs::EXPECTED_DEV_ELIGIBLE_TARGETS;
+
+    round_tables_as_exported(&loaded)?;
+    let (d_metrics, d_preds) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
+    let (_, d_again) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
+    let d_queries = hs::with_d11_mode(|| hs::dev_panel_q12_queries(&loaded, &dev_windows))?;
+    // I-Head: the head path reproduces the D11 panel's own predictions from its own queries, so H
+    // is the panel's head.
+    let i_head = hs::write_q12_rows(&loaded, &d_queries)? == d_preds;
+    let h_preds = hs::write_q12_rows(&loaded, &a_queries)?;
+    if [&d_preds, &h_preds, &f_preds, &e_preds]
+        .iter()
+        .any(|p| p.len() != a_preds.len())
+    {
+        return Err(invalid("the panels do not cover the artifact's rows"));
+    }
+    let drift = q12_drift(&d_queries, &a_queries, width)?;
+
+    let pair = |name_a: &str, a: &[u32], name_b: &str, b: &[u32]| {
+        let p = hs::compute_paired_discordance(name_a, a, name_b, b, &targets, seed);
+        serde_json::json!({
+            "b": p.a_hit_b_miss_c,
+            "c": p.a_miss_b_hit_b,
+            "net": p.net_advantage_rows,
+            "f_i": f_i(p.a_hit_b_miss_c, p.a_miss_b_hit_b),
+            "within": p.net_advantage_rows.unsigned_abs() <= f_i(p.a_hit_b_miss_c, p.a_miss_b_hit_b),
+            "rows_differ": rows_differ(a, b),
+        })
+    };
+    let top1 = |preds: &[u32]| preds.iter().zip(&targets).filter(|(p, t)| p == t).count();
+    let d_vs_a = pair("d11", &d_preds, "artifact", &a_preds);
+    // I-D-Stored: where the model's D11 panel was stored when it was trained (Stage 4b), the
+    // recomputed panel is that one, row for row.
+    let i_d_stored = stored_d11.as_ref().map(|s| *s == d_preds);
+    let instruments_ok = i_save_load
+        && i_inputs
+        && i_verify
+        && i_dev
+        && d_preds == d_again
+        && i_head
+        && i_d_stored.unwrap_or(true);
+    let classification = classify_residual(
+        instruments_ok,
+        rows_differ(&h_preds, &a_preds),
+        rows_differ(&d_preds, &a_preds),
+        a_preds.len(),
+        d_vs_a["within"] == serde_json::json!(true),
+    );
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-residual-2026-10-26.md",
+        "label": label,
+        "seed": seed,
+        "arm": D11_EXPORT_ARM.name(),
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "model_safetensors_sha256": model_sha256,
+        "artifact_sha256": run.artifact_sha256,
+        "windows_sha256": run.sequences_sha256,
+        "evaluator_build": run.build,
+        "top1": {
+            "float": f_metrics.top1_hits,
+            "export_mode": e_metrics.top1_hits,
+            "d11": d_metrics.top1_hits,
+            "head_on_artifact_queries": top1(&h_preds),
+            "artifact": top1(&a_preds),
+        },
+        "d11_q12_oracle_mismatches": d_metrics.q12_i32_oracle_mismatches,
+        "pairs": {
+            "d11_vs_artifact": d_vs_a,
+            "head_vs_artifact": pair("head", &h_preds, "artifact", &a_preds),
+            "d11_vs_head": pair("d11", &d_preds, "head", &h_preds),
+            "export_mode_vs_artifact": pair("export_mode", &e_preds, "artifact", &a_preds),
+            "export_mode_vs_d11": pair("export_mode", &e_preds, "d11", &d_preds),
+            "float_vs_d11": pair("float", &f_preds, "d11", &d_preds),
+            "float_vs_artifact": pair("float", &f_preds, "artifact", &a_preds),
+        },
+        "q12_drift_d11_vs_artifact": drift_summary(&drift, |i| d_preds[i] != a_preds[i]),
+        "i_save_load": i_save_load,
+        "i_inputs": i_inputs,
+        "i_verify_all": i_verify,
+        "i_dev_denominator": i_dev,
+        "i_d_determinism": d_preds == d_again,
+        "i_head": i_head,
+        "i_d_stored": i_d_stored,
+        "instruments_pass": instruments_ok,
+        "rule": {
+            "faithful_percent": RESIDUAL_FAITHFUL_PERCENT,
+            "departure_percent": RESIDUAL_DEPARTURE_PERCENT,
+        },
+        "classification": classification,
+    }))
+}
+
 /// The prep sheet a D11-trained run answers to.
 fn d11_train_sheet(forward: TrainForward) -> Result<&'static str> {
     match forward {
@@ -2264,6 +2513,87 @@ mod tests {
         }
         // The two halves are different gradients, so the test can tell them apart.
         assert!(differs);
+        hs::clear_active_arm();
+        Ok(())
+    }
+
+    #[test]
+    fn the_q12_drift_is_each_rows_largest_code_distance() -> Result<()> {
+        let q = |codes: &[i32]| -> Vec<f32> { codes.iter().map(|&c| c as f32 / 4096.0).collect() };
+        // Three rows of width 2: equal, one code apart, three codes apart (in the second column).
+        let a = q(&[10, -20, 0, 5, 7, 100]);
+        let b = q(&[10, -20, 1, 5, 7, 97]);
+        let drift = q12_drift(&a, &b, 2)?;
+        assert_eq!(drift, vec![0, 1, 3]);
+        let summary = drift_summary(&drift, |i| i != 0);
+        assert_eq!(summary["all"]["rows"], serde_json::json!(3));
+        assert_eq!(summary["all"]["max_codes"], serde_json::json!(3));
+        assert_eq!(summary["all"]["rows_exact"], serde_json::json!(1));
+        assert_eq!(summary["all"]["rows_within_1"], serde_json::json!(2));
+        assert_eq!(summary["all"]["rows_within_2"], serde_json::json!(2));
+        assert_eq!(summary["selected"]["rows"], serde_json::json!(2));
+        assert_eq!(summary["selected"]["rows_exact"], serde_json::json!(0));
+        assert!(q12_drift(&a, &b[..4], 2).is_err());
+        assert!(q12_drift(&a, &b, 4).is_err());
+        assert_eq!(rows_differ(&[1, 2, 3], &[1, 0, 3]), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn the_residual_rule_is_the_sheets() {
+        let rows = 14_287;
+        // 3% of 14,287 is 428.61, so 428 rows differ at most for a faithful artifact; 10% is
+        // 1,428.7, so 1,429 or more is a departure.
+        assert_eq!(classify_residual(true, 0, 428, rows, true), "faithful");
+        assert_eq!(classify_residual(true, 0, 0, rows, true), "faithful");
+        assert_eq!(classify_residual(true, 0, 429, rows, true), "indeterminate");
+        assert_eq!(
+            classify_residual(true, 0, 1_428, rows, true),
+            "indeterminate"
+        );
+        assert_eq!(classify_residual(true, 0, 1_429, rows, true), "departure");
+        // Any head difference, or a paired gap outside F_I, is a departure however few rows differ.
+        assert_eq!(classify_residual(true, 1, 0, rows, true), "departure");
+        assert_eq!(classify_residual(true, 0, 10, rows, false), "departure");
+        // A failed instrument check is never classified.
+        assert_eq!(classify_residual(false, 0, 0, rows, true), "not counted");
+        assert_eq!(classify_residual(true, 0, 0, 0, true), "not counted");
+    }
+
+    /// On one GPU (claude-132): the residual check's head, given the D11 panel's own scored
+    /// queries, writes exactly the D11 panel's predictions, so H is the panel's head (`I-Head`).
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn gpu_the_head_on_the_d11_queries_is_the_d11_panel() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = build_fbs_model(D11_EXPORT_ARM, 1, &device)?;
+        crate::fbs_export::round_tables_as_exported(&model)?;
+        let batches = synthetic_batches(1, 11);
+        let (ids, _, _) = &batches[0];
+        let windows: Vec<CausalWindow> = ids
+            .chunks(SHEET_CONTEXT)
+            .take(4)
+            .enumerate()
+            .map(|(doc_id, input)| {
+                let scored_offsets: Vec<usize> = (0..SHEET_CONTEXT - 1).step_by(5).collect();
+                CausalWindow {
+                    doc_id,
+                    input_ids: input.to_vec(),
+                    scored_targets: scored_offsets.iter().map(|&o| input[o + 1]).collect(),
+                    scored_corpus_positions: scored_offsets.clone(),
+                    scored_offsets,
+                }
+            })
+            .collect();
+        let (_, d_preds) = hs::evaluate_dev_panel_d11(&model, &windows)?;
+        let d_queries = hs::with_d11_mode(|| hs::dev_panel_q12_queries(&model, &windows))?;
+        assert_eq!(d_queries.len(), d_preds.len() * model.config.width);
+        assert!(!d_preds.is_empty());
+        assert_eq!(hs::write_q12_rows(&model, &d_queries)?, d_preds);
+        // Every query is a whole Q12 code.
+        assert!(d_queries
+            .iter()
+            .all(|&v| (v * 4096.0 - (v * 4096.0).round()).abs() == 0.0));
         hs::clear_active_arm();
         Ok(())
     }
