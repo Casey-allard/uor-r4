@@ -191,3 +191,248 @@ fn the_registered_dev_panel_has_14287_rows() {
     let rows = inst::dev_rows(&config).expect("dev rows");
     assert_eq!(rows.len(), 14_287);
 }
+
+#[test]
+fn dev_rows_and_rows_from_corpus_refuse_sealed_fresh_panel_before_sealed_dev_decision() {
+    let tokens: [u16; 8] = [0, 1, 2, 3, 0, 4, 5, 6];
+    let mask = [1u8, 1, 1, 1, 1, 0, 1, 1];
+    let mut bytes = vec![0u8; 64];
+    bytes[..4].copy_from_slice(b"UORT");
+    bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+    bytes[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
+    bytes[16..20].copy_from_slice(&8u32.to_le_bytes());
+    for t in tokens {
+        bytes.extend_from_slice(&t.to_le_bytes());
+    }
+    let fresh_source = CorpusSource {
+        split: Split::Fresh,
+        tokens: FilePin {
+            path: "fresh.uort".into(),
+            sha256: sha256(&bytes),
+        },
+        mask: FilePin {
+            path: "fresh.mask".into(),
+            sha256: sha256(&mask),
+        },
+        expected_payload_tokens: tokens.len() as u64,
+        expected_eligible_targets: 5,
+    };
+    let bos = BosIdentity {
+        token: "<|bos|>".into(),
+        id: 0,
+    };
+    let fresh_corpus =
+        PreparedCorpus::from_bytes(fresh_source, &bytes, &mask, 8, bos).expect("fresh corpus");
+    let err = inst::rows_from_corpus(&fresh_corpus, 4, 1)
+        .expect_err("rows_from_corpus must refuse Split::Fresh without a sealed DEV decision");
+    assert!(
+        err.contains("SEALED_FRESH_PANEL_REFUSED"),
+        "expected SEALED_FRESH_PANEL_REFUSED, got: {err}"
+    );
+
+    // Also verify that a Split::Dev CorpusSource carrying the sealed Fresh V2 or K16
+    // hashes is refused before touching disk.
+    for (tok_sha, mask_sha) in [
+        (
+            inst::fresh_transfer::FRESH_V2_TOKENS_SHA256,
+            inst::fresh_transfer::FRESH_V2_MASK_SHA256,
+        ),
+        (
+            inst::fresh_transfer::K16_FRESH_TOKENS_SHA256,
+            inst::fresh_transfer::K16_FRESH_MASK_SHA256,
+        ),
+    ] {
+        let disguised_dev = CorpusSource {
+            split: Split::Dev,
+            tokens: FilePin {
+                path: "/nonexistent/tokens.u16".into(),
+                sha256: tok_sha.into(),
+            },
+            mask: FilePin {
+                path: "/nonexistent/response_mask.u8".into(),
+                sha256: mask_sha.into(),
+            },
+            expected_payload_tokens: 44_678,
+            expected_eligible_targets: 14_479,
+        };
+        let err = inst::fresh_transfer::refuse_sealed_fresh_source(&disguised_dev)
+            .expect_err("disguised fresh source must be refused");
+        assert!(err.contains("SEALED_FRESH_PANEL_REFUSED"));
+    }
+}
+
+#[test]
+fn fresh_transfer_gate_refuses_until_two_seed_dev_bar_passes_and_evaluates_exact_mcnemar_bars() {
+    use inst::fresh_transfer::{
+        build_train_count_tables, evaluate_fresh_transfer_two_seeds, mcnemar_floor,
+        score_fresh_against_count_tables, validate_fresh_transfer_gate, DEV_ELIGIBLE_TARGETS,
+        FRESH_TRANSFER_GATE_SCHEMA, FRESH_V2_ELIGIBLE_TARGETS, FRESH_V2_MASK_SHA256,
+        FRESH_V2_PAYLOAD_TOKENS, FRESH_V2_ROW_BINDING_SHA256, FRESH_V2_SEAL_SHA256,
+        FRESH_V2_TOKENS_SHA256, TRAIN_MASK_SHA256, TRAIN_TOKENS_SHA256,
+    };
+
+    let fresh_v2_source = CorpusSource {
+        split: Split::Dev,
+        tokens: FilePin {
+            path: "/nonexistent/fresh_v2/tokens.u16".into(),
+            sha256: FRESH_V2_TOKENS_SHA256.into(),
+        },
+        mask: FilePin {
+            path: "/nonexistent/fresh_v2/response_mask.u8".into(),
+            sha256: FRESH_V2_MASK_SHA256.into(),
+        },
+        expected_payload_tokens: FRESH_V2_PAYLOAD_TOKENS,
+        expected_eligible_targets: FRESH_V2_ELIGIBLE_TARGETS,
+    };
+    let art1 = "aa".repeat(32);
+    let art2 = "bb".repeat(32);
+
+    let valid_receipt = json!({
+        "schema": FRESH_TRANSFER_GATE_SCHEMA,
+        "dev_decision": "PASS_BARS_A_TO_D_TWO_SEEDS",
+        "fresh_seal_sha256": FRESH_V2_SEAL_SHA256,
+        "fresh_row_binding_sha256": FRESH_V2_ROW_BINDING_SHA256,
+        "train_tokens_sha256": TRAIN_TOKENS_SHA256,
+        "train_mask_sha256": TRAIN_MASK_SHA256,
+        "fit_review_url": "https://github.com/UOR-Foundation/uor-r4/issues/2841#issuecomment-1",
+        "prerun_review_url": "https://github.com/UOR-Foundation/uor-r4/issues/2841#issuecomment-2",
+        "seeds": [
+            {
+                "seed": 1,
+                "dev_rows": DEV_ELIGIBLE_TARGETS,
+                "d11_top1": 6_400,
+                "export_gap_b2_pass": true,
+                "planted_fault_b4_pass": true,
+                "tokens_per_s_reported": true,
+                "artifact_sha256": art1,
+            },
+            {
+                "seed": 2,
+                "dev_rows": DEV_ELIGIBLE_TARGETS,
+                "d11_top1": 6_380,
+                "export_gap_b2_pass": true,
+                "planted_fault_b4_pass": true,
+                "tokens_per_s_reported": true,
+                "artifact_sha256": art2,
+            }
+        ]
+    });
+
+    // Valid two-seed PASS receipt passes gate validation for both bound artifacts.
+    validate_fresh_transfer_gate(&valid_receipt, &art1, &fresh_v2_source)
+        .expect("valid receipt for seed 1");
+    validate_fresh_transfer_gate(&valid_receipt, &art2, &fresh_v2_source)
+        .expect("valid receipt for seed 2");
+
+    // Unbound artifact SHA-256 is refused.
+    assert!(
+        validate_fresh_transfer_gate(&valid_receipt, &"cc".repeat(32), &fresh_v2_source).is_err()
+    );
+
+    // Current Stage T checkpoints (455 and 506 on DEV, below T2 6,300) are refused.
+    let mut below_bar = valid_receipt.clone();
+    below_bar["seeds"][0]["d11_top1"] = json!(455);
+    below_bar["seeds"][1]["d11_top1"] = json!(506);
+    let err = validate_fresh_transfer_gate(&below_bar, &art1, &fresh_v2_source)
+        .expect_err("DEV scores below 6,300 T2 bar must be refused");
+    assert!(err.contains("SEALED_FRESH_PANEL_REFUSED"));
+
+    // Non-PASS dev_decision is refused.
+    let mut held = valid_receipt.clone();
+    held["dev_decision"] = json!("NOT_TRIGGERED");
+    assert!(validate_fresh_transfer_gate(&held, &art1, &fresh_v2_source).is_err());
+
+    // Exact integer McNemar floor checks:
+    // discordant = 100 -> 2 * sqrt(100) = 20 -> max(24, 20) = 24
+    assert_eq!(mcnemar_floor(24, 100), 24);
+    // discordant = 145 -> 4 * 145 = 580 -> 24^2 = 576 < 580 <= 25^2 = 625 -> 25
+    assert_eq!(mcnemar_floor(24, 145), 25);
+    // P_succ floor: min 20, discordant = 100 -> max(20, 20) = 20; discordant = 101 -> 21
+    assert_eq!(mcnemar_floor(20, 100), 20);
+    assert_eq!(mcnemar_floor(20, 101), 21);
+
+    // Build count tables from a Split::Train fixture corpus and score synthetic fresh rows.
+    let tokens: [u16; 10] = [0, 1, 2, 1, 2, 1, 2, 0, 1, 2];
+    let mask = [1u8; 10];
+    let mut bytes = vec![0u8; 64];
+    bytes[..4].copy_from_slice(b"UORT");
+    bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+    bytes[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
+    bytes[16..20].copy_from_slice(&8u32.to_le_bytes());
+    for t in tokens {
+        bytes.extend_from_slice(&t.to_le_bytes());
+    }
+    let train_source = CorpusSource {
+        split: Split::Train,
+        tokens: FilePin {
+            path: "train.uort".into(),
+            sha256: sha256(&bytes),
+        },
+        mask: FilePin {
+            path: "train.mask".into(),
+            sha256: sha256(&mask),
+        },
+        expected_payload_tokens: tokens.len() as u64,
+        expected_eligible_targets: 8,
+    };
+    let bos = BosIdentity {
+        token: "<|bos|>".into(),
+        id: 0,
+    };
+    let train_corpus =
+        PreparedCorpus::from_bytes(train_source, &bytes, &mask, 8, bos).expect("train corpus");
+    let tables = build_train_count_tables(&train_corpus, 4, 4, 4).expect("train count tables");
+
+    let sample_rows = vec![inst::DevRow {
+        ordinal: 0,
+        target_position: 4,
+        target_token: 3,
+        prefix: vec![0, 1, 3, 1],
+    }];
+    let sample_scores = vec![inst::kernel::RowScore {
+        status: 0,
+        prediction: 3,
+        top8: vec![3, 2, 1, 0, 4, 5, 6, 7],
+        admitted_cells: vec![0],
+        read_vector: vec![0; 32],
+        token_hinge: 0,
+        address_hinge: 0,
+        rank_hinge: 0,
+        loss_ta: 0,
+        loss_tr: 0,
+    }];
+    let s1 =
+        score_fresh_against_count_tables(1, &art1, &tables, &sample_rows, &sample_scores, 0, true)
+            .expect("score s1");
+    assert_eq!(s1.rows, 1);
+    assert_eq!(s1.psucc_rows, 1);
+    assert_eq!(s1.model_top1, 1);
+    assert_eq!(s1.t2_top1, 0);
+
+    // Two-seed evaluator requires the full floor (24 on full panel, 20 on P_succ).
+    let mut s1_full = s1.clone();
+    s1_full.rows = 14_479;
+    s1_full.psucc_rows = 3_594;
+    s1_full.unigram_top1 = 1_240;
+    s1_full.t2_top1 = 6_380;
+    s1_full.model_top1 = 6_450;
+    s1_full.b_vs_unigram = 5_310;
+    s1_full.c_vs_unigram = 100;
+    s1_full.b_vs_t2 = 120;
+    s1_full.c_vs_t2 = 50;
+    s1_full.psucc_unigram_top1 = 300;
+    s1_full.psucc_t2_top1 = 2_100;
+    s1_full.psucc_model_top1 = 2_140;
+    s1_full.psucc_b_vs_t2 = 60;
+    s1_full.psucc_c_vs_t2 = 20;
+
+    let mut s2_full = s1_full.clone();
+    s2_full.seed = 2;
+    s2_full.artifact_sha256 = art2;
+    s2_full.model_top1 = 6_440;
+    s2_full.psucc_model_top1 = 2_135;
+
+    let report = evaluate_fresh_transfer_two_seeds(&s1_full, &s2_full).expect("two-seed report");
+    assert_eq!(report["bar_e_pass"], json!(true));
+    assert_eq!(report["outcome"], json!("PASS_BAR_E_FRESH_TRANSFER"));
+}

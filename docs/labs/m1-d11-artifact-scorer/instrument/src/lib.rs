@@ -23,6 +23,7 @@
 pub mod artifact;
 #[cfg(feature = "cuda")]
 pub mod device;
+pub mod fresh_transfer;
 pub mod kernel;
 pub mod toks;
 
@@ -99,10 +100,7 @@ pub struct DevRow {
     pub prefix: Vec<u32>,
 }
 
-/// The rows `eval-corpus` scores on a corpus: its own loop, `first = 0`, then
-/// `batch(first, context, batch_rows)` until the eligible targets run out,
-/// advancing by `next_target` (`training.rs:3411-3428`).
-pub fn rows_from_corpus(
+fn rows_from_corpus_unchecked(
     corpus: &PreparedCorpus,
     context: u32,
     batch_rows: u32,
@@ -134,13 +132,63 @@ pub fn rows_from_corpus(
     Ok(rows)
 }
 
+/// The rows `eval-corpus` scores on a DEV corpus: its own loop, `first = 0`, then
+/// `batch(first, context, batch_rows)` until the eligible targets run out,
+/// advancing by `next_target` (`training.rs:3411-3428`). Refuses `Split::Fresh`
+/// and the pinned sealed fresh digests (`0b7e754c…` / `a1cda529…`, `82ead8db…` /
+/// `8287d20d…`).
+pub fn rows_from_corpus(
+    corpus: &PreparedCorpus,
+    context: u32,
+    batch_rows: u32,
+) -> Result<Vec<DevRow>, String> {
+    fresh_transfer::refuse_sealed_fresh_source(&corpus.binding().source)?;
+    rows_from_corpus_unchecked(corpus, context, batch_rows)
+}
+
 /// A driver config's DEV rows, loaded and pinned exactly as the driver loads
-/// them (`training.rs:499`).
+/// them (`training.rs:499`). Refuses any config whose `dev` or `train` split
+/// points to the sealed fresh panel (`0b7e754c…` / `a1cda529…` or `82ead8db…` /
+/// `8287d20d…`) before touching disk.
 pub fn dev_rows(config: &DriverConfig) -> Result<Vec<DevRow>, String> {
+    fresh_transfer::refuse_sealed_fresh_source(&config.dev)?;
+    fresh_transfer::refuse_sealed_fresh_source(&config.train)?;
     config.validate().map_err(|e| e.to_string())?;
     let dev = PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)
         .map_err(|e| e.to_string())?;
     rows_from_corpus(&dev, config.spec.context, config.batch_rows)
+}
+
+/// Extracts fresh-panel rows only after `validate_fresh_transfer_gate` confirms
+/// a sealed two-seed DEV bar-(a)–(d) `PASS_BARS_A_TO_D_TWO_SEEDS` decision receipt.
+pub fn fresh_rows_from_corpus(
+    corpus: &PreparedCorpus,
+    context: u32,
+    batch_rows: u32,
+    decision_receipt: &Value,
+    artifact_sha256: &str,
+) -> Result<Vec<DevRow>, String> {
+    fresh_transfer::validate_fresh_transfer_gate(
+        decision_receipt,
+        artifact_sha256,
+        &corpus.binding().source,
+    )?;
+    rows_from_corpus_unchecked(corpus, context, batch_rows)
+}
+
+/// Loads and extracts the sealed fresh panel (`config.dev`) only after
+/// `validate_fresh_transfer_gate` confirms a sealed two-seed DEV bar-(a)–(d)
+/// `PASS_BARS_A_TO_D_TWO_SEEDS` decision receipt before touching disk.
+pub fn fresh_rows(
+    config: &DriverConfig,
+    decision_receipt: &Value,
+    artifact_sha256: &str,
+) -> Result<Vec<DevRow>, String> {
+    fresh_transfer::validate_fresh_transfer_gate(decision_receipt, artifact_sha256, &config.dev)?;
+    config.validate().map_err(|e| e.to_string())?;
+    let fresh = PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)
+        .map_err(|e| e.to_string())?;
+    rows_from_corpus_unchecked(&fresh, config.spec.context, config.batch_rows)
 }
 
 /// sha256 over every row as little-endian `ordinal u64, target_position u64,
