@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 548" width="960" height="548" role="img" aria-labelledby="t d">
 <title id="t">Model-result share of records by week</title>
-<desc id="d">Stacked bars, one per ISO week from 20 Jul to 19 Oct, each split into model results and everything else, with the results share above each bar: 0%, 57%, 77%, 40%, 57%, 85%, 60%, 79%, 38%, 43%, 80%, 78%, 11%, 13%. A dashed line marks 50%. The share falls sharply in the busiest week.</desc>
+<desc id="d">Stacked bars, one per ISO week from 20 Jul to 22 Oct, each split into model results and everything else, with the results share above each bar: 0%, 57%, 77%, 40%, 57%, 85%, 60%, 79%, 38%, 43%, 80%, 78%, 11%, 12%. A dashed line marks 50%. The share falls sharply in the busiest week.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
@@ -117,16 +117,16 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text x="848.9" y="402" font-size="13" class="t-ink b" text-anchor="middle">W42</text>
 <text x="848.9" y="417" font-size="11" class="t-muted" text-anchor="middle">12 Oct</text>
 <text x="848.9" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 309</text>
-<rect x="892" y="124" width="40.6" height="227.5" rx="0" class="f-rule s-muted" stroke-width="1"/>
-<rect x="892" y="351.5" width="40.6" height="32.5" rx="0" class="f-blue"/>
-<text x="912.3" y="116" font-size="13" class="t-ink b" text-anchor="middle">13%</text>
+<rect x="892" y="124" width="40.6" height="229.4" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="892" y="353.4" width="40.6" height="30.6" rx="0" class="f-blue"/>
+<text x="912.3" y="116" font-size="13" class="t-ink b" text-anchor="middle">12%</text>
 <text x="912.3" y="402" font-size="13" class="t-ink b" text-anchor="middle">W43*</text>
 <text x="912.3" y="417" font-size="11" class="t-muted" text-anchor="middle">19 Oct</text>
-<text x="912.3" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 32</text>
+<text x="912.3" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 34</text>
 <rect x="819.1" y="100" width="59.4" height="344" rx="4" fill="none" class="s-verm" stroke-width="2"/>
 <text x="944" y="92" font-size="13" class="t-ink b" text-anchor="end">W42: 34 results among 309 records; 190 of the records are tooling</text>
 <text x="16" y="466" font-size="11" class="t-muted" text-anchor="start">Part of the drop after 11 October was ordered by the owner (the softmax and matmul bans and the GPU-only and Rust-first rules forced a rebuild</text>
 <text x="16" y="482" font-size="11" class="t-muted" text-anchor="start">and many tool ports on 12 and 13 October), so the later weeks are an upper bound on discretionary process, not a verdict.</text>
-<text x="16" y="498" font-size="11" class="t-muted" text-anchor="start">Compare shares, not counts: early rows mix loose documents and lane results. * partial week: the catalog runs from 21 Jul to 19 Oct.</text>
-<text x="16" y="514" font-size="11" class="t-muted" text-anchor="start">Source: the research catalog, 1051 dated records; 122 records have no date and are not shown.</text>
+<text x="16" y="498" font-size="11" class="t-muted" text-anchor="start">Compare shares, not counts: early rows mix loose documents and lane results. * partial week: the catalog runs from 21 Jul to 22 Oct.</text>
+<text x="16" y="514" font-size="11" class="t-muted" text-anchor="start">Source: the research catalog, 1053 dated records; 122 records have no date and are not shown.</text>
 </svg>

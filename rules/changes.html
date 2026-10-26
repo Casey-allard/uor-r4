@@ -187,6 +187,40 @@
 <p><em>The charter replaced the older rules in one step on 19 October 2026. Later changes are added to this log as dated entries.</em></p>
 <h2 id="how-an-entry-is-written"><a class="header" href="#how-an-entry-is-written">How an entry is written</a></h2>
 <p>An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the <code>archive/</code> folder, and the live decision index keeps one line saying where each decision went (see the <a href="decision-map.html">decision map</a>).</p>
+<h2 id="25-october-2026-one-plan-and-the-plan-file-renamed-in-the-charter-d77"><a class="header" href="#25-october-2026-one-plan-and-the-plan-file-renamed-in-the-charter-d77">25 October 2026: one plan, and the plan file renamed in the charter (D77)</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in Claude's chat, 24 Oct, by 2026-10-25T00:03:59Z: "please reign in the project sprawl and get us back to a workable central source of truth we can run off of". He also wrote "our mandate should be enablement for moving forward and moving forward".</p>
+<ol>
+<li><strong>The plan file is <code>PLAN.md</code> (D77).</strong> Clause 5.3 now reads "Labs self-direct from <code>PLAN.md</code>". Clause 5.8 places the approved sequences in <code>PLAN.md</code>. <code>NOW.md</code> was retired on 22 Oct, so the charter no longer points at it.</li>
+<li>No other clause changes. The holds released under D67 and the owner calls recorded as D78–D79 are decisions, not charter text.</li>
+</ol>
+<h2 id="24-october-2026-the-single-lab-rule-d65d71"><a class="header" href="#24-october-2026-the-single-lab-rule-d65d71">24 October 2026: the single-lab rule (D65–D71)</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in Claude's chat, after Claude's review of why the loop stalled. From 23 Oct 14:10Z to 24 Oct 13:43Z the labs merged 70 PRs and closed no issue. Then every lab stopped behind asks nobody answered, and when the owner restarted the laptop at 13:58Z nothing restarted the labs. Claude asked four design questions, each with options worded by Claude. The owner answered:</p>
+<ul>
+<li>"One queue (Recommended)";</li>
+<li>"Yes, where headless (Recommended)";</li>
+<li>"The finishing PR (Recommended)";</li>
+<li>on held work, in his own words: "i never see these requests for released, so I would say do not park any work at all for any reason - if there was only one single lab running what would the process be? a single lab can't park and wait for another lab or me to review. It must be able to accurately judge whether or not, with an advesareal review, whether or not the GPU run is the correct test at that time, and whether the correct tools exist in either the repo or the huggingface repo that will make them successful. We don't want to be doing runs if they are not going to unlock further work, like when we finish a mechanism and are simply waiting on the gpu training or something to happen which unlocks further work, we want to do those as highest priority. It's all about removing blockers at this point."</li>
+</ul>
+<p>Claude read the rule back, including that the current holds become runnable through a pre-run review within the caps; the owner answered "Accurate (Recommended)". Asked what should still wait for him, he wrote: "in theory the project structure should be build in the github issues so there should not be a point where anything is waiting on my decision - make sure before the decisions are made that the entire project is understood and that we understand from a whole project context what this step is for and what it is achieving and that it makes sense to do it - do not approve without larger context". Claude's read-back had kept a 30-minute wait for another lab's review; the owner rejected it: "Reviewers waiting 30 minutes for other labs to see it is the entire problem. Posting and waiting for an answer is where we lose." He then approved this record: "Yes, start phase 0: open the records PR with my words verbatim (single-lab rule, review inside the unit, pre-run and decision reviews, post-merge audits, owner queue as a log) and post the #2028 note with each lab's first move. I'll reopen the labs."</p>
+<ol>
+<li><strong>The single-lab rule (D65).</strong> Every step is one a single lab can finish alone. Other labs and the owner speed work up or reverse it, never hold it, and no step posts a question and waits for the answer. An unanswered PM ask becomes the asking lab's own decision review. (Clauses 5.1, 5.2, 5.10.)</li>
+<li><strong>Review inside the unit; audits after the merge (D66).</strong> The lab's own fresh-context adversarial review is the exact-head review, and the PR queues in the same session. Other labs audit merged work and file repairs. (Clause 5.5.)</li>
+<li><strong>The pre-run review replaces the owner release (D67).</strong> A GPU or training run, held work included, goes ahead when the lab's own pre-run review passes, inside the caps, highest unblock value first. (Clauses 5.1, 5.10.)</li>
+<li><strong>The decision review replaces decision cards to the PM or owner (D68).</strong> Each review reads the whole project before it approves. (Clauses 5.1, 5.2.)</li>
+<li><strong>The owner's queue is a log (D69).</strong> The owner sets only the charter, §3 with its exceptions, and the GPU caps; everything done on his behalf is logged and reversible. (Clause 5.1.)</li>
+<li><strong>The finishing PR closes its issue (D70)</strong> (clause 5.5), and <strong>a supervisor restarts idle labs (D71)</strong> (clause 5.10).</li>
+</ol>
+<p><strong>Side effects on earlier rules:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>New fate</th><th>Source</th></tr></thead><tbody>
+<tr><td>Owner release in the asking lab's own chat (D56) and the holds on Training, M2 and Stage B (D40)</td><td>Retired as gates; replaced by the pre-run review (D67)</td><td><code>CHARTER.md</code> §5.1, §6</td></tr>
+<tr><td>Decision cards to the PM or the owner (§5.2)</td><td>Replaced by the lab's own decision review (D68)</td><td><code>CHARTER.md</code> §5.2</td></tr>
+<tr><td>Pre-merge review by another vendor's lab (D46)</td><td>Replaced by the in-unit review and post-merge audits (D66)</td><td><code>CHARTER.md</code> §5.5, §6</td></tr>
+<tr><td>"A pending owner question means wait"</td><td>Retired (D65)</td><td><code>CHARTER.md</code> §5.1, §6</td></tr>
+<tr><td>D41's donor pass, §3 and the GPU caps</td><td>Unchanged: this record does not touch §3 or the caps</td><td><code>CHARTER.md</code> §3.10, §5.4</td></tr>
+<tr><td>§4.1 "Stopping a mechanism needs the owner" and §5.2's owner as the PM seat's last fallback</td><td>Not changed here (§4 was outside this record's scope), but in conflict with D65 and D68; brought in line by the next record unit</td><td><code>CHARTER.md</code> §4.1, §5.2</td></tr>
+<tr><td>The loop page, <code>loop review</code>, <code>loop queue</code>, <code>loop next</code> and <code>loop close</code></td><td>Still state or enforce the old waits; brought in line by the next loop units</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/README.md">docs/loop/README.md</a></td></tr>
+</tbody></table>
+</div>
 <h2 id="21-october-2026-claude-builds-the-loop-setup-while-it-runs-alone-d52-amended"><a class="header" href="#21-october-2026-claude-builds-the-loop-setup-while-it-runs-alone-d52-amended">21 October 2026: Claude builds the loop setup while it runs alone (D52 amended)</a></h2>
 <p><strong>Decided by:</strong> the owner (Casey), in chat. The owner wrote: "I think it'll only be claude running at first, so what is next?" Claude replied that D52 leaves most setup PRs to labs that will not be running, and offered two answers, both worded by Claude. The owner chose: "Yes: record a D52 amendment that Claude builds every loop setup PR while it runs alone (other labs' adapters added when they join), then start loop PR 2 (#2905) and PR 4 (#2907) through the delivery path."</p>
 <ol>
@@ -321,7 +355,7 @@
 <h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Item</th><th>State</th><th>Source</th></tr></thead><tbody>
 <tr><td>Charter in force</td><td>Yes, since 19 October 2026.</td><td><code>CHARTER.md</code></td></tr>
-<tr><td>Entries in this log</td><td>3</td><td>this page</td></tr>
+<tr><td>Entries in this log</td><td>9</td><td>this page</td></tr>
 <tr><td>Open owner questions on the charter</td><td>None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers.</td><td><code>charter-diff-notes.md</code></td></tr>
 </tbody></table>
 </div>
