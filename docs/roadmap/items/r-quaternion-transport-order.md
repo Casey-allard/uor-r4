@@ -3,7 +3,7 @@ id: r-quaternion-transport-order
 title: De-confound the quaternion-transport ordering result
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-position-mechanism]

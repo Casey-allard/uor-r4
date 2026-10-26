@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 20 |
+| ready | 19 |
 | held | 15 |
 | decision | 1 |
-| done | 57 |
+| done | 58 |
 | total | 93 |
 
 ## Start here
@@ -132,7 +132,6 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | ready | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | [#2882](https://github.com/UOR-Foundation/uor-r4/issues/2882) |
 | [Compare 4,096 and 16,384 tokenizer pieces](items/r-vocab-4096-vs-16384.md) | ready | a lab | yes | [m1-faster-writer](items/m1-faster-writer.md) | [#2887](https://github.com/UOR-Foundation/uor-r4/issues/2887) |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
@@ -150,6 +149,7 @@ These items are ready and open to anyone.
 | [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | done | a lab | no | none | [#2876](https://github.com/UOR-Foundation/uor-r4/issues/2876) |
 | [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | done | anyone | no | none | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |
 | [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | done | a lab | yes | none | [#2881](https://github.com/UOR-Foundation/uor-r4/issues/2881) |
+| [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | done | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | [#2882](https://github.com/UOR-Foundation/uor-r4/issues/2882) |
 | [Compare read-off and read-on for Route and Flock on checkpoints](items/r-read-off-vs-read-on.md) | done | a lab | yes | none | [#2885](https://github.com/UOR-Foundation/uor-r4/issues/2885) |
 | [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | done | a lab | yes | [float-training-module](items/float-training-module.md) | [#2886](https://github.com/UOR-Foundation/uor-r4/issues/2886) |
 | [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | done | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2890](https://github.com/UOR-Foundation/uor-r4/issues/2890) |
