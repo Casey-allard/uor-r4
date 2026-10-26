@@ -6,13 +6,15 @@
 - mechanism brief: [`docs/mechanisms/discrete-geometric-learning.md`](../../mechanisms/discrete-geometric-learning.md)
 - companion D37 sheet: [`m2-pin-train-mask-sheet-2026-10-23.md`](m2-pin-train-mask-sheet-2026-10-23.md) (retained for the offline-float D37 branch; sits at `TEST FITNESS: NOT_FIT` until `float-training-module` `#2823` and `d11-exporter-float-trunk` `#2820` land)
 - historical antecedents: [`m1-rank-margin-rung0-2026-10-13.md`](m1-rank-margin-rung0-2026-10-13.md) (Amendments 1–6; frozen by Amendment 7 under D32) and [`m1-discrete-rung0-training-2026-10-13.md`](m1-discrete-rung0-training-2026-10-13.md) (14 Oct M1 design record on `e7d926fbe`, superseded here for M2 because its Gates 1–3 are now landed in `#3239`/`#3258`, its fresh transfer is now sealed in `#2849`/`#2844`, and this sheet carries the count-reference source SHAs and M2 bars)
-- **owner scope ruling (2026-10-24T03:42Z, [`#2028` comment `6379430093`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6379430093)):** *"I want both because we do not know which we will ultimately need."* This one-page sheet completes the discrete-law branch of [`m2-pin-train-mask-sheet`](../../roadmap/items/m2-pin-train-mask-sheet.md) (`#2851`) on the merged discrete trainer (`crates/uor-r4-discrete`), so the discrete M2 path ([`m2-train-grounded-replies`](../../roadmap/items/m2-train-grounded-replies.md), `#2854`) is not gated behind the offline-float modules.
+- **owner scope ruling (2026-10-24T03:42Z, [`#2028` comment `6379430093`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6379430093)):** *"I want both because we do not know which we will ultimately need."* This sheet was intended to carry the discrete-law branch of [`m2-pin-train-mask-sheet`](../../roadmap/items/m2-pin-train-mask-sheet.md) (`#2851`) without gating the discrete M2 path ([`m2-train-grounded-replies`](../../roadmap/items/m2-train-grounded-replies.md), `#2853`) behind the offline-float modules. The #3303 review found that its execution chain is incomplete, so it does not authorize that path.
 - **legal basis (CHARTER §3.1–§3.6, §4.5, D23, D24, D25, D28, D29, D31, D32):** pure integer/table geometry (`Cl(0,6)` signed-permutation actions, 16-root $E_8$ orbit $\mathcal{O}_{16}^4 \subset \{-2, 0, 2\}^{32}$, causal prefix holonomy `PositionHolonomyV1`, `OrbitRootSnapNormV1`, `DiscreteQuaternionRecurrenceV1`, `DiscreteHamiltonGateV1`, `OuterL1V1` writer, and `D11` `uor-r4.lut-discrete/1` integer artifact export with zero float/int export gap); no softmax or squashing (D23), no dense matmul or GEMM (D25), no floating point in discrete-model computation (D32), no CPU model compute (D24), and no neural teacher, comparator or grader — deterministic exact/membership checks only (D28).
-- **hold status:** M2 training and rental remain **`HELD`** (`training_hold: true`, `rental_hold: true` in `docs/harness/milestones.json`); this sheet runs nothing, authorizes no training or optimizer update, and a `TEST FITNESS: FIT` verdict releases no hold (CHARTER §4.5, §5.1).
+- **run authority:** this sheet is currently **`TEST FITNESS: NOT_FIT`** and authorizes no compute. Future dispatch requires a valid FIT plus the lab's own D67 pre-run review inside the caps (CHARTER §4.5, §5.1). The registry's `training_hold: true` and `rental_hold: true` flags are stale after D67 retired the Training/M2/Stage B holds; its statement that this sheet is FIT is also stale and is not an authorization. This repair does not change the registry or rely on it for the classification.
 
-## Bar (pre-registered)
+## Bar (historical registration; NOT_FIT)
 
-1. **Rung-0 discrete trunk rank-margin bars on `ft/dev` (`14,287` response-masked targets) and `fresh_v2` (`14,287` sealed held-out targets), across both paired seeds (`Seed 1`, `Seed 2`) — unchanged from Amendment 5/6:**
+**Registration caveat from #3303:** Bar 1 below is a composite of different M1 instruments, not a faithfully preserved Amendment 5/6 or M2 bar. Its `admitted_strict_win_rows / 14,287` guard differs from the registered eligible-row metric; its Stage T DEV admission gate and #2844 `fresh_v2` panel are separate antecedents. Existing artifacts do not meet its top-8 threshold (`4,674` best Stage T table and `3,247` trunk Level 3, both below `4,775`). Do not use this composite as evidence or as an M2 acceptance bar. A future student sheet must re-register each exact bar, arm, panel and denominator. Bar 2 remains the registered M2 target text, but its candidate-specific GPU evaluator/artifact bridge is missing.
+
+1. **Rung-0 discrete trunk rank-margin bars on `ft/dev` (`14,287` response-masked targets) and `fresh_v2` (`14,287` sealed held-out targets), across both paired seeds (`Seed 1`, `Seed 2`) — historical composite, not validated as unchanged from Amendment 5/6:**
    - **(i) Raw-score `top-1` vs the response-masked TRAIN count predictor:** `top-1` accuracy over the `14,287` scored positions beats the response-masked TRAIN count predictor (`1,226 / 14,287` = `8.58%` on `ft/dev`) by **`>= 5` percentage points (`>= 1,941 / 14,287` = `13.59%`) on both seeds** (`Seed 1` and `Seed 2`), with deterministic smallest-token-ID tie breaking (`token_id asc`).
    - **(ii) `recall@8` (`top-8`) over the declared 8-token kept list vs the response-masked TRAIN count predictor:** `top-8` accuracy over the writer's 8-token shortlist beats the response-masked TRAIN count predictor (`4,060 / 14,287` = `28.42%` on `ft/dev`) by **`>= 5` percentage points (`>= 4,775 / 14,287` = `33.42%`) on both seeds**.
    - **Reference (Amendment 5/6 masked TRAIN count predictor):** token-frequency count table computed exclusively over the **response-masked target positions of the TRAIN split** (`mw-balp/train/tokens.u16`: `7,512,797` tokens; `mw-balp/train/response_mask.u8`: `7,512,797` bytes, **`2,425,925` eligible response-masked targets**; ties by smallest token ID; top-8 `[1, 16, 14, 435, 340, 351, 3, 302]`), never reading DEV or fresh targets; the DEV-response oracle is diagnostic only.
@@ -48,28 +50,16 @@
 
 ## Steps
 
-**Training and M2 evaluation remain `HELD` (`training_hold: true`, `rental_hold: true`); this sheet executes nothing.** When a discrete M2 run is dispatched after its pre-run review (CHARTER §5.1, D67), the exact discrete CLI steps (replacing the frozen Amendment 6 float `geometric-stack train` CLI, which must not be reused on the discrete path) are:
+**NOT_FIT: no dispatch command is registered and no compute is authorized.** The superseded recipe and FIT block are preserved byte-identical in [`docs/labs/m2-pin-train-mask-sheet/superseded-recipe-2026-10-26.md`](../../labs/m2-pin-train-mask-sheet/superseded-recipe-2026-10-26.md). Post-merge review #3303 found these instrument defects at the bound source:
 
-```sh
-# 1. Build the discrete CUDA binaries ahead of time via nvcc (D24, D29: no NVRTC, no CPU model compute)
-UOR_NVCC_ARCH=compute_120 CARGO_TARGET_DIR=/root/build/target-sm120 \
-  cargo build --release --locked -p uor-r4-discrete --features cuda --bin stage-t-run --bin trunk-run
+- `stage-t-run step0` requires `--t16-fz`, `--t16-rel`, `--t1-fz` and `--out`; `train` additionally requires `--anchor-manifest`, `--sheet` and `--out-dir`. The rejected recipe omitted them, as well as the anchor-manifest build and Stage T grade.
+- `trunk-run step0` requires `--fz-config`, `--fz-checkpoint` and `--out-dir`; each arm requires `--name`, `--config`, `--checkpoint` and `--out-dir`; grade requires all four report paths and `--out`. The rejected recipe omitted these and ran trunk Step 0 before Stage T had written its checkpoint.
+- The invoked `/workspace/bin` paths had no binary staging step from the build output. The four-arm loop repeated the already sealed M1 Stage T/trunk recipe rather than training an M2 student, and Step 4 named no command or registered GPU scorer for complete replies and opposite-role pairs.
+- Bar 1 is the earlier M1/trunk rung-0 bar, not an M2 result or the M1-close bar. Passing it would not resolve the trunk's `STAGE3_DIAGNOSTIC_HOLD`. Bar 2 names the native M2 grader, but no discrete-D11/native-bank bridge or registered GPU complete-reply/pair evaluator exists for this recipe.
 
-# 2. Step 0 finite GPU & data-binding controls (fails closed on any mask/token/count/digest mismatch)
-/workspace/bin/stage-t-run step0 --data-root /workspace/uor-r4/local/driver/data --out /workspace/out/stage-t-step0.json
-/workspace/bin/trunk-run step0 --data-root /workspace/uor-r4/local/driver/data --stage-t-root /workspace/stage-t --out /workspace/out/trunk-step0.json
+Before a future FIT, `m2-train-grounded-replies` (#2853) must provide under its own ORDER and scope: (a) the discrete M2 student trainer and its saved D11 artifact; (b) a deterministic GPU evaluation command for `m2-reply512` and sealed `m2-fresh256`, including the 256/512 and 52/128 metrics plus the four 0/128 controls; and (c) the D11/native-bank artifact bridge, or a separately reviewed artifact-family decision. Its scope and dependencies must name the evaluator/bridge work. Do not add CLI aliases, rerun the M1 recipe, or restore FIT by editing flags alone.
 
-# 3. Two-seed discrete BVG-K Stage T + Stage 3 TrunkAssemblyV1 + D11 integer export (Seeds 1 & 2, T16_fz & T16_rel)
-for ARM in t16-frozen-zero-seed1 t16-frozen-zero-seed2 t16-relation-seed1 t16-relation-seed2; do
-  /workspace/bin/stage-t-run train --config docs/labs/m1-bvg-k-stage-t-training/configs/${ARM}.json --out /workspace/stage-t/${ARM}
-  /workspace/bin/trunk-run arm --name ${ARM} --data-root /workspace/uor-r4/local/driver/data --stage-t-root /workspace/stage-t --out /workspace/trunk/${ARM}
-done
-/workspace/bin/trunk-run grade --out-root /workspace/trunk --out /workspace/trunk/grade.json
-
-# 4. Deterministic M2 grounded-reply evaluation on m2-reply512 and sealed m2-fresh256 (only after DEV bars pass across both seeds)
-```
-
-- Pinned driver config digests (`docs/labs/m1-bvg-k-stage-t-training/configs/`):
+- Pinned driver config digests (`docs/labs/m1-bvg-k-stage-t-training/configs/`), retained as identities only:
   - `t16-frozen-zero-seed1.json`: sha256 `77d61451125b04827821216e221d548885af188bad6d9d301234d126fefa3b7d`
   - `t16-frozen-zero-seed2.json`: sha256 `d169d4ef347f28f4a289d131c3664e56a40a62a29774bf87cf0313ab358592cf`
   - `t16-relation-seed1.json`: sha256 `ab41788a5e72a1f11370f875b090653e0d1b36be091393861b0e147688e9d746`
@@ -84,29 +74,27 @@ done
 
 ## Cost
 
-- **preparation:** `$0` (host-only verification of pins, commits, and pre-registration sheet; no GPU pod leased by `#2851`).
-- **run (when a downstream discrete M2 training/trunk unit executes):** `1x NVIDIA GeForce RTX 5090` leased via `scripts/pod/uor-pod` (`~$0.56–$2.17/h`), measured at `~5.5h` (`$11.94`) for four-arm `Stage T` (`#2836`) and `~4.4h` (`$2.48`) for four-arm `Stage 3` trunk assembly (`#2844`), inside the global owner caps (`<= 4` running pods and `<= $8.00/h` across all labs; CHARTER §5.4).
-- **controls & evaluation:** included in-run on the same leased GPU (`step0` controls take `~33 s`; `ft/dev` and `fresh_v2` evaluations take `32–158 s` per arm at `8,326–37,853 context tok/s`).
-- **storage:** checkpoints, receipts, and `542,260`-byte `trunk-model.d11` integer artifacts archived to `caseyallard/uor-r4-store` with `SHA256SUMS` before pod release/teardown (`128 MiB` stop margin).
+- **M2 student cost:** **UNDEFINED** until #2853 defines the actual student, seed/arm design and evaluator. The figures below are M1 antecedent records, not an M2 estimate or authorization.
+- **preparation:** `$0` host-only verification and this #3303 instrument repair; no pod was leased.
+- **M1 antecedent only:** `~5.5h` (`$11.94`) for four-arm Stage T (#2836) and `~4.4h` (`$2.48`) for four-arm Stage 3 trunk assembly (#2844). Repeating them would not produce an M2 result.
+- **M1 antecedent controls:** Step 0 `~33 s`; `ft/dev` and `fresh_v2` evaluation `32–158 s` per arm at `8,326–37,853 context tok/s`. No M2 complete-reply/pair evaluator throughput is registered.
+- **storage:** the M1 `542,260`-byte `trunk-model.d11` is an antecedent artifact, not the missing M2 student artifact.
 
 ## Minimum test power
 
-- **seeds:** **`2` paired seeds (`Seed 1` and `Seed 2`)** across both `T16_fz` and `T16_rel` arms (`>= 2` seeds per CHARTER §4.3 / D22 §3).
-- **fresh rows:** **`14,287` fresh rows** on `fresh_v2` (rung-0 window transfer, `>= 200` rows) and **`256` fresh rows (`128` opposite-role history pairs across `16` unordered role-value bank blocks)** on `m2-fresh256` (M2 grounded-reply transfer, `>= 200` rows per CHARTER §4.3 / D22 §3).
-- **noise floor:**
-  - On `ft/dev` and `fresh_v2` (`n = 14,287`): worst-case Wilson 95% half-width is `< 0.83` percentage points (`119` rows), paired comparisons require clearing `max(seed_noise, ceil(2 * sqrt(b + c)))`, and the `+5 pp` (`715`-row) rung-0 bar sits `> 6x` above the interval noise.
-  - On `m2-fresh256` (`256` rows / `128` pairs across `16` blocks): measured 16-block cluster-sampling SE is `6.24` rows (`244 bps`) at `p = 85.35%` and `8.64` rows (`338 bps`, `4.32` pairs) at the `40%` bar (`pairs_both_complete_distinct >= 52 / 128`, `complete >= 104 / 256`), sitting `12.0x` cluster SE above the `0 / 128` control floor.
-- **trained in, not bolted on:** full multi-thousand-batch discrete `BVG-K` coordinate-block learning + `TrunkAssemblyV1` sufficient-statistic table fitting over the `1,049,856` visited TRAIN rows.
+- **M2 student power:** **UNDEFINED** until #2853 registers its actual seed/arm design and candidate-specific evaluator. The paired Stage T seeds are trajectory-identical antecedents, not independent evidence for the M2 student.
+- **M1 antecedent only:** the two `T16_fz`/`T16_rel` seed bindings and `1,049,856`-row `BVG-K`/`TrunkAssemblyV1` fitting describe #2836/#2844, not the missing M2 student.
+- **Panel noise references:** on `ft/dev` and `fresh_v2` (`n = 14,287`), worst-case Wilson 95% half-width is `< 0.83` percentage points (`119` rows); the historical `+5 pp` (`715`-row) threshold is `> 6x` that interval. On `m2-fresh256` (`256` rows / `128` pairs), measured 16-block cluster-sampling SE is `6.24` rows (`244 bps`) at `p = 85.35%` and `8.64` rows (`338 bps`, `4.32` pairs) at the 40% bar. These references do not define the missing student's arms or prove its power.
 
 ## TEST FITNESS line
 
 ```text
-TEST FITNESS: FIT - M2 #2030 discrete-geometric-learning
+TEST FITNESS: NOT_FIT - M2 #2030 discrete-geometric-learning
 sheet: docs/harness/prep/m2-pin-train-mask-sheet-discrete-2026-10-26.md
-reviewer: antigravity (fresh-context non-author subagent d929c424-0c35-4319-9260-6c9e41913c06)
-note: Four Amendment 6 count-reference pins (mw-balp/train/response_mask.u8 7512797 B sha256 b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3, expected_train_targets=2425925, frozen count-reference commits 2fd6358bbc52d2a202a872ad0954ebb12894606f and 9e904a83448c451f738d5c1d45224dfdf73eb84e, and current discrete CLI stage-t-run / trunk-run at c695ad21a72c5b91def22458eebbe796e07d5392 / 6f38dd393865a0b4320a2e28bee3be675130dc16), rung-0 and M2 bars (m2-reply512 >= 256/512, sealed m2-fresh256 pairs_both_complete_distinct >= 52/128 at HF commit fb8c5e4fcd3568cc59be8be3073151295b98069c), and D11 zero-gap integer export verified against origin/main; sheet runs nothing and releases no hold.
+reviewer: fresh non-author agent-48 (DeepSeek/deepseek-flash), TEST FITNESS: NOT_FIT confirmed after corrections at 3db39b50405ba1135f5eace9d32ca12011fe2f5c; this line records that review identity only.
+reason: instrument - the registered Stage T/trunk recipe is not executable at the bound head (required CLI flags omitted; trunk Step 0 precedes the Stage T checkpoint; no anchor-manifest build; no Stage T grade; no binary staging; no M2 student training; no candidate-specific GPU M2 reply evaluation or D11/native-bank bridge for this recipe). The lawful-pointer forced-copy oracle is a different mechanism and is not a substitute.
+scope: closes no mechanism; the discrete learner stays ACTIVE; pins are retained and historical bar text is qualified by the composite-bar caveat, not treated as an authorization; no compute is authorized by this sheet.
+prior: the 2026-10-26 FIT (antigravity-104, reviewer d929c424-0c35-4319-9260-6c9e41913c06) was a pins/shape review, not an executability review; its recipe and verdict are preserved byte-identical in docs/labs/m2-pin-train-mask-sheet/superseded-recipe-2026-10-26.md.
+decision: D68 fresh review agent-47 at 29d3b99651057c44c35d3a21cfa17f378af42ad2; #3303 comment 6426348540.
 date: 2026-10-26
-A FIT verdict clears compute for the configuration in that sheet only (D22).
-
-Every mechanism pre-registration gets a TEST FITNESS review on its milestone before compute.
 ```
