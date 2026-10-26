@@ -695,6 +695,43 @@ fn cached_device_icosians(device: &CudaDevice) -> candle_core::Result<(Tensor, T
     Ok((roots_120_4, roots_1_120_4))
 }
 
+/// One snap call's capture (claude-134): per 4-block, the chosen root's index (255 for a zero
+/// block, which snaps to the identity), and the relative margin `(best − second) / best` between
+/// the best and the second-best root scores (a near-tie reading).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SnapCapture {
+    pub roots: Vec<u8>,
+    pub margins: Vec<f32>,
+}
+
+thread_local! {
+    static SNAP_CAPTURE: RefCell<Option<Vec<SnapCapture>>> = const { RefCell::new(None) };
+}
+
+/// Runs `f` recording, in call order, every snap of [`icosian_snap_cuda_tensor`] (claude-134):
+/// one [`SnapCapture`] per call. The snaps themselves are unchanged. It restores the prior capture
+/// state on every exit, a panic included.
+pub fn with_snap_capture<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, Vec<SnapCapture>)> {
+    struct Restore(Option<Vec<SnapCapture>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let prior = self.0.take();
+            SNAP_CAPTURE.with(|c| *c.borrow_mut() = prior);
+        }
+    }
+    let _restore = Restore(SNAP_CAPTURE.with(|c| c.replace(Some(Vec::new()))));
+    let out = f()?;
+    let captured = SNAP_CAPTURE
+        .with(|c| c.borrow_mut().take())
+        .unwrap_or_default();
+    Ok((out, captured))
+}
+
+#[cfg(feature = "cuda")]
+fn is_capturing_snaps() -> bool {
+    SNAP_CAPTURE.with(|c| c.borrow().is_some())
+}
+
 /// Snaps a contiguous F32 tensor of shape `(..., 4 * K)` to its nearest unit icosians in `I_120` on CUDA.
 #[cfg(feature = "cuda")]
 pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_core::Result<Tensor> {
@@ -705,6 +742,8 @@ pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_co
     let chunk_size = 8192usize;
     let mut chunks = Vec::with_capacity(blocks.div_ceil(chunk_size));
     let dev = Device::Cuda(device.clone());
+    let capturing = is_capturing_snaps();
+    let mut capture = SnapCapture::default();
     for start in (0..blocks).step_by(chunk_size) {
         let len = (blocks - start).min(chunk_size);
         let sub = gate_2d.narrow(0, start, len)?;
@@ -715,6 +754,34 @@ pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_co
         let idx = is_zero.where_cond(&ones, &raw_idx)?;
         let snapped = roots_120_4.index_select(&idx, 0)?;
         chunks.push(snapped);
+        if capturing {
+            // The second-best score: the chosen root's own score masked out.
+            let ids = Tensor::arange(0u32, 120, &dev)?.unsqueeze(0)?;
+            let chosen = ids.broadcast_eq(&raw_idx.unsqueeze(1)?)?;
+            let floor = Tensor::full(f32::MIN, (len, 120), &dev)?;
+            let second = chosen.where_cond(&floor, &scores)?.max(1)?;
+            // Relative to the best score, so a near-tie reads the same at any raw scale.
+            let best = scores.max(1)?;
+            let margin = ((&best - second)? / best.clamp(1e-12f32, f32::MAX)?)?;
+            let zero = is_zero.to_vec1::<u8>()?;
+            capture
+                .roots
+                .extend(idx.to_vec1::<u32>()?.iter().zip(&zero).map(|(&r, &z)| {
+                    if z != 0 {
+                        u8::MAX
+                    } else {
+                        r as u8
+                    }
+                }));
+            capture.margins.extend(margin.to_vec1::<f32>()?);
+        }
+    }
+    if capturing {
+        SNAP_CAPTURE.with(|c| {
+            if let Some(list) = c.borrow_mut().as_mut() {
+                list.push(capture);
+            }
+        });
     }
     let full = if chunks.len() == 1 {
         chunks.pop().unwrap()

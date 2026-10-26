@@ -1,4 +1,4 @@
-//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export|d11-residual --data-root DIR --out FILE [--save-dir DIR] [options below]`
+//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export|d11-residual|d11-snap-trace --data-root DIR --out FILE [--save-dir DIR] [options below]`
 //!
 //! The runner of `docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`
 //! (spiralcore-fbs-offline-float-sheet, #2891). GPU only. `--data-root` holds `mw-balp/train/`,
@@ -30,6 +30,13 @@
 //! artifact's stored evaluator run. It takes `--model-dir`, `--evaluator`, `--windows-sha256`,
 //! `--artifact-sha256`, `--model-sha256`, `--stored-preds`, `--seed`, `--label` (the configuration's name) and,
 //! where the D11 panel was stored at training (Stage 4b), `--stored-d11-preds`.
+//!
+//! `d11-snap-trace` is snap-flip localisation (claude-134,
+//! `docs/harness/prep/d11-exporter-float-trunk-snap-trace-2026-10-26.md`): over the first
+//! `--windows-count` DEV windows, a saved model's D11 snap choices against the artifact's trace
+//! (`d11-fbs-eval trace`, `--trace`), with `--model-dir`, `--windows-sha256`, `--artifact-sha256`,
+//! `--model-sha256`, `--stored-run` (the qualified run of the same artifact, I-Old-Run), `--label`
+//! and `--seed`.
 
 use std::collections::BTreeMap;
 use std::env;
@@ -38,13 +45,14 @@ use std::path::PathBuf;
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
     d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_residual,
-    run_d11_train_export, run_d11_train_probe, run_full_sheet, run_synthetic_probe,
-    run_throughput_probe, write_receipt, TrainForward,
+    run_d11_snap_trace, run_d11_train_export, run_d11_train_probe, run_full_sheet,
+    run_synthetic_probe, run_throughput_probe, write_receipt, TrainForward,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-/// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export` and `d11-residual`.
-const GAP_OPTIONS: [&str; 11] = [
+/// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export`, `d11-residual` and
+/// `d11-snap-trace`.
+const GAP_OPTIONS: [&str; 14] = [
     "--model-dir",
     "--evaluator",
     "--windows-sha256",
@@ -56,6 +64,9 @@ const GAP_OPTIONS: [&str; 11] = [
     "--label",
     "--stored-d11-preds",
     "--model-sha256",
+    "--trace",
+    "--windows-count",
+    "--stored-run",
 ];
 
 type Args = (
@@ -342,6 +353,42 @@ fn main() -> Result<()> {
                 p["rows_differ"],
                 value["pairs"]["head_vs_artifact"]["rows_differ"],
                 value["q12_drift_d11_vs_artifact"]["all"]["max_codes"],
+                value["instruments_pass"],
+                value["classification"],
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-snap-trace" => {
+            let number = |name: &str| -> Result<u64> {
+                option(name)?
+                    .parse()
+                    .map_err(|_| FloatTrainError::Invalid(format!("{name} must be an integer")))
+            };
+            let value = run_d11_snap_trace(
+                &data_root,
+                &PathBuf::from(option("--model-dir")?),
+                &PathBuf::from(option("--trace")?),
+                number("--windows-count")? as usize,
+                &option("--windows-sha256")?,
+                &option("--artifact-sha256")?,
+                &option("--model-sha256")?,
+                &PathBuf::from(option("--stored-run")?),
+                &option("--label")?,
+                number("--seed")?,
+                &device,
+            )?;
+            println!(
+                "[d11-snap-trace] label={} seed={} windows={} rows_differ={} preceded_by_root={} agree_preceded_by_root={} lead={} of {} primaries={} classes={} instruments={} classification={}",
+                value["label"],
+                value["seed"],
+                value["windows"],
+                value["rows_differ"],
+                value["rows_differ_preceded_by_a_root_disagreement"],
+                value["rows_agree_preceded_by_a_root_disagreement"],
+                value["windows_whose_first_flip_leads"],
+                value["windows_with_rows_differ"],
+                value["primaries_windows_with_rows_differ"]["primaries"],
+                value["snap_disagreements_per_class"],
                 value["instruments_pass"],
                 value["classification"],
             );

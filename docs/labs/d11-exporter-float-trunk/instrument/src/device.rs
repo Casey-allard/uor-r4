@@ -49,6 +49,8 @@ pub struct DeviceEvaluator {
     model: CModel,
     work_bytes: u64,
     function: sys::CUfunction,
+    /// `fbs_trace_sequences`: the same run with each position's snap trace (claude-134).
+    trace_function: sys::CUfunction,
     module: Module,
     stream: Arc<CudaStream>,
     pub capability: (i32, i32),
@@ -110,6 +112,10 @@ impl DeviceEvaluator {
         let name = CString::new("fbs_eval_sequences").map_err(|e| e.to_string())?;
         // SAFETY: the module is loaded and names this entry (PTX admission).
         let function = unsafe { result::module::get_function(module.raw, name) }.map_err(cuda)?;
+        let trace_name = CString::new("fbs_trace_sequences").map_err(|e| e.to_string())?;
+        // SAFETY: as above; the module names this entry too (PTX admission).
+        let trace_function =
+            unsafe { result::module::get_function(module.raw, trace_name) }.map_err(cuda)?;
         let stream = context.default_stream();
         let mut arrays = Vec::new();
         let mut layers = Vec::with_capacity(image.layers.len());
@@ -154,6 +160,7 @@ impl DeviceEvaluator {
             work_bytes: work_bytes(&device_model),
             model: device_model,
             function,
+            trace_function,
             module,
             stream,
             capability,
@@ -162,6 +169,24 @@ impl DeviceEvaluator {
 
     /// Every sequence (all of one length) from a fresh session, on the GPU.
     pub fn evaluate(&self, sequences: &[Vec<u32>]) -> Result<Outputs, String> {
+        let (outputs, _) = self.run(sequences, false)?;
+        Ok(outputs)
+    }
+
+    /// [`Self::evaluate`] with every position's snap trace, `trace_stride` bytes
+    /// each (claude-134).
+    pub fn evaluate_traced(&self, sequences: &[Vec<u32>]) -> Result<(Outputs, Vec<u8>), String> {
+        let (out, trace) = self.run(sequences, true)?;
+        Ok((out, trace.unwrap_or_default()))
+    }
+
+    fn run(
+        &self,
+        sequences: &[Vec<u32>],
+        traced: bool,
+    ) -> Result<(Outputs, Option<Vec<u8>>), String> {
+        let stride_bytes = crate::trace_stride(&self.model) as usize;
+        let mut all_trace = traced.then(Vec::new);
         let len = sequences.first().map_or(0, Vec::len);
         if sequences.iter().any(|s| s.len() != len) {
             return Err("every sequence must have the same length".to_owned());
@@ -195,6 +220,11 @@ impl DeviceEvaluator {
                 .alloc_zeros::<i32>(n * len * width)
                 .map_err(cuda)?;
             let mut status = self.stream.alloc_zeros::<i32>(n).map_err(cuda)?;
+            // One byte when untraced: the kernel then never reads it.
+            let mut out_trace = self
+                .stream
+                .alloc_zeros::<u8>(if traced { n * len * stride_bytes } else { 1 })
+                .map_err(cuda)?;
             {
                 let (tokens_ptr, _g0) = tokens.device_ptr(&self.stream);
                 let (work_ptr, _g1) = work.device_ptr_mut(&self.stream);
@@ -202,13 +232,14 @@ impl DeviceEvaluator {
                 let (kept_out, _g3) = out_kept.device_ptr_mut(&self.stream);
                 let (query_out, _g4) = out_query.device_ptr_mut(&self.stream);
                 let (status_ptr, _g5) = status.device_ptr_mut(&self.stream);
+                let (trace_out, _g6) = out_trace.device_ptr_mut(&self.stream);
                 let mut model = self.model;
                 let mut count = n as u32;
                 let mut length = len as u32;
                 let mut stride = self.work_bytes;
                 let arg =
                     |value: &sys::CUdeviceptr| value as *const sys::CUdeviceptr as *mut c_void;
-                let mut params: [*mut c_void; 10] = [
+                let mut params: Vec<*mut c_void> = vec![
                     (&mut model as *mut CModel).cast(),
                     arg(&tokens_ptr),
                     (&mut count as *mut u32).cast(),
@@ -218,19 +249,29 @@ impl DeviceEvaluator {
                     arg(&tokens_out),
                     arg(&kept_out),
                     arg(&query_out),
-                    arg(&status_ptr),
                 ];
+                if traced {
+                    params.push(arg(&trace_out));
+                }
+                params.push(arg(&status_ptr));
+                let function = if traced {
+                    self.trace_function
+                } else {
+                    self.function
+                };
                 let threads = THREADS.min(n as u32).max(1);
                 let grid = ((n as u32).div_ceil(threads), 1, 1);
-                // SAFETY: the ten parameters point at values of the types
-                // fbs_eval_sequences takes, in its order, and outlive the
-                // launch. `model` holds device addresses of arrays kept alive
-                // by `self`, each the length its FBS image field has. Each
-                // thread touches only its own sequence's tokens, work region
-                // (`stride` bytes) and outputs.
+                // SAFETY: the parameters point at values of the types the
+                // chosen entry takes, in its order (ten for
+                // fbs_eval_sequences, eleven with `out_trace` for
+                // fbs_trace_sequences), and outlive the launch. `model` holds
+                // device addresses of arrays kept alive by `self`, each the
+                // length its FBS image field has. Each thread touches only its
+                // own sequence's tokens, work region (`stride` bytes), outputs
+                // and trace (`len * trace_stride` bytes).
                 unsafe {
                     result::launch_kernel(
-                        self.function,
+                        function,
                         grid,
                         (threads, 1, 1),
                         0,
@@ -251,7 +292,10 @@ impl DeviceEvaluator {
                 .extend(self.stream.clone_dtoh(&out_kept).map_err(cuda)?);
             out.queries
                 .extend(self.stream.clone_dtoh(&out_query).map_err(cuda)?);
+            if let Some(trace) = all_trace.as_mut() {
+                trace.extend(self.stream.clone_dtoh(&out_trace).map_err(cuda)?);
+            }
         }
-        Ok(out)
+        Ok((out, all_trace))
     }
 }

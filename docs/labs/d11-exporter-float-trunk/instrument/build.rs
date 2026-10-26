@@ -9,7 +9,7 @@
 //!    cubin. No NVRTC.
 use std::{env, fs, path::PathBuf, process::Command};
 
-const ENTRIES: [&str; 1] = ["fbs_eval_sequences"];
+const ENTRIES: [&str; 2] = ["fbs_eval_sequences", "fbs_trace_sequences"];
 
 /// Inspect the emitted module, not the CUDA spelling. Integer products are not
 /// prohibited.

@@ -15,5 +15,20 @@ extern "C" __global__ void fbs_eval_sequences(fbs_model m, const uint32_t *token
   fbs_work_carve(&m, work + (uint64_t)s * work_bytes, &w);
   uint64_t at = (uint64_t)s * len;
   status[s] = fbs_sequence(&m, &w, tokens + at, len, out_tokens + at, out_kept + at * m.kept,
-                           out_query + at * m.width);
+                           out_query + at * m.width, 0);
+}
+
+// The same run with each position's snap trace (claude-134):
+// `fbs_trace_stride(&m)` bytes per position in `out_trace`.
+extern "C" __global__ void fbs_trace_sequences(fbs_model m, const uint32_t *tokens, uint32_t sequences,
+                                               uint32_t len, uint8_t *work, uint64_t work_bytes,
+                                               uint32_t *out_tokens, uint32_t *out_kept,
+                                               int32_t *out_query, uint8_t *out_trace, int32_t *status) {
+  uint32_t s = blockIdx.x * blockDim.x + threadIdx.x;
+  if (s >= sequences) return;
+  fbs_work w;
+  fbs_work_carve(&m, work + (uint64_t)s * work_bytes, &w);
+  uint64_t at = (uint64_t)s * len;
+  status[s] = fbs_sequence(&m, &w, tokens + at, len, out_tokens + at, out_kept + at * m.kept,
+                           out_query + at * m.width, out_trace + at * fbs_trace_stride(&m));
 }

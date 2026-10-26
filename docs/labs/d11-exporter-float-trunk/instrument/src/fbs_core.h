@@ -424,23 +424,42 @@ FBS_FN uint32_t fbs_snap_select(const int8_t *icosian, const int32_t raw[4]) {
 }
 
 // The snapped transition: the chosen root scaled by `lambda` (Q31), at Q31
-// (kernels.rs `stack_snap_rotation`).
-FBS_FN void fbs_snap_rotation(const int8_t *icosian, const int32_t raw[4], uint64_t lambda, int64_t out[4]) {
-  const int8_t *root = icosian + fbs_snap_select(icosian, raw) * 8;
+// (kernels.rs `stack_snap_rotation`). Returns the chosen root's index, for the
+// snap trace (claude-134).
+FBS_FN uint32_t fbs_snap_rotation(const int8_t *icosian, const int32_t raw[4], uint64_t lambda, int64_t out[4]) {
+  uint32_t index = fbs_snap_select(icosian, raw);
+  const int8_t *root = icosian + index * 8;
   uint64_t lambda_phi = lambda + ((lambda * FBS_PHI_LO + (1ull << 31)) >> 32);
   for (uint32_t c = 0; c < 4; c++) {
     int64_t sum = fbs_wrap_add64(fbs_small_mul((int64_t)lambda, root[c * 2]),
                                  fbs_small_mul((int64_t)lambda_phi, root[c * 2 + 1]));
     out[c] = fbs_shift(sum, 1);
   }
+  return index;
+}
+
+// The bytes of one position's snap trace (claude-134): per layer, the
+// transition's root per lane, the output gate's root per lane, then the
+// feed-forward Hamilton gate's root per 4 MLP channels.
+FBS_FN uint64_t fbs_trace_layer_bytes(const fbs_model *m) {
+  return 2ull * (m->width / 4) + m->mlp / 4;
+}
+FBS_FN uint64_t fbs_trace_stride(const fbs_model *m) {
+  return (uint64_t)m->layer_count * fbs_trace_layer_bytes(m);
+}
+// One block's trace byte: the chosen root's index, or 255 for a zero raw (all
+// four channels zero), which selects root 0 (-1) on the tie (claude-134).
+FBS_FN uint8_t fbs_trace_root(const int32_t raw[4], uint32_t chosen) {
+  return (raw[0] | raw[1] | raw[2] | raw[3]) == 0 ? 255 : (uint8_t)chosen;
 }
 
 // ---------------------------------------------------------------------------
 // The recurrence core, geometric with snapped rotations (session.rs
 // `stack_recurrence_core` and `stack_lanes`). Returns the exponent of
-// `w->act[..width]`.
+// `w->act[..width]`. When `trace` is not null, it receives the transition's
+// root per lane, then the output gate's root per lane (claude-134).
 FBS_FN int32_t fbs_recurrence(const fbs_model *m, const fbs_layer *layer, int64_t *state,
-                              int32_t *history, fbs_work *w) {
+                              int32_t *history, fbs_work *w, uint8_t *trace) {
   uint32_t d = m->width, lanes = d / 4, g = lanes + d;
   for (uint32_t i = 0; i < g; i++) w->gate_out[i] = fbs_sat_add32(w->gate_out[i], layer->gate_bias[i]);
   const int32_t *drive = w->branches, *gate = w->branches + d;
@@ -467,7 +486,8 @@ FBS_FN int32_t fbs_recurrence(const fbs_model *m, const fbs_layer *layer, int64_
     uint64_t lambda = 1ull << (30 - idx), keep = m->keep_q31[idx];
     int32_t raw[4] = {rotations[lane * 4], rotations[lane * 4 + 1], rotations[lane * 4 + 2], rotations[lane * 4 + 3]};
     int64_t transition[4];
-    fbs_snap_rotation(m->icosian, raw, lambda, transition);
+    uint32_t chosen = fbs_snap_rotation(m->icosian, raw, lambda, transition);
+    if (trace) trace[lane] = fbs_trace_root(raw, chosen);
     int64_t *held = state + lane * 4;
     int64_t h[4] = {held[0], held[1], held[2], held[3]};
     fbs_i128 moved[4];
@@ -482,7 +502,8 @@ FBS_FN int32_t fbs_recurrence(const fbs_model *m, const fbs_layer *layer, int64_
   for (uint32_t lane = 0; lane < lanes; lane++) {
     int32_t raw[4] = {gate[lane * 4], gate[lane * 4 + 1], gate[lane * 4 + 2], gate[lane * 4 + 3]};
     int64_t q[4];
-    fbs_snap_rotation(m->icosian, raw, 1ull << 31, q);
+    uint32_t chosen = fbs_snap_rotation(m->icosian, raw, 1ull << 31, q);
+    if (trace) trace[lanes + lane] = fbs_trace_root(raw, chosen);
     int64_t rhs[4];
     for (uint32_t k = 0; k < 4; k++) rhs[k] = fbs_shift(state[lane * 4 + k], FBS_RESIDUAL_EXP - FBS_STATE_EXP);
     fbs_i128 prod[4];
@@ -493,11 +514,15 @@ FBS_FN int32_t fbs_recurrence(const fbs_model *m, const fbs_layer *layer, int64_
 }
 
 // The Hamilton gate of the feed-forward block (session.rs `stack_swiglu`).
-FBS_FN void fbs_hamilton_gate(const fbs_model *m, const int32_t *gate, const int32_t *up, int64_t *out) {
+// When `trace` is not null, it receives the root per 4 MLP channels
+// (claude-134).
+FBS_FN void fbs_hamilton_gate(const fbs_model *m, const int32_t *gate, const int32_t *up, int64_t *out,
+                              uint8_t *trace) {
   for (uint32_t j = 0; j < m->mlp / 4; j++) {
     int32_t raw[4] = {gate[j * 4], gate[j * 4 + 1], gate[j * 4 + 2], gate[j * 4 + 3]};
     int64_t q[4];
-    fbs_snap_rotation(m->icosian, raw, 1ull << 31, q);
+    uint32_t chosen = fbs_snap_rotation(m->icosian, raw, 1ull << 31, q);
+    if (trace) trace[j] = fbs_trace_root(raw, chosen);
     int64_t rhs[4] = {(int64_t)up[j * 4], (int64_t)up[j * 4 + 1], (int64_t)up[j * 4 + 2], (int64_t)up[j * 4 + 3]};
     fbs_i128 prod[4];
     fbs_hamilton(q, rhs, prod);
@@ -558,8 +583,10 @@ FBS_FN uint32_t fbs_writer(const fbs_model *m, const int32_t *q, int64_t *cells,
 // One step of the FBS session (session.rs `stack_step_fbs`): the token's
 // writer row in, the layers, the final norm and the writer. Writes the chosen
 // token, the kept cells (in selection order) and the Q12 query.
+// When `out_trace` is not null it receives the position's snap trace,
+// `fbs_trace_stride(m)` bytes (claude-134); the outputs are the same either way.
 FBS_FN int fbs_step(const fbs_model *m, fbs_work *w, uint32_t token, uint32_t *position,
-                    uint32_t *out_token, uint32_t *out_kept, int32_t *out_query) {
+                    uint32_t *out_token, uint32_t *out_kept, int32_t *out_query, uint8_t *out_trace) {
   uint32_t d = m->width, mlp = m->mlp;
   if (token >= m->vocab) return FBS_ERR_TOKEN;
   if (*position >= m->context) return FBS_ERR_CONTEXT;
@@ -569,18 +596,19 @@ FBS_FN int fbs_step(const fbs_model *m, fbs_work *w, uint32_t token, uint32_t *p
     const fbs_layer *layer = m->layers + l;
     int64_t *state = w->state + (uint64_t)l * d;
     int32_t *history = w->history + (uint64_t)l * 3 * d;
+    uint8_t *layer_trace = out_trace ? out_trace + (uint64_t)l * fbs_trace_layer_bytes(m) : 0;
     fbs_rms_norm_fine(w->x, d, m->eps_mantissa, m->eps_exp, w->scratch);
     fbs_norm_gain(w->scratch, layer->rec_gain, d);
     fbs_gather64(&layer->rec_in, w->scratch, FBS_NORM_FINE_EXP, w->branches);
     fbs_gather64(&layer->rec_gate, w->scratch, FBS_NORM_FINE_EXP, w->gate_out);
-    int32_t act_exp = fbs_recurrence(m, layer, state, history, w);
+    int32_t act_exp = fbs_recurrence(m, layer, state, history, w, layer_trace);
     fbs_gather16(&layer->rec_out, w->act, act_exp, w->proj);
     for (uint32_t i = 0; i < d; i++) w->x[i] = fbs_sat_add32(w->x[i], w->proj[i]);
     fbs_rms_norm_fine(w->x, d, m->eps_mantissa, m->eps_exp, w->scratch);
     fbs_norm_gain(w->scratch, layer->mlp_gain, d);
     fbs_gather64(&layer->mlp_gate, w->scratch, FBS_NORM_FINE_EXP, w->gate);
     fbs_gather64(&layer->mlp_up, w->scratch, FBS_NORM_FINE_EXP, w->up);
-    fbs_hamilton_gate(m, w->gate, w->up, w->scratch);
+    fbs_hamilton_gate(m, w->gate, w->up, w->scratch, layer_trace ? layer_trace + 2 * (d / 4) : 0);
     act_exp = fbs_quantize16(w->scratch, mlp, FBS_PRODUCT_EXP, w->act);
     fbs_gather16(&layer->mlp_down, w->act, act_exp, w->proj);
     for (uint32_t i = 0; i < d; i++) w->x[i] = fbs_sat_add32(w->x[i], w->proj[i]);
@@ -600,16 +628,20 @@ FBS_FN int fbs_step(const fbs_model *m, fbs_work *w, uint32_t token, uint32_t *p
 }
 
 // A whole sequence from a fresh session: `len` tokens, one output per
-// position. `w`'s state and history are zeroed first.
+// position. `w`'s state and history are zeroed first. When `out_trace` is not
+// null it receives every position's snap trace, `fbs_trace_stride(m)` bytes
+// each (claude-134).
 FBS_FN int fbs_sequence(const fbs_model *m, fbs_work *w, const uint32_t *tokens, uint32_t len,
-                        uint32_t *out_tokens, uint32_t *out_kept, int32_t *out_query) {
+                        uint32_t *out_tokens, uint32_t *out_kept, int32_t *out_query,
+                        uint8_t *out_trace) {
   uint32_t d = m->width;
   for (uint64_t i = 0; i < (uint64_t)m->layer_count * d; i++) w->state[i] = 0;
   for (uint64_t i = 0; i < (uint64_t)m->layer_count * 3 * d; i++) w->history[i] = 0;
   uint32_t position = 0;
   for (uint32_t t = 0; t < len; t++) {
     int err = fbs_step(m, w, tokens[t], &position, out_tokens + t, out_kept + (uint64_t)t * m->kept,
-                       out_query + (uint64_t)t * d);
+                       out_query + (uint64_t)t * d,
+                       out_trace ? out_trace + (uint64_t)t * fbs_trace_stride(m) : 0);
     if (err != FBS_OK) return err;
   }
   return FBS_OK;

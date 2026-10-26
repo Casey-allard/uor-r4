@@ -1962,6 +1962,618 @@ pub fn run_d11_residual(
     }))
 }
 
+/// The shape of the snap trace (claude-134): per layer, `lanes` transition roots, `lanes` output
+/// gate roots, then `ff_blocks` feed-forward gate roots, for each of `windows × len` positions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SnapShape {
+    windows: usize,
+    len: usize,
+    layers: usize,
+    lanes: usize,
+    ff_blocks: usize,
+}
+
+impl SnapShape {
+    fn layer_bytes(self) -> usize {
+        2 * self.lanes + self.ff_blocks
+    }
+    fn stride(self) -> usize {
+        self.layers * self.layer_bytes()
+    }
+    fn blocks(self, site: usize) -> usize {
+        if site == 2 {
+            self.ff_blocks
+        } else {
+            self.lanes
+        }
+    }
+    /// The trace offset of a snap call's first block at `row` (`window × len + position`).
+    fn offset(self, row: usize, layer: usize, site: usize) -> usize {
+        row * self.stride() + layer * self.layer_bytes() + site * self.lanes
+    }
+}
+
+/// A snap disagreement's class (claude-134), by its zero sides. A zero block (all four raw
+/// channels zero, 255 in a capture or a trace) is snapped by the float forward to the identity
+/// (root 1) and by the integer path to root 0, which is −1, so a zero block on either side can
+/// apply a different rotation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SnapClass {
+    /// Both blocks non-zero, with different roots.
+    Root,
+    /// Both blocks zero: the identity against −1.
+    ZeroBoth,
+    /// The float block zero (the identity), the integer block non-zero.
+    ZeroFloat,
+    /// The integer block zero (−1), the float block non-zero.
+    ZeroInteger,
+}
+
+impl SnapClass {
+    const NAMES: [&'static str; 4] = ["root", "zero_both", "zero_float_only", "zero_integer_only"];
+
+    /// The class of a float and an integer snap byte, or `None` when both apply the same root.
+    fn of(float: u8, integer: u8) -> Option<Self> {
+        let (float_zero, integer_zero) = (float == u8::MAX, integer == u8::MAX);
+        let applied_float = if float_zero { 1 } else { float };
+        let applied_integer = if integer_zero { 0 } else { integer };
+        (applied_float != applied_integer).then_some(match (float_zero, integer_zero) {
+            (false, false) => Self::Root,
+            (true, true) => Self::ZeroBoth,
+            (true, false) => Self::ZeroFloat,
+            (false, true) => Self::ZeroInteger,
+        })
+    }
+}
+
+/// A window's first root disagreement in causal order (position, then layer, then the
+/// transition, the output gate and the feed-forward gate), and D's relative margins at that
+/// call's root disagreements: the window's primaries. Every later root disagreement in the window
+/// comes after them.
+#[derive(Clone, Debug, PartialEq)]
+struct FirstFlip {
+    position: usize,
+    layer: usize,
+    site: usize,
+    primaries: Vec<f32>,
+}
+
+/// The D11 forward's snap choices against the artifact's (claude-134).
+#[derive(Clone, Debug, Default, PartialEq)]
+struct SnapComparison {
+    /// Per layer, the disagreements at the transition, the output gate and the feed-forward gate.
+    per_layer_site: Vec<[usize; 3]>,
+    /// The disagreements by class, in [`SnapClass`] order.
+    per_class: [usize; 4],
+    /// Transition disagreements at position 0, where the state the root rotates is still zero on
+    /// both sides: inert, so counted here and nowhere else.
+    inert: usize,
+    /// Every snap compared.
+    sites: usize,
+    /// Per position (`window × len + position`): a root disagreement there.
+    position_root: Vec<bool>,
+    /// Per position: a zero-block disagreement there.
+    position_zero: Vec<bool>,
+    /// D's relative margin at every root disagreement.
+    root_margins: Vec<f32>,
+    /// Per window: its first flip, and the position of its first zero-block disagreement.
+    first: Vec<Option<FirstFlip>>,
+    first_zero: Vec<Option<usize>>,
+}
+
+/// Compares the D11 forward's snap captures (three per layer, in call order, over `windows × len`
+/// rows) with the artifact's trace (`shape.stride()` bytes per position).
+fn compare_snaps(
+    captures: &[hs::SnapCapture],
+    trace: &[u8],
+    shape: SnapShape,
+) -> Result<SnapComparison> {
+    let rows = shape.windows * shape.len;
+    if captures.len() != 3 * shape.layers || trace.len() != rows * shape.stride() {
+        return Err(invalid(
+            "the captures or the trace do not fit the trunk's shape",
+        ));
+    }
+    // Every snap byte names one of the 120 roots, or is 255 for a zero block.
+    let named = |b: &u8| *b < 120 || *b == u8::MAX;
+    if !trace.iter().all(named) || !captures.iter().flat_map(|c| &c.roots).all(named) {
+        return Err(invalid("a snap byte names no root"));
+    }
+    let mut out = SnapComparison {
+        per_layer_site: vec![[0; 3]; shape.layers],
+        position_root: vec![false; rows],
+        position_zero: vec![false; rows],
+        first_zero: vec![None; shape.windows],
+        ..SnapComparison::default()
+    };
+    // A snap call's causal key within its window: position, then layer, then site.
+    let key =
+        |position: usize, layer: usize, site: usize| (position * shape.layers + layer) * 3 + site;
+    let mut first_key = vec![usize::MAX; shape.windows];
+    for layer in 0..shape.layers {
+        for site in 0..3 {
+            let capture = &captures[layer * 3 + site];
+            let blocks = shape.blocks(site);
+            if capture.roots.len() != rows * blocks || capture.margins.len() != rows * blocks {
+                return Err(invalid(format!(
+                    "snap call {} does not cover the rows",
+                    layer * 3 + site
+                )));
+            }
+            for row in 0..rows {
+                let base = shape.offset(row, layer, site);
+                for block in 0..blocks {
+                    out.sites += 1;
+                    let at = row * blocks + block;
+                    let Some(class) = SnapClass::of(capture.roots[at], trace[base + block]) else {
+                        continue;
+                    };
+                    let (window, position) = (row / shape.len, row % shape.len);
+                    if site == 0 && position == 0 {
+                        out.inert += 1;
+                        continue;
+                    }
+                    out.per_layer_site[layer][site] += 1;
+                    out.per_class[class as usize] += 1;
+                    if class == SnapClass::Root {
+                        out.position_root[row] = true;
+                        out.root_margins.push(capture.margins[at]);
+                        first_key[window] = first_key[window].min(key(position, layer, site));
+                    } else {
+                        out.position_zero[row] = true;
+                        let first = &mut out.first_zero[window];
+                        *first = Some(first.map_or(position, |p| p.min(position)));
+                    }
+                }
+            }
+        }
+    }
+    out.first = first_key
+        .iter()
+        .enumerate()
+        .map(|(window, &k)| {
+            (k != usize::MAX).then(|| {
+                let (site, layer, position) = (k % 3, k / 3 % shape.layers, k / 3 / shape.layers);
+                let capture = &captures[layer * 3 + site];
+                let blocks = shape.blocks(site);
+                let row = window * shape.len + position;
+                let base = shape.offset(row, layer, site);
+                let primaries = (0..blocks)
+                    .filter(|&block| {
+                        SnapClass::of(capture.roots[row * blocks + block], trace[base + block])
+                            == Some(SnapClass::Root)
+                    })
+                    .map(|block| capture.margins[row * blocks + block])
+                    .collect();
+                FirstFlip {
+                    position,
+                    layer,
+                    site,
+                    primaries,
+                }
+            })
+        })
+        .collect();
+    Ok(out)
+}
+
+/// The fewest snaps that must agree at every (layer, site), in percent, for the trace's layout to
+/// stand (`I-Layout`, claude-134). D and A agree on nearly every token, so nearly every snap; a
+/// site read at the wrong offset would agree on about one root in 120.
+const LAYOUT_MIN_AGREE_PERCENT: usize = 50;
+
+/// `I-Layout`: each (layer, site) agrees on at least [`LAYOUT_MIN_AGREE_PERCENT`] of its snaps.
+fn layout_agrees(c: &SnapComparison, shape: SnapShape) -> bool {
+    let rows = shape.windows * shape.len;
+    c.per_layer_site.iter().all(|sites| {
+        (0..3).all(|site| {
+            let snaps = rows * shape.blocks(site);
+            100 * (snaps - sites[site]) >= LAYOUT_MIN_AGREE_PERCENT * snaps
+        })
+    })
+}
+
+/// The D panel's snap captures, one per call over each chunk of [`hs::SHEET_EVAL_BATCH`] windows
+/// in panel order, joined into one per (layer, site) over all the windows.
+fn join_chunk_captures(
+    captures: Vec<hs::SnapCapture>,
+    windows: usize,
+    layers: usize,
+) -> Result<Vec<hs::SnapCapture>> {
+    let calls = 3 * layers;
+    if captures.len() != windows.div_ceil(hs::SHEET_EVAL_BATCH) * calls {
+        return Err(invalid("the D panel's snap calls do not cover its chunks"));
+    }
+    let mut joined = vec![hs::SnapCapture::default(); calls];
+    for (i, capture) in captures.into_iter().enumerate() {
+        joined[i % calls].roots.extend(capture.roots);
+        joined[i % calls].margins.extend(capture.margins);
+    }
+    Ok(joined)
+}
+
+/// One mask's placement of the scored rows (claude-134): the rows where D and A differ with a
+/// disagreement of the mask's kind in their window at or before their position; the same over
+/// the rows where D and A agree (the base rate); and the windows whose first disagreement of that
+/// kind is at or before their first row where D and A differ.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct MaskReadings {
+    differ_preceded: usize,
+    agree_preceded: usize,
+    lead_windows: usize,
+}
+
+/// What the snap-trace bar reads (claude-134), over one model's windows.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct SnapReadings {
+    rows_differ: usize,
+    rows_agree: usize,
+    /// Windows with a row where D and A differ.
+    differ_windows: usize,
+    /// The root disagreements' placement, and the zero blocks'.
+    root: MaskReadings,
+    zero: MaskReadings,
+    /// Over those windows' primaries: their count, those at an exact tie (D's margin 0), and
+    /// D's upper median margin at the others.
+    root_primaries: usize,
+    exact_ties: usize,
+    median_margin: Option<f32>,
+}
+
+/// The snap-trace bar's thresholds (the sheet's §3).
+const SNAP_CARRIED_MIN_PERCENT: f64 = 50.0;
+const NEAR_TIE_MIN_PERCENT: f64 = 90.0;
+const MIN_LIFT_POINTS: f64 = 20.0;
+const NEAR_TIE_MAX_MARGIN: f32 = 1e-3;
+const DECISIVE_MIN_MARGIN: f32 = 1e-2;
+
+/// One model's snap-trace outcome, the first that applies (the sheet's §3 precedence).
+fn classify_snap_trace(r: &SnapReadings) -> &'static str {
+    let percent = |part: usize, whole: usize| {
+        if whole == 0 {
+            0.0
+        } else {
+            100.0 * part as f64 / whole as f64
+        }
+    };
+    if r.rows_differ == 0 {
+        return "no-rows-differ";
+    }
+    // Per mask: the share preceded, its base rate, and the share of windows it leads.
+    let place = |m: &MaskReadings| {
+        (
+            percent(m.differ_preceded, r.rows_differ),
+            percent(m.agree_preceded, r.rows_agree),
+            percent(m.lead_windows, r.differ_windows),
+        )
+    };
+    let (zero_p, zero_b, zero_l) = place(&r.zero);
+    if zero_p >= SNAP_CARRIED_MIN_PERCENT
+        && zero_l >= SNAP_CARRIED_MIN_PERCENT
+        && zero_p - zero_b >= MIN_LIFT_POINTS
+    {
+        return "zero-convention";
+    }
+    let (p, b, l) = place(&r.root);
+    if p < SNAP_CARRIED_MIN_PERCENT || l < SNAP_CARRIED_MIN_PERCENT {
+        return "not-snap-carried";
+    }
+    if r.exact_ties > 0 && 2 * r.exact_ties >= r.root_primaries {
+        return "tie-break";
+    }
+    match r.median_margin {
+        Some(m) if m >= DECISIVE_MIN_MARGIN => "localise-upstream",
+        Some(m)
+            if m < NEAR_TIE_MAX_MARGIN
+                && p >= NEAR_TIE_MIN_PERCENT
+                && l >= NEAR_TIE_MIN_PERCENT
+                && p - b >= MIN_LIFT_POINTS =>
+        {
+            "snap-flip-near-tie"
+        }
+        _ => "indeterminate",
+    }
+}
+
+/// The primaries of `windows`' first flips: their count, those at an exact tie, and D's margins
+/// at the others. Returns the readings' primary fields and their record.
+fn primary_summary(
+    first: &[Option<FirstFlip>],
+    windows: impl IntoIterator<Item = usize>,
+) -> ((usize, usize, Option<f32>), serde_json::Value) {
+    let (mut count, mut exact_ties, mut windows_with) = (0usize, 0usize, 0usize);
+    let mut margins = Vec::new();
+    for flip in windows.into_iter().filter_map(|w| first[w].as_ref()) {
+        windows_with += 1;
+        for &m in &flip.primaries {
+            count += 1;
+            if m > 0.0 {
+                margins.push(m);
+            } else {
+                exact_ties += 1;
+            }
+        }
+    }
+    margins.sort_by(f32::total_cmp);
+    let median = margins.get(margins.len() / 2).copied();
+    let below = |t: f32| margins.iter().filter(|&&m| m < t).count();
+    let record = serde_json::json!({
+        "windows_with_a_flip": windows_with,
+        "primaries": count,
+        "exact_ties": exact_ties,
+        "margins_off_a_tie": {
+            "count": margins.len(),
+            "upper_median": median,
+            "max": margins.last(),
+            "below_1e-6": below(1e-6),
+            "below_1e-4": below(1e-4),
+            "below_1e-3": below(1e-3),
+            "below_1e-2": below(1e-2),
+        },
+    });
+    ((count, exact_ties, median), record)
+}
+
+/// The trace file of `d11-fbs-eval trace` (claude-134).
+#[derive(Deserialize)]
+struct EvaluatorTrace {
+    artifact_sha256: String,
+    sequences_sha256: String,
+    sequences: usize,
+    len: usize,
+    width: usize,
+    mlp: usize,
+    layers: usize,
+    trace_stride: usize,
+    tokens: Vec<u32>,
+    outputs_host_equal: bool,
+    trace_host_equal: bool,
+    trace_hex: String,
+    build: serde_json::Value,
+}
+
+/// Snap-flip localisation (claude-134), on the GPU: over the first `windows_count` DEV windows,
+/// the D11 forward's snap choices against the artifact's trace, and where the rows that D and A
+/// disagree on sit relative to the snap disagreements.
+#[allow(clippy::too_many_arguments)]
+pub fn run_d11_snap_trace(
+    data_root: &Path,
+    model_dir: &Path,
+    trace_path: &Path,
+    windows_count: usize,
+    windows_sha256: &str,
+    artifact_sha256: &str,
+    model_sha256_pin: &str,
+    stored_run: &Path,
+    label: &str,
+    seed: u64,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::round_tables_as_exported;
+
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let windows = dev_windows
+        .get(..windows_count)
+        .ok_or_else(|| invalid("fewer DEV windows than asked for"))?;
+    let trace: EvaluatorTrace = serde_json::from_slice(&fs::read(trace_path)?)?;
+    // I-Old-Run: on these windows the traced build's tokens are the stored, qualified run's
+    // (claude-128's evaluator), so the trace describes the artifact that was scored.
+    let old: EvaluatorRun = serde_json::from_slice(&fs::read(stored_run)?)?;
+    let i_old_run = old.artifact_sha256 == trace.artifact_sha256
+        && old.len == SHEET_CONTEXT
+        && old.tokens.get(..windows_count * SHEET_CONTEXT) == Some(&trace.tokens[..]);
+    let loaded = StackModel::load(model_dir, device)?;
+    let model_sha256 = sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
+    let config = &loaded.config;
+    let shape = SnapShape {
+        windows: windows_count,
+        len: SHEET_CONTEXT,
+        layers: config.layers(),
+        lanes: config.width / 4,
+        ff_blocks: config.mlp_hidden / 4,
+    };
+    let trace_bytes = hex_bytes(&trace.trace_hex)?;
+    // I-Inputs and I-Trace: the trace is the pinned artifact's, on these windows, with the GPU's
+    // outputs and trace equal to the host twin's, and in this trunk's shape.
+    let i_inputs = trace.artifact_sha256 == artifact_sha256
+        && trace.sequences_sha256 == windows_sha256
+        && model_sha256 == model_sha256_pin;
+    let i_trace = trace.outputs_host_equal
+        && trace.trace_host_equal
+        && trace.sequences == windows_count
+        && trace.len == SHEET_CONTEXT
+        && trace.width == config.width
+        && trace.mlp == config.mlp_hidden
+        && trace.layers == shape.layers
+        && trace.trace_stride == shape.stride()
+        && trace.tokens.len() == windows_count * SHEET_CONTEXT;
+    if !i_trace {
+        return Err(invalid(
+            "the trace does not fit these windows or this trunk (I-Trace)",
+        ));
+    }
+
+    round_tables_as_exported(&loaded)?;
+    // D's tokens and D's snap choices come from one forward: the D11 panel, captured.
+    let ((_, d_preds), chunk_captures) =
+        hs::with_snap_capture(|| hs::evaluate_dev_panel_d11(&loaded, windows))?;
+    hs::clear_active_arm();
+    let captures = join_chunk_captures(chunk_captures, windows_count, shape.layers)?;
+    let compared = compare_snaps(&captures, &trace_bytes, shape)?;
+
+    // Each scored row, D's token against A's, placed relative to its window's root and zero-block
+    // disagreements. `score_dev_panel` reads each window's scored offsets in this same order.
+    #[derive(Default)]
+    struct Placed {
+        rows: usize,
+        preceded_by_root: usize,
+        preceded_by_zero: usize,
+        root_at_position: usize,
+    }
+    let (mut differ, mut agree) = (Placed::default(), Placed::default());
+    let mut first_differ: Vec<Option<usize>> = vec![None; windows_count];
+    let mut a_preds = Vec::new();
+    for (w, window) in windows.iter().enumerate() {
+        let start = w * SHEET_CONTEXT;
+        for &offset in &window.scored_offsets {
+            let at = start + offset;
+            let a = trace.tokens[at];
+            let d = *d_preds
+                .get(a_preds.len())
+                .ok_or_else(|| invalid("the D11 panel does not cover the windows"))?;
+            a_preds.push(a);
+            let placed = if d == a {
+                &mut agree
+            } else {
+                first_differ[w] = Some(first_differ[w].map_or(offset, |p| p.min(offset)));
+                &mut differ
+            };
+            placed.rows += 1;
+            placed.preceded_by_root +=
+                usize::from(compared.position_root[start..=at].contains(&true));
+            placed.preceded_by_zero +=
+                usize::from(compared.position_zero[start..=at].contains(&true));
+            placed.root_at_position += usize::from(compared.position_root[at]);
+        }
+    }
+    if a_preds.len() != d_preds.len() {
+        return Err(invalid(
+            "the D11 panel's rows are not the windows' scored rows",
+        ));
+    }
+    let differ_windows: Vec<usize> = (0..windows_count)
+        .filter(|&w| first_differ[w].is_some())
+        .collect();
+    let leads = |first: &dyn Fn(usize) -> Option<usize>| {
+        differ_windows
+            .iter()
+            .filter(|&&w| matches!((first(w), first_differ[w]), (Some(f), Some(r)) if f <= r))
+            .count()
+    };
+    let root_lead = leads(&|w| compared.first[w].as_ref().map(|f| f.position));
+    let zero_lead = leads(&|w| compared.first_zero[w]);
+    let ((root_primaries, exact_ties, median_margin), primaries_differ) =
+        primary_summary(&compared.first, differ_windows.iter().copied());
+    let (_, primaries_all) = primary_summary(&compared.first, 0..windows_count);
+    let readings = SnapReadings {
+        rows_differ: differ.rows,
+        rows_agree: agree.rows,
+        differ_windows: differ_windows.len(),
+        root: MaskReadings {
+            differ_preceded: differ.preceded_by_root,
+            agree_preceded: agree.preceded_by_root,
+            lead_windows: root_lead,
+        },
+        zero: MaskReadings {
+            differ_preceded: differ.preceded_by_zero,
+            agree_preceded: agree.preceded_by_zero,
+            lead_windows: zero_lead,
+        },
+        root_primaries,
+        exact_ties,
+        median_margin,
+    };
+    // I-Finite on the margins: a NaN would otherwise read as an exact tie.
+    let i_finite_margins = compared.root_margins.iter().all(|m| m.is_finite());
+    let i_layout = layout_agrees(&compared, shape);
+    let instruments_pass = i_inputs && i_trace && i_old_run && i_finite_margins && i_layout;
+    let mut root_margins = compared.root_margins.clone();
+    root_margins.sort_by(f32::total_cmp);
+    let below = |t: f32| root_margins.iter().filter(|&&m| m < t).count();
+    let first_flips: Vec<serde_json::Value> = compared
+        .first
+        .iter()
+        .map(|f| {
+            f.as_ref().map_or(serde_json::Value::Null, |f| {
+                let site = ["transition", "output_gate", "ff_gate"][f.site];
+                serde_json::json!({
+                    "position": f.position,
+                    "layer": f.layer,
+                    "site": site,
+                    "primaries": f.primaries.len(),
+                })
+            })
+        })
+        .collect();
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-snap-trace-2026-10-26.md",
+        "label": label,
+        "seed": seed,
+        "dev_documents": dev_docs,
+        "windows": windows_count,
+        "model_safetensors_sha256": model_sha256,
+        "artifact_sha256": trace.artifact_sha256,
+        "windows_sha256": trace.sequences_sha256,
+        "evaluator_build": trace.build,
+        "scored_rows": a_preds.len(),
+        "rows_differ": differ.rows,
+        "rows_differ_preceded_by_a_root_disagreement": differ.preceded_by_root,
+        "rows_differ_preceded_by_a_zero_block": differ.preceded_by_zero,
+        "rows_differ_with_a_root_disagreement_at_their_position": differ.root_at_position,
+        "rows_agree": agree.rows,
+        "rows_agree_preceded_by_a_root_disagreement": agree.preceded_by_root,
+        "rows_agree_preceded_by_a_zero_block": agree.preceded_by_zero,
+        "rows_agree_with_a_root_disagreement_at_their_position": agree.root_at_position,
+        "windows_with_rows_differ": differ_windows.len(),
+        "windows_whose_first_flip_leads": root_lead,
+        "windows_whose_first_zero_block_leads": zero_lead,
+        "first_flip_per_window": first_flips,
+        "first_zero_block_per_window": compared.first_zero,
+        "first_row_differ_per_window": first_differ,
+        "primaries_windows_with_rows_differ": primaries_differ,
+        "primaries_all_windows": primaries_all,
+        "snap_sites": compared.sites,
+        "snap_inert_transitions_at_position_0": compared.inert,
+        "snap_disagreements_per_class": SnapClass::NAMES
+            .iter()
+            .zip(compared.per_class)
+            .collect::<BTreeMap<_, _>>(),
+        "snap_disagreements_per_layer_site": compared.per_layer_site,
+        "positions_with_a_root_disagreement": compared.position_root.iter().filter(|&&f| f).count(),
+        "positions_with_a_zero_block": compared.position_zero.iter().filter(|&&f| f).count(),
+        "root_disagreement_margins": {
+            "count": root_margins.len(),
+            "exact_ties": root_margins.iter().filter(|&&m| m == 0.0).count(),
+            "upper_median": root_margins.get(root_margins.len() / 2),
+            "max": root_margins.last(),
+            "below_1e-6": below(1e-6),
+            "below_1e-4": below(1e-4),
+            "below_1e-3": below(1e-3),
+            "below_1e-2": below(1e-2),
+        },
+        "i_inputs": i_inputs,
+        "i_trace": i_trace,
+        "i_old_run": i_old_run,
+        "i_finite_margins": i_finite_margins,
+        "i_layout": i_layout,
+        "instruments_pass": instruments_pass,
+        "classification": if instruments_pass {
+            classify_snap_trace(&readings)
+        } else {
+            "unclassified"
+        },
+    }))
+}
+
+/// Lowercase or uppercase hex to bytes.
+fn hex_bytes(text: &str) -> Result<Vec<u8>> {
+    if !text.len().is_multiple_of(2) {
+        return Err(invalid("odd-length hex"));
+    }
+    let digit = |c: u8| -> Result<u8> {
+        match c {
+            b'0'..=b'9' => Ok(c - b'0'),
+            b'a'..=b'f' => Ok(c - b'a' + 10),
+            b'A'..=b'F' => Ok(c - b'A' + 10),
+            _ => Err(invalid("a non-hex digit")),
+        }
+    };
+    text.as_bytes()
+        .chunks(2)
+        .map(|p| Ok((digit(p[0])? << 4) | digit(p[1])?))
+        .collect()
+}
+
 /// The prep sheet a D11-trained run answers to.
 fn d11_train_sheet(forward: TrainForward) -> Result<&'static str> {
     match forward {
@@ -2796,6 +3408,246 @@ mod tests {
         assert_eq!(flat(&plain)?, flat(&again)?);
         assert_ne!(flat(&plain)?, flat(&control)?);
         assert!(flat(&control)?.iter().all(|v| v.is_finite()));
+        Ok(())
+    }
+
+    #[test]
+    fn the_snap_comparison_places_each_disagreement() -> Result<()> {
+        // One window of 2 positions, 1 layer, 1 lane and 1 feed-forward block: 3 roots per
+        // position, as (transition, output gate, feed-forward gate).
+        let shape = SnapShape {
+            windows: 1,
+            len: 2,
+            layers: 1,
+            lanes: 1,
+            ff_blocks: 1,
+        };
+        assert_eq!((shape.layer_bytes(), shape.stride()), (3, 3));
+        let capture = |roots: [u8; 2], margins: [f32; 2]| hs::SnapCapture {
+            roots: roots.to_vec(),
+            margins: margins.to_vec(),
+        };
+        // Position 0 agrees everywhere. Position 1: the transition disagrees (7 against 9, margin
+        // 0.5), and the feed-forward gate is zero on both sides: the identity against −1.
+        let captures = [
+            capture([3, 7], [1.0, 0.5]),
+            capture([4, 4], [1.0, 1.0]),
+            capture([5, u8::MAX], [1.0, 0.0]),
+        ];
+        let trace = [3, 4, 5, 9, 4, u8::MAX];
+        let c = compare_snaps(&captures, &trace, shape)?;
+        assert_eq!(c.sites, 6);
+        assert_eq!(c.per_layer_site, vec![[1, 0, 1]]);
+        assert_eq!((c.per_class, c.inert), ([1, 1, 0, 0], 0));
+        assert_eq!(c.position_root, vec![false, true]);
+        assert_eq!(c.position_zero, vec![false, true]);
+        assert_eq!(c.root_margins, vec![0.5]);
+        assert_eq!(
+            c.first,
+            vec![Some(FirstFlip {
+                position: 1,
+                layer: 0,
+                site: 0,
+                primaries: vec![0.5],
+            })]
+        );
+        assert_eq!(c.first_zero, vec![Some(1)]);
+        // A transition disagreement at position 0 rotates a zero state: inert. A float zero block
+        // against an integer root 1 applies the identity on both sides: no disagreement.
+        let other = [8, 4, 5, 7, 4, 1];
+        let c = compare_snaps(&captures, &other, shape)?;
+        assert_eq!((c.per_class, c.inert), ([0; 4], 1));
+        assert_eq!((c.first, c.first_zero), (vec![None], vec![None]));
+        assert_eq!(c.position_root, vec![false, false]);
+        // The wrong number of calls, or a short trace, is refused.
+        assert!(compare_snaps(&captures[..2], &trace, shape).is_err());
+        assert!(compare_snaps(&captures, &trace[..5], shape).is_err());
+        // A byte that names no root (the host prefill 0xFE, say) is refused, on either side.
+        assert!(compare_snaps(&captures, &[3, 4, 5, 9, 4, 0xFE], shape).is_err());
+        let mut bad = captures.clone();
+        bad[0].roots[0] = 0xFE;
+        assert!(compare_snaps(&bad, &trace, shape).is_err());
+        // I-Layout: the transition agrees on 1 snap of 2 (50%), the ff gate (a zero block on both
+        // sides) on 1 of 2; a site read at a wrong offset, disagreeing on both, fails.
+        assert!(layout_agrees(
+            &compare_snaps(&captures, &trace, shape)?,
+            shape
+        ));
+        let shifted = [3, 4, 5, 9, 9, u8::MAX];
+        let c = compare_snaps(&captures, &shifted, shape)?;
+        assert_eq!(c.per_layer_site, vec![[1, 1, 1]]);
+        assert!(layout_agrees(&c, shape));
+        let wrong = [9, 4, 9, 9, 4, u8::MAX];
+        let c = compare_snaps(&captures, &wrong, shape)?;
+        assert_eq!(c.per_layer_site, vec![[1, 0, 2]]);
+        assert!(!layout_agrees(&c, shape));
+        assert_eq!(hex_bytes("00ff7A")?, vec![0, 255, 122]);
+        assert!(hex_bytes("abc").is_err() && hex_bytes("zz").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn a_snap_class_reads_the_applied_roots() {
+        // Root 0 is −1 and root 1 the identity: a zero block's two conventions.
+        assert_eq!(
+            hs::H4_ROOT_COEFFICIENTS[0],
+            [[-2, 0], [0, 0], [0, 0], [0, 0]]
+        );
+        assert_eq!(
+            hs::H4_ROOT_COEFFICIENTS[1],
+            [[2, 0], [0, 0], [0, 0], [0, 0]]
+        );
+        let z = u8::MAX;
+        assert_eq!(SnapClass::of(3, 3), None);
+        assert_eq!(SnapClass::of(3, 4), Some(SnapClass::Root));
+        assert_eq!(SnapClass::of(z, z), Some(SnapClass::ZeroBoth));
+        assert_eq!(SnapClass::of(z, 0), Some(SnapClass::ZeroFloat));
+        assert_eq!(SnapClass::of(z, 1), None);
+        assert_eq!(SnapClass::of(1, z), Some(SnapClass::ZeroInteger));
+        assert_eq!(SnapClass::of(0, z), None);
+    }
+
+    #[test]
+    fn a_windows_first_flip_is_first_in_causal_order() -> Result<()> {
+        // One window of 2 positions and 2 layers. Layer 1's output gate disagrees at position 0,
+        // layer 0's transition at position 1: position comes before layer. Layer 0's
+        // feed-forward gate at position 0 is an integer zero block, earlier still, and it is
+        // the window's first zero block but not its first flip.
+        let shape = SnapShape {
+            windows: 1,
+            len: 2,
+            layers: 2,
+            lanes: 1,
+            ff_blocks: 1,
+        };
+        let captures: Vec<hs::SnapCapture> = (1..=6)
+            .map(|r| hs::SnapCapture {
+                roots: vec![r, r],
+                margins: vec![0.25, 0.75],
+            })
+            .collect();
+        let trace = [1, 2, u8::MAX, 4, 9, 6, 8, 2, 3, 4, 5, 6];
+        let c = compare_snaps(&captures, &trace, shape)?;
+        assert_eq!(c.per_layer_site, vec![[1, 0, 1], [0, 1, 0]]);
+        assert_eq!(c.per_class, [2, 0, 0, 1]);
+        assert_eq!(
+            c.first,
+            vec![Some(FirstFlip {
+                position: 0,
+                layer: 1,
+                site: 1,
+                primaries: vec![0.25],
+            })]
+        );
+        assert_eq!(c.first_zero, vec![Some(0)]);
+        // The D panel's chunks of 16 windows join per call, in panel order.
+        let chunked: Vec<hs::SnapCapture> = (0..6u8)
+            .map(|i| hs::SnapCapture {
+                roots: vec![i],
+                margins: vec![f32::from(i)],
+            })
+            .collect();
+        let joined = join_chunk_captures(chunked.clone(), 20, 1)?;
+        assert_eq!(
+            joined.iter().map(|c| c.roots.clone()).collect::<Vec<_>>(),
+            vec![vec![0, 3], vec![1, 4], vec![2, 5]]
+        );
+        assert_eq!(joined[2].margins, vec![2.0, 5.0]);
+        assert!(join_chunk_captures(chunked[..5].to_vec(), 20, 1).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_snap_trace_outcome_takes_the_first_that_applies() {
+        let near_tie = SnapReadings {
+            rows_differ: 40,
+            rows_agree: 1000,
+            differ_windows: 20,
+            root: MaskReadings {
+                differ_preceded: 39,
+                agree_preceded: 500,
+                lead_windows: 19,
+            },
+            zero: MaskReadings::default(),
+            root_primaries: 30,
+            exact_ties: 2,
+            median_margin: Some(1e-4),
+        };
+        let with = |f: fn(&mut SnapReadings)| {
+            let mut r = near_tie;
+            f(&mut r);
+            classify_snap_trace(&r)
+        };
+        // Zero blocks that sit before most partings, well above their base rate.
+        let leading_zeros = MaskReadings {
+            differ_preceded: 30,
+            agree_preceded: 100,
+            lead_windows: 15,
+        };
+        assert_eq!(classify_snap_trace(&near_tie), "snap-flip-near-tie");
+        // The lift over the agreeing rows' base rate must reach 20 points.
+        assert_eq!(with(|r| r.root.agree_preceded = 800), "indeterminate");
+        assert_eq!(with(|r| r.root.differ_preceded = 15), "not-snap-carried");
+        assert_eq!(with(|r| r.root.lead_windows = 9), "not-snap-carried");
+        // Zero blocks before every row, partings or not (a structural zero lane), lift nothing.
+        assert_eq!(
+            with(|r| {
+                r.zero = MaskReadings {
+                    differ_preceded: 40,
+                    agree_preceded: 1000,
+                    lead_windows: 20,
+                }
+            }),
+            "snap-flip-near-tie"
+        );
+        // The zero convention comes first, then not snap-carried, then the tie-break.
+        let mut zeros = near_tie;
+        zeros.zero = leading_zeros;
+        assert_eq!(classify_snap_trace(&zeros), "zero-convention");
+        zeros.root.lead_windows = 9;
+        zeros.exact_ties = 30;
+        assert_eq!(classify_snap_trace(&zeros), "zero-convention");
+        assert_eq!(with(|r| r.exact_ties = 15), "tie-break");
+        assert_eq!(with(|r| r.median_margin = Some(0.05)), "localise-upstream");
+        assert_eq!(with(|r| r.median_margin = Some(5e-3)), "indeterminate");
+        assert_eq!(with(|r| r.median_margin = None), "indeterminate");
+        assert_eq!(with(|r| r.rows_differ = 0), "no-rows-differ");
+    }
+
+    /// On one GPU (claude-134): the snap capture of a D11-mode forward records, per layer, the
+    /// transition, the output gate and the feed-forward gate, in that order, one root per 4-block
+    /// (each below 120, or 255 for a zero block) with a non-negative margin, and changes nothing.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn gpu_the_snap_capture_records_each_site_and_changes_nothing() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = build_fbs_model(D11_EXPORT_ARM, 1, &device)?;
+        crate::fbs_export::round_tables_as_exported(&model)?;
+        let batches = synthetic_batches(1, 17);
+        let (ids, _, _) = &batches[0];
+        let forward = || hs::with_d11_mode(|| model.hidden(ids, SHEET_TRAIN_BATCH, SHEET_CONTEXT));
+        let plain = forward()?;
+        let (captured_out, captures) = hs::with_snap_capture(forward)?;
+        let flat = |t: &Tensor| -> Result<Vec<f32>> { Ok(t.flatten_all()?.to_vec1::<f32>()?) };
+        assert_eq!(flat(&plain)?, flat(&captured_out)?);
+        let config = &model.config;
+        let rows = SHEET_TRAIN_BATCH * SHEET_CONTEXT;
+        let lanes = config.width / 4;
+        assert_eq!(captures.len(), 3 * config.layers());
+        for (call, capture) in captures.iter().enumerate() {
+            let blocks = if call % 3 == 2 {
+                config.mlp_hidden / 4
+            } else {
+                lanes
+            };
+            assert_eq!(capture.roots.len(), rows * blocks, "call {call}");
+            assert_eq!(capture.margins.len(), rows * blocks, "call {call}");
+            assert!(capture.roots.iter().all(|&r| r < 120 || r == u8::MAX));
+            assert!(capture.margins.iter().all(|&m| m >= 0.0));
+        }
+        // Outside the capture, nothing is recorded.
+        assert!(hs::with_snap_capture(|| Ok(()))?.1.is_empty());
+        hs::clear_active_arm();
         Ok(())
     }
 }

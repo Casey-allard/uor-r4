@@ -22,7 +22,27 @@ extern "C" int fbs_host_sequences(const fbs_model *m, const uint32_t *tokens, ui
   for (uint32_t s = 0; s < sequences; s++) {
     uint64_t at = (uint64_t)s * len;
     int err = fbs_sequence(m, &w, tokens + at, len, out_tokens + at, out_kept + at * m->kept,
-                           out_query + at * m->width);
+                           out_query + at * m->width, 0);
+    if (err != FBS_OK) return err;
+  }
+  return FBS_OK;
+}
+
+// The bytes of one position's snap trace (claude-134).
+extern "C" uint64_t fbs_host_trace_stride(const fbs_model *m) { return fbs_trace_stride(m); }
+
+// `fbs_host_sequences` with each position's snap trace, `fbs_trace_stride`
+// bytes per position in `out_trace` (claude-134).
+extern "C" int fbs_host_trace_sequences(const fbs_model *m, const uint32_t *tokens, uint32_t sequences,
+                                        uint32_t len, uint32_t *out_tokens, uint32_t *out_kept,
+                                        int32_t *out_query, uint8_t *out_trace) {
+  std::vector<uint64_t> buffer(fbs_work_bytes(m) / 8);
+  fbs_work w;
+  fbs_work_carve(m, reinterpret_cast<uint8_t *>(buffer.data()), &w);
+  for (uint32_t s = 0; s < sequences; s++) {
+    uint64_t at = (uint64_t)s * len;
+    int err = fbs_sequence(m, &w, tokens + at, len, out_tokens + at, out_kept + at * m->kept,
+                           out_query + at * m->width, out_trace + at * fbs_trace_stride(m));
     if (err != FBS_OK) return err;
   }
   return FBS_OK;

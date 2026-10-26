@@ -77,6 +77,17 @@ extern "C" {
         out_kept: *mut u32,
         out_query: *mut i32,
     ) -> i32;
+    fn fbs_host_trace_stride(m: *const CModel) -> u64;
+    fn fbs_host_trace_sequences(
+        m: *const CModel,
+        tokens: *const u32,
+        sequences: u32,
+        len: u32,
+        out_tokens: *mut u32,
+        out_kept: *mut u32,
+        out_query: *mut i32,
+        out_trace: *mut u8,
+    ) -> i32;
 }
 
 /// The evaluator's per-position output for `sequences` sequences of `len`.
@@ -190,6 +201,19 @@ pub fn work_bytes(m: &CModel) -> u64 {
     unsafe { fbs_host_work_bytes(m) }
 }
 
+/// The host trace's prefill (claude-134): every byte the core writes is a root below 120 or 255
+/// (a zero raw), so a byte left at 0xFE is a slot the core never wrote.
+pub const TRACE_UNWRITTEN: u8 = 0xFE;
+
+/// The bytes of one position's snap trace (`fbs_trace_stride`, claude-134):
+/// per layer, the transition's icosian root per lane, the output gate's root
+/// per lane, then the feed-forward gate's root per 4 MLP channels; 255 marks a
+/// zero raw, which selects root 0 on the tie.
+pub fn trace_stride(m: &CModel) -> u64 {
+    // SAFETY: `fbs_trace_stride` reads only `m`'s integer fields.
+    unsafe { fbs_host_trace_stride(m) }
+}
+
 /// SHA-256 of `bytes`, hex.
 pub fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
@@ -238,6 +262,47 @@ pub fn host_sequences(
     };
     match err {
         0 => Ok(out),
+        1 => Err("a token lies outside the vocabulary".to_owned()),
+        2 => Err("a sequence is longer than the context".to_owned()),
+        e => Err(format!("the FBS core failed with code {e}")),
+    }
+}
+
+/// [`host_sequences`] with every position's snap trace, [`trace_stride`] bytes
+/// each (claude-134). Qualification only, like the host twin itself.
+pub fn host_trace_sequences(
+    model: &IntegerStackModel,
+    sequences: &[Vec<u32>],
+) -> Result<(Outputs, Vec<u8>), String> {
+    if !layouts_agree() {
+        return Err("the Rust and C layouts of the FBS core disagree".to_owned());
+    }
+    let host = CModelHost::new(model)?;
+    let len = sequences.first().map_or(0, Vec::len);
+    if sequences.iter().any(|s| s.len() != len) {
+        return Err("every sequence must have the same length".to_owned());
+    }
+    let m = host.model();
+    let flat: Vec<u32> = sequences.iter().flatten().copied().collect();
+    let mut out = Outputs::zeroed(sequences.len(), len, m.kept as usize, m.width as usize);
+    // Prefilled with a byte the core never writes, so a slot it misses cannot pass for root 0
+    // (and differs from the GPU's zeroed buffer, failing G = H).
+    let mut trace = vec![TRACE_UNWRITTEN; sequences.len() * len * trace_stride(m) as usize];
+    // SAFETY: as in `host_sequences`; `trace` has `trace_stride` bytes per position.
+    let err = unsafe {
+        fbs_host_trace_sequences(
+            m,
+            flat.as_ptr(),
+            sequences.len() as u32,
+            len as u32,
+            out.tokens.as_mut_ptr(),
+            out.kept_cells.as_mut_ptr(),
+            out.queries.as_mut_ptr(),
+            trace.as_mut_ptr(),
+        )
+    };
+    match err {
+        0 => Ok((out, trace)),
         1 => Err("a token lies outside the vocabulary".to_owned()),
         2 => Err("a sequence is longer than the context".to_owned()),
         e => Err(format!("the FBS core failed with code {e}")),

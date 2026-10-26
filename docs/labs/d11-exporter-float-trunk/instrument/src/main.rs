@@ -5,11 +5,14 @@
 //! d11-fbs-eval run ARTIFACT SEQUENCES_JSON OUT_JSON [--verify]
 //! d11-fbs-eval windows READOUT_JSON OUT_JSON
 //! d11-fbs-eval singles ARTIFACT OUT_JSON
+//! d11-fbs-eval trace ARTIFACT SEQUENCES_JSON OUT_JSON
 //! ```
 //!
 //! `windows` writes the token windows of a float readout
 //! (`sequences[].tokens`, all of one length) as a sequences file; `singles`
-//! writes every token of the artifact's vocabulary as one-token sequences.
+//! writes every token of the artifact's vocabulary as one-token sequences;
+//! `trace` writes the icosian root each snap site chooses at every position, on
+//! the GPU, held against the host twin (claude-134).
 //!
 //! `qualify` evaluates the synthetic FBS controls on the GPU and holds every
 //! position against the host twin and the Rust integer session (bit for bit).
@@ -32,7 +35,7 @@ use uor_r4_integer::stack::synthetic::{
 };
 use uor_r4_integer::stack::{export_fbs_trunk_uorlut01, IntegerStackModel};
 
-const USAGE: &str = "usage: d11-fbs-eval qualify OUT_JSON | run ARTIFACT SEQUENCES_JSON OUT_JSON [--verify] | windows READOUT_JSON OUT_JSON | singles ARTIFACT OUT_JSON";
+const USAGE: &str = "usage: d11-fbs-eval qualify OUT_JSON | run ARTIFACT SEQUENCES_JSON OUT_JSON [--verify] | windows READOUT_JSON OUT_JSON | singles ARTIFACT OUT_JSON | trace ARTIFACT SEQUENCES_JSON OUT_JSON";
 
 fn write_new(path: &str, value: &Value) -> Result<(), String> {
     let mut file = std::fs::OpenOptions::new()
@@ -241,6 +244,65 @@ fn run(artifact: &str, sequences_path: &str, out: &str, check: bool) -> Result<b
     Ok(pass)
 }
 
+/// The snap trace of `sequences_path`'s windows (claude-134): the GPU's traced
+/// run, held against the host twin's traced run, outputs and trace (G = H).
+/// The trace is hex, `trace_stride` bytes per position in sequence order: per
+/// layer, the transition's root per lane, the output gate's root per lane, then
+/// the feed-forward gate's root per 4 MLP channels; 255 marks a zero raw, which
+/// selects root 0 on the tie.
+fn trace(artifact: &str, sequences_path: &str, out: &str) -> Result<bool, String> {
+    let bytes = std::fs::read(artifact).map_err(|e| format!("{artifact}: {e}"))?;
+    let model = IntegerStackModel::parse(&bytes).map_err(|e| e.to_string())?;
+    let (sequences, sequences_sha256) = read_sequences(sequences_path)?;
+    if sequences.is_empty() || sequences[0].is_empty() {
+        return Err(format!("{sequences_path}: no sequences, or empty ones"));
+    }
+    let evaluator = DeviceEvaluator::new(0, &model)?;
+    let start = Instant::now();
+    let (gpu, gpu_trace) = evaluator.evaluate_traced(&sequences)?;
+    let gpu_ns = start.elapsed().as_nanos() as u64;
+    let (host, host_trace) = d11_fbs_evaluator::host_trace_sequences(&model, &sequences)?;
+    let outputs_equal = gpu == host;
+    let trace_equal = gpu_trace == host_trace;
+    let shape = model.shape();
+    let layers = model.fbs_image().ok_or("not an FBS stack")?.layers.len();
+    // The documented layout's stride, held against the buffer the kernel filled.
+    let stride = layers * (2 * (shape.width / 4) + shape.mlp / 4);
+    if gpu_trace.len() != gpu.sequences * gpu.len * stride {
+        return Err(format!(
+            "the trace has {} bytes, not {} sequences × {} positions × {stride}",
+            gpu_trace.len(),
+            gpu.sequences,
+            gpu.len
+        ));
+    }
+    eprintln!(
+        "{} sequences of {} positions traced in {gpu_ns} ns; outputs G = H {outputs_equal}, trace G = H {trace_equal}",
+        gpu.sequences, gpu.len
+    );
+    write_new(
+        out,
+        &json!({
+            "schema": "uor-r4.d11-fbs-eval.trace/1",
+            "artifact_sha256": sha256_hex(&bytes),
+            "sequences_sha256": sequences_sha256,
+            "build": hashes(&evaluator),
+            "gpu_ns": gpu_ns,
+            "sequences": gpu.sequences,
+            "len": gpu.len,
+            "width": shape.width,
+            "mlp": shape.mlp,
+            "layers": layers,
+            "trace_stride": stride,
+            "tokens": gpu.tokens,
+            "outputs_host_equal": outputs_equal,
+            "trace_host_equal": trace_equal,
+            "trace_hex": gpu_trace.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+        }),
+    )?;
+    Ok(outputs_equal && trace_equal)
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args
@@ -254,6 +316,7 @@ fn main() -> ExitCode {
         ["run", artifact, sequences, out, "--verify"] => run(artifact, sequences, out, true),
         ["windows", readout, out] => windows(readout, out),
         ["singles", artifact, out] => singles(artifact, out),
+        ["trace", artifact, sequences, out] => trace(artifact, sequences, out),
         _ => Err(USAGE.to_owned()),
     };
     match result {
