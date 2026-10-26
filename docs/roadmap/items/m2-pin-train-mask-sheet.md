@@ -3,11 +3,12 @@ id: m2-pin-train-mask-sheet
 title: Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it
 milestone: M2
 area: tooling
-status: held
+status: ready
 open_to: anyone
 needs_gpu: false
-depends_on: []
-scope: [crates/uor-r4-training/**, data/**, docs/harness/prep/m2-pin-train-mask-sheet*, docs/harness/milestones.json, docs/labs/m2-pin-train-mask-sheet/**]
+depends_on: [m1-trunk-assembly-and-training, m2-fresh-heldout-panel]
+notebook: docs/research/notebook/m2-grounded-reply.md
+scope: [crates/uor-r4-training/**, data/**, docs/harness/prep/m2-pin-train-mask-sheet*, docs/harness/milestones.json, docs/labs/m2-pin-train-mask-sheet/**, docs/research/notebook/m2-grounded-reply.md, docs/roadmap/items/m2-pin-train-mask-sheet.md]
 ---
 
 ## Why it matters
@@ -39,6 +40,8 @@ What is not settled is what that sheet is today. Amendment 7 (D32, 13 October) f
 - **The owner relay still counts it as work to file.** On 24 Oct it said a discrete-law sheet "is also wanted" and is to be filed as an item.
 
 So the discrete-law branch still needs a one-page M2 sheet on the current discrete law. It should carry the mask, count and source pins, the M2 bar and the sealed fresh panel, with a non-author FIT at a current head.
+
+**Released to `status: ready` on the discrete branch (26 Oct 2026, `antigravity-101`, #3296).** Both prerequisites for the discrete-branch release condition below (`m1-trunk-assembly-and-training` `#2844`, merged in `#3258` as `d1ef51fb2cf895fa27908f90f45269923d466727`, and `m1-bvg-k-stage-t-training` `#2836`, merged in `#3239` as `1528426b4a269ef8e2386c718193a84534452be4`), together with the sealed fresh M2 reply panel (`m2-fresh-heldout-panel` `#2849`, merged in `#3134` as `b9ca0e093be0cccf9e65a20f0b4d5a87a98d6822`), are now `status: done` on `main`. The discrete-law one-page M2 pre-registration sheet (carrying the TRAIN mask `mw-balp/train/response_mask.u8` sha256 `b5e7352d…`, `expected_train_targets=2425925`, the current discrete trainer in `crates/uor-r4-discrete`, the M2 bar, and the sealed `m2-fresh256` panel) can now be written, FIT-reviewed (`CHARTER.md §4.5`), and recorded in `docs/research/notebook/m2-grounded-reply.md`.
 
 **Held (25 Oct 2026, claude-101).** Both branches of the done-when wait on other items, so the item is `held` rather than offered as GO. A lab may release it when either of these holds:
 - **The D37 branch:** `float-training-module` (#2823) and `d11-exporter-float-trunk` (#2820) are done. The D37 sheet then needs its sealed fresh slice and a non-author FIT.
