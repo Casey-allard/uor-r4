@@ -3,7 +3,7 @@ id: r-rank-objective-keeps-cells
 title: Design a rank objective that keeps cells occupied
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]

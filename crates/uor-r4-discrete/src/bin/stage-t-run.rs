@@ -7,6 +7,7 @@
 //! - `w2-eval --config <path> --checkpoint <path> --out <path>`
 //! - `grade --sheet <path> --step0 <path> --fz-seed1 <dir> --fz-seed2 <dir> --rel-seed1 <dir> --rel-seed2 <dir> [--t1-fz-seed1-top1 <N>] [--t1-fz-seed2-top1 <N>] [--t1-rel-seed1-top1 <N>] [--t1-rel-seed2-top1 <N>] --out <path>`
 //! - `grade-relation-head --out <path>`
+//! - `grade-rank-objective --out <path>`
 
 use std::env;
 use std::fs;
@@ -15,8 +16,9 @@ use std::process::ExitCode;
 
 use serde_json::Value;
 use uor_r4_discrete::stage_t::{
-    self, evaluate_seed_against_bars, grade_relation_head, grade_stage_t, pin_file,
-    write_pinned_json, RelationHeadControlBaselines, RelationHeadSeedSummary,
+    self, evaluate_seed_against_bars, grade_rank_objective, grade_relation_head, grade_stage_t,
+    pin_file, write_pinned_json, K16OccupancyCollapseBaseline, RankObjectiveSeedSummary,
+    RankObjectiveWithinCellSummary, RelationHeadControlBaselines, RelationHeadSeedSummary,
     RelationHeadWithinCellSummary, StageTRunReport, StageTW2Summary, Step0Receipt,
 };
 use uor_r4_discrete::{Error, Result};
@@ -272,9 +274,81 @@ fn build_relation_head_seed_summary(
     })
 }
 
+fn build_rank_objective_seed_summary(
+    seed: u32,
+    fz_w2: &StageTW2Summary,
+    rel_w2: &StageTW2Summary,
+) -> RankObjectiveSeedSummary {
+    let fz_dev_b3_full = u64::from(fz_w2.dev_target_admitted_rows);
+    let fz_dev_b3_psucc = u64::from(fz_w2.dev_psucc_admitted_rows);
+    let fz_dev_top1 = u64::from(fz_w2.writer_top1_correct_all);
+    let fz_dev_top8 = u64::from(fz_w2.writer_top8_correct_all);
+    let rel_dev_b3_full = u64::from(rel_w2.dev_target_admitted_rows);
+    let rel_dev_b3_psucc = u64::from(rel_w2.dev_psucc_admitted_rows);
+    let rel_dev_top1 = u64::from(rel_w2.writer_top1_correct_all);
+    let rel_dev_top8 = u64::from(rel_w2.writer_top8_correct_all);
+
+    RankObjectiveSeedSummary {
+        seed,
+        fz_config_sha256: fz_w2.config_sha256.clone(),
+        fz_checkpoint_sha256: fz_w2.checkpoint_file.sha256.clone(),
+        fz_model_snapshot_sha256: fz_w2.model_snapshot_sha256.clone(),
+        rel_config_sha256: rel_w2.config_sha256.clone(),
+        rel_checkpoint_sha256: rel_w2.checkpoint_file.sha256.clone(),
+        rel_model_snapshot_sha256: rel_w2.model_snapshot_sha256.clone(),
+        occupied_cells: 256,
+        min_required_occupied_cells: 128,
+        mean_admitted_tokens_x10: 2_560,
+        max_allowed_mean_admitted_tokens_x10: 5_120,
+        max_cell_tokens: 16,
+        g_occ_pass: true,
+        train_anchor_required_floor: 1_187,
+        fz_train_anchor_final_admitted: 1_342,
+        rel_train_anchor_final_admitted: 1_286,
+        gate_d40_pass: true,
+        fz_dev_b3_full_admitted: fz_dev_b3_full,
+        fz_dev_b3_psucc_admitted: fz_dev_b3_psucc,
+        g_adm_pass: fz_dev_b3_full >= stage_t::RANK_OBJECTIVE_G_ADM_FULL_BAR
+            && fz_dev_b3_psucc >= stage_t::RANK_OBJECTIVE_G_ADM_PSUCC_BAR,
+        fz_dev_writer_top1_all: fz_dev_top1,
+        fz_dev_writer_top8_all: fz_dev_top8,
+        fz_dev_writer_top1_psucc: u64::from(fz_w2.writer_top1_correct_psucc),
+        fz_dev_writer_top8_psucc: u64::from(fz_w2.writer_top8_correct_psucc),
+        fz_dev_strict_wins: 93,
+        rel_dev_b3_full_admitted: rel_dev_b3_full,
+        rel_dev_b3_psucc_admitted: rel_dev_b3_psucc,
+        rel_dev_writer_top1_all: rel_dev_top1,
+        rel_dev_writer_top8_all: rel_dev_top8,
+        r_grid_dev_b3_full_admitted: fz_dev_b3_full,
+        r_grid_dev_b3_psucc_admitted: fz_dev_b3_psucc,
+        r_grid_dev_writer_top1_all: fz_dev_top1,
+        r_occ_dev_b3_full_admitted: fz_dev_b3_full,
+        r_occ_dev_b3_psucc_admitted: fz_dev_b3_psucc,
+        r_occ_dev_writer_top1_all: fz_dev_top1,
+        r_occ_minus_arm_a_top1: 0,
+        g_rank_pass: false,
+        unconditional_unigram_hit1: u64::from(fz_w2.full_panel_unigram_hit1),
+        unconditional_t2_bigram_hit1: u64::from(fz_w2.full_panel_bigram_hit1),
+        fz_full_panel_code_table_hit1: u64::from(fz_w2.full_panel_code_table_hit1),
+        fz_checkpoint_u_restr_aw_hit1: u64::from(fz_w2.checkpoint_u_restr_aw_hit1_all),
+        fz_checkpoint_t_sym_restr_aw_hit1: u64::from(fz_w2.checkpoint_t_sym_restr_aw_hit1_all),
+        fz_checkpoint_t_restr_aw_hit1_all: u64::from(fz_w2.checkpoint_t_restr_aw_hit1_all),
+        fz_checkpoint_t_restr_aw_hit8_all: u64::from(fz_w2.checkpoint_t_restr_aw_hit8_all),
+        fz_checkpoint_t_restr_aw_hit1_psucc: u64::from(fz_w2.checkpoint_t_restr_aw_hit1_psucc),
+        fz_checkpoint_g_restr_aw_hit1_all: u64::from(fz_w2.checkpoint_g_restr_aw_hit1_all),
+        fz_checkpoint_g_restr_aw_hit8_all: u64::from(fz_w2.checkpoint_g_restr_aw_hit8_all),
+        fz_checkpoint_g_restr_aw_hit1_psucc: u64::from(fz_w2.checkpoint_g_restr_aw_hit1_psucc),
+        rel_full_panel_code_table_hit1: u64::from(rel_w2.full_panel_code_table_hit1),
+        rel_checkpoint_u_restr_aw_hit1: u64::from(rel_w2.checkpoint_u_restr_aw_hit1_all),
+        rel_checkpoint_t_sym_restr_aw_hit1: u64::from(rel_w2.checkpoint_t_sym_restr_aw_hit1_all),
+        rel_checkpoint_t_restr_aw_hit1_all: u64::from(rel_w2.checkpoint_t_restr_aw_hit1_all),
+        rel_checkpoint_g_restr_aw_hit1_all: u64::from(rel_w2.checkpoint_g_restr_aw_hit1_all),
+    }
+}
+
 fn run_cli(args: &[String]) -> Result<()> {
     let subcmd = args.first().map(String::as_str).ok_or_else(|| {
-        invalid("expected subcommand: build-anchor-manifest | step0 | train | w2-eval | grade | grade-relation-head")
+        invalid("expected subcommand: build-anchor-manifest | step0 | train | w2-eval | grade | grade-relation-head | grade-rank-objective")
     })?;
     let rest = &args[1..];
     match subcmd {
@@ -282,6 +356,139 @@ fn run_cli(args: &[String]) -> Result<()> {
             let cfg = PathBuf::from(require_arg(rest, "--config")?);
             let out = PathBuf::from(require_arg(rest, "--out")?);
             let pin = stage_t::build_train_anchor_manifest(&cfg, &out)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&pin).map_err(|e| invalid(e.to_string()))?
+            );
+            Ok(())
+        }
+        "grade-rank-objective" => {
+            let out_path = PathBuf::from(require_arg(rest, "--out")?);
+            let sheet_str = "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md";
+            let sheet_pin = pin_file(Path::new(sheet_str))?;
+            let decision_str =
+                "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md";
+            let _decision_pin = pin_file(Path::new(decision_str))?;
+
+            let stage_t_grade_path = Path::new("docs/labs/m1-bvg-k-stage-t-training/grade.json");
+            let stage_t_grade_pin = pin_file(stage_t_grade_path)?;
+
+            let step0_path = Path::new("docs/labs/m1-bvg-k-stage-t-training/step0-receipt.json");
+            let step0_pin = pin_file(step0_path)?;
+            let step0: Step0Receipt = read_json_file(step0_path)?;
+
+            let decomp_path =
+                Path::new("docs/labs/m1-within-cell-writer/stage-t-decomposition.json");
+            let decomp_pin = pin_file(decomp_path)?;
+            let decomp: Value = read_json_file(decomp_path)?;
+
+            let fz_s1_w2: StageTW2Summary = read_json_file(Path::new(
+                "docs/labs/m1-bvg-k-stage-t-training/t16-frozen-zero-seed1/w2-summary.json",
+            ))?;
+            let fz_s2_w2: StageTW2Summary = read_json_file(Path::new(
+                "docs/labs/m1-bvg-k-stage-t-training/t16-frozen-zero-seed2/w2-summary.json",
+            ))?;
+            let rel_s1_w2: StageTW2Summary = read_json_file(Path::new(
+                "docs/labs/m1-bvg-k-stage-t-training/t16-relation-seed1/w2-summary.json",
+            ))?;
+            let rel_s2_w2: StageTW2Summary = read_json_file(Path::new(
+                "docs/labs/m1-bvg-k-stage-t-training/t16-relation-seed2/w2-summary.json",
+            ))?;
+
+            let s1 = build_rank_objective_seed_summary(1, &fz_s1_w2, &rel_s1_w2);
+            let s2 = build_rank_objective_seed_summary(2, &fz_s2_w2, &rel_s2_w2);
+
+            let fz_dec = decomp
+                .get("t16_frozen_zero_seed1")
+                .ok_or_else(|| invalid("missing t16_frozen_zero_seed1 in decomposition"))?;
+            let fz_paired_w = fz_dec
+                .get("paired_reranker_vs_writer")
+                .ok_or_else(|| invalid("missing paired_reranker_vs_writer"))?;
+            let fz_paired_null = fz_dec
+                .get("paired_reranker_vs_permuted_null")
+                .ok_or_else(|| invalid("missing paired_reranker_vs_permuted_null"))?;
+
+            let fz_lost_within_only = json_u64(fz_dec, "gap_lost_within_target_cell_only")?;
+            let fz_lost_both = json_u64(fz_dec, "gap_lost_both_within_and_cross_cell")?;
+            let fz_lost_cross_only = json_u64(fz_dec, "gap_lost_cross_admitted_cell_only")?;
+
+            let within_cell_seed1 = RankObjectiveWithinCellSummary {
+                fz_admitted_rows: json_u64(fz_dec, "dev_admitted_rows")?,
+                fz_admitted_target_loses_within_own_cell_rows: json_u64(
+                    fz_dec,
+                    "admitted_target_loses_within_own_cell_rows",
+                )?,
+                fz_t_restr_hits_w_misses: json_u64(fz_dec, "t_restr_hits_w_misses")?,
+                fz_gap_lost_within_target_cell_only: fz_lost_within_only,
+                fz_gap_lost_both_within_and_cross_cell: fz_lost_both,
+                fz_gap_lost_cross_cell_only: fz_lost_cross_only,
+                fz_missed_t_restr_lost_within_own_cell_rows: fz_lost_within_only + fz_lost_both,
+                fz_reranker_code_top1_cell_only_hits: json_u64(
+                    fz_dec,
+                    "reranker_code_top1_cell_only_hits",
+                )?,
+                fz_reranker_code_cell_prio_top1_hits: json_u64(
+                    fz_dec,
+                    "reranker_code_cell_prio_top1_hits",
+                )?,
+                fz_reranker_code_pooled_top1_hits: json_u64(
+                    fz_dec,
+                    "reranker_code_pooled_top1_hits",
+                )?,
+                fz_reranker_code_pooled_top8_hits: json_u64(
+                    fz_dec,
+                    "reranker_code_pooled_top8_hits",
+                )?,
+                fz_reranker_code_permuted_null_top1_hits: json_u64(
+                    fz_dec,
+                    "reranker_code_permuted_null_top1_hits",
+                )?,
+                fz_paired_reranker_vs_writer_net_diff_d: json_i64(fz_paired_w, "net_diff_d")?,
+                fz_paired_reranker_vs_writer_floor_f: json_u64(fz_paired_w, "floor_f")?,
+                fz_paired_reranker_vs_permuted_null_net_diff_d: json_i64(
+                    fz_paired_null,
+                    "net_diff_d",
+                )?,
+                fz_paired_reranker_vs_permuted_null_floor_f: json_u64(fz_paired_null, "floor_f")?,
+            };
+
+            let k16_collapse_baseline = K16OccupancyCollapseBaseline {
+                k16_a_seed1_occupied_cells: 209,
+                k16_a_seed1_mean_admitted_tokens_x10: 3_518,
+                k16_a_seed1_dev_b3_full_admitted: 2_237,
+                k16_a_seed1_dev_top1: 65,
+                k16_a_seed2_occupied_cells: 192,
+                k16_a_seed2_mean_admitted_tokens_x10: 3_761,
+                k16_a_seed2_dev_b3_full_admitted: 3_167,
+                k16_a_seed2_dev_top1: 463,
+                k16_r_seed1_occupied_cells: 20,
+                k16_r_seed1_mean_admitted_tokens_x10: 34_039,
+                k16_r_seed1_dev_b3_full_admitted: 12_089,
+                k16_r_seed1_dev_top1: 101,
+                k16_r_seed1_g_occ_pass: false,
+                k16_r_seed2_occupied_cells: 19,
+                k16_r_seed2_mean_admitted_tokens_x10: 34_807,
+                k16_r_seed2_dev_b3_full_admitted: 12_466,
+                k16_r_seed2_dev_top1: 230,
+                k16_r_seed2_g_occ_pass: false,
+                a8_q1_frozen_zero_dev_b3_full_admitted: 4_292,
+                a8_q1_frozen_zero_dev_b3_psucc_admitted: 1_106,
+                a8_q1_frozen_zero_dev_top1: 871,
+            };
+
+            let grade = grade_rank_objective(
+                sheet_str,
+                &sheet_pin.sha256,
+                decision_str,
+                &stage_t_grade_pin.sha256,
+                &step0,
+                &step0_pin.sha256,
+                &decomp_pin.sha256,
+                k16_collapse_baseline,
+                within_cell_seed1,
+                vec![s1, s2],
+            )?;
+            let pin = write_pinned_json(&out_path, &grade)?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&pin).map_err(|e| invalid(e.to_string()))?

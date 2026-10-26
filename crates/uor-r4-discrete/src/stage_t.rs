@@ -33,6 +33,11 @@ pub const STAGE_T_RUN_SCHEMA: &str = "uor-r4.stage-t-audited-run/v1";
 pub const STAGE_T_W2_SCHEMA: &str = "uor-r4.stage-t-w2-restricted-eval/v1";
 pub const STAGE_T_GRADE_SCHEMA: &str = "uor-r4.stage-t-grade/v1";
 pub const RELATION_HEAD_GRADE_SCHEMA: &str = "uor-r4.relation-head-grade/v1";
+pub const RANK_OBJECTIVE_GRADE_SCHEMA: &str = "uor-r4.rank-objective-keeps-cells-grade/v1";
+pub const RANK_OBJECTIVE_G_ADM_FULL_BAR: u64 = 4_894;
+pub const RANK_OBJECTIVE_G_ADM_PSUCC_BAR: u64 = 1_106;
+pub const RANK_OBJECTIVE_Q1_TOP1_BAR: u64 = 871;
+pub const RANK_OBJECTIVE_MIN_TOP1_GAIN_OVER_A: u64 = 192;
 pub const RELATION_HEAD_MIN_COMMITS: u64 = 16;
 pub const RELATION_HEAD_D40_TRAIN_FLOOR: u64 = 1_187;
 pub const RELATION_HEAD_STAGE_T_ARCHIVE_SHA256: &str =
@@ -1316,6 +1321,351 @@ pub fn grade_relation_head(
         mechanism_negative: false,
         verdict,
         control_baselines,
+        within_cell_seed1,
+        seeds,
+    })
+}
+
+/// Verdict for the occupancy-preserving rank objective (`r-rank-objective-keeps-cells`, `#2883`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RankObjectiveVerdict {
+    PassRankAndOcc,
+    PassRankOccAndUnigram,
+    PassRankOccKeepIterate,
+    FailOccCollapse,
+    FailAdmissionRegression,
+    FailRankGainAtHighOcc,
+    InstrumentStop,
+}
+
+/// Sealed `K16-A` vs `K16-R` occupancy-collapse baseline (`#2029` comment `6257335075`)
+/// and `#2831` `Q1` `AddressCellsA8` reference.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct K16OccupancyCollapseBaseline {
+    pub k16_a_seed1_occupied_cells: u64,
+    pub k16_a_seed1_mean_admitted_tokens_x10: u64,
+    pub k16_a_seed1_dev_b3_full_admitted: u64,
+    pub k16_a_seed1_dev_top1: u64,
+    pub k16_a_seed2_occupied_cells: u64,
+    pub k16_a_seed2_mean_admitted_tokens_x10: u64,
+    pub k16_a_seed2_dev_b3_full_admitted: u64,
+    pub k16_a_seed2_dev_top1: u64,
+    pub k16_r_seed1_occupied_cells: u64,
+    pub k16_r_seed1_mean_admitted_tokens_x10: u64,
+    pub k16_r_seed1_dev_b3_full_admitted: u64,
+    pub k16_r_seed1_dev_top1: u64,
+    pub k16_r_seed1_g_occ_pass: bool,
+    pub k16_r_seed2_occupied_cells: u64,
+    pub k16_r_seed2_mean_admitted_tokens_x10: u64,
+    pub k16_r_seed2_dev_b3_full_admitted: u64,
+    pub k16_r_seed2_dev_top1: u64,
+    pub k16_r_seed2_g_occ_pass: bool,
+    pub a8_q1_frozen_zero_dev_b3_full_admitted: u64,
+    pub a8_q1_frozen_zero_dev_b3_psucc_admitted: u64,
+    pub a8_q1_frozen_zero_dev_top1: u64,
+}
+
+/// Seed-1 within-cell read-code reranker decomposition (`#3267`, `stage-t-decomposition.json`)
+/// explaining why cell-only rank objectives (`R_grid`, `R_occ`) have zero within-cell gradient.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RankObjectiveWithinCellSummary {
+    pub fz_admitted_rows: u64,
+    pub fz_admitted_target_loses_within_own_cell_rows: u64,
+    pub fz_t_restr_hits_w_misses: u64,
+    pub fz_gap_lost_within_target_cell_only: u64,
+    pub fz_gap_lost_both_within_and_cross_cell: u64,
+    pub fz_gap_lost_cross_cell_only: u64,
+    pub fz_missed_t_restr_lost_within_own_cell_rows: u64,
+    pub fz_reranker_code_top1_cell_only_hits: u64,
+    pub fz_reranker_code_cell_prio_top1_hits: u64,
+    pub fz_reranker_code_pooled_top1_hits: u64,
+    pub fz_reranker_code_pooled_top8_hits: u64,
+    pub fz_reranker_code_permuted_null_top1_hits: u64,
+    pub fz_paired_reranker_vs_writer_net_diff_d: i64,
+    pub fz_paired_reranker_vs_writer_floor_f: u64,
+    pub fz_paired_reranker_vs_permuted_null_net_diff_d: i64,
+    pub fz_paired_reranker_vs_permuted_null_floor_f: u64,
+}
+
+/// Per-seed evaluation of `Arm-A` (`T16_fz` and `T16_rel`), `Arm-R-Grid` (`s[11]=2`),
+/// and `Arm-R-Occ` (`s[11]=3`) against `G-Occ`, `G-Adm`, `G-Rank`, and the count tables.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RankObjectiveSeedSummary {
+    pub seed: u32,
+    pub fz_config_sha256: String,
+    pub fz_checkpoint_sha256: String,
+    pub fz_model_snapshot_sha256: String,
+    pub rel_config_sha256: String,
+    pub rel_checkpoint_sha256: String,
+    pub rel_model_snapshot_sha256: String,
+    pub occupied_cells: u64,
+    pub min_required_occupied_cells: u64,
+    pub mean_admitted_tokens_x10: u64,
+    pub max_allowed_mean_admitted_tokens_x10: u64,
+    pub max_cell_tokens: u64,
+    pub g_occ_pass: bool,
+    pub train_anchor_required_floor: u64,
+    pub fz_train_anchor_final_admitted: u64,
+    pub rel_train_anchor_final_admitted: u64,
+    pub gate_d40_pass: bool,
+    pub fz_dev_b3_full_admitted: u64,
+    pub fz_dev_b3_psucc_admitted: u64,
+    pub g_adm_pass: bool,
+    pub fz_dev_writer_top1_all: u64,
+    pub fz_dev_writer_top8_all: u64,
+    pub fz_dev_writer_top1_psucc: u64,
+    pub fz_dev_writer_top8_psucc: u64,
+    pub fz_dev_strict_wins: u64,
+    pub rel_dev_b3_full_admitted: u64,
+    pub rel_dev_b3_psucc_admitted: u64,
+    pub rel_dev_writer_top1_all: u64,
+    pub rel_dev_writer_top8_all: u64,
+    pub r_grid_dev_b3_full_admitted: u64,
+    pub r_grid_dev_b3_psucc_admitted: u64,
+    pub r_grid_dev_writer_top1_all: u64,
+    pub r_occ_dev_b3_full_admitted: u64,
+    pub r_occ_dev_b3_psucc_admitted: u64,
+    pub r_occ_dev_writer_top1_all: u64,
+    pub r_occ_minus_arm_a_top1: i64,
+    pub g_rank_pass: bool,
+    pub unconditional_unigram_hit1: u64,
+    pub unconditional_t2_bigram_hit1: u64,
+    pub fz_full_panel_code_table_hit1: u64,
+    pub fz_checkpoint_u_restr_aw_hit1: u64,
+    pub fz_checkpoint_t_sym_restr_aw_hit1: u64,
+    pub fz_checkpoint_t_restr_aw_hit1_all: u64,
+    pub fz_checkpoint_t_restr_aw_hit8_all: u64,
+    pub fz_checkpoint_t_restr_aw_hit1_psucc: u64,
+    pub fz_checkpoint_g_restr_aw_hit1_all: u64,
+    pub fz_checkpoint_g_restr_aw_hit8_all: u64,
+    pub fz_checkpoint_g_restr_aw_hit1_psucc: u64,
+    pub rel_full_panel_code_table_hit1: u64,
+    pub rel_checkpoint_u_restr_aw_hit1: u64,
+    pub rel_checkpoint_t_sym_restr_aw_hit1: u64,
+    pub rel_checkpoint_t_restr_aw_hit1_all: u64,
+    pub rel_checkpoint_g_restr_aw_hit1_all: u64,
+}
+
+/// Complete two-seed grade report for `r-rank-objective-keeps-cells` (`#2883`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RankObjectiveGradeReport {
+    pub schema: String,
+    pub item: String,
+    pub issue: u32,
+    pub sheet_path: String,
+    pub sheet_sha256: String,
+    pub decision_card_path: String,
+    pub stage_t_archive_sha256: String,
+    pub stage_t_grade_sha256: String,
+    pub step0_receipt_sha256: String,
+    pub within_cell_decomposition_sha256: String,
+    pub controls_c_r1_to_c_r7d: crate::objective::RankOccupancyControlReceipt,
+    pub g_occ_two_seeds_pass: bool,
+    pub g_adm_two_seeds_pass: bool,
+    pub g_rank_two_seeds_pass: bool,
+    pub beats_unigram_with_outer_l1_two_seeds: bool,
+    pub beats_unigram_with_within_cell_reranker: bool,
+    pub beats_t2_two_seeds: bool,
+    pub outcome_invariance_verified: bool,
+    pub mechanism_negative: bool,
+    pub verdict: RankObjectiveVerdict,
+    pub k16_collapse_baseline: K16OccupancyCollapseBaseline,
+    pub within_cell_seed1: RankObjectiveWithinCellSummary,
+    pub seeds: Vec<RankObjectiveSeedSummary>,
+}
+
+/// Grade the occupancy-preserving rank objective (`r-rank-objective-keeps-cells`, `#2883`)
+/// against `G-Occ`, `G-Adm`, `G-Rank`, and the lawful count tables.
+#[allow(clippy::too_many_arguments)]
+pub fn grade_rank_objective(
+    sheet_path: &str,
+    sheet_sha256: &str,
+    decision_card_path: &str,
+    stage_t_grade_sha256: &str,
+    step0: &Step0Receipt,
+    step0_receipt_sha256: &str,
+    within_cell_decomposition_sha256: &str,
+    k16_collapse_baseline: K16OccupancyCollapseBaseline,
+    within_cell_seed1: RankObjectiveWithinCellSummary,
+    seeds: Vec<RankObjectiveSeedSummary>,
+) -> Result<RankObjectiveGradeReport> {
+    if !step0.all_pass
+        || !step0.akd_pass
+        || !step0.v1d_pass
+        || !step0.kid_pass
+        || !step0.v8d_pass
+        || !step0.v9d_pass
+    {
+        return Err(invalid(
+            "Step 0 GPU control failed; CHARTER §4 forbids grading rank objective on a failed instrument",
+        ));
+    }
+    let controls_c_r1_to_c_r7d = crate::objective::verify_rank_occupancy_controls();
+    if !controls_c_r1_to_c_r7d.all_controls_pass {
+        return Err(invalid(
+            "Finite rank-occupancy controls C-R1..C-R7d failed; instrument stop required",
+        ));
+    }
+    if seeds.len() != 2 || seeds[0].seed != 1 || seeds[1].seed != 2 {
+        return Err(invalid(
+            "Rank objective grading requires exactly two seeds (seed 1 and seed 2)",
+        ));
+    }
+
+    // Verify K16-R collapse baseline, K16-A floor, and #2831 Q1 baseline
+    let (k16_r_s1_occ_ok, _, _) = crate::objective::evaluate_g_occ_contract(
+        k16_collapse_baseline.k16_r_seed1_occupied_cells,
+        k16_collapse_baseline.k16_a_seed1_occupied_cells,
+        k16_collapse_baseline.k16_r_seed1_mean_admitted_tokens_x10,
+        k16_collapse_baseline.k16_a_seed1_mean_admitted_tokens_x10,
+        3_400,
+    );
+    let (k16_r_s2_occ_ok, _, _) = crate::objective::evaluate_g_occ_contract(
+        k16_collapse_baseline.k16_r_seed2_occupied_cells,
+        k16_collapse_baseline.k16_a_seed2_occupied_cells,
+        k16_collapse_baseline.k16_r_seed2_mean_admitted_tokens_x10,
+        k16_collapse_baseline.k16_a_seed2_mean_admitted_tokens_x10,
+        3_480,
+    );
+    if k16_r_s1_occ_ok
+        || k16_r_s2_occ_ok
+        || k16_collapse_baseline.k16_r_seed1_g_occ_pass
+        || k16_collapse_baseline.k16_r_seed2_g_occ_pass
+        || k16_collapse_baseline.k16_r_seed1_occupied_cells != 20
+        || k16_collapse_baseline.k16_r_seed2_occupied_cells != 19
+        || k16_collapse_baseline.k16_a_seed1_occupied_cells < 192
+        || k16_collapse_baseline.k16_a_seed2_occupied_cells < 192
+        || k16_collapse_baseline.a8_q1_frozen_zero_dev_b3_full_admitted < 4_292
+        || k16_collapse_baseline.a8_q1_frozen_zero_dev_b3_psucc_admitted < 1_106
+        || k16_collapse_baseline.a8_q1_frozen_zero_dev_top1 != RANK_OBJECTIVE_Q1_TOP1_BAR
+    {
+        return Err(invalid(
+            "K16-R/K16-A collapse baseline or #2831 Q1 reference failed verification",
+        ));
+    }
+
+    // Verify within-cell decomposition consistency
+    let expected_lost_within = within_cell_seed1
+        .fz_gap_lost_within_target_cell_only
+        .saturating_add(within_cell_seed1.fz_gap_lost_both_within_and_cross_cell);
+    let expected_total_missed =
+        expected_lost_within.saturating_add(within_cell_seed1.fz_gap_lost_cross_cell_only);
+    if within_cell_seed1.fz_missed_t_restr_lost_within_own_cell_rows != expected_lost_within
+        || within_cell_seed1.fz_t_restr_hits_w_misses != expected_total_missed
+    {
+        return Err(invalid(
+            "Within-cell decomposition row counts do not sum to fz_t_restr_hits_w_misses",
+        ));
+    }
+
+    for s in &seeds {
+        let (g_occ_ok, min_cells, max_mean_x10) = crate::objective::evaluate_g_occ_contract(
+            s.occupied_cells,
+            256,
+            s.mean_admitted_tokens_x10,
+            2_560,
+            s.max_cell_tokens,
+        );
+        if s.g_occ_pass != g_occ_ok
+            || s.min_required_occupied_cells != min_cells
+            || s.max_allowed_mean_admitted_tokens_x10 != max_mean_x10
+        {
+            return Err(invalid(
+                "G-Occ flag or threshold mismatch in rank objective seed summary",
+            ));
+        }
+        let d40_ok = s.train_anchor_required_floor == RELATION_HEAD_D40_TRAIN_FLOOR
+            && s.fz_train_anchor_final_admitted >= s.train_anchor_required_floor
+            && s.rel_train_anchor_final_admitted >= s.train_anchor_required_floor
+            && s.fz_dev_b3_psucc_admitted >= DEV_PSUCC_ADMISSION_BAR
+            && s.rel_dev_b3_psucc_admitted >= DEV_PSUCC_ADMISSION_BAR;
+        if s.gate_d40_pass != d40_ok || !d40_ok {
+            return Err(invalid(
+                "Gate D40 breach in rank objective seed summary: TRAIN anchor or DEV P_succ floor violated",
+            ));
+        }
+        let g_adm_ok = s.r_occ_dev_b3_full_admitted >= RANK_OBJECTIVE_G_ADM_FULL_BAR
+            && s.r_occ_dev_b3_psucc_admitted >= RANK_OBJECTIVE_G_ADM_PSUCC_BAR;
+        if s.g_adm_pass != g_adm_ok {
+            return Err(invalid(
+                "G-Adm flag mismatch in rank objective seed summary",
+            ));
+        }
+        let expected_delta = i64::try_from(s.r_occ_dev_writer_top1_all).unwrap_or(0)
+            - i64::try_from(s.fz_dev_writer_top1_all).unwrap_or(0);
+        if s.r_occ_minus_arm_a_top1 != expected_delta {
+            return Err(invalid(
+                "r_occ_minus_arm_a_top1 mismatch against r_occ_dev_writer_top1_all - fz_dev_writer_top1_all",
+            ));
+        }
+        let g_rank_ok = s.r_occ_dev_writer_top1_all > RANK_OBJECTIVE_Q1_TOP1_BAR
+            && s.r_occ_minus_arm_a_top1
+                >= i64::try_from(RANK_OBJECTIVE_MIN_TOP1_GAIN_OVER_A).unwrap_or(192);
+        if s.g_rank_pass != g_rank_ok {
+            return Err(invalid(
+                "G-Rank flag mismatch in rank objective seed summary",
+            ));
+        }
+    }
+
+    let g_occ_two_seeds_pass = seeds.iter().all(|s| s.g_occ_pass);
+    let g_adm_two_seeds_pass = seeds.iter().all(|s| s.g_adm_pass);
+    let g_rank_two_seeds_pass = seeds.iter().all(|s| s.g_rank_pass);
+    let beats_unigram_with_outer_l1_two_seeds = seeds
+        .iter()
+        .all(|s| s.r_occ_dev_writer_top1_all > UNIGRAM_FULL_BAR);
+    let beats_unigram_with_within_cell_reranker =
+        within_cell_seed1.fz_reranker_code_pooled_top1_hits > UNIGRAM_FULL_BAR
+            && within_cell_seed1.fz_reranker_code_cell_prio_top1_hits > UNIGRAM_FULL_BAR
+            && within_cell_seed1.fz_reranker_code_top1_cell_only_hits > UNIGRAM_FULL_BAR;
+    let beats_t2_two_seeds = seeds
+        .iter()
+        .all(|s| s.r_occ_dev_writer_top1_all > FULL_PANEL_T2_REFERENCE);
+
+    let outcome_invariance_verified = controls_c_r1_to_c_r7d
+        .c_r7d_a8_uniform_equivalence_and_within_cell_invariance_pass
+        && within_cell_seed1.fz_admitted_target_loses_within_own_cell_rows > 4_000
+        && beats_unigram_with_within_cell_reranker;
+
+    let verdict = if !g_occ_two_seeds_pass {
+        RankObjectiveVerdict::FailOccCollapse
+    } else if !g_adm_two_seeds_pass {
+        RankObjectiveVerdict::FailAdmissionRegression
+    } else if g_rank_two_seeds_pass && beats_unigram_with_outer_l1_two_seeds {
+        RankObjectiveVerdict::PassRankAndOcc
+    } else if g_rank_two_seeds_pass {
+        RankObjectiveVerdict::PassRankOccKeepIterate
+    } else {
+        RankObjectiveVerdict::FailRankGainAtHighOcc
+    };
+
+    Ok(RankObjectiveGradeReport {
+        schema: RANK_OBJECTIVE_GRADE_SCHEMA.to_owned(),
+        item: "r-rank-objective-keeps-cells".to_owned(),
+        issue: 2883,
+        sheet_path: sheet_path.to_owned(),
+        sheet_sha256: sheet_sha256.to_owned(),
+        decision_card_path: decision_card_path.to_owned(),
+        stage_t_archive_sha256: RELATION_HEAD_STAGE_T_ARCHIVE_SHA256.to_owned(),
+        stage_t_grade_sha256: stage_t_grade_sha256.to_owned(),
+        step0_receipt_sha256: step0_receipt_sha256.to_owned(),
+        within_cell_decomposition_sha256: within_cell_decomposition_sha256.to_owned(),
+        controls_c_r1_to_c_r7d,
+        g_occ_two_seeds_pass,
+        g_adm_two_seeds_pass,
+        g_rank_two_seeds_pass,
+        beats_unigram_with_outer_l1_two_seeds,
+        beats_unigram_with_within_cell_reranker,
+        beats_t2_two_seeds,
+        outcome_invariance_verified,
+        mechanism_negative: false,
+        verdict,
+        k16_collapse_baseline,
         within_cell_seed1,
         seeds,
     })
@@ -3158,6 +3508,250 @@ mod tests {
             controls,
             within_cell,
             vec![bad_d40, s2],
+        )
+        .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn grade_rank_objective_verifies_g_occ_g_adm_and_count_tables() -> Result<()> {
+        let step0 = Step0Receipt {
+            schema: STAGE_T_STEP0_SCHEMA.to_owned(),
+            source_sha256: "a".repeat(64),
+            kernel_sha256: "b".repeat(64),
+            geometry_sha256: "c".repeat(64),
+            driver_source_sha256: training::driver_source_sha256(),
+            t16_fz_config_sha256: "d".repeat(64),
+            t16_rel_config_sha256: "e".repeat(64),
+            t1_fz_config_sha256: "f".repeat(64),
+            akd_single_move_commits_checked: 32,
+            akd_mismatches: 0,
+            akd_pass: true,
+            v1d_batches_checked: 24,
+            v1d_mismatches: 0,
+            v1d_final_snapshot_sha256: "1".repeat(64),
+            v1d_pass: true,
+            kid_batches_checked: 128,
+            kid_commits_rescored: 20,
+            kid_ineligible_noop_verified: true,
+            kid_mismatches: 0,
+            kid_pass: true,
+            v8d_batches_checked: 128,
+            v8d_relation_commits_on_frozen_zero: 0,
+            v8d_nonzero_relation_trits: 0,
+            v8d_pass: true,
+            v9d_uninterrupted_128_snapshot_sha256: "2".repeat(64),
+            v9d_resumed_128_snapshot_sha256: "2".repeat(64),
+            v9d_epoch_128: 20,
+            v9d_committed_moves_128: 44,
+            v9d_pass: true,
+            t16_128_batches_elapsed_ms: 20_000,
+            projected_16404_seconds: 2_563,
+            all_pass: true,
+        };
+        let k16_collapse = K16OccupancyCollapseBaseline {
+            k16_a_seed1_occupied_cells: 209,
+            k16_a_seed1_mean_admitted_tokens_x10: 3_518,
+            k16_a_seed1_dev_b3_full_admitted: 2_237,
+            k16_a_seed1_dev_top1: 65,
+            k16_a_seed2_occupied_cells: 192,
+            k16_a_seed2_mean_admitted_tokens_x10: 3_761,
+            k16_a_seed2_dev_b3_full_admitted: 3_167,
+            k16_a_seed2_dev_top1: 463,
+            k16_r_seed1_occupied_cells: 20,
+            k16_r_seed1_mean_admitted_tokens_x10: 34_039,
+            k16_r_seed1_dev_b3_full_admitted: 12_089,
+            k16_r_seed1_dev_top1: 101,
+            k16_r_seed1_g_occ_pass: false,
+            k16_r_seed2_occupied_cells: 19,
+            k16_r_seed2_mean_admitted_tokens_x10: 34_807,
+            k16_r_seed2_dev_b3_full_admitted: 12_466,
+            k16_r_seed2_dev_top1: 230,
+            k16_r_seed2_g_occ_pass: false,
+            a8_q1_frozen_zero_dev_b3_full_admitted: 4_292,
+            a8_q1_frozen_zero_dev_b3_psucc_admitted: 1_106,
+            a8_q1_frozen_zero_dev_top1: 871,
+        };
+        let within_cell = RankObjectiveWithinCellSummary {
+            fz_admitted_rows: 5_009,
+            fz_admitted_target_loses_within_own_cell_rows: 4_208,
+            fz_t_restr_hits_w_misses: 1_765,
+            fz_gap_lost_within_target_cell_only: 415,
+            fz_gap_lost_both_within_and_cross_cell: 1_182,
+            fz_gap_lost_cross_cell_only: 168,
+            fz_missed_t_restr_lost_within_own_cell_rows: 1_597,
+            fz_reranker_code_top1_cell_only_hits: 1_706,
+            fz_reranker_code_cell_prio_top1_hits: 2_142,
+            fz_reranker_code_pooled_top1_hits: 2_140,
+            fz_reranker_code_pooled_top8_hits: 4_006,
+            fz_reranker_code_permuted_null_top1_hits: 753,
+            fz_paired_reranker_vs_writer_net_diff_d: 1_685,
+            fz_paired_reranker_vs_writer_floor_f: 86,
+            fz_paired_reranker_vs_permuted_null_net_diff_d: 1_387,
+            fz_paired_reranker_vs_permuted_null_floor_f: 80,
+        };
+        let make_seed = |seed: u32| RankObjectiveSeedSummary {
+            seed,
+            fz_config_sha256: "a".repeat(64),
+            fz_checkpoint_sha256: "b".repeat(64),
+            fz_model_snapshot_sha256: "c".repeat(64),
+            rel_config_sha256: "d".repeat(64),
+            rel_checkpoint_sha256: "e".repeat(64),
+            rel_model_snapshot_sha256: "f".repeat(64),
+            occupied_cells: 256,
+            min_required_occupied_cells: 128,
+            mean_admitted_tokens_x10: 2_560,
+            max_allowed_mean_admitted_tokens_x10: 5_120,
+            max_cell_tokens: 16,
+            g_occ_pass: true,
+            train_anchor_required_floor: 1_187,
+            fz_train_anchor_final_admitted: 1_342,
+            rel_train_anchor_final_admitted: 1_286,
+            gate_d40_pass: true,
+            fz_dev_b3_full_admitted: 5_009,
+            fz_dev_b3_psucc_admitted: 1_216,
+            g_adm_pass: true,
+            fz_dev_writer_top1_all: 455,
+            fz_dev_writer_top8_all: 1_484,
+            fz_dev_writer_top1_psucc: 107,
+            fz_dev_writer_top8_psucc: 318,
+            fz_dev_strict_wins: 93,
+            rel_dev_b3_full_admitted: 3_827,
+            rel_dev_b3_psucc_admitted: 1_144,
+            rel_dev_writer_top1_all: 371,
+            rel_dev_writer_top8_all: 1_124,
+            r_grid_dev_b3_full_admitted: 5_009,
+            r_grid_dev_b3_psucc_admitted: 1_216,
+            r_grid_dev_writer_top1_all: 455,
+            r_occ_dev_b3_full_admitted: 5_009,
+            r_occ_dev_b3_psucc_admitted: 1_216,
+            r_occ_dev_writer_top1_all: 455,
+            r_occ_minus_arm_a_top1: 0,
+            g_rank_pass: false,
+            unconditional_unigram_hit1: 1_226,
+            unconditional_t2_bigram_hit1: 6_300,
+            fz_full_panel_code_table_hit1: 4_085,
+            fz_checkpoint_u_restr_aw_hit1: 1_127,
+            fz_checkpoint_t_sym_restr_aw_hit1: 1_909,
+            fz_checkpoint_t_restr_aw_hit1_all: 2_140,
+            fz_checkpoint_t_restr_aw_hit8_all: 4_006,
+            fz_checkpoint_t_restr_aw_hit1_psucc: 376,
+            fz_checkpoint_g_restr_aw_hit1_all: 3_084,
+            fz_checkpoint_g_restr_aw_hit8_all: 4_674,
+            fz_checkpoint_g_restr_aw_hit1_psucc: 517,
+            rel_full_panel_code_table_hit1: 3_680,
+            rel_checkpoint_u_restr_aw_hit1: 942,
+            rel_checkpoint_t_sym_restr_aw_hit1: 1_377,
+            rel_checkpoint_t_restr_aw_hit1_all: 1_602,
+            rel_checkpoint_g_restr_aw_hit1_all: 2_364,
+        };
+        let s1 = make_seed(1);
+        let s2 = make_seed(2);
+        let report = grade_rank_objective(
+            "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            k16_collapse.clone(),
+            within_cell.clone(),
+            vec![s1.clone(), s2.clone()],
+        )?;
+        assert_eq!(report.schema, RANK_OBJECTIVE_GRADE_SCHEMA);
+        assert_eq!(report.item, "r-rank-objective-keeps-cells");
+        assert_eq!(report.issue, 2883);
+        assert!(report.controls_c_r1_to_c_r7d.all_controls_pass);
+        assert!(report.g_occ_two_seeds_pass);
+        assert!(report.g_adm_two_seeds_pass);
+        assert!(!report.g_rank_two_seeds_pass);
+        assert!(!report.beats_unigram_with_outer_l1_two_seeds);
+        assert!(report.beats_unigram_with_within_cell_reranker);
+        assert!(!report.beats_t2_two_seeds);
+        assert!(report.outcome_invariance_verified);
+        assert!(!report.mechanism_negative);
+        assert_eq!(report.verdict, RankObjectiveVerdict::FailRankGainAtHighOcc);
+
+        // (a) PASS_RANK_AND_OCC when both seeds pass G-Occ, G-Adm, G-Rank, and beat Unigram (1,226)
+        let mut pass_s1 = s1.clone();
+        pass_s1.r_occ_dev_writer_top1_all = 1_300;
+        pass_s1.r_occ_minus_arm_a_top1 = 845;
+        pass_s1.g_rank_pass = true;
+        let mut pass_s2 = s2.clone();
+        pass_s2.r_occ_dev_writer_top1_all = 1_300;
+        pass_s2.r_occ_minus_arm_a_top1 = 845;
+        pass_s2.g_rank_pass = true;
+        let pass_report = grade_rank_objective(
+            "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            k16_collapse.clone(),
+            within_cell.clone(),
+            vec![pass_s1, pass_s2],
+        )?;
+        assert_eq!(pass_report.verdict, RankObjectiveVerdict::PassRankAndOcc);
+
+        // (b) FAIL_OCC_COLLAPSE when G-Occ fails consistently (g_occ_pass == false)
+        let mut collapse_s1 = s1.clone();
+        collapse_s1.occupied_cells = 20;
+        collapse_s1.g_occ_pass = false;
+        let collapse_report = grade_rank_objective(
+            "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            k16_collapse.clone(),
+            within_cell.clone(),
+            vec![collapse_s1, s2.clone()],
+        )?;
+        assert_eq!(
+            collapse_report.verdict,
+            RankObjectiveVerdict::FailOccCollapse
+        );
+
+        // (c) FAIL_ADMISSION_REGRESSION when G-Adm fails consistently (g_adm_pass == false)
+        let mut adm_fail_s1 = s1.clone();
+        adm_fail_s1.r_occ_dev_b3_full_admitted = 4_000;
+        adm_fail_s1.g_adm_pass = false;
+        let adm_fail_report = grade_rank_objective(
+            "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            k16_collapse.clone(),
+            within_cell.clone(),
+            vec![adm_fail_s1, s2.clone()],
+        )?;
+        assert_eq!(
+            adm_fail_report.verdict,
+            RankObjectiveVerdict::FailAdmissionRegression
+        );
+
+        // (d) Inconsistent g_occ_pass flag on any seed must be refused with Err
+        let mut bad_occ = s1;
+        bad_occ.occupied_cells = 20;
+        assert!(grade_rank_objective(
+            "docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-rank-objective-keeps-cells/antigravity-97/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            k16_collapse,
+            within_cell,
+            vec![bad_occ, s2],
         )
         .is_err());
         Ok(())
