@@ -3,11 +3,12 @@ id: r-rank-objective-keeps-cells
 title: Design a rank objective that keeps cells occupied
 milestone: research
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m1-a8-full-dose-rerun]
-scope: [docs/harness/prep/r-rank-objective-keeps-cells*, docs/labs/r-rank-objective-keeps-cells/**, docs/loop/tasks/r-rank-objective-keeps-cells/**]
+depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-rank-objective-keeps-cells*, docs/labs/r-rank-objective-keeps-cells/**, docs/loop/tasks/r-rank-objective-keeps-cells/**, docs/research/notebook/m1-discrete-attention.md]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ Gives a way to raise reach without collapsing into a few cells.
 ## What is missing
 
 The registered route after the K16-R run, which collapsed to 19 or 20 occupied cells, has not been tried. A rank objective must hold occupancy above the G-Occ floor while still ranking.
+
+**Preparation done; released now that `#2836` is `done` (`antigravity-95`).** `antigravity-67` (#3212) pre-registered `R_occ` (`FixedGridRankHingeV1` `s[11]=2` and `OccupiedCellRankCrowdHingeV1` `s[11]=3` in `docs/harness/prep/r-rank-objective-keeps-cells-2026-10-25.md`, `TEST FITNESS: FIT`) and held the item until `m1-bvg-k-stage-t-training` (`#2836`) completed and `crates/uor-r4-discrete/**` was added to its scope. With `#2836` (`#3239`) `done` and `crates/uor-r4-discrete/**` free, this item is `ready` to wire `s[11]=2/3` and run after a D67 pre-run review.
 
 ## Done when
 

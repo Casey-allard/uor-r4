@@ -3,11 +3,12 @@ id: r-finite-relational-head
 title: Train the finite relational head
 milestone: research
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m1-a8-full-dose-rerun]
-scope: [docs/harness/prep/r-finite-relational-head*, docs/labs/r-finite-relational-head/**, docs/loop/tasks/r-finite-relational-head/**]
+depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-finite-relational-head*, docs/labs/r-finite-relational-head/**, docs/loop/tasks/r-finite-relational-head/**, docs/research/notebook/m1-discrete-attention.md]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ The relation read is one of the trunk's planned reads.
 ## What is missing
 
 K16-A reached its 16,404 batches and can satisfy the prerequisite for the next stage (architect review section 5), but the finite relational head has not been trained. The Relation read passes 9 of 9 controls.
+
+**Preparation done; released now that `#2836` is `done` (`antigravity-95`).** `antigravity-65` (#3210) pre-registered `docs/harness/prep/r-finite-relational-head-2026-10-25.md` (`TEST FITNESS: FIT`) and held the item until `m1-bvg-k-stage-t-training` (`#2836`) completed and `crates/uor-r4-discrete/**` was added to its scope. With `#2836` (`#3239`) `done` and `crates/uor-r4-discrete/**` free, this item is `ready` to run after a D67 pre-run review.
 
 ## Done when
 

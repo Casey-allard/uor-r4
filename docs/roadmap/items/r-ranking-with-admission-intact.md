@@ -3,11 +3,12 @@ id: r-ranking-with-admission-intact
 title: Test ranking with admission intact
 milestone: research
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m1-a8-full-dose-rerun]
-scope: [docs/harness/prep/r-ranking-with-admission-intact*, docs/labs/r-ranking-with-admission-intact/**, docs/loop/tasks/r-ranking-with-admission-intact/**]
+depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-ranking-with-admission-intact*, docs/labs/r-ranking-with-admission-intact/**, docs/loop/tasks/r-ranking-with-admission-intact/**, docs/research/notebook/m1-discrete-attention.md]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ Separates the admission failure from the ranking failure behind the low top-1.
 ## What is missing
 
 No run has had admission intact and then failed or succeeded at ranking, so ranking is untested on its own. The A8 rerun with the admission anchor is the natural vehicle.
+
+**Preparation done; released now that `#2836` is `done` (`antigravity-95`).** `antigravity-68` (#3213) reported the `#2831` `Q1` admission-intact decomposition (`871 / 4,292` conditional `top-1`) against the W2 count tables, FIT-cleared `docs/harness/prep/r-ranking-with-admission-intact-2026-10-25.md`, and held the item until `m1-bvg-k-stage-t-training` (`#2836`) completed. With `#2836` (`#3239`) `done` and `crates/uor-r4-discrete/**` free, this item is `ready` to run after a D67 pre-run review.
 
 ## Done when
 
