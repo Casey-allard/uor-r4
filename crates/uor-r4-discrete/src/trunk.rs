@@ -18,7 +18,9 @@ use std::fs;
 use std::path::Path;
 
 use crate::corpus::FilePin;
-use crate::d11_export::{export_d11, import_d11};
+use crate::d11_export::{
+    export_d11, import_d11, DiscreteLutHeader, SectionKind, SectionSpan, SectionSpec, MAGIC,
+};
 use crate::metadata::MAX_CONTEXT;
 use crate::normalization_mechanism::{
     identify_orbit_root, normalize_block_with_frame, orbit_root_coords, root_scaled_cost,
@@ -42,6 +44,7 @@ pub const TRUNK_STEP0_SCHEMA: &str = "uor-r4.trunk-step0-controls/v1";
 pub const TRUNK_ARM_SCHEMA: &str = "uor-r4.trunk-arm-report/v1";
 pub const TRUNK_GRADE_SCHEMA: &str = "uor-r4.trunk-grade-report/v1";
 pub const TRUNK_ARTIFACT_SCHEMA: &str = "uor-r4.trunk-integer-artifact/v1";
+pub const TRUNK_LUT_SCHEMA: &str = "uor-r4.lut-discrete-trunk/1";
 
 pub const FRESH_V2_ROWS: usize = 14_287;
 pub const FRESH_V2_VISITED_TARGETS: usize = 1_049_856;
@@ -481,7 +484,7 @@ pub struct TrunkEvalRow {
 }
 
 /// Sparse integer count table keyed by `u32` (for 16-bit or 28-bit state keys) -> `u16` token -> `u32` count.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SparseCountTable {
     counts: BTreeMap<u32, BTreeMap<u16, u32>>,
     total: u64,
@@ -503,6 +506,10 @@ impl SparseCountTable {
             .get(&key)
             .and_then(|m| m.get(&token).copied())
             .unwrap_or(0)
+    }
+
+    pub fn entries(&self, key: u32) -> Option<&BTreeMap<u16, u32>> {
+        self.counts.get(&key)
     }
 
     pub fn distinct_keys(&self) -> usize {
@@ -530,6 +537,47 @@ impl SparseCountTable {
             None
         }
     }
+
+    /// Pack all non-zero `(key, token, count)` entries into a flat `u32` vector for D11 serialization.
+    pub fn to_triples(&self) -> Vec<u32> {
+        let mut out = Vec::new();
+        for (&key, map) in &self.counts {
+            for (&tok, &cnt) in map {
+                out.push(key);
+                out.push(u32::from(tok));
+                out.push(cnt);
+            }
+        }
+        out
+    }
+
+    /// Reconstruct a `SparseCountTable` from a flat `[key, token, count, ...]` `u32` slice.
+    pub fn from_triples(words: &[u32]) -> Result<Self> {
+        if words.len() % 3 != 0 {
+            return Err(invalid(
+                "SparseCountTable triples length must be divisible by 3",
+            ));
+        }
+        let mut counts: BTreeMap<u32, BTreeMap<u16, u32>> = BTreeMap::new();
+        let mut total = 0u64;
+        for chunk in words.chunks_exact(3) {
+            let key = chunk[0];
+            let tok_u32 = chunk[1];
+            let cnt = chunk[2];
+            if tok_u32 >= VOCABULARY as u32 || cnt == 0 {
+                return Err(invalid(
+                    "SparseCountTable triple has token >= 4096 or zero count",
+                ));
+            }
+            let tok = tok_u32 as u16;
+            let entry = counts.entry(key).or_default();
+            if entry.insert(tok, cnt).is_some() {
+                return Err(invalid("duplicate (key, token) in SparseCountTable triples"));
+            }
+            total = total.saturating_add(u64::from(cnt));
+        }
+        Ok(Self { counts, total })
+    }
 }
 
 /// Pack a `(u16, u16)` pair into a `u32` key.
@@ -538,7 +586,7 @@ pub fn pack_u32_key(high: u16, low: u16) -> u32 {
 }
 
 /// Integer sufficient-statistic tables built from the `1,049,856` TRAIN rows for `DiscreteHamiltonGateV1`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrunkTables {
     pub unigram_counts: Vec<u32>,
     pub unigram_best_global: u16,
@@ -871,6 +919,207 @@ impl TrunkTables {
             )
         })
     }
+
+    /// Pure bit-shift joint-pointer hierarchy score (`(c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + (ptr_match << 8)`):
+    /// zero general integer multiplies, zero divides, zero floats, zero squashing, zero matmul (`D11 R1-R5`).
+    pub fn level3_joint_pointer_score(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        pointer_succ: Option<u16>,
+        rec_mode: RecurrenceMode,
+        norm_mode: NormalizationMode,
+        tok: u16,
+    ) -> u64 {
+        let q_key = u32::from(query_token);
+        let r_key = u32::from(read_code);
+        let qr_key = pack_u32_key(query_token, read_code);
+        let c_q = u64::from(self.query_table.get(q_key, tok));
+        let c_qr = u64::from(self.query_read_table.get(qr_key, tok));
+        let c_r = u64::from(self.read_table.get(r_key, tok));
+        let ptr_boost = if pointer_succ == Some(tok) {
+            1u64 << 8
+        } else {
+            0u64
+        };
+        if rec_mode == RecurrenceMode::IdentityNullControlV1 {
+            return (c_qr << 6) + (c_r << 1) + c_q + ptr_boost;
+        }
+        let qc_key = pack_u32_key(query_token, rec_code);
+        let rc_key = pack_u32_key(read_code, rec_code);
+        let (rr_tbl, qr_rec_tbl) = match (rec_mode, norm_mode) {
+            (RecurrenceMode::ShuffledOrderControlV1, _) => {
+                (&self.read_rec_shuf_table, &self.query_rec_shuf_table)
+            }
+            (_, NormalizationMode::UnitSnapControlV1) => {
+                (&self.read_rec_unit_table, &self.query_rec_unit_table)
+            }
+            _ => (&self.read_rec_table, &self.query_rec_table),
+        };
+        let c_qc = u64::from(qr_rec_tbl.get(qc_key, tok));
+        let c_rr = u64::from(rr_tbl.get(rc_key, tok));
+        (c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + ptr_boost
+    }
+
+    /// Select the best vocabulary token under `level3_joint_pointer_score` over the sparse candidate set
+    /// (`query_table`, `read_table`, `rec_table`, and `pointer_succ`).
+    pub fn select_level3_joint_pointer_global(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        pointer_succ: Option<u16>,
+        rec_mode: RecurrenceMode,
+        norm_mode: NormalizationMode,
+    ) -> u16 {
+        let q_key = u32::from(query_token);
+        let r_key = u32::from(read_code);
+        let c_key = u32::from(rec_code);
+        let rec_tbl = match (rec_mode, norm_mode) {
+            (RecurrenceMode::ShuffledOrderControlV1, _) => &self.rec_shuf_table,
+            (_, NormalizationMode::UnitSnapControlV1) => &self.rec_unit_table,
+            _ => &self.rec_table,
+        };
+        let mut best_tok = self.unigram_best_global;
+        let mut best_s = 0u64;
+        let mut best_u = 0u32;
+
+        let mut consider = |tok: u16| {
+            if usize::from(tok) >= VOCABULARY {
+                return;
+            }
+            let s = self.level3_joint_pointer_score(
+                query_token,
+                read_code,
+                rec_code,
+                pointer_succ,
+                rec_mode,
+                norm_mode,
+                tok,
+            );
+            let u = self.unigram_counts[usize::from(tok)];
+            if s > best_s
+                || (s == best_s && s > 0 && u > best_u)
+                || (s == best_s && s > 0 && u == best_u && tok < best_tok)
+            {
+                best_s = s;
+                best_u = u;
+                best_tok = tok;
+            }
+        };
+
+        for map_opt in [
+            self.query_table.entries(q_key),
+            self.read_table.entries(r_key),
+            if rec_mode == RecurrenceMode::IdentityNullControlV1 {
+                None
+            } else {
+                rec_tbl.entries(c_key)
+            },
+        ]
+        .into_iter()
+        .flatten()
+        {
+            for &tok in map_opt.keys() {
+                consider(tok);
+            }
+        }
+        if let Some(ptr_tok) = pointer_succ {
+            consider(ptr_tok);
+        }
+        best_tok
+    }
+}
+
+/// Causal 4-block `O_16^4` orbit-root successor scan: returns the successor token `window_tokens[p + 1]`
+/// of the most recent prefix position `p in 0..L-1` whose 4-block orbit-root tuple matches
+/// `codebook_roots[window_tokens[L - 1]]`, or `None` if no prefix position matches.
+pub fn orbit_root_causal_successor(
+    window_tokens: &[u16],
+    codebook_roots: &[[u8; TRUNK_BLOCKS]],
+) -> Result<Option<u16>> {
+    if window_tokens.len() < 2 {
+        return Ok(None);
+    }
+    let query_tok = *window_tokens
+        .last()
+        .ok_or_else(|| invalid("empty window_tokens"))?;
+    let query_roots = codebook_roots
+        .get(usize::from(query_tok))
+        .copied()
+        .ok_or_else(|| invalid("query_tok out of codebook_roots bounds"))?;
+    let mut matched_succ = None;
+    for p in 0..(window_tokens.len() - 1) {
+        let p_tok = window_tokens[p];
+        let p_roots = codebook_roots
+            .get(usize::from(p_tok))
+            .copied()
+            .ok_or_else(|| invalid("prefix token out of codebook_roots bounds"))?;
+        if p_roots == query_roots {
+            let succ_tok = window_tokens[p + 1];
+            if usize::from(succ_tok) >= codebook_roots.len() {
+                return Err(invalid("successor token out of codebook_roots bounds"));
+            }
+            matched_succ = Some(succ_tok);
+        }
+    }
+    Ok(matched_succ)
+}
+
+/// Evaluate one row through `orbit_root_causal_successor` + `select_level3_joint_pointer_global` +
+/// `DiscreteHamiltonGateV1` rotation `q_read -> q_trunk` + post-rotation full two-stage `OuterL1V1`
+/// writer (`writer_score_full_outer_l1(&q_trunk)`).
+pub fn evaluate_joint_pointer_full_writer(
+    q_read: &[i32; READ_WIDTH],
+    window_tokens: &[u16],
+    read_code: u16,
+    rec_code: u16,
+    rec_mode: RecurrenceMode,
+    norm_mode: NormalizationMode,
+    tables: &TrunkTables,
+    codebook_roots: &[[u8; TRUNK_BLOCKS]],
+    codebook_coords: &[[i32; READ_WIDTH]],
+    cell_tokens: &[Vec<u16>; CELL_COUNT],
+) -> Result<(
+    u16,
+    Option<u16>,
+    [i32; READ_WIDTH],
+    [u8; TRUNK_BLOCKS],
+    [u32; 8],
+    [u16; 16],
+)> {
+    let query_token = *window_tokens
+        .last()
+        .ok_or_else(|| invalid("empty window_tokens in evaluate_joint_pointer_full_writer"))?;
+    let pointer_succ = orbit_root_causal_successor(window_tokens, codebook_roots)?;
+    let chosen_tok = tables.select_level3_joint_pointer_global(
+        query_token,
+        read_code,
+        rec_code,
+        pointer_succ,
+        rec_mode,
+        norm_mode,
+    );
+    let read_roots = unpack_code(read_code);
+    let target_roots = codebook_roots
+        .get(usize::from(chosen_tok))
+        .copied()
+        .ok_or_else(|| invalid("chosen_tok out of codebook_roots bounds"))?;
+    let (q_trunk, frames) = apply_hamilton_gate_vector(q_read, read_roots, target_roots)?;
+    for b in 0..TRUNK_BLOCKS {
+        let blk: [i32; BLOCK_WIDTH] = q_trunk[b * BLOCK_WIDTH..(b + 1) * BLOCK_WIDTH]
+            .try_into()
+            .map_err(|_| invalid("trunk block slice"))?;
+        if !BlockNormInvariants::measure(&blk).is_canonical_unit_root() {
+            return Err(invalid(
+                "joint-pointer trunk output block violated canonical E8 orbit norm invariants",
+            ));
+        }
+    }
+    let (top8, admitted_cells) =
+        writer_score_full_outer_l1(&q_trunk, codebook_coords, cell_tokens, KEPT_CELLS_DEFAULT)?;
+    Ok((chosen_tok, pointer_succ, q_trunk, frames, top8, admitted_cells))
 }
 
 /// Evaluate one row through the joint-first `Level 3` hierarchy + `DiscreteHamiltonGateV1`
@@ -1454,6 +1703,308 @@ pub struct TrunkArtifactManifestV1 {
     pub distinct_train_read_rec_pairs: usize,
     pub distinct_train_query_tokens: usize,
     pub round_trip_verified: bool,
+}
+
+const TRUNK_LUT_ALIGN: usize = 64;
+const TRUNK_LUT_MAX_HEADER: u64 = 64 << 20;
+
+fn push_u32_section(blob: &mut Vec<u8>, name: &str, words: &[u32]) -> SectionSpec {
+    let pad = (TRUNK_LUT_ALIGN - blob.len() % TRUNK_LUT_ALIGN) % TRUNK_LUT_ALIGN;
+    blob.resize(blob.len() + pad, 0);
+    let offset = blob.len() as u64;
+    for &w in words {
+        blob.extend_from_slice(&w.to_le_bytes());
+    }
+    SectionSpec {
+        name: name.to_owned(),
+        kind: SectionKind::U32,
+        len: words.len(),
+        span: SectionSpan {
+            offset,
+            bytes: (words.len() * 4) as u64,
+        },
+    }
+}
+
+/// Export a complete Stage 3 trunk model (`Snapshot`, `PositionStepTable`, `NormFrameTable`, and
+/// `TrunkTables`) into a self-contained 64-byte-aligned `UORLUT01` (`uor-r4.lut-discrete-trunk/1`)
+/// integer container.
+pub fn export_trunk_d11(
+    snapshot: &crate::snapshot::Snapshot,
+    step_table: &PositionStepTable,
+    norm_frames: &NormFrameTable,
+    tables: &TrunkTables,
+) -> Result<Vec<u8>> {
+    if step_table.blocks() != snapshot.spec.blocks || norm_frames.blocks() != snapshot.spec.blocks {
+        return Err(invalid(
+            "trunk D11 export requires step_table and norm_frames blocks to match snapshot.spec.blocks",
+        ));
+    }
+    if tables.unigram_counts.len() != VOCABULARY
+        || usize::from(tables.unigram_best_global) >= VOCABULARY
+    {
+        return Err(invalid(
+            "trunk D11 export requires 4096 unigram_counts and valid unigram_best_global",
+        ));
+    }
+    let mut base_snap = snapshot.clone();
+    base_snap.position = None;
+    let base_bytes = export_d11(&base_snap)?;
+    let mut len_bytes = [0u8; 8];
+    len_bytes.copy_from_slice(&base_bytes[8..16]);
+    let base_hdr_len = u64::from_le_bytes(len_bytes) as usize;
+    let mut header: DiscreteLutHeader = serde_json::from_slice(&base_bytes[16..16 + base_hdr_len])
+        .map_err(|e| invalid(format!("parse base UORLUT01 header: {e}")))?;
+    let unaligned = 16 + base_hdr_len;
+    let data_start = unaligned + (TRUNK_LUT_ALIGN - unaligned % TRUNK_LUT_ALIGN) % TRUNK_LUT_ALIGN;
+    let mut blob = base_bytes[data_start..].to_vec();
+
+    let step_words: Vec<u32> = step_table
+        .export_words()
+        .iter()
+        .map(|&b| u32::from(b))
+        .collect();
+    header.tables.push(push_u32_section(
+        &mut blob,
+        "discrete.trunk.step_candidates",
+        &step_words,
+    ));
+
+    let norm_words: Vec<u32> = norm_frames
+        .export_words()
+        .iter()
+        .map(|&b| u32::from(b))
+        .collect();
+    header.tables.push(push_u32_section(
+        &mut blob,
+        "discrete.trunk.norm_candidates",
+        &norm_words,
+    ));
+
+    let mut unigram_words = Vec::with_capacity(1 + VOCABULARY);
+    unigram_words.push(u32::from(tables.unigram_best_global));
+    unigram_words.extend_from_slice(&tables.unigram_counts);
+    header.tables.push(push_u32_section(
+        &mut blob,
+        "discrete.trunk.unigram",
+        &unigram_words,
+    ));
+
+    for (sec_name, sparse_tbl) in [
+        ("discrete.trunk.read_table", &tables.read_table),
+        ("discrete.trunk.rec_table", &tables.rec_table),
+        ("discrete.trunk.read_rec_table", &tables.read_rec_table),
+        ("discrete.trunk.rec_shuf_table", &tables.rec_shuf_table),
+        (
+            "discrete.trunk.read_rec_shuf_table",
+            &tables.read_rec_shuf_table,
+        ),
+        ("discrete.trunk.rec_unit_table", &tables.rec_unit_table),
+        (
+            "discrete.trunk.read_rec_unit_table",
+            &tables.read_rec_unit_table,
+        ),
+        ("discrete.trunk.query_table", &tables.query_table),
+        ("discrete.trunk.query_read_table", &tables.query_read_table),
+        ("discrete.trunk.query_rec_table", &tables.query_rec_table),
+        (
+            "discrete.trunk.query_rec_shuf_table",
+            &tables.query_rec_shuf_table,
+        ),
+        (
+            "discrete.trunk.query_rec_unit_table",
+            &tables.query_rec_unit_table,
+        ),
+    ] {
+        let triples = sparse_tbl.to_triples();
+        header
+            .tables
+            .push(push_u32_section(&mut blob, sec_name, &triples));
+    }
+
+    header.schema = TRUNK_LUT_SCHEMA.to_owned();
+    let json = serde_json::to_vec(&header).map_err(|e| invalid(e.to_string()))?;
+    let mut out = Vec::with_capacity(16 + json.len() + TRUNK_LUT_ALIGN + blob.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(json.len() as u64).to_le_bytes());
+    out.extend_from_slice(&json);
+    let pad = (TRUNK_LUT_ALIGN - out.len() % TRUNK_LUT_ALIGN) % TRUNK_LUT_ALIGN;
+    out.resize(out.len() + pad, 0);
+    out.extend_from_slice(&blob);
+    Ok(out)
+}
+
+/// Restore and validate a complete Stage 3 trunk model (`Snapshot`, `PositionStepTable`,
+/// `NormFrameTable`, and `TrunkTables`) from a `UORLUT01` (`uor-r4.lut-discrete-trunk/1`) container.
+pub fn import_trunk_d11(
+    bytes: &[u8],
+) -> Result<(
+    crate::snapshot::Snapshot,
+    PositionStepTable,
+    NormFrameTable,
+    TrunkTables,
+)> {
+    if bytes.len() < 16 || &bytes[..8] != MAGIC {
+        return Err(invalid("missing UORLUT01 magic in trunk D11 container"));
+    }
+    let mut len_bytes = [0u8; 8];
+    len_bytes.copy_from_slice(&bytes[8..16]);
+    let header_len = u64::from_le_bytes(len_bytes);
+    if header_len > TRUNK_LUT_MAX_HEADER || 16 + (header_len as usize) > bytes.len() {
+        return Err(invalid("trunk UORLUT01 header length out of bounds"));
+    }
+    let header: DiscreteLutHeader = serde_json::from_slice(&bytes[16..16 + (header_len as usize)])
+        .map_err(|e| invalid(format!("trunk UORLUT01 header JSON: {e}")))?;
+    if header.schema != TRUNK_LUT_SCHEMA || !header.matrices.is_empty() || header.tables.len() != 19
+    {
+        return Err(invalid(
+            "trunk UORLUT01 requires schema uor-r4.lut-discrete-trunk/1, empty matrices, and 19 tables",
+        ));
+    }
+    let unaligned = 16 + (header_len as usize);
+    let data_start = unaligned + (TRUNK_LUT_ALIGN - unaligned % TRUNK_LUT_ALIGN) % TRUNK_LUT_ALIGN;
+    if data_start > bytes.len() || bytes[unaligned..data_start].iter().any(|&b| b != 0) {
+        return Err(invalid(
+            "trunk UORLUT01 header padding is missing or non-zero",
+        ));
+    }
+    let data = &bytes[data_start..];
+
+    // Reconstruct the 4-table Stage 2 container to validate and restore the base Snapshot via `import_d11`.
+    let base_end = usize::try_from(
+        header.tables[3]
+            .span
+            .offset
+            .checked_add(header.tables[3].span.bytes)
+            .ok_or_else(|| invalid("base section span overflow"))?,
+    )
+    .map_err(|_| invalid("base section end overflow"))?;
+    if base_end > data.len() {
+        return Err(invalid("base UORLUT01 sections exceed data length"));
+    }
+    let base_header = DiscreteLutHeader {
+        schema: crate::d11_export::DISCRETE_LUT_SCHEMA.to_owned(),
+        shape: header.shape.clone(),
+        matrices: Vec::new(),
+        tables: header.tables[..4].to_vec(),
+        source: header.source.clone(),
+    };
+    let base_json = serde_json::to_vec(&base_header).map_err(|e| invalid(e.to_string()))?;
+    let base_container = {
+        let mut c = Vec::with_capacity(16 + base_json.len() + TRUNK_LUT_ALIGN + base_end);
+        c.extend_from_slice(MAGIC);
+        c.extend_from_slice(&(base_json.len() as u64).to_le_bytes());
+        c.extend_from_slice(&base_json);
+        let base_pad = (TRUNK_LUT_ALIGN - c.len() % TRUNK_LUT_ALIGN) % TRUNK_LUT_ALIGN;
+        c.resize(c.len() + base_pad, 0);
+        c.extend_from_slice(&data[..base_end]);
+        c
+    };
+    let snapshot = import_d11(&base_container)?;
+
+    let mut prev_end = base_end;
+    for entry in &header.tables[4..] {
+        let start =
+            usize::try_from(entry.span.offset).map_err(|_| invalid("section offset overflow"))?;
+        let span_bytes =
+            usize::try_from(entry.span.bytes).map_err(|_| invalid("section bytes overflow"))?;
+        let end = start
+            .checked_add(span_bytes)
+            .ok_or_else(|| invalid("section end overflow"))?;
+        if start < prev_end
+            || start - prev_end >= TRUNK_LUT_ALIGN
+            || end > data.len()
+            || data[prev_end..start].iter().any(|&b| b != 0)
+        {
+            return Err(invalid(
+                "trunk UORLUT01 section ordering, alignment gap, or zero-padding invalid",
+            ));
+        }
+        prev_end = end;
+    }
+    if prev_end != data.len() {
+        return Err(invalid("trunk UORLUT01 has unexpected trailing bytes"));
+    }
+
+    let read_u32_section = |name: &str| -> Result<Vec<u32>> {
+        let entry = header
+            .tables
+            .iter()
+            .find(|t| t.name == name)
+            .ok_or_else(|| invalid(format!("missing trunk section {name}")))?;
+        if entry.kind != SectionKind::U32 {
+            return Err(invalid(format!("trunk section {name} kind must be U32")));
+        }
+        let expected_bytes = entry
+            .len
+            .checked_mul(4)
+            .ok_or_else(|| invalid("trunk section byte length overflow"))?;
+        if (entry.span.offset as usize) % TRUNK_LUT_ALIGN != 0
+            || entry.span.bytes != expected_bytes as u64
+        {
+            return Err(invalid(format!(
+                "trunk section {name} alignment or byte span mismatch"
+            )));
+        }
+        let start =
+            usize::try_from(entry.span.offset).map_err(|_| invalid("section offset overflow"))?;
+        let end = start
+            .checked_add(expected_bytes)
+            .ok_or_else(|| invalid("section end overflow"))?;
+        let slice = data
+            .get(start..end)
+            .ok_or_else(|| invalid(format!("trunk section {name} out of bounds")))?;
+        Ok(slice
+            .chunks_exact(4)
+            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .collect())
+    };
+
+    let step_words = read_u32_section("discrete.trunk.step_candidates")?;
+    let mut step_candidates = Vec::with_capacity(step_words.len());
+    for w in step_words {
+        let c = u8::try_from(w).map_err(|_| invalid("step candidate exceeds u8"))?;
+        step_candidates.push(c);
+    }
+    let step_table = PositionStepTable::new(snapshot.spec.blocks, step_candidates)?;
+
+    let norm_words = read_u32_section("discrete.trunk.norm_candidates")?;
+    let mut norm_candidates = Vec::with_capacity(norm_words.len());
+    for w in norm_words {
+        let c = u8::try_from(w).map_err(|_| invalid("norm candidate exceeds u8"))?;
+        norm_candidates.push(c);
+    }
+    let norm_frames = NormFrameTable::new(snapshot.spec.blocks, norm_candidates)?;
+
+    let unigram_words = read_u32_section("discrete.trunk.unigram")?;
+    if unigram_words.len() != 1 + VOCABULARY || unigram_words[0] >= VOCABULARY as u32 {
+        return Err(invalid("discrete.trunk.unigram length or best_global invalid"));
+    }
+    let unigram_best_global = unigram_words[0] as u16;
+    let unigram_counts = unigram_words[1..].to_vec();
+
+    let read_sparse = |name: &str| -> Result<SparseCountTable> {
+        let words = read_u32_section(name)?;
+        SparseCountTable::from_triples(&words)
+    };
+
+    let tables = TrunkTables {
+        unigram_counts,
+        unigram_best_global,
+        read_table: read_sparse("discrete.trunk.read_table")?,
+        rec_table: read_sparse("discrete.trunk.rec_table")?,
+        read_rec_table: read_sparse("discrete.trunk.read_rec_table")?,
+        rec_shuf_table: read_sparse("discrete.trunk.rec_shuf_table")?,
+        read_rec_shuf_table: read_sparse("discrete.trunk.read_rec_shuf_table")?,
+        rec_unit_table: read_sparse("discrete.trunk.rec_unit_table")?,
+        read_rec_unit_table: read_sparse("discrete.trunk.read_rec_unit_table")?,
+        query_table: read_sparse("discrete.trunk.query_table")?,
+        query_read_table: read_sparse("discrete.trunk.query_read_table")?,
+        query_rec_table: read_sparse("discrete.trunk.query_rec_table")?,
+        query_rec_shuf_table: read_sparse("discrete.trunk.query_rec_shuf_table")?,
+        query_rec_unit_table: read_sparse("discrete.trunk.query_rec_unit_table")?,
+    };
+    Ok((snapshot, step_table, norm_frames, tables))
 }
 
 /// Export and round-trip verify the D11 integer trunk artifact for a `Snapshot`, `PositionStepTable`,
@@ -2687,5 +3238,161 @@ mod tests {
         assert_eq!(q_trunk, coords[2777]);
         assert!(post_rot_admitted.contains(&cell_2777));
         assert_eq!(post_rot_top8[0], 2777);
+    }
+
+    #[test]
+    fn orbit_root_causal_successor_and_joint_pointer_selector_recover_copy_and_context_targets() {
+        let (_, roots, coords, cell_tokens) = synthetic_codebook();
+
+        // Suppose in TRAIN, query_token = 9 marginally precedes token 50 (3 times in read_code = 200),
+        // while in causal window `[40, 9, 3333, 55, 9]`, the 4-block orbit-root causal successor of `9` is `3333`.
+        let mut train = Vec::new();
+        for _ in 0..3 {
+            train.push(TrunkTrainRow {
+                read_code: 200,
+                rec_code: 20,
+                rec_shuf_code: 20,
+                rec_unit_code: 20,
+                query_token: 9,
+                target_token: 50,
+            });
+        }
+        let tables = TrunkTables::build(&train).unwrap();
+        let window = [40u16, 9, 3333, 55, 9];
+        let ptr_succ = orbit_root_causal_successor(&window, &roots).unwrap();
+        assert_eq!(ptr_succ, Some(3333));
+
+        let q_read = root_vector(unpack_code(100));
+        let (chosen_tok, resolved_ptr, q_trunk, _, top8, admitted) =
+            evaluate_joint_pointer_full_writer(
+                &q_read,
+                &window,
+                100,
+                5,
+                RecurrenceMode::ActiveHolonomyV1,
+                NormalizationMode::ScaleMatchedSnapV1,
+                &tables,
+                &roots,
+                &coords,
+                &cell_tokens,
+            )
+            .unwrap();
+        assert_eq!(resolved_ptr, Some(3333));
+        assert_eq!(chosen_tok, 3333);
+        assert_eq!(q_trunk, coords[3333]);
+        let cell_3333 = u16::from(roots[3333][0]) * 16 + u16::from(roots[3333][3]);
+        assert!(admitted.contains(&cell_3333));
+        assert_eq!(top8[0], 3333);
+    }
+
+    #[test]
+    fn trunk_d11_container_roundtrips_and_erves_post_rotation_full_writer_with_zero_export_gap() {
+        use crate::metadata::BinderPlan;
+        use crate::snapshot::Snapshot;
+        use crate::{ObjectivePolicy, ReadInitialization, ReadSpec, Spec, SCHEMA};
+
+        let (table, roots, coords, cell_tokens) = synthetic_codebook();
+        let spec = Spec {
+            vocabulary: VOCABULARY as u32,
+            blocks: TRUNK_BLOCKS as u32,
+            context: 6,
+            kept_cells: KEPT_CELLS_DEFAULT as u32,
+        };
+        let stages = BinderPlan::new(spec.context as usize).unwrap().stages() as u32;
+        let read_spec = ReadSpec::Flock { kept: 8 };
+        let gate_len = read_spec.gate_count(spec.blocks, stages).unwrap() as usize;
+        let snapshot = Snapshot {
+            schema: SCHEMA.to_owned(),
+            spec,
+            read_spec,
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+            read_initialization: ReadInitialization::ActiveLeafV1,
+            normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
+            address_metric: Default::default(),
+            seed: 1,
+            epoch: 5,
+            table,
+            routes: vec![u32::from(geometry::IDENTITY); (spec.blocks * stages) as usize],
+            gates: vec![0i32; gate_len],
+            operator_kappa: geometry::OPERATOR_KAPPA.to_owned(),
+            composition_kappa: geometry::COMPOSITION_KAPPA.to_owned(),
+            kernel_sha256: "11".repeat(32),
+            source_sha256: "22".repeat(32),
+            geometry_sha256: "33".repeat(32),
+        };
+        let step_table = build_trunk_step_table(spec.blocks, 0).unwrap();
+        let norm_frames = build_trunk_norm_frames(spec.blocks, 0).unwrap();
+        let train = vec![
+            TrunkTrainRow {
+                read_code: 100,
+                rec_code: 7,
+                rec_shuf_code: 7,
+                rec_unit_code: 7,
+                query_token: 9,
+                target_token: 2777,
+            },
+            TrunkTrainRow {
+                read_code: 200,
+                rec_code: 20,
+                rec_shuf_code: 20,
+                rec_unit_code: 20,
+                query_token: 9,
+                target_token: 50,
+            },
+        ];
+        let tables = TrunkTables::build(&train).unwrap();
+        let bytes = export_trunk_d11(&snapshot, &step_table, &norm_frames, &tables).unwrap();
+        assert_eq!(&bytes[..8], MAGIC);
+
+        let (restored_snap, restored_steps, restored_norms, restored_tables) =
+            import_trunk_d11(&bytes).unwrap();
+        assert_eq!(restored_snap.table, snapshot.table);
+        assert_eq!(restored_steps, step_table);
+        assert_eq!(restored_norms, norm_frames);
+        assert_eq!(restored_tables, tables);
+
+        let q_read = root_vector(unpack_code(100));
+        let window = [40u16, 9, 3333, 55, 9];
+        let pre_export = evaluate_joint_pointer_full_writer(
+            &q_read,
+            &window,
+            100,
+            7,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &tables,
+            &roots,
+            &coords,
+            &cell_tokens,
+        )
+        .unwrap();
+        let post_import = evaluate_joint_pointer_full_writer(
+            &q_read,
+            &window,
+            100,
+            7,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &restored_tables,
+            &roots,
+            &coords,
+            &cell_tokens,
+        )
+        .unwrap();
+        assert_eq!(pre_export, post_import);
+
+        let mut bad_magic = bytes.clone();
+        bad_magic[0] ^= 1;
+        assert!(import_trunk_d11(&bad_magic).is_err());
+
+        let mut bad_tail = bytes.clone();
+        let last_tok_hi = bad_tail.len() - 5;
+        bad_tail[last_tok_hi] ^= 0xff;
+        assert!(import_trunk_d11(&bad_tail).is_err());
+
+        let mut bad_trailing = bytes.clone();
+        bad_trailing.push(0);
+        assert!(import_trunk_d11(&bad_trailing).is_err());
     }
 }

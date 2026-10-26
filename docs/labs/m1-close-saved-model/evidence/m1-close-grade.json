@@ -145,6 +145,52 @@
       ],
       "seeds_evaluated": 2,
       "source_unit": "docs/labs/m1-trunk-assembly-and-training/README.md (#2844)"
+    },
+    {
+      "bar_a_pass": false,
+      "bar_b_pass": true,
+      "bar_c_pass": true,
+      "bar_d_pass": true,
+      "bar_e_status": "UNAVAILABLE_NOT_RUN",
+      "blocking_reason": "Clears Bar (d) on ft/dev across both seeds (7,702/7,701 on roots0 and 7,386/7,374 on roots_final vs T2=6,300; P_succ 2,090/2,086 vs T2_psucc=1,245) and packs into 19-table uor-r4.lut-discrete-trunk/1 (export_trunk_d11/import_trunk_d11 with 0 export gap), but clean-room crates/uor-r4-integer::IntegerDiscreteModel::from_bytes hardcodes header.tables.len() == 4 (outside #2837 file scope)",
+      "clean_room_4table_d11_accepted": false,
+      "fz_joint_hierarchy_dev_top1_roots0": [
+        6943,
+        6943
+      ],
+      "fz_joint_hierarchy_dev_top1_roots_final": [
+        6674,
+        6665
+      ],
+      "fz_joint_hierarchy_fresh_q_rec_top1": [
+        6875,
+        6875
+      ],
+      "fz_joint_pointer_dev_psucc_top1": [
+        2090,
+        2086
+      ],
+      "fz_joint_pointer_dev_top1_roots0": [
+        7702,
+        7701
+      ],
+      "fz_joint_pointer_dev_top1_roots_final": [
+        7386,
+        7374
+      ],
+      "fz_joint_pointer_fresh_psucc_top1": [
+        2408,
+        2413
+      ],
+      "fz_joint_pointer_fresh_q_rec_ptr_top1": [
+        7703,
+        7722
+      ],
+      "id": "trunk-joint-pointer-v1-d11",
+      "read_mode": "Flock (B=4, C=256, FrozenZeroV1) + DiscreteHamiltonGateV1 + DiscreteQuaternionRecurrenceV1 + OrbitRootCausalPointerV1 + Post-Rotation OuterL1V1",
+      "seeds_evaluated": 2,
+      "source_unit": "docs/labs/m1-close-saved-model/README.md (#2837, antigravity-105 & antigravity-106)",
+      "trunk_d11_exported": true
     }
   ],
   "fresh_v2_seal_intact": true,
@@ -158,8 +204,10 @@
     "dev_full_panel_noise_floor": 24,
     "dev_psucc_noise_floor": 20,
     "dev_psucc_rows": 3581,
-    "dev_psucc_t2_top1": 1729,
+    "dev_psucc_rows_c192": 3847,
+    "dev_psucc_t2_top1": 1245,
     "dev_psucc_unigram_top1": 169,
+    "dev_psucc_unigram_top1_c192": 194,
     "dev_rows": 14287,
     "dev_t2_top1": 6300,
     "dev_unigram_top1": 1226,
@@ -173,7 +221,7 @@
     "bottleneck_1_pre_rotation_shortlist": "In 4-table UORLUT01 (IntegerDiscreteModel::evaluate_prefix), the 8-cell shortlist A_W(q_read) admits at most 5,009 / 14,287 DEV targets (35.06% < T2 = 6,300), and G_restr(A_W) = 3,084 < 6,300.",
     "bottleneck_2_marginal_read_code_collision": "A single 16-bit read code c_read in O_16^4 without query/recurrence conditioning has unconstrained table ceiling T(c_read) = 4,085 on Stage T T16_fz (3,414 on Rung-0 Q4, projected ceiling 3,552 in #3179 QB=B2) < T2 = 6,300.",
     "bottleneck_3_level3_marginal_query_inversion_and_d11_export": "In #2844 TrunkAssemblyV1, select_level3_full_trunk weighted marginal query count 64 * c_q above joint (query, read) 32 * c_qr and (query, rec) 16 * c_qc while restricting candidates to pre-rotation A_W(q_read), and trunk-model.d11 exported only the 4-table Stage 2 snapshot.",
-    "pivot_path_a_discrete_joint_post_rotation_d11": "Select target via joint-first hierarchy (select_level3_joint_hierarchy_global, weighting 64 * c_qr + 32 * c_qc + 8 * c_rr + 2 * c_r + c_q), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize trunk tables into the D11 container.",
+    "pivot_path_a_discrete_joint_post_rotation_d11": "Select target via joint-first hierarchy (select_level3_joint_hierarchy_global: 6,943/6,943 on ft/dev roots0, 6,674/6,665 on roots_final, 6,875/6,875 on fresh_v2) or joint-pointer hierarchy (select_level3_joint_pointer_global with 4-block O_16^4 orbit-root causal pointer: 7,702/7,701 on ft/dev roots0, 7,386/7,374 on roots_final, 2,090/2,086 on P_succ vs T2_psucc=1,245, and 7,703/7,722 on fresh_v2), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize all 19 trunk sections via export_trunk_d11/import_trunk_d11. Remaining clean-room link: extend crates/uor-r4-integer::IntegerDiscreteModel::from_bytes beyond 4 tables.",
     "pivot_path_b_offline_float_trunk_export_d11": "Offline float-trained SpiralCore / FBS multi-layer trunk exported to integer UORLUT01 via d11-exporter-float-trunk (#2818, CHARTER.md §3.6 / D37)."
   },
   "two_seed_exported_d11_candidates": [

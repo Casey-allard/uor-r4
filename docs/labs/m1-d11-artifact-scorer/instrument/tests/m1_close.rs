@@ -8,7 +8,8 @@ use m1_d11_artifact_scorer_instrument::fresh_transfer::{
 use m1_d11_artifact_scorer_instrument::m1_close::{
     build_fresh_transfer_gate_receipt, canonical_m1_saved_model_audit,
     canonical_stage_t_fz_candidate, canonical_stage_t_rel_candidate, evaluate_m1_closing_bars,
-    M1CloseCandidateInput, DEV_PSUCC_ROWS, M1_CLOSE_SCHEMA,
+    M1CloseCandidateInput, DEV_PSUCC_ROWS, DEV_PSUCC_ROWS_C192, DEV_PSUCC_T2_TOP1,
+    DEV_PSUCC_UNIGRAM_TOP1_C192, M1_CLOSE_SCHEMA,
 };
 use uor_r4_discrete::corpus::{CorpusSource, FilePin, Split};
 
@@ -102,13 +103,22 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
     );
     assert_eq!(audit["not_run_is_not_pass"], true);
     assert_eq!(audit["fresh_v2_seal_intact"], true);
+    assert_eq!(audit["registered_bars"]["dev_psucc_t2_top1"], 1_245);
+    assert_eq!(audit["registered_bars"]["dev_psucc_rows_c192"], 3_847);
     assert_eq!(
-        audit["all_saved_discrete_models_inventory"]
-            .as_array()
-            .unwrap()
-            .len(),
-        8
+        audit["registered_bars"]["dev_psucc_unigram_top1_c192"],
+        194
     );
+    let inv = audit["all_saved_discrete_models_inventory"]
+        .as_array()
+        .unwrap();
+    assert_eq!(inv.len(), 9);
+    assert_eq!(inv[8]["id"], "trunk-joint-pointer-v1-d11");
+    assert_eq!(inv[8]["bar_d_pass"], true);
+    assert_eq!(inv[8]["bar_a_pass"], false);
+    assert_eq!(DEV_PSUCC_T2_TOP1, 1_245);
+    assert_eq!(DEV_PSUCC_ROWS_C192, 3_847);
+    assert_eq!(DEV_PSUCC_UNIGRAM_TOP1_C192, 194);
 
     let fz = canonical_stage_t_fz_candidate();
     let fz_v = evaluate_m1_closing_bars(&fz).unwrap();

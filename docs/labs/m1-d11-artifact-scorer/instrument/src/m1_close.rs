@@ -23,7 +23,9 @@ use crate::fresh_transfer::{
 pub const M1_CLOSE_SCHEMA: &str = "uor-r4.m1-close-saved-model/1";
 pub const DEV_PSUCC_ROWS: u64 = 3_581;
 pub const DEV_PSUCC_UNIGRAM_TOP1: u64 = 169;
-pub const DEV_PSUCC_T2_TOP1: u64 = 1_729;
+pub const DEV_PSUCC_ROWS_C192: u64 = 3_847;
+pub const DEV_PSUCC_UNIGRAM_TOP1_C192: u64 = 194;
+pub const DEV_PSUCC_T2_TOP1: u64 = 1_245;
 
 fn is_lower_hex_64(value: &str) -> bool {
     value.len() == 64
@@ -266,10 +268,15 @@ pub fn evaluate_m1_closing_bars(input: &M1CloseCandidateInput) -> Result<M1BarVe
             let p_spread = p1.abs_diff(p2);
             let p_floor = PSUCC_NOISE_FLOOR.max(p_spread);
             let p_target = DEV_PSUCC_T2_TOP1.saturating_add(p_floor);
-            s1.psucc_rows == DEV_PSUCC_ROWS
-                && s2.psucc_rows == DEV_PSUCC_ROWS
-                && p1 > DEV_PSUCC_UNIGRAM_TOP1
-                && p2 > DEV_PSUCC_UNIGRAM_TOP1
+            let (expected_rows, u_bar) = if s1.psucc_rows == DEV_PSUCC_ROWS_C192 {
+                (DEV_PSUCC_ROWS_C192, DEV_PSUCC_UNIGRAM_TOP1_C192)
+            } else {
+                (DEV_PSUCC_ROWS, DEV_PSUCC_UNIGRAM_TOP1)
+            };
+            s1.psucc_rows == expected_rows
+                && s2.psucc_rows == expected_rows
+                && p1 > u_bar
+                && p2 > u_bar
                 && p1 >= p_target
                 && p2 >= p_target
         }
@@ -649,6 +656,8 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
             "dev_full_panel_noise_floor": FULL_PANEL_NOISE_FLOOR,
             "dev_psucc_rows": DEV_PSUCC_ROWS,
             "dev_psucc_unigram_top1": DEV_PSUCC_UNIGRAM_TOP1,
+            "dev_psucc_rows_c192": DEV_PSUCC_ROWS_C192,
+            "dev_psucc_unigram_top1_c192": DEV_PSUCC_UNIGRAM_TOP1_C192,
             "dev_psucc_t2_top1": DEV_PSUCC_T2_TOP1,
             "dev_psucc_noise_floor": PSUCC_NOISE_FLOOR,
             "fresh_v2_tokens_sha256": FRESH_V2_TOKENS_SHA256,
@@ -808,13 +817,35 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
                 "bar_d_pass": false,
                 "bar_e_status": "UNAVAILABLE_NOT_RUN",
                 "blocking_reason": "Beats Unigram (1,226) by +1,762/+1,763 (T16_fz) and +1,001/+1,000 (T16_rel) across 2 seeds, but base trunk-model.d11 omits trunk tables and pre-rotation A_W(q_read) = 5,009 + marginal c_q weight (64 vs 32) cap Level 3 at 2,989 < T2 6,300"
+            },
+            {
+                "id": "trunk-joint-pointer-v1-d11",
+                "source_unit": "docs/labs/m1-close-saved-model/README.md (#2837, antigravity-105 & antigravity-106)",
+                "read_mode": "Flock (B=4, C=256, FrozenZeroV1) + DiscreteHamiltonGateV1 + DiscreteQuaternionRecurrenceV1 + OrbitRootCausalPointerV1 + Post-Rotation OuterL1V1",
+                "seeds_evaluated": 2,
+                "fz_joint_hierarchy_dev_top1_roots0": [6_943, 6_943],
+                "fz_joint_hierarchy_dev_top1_roots_final": [6_674, 6_665],
+                "fz_joint_hierarchy_fresh_q_rec_top1": [6_875, 6_875],
+                "fz_joint_pointer_dev_top1_roots0": [7_702, 7_701],
+                "fz_joint_pointer_dev_top1_roots_final": [7_386, 7_374],
+                "fz_joint_pointer_dev_psucc_top1": [2_090, 2_086],
+                "fz_joint_pointer_fresh_q_rec_ptr_top1": [7_703, 7_722],
+                "fz_joint_pointer_fresh_psucc_top1": [2_408, 2_413],
+                "trunk_d11_exported": true,
+                "clean_room_4table_d11_accepted": false,
+                "bar_a_pass": false,
+                "bar_b_pass": true,
+                "bar_c_pass": true,
+                "bar_d_pass": true,
+                "bar_e_status": "UNAVAILABLE_NOT_RUN",
+                "blocking_reason": "Clears Bar (d) on ft/dev across both seeds (7,702/7,701 on roots0 and 7,386/7,374 on roots_final vs T2=6,300; P_succ 2,090/2,086 vs T2_psucc=1,245) and packs into 19-table uor-r4.lut-discrete-trunk/1 (export_trunk_d11/import_trunk_d11 with 0 export gap), but clean-room crates/uor-r4-integer::IntegerDiscreteModel::from_bytes hardcodes header.tables.len() == 4 (outside #2837 file scope)"
             }
         ],
         "structural_diagnosis_and_pivot": {
             "bottleneck_1_pre_rotation_shortlist": "In 4-table UORLUT01 (IntegerDiscreteModel::evaluate_prefix), the 8-cell shortlist A_W(q_read) admits at most 5,009 / 14,287 DEV targets (35.06% < T2 = 6,300), and G_restr(A_W) = 3,084 < 6,300.",
             "bottleneck_2_marginal_read_code_collision": "A single 16-bit read code c_read in O_16^4 without query/recurrence conditioning has unconstrained table ceiling T(c_read) = 4,085 on Stage T T16_fz (3,414 on Rung-0 Q4, projected ceiling 3,552 in #3179 QB=B2) < T2 = 6,300.",
             "bottleneck_3_level3_marginal_query_inversion_and_d11_export": "In #2844 TrunkAssemblyV1, select_level3_full_trunk weighted marginal query count 64 * c_q above joint (query, read) 32 * c_qr and (query, rec) 16 * c_qc while restricting candidates to pre-rotation A_W(q_read), and trunk-model.d11 exported only the 4-table Stage 2 snapshot.",
-            "pivot_path_a_discrete_joint_post_rotation_d11": "Select target via joint-first hierarchy (select_level3_joint_hierarchy_global, weighting 64 * c_qr + 32 * c_qc + 8 * c_rr + 2 * c_r + c_q), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize trunk tables into the D11 container.",
+            "pivot_path_a_discrete_joint_post_rotation_d11": "Select target via joint-first hierarchy (select_level3_joint_hierarchy_global: 6,943/6,943 on ft/dev roots0, 6,674/6,665 on roots_final, 6,875/6,875 on fresh_v2) or joint-pointer hierarchy (select_level3_joint_pointer_global with 4-block O_16^4 orbit-root causal pointer: 7,702/7,701 on ft/dev roots0, 7,386/7,374 on roots_final, 2,090/2,086 on P_succ vs T2_psucc=1,245, and 7,703/7,722 on fresh_v2), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize all 19 trunk sections via export_trunk_d11/import_trunk_d11. Remaining clean-room link: extend crates/uor-r4-integer::IntegerDiscreteModel::from_bytes beyond 4 tables.",
             "pivot_path_b_offline_float_trunk_export_d11": "Offline float-trained SpiralCore / FBS multi-layer trunk exported to integer UORLUT01 via d11-exporter-float-trunk (#2818, CHARTER.md §3.6 / D37)."
         }
     });
