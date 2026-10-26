@@ -78,3 +78,8 @@ required-features = ["serving-wasm"]
 name = "fbs-compare"
 path = "src/bin/fbs-compare.rs"
 required-features = ["serving-wasm"]
+
+[[bin]]
+name = "fbs-toks"
+path = "src/bin/fbs-toks.rs"
+required-features = ["serving-wasm"]

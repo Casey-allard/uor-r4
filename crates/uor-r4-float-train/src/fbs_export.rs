@@ -371,17 +371,64 @@ fn table_and_rounding(model: &StackModel, name: &str, round: Rounding) -> Result
 ///   vector rounded to Q12 before the writer. The caller rounds the tables
 ///   first ([`round_tables_as_exported`]); an unrounded trunk is refused.
 pub fn fbs_float_readout(model: &StackModel, mode: FbsReadoutMode) -> Result<FbsFloatReadout> {
+    // Eight fixed full-context sequences: past the first position they reach
+    // the transition, the later convolution taps and the carried state.
+    let (vocab, time) = (model.config.vocab_size, model.config.context);
+    let sequences: Vec<Vec<u32>> = (0..READOUT_SEQUENCES)
+        .map(|s| {
+            (0..time)
+                .map(|t| ((s * 37 + t * 11 + 1) % vocab) as u32)
+                .collect()
+        })
+        .collect();
+    fbs_float_readout_on(model, mode, &sequences)
+}
+
+/// [`fbs_float_readout`] over chosen `sequences` in place of the fixed ones
+/// (claude-126: a sample of DEV windows, so the parity covers real text).
+pub fn fbs_float_readout_on(
+    model: &StackModel,
+    mode: FbsReadoutMode,
+    sequences: &[Vec<u32>],
+) -> Result<FbsFloatReadout> {
     check_no_sheet_arm()?;
     if mode == FbsReadoutMode::D11 {
         check_tables_rounded_as_exported(model)?;
     }
-    let read = || read_float_outputs(model, mode == FbsReadoutMode::D11);
+    let read = || read_float_outputs(model, mode == FbsReadoutMode::D11, sequences);
     let readout = match mode {
         FbsReadoutMode::Plain => read(),
         FbsReadoutMode::Export => crate::hamilton_sheet::with_d11_export_gates(read),
         FbsReadoutMode::D11 => crate::hamilton_sheet::with_d11_mode(read),
     }?;
     Ok(FbsFloatReadout { mode, ..readout })
+}
+
+/// The native writer's next token at every position of each of `sequences`,
+/// each read alone, as [`fbs_float_readout_on`] reads them but without the
+/// hidden vectors (claude-126: the D11 tokens of every DEV window, held
+/// against the panel's). GPU only.
+pub fn fbs_float_next_tokens(
+    model: &StackModel,
+    mode: FbsReadoutMode,
+    sequences: &[Vec<u32>],
+) -> Result<Vec<Vec<u32>>> {
+    check_no_sheet_arm()?;
+    if mode == FbsReadoutMode::D11 {
+        check_tables_rounded_as_exported(model)?;
+    }
+    let q12_query = mode == FbsReadoutMode::D11;
+    let read = || -> Result<Vec<Vec<u32>>> {
+        sequences
+            .iter()
+            .map(|tokens| Ok(hidden_and_next(model, tokens, q12_query)?.1))
+            .collect()
+    };
+    match mode {
+        FbsReadoutMode::Plain => read(),
+        FbsReadoutMode::Export => crate::hamilton_sheet::with_d11_export_gates(read),
+        FbsReadoutMode::D11 => crate::hamilton_sheet::with_d11_mode(read),
+    }
 }
 
 /// The hidden vectors of `tokens` (one sequence), rounded to Q12 when
@@ -417,7 +464,11 @@ fn hidden_and_next(
     Ok((hidden, next))
 }
 
-fn read_float_outputs(model: &StackModel, q12_query: bool) -> Result<FbsFloatReadout> {
+fn read_float_outputs(
+    model: &StackModel,
+    q12_query: bool,
+    sequences: &[Vec<u32>],
+) -> Result<FbsFloatReadout> {
     let (vocab, width) = (model.config.vocab_size, model.config.width);
     let mut positions = Vec::with_capacity(vocab);
     for token in 0..vocab as u32 {
@@ -428,17 +479,11 @@ fn read_float_outputs(model: &StackModel, q12_query: bool) -> Result<FbsFloatRea
             hidden: hidden.remove(0),
         });
     }
-    // Eight fixed full-context sequences: past the first position they reach
-    // the transition, the later convolution taps and the carried state.
-    let time = model.config.context;
-    let mut sequences = Vec::with_capacity(READOUT_SEQUENCES);
-    for s in 0..READOUT_SEQUENCES {
-        let tokens: Vec<u32> = (0..time)
-            .map(|t| ((s * 37 + t * 11 + 1) % vocab) as u32)
-            .collect();
-        let (hidden, next) = hidden_and_next(model, &tokens, q12_query)?;
-        sequences.push(FbsFloatSequence {
-            tokens,
+    let mut read = Vec::with_capacity(sequences.len());
+    for tokens in sequences {
+        let (hidden, next) = hidden_and_next(model, tokens, q12_query)?;
+        read.push(FbsFloatSequence {
+            tokens: tokens.clone(),
             next,
             hidden,
         });
@@ -448,7 +493,7 @@ fn read_float_outputs(model: &StackModel, q12_query: bool) -> Result<FbsFloatRea
         width,
         mode: FbsReadoutMode::Plain,
         positions,
-        sequences,
+        sequences: read,
     })
 }
 

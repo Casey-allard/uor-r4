@@ -1802,6 +1802,12 @@ pub fn with_d11_mode<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
     out
 }
 
+/// Clear the gate hook's arm, which [`evaluate_dev_panel`] and [`with_gate_mode`] leave set, so a
+/// later forward runs the plain gate path (claude-126).
+pub fn clear_active_arm() {
+    GATE_HOOK.with(|cell| cell.borrow_mut().active_arm = None);
+}
+
 /// Whether the D11 mode snaps the recurrence transition on this thread.
 pub(crate) fn is_snapping_transition() -> bool {
     GATE_HOOK.with(|cell| cell.borrow().snap_transition)

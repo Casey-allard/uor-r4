@@ -2936,6 +2936,48 @@ fn fbs_tie_margins_measure_how_near_each_switch_is() {
 }
 
 #[test]
+fn fbs_reference_batches_equal_their_inputs_run_alone() {
+    use super::format::FbsReferenceSnaps;
+    // One pass over many inputs, the exporter's checks and tables read once,
+    // gives each input's own forward and its per-position margins, with no
+    // state carried from one input to the next.
+    let snap = synthetic_fbs_trunk(20261026);
+    let inputs: [&[u32]; 3] = [&[5, 11, 3], &[7], &[19, 2]];
+    for quantized in [false, true] {
+        let each = snap
+            .forward_f32_each(&inputs, quantized, FbsReferenceSnaps::INTEGER)
+            .expect("batch");
+        for (tokens, out) in inputs.iter().zip(&each) {
+            let alone = snap
+                .forward_f32_with(tokens, quantized, FbsReferenceSnaps::INTEGER)
+                .expect("alone");
+            assert_eq!(&alone, out, "{tokens:?} quantized {quantized}");
+        }
+    }
+    let margins = snap
+        .tie_margins_each(&inputs, true, FbsReferenceSnaps::INTEGER)
+        .expect("margins");
+    for (tokens, per_position) in inputs.iter().zip(&margins) {
+        assert_eq!(per_position.len(), tokens.len());
+        // Position t holds the margins of the prefix that ends there.
+        for (t, m) in per_position.iter().enumerate() {
+            let prefix = snap
+                .tie_margins(&tokens[..=t], true, FbsReferenceSnaps::INTEGER)
+                .expect("prefix");
+            assert_eq!(*m, prefix, "{tokens:?} position {t}");
+        }
+    }
+    // A refused batch is refused whole, and a later trace starts afresh.
+    assert!(snap
+        .tie_margins_each(&[&[5], &[u32::MAX]], true, FbsReferenceSnaps::INTEGER)
+        .is_err());
+    assert_eq!(
+        snap.tie_margins(&[5], true, FbsReferenceSnaps::INTEGER).expect("margins"),
+        margins[0][0]
+    );
+}
+
+#[test]
 fn fbs_trunk_snapshot_json_round_trips_exactly() {
     // The float converter hands the snapshot over as JSON (`fbs-export`); every
     // f32 must read back to the same bits, so the export is the same bytes.

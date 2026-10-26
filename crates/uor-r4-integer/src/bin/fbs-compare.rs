@@ -2,7 +2,7 @@
 //! from (d11-exporter-float-trunk, claude-123 and claude-124).
 //!
 //! ```text
-//! fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]
+//! fbs-compare [--parity-only] SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]
 //! ```
 //!
 //! `SNAPSHOT_JSON` is the converter's snapshot. `READOUT_JSON` is the float
@@ -19,6 +19,10 @@
 //! - the integer session with the fully snapped, quantized reference;
 //! - the reference variants with each other, which needs no GPU: how much of
 //!   the float-to-integer gap each snap and the table rounding explain.
+//!
+//! With `--parity-only` it reports only the D11 readout against the integer
+//! session, and runs no float reference: a GPU job's parity proof, since a
+//! host reference run is a host fallback (CHARTER §3.5, claude-126).
 //!
 //! It prints one JSON line: readings, not bars. It exits non-zero only when
 //! the snapshot does not export, parse or serve, or a readout does not fit.
@@ -40,7 +44,7 @@ type Output = (u32, Vec<f64>);
 type Margin = fn(&FbsTieMargins) -> f64;
 
 const USAGE: &str =
-    "usage: fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]";
+    "usage: fbs-compare [--parity-only] SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]";
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
@@ -106,14 +110,15 @@ fn reference(
     quantized: bool,
     snaps: FbsReferenceSnaps,
 ) -> Result<Vec<Output>, String> {
-    let mut all = Vec::new();
-    for tokens in inputs {
-        let out: Vec<FbsWriterOutput> = snap
-            .forward_f32_with(tokens, quantized, snaps)
-            .map_err(|e| format!("{tokens:?}: reference: {e}"))?;
-        all.extend(out.into_iter().map(|o| (o.token, o.query)));
-    }
-    Ok(all)
+    let inputs: Vec<&[u32]> = inputs.iter().map(Vec::as_slice).collect();
+    let each: Vec<Vec<FbsWriterOutput>> = snap
+        .forward_f32_each(&inputs, quantized, snaps)
+        .map_err(|e| format!("reference: {e}"))?;
+    Ok(each
+        .into_iter()
+        .flatten()
+        .map(|o| (o.token, o.query))
+        .collect())
 }
 
 /// The integer session's token at every position of every input, each input
@@ -138,25 +143,28 @@ fn served(model: &IntegerStackModel, inputs: &[Vec<u32>]) -> Result<Vec<Output>,
 }
 
 /// The quantized, fully snapped reference's [`FbsTieMargins`] at every
-/// position of every input: those met on the way to it, so each prefix runs
-/// on its own.
-fn tie_margins(snap: &FbsTrunkSnapshot, inputs: &[Vec<u32>]) -> Result<Vec<FbsTieMargins>, String> {
-    let mut all = Vec::new();
-    for tokens in inputs {
-        for end in 1..=tokens.len() {
-            let margins = snap
-                .tie_margins(&tokens[..end], true, FbsReferenceSnaps::INTEGER)
-                .map_err(|e| format!("{tokens:?}: tie margins: {e}"))?;
-            all.push(margins);
-        }
-    }
-    Ok(all)
+/// position of every input (those met on the way to it, in one pass per
+/// input), and how many snaps of a zero vector each whole input met.
+fn tie_margins(
+    snap: &FbsTrunkSnapshot,
+    inputs: &[Vec<u32>],
+) -> Result<(Vec<FbsTieMargins>, u64), String> {
+    let inputs: Vec<&[u32]> = inputs.iter().map(Vec::as_slice).collect();
+    let each = snap
+        .tie_margins_each(&inputs, true, FbsReferenceSnaps::INTEGER)
+        .map_err(|e| format!("tie margins: {e}"))?;
+    let zero = each
+        .iter()
+        .filter_map(|m| m.last())
+        .map(|m| u64::from(m.zero_snaps))
+        .sum();
+    Ok((each.into_iter().flatten().collect(), zero))
 }
 
 /// Each position over [`GAP_BAR`] in any of `pairings`, traced to its
 /// near-tie: the reference's margins there, with how many positions came
 /// nearer on each (0 is the nearest), and the median of each margin.
-fn trace_ties(margins: &[FbsTieMargins], pairings: &[Vec<f64>]) -> Value {
+fn trace_ties(margins: &[FbsTieMargins], zero_snaps: u64, pairings: &[Vec<f64>]) -> Value {
     let kinds: [(&str, Margin); 3] = [
         ("transition", |m| m.transition),
         ("gate", |m| m.gate),
@@ -190,6 +198,7 @@ fn trace_ties(margins: &[FbsTieMargins], pairings: &[Vec<f64>]) -> Value {
     json!({
         "median": medians,
         "positions_with_zero_snaps": zero,
+        "zero_snaps": zero_snaps,
         "over_gap_bar": traced,
     })
 }
@@ -258,8 +267,10 @@ fn section(
         // The artifact's own Q12 query, not a reference of it.
         out["d11_gpu_vs_integer_session"] = pair(d11_gpu, &served);
         // Where the three disagree, how near the reference came to a switch.
+        let (margins, zero_snaps) = tie_margins(snap, inputs)?;
         out["tie_margins"] = trace_ties(
-            &tie_margins(snap, inputs)?,
+            &margins,
+            zero_snaps,
             &[
                 gaps(d11_gpu, &quantized_ref),
                 gaps(d11_gpu, &served),
@@ -270,8 +281,41 @@ fn section(
     Ok(out)
 }
 
+/// The D11 readout against the integer session alone, with no float
+/// reference (`--parity-only`, claude-126): the artifact's own tokens and Q12
+/// query, which is all a GPU job's parity proof needs, since a host reference
+/// run is a host fallback (CHARTER §3.5).
+fn parity_section(
+    model: &IntegerStackModel,
+    inputs: &[Vec<u32>],
+    d11_gpu: &[Output],
+) -> Result<Value, String> {
+    let served = served(model, inputs)?;
+    if d11_gpu.len() != served.len() {
+        return Err(format!(
+            "the D11 readout has {} positions, the integer session {}",
+            d11_gpu.len(),
+            served.len()
+        ));
+    }
+    let agree = d11_gpu
+        .iter()
+        .zip(&served)
+        .filter(|(g, s)| g.0 == s.0)
+        .count();
+    Ok(json!({
+        "positions": served.len(),
+        "d11_gpu_token_equals_integer_token": agree,
+        "d11_gpu_vs_integer_session": pair(d11_gpu, &served),
+    }))
+}
+
 fn run() -> Result<(), String> {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let parity_only = args.first().is_some_and(|a| a == "--parity-only");
+    if parity_only {
+        args.remove(0);
+    }
     let [snapshot, plain, rest @ ..] = args.as_slice() else {
         return Err(USAGE.to_owned());
     };
@@ -316,6 +360,18 @@ fn run() -> Result<(), String> {
     let (plain_singles, plain_sequences) = floats(&plain_readout);
     let export = export_readout.as_ref().map(floats);
     let d11 = d11_readout.as_ref().map(floats);
+    if parity_only {
+        let (d11_singles, d11_sequences) =
+            d11.as_ref().ok_or("--parity-only needs the D11 readout")?;
+        let report = json!({
+            "artifact_sha256": hex::encode(Sha256::digest(&artifact)),
+            "parity_only": true,
+            "single_tokens": parity_section(&model, &singles, d11_singles)?,
+            "sequences": parity_section(&model, &sequences, d11_sequences)?,
+        });
+        println!("{report}");
+        return Ok(());
+    }
     let report = json!({
         "artifact_sha256": hex::encode(Sha256::digest(&artifact)),
         "single_tokens": section(

@@ -1,23 +1,28 @@
-//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full --data-root DIR --out FILE`
+//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap --data-root DIR --out FILE [--save-dir DIR]`
 //!
 //! The runner of `docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`
 //! (spiralcore-fbs-offline-float-sheet, #2891). GPU only. `--data-root` holds `mw-balp/train/`,
 //! `ft/dev/` and (for `fresh_v2`, read only when its gates pass) `fresh_v2/`, each with
 //! `tokens.u16` and `response_mask.u8`. The receipt is written to `--out`, never over a file.
+//!
+//! `d11-export-gap` is Stage 4b of d11-exporter-float-trunk
+//! (`docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md`, claude-126): it saves each
+//! seed's exported model, snapshot and readouts under `--save-dir`, which must not exist yet.
 
 use std::env;
 use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
-    run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
+    run_d11_export_gap, run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-fn parse_args() -> Result<(String, PathBuf, PathBuf)> {
+fn parse_args() -> Result<(String, PathBuf, PathBuf, Option<PathBuf>)> {
     let mut mode = String::from("full");
     let mut data_root = PathBuf::from(".");
     let mut out = PathBuf::from("spiralcore-fbs-sheet-receipt.json");
+    let mut save_dir = None;
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         let mut value = |name: &str| {
@@ -28,6 +33,7 @@ fn parse_args() -> Result<(String, PathBuf, PathBuf)> {
             "--mode" => mode = value("--mode")?,
             "--data-root" => data_root = PathBuf::from(value("--data-root")?),
             "--out" => out = PathBuf::from(value("--out")?),
+            "--save-dir" => save_dir = Some(PathBuf::from(value("--save-dir")?)),
             other => {
                 return Err(FloatTrainError::Invalid(format!(
                     "unrecognized argument: {other}"
@@ -35,11 +41,11 @@ fn parse_args() -> Result<(String, PathBuf, PathBuf)> {
             }
         }
     }
-    Ok((mode, data_root, out))
+    Ok((mode, data_root, out, save_dir))
 }
 
 fn main() -> Result<()> {
-    let (mode, data_root, out) = parse_args()?;
+    let (mode, data_root, out, save_dir) = parse_args()?;
     let device = Device::new_cuda(0)?;
     match mode.as_str() {
         "synthetic-probe" => {
@@ -91,6 +97,36 @@ fn main() -> Result<()> {
                 receipt.results_sha256,
             );
             write_receipt(&out, &serde_json::to_value(&receipt)?)
+        }
+        "d11-export-gap" => {
+            let save_dir = save_dir.ok_or_else(|| {
+                FloatTrainError::Invalid("d11-export-gap needs --save-dir".to_owned())
+            })?;
+            let value = run_d11_export_gap(&data_root, &save_dir, &device)?;
+            for s in value["seeds"].as_array().into_iter().flatten() {
+                println!(
+                    "[d11-export-gap] seed={} top1_float={} top1_d11={} b={} c={} net={} F_I={} loss_float={} loss_d11={} within_gpu_half={} save_load={} determinism={} dev={} q12={}",
+                    s["seed"],
+                    s["float"]["top1_hits"],
+                    s["d11"]["top1_hits"],
+                    s["paired_float_vs_d11"]["a_hit_b_miss_c"],
+                    s["paired_float_vs_d11"]["a_miss_b_hit_b"],
+                    s["net_gap_rows"],
+                    s["f_i"],
+                    s["loss_float"],
+                    s["loss_d11"],
+                    s["within_band"],
+                    s["i_save_load"],
+                    s["i_d_determinism"],
+                    s["i_dev_denominator"],
+                    s["i_q12_oracle"],
+                );
+            }
+            println!(
+                "[summary] noise={} gpu_instruments={} gap_inside_band_on_both_seeds={} (the gate also needs the artifact parity)",
+                value["noise_band_dev_loss"], value["gpu_instruments_pass"], value["gap_inside_band_on_both_seeds"]
+            );
+            write_receipt(&out, &value)
         }
         other => Err(FloatTrainError::Invalid(format!(
             "unsupported --mode {other}"

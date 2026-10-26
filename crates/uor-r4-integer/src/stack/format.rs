@@ -2104,19 +2104,73 @@ impl FbsTrunkSnapshot {
         quantized: bool,
         snaps: FbsReferenceSnaps,
     ) -> Result<Vec<FbsWriterOutput>, StackError> {
+        let mut out = self.forward_f32_each(&[tokens], quantized, snaps)?;
+        Ok(out.remove(0))
+    }
+
+    /// [`Self::forward_f32_with`] over each of `inputs`, each from a fresh
+    /// state, with the exporter's checks and the tables read once
+    /// (claude-126: a trained trunk's 4,096 single tokens and DEV windows).
+    pub fn forward_f32_each(
+        &self,
+        inputs: &[&[u32]],
+        quantized: bool,
+        snaps: FbsReferenceSnaps,
+    ) -> Result<Vec<Vec<FbsWriterOutput>>, StackError> {
+        let runs = self.run_each(inputs, quantized, snaps, false)?;
+        Ok(runs.into_iter().map(|(out, _)| out).collect())
+    }
+
+    /// The [`FbsTieMargins`] of [`Self::forward_f32_with`] over `tokens`:
+    /// every snap and rate met up to the last position, the carried state's
+    /// included. A diagnostic, for tracing a disagreement to its near-tie.
+    pub fn tie_margins(
+        &self,
+        tokens: &[u32],
+        quantized: bool,
+        snaps: FbsReferenceSnaps,
+    ) -> Result<FbsTieMargins, StackError> {
+        let mut each = self.tie_margins_each(&[tokens], quantized, snaps)?;
+        Ok(each.remove(0).pop().unwrap_or(FbsTieMargins::NONE))
+    }
+
+    /// The [`FbsTieMargins`] at every position of each of `inputs`, in one
+    /// pass per input: at position `t`, those met up to and including it.
+    pub fn tie_margins_each(
+        &self,
+        inputs: &[&[u32]],
+        quantized: bool,
+        snaps: FbsReferenceSnaps,
+    ) -> Result<Vec<Vec<FbsTieMargins>>, StackError> {
+        let runs = self.run_each(inputs, quantized, snaps, true)?;
+        Ok(runs.into_iter().map(|(_, margins)| margins).collect())
+    }
+
+    /// The reference forward over each of `inputs` from a fresh state, and,
+    /// when `trace`, the [`FbsTieMargins`] at each of its positions.
+    #[allow(clippy::type_complexity)]
+    fn run_each(
+        &self,
+        inputs: &[&[u32]],
+        quantized: bool,
+        snaps: FbsReferenceSnaps,
+        trace: bool,
+    ) -> Result<Vec<(Vec<FbsWriterOutput>, Vec<FbsTieMargins>)>, StackError> {
         // Refuse whatever the exporter refuses: the reference only runs
         // snapshots the served path can load.
         export_fbs_trunk_uorlut01(self)?;
-        if tokens.len() > self.context {
-            return Err(StackError::ContextFull {
-                context: self.context,
-            });
-        }
-        if let Some(&token) = tokens.iter().find(|&&t| t as usize >= self.vocab) {
-            return Err(StackError::Token {
-                token,
-                vocab: self.vocab,
-            });
+        for tokens in inputs {
+            if tokens.len() > self.context {
+                return Err(StackError::ContextFull {
+                    context: self.context,
+                });
+            }
+            if let Some(&token) = tokens.iter().find(|&&t| t as usize >= self.vocab) {
+                return Err(StackError::Token {
+                    token,
+                    vocab: self.vocab,
+                });
+            }
         }
 
         let d = self.width;
@@ -2162,58 +2216,68 @@ impl FbsTrunkSnapshot {
             .collect::<Result<_, _>>()?;
         let final_norm = gain(&self.final_norm)?;
 
-        let mut states = vec![vec![0.0f64; d]; self.layers.len()];
-        let mut histories = vec![vec![0.0f64; 3 * d]; self.layers.len()];
-        let mut out = Vec::with_capacity(tokens.len());
-        for &tok in tokens {
-            let t = tok as usize;
-            let mut x = table[t * d..(t + 1) * d].to_vec();
-            for (l, (layer, p)) in self.layers.iter().zip(&prepared).enumerate() {
-                let u = norm(&x, &p.rec_norm);
-                let branches = fbs_reference_gather(&layer.rec_in, &u);
-                let mut gate_out = fbs_reference_gather(&layer.rec_gate, &u);
-                add(&mut gate_out, &p.gate_bias);
-                let (drive, out_gate) = branches.split_at(d);
-                let gated = p.rec.step(
-                    drive,
-                    out_gate,
-                    &gate_out,
-                    &mut histories[l],
-                    &mut states[l],
-                    snaps,
-                );
-                add(&mut x, &fbs_reference_gather(&layer.rec_out, &gated));
+        let mut all = Vec::with_capacity(inputs.len());
+        for tokens in inputs {
+            let _recorder = trace.then(TieRecorder::start);
+            let mut states = vec![vec![0.0f64; d]; self.layers.len()];
+            let mut histories = vec![vec![0.0f64; 3 * d]; self.layers.len()];
+            let mut out = Vec::with_capacity(tokens.len());
+            let mut margins = Vec::new();
+            for &tok in tokens.iter() {
+                let t = tok as usize;
+                let mut x = table[t * d..(t + 1) * d].to_vec();
+                for (l, (layer, p)) in self.layers.iter().zip(&prepared).enumerate() {
+                    let u = norm(&x, &p.rec_norm);
+                    let branches = fbs_reference_gather(&layer.rec_in, &u);
+                    let mut gate_out = fbs_reference_gather(&layer.rec_gate, &u);
+                    add(&mut gate_out, &p.gate_bias);
+                    let (drive, out_gate) = branches.split_at(d);
+                    let gated = p.rec.step(
+                        drive,
+                        out_gate,
+                        &gate_out,
+                        &mut histories[l],
+                        &mut states[l],
+                        snaps,
+                    );
+                    add(&mut x, &fbs_reference_gather(&layer.rec_out, &gated));
 
-                let u = norm(&x, &p.mlp_norm);
-                let h = ref_hamilton_feed_forward(
-                    &fbs_reference_gather(&layer.mlp_gate, &u),
-                    &fbs_reference_gather(&layer.mlp_up, &u),
-                    snaps.gates,
-                );
-                add(&mut x, &fbs_reference_gather(&layer.mlp_down, &h));
+                    let u = norm(&x, &p.mlp_norm);
+                    let h = ref_hamilton_feed_forward(
+                        &fbs_reference_gather(&layer.mlp_gate, &u),
+                        &fbs_reference_gather(&layer.mlp_up, &u),
+                        snaps.gates,
+                    );
+                    add(&mut x, &fbs_reference_gather(&layer.mlp_down, &h));
+                }
+                let mut q = norm(&x, &final_norm);
+                if quantized {
+                    q.iter_mut().for_each(|v| *v = q12(*v));
+                }
+                out.push(fbs_native_writer(&q, &table, self.vocab, self.kept_cells)?);
+                if trace {
+                    margins.push(TIE_MARGINS.with(|cell| cell.get()).unwrap_or(FbsTieMargins::NONE));
+                }
             }
-            let mut q = norm(&x, &final_norm);
-            if quantized {
-                q.iter_mut().for_each(|v| *v = q12(*v));
-            }
-            out.push(fbs_native_writer(&q, &table, self.vocab, self.kept_cells)?);
+            all.push((out, margins));
         }
-        Ok(out)
+        Ok(all)
     }
+}
 
-    /// The [`FbsTieMargins`] of [`Self::forward_f32_with`] over `tokens`:
-    /// every snap and rate met up to the last position, the carried state's
-    /// included. A diagnostic, for tracing a disagreement to its near-tie.
-    pub fn tie_margins(
-        &self,
-        tokens: &[u32],
-        quantized: bool,
-        snaps: FbsReferenceSnaps,
-    ) -> Result<FbsTieMargins, StackError> {
+/// Records [`FbsTieMargins`] on this thread while it lives, and clears the
+/// recorder when dropped, so a run that fails never leaves it on.
+struct TieRecorder;
+
+impl TieRecorder {
+    fn start() -> Self {
         TIE_MARGINS.with(|cell| cell.set(Some(FbsTieMargins::NONE)));
-        let run = self.forward_f32_with(tokens, quantized, snaps);
-        let margins = TIE_MARGINS.with(|cell| cell.take());
-        run?;
-        margins.ok_or_else(|| StackError::Numerics("the tie margins were not recorded".to_owned()))
+        Self
+    }
+}
+
+impl Drop for TieRecorder {
+    fn drop(&mut self) {
+        TIE_MARGINS.with(|cell| cell.set(None));
     }
 }

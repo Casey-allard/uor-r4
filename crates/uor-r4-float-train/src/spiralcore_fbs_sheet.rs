@@ -101,10 +101,21 @@ fn batch_loss(
     scored: &[u32],
     targets: &[u32],
     batch: usize,
+    q12_query: bool,
 ) -> Result<Tensor> {
     let hidden = model.hidden(ids, batch, SHEET_CONTEXT)?;
     let idx = Tensor::from_vec(scored.to_vec(), scored.len(), model.device())?;
-    model.native_head_loss(&hidden.index_select(&idx, 0)?, targets, hs::SHEET_RIVALS)
+    let query = hidden.index_select(&idx, 0)?;
+    let query = if q12_query {
+        query
+            .affine(f64::from(hs::Q12_SCALE), 0.0)?
+            .round()?
+            .clamp(hs::Q12_I16_MIN, hs::Q12_I16_MAX)?
+            .affine(1.0 / f64::from(hs::Q12_SCALE), 0.0)?
+    } else {
+        query
+    };
+    model.native_head_loss(&query, targets, hs::SHEET_RIVALS)
 }
 
 /// The mean `MarginHinge(rivals = 8)` loss over every scored row of `windows`, in float or in the
@@ -117,35 +128,48 @@ pub fn panel_loss(
     export_mode: bool,
 ) -> Result<f64> {
     hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, export_mode, || {
-        let mut total = 0.0f64;
-        let mut rows = 0usize;
-        for chunk in windows.chunks(hs::SHEET_EVAL_BATCH) {
-            let mut ids = Vec::with_capacity(chunk.len() * SHEET_CONTEXT);
-            let mut scored = Vec::new();
-            let mut targets = Vec::new();
-            for (b, window) in chunk.iter().enumerate() {
-                ids.extend_from_slice(&window.input_ids);
-                for (&offset, &target) in window.scored_offsets.iter().zip(&window.scored_targets) {
-                    scored.push((b * SHEET_CONTEXT + offset) as u32);
-                    targets.push(target);
-                }
-            }
-            if targets.is_empty() {
-                continue;
-            }
-            let loss = batch_loss(model, &ids, &scored, &targets, chunk.len())?;
-            let value = f64::from(loss.to_scalar::<f32>()?);
-            if !value.is_finite() {
-                return Err(invalid("I-Finite-CUDA: non-finite panel loss"));
-            }
-            total += value * targets.len() as f64;
-            rows += targets.len();
-        }
-        if rows == 0 {
-            return Err(invalid("the panel has no scored rows"));
-        }
-        Ok(total / rows as f64)
+        scored_panel_loss(model, windows, false)
     })
+}
+
+/// [`panel_loss`] in the D11 mode (claude-126): the trunk computed as the exported artifact
+/// computes it (`hamilton_sheet::with_d11_mode`) and each scored query rounded to Q12 before the
+/// head, on a trunk whose tables are rounded as exported (an unrounded trunk is refused).
+pub fn panel_loss_d11(model: &StackModel, windows: &[CausalWindow]) -> Result<f64> {
+    crate::fbs_export::check_tables_rounded_as_exported(model)?;
+    hs::with_d11_mode(|| scored_panel_loss(model, windows, true))
+}
+
+/// The mean loss over every scored row of `windows` under the gate hook as it is set.
+fn scored_panel_loss(model: &StackModel, windows: &[CausalWindow], q12_query: bool) -> Result<f64> {
+    let mut total = 0.0f64;
+    let mut rows = 0usize;
+    for chunk in windows.chunks(hs::SHEET_EVAL_BATCH) {
+        let mut ids = Vec::with_capacity(chunk.len() * SHEET_CONTEXT);
+        let mut scored = Vec::new();
+        let mut targets = Vec::new();
+        for (b, window) in chunk.iter().enumerate() {
+            ids.extend_from_slice(&window.input_ids);
+            for (&offset, &target) in window.scored_offsets.iter().zip(&window.scored_targets) {
+                scored.push((b * SHEET_CONTEXT + offset) as u32);
+                targets.push(target);
+            }
+        }
+        if targets.is_empty() {
+            continue;
+        }
+        let loss = batch_loss(model, &ids, &scored, &targets, chunk.len(), q12_query)?;
+        let value = f64::from(loss.to_scalar::<f32>()?);
+        if !value.is_finite() {
+            return Err(invalid("I-Finite-CUDA: non-finite panel loss"));
+        }
+        total += value * targets.len() as f64;
+        rows += targets.len();
+    }
+    if rows == 0 {
+        return Err(invalid("the panel has no scored rows"));
+    }
+    Ok(total / rows as f64)
 }
 
 fn any_plan(model: &StackModel) -> Result<Arc<ProjectionPlan>> {
@@ -346,7 +370,7 @@ pub fn run_fbs_arm(
     for step in 0..steps {
         let started = Instant::now();
         let (ids, scored, targets) = &batches[step % batches.len()];
-        let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH)?;
+        let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH, false)?;
         let value = f64::from(loss.to_scalar::<f32>()?);
         if !value.is_finite() {
             return Err(invalid(format!(
@@ -573,7 +597,7 @@ pub fn run_synthetic_probe(device: &Device) -> Result<serde_json::Value> {
         let mut credit = 0.0f64;
         for step in 0..8 {
             let (ids, scored, targets) = &batches[step % batches.len()];
-            let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH)?;
+            let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH, false)?;
             let value = f64::from(loss.to_scalar::<f32>()?);
             finite &= value.is_finite();
             losses.push(value);
@@ -683,6 +707,20 @@ fn f_i(b: usize, c: usize) -> usize {
     bound.max(F_I_FLOOR)
 }
 
+/// The export-gap bar, Stage 3's `G-Fbs-ExportGap` and Stage 4b's `G-D11-ExportGap` on one seed:
+/// the exported computation's DEV loss within `noise` of the float loss, and the paired top-1
+/// net gap (`paired` holds float against export) within `F_I`.
+pub fn export_gap_within(
+    noise: f64,
+    loss_float: f64,
+    loss_export: f64,
+    paired: &PairedDiscordance,
+) -> bool {
+    let net = (paired.a_hit_b_miss_c as isize - paired.a_miss_b_hit_b as isize).unsigned_abs();
+    (loss_export - loss_float).abs() <= noise
+        && net <= f_i(paired.a_hit_b_miss_c, paired.a_miss_b_hit_b)
+}
+
 /// Whether arm `a` beats arm `c` on one seed: a strictly lower final DEV loss by at least the
 /// noise band, or a paired top-1 advantage (rows `a` hits and `c` misses, less the reverse) of at
 /// least `F_I`.
@@ -787,9 +825,7 @@ pub fn evaluate_gates(
             targets,
             seed,
         );
-        let net = (gap.a_hit_b_miss_c as isize - gap.a_miss_b_hit_b as isize).unsigned_abs();
-        export_ok &= (r.loss_int - r.loss_float).abs() <= noise
-            && net <= f_i(gap.a_hit_b_miss_c, gap.a_miss_b_hit_b);
+        export_ok &= export_gap_within(noise, r.loss_float, r.loss_int, &gap);
         export_paired.push(gap);
     }
     Ok(GateVerdicts {
@@ -1029,6 +1065,218 @@ pub fn run_full_sheet(data_root: &Path, device: &Device) -> Result<FbsSheetRecei
         results_sha256: sha256_bytes(&digest),
     };
     Ok(receipt)
+}
+
+/// The arm Stage 4b exports (claude-126): only one-atom routes convert
+/// (`fbs_export::decode_coded_routes`), and Stage 3's capacity gate kept one atom.
+pub const D11_EXPORT_ARM: FbsArm = FbsArm::OneAtomActive;
+
+/// Stage 4b's parity sample: every eighth `ft/dev` window, fixed before the run. The readouts
+/// read these windows whole, so the parity with the integer session covers real text.
+pub const PARITY_WINDOW_STRIDE: usize = 8;
+
+/// The panel's D11 predictions against the D11 readout's next tokens at the same positions, over
+/// every scored row: `next[w]` is window `w` read alone (`fbs_export::fbs_float_next_tokens`).
+/// Returns `(rows compared, rows that differ)`. The panel batches windows and the readout reads
+/// one, so this ties the panel to the readout path the integer parity covers.
+fn panel_against_readout(
+    windows: &[CausalWindow],
+    panel_preds: &[u32],
+    next: &[Vec<u32>],
+) -> Result<(usize, usize)> {
+    if next.len() != windows.len() {
+        return Err(invalid("the readout did not read every window"));
+    }
+    let (mut row, mut differ) = (0usize, 0usize);
+    for (w, window) in windows.iter().enumerate() {
+        for &offset in &window.scored_offsets {
+            let read = next[w]
+                .get(offset)
+                .ok_or_else(|| invalid(format!("the readout lacks window {w} offset {offset}")))?;
+            let pred = panel_preds
+                .get(row)
+                .ok_or_else(|| invalid("fewer panel predictions than scored rows"))?;
+            differ += usize::from(pred != read);
+            row += 1;
+        }
+    }
+    if row != panel_preds.len() {
+        return Err(invalid("more panel predictions than scored rows"));
+    }
+    Ok((row, differ))
+}
+
+/// Stage 4b's run (`docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md`): the four
+/// Stage 3 arms trained on both seeds, for the noise band; and, for [`D11_EXPORT_ARM`] on each
+/// seed, the D11 export gap, with the trained model, its snapshot and its plain, export and D11
+/// readouts saved under `save_dir/seed-<seed>/` (a directory that must not exist yet). GPU only.
+pub fn run_d11_export_gap(
+    data_root: &Path,
+    save_dir: &Path,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::{
+        fbs_float_next_tokens, fbs_float_readout_on, fbs_trunk_snapshot, round_tables_as_exported,
+    };
+    use uor_r4_integer::fbs_snapshot::{write_new_file, FbsReadoutMode};
+
+    fs::create_dir(save_dir)?;
+    let (batches, dev_windows, dev_docs) = load_inputs(data_root, TRAIN_BATCHES)?;
+    let targets: Vec<u32> = dev_windows
+        .iter()
+        .flat_map(|w| w.scored_targets.iter().copied())
+        .collect();
+    let sample: Vec<Vec<u32>> = dev_windows
+        .iter()
+        .step_by(PARITY_WINDOW_STRIDE)
+        .map(|w| w.input_ids.clone())
+        .collect();
+    let mut outputs: BTreeMap<(FbsArm, u64), FbsArmOutput> = BTreeMap::new();
+    for seed in SEEDS {
+        for arm in FbsArm::ALL {
+            let out = run_fbs_arm(
+                arm,
+                seed,
+                STEPS,
+                &batches,
+                &dev_windows,
+                &EVAL_STEPS,
+                device,
+            )?;
+            outputs.insert((arm, seed), out);
+        }
+    }
+    let gate_runs: BTreeMap<(FbsArm, u64), GateRun<'_>> = outputs
+        .iter()
+        .map(|(&key, out)| -> Result<_> {
+            let last = out.run.final_point()?;
+            Ok((
+                key,
+                GateRun {
+                    loss0: out.run.eval[0].dev_loss_float,
+                    loss_float: last.dev_loss_float,
+                    loss_int: last.dev_loss_int,
+                    preds_float: &out.preds_float,
+                    preds_int: &out.preds_int,
+                },
+            ))
+        })
+        .collect::<Result<_>>()?;
+    // The noise band, and Stage 3's export-mode readings, exactly as the Stage 3 sheet computes them.
+    let stage3 = evaluate_gates(&gate_runs, &targets)?;
+
+    let mut seeds = Vec::new();
+    let mut gap_ok = true;
+    let mut instruments_ok = true;
+    for seed in SEEDS {
+        let out = &outputs[&(D11_EXPORT_ARM, seed)];
+        let last = out.run.final_point()?;
+        let dir = save_dir.join(format!("seed-{seed}"));
+        fs::create_dir(&dir)?;
+        out.model.save(&dir.join("model"))?;
+        let loaded = StackModel::load(&dir.join("model"), device)?;
+        // I-Save-Load: the saved model scores the plain panel exactly as the trained one did.
+        let (_, reloaded_preds) = hs::evaluate_dev_panel(
+            &loaded,
+            &dev_windows,
+            HamiltonArm::HamiltonActive,
+            seed,
+            STEPS,
+            false,
+            false,
+        )?;
+        let reloaded_loss = panel_loss(&loaded, &dev_windows, seed, STEPS, false)?;
+        let i_save_load = reloaded_preds == out.preds_float && reloaded_loss == last.dev_loss_float;
+        hs::clear_active_arm();
+        let snapshot = fbs_trunk_snapshot(&loaded)?;
+        let plain = fbs_float_readout_on(&loaded, FbsReadoutMode::Plain, &sample)?;
+        let export = fbs_float_readout_on(&loaded, FbsReadoutMode::Export, &sample)?;
+        round_tables_as_exported(&loaded)?;
+        let d11_readout = fbs_float_readout_on(&loaded, FbsReadoutMode::D11, &sample)?;
+        let (d11, d11_preds) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
+        let (_, d11_again) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
+        let d11_loss = panel_loss_d11(&loaded, &dev_windows)?;
+        // m1: the panel's D11 path against the readout's on every scored row; the integer
+        // parity (m2, from `fbs-compare` on the sample) covers the readout's.
+        let all_windows: Vec<Vec<u32>> = dev_windows.iter().map(|w| w.input_ids.clone()).collect();
+        let d11_next = fbs_float_next_tokens(&loaded, FbsReadoutMode::D11, &all_windows)?;
+        let (panel_rows, panel_differ) =
+            panel_against_readout(&dev_windows, &d11_preds, &d11_next)?;
+        let paired = hs::compute_paired_discordance(
+            "float",
+            &out.preds_float,
+            "d11",
+            &d11_preds,
+            &targets,
+            seed,
+        );
+        let within = export_gap_within(stage3.noise, last.dev_loss_float, d11_loss, &paired);
+        let i_determinism = d11_again == d11_preds;
+        let i_dev = d11.scored_rows == hs::EXPECTED_DEV_ELIGIBLE_TARGETS;
+        let i_q12 = d11.q12_i32_oracle_checked_rows > 0 && d11.q12_i32_oracle_mismatches == 0;
+        instruments_ok &= i_save_load && i_determinism && i_dev && i_q12;
+        gap_ok &= within;
+        for (name, bytes) in [
+            ("snapshot.json", serde_json::to_vec(&snapshot)?),
+            ("readout.json", serde_json::to_vec(&plain)?),
+            ("readout-export.json", serde_json::to_vec(&export)?),
+            ("readout-d11.json", serde_json::to_vec(&d11_readout)?),
+            ("preds-float.json", serde_json::to_vec(&out.preds_float)?),
+            ("preds-d11.json", serde_json::to_vec(&d11_preds)?),
+        ] {
+            write_new_file(&dir.join(name), &bytes)?;
+        }
+        let net = paired.a_hit_b_miss_c as isize - paired.a_miss_b_hit_b as isize;
+        seeds.push(serde_json::json!({
+            "seed": seed,
+            "arm": D11_EXPORT_ARM.name(),
+            "float": last.dev_float,
+            "d11": d11,
+            "export_mode": last.dev_int,
+            "loss_float": last.dev_loss_float,
+            "loss_d11": d11_loss,
+            "loss_export_mode": last.dev_loss_int,
+            "loss_gap_d11": d11_loss - last.dev_loss_float,
+            "paired_float_vs_d11": paired,
+            "net_gap_rows": net,
+            "f_i": f_i(paired.a_hit_b_miss_c, paired.a_miss_b_hit_b),
+            "within_band": within,
+            "within_band_scope": "the GPU half on this seed; the gate also needs I-D11-Artifact-Agreement",
+            "preds_float_sha256": preds_sha256(&out.preds_float),
+            "preds_d11_sha256": preds_sha256(&d11_preds),
+            "i_save_load": i_save_load,
+            "reloaded_loss_float": reloaded_loss,
+            "i_d_determinism": i_determinism,
+            "i_dev_denominator": i_dev,
+            "i_q12_oracle": i_q12,
+            "panel_vs_readout_rows": panel_rows,
+            "panel_vs_readout_differ": panel_differ,
+        }));
+    }
+    let runs: Vec<&FbsArmRun> = outputs.values().map(|o| &o.run).collect();
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md",
+        "kernels": kernel_identity(),
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "parity_window_stride": PARITY_WINDOW_STRIDE,
+        "parity_windows": sample.len(),
+        "parity_positions": sample.iter().map(Vec::len).sum::<usize>(),
+        "noise_band_dev_loss": stage3.noise,
+        "stage3_export_mode_paired": stage3.export_paired,
+        "stage3_export_mode_arm": stage3.export_arm.name(),
+        "seeds": seeds,
+        "gpu_instruments_pass": instruments_ok,
+        // Half of G-D11-ExportGap: the gate also needs I-D11-Artifact-Agreement, from
+        // `fbs-compare` on each seed's outputs and `panel_vs_readout_differ`. A failed
+        // instrument check is an instrument fault: the gap is not counted, never FAIL.
+        "gap_inside_band_on_both_seeds": if instruments_ok {
+            serde_json::json!(gap_ok)
+        } else {
+            serde_json::json!("not counted: an instrument check failed")
+        },
+        "runs": runs,
+    }))
 }
 
 /// Writes `value` as pretty JSON to `path`, never over an existing file (the file is created
@@ -1317,5 +1565,122 @@ mod tests {
         assert!(ids
             .iter()
             .all(|&t| t != hs::SHEET_BOS_ID && (t as usize) < hs::SHEET_VOCAB));
+    }
+
+    #[test]
+    fn the_export_gap_bar_holds_the_loss_band_and_the_paired_threshold() {
+        let paired = |b: usize, c: usize| PairedDiscordance {
+            arm_a: "float".into(),
+            arm_b: "d11".into(),
+            seed: 1,
+            a_hit_b_miss_c: b,
+            a_miss_b_hit_b: c,
+            net_advantage_rows: b as isize - c as isize,
+        };
+        // Below 144 discordant rows F_I is its floor, 24: a net gap of 24 is inside, 25 is not,
+        // in either direction.
+        assert!(export_gap_within(0.25, 2.0, 2.25, &paired(60, 36)));
+        assert!(export_gap_within(0.25, 2.0, 1.75, &paired(36, 60)));
+        assert!(!export_gap_within(0.25, 2.0, 2.0, &paired(61, 36)));
+        assert!(!export_gap_within(0.25, 2.0, 2.0, &paired(36, 61)));
+        // The loss gap counts in either direction, up to the band.
+        assert!(!export_gap_within(0.25, 2.0, 2.3, &paired(0, 0)));
+        assert!(!export_gap_within(0.25, 2.0, 1.7, &paired(0, 0)));
+        // Above it F_I grows: 400 discordant rows give 40, 402 give 41.
+        assert!(export_gap_within(0.0, 1.0, 1.0, &paired(220, 180)));
+        assert!(export_gap_within(0.0, 1.0, 1.0, &paired(180, 220)));
+        assert!(!export_gap_within(0.0, 1.0, 1.0, &paired(222, 180)));
+    }
+
+    #[test]
+    fn the_panel_is_held_against_the_readout_on_every_scored_row() -> Result<()> {
+        let window = |scored: Vec<usize>| CausalWindow {
+            doc_id: 0,
+            input_ids: vec![1; 4],
+            scored_offsets: scored.clone(),
+            scored_targets: vec![0; scored.len()],
+            scored_corpus_positions: vec![0; scored.len()],
+        };
+        let windows = vec![window(vec![1, 3]), window(vec![0]), window(vec![2])];
+        let next = vec![vec![0, 5, 0, 6], vec![9, 0, 0, 0], vec![0, 0, 7, 0]];
+        // Rows, in panel order: window 0 offsets 1 and 3, window 1 offset 0, window 2 offset 2.
+        assert_eq!(
+            panel_against_readout(&windows, &[5, 6, 9, 7], &next)?,
+            (4, 0)
+        );
+        assert_eq!(
+            panel_against_readout(&windows, &[5, 4, 9, 1], &next)?,
+            (4, 2)
+        );
+        // Every window's rows count, the middle one's too.
+        assert_eq!(
+            panel_against_readout(&windows, &[5, 6, 0, 7], &next)?,
+            (4, 1)
+        );
+        assert!(panel_against_readout(&windows, &[5, 6, 9], &next).is_err());
+        assert!(panel_against_readout(&windows, &[5, 6, 9, 7, 1], &next).is_err());
+        assert!(panel_against_readout(&windows, &[5, 6, 9, 7], &next[..2]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_d11_loss_refuses_an_unrounded_trunk() -> Result<()> {
+        // A CPU-built trunk: the guard reads the tables only, before any tensor operation.
+        let model = build_fbs_model(D11_EXPORT_ARM, 1, &Device::Cpu)?;
+        let unrounded =
+            |e: crate::FloatTrainError| e.to_string().contains("rounded as exported first");
+        assert!(panel_loss_d11(&model, &[]).is_err_and(unrounded));
+        crate::fbs_export::round_tables_as_exported(&model)?;
+        // Rounded, it gets past the guard and stops at the empty panel, the hook restored.
+        assert!(panel_loss_d11(&model, &[])
+            .is_err_and(|e| e.to_string().contains("the panel has no scored rows")));
+        assert!(!hs::is_snapping_transition());
+        Ok(())
+    }
+
+    #[test]
+    fn a_saved_trunk_loads_back_exactly() -> Result<()> {
+        // The run reloads each exported model from disk; the reload must be the trained trunk.
+        let model = build_fbs_model(D11_EXPORT_ARM, 2, &Device::Cpu)?;
+        let root = std::path::PathBuf::from(
+            std::env::var_os("CARGO_TARGET_DIR")
+                .ok_or_else(|| invalid("owned artifact directory required"))?,
+        )
+        .join(format!(
+            "fbs-save-load-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        model.save(&root)?;
+        let loaded = StackModel::load(&root, &Device::Cpu)?;
+        assert_eq!(loaded.variables().len(), model.variables().len());
+        for (name, var) in model.variables() {
+            let bits = |t: &Tensor| -> Result<Vec<u32>> {
+                Ok(t.flatten_all()?
+                    .to_dtype(DType::F32)?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect())
+            };
+            let other = loaded
+                .variables()
+                .get(name)
+                .ok_or_else(|| invalid(format!("{name} did not load")))?;
+            assert_eq!(bits(var.as_tensor())?, bits(other.as_tensor())?, "{name}");
+        }
+        assert_eq!(loaded.quaternion_weights(), model.quaternion_weights());
+        assert_eq!(
+            loaded.native_vector_head_spec(),
+            model.native_vector_head_spec()
+        );
+        assert_eq!(
+            model.native_vector_head_spec().map(|h| h.kept_cells),
+            Some(hs::SHEET_KEPT_CELLS)
+        );
+        fs::remove_dir_all(&root)?;
+        Ok(())
     }
 }
