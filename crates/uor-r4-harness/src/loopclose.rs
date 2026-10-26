@@ -895,12 +895,26 @@ fn remove_worktree(main: &Path, lab: &str, branch: &str) -> Result<(), String> {
     }
 }
 
-/// The ignored files in `wt` other than `target/`, `local/<lab>/views/` and `local/<lab>/gates.jsonl`,
-/// sorted. A wholly ignored directory is listed as itself unless a disposable path lies inside it.
+/// The ignored files in `wt` other than `target/`, `local/target/`, `local/harness-target/`,
+/// `local/<lab>/views/`, `local/<lab>/gates/` and `local/<lab>/gates.jsonl`, sorted. A wholly
+/// ignored directory is listed as itself unless a disposable path lies inside it.
 fn ignored_files(wt: &Path, lab: &str) -> Result<Vec<String>, String> {
     let views = format!("local/{lab}/views/");
-    let gates = format!("local/{lab}/gates.jsonl");
-    let disposable = |p: &str| p.starts_with("target/") || p.starts_with(&views) || p == gates;
+    let gates_dir = format!("local/{lab}/gates/");
+    let gates_file = format!("local/{lab}/gates.jsonl");
+    let disposable_prefixes = [
+        "target/",
+        "local/target/",
+        "local/harness-target/",
+        views.as_str(),
+        gates_dir.as_str(),
+    ];
+    let disposable = |p: &str| {
+        p == gates_file
+            || disposable_prefixes
+                .iter()
+                .any(|prefix| p.starts_with(prefix))
+    };
     let list = |extra: &[&str]| -> Result<Vec<String>, String> {
         let mut args = vec!["ls-files", "--others", "--ignored", "--exclude-standard"];
         args.extend(extra);
@@ -915,7 +929,12 @@ fn ignored_files(wt: &Path, lab: &str) -> Result<Vec<String>, String> {
         if disposable(&p) {
             continue;
         }
-        if p.ends_with('/') && (views.starts_with(&p) || gates.starts_with(&p)) {
+        if p.ends_with('/')
+            && (gates_file.starts_with(&p)
+                || disposable_prefixes
+                    .iter()
+                    .any(|prefix| prefix.starts_with(&p)))
+        {
             // A directory holding a disposable path: look at its files one by one.
             held.extend(list(&["--", &p])?.into_iter().filter(|f| !disposable(f)));
         } else {
@@ -1272,5 +1291,57 @@ mod tests {
             p,
             "# PICKUP: it, claude-1\n\n- Branch: `b`\n- Head: `h`\n- Task folder: `docs/loop/tasks/it/claude-1/`\n\n## Open items\n\n- open\n\n## Next step\n\ngo\n\n## Standing references\n"
         );
+    }
+
+    #[test]
+    fn ignored_files_treats_gate_logs_and_local_targets_as_disposable() {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-loopclose-ignored-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        git(&dir, &["init", "-q"]).expect("git init");
+        std::fs::write(dir.join(".gitignore"), "target/\nlocal/\n").expect("gitignore");
+        std::fs::create_dir_all(dir.join("target/debug")).expect("target");
+        std::fs::write(dir.join("target/debug/bin"), "x").expect("target file");
+        std::fs::create_dir_all(dir.join("local/target/release")).expect("local/target");
+        std::fs::write(dir.join("local/target/release/bin"), "x").expect("local/target file");
+        std::fs::create_dir_all(dir.join("local/harness-target/debug")).expect("harness-target");
+        std::fs::write(dir.join("local/harness-target/debug/bin"), "x")
+            .expect("harness-target file");
+        std::fs::create_dir_all(dir.join("local/antigravity/views")).expect("views");
+        std::fs::write(dir.join("local/antigravity/views/v.md"), "x").expect("view file");
+        std::fs::write(dir.join("local/antigravity/gates.jsonl"), "{}\n").expect("gates.jsonl");
+        std::fs::create_dir_all(dir.join("local/antigravity/gates/123-456")).expect("gates dir");
+        std::fs::write(
+            dir.join("local/antigravity/gates/123-456/fmt-harness.log"),
+            "ok\n",
+        )
+        .expect("gate log");
+        std::fs::write(
+            dir.join("local/antigravity/gates/123-456/fmt-harness.exit"),
+            "0\n",
+        )
+        .expect("gate exit");
+
+        let held = ignored_files(&dir, "antigravity").expect("ignored_files");
+        assert!(
+            held.is_empty(),
+            "disposable build/gate paths should not block worktree removal, got: {held:?}"
+        );
+
+        std::fs::write(dir.join("local/antigravity/unarchived-receipt.json"), "{}")
+            .expect("non-disposable receipt");
+        let held_with_data = ignored_files(&dir, "antigravity").expect("ignored_files with data");
+        assert_eq!(
+            held_with_data,
+            vec!["local/antigravity/unarchived-receipt.json".to_string()]
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

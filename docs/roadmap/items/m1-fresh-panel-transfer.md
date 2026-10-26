@@ -7,7 +7,8 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-export-gap-and-toks]
-scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-fresh-panel-transfer*, docs/labs/m1-fresh-panel-transfer/**, docs/research/open-questions.md, docs/start/faq.md]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [docs/labs/m1-d11-artifact-scorer/instrument/**, docs/harness/prep/m1-fresh-panel-transfer*, docs/labs/m1-fresh-panel-transfer/**, docs/loop/tasks/m1-fresh-panel-transfer/**, docs/research/notebook/m1-discrete-attention.md, docs/research/open-questions.md, docs/start/faq.md]
 ---
 
 ## Why it matters
@@ -27,9 +28,9 @@ The size, noise floor and threshold for the fresh panel are not yet registered. 
 ## How to start
 
 1. Read the current state. Open `docs/labs/k16-outcome-call-2026-10-19/README.md` (line 53, fresh transfer `NOT_TRIGGERED`), `docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md` (the fresh order, lines 73, 87-89 and 120), `crates/uor-r4-discrete/src/attention_transfer.rs` (the deferred paired fresh evaluation) and `docs/research/open-questions.md`. Check whether the scoring path already refuses to open the slice before a sealed DEV decision. If it does not, write a failing test that shows it.
-2. Post a design note on the issue as your first deliverable. It must say what "the gain" is on the fresh slice (read with bar (d): integer top-1 through the D11 export against the same two count tables), what is frozen before the slice opens (row count, the seal hashes, the tables, the seeds), and who opens it. If any of this changes the bar, it is a decision card to the PM or owner (CHARTER §5.2), not your call.
+2. Post a design note on the issue as your first deliverable. It must say what "the gain" is on the fresh slice (read with bar (d): integer top-1 through the D11 export against the same two count tables), what is frozen before the slice opens (row count, the seal hashes, the tables, the seeds), and who opens it. If any of this changes the bar, it is a decision card approved by the lab's own fresh-context decision review and logged for the owner (CHARTER §5.1, §5.2, D68).
 3. Draft the one-page pre-registration sheet in `docs/harness/prep/` (use the A8 sheet as the format model). Register the fresh-panel threshold and noise floor, bound to the sealed bytes by their hashes. Verify the seal against the stored bytes without opening or scoring the slice. A non-author must give TEST FITNESS: FIT before it runs (CHARTER §4.5).
-4. Do not run it until `m1-export-gap-and-toks` has produced a saved model that passes the earlier bars on two seeds, and the owner has typed the release. Score once. Do not re-draw or re-open the slice; use DEV for any earlier look.
+4. Do not run it until `m1-export-gap-and-toks` has produced a saved model that passes the earlier bars on two seeds, and a fresh-context pre-run review has passed after its FIT (CHARTER §5.1, D67, D77). Score once. Do not re-draw or re-open the slice; use DEV for any earlier look.
 5. Open a PR that says `References #<this issue>` for the note, the test and the sheet, and `Closes #<this issue>` only when the fresh number is recorded. Add one row to `docs/research/notebook/m1-discrete-attention.md`.
 
 ## Rules that apply
