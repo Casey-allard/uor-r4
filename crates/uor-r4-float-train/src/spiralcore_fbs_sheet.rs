@@ -629,6 +629,21 @@ pub fn run_synthetic_probe(device: &Device) -> Result<serde_json::Value> {
     }))
 }
 
+/// The pinned DEV split under `data_root` as its causal windows, and its document count.
+fn load_dev(data_root: &Path) -> Result<(Vec<CausalWindow>, usize)> {
+    let (dev_tokens, dev_mask) = hs::load_pinned_uort_split(
+        &data_root.join("ft/dev/tokens.u16"),
+        &data_root.join("ft/dev/response_mask.u8"),
+        hs::PINNED_DEV_TOKENS_SHA256,
+        hs::PINNED_DEV_MASK_SHA256,
+        hs::EXPECTED_DEV_TOKENS,
+        hs::EXPECTED_DEV_ELIGIBLE_TARGETS,
+        hs::SHEET_VOCAB,
+        hs::SHEET_BOS_ID,
+    )?;
+    hs::build_document_windows(&dev_tokens, &dev_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)
+}
+
 /// The pinned TRAIN and DEV splits under `data_root`, and the training batches.
 fn load_inputs(
     data_root: &Path,
@@ -644,18 +659,7 @@ fn load_inputs(
         hs::SHEET_VOCAB,
         hs::SHEET_BOS_ID,
     )?;
-    let (dev_tokens, dev_mask) = hs::load_pinned_uort_split(
-        &data_root.join("ft/dev/tokens.u16"),
-        &data_root.join("ft/dev/response_mask.u8"),
-        hs::PINNED_DEV_TOKENS_SHA256,
-        hs::PINNED_DEV_MASK_SHA256,
-        hs::EXPECTED_DEV_TOKENS,
-        hs::EXPECTED_DEV_ELIGIBLE_TARGETS,
-        hs::SHEET_VOCAB,
-        hs::SHEET_BOS_ID,
-    )?;
-    let (dev_windows, dev_docs) =
-        hs::build_document_windows(&dev_tokens, &dev_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
     let train = hs::build_training_batches(
         &train_tokens,
         &train_mask,
@@ -1279,6 +1283,217 @@ pub fn run_d11_export_gap(
     }))
 }
 
+/// The DEV panel's windows as a sequences file for the GPU evaluator of the exported artifact
+/// (`d11-fbs-eval run`, claude-128/129): every window's `SHEET_CONTEXT` input ids, in panel order.
+pub fn d11_artifact_windows(data_root: &Path) -> Result<serde_json::Value> {
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let rows: usize = dev_windows.iter().map(|w| w.scored_targets.len()).sum();
+    if rows != hs::EXPECTED_DEV_ELIGIBLE_TARGETS {
+        return Err(invalid(
+            "I-DEV-Denominator: the windows do not hold every DEV target",
+        ));
+    }
+    let sequences: Vec<&Vec<u32>> = dev_windows.iter().map(|w| &w.input_ids).collect();
+    if sequences.iter().any(|s| s.len() != SHEET_CONTEXT) {
+        return Err(invalid("a DEV window is not SHEET_CONTEXT tokens long"));
+    }
+    Ok(serde_json::json!({
+        "sequences": sequences,
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "scored_rows": rows,
+    }))
+}
+
+/// The artifact's prediction and Q12 query (as `q / 4096`) at every scored row, in panel order:
+/// window `w`'s row at `offset` is the evaluator's output at position `offset` of sequence `w`,
+/// the step that has read `input_ids[..=offset]`, as the float panel scores the hidden state there.
+fn artifact_rows(
+    windows: &[CausalWindow],
+    tokens: &[u32],
+    queries: &[i32],
+    len: usize,
+    width: usize,
+) -> Result<(Vec<u32>, Vec<f32>)> {
+    let mut preds = Vec::new();
+    let mut rows = Vec::new();
+    for (w, window) in windows.iter().enumerate() {
+        for &offset in &window.scored_offsets {
+            if offset >= len {
+                return Err(invalid(format!(
+                    "window {w} offset {offset} lies past the run"
+                )));
+            }
+            let at = w * len + offset;
+            let (Some(&token), Some(query)) =
+                (tokens.get(at), queries.get(at * width..(at + 1) * width))
+            else {
+                return Err(invalid(format!("the run lacks window {w} offset {offset}")));
+            };
+            preds.push(token);
+            rows.extend(query.iter().map(|&q| q as f32 / hs::Q12_SCALE));
+        }
+    }
+    Ok((preds, rows))
+}
+
+/// The per-position outputs of `d11-fbs-eval run --verify` (claude-128's evaluator).
+#[derive(Deserialize)]
+struct EvaluatorRun {
+    artifact_sha256: String,
+    sequences_sha256: String,
+    sequences: usize,
+    len: usize,
+    width: usize,
+    tokens: Vec<u32>,
+    queries: Vec<i32>,
+    verify: serde_json::Value,
+    build: serde_json::Value,
+}
+
+/// `G-D11-ExportGap` with D the exported artifact itself (claude-129): the GPU evaluator's tokens
+/// and Q12 queries at every scored row of the DEV panel, held against the saved float model's own
+/// panel on the GPU. The artifact's top-1 is the evaluator's token at each scored offset; its loss
+/// is the same `MarginHinge(rivals = 8)` the D11 mode scores (`panel_loss_d11`), applied to the
+/// evaluator's Q12 query with the tables rounded as exported. `stage4b` is claude-126's receipt,
+/// for the two-seed noise band and the stored float predictions' loss; `stored_preds` its
+/// `preds-float.json` for this seed. GPU only.
+#[allow(clippy::too_many_arguments)]
+pub fn run_d11_artifact_gap(
+    data_root: &Path,
+    model_dir: &Path,
+    evaluator: &Path,
+    windows_sha256: &str,
+    artifact_sha256: &str,
+    stage4b: &Path,
+    stored_preds: &Path,
+    seed: u64,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::round_tables_as_exported;
+
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let targets: Vec<u32> = dev_windows
+        .iter()
+        .flat_map(|w| w.scored_targets.iter().copied())
+        .collect();
+    let receipt: serde_json::Value = serde_json::from_slice(&fs::read(stage4b)?)?;
+    let noise = receipt["noise_band_dev_loss"]
+        .as_f64()
+        .ok_or_else(|| invalid("the Stage 4b receipt has no noise band"))?;
+    let stage4b_seed = receipt["seeds"]
+        .as_array()
+        .and_then(|s| s.iter().find(|v| v["seed"].as_u64() == Some(seed)))
+        .ok_or_else(|| invalid(format!("the Stage 4b receipt has no seed {seed}")))?;
+    let stored_loss = stage4b_seed["loss_float"]
+        .as_f64()
+        .ok_or_else(|| invalid("the Stage 4b receipt has no float loss"))?;
+    let stored: Vec<u32> = serde_json::from_slice(&fs::read(stored_preds)?)?;
+
+    let loaded = StackModel::load(model_dir, device)?;
+    // I-Save-Load: the saved model's plain panel is claude-126's, row for row.
+    let (float, float_preds) = hs::evaluate_dev_panel(
+        &loaded,
+        &dev_windows,
+        HamiltonArm::HamiltonActive,
+        seed,
+        STEPS,
+        false,
+        false,
+    )?;
+    let loss_float = panel_loss(&loaded, &dev_windows, seed, STEPS, false)?;
+    hs::clear_active_arm();
+    let i_save_load = float_preds == stored && (loss_float - stored_loss).abs() <= 1e-6;
+
+    // The evaluator's run: the panel's windows, verified bit for bit against the Rust session.
+    let run: EvaluatorRun = serde_json::from_slice(&fs::read(evaluator)?)?;
+    let width = loaded.config.width;
+    let shape_ok = run.sequences == dev_windows.len()
+        && run.len == SHEET_CONTEXT
+        && run.width == width
+        && run.tokens.len() == run.sequences * run.len
+        && run.queries.len() == run.tokens.len() * width;
+    if !shape_ok {
+        return Err(invalid(
+            "the evaluator's run does not cover the DEV windows",
+        ));
+    }
+    // I-Inputs: the evaluator read the sheet's windows and this seed's pinned artifact.
+    let i_inputs = run.sequences_sha256 == windows_sha256 && run.artifact_sha256 == artifact_sha256;
+    let model_sha256 = sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
+    let config_sha256 = sha256_bytes(&fs::read(model_dir.join("config.json"))?);
+    let i_verify = run.verify.as_array().is_some_and(|checks| {
+        checks.len() == 2
+            && checks.iter().all(|c| c["equal"] == serde_json::json!(true))
+            && checks
+                .iter()
+                .all(|c| c["positions"].as_u64() == Some((run.sequences * run.len) as u64))
+    });
+    let (preds, queries) = artifact_rows(&dev_windows, &run.tokens, &run.queries, run.len, width)?;
+    let i_dev = preds.len() == hs::EXPECTED_DEV_ELIGIBLE_TARGETS;
+
+    // The artifact's loss: its own Q12 queries through the D11 head on the exported tables.
+    round_tables_as_exported(&loaded)?;
+    let (mut total, mut rows) = (0.0f64, 0usize);
+    for (q_chunk, t_chunk) in queries
+        .chunks(hs::SHEET_EVAL_BATCH * SHEET_CONTEXT * width)
+        .zip(targets.chunks(hs::SHEET_EVAL_BATCH * SHEET_CONTEXT))
+    {
+        let query = Tensor::from_vec(q_chunk.to_vec(), (t_chunk.len(), width), device)?;
+        let loss =
+            hs::with_d11_mode(|| loaded.native_head_loss(&query, t_chunk, hs::SHEET_RIVALS))?;
+        let value = f64::from(loss.to_scalar::<f32>()?);
+        if !value.is_finite() {
+            return Err(invalid("I-Finite-CUDA: non-finite artifact loss"));
+        }
+        total += value * t_chunk.len() as f64;
+        rows += t_chunk.len();
+    }
+    let loss_artifact = total / rows.max(1) as f64;
+    let top1_artifact = preds.iter().zip(&targets).filter(|(p, t)| p == t).count();
+    let paired =
+        hs::compute_paired_discordance("float", &float_preds, "artifact", &preds, &targets, seed);
+    let within = export_gap_within(noise, loss_float, loss_artifact, &paired);
+    let instruments_ok = i_save_load && i_inputs && i_verify && i_dev;
+    let net = paired.a_hit_b_miss_c as isize - paired.a_miss_b_hit_b as isize;
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-artifact-gap-2026-10-26.md",
+        "seed": seed,
+        "arm": D11_EXPORT_ARM.name(),
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "artifact_sha256": run.artifact_sha256,
+        "evaluator_build": run.build,
+        "windows_sha256": windows_sha256,
+        "artifact_sha256_pinned": artifact_sha256,
+        "model_safetensors_sha256": model_sha256,
+        "model_config_sha256": config_sha256,
+        "float": float,
+        "top1_artifact": top1_artifact,
+        "loss_float": loss_float,
+        "loss_float_stage4b": stored_loss,
+        "loss_artifact": loss_artifact,
+        "loss_gap": loss_artifact - loss_float,
+        "noise_band_dev_loss": noise,
+        "paired_float_vs_artifact": paired,
+        "net_gap_rows": net,
+        "f_i": f_i(paired.a_hit_b_miss_c, paired.a_miss_b_hit_b),
+        "within_band": within,
+        "preds_artifact_sha256": preds_sha256(&preds),
+        "preds_float_sha256": preds_sha256(&float_preds),
+        "i_save_load": i_save_load,
+        "i_inputs": i_inputs,
+        "i_verify_all": i_verify,
+        "i_dev_denominator": i_dev,
+        "instruments_pass": instruments_ok,
+        "gap_inside_band": if instruments_ok {
+            serde_json::json!(within)
+        } else {
+            serde_json::json!("not counted: an instrument check failed")
+        },
+    }))
+}
+
 /// Writes `value` as pretty JSON to `path`, never over an existing file (the file is created
 /// exclusively, so a concurrent writer cannot be overwritten either).
 pub fn write_receipt(path: &Path, value: &serde_json::Value) -> Result<()> {
@@ -1620,6 +1835,31 @@ mod tests {
         assert!(panel_against_readout(&windows, &[5, 6, 9], &next).is_err());
         assert!(panel_against_readout(&windows, &[5, 6, 9, 7, 1], &next).is_err());
         assert!(panel_against_readout(&windows, &[5, 6, 9, 7], &next[..2]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_artifact_is_read_at_each_scored_offset_in_panel_order() -> Result<()> {
+        // claude-129: the evaluator's output at position `offset` of window `w` is row
+        // (w, offset), and its query is read as `q / 4096`.
+        let window = |scored: Vec<usize>| CausalWindow {
+            doc_id: 0,
+            input_ids: vec![1; 4],
+            scored_offsets: scored.clone(),
+            scored_targets: vec![0; scored.len()],
+            scored_corpus_positions: vec![0; scored.len()],
+        };
+        let windows = vec![window(vec![1, 3]), window(vec![0]), window(vec![2])];
+        let (len, width) = (4, 2);
+        let tokens: Vec<u32> = (0..12).collect();
+        let queries: Vec<i32> = (0..24).map(|i| i * 4096).collect();
+        let (preds, rows) = artifact_rows(&windows, &tokens, &queries, len, width)?;
+        // Window 0 offsets 1 and 3, window 1 offset 0, window 2 offset 2.
+        assert_eq!(preds, vec![1, 3, 4, 10]);
+        assert_eq!(rows, vec![2.0, 3.0, 6.0, 7.0, 8.0, 9.0, 20.0, 21.0]);
+        // A run that stops short, or an offset past the run's length, is refused.
+        assert!(artifact_rows(&windows, &tokens[..10], &queries, len, width).is_err());
+        assert!(artifact_rows(&[window(vec![4])], &tokens, &queries, len, width).is_err());
         Ok(())
     }
 

@@ -8,21 +8,50 @@
 //! `d11-export-gap` is Stage 4b of d11-exporter-float-trunk
 //! (`docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md`, claude-126): it saves each
 //! seed's exported model, snapshot and readouts under `--save-dir`, which must not exist yet.
+//!
+//! `d11-artifact-windows` writes the DEV panel's windows for the GPU evaluator of the exported
+//! artifact (`d11-fbs-eval run`). `d11-artifact-gap` scores the artifact's own export gap on one
+//! seed from that evaluator's run (claude-129,
+//! `docs/harness/prep/d11-exporter-float-trunk-artifact-gap-2026-10-26.md`), with `--model-dir`,
+//! `--evaluator`, `--windows-sha256`, `--artifact-sha256` (the seed's pinned artifact),
+//! `--stage4b`, `--stored-preds` and `--seed`.
 
+use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
-    run_d11_export_gap, run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
+    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_full_sheet,
+    run_synthetic_probe, run_throughput_probe, write_receipt,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-fn parse_args() -> Result<(String, PathBuf, PathBuf, Option<PathBuf>)> {
+/// The options of `d11-artifact-gap`.
+const GAP_OPTIONS: [&str; 7] = [
+    "--model-dir",
+    "--evaluator",
+    "--windows-sha256",
+    "--artifact-sha256",
+    "--stage4b",
+    "--stored-preds",
+    "--seed",
+];
+
+type Args = (
+    String,
+    PathBuf,
+    PathBuf,
+    Option<PathBuf>,
+    BTreeMap<String, String>,
+);
+
+fn parse_args() -> Result<Args> {
     let mut mode = String::from("full");
     let mut data_root = PathBuf::from(".");
     let mut out = PathBuf::from("spiralcore-fbs-sheet-receipt.json");
     let mut save_dir = None;
+    let mut extra = BTreeMap::new();
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         let mut value = |name: &str| {
@@ -34,6 +63,10 @@ fn parse_args() -> Result<(String, PathBuf, PathBuf, Option<PathBuf>)> {
             "--data-root" => data_root = PathBuf::from(value("--data-root")?),
             "--out" => out = PathBuf::from(value("--out")?),
             "--save-dir" => save_dir = Some(PathBuf::from(value("--save-dir")?)),
+            name if GAP_OPTIONS.contains(&name) => {
+                let v = value(name)?;
+                extra.insert(name.to_owned(), v);
+            }
             other => {
                 return Err(FloatTrainError::Invalid(format!(
                     "unrecognized argument: {other}"
@@ -41,11 +74,17 @@ fn parse_args() -> Result<(String, PathBuf, PathBuf, Option<PathBuf>)> {
             }
         }
     }
-    Ok((mode, data_root, out, save_dir))
+    Ok((mode, data_root, out, save_dir, extra))
 }
 
 fn main() -> Result<()> {
-    let (mode, data_root, out, save_dir) = parse_args()?;
+    let (mode, data_root, out, save_dir, extra) = parse_args()?;
+    let option = |name: &str| {
+        extra
+            .get(name)
+            .cloned()
+            .ok_or_else(|| FloatTrainError::Invalid(format!("{mode} needs {name}")))
+    };
     let device = Device::new_cuda(0)?;
     match mode.as_str() {
         "synthetic-probe" => {
@@ -125,6 +164,50 @@ fn main() -> Result<()> {
             println!(
                 "[summary] noise={} gpu_instruments={} gap_inside_band_on_both_seeds={} (the gate also needs the artifact parity)",
                 value["noise_band_dev_loss"], value["gpu_instruments_pass"], value["gap_inside_band_on_both_seeds"]
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-artifact-windows" => {
+            let value = d11_artifact_windows(&data_root)?;
+            println!(
+                "[d11-artifact-windows] windows={} rows={}",
+                value["dev_windows"], value["scored_rows"]
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-artifact-gap" => {
+            let seed: u64 = option("--seed")?
+                .parse()
+                .map_err(|_| FloatTrainError::Invalid("--seed must be an integer".to_owned()))?;
+            let value = run_d11_artifact_gap(
+                &data_root,
+                &PathBuf::from(option("--model-dir")?),
+                &PathBuf::from(option("--evaluator")?),
+                &option("--windows-sha256")?,
+                &option("--artifact-sha256")?,
+                &PathBuf::from(option("--stage4b")?),
+                &PathBuf::from(option("--stored-preds")?),
+                seed,
+                &device,
+            )?;
+            println!(
+                "[d11-artifact-gap] seed={} top1_float={} top1_artifact={} b={} c={} net={} F_I={} loss_float={} loss_artifact={} noise={} within={} save_load={} inputs={} verify_all={} dev={} gap_inside_band={}",
+                value["seed"],
+                value["float"]["top1_hits"],
+                value["top1_artifact"],
+                value["paired_float_vs_artifact"]["a_hit_b_miss_c"],
+                value["paired_float_vs_artifact"]["a_miss_b_hit_b"],
+                value["net_gap_rows"],
+                value["f_i"],
+                value["loss_float"],
+                value["loss_artifact"],
+                value["noise_band_dev_loss"],
+                value["within_band"],
+                value["i_save_load"],
+                value["i_inputs"],
+                value["i_verify_all"],
+                value["i_dev_denominator"],
+                value["gap_inside_band"],
             );
             write_receipt(&out, &value)
         }
