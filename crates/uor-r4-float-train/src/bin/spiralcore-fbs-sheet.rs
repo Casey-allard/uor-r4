@@ -1,4 +1,4 @@
-//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap --data-root DIR --out FILE [--save-dir DIR]`
+//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export --data-root DIR --out FILE [--save-dir DIR] [options below]`
 //!
 //! The runner of `docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`
 //! (spiralcore-fbs-offline-float-sheet, #2891). GPU only. `--data-root` holds `mw-balp/train/`,
@@ -15,6 +15,11 @@
 //! `docs/harness/prep/d11-exporter-float-trunk-artifact-gap-2026-10-26.md`), with `--model-dir`,
 //! `--evaluator`, `--windows-sha256`, `--artifact-sha256` (the seed's pinned artifact),
 //! `--stage4b`, `--stored-preds` and `--seed`.
+//!
+//! `d11-train-probe` runs 32 D11-mode training steps and projects the full run.
+//! `d11-train-export` trains the export arm on both seeds in the D11 mode and saves each model,
+//! snapshot and float predictions under `--save-dir`, with Stage 4b's noise band from `--stage4b`
+//! (claude-130, `docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md`).
 
 use std::collections::BTreeMap;
 use std::env;
@@ -22,8 +27,8 @@ use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
-    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_full_sheet,
-    run_synthetic_probe, run_throughput_probe, write_receipt,
+    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_train_export,
+    run_d11_train_probe, run_full_sheet, run_synthetic_probe, run_throughput_probe, write_receipt,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
@@ -165,6 +170,40 @@ fn main() -> Result<()> {
                 "[summary] noise={} gpu_instruments={} gap_inside_band_on_both_seeds={} (the gate also needs the artifact parity)",
                 value["noise_band_dev_loss"], value["gpu_instruments_pass"], value["gap_inside_band_on_both_seeds"]
             );
+            write_receipt(&out, &value)
+        }
+        "d11-train-probe" => {
+            let value = run_d11_train_probe(&data_root, &device)?;
+            println!(
+                "[d11-train-probe] train_learns={} learns={} train_loss_0={} train_loss_31={} dev_loss_0={} dev_loss_32={} s_per_step={} projected_full_s={} under_one_hour_per_seed={}",
+                value["train_learns"],
+                value["learns"],
+                value["train_loss_step_0"],
+                value["train_loss_step_31"],
+                value["dev_loss_float_step_0"],
+                value["dev_loss_float_step_32"],
+                value["seconds_per_step"],
+                value["projected_full_seconds"],
+                value["under_one_hour_per_seed"],
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-train-export" => {
+            let save_dir = save_dir.ok_or_else(|| {
+                FloatTrainError::Invalid("d11-train-export needs --save-dir".to_owned())
+            })?;
+            let value = run_d11_train_export(
+                &data_root,
+                &save_dir,
+                &PathBuf::from(option("--stage4b")?),
+                &device,
+            )?;
+            for s in value["seeds"].as_array().into_iter().flatten() {
+                println!(
+                    "[d11-train-export] seed={} top1_float={} loss_float={} save_load={}",
+                    s["seed"], s["float"]["top1_hits"], s["loss_float"], s["i_save_load"],
+                );
+            }
             write_receipt(&out, &value)
         }
         "d11-artifact-windows" => {

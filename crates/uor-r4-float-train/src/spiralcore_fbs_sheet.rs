@@ -107,11 +107,7 @@ fn batch_loss(
     let idx = Tensor::from_vec(scored.to_vec(), scored.len(), model.device())?;
     let query = hidden.index_select(&idx, 0)?;
     let query = if q12_query {
-        query
-            .affine(f64::from(hs::Q12_SCALE), 0.0)?
-            .round()?
-            .clamp(hs::Q12_I16_MIN, hs::Q12_I16_MAX)?
-            .affine(1.0 / f64::from(hs::Q12_SCALE), 0.0)?
+        hs::q12_query(&query)?
     } else {
         query
     };
@@ -318,6 +314,32 @@ pub fn run_fbs_arm(
     eval_steps: &[usize],
     device: &Device,
 ) -> Result<FbsArmOutput> {
+    run_fbs_arm_with(
+        arm,
+        false,
+        seed,
+        steps,
+        batches,
+        dev_windows,
+        eval_steps,
+        device,
+    )
+}
+
+/// [`run_fbs_arm`], with every training step in the D11 mode when `d11_train` (claude-130): the
+/// loss is the D11 forward's, its scored query at Q12, through `hamilton_sheet::with_d11_training`'s
+/// bridges, with the step's backward inside the same mode. The evaluations are unchanged.
+#[allow(clippy::too_many_arguments)]
+pub fn run_fbs_arm_with(
+    arm: FbsArm,
+    d11_train: bool,
+    seed: u64,
+    steps: usize,
+    batches: &[TrainBatch],
+    dev_windows: &[CausalWindow],
+    eval_steps: &[usize],
+    device: &Device,
+) -> Result<FbsArmOutput> {
     if batches.is_empty() {
         return Err(invalid("no training batches"));
     }
@@ -370,15 +392,22 @@ pub fn run_fbs_arm(
     for step in 0..steps {
         let started = Instant::now();
         let (ids, scored, targets) = &batches[step % batches.len()];
-        let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH, false)?;
-        let value = f64::from(loss.to_scalar::<f32>()?);
-        if !value.is_finite() {
-            return Err(invalid(format!(
-                "I-Finite-CUDA: non-finite training loss at step {step} in {}",
-                arm.name()
-            )));
-        }
-        let grads = loss.backward()?;
+        let loss_and_grads = || -> Result<(f64, candle_core::backprop::GradStore)> {
+            let loss = batch_loss(&model, ids, scored, targets, SHEET_TRAIN_BATCH, d11_train)?;
+            let value = f64::from(loss.to_scalar::<f32>()?);
+            if !value.is_finite() {
+                return Err(invalid(format!(
+                    "I-Finite-CUDA: non-finite training loss at step {step} in {}",
+                    arm.name()
+                )));
+            }
+            Ok((value, loss.backward()?))
+        };
+        let (value, grads) = if d11_train {
+            hs::with_d11_training(seed, step, loss_and_grads)?
+        } else {
+            loss_and_grads()?
+        };
         if step == 0 {
             step0_credit = query_credit_l2(&model, &grads)?;
         }
@@ -1491,6 +1520,135 @@ pub fn run_d11_artifact_gap(
         } else {
             serde_json::json!("not counted: an instrument check failed")
         },
+    }))
+}
+
+/// Probe (b) of D11-mode training (claude-130): 32 D11-mode steps of [`D11_EXPORT_ARM`] on seed 1,
+/// the DEV panel at steps 0 and 32, and the projected wall time of the full run (two seeds of
+/// [`STEPS`] steps, each evaluated at [`EVAL_STEPS`]).
+pub fn run_d11_train_probe(data_root: &Path, device: &Device) -> Result<serde_json::Value> {
+    let (batches, dev_windows, dev_docs) = load_inputs(data_root, 32)?;
+    let out = run_fbs_arm_with(
+        D11_EXPORT_ARM,
+        true,
+        1,
+        32,
+        &batches,
+        &dev_windows,
+        &[0, 1, 32],
+        device,
+    )?;
+    let first = &out.run.eval[0];
+    // The evaluation after step 1 carries step 0's D11-mode training loss.
+    let after_first = &out.run.eval[1];
+    let last = out.run.final_point()?;
+    let per_step = out.run.train_wall_seconds / 32.0;
+    let eval_seconds = last.dev_float.eval_wall_seconds + last.dev_int.eval_wall_seconds;
+    let projected_seed = per_step * STEPS as f64 + eval_seconds * 2.0 * EVAL_STEPS.len() as f64;
+    let train_learns = match (after_first.train_loss, last.train_loss) {
+        (Some(a), Some(b)) => b < a,
+        _ => false,
+    };
+    Ok(serde_json::json!({
+        "probe": "d11-train-probe",
+        "kernels": kernel_identity(),
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "train_loss_step_0": after_first.train_loss,
+        "train_loss_step_31": last.train_loss,
+        "train_learns": train_learns,
+        "dev_loss_float_step_0": first.dev_loss_float,
+        "dev_loss_float_step_32": last.dev_loss_float,
+        "learns": last.dev_loss_float < first.dev_loss_float,
+        "step0_query_credit_l2": out.run.step0_query_credit_l2,
+        "seconds_per_step": per_step,
+        "projected_seconds_per_seed": projected_seed,
+        "projected_full_seconds": projected_seed * SEEDS.len() as f64,
+        "under_one_hour_per_seed": projected_seed < 3600.0,
+        "run": out.run,
+    }))
+}
+
+/// D11-mode training and export (claude-130): [`D11_EXPORT_ARM`] trained on both seeds with every
+/// step in the D11 mode (`run_fbs_arm_with`, `d11_train`), each saved model reloaded and checked
+/// (`I-Save-Load`), and its snapshot and plain float predictions written under
+/// `save_dir/seed-<seed>/` (a directory that must not exist yet) for `fbs-export` and the
+/// artifact-gap scorer. The receipt carries Stage 4b's noise band, read from `stage4b`, and each
+/// seed's float loss, in the shape `run_d11_artifact_gap` reads as its `stage4b` receipt.
+pub fn run_d11_train_export(
+    data_root: &Path,
+    save_dir: &Path,
+    stage4b: &Path,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::fbs_trunk_snapshot;
+    use uor_r4_integer::fbs_snapshot::write_new_file;
+
+    let receipt: serde_json::Value = serde_json::from_slice(&fs::read(stage4b)?)?;
+    let noise = receipt["noise_band_dev_loss"]
+        .as_f64()
+        .ok_or_else(|| invalid("the Stage 4b receipt has no noise band"))?;
+    fs::create_dir(save_dir)?;
+    let (batches, dev_windows, dev_docs) = load_inputs(data_root, TRAIN_BATCHES)?;
+    let mut seeds = Vec::new();
+    let mut instruments_ok = true;
+    for seed in SEEDS {
+        let out = run_fbs_arm_with(
+            D11_EXPORT_ARM,
+            true,
+            seed,
+            STEPS,
+            &batches,
+            &dev_windows,
+            &EVAL_STEPS,
+            device,
+        )?;
+        let last = out.run.final_point()?;
+        let dir = save_dir.join(format!("seed-{seed}"));
+        fs::create_dir(&dir)?;
+        out.model.save(&dir.join("model"))?;
+        let loaded = StackModel::load(&dir.join("model"), device)?;
+        let (_, reloaded_preds) = hs::evaluate_dev_panel(
+            &loaded,
+            &dev_windows,
+            HamiltonArm::HamiltonActive,
+            seed,
+            STEPS,
+            false,
+            false,
+        )?;
+        let reloaded_loss = panel_loss(&loaded, &dev_windows, seed, STEPS, false)?;
+        let i_save_load = reloaded_preds == out.preds_float && reloaded_loss == last.dev_loss_float;
+        hs::clear_active_arm();
+        instruments_ok &= i_save_load;
+        let snapshot = fbs_trunk_snapshot(&loaded)?;
+        write_new_file(&dir.join("snapshot.json"), &serde_json::to_vec(&snapshot)?)?;
+        write_new_file(
+            &dir.join("preds-float.json"),
+            &serde_json::to_vec(&out.preds_float)?,
+        )?;
+        seeds.push(serde_json::json!({
+            "seed": seed,
+            "arm": D11_EXPORT_ARM.name(),
+            "d11_trained": true,
+            "float": last.dev_float,
+            "export_mode": last.dev_int,
+            "loss_float": last.dev_loss_float,
+            "loss_export_mode": last.dev_loss_int,
+            "preds_float_sha256": preds_sha256(&out.preds_float),
+            "i_save_load": i_save_load,
+            "reloaded_loss_float": reloaded_loss,
+        }));
+    }
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md",
+        "kernels": kernel_identity(),
+        "dev_documents": dev_docs,
+        "dev_windows": dev_windows.len(),
+        "noise_band_dev_loss": noise,
+        "noise_band_source": "claude-126's Stage 4b receipt (d11-gap.json)",
+        "seeds": seeds,
+        "instruments_pass": instruments_ok,
     }))
 }
 

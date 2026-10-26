@@ -1270,7 +1270,7 @@ impl StackModel {
             // The D11 mode snaps the transition to the 120 icosians, as the
             // integer path serves it (`hamilton_sheet::with_d11_mode`).
             let unit = if crate::hamilton_sheet::is_snapping_transition() {
-                crate::hamilton_sheet::icosian_snap_quaternions(&raw)?
+                crate::hamilton_sheet::d11_transition_unit(&raw)?
             } else {
                 let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
                 raw.broadcast_div(&norm)?

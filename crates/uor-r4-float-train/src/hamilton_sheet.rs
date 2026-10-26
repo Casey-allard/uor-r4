@@ -467,6 +467,9 @@ struct GateHookState {
     /// The D11 mode also snaps the recurrence transition to the 120 icosians
     /// (`with_d11_mode`, claude-125).
     snap_transition: bool,
+    /// D11-mode training (`with_d11_training`, claude-130): the transition snap and the scored
+    /// Q12 query pass straight-through gradients. Off, the D11 forward is the evaluation's.
+    bridge_d11: bool,
     capture_telemetry: bool,
     cuda_error_checks_passed: u64,
     // Intrinsic per-4-block suppression telemetry
@@ -506,6 +509,7 @@ impl Default for GateHookState {
             bwd_call_idx: 0,
             icosian_export_mode: false,
             snap_transition: false,
+            bridge_d11: false,
             capture_telemetry: false,
             cuda_error_checks_passed: 0,
             total_blocks_observed: 0,
@@ -1813,6 +1817,68 @@ pub(crate) fn is_snapping_transition() -> bool {
     GATE_HOOK.with(|cell| cell.borrow().snap_transition)
 }
 
+/// Runs `f` (a training step's loss and its backward together) in the D11 mode with the
+/// training bridges on (claude-130):
+/// - the gates train through their own snap, as `Hamilton_IcosianHard` does (the straight-through
+///   S^3 tangent-space bridge of its backward);
+/// - the transition snap's backward runs through the unit normalization, the same S^3 tangent
+///   bridge;
+/// - the scored query's Q12 rounding passes its gradient straight through.
+///
+/// The forward is the D11 mode's: the snapped roots and the Q12 query. It restores the gate hook
+/// as `with_d11_mode` does, and the bridge flag as it was. `seed` and `step` are set as
+/// `with_gate_mode` sets them.
+pub fn with_d11_training<T>(seed: u64, step: usize, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    let prior = GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        let prior = st.bridge_d11;
+        st.bridge_d11 = true;
+        st.seed = seed;
+        st.step = step;
+        prior
+    });
+    let out = with_d11_mode(f);
+    GATE_HOOK.with(|cell| cell.borrow_mut().bridge_d11 = prior);
+    out
+}
+
+/// Whether D11-mode training bridges the transition snap and the Q12 query on this thread.
+pub(crate) fn is_bridging_d11() -> bool {
+    GATE_HOOK.with(|cell| cell.borrow().bridge_d11)
+}
+
+/// The D11 transition's unit quaternions for raw rotation logits (last axis 4): the nearest of
+/// the 120 icosians. Under [`with_d11_training`] the backward is the unit normalization's (the
+/// S^3 tangent-space bridge of the icosian gate, claude-130); otherwise the snap passes none.
+pub(crate) fn d11_transition_unit(raw: &Tensor) -> Result<Tensor> {
+    let snapped = icosian_snap_quaternions(raw)?;
+    if !is_bridging_d11() {
+        return Ok(snapped);
+    }
+    let norm = raw
+        .sqr()?
+        .sum_keepdim(candle_core::D::Minus1)?
+        .affine(1.0, 1e-6)?
+        .sqrt()?;
+    let free = raw.broadcast_div(&norm)?;
+    Ok((&free + (snapped - &free)?.detach())?)
+}
+
+/// The scored query at Q12, as the D11 head reads it: `round(4096 q) / 4096`, clamped to i16.
+/// Under [`with_d11_training`] its gradient passes straight through (claude-130); otherwise the
+/// rounding passes none.
+pub(crate) fn q12_query(query: &Tensor) -> Result<Tensor> {
+    let rounded = query
+        .affine(f64::from(Q12_SCALE), 0.0)?
+        .round()?
+        .clamp(Q12_I16_MIN, Q12_I16_MAX)?
+        .affine(1.0 / f64::from(Q12_SCALE), 0.0)?;
+    if !is_bridging_d11() {
+        return Ok(rounded);
+    }
+    Ok((query + (rounded - query)?.detach())?)
+}
+
 /// The nearest of the 120 icosians to each 4-vector of `raw` (last axis 4):
 /// the D11 mode's transition snap. CUDA only.
 pub(crate) fn icosian_snap_quaternions(raw: &Tensor) -> Result<Tensor> {
@@ -2512,6 +2578,86 @@ pub fn run_full_hamilton_sheet(data_root: &Path, device: &Device) -> Result<Hami
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn d11_training_sets_and_restores_its_bridge() -> Result<()> {
+        // claude-130: the bridges are on only inside `with_d11_training`; the evaluation's D11
+        // mode never bridges, and an error inside still restores the hook.
+        assert!(!is_bridging_d11() && !is_snapping_transition());
+        let inside = with_d11_training(1, 3, || Ok((is_bridging_d11(), is_snapping_transition())))?;
+        assert_eq!(inside, (true, true));
+        assert!(!is_bridging_d11() && !is_snapping_transition());
+        assert!(!with_d11_mode(|| Ok(is_bridging_d11()))?);
+        assert!(with_d11_training(1, 3, || -> Result<()> { Err(invalid("inside")) }).is_err());
+        assert!(!is_bridging_d11() && !is_snapping_transition());
+        Ok(())
+    }
+
+    /// On one GPU (claude-130): in the evaluation's D11 mode the transition is the snap itself
+    /// and passes no gradient; in D11-mode training its forward is the snap (to float rounding)
+    /// and its gradient the unit normalization's, the S^3 tangent bridge. The Q12 query likewise:
+    /// rounded in evaluation, rounded forward with a straight-through gradient in training.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn gpu_d11_bridges_pass_the_tangent_and_straight_gradients() -> Result<()> {
+        use candle_core::{Var, D};
+        let device = Device::new_cuda(0)?;
+        let pattern = |a: usize, b: usize, c: f32| -> Vec<f32> {
+            (0..64)
+                .map(|i| ((i * a % b) as f32 - b as f32 / 2.0) / c)
+                .collect()
+        };
+        let max_diff = |x: &Tensor, y: &Tensor| -> Result<f32> {
+            Ok((x - y)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?)
+        };
+        let raw = Var::from_vec(pattern(37, 23, 7.0), (16, 4), &device)?;
+        let weights = Tensor::from_vec(pattern(13, 17, 5.0), (16, 4), &device)?;
+        let snapped = icosian_snap_quaternions(raw.as_tensor())?;
+
+        let eval = with_d11_mode(|| d11_transition_unit(raw.as_tensor()))?;
+        assert_eq!(eval.to_vec2::<f32>()?, snapped.to_vec2::<f32>()?);
+        let grads = (&eval * &weights)?.sum_all()?.backward()?;
+        if let Some(g) = grads.get(raw.as_tensor()) {
+            assert_eq!(g.abs()?.sum_all()?.to_scalar::<f32>()?, 0.0);
+        }
+
+        let train = with_d11_training(1, 0, || d11_transition_unit(raw.as_tensor()))?;
+        assert!(max_diff(&train, &snapped)? <= 1e-6);
+        let grads = (&train * &weights)?.sum_all()?.backward()?;
+        let got = grads
+            .get(raw.as_tensor())
+            .expect("the bridge passes a gradient");
+        let norm = raw
+            .as_tensor()
+            .sqr()?
+            .sum_keepdim(D::Minus1)?
+            .affine(1.0, 1e-6)?
+            .sqrt()?;
+        let free = raw.as_tensor().broadcast_div(&norm)?;
+        let want_grads = (&free * &weights)?.sum_all()?.backward()?;
+        let want = want_grads
+            .get(raw.as_tensor())
+            .expect("the normalization's gradient");
+        assert!(want.abs()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+        assert!(max_diff(got, want)? <= 1e-6);
+
+        let query = Var::from_vec(pattern(29, 31, 3.0), (16, 4), &device)?;
+        let rounded = with_d11_mode(|| q12_query(query.as_tensor()))?;
+        let expected = query
+            .as_tensor()
+            .affine(4096.0, 0.0)?
+            .round()?
+            .affine(1.0 / 4096.0, 0.0)?;
+        assert_eq!(rounded.to_vec2::<f32>()?, expected.to_vec2::<f32>()?);
+        let bridged = with_d11_training(1, 0, || q12_query(query.as_tensor()))?;
+        assert!(max_diff(&bridged, &expected)? <= 1e-6);
+        let grads = (&bridged * &weights)?.sum_all()?.backward()?;
+        let got = grads
+            .get(query.as_tensor())
+            .expect("the Q12 bridge passes a gradient");
+        assert!(max_diff(got, &weights)? <= 1e-6);
+        Ok(())
+    }
 
     #[test]
     fn icosian_closure_and_signed_h4_classifier_pass() -> Result<()> {
