@@ -19,7 +19,7 @@
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
@@ -732,6 +732,78 @@ fn is_capturing_snaps() -> bool {
     SNAP_CAPTURE.with(|c| c.borrow().is_some())
 }
 
+thread_local! {
+    static SNAP_OVERRIDE: RefCell<Option<VecDeque<Vec<u8>>>> = const { RefCell::new(None) };
+}
+
+/// The root a forced snap byte applies (claude-135): the byte's own root, or root 0 (−1) for
+/// 255, an integer zero block, which the integer path snaps to its lowest index on the tie.
+pub fn forced_root(byte: u8) -> u32 {
+    if byte == u8::MAX {
+        0
+    } else {
+        u32::from(byte)
+    }
+}
+
+/// A capture's roots as forced bytes that apply the same roots (claude-135): a float zero block
+/// (255) applies the identity, root 1.
+pub fn self_forced(roots: &[u8]) -> Vec<u8> {
+    roots
+        .iter()
+        .map(|&r| if r == u8::MAX { 1 } else { r })
+        .collect()
+}
+
+/// Runs `f` with every snap of [`icosian_snap_cuda_tensor`] forced (claude-135): its k-th call
+/// applies `calls[k]`, one byte per 4-block ([`forced_root`]). The scores, and any capture's
+/// choice and margin, stay D's own. A call with the wrong block count or a byte naming no root,
+/// a snap beyond the calls, and calls left over are all refused. It restores the prior state on
+/// every exit, a panic included. Evaluation forwards only: a backward through the hard icosian
+/// gate also snaps, and would take forward calls.
+pub fn with_snap_override<T>(calls: Vec<Vec<u8>>, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    struct Restore(Option<VecDeque<Vec<u8>>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let prior = self.0.take();
+            SNAP_OVERRIDE.with(|c| *c.borrow_mut() = prior);
+        }
+    }
+    let _restore = Restore(SNAP_OVERRIDE.with(|c| c.replace(Some(calls.into()))));
+    let out = f()?;
+    let left = SNAP_OVERRIDE.with(|c| c.borrow().as_ref().map_or(0, VecDeque::len));
+    if left != 0 {
+        return Err(invalid(format!(
+            "{left} forced snap call(s) were never made"
+        )));
+    }
+    Ok(out)
+}
+
+/// The next forced call for a snap of `blocks` 4-blocks, or `None` with no override active.
+#[cfg(any(feature = "cuda", test))]
+fn next_forced_call(blocks: usize) -> std::result::Result<Option<Vec<u8>>, String> {
+    SNAP_OVERRIDE.with(|c| {
+        let mut c = c.borrow_mut();
+        let Some(queue) = c.as_mut() else {
+            return Ok(None);
+        };
+        let call = queue
+            .pop_front()
+            .ok_or("a snap call beyond the forced calls")?;
+        if call.len() != blocks {
+            return Err(format!(
+                "a forced snap call has {} blocks, the snap {blocks}",
+                call.len()
+            ));
+        }
+        if call.iter().any(|&b| b >= 120 && b != u8::MAX) {
+            return Err("a forced snap byte names no root".to_owned());
+        }
+        Ok(Some(call))
+    })
+}
+
 /// Snaps a contiguous F32 tensor of shape `(..., 4 * K)` to its nearest unit icosians in `I_120` on CUDA.
 #[cfg(feature = "cuda")]
 pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_core::Result<Tensor> {
@@ -744,6 +816,8 @@ pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_co
     let dev = Device::Cuda(device.clone());
     let capturing = is_capturing_snaps();
     let mut capture = SnapCapture::default();
+    // A forced call (claude-135) replaces the applied roots; D's own choice is still captured.
+    let forced = next_forced_call(blocks).map_err(candle_core::Error::Msg)?;
     for start in (0..blocks).step_by(chunk_size) {
         let len = (blocks - start).min(chunk_size);
         let sub = gate_2d.narrow(0, start, len)?;
@@ -752,7 +826,17 @@ pub fn icosian_snap_cuda_tensor(device: &CudaDevice, gate: &Tensor) -> candle_co
         let is_zero = sub.abs()?.sum(1)?.eq(0.0f32)?;
         let ones = Tensor::ones(len, DType::U32, &dev)?;
         let idx = is_zero.where_cond(&ones, &raw_idx)?;
-        let snapped = roots_120_4.index_select(&idx, 0)?;
+        let applied = match &forced {
+            Some(bytes) => {
+                let roots: Vec<u32> = bytes[start..start + len]
+                    .iter()
+                    .map(|&b| forced_root(b))
+                    .collect();
+                Tensor::from_vec(roots, len, &dev)?
+            }
+            None => idx.clone(),
+        };
+        let snapped = roots_120_4.index_select(&applied, 0)?;
         chunks.push(snapped);
         if capturing {
             // The second-best score: the chosen root's own score masked out.
@@ -2751,6 +2835,39 @@ pub fn run_full_hamilton_sheet(data_root: &Path, device: &Device) -> Result<Hami
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_snap_override_forces_each_call_in_order_and_refuses_a_mismatch() -> Result<()> {
+        // claude-135: off, no call is forced; 255 applies root 0, and a float zero block forces
+        // back to the identity (root 1).
+        assert_eq!(next_forced_call(3), Ok(None));
+        assert_eq!((forced_root(7), forced_root(u8::MAX)), (7, 0));
+        assert_eq!(self_forced(&[3, u8::MAX, 0]), vec![3, 1, 0]);
+        // The calls are taken in order, each checked against its snap's block count.
+        let out = with_snap_override(vec![vec![1, 2], vec![u8::MAX]], || {
+            let first = next_forced_call(2);
+            let second = next_forced_call(1);
+            let beyond = next_forced_call(1);
+            Ok((first, second, beyond.is_err()))
+        })?;
+        assert_eq!(out, (Ok(Some(vec![1, 2])), Ok(Some(vec![u8::MAX])), true));
+        assert_eq!(next_forced_call(1), Ok(None));
+        // A wrong block count and a byte naming no root are refused.
+        with_snap_override(vec![vec![1, 2], vec![200]], || {
+            assert!(next_forced_call(3).is_err());
+            assert!(next_forced_call(1).is_err());
+            Ok(())
+        })?;
+        // Calls left over are refused, and the state is restored after an error or a panic.
+        assert!(with_snap_override(vec![vec![1]], || Ok(())).is_err());
+        assert_eq!(next_forced_call(1), Ok(None));
+        let panicked = std::panic::catch_unwind(|| {
+            let _ = with_snap_override(vec![vec![1]], || -> Result<()> { panic!("inside") });
+        });
+        assert!(panicked.is_err());
+        assert_eq!(next_forced_call(1), Ok(None));
+        Ok(())
+    }
 
     #[test]
     fn d11_training_sets_and_restores_its_bridge() -> Result<()> {

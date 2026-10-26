@@ -2555,6 +2555,397 @@ pub fn run_d11_snap_trace(
     }))
 }
 
+/// A's trace as forced snap calls in the D panel's call order (claude-135): per chunk of
+/// [`hs::SHEET_EVAL_BATCH`] windows, per layer, the transition, the output gate and the
+/// feed-forward gate, each over the chunk's rows.
+fn forced_calls(trace: &[u8], shape: SnapShape) -> Vec<Vec<u8>> {
+    let mut calls = Vec::new();
+    for first in (0..shape.windows).step_by(hs::SHEET_EVAL_BATCH) {
+        let end = (first + hs::SHEET_EVAL_BATCH).min(shape.windows);
+        for layer in 0..shape.layers {
+            for site in 0..3 {
+                let blocks = shape.blocks(site);
+                let mut call = Vec::with_capacity((end - first) * shape.len * blocks);
+                for row in first * shape.len..end * shape.len {
+                    let base = shape.offset(row, layer, site);
+                    call.extend_from_slice(&trace[base..base + blocks]);
+                }
+                calls.push(call);
+            }
+        }
+    }
+    calls
+}
+
+/// The joined captures laid out as an artifact trace (claude-135): the inverse of the layout
+/// [`compare_snaps`] reads, so `forced_calls` of it can be held against the panel's own calls.
+fn trace_layout(joined: &[hs::SnapCapture], shape: SnapShape) -> Vec<u8> {
+    let rows = shape.windows * shape.len;
+    let mut trace = vec![0u8; rows * shape.stride()];
+    for layer in 0..shape.layers {
+        for site in 0..3 {
+            let blocks = shape.blocks(site);
+            let roots = &joined[layer * 3 + site].roots;
+            for row in 0..rows {
+                let base = shape.offset(row, layer, site);
+                trace[base..base + blocks]
+                    .copy_from_slice(&roots[row * blocks..(row + 1) * blocks]);
+            }
+        }
+    }
+    trace
+}
+
+/// `calls` with every root of one (layer, site) moved to another root, in every chunk
+/// (claude-135's wrong-root gate): root r becomes r + 1 (mod 120), and 255 (root 0) becomes 1.
+fn wrong_root_calls(
+    mut calls: Vec<Vec<u8>>,
+    layers: usize,
+    layer: usize,
+    site: usize,
+) -> Vec<Vec<u8>> {
+    for (i, call) in calls.iter_mut().enumerate() {
+        if i % (3 * layers) == layer * 3 + site {
+            for b in call.iter_mut() {
+                *b = if *b == u8::MAX { 1 } else { (*b + 1) % 120 };
+            }
+        }
+    }
+    calls
+}
+
+/// What the forced-snap bar reads on one model (claude-135).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ForcedReadings {
+    /// Scored rows, and those where unforced D and A differ, and where forced-D and A differ.
+    pub rows: usize,
+    pub rows_differ_unforced: usize,
+    pub rows_differ_forced: usize,
+    /// Every forced site, and the would-flips: the sites (inert ones apart) where D's own
+    /// choice, at the forced state, applies another root than A's ([`would_flip_count`]).
+    pub sites: usize,
+    pub would_flips: usize,
+    /// The root would-flips, those of them at an exact tie (D's margin 0), and D's upper median
+    /// margin at the others.
+    pub root_would_flips: usize,
+    pub would_flip_exact_ties: usize,
+    pub would_flip_median_margin: Option<f32>,
+}
+
+impl ForcedReadings {
+    fn would_flip_rate(&self) -> f64 {
+        if self.sites == 0 {
+            0.0
+        } else {
+            self.would_flips as f64 / self.sites as f64
+        }
+    }
+}
+
+/// The would-flips of a forced comparison's classes (in [`SnapClass`] order): the root ones and
+/// the one-sided zero blocks. A zero block on both sides is the same arithmetic in D and A, apart
+/// only in the zero convention, so it is a reading, never a would-flip.
+fn would_flip_count(per_class: [usize; 4]) -> usize {
+    per_class[0] + per_class[2] + per_class[3]
+}
+
+/// The forced-snap bar's thresholds (the sheet's §3), in rows per thousand and margins.
+const FORCED_MATCH_MAX_PERMILLE: usize = 5;
+const FORCED_CONTINUOUS_MIN_PERMILLE: usize = 20;
+const WOULD_FLIP_NEAR_TIE_MAX_MARGIN: f32 = 1e-3;
+const WOULD_FLIP_DECISIVE_MIN_MARGIN: f32 = 1e-2;
+/// A would-flip rate beyond this many times the faithful models' largest is outside their envelope.
+const WOULD_FLIP_ENVELOPE_FACTOR: f64 = 2.0;
+/// The envelope's floor: one would-flip per 10^7 sites, so a zero envelope is not a bar no model
+/// can meet.
+const WOULD_FLIP_ENVELOPE_FLOOR: f64 = 1e-7;
+
+/// One model's forced-snap outcome, the first that applies (the sheet's §3 precedence), given
+/// the faithful models' largest would-flip rate.
+fn classify_forced(r: &ForcedReadings, envelope_rate: f64) -> &'static str {
+    let forced = 1000 * r.rows_differ_forced;
+    if forced >= FORCED_CONTINUOUS_MIN_PERMILLE * r.rows {
+        return "continuous-residual";
+    }
+    if forced > FORCED_MATCH_MAX_PERMILLE * r.rows {
+        return "partly-snap-carried";
+    }
+    if r.would_flip_exact_ties > 0 && 2 * r.would_flip_exact_ties >= r.root_would_flips {
+        return "tie-break";
+    }
+    let beyond_envelope = r.would_flip_rate() > WOULD_FLIP_ENVELOPE_FACTOR * envelope_rate;
+    match r.would_flip_median_margin {
+        Some(m) if m >= WOULD_FLIP_DECISIVE_MIN_MARGIN => "localise-upstream",
+        _ if beyond_envelope => "localise-upstream",
+        Some(m) if m < WOULD_FLIP_NEAR_TIE_MAX_MARGIN => "faithful",
+        None if r.would_flips == 0 => "faithful",
+        _ => "indeterminate",
+    }
+}
+
+/// The forced-snap summary (claude-135): the faithful models' largest would-flip rate as the
+/// envelope, and each model's outcome against it. `receipts` are `run_d11_forced_snaps`'s;
+/// `faithful` names the faithful models by `(label, seed)`. A model whose instruments failed is
+/// unclassified; the summary refuses a faithful model that is missing or failed.
+pub fn summarize_forced(
+    receipts: &[serde_json::Value],
+    faithful: &[(String, u64)],
+) -> Result<serde_json::Value> {
+    let key = |r: &serde_json::Value| (r["label"].as_str().map(str::to_owned), r["seed"].as_u64());
+    let readings = |r: &serde_json::Value| -> Result<ForcedReadings> {
+        Ok(serde_json::from_value(r["readings"].clone())?)
+    };
+    // One receipt per model, every one over the same windows.
+    let mut keys: Vec<_> = receipts.iter().map(key).collect();
+    keys.sort();
+    keys.dedup();
+    if keys.len() != receipts.len() {
+        return Err(invalid("two receipts for one model"));
+    }
+    if receipts
+        .iter()
+        .any(|r| r["windows"] != receipts[0]["windows"])
+    {
+        return Err(invalid("the receipts are not over the same windows"));
+    }
+    let mut envelope = WOULD_FLIP_ENVELOPE_FLOOR;
+    for (label, seed) in faithful {
+        let r = receipts
+            .iter()
+            .find(|r| key(r) == (Some(label.clone()), Some(*seed)))
+            .ok_or_else(|| invalid(format!("no receipt for faithful model {label} s{seed}")))?;
+        if r["instruments_pass"] != serde_json::Value::Bool(true) {
+            return Err(invalid(format!(
+                "faithful model {label} s{seed} failed its instruments"
+            )));
+        }
+        envelope = envelope.max(readings(r)?.would_flip_rate());
+    }
+    let mut models = Vec::new();
+    for r in receipts {
+        let read = readings(r)?;
+        let outcome = if r["instruments_pass"] == serde_json::Value::Bool(true) {
+            classify_forced(&read, envelope)
+        } else {
+            "unclassified"
+        };
+        models.push(serde_json::json!({
+            "label": r["label"],
+            "seed": r["seed"],
+            "faithful_in_claude_132": faithful.iter().any(|(l, s)| key(r) == (Some(l.clone()), Some(*s))),
+            "rows_differ_unforced": read.rows_differ_unforced,
+            "rows_differ_forced": read.rows_differ_forced,
+            "would_flip_rate": read.would_flip_rate(),
+            "would_flip_median_margin": read.would_flip_median_margin,
+            "outcome": outcome,
+        }));
+    }
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-forced-snaps-2026-10-26.md",
+        "envelope_would_flip_rate": envelope,
+        "envelope_factor": WOULD_FLIP_ENVELOPE_FACTOR,
+        "models": models,
+    }))
+}
+
+/// The forced-snap control (claude-135), on the GPU: over the first `windows_count` DEV windows
+/// (all 428 in the run), the D11 forward with every snap forced to the artifact's traced choice.
+/// It reads the rows where forced-D and A still differ, and D's own would-flips at every forced
+/// site. Its gates: D forced to its own choices reproduces D (`I-Self-Force`), D's choices laid
+/// out as a trace map back to the panel's calls (`I-Forced-Layout`), forced wrong roots at two
+/// sites change the tokens (`I-Wrong-Root`), and the unforced D reproduces its expected rows
+/// (`I-Unforced`), with claude-134's `I-Trace`, `I-Old-Run`, `I-Inputs` and `I-Layout`.
+#[allow(clippy::too_many_arguments)]
+pub fn run_d11_forced_snaps(
+    data_root: &Path,
+    model_dir: &Path,
+    trace_path: &Path,
+    windows_count: usize,
+    windows_sha256: &str,
+    artifact_sha256: &str,
+    model_sha256_pin: &str,
+    stored_run: &Path,
+    expect_unforced: usize,
+    label: &str,
+    seed: u64,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    use crate::fbs_export::round_tables_as_exported;
+
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let windows = dev_windows
+        .get(..windows_count)
+        .ok_or_else(|| invalid("fewer DEV windows than asked for"))?;
+    let trace: EvaluatorTrace = serde_json::from_slice(&fs::read(trace_path)?)?;
+    let old: EvaluatorRun = serde_json::from_slice(&fs::read(stored_run)?)?;
+    // The stored run is over the same windows as the trace, and agrees with it at every position.
+    let i_old_run = old.artifact_sha256 == trace.artifact_sha256
+        && old.sequences_sha256 == trace.sequences_sha256
+        && old.len == SHEET_CONTEXT
+        && old.tokens.get(..windows_count * SHEET_CONTEXT) == Some(&trace.tokens[..]);
+    let loaded = StackModel::load(model_dir, device)?;
+    let model_sha256 = sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
+    let config = &loaded.config;
+    let shape = SnapShape {
+        windows: windows_count,
+        len: SHEET_CONTEXT,
+        layers: config.layers(),
+        lanes: config.width / 4,
+        ff_blocks: config.mlp_hidden / 4,
+    };
+    let trace_bytes = hex_bytes(&trace.trace_hex)?;
+    let i_inputs = trace.artifact_sha256 == artifact_sha256
+        && trace.sequences_sha256 == windows_sha256
+        && model_sha256 == model_sha256_pin;
+    let i_trace = trace.outputs_host_equal
+        && trace.trace_host_equal
+        && trace.sequences == windows_count
+        && trace.len == SHEET_CONTEXT
+        && trace.width == config.width
+        && trace.mlp == config.mlp_hidden
+        && trace.layers == shape.layers
+        && trace.trace_stride == shape.stride()
+        && trace.tokens.len() == windows_count * SHEET_CONTEXT
+        && trace_bytes.len() == windows_count * SHEET_CONTEXT * shape.stride();
+    if !i_trace {
+        return Err(invalid(
+            "the trace does not fit these windows or this trunk (I-Trace)",
+        ));
+    }
+
+    round_tables_as_exported(&loaded)?;
+    let panel = || hs::evaluate_dev_panel_d11(&loaded, windows);
+    // Unforced D, with its own choices.
+    let ((_, d_preds), unforced_caps) = hs::with_snap_capture(panel)?;
+    let chunk_roots: Vec<Vec<u8>> = unforced_caps.iter().map(|c| c.roots.clone()).collect();
+    // I-Self-Force: D forced to its own choices reproduces D.
+    let self_calls: Vec<Vec<u8>> = chunk_roots.iter().map(|r| hs::self_forced(r)).collect();
+    let (_, self_preds) = hs::with_snap_override(self_calls, panel)?;
+    let i_self_force = self_preds == d_preds;
+    let unforced_joined = join_chunk_captures(unforced_caps, windows_count, shape.layers)?;
+    // I-Forced-Layout: D's own choices, laid out as A's trace, map back through `forced_calls`
+    // to the panel's own calls, so A's trace is forced at the sites it was read from.
+    let i_forced_layout =
+        forced_calls(&trace_layout(&unforced_joined, shape), shape) == chunk_roots;
+    // Forced to A's choices, with D's own choice captured at every forced site.
+    let a_calls = forced_calls(&trace_bytes, shape);
+    let ((_, forced_preds), forced_caps) =
+        hs::with_snap_capture(|| hs::with_snap_override(a_calls.clone(), panel))?;
+    // I-Wrong-Root: layer 0's output gate, and the last layer's feed-forward gate, each forced to
+    // other roots, change the tokens.
+    let (_, wrong_first) =
+        hs::with_snap_override(wrong_root_calls(a_calls.clone(), shape.layers, 0, 1), panel)?;
+    let (_, wrong_last) = hs::with_snap_override(
+        wrong_root_calls(a_calls, shape.layers, shape.layers - 1, 2),
+        panel,
+    )?;
+    let i_wrong_root = wrong_first != forced_preds && wrong_last != forced_preds;
+    hs::clear_active_arm();
+    let unforced = compare_snaps(&unforced_joined, &trace_bytes, shape)?;
+    let i_layout = layout_agrees(&unforced, shape);
+    let would = compare_snaps(
+        &join_chunk_captures(forced_caps, windows_count, shape.layers)?,
+        &trace_bytes,
+        shape,
+    )?;
+
+    // The scored rows, D's and forced-D's tokens against A's.
+    let mut a_preds = Vec::new();
+    for (w, window) in windows.iter().enumerate() {
+        for &offset in &window.scored_offsets {
+            a_preds.push(trace.tokens[w * SHEET_CONTEXT + offset]);
+        }
+    }
+    if a_preds.len() != d_preds.len() || a_preds.len() != forced_preds.len() {
+        return Err(invalid(
+            "the D11 panel's rows are not the windows' scored rows",
+        ));
+    }
+    let differ = |p: &[u32]| a_preds.iter().zip(p).filter(|(a, d)| a != d).count();
+    let both = a_preds
+        .iter()
+        .zip(&d_preds)
+        .zip(&forced_preds)
+        .filter(|((a, d), f)| a != d && a != f)
+        .count();
+    let rows_differ_unforced = differ(&d_preds);
+    let i_unforced = rows_differ_unforced == expect_unforced;
+    let mut margins = would.root_margins.clone();
+    margins.sort_by(f32::total_cmp);
+    let exact_ties = margins.iter().filter(|&&m| m == 0.0).count();
+    let off_tie: Vec<f32> = margins.iter().copied().filter(|&m| m > 0.0).collect();
+    let below = |t: f32| off_tie.iter().filter(|&&m| m < t).count();
+    // Every transition site at position 0 is inert, whether or not it disagrees.
+    let inert_sites = shape.windows * shape.layers * shape.lanes;
+    let readings = ForcedReadings {
+        rows: a_preds.len(),
+        rows_differ_unforced,
+        rows_differ_forced: differ(&forced_preds),
+        sites: would.sites - inert_sites,
+        would_flips: would_flip_count(would.per_class),
+        root_would_flips: would.per_class[0],
+        would_flip_exact_ties: exact_ties,
+        would_flip_median_margin: off_tie.get(off_tie.len() / 2).copied(),
+    };
+    let i_finite_margins = would.root_margins.iter().all(|m| m.is_finite());
+    let instruments_pass = i_inputs
+        && i_trace
+        && i_old_run
+        && i_self_force
+        && i_forced_layout
+        && i_wrong_root
+        && i_unforced
+        && i_layout
+        && i_finite_margins;
+    let per_class = |c: &SnapComparison| {
+        SnapClass::NAMES
+            .iter()
+            .zip(c.per_class)
+            .collect::<BTreeMap<_, _>>()
+    };
+    Ok(serde_json::json!({
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-forced-snaps-2026-10-26.md",
+        "label": label,
+        "seed": seed,
+        "dev_documents": dev_docs,
+        "windows": windows_count,
+        "model_safetensors_sha256": model_sha256,
+        "artifact_sha256": trace.artifact_sha256,
+        "windows_sha256": trace.sequences_sha256,
+        "evaluator_build": trace.build,
+        "readings": readings,
+        "rows_differ_unforced_and_forced": both,
+        "rows_differ_forced_only": readings.rows_differ_forced - both,
+        "would_flip_rate": readings.would_flip_rate(),
+        "would_flips_per_class": per_class(&would),
+        "would_flips_per_layer_site": would.per_layer_site,
+        "would_flip_margins": {
+            "count": margins.len(),
+            "exact_ties": exact_ties,
+            "upper_median_off_a_tie": readings.would_flip_median_margin,
+            "max": margins.last(),
+            "below_1e-6": below(1e-6),
+            "below_1e-4": below(1e-4),
+            "below_1e-3": below(1e-3),
+            "below_1e-2": below(1e-2),
+        },
+        "unforced_disagreements_per_class": per_class(&unforced),
+        "unforced_disagreements_per_layer_site": unforced.per_layer_site,
+        "i_inputs": i_inputs,
+        "i_trace": i_trace,
+        "i_old_run": i_old_run,
+        "i_self_force": i_self_force,
+        "i_forced_layout": i_forced_layout,
+        "i_wrong_root": i_wrong_root,
+        "rows_differ_wrong_root": [differ(&wrong_first), differ(&wrong_last)],
+        "i_unforced": i_unforced,
+        "expected_rows_differ_unforced": expect_unforced,
+        "i_layout": i_layout,
+        "i_finite_margins": i_finite_margins,
+        "instruments_pass": instruments_pass,
+    }))
+}
+
 /// Lowercase or uppercase hex to bytes.
 fn hex_bytes(text: &str) -> Result<Vec<u8>> {
     if !text.len().is_multiple_of(2) {
@@ -3612,6 +4003,227 @@ mod tests {
         assert_eq!(with(|r| r.median_margin = Some(5e-3)), "indeterminate");
         assert_eq!(with(|r| r.median_margin = None), "indeterminate");
         assert_eq!(with(|r| r.rows_differ = 0), "no-rows-differ");
+    }
+
+    #[test]
+    fn the_forced_calls_follow_the_panel_chunks_and_the_wrong_root_moves_one_site() {
+        // 17 windows (chunks of 16 and 1) of 1 position, 1 layer, 1 lane and 1 feed-forward
+        // block: per row (transition, output gate, feed-forward gate).
+        let shape = SnapShape {
+            windows: 17,
+            len: 1,
+            layers: 1,
+            lanes: 1,
+            ff_blocks: 1,
+        };
+        let trace: Vec<u8> = (0..17u8)
+            .flat_map(|w| [w, 50 + w, if w == 3 { u8::MAX } else { 100 + w }])
+            .collect();
+        let calls = forced_calls(&trace, shape);
+        assert_eq!(calls.len(), 6);
+        assert_eq!(calls[0], (0..16).collect::<Vec<u8>>());
+        assert_eq!(calls[1], (50..66).collect::<Vec<u8>>());
+        assert_eq!((calls[2][0], calls[2][3]), (100, u8::MAX));
+        assert_eq!(
+            (&calls[3], &calls[4], &calls[5]),
+            (&vec![16], &vec![66], &vec![116])
+        );
+        // The feed-forward gate moves in both chunks; the other sites stay.
+        let wrong = wrong_root_calls(calls.clone(), 1, 0, 2);
+        assert_eq!(
+            (&wrong[0], &wrong[1], &wrong[4]),
+            (&calls[0], &calls[1], &calls[4])
+        );
+        assert_eq!((wrong[2][0], wrong[2][3]), (101, 1));
+        assert_eq!(wrong[5], vec![117]);
+        assert_eq!(wrong_root_calls(vec![vec![119]], 1, 0, 0), vec![vec![0]]);
+        // I-Forced-Layout's round trip: joined captures laid out as a trace map back, through
+        // `forced_calls`, to the chunk calls they were joined from, and agree with themselves.
+        let joined: Vec<hs::SnapCapture> = (0..3u8)
+            .map(|site| hs::SnapCapture {
+                roots: (0..17u8).map(|w| site * 30 + w).collect(),
+                margins: vec![0.5; 17],
+            })
+            .collect();
+        let laid = trace_layout(&joined, shape);
+        let chunks = forced_calls(&laid, shape);
+        assert_eq!(chunks[1], (30..46).collect::<Vec<u8>>());
+        assert_eq!((&chunks[3], &chunks[5]), (&vec![16], &vec![76]));
+        let agree = compare_snaps(&joined, &laid, shape).expect("the layout compares");
+        assert_eq!(agree.per_class, [0; 4]);
+    }
+
+    #[test]
+    fn a_zero_block_on_both_sides_is_never_a_would_flip() {
+        // Root, zero both, zero float only, zero integer only: both-sides zero blocks are a
+        // reading, so 1,000 of them leave the rate at 0 and the model faithful.
+        assert_eq!(would_flip_count([5, 1000, 2, 3]), 10);
+        assert_eq!(would_flip_count([0, 1000, 0, 0]), 0);
+        let zeros = ForcedReadings {
+            rows: 14_287,
+            rows_differ_unforced: 580,
+            rows_differ_forced: 20,
+            sites: 1_000_000,
+            would_flips: would_flip_count([0, 1000, 0, 0]),
+            root_would_flips: 0,
+            would_flip_exact_ties: 0,
+            would_flip_median_margin: None,
+        };
+        assert_eq!(classify_forced(&zeros, 1e-4), "faithful");
+    }
+
+    #[test]
+    fn the_forced_outcome_takes_the_first_that_applies() {
+        let faithful = ForcedReadings {
+            rows: 14_287,
+            rows_differ_unforced: 580,
+            rows_differ_forced: 20,
+            sites: 1_000_000,
+            would_flips: 300,
+            root_would_flips: 300,
+            would_flip_exact_ties: 0,
+            would_flip_median_margin: Some(1e-4),
+        };
+        let envelope = 4e-4;
+        let with = |f: fn(&mut ForcedReadings)| {
+            let mut r = faithful;
+            f(&mut r);
+            classify_forced(&r, envelope)
+        };
+        assert_eq!(classify_forced(&faithful, envelope), "faithful");
+        // 2% of 14,287 rows is 285.74, and 0.5% is 71.435.
+        assert_eq!(with(|r| r.rows_differ_forced = 286), "continuous-residual");
+        assert_eq!(with(|r| r.rows_differ_forced = 285), "partly-snap-carried");
+        assert_eq!(with(|r| r.rows_differ_forced = 72), "partly-snap-carried");
+        assert_eq!(with(|r| r.rows_differ_forced = 71), "faithful");
+        assert_eq!(with(|r| r.would_flip_exact_ties = 150), "tie-break");
+        assert_eq!(
+            with(|r| r.would_flip_median_margin = Some(0.05)),
+            "localise-upstream"
+        );
+        // Twice the envelope is 8e-4 of the sites.
+        assert_eq!(with(|r| r.would_flips = 900), "localise-upstream");
+        assert_eq!(with(|r| r.would_flips = 790), "faithful");
+        // The margin and envelope boundaries: m = 1e-2 is decisive, m = 1e-3 is no near-tie, and
+        // a rate of exactly twice the envelope is inside it (2^-11 of 2^20 sites, exact in f64).
+        assert_eq!(
+            with(|r| r.would_flip_median_margin = Some(1e-2)),
+            "localise-upstream"
+        );
+        assert_eq!(
+            with(|r| r.would_flip_median_margin = Some(1e-3)),
+            "indeterminate"
+        );
+        let mut exact = faithful;
+        exact.sites = 1 << 20;
+        exact.would_flips = 512;
+        assert_eq!(classify_forced(&exact, 1.0 / 4096.0), "faithful");
+        exact.would_flips = 513;
+        assert_eq!(classify_forced(&exact, 1.0 / 4096.0), "localise-upstream");
+        assert_eq!(
+            with(|r| r.would_flip_median_margin = Some(5e-3)),
+            "indeterminate"
+        );
+        assert_eq!(
+            with(|r| {
+                r.would_flips = 0;
+                r.root_would_flips = 0;
+                r.would_flip_median_margin = None;
+            }),
+            "faithful"
+        );
+    }
+
+    #[test]
+    fn the_forced_summary_reads_the_faithful_models_envelope() -> Result<()> {
+        let receipt = |label: &str, seed: u64, flips: usize, pass: bool| {
+            serde_json::json!({
+                "label": label,
+                "seed": seed,
+                "windows": 428,
+                "instruments_pass": pass,
+                "readings": ForcedReadings {
+                    rows: 14_287,
+                    rows_differ_unforced: 500,
+                    rows_differ_forced: 10,
+                    sites: 1_000_000,
+                    would_flips: flips,
+                    root_would_flips: flips,
+                    would_flip_exact_ties: 0,
+                    would_flip_median_margin: Some(1e-4),
+                },
+            })
+        };
+        let receipts = vec![
+            receipt("a", 1, 200, true),
+            receipt("b", 1, 300, true),
+            receipt("c", 2, 500, true),
+            receipt("c", 1, 700, true),
+            receipt("d", 1, 100, false),
+        ];
+        let faithful = vec![("a".to_owned(), 1), ("b".to_owned(), 1)];
+        let s = summarize_forced(&receipts, &faithful)?;
+        assert_eq!(s["envelope_would_flip_rate"], 3e-4);
+        let outcomes: Vec<&str> = s["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["outcome"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            outcomes,
+            [
+                "faithful",
+                "faithful",
+                "faithful",
+                "localise-upstream",
+                "unclassified"
+            ]
+        );
+        // A faithful model that is missing, or that failed its instruments, is refused.
+        assert!(summarize_forced(&receipts, &[("z".to_owned(), 1)]).is_err());
+        assert!(summarize_forced(&receipts, &[("d".to_owned(), 1)]).is_err());
+        // Two receipts for one model, or receipts over different windows, are refused.
+        let mut twice = receipts.clone();
+        twice.push(receipt("c", 2, 500, true));
+        assert!(summarize_forced(&twice, &faithful).is_err());
+        let mut fewer = receipts.clone();
+        fewer[2]["windows"] = serde_json::json!(32);
+        assert!(summarize_forced(&fewer, &faithful).is_err());
+        // Faithful models with no would-flips leave the envelope at its floor.
+        let none = vec![receipt("a", 1, 0, true), receipt("b", 1, 0, true)];
+        assert_eq!(
+            summarize_forced(&none, &faithful)?["envelope_would_flip_rate"],
+            WOULD_FLIP_ENVELOPE_FLOOR
+        );
+        Ok(())
+    }
+
+    /// On one GPU (claude-135): forcing a D11-mode forward's snaps to its own choices reproduces
+    /// it bit for bit, and its capture still reads its own choices; forcing one site to other roots
+    /// changes the output; too few forced calls are refused.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn gpu_forcing_its_own_snaps_reproduces_d_and_a_wrong_root_does_not() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = build_fbs_model(D11_EXPORT_ARM, 1, &device)?;
+        crate::fbs_export::round_tables_as_exported(&model)?;
+        let batches = synthetic_batches(1, 17);
+        let (ids, _, _) = &batches[0];
+        let forward = || hs::with_d11_mode(|| model.hidden(ids, SHEET_TRAIN_BATCH, SHEET_CONTEXT));
+        let flat = |t: &Tensor| -> Result<Vec<f32>> { Ok(t.flatten_all()?.to_vec1::<f32>()?) };
+        let (plain, captures) = hs::with_snap_capture(forward)?;
+        let own: Vec<Vec<u8>> = captures.iter().map(|c| hs::self_forced(&c.roots)).collect();
+        let forced = hs::with_snap_override(own.clone(), forward)?;
+        assert_eq!(flat(&plain)?, flat(&forced)?);
+        let (_, again) = hs::with_snap_capture(|| hs::with_snap_override(own.clone(), forward))?;
+        assert_eq!(again, captures);
+        let wrong = wrong_root_calls(own.clone(), model.config.layers(), 0, 1);
+        let moved = hs::with_snap_override(wrong, forward)?;
+        assert_ne!(flat(&plain)?, flat(&moved)?);
+        assert!(hs::with_snap_override(own[..1].to_vec(), forward).is_err());
+        hs::clear_active_arm();
+        Ok(())
     }
 
     /// On one GPU (claude-134): the snap capture of a D11-mode forward records, per layer, the

@@ -1,4 +1,4 @@
-//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export|d11-residual|d11-snap-trace --data-root DIR --out FILE [--save-dir DIR] [options below]`
+//! `spiralcore-fbs-sheet --mode synthetic-probe|throughput-probe|full|d11-export-gap|d11-artifact-windows|d11-artifact-gap|d11-train-probe|d11-train-export|d11-residual|d11-snap-trace|d11-forced-snaps|d11-forced-summary --data-root DIR --out FILE [--save-dir DIR] [options below]`
 //!
 //! The runner of `docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`
 //! (spiralcore-fbs-offline-float-sheet, #2891). GPU only. `--data-root` holds `mw-balp/train/`,
@@ -37,6 +37,13 @@
 //! (`d11-fbs-eval trace`, `--trace`), with `--model-dir`, `--windows-sha256`, `--artifact-sha256`,
 //! `--model-sha256`, `--stored-run` (the qualified run of the same artifact, I-Old-Run), `--label`
 //! and `--seed`.
+//!
+//! `d11-forced-snaps` is the forced-snap control (claude-135,
+//! `docs/harness/prep/d11-exporter-float-trunk-forced-snaps-2026-10-26.md`): the same options as
+//! `d11-snap-trace` plus `--expect-unforced` (the unforced D's rows against A, `I-Unforced`), over
+//! the full panel, with every snap forced to the artifact's trace. `d11-forced-summary` applies its
+//! bar to `--receipts` (comma-separated receipt paths) against the envelope of `--faithful`
+//! (comma-separated `label:seed`).
 
 use std::collections::BTreeMap;
 use std::env;
@@ -44,15 +51,19 @@ use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
-    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_residual,
-    run_d11_snap_trace, run_d11_train_export, run_d11_train_probe, run_full_sheet,
-    run_synthetic_probe, run_throughput_probe, write_receipt, TrainForward,
+    d11_artifact_windows, run_d11_artifact_gap, run_d11_export_gap, run_d11_forced_snaps,
+    run_d11_residual, run_d11_snap_trace, run_d11_train_export, run_d11_train_probe,
+    run_full_sheet, run_synthetic_probe, run_throughput_probe, summarize_forced, write_receipt,
+    TrainForward,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
-/// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export`, `d11-residual` and
-/// `d11-snap-trace`.
-const GAP_OPTIONS: [&str; 14] = [
+/// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export`, `d11-residual`,
+/// `d11-snap-trace`, `d11-forced-snaps` and `d11-forced-summary`.
+const GAP_OPTIONS: [&str; 17] = [
+    "--expect-unforced",
+    "--receipts",
+    "--faithful",
     "--model-dir",
     "--evaluator",
     "--windows-sha256",
@@ -111,6 +122,21 @@ fn residual_args(extra: &BTreeMap<String, String>) -> Result<ResidualArgs> {
             .map_err(|_| FloatTrainError::Invalid("--seed must be an integer".to_owned()))?,
         label: option("--label")?,
     })
+}
+
+/// `--faithful`'s models, `label:seed` separated by commas (claude-135).
+fn forced_faithful(text: &str) -> Result<Vec<(String, u64)>> {
+    text.split(',')
+        .map(|m| {
+            let (label, seed) = m.rsplit_once(':').ok_or_else(|| {
+                FloatTrainError::Invalid(format!("--faithful wants label:seed, not {m}"))
+            })?;
+            let seed = seed
+                .parse()
+                .map_err(|_| FloatTrainError::Invalid(format!("--faithful seed in {m}")))?;
+            Ok((label.to_owned(), seed))
+        })
+        .collect()
 }
 
 fn parse_args() -> Result<Args> {
@@ -391,6 +417,52 @@ fn main() -> Result<()> {
                 value["snap_disagreements_per_class"],
                 value["instruments_pass"],
                 value["classification"],
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-forced-snaps" => {
+            let number = |name: &str| -> Result<u64> {
+                option(name)?
+                    .parse()
+                    .map_err(|_| FloatTrainError::Invalid(format!("{name} must be an integer")))
+            };
+            let value = run_d11_forced_snaps(
+                &data_root,
+                &PathBuf::from(option("--model-dir")?),
+                &PathBuf::from(option("--trace")?),
+                number("--windows-count")? as usize,
+                &option("--windows-sha256")?,
+                &option("--artifact-sha256")?,
+                &option("--model-sha256")?,
+                &PathBuf::from(option("--stored-run")?),
+                number("--expect-unforced")? as usize,
+                &option("--label")?,
+                number("--seed")?,
+                &device,
+            )?;
+            println!(
+                "[d11-forced-snaps] label={} seed={} readings={} self_force={} wrong_root={} unforced={} layout={} instruments={}",
+                value["label"],
+                value["seed"],
+                value["readings"],
+                value["i_self_force"],
+                value["i_wrong_root"],
+                value["i_unforced"],
+                value["i_layout"],
+                value["instruments_pass"],
+            );
+            write_receipt(&out, &value)
+        }
+        "d11-forced-summary" => {
+            let receipts = option("--receipts")?
+                .split(',')
+                .map(|p| Ok(serde_json::from_slice(&std::fs::read(p)?)?))
+                .collect::<Result<Vec<serde_json::Value>>>()?;
+            let faithful = forced_faithful(&option("--faithful")?)?;
+            let value = summarize_forced(&receipts, &faithful)?;
+            println!(
+                "[d11-forced-summary] envelope={} models={}",
+                value["envelope_would_flip_rate"], value["models"]
             );
             write_receipt(&out, &value)
         }
