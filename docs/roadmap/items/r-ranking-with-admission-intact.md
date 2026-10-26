@@ -3,7 +3,7 @@ id: r-ranking-with-admission-intact
 title: Test ranking with admission intact
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]
@@ -20,6 +20,8 @@ Separates the admission failure from the ranking failure behind the low top-1.
 No run has had admission intact and then failed or succeeded at ranking, so ranking is untested on its own. The A8 rerun with the admission anchor is the natural vehicle.
 
 **Preparation done; released now that `#2836` is `done` (`antigravity-95`).** `antigravity-68` (#3213) reported the `#2831` `Q1` admission-intact decomposition (`871 / 4,292` conditional `top-1`) against the W2 count tables, FIT-cleared `docs/harness/prep/r-ranking-with-admission-intact-2026-10-25.md`, and held the item until `m1-bvg-k-stage-t-training` (`#2836`) completed. With `#2836` (`#3239`) `done` and `crates/uor-r4-discrete/**` free, this item is `ready` to run after a D67 pre-run review.
+
+**Correction, 2026-10-26 (`kimi-44`, D68 #2884 comment `6424978255`):** the opening sentence was stale after `antigravity-68`: the unchanged done-when was already met by the sealed #2831 Q1 diagnostic. The item closes `done` at that negative diagnostic scope, with writer `871 / 4,292` below the same-admitted-row unigram control `972 / 4,292`. The stronger six-run full-dose FIT was not executed and is not part of this close; its instrument and design defects are recorded in `docs/loop/tasks/r-ranking-with-admission-intact/kimi-43/DECISION.md`. Any future version needs a new sheet and fresh FIT/D67.
 
 ## Done when
 
