@@ -4,6 +4,12 @@
 
 Labels used below: **proof** means derived from definitions or code, **measurement** means a recorded run, **hypothesis** means an untested idea. See [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
 
+## Stage 0 measurement (2026-10-26)
+
+The T16_fz Seed 1 D11 artifact passed exact parity on all 14,287 DEV rows against the sealed Stage T GPU receipt, including prediction, top-8 and admitted count, with byte-identical repeat records and zero aggregate position-strip delta. That validates the integer instrument, not the address-as-read mechanism.
+
+The same artifact failed the registered copy non-vacuity gate: exact-hint free-running recovered **0/40** exact values, so exact-minus-control had `b = c = 0` against both no-hint and random-hint. It did not meet either `d > 24 && d^2 > 4(b+c)` comparison. A hidden-fact panel is therefore not justified on this artifact/prompt layout. This is a scoped artifact/copy-instrument limitation, not a mechanism negative and not a model-oracle result. The unit is `References #2833`; BPB and training were not run. See [`docs/loop/tasks/m1-address-as-read/kimi-40/REPORT.md`](../loop/tasks/m1-address-as-read/kimi-40/REPORT.md).
+
 ## In plain words
 
 Write each fact once, under an exact address, and read it back exactly. Do not smear it across weights, and do not hunt for it by fuzzy similarity. The address is built from prime numbers: every word has its own prime, so the same words always name the same slot. A new value replaces the old one, but the old one stays recoverable. A fact that was never written can answer "I do not know". In the one probe that checked, the store was never the cause of a failure: among 1,905 held-out misses, none was an eviction or a wrong stored value. What failed was the model's learned step of forming the address from a question.

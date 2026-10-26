@@ -5,9 +5,33 @@ edition = "2021"
 license = "MIT"
 description = "Bounded exact ternary byte-object storage for D19 durable memory"
 
+[features]
+default = []
+# Public Stage 0 lab surface: host helpers, manifest CLI and tests. The GPU
+# runner additionally requires `cuda`.
+stage0-lab = []
+# Stage 0's GPU path: the D11 scorer instrument (which owns the admitted
+# cubin), the discrete training crate for `DriverConfig`, `compiled_identity`
+# and `driver_source_sha256`, and cudarc for the CUDA driver API version.
+cuda = [
+    "stage0-lab",
+    "dep:cudarc",
+    "dep:m1-d11-artifact-scorer-instrument",
+    "m1-d11-artifact-scorer-instrument/cuda",
+    "dep:uor-r4-discrete",
+    "uor-r4-discrete/cuda",
+]
+
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 sha2 = "0.10.8"
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }
+m1-d11-artifact-scorer-instrument = { path = "../../docs/labs/m1-d11-artifact-scorer/instrument", optional = true }
+uor-r4-discrete = { path = "../uor-r4-discrete", optional = true }
 
-[dev-dependencies]
-serde_json = "1.0"
+[[bin]]
+name = "address-stage0"
+path = "src/bin/address-stage0.rs"
+required-features = ["stage0-lab"]

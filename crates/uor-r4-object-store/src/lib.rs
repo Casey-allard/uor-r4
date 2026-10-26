@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 pub mod address_read;
+pub mod address_stage0;
 pub mod bindings;
 pub mod durable_consumer;
 mod hash;

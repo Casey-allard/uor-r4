@@ -5,7 +5,7 @@ milestone: M1
 area: mechanism
 status: ready
 open_to: anyone
-needs_gpu: false
+needs_gpu: true
 depends_on: [m1-trunk-assembly-and-training]
 scope: [crates/uor-r4-object-store/**, docs/mechanisms/exact-memory.md, docs/labs/m1-address-as-read/**, docs/harness/prep/m1-address-as-read*]
 ---
@@ -16,7 +16,7 @@ The model has no exact way to read stored content back by address. Building this
 
 ## What is missing
 
-The address consumer is delivered: `address_read` resolves exact and sieve queries to verified object-store content, with finite controls (`86eb68ebb`, #2950). Panel-v2 and the sealed fresh-V2 BPB stream are frozen and pinned. Still missing are the trunk's #2844 checkpoint SHA (`m1-trunk-assembly-and-training`, M2 under D79), a fresh-context non-author FIT, the lab's own pre-run review (D67), and the registered three-arm GPU evaluation. No oracle gain or language capability is established.
+The address consumer is delivered: `address_read` resolves exact and sieve queries to verified object-store content, with finite controls (`86eb68ebb`, #2950). Stage 0 then measured the pinned T16_fz D11 artifact on one RTX 5090: parity passed on all 14,287 DEV rows, but free-running exact recovery was 0/40 in the exact-hint, no-hint and random-hint arms, so `COPY_GATE_FAIL` blocked panel-v3, BPB and training. This is an artifact/copy-layout limitation, not a mechanism negative or an oracle result. Still missing is a valid serving-time oracle measurement on an artifact and read instrument that can first copy an explicitly supplied value. No oracle gain or language capability is established.
 
 ## Done when
 
@@ -27,8 +27,8 @@ A read that resolves an address to stored content from the object store, with fi
 1. Read `docs/mechanisms/exact-memory.md`, `archive/labs/addressed-memory-2026-10-10/README.md`, `archive/labs/d19-object-store-2026-10-15/README.md`, `docs/labs/uorobj01-conformance-2026-10-18/README.md` and `docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/exact-memory.json`. Skim the API in `crates/uor-r4-object-store/src/lib.rs`.
 2. First deliverable, posted on the issue: a design note. It gives the geometric construction (what an address is, how it resolves to an object id, what a read returns), why it needs no softmax and no matmul, and the finite CPU controls (exact hit, exact miss, wrong address, byte-identical round trip).
 3. Add a failing test first, then a small consumer module that resolves an address through `uor-r4-object-store`. Run `~/.cargo/bin/cargo test -p uor-r4-object-store` and the new tests.
-4. Use the registered serving-time oracle sheet: supply the true slot address and measure the gain before any training (`docs/mechanisms/exact-memory.md`, "What would reopen it", step 2). The registered bar is at least 27/40 stated-fact against the single 19/40 baseline, at least 7/20 historical-version, 20/20 abstention, zero wrong-value substitutions, and held-out BPB within 0.01 of Arm A on sealed fresh V2 (54/80 total). Panel-v2 is the frozen 80-row instrument, SHA-256 `369d8c24bb41e2d071485ecd1cbc7044092959ed5309ad70a8a5150a69a9e90c`; the token, response-mask and seal-report digests are pinned in the sheet. A trained follow-up needs its own sheet, 2–3 seeds and a fresh FIT.
-5. Run the registered test only after the held checkpoint is pinned (it is the trunk's, `m1-trunk-assembly-and-training`, hence the dependency; owner log, claude-90), with a fresh-context non-author FIT and the lab's own pre-run review (D67). Evaluation runs on the GPU (CHARTER §3.5); an outside contributor may use their own GPU and must attach its specs, and a maintainer re-runs on an RTX 5090 when the hardware differs. A trained form needs its own FIT and the lab's pre-run review (D67). Record exact numbers, including a negative.
+4. Start from the Stage 0 receipt in `docs/loop/tasks/m1-address-as-read/kimi-40/REPORT.md`, not the rejected 54/80 three-arm plan. Reassess the artifact and read instrument; do not build panel-v3 or spend on a hidden-fact oracle until a repaired configuration passes the registered copy non-vacuity gate.
+5. A repaired configuration needs its own sheet, fresh non-author FIT and D67 pre-run review before GPU evaluation. Preserve the Stage 0 parity requirement and matched no-hint/random-hint controls. A trained follow-up needs 2–3 seeds and a fresh FIT; record exact numbers, including a negative.
 
 6. Open a PR that says `Closes #<this issue>` (or `References` if partial), and add one row to `docs/research/notebook/m3-durable-memory.md`.
 
