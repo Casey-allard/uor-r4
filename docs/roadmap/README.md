@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 15 |
+| ready | 13 |
 | held | 12 |
 | decision | 1 |
-| done | 66 |
+| done | 68 |
 | total | 94 |
 
 ## Start here
@@ -41,8 +41,8 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
-| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
+| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
+| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | held | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | done | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
@@ -72,10 +72,10 @@ These items are ready and open to anyone.
 | [Train the student for grounded replies from exact memory](items/m2-train-grounded-replies.md) | ready | a lab | yes | [m2-donor-corpus-generation](items/m2-donor-corpus-generation.md), [m2-fresh-heldout-panel](items/m2-fresh-heldout-panel.md), [m2-pin-train-mask-sheet](items/m2-pin-train-mask-sheet.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2853](https://github.com/UOR-Foundation/uor-r4/issues/2853) |
 | [Optimize the driver math and run the ~1M-token pilot (D41 item 3)](items/d41-driver-math-pilot.md) | held | a lab | yes | none | [#2821](https://github.com/UOR-Foundation/uor-r4/issues/2821) |
 | [Generate the one-time offline donor answer corpus (distill-d1)](items/m2-donor-corpus-generation.md) | held | a lab | yes | [d41-driver-math-pilot](items/d41-driver-math-pilot.md) | [#2848](https://github.com/UOR-Foundation/uor-r4/issues/2848) |
-| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | held | anyone | no | none | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
 | [Register a number for the multi-turn reply bar blocked under R14](items/m2-multi-turn-bar-number.md) | decision | a lab | no | none | [#2850](https://github.com/UOR-Foundation/uor-r4/issues/2850) |
 | [Assemble and train the full lawful trunk (Stage 3)](items/m1-trunk-assembly-and-training.md) | done | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md), [m1-normalization-mechanism](items/m1-normalization-mechanism.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2844](https://github.com/UOR-Foundation/uor-r4/issues/2844) |
 | [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | done | anyone | no | none | [#2849](https://github.com/UOR-Foundation/uor-r4/issues/2849) |
+| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | done | anyone | no | [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md), [m2-fresh-heldout-panel](items/m2-fresh-heldout-panel.md) | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
 | [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | done | anyone | no | none | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
 
 ## M3
@@ -321,10 +321,10 @@ flowchart LR
   n_m1_export_gap_and_toks --> n_m1_close_saved_model
   n_m1_export_gap_and_toks --> n_m1_fresh_panel_transfer
   n_m1_faster_writer --> n_r_vocab_4096_vs_16384
-  n_m1_fresh_panel_transfer --> n_m1_close_saved_model
   n_m1_normalization_mechanism --> n_m1_trunk_assembly_and_training
   n_m1_position_mechanism --> n_m1_trunk_assembly_and_training
   n_m1_position_mechanism --> n_r_quaternion_transport_order
+  n_m1_trunk_assembly_and_training --> n_m2_pin_train_mask_sheet
   n_m1_trunk_assembly_and_training --> n_m6_causal_ablation_instrument
   n_m1_w2_capacity_capture --> n_m1_address_key_full_vector
   n_m1_w2_capacity_capture --> n_m1_bvg_k_stage_t_training
@@ -333,6 +333,7 @@ flowchart LR
   n_m1_w2_code_utilization --> n_m1_bvg_k_block_apply_c2
   n_m1_w2_code_utilization --> n_m1_bvg_k_stage_t_training
   n_m2_donor_corpus_generation --> n_m2_train_grounded_replies
+  n_m2_fresh_heldout_panel --> n_m2_pin_train_mask_sheet
   n_m2_fresh_heldout_panel --> n_m2_train_grounded_replies
   n_m2_pin_train_mask_sheet --> n_m2_train_grounded_replies
   n_m2_train_grounded_replies --> n_m3_qualify_memory
