@@ -67,6 +67,16 @@ pub enum AddressCellsMode {
     /// Shuffled packing control for `FullVectorV1`: predecessor identities are
     /// relabelled by a seeded permutation before both outer and interior pulls.
     FullVectorShuffledV1 { seed: u64 },
+    /// Stage-1 wider-carrier multi-block placement (`m1-wider-code-carrier`, #2847):
+    /// same outer-cell greedy placement as `StructuredV1` (`block 0`, `block B-1`),
+    /// plus multi-pair residual bidirectional bigram-pulled interior blocks `1..B-1`
+    /// across `P = (B - 1) / 2` interior pairs (`B = 6` -> 2 pairs = 4 interior blocks;
+    /// `B = 8` -> 3 pairs = 6 interior blocks) with within-cell uniqueness and global
+    /// quota balance at every stage.
+    WiderBlocksV1,
+    /// Shuffled packing control for `WiderBlocksV1`: predecessor identities are
+    /// relabelled by a seeded permutation before outer and multi-stage interior pulls.
+    WiderBlocksShuffledV1 { seed: u64 },
 }
 impl AddressCellsMode {
     /// The table file's `mode` string.
@@ -77,6 +87,10 @@ impl AddressCellsMode {
             Self::FullVectorV1 => "address_full_vector_v1".to_owned(),
             Self::FullVectorShuffledV1 { seed } => {
                 format!("address_full_vector_shuffled_v1_seed_{seed}")
+            }
+            Self::WiderBlocksV1 => "address_wider_blocks_v1".to_owned(),
+            Self::WiderBlocksShuffledV1 { seed } => {
+                format!("address_wider_blocks_shuffled_v1_seed_{seed}")
             }
         }
     }
@@ -272,6 +286,23 @@ fn latin_interior_anchor(cell: usize) -> usize {
     a1 * 16 + a2
 }
 
+/// Stage-specific Latin-square interior pair `(a1, a2)` in `0..256` for outer cell `(r0, r_last)`
+/// and interior pair stage `stage` (`0..(B - 1) / 2`).
+/// At `stage == 0`, coincides with `latin_interior_anchor(cell)`.
+/// For `stage >= 1`, uses the invertible modular shear `a1 = (r0 + r_last + 3*stage) & 15`,
+/// `a2 = (r0 + 2*stage*r_last + 7*stage + 5) & 15` (`det = 2*stage - 1` is odd, hence coprime
+/// to 16, giving a 256-cell bijection on `0..256` for every `stage >= 1`).
+pub fn latin_interior_anchor_stage(cell: usize, stage: usize) -> usize {
+    if stage == 0 {
+        return latin_interior_anchor(cell);
+    }
+    let r0 = cell / 16;
+    let r_last = cell % 16;
+    let a1 = (r0 + r_last + stage.wrapping_mul(3)) & 15;
+    let a2 = (r0 + r_last.wrapping_mul(stage.wrapping_mul(2)) + stage.wrapping_mul(7) + 5) & 15;
+    a1 * 16 + a2
+}
+
 /// Admit the top `k` cells out of `0..256` ordered by `(distances[cell], cell)`,
 /// matching `discrete.cu` `cell_precedes(distance, cell, other_distance, other_cell)`.
 /// Host reference oracle and finite-control helper (not a CPU evaluation path; CHARTER §3.5 / D24).
@@ -331,14 +362,20 @@ pub fn build(
     }
     let quota = v / CELLS;
     let relabel: Vec<u32> = match mode {
-        AddressCellsMode::StructuredV1 | AddressCellsMode::FullVectorV1 => (0..v as u32).collect(),
-        AddressCellsMode::ShuffledV1 { seed } | AddressCellsMode::FullVectorShuffledV1 { seed } => {
-            permutation(v, seed)
-        }
+        AddressCellsMode::StructuredV1
+        | AddressCellsMode::FullVectorV1
+        | AddressCellsMode::WiderBlocksV1 => (0..v as u32).collect(),
+        AddressCellsMode::ShuffledV1 { seed }
+        | AddressCellsMode::FullVectorShuffledV1 { seed }
+        | AddressCellsMode::WiderBlocksShuffledV1 { seed } => permutation(v, seed),
     };
     let use_full_vector_interior = matches!(
         mode,
         AddressCellsMode::FullVectorV1 | AddressCellsMode::FullVectorShuffledV1 { .. }
+    );
+    let use_wider_blocks_interior = matches!(
+        mode,
+        AddressCellsMode::WiderBlocksV1 | AddressCellsMode::WiderBlocksShuffledV1 { .. }
     );
     let mut order: Vec<usize> = (0..v).collect();
     order.sort_by(|&a, &b| {
@@ -434,6 +471,122 @@ pub fn build(
             interior_of[t] = Some(ic);
         }
     }
+    let pair_stages = if use_wider_blocks_interior && blocks >= 3 {
+        (blocks - 1) / 2
+    } else {
+        0
+    };
+    let mut stage_interior: Vec<Vec<Option<usize>>> = vec![vec![None; v]; pair_stages];
+    if pair_stages > 0 {
+        let mut incoming: Vec<Vec<(usize, u64)>> = vec![Vec::new(); v];
+        let mut outgoing: Vec<Vec<(usize, u64)>> = vec![Vec::new(); v];
+        for (target, edges) in counts.by_target.iter().enumerate() {
+            for &(s, c) in edges {
+                if c == 0 {
+                    continue;
+                }
+                let Some(&s_rel_u32) = relabel.get(s as usize) else {
+                    return Err(invalid("relabel index outside vocabulary"));
+                };
+                let s_rel = s_rel_u32 as usize;
+                incoming[target].push((s_rel, c));
+                if s_rel != target {
+                    outgoing[s_rel].push((target, c));
+                }
+            }
+        }
+        let candidate_limit = if blocks == 3 { 16 } else { CELLS };
+        let interior_quota = if blocks == 3 { v.div_ceil(16) } else { quota };
+        for stage in 0..pair_stages {
+            let mut used_stage = [[false; CELLS]; CELLS];
+            let mut load_stage = [0usize; CELLS];
+            for &t in &order {
+                let cell = cell_of[t].ok_or_else(|| invalid("token cell missing"))?;
+                let anchor = latin_interior_anchor_stage(cell, stage);
+                let mut w1 = [0u128; 16];
+                let mut w2 = [0u128; 16];
+                let mut has_neighbor = false;
+                for &(other, count) in incoming[t].iter().chain(outgoing[t].iter()) {
+                    let Some(other_ic) = stage_interior[stage][other] else {
+                        continue;
+                    };
+                    let other_cell =
+                        cell_of[other].ok_or_else(|| invalid("neighbor cell missing"))?;
+                    let outer_d = cell_l1(other_cell, cell);
+                    let mut prev_int_d = 0u64;
+                    for prev_stage in 0..stage {
+                        let pic_other = stage_interior[prev_stage][other]
+                            .ok_or_else(|| invalid("previous stage neighbor interior missing"))?;
+                        let pic_self = stage_interior[prev_stage][t]
+                            .ok_or_else(|| invalid("previous stage token interior missing"))?;
+                        prev_int_d += if blocks == 3 {
+                            root_l1(pic_other, pic_self)
+                        } else {
+                            cell_l1(pic_other, pic_self)
+                        };
+                    }
+                    let weight = u128::from(count) * u128::from(4 + outer_d + 2 * prev_int_d);
+                    if blocks == 3 {
+                        w1[other_ic] += weight;
+                    } else {
+                        w1[other_ic / 16] += weight;
+                        w2[other_ic % 16] += weight;
+                    }
+                    has_neighbor = true;
+                }
+                let mut cost_1 = [0u128; 16];
+                let mut cost_2 = [0u128; 16];
+                if has_neighbor {
+                    for a in 0..16 {
+                        let mut s1 = 0u128;
+                        let mut s2 = 0u128;
+                        for r in 0..16 {
+                            let d = u128::from(root_l1(r, a));
+                            s1 += w1[r] * d;
+                            s2 += w2[r] * d;
+                        }
+                        cost_1[a] = s1;
+                        cost_2[a] = s2;
+                    }
+                }
+                let has_quota_candidate = (0..candidate_limit)
+                    .any(|ic| !used_stage[cell][ic] && load_stage[ic] < interior_quota);
+                let candidates = (0..candidate_limit).filter(|&ic| {
+                    !used_stage[cell][ic]
+                        && (!has_quota_candidate || load_stage[ic] < interior_quota)
+                });
+                let best_interior = if !has_neighbor {
+                    candidates.min_by_key(|&ic| {
+                        let d = if blocks == 3 {
+                            root_l1(anchor / 16, ic)
+                        } else {
+                            cell_l1(anchor, ic)
+                        };
+                        (d, ic)
+                    })
+                } else {
+                    candidates.min_by_key(|&ic| {
+                        let cost = if blocks == 3 {
+                            cost_1[ic]
+                        } else {
+                            cost_1[ic / 16] + cost_2[ic % 16]
+                        };
+                        let anchor_d = if blocks == 3 {
+                            root_l1(anchor / 16, ic)
+                        } else {
+                            cell_l1(anchor, ic)
+                        };
+                        (cost, anchor_d, ic)
+                    })
+                };
+                let ic = best_interior
+                    .ok_or_else(|| invalid("no wider interior root pair left in cell"))?;
+                used_stage[cell][ic] = true;
+                load_stage[ic] += 1;
+                stage_interior[stage][t] = Some(ic);
+            }
+        }
+    }
     let mut table = Vec::with_capacity(v * blocks * 8);
     let mut cells = Vec::with_capacity(v);
     let mut rank = [0usize; CELLS];
@@ -445,6 +598,21 @@ pub fn build(
             let root = match b {
                 0 => cell / 16,
                 _ if b == blocks - 1 => cell % 16,
+                _ if use_wider_blocks_interior && blocks >= 3 => {
+                    let rel = b - 1;
+                    let stage = rel / 2;
+                    let ic = stage_interior
+                        .get(stage)
+                        .and_then(|v_stage| v_stage[t])
+                        .ok_or_else(|| invalid("token wider interior pair left unplaced"))?;
+                    if blocks == 3 {
+                        ic
+                    } else if rel.is_multiple_of(2) {
+                        ic / 16
+                    } else {
+                        ic % 16
+                    }
+                }
                 1 if use_full_vector_interior && blocks == 3 => {
                     interior_of[t].ok_or_else(|| invalid("token interior root left unplaced"))?
                 }
@@ -848,5 +1016,184 @@ mod tests {
                 .sum()
         };
         assert!(total_full_pull(&fv) < total_full_pull(&fvs));
+    }
+
+    #[test]
+    fn wider_blocks_b6_and_b8_injective_and_zero_within_cell_ties() {
+        let (counts, fallback) = fixture();
+        for stage in 1..8usize {
+            let anchors: std::collections::BTreeSet<usize> = (0..CELLS)
+                .map(|c| latin_interior_anchor_stage(c, stage))
+                .collect();
+            assert_eq!(anchors.len(), CELLS);
+        }
+        assert_eq!(
+            (0..CELLS)
+                .map(|c| latin_interior_anchor_stage(c, 0))
+                .collect::<Vec<_>>(),
+            (0..CELLS).map(latin_interior_anchor).collect::<Vec<_>>()
+        );
+
+        let structured =
+            build(spec(), &counts, &fallback, AddressCellsMode::StructuredV1).expect("structured");
+        for blocks in [6u32, 8u32] {
+            let wider_spec = Spec { blocks, ..spec() };
+            let wb = build(
+                wider_spec,
+                &counts,
+                &fallback,
+                AddressCellsMode::WiderBlocksV1,
+            )
+            .expect("wb");
+            let wbs = build(
+                wider_spec,
+                &counts,
+                &fallback,
+                AddressCellsMode::WiderBlocksShuffledV1 { seed: 8 },
+            )
+            .expect("wbs");
+            assert_eq!(wb.mode, "address_wider_blocks_v1");
+            assert_eq!(wbs.mode, "address_wider_blocks_shuffled_v1_seed_8");
+            assert_eq!(wb.cells, structured.cells);
+            assert_eq!(wb.distinct_vectors, 512);
+            assert_eq!(wb.occupied_cells, 256);
+            assert_eq!(wbs.distinct_vectors, 512);
+            assert_eq!(wbs.occupied_cells, 256);
+            assert_eq!(wb.table.len(), 512 * blocks as usize * 8);
+            for block in wb.table.chunks_exact(8) {
+                assert!(geometry::ROOTS
+                    .iter()
+                    .any(|r| r.iter().zip(block).all(|(a, b)| i32::from(*a) == *b)));
+            }
+            let targets: Vec<u32> = (0..512u32).collect();
+            let report = crate::coverage_census::census(
+                &wb.table,
+                wider_spec,
+                &targets,
+                Some(&wb.cells),
+                Some(200),
+            )
+            .expect("census");
+            assert_eq!(report["distinct_vectors"], 512);
+            assert_eq!(report["dev_alias_ceiling_rows"], 512);
+            assert_eq!(report["within_cell_tie_mass"]["tokens_in_alias_groups"], 0);
+            assert_eq!(
+                report["within_cell_tie_mass"]["dev_rows_targeting_non_representative"],
+                0
+            );
+            assert_eq!(report["g_cap"]["verdict"], "ALIAS_CEILING_ABOVE_BAR");
+        }
+    }
+
+    #[test]
+    fn wider_blocks_two_scale_lexicographic_bound_and_multi_cluster_lift() {
+        // 1. Verify the exact integer two-scale lexicographic separation at quota <= 16
+        // for B = 4, 6, 8: for any d in {0, 4, ..., 8*B - 4}, the worst-case cell sum
+        // at envelope d is at most d + 15 * (8 * B), while the minimum cell sum at
+        // envelope d + 4 is at least 16 * (d + 4).
+        for blocks in [4u64, 6, 8] {
+            let max_token_l1 = 8 * blocks;
+            let mut d = 0u64;
+            while d + 4 <= max_token_l1 {
+                let max_lower_two_scale = (d << 8) + (d + 15 * max_token_l1);
+                let min_upper_two_scale = ((d + 4) << 8) + 16 * (d + 4);
+                assert!(
+                    min_upper_two_scale > max_lower_two_scale,
+                    "blocks={blocks} d={d}: {min_upper_two_scale} <= {max_lower_two_scale}"
+                );
+                d += 4;
+            }
+        }
+
+        // 2. Multi-cluster chain fixture: each target t in 16..512 has two distinct
+        // predecessors (t / 2 and (t / 2) ^ 7) plus upward-frequency edges, exercising
+        // residual multi-pair placement at B = 6 and B = 8 against XOR-padded FullVectorV1
+        // and WiderBlocksShuffledV1.
+        let mut counts = BigramCounts {
+            by_target: vec![Vec::new(); 512],
+            frequency: vec![0; 512],
+        };
+        let mut edges_to_score = Vec::new();
+        for t in 1..512usize {
+            counts.frequency[t] = (1024 - t) as u64;
+            let s1 = (t / 2) as u32;
+            let s2 = ((t / 2) ^ 7) as u32;
+            if s1 == s2 {
+                counts.by_target[t].push((s1, 12));
+                edges_to_score.push((s1 as usize, t));
+            } else {
+                let (lo, hi) = if s1 < s2 { (s1, s2) } else { (s2, s1) };
+                counts.by_target[t].push((lo, 8));
+                counts.by_target[t].push((hi, 5));
+                edges_to_score.push((s1 as usize, t));
+                edges_to_score.push((s2 as usize, t));
+            }
+        }
+        counts.frequency[0] = 2048;
+        let fallback: Vec<u16> = (0..512u32).map(|t| (t % 256) as u16).collect();
+
+        for blocks in [6u32, 8u32] {
+            let b_spec = Spec { blocks, ..spec() };
+            let width = blocks as usize * 8;
+            let wb =
+                build(b_spec, &counts, &fallback, AddressCellsMode::WiderBlocksV1).expect("wb");
+            let wbs = build(
+                b_spec,
+                &counts,
+                &fallback,
+                AddressCellsMode::WiderBlocksShuffledV1 { seed: 8 },
+            )
+            .expect("wbs");
+            let fv_pad =
+                build(b_spec, &counts, &fallback, AddressCellsMode::FullVectorV1).expect("fv_pad");
+
+            let edge_pull = |placed: &AddressCells| -> u64 {
+                edges_to_score
+                    .iter()
+                    .map(|&(s, t)| {
+                        token_full_l1(
+                            &placed.table[s * width..(s + 1) * width],
+                            &placed.table[t * width..(t + 1) * width],
+                        )
+                        .expect("l1")
+                    })
+                    .sum()
+            };
+            assert!(
+                edge_pull(&wb) < edge_pull(&fv_pad),
+                "B={blocks}: expected WiderBlocksV1 pull {} < XOR-padded FullVectorV1 {}",
+                edge_pull(&wb),
+                edge_pull(&fv_pad)
+            );
+            assert!(
+                edge_pull(&wb) < edge_pull(&wbs),
+                "B={blocks}: expected WiderBlocksV1 pull {} < WiderBlocksShuffledV1 {}",
+                edge_pull(&wb),
+                edge_pull(&wbs)
+            );
+
+            let admitted_edges = |placed: &AddressCells| -> usize {
+                edges_to_score
+                    .iter()
+                    .filter(|&&(s, t)| {
+                        let q = &placed.table[s * width..(s + 1) * width];
+                        let target_cell = usize::from(placed.cells[t]);
+                        let mut dists = [0u64; CELLS];
+                        for (c, slot) in dists.iter_mut().enumerate() {
+                            *slot = full_vector_cell_l1(q, &placed.table, &placed.cells, b_spec, c)
+                                .expect("fv");
+                        }
+                        admit_cells_by_distances(&dists, 8).contains(&target_cell)
+                    })
+                    .count()
+            };
+            let wb_adm = admitted_edges(&wb);
+            let pad_adm = admitted_edges(&fv_pad);
+            let wbs_adm = admitted_edges(&wbs);
+            assert!(
+                wb_adm > pad_adm && wb_adm > wbs_adm,
+                "B={blocks}: expected WiderBlocksV1 admitted ({wb_adm}) > XOR-pad ({pad_adm}) and shuffled ({wbs_adm})"
+            );
+        }
     }
 }

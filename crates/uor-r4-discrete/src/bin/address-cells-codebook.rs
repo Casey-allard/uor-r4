@@ -22,6 +22,7 @@ fn mode(arg: Option<&String>) -> Result<AddressCellsMode, String> {
     match arg.map(String::as_str) {
         None | Some("structured") => Ok(AddressCellsMode::StructuredV1),
         Some("full-vector") => Ok(AddressCellsMode::FullVectorV1),
+        Some("wider-blocks") => Ok(AddressCellsMode::WiderBlocksV1),
         Some(other) => {
             if let Some(seed) = other.strip_prefix("shuffled:") {
                 return Ok(AddressCellsMode::ShuffledV1 {
@@ -33,6 +34,13 @@ fn mode(arg: Option<&String>) -> Result<AddressCellsMode, String> {
                     seed: seed
                         .parse()
                         .map_err(|e| format!("full-vector-shuffled seed: {e}"))?,
+                });
+            }
+            if let Some(seed) = other.strip_prefix("wider-blocks-shuffled:") {
+                return Ok(AddressCellsMode::WiderBlocksShuffledV1 {
+                    seed: seed
+                        .parse()
+                        .map_err(|e| format!("wider-blocks-shuffled seed: {e}"))?,
                 });
             }
             Err(format!("unknown mode {other}"))

@@ -1,0 +1,151 @@
+{
+  "applied_updates": 0,
+  "controls": [
+    {
+      "detail": {
+        "blocks": 6,
+        "checked_rows": 48,
+        "checked_token_pairs": 24576,
+        "width": 48
+      },
+      "index": 1,
+      "name": "wider_carrier_b6_host_gpu_distance_parity",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "blocks": 8,
+        "checked_rows": 48,
+        "checked_token_pairs": 24576,
+        "width": 64
+      },
+      "index": 2,
+      "name": "wider_carrier_b8_host_gpu_distance_parity",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "blocks_tested": [
+          4,
+          6,
+          8
+        ],
+        "outer_admitted_cells_identical": true,
+        "outer_query_blocks_identical": true,
+        "target_admitted_rows": 4
+      },
+      "index": 3,
+      "name": "wider_carrier_outer_invariance_across_b4_b6_b8",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "d11_exports": [
+          {
+            "artifact_bytes": 101892,
+            "artifact_sha256": "fc5390ead4f8681bed742d23afd07574fe44668d093bca2cd6877b701a569d15",
+            "blocks": 6
+          },
+          {
+            "artifact_bytes": 134684,
+            "artifact_sha256": "741f0e5184e60acf5d071e71819fb3f5df3f99088fc04c0c20daf0aa7257dd1e",
+            "blocks": 8
+          }
+        ],
+        "non_outer_refusals_verified": true,
+        "state_unchanged": true
+      },
+      "index": 4,
+      "name": "wider_carrier_d11_export_and_state_restoration",
+      "status": "PASS"
+    }
+  ],
+  "driver_source_sha256": "04c5165464a18eea6d4edadc6970007dbdc7908ead420f4a2f575e22ea43061d",
+  "schema": "uor-r4.wider-carrier-qualification/1",
+  "status": "PASS",
+  "suite": "wider-code-carrier-qualification",
+  "timing": {
+    "cases": [
+      {
+        "address_metric": "OuterL1V1",
+        "batch_rows": 64,
+        "blocks": 4,
+        "decode_rows_per_s": 1756,
+        "median_eval_us": 36434,
+        "width": 32
+      },
+      {
+        "address_metric": "CellEnvelopeL1V1",
+        "batch_rows": 64,
+        "blocks": 4,
+        "decode_rows_per_s": 1678,
+        "median_eval_us": 38120,
+        "width": 32
+      },
+      {
+        "address_metric": "FullVectorCellL1V1",
+        "batch_rows": 64,
+        "blocks": 4,
+        "decode_rows_per_s": 1678,
+        "median_eval_us": 38121,
+        "width": 32
+      },
+      {
+        "address_metric": "OuterL1V1",
+        "batch_rows": 64,
+        "blocks": 6,
+        "decode_rows_per_s": 1685,
+        "median_eval_us": 37972,
+        "width": 48
+      },
+      {
+        "address_metric": "CellEnvelopeL1V1",
+        "batch_rows": 64,
+        "blocks": 6,
+        "decode_rows_per_s": 1574,
+        "median_eval_us": 40636,
+        "width": 48
+      },
+      {
+        "address_metric": "FullVectorCellL1V1",
+        "batch_rows": 64,
+        "blocks": 6,
+        "decode_rows_per_s": 1584,
+        "median_eval_us": 40395,
+        "width": 48
+      },
+      {
+        "address_metric": "OuterL1V1",
+        "batch_rows": 64,
+        "blocks": 8,
+        "decode_rows_per_s": 1544,
+        "median_eval_us": 41450,
+        "width": 64
+      },
+      {
+        "address_metric": "CellEnvelopeL1V1",
+        "batch_rows": 64,
+        "blocks": 8,
+        "decode_rows_per_s": 1433,
+        "median_eval_us": 44633,
+        "width": 64
+      },
+      {
+        "address_metric": "FullVectorCellL1V1",
+        "batch_rows": 64,
+        "blocks": 8,
+        "decode_rows_per_s": 1433,
+        "median_eval_us": 44631,
+        "width": 64
+      }
+    ],
+    "shape": "V4096, B in {4,6,8}, C192, K8, Relation(8,1) ActiveLeafV1, 64 rows, 1 warmup + 5 timed, median"
+  },
+  "training": "HELD",
+  "wider_carrier_image_sha256": [
+    "bafb56be3078ddf6debd21b8ed6acc63262fba7d5269807e5585131e47fa0696",
+    "3082c672be5d7b4a90105aad02e3d09e26ea866bbf1f5841b1ea26deff24b517",
+    "407b0c08f460a11a2ac83c770b00b111bcad593ba56e5a4bd4f95f791cf1a0d8",
+    "bcf76eb6465b759fa73ff1642af2fadabb49bddcd2adc00d6c77ae814a05a5d9"
+  ]
+}

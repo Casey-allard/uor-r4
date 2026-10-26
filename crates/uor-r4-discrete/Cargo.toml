@@ -90,4 +90,13 @@ path = "src/bin/trunk-run.rs"
 name = "writer-bucket-qualify"
 path = "src/bin/writer-bucket-qualify.rs"
 
+[[bin]]
+name = "wider-carrier-qualify"
+path = "src/bin/wider-carrier-qualify.rs"
+
+[[bin]]
+name = "wider-carrier-run"
+path = "src/bin/wider-carrier-run.rs"
+
+
 

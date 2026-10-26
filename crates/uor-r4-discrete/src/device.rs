@@ -63,6 +63,12 @@ pub use writer_bucket_device::{
     FAULT_CORRUPTED_CSR, FAULT_NONE, FAULT_OVER_PRUNED, FAULT_REVERSED_TIE, FAULT_STALE_BUCKET,
     WALK_ID_ORDER, WALK_SERVING_PRUNED,
 };
+#[path = "wider_carrier_device.rs"]
+pub mod wider_carrier_device;
+pub use wider_carrier_device::{
+    compiled_wider_carrier_image_sha256, WiderCarrierKernels, WiderCarrierRowInspection,
+    WiderCarrierTokenDistanceRow,
+};
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:

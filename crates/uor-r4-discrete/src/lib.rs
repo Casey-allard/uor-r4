@@ -46,6 +46,8 @@ pub mod trunk;
 pub mod w2_capacity;
 pub mod w2_capture;
 pub mod w2_record;
+pub mod wider_carrier;
+pub mod wider_carrier_source;
 #[cfg(feature = "cuda")]
 pub mod writer_bucket_qualification;
 

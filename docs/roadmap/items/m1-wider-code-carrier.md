@@ -3,7 +3,7 @@ id: m1-wider-code-carrier
 title: Prototype a wider code carrier (more roots or blocks)
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-address-key-full-vector]
