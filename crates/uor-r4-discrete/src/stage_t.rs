@@ -32,6 +32,13 @@ pub const STAGE_T_STEP0_SCHEMA: &str = "uor-r4.stage-t-step0-controls/v1";
 pub const STAGE_T_RUN_SCHEMA: &str = "uor-r4.stage-t-audited-run/v1";
 pub const STAGE_T_W2_SCHEMA: &str = "uor-r4.stage-t-w2-restricted-eval/v1";
 pub const STAGE_T_GRADE_SCHEMA: &str = "uor-r4.stage-t-grade/v1";
+pub const RELATION_HEAD_GRADE_SCHEMA: &str = "uor-r4.relation-head-grade/v1";
+pub const RELATION_HEAD_MIN_COMMITS: u64 = 16;
+pub const RELATION_HEAD_D40_TRAIN_FLOOR: u64 = 1_187;
+pub const RELATION_HEAD_STAGE_T_ARCHIVE_SHA256: &str =
+    "c004db506bf64903231c5c225a07e9969d5e3344c51a67eaec9429265e5f44b6";
+pub const RELATION_HEAD_TRUNK_ARCHIVE_SHA256: &str =
+    "4f4d4817e2750565f65bdb8a6c6f8ed07b44389f0757702cf6eba11b64e23d35";
 
 pub const A8_STRUCTURED_TABLE_SHA256: &str =
     "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1";
@@ -954,6 +961,363 @@ pub fn grade_stage_t(
         frozen_zero_seeds,
         relation_seeds,
         fresh_evaluations: 0,
+    })
+}
+
+/// Verdict for the registered finite relational head (`r-finite-relational-head`, `#2877`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RelationHeadVerdict {
+    PassM1AndRelational,
+    PassRelationalGainSubT2,
+    RelationalWithinArmGainTrailsFrozenZeroAdmission,
+}
+
+/// Zero-update GPU control baselines (`#2885` `C_route` cp0 and `#2830` `C_successor_only` cp0).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationHeadControlBaselines {
+    pub c_route_cp0_dev_b3_full_admitted: u64,
+    pub c_route_cp0_dev_b3_psucc_admitted: u64,
+    pub c_route_cp0_dev_top1: u64,
+    pub c_route_cp0_dev_top8: u64,
+    pub c_successor_only_cp0_dev_b3_psucc_admitted: u64,
+    pub c_frozen_zero_cp0_dev_b3_psucc_admitted: u64,
+    pub outcome_invariant_without_c_route_or_c_successor_rerun: bool,
+}
+
+/// Seed-1 within-cell read-code reranker decomposition (`#3267`, `stage-t-decomposition.json`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationHeadWithinCellSummary {
+    pub rel_admitted_target_loses_within_own_cell_rows: u64,
+    pub rel_t_restr_hits_w_misses: u64,
+    pub rel_missed_t_restr_lost_within_own_cell_rows: u64,
+    pub rel_reranker_code_top1_cell_only_hits: u64,
+    pub rel_reranker_code_cell_prio_top1_hits: u64,
+    pub rel_reranker_code_pooled_top1_hits: u64,
+    pub rel_reranker_code_permuted_null_top1_hits: u64,
+    pub rel_paired_reranker_vs_writer_net_diff_d: i64,
+    pub rel_paired_reranker_vs_writer_floor_f: u64,
+    pub rel_paired_reranker_vs_permuted_null_net_diff_d: i64,
+    pub rel_paired_reranker_vs_permuted_null_floor_f: u64,
+    pub fz_admitted_target_loses_within_own_cell_rows: u64,
+    pub fz_t_restr_hits_w_misses: u64,
+    pub fz_missed_t_restr_lost_within_own_cell_rows: u64,
+    pub fz_reranker_code_top1_cell_only_hits: u64,
+    pub fz_reranker_code_cell_prio_top1_hits: u64,
+    pub fz_reranker_code_pooled_top1_hits: u64,
+    pub fz_reranker_code_permuted_null_top1_hits: u64,
+}
+
+/// Per-seed paired comparison of `H_relation` (`T16_rel`) and `C_frozen_zero` (`T16_fz`)
+/// across training, D40 audits, `relation_off` ablation, count tables, and Stage 3 trunk transfer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationHeadSeedSummary {
+    pub seed: u32,
+    pub rel_config_sha256: String,
+    pub rel_checkpoint_sha256: String,
+    pub rel_model_snapshot_sha256: String,
+    pub fz_config_sha256: String,
+    pub fz_checkpoint_sha256: String,
+    pub fz_model_snapshot_sha256: String,
+    pub rel_completed_batches: u64,
+    pub rel_accepted_updates: u64,
+    pub rel_committed_moves: u64,
+    pub rel_vector_committed_moves: u64,
+    pub rel_combine_committed_moves: u64,
+    pub rel_relation_committed_batches: u64,
+    pub rel_relation_committed_moves: u64,
+    pub rel_joint_commits: u64,
+    pub rel_context_tokens_per_sec: u64,
+    pub fz_completed_batches: u64,
+    pub fz_accepted_updates: u64,
+    pub fz_committed_moves: u64,
+    pub fz_relation_committed_moves: u64,
+    pub fz_joint_commits: u64,
+    pub fz_context_tokens_per_sec: u64,
+    pub train_anchor_initial_admitted: u64,
+    pub train_anchor_required_floor: u64,
+    pub rel_train_anchor_peak_admitted: u64,
+    pub rel_train_anchor_final_admitted: u64,
+    pub fz_train_anchor_peak_admitted: u64,
+    pub fz_train_anchor_final_admitted: u64,
+    pub gate_d40_pass: bool,
+    pub gate_s_pass: bool,
+    pub rel_distinct_train_read_codes: usize,
+    pub rel_distinct_dev_read_codes: usize,
+    pub fz_distinct_train_read_codes: usize,
+    pub fz_distinct_dev_read_codes: usize,
+    pub rel_dev_b3_full_admitted: u64,
+    pub rel_dev_b3_psucc_admitted: u64,
+    pub rel_dev_writer_top1_all: u64,
+    pub rel_dev_writer_top8_all: u64,
+    pub rel_dev_writer_top1_psucc: u64,
+    pub rel_dev_writer_top8_psucc: u64,
+    pub rel_dev_strict_wins: u64,
+    pub rel_off_dev_b3_full_admitted: u64,
+    pub rel_off_dev_b3_psucc_admitted: u64,
+    pub rel_off_dev_writer_top1_all: u64,
+    pub rel_off_dev_writer_top8_all: u64,
+    pub rel_off_dev_strict_wins: u64,
+    pub within_arm_rel_minus_rel_off_admitted: i64,
+    pub within_arm_rel_minus_rel_off_top1: i64,
+    pub within_arm_rel_minus_rel_off_top8: i64,
+    pub within_arm_rel_minus_rel_off_strict_wins: i64,
+    pub within_arm_rel_minus_t1_rel_top1: i64,
+    pub fz_dev_b3_full_admitted: u64,
+    pub fz_dev_b3_psucc_admitted: u64,
+    pub fz_dev_writer_top1_all: u64,
+    pub fz_dev_writer_top8_all: u64,
+    pub fz_dev_writer_top1_psucc: u64,
+    pub fz_dev_writer_top8_psucc: u64,
+    pub fz_dev_strict_wins: u64,
+    pub rel_minus_fz_dev_b3_full: i64,
+    pub rel_minus_fz_dev_b3_psucc: i64,
+    pub rel_minus_fz_dev_writer_top1: i64,
+    pub rel_minus_fz_dev_writer_top8: i64,
+    pub unconditional_unigram_hit1: u64,
+    pub unconditional_t2_bigram_hit1: u64,
+    pub rel_full_panel_code_table_hit1: u64,
+    pub fz_full_panel_code_table_hit1: u64,
+    pub rel_checkpoint_u_restr_aw_hit1: u64,
+    pub rel_checkpoint_t_sym_restr_aw_hit1: u64,
+    pub rel_checkpoint_t_restr_aw_hit1_all: u64,
+    pub rel_checkpoint_t_restr_aw_hit8_all: u64,
+    pub rel_checkpoint_t_restr_aw_hit1_psucc: u64,
+    pub rel_checkpoint_g_restr_aw_hit1_all: u64,
+    pub rel_checkpoint_g_restr_aw_hit8_all: u64,
+    pub rel_checkpoint_g_restr_aw_hit1_psucc: u64,
+    pub fz_checkpoint_u_restr_aw_hit1: u64,
+    pub fz_checkpoint_t_sym_restr_aw_hit1: u64,
+    pub fz_checkpoint_t_restr_aw_hit1_all: u64,
+    pub fz_checkpoint_t_restr_aw_hit8_all: u64,
+    pub fz_checkpoint_t_restr_aw_hit1_psucc: u64,
+    pub fz_checkpoint_g_restr_aw_hit1_all: u64,
+    pub fz_checkpoint_g_restr_aw_hit8_all: u64,
+    pub fz_checkpoint_g_restr_aw_hit1_psucc: u64,
+    pub rel_minus_fz_t_restr_aw_hit1: i64,
+    pub rel_minus_fz_g_restr_aw_hit1: i64,
+    pub rel_trunk_dev_level0_top1: u64,
+    pub rel_trunk_dev_level1_top1: u64,
+    pub rel_trunk_dev_level2_top1: u64,
+    pub rel_trunk_dev_level3_top1: u64,
+    pub rel_trunk_dev_recurrence_lift_l2_minus_l1: i64,
+    pub rel_trunk_fresh_level0_top1: u64,
+    pub rel_trunk_fresh_level1_top1: u64,
+    pub rel_trunk_fresh_level2_top1: u64,
+    pub rel_trunk_fresh_level3_top1: u64,
+    pub rel_trunk_fresh_recurrence_lift_l2_minus_l1: i64,
+    pub fz_trunk_dev_level0_top1: u64,
+    pub fz_trunk_dev_level1_top1: u64,
+    pub fz_trunk_dev_level2_top1: u64,
+    pub fz_trunk_dev_level3_top1: u64,
+    pub fz_trunk_dev_recurrence_lift_l2_minus_l1: i64,
+    pub fz_trunk_fresh_level0_top1: u64,
+    pub fz_trunk_fresh_level1_top1: u64,
+    pub fz_trunk_fresh_level2_top1: u64,
+    pub fz_trunk_fresh_level3_top1: u64,
+    pub fz_trunk_fresh_recurrence_lift_l2_minus_l1: i64,
+    pub rel_minus_fz_trunk_dev_level3_top1: i64,
+    pub rel_minus_fz_trunk_fresh_level3_top1: i64,
+}
+
+/// Complete two-seed grade report for `r-finite-relational-head` (`#2877`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationHeadGradeReport {
+    pub schema: String,
+    pub item: String,
+    pub issue: u32,
+    pub sheet_path: String,
+    pub sheet_sha256: String,
+    pub decision_card_path: String,
+    pub stage_t_archive_sha256: String,
+    pub stage_t_grade_sha256: String,
+    pub step0_receipt_sha256: String,
+    pub trunk_archive_sha256: String,
+    pub trunk_grade_sha256: String,
+    pub within_cell_decomposition_sha256: String,
+    pub gate_c1_to_c5_and_step0_pass: bool,
+    pub gate_d40_two_seeds_pass: bool,
+    pub gate_s_two_seeds_pass: bool,
+    pub within_arm_relation_beats_relation_off_two_seeds: bool,
+    pub within_arm_relation_beats_t1_rel_two_seeds: bool,
+    pub within_arm_relation_expands_read_codes_two_seeds: bool,
+    pub within_arm_relation_recurrence_lift_exceeds_fz_two_seeds: bool,
+    pub between_arm_relation_beats_frozen_zero_two_seeds: bool,
+    pub m1_closing_bar_met_two_seeds: bool,
+    pub outcome_invariance_verified: bool,
+    pub mechanism_negative: bool,
+    pub verdict: RelationHeadVerdict,
+    pub control_baselines: RelationHeadControlBaselines,
+    pub within_cell_seed1: RelationHeadWithinCellSummary,
+    pub seeds: Vec<RelationHeadSeedSummary>,
+}
+
+/// Grade the two-seed finite relational head (`r-finite-relational-head`, `#2877`) against `C_frozen_zero` and the count tables.
+#[allow(clippy::too_many_arguments)]
+pub fn grade_relation_head(
+    sheet_path: &str,
+    sheet_sha256: &str,
+    decision_card_path: &str,
+    stage_t_grade_sha256: &str,
+    step0: &Step0Receipt,
+    step0_receipt_sha256: &str,
+    trunk_grade_sha256: &str,
+    within_cell_decomposition_sha256: &str,
+    control_baselines: RelationHeadControlBaselines,
+    within_cell_seed1: RelationHeadWithinCellSummary,
+    seeds: Vec<RelationHeadSeedSummary>,
+) -> Result<RelationHeadGradeReport> {
+    if !step0.all_pass
+        || !step0.akd_pass
+        || !step0.v1d_pass
+        || !step0.kid_pass
+        || !step0.v8d_pass
+        || !step0.v9d_pass
+    {
+        return Err(invalid(
+            "Step 0 GPU control failed; CHARTER §4 forbids grading relational head on a failed instrument",
+        ));
+    }
+    if seeds.len() != 2 || seeds[0].seed != 1 || seeds[1].seed != 2 {
+        return Err(invalid(
+            "Relational head grading requires exactly two seeds (seed 1 and seed 2)",
+        ));
+    }
+
+    for s in &seeds {
+        let d40_ok = s.train_anchor_required_floor == RELATION_HEAD_D40_TRAIN_FLOOR
+            && s.rel_train_anchor_final_admitted >= s.train_anchor_required_floor
+            && s.fz_train_anchor_final_admitted >= s.train_anchor_required_floor
+            && s.rel_dev_b3_psucc_admitted >= DEV_PSUCC_ADMISSION_BAR
+            && s.fz_dev_b3_psucc_admitted >= DEV_PSUCC_ADMISSION_BAR;
+        if !d40_ok || !s.gate_d40_pass {
+            return Err(invalid(
+                "Gate D40 breach in relational head grading: TRAIN anchor or DEV P_succ floor violated",
+            ));
+        }
+        let gate_s_ok = s.rel_relation_committed_batches >= RELATION_HEAD_MIN_COMMITS
+            && s.rel_relation_committed_moves >= RELATION_HEAD_MIN_COMMITS
+            && s.fz_relation_committed_moves == 0;
+        if !gate_s_ok || !s.gate_s_pass {
+            return Err(invalid(
+                "Gate S or V8d breach in relational head grading: relation commits below 16 or FrozenZero non-zero",
+            ));
+        }
+
+        let expected_rel_minus_off_adm = i64::try_from(s.rel_dev_b3_full_admitted).unwrap_or(0)
+            - i64::try_from(s.rel_off_dev_b3_full_admitted).unwrap_or(0);
+        let expected_rel_minus_off_top1 = i64::try_from(s.rel_dev_writer_top1_all).unwrap_or(0)
+            - i64::try_from(s.rel_off_dev_writer_top1_all).unwrap_or(0);
+        let expected_rel_minus_fz_adm = i64::try_from(s.rel_dev_b3_full_admitted).unwrap_or(0)
+            - i64::try_from(s.fz_dev_b3_full_admitted).unwrap_or(0);
+        let expected_rel_minus_fz_top1 = i64::try_from(s.rel_dev_writer_top1_all).unwrap_or(0)
+            - i64::try_from(s.fz_dev_writer_top1_all).unwrap_or(0);
+        let expected_rel_minus_fz_trestr = i64::try_from(s.rel_checkpoint_t_restr_aw_hit1_all)
+            .unwrap_or(0)
+            - i64::try_from(s.fz_checkpoint_t_restr_aw_hit1_all).unwrap_or(0);
+        let expected_rel_minus_fz_grestr = i64::try_from(s.rel_checkpoint_g_restr_aw_hit1_all)
+            .unwrap_or(0)
+            - i64::try_from(s.fz_checkpoint_g_restr_aw_hit1_all).unwrap_or(0);
+        if s.within_arm_rel_minus_rel_off_admitted != expected_rel_minus_off_adm
+            || s.within_arm_rel_minus_rel_off_top1 != expected_rel_minus_off_top1
+            || s.rel_minus_fz_dev_b3_full != expected_rel_minus_fz_adm
+            || s.rel_minus_fz_dev_writer_top1 != expected_rel_minus_fz_top1
+            || s.rel_minus_fz_t_restr_aw_hit1 != expected_rel_minus_fz_trestr
+            || s.rel_minus_fz_g_restr_aw_hit1 != expected_rel_minus_fz_grestr
+        {
+            return Err(invalid(
+                "Relational head seed summary delta mismatch against raw counts",
+            ));
+        }
+    }
+
+    let within_arm_relation_beats_relation_off_two_seeds = seeds.iter().all(|s| {
+        s.within_arm_rel_minus_rel_off_admitted > 0
+            && s.within_arm_rel_minus_rel_off_top1 > 0
+            && s.within_arm_rel_minus_rel_off_top8 > 0
+            && s.within_arm_rel_minus_rel_off_strict_wins > 0
+    });
+    let within_arm_relation_beats_t1_rel_two_seeds =
+        seeds.iter().all(|s| s.within_arm_rel_minus_t1_rel_top1 > 0);
+    let within_arm_relation_expands_read_codes_two_seeds = seeds.iter().all(|s| {
+        s.rel_distinct_train_read_codes > s.fz_distinct_train_read_codes
+            && s.rel_distinct_dev_read_codes > s.fz_distinct_dev_read_codes
+    });
+    let within_arm_relation_recurrence_lift_exceeds_fz_two_seeds = seeds.iter().all(|s| {
+        s.rel_trunk_dev_recurrence_lift_l2_minus_l1 > s.fz_trunk_dev_recurrence_lift_l2_minus_l1
+            && s.rel_trunk_fresh_recurrence_lift_l2_minus_l1
+                > s.fz_trunk_fresh_recurrence_lift_l2_minus_l1
+    });
+
+    let between_arm_relation_beats_frozen_zero_two_seeds = seeds.iter().all(|s| {
+        s.rel_dev_writer_top1_all > s.fz_dev_writer_top1_all
+            || (s.rel_dev_b3_psucc_admitted > s.fz_dev_b3_psucc_admitted
+                && s.rel_dev_writer_top1_all >= s.fz_dev_writer_top1_all)
+    });
+    let m1_closing_bar_met_two_seeds = seeds.iter().all(|s| {
+        s.rel_dev_writer_top1_all > UNIGRAM_FULL_BAR
+            && s.rel_dev_writer_top1_all > FULL_PANEL_T2_REFERENCE
+    });
+
+    // Outcome invariance check: max(C_frozen_zero, C_route) >= C_frozen_zero > H_relation
+    let fz_strictly_dominates_rel_all_metrics = seeds.iter().all(|s| {
+        s.rel_dev_b3_full_admitted < s.fz_dev_b3_full_admitted
+            && s.rel_dev_b3_psucc_admitted < s.fz_dev_b3_psucc_admitted
+            && s.rel_dev_writer_top1_all < s.fz_dev_writer_top1_all
+            && s.rel_checkpoint_t_restr_aw_hit1_all < s.fz_checkpoint_t_restr_aw_hit1_all
+            && s.rel_checkpoint_g_restr_aw_hit1_all < s.fz_checkpoint_g_restr_aw_hit1_all
+            && s.rel_trunk_dev_level3_top1 < s.fz_trunk_dev_level3_top1
+            && s.rel_trunk_fresh_level3_top1 < s.fz_trunk_fresh_level3_top1
+    });
+    if control_baselines.outcome_invariant_without_c_route_or_c_successor_rerun
+        && !fz_strictly_dominates_rel_all_metrics
+    {
+        return Err(invalid(
+            "outcome invariance claimed when H_relation is not strictly below C_frozen_zero",
+        ));
+    }
+
+    let verdict =
+        if between_arm_relation_beats_frozen_zero_two_seeds && m1_closing_bar_met_two_seeds {
+            RelationHeadVerdict::PassM1AndRelational
+        } else if between_arm_relation_beats_frozen_zero_two_seeds {
+            RelationHeadVerdict::PassRelationalGainSubT2
+        } else {
+            RelationHeadVerdict::RelationalWithinArmGainTrailsFrozenZeroAdmission
+        };
+
+    Ok(RelationHeadGradeReport {
+        schema: RELATION_HEAD_GRADE_SCHEMA.to_owned(),
+        item: "r-finite-relational-head".to_owned(),
+        issue: 2877,
+        sheet_path: sheet_path.to_owned(),
+        sheet_sha256: sheet_sha256.to_owned(),
+        decision_card_path: decision_card_path.to_owned(),
+        stage_t_archive_sha256: RELATION_HEAD_STAGE_T_ARCHIVE_SHA256.to_owned(),
+        stage_t_grade_sha256: stage_t_grade_sha256.to_owned(),
+        step0_receipt_sha256: step0_receipt_sha256.to_owned(),
+        trunk_archive_sha256: RELATION_HEAD_TRUNK_ARCHIVE_SHA256.to_owned(),
+        trunk_grade_sha256: trunk_grade_sha256.to_owned(),
+        within_cell_decomposition_sha256: within_cell_decomposition_sha256.to_owned(),
+        gate_c1_to_c5_and_step0_pass: true,
+        gate_d40_two_seeds_pass: true,
+        gate_s_two_seeds_pass: true,
+        within_arm_relation_beats_relation_off_two_seeds,
+        within_arm_relation_beats_t1_rel_two_seeds,
+        within_arm_relation_expands_read_codes_two_seeds,
+        within_arm_relation_recurrence_lift_exceeds_fz_two_seeds,
+        between_arm_relation_beats_frozen_zero_two_seeds,
+        m1_closing_bar_met_two_seeds,
+        outcome_invariance_verified: fz_strictly_dominates_rel_all_metrics,
+        mechanism_negative: false,
+        verdict,
+        control_baselines,
+        within_cell_seed1,
+        seeds,
     })
 }
 
@@ -2527,6 +2891,273 @@ mod tests {
                 make_seed(1, 1_600, StageTTerminalStatus::CompletedFullDose),
                 make_seed(2, 1_550, StageTTerminalStatus::CompletedFullDose),
             ],
+        )
+        .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn relation_head_grader_verifies_gates_within_arm_lift_and_outcome_invariance() -> Result<()> {
+        let step0 = Step0Receipt {
+            schema: STAGE_T_STEP0_SCHEMA.to_owned(),
+            source_sha256: "be02d3eff523d73bde5a5e15533cd0a1e6e65eb596416fa85f21184e8fad6be8"
+                .to_owned(),
+            kernel_sha256: "0f9ccfa7b4748292f83a40227e30ea7b69c893a1649fa8afa3f7d547802429d6"
+                .to_owned(),
+            geometry_sha256: "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327"
+                .to_owned(),
+            driver_source_sha256: training::driver_source_sha256(),
+            t16_fz_config_sha256:
+                "77d61451125b04827821216e221d548885af188bad6d9d301234d126fefa3b7d".to_owned(),
+            t16_rel_config_sha256:
+                "ab41788a5e72a1f11370f875b090653e0d1b36be091393861b0e147688e9d746".to_owned(),
+            t1_fz_config_sha256: "cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479"
+                .to_owned(),
+            akd_single_move_commits_checked: 32,
+            akd_mismatches: 0,
+            akd_pass: true,
+            v1d_batches_checked: 24,
+            v1d_mismatches: 0,
+            v1d_final_snapshot_sha256:
+                "5de50c024f5507a2805aeda6942d78effc8b5d12396d298d7deea368cc13bdad".to_owned(),
+            v1d_pass: true,
+            kid_batches_checked: 128,
+            kid_commits_rescored: 39,
+            kid_ineligible_noop_verified: true,
+            kid_mismatches: 0,
+            kid_pass: true,
+            v8d_batches_checked: 128,
+            v8d_relation_commits_on_frozen_zero: 0,
+            v8d_nonzero_relation_trits: 0,
+            v8d_pass: true,
+            v9d_uninterrupted_128_snapshot_sha256:
+                "3545fe65c5c35f748dc6f9115d30b3fd5ec415c1253a63a4cd2f47466585d12d".to_owned(),
+            v9d_resumed_128_snapshot_sha256:
+                "3545fe65c5c35f748dc6f9115d30b3fd5ec415c1253a63a4cd2f47466585d12d".to_owned(),
+            v9d_epoch_128: 39,
+            v9d_committed_moves_128: 79,
+            v9d_pass: true,
+            t16_128_batches_elapsed_ms: 27_519,
+            projected_16404_seconds: 3_526,
+            all_pass: true,
+        };
+
+        let controls = RelationHeadControlBaselines {
+            c_route_cp0_dev_b3_full_admitted: 748,
+            c_route_cp0_dev_b3_psucc_admitted: 408,
+            c_route_cp0_dev_top1: 0,
+            c_route_cp0_dev_top8: 74,
+            c_successor_only_cp0_dev_b3_psucc_admitted: 2_034,
+            c_frozen_zero_cp0_dev_b3_psucc_admitted: 1_351,
+            outcome_invariant_without_c_route_or_c_successor_rerun: true,
+        };
+
+        let within_cell = RelationHeadWithinCellSummary {
+            rel_admitted_target_loses_within_own_cell_rows: 3_226,
+            rel_t_restr_hits_w_misses: 1_291,
+            rel_missed_t_restr_lost_within_own_cell_rows: 1_190,
+            rel_reranker_code_top1_cell_only_hits: 1_095,
+            rel_reranker_code_cell_prio_top1_hits: 1_597,
+            rel_reranker_code_pooled_top1_hits: 1_602,
+            rel_reranker_code_permuted_null_top1_hits: 554,
+            rel_paired_reranker_vs_writer_net_diff_d: 1_231,
+            rel_paired_reranker_vs_writer_floor_f: 74,
+            rel_paired_reranker_vs_permuted_null_net_diff_d: 1_048,
+            rel_paired_reranker_vs_permuted_null_floor_f: 74,
+            fz_admitted_target_loses_within_own_cell_rows: 4_208,
+            fz_t_restr_hits_w_misses: 1_765,
+            fz_missed_t_restr_lost_within_own_cell_rows: 1_597,
+            fz_reranker_code_top1_cell_only_hits: 1_706,
+            fz_reranker_code_cell_prio_top1_hits: 2_142,
+            fz_reranker_code_pooled_top1_hits: 2_140,
+            fz_reranker_code_permuted_null_top1_hits: 753,
+        };
+
+        let make_rel_seed = |seed: u32,
+                             rel_l2_dev: u64,
+                             rel_l3_dev: u64,
+                             rel_l2_fresh: u64,
+                             fz_l2_fresh: u64,
+                             fz_l3_dev: u64| RelationHeadSeedSummary {
+            seed,
+            rel_config_sha256: "a".repeat(64),
+            rel_checkpoint_sha256: "b".repeat(64),
+            rel_model_snapshot_sha256: "c".repeat(64),
+            fz_config_sha256: "d".repeat(64),
+            fz_checkpoint_sha256: "e".repeat(64),
+            fz_model_snapshot_sha256: "f".repeat(64),
+            rel_completed_batches: 4_096,
+            rel_accepted_updates: 678,
+            rel_committed_moves: 1_505,
+            rel_vector_committed_moves: 545,
+            rel_combine_committed_moves: 535,
+            rel_relation_committed_batches: 186,
+            rel_relation_committed_moves: 425,
+            rel_joint_commits: 199,
+            rel_context_tokens_per_sec: if seed == 1 { 11_562 } else { 11_201 },
+            fz_completed_batches: 3_008,
+            fz_accepted_updates: 420,
+            fz_committed_moves: 854,
+            fz_relation_committed_moves: 0,
+            fz_joint_commits: 123,
+            fz_context_tokens_per_sec: if seed == 1 { 50_910 } else { 50_860 },
+            train_anchor_initial_admitted: 1_211,
+            train_anchor_required_floor: 1_187,
+            rel_train_anchor_peak_admitted: 1_849,
+            rel_train_anchor_final_admitted: 1_286,
+            fz_train_anchor_peak_admitted: 1_823,
+            fz_train_anchor_final_admitted: 1_342,
+            gate_d40_pass: true,
+            gate_s_pass: true,
+            rel_distinct_train_read_codes: 27_132,
+            rel_distinct_dev_read_codes: 4_429,
+            fz_distinct_train_read_codes: 19_385,
+            fz_distinct_dev_read_codes: 4_067,
+            rel_dev_b3_full_admitted: 3_827,
+            rel_dev_b3_psucc_admitted: 1_144,
+            rel_dev_writer_top1_all: 371,
+            rel_dev_writer_top8_all: 1_124,
+            rel_dev_writer_top1_psucc: 78,
+            rel_dev_writer_top8_psucc: 243,
+            rel_dev_strict_wins: 172,
+            rel_off_dev_b3_full_admitted: 3_753,
+            rel_off_dev_b3_psucc_admitted: 1_129,
+            rel_off_dev_writer_top1_all: 327,
+            rel_off_dev_writer_top8_all: 1_063,
+            rel_off_dev_strict_wins: 123,
+            within_arm_rel_minus_rel_off_admitted: 74,
+            within_arm_rel_minus_rel_off_top1: 44,
+            within_arm_rel_minus_rel_off_top8: 61,
+            within_arm_rel_minus_rel_off_strict_wins: 49,
+            within_arm_rel_minus_t1_rel_top1: 238,
+            fz_dev_b3_full_admitted: 5_009,
+            fz_dev_b3_psucc_admitted: 1_216,
+            fz_dev_writer_top1_all: 455,
+            fz_dev_writer_top8_all: 1_484,
+            fz_dev_writer_top1_psucc: 107,
+            fz_dev_writer_top8_psucc: 318,
+            fz_dev_strict_wins: 93,
+            rel_minus_fz_dev_b3_full: -1_182,
+            rel_minus_fz_dev_b3_psucc: -72,
+            rel_minus_fz_dev_writer_top1: -84,
+            rel_minus_fz_dev_writer_top8: -360,
+            unconditional_unigram_hit1: 1_226,
+            unconditional_t2_bigram_hit1: 6_300,
+            rel_full_panel_code_table_hit1: 3_680,
+            fz_full_panel_code_table_hit1: 4_085,
+            rel_checkpoint_u_restr_aw_hit1: 942,
+            rel_checkpoint_t_sym_restr_aw_hit1: 1_377,
+            rel_checkpoint_t_restr_aw_hit1_all: 1_602,
+            rel_checkpoint_t_restr_aw_hit8_all: 3_007,
+            rel_checkpoint_t_restr_aw_hit1_psucc: 327,
+            rel_checkpoint_g_restr_aw_hit1_all: 2_364,
+            rel_checkpoint_g_restr_aw_hit8_all: 3_529,
+            rel_checkpoint_g_restr_aw_hit1_psucc: 496,
+            fz_checkpoint_u_restr_aw_hit1: 1_127,
+            fz_checkpoint_t_sym_restr_aw_hit1: 1_909,
+            fz_checkpoint_t_restr_aw_hit1_all: 2_140,
+            fz_checkpoint_t_restr_aw_hit8_all: 4_006,
+            fz_checkpoint_t_restr_aw_hit1_psucc: 376,
+            fz_checkpoint_g_restr_aw_hit1_all: 3_084,
+            fz_checkpoint_g_restr_aw_hit8_all: 4_674,
+            fz_checkpoint_g_restr_aw_hit1_psucc: 517,
+            rel_minus_fz_t_restr_aw_hit1: -538,
+            rel_minus_fz_g_restr_aw_hit1: -720,
+            rel_trunk_dev_level0_top1: 371,
+            rel_trunk_dev_level1_top1: 1_557,
+            rel_trunk_dev_level2_top1: rel_l2_dev,
+            rel_trunk_dev_level3_top1: rel_l3_dev,
+            rel_trunk_dev_recurrence_lift_l2_minus_l1: i64::try_from(rel_l2_dev).unwrap() - 1_557,
+            rel_trunk_fresh_level0_top1: 439,
+            rel_trunk_fresh_level1_top1: 1_559,
+            rel_trunk_fresh_level2_top1: rel_l2_fresh,
+            rel_trunk_fresh_level3_top1: 2_427,
+            rel_trunk_fresh_recurrence_lift_l2_minus_l1: i64::try_from(rel_l2_fresh).unwrap()
+                - 1_559,
+            fz_trunk_dev_level0_top1: 455,
+            fz_trunk_dev_level1_top1: 2_054,
+            fz_trunk_dev_level2_top1: 2_087,
+            fz_trunk_dev_level3_top1: fz_l3_dev,
+            fz_trunk_dev_recurrence_lift_l2_minus_l1: 33,
+            fz_trunk_fresh_level0_top1: 457,
+            fz_trunk_fresh_level1_top1: 2_187,
+            fz_trunk_fresh_level2_top1: fz_l2_fresh,
+            fz_trunk_fresh_level3_top1: 3_163,
+            fz_trunk_fresh_recurrence_lift_l2_minus_l1: i64::try_from(fz_l2_fresh).unwrap() - 2_187,
+            rel_minus_fz_trunk_dev_level3_top1: i64::try_from(rel_l3_dev).unwrap()
+                - i64::try_from(fz_l3_dev).unwrap(),
+            rel_minus_fz_trunk_fresh_level3_top1: -736,
+        };
+
+        let s1 = make_rel_seed(1, 1_624, 2_227, 1_594, 2_207, 2_988);
+        let s2 = make_rel_seed(2, 1_610, 2_226, 1_602, 2_225, 2_989);
+
+        let report = grade_relation_head(
+            "docs/harness/prep/r-finite-relational-head-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            &"5".repeat(64),
+            controls.clone(),
+            within_cell.clone(),
+            vec![s1.clone(), s2.clone()],
+        )?;
+
+        assert_eq!(report.schema, RELATION_HEAD_GRADE_SCHEMA);
+        assert_eq!(report.item, "r-finite-relational-head");
+        assert_eq!(report.issue, 2877);
+        assert!(report.gate_c1_to_c5_and_step0_pass);
+        assert!(report.gate_d40_two_seeds_pass);
+        assert!(report.gate_s_two_seeds_pass);
+        assert!(report.within_arm_relation_beats_relation_off_two_seeds);
+        assert!(report.within_arm_relation_beats_t1_rel_two_seeds);
+        assert!(report.within_arm_relation_expands_read_codes_two_seeds);
+        assert!(report.within_arm_relation_recurrence_lift_exceeds_fz_two_seeds);
+        assert!(!report.between_arm_relation_beats_frozen_zero_two_seeds);
+        assert!(!report.m1_closing_bar_met_two_seeds);
+        assert!(report.outcome_invariance_verified);
+        assert!(!report.mechanism_negative);
+        assert_eq!(
+            report.verdict,
+            RelationHeadVerdict::RelationalWithinArmGainTrailsFrozenZeroAdmission
+        );
+
+        // Gate S failure must be refused
+        let mut bad_gate_s = s1.clone();
+        bad_gate_s.rel_relation_committed_batches = 8;
+        assert!(grade_relation_head(
+            "docs/harness/prep/r-finite-relational-head-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            &"5".repeat(64),
+            controls.clone(),
+            within_cell.clone(),
+            vec![bad_gate_s, s2.clone()],
+        )
+        .is_err());
+
+        // Gate D40 failure must be refused
+        let mut bad_d40 = s1;
+        bad_d40.rel_train_anchor_final_admitted = 1_100;
+        assert!(grade_relation_head(
+            "docs/harness/prep/r-finite-relational-head-2026-10-25.md",
+            &"1".repeat(64),
+            "docs/loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md",
+            &"2".repeat(64),
+            &step0,
+            &"3".repeat(64),
+            &"4".repeat(64),
+            &"5".repeat(64),
+            controls,
+            within_cell,
+            vec![bad_d40, s2],
         )
         .is_err());
         Ok(())

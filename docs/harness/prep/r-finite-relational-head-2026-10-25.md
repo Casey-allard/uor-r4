@@ -1,9 +1,9 @@
 # Pre-Registration: Stage M2 Finite Relational Head Discriminator (`r-finite-relational-head`, `#2877`)
 
-- **Date:** 2026-10-25
-- **Author:** `antigravity` (ORDER [`docs/loop/tasks/r-finite-relational-head/antigravity-65/ORDER.md`](../../loop/tasks/r-finite-relational-head/antigravity-65/ORDER.md))
-- **Non-Author FIT & D68 Reviewer:** `antigravity` fresh-context reviewer `f9136838-edd2-41ab-8951-42f47f221ff1` ([`#2877` comment `6396409286`](https://github.com/UOR-Foundation/uor-r4/issues/2877#issuecomment-6396409286))
-- **Verdict:** **TEST FITNESS: FIT** | **D68 DECISION REVIEW: PASS** (`status: held` until `#2836` `m1-bvg-k-stage-t-training` completes)
+- **Date:** 2026-10-25 (reconciled 2026-10-26 under D68 decision card [`docs/loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md`](../../loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md))
+- **Author:** `antigravity` (ORDER [`docs/loop/tasks/r-finite-relational-head/antigravity-65/ORDER.md`](../../loop/tasks/r-finite-relational-head/antigravity-65/ORDER.md), completed under ORDER [`docs/loop/tasks/r-finite-relational-head/antigravity-96/ORDER.md`](../../loop/tasks/r-finite-relational-head/antigravity-96/ORDER.md))
+- **Non-Author FIT & D68 Reviewer:** `antigravity` fresh-context reviewer `f9136838-edd2-41ab-8951-42f47f221ff1` ([`#2877` comment `6396409286`](https://github.com/UOR-Foundation/uor-r4/issues/2877#issuecomment-6396409286)) and D68 reconciliation reviewer `b9f7ec13-d459-41e6-8b54-39ae7c196d9b` ([`#2877` comment `6421371461`](https://github.com/UOR-Foundation/uor-r4/issues/2877#issuecomment-6421371461))
+- **Verdict:** **TEST FITNESS: FIT** | **D68 DECISION REVIEW: PASS** | **OUTCOME: `RELATIONAL_WITHIN_ARM_GAIN_TRAILS_FROZEN_ZERO_ADMISSION`** (`mechanism_negative: false`, [`relation-head-grade.json`](../labs/r-finite-relational-head/relation-head-grade.json))
 - **Milestone / Line:** M2 (`#2030`) / `m1-discrete-attention` — item [`r-finite-relational-head`](../../roadmap/items/r-finite-relational-head.md) (`#2877`), mechanism [`relation-read`](../../mechanisms/relation-read.md) (`ACTIVE`)
 
 ## 1. Question and Base Artifact
@@ -63,3 +63,7 @@ sheet: docs/harness/prep/r-finite-relational-head-2026-10-25.md
 reviewer: antigravity (fresh-context non-author reviewer f9136838-edd2-41ab-8951-42f47f221ff1; https://github.com/UOR-Foundation/uor-r4/issues/2877#issuecomment-6396409286)
 date: 2026-10-25
 A FIT verdict clears compute for the configuration in that sheet only (D22).
+
+## 6. Post-Stage-T D68 Reconciliation (`antigravity-96`, 2026-10-26)
+
+Under [`DECISION.md`](../../loop/tasks/r-finite-relational-head/antigravity-96/DECISION.md) (approved by fresh-context reviewer `b9f7ec13-d459-41e6-8b54-39ae7c196d9b`, [`#2877` comment `6421371461`](https://github.com/UOR-Foundation/uor-r4/issues/2877#issuecomment-6421371461)), the two-seed RTX 5090 GPU runs in [`#2836`](../labs/m1-bvg-k-stage-t-training/README.md) (`stage-t-20261025.tar.gz` `c004db506bf64903231c5c225a07e9969d5e3344c51a67eaec9429265e5f44b6`), [`#2844`](../labs/m1-trunk-assembly-and-training/README.md) (`trunk-20261025.tar.gz` `4f4d4817e2750565f65bdb8a6c6f8ed07b44389f0757702cf6eba11b64e23d35`), and [`#3267`](../labs/m1-within-cell-writer/README.md) (`stage-t-decomposition.json`) already executed `H_relation` (`T16_rel` Seeds 1 & 2) and `C_frozen_zero` (`T16_fz` Seeds 1 & 2) across all instrument gates (`Gate C1–C5` / `Step 0`, `Gate D40`, `Gate S`), count tables (`U`, `T2`, `T(c(x))`, `U_restr(A_W)`, `T_sym_restr(A_W)`, `T_restr(A_W)`, `G_restr(A_W)`), within-cell rerankers, and `fresh_v2` transfer. Because $\max(C_{\text{frozen\_zero}}, C_{\text{route}}) \ge C_{\text{frozen\_zero}} > H_{\text{relation}}$ holds strictly across both seeds on every admission and ranking metric (`3,827 < 5,009` `DEV b_3(Full)`, `1,144 < 1,216` `DEV b_3(P_succ)`, `371 < 455` `DEV top-1`, `1,602 < 2,140` `T_restr(A_W)`, `2,364 < 3,084` `G_restr(A_W)`, `2,227 < 2,989` Trunk `Level 3` DEV, `2,427 < 3,163` Trunk `Level 3` `fresh_v2`), additional GPU spend on `C_route` or `C_successor_only` is outcome-invariant and refused under `CHARTER.md` §3.5 and §5.10 (D67), resolving `#2877` to **`RELATIONAL_WITHIN_ARM_GAIN_TRAILS_FROZEN_ZERO_ADMISSION`** (`mechanism_negative: false`, [`relation-head-grade.json`](../labs/r-finite-relational-head/relation-head-grade.json)).

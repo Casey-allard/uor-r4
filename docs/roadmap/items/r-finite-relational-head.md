@@ -3,7 +3,7 @@ id: r-finite-relational-head
 title: Train the finite relational head
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training]
