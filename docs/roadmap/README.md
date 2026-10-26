@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 15 |
+| ready | 14 |
 | held | 16 |
 | decision | 1 |
-| done | 62 |
+| done | 63 |
 | total | 94 |
 
 ## Start here
@@ -45,7 +45,6 @@ These items are ready and open to anyone.
 | [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | yes | [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
 | [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
-| [Improve within-cell token selection with versioned reads](items/m1-within-cell-writer.md) | ready | a lab | yes | [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#3267](https://github.com/UOR-Foundation/uor-r4/issues/3267) |
 | [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | held | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
@@ -63,6 +62,7 @@ These items are ready and open to anyone.
 | [Run the W2 read-code capacity capture](items/m1-w2-capacity-capture.md) | done | a lab | yes | none | [#2845](https://github.com/UOR-Foundation/uor-r4/issues/2845) |
 | [Run the W2 code-utilization diagnostic on the stored capture](items/m1-w2-code-utilization.md) | done | a lab | no | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#3179](https://github.com/UOR-Foundation/uor-r4/issues/3179) |
 | [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | done | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
+| [Improve within-cell token selection with versioned reads](items/m1-within-cell-writer.md) | done | a lab | yes | [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#3267](https://github.com/UOR-Foundation/uor-r4/issues/3267) |
 | [Train a number-aware tokenizer and pin its identity](items/number-aware-tokenizer.md) | done | a lab | no | none | [#2872](https://github.com/UOR-Foundation/uor-r4/issues/2872) |
 | [Decide whether a float (D37) path may count toward M1, M2 and the product](items/owner-decision-float-path-scope.md) | done | a lab | no | none | [#2875](https://github.com/UOR-Foundation/uor-r4/issues/2875) |
 

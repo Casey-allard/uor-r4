@@ -98,5 +98,10 @@ path = "src/bin/wider-carrier-qualify.rs"
 name = "wider-carrier-run"
 path = "src/bin/wider-carrier-run.rs"
 
+[[bin]]
+name = "within-cell-writer-run"
+path = "src/bin/within-cell-writer-run.rs"
+
+
 
 

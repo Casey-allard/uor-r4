@@ -19,6 +19,8 @@ mod rows_source;
 mod rowsk_source;
 #[path = "src/wider_carrier_source.rs"]
 mod wider_carrier_source;
+#[path = "src/within_cell_writer_source.rs"]
+mod within_cell_writer_source;
 
 const ENTRIES: [&str; 13] = [
     "discrete_init",
@@ -361,6 +363,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/bvgk_source.rs");
     println!("cargo:rerun-if-changed=src/bucket_source.rs");
     println!("cargo:rerun-if-changed=src/wider_carrier_source.rs");
+    println!("cargo:rerun-if-changed=src/within_cell_writer_source.rs");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -520,6 +523,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fs::read_to_string(out.join("wider-carrier.ptx"))?,
         &wider_carrier_source::ENTRIES,
     )?;
+    // Opt-in within-cell writer & versioned ReadLawV2 / B0 framing evaluator
+    // (m1-within-cell-writer, #3267, referencing #3128 and #3129): separate generated
+    // source, admitted two-entry PTX and cubin. Earlier images stay untouched.
+    let within_cell_writer =
+        within_cell_writer_source::generate(&fs::read_to_string("src/discrete.cu")?)?;
+    fs::write(out.join("within-cell-writer.cu"), within_cell_writer)?;
+    let status = Command::new(&nvcc)
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .arg("-o")
+        .arg(out.join("within-cell-writer.ptx"))
+        .arg(out.join("within-cell-writer.cu"))
+        .status()?;
+    if !status.success() {
+        return Err(format!("within-cell writer PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("within-cell-writer.ptx"))?,
+        &within_cell_writer_source::ENTRIES,
+    )?;
     // Assemble the exact PTX admitted above, rather than compiling the CUDA
     // source a second time. These same cubins and their assembly reports are
     // embedded by the driver; no CUDA context or model executes during build.
@@ -533,6 +556,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("bvgk", out.join("bvgk.ptx")),
         ("bucket", out.join("bucket.ptx")),
         ("wider-carrier", out.join("wider-carrier.ptx")),
+        ("within-cell-writer", out.join("within-cell-writer.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.

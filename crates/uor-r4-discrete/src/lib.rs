@@ -48,6 +48,8 @@ pub mod w2_capture;
 pub mod w2_record;
 pub mod wider_carrier;
 pub mod wider_carrier_source;
+pub mod within_cell_writer;
+pub mod within_cell_writer_source;
 #[cfg(feature = "cuda")]
 pub mod writer_bucket_qualification;
 

@@ -3,7 +3,7 @@ id: m1-within-cell-writer
 title: Improve within-cell token selection with versioned reads
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-bvg-k-stage-t-training]

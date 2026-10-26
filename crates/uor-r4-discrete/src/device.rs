@@ -69,6 +69,13 @@ pub use wider_carrier_device::{
     compiled_wider_carrier_image_sha256, WiderCarrierKernels, WiderCarrierRowInspection,
     WiderCarrierTokenDistanceRow,
 };
+#[path = "within_cell_writer_device.rs"]
+pub mod within_cell_writer_device;
+pub use within_cell_writer_device::{
+    compiled_within_cell_writer_image_sha256, SnapOrbitCheckDeviceResult,
+    WithinCellBatchEvaluation, WithinCellDeviceConfig, WithinCellRowEvaluation,
+    WithinCellWriterKernels,
+};
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:

@@ -1,0 +1,82 @@
+{
+  "schema": "uor-r4.within-cell-writer-qualification/v1",
+  "source_sha256": "2ee57c0099913b8bdbf33a968521b333eaa1542ccb11a043b6a8a585bb2fe4c2",
+  "kernel_sha256": "0f9ccfa7b4748292f83a40227e30ea7b69c893a1649fa8afa3f7d547802429d6",
+  "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+  "driver_source_sha256": "04c5165464a18eea6d4edadc6970007dbdc7908ead420f4a2f575e22ea43061d",
+  "within_cell_writer_image_sha256": [
+    "b6ddae94a4bb4319be6c4eef17f1cacd81cca1a073033a745b2717abab30b861",
+    "13b06bfb0dffe557c5f82bbce4b9a48e3eb8470583a62c09207e85041bf3ba61",
+    "34bf1e8f869dd6eaa52c18458cbb7fc85c5116fee80ec49ae11e521ea7d1f1ab",
+    "0e33631167692bb5ac4edbb61ca3c62bed46c09ed3b9a9a45b050cc0d76c1d40"
+  ],
+  "negative_gates": [
+    {
+      "gate_name": "G-Refuse-Blocks",
+      "invariant_tested": "Refuse block counts s[1] != 4 (status 15) with zero state mutation",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "blocks=3 succeeded when bypass bit 1 set aside; refused when active (Some(Invalid(\"discrete CUDA within-cell writer evaluation refused with status 15\")))"
+    },
+    {
+      "gate_name": "G-Refuse-InertPosition",
+      "invariant_tested": "Refuse inert position mode s[14] >= 3 (status 16)",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "s[14]=3 succeeded when bypass bit 2 set aside; refused when active (Some(Invalid(\"discrete CUDA within-cell writer evaluation refused with status 16\")))"
+    },
+    {
+      "gate_name": "G-Refuse-IdentityBypass",
+      "invariant_tested": "Refuse R-Off identity bypass s[13] != 0 (status 17)",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "s[13]=1 succeeded when bypass bit 4 set aside; refused when active (Some(Invalid(\"discrete CUDA within-cell writer evaluation refused with status 17\")))"
+    },
+    {
+      "gate_name": "G-Refuse-RelationBound",
+      "invariant_tested": "Refuse relation score magnitude exceeding max_rel_bound (status 14)",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "max_rel_bound=1 with |rel|=16 succeeded when bypass bit 8 set aside; refused when active (Some(Invalid(\"discrete CUDA within-cell writer evaluation refused with status 14\")))"
+    },
+    {
+      "gate_name": "G-Refuse-InvalidGateTrit",
+      "invariant_tested": "Refuse non-trit gate values outside -1..=1 on host and GPU (status 10)",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "injected gate=2 succeeded when bypass bit 16 set aside; refused on GPU (Some(Invalid(\"discrete CUDA within-cell writer evaluation refused with status 10\"))) and host (Some(Invalid(\"discrete CUDA snapshot validation refused with status 10\")))"
+    },
+    {
+      "gate_name": "G-Refuse-ZeroNonInertness",
+      "invariant_tested": "Refuse vacuous two-pass configuration when non-inert row count equals 0",
+      "fails_when_set_aside": true,
+      "passes_when_active": true,
+      "detail": "inert_count=0 flagged as vacuous refusal; active_count=1 admitted"
+    }
+  ],
+  "c1_snap_orbit_summary": {
+    "total_pairs": 256,
+    "distinct_pairs": 240,
+    "v1_recover_v_all_256": 129,
+    "v1_recover_v_distinct_240": 113,
+    "v1_lose_to_rq_lower_index": 112,
+    "v1_antipodal_zero_collapse": 15,
+    "v2_pos_recover_v_all_256": 256,
+    "v2_pos_recover_v_distinct_240": 240,
+    "v2_neg_equals_v_count": 0,
+    "v2_neg_recovers_antipode_when_present": 256
+  },
+  "c1_host_gpu_orbit_exact_match": true,
+  "c2_multi_level_and_negative_gates_verified": true,
+  "c2_detail": "terms(pos,neg,multi)=(3,3,5), antipodal_blocks=4/4",
+  "c3_unit_snap1_and_raw_residual_verified": true,
+  "c3_detail": "SnapScale::UnitSnap1 decodes to valid orbit roots; SnapScale::RawResidual preserves unsnapped Z^8 residual",
+  "c4_bounded_rel_and_copy_succession_verified": true,
+  "c4_detail": "ReadLawV1 copy top1=false vs ReadLawV2 copy top1=true (wc_rivals=0, cc_rivals=0), recent-8 cap rel_node10=64",
+  "c5_frame_aligned_twopass_and_single_cell_verified": true,
+  "c5_detail": "interior_pair(cur=237, near=228, twopass_rel=61, twopass_global=52, target=52); FullVectorV1 cell0 distinct pairs=16/16",
+  "c6_frame_remap_and_old_lineage_parity_verified": true,
+  "c6_detail": "val_remap_hits=(80/80, 80/80) vs identity=(0,0); old-lineage GPU parity mismatches=0/16",
+  "all_controls_passed": true,
+  "elapsed_ms": 371
+}
