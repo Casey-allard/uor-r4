@@ -585,6 +585,14 @@ pub(crate) fn cl06_action(a: usize, x: &[i32; 8]) -> [i32; 8] {
     action(a, x)
 }
 
+/// The eight signed-axis codes of Cl(0,6) state `a`: `code & 7` is the source
+/// axis, `code & 8` negates.
+pub(crate) fn cl06_axes(a: usize) -> [u8; 8] {
+    let mut codes = [0u8; 8];
+    codes.copy_from_slice(&AXES[a * 8..a * 8 + 8]);
+    codes
+}
+
 pub(crate) fn cl06_compose(a: usize, b: usize) -> usize {
     compose(a, b)
 }

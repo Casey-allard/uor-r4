@@ -35,6 +35,15 @@ pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
 /// (`read_select` in the shape), with or without a pointer head: an engine
 /// that serves only softmax reads refuses it instead of serving softmax.
 pub const STACK_READ_SCHEMA: &str = "uor-r4.lut-stack/3";
+/// Header schema of a stack whose projections are SpiralCore/FBS route tables
+/// and whose head is the native vector writer: an engine that serves only
+/// dense maps refuses it instead of ignoring the route tables.
+pub const STACK_FBS_SCHEMA: &str = "uor-r4.lut-stack/4";
+/// The native vector writer's limits (`uor-r4-float-train`'s `WriterSpec`).
+pub const WRITER_MIN_VOCAB: usize = 256;
+pub const WRITER_MAX_VOCAB: usize = 8192;
+pub const WRITER_MAX_WIDTH: usize = 1024;
+pub const WRITER_MAX_KEPT_CELLS: usize = 16;
 /// Weights per scale group along a matrix row.
 pub const GROUP: usize = 32;
 /// Alignment of the data start and of every section.
@@ -99,6 +108,19 @@ pub struct StackShape {
     /// icosians of `2I`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gate: Option<String>,
+    /// Projection law: dense 4-bit maps when absent, or `spiralcore_fbs`
+    /// (every map a SpiralCore/FBS route table: each output 8-block one signed
+    /// axis permutation of one input 8-block, served as a gather and a sign).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection: Option<String>,
+    /// Output head: the dense vocabulary map when absent, or `native_vector`
+    /// (the native vector writer: `kept_cells` of 256 root-pair cells, then
+    /// the L1-nearest token among those cells' rows of `writer.table`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head: Option<String>,
+    /// Cells the native vector writer keeps per position.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kept_cells: Option<usize>,
 }
 
 /// The product-key memory of a layer (`memory` in the shape): the layer
@@ -140,11 +162,14 @@ pub struct StackReadSelect {
     pub k: usize,
 }
 
-/// The header schema a shape requires: [`STACK_READ_SCHEMA`] with a
-/// softmax-free read or geometric recurrence/Hamilton gate, else
-/// [`STACK_POINTER_SCHEMA`] with a pointer head, else [`STACK_SCHEMA`].
+/// The header schema a shape requires: [`STACK_FBS_SCHEMA`] with SpiralCore/FBS
+/// projections, else [`STACK_READ_SCHEMA`] with a softmax-free read or
+/// geometric recurrence/Hamilton gate, else [`STACK_POINTER_SCHEMA`] with a
+/// pointer head, else [`STACK_SCHEMA`].
 pub fn stack_schema_for(shape: &StackShape) -> &'static str {
-    if shape.read_select.is_some() || shape.rec_geometric() || shape.gate_hamilton() {
+    if shape.projection_fbs() {
+        STACK_FBS_SCHEMA
+    } else if shape.read_select.is_some() || shape.rec_geometric() || shape.gate_hamilton() {
         STACK_READ_SCHEMA
     } else if shape.pointer.is_some() {
         STACK_POINTER_SCHEMA
@@ -207,6 +232,44 @@ impl StackShape {
             .is_some_and(|g| g != "hamilton")
         {
             Some("the MLP gate is not hamilton")
+        } else if self
+            .projection
+            .as_deref()
+            .is_some_and(|p| p != "spiralcore_fbs")
+        {
+            Some("the projection is not spiralcore_fbs")
+        } else if self.head.as_deref().is_some_and(|h| h != "native_vector") {
+            Some("the head is not native_vector")
+        } else if self.projection_fbs()
+            && !(self.rec_geometric()
+                && self.gate_hamilton()
+                && self.rotation
+                && self.head_native_vector())
+        {
+            Some("SpiralCore/FBS projections require geometric gates, the Hamilton gate, rotations and the native vector head")
+        } else if self.projection_fbs() && self.pattern.bytes().any(|c| c != b'r') {
+            Some("SpiralCore/FBS projections serve recurrence layers only")
+        } else if self.projection_fbs()
+            && (self.read_select.is_some() || self.read_weights.is_some() || self.read_binary)
+        {
+            Some("SpiralCore/FBS trunks carry no read selection or read weights")
+        } else if self.head_native_vector() && !self.projection_fbs() {
+            Some("the native vector head requires SpiralCore/FBS projections")
+        } else if self.kept_cells.is_some() && !self.head_native_vector() {
+            Some("kept cells belong to the native vector head")
+        } else if self.head_native_vector()
+            && self
+                .kept_cells
+                .is_none_or(|k| k == 0 || k > WRITER_MAX_KEPT_CELLS)
+        {
+            Some("the native vector head keeps 1 to 16 cells")
+        } else if self.head_native_vector()
+            && (!(WRITER_MIN_VOCAB..=WRITER_MAX_VOCAB).contains(&self.vocab)
+                || self.width > WRITER_MAX_WIDTH)
+        {
+            Some("the native vector head serves a vocabulary of 256 to 8192 and a width up to 1024")
+        } else if self.head_native_vector() && self.pointer.is_some() {
+            Some("the native vector head has no pointer head")
         } else if rank != self.read_select.is_some() {
             Some("rank read weights and a read selection require each other")
         } else if self.read_binary && self.read_learned() {
@@ -364,6 +427,18 @@ impl StackShape {
     /// icosian-snapped Hamilton output gate (`rec_gates == "geometric"`).
     pub fn rec_geometric(&self) -> bool {
         self.rec_gates.as_deref() == Some("geometric")
+    }
+
+    /// Whether every projection is a SpiralCore/FBS route table
+    /// (`projection == "spiralcore_fbs"`).
+    pub fn projection_fbs(&self) -> bool {
+        self.projection.as_deref() == Some("spiralcore_fbs")
+    }
+
+    /// Whether the output head is the native vector writer
+    /// (`head == "native_vector"`).
+    pub fn head_native_vector(&self) -> bool {
+        self.head.as_deref() == Some("native_vector")
     }
 
     /// Whether the feed-forward block uses the icosian-snapped Hamilton gate
@@ -771,6 +846,72 @@ pub struct FloatTrunkSnapshot {
     pub layers: Vec<FloatTrunkLayer>,
 }
 
+/// SpiralCore/FBS routes of one projection: one `(atom, state)` per output 8-block.
+///
+/// Output block `o` reads input block `atoms[o]`: its channel `j` is
+/// `y[o*8 + j] = ±x[atoms[o]*8 + (code & 7)]`, negated when `code & 8`, where
+/// `code` is the `j`-th code of the 64-state Cl(0,6) signed-axis table at
+/// `states[o]`. The integer session serves it as a gather and a sign
+/// (`stack_fbs_gather`).
+#[derive(Clone, Debug)]
+pub struct FbsRoutes {
+    /// Input 8-blocks the atoms index.
+    pub in_blocks: usize,
+    /// Output 8-blocks, one route each.
+    pub out_blocks: usize,
+    /// `out_blocks` input-block indices, each below `in_blocks`.
+    pub atoms: Vec<u16>,
+    /// `out_blocks` signed-axis states, each below 64.
+    pub states: Vec<u8>,
+}
+
+/// One recurrence layer of a SpiralCore/FBS trunk snapshot (`d = width`,
+/// `m = mlp`, `lanes = d / 4`, `g = lanes + d`).
+#[derive(Clone, Debug)]
+pub struct FbsTrunkLayer {
+    /// `d` RMSNorm gain before the recurrence.
+    pub rec_norm: Vec<f32>,
+    /// `d` RMSNorm gain before the Hamilton feed-forward block.
+    pub mlp_norm: Vec<f32>,
+    /// `d/8 -> 2d/8` drive and output-gate routes.
+    pub rec_in: FbsRoutes,
+    /// `d/8 -> g/8` decay-gate and rotation routes.
+    pub rec_gate: FbsRoutes,
+    /// `d/8 -> d/8` output routes.
+    pub rec_out: FbsRoutes,
+    /// `d/8 -> m/8` feed-forward gate routes.
+    pub mlp_gate: FbsRoutes,
+    /// `d/8 -> m/8` feed-forward up routes.
+    pub mlp_up: FbsRoutes,
+    /// `m/8 -> d/8` feed-forward down routes.
+    pub mlp_down: FbsRoutes,
+    /// `4 * d` causal convolution taps `[tap][channel]`, as [`FloatTrunkRecurrence::conv_taps`].
+    pub conv_taps: Vec<f32>,
+    /// `d` causal convolution biases.
+    pub conv_bias: Vec<f32>,
+    /// `g` gate biases (decay-gate bias then rotation bias).
+    pub gate_bias: Vec<f32>,
+    /// `lanes` learned per-lane decay offsets.
+    pub decay: Vec<f32>,
+}
+
+/// Offline SpiralCore/FBS trunk snapshot handed to [`export_fbs_trunk_uorlut01`].
+#[derive(Clone, Debug)]
+pub struct FbsTrunkSnapshot {
+    pub vocab: usize,
+    pub width: usize,
+    pub mlp: usize,
+    pub context: usize,
+    pub rms_eps: f64,
+    /// Cells the native vector head keeps (1 to 16).
+    pub kept_cells: usize,
+    /// `vocab * width` row-major: the input embedding and the writer table.
+    pub embed: Vec<f32>,
+    /// `width` final RMSNorm gain.
+    pub final_norm: Vec<f32>,
+    pub layers: Vec<FbsTrunkLayer>,
+}
+
 /// Encode a finite scalar as a grid code `±(16 + m) 2^(e - 4)` with `1 <= e + 64 <= 127`.
 pub fn encode_grid_code(value: f64, positive: bool) -> Result<i16, StackError> {
     if !value.is_finite() || (positive && value <= 0.0) {
@@ -1004,6 +1145,9 @@ pub fn export_float_trunk_uorlut01(snap: &FloatTrunkSnapshot) -> Result<Vec<u8>,
         memory: None,
         rec_gates: Some("geometric".to_owned()),
         gate: Some("hamilton".to_owned()),
+        projection: None,
+        head: None,
+        kept_cells: None,
     };
     shape.validate()?;
 
@@ -1163,6 +1307,376 @@ pub fn export_float_trunk_uorlut01(snap: &FloatTrunkSnapshot) -> Result<Vec<u8>,
     Ok(out)
 }
 
+/// Refuse a table of the wrong length or with a non-finite value.
+fn check_f32(name: &str, values: &[f32], expected: usize) -> Result<(), StackError> {
+    if values.len() != expected {
+        return Err(StackError::TableLength {
+            name: name.to_owned(),
+            len: values.len(),
+            expected,
+        });
+    }
+    match values.iter().position(|v| !v.is_finite()) {
+        Some(i) => Err(StackError::Numerics(format!("{name}[{i}] is not finite"))),
+        None => Ok(()),
+    }
+}
+
+/// Check one projection's routes against its `in_dim -> out_dim` and pack each
+/// as `atom | state << 16`.
+fn pack_fbs_routes(
+    name: &str,
+    routes: &FbsRoutes,
+    in_dim: usize,
+    out_dim: usize,
+) -> Result<Vec<u32>, StackError> {
+    let (in_blocks, out_blocks) = (in_dim / 8, out_dim / 8);
+    if routes.in_blocks != in_blocks || routes.out_blocks != out_blocks {
+        return Err(StackError::Numerics(format!(
+            "{name}: routes declare {} -> {} blocks, the trunk needs {in_blocks} -> {out_blocks}",
+            routes.in_blocks, routes.out_blocks
+        )));
+    }
+    for (part, len) in [("atoms", routes.atoms.len()), ("states", routes.states.len())] {
+        if len != out_blocks {
+            return Err(StackError::TableLength {
+                name: format!("{name}.{part}"),
+                len,
+                expected: out_blocks,
+            });
+        }
+    }
+    routes
+        .atoms
+        .iter()
+        .zip(&routes.states)
+        .enumerate()
+        .map(|(o, (&atom, &state))| {
+            if usize::from(atom) >= in_blocks {
+                return Err(StackError::Numerics(format!(
+                    "{name}[{o}]: atom {atom} is not below {in_blocks} input blocks"
+                )));
+            }
+            if state >= 64 {
+                return Err(StackError::Numerics(format!(
+                    "{name}[{o}]: state {state} is not below 64"
+                )));
+            }
+            Ok(u32::from(atom) | (u32::from(state) << 16))
+        })
+        .collect()
+}
+
+/// Export a SpiralCore/FBS [`FbsTrunkSnapshot`] into a deterministic `UORLUT01`
+/// (`uor-r4.lut-stack/4`) byte container: recurrence layers only, every
+/// projection as packed FBS routes (no matrices), geometric recurrence gates,
+/// the Hamilton gate, and the native vector writer table built from `embed`.
+/// Width and MLP width must be multiples of 32; they are refused, not padded.
+pub fn export_fbs_trunk_uorlut01(snap: &FbsTrunkSnapshot) -> Result<Vec<u8>, StackError> {
+    let shape = StackShape {
+        vocab: snap.vocab,
+        width: snap.width,
+        heads: 1,
+        mlp: snap.mlp,
+        pattern: "r".repeat(snap.layers.len()),
+        read: "dot".to_owned(),
+        rotation: true,
+        context: snap.context,
+        pointer: None,
+        read_select: None,
+        read_weights: None,
+        read_binary: false,
+        memory: None,
+        rec_gates: Some("geometric".to_owned()),
+        gate: Some("hamilton".to_owned()),
+        projection: Some("spiralcore_fbs".to_owned()),
+        head: Some("native_vector".to_owned()),
+        kept_cells: Some(snap.kept_cells),
+    };
+    // `validate` holds the width and MLP width to multiples of the group (32),
+    // so every route table, the gate rows' `width / 4 + width` included, fills
+    // whole 8-blocks.
+    shape.validate()?;
+    if !(snap.rms_eps.is_finite() && snap.rms_eps > 0.0) {
+        return Err(StackError::Numerics(format!(
+            "rms_eps {} is not finite and positive",
+            snap.rms_eps
+        )));
+    }
+    let (d, m) = (snap.width, snap.mlp);
+    let lanes = shape.lanes();
+    let g = lanes + d;
+
+    let mut b = ExportBuilder::new();
+    for (l, layer) in snap.layers.iter().enumerate() {
+        let prefix = |part: &str| format!("l{l}.{part}");
+        for (part, routes, in_dim, out_dim) in [
+            ("rec_in", &layer.rec_in, d, 2 * d),
+            ("rec_gate", &layer.rec_gate, d, g),
+            ("rec_out", &layer.rec_out, d, d),
+            ("mlp_gate", &layer.mlp_gate, d, m),
+            ("mlp_up", &layer.mlp_up, d, m),
+            ("mlp_down", &layer.mlp_down, m, d),
+        ] {
+            let name = prefix(&format!("{part}.fbs"));
+            let packed = pack_fbs_routes(&name, routes, in_dim, out_dim)?;
+            b.push_u32(&name, &packed);
+        }
+        for (part, gain) in [("rec_norm_gain", &layer.rec_norm), ("mlp_norm_gain", &layer.mlp_norm)] {
+            let name = prefix(part);
+            check_f32(&name, gain, d)?;
+            let codes: Vec<i16> = gain
+                .iter()
+                .map(|&v| encode_grid_code(f64::from(v), false))
+                .collect::<Result<_, _>>()?;
+            b.push_i16(&name, &codes);
+        }
+        check_f32(&prefix("conv_taps"), &layer.conv_taps, super::CONVOLUTION_WIDTH * d)?;
+        let taps: Vec<i16> = layer
+            .conv_taps
+            .iter()
+            .map(|&v| encode_grid_code(f64::from(v), false))
+            .collect::<Result<_, _>>()?;
+        b.push_i16(&prefix("conv_taps"), &taps);
+        for (part, values, len) in [
+            ("conv_bias", &layer.conv_bias, d),
+            ("gate_bias", &layer.gate_bias, g),
+            ("decay_offset", &layer.decay, lanes),
+        ] {
+            let name = prefix(part);
+            check_f32(&name, values, len)?;
+            b.push_i32(
+                &name,
+                &quantize_fixed_i32(values, len, super::kernels::RESIDUAL_EXP, &name)?,
+            );
+        }
+    }
+
+    check_f32("final_norm_gain", &snap.final_norm, d)?;
+    let final_norm: Vec<i16> = snap
+        .final_norm
+        .iter()
+        .map(|&v| encode_grid_code(f64::from(v), false))
+        .collect::<Result<_, _>>()?;
+    b.push_i16("final_norm_gain", &final_norm);
+    check_f32("writer.table", &snap.embed, shape.vocab * d)?;
+    // Q12 in i16 (about [-8, 8)): a value that does not fit would saturate and
+    // serve another vector than the float trunk's, so it is refused.
+    let writer: Vec<i16> = snap
+        .embed
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| {
+            i16::try_from((f64::from(v) * 4096.0).round() as i64).map_err(|_| {
+                StackError::Numerics(format!(
+                    "writer.table[{i}] = {v} does not fit Q12 in i16"
+                ))
+            })
+        })
+        .collect::<Result<_, _>>()?;
+    b.push_i16("writer.table", &writer);
+
+    let eps_exp = -48i32;
+    let eps_mantissa = (snap.rms_eps * 2f64.powi(-eps_exp)).round() as i64;
+    let score_scale_q30 = ((1.0 / (shape.head_dim() as f64).sqrt()) * 2f64.powi(30))
+        .round()
+        .clamp(1.0, (1i64 << 31) as f64) as i64;
+    let mut numerics = serde_json::Map::new();
+    numerics.insert(
+        "rms_eps".to_owned(),
+        json!(Fixed {
+            mantissa: eps_mantissa.max(1),
+            exp: eps_exp,
+        }),
+    );
+    numerics.insert("score_scale_q30".to_owned(), json!(score_scale_q30));
+    numerics.insert("exp_step_log2".to_owned(), json!(-8));
+    numerics.insert(concat!("si", "lu_step_log2").to_owned(), json!(-8));
+    numerics.insert(concat!("si", "lu_range_log2").to_owned(), json!(4));
+    numerics.insert(concat!("ge", "lu_step_log2").to_owned(), json!(-8));
+    numerics.insert(concat!("ge", "lu_range_log2").to_owned(), json!(4));
+    let transport_snap = StackTransportSnap {
+        name: "icosian".to_owned(),
+        roots: 120,
+        roots_sha256: super::ICOSIAN_ROOTS_SHA256.to_owned(),
+    };
+    let header = json!({
+        "schema": stack_schema_for(&shape),
+        "shape": shape,
+        "group": GROUP,
+        "numerics": numerics,
+        "matrices": b.matrices,
+        "tables": b.tables,
+        "source": {
+            "exporter": "uor-r4-integer::stack::export_fbs_trunk_uorlut01",
+            "projection": "spiralcore_fbs",
+            "head": "native_vector",
+            "rec_gates": "geometric",
+            "gate": "hamilton",
+        },
+        "transport_snap": transport_snap,
+    });
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&b.data);
+    Ok(out)
+}
+
+/// A grid-coded scalar as the float references read it: decoded from its
+/// exported grid code when `quantized`, else as trained.
+fn ref_grid(v: f32, positive: bool, quantized: bool) -> Result<f64, StackError> {
+    if quantized {
+        Ok(decode_grid_code(encode_grid_code(f64::from(v), positive)?))
+    } else {
+        Ok(f64::from(v))
+    }
+}
+
+/// A fixed-point scalar at `2^exp` as the float references read it.
+fn ref_fixed(v: f32, exp: i32, quantized: bool) -> f64 {
+    if quantized {
+        let s = 2f64.powi(-exp);
+        ((f64::from(v) * s).round()) * 2f64.powi(exp)
+    } else {
+        f64::from(v)
+    }
+}
+
+/// The nearest of the 120 icosian units to `raw` (largest dot product, ties to the first).
+fn ref_snap_icosian(raw: [f64; 4]) -> [f64; 4] {
+    use crate::h4_classifier::H4_ROOT_COEFFICIENTS;
+    let phi = 0.5 * (1.0 + 5.0f64.sqrt());
+    let mut best = 0usize;
+    let mut best_dot = f64::NEG_INFINITY;
+    for (idx, root) in H4_ROOT_COEFFICIENTS.iter().enumerate() {
+        let mut dot = 0.0f64;
+        for c in 0..4 {
+            let rc = 0.5 * (f64::from(root[c][0]) + f64::from(root[c][1]) * phi);
+            dot += raw[c] * rc;
+        }
+        if dot > best_dot {
+            best_dot = dot;
+            best = idx;
+        }
+    }
+    let root = &H4_ROOT_COEFFICIENTS[best];
+    let mut q = [0.0f64; 4];
+    for c in 0..4 {
+        q[c] = 0.5 * (f64::from(root[c][0]) + f64::from(root[c][1]) * phi);
+    }
+    q
+}
+
+/// The Hamilton product `a b`.
+fn ref_hamilton(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    [
+        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+    ]
+}
+
+fn ref_quat(v: &[f64], block: usize) -> [f64; 4] {
+    [v[4 * block], v[4 * block + 1], v[4 * block + 2], v[4 * block + 3]]
+}
+
+/// RMS normalisation without a gain.
+fn ref_rms_norm(x: &[f64], eps: f64) -> Vec<f64> {
+    let mean_sq = x.iter().map(|&v| v * v).sum::<f64>() / (x.len() as f64);
+    let inv = 1.0 / (mean_sq + eps).sqrt();
+    x.iter().map(|&v| v * inv).collect()
+}
+
+/// The Hamilton feed-forward gate: `hamilton(snap(g), up)` per 4-block.
+fn ref_hamilton_feed_forward(g: &[f64], up: &[f64]) -> Vec<f64> {
+    let mut h = vec![0.0f64; g.len()];
+    for blk in 0..(g.len() / 4) {
+        let prod = ref_hamilton(ref_snap_icosian(ref_quat(g, blk)), ref_quat(up, blk));
+        h[4 * blk..4 * blk + 4].copy_from_slice(&prod);
+    }
+    h
+}
+
+/// The scalar tables of one geometric recurrence layer, as the float
+/// references read them (`RecGates::Geometric`, Hamilton output gate).
+struct RefRecurrence {
+    /// `4 * d` taps `[tap][channel]`.
+    taps: Vec<f64>,
+    conv_bias: Vec<f64>,
+    /// `lanes` decay offsets.
+    decay: Vec<f64>,
+}
+
+impl RefRecurrence {
+    fn new(taps: &[f32], conv_bias: &[f32], decay: &[f32], quantized: bool) -> Result<Self, StackError> {
+        let exp = super::kernels::RESIDUAL_EXP;
+        Ok(Self {
+            taps: taps
+                .iter()
+                .map(|&v| ref_grid(v, false, quantized))
+                .collect::<Result<_, _>>()?,
+            conv_bias: conv_bias.iter().map(|&v| ref_fixed(v, exp, quantized)).collect(),
+            decay: decay.iter().map(|&v| ref_fixed(v, exp, quantized)).collect(),
+        })
+    }
+
+    /// One recurrence step: causal convolution of `drive`, the clamped dyadic
+    /// rate and icosian transport per lane, then the Hamilton output gate.
+    /// `gate_out` is `lanes` decay pre-activations then `d` rotation values
+    /// (gate bias already added); `hist` is the `3 * d` convolution history.
+    fn step(
+        &self,
+        drive: &[f64],
+        out_gate: &[f64],
+        gate_out: &[f64],
+        hist: &mut [f64],
+        state: &mut [f64],
+    ) -> Vec<f64> {
+        let d = drive.len();
+        let lanes = self.decay.len();
+        let mut conv = vec![0.0f64; d];
+        for i in 0..d {
+            conv[i] = self.conv_bias[i]
+                + self.taps[i] * drive[i]
+                + self.taps[d + i] * hist[i]
+                + self.taps[2 * d + i] * hist[d + i]
+                + self.taps[3 * d + i] * hist[2 * d + i];
+        }
+        hist.copy_within(..2 * d, d);
+        hist[..d].copy_from_slice(drive);
+
+        let (decays, rotations) = gate_out.split_at(lanes);
+        for u in 0..lanes {
+            let s = (decays[u] + self.decay[u]).clamp(0.0, 1.0);
+            let idx = ((s * 16.0).floor() as usize).min(15);
+            let lambda = 2.0f64.powi(-((idx as i32) + 1));
+            let keep = (1.0 - lambda * lambda).sqrt();
+            let q_rot = ref_snap_icosian(ref_quat(rotations, u));
+            let trans = [
+                lambda * q_rot[0],
+                lambda * q_rot[1],
+                lambda * q_rot[2],
+                lambda * q_rot[3],
+            ];
+            let moved = ref_hamilton(trans, ref_quat(state, u));
+            for c in 0..4 {
+                state[4 * u + c] = moved[c] + keep * conv[4 * u + c];
+            }
+        }
+        let mut gated = vec![0.0f64; d];
+        for u in 0..lanes {
+            let prod = ref_hamilton(ref_snap_icosian(ref_quat(out_gate, u)), ref_quat(state, u));
+            gated[4 * u..4 * u + 4].copy_from_slice(&prod);
+        }
+        gated
+    }
+}
+
 impl FloatTrunkSnapshot {
     /// Offline float reference forward pass over `tokens`, executing the
     /// exact geometric float-trunk operator chain (`RecGates::Geometric`
@@ -1178,7 +1692,6 @@ impl FloatTrunkSnapshot {
         tokens: &[u32],
         quantized_weights: bool,
     ) -> Result<Vec<Vec<f32>>, StackError> {
-        use crate::h4_classifier::H4_ROOT_COEFFICIENTS;
         use super::flock::{flock_select_integer, rank_table_q31, FlockScratch, FlockSelect};
 
         let d = self.width;
@@ -1202,57 +1715,9 @@ impl FloatTrunkSnapshot {
                 Ok(vals.iter().map(|&v| f64::from(v)).collect())
             }
         };
-        let round_trip_grid = |v: f32, pos: bool| -> Result<f64, StackError> {
-            if quantized_weights {
-                Ok(decode_grid_code(encode_grid_code(f64::from(v), pos)?))
-            } else {
-                Ok(f64::from(v))
-            }
-        };
-        let round_trip_fixed = |v: f32, exp: i32| -> f64 {
-            if quantized_weights {
-                let s = 2f64.powi(-exp);
-                ((f64::from(v) * s).round()) * 2f64.powi(exp)
-            } else {
-                f64::from(v)
-            }
-        };
-
-        let phi = 0.5 * (1.0 + 5.0f64.sqrt());
-        let snap_icosian = |raw: [f64; 4]| -> [f64; 4] {
-            let mut best = 0usize;
-            let mut best_dot = f64::NEG_INFINITY;
-            for (idx, root) in H4_ROOT_COEFFICIENTS.iter().enumerate() {
-                let mut dot = 0.0f64;
-                for c in 0..4 {
-                    let rc = 0.5 * (f64::from(root[c][0]) + f64::from(root[c][1]) * phi);
-                    dot += raw[c] * rc;
-                }
-                if dot > best_dot {
-                    best_dot = dot;
-                    best = idx;
-                }
-            }
-            let root = &H4_ROOT_COEFFICIENTS[best];
-            let mut q = [0.0f64; 4];
-            for c in 0..4 {
-                q[c] = 0.5 * (f64::from(root[c][0]) + f64::from(root[c][1]) * phi);
-            }
-            q
-        };
-        let hamilton = |a: [f64; 4], b: [f64; 4]| -> [f64; 4] {
-            [
-                a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-                a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-                a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
-                a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
-            ]
-        };
-        let rms_norm = |x: &[f64]| -> Vec<f64> {
-            let mean_sq = x.iter().map(|&v| v * v).sum::<f64>() / (x.len() as f64);
-            let inv = 1.0 / (mean_sq + self.rms_eps).sqrt();
-            x.iter().map(|&v| v * inv).collect()
-        };
+        let round_trip_grid = |v: f32, pos: bool| ref_grid(v, pos, quantized_weights);
+        let round_trip_fixed = |v: f32, exp: i32| ref_fixed(v, exp, quantized_weights);
+        let rms_norm = |x: &[f64]| ref_rms_norm(x, self.rms_eps);
         let matvec = |m: &[f64], rows: usize, cols: usize, x: &[f64]| -> Vec<f64> {
             let mut out = vec![0.0f64; rows];
             for (r, slot) in out.iter_mut().enumerate() {
@@ -1313,72 +1778,19 @@ impl FloatTrunkSnapshot {
                             *g += round_trip_fixed(b, super::kernels::RESIDUAL_EXP);
                         }
                         let (drive, out_gate) = branches.split_at(d);
-                        let hist = &mut rec_histories[l];
-                        let mut conv = vec![0.0f64; d];
-                        for i in 0..d {
-                            let t0 = round_trip_grid(r.conv_taps[i], false)?;
-                            let t1 = round_trip_grid(r.conv_taps[d + i], false)?;
-                            let t2 = round_trip_grid(r.conv_taps[2 * d + i], false)?;
-                            let t3 = round_trip_grid(r.conv_taps[3 * d + i], false)?;
-                            let cb = round_trip_fixed(r.conv_bias[i], super::kernels::RESIDUAL_EXP);
-                            conv[i] = cb
-                                + t0 * drive[i]
-                                + t1 * hist[i]
-                                + t2 * hist[d + i]
-                                + t3 * hist[2 * d + i];
-                        }
-                        hist.copy_within(..2 * d, d);
-                        hist[..d].copy_from_slice(drive);
-
-                        let (decays, rotations) = gate_out.split_at(lanes);
-                        let state = &mut rec_states[l];
-                        for u in 0..lanes {
-                            let d_off = round_trip_fixed(r.decay[u], super::kernels::RESIDUAL_EXP);
-                            let s = (decays[u] + d_off).clamp(0.0, 1.0);
-                            let idx = ((s * 16.0).floor() as usize).min(15);
-                            let lambda = 2.0f64.powi(-((idx as i32) + 1));
-                            let keep = (1.0 - lambda * lambda).sqrt();
-                            let raw = [
-                                rotations[4 * u],
-                                rotations[4 * u + 1],
-                                rotations[4 * u + 2],
-                                rotations[4 * u + 3],
-                            ];
-                            let q_rot = snap_icosian(raw);
-                            let trans = [
-                                lambda * q_rot[0],
-                                lambda * q_rot[1],
-                                lambda * q_rot[2],
-                                lambda * q_rot[3],
-                            ];
-                            let prev = [
-                                state[4 * u],
-                                state[4 * u + 1],
-                                state[4 * u + 2],
-                                state[4 * u + 3],
-                            ];
-                            let moved = hamilton(trans, prev);
-                            for c in 0..4 {
-                                state[4 * u + c] = moved[c] + keep * conv[4 * u + c];
-                            }
-                        }
-                        let mut gated = vec![0.0f64; d];
-                        for u in 0..lanes {
-                            let q_gate = snap_icosian([
-                                out_gate[4 * u],
-                                out_gate[4 * u + 1],
-                                out_gate[4 * u + 2],
-                                out_gate[4 * u + 3],
-                            ]);
-                            let h_lane = [
-                                state[4 * u],
-                                state[4 * u + 1],
-                                state[4 * u + 2],
-                                state[4 * u + 3],
-                            ];
-                            let prod = hamilton(q_gate, h_lane);
-                            gated[4 * u..4 * u + 4].copy_from_slice(&prod);
-                        }
+                        let rec = RefRecurrence::new(
+                            &r.conv_taps[..super::CONVOLUTION_WIDTH * d],
+                            &r.conv_bias[..d],
+                            &r.decay[..lanes],
+                            quantized_weights,
+                        )?;
+                        let gated = rec.step(
+                            drive,
+                            out_gate,
+                            &gate_out,
+                            &mut rec_histories[l],
+                            &mut rec_states[l],
+                        );
                         matvec(&rec_out, d, d, &gated)
                     }
                     FloatTrunkMixer::Read(r) => {
@@ -1492,23 +1904,7 @@ impl FloatTrunkSnapshot {
 
                 let g_vec = matvec(&gate_mat, padded_mlp, d, &norm_mlp);
                 let u_vec = matvec(&up_mat, padded_mlp, d, &norm_mlp);
-                let mut h_mlp = vec![0.0f64; padded_mlp];
-                for blk in 0..(padded_mlp / 4) {
-                    let q_g = snap_icosian([
-                        g_vec[4 * blk],
-                        g_vec[4 * blk + 1],
-                        g_vec[4 * blk + 2],
-                        g_vec[4 * blk + 3],
-                    ]);
-                    let rhs = [
-                        u_vec[4 * blk],
-                        u_vec[4 * blk + 1],
-                        u_vec[4 * blk + 2],
-                        u_vec[4 * blk + 3],
-                    ];
-                    let prod = hamilton(q_g, rhs);
-                    h_mlp[4 * blk..4 * blk + 4].copy_from_slice(&prod);
-                }
+                let h_mlp = ref_hamilton_feed_forward(&g_vec, &u_vec);
                 let down_proj = matvec(&down_mat, d, padded_mlp, &h_mlp);
                 for (xi, di) in x.iter_mut().zip(&down_proj) {
                     *xi += di;
@@ -1520,5 +1916,194 @@ impl FloatTrunkSnapshot {
             all_logits.push(logits_f64.into_iter().map(|v| v as f32).collect());
         }
         Ok(all_logits)
+    }
+}
+
+/// One position of [`FbsTrunkSnapshot::forward_f32`]: the native vector
+/// writer's choice and what it read.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FbsWriterOutput {
+    /// The best-scoring candidate, ties to the smaller token id.
+    pub token: u32,
+    /// The kept cells `a * 16 + b`, best first (ties to the smaller cell id).
+    pub kept_cells: Vec<u32>,
+    /// Every candidate token of the kept cells with its score, ascending token id.
+    pub candidates: Vec<(u32, f64)>,
+    /// The final query the writer scored (rounded to Q12 when quantized).
+    pub query: Vec<f64>,
+}
+
+/// The FBS gather of `routes` on `v` (`in_blocks * 8` values): output block
+/// `o`, channel `j` is `v[atoms[o]*8 + (code & 7)]`, negated when `code & 8`,
+/// with `code` the `j`-th Cl(0,6) signed-axis code of `states[o]`.
+pub(crate) fn fbs_reference_gather(routes: &FbsRoutes, v: &[f64]) -> Vec<f64> {
+    let mut y = vec![0.0f64; routes.out_blocks * 8];
+    for (o, (&atom, &state)) in routes.atoms.iter().zip(&routes.states).enumerate() {
+        let base = usize::from(atom) * 8;
+        let axes = crate::discrete_d11::cl06_axes(usize::from(state));
+        for (j, &code) in axes.iter().enumerate() {
+            let x = v[base + usize::from(code & 7)];
+            y[o * 8 + j] = if code & 8 != 0 { -x } else { x };
+        }
+    }
+    y
+}
+
+/// The native vector writer on the final query `q` over the writer `table`
+/// (`vocab * d`): 16 roots on each port, the `kept` best cells, then the
+/// nearest candidate token in L1.
+fn fbs_native_writer(
+    q: &[f64],
+    table: &[f64],
+    vocab: usize,
+    kept: usize,
+) -> Result<FbsWriterOutput, StackError> {
+    let d = q.len();
+    let neg_l1 = |a: &[f64], b: &[f64]| -> f64 { -a.iter().zip(b).map(|(x, y)| (x - y).abs()).sum::<f64>() };
+    let roots: Vec<[f64; 8]> = (0..16)
+        .map(|r| crate::discrete_d11::orbit_root_coords(r).map(f64::from))
+        .collect();
+    let port_a: Vec<f64> = roots.iter().map(|r| neg_l1(&q[..8], r)).collect();
+    let port_b: Vec<f64> = roots.iter().map(|r| neg_l1(&q[d - 8..], r)).collect();
+    let mut cells: Vec<(u32, f64)> = (0..256usize)
+        .map(|c| (c as u32, port_a[c / 16] + port_b[c % 16]))
+        .collect();
+    cells.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
+    let kept_cells: Vec<u32> = cells.iter().take(kept).map(|c| c.0).collect();
+    let mut candidates = Vec::new();
+    for &cell in &kept_cells {
+        for slot in 0..vocab.div_ceil(256) {
+            let t = cell as usize + 256 * slot;
+            if t < vocab {
+                candidates.push((t as u32, neg_l1(q, &table[t * d..(t + 1) * d])));
+            }
+        }
+    }
+    candidates.sort_by_key(|c| c.0);
+    let mut best: Option<(u32, f64)> = None;
+    for &(t, s) in &candidates {
+        if best.is_none_or(|(_, b)| s > b) {
+            best = Some((t, s));
+        }
+    }
+    let (token, _) = best.ok_or_else(|| {
+        StackError::Numerics("the kept cells hold no token below the vocabulary".to_owned())
+    })?;
+    Ok(FbsWriterOutput {
+        token,
+        kept_cells,
+        candidates,
+        query: q.to_vec(),
+    })
+}
+
+impl FbsTrunkSnapshot {
+    /// Offline float reference of the served SpiralCore/FBS trunk forward,
+    /// one [`FbsWriterOutput`] per position. A test oracle for the integer
+    /// execution, not served code: it runs in `f64` and multiplies freely.
+    ///
+    /// Each layer gathers its projections through the FBS routes (no
+    /// matrices), runs the geometric recurrence of
+    /// [`FloatTrunkSnapshot::forward_f32`] (clamped 16-entry dyadic rate,
+    /// icosian transport, icosian-snapped Hamilton output gate) and its
+    /// icosian-snapped Hamilton feed-forward block; the final query feeds the
+    /// native vector writer over the embedding table. When `quantized`, every
+    /// table is read as the exporter writes it (grid-coded gains and taps,
+    /// Q16 biases and decay offsets, the Q12 writer table, also used as the
+    /// input embedding) and the query is rounded to Q12 before scoring.
+    pub fn forward_f32(
+        &self,
+        tokens: &[u32],
+        quantized: bool,
+    ) -> Result<Vec<FbsWriterOutput>, StackError> {
+        // Refuse whatever the exporter refuses: the reference only runs
+        // snapshots the served path can load.
+        export_fbs_trunk_uorlut01(self)?;
+        if tokens.len() > self.context {
+            return Err(StackError::ContextFull {
+                context: self.context,
+            });
+        }
+        if let Some(&token) = tokens.iter().find(|&&t| t as usize >= self.vocab) {
+            return Err(StackError::Token {
+                token,
+                vocab: self.vocab,
+            });
+        }
+
+        let d = self.width;
+        let q12 = |v: f64| (v * 4096.0).round().clamp(-32768.0, 32767.0) / 4096.0;
+        let table: Vec<f64> = self
+            .embed
+            .iter()
+            .map(|&v| if quantized { q12(f64::from(v)) } else { f64::from(v) })
+            .collect();
+        let gain = |g: &[f32]| -> Result<Vec<f64>, StackError> {
+            g.iter().map(|&v| ref_grid(v, false, quantized)).collect()
+        };
+        let norm = |x: &[f64], gain: &[f64]| -> Vec<f64> {
+            ref_rms_norm(x, self.rms_eps)
+                .into_iter()
+                .zip(gain)
+                .map(|(v, g)| v * g)
+                .collect()
+        };
+        let add = |x: &mut [f64], y: &[f64]| x.iter_mut().zip(y).for_each(|(xi, yi)| *xi += yi);
+
+        struct Prepared {
+            rec_norm: Vec<f64>,
+            mlp_norm: Vec<f64>,
+            gate_bias: Vec<f64>,
+            rec: RefRecurrence,
+        }
+        let prepared: Vec<Prepared> = self
+            .layers
+            .iter()
+            .map(|layer| -> Result<Prepared, StackError> {
+                Ok(Prepared {
+                    rec_norm: gain(&layer.rec_norm)?,
+                    mlp_norm: gain(&layer.mlp_norm)?,
+                    gate_bias: layer
+                        .gate_bias
+                        .iter()
+                        .map(|&v| ref_fixed(v, super::kernels::RESIDUAL_EXP, quantized))
+                        .collect(),
+                    rec: RefRecurrence::new(&layer.conv_taps, &layer.conv_bias, &layer.decay, quantized)?,
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        let final_norm = gain(&self.final_norm)?;
+
+        let mut states = vec![vec![0.0f64; d]; self.layers.len()];
+        let mut histories = vec![vec![0.0f64; 3 * d]; self.layers.len()];
+        let mut out = Vec::with_capacity(tokens.len());
+        for &tok in tokens {
+            let t = tok as usize;
+            let mut x = table[t * d..(t + 1) * d].to_vec();
+            for (l, (layer, p)) in self.layers.iter().zip(&prepared).enumerate() {
+                let u = norm(&x, &p.rec_norm);
+                let branches = fbs_reference_gather(&layer.rec_in, &u);
+                let mut gate_out = fbs_reference_gather(&layer.rec_gate, &u);
+                add(&mut gate_out, &p.gate_bias);
+                let (drive, out_gate) = branches.split_at(d);
+                let gated = p
+                    .rec
+                    .step(drive, out_gate, &gate_out, &mut histories[l], &mut states[l]);
+                add(&mut x, &fbs_reference_gather(&layer.rec_out, &gated));
+
+                let u = norm(&x, &p.mlp_norm);
+                let h = ref_hamilton_feed_forward(
+                    &fbs_reference_gather(&layer.mlp_gate, &u),
+                    &fbs_reference_gather(&layer.mlp_up, &u),
+                );
+                add(&mut x, &fbs_reference_gather(&layer.mlp_down, &h));
+            }
+            let mut q = norm(&x, &final_norm);
+            if quantized {
+                q.iter_mut().for_each(|v| *v = q12(*v));
+            }
+            out.push(fbs_native_writer(&q, &table, self.vocab, self.kept_cells)?);
+        }
+        Ok(out)
     }
 }

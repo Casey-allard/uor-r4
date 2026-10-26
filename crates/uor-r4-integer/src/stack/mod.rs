@@ -71,17 +71,18 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    decode_grid_code, encode_grid_code, export_float_trunk_uorlut01, stack_schema_for, Fixed,
-    FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot,
-    StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap,
-    GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA,
+    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_float_trunk_uorlut01,
+    stack_schema_for, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed, FloatTrunkLayer,
+    FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot, StackMemory,
+    StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap, GROUP, MAGIC,
+    MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA,
     STACK_SCHEMA,
 };
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
 pub use session::{
     sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
     validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text,
-    IntegerStackModel, IntegerStackSession, ProtocolV3ValidationError, SerializedStackLayerState,
+    IntegerStackModel, IntegerStackSession, NativeStep, ProtocolV3ValidationError, SerializedStackLayerState,
     SerializedStackSession, SnapTraceEntry, StackParameterBreakdown, StackPhaseParameters,
     StepPhaseTimingNs, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
 };

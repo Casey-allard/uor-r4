@@ -41,7 +41,8 @@ use super::kernels::{
     stack_hamilton, stack_isqrt, stack_l2_distance, stack_lift, stack_lorentz_distance,
     stack_mix_row, stack_mul_u128, stack_mul_u64, stack_pair_tables, stack_pointer_mixture,
     stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31, stack_snap_rotation,
-    stack_snap_select, stack_square, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP, RESIDUAL_EXP,
+    stack_snap_select, stack_square, to_exp_i32, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP,
+    RESIDUAL_EXP,
 };
 use super::StackError;
 
@@ -246,6 +247,95 @@ struct Layer {
     down: PackedMatrix,
 }
 
+/// A SpiralCore/FBS projection: per output 8-block, the input atom it reads
+/// and the eight signed-axis codes of its Cl(0,6) state (`code & 7` the source
+/// axis, `code & 8` a negation). Served as a gather and a sign; no weights.
+struct FbsMap {
+    atoms: Vec<u16>,
+    codes: Vec<[u8; 8]>,
+}
+
+/// One recurrence layer of a SpiralCore/FBS trunk: route tables in place of
+/// every map, grid-coded norm gains, and the geometric recurrence's tables.
+struct FbsLayer {
+    rec_gain: Vec<i16>,
+    mlp_gain: Vec<i16>,
+    rec_in: FbsMap,
+    rec_gate: FbsMap,
+    rec_out: FbsMap,
+    mlp_gate: FbsMap,
+    mlp_up: FbsMap,
+    mlp_down: FbsMap,
+    taps: Vec<i16>,
+    conv_bias: Vec<i32>,
+    gate_bias: Vec<i32>,
+    decay_offset: Vec<i32>,
+}
+
+impl FbsLayer {
+    fn tables(&self) -> RecurrenceTables<'_> {
+        RecurrenceTables {
+            taps: &self.taps,
+            conv_bias: &self.conv_bias,
+            gate_bias: &self.gate_bias,
+            rates: &[],
+            decay_offset: &self.decay_offset,
+        }
+    }
+}
+
+/// A SpiralCore/FBS trunk and its native vector writer head.
+struct FbsModel {
+    /// Boxed for a power-of-two stride, like the dense layers.
+    #[allow(clippy::vec_box)]
+    layers: Vec<Box<FbsLayer>>,
+    final_gain: Vec<i16>,
+    /// `vocab * width` at Q12: the input embedding and the writer's table.
+    writer_table: Vec<i16>,
+    /// The 16 orbit roots at Q12.
+    roots_q12: [[i32; 8]; 16],
+    kept_cells: usize,
+}
+
+/// What a recurrence reads besides its three maps.
+struct RecurrenceTables<'a> {
+    /// Grid codes `[tap][channel]`; tap `s` weights the drive `s` positions back.
+    taps: &'a [i16],
+    conv_bias: &'a [i32],
+    gate_bias: &'a [i32],
+    rates: &'a [i16],
+    decay_offset: &'a [i32],
+}
+
+impl Recurrence {
+    fn tables(&self) -> RecurrenceTables<'_> {
+        RecurrenceTables {
+            taps: &self.taps,
+            conv_bias: &self.conv_bias,
+            gate_bias: &self.gate_bias,
+            rates: &self.rates,
+            decay_offset: &self.decay_offset,
+        }
+    }
+}
+
+/// The exponent of `stack_rms_norm`'s unrounded normalized values in its
+/// scratch (`x / rms(x)` at `2^-14`).
+const NORM_SCRATCH_EXP: i32 = -14;
+/// The Q12 exponent of the writer table and its query.
+const Q12_EXP: i32 = -12;
+
+/// The next token of a SpiralCore/FBS model's native vector writer.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeStep {
+    /// The best candidate of the kept cells, ties to the smaller token id.
+    pub token: u32,
+    /// The kept cells `a * 16 + b`, best first (ties to the smaller cell id).
+    pub kept_cells: Vec<u32>,
+    /// The final query the writer scored, at Q12.
+    pub query_q12: Vec<i32>,
+}
+
 /// A softmax-free flock rank read: the selection (sink 0, the `window` most
 /// recent positions and the `k` best others) and, for every support size `m`
 /// in `1..=window + k + 2` (the kept positions and NoRead), the normalized Q31
@@ -323,6 +413,9 @@ pub struct IntegerStackModel {
     /// unboxed walk indexes 304-byte elements with a multiply (`madd`).
     #[allow(clippy::vec_box)]
     layers: Vec<Box<Layer>>,
+    /// The SpiralCore/FBS trunk and native writer of an FBS shape; `None` on
+    /// a dense stack, whose `layers`, `embed` and `head` hold the maps.
+    fbs: Option<Box<FbsModel>>,
     exp_table: Vec<u32>,
     silu_table: Vec<i32>,
     gelu_table: Vec<i32>,
@@ -335,6 +428,101 @@ pub struct IntegerStackModel {
     /// The worker pool of `threads > 1`; `None` steps on the calling thread.
     #[cfg(not(target_arch = "wasm32"))]
     pool: Option<rayon::ThreadPool>,
+}
+
+/// A matrix with no rows, standing in for the dense maps an FBS shape lacks.
+fn empty_matrix() -> PackedMatrix {
+    PackedMatrix {
+        rows: 0,
+        cols: 0,
+        exp_base: 0,
+        nibbles: Vec::new(),
+        scales: Vec::new(),
+        min_de: Vec::new(),
+    }
+}
+
+/// Load a SpiralCore/FBS trunk: per layer the six route tables (each entry
+/// `atom | state << 16`, every atom inside its input and every state one of
+/// the 64), the grid-coded norm gains and the geometric recurrence's tables;
+/// then the final gain, the Q12 writer table and the kept-cell count.
+fn fbs_model(artifact: &Container, shape: &StackShape) -> Result<FbsModel, StackError> {
+    let (d, m, rows) = (shape.width, shape.mlp, shape.gate_rows());
+    let length = |name: &str, len: usize, expected: usize| {
+        if len == expected {
+            Ok(())
+        } else {
+            Err(StackError::TableLength {
+                name: name.to_owned(),
+                len,
+                expected,
+            })
+        }
+    };
+    let integers = |name: &str, len: usize| -> Result<Vec<i32>, StackError> {
+        let values = artifact.table_i32(name)?;
+        length(name, values.len(), len)?;
+        Ok(values)
+    };
+    let codes = |name: &str, len: usize| -> Result<Vec<i16>, StackError> {
+        let values = artifact.table_i16(name)?;
+        length(name, values.len(), len)?;
+        if values.iter().any(|&c| !grid_valid(c)) {
+            return Err(StackError::GridCodes(name.to_owned()));
+        }
+        Ok(values)
+    };
+    let route = |name: &str, in_blocks: usize, out_blocks: usize| -> Result<FbsMap, StackError> {
+        let entries = artifact.table_u32(name)?;
+        length(name, entries.len(), out_blocks)?;
+        let mut atoms = Vec::with_capacity(out_blocks);
+        let mut route_codes = Vec::with_capacity(out_blocks);
+        for &entry in &entries {
+            let (atom, state) = ((entry & 0xffff) as usize, (entry >> 16) as usize);
+            if atom >= in_blocks || state >= 64 {
+                return Err(StackError::Numerics(format!(
+                    "{name}: route entry {entry:#x} lies outside {in_blocks} atoms or 64 states"
+                )));
+            }
+            atoms.push(atom as u16);
+            route_codes.push(crate::discrete_d11::cl06_axes(state));
+        }
+        Ok(FbsMap {
+            atoms,
+            codes: route_codes,
+        })
+    };
+    let mut layers = Vec::with_capacity(shape.layers());
+    for l in 0..shape.layers() {
+        let name = |part: &str| format!("l{l}.{part}");
+        layers.push(Box::new(FbsLayer {
+            rec_gain: codes(&name("rec_norm_gain"), d)?,
+            mlp_gain: codes(&name("mlp_norm_gain"), d)?,
+            rec_in: route(&name("rec_in.fbs"), d >> 3, (2 * d) >> 3)?,
+            rec_gate: route(&name("rec_gate.fbs"), d >> 3, rows >> 3)?,
+            rec_out: route(&name("rec_out.fbs"), d >> 3, d >> 3)?,
+            mlp_gate: route(&name("mlp_gate.fbs"), d >> 3, m >> 3)?,
+            mlp_up: route(&name("mlp_up.fbs"), d >> 3, m >> 3)?,
+            mlp_down: route(&name("mlp_down.fbs"), m >> 3, d >> 3)?,
+            taps: codes(&name("conv_taps"), CONVOLUTION_WIDTH * d)?,
+            conv_bias: integers(&name("conv_bias"), d)?,
+            gate_bias: integers(&name("gate_bias"), rows)?,
+            decay_offset: integers(&name("decay_offset"), shape.lanes())?,
+        }));
+    }
+    let writer_table = artifact.table_i16("writer.table")?;
+    length("writer.table", writer_table.len(), shape.vocab * d)?;
+    Ok(FbsModel {
+        layers,
+        final_gain: codes("final_norm_gain", d)?,
+        writer_table,
+        roots_q12: std::array::from_fn(|r| {
+            crate::discrete_d11::orbit_root_coords(r).map(|v| v << 12)
+        }),
+        kept_cells: shape
+            .kept_cells
+            .ok_or(StackError::Shape("the native vector head declares no kept cells"))?,
+    })
 }
 
 /// A worker pool of `threads` threads, or `None` for one thread.
@@ -447,8 +635,15 @@ impl IntegerStackModel {
         let context_ages = heads
             .checked_mul(shape.context)
             .ok_or(StackError::Shape("the age table size overflows"))?;
+        let fbs = if shape.projection_fbs() {
+            Some(Box::new(fbs_model(&artifact, &shape)?))
+        } else {
+            None
+        };
         let mut layers = Vec::with_capacity(shape.layers());
-        for (l, kind) in shape.pattern.bytes().enumerate() {
+        // An FBS shape has no dense maps: its layers are the route tables.
+        let dense_layers = if fbs.is_some() { "" } else { shape.pattern.as_str() };
+        for (l, kind) in dense_layers.bytes().enumerate() {
             let name = |part: &str| format!("l{l}.{part}");
             let mixer = if kind == b'r' {
                 let (rates, decay_offset) = if shape.rec_geometric() {
@@ -506,8 +701,16 @@ impl IntegerStackModel {
                 down: matrix(&name("down"), d, mlp)?,
             }));
         }
-        let embed = packed(artifact.matrix("embed", shape.vocab, d)?, "embed")?;
-        let head = matrix("head", shape.vocab, d)?;
+        let (embed, head) = if fbs.is_some() {
+            // The writer table embeds the input and the native writer is the
+            // head: no dense maps.
+            (empty_matrix(), empty_matrix())
+        } else {
+            (
+                packed(artifact.matrix("embed", shape.vocab, d)?, "embed")?,
+                matrix("head", shape.vocab, d)?,
+            )
+        };
         let pointer = match &shape.pointer {
             Some(p) => Some(Box::new(Pointer {
                 dim: p.dim,
@@ -527,8 +730,9 @@ impl IntegerStackModel {
         };
         // The embedding reads one row per token.
         weights += d as u64;
-        let needs_exp =
-            !shape.rec_geometric() || shape.read_rank().is_none() || shape.pointer.is_some();
+        // An FBS shape has no read, no pointer and geometric gates: no table.
+        let needs_exp = !shape.projection_fbs()
+            && (!shape.rec_geometric() || shape.read_rank().is_none() || shape.pointer.is_some());
         let needs_mlp_table = !shape.gate_hamilton();
         let needs_rec_table = !shape.rec_geometric();
         let exp_table = if needs_exp {
@@ -609,6 +813,7 @@ impl IntegerStackModel {
             head,
             pointer,
             layers,
+            fbs,
             exp_table,
             silu_table,
             gelu_table,
@@ -956,6 +1161,10 @@ impl IntegerStackModel {
                 copy: vec![0; pointer_vocab],
                 mixture: vec![0; pointer_vocab],
                 snap_trace: None,
+                query_q12: vec![0; if self.fbs.is_some() { d } else { 0 }],
+                cells: vec![0; if self.fbs.is_some() { 256 } else { 0 }],
+                native_kept: vec![0; self.fbs.as_ref().map_or(0, |f| f.kept_cells)],
+                native_token: 0,
             },
         }
     }
@@ -1199,6 +1408,12 @@ struct Buffers {
     mixture: Vec<i32>,
     /// The opt-in snap trace; `None` (the default) records nothing.
     snap_trace: Option<SnapTrace>,
+    /// The native writer's query at Q12, its 256 cell scores and its kept
+    /// cells and token (empty on a dense stack).
+    query_q12: Vec<i32>,
+    cells: Vec<i64>,
+    native_kept: Vec<u32>,
+    native_token: u32,
 }
 
 /// Incremental decoding of one stream of at most `context` positions.
@@ -1929,10 +2144,18 @@ impl IntegerStackSession<'_> {
     /// module documentation for how that is tested).
     /// The step runs on the model's worker pool when it has one
     /// ([`IntegerStackModel::set_threads`]); the integers do not depend on it.
+    ///
+    /// A SpiralCore/FBS model's native vector writer chooses the next token
+    /// itself from a bounded candidate set, so its step returns no logits (an
+    /// empty slice); read the choice with [`Self::step_native`].
     #[inline(never)]
     #[cfg(not(target_arch = "wasm32"))]
     pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
         let model = self.model;
+        if let Some(fbs) = &model.fbs {
+            stack_step_fbs(self, fbs, token)?;
+            return Ok(&self.b.logits[..0]);
+        }
         match &model.pool {
             Some(pool) => {
                 let mut call = StepCall {
@@ -1952,8 +2175,29 @@ impl IntegerStackSession<'_> {
     #[inline(never)]
     #[cfg(target_arch = "wasm32")]
     pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
+        let model = self.model;
+        if let Some(fbs) = &model.fbs {
+            stack_step_fbs(self, fbs, token)?;
+            return Ok(&self.b.logits[..0]);
+        }
         stack_step(self, token, false)?;
         Ok(&self.b.logits)
+    }
+
+    /// Feed one token to a SpiralCore/FBS model and return its native vector
+    /// writer's choice. A dense stack has no native head and refuses.
+    pub fn step_native(&mut self, token: u32) -> Result<NativeStep, StackError> {
+        if self.model.fbs.is_none() {
+            return Err(StackError::Shape(
+                "only a SpiralCore/FBS model has a native vector head",
+            ));
+        }
+        self.step(token)?;
+        Ok(NativeStep {
+            token: self.b.native_token,
+            kept_cells: self.b.native_kept.clone(),
+            query_q12: self.b.query_q12.clone(),
+        })
     }
 
     /// Execute one single-threaded step while measuring the nanosecond duration
@@ -1967,6 +2211,11 @@ impl IntegerStackSession<'_> {
     #[inline(never)]
     #[cfg(not(target_arch = "wasm32"))]
     pub fn measure_step_phases(&mut self, token: u32) -> Result<StepPhaseTimingNs, StackError> {
+        if self.model.fbs.is_some() {
+            return Err(StackError::Shape(
+                "phase timing serves dense stacks; time an FBS model's step instead",
+            ));
+        }
         let step_t0 = std::time::Instant::now();
         let model = self.model;
         let (s, n) = (&model.shape, &model.numerics);
@@ -2488,6 +2737,165 @@ fn stack_swiglu(model: &IntegerStackModel, gate: &[i32], up: &[i32], out: &mut [
     }
 }
 
+/// One FBS projection: output block `o`, channel `j` is the input value its
+/// code names in atom `atoms[o]`, negated when the code says so, converted
+/// from `x_exp` to the residual exponent. A gather and a sign: no weights.
+#[inline(never)]
+fn stack_fbs_gather<T: Copy + Into<i64>>(map: &FbsMap, x: &[T], x_exp: i32, out: &mut [i32]) {
+    for ((block, &atom), codes) in out.chunks_exact_mut(8).zip(&map.atoms).zip(&map.codes) {
+        let base = usize::from(atom) << 3;
+        let Some(values) = x.get(base..base + 8) else {
+            // The loader keeps every atom inside its input.
+            debug_assert!(false, "stack_fbs_gather: an atom lies outside the input");
+            return;
+        };
+        for (slot, &code) in block.iter_mut().zip(codes) {
+            let v: i64 = values[usize::from(code & 7)].into();
+            let v = if code & 8 == 0 { v } else { v.saturating_neg() };
+            *slot = to_exp_i32(v, x_exp, RESIDUAL_EXP);
+        }
+    }
+}
+
+/// RMSNorm's gain, applied to its unrounded output by shifts and additions.
+#[inline(never)]
+fn stack_norm_gain(values: &mut [i64], codes: &[i16]) {
+    for (v, &code) in values.iter_mut().zip(codes) {
+        *v = grid_apply(*v, code);
+    }
+}
+
+/// The native vector writer on the Q12 query `q`: the L1 distance of its
+/// first and last 8-blocks to the 16 roots scores the 256 cells `a * 16 + b`;
+/// the `kept.len()` best cells are kept (ties to the smaller cell); the
+/// L1-nearest token among those cells' rows of the Q12 writer table wins
+/// (ties to the smaller token). Only the kept cells' rows are read.
+#[inline(never)]
+fn stack_native_writer(
+    fbs: &FbsModel,
+    vocab: usize,
+    q: &[i32],
+    cells: &mut [i64],
+    kept: &mut [u32],
+) -> u32 {
+    let d = q.len();
+    let neg_l1 = |block: &[i32], other: &[i32]| -> i64 {
+        let mut sum = 0i64;
+        for (&x, &y) in block.iter().zip(other) {
+            sum = sum.wrapping_add(i64::from(core::hint::black_box(x).abs_diff(y)));
+        }
+        sum.wrapping_neg()
+    };
+    let (first, last) = (&q[..8], &q[d - 8..]);
+    let mut port_a = [0i64; 16];
+    let mut port_b = [0i64; 16];
+    for (r, root) in fbs.roots_q12.iter().enumerate() {
+        port_a[r] = neg_l1(first, root);
+        port_b[r] = neg_l1(last, root);
+    }
+    for (c, slot) in cells.iter_mut().enumerate() {
+        *slot = port_a[c >> 4].wrapping_add(port_b[c & 15]);
+    }
+    for slot in kept.iter_mut() {
+        let mut best = 0usize;
+        for c in 1..cells.len() {
+            if cells[c] > cells[best] {
+                best = c;
+            }
+        }
+        *slot = best as u32;
+        cells[best] = i64::MIN;
+    }
+    let (mut token, mut token_score) = (u32::MAX, i64::MIN);
+    for &cell in kept.iter() {
+        let mut candidate = cell as usize;
+        while candidate < vocab {
+            let at = stack_mul_u64(candidate as u64, d as u64) as usize;
+            let mut sum = 0i64;
+            for (&x, &t) in q.iter().zip(&fbs.writer_table[at..at + d]) {
+                sum = sum.wrapping_add(i64::from(core::hint::black_box(x).abs_diff(i32::from(t))));
+            }
+            let score = sum.wrapping_neg();
+            if score > token_score || (score == token_score && (candidate as u32) < token) {
+                (token, token_score) = (candidate as u32, score);
+            }
+            candidate += 256;
+        }
+    }
+    token
+}
+
+/// One step of a SpiralCore/FBS model: the token's writer-table row in, each
+/// layer's route gathers around the shared recurrence core and the Hamilton
+/// feed-forward block, then the native writer's choice into `b.native_token`,
+/// `b.native_kept` and `b.query_q12`.
+fn stack_step_fbs(
+    session: &mut IntegerStackSession<'_>,
+    fbs: &FbsModel,
+    token: u32,
+) -> Result<(), StackError> {
+    let model = session.model;
+    let (s, n) = (&model.shape, &model.numerics);
+    let (d, heads, mlp) = (s.width, s.heads, s.mlp);
+    if token as usize >= s.vocab {
+        return Err(StackError::Token {
+            token,
+            vocab: s.vocab,
+        });
+    }
+    if session.position >= s.context {
+        return Err(StackError::ContextFull { context: s.context });
+    }
+    let b = &mut session.b;
+    let at = stack_mul_u64(u64::from(token), d as u64) as usize;
+    for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
+        *x = to_exp_i32(i64::from(t), Q12_EXP, RESIDUAL_EXP);
+    }
+    for (layer, layer_state) in fbs.layers.iter().zip(session.states.iter_mut()) {
+        let LayerState::Recurrence { state, history } = layer_state.as_mut() else {
+            // `session` builds a recurrence state for every `r` of the pattern.
+            debug_assert!(false, "an FBS layer's state is not a recurrence");
+            return Err(StackError::SessionState);
+        };
+        stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+        stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
+        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.branches);
+        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.gate_out);
+        let act_exp = stack_recurrence_core(model, layer.tables(), state, history, b, false);
+        stack_fbs_gather(&layer.rec_out, &b.act[..d], act_exp, &mut b.proj);
+        for (x, p) in b.x.iter_mut().zip(&b.proj) {
+            *x = x.saturating_add(*p);
+        }
+        stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+        stack_norm_gain(&mut b.scratch[..d], &layer.mlp_gain);
+        stack_fbs_gather(&layer.mlp_gate, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.gate);
+        stack_fbs_gather(&layer.mlp_up, &b.scratch[..d], NORM_SCRATCH_EXP, &mut b.up);
+        stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
+        let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
+        stack_fbs_gather(&layer.mlp_down, &b.act[..mlp], act_exp, &mut b.proj);
+        for (x, p) in b.x.iter_mut().zip(&b.proj) {
+            *x = x.saturating_add(*p);
+        }
+    }
+    stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
+    stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
+    for (q, &v) in b.query_q12.iter_mut().zip(&b.scratch[..d]) {
+        *q = to_exp_i32(v, NORM_SCRATCH_EXP, Q12_EXP).clamp(-32768, 32767);
+    }
+    b.native_token = stack_native_writer(
+        fbs,
+        s.vocab,
+        &b.query_q12,
+        &mut b.cells,
+        &mut b.native_kept,
+    );
+    session.tokens.push(token);
+    session.position += 1;
+    session.cache_at += d;
+    session.lift_at += heads;
+    Ok(())
+}
+
 /// One recurrence step from the normalized state (pair tables built), into
 /// `b.proj`.
 #[inline(never)]
@@ -2500,9 +2908,7 @@ fn stack_recurrence(
     norm_exp: i32,
     parallel: bool,
 ) {
-    let (s, n) = (&model.shape, &model.numerics);
-    let d = s.width;
-    let lanes = s.lanes();
+    let d = model.shape.width;
     stack_map_pairs2(
         parallel,
         &b.pairs,
@@ -2510,7 +2916,29 @@ fn stack_recurrence(
         (&r.input, &mut b.branches),
         (&r.gates, &mut b.gate_out),
     );
-    for (g, bias) in b.gate_out.iter_mut().zip(&r.gate_bias) {
+    let act_exp = stack_recurrence_core(model, r.tables(), state, history, b, parallel);
+    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
+    stack_map_nibbles(parallel, &r.out, &b.tables, act_exp, &mut b.proj);
+}
+
+/// A recurrence after its input maps, shared by the dense and the FBS step:
+/// `b.branches` (the drive, then the output gate) and `b.gate_out` (decay
+/// gates, then rotations) hold the maps' outputs at the residual exponent.
+/// Adds the gate bias, convolves the drive, advances the lanes, applies the
+/// output gate and requantizes the gated state into `b.act[..width]`;
+/// returns its exponent.
+fn stack_recurrence_core(
+    model: &IntegerStackModel,
+    t: RecurrenceTables<'_>,
+    state: &mut [i64],
+    history: &mut [i32],
+    b: &mut Buffers,
+    parallel: bool,
+) -> i32 {
+    let (s, n) = (&model.shape, &model.numerics);
+    let d = s.width;
+    let lanes = s.lanes();
+    for (g, bias) in b.gate_out.iter_mut().zip(t.gate_bias) {
         *g = g.saturating_add(*bias);
     }
     let (drive, gate) = b.branches.split_at(core::hint::black_box(d));
@@ -2518,13 +2946,13 @@ fn stack_recurrence(
     // (zero before the stream starts), at exponent -16.
     // `black_box(d)` prevents LLVM from combining three `i16` pointer advances
     // (`2*d + 2*d + 2*d`) into `d * 6` (`i32.mul`).
-    let (tap0, rest) = r.taps.split_at(core::hint::black_box(d));
+    let (tap0, rest) = t.taps.split_at(core::hint::black_box(d));
     let (tap1, rest) = rest.split_at(core::hint::black_box(d));
     let (tap2, tap3) = rest.split_at(core::hint::black_box(d));
     let (back1, rest) = history.split_at(core::hint::black_box(d));
     let (back2, back3) = rest.split_at(core::hint::black_box(d));
     for (i, slot) in b.wide.iter_mut().enumerate().take(d) {
-        let c = i64::from(r.conv_bias[i])
+        let c = i64::from(t.conv_bias[i])
             .wrapping_add(grid_apply(i64::from(drive[i]), tap0[i]))
             .wrapping_add(grid_apply(i64::from(back1[i]), tap1[i]))
             .wrapping_add(grid_apply(i64::from(back2[i]), tap2[i]))
@@ -2535,7 +2963,7 @@ fn stack_recurrence(
     history.copy_within(..history.len() - core::hint::black_box(d), core::hint::black_box(d));
     history[..d].copy_from_slice(drive);
     let (decays, rotations) = b.gate_out.split_at(lanes);
-    let (wide, rates, offsets) = (&b.wide[..d], &r.rates[..], &r.decay_offset[..]);
+    let (wide, rates, offsets) = (&b.wide[..d], t.rates, t.decay_offset);
     let lanes_of = |first: usize, held: &mut [i64], trace: Option<&mut SnapTrace>| {
         // `first` is a channel index (four per lane); without learned
         // rotations there are no rotation logits.
@@ -2609,9 +3037,7 @@ fn stack_recurrence(
             *o = saturating_product(h, i64::from(g));
         }
     }
-    let act_exp = stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d]);
-    stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
-    stack_map_nibbles(parallel, &r.out, &b.tables, act_exp, &mut b.proj);
+    stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d])
 }
 
 /// Lanes of a recurrence task when its lanes are split across threads, as a

@@ -288,6 +288,9 @@ fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
         memory: None,
         rec_gates: None,
         gate: None,
+        projection: None,
+        head: None,
+        kept_cells: None,
     };
     // Dot reads cache an i32 key and value row per position: 2^28 bytes per
     // layer at this width and context, so sixteen layers reach the bound.
@@ -385,6 +388,9 @@ fn the_l2_read_serves_its_scale_and_offset_without_lifts_or_arcosh() {
         memory: None,
         rec_gates: None,
         gate: None,
+        projection: None,
+        head: None,
+        kept_cells: None,
     };
     assert_eq!(
         shape("l2").read_cache_bytes(),
@@ -2477,4 +2483,512 @@ fn float_trunk_validation_threads_and_session_roundtrip() {
     let mut bad_snap = snap.clone();
     bad_snap.embed[0] = f32::NAN;
     assert!(super::export_float_trunk_uorlut01(&bad_snap).is_err());
+}
+
+/// The lawful shape of a SpiralCore/FBS trunk with the native vector writer.
+fn fbs_shape() -> StackShape {
+    StackShape {
+        vocab: 256,
+        width: 32,
+        heads: 1,
+        mlp: 32,
+        pattern: "rr".to_owned(),
+        read: "dot".to_owned(),
+        rotation: true,
+        context: 8,
+        pointer: None,
+        read_select: None,
+        read_weights: None,
+        read_binary: false,
+        memory: None,
+        rec_gates: Some("geometric".to_owned()),
+        gate: Some("hamilton".to_owned()),
+        projection: Some("spiralcore_fbs".to_owned()),
+        head: Some("native_vector".to_owned()),
+        kept_cells: Some(2),
+    }
+}
+
+#[test]
+fn fbs_shape_takes_its_own_schema_and_refuses_unlawful_shapes() {
+    let lawful = fbs_shape();
+    assert!(lawful.validate().is_ok());
+    assert_eq!(
+        super::stack_schema_for(&lawful),
+        super::format::STACK_FBS_SCHEMA
+    );
+    assert!(lawful.projection_fbs() && lawful.head_native_vector());
+
+    // Each unlawful shape is refused for its own reason, so every rule is held.
+    const REQUIRE: &str = "SpiralCore/FBS projections require geometric gates, the Hamilton gate, rotations and the native vector head";
+    const KEPT: &str = "the native vector head keeps 1 to 16 cells";
+    const READ: &str = "SpiralCore/FBS trunks carry no read selection or read weights";
+    type Mutation = fn(&mut StackShape);
+    let refused: [(&str, Mutation, &str); 16] = [
+        (
+            "another projection",
+            |s| s.projection = Some("dense".to_owned()),
+            "the projection is not spiralcore_fbs",
+        ),
+        (
+            "another head",
+            |s| s.head = Some("dense".to_owned()),
+            "the head is not native_vector",
+        ),
+        ("table gates", |s| s.rec_gates = None, REQUIRE),
+        ("no Hamilton gate", |s| s.gate = None, REQUIRE),
+        (
+            "no rotations",
+            |s| s.rotation = false,
+            "geometric recurrence gates require learned rotations",
+        ),
+        (
+            "FBS without the writer",
+            |s| {
+                s.head = None;
+                s.kept_cells = None;
+            },
+            REQUIRE,
+        ),
+        (
+            "a read layer",
+            |s| s.pattern = "ra".to_owned(),
+            "SpiralCore/FBS projections serve recurrence layers only",
+        ),
+        (
+            "a read selection",
+            |s| s.read_select = Some(super::format::StackReadSelect { window: 4, k: 2 }),
+            READ,
+        ),
+        ("rank read weights", |s| s.read_weights = Some("rank".to_owned()), READ),
+        ("a binary read", |s| s.read_binary = true, READ),
+        // The 8-blocks of every route table follow from the group rule.
+        (
+            "an MLP width off the group",
+            |s| s.mlp = 40,
+            "the MLP width is not a multiple of the group",
+        ),
+        (
+            "the writer without FBS",
+            |s| s.projection = None,
+            "the native vector head requires SpiralCore/FBS projections",
+        ),
+        ("no kept cells", |s| s.kept_cells = None, KEPT),
+        ("17 kept cells", |s| s.kept_cells = Some(17), KEPT),
+        (
+            "a vocabulary under 256",
+            |s| s.vocab = 255,
+            "the native vector head serves a vocabulary of 256 to 8192 and a width up to 1024",
+        ),
+        (
+            "a pointer head",
+            |s| {
+                s.pointer = Some(super::format::StackPointer {
+                    dim: 8,
+                    score: "dot".to_owned(),
+                    score_scale_q30: 1 << 30,
+                })
+            },
+            "the native vector head has no pointer head",
+        ),
+    ];
+    for (what, mutate, reason) in refused {
+        let mut shape = fbs_shape();
+        mutate(&mut shape);
+        match shape.validate() {
+            Err(StackError::Shape(got)) => assert_eq!(got, reason, "{what}"),
+            other => panic!("{what}: expected a shape refusal, got {other:?}"),
+        }
+    }
+    // Kept cells on a dense head are refused, and a dense shape keeps its schema.
+    let mut dense = fbs_shape();
+    dense.projection = None;
+    dense.head = None;
+    assert!(matches!(
+        dense.validate(),
+        Err(StackError::Shape(
+            "kept cells belong to the native vector head"
+        ))
+    ));
+    dense.kept_cells = None;
+    assert!(dense.validate().is_ok());
+    assert_eq!(
+        super::stack_schema_for(&dense),
+        super::format::STACK_READ_SCHEMA
+    );
+}
+
+/// A synthetic SpiralCore/FBS trunk whose export has exactly [`fbs_shape`].
+fn synthetic_fbs_trunk(seed: u64) -> super::FbsTrunkSnapshot {
+    let mut rng = Lcg(seed);
+    let (vocab, d, mlp, context) = (256usize, 32usize, 32usize, 8usize);
+    let lanes = d / 4;
+    let g = lanes + d;
+    let rand_vec = |rng: &mut Lcg, len: usize, scale: f32| -> Vec<f32> {
+        (0..len)
+            .map(|_| ((rng.next() % 2001) as i32 - 1000) as f32 / 1000.0 * scale)
+            .collect()
+    };
+    let rand_pos = |rng: &mut Lcg, len: usize| -> Vec<f32> {
+        (0..len)
+            .map(|_| 0.75 + (rng.next() % 1000) as f32 / 2000.0)
+            .collect()
+    };
+    let routes = |rng: &mut Lcg, in_dim: usize, out_dim: usize| -> super::FbsRoutes {
+        let (in_blocks, out_blocks) = (in_dim / 8, out_dim / 8);
+        super::FbsRoutes {
+            in_blocks,
+            out_blocks,
+            atoms: (0..out_blocks)
+                .map(|_| (rng.next() % in_blocks as u64) as u16)
+                .collect(),
+            states: (0..out_blocks).map(|_| (rng.next() % 64) as u8).collect(),
+        }
+    };
+    let layers = (0..2)
+        .map(|_| super::FbsTrunkLayer {
+            rec_norm: rand_pos(&mut rng, d),
+            mlp_norm: rand_pos(&mut rng, d),
+            rec_in: routes(&mut rng, d, 2 * d),
+            rec_gate: routes(&mut rng, d, g),
+            rec_out: routes(&mut rng, d, d),
+            mlp_gate: routes(&mut rng, d, mlp),
+            mlp_up: routes(&mut rng, d, mlp),
+            mlp_down: routes(&mut rng, mlp, d),
+            conv_taps: rand_vec(&mut rng, 4 * d, 0.25),
+            conv_bias: rand_vec(&mut rng, d, 0.25),
+            gate_bias: rand_vec(&mut rng, g, 0.25),
+            decay: (0..lanes).map(|i| 0.0625 * (i as f32 + 0.5)).collect(),
+        })
+        .collect();
+    super::FbsTrunkSnapshot {
+        vocab,
+        width: d,
+        mlp,
+        context,
+        rms_eps: 1e-5,
+        kept_cells: 2,
+        embed: rand_vec(&mut rng, vocab * d, 1.5),
+        final_norm: rand_pos(&mut rng, d),
+        layers,
+    }
+}
+
+#[test]
+fn fbs_trunk_export_is_deterministic_and_parses() {
+    let snap = synthetic_fbs_trunk(20261025);
+    let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export FBS trunk");
+    assert_eq!(
+        bytes,
+        super::export_fbs_trunk_uorlut01(&snap).expect("export again"),
+        "the FBS export is byte-deterministic"
+    );
+    let container = super::format::Container::parse(&bytes).expect("parse FBS container");
+    assert_eq!(container.shape, fbs_shape());
+
+    let len = u64::from_le_bytes(bytes[8..16].try_into().expect("length")) as usize;
+    let header: Value = serde_json::from_slice(&bytes[16..16 + len]).expect("header");
+    assert_eq!(header["schema"], json!("uor-r4.lut-stack/4"));
+    assert_eq!(header["matrices"], json!([]));
+
+    for (name, routes) in [
+        ("l0.rec_in.fbs", &snap.layers[0].rec_in),
+        ("l1.mlp_down.fbs", &snap.layers[1].mlp_down),
+    ] {
+        let entries = container.table_u32(name).expect(name);
+        let atoms: Vec<u16> = entries.iter().map(|&e| (e & 0xffff) as u16).collect();
+        let states: Vec<u8> = entries.iter().map(|&e| (e >> 16) as u8).collect();
+        assert_eq!(atoms, routes.atoms, "{name} atoms");
+        assert_eq!(states, routes.states, "{name} states");
+    }
+    let writer = container.table_i16("writer.table").expect("writer table");
+    assert_eq!(writer.len(), 256 * 32);
+}
+
+#[test]
+fn fbs_trunk_export_refuses_bad_snapshots() {
+    let good = synthetic_fbs_trunk(20261026);
+    assert!(super::export_fbs_trunk_uorlut01(&good).is_ok());
+    type Mutation = fn(&mut super::FbsTrunkSnapshot);
+    type Refusal = fn(&StackError) -> bool;
+    let refused: [(&str, Mutation, Refusal); 8] = [
+        (
+            "atom == in_blocks",
+            |s| s.layers[0].rec_in.atoms[0] = s.layers[0].rec_in.in_blocks as u16,
+            |e| matches!(e, StackError::Numerics(m) if m == "l0.rec_in.fbs[0]: atom 4 is not below 4 input blocks"),
+        ),
+        (
+            "state 64",
+            |s| s.layers[1].mlp_up.states[0] = 64,
+            |e| matches!(e, StackError::Numerics(m) if m == "l1.mlp_up.fbs[0]: state 64 is not below 64"),
+        ),
+        (
+            "a short route",
+            |s| {
+                s.layers[0].rec_gate.atoms.pop();
+            },
+            |e| matches!(e, StackError::TableLength { name, .. } if name == "l0.rec_gate.fbs.atoms"),
+        ),
+        (
+            "NaN in embed",
+            |s| s.embed[0] = f32::NAN,
+            |e| matches!(e, StackError::Numerics(m) if m == "writer.table[0] is not finite"),
+        ),
+        (
+            "embed 8.0 off the Q12 range",
+            |s| s.embed[3] = 8.0,
+            |e| matches!(e, StackError::Numerics(m) if m == "writer.table[3] = 8 does not fit Q12 in i16"),
+        ),
+        (
+            "rms_eps NaN",
+            |s| s.rms_eps = f64::NAN,
+            |e| matches!(e, StackError::Numerics(m) if m == "rms_eps NaN is not finite and positive"),
+        ),
+        (
+            "rms_eps 0",
+            |s| s.rms_eps = 0.0,
+            |e| matches!(e, StackError::Numerics(m) if m == "rms_eps 0 is not finite and positive"),
+        ),
+        (
+            "width 40",
+            |s| s.width = 40,
+            |e| matches!(e, StackError::Shape("the width is not a multiple of 4, of the group and of the heads")),
+        ),
+    ];
+    for (what, mutate, refusal) in refused {
+        let mut snap = good.clone();
+        mutate(&mut snap);
+        match super::export_fbs_trunk_uorlut01(&snap) {
+            Err(e) => assert!(refusal(&e), "{what}: refused for another reason: {e:?}"),
+            Ok(_) => panic!("{what} must be refused"),
+        }
+    }
+    // The Q12 range is half-open: -8.0 is the i16 minimum and is served.
+    let mut low = good.clone();
+    low.embed[3] = -8.0;
+    assert!(super::export_fbs_trunk_uorlut01(&low).is_ok());
+}
+
+#[test]
+fn fbs_trunk_reference_reads_only_kept_cells() {
+    let snap = synthetic_fbs_trunk(20261026);
+    for tok in 0..snap.vocab as u32 {
+        let out = snap.forward_f32(&[tok], false).expect("forward");
+        assert_eq!(out.len(), 1);
+        let w = &out[0];
+        assert_eq!(w.kept_cells.len(), snap.kept_cells, "token {tok}");
+        assert!(!w.candidates.is_empty() && w.candidates.len() <= snap.kept_cells * snap.vocab.div_ceil(256));
+        for &(cand, _) in &w.candidates {
+            assert!(
+                w.kept_cells.contains(&(cand % 256)),
+                "token {tok}: candidate {cand} lies outside the kept cells"
+            );
+        }
+        assert!(
+            w.candidates.iter().any(|&(cand, _)| cand == w.token),
+            "token {tok}: the winner is not a candidate"
+        );
+        // The winner holds the best score, ties to the smaller id.
+        let best = w
+            .candidates
+            .iter()
+            .fold(f64::NEG_INFINITY, |m, &(_, s)| m.max(s));
+        let first_best = w.candidates.iter().find(|&&(_, s)| s == best).map(|&(c, _)| c);
+        assert_eq!(first_best, Some(w.token), "token {tok}");
+        // The kept cells are the best-scoring ones: no cell left out scores higher.
+        let cells = fbs_cell_scores(&w.query);
+        let worst_kept = w
+            .kept_cells
+            .iter()
+            .map(|&c| cells[c as usize])
+            .fold(f64::INFINITY, f64::min);
+        assert!(
+            (0..256u32)
+                .filter(|c| !w.kept_cells.contains(c))
+                .all(|c| cells[c as usize] <= worst_kept),
+            "token {tok}: a cell left out outscores a kept cell"
+        );
+    }
+    // Too long a sequence and a token outside the vocabulary are refused.
+    assert!(snap.forward_f32(&[0; 9], false).is_err());
+    assert!(snap.forward_f32(&[snap.vocab as u32], false).is_err());
+}
+
+#[test]
+fn fbs_trunk_reference_quantized_agrees() {
+    let snap = synthetic_fbs_trunk(20261026);
+    let mut agree = 0;
+    for tok in 0..snap.vocab as u32 {
+        let plain = snap.forward_f32(&[tok], false).expect("forward")[0].token;
+        let quantized = snap.forward_f32(&[tok], true).expect("forward")[0].token;
+        agree += usize::from(plain == quantized);
+    }
+    // A detector of gross quantization faults, not a precision bar: at
+    // vocabulary 256 each cell holds one token, so two kept cells leave two
+    // candidates, and the 4-bit grid-coded gains and taps of this untrained
+    // random trunk flip near-tied cells. A wrong scale or exponent falls to
+    // near chance. Measured at seed 20261026: 224 of 256. The integer session
+    // is held to the quantized reference, not to this one.
+    assert!(
+        agree >= 192,
+        "the quantized reference agrees on {agree} of 256 single-token inputs"
+    );
+}
+
+#[test]
+fn fbs_trunk_gather_is_the_signed_axis_action() {
+    let snap = synthetic_fbs_trunk(20261026);
+    let route = &snap.layers[0].rec_in;
+    let mut rng = Lcg(77);
+    let input: Vec<i32> = (0..route.in_blocks * 8)
+        .map(|_| (rng.next() % 2001) as i32 - 1000)
+        .collect();
+    let as_f64: Vec<f64> = input.iter().map(|&v| f64::from(v)).collect();
+    let gathered = super::format::fbs_reference_gather(route, &as_f64);
+    for (o, (&atom, &state)) in route.atoms.iter().zip(&route.states).enumerate() {
+        let a = usize::from(atom) * 8;
+        let block: [i32; 8] = input[a..a + 8].try_into().expect("block");
+        let acted = crate::discrete_d11::cl06_action(usize::from(state), &block);
+        for j in 0..8 {
+            assert_eq!(gathered[o * 8 + j], f64::from(acted[j]), "block {o}, channel {j}");
+        }
+    }
+}
+
+/// Overwrite the `index`-th `u32` of table `name` in a container's data.
+fn poke_table_u32(bytes: &mut [u8], name: &str, index: usize, value: u32) {
+    let len = u64::from_le_bytes(bytes[8..16].try_into().expect("header length")) as usize;
+    let header: Value = serde_json::from_slice(&bytes[16..16 + len]).expect("header");
+    let data_start = (16 + len).div_ceil(64) * 64;
+    let table = header["tables"]
+        .as_array()
+        .expect("tables")
+        .iter()
+        .find(|t| t["name"] == name)
+        .expect("the table exists");
+    let at = data_start + table["span"]["offset"].as_u64().expect("offset") as usize + 4 * index;
+    bytes[at..at + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+#[test]
+fn fbs_model_parse_refuses_corrupt_routes() {
+    let snap = synthetic_fbs_trunk(20261026);
+    let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    assert!(IntegerStackModel::parse(&bytes).is_ok());
+    let in_blocks = snap.layers[0].rec_in.in_blocks as u32;
+    let corrupt: [(&str, usize, u32); 3] = [
+        ("an atom outside the input", 0, in_blocks),
+        ("state 64", 0, 64 << 16),
+        ("a state beyond 64 with a lawful atom", 1, (200 << 16) | 1),
+    ];
+    for (what, index, value) in corrupt {
+        let mut bad = bytes.clone();
+        poke_table_u32(&mut bad, "l0.rec_in.fbs", index, value);
+        assert!(
+            matches!(IntegerStackModel::parse(&bad), Err(StackError::Numerics(_))),
+            "{what} was loaded"
+        );
+    }
+    // A lawful edit still loads: the refusals are about the entries, not the edit.
+    let mut lawful = bytes.clone();
+    poke_table_u32(&mut lawful, "l0.rec_in.fbs", 0, (5 << 16) | 1);
+    assert!(IntegerStackModel::parse(&lawful).is_ok());
+}
+
+/// The reference's own near-tie margin at a position: the smaller of its
+/// best-minus-second candidate score and its kept-cell boundary score gap.
+/// The writer's 256 cell scores for a query, recomputed here: the negative L1
+/// distances of its first and last 8-blocks to the 16 orbit roots.
+fn fbs_cell_scores(q: &[f64]) -> Vec<f64> {
+    let d = q.len();
+    let neg_l1 = |a: &[f64], r: [i32; 8]| -> f64 {
+        -a.iter()
+            .zip(r)
+            .map(|(x, y)| (x - f64::from(y)).abs())
+            .sum::<f64>()
+    };
+    let roots: Vec<[i32; 8]> = (0..16).map(crate::discrete_d11::orbit_root_coords).collect();
+    (0..256)
+        .map(|c| neg_l1(&q[..8], roots[c >> 4]) + neg_l1(&q[d - 8..], roots[c & 15]))
+        .collect()
+}
+
+/// How near the reference came to the other choice where the integer session
+/// differs: the margin at the kept-cell boundary when the kept cells differ,
+/// else the margin between its two best candidates.
+fn fbs_reference_margin(want: &super::FbsWriterOutput, kept: usize, cells_agree: bool) -> f64 {
+    if cells_agree {
+        let mut scores: Vec<f64> = want.candidates.iter().map(|&(_, s)| s).collect();
+        scores.sort_by(|a, b| b.total_cmp(a));
+        match scores.as_slice() {
+            [best, second, ..] => best - second,
+            _ => f64::INFINITY,
+        }
+    } else {
+        let mut cells = fbs_cell_scores(&want.query);
+        cells.sort_by(|a, b| b.total_cmp(a));
+        cells[kept - 1] - cells[kept]
+    }
+}
+
+#[test]
+fn fbs_trunk_export_matches_float_reference_across_full_vocabulary() {
+    // A reference near-tie below this may break either way under the served
+    // fixed point, and is let through as an exception (at most 4). The bar is
+    // strict: a 2-LSB query drift can move a cell score by up to 2^-7, so a
+    // wider tie can still flip, and then fails here rather than passes.
+    const TIE: f64 = 1.0 / 1024.0;
+    let snap = synthetic_fbs_trunk(20261026);
+    let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    let model = IntegerStackModel::parse(&bytes).expect("parse");
+    let mut exceptions: Vec<String> = Vec::new();
+    let mut check = |at: String, got: &super::NativeStep, want: &super::FbsWriterOutput| {
+        assert_eq!(got.query_q12.len(), want.query.len(), "{at}");
+        for (j, (&g, &w)) in got.query_q12.iter().zip(&want.query).enumerate() {
+            let w = (w * 4096.0).round() as i32;
+            assert!(
+                (g - w).abs() <= 2,
+                "{at}: query channel {j} is {g} against {w} (Q12)"
+            );
+        }
+        if got.kept_cells != want.kept_cells || got.token != want.token {
+            let margin =
+                fbs_reference_margin(want, snap.kept_cells, got.kept_cells == want.kept_cells);
+            assert!(
+                margin < TIE,
+                "{at}: integer token {} cells {:?} against reference {} cells {:?}, reference margin {margin:.3e}",
+                got.token, got.kept_cells, want.token, want.kept_cells
+            );
+            exceptions.push(format!("{at} (margin {margin:.2e})"));
+        }
+    };
+    for tok in 0..snap.vocab as u32 {
+        let got = model.session().step_native(tok).expect("integer step");
+        let want = snap.forward_f32(&[tok], true).expect("reference");
+        check(format!("token {tok}"), &got, &want[0]);
+    }
+    let sequence = [0u32, 5, 11, 19, 3, 27, 14, 31];
+    let want = snap.forward_f32(&sequence, true).expect("reference");
+    let mut session = model.session();
+    for (pos, (&tok, want)) in sequence.iter().zip(&want).enumerate() {
+        let got = session.step_native(tok).expect("integer step");
+        check(format!("sequence position {pos}"), &got, want);
+    }
+    eprintln!(
+        "fbs control: {} near-tie exceptions over 264 positions {exceptions:?}",
+        exceptions.len()
+    );
+    assert!(
+        exceptions.len() <= 4,
+        "{} near-tie exceptions: {exceptions:?}",
+        exceptions.len()
+    );
+    // A dense model has no native head, and an FBS model's step returns no
+    // vocabulary-wide logits.
+    let dense = IntegerStackModel::parse(
+        &super::export_float_trunk_uorlut01(&synthetic_float_trunk(7, "dot")).expect("export"),
+    )
+    .expect("parse");
+    assert!(dense.session().step_native(0).is_err());
+    assert!(model.session().step(0).expect("step").is_empty());
 }
