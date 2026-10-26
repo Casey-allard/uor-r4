@@ -1,0 +1,42 @@
+{
+  "schema": "uor-r4.trunk-step0-controls/v1",
+  "compiled_identity": {
+    "baseline_reuse_image": {
+      "cubin_sha256": "c8962f3b081bfd9f9c431bcd1a8574875fac3998d12f5947043a6e1f6eacfb53",
+      "format": "cubin",
+      "ptx_sha256": "7527abe7bac3c4c41bc42bb20315b7397b084a4c6fbd1c0a28c4a33ae284919d",
+      "report_sha256": "4fd73254129a8919feae7ac4c97e05172b553309473c133a21f35005b6d91360",
+      "schema": "uor-r4.baseline-reuse-image/1",
+      "source_sha256": "f940fc9ed393bcd28cedb2eaf31f3784cdc32253a86cd4f2c48c93db6d428dd5",
+      "target": "sm_120"
+    },
+    "cuda_images": {
+      "decomposition_report_sha256": "9bcc9398632584a0bb1cbf82256702df1d15540d8485e65e5db6cc5273d1e7c3",
+      "decomposition_sha256": "eed6651c455c45aa75203cbcd41b458b0f308888c2164639b861b23c94872042",
+      "format": "cubin",
+      "ordinary_report_sha256": "a77de9c62a0454347b9cd72df6abc6307c113a1a5734585b3519a3912f52127b",
+      "ordinary_sha256": "cf8118c0fa92278a67222b8b05dbee5b0af0c62720440fe7f44b95759aa97ad2",
+      "schema": "uor-r4.cuda-images/1",
+      "target": "sm_120"
+    },
+    "decomposition_kernel_sha256": "b83df87e259f61e65f1d89820dcc325afb67b111de326951048edcc519afd092",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "kernel_sha256": "0f9ccfa7b4748292f83a40227e30ea7b69c893a1649fa8afa3f7d547802429d6",
+    "source_sha256": "b864996a1de28c6515027a1b24666bc087a6ed01ea9c5e65755c0f574630efeb"
+  },
+  "driver_source_sha256": "04c5165464a18eea6d4edadc6970007dbdc7908ead420f4a2f575e22ea43061d",
+  "gt1_hamilton_transitive_pairs_checked": 256,
+  "gt1_hamilton_mismatches": 0,
+  "gt2_recurrence_windows_checked": 256,
+  "gt2_recurrence_mismatches": 0,
+  "gt3_gate_r_dev_rows_checked": 14287,
+  "gt3_gate_r_mismatches": 0,
+  "gt4_writer_exact_rows_checked": 14287,
+  "gt4_writer_mismatches": 0,
+  "gt5_fresh_v2_kept_targets": 14287,
+  "gt5_fresh_v2_tokens_sha256": "1f8bf88d8deee51574c68ffd8976ce4415fc8aed5602213d6905a37a138517ea",
+  "gt5_fresh_v2_mask_sha256": "fe87363920e19bf072e9fe3a7289e6cd2f1abde6c2431caae8f5c8494d3829d5",
+  "gt5_fresh_v2_pass": true,
+  "all_controls_pass": true,
+  "elapsed_ms": 33153
+}

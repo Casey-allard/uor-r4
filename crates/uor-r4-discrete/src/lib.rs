@@ -41,6 +41,7 @@ pub mod snapshot;
 pub mod stage_t;
 pub use objective::ObjectivePolicy;
 pub mod training;
+pub mod trunk;
 pub mod w2_capacity;
 pub mod w2_capture;
 pub mod w2_record;

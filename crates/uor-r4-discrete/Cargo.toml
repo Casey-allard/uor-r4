@@ -82,3 +82,8 @@ path = "src/bin/carrier-arms.rs"
 name = "stage-t-run"
 path = "src/bin/stage-t-run.rs"
 
+[[bin]]
+name = "trunk-run"
+path = "src/bin/trunk-run.rs"
+
+

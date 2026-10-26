@@ -3,7 +3,7 @@ id: m1-trunk-assembly-and-training
 title: Assemble and train the full lawful trunk (Stage 3)
 milestone: M2
 area: architecture
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-position-mechanism, m1-normalization-mechanism, m1-bvg-k-stage-t-training, m1-d11-exporter-discrete]
@@ -15,6 +15,8 @@ scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-trunk-assembly-and-train
 Supplies the missing parts, which are the main route to beating the count tables.
 
 ## What is missing
+
+**Completed (26 Oct 2026, `antigravity-89`, PR `#3258`).** Assembled and evaluated `TrunkAssemblyV1` (`crates/uor-r4-discrete/src/trunk.rs`, `crates/uor-r4-discrete/src/bin/trunk-run.rs`) on `1x RTX 5090` (`vast-57764453`) under `docs/harness/prep/m1-trunk-assembly-and-training-2026-10-25.md` (`sha256 = bbb641f9115634b03d319b8937d534ed987ebfa18f3d3e73df8ff45d9f554ce0`, pre-stamp `b49051c0f5ef3294089b21dd405d247341c1cf28bd179b6807870eb9373afb07`, `FIT` + `D68` + `D67` at `#2844` comment `6408200462`), verified all 5 Step 0 controls (`docs/labs/m1-trunk-assembly-and-training/step0-receipt.json`, `852ec34e…`), exported round-trip verified `D11` (`uor-r4.lut-discrete/1`) integer artifacts (`trunk-model.d11`, `cd88b6b7…`, `dda50047…`, `06b97329…`, `b2af6a1e…`), and recorded the two-seed `T16_fz` and `T16_rel` results on `ft/dev` (`14,287` rows) and `fresh_v2` (`14,287` rows) in `docs/labs/m1-trunk-assembly-and-training/grade.json` (`8413be77…`, `T16_fz` `Level 3 = 2,988 / 2,989` on `ft/dev` and `3,163` on `fresh_v2`; `T16_rel` `Level 3 = 2,227 / 2,226` on `ft/dev` and `2,427` on `fresh_v2`, archived at `caseyallard/uor-r4-store:results/antigravity/m1-trunk-assembly-and-training-2026-10-25/trunk-20261025.tar.gz`, `4f4d4817…`).
 
 Build a trunk with a feed-forward layer (the Hamilton gate), a recurrence with quaternion rotation, and the Flock and Relation reads; none has been trained together and the supporting evidence is weak, so this is a hypothesis test. Scale and data are open: no trained stack has used the 1.39-billion-token chat corpus (UOR-Foundation/uor-r4#1660). A 24-kernel extract has passed finite controls only.
 
