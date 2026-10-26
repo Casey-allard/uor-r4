@@ -1,15 +1,19 @@
 //! `d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON`
 //! `d11-scorer rows CONFIG_JSON OUT_JSON`
-//! `d11-scorer score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference]`
+//! `d11-scorer score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON]`
 //! `d11-scorer toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]`
 //!
 //! `toks` times `IntegerDiscreteModel` serving on this machine by the step-6
 //! protocol (1 warmup, 20 runs, 192-token prefill, 64-token decode).
 //!
-//! `m1-d11-artifact-scorer` (#3248). `score` runs on the GPU (`cuda` feature)
-//! over the config's DEV rows; `--reference` also checks every row against
-//! `IntegerDiscreteModel::evaluate_prefix` and refuses on any mismatch. Every
-//! output is created new: an existing file is never overwritten.
+//! `m1-d11-artifact-scorer` (#3248) and `m1-export-gap-and-toks` (#2839).
+//! `score` runs on the GPU (`cuda` feature) over the config's DEV rows;
+//! `--reference` checks every row against `IntegerDiscreteModel::observe_target`
+//! and refuses on any mismatch; `--train-eval` verifies `Δtop1 = 0`, `Δtop8 = 0`,
+//! `Δadm = 0`, `Δloss = 0` (`14,287 / 14,287` row agreement) against a
+//! training-side `eval-corpus` receipt (`final-dev.json`) together with the GPU
+//! planted-fault control `B4`. Every output is created new: an existing file is
+//! never overwritten.
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -57,7 +61,11 @@ fn run(args: &[String]) -> Result<(), String> {
             let exported = inst::export_checkpoint(&read_json(checkpoint)?)?;
             write_new(out, &exported.bytes)?;
             write_new(report, &json_bytes(&exported.report)?)?;
-            println!("exported {} bytes, file sha256 {}", exported.bytes.len(), exported.report["file_sha256"]);
+            println!(
+                "exported {} bytes, file sha256 {}",
+                exported.bytes.len(),
+                exported.report["file_sha256"]
+            );
             Ok(())
         }
         [command, config, out] if command == "rows" => {
@@ -70,12 +78,24 @@ fn run(args: &[String]) -> Result<(), String> {
             Ok(())
         }
         [command, artifact, config, report, row_records, flags @ ..] if command == "score" => {
-            let reference = match flags {
-                [] => false,
-                [flag] if flag == "--reference" => true,
-                _ => return Err("score takes only --reference after its paths".into()),
-            };
-            score(artifact, config, report, row_records, reference)
+            let mut reference = false;
+            let mut train_eval: Option<(&str, &str)> = None;
+            let mut idx = 0;
+            while idx < flags.len() {
+                if flags[idx] == "--reference" {
+                    reference = true;
+                    idx += 1;
+                } else if flags[idx] == "--train-eval" && idx + 2 < flags.len() {
+                    train_eval = Some((&flags[idx + 1], &flags[idx + 2]));
+                    idx += 3;
+                } else {
+                    return Err(
+                        "score takes only [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON] after its paths"
+                            .into(),
+                    );
+                }
+            }
+            score(artifact, config, report, row_records, reference, train_eval)
         }
         [command, artifact, report, flags @ ..] if command == "toks" => {
             let bytes = std::fs::read(artifact).map_err(|e| format!("{artifact}: {e}"))?;
@@ -108,14 +128,21 @@ fn run(args: &[String]) -> Result<(), String> {
             Ok(())
         }
         _ => Err("usage: d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON | rows CONFIG_JSON OUT_JSON \
-                  | score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] \
+                  | score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON] \
                   | toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]"
             .into()),
     }
 }
 
 #[cfg(not(feature = "cuda"))]
-fn score(_: &str, _: &str, _: &str, _: &str, _: bool) -> Result<(), String> {
+fn score(
+    _: &str,
+    _: &str,
+    _: &str,
+    _: &str,
+    _: bool,
+    _: Option<(&str, &str)>,
+) -> Result<(), String> {
     Err("score runs on the GPU: build with --features cuda (and UOR_NVCC_ARCH)".into())
 }
 
@@ -126,10 +153,15 @@ fn score(
     report: &str,
     row_records: &str,
     reference: bool,
+    train_eval: Option<(&str, &str)>,
 ) -> Result<(), String> {
     use inst::artifact::ArtifactTables;
     use inst::device::{self, DeviceScorer};
-    refuse_existing(&[report, row_records])?;
+    if let Some((_, gap_report)) = train_eval {
+        refuse_existing(&[report, row_records, gap_report])?;
+    } else {
+        refuse_existing(&[report, row_records])?;
+    }
     let bytes = std::fs::read(artifact).map_err(|e| format!("{artifact}: {e}"))?;
     let (tables, model) = ArtifactTables::from_bytes(&bytes)?;
     let config: DriverConfig =
@@ -140,7 +172,8 @@ fn score(
     }
     let rows = inst::dev_rows(&config)?;
     let views: Vec<&[u32]> = rows.iter().map(|row| row.prefix.as_slice()).collect();
-    let packed = inst::kernel::pack_rows(&views)?;
+    let targets: Vec<u32> = rows.iter().map(|row| row.target_token).collect();
+    let packed = inst::kernel::pack_rows_with_targets(&views, &targets)?;
     let scorer = DeviceScorer::new(0, &tables)?;
     let started = std::time::Instant::now();
     let scores = scorer.score(&packed)?;
@@ -155,21 +188,45 @@ fn score(
         "resources": device::RESOURCES,
     });
     summary["score_elapsed_us"] = serde_json::json!(elapsed_us);
+    let b4 = inst::planted_fault_control(&bytes, &tables, &rows, &scores, |fault_tables| {
+        DeviceScorer::new(0, fault_tables)?.score(&packed)
+    })?;
+    summary["planted_fault_b4"] = b4.clone();
     let mut mismatch = false;
     if reference {
         let check = inst::reference_check(&model, &rows, &scores);
         mismatch = check["agreed"] != check["checked"];
         summary["reference"] = check;
     }
+    if let Some((train_eval_path, gap_report_path)) = train_eval {
+        let train_eval_json = read_json(train_eval_path)?;
+        let gap = inst::compare_with_train_eval(&summary, &rows, &scores, &train_eval_json, &b4)?;
+        let exact_zero = gap["exact_zero_gap"].as_bool() == Some(true);
+        let b4_ok = gap["b4_pass"].as_bool() == Some(true);
+        write_new(gap_report_path, &json_bytes(&gap)?)?;
+        if !exact_zero || !b4_ok {
+            write_new(row_records, &lines)?;
+            write_new(report, &json_bytes(&summary)?)?;
+            return Err(format!(
+                "export gap or planted-fault B4 failed: exact_zero_gap={exact_zero}, b4_pass={b4_ok}"
+            ));
+        }
+    }
     write_new(row_records, &lines)?;
     write_new(report, &json_bytes(&summary)?)?;
     println!(
-        "{} rows: top1 {}, top8 {}, admitted {}, refused {}",
-        summary["rows"], summary["top1"], summary["top8"], summary["admitted"], summary["refused"]
+        "{} rows: top1 {}, top8 {}, admitted {}, loss_ta {}, loss_tr {}, refused {}",
+        summary["rows"],
+        summary["top1"],
+        summary["top8"],
+        summary["admitted"],
+        summary["loss_ta_numerator_sum"],
+        summary["loss_tr_numerator_sum"],
+        summary["refused"]
     );
     if mismatch {
         return Err(format!(
-            "the GPU scores differ from evaluate_prefix: {}",
+            "the GPU scores differ from observe_target: {}",
             summary["reference"]["first_mismatch"]
         ));
     }

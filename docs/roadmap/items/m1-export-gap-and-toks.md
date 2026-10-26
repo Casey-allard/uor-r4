@@ -3,7 +3,7 @@ id: m1-export-gap-and-toks
 title: Measure export gap and tokens per second on a trained model
 milestone: M1
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-d11-exporter-discrete, m1-bvg-k-stage-t-training, m1-d11-artifact-scorer]

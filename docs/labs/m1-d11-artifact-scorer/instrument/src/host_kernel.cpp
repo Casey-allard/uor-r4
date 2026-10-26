@@ -12,10 +12,10 @@ extern "C" int64_t d11_sizeof_row_out(void) { return (int64_t)sizeof(D11RowOut);
 extern "C" int64_t d11_sizeof_plan(void) { return (int64_t)sizeof(D11Plan); }
 
 extern "C" void d11_host_score_rows(const D11Model* model, const uint32_t* prefixes,
-                                    const int32_t* lengths, int32_t rows, int32_t stride,
-                                    D11Scratch* scratch, D11RowOut* out) {
+                                    const int32_t* lengths, const uint32_t* targets, int32_t rows,
+                                    int32_t stride, D11Scratch* scratch, D11RowOut* out) {
     for (int32_t row = 0; row < rows; ++row) {
-        d11_evaluate_row(model, prefixes + (int64_t)row * stride, lengths[row], scratch,
-                         &out[row]);
+        d11_evaluate_row(model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
+                         scratch, &out[row]);
     }
 }

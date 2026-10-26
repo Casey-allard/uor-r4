@@ -1,6 +1,7 @@
 //! The row records the kernel reads and writes, shared by the device scorer
 //! and the host build of the same body (`kernel_core.h`), and the comparison of
-//! one scored row with `IntegerDiscreteModel::evaluate_prefix`.
+//! one scored row with `IntegerDiscreteModel::evaluate_prefix` and
+//! `IntegerDiscreteModel::observe_target`.
 use crate::artifact::ArtifactTables;
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
@@ -14,8 +15,10 @@ pub const PLAN_WORDS: usize = 2 + 32 + 512 * 7;
 const MAX_NODES: usize = 512;
 const MAX_FRONTIER: usize = 32;
 /// `sizeof(D11RowOut)` in 32-bit words: status, admitted_count, top8_count,
-/// prediction, admitted[16], top8[8], read_vector[16 * 8].
-pub const ROW_OUT_WORDS: usize = 4 + 16 + 8 + 16 * 8;
+/// prediction, admitted[16], top8[8], read_vector[16 * 8], and the five
+/// target-observation loss words (token_hinge, address_hinge, rank_hinge,
+/// loss_ta, loss_tr).
+pub const ROW_OUT_WORDS: usize = 4 + 16 + 8 + 16 * 8 + 5;
 
 /// Kernel status codes (`D11_ERR_*` in `kernel_core.h`); 0 is success.
 pub fn status_name(status: i32) -> &'static str {
@@ -28,6 +31,7 @@ pub fn status_name(status: i32) -> &'static str {
         5 => "route did not reach an atom leaf",
         6 => "writer admitted zero tokens",
         7 => "shape outside the kernel's bounds",
+        8 => "target token ID outside vocabulary",
         _ => "unknown kernel status",
     }
 }
@@ -77,22 +81,27 @@ pub fn row_plans(context: u32) -> Result<Vec<i32>, String> {
     Ok(words)
 }
 
-/// Prefixes laid out as the kernel reads them: `rows x stride` tokens, each
-/// row zero-padded after its length.
+/// Prefixes and targets laid out as the kernel reads them: `rows x stride`
+/// tokens, each row zero-padded after its length, and one target token per row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackedRows {
     pub prefixes: Vec<u32>,
     pub lengths: Vec<i32>,
+    pub targets: Vec<u32>,
     pub stride: i32,
 }
 
 impl PackedRows {
     /// The layout both scorers rely on: a positive stride, `rows x stride`
-    /// tokens, and every length within `0..=stride`, so no row reads past its
-    /// own slots. A length of 0 is kept: the kernel refuses that row.
+    /// tokens, one target per row, and every length within `0..=stride`, so no
+    /// row reads past its own slots. A length of 0 is kept: the kernel refuses
+    /// that row.
     pub fn check(&self) -> Result<(), String> {
         let stride = usize::try_from(self.stride).map_err(|_| "negative stride")?;
-        if stride == 0 || self.prefixes.len() != self.lengths.len() * stride {
+        if stride == 0
+            || self.prefixes.len() != self.lengths.len() * stride
+            || self.targets.len() != self.lengths.len()
+        {
             return Err("packed rows have the wrong length".into());
         }
         if self
@@ -107,6 +116,14 @@ impl PackedRows {
 }
 
 pub fn pack_rows(prefixes: &[&[u32]]) -> Result<PackedRows, String> {
+    let targets = vec![0u32; prefixes.len()];
+    pack_rows_with_targets(prefixes, &targets)
+}
+
+pub fn pack_rows_with_targets(prefixes: &[&[u32]], targets: &[u32]) -> Result<PackedRows, String> {
+    if prefixes.len() != targets.len() {
+        return Err("targets do not match prefixes".into());
+    }
     let stride = prefixes.iter().map(|p| p.len()).max().unwrap_or(1).max(1);
     let mut packed = vec![0u32; prefixes.len() * stride];
     let mut lengths = Vec::with_capacity(prefixes.len());
@@ -117,6 +134,7 @@ pub fn pack_rows(prefixes: &[&[u32]]) -> Result<PackedRows, String> {
     Ok(PackedRows {
         prefixes: packed,
         lengths,
+        targets: targets.to_vec(),
         stride: i32::try_from(stride).map_err(|_| "stride too long")?,
     })
 }
@@ -129,6 +147,11 @@ pub struct RowScore {
     pub admitted_cells: Vec<u32>,
     pub top8: Vec<u32>,
     pub prediction: u32,
+    pub token_hinge: u64,
+    pub address_hinge: u64,
+    pub rank_hinge: u64,
+    pub loss_ta: u64,
+    pub loss_tr: u64,
 }
 
 /// Decodes `rows` records of `ROW_OUT_WORDS` words; `blocks` sets the read
@@ -153,28 +176,50 @@ pub fn decode_rows(words: &[u32], rows: usize, blocks: usize) -> Result<Vec<RowS
                     admitted_cells: Vec::new(),
                     top8: Vec::new(),
                     prediction: 0,
+                    token_hinge: 0,
+                    address_hinge: 0,
+                    rank_hinge: 0,
+                    loss_ta: 0,
+                    loss_tr: 0,
                 });
             }
+            let loss_base = 28 + 16 * 8;
             Ok(RowScore {
                 status,
                 read_vector: w[28..28 + blocks * 8].iter().map(|&v| v as i32).collect(),
                 admitted_cells: w[4..4 + admitted].to_vec(),
                 top8: w[20..20 + top].to_vec(),
                 prediction: w[3],
+                token_hinge: u64::from(w[loss_base]),
+                address_hinge: u64::from(w[loss_base + 1]),
+                rank_hinge: u64::from(w[loss_base + 2]),
+                loss_ta: u64::from(w[loss_base + 3]),
+                loss_tr: u64::from(w[loss_base + 4]),
             })
         })
         .collect()
 }
 
-/// Compares one scored row with the clean-room evaluator. `Ok(())` when they
-/// agree exactly, including both refusing the row.
+/// Compares one scored row (at `target = 0`) with the clean-room evaluator.
 pub fn compare_row(
     model: &IntegerDiscreteModel,
     prefix: &[u32],
     score: &RowScore,
 ) -> Result<(), String> {
-    match model.evaluate_prefix(prefix) {
-        Ok(reference) => {
+    compare_row_with_target(model, prefix, 0, score)
+}
+
+/// Compares one scored row and its target loss numerators against
+/// `IntegerDiscreteModel::observe_target(prefix, target)`.
+pub fn compare_row_with_target(
+    model: &IntegerDiscreteModel,
+    prefix: &[u32],
+    target: u32,
+    score: &RowScore,
+) -> Result<(), String> {
+    match model.observe_target(prefix, target) {
+        Ok(obs) => {
+            let reference = &obs.evaluation;
             if score.status != 0 {
                 return Err(format!(
                     "kernel refused a row the reference scores: {}",
@@ -189,6 +234,26 @@ pub fn compare_row(
             }
             if score.top8 != reference.top8 || score.prediction != reference.prediction {
                 return Err("top-8 or prediction differs".into());
+            }
+            if score.token_hinge != obs.token_hinge
+                || score.address_hinge != obs.address_hinge
+                || score.rank_hinge != obs.rank_hinge
+                || score.loss_ta != obs.loss_ta
+                || score.loss_tr != obs.loss_tr
+            {
+                return Err(format!(
+                    "target loss differs: kernel (tok={}, addr={}, rank={}, ta={}, tr={}) vs reference (tok={}, addr={}, rank={}, ta={}, tr={})",
+                    score.token_hinge,
+                    score.address_hinge,
+                    score.rank_hinge,
+                    score.loss_ta,
+                    score.loss_tr,
+                    obs.token_hinge,
+                    obs.address_hinge,
+                    obs.rank_hinge,
+                    obs.loss_ta,
+                    obs.loss_tr
+                ));
             }
             Ok(())
         }
@@ -228,6 +293,7 @@ mod host {
             model: *const CModel,
             prefixes: *const u32,
             lengths: *const i32,
+            targets: *const u32,
             rows: i32,
             stride: i32,
             scratch: *mut c_void,
@@ -271,14 +337,15 @@ pub fn host_score(tables: &ArtifactTables, rows: &PackedRows) -> Result<Vec<RowS
     // SAFETY: CModel mirrors D11Model (eight i32 then five pointers); the
     // pointers cover the lengths the artifact reader checked, and plans holds
     // one D11Plan per length up to the context, checked above; prefixes holds
-    // rows x stride tokens; scratch is one D11Scratch (SCRATCH_WORDS words) and
-    // out holds `count` D11RowOut records. The host function only reads model
-    // data and writes scratch and out.
+    // rows x stride tokens and targets holds `count` u32 words; scratch is one
+    // D11Scratch (SCRATCH_WORDS words) and out holds `count` D11RowOut records.
+    // The host function only reads model data and writes scratch and out.
     unsafe {
         host::d11_host_score_rows(
             &model,
             rows.prefixes.as_ptr(),
             rows.lengths.as_ptr(),
+            rows.targets.as_ptr(),
             rows_i32,
             rows.stride,
             scratch.as_mut_ptr().cast(),

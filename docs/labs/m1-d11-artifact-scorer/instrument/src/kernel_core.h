@@ -39,6 +39,7 @@
 #define D11_ERR_ROUTE 5
 #define D11_ERR_ZERO_TOKENS 6
 #define D11_ERR_SHAPE 7
+#define D11_ERR_TARGET_TOKEN 8
 
 typedef struct {
     int32_t c0;
@@ -84,6 +85,11 @@ typedef struct {
     uint32_t admitted[D11_MAX_KEPT_CELLS];
     uint32_t top8[8];
     int32_t read_vector[D11_MAX_BLOCKS * 8];
+    uint32_t token_hinge;
+    uint32_t address_hinge;
+    uint32_t rank_hinge;
+    uint32_t loss_ta;
+    uint32_t loss_tr;
 } D11RowOut;
 
 typedef struct {
@@ -480,13 +486,19 @@ D11_HD static uint32_t d11_token_distance(const D11Model* m, const int32_t* q, u
     return sum;
 }
 
-// evaluate_prefix (:1165-1256).
+// evaluate_prefix (:1165-1256) and observe_target (:1278-1378).
 D11_HD static void d11_evaluate_row(
-    const D11Model* m, const uint32_t* prefix, int32_t length, D11Scratch* s, D11RowOut* out) {
+    const D11Model* m, const uint32_t* prefix, int32_t length, uint32_t target, D11Scratch* s,
+    D11RowOut* out) {
     out->status = D11_OK;
     out->admitted_count = 0;
     out->top8_count = 0;
     out->prediction = 0;
+    out->token_hinge = 0;
+    out->address_hinge = 0;
+    out->rank_hinge = 0;
+    out->loss_ta = 0;
+    out->loss_tr = 0;
     if (m->blocks < 1 || m->blocks > D11_MAX_BLOCKS || m->stages < 1 || m->stages > D11_MAX_STAGES
         || m->kept_cells < 1 || m->kept_cells > D11_MAX_KEPT_CELLS || m->read_kept > D11_MAX_KEPT) {
         out->status = D11_ERR_SHAPE;
@@ -501,6 +513,10 @@ D11_HD static void d11_evaluate_row(
             out->status = D11_ERR_PREFIX_TOKEN;
             return;
         }
+    }
+    if (target >= (uint32_t)m->vocabulary) {
+        out->status = D11_ERR_TARGET_TOKEN;
+        return;
     }
     const D11Plan* p = &m->plans[length - 1];
     if (p->node_count < length || p->node_count > D11_MAX_NODES || p->frontier_len < 1
@@ -601,6 +617,57 @@ D11_HD static void d11_evaluate_row(
         out->top8[k] = ranked[k];
     }
     out->prediction = ranked[0];
+
+    uint32_t target_cell = m->cells[target];
+    uint32_t rival_distance = 0xFFFFFFFFu;
+    uint32_t rival_address = 0xFFFFFFFFu;
+    for (int32_t k = 0; k < out->admitted_count; ++k) {
+        uint32_t cell = out->admitted[k];
+        uint32_t cost = d11_address_distance(m, q, cell);
+        if (cell != target_cell && cost < rival_address) {
+            rival_address = cost;
+        }
+        for (int32_t token = 0; token < m->vocabulary; ++token) {
+            if (m->cells[token] == cell && (uint32_t)token != target) {
+                uint32_t d = d11_token_distance(m, q, (uint32_t)token);
+                if (d < rival_distance) {
+                    rival_distance = d;
+                }
+            }
+        }
+    }
+    uint32_t width = (uint32_t)(m->blocks << 3);
+    uint32_t td = d11_token_distance(m, q, target);
+    uint32_t ad = d11_address_distance(m, q, target_cell);
+    uint32_t token_hinge = (rival_distance == 0xFFFFFFFFu || width + td <= rival_distance)
+        ? 0u
+        : (width + td - rival_distance);
+    uint32_t address_hinge = (rival_address == 0xFFFFFFFFu || 8u + ad <= rival_address)
+        ? 0u
+        : (8u + ad - rival_address);
+    uint32_t rank = 1u;
+    for (int32_t c = 0; c < 256; ++c) {
+        if (occupied[c]) {
+            uint32_t d = d11_address_distance(m, q, (uint32_t)c);
+            if (d < ad || (d == ad && (uint32_t)c < target_cell)) {
+                rank += 1u;
+            }
+        }
+    }
+    uint32_t rank_hinge =
+        rank > (uint32_t)m->kept_cells ? (rank - (uint32_t)m->kept_cells) : 0u;
+    uint32_t weighted_token = token_hinge << 3;
+    uint32_t weighted_address = 0u;
+    uint32_t weighted_rank = 0u;
+    for (uint32_t w = 0u; w < width; ++w) {
+        weighted_address += address_hinge;
+        weighted_rank += rank_hinge;
+    }
+    out->token_hinge = token_hinge;
+    out->address_hinge = address_hinge;
+    out->rank_hinge = rank_hinge;
+    out->loss_ta = weighted_token + weighted_address;
+    out->loss_tr = weighted_token + weighted_rank;
 }
 
 #endif

@@ -1,0 +1,14 @@
+TAP version 13
+1..7
+# Artifact: /Users/casey.allard/uor-r4/.worktrees/antigravity-m1-export-gap-and-toks/local/antigravity/wasm-pkg/uor_r4_integer_bg.wasm
+# Artifact SHA-256: 1332818275dfb9725415a61711e6cf11d80eb421758ae86df1e937c7d8168456
+# Artifact bytes: 416816
+# Build commit: UNRECORDED (supplied by --build-commit)
+# Scope: direct calls followed transitively; allowlisted callees, imported callees and indirect call targets are not audited
+ok 1 - loadStack: mul=0, div=0, float=0, unclassified=0 (102 instructions in 4 fn(s); 3 allowlisted and 1 imported callee(s) not audited; 0 indirect call site(s))
+ok 2 - step: mul=0, div=0, float=0, unclassified=0 (30413 instructions in 65 fn(s); 19 allowlisted and 1 imported callee(s) not audited; 2 indirect call site(s))
+ok 3 - saveSession: mul=0, div=0, float=0, unclassified=0 (146 instructions in 5 fn(s); 5 allowlisted and 1 imported callee(s) not audited; 0 indirect call site(s))
+ok 4 - restoreSession: mul=0, div=0, float=0, unclassified=0 (128 instructions in 6 fn(s); 3 allowlisted and 1 imported callee(s) not audited; 0 indirect call site(s))
+ok 5 - weightsPerToken: mul=0, div=0, float=0, unclassified=0 (122 instructions in 6 fn(s); 3 allowlisted and 1 imported callee(s) not audited; 0 indirect call site(s))
+ok 6 - stack::IntegerStackSession::step: mul=0, div=0, float=0, unclassified=0 (29374 instructions in 54 fn(s); 12 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))
+ok 7 - stack::stack_argmax: mul=0, div=0, float=0, unclassified=0 (161 instructions in 1 fn(s); 0 allowlisted and 0 imported callee(s) not audited; 0 indirect call site(s))

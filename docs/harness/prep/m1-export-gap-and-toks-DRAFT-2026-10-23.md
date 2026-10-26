@@ -4,7 +4,11 @@
 - **Lab:** `antigravity` (`antigravity-42`, updated in `antigravity-74`).
 - **Run:** `m1-export-gap-and-toks-stage4`
 - **Mechanism under test:** [D11 integer table serving (`UORLUT01`)](../../mechanisms/lut-serving.md) (`uor-r4.lut-discrete/1` exporter in [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) and integer evaluator in [`crates/uor-r4-integer/src/discrete_d11.rs`](../../../crates/uor-r4-integer/src/discrete_d11.rs)).
-- **Status:** Pre-registered (`TEST FITNESS: PENDING` -> reviewed in `antigravity-74`). One of the two required inputs ([`m1-d11-exporter-discrete`](../../roadmap/items/m1-d11-exporter-discrete.md), [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838)) is `done`; the second required input is a trained discrete model from [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) ([#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836), `PLAN.md` Step 4), as [`m1-a8-full-dose-rerun`](../../roadmap/items/m1-a8-full-dose-rerun.md) ([#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831)) ended in an instrument `STOP_FOR_DIAGNOSIS` (`consecutive_rejections`).
+- **Status:** Pre-registered (`TEST FITNESS: FIT` in `antigravity-74`, updated with Stage T `#2836` pins in `antigravity-96`). All three required inputs — [`m1-d11-exporter-discrete`](../../roadmap/items/m1-d11-exporter-discrete.md) ([#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838)), [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) ([#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836), `PLAN.md` Step 4), and [`m1-d11-artifact-scorer`](../../roadmap/items/m1-d11-artifact-scorer.md) ([#3248](https://github.com/UOR-Foundation/uor-r4/issues/3248)) — are `done`.
+
+## Question
+
+On one leased RTX 5090 pod (`CHARTER.md` §3.5) and the client laptop (`CHARTER.md` §3.6), do the exported `UORLUT01` (`uor-r4.lut-discrete/1`) integer artifacts of the Stage T trained discrete checkpoints (`t16-frozen-zero-seed{1,2}`, `t16-relation-seed{1,2}` from `#2836`) pass the B1 zero-multiply static audits, achieve exact zero export gap (`\Delta_{\text{top1}} = 0`, `\Delta_{\text{top8}} = 0`, `\Delta_{\text{adm}} = 0`, `\Delta_{\text{loss}} = 0`, `14,287 / 14,287` row agreement) against their sealed training-side CUDA `eval-corpus` receipts (`final-dev.json`) with planted-fault control B4 verified, and report separate prompt-reading (`192`-token prefill) and reply-writing (`64`-token autoregressive decode) throughput (`tok/s`)?
 
 ## Bar
 
@@ -28,13 +32,29 @@
 
 ## Base artifact
 
-- **Exporter and integer evaluator (merged on `main` in `#2998`):**
-  - Exporter: [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) (`export_d11`, `export_d11_to_path`, CLI subcommand `discrete-stack export-d11`).
+- **Exporter, integer evaluator, and GPU artifact scorer (merged on `main` in `#2998` and `#3249`):**
+  - Exporter: [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) (`export_d11`, `export_d11_to_path`).
   - Container verifier: [`crates/uor-r4-lut/src/format.rs`](../../../crates/uor-r4-lut/src/format.rs) (`DISCRETE_SCHEMA = "uor-r4.lut-discrete/1"`, `verify_discrete_header`).
   - Integer evaluator: [`crates/uor-r4-integer/src/discrete_d11.rs`](../../../crates/uor-r4-integer/src/discrete_d11.rs) (`IntegerDiscreteModel::from_path`, `evaluate_prefix`, `observe_target`).
-- **Trained checkpoint input (`PLAN.md` Step 4 -> Step 6 dependency):**
-  - Requires a saved trained discrete checkpoint JSON (`uor-r4.discrete-spiralcore-fbs/2`) from [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) (`#2836`, `PLAN.md` Step 4), pinned by its exact SHA-256 before any run starts.
-  - Under D67 ([CHARTER.md §5.1, §6](../../../CHARTER.md)), the owner-release hold on runs is retired and replaced by the lab's own fresh-context D67 pre-run review recorded on `#2839` (`--owner-release-issue https://github.com/UOR-Foundation/uor-r4/issues/2839#<comment>`).
+  - GPU artifact scorer instrument: [`docs/labs/m1-d11-artifact-scorer/instrument/`](../../labs/m1-d11-artifact-scorer/instrument/) (`d11-scorer export`, `d11-scorer score --reference --train-eval`, `d11-scorer toks`).
+- **Trained checkpoint inputs (`PLAN.md` Step 4 -> Step 6 dependency, archived in `caseyallard/uor-r4-store:results/antigravity/m1-bvg-k-stage-t-training-2026-10-25/stage-t-20261025.tar.gz`, SHA-256 `c004db506bf64903231c5c225a07e9969d5e3344c51a67eaec9429265e5f44b6`):**
+  - `t16-frozen-zero-seed1`:
+    - `final-checkpoint.json`: SHA-256 `0831900fc6c04b4489215dc93876f87a173b2c6c16b6635dde2f2ff24c1015a4` (`model_sha256 = de8d94ba15e3f7889681a244e5480b260f68ae5ee7f57944d44f4da8fef4e817`, `epoch = accepted_updates = 420`).
+    - `final-dev.json` (training-side CUDA `eval-corpus`): SHA-256 `a7d23490c511fc7a391c95546646cd6aaef391950a5fb541fd13d2029a6edf8e` (`top1 = 455`, `top8 = 1,484`, `target_admitted = 5,009`, `loss_ta = 12,920,928`, `loss_tr = 29,531,840`).
+    - Exported `t16-frozen-zero-seed1.lut` (`542,260` bytes): SHA-256 `fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca`.
+  - `t16-frozen-zero-seed2`:
+    - `final-checkpoint.json`: SHA-256 `8bbb59503a16b8bbd2cc723cbd3bc405543f65dfab00ee9ed6c4e9b43271842c` (`model_sha256 = 6f77137b3960563211e76b4de482434cc11bc9245ab578a4e47d139fd77f0fd9`, `epoch = accepted_updates = 420`).
+    - `final-dev.json` (training-side CUDA `eval-corpus`): SHA-256 `644a89ae0a5b817f57f92c1047096f343be50d34f112929180f1c9027bf71e78` (`top1 = 455`, `top8 = 1,484`, `target_admitted = 5,009`, `loss_ta = 12,920,928`, `loss_tr = 29,531,840`).
+    - Exported `t16-frozen-zero-seed2.lut` (`542,260` bytes): SHA-256 `a75ea7f5907275fd4c1e853ee76135a7a2615ba8302aaadf362bfa7eb96ae12a`.
+  - `t16-relation-seed1`:
+    - `final-checkpoint.json`: SHA-256 `558b8810dc888d3acd2d5d135b9137062ce69f74e4148a822e1b59b9cfccb944` (`model_sha256 = aeeb92f80399af1effe569ae0fe3a19f15a7940c209b85ac818c5de511a2b27e`, `epoch = accepted_updates = 678`).
+    - `final-dev.json` (training-side CUDA `eval-corpus`): SHA-256 `e73d9330ed907b8ba87d17f73b8e947136b8eb2e40a48454c89bb29601213261` (`top1 = 371`, `top8 = 1,124`, `target_admitted = 3,827`, `loss_ta = 13,604,128`, `loss_tr = 31,562,816`).
+    - Exported `t16-relation-seed1.lut` (`542,260` bytes): SHA-256 `d64e127c79c1e3be65277efe507473162bd4658b22ac8daf39b165ccfc5e25f2`.
+  - `t16-relation-seed2`:
+    - `final-checkpoint.json`: SHA-256 `1757a3c54692061c112850a8aabfff41671426d48eb3a37fd6a46883242d29d2` (`model_sha256 = 60d6b8cd894f42e32a1c67d0befdf17daab6d87b2ee7b78035514aaf245f8fa5`, `epoch = accepted_updates = 678`).
+    - `final-dev.json` (training-side CUDA `eval-corpus`): SHA-256 `2700ababcc5b12978270206df7de5e97c4db29bff23f9c6e20eca6215d2a1377` (`top1 = 371`, `top8 = 1,124`, `target_admitted = 3,827`, `loss_ta = 13,604,128`, `loss_tr = 31,562,816`).
+    - Exported `t16-relation-seed2.lut` (`542,260` bytes): SHA-256 `c21d992fb4a70b93b916c6de9aa9042d3f3f529c57fa4467f9928334f65383c1`.
+  - Under D67 ([CHARTER.md §5.1, §6](../../../CHARTER.md)), the owner-release hold on runs is retired and replaced by the lab's own fresh-context D67 pre-run review recorded on `#2839`.
 
 ## Data split
 
@@ -74,13 +94,13 @@
      `python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`
    - Run WebAssembly zero-multiply audit:
      `python3 scripts/audit_zero_matmul_wasm.py crates/uor-r4-integer/pkg/uor_r4_integer_bg.wasm --serving --call-graph --tap`
-2. **GPU export and `14,287`-row DEV evaluation on leased RTX 5090 pod (CHARTER §3.5, after FIT + owner release):**
+2. **GPU export and `14,287`-row DEV evaluation on leased RTX 5090 pod (CHARTER §3.5, after FIT + D67 pre-run review):**
    - Check pod fleet status first: `scripts/pod/uor-pod status`.
-   - Verify SHA-256 of the input checkpoint JSON and `ft/dev/tokens.u16` (`0919e90f…`) / `ft/dev/response_mask.u8` (`a838bb1a…`).
-   - Export the checkpoint to `UORLUT01` (`uor-r4.lut-discrete/1`):
-     `~/.cargo/bin/cargo run --release -p uor-r4-discrete --bin discrete-stack -- export-d11 CHECKPOINT.json MODEL.lut EXPORT_REPORT.json`
-   - Score the `14,287`-row DEV panel on the CUDA evaluator (`discrete-stack eval-corpus`) and compare row-by-row against `IntegerDiscreteModel` (`uor-r4-integer`) on the same `14,287` rows, recording `\Delta_{\text{top1}}`, `\Delta_{\text{top8}}`, `\Delta_{\text{adm}}`, `\Delta_{\text{loss}}`, and planted-fault control B4 in `GAP_REPORT.json`.
-   - Copy all receipts and `FILES.sha256` off the pod before `scripts/pod/uor-pod down`.
+   - Verify SHA-256 of the input Stage T checkpoint JSONs (`t16-frozen-zero-seed{1,2}`, `t16-relation-seed{1,2}`), their `final-dev.json` training-side evaluation receipts, and `ft/dev/tokens.u16` (`0919e90f…`) / `ft/dev/response_mask.u8` (`a838bb1a…`).
+   - Build the ahead-of-time CUDA `d11-scorer` instrument (`docs/labs/m1-d11-artifact-scorer/instrument`, `UOR_NVCC_ARCH=compute_120 --features cuda --target x86_64-unknown-linux-gnu`) and run its finite GPU test suite (`cargo test --release --locked --features cuda --target x86_64-unknown-linux-gnu --no-fail-fast -- --include-ignored`).
+   - Export each Stage T checkpoint to `UORLUT01` (`uor-r4.lut-discrete/1`) via `d11-scorer export CHECKPOINT.json MODEL.lut EXPORT_REPORT.json` (which invokes `uor_r4_discrete::d11_export::export_d11`) and verify the `.lut` SHA-256 matches the laptop export byte-for-byte.
+   - Score the `14,287`-row DEV panel on the GPU (`d11-scorer score MODEL.lut CONFIG.json SCORE_REPORT.json SCORE_ROWS.jsonl --reference --train-eval FINAL_DEV.json GAP_REPORT.json`), verifying row-by-row parity against `IntegerDiscreteModel::observe_target` (`14,287 / 14,287` rows, `refused = 0`), planted-fault control B4 (`planted_fault_b4.passed = true`), and exact zero export gap against the training-side CUDA `eval-corpus` receipt (`\Delta_{\text{top1}} = 0`, `\Delta_{\text{top8}} = 0`, `\Delta_{\text{adm}} = 0`, `\Delta_{\text{loss\_ta}} = 0`, `\Delta_{\text{loss\_tr}} = 0`).
+   - Copy all receipts and `SHA256SUMS` off the pod and archive to `caseyallard/uor-r4-store:results/antigravity/m1-export-gap-and-toks-2026-10-26/` before `scripts/pod/uor-pod release` and `scripts/pod/uor-pod down`.
 3. **Laptop product serving timing protocol (CHARTER §3.6):**
    - Record laptop hardware profile (`sw_vers`, `sysctl -n machdep.cpu.brand_string`, physical/performance cores, memory, power state).
    - **Prompt-reading rate (context prefill):** On a deterministic `192`-token prompt prefix, run `1` warmup iteration followed by `N = 20` timed iterations of full-prefix evaluation (`IntegerDiscreteModel::evaluate_prefix` over `L_{\text{prompt}} = 192` tokens). Record all `20` raw elapsed durations (ns), median `tok/s`, and nearest-rank `p95` `tok/s` (rank `19` of `20` sorted durations).
@@ -95,12 +115,12 @@
 - **Configuration negative (D22):**
   - For an offline float-trained candidate (D37), an export gap exceeding `\Delta_{\text{noise,top1}} = 398` rows, `\Delta_{\text{noise,top8}} = 748` rows, or `\Delta_{\text{noise,adm}} = 930` rows on the `14,287` DEV rows disqualifies that candidate configuration without closing the D11 serving mechanism.
 - **Hard resource caps:**
-  - Pod spend `<= $0.25` (single RTX 5090 pod for `<= 15 min` at `~$0.89/h`), fleet cap `<= 4` pods and `<= $8/h` across all labs.
+  - Pod spend `<= $0.50` (single RTX 5090 pod for `<= 15 min` at `~$1.41/h` on a 1-hour lease), fleet cap `<= 4` pods and `<= $8/h` across all labs.
 
 ## Cost
 
 - **Laptop static audits and product timing (Steps 1 & 3):** `$0.00` (local Apple Silicon M-series laptop, `< 5 min` wall time).
-- **GPU DEV evaluation and parity receipt (Step 2):** `<= 15 min` on one leased RTX 5090 pod (`~$0.89/h`), estimated cost `<= $0.25`.
+- **GPU DEV evaluation and parity receipt (Step 2):** `<= 15 min` on one leased RTX 5090 pod (`~$1.41/h`), estimated cost `<= $0.50`.
 
 ## Minimum test power
 
@@ -111,6 +131,6 @@
 
 TEST FITNESS: FIT - M1 #2029 lut-serving
 sheet: docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md
-reviewer: antigravity-fresh-reviewer (8a915285-22c1-4fcf-b336-9f292d2a5b7d; https://github.com/UOR-Foundation/uor-r4/issues/2839#issuecomment-6398709883)
-date: 2026-10-25
+reviewer: antigravity-fresh-reviewer (8a915285-22c1-4fcf-b336-9f292d2a5b7d; re-verified with Stage T pins by ac559562-b8ce-4d82-b1d8-d8ae66015505 at b287ccc3144c1a894c75066c02d0302138bc8b59)
+date: 2026-10-26
 A FIT verdict clears compute for the configuration in that sheet only (D22).

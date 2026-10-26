@@ -3,10 +3,12 @@
 //! three read modes, up to the 243-token context and the 16-block bound.
 use m1_d11_artifact_scorer_instrument::artifact::ArtifactTables;
 use m1_d11_artifact_scorer_instrument::kernel::{
-    compare_row, host_record_sizes, host_score, pack_rows, row_plans, PackedRows, RowScore,
-    PLAN_WORDS, ROW_OUT_WORDS, SCRATCH_WORDS,
+    compare_row, host_record_sizes, host_score, pack_rows, pack_rows_with_targets, row_plans,
+    PackedRows, RowScore, PLAN_WORDS, ROW_OUT_WORDS, SCRATCH_WORDS,
 };
-use m1_d11_artifact_scorer_instrument::{reference_check, score_summary, DevRow};
+use m1_d11_artifact_scorer_instrument::{
+    compare_with_train_eval, planted_fault_control, reference_check, score_summary, DevRow,
+};
 use uor_r4_discrete::d11_export::export_d11;
 use uor_r4_discrete::metadata::BinderPlan;
 use uor_r4_discrete::normalization_mechanism::NormalizationMode;
@@ -260,7 +262,7 @@ fn the_largest_shape_agrees_with_the_reference() {
 
 #[test]
 fn score_totals_count_the_reference_predictions() {
-    let (tables, model, prefixes, packed) = fixture(&CASES[1]);
+    let (tables, model, prefixes, _packed) = fixture(&CASES[1]);
     let references: Vec<_> = prefixes
         .iter()
         .map(|p| model.evaluate_prefix(p).expect("reference"))
@@ -277,6 +279,9 @@ fn score_totals_count_the_reference_predictions() {
             prefix: prefix.clone(),
         })
         .collect();
+    let views: Vec<&[u32]> = rows.iter().map(|r| r.prefix.as_slice()).collect();
+    let targets: Vec<u32> = rows.iter().map(|r| r.target_token).collect();
+    let packed = pack_rows_with_targets(&views, &targets).expect("pack with targets");
     let scores = host_score(&tables, &packed).expect("host score");
     let (summary, lines) = score_summary(&tables, &rows, &scores).expect("summary");
     let count = |hit: &dyn Fn(&DevRow, &DiscretePrefixEvaluation) -> bool| {
@@ -314,6 +319,96 @@ fn score_totals_count_the_reference_predictions() {
     let check = reference_check(&model, &rows, &wrong);
     assert_eq!(check["agreed"], rows.len() - 1);
     assert_eq!(check["first_mismatch"]["ordinal"], 3);
+
+    // Negative control: perturbing loss_ta on row 2 must also fail reference_check.
+    let mut wrong_loss = scores.clone();
+    wrong_loss[2].loss_ta += 1;
+    let check_loss = reference_check(&model, &rows, &wrong_loss);
+    assert_eq!(check_loss["agreed"], rows.len() - 1);
+    assert_eq!(check_loss["first_mismatch"]["ordinal"], 2);
+}
+
+#[test]
+fn planted_fault_b4_and_train_eval_gap_verify_and_catch_faults() {
+    let bytes = export_d11(&snapshot(&CASES[1])).expect("export_d11");
+    let (tables, _model) = ArtifactTables::from_bytes(&bytes).expect("artifact tables");
+    let prefixes = prefixes(&CASES[1]);
+    let rows: Vec<DevRow> = prefixes
+        .iter()
+        .enumerate()
+        .map(|(i, p)| DevRow {
+            ordinal: i as u64,
+            target_position: (100 + i) as u64,
+            target_token: (i as u32) % CASES[1].vocabulary,
+            prefix: p.clone(),
+        })
+        .collect();
+    let views: Vec<&[u32]> = rows.iter().map(|r| r.prefix.as_slice()).collect();
+    let targets: Vec<u32> = rows.iter().map(|r| r.target_token).collect();
+    let packed = pack_rows_with_targets(&views, &targets).expect("pack");
+    let scores = host_score(&tables, &packed).expect("host score");
+    let (summary, _lines) = score_summary(&tables, &rows, &scores).expect("summary");
+
+    let b4 = planted_fault_control(&bytes, &tables, &rows, &scores, |fault_tables| {
+        host_score(fault_tables, &packed)
+    })
+    .expect("planted fault B4 passes");
+    assert_eq!(b4["b4_pass"], true);
+
+    // Negative control: if the scorer ignores table faults, B4 must fail.
+    assert!(
+        planted_fault_control(&bytes, &tables, &rows, &scores, |_fault_tables| {
+            Ok(scores.clone())
+        })
+        .is_err(),
+        "B4 must fail when faults produce 0 row mismatches"
+    );
+
+    let batch_rows: Vec<serde_json::Value> = rows
+        .iter()
+        .zip(&scores)
+        .map(|(r, s)| {
+            serde_json::json!({
+                "target_position": r.target_position,
+                "target_token": r.target_token,
+                "top8": s.top8,
+                "top1_correct": u64::from(s.prediction == r.target_token),
+                "top8_correct": u64::from(s.top8.contains(&r.target_token)),
+                "token_hinge": s.token_hinge,
+                "address_hinge": s.address_hinge,
+                "cell_rank_hinge": s.rank_hinge,
+                "loss_ta_numerator": s.loss_ta,
+                "loss_tr_numerator": s.loss_tr,
+            })
+        })
+        .collect();
+    let mut train_eval = serde_json::json!({
+        "accepted_updates_in_model": 1,
+        "aggregate": {
+            "scored_rows": rows.len(),
+            "top1_correct": summary["top1"],
+            "top8_correct": summary["top8"],
+            "target_admitted_rows": summary["admitted"],
+            "token_hinge_sum": summary["token_hinge_sum"],
+            "address_hinge_sum": summary["address_hinge_sum"],
+            "cell_rank_hinge_sum": summary["cell_rank_hinge_sum"],
+            "loss_ta_numerator_sum": summary["loss_ta_numerator_sum"],
+            "loss_tr_numerator_sum": summary["loss_tr_numerator_sum"],
+        },
+        "batches": [{"rows": batch_rows}],
+    });
+    let gap = compare_with_train_eval(&summary, &rows, &scores, &train_eval, &b4).expect("gap");
+    assert_eq!(gap["exact_zero_gap"], true);
+    assert_eq!(gap["b2_pass"], true);
+    assert_eq!(gap["b4_pass"], true);
+
+    // Negative control: a 1-unit discrepancy in row 0's loss_ta_numerator sets exact_zero_gap false.
+    train_eval["batches"][0]["rows"][0]["loss_ta_numerator"] =
+        serde_json::json!(scores[0].loss_ta + 1);
+    let bad_gap =
+        compare_with_train_eval(&summary, &rows, &scores, &train_eval, &b4).expect("bad gap");
+    assert_eq!(bad_gap["exact_zero_gap"], false);
+    assert_eq!(bad_gap["row_agreement"]["mismatched_rows"], 1);
 }
 
 /// The GPU qualification's finite test: on a CUDA device, the cubin scores

@@ -132,6 +132,10 @@ impl DeviceScorer {
                 .stream
                 .clone_htod(&rows.lengths[start..start + n])
                 .map_err(cuda)?;
+            let targets = self
+                .stream
+                .clone_htod(&rows.targets[start..start + n])
+                .map_err(cuda)?;
             let mut scratch = self
                 .stream
                 .alloc_zeros::<u32>(n * SCRATCH_WORDS)
@@ -149,13 +153,14 @@ impl DeviceScorer {
                 let (plans, _g5) = self.plans.device_ptr(&self.stream);
                 let (prefix_ptr, _g6) = prefixes.device_ptr(&self.stream);
                 let (length_ptr, _g7) = lengths.device_ptr(&self.stream);
-                let (scratch_ptr, _g8) = scratch.device_ptr_mut(&self.stream);
-                let (out_ptr, _g9) = out.device_ptr_mut(&self.stream);
+                let (target_ptr, _g8) = targets.device_ptr(&self.stream);
+                let (scratch_ptr, _g9) = scratch.device_ptr_mut(&self.stream);
+                let (out_ptr, _g10) = out.device_ptr_mut(&self.stream);
                 let mut n_rows = n as i32;
                 let mut row_stride = rows.stride;
                 let arg =
                     |value: &sys::CUdeviceptr| value as *const sys::CUdeviceptr as *mut c_void;
-                let mut params: [*mut c_void; 12] = [
+                let mut params: [*mut c_void; 13] = [
                     arg(&table),
                     arg(&cells),
                     arg(&routes),
@@ -164,6 +169,7 @@ impl DeviceScorer {
                     arg(&plans),
                     arg(&prefix_ptr),
                     arg(&length_ptr),
+                    arg(&target_ptr),
                     (&mut n_rows as *mut i32).cast(),
                     (&mut row_stride as *mut i32).cast(),
                     arg(&scratch_ptr),
@@ -171,14 +177,15 @@ impl DeviceScorer {
                 ];
                 let threads = THREADS.min(n as u32).max(1);
                 let grid = ((n as u32).div_ceil(threads), 1, 1);
-                // SAFETY: the twelve parameters point at values of the types
+                // SAFETY: the thirteen parameters point at values of the types
                 // d11_score_rows takes, in its order, and outlive the launch;
                 // the model sections and plans come from a reader-checked
                 // artifact, and plans covers every length up to the context
                 // (checked in new); prefixes holds n x stride tokens and
-                // lengths n words, each within 0..=stride (rows.check above);
-                // scratch holds n D11Scratch and out n D11RowOut records; each
-                // thread with row < n touches only its own.
+                // lengths and targets n words, each length within 0..=stride
+                // (rows.check above); scratch holds n D11Scratch and out n
+                // D11RowOut records; each thread with row < n touches only its
+                // own.
                 unsafe {
                     result::launch_kernel(
                         self.function,

@@ -13,8 +13,8 @@ extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* 
                                           const uint32_t* routes, const int32_t* gates,
                                           const int32_t* shape, const D11Plan* plans,
                                           const uint32_t* prefixes,
-                                          const int32_t* lengths, int32_t rows,
-                                          int32_t stride, D11Scratch* scratch,
+                                          const int32_t* lengths, const uint32_t* targets,
+                                          int32_t rows, int32_t stride, D11Scratch* scratch,
                                           D11RowOut* out) {
     int32_t row = (int32_t)(blockIdx.x * blockDim.x + threadIdx.x);
     if (row >= rows) {
@@ -34,6 +34,6 @@ extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* 
     model.routes = routes;
     model.gates = gates;
     model.plans = plans;
-    d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], &scratch[row],
-                     &out[row]);
+    d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
+                     &scratch[row], &out[row]);
 }
