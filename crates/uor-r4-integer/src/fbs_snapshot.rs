@@ -13,6 +13,72 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+/// The fixed-point exponent the exporter stores biases and decay offsets at
+/// (`stack::kernels::RESIDUAL_EXP`, held equal by a stack test).
+pub const FBS_FIXED_EXP: i32 = -16;
+
+/// Encode a finite scalar as a grid code `±(16 + m) 2^(e - 4)` with
+/// `1 <= e + 64 <= 127`: the exporter's form for gains and convolution taps.
+/// `stack::encode_grid_code` wraps it.
+pub fn grid_code(value: f64, positive: bool) -> Result<i16, String> {
+    if !value.is_finite() || (positive && value <= 0.0) {
+        return Err("nonfinite or non-positive scalar".to_owned());
+    }
+    if value.abs() < 1e-18 {
+        if positive {
+            return Err("zero positive grid scalar".to_owned());
+        }
+        return Ok(0);
+    }
+    let abs = value.abs();
+    let mut best_code = 0i16;
+    let mut best_err = f64::INFINITY;
+    for field in 1i16..=127 {
+        let e = i32::from(field) - 64;
+        let step = 2f64.powi(e - 4);
+        for m in 0i16..16 {
+            let cand = f64::from(16 + m) * step;
+            let err = (abs - cand).abs();
+            if err < best_err {
+                best_err = err;
+                best_code = (field << 4) | m;
+            }
+        }
+    }
+    Ok(if value < 0.0 { -best_code } else { best_code })
+}
+
+/// Decode a grid code `±(16 + m) 2^(e - 4)` to `f64`.
+pub fn grid_value(code: i16) -> f64 {
+    if code == 0 {
+        return 0.0;
+    }
+    let c = code.unsigned_abs();
+    let e = i32::from(c >> 4) - 64;
+    let mag = f64::from(16 + (c & 15)) * 2f64.powi(e - 4);
+    if code < 0 {
+        -mag
+    } else {
+        mag
+    }
+}
+
+/// `v` rounded to fixed point at `2^exp`, as the exporter stores it.
+pub fn fixed_value(v: f32, exp: i32) -> f64 {
+    (f64::from(v) * 2f64.powi(-exp)).round() * 2f64.powi(exp)
+}
+
+/// `v` at Q12 in `i16`, as the exporter writes the writer table, or `None`
+/// when it is not finite or does not fit (the exporter refuses both).
+pub fn q12_value(v: f32) -> Option<f64> {
+    if !v.is_finite() {
+        return None;
+    }
+    i16::try_from((f64::from(v) * 4096.0).round() as i64)
+        .ok()
+        .map(|k| f64::from(k) / 4096.0)
+}
+
 /// Write `bytes` to a new file at `path`, never leaving a partial file there
 /// and never replacing one. The bytes go to `<path>.partial` first, which is
 /// linked into place only when complete (the link refuses an existing
@@ -111,6 +177,22 @@ pub struct FbsFloatSequence {
     pub hidden: Vec<Vec<f32>>,
 }
 
+/// How the float GPU trunk was read (claude-124, claude-125).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FbsReadoutMode {
+    /// Plain float: nothing snapped, tables at full precision.
+    Plain,
+    /// The float sheets' D11 export mode: Q12-rounded, icosian-snapped
+    /// Hamilton gates; the transition and the tables as in `Plain`.
+    Export,
+    /// The D11 mode: the gates and the transition snapped to the 120 icosians
+    /// directly (no Q12 rounding of the gates, as the integer path), the
+    /// tables rounded as exported and the final query rounded to Q12, so the
+    /// float trunk computes what the artifact computes.
+    D11,
+}
+
 /// The float GPU trunk's single-token and sequence outputs, for comparison
 /// with its converted snapshot's reference and integer session.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -118,9 +200,8 @@ pub struct FbsFloatSequence {
 pub struct FbsFloatReadout {
     pub vocab: usize,
     pub width: usize,
-    /// Read in the float sheets' D11 export mode (Q12-rounded, icosian-snapped
-    /// Hamilton gates), or plain.
-    pub export_mode: bool,
+    /// The mode the trunk was read in.
+    pub mode: FbsReadoutMode,
     /// One position per token, in token order.
     pub positions: Vec<FbsFloatPosition>,
     /// Token sequences read position by position.
@@ -137,7 +218,7 @@ impl FbsFloatReadout {
         vocab: usize,
         width: usize,
         context: usize,
-        export_mode: bool,
+        mode: FbsReadoutMode,
     ) -> Result<(), String> {
         if self.sequences.is_empty() {
             return Err("the readout holds no sequences".to_owned());
@@ -159,11 +240,8 @@ impl FbsFloatReadout {
         if self.vocab != vocab || self.width != width {
             return Err("the readout's vocabulary or width differs from the trunk's".to_owned());
         }
-        if self.export_mode != export_mode {
-            return Err(format!(
-                "the readout was read with export_mode = {}",
-                self.export_mode
-            ));
+        if self.mode != mode {
+            return Err(format!("the readout was read in mode {:?}", self.mode));
         }
         if self.positions.len() != vocab {
             return Err(format!(
@@ -224,10 +302,10 @@ mod tests {
 
     #[test]
     fn float_readout_check_refuses_an_incomplete_or_misordered_readout() {
-        let readout = |tokens: &[u32], export_mode: bool| FbsFloatReadout {
+        let readout = |tokens: &[u32], mode: FbsReadoutMode| FbsFloatReadout {
             vocab: 3,
             width: 2,
-            export_mode,
+            mode,
             positions: tokens
                 .iter()
                 .map(|&token| FbsFloatPosition {
@@ -242,42 +320,52 @@ mod tests {
                 hidden: vec![vec![0.0; 2]; 2],
             }],
         };
-        assert!(readout(&[0, 1, 2], false).check(3, 2, 4, false).is_ok());
-        assert!(readout(&[0, 1, 2], true).check(3, 2, 4, true).is_ok());
+        assert!(readout(&[0, 1, 2], FbsReadoutMode::Plain)
+            .check(3, 2, 4, FbsReadoutMode::Plain)
+            .is_ok());
+        assert!(readout(&[0, 1, 2], FbsReadoutMode::Export)
+            .check(3, 2, 4, FbsReadoutMode::Export)
+            .is_ok());
         for (what, r, reason) in [
-            ("empty", readout(&[], false), "0 positions"),
-            ("a token missing", readout(&[0, 1], false), "2 positions"),
+            ("empty", readout(&[], FbsReadoutMode::Plain), "0 positions"),
+            (
+                "a token missing",
+                readout(&[0, 1], FbsReadoutMode::Plain),
+                "2 positions",
+            ),
             (
                 "a token repeated",
-                readout(&[0, 1, 1], false),
+                readout(&[0, 1, 1], FbsReadoutMode::Plain),
                 "position 2 is not token 2",
             ),
             (
                 "out of order",
-                readout(&[1, 0, 2], false),
+                readout(&[1, 0, 2], FbsReadoutMode::Plain),
                 "position 0 is not token 0",
             ),
             (
                 "the other mode",
-                readout(&[0, 1, 2], true),
-                "export_mode = true",
+                readout(&[0, 1, 2], FbsReadoutMode::Export),
+                "mode Export",
             ),
         ] {
-            match r.check(3, 2, 4, false) {
+            match r.check(3, 2, 4, FbsReadoutMode::Plain) {
                 Err(e) => assert!(e.contains(reason), "{what}: {e}"),
                 Ok(()) => panic!("{what} must be refused"),
             }
         }
-        let mut short = readout(&[0, 1, 2], false);
+        let mut short = readout(&[0, 1, 2], FbsReadoutMode::Plain);
         short.positions[1].hidden.pop();
         assert!(short
-            .check(3, 2, 4, false)
+            .check(3, 2, 4, FbsReadoutMode::Plain)
             .is_err_and(|e| e.contains("position 1")));
-        assert!(readout(&[0, 1, 2], false).check(4, 2, 4, false).is_err());
-        let mut none = readout(&[0, 1, 2], false);
+        assert!(readout(&[0, 1, 2], FbsReadoutMode::Plain)
+            .check(4, 2, 4, FbsReadoutMode::Plain)
+            .is_err());
+        let mut none = readout(&[0, 1, 2], FbsReadoutMode::Plain);
         none.sequences.clear();
         assert!(none
-            .check(3, 2, 4, false)
+            .check(3, 2, 4, FbsReadoutMode::Plain)
             .is_err_and(|e| e.contains("no sequences")));
         // A sequence must be 1 to `context` in-vocabulary tokens, each read.
         type Seq = fn(&mut FbsFloatSequence);
@@ -301,9 +389,9 @@ mod tests {
             }),
         ];
         for (what, mutate) in bad {
-            let mut r = readout(&[0, 1, 2], false);
+            let mut r = readout(&[0, 1, 2], FbsReadoutMode::Plain);
             mutate(&mut r.sequences[0]);
-            match r.check(3, 2, 4, false) {
+            match r.check(3, 2, 4, FbsReadoutMode::Plain) {
                 Err(e) => assert!(e.contains("sequence 0"), "{what}: {e}"),
                 Ok(()) => panic!("{what} must be refused"),
             }

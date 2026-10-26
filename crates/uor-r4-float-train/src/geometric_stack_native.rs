@@ -1267,8 +1267,14 @@ impl StackModel {
                     raw.broadcast_mul(&Tensor::new(&[1f32, 1.0, 0.0, 0.0], &self.device)?)?
                 }
             };
-            let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
-            let unit = raw.broadcast_div(&norm)?;
+            // The D11 mode snaps the transition to the 120 icosians, as the
+            // integer path serves it (`hamilton_sheet::with_d11_mode`).
+            let unit = if crate::hamilton_sheet::is_snapping_transition() {
+                crate::hamilton_sheet::icosian_snap_quaternions(&raw)?
+            } else {
+                let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
+                raw.broadcast_div(&norm)?
+            };
             unit.broadcast_mul(&lambda)?
         } else {
             let zeros = Tensor::zeros((batch, time, lanes, 3), DType::F32, &self.device)?;

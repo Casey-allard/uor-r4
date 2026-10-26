@@ -16,7 +16,8 @@
 use candle_core::Tensor;
 use uor_r4_integer::discrete_d11::{spiralcore_orbit_roots, spiralcore_signed_axes};
 use uor_r4_integer::fbs_snapshot::{
-    FbsFloatPosition, FbsFloatReadout, FbsFloatSequence, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot,
+    fixed_value, grid_code, grid_value, q12_value, FbsFloatPosition, FbsFloatReadout,
+    FbsFloatSequence, FbsReadoutMode, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot, FBS_FIXED_EXP,
 };
 
 use crate::geometric_stack::{
@@ -281,38 +282,150 @@ pub fn fbs_trunk_snapshot(model: &StackModel) -> Result<FbsTrunkSnapshot> {
     })
 }
 
-/// The float GPU trunk's own output for every single-token input: its final
-/// hidden vector and its native writer's next token. With `export_mode`, both
-/// Hamilton gates run in the float sheets' D11 export mode (Q12-rounded, then
-/// snapped to the 120 icosians). `fbs-compare` holds the converted snapshot
-/// against it. GPU only.
-pub fn fbs_float_readout(model: &StackModel, export_mode: bool) -> Result<FbsFloatReadout> {
-    check_no_sheet_arm()?;
-    if export_mode {
-        return crate::hamilton_sheet::with_d11_export_gates(|| fbs_float_readout(model, false))
-            .map(|r| FbsFloatReadout {
-                export_mode: true,
-                ..r
-            });
+/// Round the trunk's tables in place to the values the exported artifact holds
+/// (claude-125): grid codes for the RMS gains and the convolution taps, Q16 for
+/// the biases and decay offsets, and Q12 for the embedding, which is also the
+/// writer table. The FBS routes are exact and stay as they are. With these
+/// tables, [`FbsReadoutMode::D11`] computes what the artifact computes.
+pub fn round_tables_as_exported(model: &StackModel) -> Result<()> {
+    for (name, round) in exported_roundings(model) {
+        let (var, _, rounded) = table_and_rounding(model, &name, round)?;
+        let tensor = var.as_tensor();
+        var.set(&Tensor::from_vec(rounded, tensor.shape(), tensor.device())?)?;
     }
+    Ok(())
+}
+
+/// Refuse a trunk whose tables are not as the exported artifact holds them
+/// ([`round_tables_as_exported`]): only on those does the D11 mode compute
+/// what the artifact computes.
+pub fn check_tables_rounded_as_exported(model: &StackModel) -> Result<()> {
+    for (name, round) in exported_roundings(model) {
+        let (_, values, rounded) = table_and_rounding(model, &name, round)?;
+        if let Some(i) = (0..values.len()).find(|&i| values[i] != rounded[i]) {
+            return Err(invalid(format!(
+                "{name}[{i}] is {}, not its exported {}: the D11 mode needs the tables rounded \
+                 as exported first (round_tables_as_exported)",
+                values[i], rounded[i]
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// A table value's exported rounding.
+type Rounding = fn(f32) -> Result<f32>;
+
+/// A trunk table, its values and their exported rounding.
+type RoundedTable = (candle_core::Var, Vec<f32>, Vec<f32>);
+
+/// Each table the exported artifact holds rounded, with its rounding: grid
+/// codes for the RMS gains and the convolution taps, Q16 for the biases and
+/// decay offsets, Q12 for the embedding.
+fn exported_roundings(model: &StackModel) -> Vec<(String, Rounding)> {
+    fn grid(v: f32) -> Result<f32> {
+        Ok(grid_value(grid_code(f64::from(v), false).map_err(invalid)?) as f32)
+    }
+    fn fixed(v: f32) -> Result<f32> {
+        Ok(fixed_value(v, FBS_FIXED_EXP) as f32)
+    }
+    fn q12(v: f32) -> Result<f32> {
+        q12_value(v)
+            .map(|q| q as f32)
+            .ok_or_else(|| invalid(format!("embedding value {v} does not fit Q12 in i16")))
+    }
+    let mut tables: Vec<(String, Rounding)> = Vec::new();
+    for layer in 0..model.config.layers() {
+        for name in ["rec_norm.weight", "mlp_norm.weight", "rec.conv.weight"] {
+            tables.push((format!("layers.{layer:02}.{name}"), grid));
+        }
+        for name in ["rec.conv.bias", "rec.gate.bias", "rec.decay"] {
+            tables.push((format!("layers.{layer:02}.{name}"), fixed));
+        }
+    }
+    tables.push(("final_norm.weight".to_owned(), grid));
+    tables.push(("embedding.weight".to_owned(), q12));
+    tables
+}
+
+/// The trunk's table `name`, its values and their exported rounding.
+fn table_and_rounding(model: &StackModel, name: &str, round: Rounding) -> Result<RoundedTable> {
+    let var = model
+        .variables()
+        .get(name)
+        .ok_or_else(|| invalid(format!("the trunk lacks {name}")))?
+        .clone();
+    let values = finite_table(name, var.as_tensor().flatten_all()?.to_vec1::<f32>()?)?;
+    let rounded = values.iter().map(|&v| round(v)).collect::<Result<_>>()?;
+    Ok((var, values, rounded))
+}
+
+/// The float GPU trunk's own output for every single-token input and for
+/// [`READOUT_SEQUENCES`] fixed full-context sequences: its final hidden
+/// vector and its native writer's next token. `fbs-compare` holds the
+/// converted snapshot against it. GPU only.
+/// - [`FbsReadoutMode::Export`]: both Hamilton gates in the float sheets' D11
+///   export mode (Q12-rounded, then snapped to the 120 icosians).
+/// - [`FbsReadoutMode::D11`]: the gates and the transition snapped to the 120
+///   icosians directly, as the integer path does, and the final hidden
+///   vector rounded to Q12 before the writer. The caller rounds the tables
+///   first ([`round_tables_as_exported`]); an unrounded trunk is refused.
+pub fn fbs_float_readout(model: &StackModel, mode: FbsReadoutMode) -> Result<FbsFloatReadout> {
+    check_no_sheet_arm()?;
+    if mode == FbsReadoutMode::D11 {
+        check_tables_rounded_as_exported(model)?;
+    }
+    let read = || read_float_outputs(model, mode == FbsReadoutMode::D11);
+    let readout = match mode {
+        FbsReadoutMode::Plain => read(),
+        FbsReadoutMode::Export => crate::hamilton_sheet::with_d11_export_gates(read),
+        FbsReadoutMode::D11 => crate::hamilton_sheet::with_d11_mode(read),
+    }?;
+    Ok(FbsFloatReadout { mode, ..readout })
+}
+
+/// The hidden vectors of `tokens` (one sequence), rounded to Q12 when
+/// `q12_query`, with the native writer's next token for each.
+fn hidden_and_next(
+    model: &StackModel,
+    tokens: &[u32],
+    q12_query: bool,
+) -> Result<(Vec<Vec<f32>>, Vec<u32>)> {
+    let mut hidden = model.hidden(tokens, 1, tokens.len())?;
+    if q12_query {
+        hidden = hidden
+            .affine(4096.0, 0.0)?
+            .round()?
+            .clamp(-32768f32, 32767f32)?
+            .affine(1.0 / 4096.0, 0.0)?;
+    }
+    let next = model
+        .native_vector_writer()?
+        .write(&hidden)?
+        .flatten_all()?
+        .to_vec1::<u32>()?;
+    if next.len() != tokens.len() {
+        return Err(invalid(
+            "the native writer returned other than one token per position",
+        ));
+    }
+    let hidden = hidden
+        .to_vec2::<f32>()?
+        .into_iter()
+        .map(|h| finite_table("hidden", h))
+        .collect::<Result<_>>()?;
+    Ok((hidden, next))
+}
+
+fn read_float_outputs(model: &StackModel, q12_query: bool) -> Result<FbsFloatReadout> {
     let (vocab, width) = (model.config.vocab_size, model.config.width);
     let mut positions = Vec::with_capacity(vocab);
     for token in 0..vocab as u32 {
-        let hidden = model
-            .hidden(&[token], 1, 1)?
-            .flatten_all()?
-            .to_vec1::<f32>()?;
-        let next = model
-            .native_next_token_ids(&[token], 1, 1)?
-            .flatten_all()?
-            .to_vec1::<u32>()?;
-        let [next] = next.as_slice() else {
-            return Err(invalid("the native writer returned other than one token"));
-        };
+        let (mut hidden, next) = hidden_and_next(model, &[token], q12_query)?;
         positions.push(FbsFloatPosition {
             token,
-            next: *next,
-            hidden: finite_table("hidden", hidden)?,
+            next: next[0],
+            hidden: hidden.remove(0),
         });
     }
     // Eight fixed full-context sequences: past the first position they reach
@@ -323,29 +436,17 @@ pub fn fbs_float_readout(model: &StackModel, export_mode: bool) -> Result<FbsFlo
         let tokens: Vec<u32> = (0..time)
             .map(|t| ((s * 37 + t * 11 + 1) % vocab) as u32)
             .collect();
-        let hidden = model.hidden(&tokens, 1, time)?.to_vec2::<f32>()?;
-        let next = model
-            .native_next_token_ids(&tokens, 1, time)?
-            .flatten_all()?
-            .to_vec1::<u32>()?;
-        if next.len() != time {
-            return Err(invalid(
-                "the native writer returned other than one token per position",
-            ));
-        }
+        let (hidden, next) = hidden_and_next(model, &tokens, q12_query)?;
         sequences.push(FbsFloatSequence {
             tokens,
             next,
-            hidden: hidden
-                .into_iter()
-                .map(|h| finite_table("hidden", h))
-                .collect::<Result<_>>()?,
+            hidden,
         });
     }
     Ok(FbsFloatReadout {
         vocab,
         width,
-        export_mode: false,
+        mode: FbsReadoutMode::Plain,
         positions,
         sequences,
     })
@@ -502,6 +603,108 @@ mod tests {
     }
 
     #[test]
+    fn round_tables_as_exported_holds_the_exported_values() -> Result<()> {
+        // A CPU-built trunk: the rounding reads and writes the tables only.
+        let mut model = StackModel::new(small_config(5), &candle_core::Device::Cpu)?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        let values = |m: &StackModel, name: &str| -> Result<Vec<f32>> {
+            Ok(m.variables()[name]
+                .as_tensor()
+                .flatten_all()?
+                .to_vec1::<f32>()?)
+        };
+        // A fresh trunk's gains are ones, already on the grid: give every
+        // table random values off every grid first, so each rounding has work.
+        let mut rng = Lcg(31);
+        for (name, var) in model.variables() {
+            if name.ends_with(".spiralcore_fbs") {
+                continue;
+            }
+            let n = var.as_tensor().elem_count();
+            let random: Vec<f32> = (0..n)
+                .map(|_| (rng.next() % 2_000_001) as f32 / 1_000_003.0 - 1.0)
+                .collect();
+            var.set(&Tensor::from_vec(
+                random,
+                var.as_tensor().shape(),
+                &candle_core::Device::Cpu,
+            )?)?;
+        }
+        let before: Vec<Vec<f32>> = model
+            .variables()
+            .keys()
+            .map(|name| values(&model, name))
+            .collect::<Result<_>>()?;
+        // Every D11 entry refuses the trunk until its tables are rounded; the
+        // refusal comes before any tensor operation, so it holds on the host.
+        use crate::hamilton_sheet::{evaluate_dev_panel_d11, is_snapping_transition};
+        let unrounded =
+            |e: crate::FloatTrainError| e.to_string().contains("rounded as exported first");
+        assert!(check_tables_rounded_as_exported(&model).is_err_and(unrounded));
+        assert!(fbs_float_readout(&model, FbsReadoutMode::D11).is_err_and(unrounded));
+        assert!(evaluate_dev_panel_d11(&model, &[]).is_err_and(unrounded));
+        round_tables_as_exported(&model)?;
+        check_tables_rounded_as_exported(&model)?;
+        // Rounded, the panel gets past its guard and stops at its first tensor
+        // operation (CPU model compute is refused), leaving the hook as it was.
+        let past_guard = evaluate_dev_panel_d11(&model, &[]).expect_err("no CPU compute");
+        assert!(!unrounded(past_guard));
+        assert!(!is_snapping_transition());
+        for (name, b) in model.variables().keys().zip(&before) {
+            // Every table changes; the FBS routes do not.
+            let a = values(&model, name)?;
+            assert_eq!(name.ends_with(".spiralcore_fbs"), &a == b, "{name}");
+        }
+        let grid = |v: f32| grid_value(grid_code(f64::from(v), false).expect("grid")) as f32;
+        let fixed = |v: f32| fixed_value(v, FBS_FIXED_EXP) as f32;
+        let q12 = |v: f32| q12_value(v).expect("q12") as f32;
+        let mut tables: Vec<(String, &dyn Fn(f32) -> f32)> = vec![
+            ("final_norm.weight".into(), &grid),
+            ("embedding.weight".into(), &q12),
+        ];
+        for layer in 0..model.config.layers() {
+            for (suffix, f) in [
+                ("rec_norm.weight", &grid as &dyn Fn(f32) -> f32),
+                ("mlp_norm.weight", &grid),
+                ("rec.conv.weight", &grid),
+                ("rec.conv.bias", &fixed),
+                ("rec.gate.bias", &fixed),
+                ("rec.decay", &fixed),
+            ] {
+                tables.push((format!("layers.{layer:02}.{suffix}"), f));
+            }
+        }
+        for (name, f) in tables {
+            // Each rounded value is its own exported rounding.
+            for v in values(&model, &name)? {
+                assert_eq!(f(v).to_bits(), v.to_bits(), "{name}: {v}");
+            }
+        }
+        // An embedding value that does not fit Q12 in i16 is refused.
+        let var = &model.variables()["embedding.weight"];
+        let mut big = values(&model, "embedding.weight")?;
+        big[0] = 9.0;
+        var.set(&Tensor::from_vec(
+            big,
+            var.as_tensor().shape(),
+            &candle_core::Device::Cpu,
+        )?)?;
+        assert!(round_tables_as_exported(&model).is_err_and(|e| e.to_string().contains("Q12")));
+        Ok(())
+    }
+
+    #[test]
+    fn d11_mode_snaps_the_transition_only_inside_its_closure() -> Result<()> {
+        use crate::hamilton_sheet::{is_snapping_transition, with_d11_mode};
+        assert!(!is_snapping_transition());
+        assert!(with_d11_mode(|| Ok(is_snapping_transition()))?);
+        assert!(!is_snapping_transition());
+        let failed: Result<()> = with_d11_mode(|| Err(invalid("inside")));
+        assert!(failed.is_err() && !is_snapping_transition());
+        Ok(())
+    }
+
+    #[test]
     fn copied_tables_refuse_non_finite_values() {
         assert_eq!(
             finite_table("t", vec![1.0, -2.5]).expect("finite"),
@@ -652,17 +855,34 @@ mod tests {
         }
 
         // The trunk reads out, and an active sheet arm is refused.
-        let readout = fbs_float_readout(&model, false)?;
-        let export = fbs_float_readout(&model, true)?;
-        assert!(!readout.export_mode && export.export_mode);
-        for r in [&readout, &export] {
-            r.check(snap.vocab, snap.width, snap.context, r.export_mode)
+        let readout = fbs_float_readout(&model, FbsReadoutMode::Plain)?;
+        let export = fbs_float_readout(&model, FbsReadoutMode::Export)?;
+        crate::spiralcore_fbs_arms::set_fbs_arm(Some(
+            crate::spiralcore_fbs_arms::FbsArm::OneAtomActive,
+        ));
+        let armed = fbs_trunk_snapshot(&model);
+        crate::spiralcore_fbs_arms::set_fbs_arm(None);
+        assert!(armed.is_err_and(|e| e.to_string().contains("sheet arm")));
+        // The D11 mode (claude-125): round the tables as exported, then read.
+        // The rounded trunk must convert to the artifact the original exports
+        // to; the serving build checks that from the two snapshots written below.
+        round_tables_as_exported(&model)?;
+        let rounded = fbs_trunk_snapshot(&model)?;
+        assert_ne!(rounded.embed, snap.embed, "the rounding reached the tables");
+        let d11 = fbs_float_readout(&model, FbsReadoutMode::D11)?;
+        for r in [&readout, &export, &d11] {
+            r.check(snap.vocab, snap.width, snap.context, r.mode)
                 .map_err(invalid)?;
         }
-        // Causality, in both modes: a token read alone from a zero state is
+        assert!(d11
+            .positions
+            .iter()
+            .flat_map(|p| &p.hidden)
+            .all(|h| (h * 4096.0).fract() == 0.0));
+        // Causality, in every mode: a token read alone from a zero state is
         // that token at the first position of a sequence. The export-mode gate
         // hook once broke this at time 1 (claude-124).
-        for r in [&readout, &export] {
+        for r in [&readout, &export, &d11] {
             for q in &r.sequences {
                 let alone = &r.positions[q.tokens[0] as usize];
                 let gap = alone
@@ -673,35 +893,39 @@ mod tests {
                     .fold(0f32, f32::max);
                 assert!(
                     gap <= 1e-5 && alone.next == q.next[0],
-                    "export_mode {}: token {} alone differs from position 0 of its sequence (gap {gap:e})",
-                    r.export_mode,
+                    "mode {:?}: token {} alone differs from position 0 of its sequence (gap {gap:e})",
+                    r.mode,
                     q.tokens[0]
                 );
             }
         }
-        // The export mode reaches the forward: some hidden vector changes.
+        // Each mode reaches the forward: some hidden vector changes. This does
+        // not isolate the transition snap, because the rounded tables and the
+        // unrounded gates already change every position; the run's set-aside
+        // 2 (the snap turned off) is its pin.
         assert!(readout
             .positions
             .iter()
             .zip(&export.positions)
             .any(|(a, b)| a.hidden != b.hidden));
-        crate::spiralcore_fbs_arms::set_fbs_arm(Some(
-            crate::spiralcore_fbs_arms::FbsArm::OneAtomActive,
-        ));
-        let armed = fbs_trunk_snapshot(&model);
-        crate::spiralcore_fbs_arms::set_fbs_arm(None);
-        assert!(armed.is_err_and(|e| e.to_string().contains("sheet arm")));
+        assert!(export
+            .sequences
+            .iter()
+            .zip(&d11.sequences)
+            .any(|(a, b)| a.hidden != b.hidden));
         if let Ok(dir) = std::env::var("UOR_FBS_CONVERTER_OUT") {
             let dir = std::path::Path::new(&dir);
             for (name, json) in [
                 ("snapshot.json", serde_json::to_vec(&snap)?),
+                ("snapshot-rounded.json", serde_json::to_vec(&rounded)?),
                 ("readout.json", serde_json::to_vec(&readout)?),
                 ("readout-export.json", serde_json::to_vec(&export)?),
+                ("readout-d11.json", serde_json::to_vec(&d11)?),
             ] {
                 uor_r4_integer::fbs_snapshot::write_new_file(&dir.join(name), &json)?;
             }
             eprintln!(
-                "fbs converter: wrote snapshot.json, readout.json and readout-export.json to {}",
+                "fbs converter: wrote the snapshots and the plain, export and D11 readouts to {}",
                 dir.display()
             );
         }

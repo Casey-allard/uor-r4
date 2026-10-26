@@ -464,6 +464,9 @@ struct GateHookState {
     fwd_call_idx: usize,
     bwd_call_idx: usize,
     icosian_export_mode: bool,
+    /// The D11 mode also snaps the recurrence transition to the 120 icosians
+    /// (`with_d11_mode`, claude-125).
+    snap_transition: bool,
     capture_telemetry: bool,
     cuda_error_checks_passed: u64,
     // Intrinsic per-4-block suppression telemetry
@@ -502,6 +505,7 @@ impl Default for GateHookState {
             fwd_call_idx: 0,
             bwd_call_idx: 0,
             icosian_export_mode: false,
+            snap_transition: false,
             capture_telemetry: false,
             cuda_error_checks_passed: 0,
             total_blocks_observed: 0,
@@ -1373,7 +1377,6 @@ pub fn evaluate_dev_panel(
     export_mode: bool,
     capture_telemetry: bool,
 ) -> Result<(DevEvalMetrics, Vec<u32>)> {
-    let t0 = Instant::now();
     GATE_HOOK.with(|cell| {
         let mut st = cell.borrow_mut();
         st.active_arm = Some(arm);
@@ -1386,7 +1389,37 @@ pub fn evaluate_dev_panel(
             st.reset_telemetry();
         }
     });
+    let scored = score_dev_panel(model, dev_windows, export_mode);
+    GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        st.icosian_export_mode = false;
+        st.capture_telemetry = false;
+    });
+    scored
+}
 
+/// The DEV panel in the D11 mode (claude-125): the gates and the transition
+/// snapped as the integer path snaps them ([`with_d11_mode`]), and the query
+/// and the writer table at Q12, on a trunk whose tables are rounded as
+/// exported (`fbs_export::round_tables_as_exported`; an unrounded trunk is
+/// refused). It computes what the exported artifact computes, so its score
+/// stands for the artifact's.
+pub fn evaluate_dev_panel_d11(
+    model: &StackModel,
+    dev_windows: &[CausalWindow],
+) -> Result<(DevEvalMetrics, Vec<u32>)> {
+    crate::fbs_export::check_tables_rounded_as_exported(model)?;
+    with_d11_mode(|| score_dev_panel(model, dev_windows, true))
+}
+
+/// Score `model` on `dev_windows` under the gate hook as it is set, the
+/// query and the writer table at Q12 when `q12_writer`.
+fn score_dev_panel(
+    model: &StackModel,
+    dev_windows: &[CausalWindow],
+    q12_writer: bool,
+) -> Result<(DevEvalMetrics, Vec<u32>)> {
+    let t0 = Instant::now();
     let spec = WriterSpec {
         vocabulary: model.config.vocab_size,
         width: model.config.width,
@@ -1397,7 +1430,7 @@ pub fn evaluate_dev_panel(
         .get("embedding.weight")
         .ok_or_else(|| invalid("missing embedding.weight"))?
         .as_tensor();
-    let eval_table = if export_mode {
+    let eval_table = if q12_writer {
         table_tensor
             .affine(f64::from(Q12_SCALE), 0.0)?
             .round()?
@@ -1424,7 +1457,7 @@ pub fn evaluate_dev_panel(
     let roots_q12: [[i32; 8]; 16] = std::array::from_fn(|r| {
         std::array::from_fn(|j| i32::from(plan8.geometry.roots[r][j]) * (Q12_SCALE as i32))
     });
-    let table_q12_host: Option<Vec<i32>> = if export_mode {
+    let table_q12_host: Option<Vec<i32>> = if q12_writer {
         Some(
             table_tensor
                 .affine(f64::from(Q12_SCALE), 0.0)?
@@ -1458,7 +1491,7 @@ pub fn evaluate_dev_panel(
         let hidden = model.hidden(&flat_ids, batch_len, SHEET_CONTEXT)?;
         let idx_tensor = Tensor::from_vec(scored_indices, scored_targets.len(), model.device())?;
         let scored_hidden = hidden.index_select(&idx_tensor, 0)?;
-        let eval_hidden = if export_mode {
+        let eval_hidden = if q12_writer {
             scored_hidden
                 .affine(f64::from(Q12_SCALE), 0.0)?
                 .round()?
@@ -1516,12 +1549,6 @@ pub fn evaluate_dev_panel(
         total_margin_sum += f64::from(metrics.total_margin.to_scalar::<f32>()?) * (n as f64);
         all_top1_preds.extend_from_slice(&batch_preds);
     }
-
-    GATE_HOOK.with(|cell| {
-        let mut st = cell.borrow_mut();
-        st.icosian_export_mode = false;
-        st.capture_telemetry = false;
-    });
 
     let elapsed = t0.elapsed().as_secs_f64();
     let total_tokens_processed = dev_windows.len() * SHEET_CONTEXT;
@@ -1733,6 +1760,63 @@ pub fn with_d11_export_gates<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
         ) = prior;
     });
     out
+}
+
+/// Runs `f` in the D11 mode, as the integer path serves the trunk (claude-125):
+/// - both Hamilton gates snapped to the 120 icosians directly, as
+///   `HamiltonArm::HamiltonIcosianHard` does, without the export mode's Q12
+///   rounding, because the integer path snaps its own fixed-point gate;
+/// - the recurrence transition snapped as well.
+///
+/// It restores the gate hook exactly as it was. With the trunk's tables
+/// rounded as exported (`fbs_export::round_tables_as_exported`), a forward in
+/// this mode computes what the exported artifact computes, in float.
+pub fn with_d11_mode<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    let prior = GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        let prior = (
+            st.active_arm,
+            st.fwd_call_idx,
+            st.icosian_export_mode,
+            st.snap_transition,
+            st.capture_telemetry,
+        );
+        st.active_arm = Some(HamiltonArm::HamiltonIcosianHard);
+        st.fwd_call_idx = 0;
+        st.icosian_export_mode = false;
+        st.snap_transition = true;
+        st.capture_telemetry = false;
+        prior
+    });
+    let out = f();
+    GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        (
+            st.active_arm,
+            st.fwd_call_idx,
+            st.icosian_export_mode,
+            st.snap_transition,
+            st.capture_telemetry,
+        ) = prior;
+    });
+    out
+}
+
+/// Whether the D11 mode snaps the recurrence transition on this thread.
+pub(crate) fn is_snapping_transition() -> bool {
+    GATE_HOOK.with(|cell| cell.borrow().snap_transition)
+}
+
+/// The nearest of the 120 icosians to each 4-vector of `raw` (last axis 4):
+/// the D11 mode's transition snap. CUDA only.
+pub(crate) fn icosian_snap_quaternions(raw: &Tensor) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if let Device::Cuda(device) = raw.device() {
+        let shape = raw.shape().clone();
+        return Ok(icosian_snap_cuda_tensor(device, &raw.contiguous()?)?.reshape(shape)?);
+    }
+    let _ = raw;
+    Err(invalid("the D11 transition snap is CUDA-only"))
 }
 
 /// Computes the response-masked margin loss for one training batch on CUDA.

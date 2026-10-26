@@ -2824,6 +2824,118 @@ fn fbs_reference_snaps_default_to_the_integer_path_and_each_switch_is_live() {
 }
 
 #[test]
+fn fbs_exported_roundings_match_the_stack_exporter() {
+    use crate::fbs_snapshot::{fixed_value, q12_value, FBS_FIXED_EXP};
+    // The ungated roundings the float converter's D11 mode reads are the ones
+    // the exporter writes.
+    assert_eq!(FBS_FIXED_EXP, super::kernels::RESIDUAL_EXP);
+    let snap = synthetic_fbs_trunk(20261026);
+    let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    let model = IntegerStackModel::parse(&bytes).expect("parse");
+    // Every quantized reference output equals the one computed from tables
+    // rounded by these helpers, because the reference reads them through them.
+    let quantized = snap.forward_f32(&[3, 9, 27], true).expect("reference");
+    let mut rounded = snap.clone();
+    let grid = |v: &mut f32| {
+        *v = super::decode_grid_code(super::encode_grid_code(f64::from(*v), false).expect("grid"))
+            as f32
+    };
+    for layer in &mut rounded.layers {
+        layer.rec_norm.iter_mut().for_each(grid);
+        layer.mlp_norm.iter_mut().for_each(grid);
+        layer.conv_taps.iter_mut().for_each(grid);
+        for v in layer
+            .conv_bias
+            .iter_mut()
+            .chain(layer.gate_bias.iter_mut())
+            .chain(layer.decay.iter_mut())
+        {
+            *v = fixed_value(*v, FBS_FIXED_EXP) as f32;
+        }
+    }
+    rounded.final_norm.iter_mut().for_each(grid);
+    for v in &mut rounded.embed {
+        *v = q12_value(*v).expect("fits Q12") as f32;
+    }
+    // Rounding is idempotent: the rounded trunk's plain forward, with its final
+    // query rounded to Q12 as the quantized reference rounds it before the
+    // writer, is the original trunk's quantized forward; and it exports to
+    // the same artifact.
+    let plain = rounded.forward_f32(&[3, 9, 27], false).expect("reference");
+    for (p, q) in plain.iter().zip(&quantized) {
+        let query: Vec<f64> = p
+            .query
+            .iter()
+            .map(|&v| (v * 4096.0).round().clamp(-32768.0, 32767.0) / 4096.0)
+            .collect();
+        assert_eq!(query, q.query);
+        assert_eq!((p.token, &p.kept_cells), (q.token, &q.kept_cells));
+    }
+    assert_eq!(super::export_fbs_trunk_uorlut01(&rounded).expect("export"), bytes);
+    assert!(IntegerStackModel::parse(&bytes).is_ok() && model.session().step_native(3).is_ok());
+    // The reference reads the Q16 tables through `fixed_value` too, so the
+    // checks above cannot see it drift: hold it against the code the exporter
+    // stores for every bias, gate bias and decay offset, and see some move.
+    let mut moved = false;
+    for layer in &snap.layers {
+        for values in [&layer.conv_bias, &layer.gate_bias, &layer.decay] {
+            let codes = super::format::quantize_fixed_i32(values, values.len(), FBS_FIXED_EXP, "q16")
+                .expect("fixed");
+            for (&v, &code) in values.iter().zip(&codes) {
+                let value = fixed_value(v, FBS_FIXED_EXP);
+                assert_eq!(value, f64::from(code) * 2f64.powi(FBS_FIXED_EXP));
+                moved |= value != f64::from(v);
+            }
+        }
+    }
+    assert!(moved, "no Q16 value moves, so a skipped rounding would pass");
+    assert_eq!(q12_value(8.0), None);
+    assert_eq!(q12_value(f32::NAN), None);
+    assert_eq!(q12_value(-8.0), Some(-8.0));
+}
+
+#[test]
+fn fbs_tie_margins_measure_how_near_each_switch_is() {
+    use super::format::{icosian_margin, rate_margin, FbsQuatMode, FbsReferenceSnaps, FbsTieMargins};
+    // A root's nearest rival is 60 degrees away: dot φ/2 against 1.
+    let phi = 0.5 * (1.0 + 5.0f64.sqrt());
+    let own = icosian_margin([1.0, 0.0, 0.0, 0.0]);
+    assert!((own - (1.0 - 0.5 * phi)).abs() < 1e-12, "{own}");
+    // (1, 1, 0, 0) is equally near ½(φ, 1, φ⁻¹, 0) and ½(1, φ, 0, φ⁻¹): a tie.
+    assert_eq!(icosian_margin([1.0, 1.0, 0.0, 0.0]), 0.0);
+    let mut m = FbsTieMargins {
+        transition: f64::INFINITY,
+        gate: f64::INFINITY,
+        rate: f64::INFINITY,
+        zero_snaps: 0,
+    };
+    m.note_snap([0.3, 0.1, 0.2, 0.4], FbsQuatMode::Normalize, false);
+    assert_eq!((m.gate, m.zero_snaps), (f64::INFINITY, 0));
+    m.note_snap([1.0, 0.0, 0.0, 0.0], FbsQuatMode::Icosian, true);
+    assert_eq!((m.transition, m.gate), (own, f64::INFINITY));
+    // A vector that rounds to zero at Q12 snaps a zero vector: every root ties.
+    m.note_snap([1e-5, 0.0, 0.0, 0.0], FbsQuatMode::Q12Icosian, false);
+    assert_eq!((m.gate, m.zero_snaps), (0.0, 1));
+    assert_eq!(rate_margin(0.5), 0.0);
+    assert_eq!(rate_margin(0.5 + 1.0 / 64.0), 1.0 / 64.0);
+    assert_eq!(rate_margin(-1.0), 1.0 + 1.0 / 16.0);
+
+    let snap = synthetic_fbs_trunk(20261026);
+    let one = snap.tie_margins(&[5], true, FbsReferenceSnaps::INTEGER).expect("margins");
+    // One token moves no state, so its transition snap never matters.
+    assert_eq!(one.transition, f64::INFINITY);
+    assert!(one.gate.is_finite() && one.gate >= 0.0 && one.rate.is_finite() && one.rate >= 0.0);
+    assert_eq!(one.zero_snaps, 0);
+    let two = snap.tie_margins(&[5, 11], true, FbsReferenceSnaps::INTEGER).expect("margins");
+    assert!(two.transition.is_finite() && two.transition >= 0.0);
+    // The prefix's switches stay counted, and runs do not leak into each other.
+    assert!(two.gate <= one.gate && two.rate <= one.rate);
+    assert_eq!(snap.tie_margins(&[5], true, FbsReferenceSnaps::INTEGER).expect("margins"), one);
+    let float = snap.tie_margins(&[5, 11], true, FbsReferenceSnaps::FLOAT).expect("margins");
+    assert_eq!((float.transition, float.gate), (f64::INFINITY, f64::INFINITY));
+}
+
+#[test]
 fn fbs_trunk_snapshot_json_round_trips_exactly() {
     // The float converter hands the snapshot over as JSON (`fbs-export`); every
     // f32 must read back to the same bits, so the export is the same bytes.

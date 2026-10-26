@@ -2,7 +2,7 @@
 //! from (d11-exporter-float-trunk, claude-123 and claude-124).
 //!
 //! ```text
-//! fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON]
+//! fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]
 //! ```
 //!
 //! `SNAPSHOT_JSON` is the converter's snapshot. `READOUT_JSON` is the float
@@ -27,14 +27,20 @@ use std::process::ExitCode;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use uor_r4_integer::fbs_snapshot::FbsFloatReadout;
+use uor_r4_integer::fbs_snapshot::{FbsFloatReadout, FbsReadoutMode};
 use uor_r4_integer::stack::{
-    export_fbs_trunk_uorlut01, FbsReferenceSnaps, FbsTrunkSnapshot, FbsWriterOutput,
+    export_fbs_trunk_uorlut01, FbsReferenceSnaps, FbsTieMargins, FbsTrunkSnapshot, FbsWriterOutput,
     IntegerStackModel,
 };
 
 /// One position's writer token and query.
 type Output = (u32, Vec<f64>);
+
+/// One kind of [`FbsTieMargins`] margin.
+type Margin = fn(&FbsTieMargins) -> f64;
+
+const USAGE: &str =
+    "usage: fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]";
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
@@ -44,23 +50,53 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, String> {
 fn check_readout(
     snap: &FbsTrunkSnapshot,
     readout: &FbsFloatReadout,
-    export_mode: bool,
+    mode: FbsReadoutMode,
     path: &str,
 ) -> Result<(), String> {
     readout
-        .check(snap.vocab, snap.width, snap.context, export_mode)
+        .check(snap.vocab, snap.width, snap.context, mode)
         .map_err(|e| format!("{path}: {e}"))
 }
 
 /// Token agreement and the largest query gap between two sets of outputs.
+/// The parity bar's gap (claude-124, claude-125).
+const GAP_BAR: f64 = 1e-3;
+
+/// The largest query gap at each position between two sets of outputs.
+fn gaps(a: &[Output], b: &[Output]) -> Vec<f64> {
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| {
+            x.1.iter()
+                .zip(&y.1)
+                .map(|(p, q)| (p - q).abs())
+                .fold(0f64, f64::max)
+        })
+        .collect()
+}
+
+/// Token agreement and the largest query gap between two sets of outputs,
+/// with how many positions exceed [`GAP_BAR`] and the worst of them
+/// (`[position, gap, tokens agree]`), so a miss can be traced. Positions
+/// count across all inputs in order: for sequences, sequence `s` position
+/// `t` is `s * context + t`.
 fn pair(a: &[Output], b: &[Output]) -> Value {
     let tokens = a.iter().zip(b).filter(|(x, y)| x.0 == y.0).count();
-    let gap = a
+    let gaps = gaps(a, b);
+    let gap = gaps.iter().copied().fold(0f64, f64::max);
+    let mut over: Vec<usize> = (0..gaps.len()).filter(|&i| gaps[i] > GAP_BAR).collect();
+    over.sort_by(|&i, &j| gaps[j].total_cmp(&gaps[i]).then(i.cmp(&j)));
+    let worst: Vec<Value> = over
         .iter()
-        .zip(b)
-        .flat_map(|(x, y)| x.1.iter().zip(&y.1).map(|(p, q)| (p - q).abs()))
-        .fold(0f64, f64::max);
-    json!({"tokens_agree": tokens, "max_abs_query_gap": gap})
+        .take(6)
+        .map(|&i| json!([i, gaps[i], a[i].0 == b[i].0]))
+        .collect();
+    json!({
+        "tokens_agree": tokens,
+        "max_abs_query_gap": gap,
+        "positions_over_gap_bar": over.len(),
+        "worst": worst,
+    })
 }
 
 /// The reference's token and query at every position of every input.
@@ -82,7 +118,7 @@ fn reference(
 
 /// The integer session's token at every position of every input, each input
 /// in a fresh session.
-fn served(model: &IntegerStackModel, inputs: &[Vec<u32>]) -> Result<Vec<u32>, String> {
+fn served(model: &IntegerStackModel, inputs: &[Vec<u32>]) -> Result<Vec<Output>, String> {
     let mut all = Vec::new();
     for tokens in inputs {
         let mut session = model.session();
@@ -90,10 +126,72 @@ fn served(model: &IntegerStackModel, inputs: &[Vec<u32>]) -> Result<Vec<u32>, St
             let step = session
                 .step_native(t)
                 .map_err(|e| format!("{tokens:?}: integer step: {e}"))?;
-            all.push(step.token);
+            let query = step
+                .query_q12
+                .iter()
+                .map(|&q| f64::from(q) / 4096.0)
+                .collect();
+            all.push((step.token, query));
         }
     }
     Ok(all)
+}
+
+/// The quantized, fully snapped reference's [`FbsTieMargins`] at every
+/// position of every input: those met on the way to it, so each prefix runs
+/// on its own.
+fn tie_margins(snap: &FbsTrunkSnapshot, inputs: &[Vec<u32>]) -> Result<Vec<FbsTieMargins>, String> {
+    let mut all = Vec::new();
+    for tokens in inputs {
+        for end in 1..=tokens.len() {
+            let margins = snap
+                .tie_margins(&tokens[..end], true, FbsReferenceSnaps::INTEGER)
+                .map_err(|e| format!("{tokens:?}: tie margins: {e}"))?;
+            all.push(margins);
+        }
+    }
+    Ok(all)
+}
+
+/// Each position over [`GAP_BAR`] in any of `pairings`, traced to its
+/// near-tie: the reference's margins there, with how many positions came
+/// nearer on each (0 is the nearest), and the median of each margin.
+fn trace_ties(margins: &[FbsTieMargins], pairings: &[Vec<f64>]) -> Value {
+    let kinds: [(&str, Margin); 3] = [
+        ("transition", |m| m.transition),
+        ("gate", |m| m.gate),
+        ("rate", |m| m.rate),
+    ];
+    let over: std::collections::BTreeSet<usize> = pairings
+        .iter()
+        .flat_map(|g| (0..g.len()).filter(move |&i| g[i] > GAP_BAR))
+        .collect();
+    let traced: Vec<Value> = over
+        .iter()
+        .map(|&i| {
+            let mut entry = json!({ "position": i, "zero_snaps": margins[i].zero_snaps });
+            for (name, pick) in kinds {
+                let nearer = margins
+                    .iter()
+                    .filter(|m| pick(m) < pick(&margins[i]))
+                    .count();
+                entry[name] = json!({ "margin": pick(&margins[i]), "nearer_positions": nearer });
+            }
+            entry
+        })
+        .collect();
+    let mut medians = json!({});
+    for (name, pick) in kinds {
+        let mut values: Vec<f64> = margins.iter().map(pick).collect();
+        values.sort_by(f64::total_cmp);
+        medians[name] = json!(values.get(values.len() / 2));
+    }
+    let zero = margins.iter().filter(|m| m.zero_snaps > 0).count();
+    json!({
+        "median": medians,
+        "positions_with_zero_snaps": zero,
+        "over_gap_bar": traced,
+    })
 }
 
 /// A readout's single-token outputs, then its sequence outputs, as the
@@ -121,21 +219,24 @@ fn section(
     inputs: &[Vec<u32>],
     plain_gpu: &[Output],
     export_gpu: Option<&[Output]>,
+    d11_gpu: Option<&[Output]>,
 ) -> Result<Value, String> {
     let float_ref = reference(snap, inputs, false, FbsReferenceSnaps::FLOAT)?;
     let export_ref = reference(snap, inputs, false, FbsReferenceSnaps::FLOAT_EXPORT)?;
     let integer_ref = reference(snap, inputs, false, FbsReferenceSnaps::INTEGER)?;
     let quantized_ref = reference(snap, inputs, true, FbsReferenceSnaps::INTEGER)?;
-    let integer_vs_quantized = served(model, inputs)?
+    let served = served(model, inputs)?;
+    let integer_vs_quantized = served
         .iter()
         .zip(&quantized_ref)
-        .filter(|(s, r)| **s == r.0)
+        .filter(|(s, r)| s.0 == r.0)
         .count();
     let mut out = json!({
         "positions": float_ref.len(),
         "parity_plain_gpu_vs_float_reference": pair(plain_gpu, &float_ref),
         "plain_gpu_vs_integer_reference": pair(plain_gpu, &integer_ref),
         "integer_token_equals_quantized_reference": integer_vs_quantized,
+        "integer_session_vs_quantized_reference": pair(&served, &quantized_ref),
         "attribution": {
             "float_vs_float_export_reference": pair(&float_ref, &export_ref),
             "float_export_vs_integer_reference": pair(&export_ref, &integer_ref),
@@ -145,41 +246,67 @@ fn section(
     if let Some(export_gpu) = export_gpu {
         out["parity_export_gpu_vs_float_export_reference"] = pair(export_gpu, &export_ref);
     }
+    if let Some(d11_gpu) = d11_gpu {
+        // The D11 mode against what the artifact computes: the quantized,
+        // fully snapped reference, and the integer session itself.
+        out["parity_d11_gpu_vs_quantized_reference"] = pair(d11_gpu, &quantized_ref);
+        out["d11_gpu_token_equals_integer_token"] = json!(d11_gpu
+            .iter()
+            .zip(&served)
+            .filter(|(g, s)| g.0 == s.0)
+            .count());
+        // The artifact's own Q12 query, not a reference of it.
+        out["d11_gpu_vs_integer_session"] = pair(d11_gpu, &served);
+        // Where the three disagree, how near the reference came to a switch.
+        out["tie_margins"] = trace_ties(
+            &tie_margins(snap, inputs)?,
+            &[
+                gaps(d11_gpu, &quantized_ref),
+                gaps(d11_gpu, &served),
+                gaps(&served, &quantized_ref),
+            ],
+        );
+    }
     Ok(out)
 }
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let (snapshot, plain, export) = match args.as_slice() {
-        [s, p] => (s, p, None),
-        [s, p, e] => (s, p, Some(e)),
-        _ => {
-            return Err(
-                "usage: fbs-compare SNAPSHOT_JSON READOUT_JSON [EXPORT_READOUT_JSON]".to_owned(),
-            )
-        }
+    let [snapshot, plain, rest @ ..] = args.as_slice() else {
+        return Err(USAGE.to_owned());
     };
+    if rest.len() > 2 {
+        return Err(USAGE.to_owned());
+    }
     let snap: FbsTrunkSnapshot = read_json(snapshot)?;
     let plain_readout: FbsFloatReadout = read_json(plain)?;
-    check_readout(&snap, &plain_readout, false, plain)?;
-    let export_readout: Option<FbsFloatReadout> = export.map(|e| read_json(e)).transpose()?;
-    if let (Some(e), Some(readout)) = (export, &export_readout) {
-        check_readout(&snap, readout, true, e)?;
+    check_readout(&snap, &plain_readout, FbsReadoutMode::Plain, plain)?;
+    // The optional readouts, in order: export mode, then the D11 mode.
+    let mut extra: Vec<Option<FbsFloatReadout>> = vec![None, None];
+    for ((path, mode), slot) in rest
+        .iter()
+        .zip([FbsReadoutMode::Export, FbsReadoutMode::D11])
+        .zip(&mut extra)
+    {
+        let readout: FbsFloatReadout = read_json(path)?;
+        check_readout(&snap, &readout, mode, path)?;
+        *slot = Some(readout);
     }
+    let [export_readout, d11_readout] = [extra[0].take(), extra[1].take()];
 
     let sequences: Vec<Vec<u32>> = plain_readout
         .sequences
         .iter()
         .map(|q| q.tokens.clone())
         .collect();
-    if let Some(readout) = &export_readout {
+    for readout in export_readout.iter().chain(&d11_readout) {
         if readout
             .sequences
             .iter()
             .map(|q| &q.tokens)
             .ne(sequences.iter())
         {
-            return Err("the two readouts hold different sequences".to_owned());
+            return Err("the readouts hold different sequences".to_owned());
         }
     }
 
@@ -188,6 +315,7 @@ fn run() -> Result<(), String> {
     let singles: Vec<Vec<u32>> = (0..snap.vocab as u32).map(|t| vec![t]).collect();
     let (plain_singles, plain_sequences) = floats(&plain_readout);
     let export = export_readout.as_ref().map(floats);
+    let d11 = d11_readout.as_ref().map(floats);
     let report = json!({
         "artifact_sha256": hex::encode(Sha256::digest(&artifact)),
         "single_tokens": section(
@@ -196,6 +324,7 @@ fn run() -> Result<(), String> {
             &singles,
             &plain_singles,
             export.as_ref().map(|e| e.0.as_slice()),
+            d11.as_ref().map(|e| e.0.as_slice()),
         )?,
         "sequences": section(
             &snap,
@@ -203,6 +332,7 @@ fn run() -> Result<(), String> {
             &sequences,
             &plain_sequences,
             export.as_ref().map(|e| e.1.as_slice()),
+            d11.as_ref().map(|e| e.1.as_slice()),
         )?,
     });
     println!("{report}");
@@ -216,5 +346,29 @@ fn main() -> ExitCode {
             eprintln!("fbs-compare: {e}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pair_counts_and_ranks_the_positions_over_the_gap_bar() {
+        let a: Vec<Output> = vec![
+            (1, vec![0.0, 0.5]),
+            (2, vec![0.0, 0.0]),
+            (3, vec![1.0, 0.0]),
+        ];
+        let b: Vec<Output> = vec![
+            (1, vec![0.0, 0.5005]),
+            (9, vec![0.0, 0.0]),
+            (3, vec![0.0, 0.0]),
+        ];
+        let p = pair(&a, &b);
+        assert_eq!(p["tokens_agree"], 2);
+        assert_eq!(p["positions_over_gap_bar"], 1);
+        assert_eq!(p["max_abs_query_gap"], 1.0);
+        assert_eq!(p["worst"], json!([[2, 1.0, true]]));
     }
 }

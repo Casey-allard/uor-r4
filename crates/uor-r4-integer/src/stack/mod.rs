@@ -71,7 +71,7 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_float_trunk_uorlut01, FbsQuatMode, FbsReferenceSnaps,
+    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_float_trunk_uorlut01, FbsQuatMode, FbsReferenceSnaps, FbsTieMargins,
     stack_schema_for, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed, FloatTrunkLayer,
     FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot, StackMemory,
     StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap, GROUP, MAGIC,
