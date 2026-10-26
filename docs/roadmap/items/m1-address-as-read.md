@@ -3,10 +3,10 @@ id: m1-address-as-read
 title: Build the address-as-read mechanism and an object-store consumer
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: true
-depends_on: [m1-trunk-assembly-and-training]
+depends_on: []
 scope: [crates/uor-r4-object-store/**, docs/mechanisms/exact-memory.md, docs/labs/m1-address-as-read/**, docs/harness/prep/m1-address-as-read*]
 ---
 
@@ -16,7 +16,7 @@ The model has no exact way to read stored content back by address. Building this
 
 ## What is missing
 
-The address consumer is delivered: `address_read` resolves exact and sieve queries to verified object-store content, with finite controls (`86eb68ebb`, #2950). Stage 0 then measured the pinned T16_fz D11 artifact on one RTX 5090: parity passed on all 14,287 DEV rows, but free-running exact recovery was 0/40 in the exact-hint, no-hint and random-hint arms, so `COPY_GATE_FAIL` blocked panel-v3, BPB and training. This is an artifact/copy-layout limitation, not a mechanism negative or an oracle result. Still missing is a valid serving-time oracle measurement on an artifact and read instrument that can first copy an explicitly supplied value. No oracle gain or language capability is established.
+Completed at the item's tested scope: `address_read` resolves exact and sieve queries to verified object-store content, and the registered five-arm oracle measured a true-address gain on one RTX 5090. True address produced 40/40 current, 20/20 previous and 20/20 typed abstention; no-memory recovered 0/80; deterministic sieve recovered 20/80. D11 parity held on 14,287/14,287 rows with byte-identical repeats. The meaningful next question is address formation on 20 current sieve misses, not storage. Learned address formation, default serving and M3 qualification are separate and not established. The T16_fz oracle does not need the M2 trunk checkpoint.
 
 ## Done when
 

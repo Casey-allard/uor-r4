@@ -1013,6 +1013,23 @@ pub mod runner {
         paths: &RunPaths,
         cuda_driver_api_version: Result<i32, String>,
     ) -> Result<Stage0Outcome, String> {
+        run_internal(paths, cuda_driver_api_version, true)
+    }
+
+    /// Run only the pinned artifact parity/determinism checks, leaving the
+    /// output directory available for a composed instrument such as the oracle.
+    pub fn run_parity(
+        paths: &RunPaths,
+        cuda_driver_api_version: Result<i32, String>,
+    ) -> Result<Stage0Outcome, String> {
+        run_internal(paths, cuda_driver_api_version, false)
+    }
+
+    fn run_internal(
+        paths: &RunPaths,
+        cuda_driver_api_version: Result<i32, String>,
+        run_copy: bool,
+    ) -> Result<Stage0Outcome, String> {
         let head = std::env::var(STAGE0_HEAD_ENV)
             .map_err(|_| format!("{STAGE0_HEAD_ENV} must be the full Stage 0 commit"))?;
         validate_head_against_git(&head, Path::new(env!("CARGO_MANIFEST_DIR")))?;
@@ -1415,13 +1432,22 @@ pub mod runner {
         parity["pass"] = json!(true);
         write_json(&paths.out_dir.join("parity-report.json"), &parity)?;
 
-        let copy = copy_probe(&scorer, &tokenizer, &manifest, context, &paths.out_dir)?;
-        Ok(Stage0Outcome {
-            parity_pass: true,
-            copy_primary_pass: copy.primary_pass,
-            decision: copy.decision,
-            out_dir: paths.out_dir.clone(),
-        })
+        if run_copy {
+            let copy = copy_probe(&scorer, &tokenizer, &manifest, context, &paths.out_dir)?;
+            Ok(Stage0Outcome {
+                parity_pass: true,
+                copy_primary_pass: copy.primary_pass,
+                decision: copy.decision,
+                out_dir: paths.out_dir.clone(),
+            })
+        } else {
+            Ok(Stage0Outcome {
+                parity_pass: true,
+                copy_primary_pass: false,
+                decision: "PARITY_PASS".into(),
+                out_dir: paths.out_dir.clone(),
+            })
+        }
     }
 
     fn read_file(path: &Path, label: &str) -> Result<Vec<u8>, String> {

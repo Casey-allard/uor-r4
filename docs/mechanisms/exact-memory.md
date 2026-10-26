@@ -10,6 +10,12 @@ The T16_fz Seed 1 D11 artifact passed exact parity on all 14,287 DEV rows agains
 
 The same artifact failed the registered copy non-vacuity gate: exact-hint free-running recovered **0/40** exact values, so exact-minus-control had `b = c = 0` against both no-hint and random-hint. It did not meet either `d > 24 && d^2 > 4(b+c)` comparison. A hidden-fact panel is therefore not justified on this artifact/prompt layout. This is a scoped artifact/copy-instrument limitation, not a mechanism negative and not a model-oracle result. The unit is `References #2833`; BPB and training were not run. See [`docs/loop/tasks/m1-address-as-read/kimi-40/REPORT.md`](../loop/tasks/m1-address-as-read/kimi-40/REPORT.md).
 
+## Object-store oracle measurement (2026-10-26)
+
+The registered five-arm object-store oracle passed at `590ace9e`: true address recovered 40/40 current, 20/20 previous and 20/20 typed abstention with zero substitutions; no-memory recovered 0/80; deterministic sieve recovered 20/80. Sieve formed the true query on 60/80 rows but recovered only 20 values. True address beat no-memory on every family and beat sieve by 20/0 current and 20/0 abstention; previous sieve is descriptive current-value fallback and excluded from the contrast. D11 parity remained exact on 14,287/14,287 rows with byte-identical repeats.
+
+This is an exact-read/oracle gain at the item's tested scope, not learned address formation, default serving or M3 durable-memory qualification. The mechanism stays **PARKED**. The next question is address formation on the 20 current rows the sieve misses, not storage. Evidence: [`kimi-42 REPORT`](../loop/tasks/m1-address-as-read/kimi-42/REPORT.md) and HF `results/kimi/m1-address-oracle-2026-10-26/results-v3/address-oracle-result-v3.tar.gz`.
+
 ## In plain words
 
 Write each fact once, under an exact address, and read it back exactly. Do not smear it across weights, and do not hunt for it by fuzzy similarity. The address is built from prime numbers: every word has its own prime, so the same words always name the same slot. A new value replaces the old one, but the old one stays recoverable. A fact that was never written can answer "I do not know". In the one probe that checked, the store was never the cause of a failure: among 1,905 held-out misses, none was an eviction or a wrong stored value. What failed was the model's learned step of forming the address from a question.
@@ -85,7 +91,7 @@ A caution on weight. Retrieval caused only 2.2 percent of the failing rows in th
 ## What would reopen it
 
 1. **Build the address as the read.** Add memory fields to the dialogue settings and train the store and read in from the start, with 2 to 3 seeds and a frozen panel of at least 80 rows. The brief's bar is at least 8 more rows of 40 than the 19 of 40 seen, with bits per byte within 0.01.
-2. **Run the serving-time oracle first.** Supply the true slot address and measure the gain before any training.
+2. **Serving-time oracle is complete at the T16_fz scope.** The registered five-arm result is above. The next measurement is address formation on the 20 current sieve misses, not another storage run.
 3. **Re-register lawfully.** Use an offline float sheet (D37) or a discrete sheet (D32) with a softmax-free value mix (a rank table or a hard select), a separately scanned module, an integer export and a reported export gap. This needs a fresh `TEST FITNESS: FIT` review and an owner release.
 4. **Build an integer read kernel**: gcd or sorted-merge admission plus a table value read, in the integer serving crate.
 5. **Report address formation apart from read accuracy**, since 77.7 percent of the held-out failures were query-entity tagging.
@@ -96,7 +102,7 @@ Exact addressed memory; prime-keyed exact log and gcd sieve (log-sieve retrieval
 
 ## Code
 
-- [`address_read.rs`](../../crates/uor-r4-object-store/src/address_read.rs): exact prime/semiprime address directory (`PrimeAddress`, `AddressDirectory`, `ObjectTarget`, `AddressReadOutcome`) and sorted-merge GCD sieve consumer over `uor-r4-object-store`, with finite CPU controls in [`tests/address_read.rs`](../../crates/uor-r4-object-store/tests/address_read.rs) and the serving-time oracle pre-registration sheet [`m1-address-as-read-oracle-DRAFT-2026-10-22.md`](../harness/prep/m1-address-as-read-oracle-DRAFT-2026-10-22.md).
+- [`address_read.rs`](../../crates/uor-r4-object-store/src/address_read.rs): exact prime/semiprime address directory (`PrimeAddress`, `AddressDirectory`, `ObjectTarget`, `AddressReadOutcome`) and sorted-merge GCD sieve consumer over `uor-r4-object-store`, with finite CPU controls in [`tests/address_read.rs`](../../crates/uor-r4-object-store/tests/address_read.rs) and the final serving-time oracle sheet [`m1-address-as-read-oracle-2026-10-26.md`](../harness/prep/m1-address-as-read-oracle-2026-10-26.md).
 - [`m6_ablation.rs`](../../crates/uor-r4-integer/src/m6_ablation.rs): integer prime-addressed memory (`PrimeFactorKey`, `IntegerAddressedMemory`) with sorted-merge GCD sieve admission, `[initial, previous, current]` versioning, eviction proofs, and the four-arm M6 causal intermediate-state ablation instrument ([lab record](../labs/m6-causal-ablation-instrument/README.md)).
 - [`durable_consumer.rs`](../../crates/uor-r4-object-store/src/durable_consumer.rs): M3 scoped durable-session persistence (`export_scope` / `import_scope`, `UORMEM01` + `UR4SESS1`) and occurrence-bound fact quotation over `uor-r4-object-store`, with finite CPU controls in [`tests/durable_consumer.rs`](../../crates/uor-r4-object-store/tests/durable_consumer.rs) and the M3 durable-memory bar pre-registration in [`docs/labs/object-store-consumer-m3/README.md`](../labs/object-store-consumer-m3/README.md).
 - [`stack_aerm.rs`](../../crates/uor-r4-training/src/stack_aerm.rs): the exact relation store simulator and the G v1 always-on read.

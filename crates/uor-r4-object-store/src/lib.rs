@@ -2,6 +2,7 @@
 //! A manifest must be pinned by the caller; its digest is not an authorization signature.
 #![forbid(unsafe_code)]
 
+pub mod address_oracle;
 pub mod address_read;
 pub mod address_stage0;
 pub mod bindings;

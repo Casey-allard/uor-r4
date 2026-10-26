@@ -35,3 +35,8 @@ uor-r4-discrete = { path = "../uor-r4-discrete", optional = true }
 name = "address-stage0"
 path = "src/bin/address-stage0.rs"
 required-features = ["stage0-lab"]
+
+[[bin]]
+name = "address-oracle"
+path = "src/bin/address-oracle.rs"
+required-features = ["stage0-lab"]

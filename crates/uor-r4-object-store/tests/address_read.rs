@@ -454,3 +454,33 @@ fn byte_identical_round_trip_across_store_export_and_import_at_carry_boundaries(
     }
     Ok(())
 }
+
+#[test]
+fn sieve_candidate_counts_cover_active_and_evicted_admission() -> TestResult {
+    let mut store = Store::new(Limits::default());
+    let folded = store.fold(b"value")?;
+    let evicted = PrimeAddress::new(&[2, 3])?;
+    let active = PrimeAddress::new(&[3, 5])?;
+    let mut dir = AddressDirectory::new(1)?;
+    dir.write(
+        evicted,
+        ObjectTarget::WholeObject {
+            manifest: folded.manifest.clone(),
+        },
+    )?;
+    dir.write(
+        active,
+        ObjectTarget::WholeObject {
+            manifest: folded.manifest,
+        },
+    )?;
+    let counts = dir.sieve_candidate_counts(&PrimeAddress::new(&[3, 7])?);
+    assert_eq!(counts.active_examined, 1);
+    assert_eq!(counts.active_admitted, 1);
+    assert_eq!(counts.evicted_examined, 0);
+    assert_eq!(counts.evicted_admitted, 0);
+    let counts = dir.sieve_candidate_counts(&PrimeAddress::new(&[2, 11])?);
+    assert_eq!(counts.active_admitted, 0);
+    assert_eq!(counts.evicted_admitted, 1);
+    Ok(())
+}

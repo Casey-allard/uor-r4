@@ -11,6 +11,7 @@ use crate::{
     bindings::{Bindings, PinnedTokenizer},
     reserve, Error, Limits, Manifest, ObjectVersion, RecordBackend, Result, Store,
 };
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, ops::Range};
 
@@ -192,6 +193,16 @@ struct VersionedEntry {
 struct SlotRecord {
     current: VersionedEntry,
     previous: Option<VersionedEntry>,
+}
+
+/// Exact candidate counts for one sieve query, before any backend fetch.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SieveCandidateCounts {
+    pub active_examined: usize,
+    pub active_admitted: usize,
+    pub evicted_examined: usize,
+    pub evicted_admitted: usize,
 }
 
 /// Bounded versioned directory mapping [`PrimeAddress`] keys to [`ObjectTarget`]s.
@@ -411,6 +422,26 @@ impl AddressDirectory {
             });
         }
         Ok(AddressReadOutcome::Absent)
+    }
+
+    /// Count active and evicted candidates examined and admitted by the sieve.
+    pub fn sieve_candidate_counts(&self, query: &PrimeAddress) -> SieveCandidateCounts {
+        let mut counts = SieveCandidateCounts::default();
+        for address in self.slots.keys() {
+            counts.active_examined += 1;
+            if query.gcd_shared_primes(address) > 0 {
+                counts.active_admitted += 1;
+            }
+        }
+        if counts.active_admitted == 0 {
+            for address in self.evicted.keys() {
+                counts.evicted_examined += 1;
+                if query.gcd_shared_primes(address) > 0 {
+                    counts.evicted_admitted += 1;
+                }
+            }
+        }
+        counts
     }
 }
 

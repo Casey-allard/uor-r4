@@ -37,6 +37,29 @@ Can the pinned D11 artifact and its GPU scorer produce a non-vacuous exact copy 
 
 Host manifest generation and finite tests: $0. GPU: one pod with two scorer passes, estimated <15 min at about $0.56/h (<$0.25 cap), inside 4 pods/$8/h. No retry after FIT. Reports and raw row records <32 MiB, with compact copy records separate from full parity records. Preserve all receipts with SHA-256 in the HF store before pod teardown. No energy claim is made. Full preparation, build, review, run and retry costs are recorded in the REPORT.
 
+## Bar
+
+Parity requires all 14,287 rows status 0 with target-position/token, prediction, top-8 and admitted-count agreement and byte-identical repeats. Copy passes only if exact-hint beats both no-hint and random-hint under `d > 24 && d^2 > 4(b+c)`. Otherwise record `COPY_GATE_FAIL` and do not build panel-v3.
+
+## Base artifact
+
+The pinned T16_fz Seed 1 D11 and sealed Stage T `final-dev.json` receipt above are the base. The Stage 0 copy manifest and tokenizer are fixed and hashed. No training or Level 3 trunk behavior is evaluated.
+
+## Data split
+
+TRAIN and DEV are used for pinned parity and exact-value leak checks. The copy instrument has 40 exact/no-hint/random-hint triples with distinct token-length-matched values and a planted-wrong control. No fresh-V2 or BPB stream is opened.
+
+## Steps
+
+1. Generate and validate the 40-row manifest and run host protocol/parity tests.
+2. Build the CUDA scorer on one RTX 5090 and validate all artifact/config/receipt identities.
+3. Run two D11 parity passes, compare every row and aggregate, then run teacher-forced and free-running copy controls.
+4. Preserve identity, parity, copy and stop reports with checksums and complete costs before pod teardown.
+
+## Minimum test power
+
+Parity covers all 14,287 DEV rows. The 40 copy pairs are the non-vacuity instrument, not a decisive language evaluation. Both primary comparisons require at least 25 net wins by the registered strict rule; a control winning at least 8 rows makes the gate impossible by design and stops panel spend. No seeds or mechanism-wide negative is claimed.
+
 ## TEST FITNESS line
 
 TEST FITNESS: FIT - M1 #2029 m1-address-as-read Stage 0
