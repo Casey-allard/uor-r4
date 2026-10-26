@@ -3,7 +3,7 @@ id: m1-w4-float-credit-sheet
 title: Register and run one float-credit training sheet (W4)
 milestone: M1
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [m1-w2-capacity-capture, m1-bvg-k-stage-t-training]
