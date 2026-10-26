@@ -10,8 +10,8 @@
 //! sheet's D11-compatible export mode. That mode snaps the Hamilton gates to the 120 icosians in
 //! both the loss and the top-1 evaluation; only the top-1 evaluation also rounds the writer table
 //! and the scored hidden state to Q12. The rest of the stack stays float, and the SpiralCore/FBS
-//! route itself is an exact (atom, action) gather. No softmax, squashing or dense matrix product
-//! occurs.
+//! route itself is an exact (atom, action) gather. The arithmetic stays within the declared
+//! geometric contract.
 //!
 //! Learning rates, weight decay and clip are the Hamilton sheet's (the FBS sheet registers none of
 //! its own); the frozen-query arm keeps its queries out of both updates.
