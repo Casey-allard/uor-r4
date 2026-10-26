@@ -25,6 +25,7 @@ pub mod artifact;
 pub mod device;
 pub mod fresh_transfer;
 pub mod kernel;
+pub mod m1_close;
 pub mod toks;
 
 use serde_json::{json, Value};

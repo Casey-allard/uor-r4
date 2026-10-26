@@ -2,6 +2,7 @@
 //! `d11-scorer rows CONFIG_JSON OUT_JSON`
 //! `d11-scorer score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON]`
 //! `d11-scorer fresh-score SEED1_LUT SEED2_LUT FRESH_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON`
+//! `d11-scorer m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON`
 //! `d11-scorer toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]`
 //!
 //! `toks` times `IntegerDiscreteModel` serving on this machine by the step-6
@@ -102,6 +103,19 @@ fn run(args: &[String]) -> Result<(), String> {
         {
             fresh_score(seed1_lut, seed2_lut, fresh_config, decision_receipt, report)
         }
+        [command, out_grade, out_fresh_gate] if command == "m1-close-grade" => {
+            refuse_existing(&[out_grade, out_fresh_gate])?;
+            let (audit, fz_gate_receipt) = inst::m1_close::canonical_m1_saved_model_audit()?;
+            write_new(out_grade, &json_bytes(&audit)?)?;
+            write_new(out_fresh_gate, &json_bytes(&fz_gate_receipt)?)?;
+            println!(
+                "m1-close-grade: m1_close_pass {}, status {}, fz dev_decision {}",
+                audit["m1_close_pass"],
+                audit["m1_milestone_status"],
+                fz_gate_receipt["dev_decision"]
+            );
+            Ok(())
+        }
         [command, artifact, report, flags @ ..] if command == "toks" => {
             let bytes = std::fs::read(artifact).map_err(|e| format!("{artifact}: {e}"))?;
             let model = IntegerDiscreteModel::from_bytes(&bytes)
@@ -135,6 +149,7 @@ fn run(args: &[String]) -> Result<(), String> {
         _ => Err("usage: d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON | rows CONFIG_JSON OUT_JSON \
                   | score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON] \
                   | fresh-score SEED1_LUT SEED2_LUT FRESH_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON \
+                  | m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON \
                   | toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]"
             .into()),
     }

@@ -762,6 +762,165 @@ impl TrunkTables {
             64 * c_q + 32 * c_qr + 16 * c_qc + 4 * c_r + c_c
         })
     }
+
+    /// Select the best token `y* in 0..VOCABULARY` globally under an integer score closure
+    /// `(score desc, unigram_count desc, token_id asc)`.
+    fn select_global<F>(&self, score_fn: F) -> u16
+    where
+        F: Fn(u16) -> u64,
+    {
+        let mut best_tok = self.unigram_best_global;
+        let mut best_score = 0u64;
+        let mut best_uni = 0u32;
+        let mut any_seen = false;
+        for tok_usize in 0..VOCABULARY {
+            let tok = tok_usize as u16;
+            let s = score_fn(tok);
+            let u = self.unigram_counts[tok_usize];
+            if !any_seen
+                || s > best_score
+                || (s == best_score && u > best_uni)
+                || (s == best_score && u == best_uni && tok < best_tok)
+            {
+                any_seen = true;
+                best_score = s;
+                best_uni = u;
+                best_tok = tok;
+            }
+        }
+        best_tok
+    }
+
+    /// Joint-first integer hierarchy score (`Path A` fix for `#2844` `Level 3` marginal `c_q` inversion):
+    /// `64 * C_query,read((q_tok, c_read), y) + 32 * C_query,rec((q_tok, c_rec), y) + 8 * C_read,rec((c_read, c_rec), y) + 2 * C_read(c_read, y) + C_query(q_tok, y)`.
+    pub fn level3_joint_hierarchy_score(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        rec_mode: RecurrenceMode,
+        norm_mode: NormalizationMode,
+        tok: u16,
+    ) -> u64 {
+        let q_key = u32::from(query_token);
+        let r_key = u32::from(read_code);
+        let qr_key = pack_u32_key(query_token, read_code);
+        let c_q = u64::from(self.query_table.get(q_key, tok));
+        let c_qr = u64::from(self.query_read_table.get(qr_key, tok));
+        let c_r = u64::from(self.read_table.get(r_key, tok));
+        if rec_mode == RecurrenceMode::IdentityNullControlV1 {
+            return 64 * c_qr + 2 * c_r + c_q;
+        }
+        let qc_key = pack_u32_key(query_token, rec_code);
+        let rc_key = pack_u32_key(read_code, rec_code);
+        let (rr_tbl, qr_rec_tbl) = match (rec_mode, norm_mode) {
+            (RecurrenceMode::ShuffledOrderControlV1, _) => {
+                (&self.read_rec_shuf_table, &self.query_rec_shuf_table)
+            }
+            (_, NormalizationMode::UnitSnapControlV1) => {
+                (&self.read_rec_unit_table, &self.query_rec_unit_table)
+            }
+            _ => (&self.read_rec_table, &self.query_rec_table),
+        };
+        let c_qc = u64::from(qr_rec_tbl.get(qc_key, tok));
+        let c_rr = u64::from(rr_tbl.get(rc_key, tok));
+        64 * c_qr + 32 * c_qc + 8 * c_rr + 2 * c_r + c_q
+    }
+
+    /// `Level 3` with joint-first hierarchy on pre-rotation admitted cells `V_{A_W(q_read)}`.
+    pub fn select_level3_joint_hierarchy_admitted(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        rec_mode: RecurrenceMode,
+        norm_mode: NormalizationMode,
+        cell_tokens: &[Vec<u16>; CELL_COUNT],
+        slots: &[u16],
+    ) -> u16 {
+        self.select_admitted(cell_tokens, slots, |tok| {
+            self.level3_joint_hierarchy_score(
+                query_token,
+                read_code,
+                rec_code,
+                rec_mode,
+                norm_mode,
+                tok,
+            )
+        })
+    }
+
+    /// `Level 3` with joint-first hierarchy across all `4,096` vocabulary tokens (`0..VOCABULARY`),
+    /// for post-rotation full `OuterL1V1` writer scoring (`A_W(q_trunk)`).
+    pub fn select_level3_joint_hierarchy_global(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        rec_mode: RecurrenceMode,
+        norm_mode: NormalizationMode,
+    ) -> u16 {
+        self.select_global(|tok| {
+            self.level3_joint_hierarchy_score(
+                query_token,
+                read_code,
+                rec_code,
+                rec_mode,
+                norm_mode,
+                tok,
+            )
+        })
+    }
+}
+
+/// Evaluate one row through the joint-first `Level 3` hierarchy + `DiscreteHamiltonGateV1`
+/// rotation `q_read -> q_trunk` + post-rotation full two-stage `OuterL1V1` writer
+/// (`writer_score_full_outer_l1(&q_trunk)`), so cell admission `A_W(q_trunk)` opens around the
+/// rotated trunk vector rather than pre-rotation `q_read`.
+pub fn evaluate_joint_hierarchy_full_writer(
+    q_read: &[i32; READ_WIDTH],
+    query_token: u16,
+    read_code: u16,
+    rec_code: u16,
+    rec_mode: RecurrenceMode,
+    norm_mode: NormalizationMode,
+    tables: &TrunkTables,
+    codebook_roots: &[[u8; TRUNK_BLOCKS]],
+    codebook_coords: &[[i32; READ_WIDTH]],
+    cell_tokens: &[Vec<u16>; CELL_COUNT],
+) -> Result<(
+    u16,
+    [i32; READ_WIDTH],
+    [u8; TRUNK_BLOCKS],
+    [u32; 8],
+    [u16; 16],
+)> {
+    let chosen_tok = tables.select_level3_joint_hierarchy_global(
+        query_token,
+        read_code,
+        rec_code,
+        rec_mode,
+        norm_mode,
+    );
+    let read_roots = unpack_code(read_code);
+    let target_roots = codebook_roots
+        .get(usize::from(chosen_tok))
+        .copied()
+        .ok_or_else(|| invalid("chosen_tok out of codebook_roots bounds"))?;
+    let (q_trunk, frames) = apply_hamilton_gate_vector(q_read, read_roots, target_roots)?;
+    for b in 0..TRUNK_BLOCKS {
+        let blk: [i32; BLOCK_WIDTH] = q_trunk[b * BLOCK_WIDTH..(b + 1) * BLOCK_WIDTH]
+            .try_into()
+            .map_err(|_| invalid("trunk block slice"))?;
+        if !BlockNormInvariants::measure(&blk).is_canonical_unit_root() {
+            return Err(invalid(
+                "joint-hierarchy trunk output block violated canonical E8 orbit norm invariants",
+            ));
+        }
+    }
+    let (top8, admitted_cells) =
+        writer_score_full_outer_l1(&q_trunk, codebook_coords, cell_tokens, KEPT_CELLS_DEFAULT)?;
+    Ok((chosen_tok, q_trunk, frames, top8, admitted_cells))
 }
 
 /// Exact integer metrics for one evaluated panel (`ft/dev` or `fresh_v2`).
@@ -2417,5 +2576,116 @@ mod tests {
         assert_eq!(summary.level3_hamilton_full_trunk_top1_all, 1);
         assert_eq!(summary.level2_ablation_rec_null_top1_all, 0);
         assert_eq!(summary.level3_ablation_rec_null_top1_all, 0);
+    }
+
+    #[test]
+    fn joint_hierarchy_fixes_level3_marginal_query_inversion_and_pre_rotation_shortlist_cap() {
+        let (_, roots, coords, cell_tokens) = synthetic_codebook();
+
+        // Both token 0 (`[0,0,0,0]`) and token 17 (`[0,1,1,0]`) lie in cell 0 (`r0 = 0, r3 = 0`).
+        // Suppose `query_token = 9` frequently precedes token 0 in other contexts (`read_code = 200, rec_code = 20`, 10 times),
+        // whereas in the exact joint context `(query_token = 9, read_code = 100, rec_code = 5)`, token 17 occurs 4 times
+        // and token 0 occurs 0 times.
+        let mut train = Vec::new();
+        for _ in 0..10 {
+            train.push(TrunkTrainRow {
+                read_code: 200,
+                rec_code: 20,
+                rec_shuf_code: 20,
+                rec_unit_code: 20,
+                query_token: 9,
+                target_token: 0,
+            });
+        }
+        for _ in 0..4 {
+            train.push(TrunkTrainRow {
+                read_code: 100,
+                rec_code: 5,
+                rec_shuf_code: 5,
+                rec_unit_code: 5,
+                query_token: 9,
+                target_token: 17,
+            });
+        }
+        // Also add a second context `(query_token = 9, read_code = 100, rec_code = 7)` whose true target
+        // is token 2777, which resides in cell `u16::from(roots[2777][0]) * 16 + u16::from(roots[2777][3])`
+        // outside the pre-rotation 8-cell shortlist `A_W(q_read)` of `read_code = 100`.
+        for _ in 0..6 {
+            train.push(TrunkTrainRow {
+                read_code: 100,
+                rec_code: 7,
+                rec_shuf_code: 7,
+                rec_unit_code: 7,
+                query_token: 9,
+                target_token: 2777,
+            });
+        }
+
+        let tables = TrunkTables::build(&train).unwrap();
+        let q_read = root_vector(unpack_code(100));
+        let (_, slots) =
+            writer_score_full_outer_l1(&q_read, &coords, &cell_tokens, KEPT_CELLS_DEFAULT).unwrap();
+        assert!(slots.contains(&0));
+
+        // 1. Marginal query inversion check on admitted cell 0:
+        // Old `select_level3_full_trunk` weights `64 * c_q` above `32 * c_qr + 16 * c_qc`,
+        // picking the wrong marginal token 0 (`640 > 492`) even though `(9, 100)` and `(9, 5)` never produced 0.
+        let old_pick = tables.select_level3_full_trunk(
+            9,
+            100,
+            5,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &cell_tokens,
+            &slots,
+        );
+        assert_eq!(old_pick, 0);
+
+        // `select_level3_joint_hierarchy_admitted` weights joint `(query, read)` and `(query, rec)` above `c_q`,
+        // recovering the exact context target 17.
+        let joint_admitted_pick = tables.select_level3_joint_hierarchy_admitted(
+            9,
+            100,
+            5,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &cell_tokens,
+            &slots,
+        );
+        assert_eq!(joint_admitted_pick, 17);
+
+        // 2. Post-rotation `OuterL1V1` full-writer check when the true target cell is outside `A_W(q_read)`:
+        let cell_2777 = u16::from(roots[2777][0]) * 16 + u16::from(roots[2777][3]);
+        assert!(!slots.contains(&cell_2777));
+
+        let pre_rot_pick = tables.select_level3_joint_hierarchy_admitted(
+            9,
+            100,
+            7,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &cell_tokens,
+            &slots,
+        );
+        assert_ne!(pre_rot_pick, 2777);
+
+        let (chosen_tok, q_trunk, _, post_rot_top8, post_rot_admitted) =
+            evaluate_joint_hierarchy_full_writer(
+                &q_read,
+                9,
+                100,
+                7,
+                RecurrenceMode::ActiveHolonomyV1,
+                NormalizationMode::ScaleMatchedSnapV1,
+                &tables,
+                &roots,
+                &coords,
+                &cell_tokens,
+            )
+            .unwrap();
+        assert_eq!(chosen_tok, 2777);
+        assert_eq!(q_trunk, coords[2777]);
+        assert!(post_rot_admitted.contains(&cell_2777));
+        assert_eq!(post_rot_top8[0], 2777);
     }
 }
