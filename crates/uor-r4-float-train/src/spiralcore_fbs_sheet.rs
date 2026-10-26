@@ -1628,6 +1628,95 @@ fn drift_summary(drift: &[u32], selected: impl Fn(usize) -> bool) -> serde_json:
     })
 }
 
+/// The smallest size, in Q12 codes on both sides, at which an opposite sign counts as a sign flip
+/// in [`drift_readings`] (1/64 of a unit): below it, rounding alone can cross zero.
+const SIGN_FLIP_MIN_CODES: i64 = 64;
+
+/// The drift readings the claude-132 code review asked for (claude-133), in Q12 codes, of the
+/// queries `a` against the reference `r` (rows × `width`):
+/// - the median, mean, 99th-percentile and largest absolute difference over every entry (by
+///   nearest rank: the upper middle value when the count is even);
+/// - the three columns that hold the most per-row maxima (a row whose largest difference is in
+///   two columns counts toward the lower one), and the rows with no difference at all, which
+///   count toward no column;
+/// - the largest per-channel mean signed difference in size, and its channel (the higher one on a
+///   tie);
+/// - the entries saturated at the i16 ends on each side;
+/// - the entries of opposite sign where both sides are at least [`SIGN_FLIP_MIN_CODES`] in size,
+///   so that a sign flip shows;
+/// - the per-row scale Σ|a| / Σ|r| (5th percentile, median, 95th percentile), so that a scale or
+///   exponent error shows. It is an L1 ratio: no products.
+fn drift_readings(a: &[f32], r: &[f32], width: usize) -> Result<serde_json::Value> {
+    if width == 0 || a.len() != r.len() || a.is_empty() || !a.len().is_multiple_of(width) {
+        return Err(invalid("the two query sets are not the same whole rows"));
+    }
+    let code = |v: f32| (v * hs::Q12_SCALE).round() as i64;
+    let saturated = |c: i64| c >= i64::from(i16::MAX) || c <= i64::from(i16::MIN);
+    let rows = a.len() / width;
+    let mut abs = Vec::with_capacity(a.len());
+    let mut channel_sum = vec![0i64; width];
+    let mut max_column = vec![0usize; width];
+    let (mut saturated_a, mut saturated_r) = (0usize, 0usize);
+    let mut sign_flips = 0usize;
+    let mut rows_no_gap = 0usize;
+    let mut scales = Vec::with_capacity(rows);
+    for (ra, rr) in a.chunks(width).zip(r.chunks(width)) {
+        let (mut best, mut best_col) = (0u64, 0usize);
+        let (mut l1_a, mut l1_r) = (0u64, 0u64);
+        for (j, (&x, &y)) in ra.iter().zip(rr).enumerate() {
+            let (cx, cy) = (code(x), code(y));
+            let d = cx - cy;
+            abs.push(d.unsigned_abs());
+            channel_sum[j] += d;
+            if d.unsigned_abs() > best {
+                (best, best_col) = (d.unsigned_abs(), j);
+            }
+            saturated_a += usize::from(saturated(cx));
+            saturated_r += usize::from(saturated(cy));
+            sign_flips += usize::from(
+                cx.signum() * cy.signum() < 0 && cx.abs().min(cy.abs()) >= SIGN_FLIP_MIN_CODES,
+            );
+            l1_a += cx.unsigned_abs();
+            l1_r += cy.unsigned_abs();
+        }
+        // A row with no difference has no column of its largest one (claude-133 code review).
+        if best > 0 {
+            max_column[best_col] += 1;
+        } else {
+            rows_no_gap += 1;
+        }
+        if l1_r > 0 {
+            scales.push(l1_a as f64 / l1_r as f64);
+        }
+    }
+    abs.sort_unstable();
+    scales.sort_by(f64::total_cmp);
+    let at = |len: usize, q: f64| ((len.saturating_sub(1)) as f64 * q).round() as usize;
+    let scale = |q: f64| scales.get(at(scales.len(), q)).copied();
+    let mut columns: Vec<(usize, usize)> = max_column.iter().copied().enumerate().collect();
+    columns.sort_by(|x, y| y.1.cmp(&x.1).then(x.0.cmp(&y.0)));
+    let (worst_channel, worst_mean) = channel_sum
+        .iter()
+        .enumerate()
+        .map(|(j, &s)| (j, s as f64 / rows as f64))
+        .max_by(|x, y| x.1.abs().total_cmp(&y.1.abs()))
+        .unwrap_or((0, 0.0));
+    Ok(serde_json::json!({
+        "entries": abs.len(),
+        "median_abs_codes": abs[at(abs.len(), 0.5)],
+        "mean_abs_codes": abs.iter().sum::<u64>() as f64 / abs.len() as f64,
+        "p99_abs_codes": abs[at(abs.len(), 0.99)],
+        "max_abs_codes": abs[abs.len() - 1],
+        "top_max_columns": columns.iter().take(3).map(|&(j, n)| [j, n]).collect::<Vec<_>>(),
+        "rows_no_gap": rows_no_gap,
+        "max_abs_channel_mean_codes": worst_mean,
+        "max_abs_channel_mean_channel": worst_channel,
+        "saturated_entries": {"queries": saturated_a, "reference": saturated_r},
+        "sign_flip_entries": sign_flips,
+        "row_l1_scale": {"p05": scale(0.05), "median": scale(0.5), "p95": scale(0.95)},
+    }))
+}
+
 fn rows_differ(a: &[u32], b: &[u32]) -> usize {
     a.iter().zip(b).filter(|(x, y)| x != y).count()
 }
@@ -1756,13 +1845,22 @@ pub fn run_d11_residual(
     // is the panel's head.
     let i_head = hs::write_q12_rows(&loaded, &d_queries)? == d_preds;
     let h_preds = hs::write_q12_rows(&loaded, &a_queries)?;
-    if [&d_preds, &h_preds, &f_preds, &e_preds]
+    // The Q16 control (claude-133): the D11 forward with its residual stream on the integer
+    // session's 2^-16 grid.
+    let (d16_metrics, d16_preds) =
+        hs::with_q16_residual(|| hs::evaluate_dev_panel_d11(&loaded, &dev_windows))?;
+    let d16_queries = hs::with_q16_residual(|| {
+        hs::with_d11_mode(|| hs::dev_panel_q12_queries(&loaded, &dev_windows))
+    })?;
+    let i_head_q16 = hs::write_q12_rows(&loaded, &d16_queries)? == d16_preds;
+    if [&d_preds, &d16_preds, &h_preds, &f_preds, &e_preds]
         .iter()
         .any(|p| p.len() != a_preds.len())
     {
         return Err(invalid("the panels do not cover the artifact's rows"));
     }
     let drift = q12_drift(&d_queries, &a_queries, width)?;
+    let drift_q16 = q12_drift(&d16_queries, &a_queries, width)?;
 
     let pair = |name_a: &str, a: &[u32], name_b: &str, b: &[u32]| {
         let p = hs::compute_paired_discordance(name_a, a, name_b, b, &targets, seed);
@@ -1787,6 +1885,8 @@ pub fn run_d11_residual(
         && d_preds == d_again
         && i_head
         && i_d_stored.unwrap_or(true);
+    // The Q16 control's own head check gates only its own classification (claude-133 code review).
+    let instruments_q16_ok = instruments_ok && i_head_q16;
     let classification = classify_residual(
         instruments_ok,
         rows_differ(&h_preds, &a_preds),
@@ -1794,8 +1894,18 @@ pub fn run_d11_residual(
         a_preds.len(),
         d_vs_a["within"] == serde_json::json!(true),
     );
+    // The same rule with the Q16 control as the reference (claude-133).
+    let d16_vs_a = pair("d11_q16", &d16_preds, "artifact", &a_preds);
+    let classification_q16 = classify_residual(
+        instruments_q16_ok,
+        rows_differ(&h_preds, &a_preds),
+        rows_differ(&d16_preds, &a_preds),
+        a_preds.len(),
+        d16_vs_a["within"] == serde_json::json!(true),
+    );
     Ok(serde_json::json!({
-        "sheet": "docs/harness/prep/d11-exporter-float-trunk-residual-2026-10-26.md",
+        "sheet": "docs/harness/prep/d11-exporter-float-trunk-investigation-2026-10-26.md",
+        "residual_sheet": "docs/harness/prep/d11-exporter-float-trunk-residual-2026-10-26.md",
         "label": label,
         "seed": seed,
         "arm": D11_EXPORT_ARM.name(),
@@ -1809,6 +1919,7 @@ pub fn run_d11_residual(
             "float": f_metrics.top1_hits,
             "export_mode": e_metrics.top1_hits,
             "d11": d_metrics.top1_hits,
+            "d11_q16": d16_metrics.top1_hits,
             "head_on_artifact_queries": top1(&h_preds),
             "artifact": top1(&a_preds),
         },
@@ -1821,8 +1932,19 @@ pub fn run_d11_residual(
             "export_mode_vs_d11": pair("export_mode", &e_preds, "d11", &d_preds),
             "float_vs_d11": pair("float", &f_preds, "d11", &d_preds),
             "float_vs_artifact": pair("float", &f_preds, "artifact", &a_preds),
+            "d11_q16_vs_artifact": d16_vs_a,
+            "d11_vs_d11_q16": pair("d11", &d_preds, "d11_q16", &d16_preds),
         },
         "q12_drift_d11_vs_artifact": drift_summary(&drift, |i| d_preds[i] != a_preds[i]),
+        "q12_drift_d11_q16_vs_artifact": drift_summary(&drift_q16, |i| d16_preds[i] != a_preds[i]),
+        "drift_readings": {
+            "artifact_vs_d11": drift_readings(&a_queries, &d_queries, width)?,
+            "artifact_vs_d11_q16": drift_readings(&a_queries, &d16_queries, width)?,
+            "d11_q16_vs_d11": drift_readings(&d16_queries, &d_queries, width)?,
+        },
+        "d11_q16_q12_oracle_mismatches": d16_metrics.q12_i32_oracle_mismatches,
+        "i_head_q16": i_head_q16,
+        "classification_q16": classification_q16,
         "i_save_load": i_save_load,
         "i_inputs": i_inputs,
         "i_verify_all": i_verify,
@@ -1831,6 +1953,7 @@ pub fn run_d11_residual(
         "i_head": i_head,
         "i_d_stored": i_d_stored,
         "instruments_pass": instruments_ok,
+        "instruments_pass_q16": instruments_q16_ok,
         "rule": {
             "faithful_percent": RESIDUAL_FAITHFUL_PERCENT,
             "departure_percent": RESIDUAL_DEPARTURE_PERCENT,
@@ -2595,6 +2718,84 @@ mod tests {
             .iter()
             .all(|&v| (v * 4096.0 - (v * 4096.0).round()).abs() == 0.0));
         hs::clear_active_arm();
+        Ok(())
+    }
+
+    #[test]
+    fn the_drift_readings_count_codes_columns_saturation_and_scale() -> Result<()> {
+        let q = |codes: &[i32]| -> Vec<f32> { codes.iter().map(|&c| c as f32 / 4096.0).collect() };
+        // Two rows of width 3. Row 0: A doubles the reference (scale 2), largest gap in column 2.
+        // Row 1: A saturates at the i16 top in column 0, its largest gap.
+        let r = q(&[10, 20, 30, 100, 0, -50]);
+        let a = q(&[20, 40, 60, 32767, 0, -50]);
+        let v = drift_readings(&a, &r, 3)?;
+        // No entry is a sign flip: the opposite-sign pairs are all below 64 codes or absent.
+        assert_eq!(v["sign_flip_entries"], serde_json::json!(0));
+        // A third row with no difference counts toward no column (claude-133 code review).
+        let with_equal_row = drift_readings(
+            &q(&[20, 40, 60, 32767, 0, -50, 7, 7, 7]),
+            &q(&[10, 20, 30, 100, 0, -50, 7, 7, 7]),
+            3,
+        )?;
+        assert_eq!(with_equal_row["rows_no_gap"], serde_json::json!(1));
+        assert_eq!(
+            with_equal_row["top_max_columns"],
+            serde_json::json!([[0, 1], [2, 1], [1, 0]])
+        );
+        let flipped = drift_readings(&q(&[-100, 63, 5, 64]), &q(&[100, -64, -5, -64]), 4)?;
+        // The first and last entries are flips: both sides at least 64 codes, of opposite sign.
+        assert_eq!(flipped["sign_flip_entries"], serde_json::json!(2));
+        assert_eq!(v["entries"], serde_json::json!(6));
+        // The absolute gaps are 10, 20, 30, 32667, 0, 0; sorted 0, 0, 10, 20, 30, 32667.
+        assert_eq!(v["median_abs_codes"], serde_json::json!(20));
+        assert_eq!(v["max_abs_codes"], serde_json::json!(32667));
+        assert_eq!(
+            v["top_max_columns"],
+            serde_json::json!([[0, 1], [2, 1], [1, 0]])
+        );
+        // Column 0's mean signed gap is (10 + 32667) / 2.
+        assert_eq!(v["max_abs_channel_mean_channel"], serde_json::json!(0));
+        assert_eq!(v["max_abs_channel_mean_codes"], serde_json::json!(16338.5));
+        assert_eq!(
+            v["saturated_entries"],
+            serde_json::json!({"queries": 1, "reference": 0})
+        );
+        // Row 0's L1 scale is 120 / 60 = 2; row 1's is 32817 / 150.
+        assert_eq!(v["row_l1_scale"]["p05"], serde_json::json!(2.0));
+        assert!(drift_readings(&a, &r[..3], 3).is_err());
+        assert!(drift_readings(&[], &[], 3).is_err());
+        Ok(())
+    }
+
+    /// On one GPU (claude-133): the Q16 control puts the residual on the 2^-16 grid only when it is
+    /// on, and off it returns the tensor bit for bit; under it the trunk's output changes.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn gpu_the_q16_control_holds_the_residual_on_its_grid_and_is_off_by_default() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let x = Tensor::from_vec(vec![0.1f32, -2.5001, 3.000_01, 1.0 / 3.0], 4, &device)?;
+        let bits = |t: &Tensor| -> Result<Vec<u32>> {
+            Ok(t.to_vec1::<f32>()?.iter().map(|v| v.to_bits()).collect())
+        };
+        assert_eq!(bits(&hs::q16_residual(x.clone())?)?, bits(&x)?);
+        let on = hs::with_q16_residual(|| hs::q16_residual(x.clone()))?;
+        assert!(on
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|&v| (v * 65536.0).fract() == 0.0));
+        assert_ne!(bits(&on)?, bits(&x)?);
+
+        let model = build_fbs_model(D11_EXPORT_ARM, 1, &device)?;
+        let batches = synthetic_batches(1, 13);
+        let (ids, _, _) = &batches[0];
+        let plain = model.hidden(ids, SHEET_TRAIN_BATCH, SHEET_CONTEXT)?;
+        let again = model.hidden(ids, SHEET_TRAIN_BATCH, SHEET_CONTEXT)?;
+        let control =
+            hs::with_q16_residual(|| model.hidden(ids, SHEET_TRAIN_BATCH, SHEET_CONTEXT))?;
+        let flat = |t: &Tensor| -> Result<Vec<f32>> { Ok(t.flatten_all()?.to_vec1::<f32>()?) };
+        assert_eq!(flat(&plain)?, flat(&again)?);
+        assert_ne!(flat(&plain)?, flat(&control)?);
+        assert!(flat(&control)?.iter().all(|v| v.is_finite()));
         Ok(())
     }
 }

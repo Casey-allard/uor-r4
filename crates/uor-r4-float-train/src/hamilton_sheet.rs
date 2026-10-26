@@ -567,6 +567,43 @@ impl GateHookState {
 
 thread_local! {
     static GATE_HOOK: RefCell<GateHookState> = RefCell::new(GateHookState::default());
+    /// The Q16 control (claude-133): round the trunk's residual stream to 2^-16. It is apart from
+    /// the gate hook, which `with_d11_mode` saves and restores.
+    static ROUND_RESIDUAL_Q16: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// The integer session's residual exponent (`RESIDUAL_EXP`, −16): its residual stream is on the
+/// 2^-16 grid.
+pub const Q16_SCALE: f32 = 65536.0;
+
+/// Runs `f` with the trunk's residual stream rounded to 2^-16 after the embedding and after each
+/// sublayer add, where the integer session holds it (claude-133, the Q16 control). It restores
+/// the flag as it was. An evaluation control: it has no backward bridge.
+pub fn with_q16_residual<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    /// Restores the flag on every exit, a panic included (claude-133 code review).
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ROUND_RESIDUAL_Q16.with(|c| c.set(self.0));
+        }
+    }
+    let _restore = Restore(ROUND_RESIDUAL_Q16.with(|c| c.replace(true)));
+    f()
+}
+
+/// Whether the trunk rounds its residual stream to 2^-16 on this thread.
+pub(crate) fn is_rounding_residual_q16() -> bool {
+    ROUND_RESIDUAL_Q16.with(|c| c.get())
+}
+
+/// `x` on the 2^-16 grid under [`with_q16_residual`]; `x` itself otherwise.
+pub(crate) fn q16_residual(x: Tensor) -> Result<Tensor> {
+    if !is_rounding_residual_q16() {
+        return Ok(x);
+    }
+    Ok(x.affine(f64::from(Q16_SCALE), 0.0)?
+        .round()?
+        .affine(1.0 / f64::from(Q16_SCALE), 0.0)?)
 }
 
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
@@ -2659,6 +2696,26 @@ mod tests {
         assert!(!with_d11_mode(|| Ok(is_bridging_d11()))?);
         assert!(with_d11_training(1, 3, || -> Result<()> { Err(invalid("inside")) }).is_err());
         assert!(!is_bridging_d11() && !is_snapping_transition());
+        Ok(())
+    }
+
+    #[test]
+    fn the_q16_control_sets_and_restores_its_flag() -> Result<()> {
+        // claude-133: the residual rounds only inside `with_q16_residual`, survives the D11 mode's
+        // own save and restore, and an error inside still restores the flag.
+        assert!(!is_rounding_residual_q16());
+        assert!(with_q16_residual(|| Ok(is_rounding_residual_q16()))?);
+        assert!(with_q16_residual(|| with_d11_mode(|| Ok(
+            is_rounding_residual_q16()
+        )))?);
+        assert!(!with_d11_mode(|| Ok(is_rounding_residual_q16()))?);
+        assert!(with_q16_residual(|| -> Result<()> { Err(invalid("inside")) }).is_err());
+        assert!(!is_rounding_residual_q16());
+        // A panic inside restores it too.
+        let panicked =
+            std::panic::catch_unwind(|| with_q16_residual(|| -> Result<()> { panic!("inside") }));
+        assert!(panicked.is_err());
+        assert!(!is_rounding_residual_q16());
         Ok(())
     }
 

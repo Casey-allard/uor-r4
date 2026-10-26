@@ -1028,10 +1028,13 @@ impl StackModel {
     pub fn hidden(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         self.validate_native_learning_path()?;
         let p = self.params()?;
-        let mut x = self.embed(ids, batch, time)?;
+        // Under the Q16 control (claude-133), the residual stream is held on the integer
+        // session's 2^-16 grid; otherwise `q16_residual` returns it unchanged.
+        let q16 = crate::hamilton_sheet::q16_residual;
+        let mut x = q16(self.embed(ids, batch, time)?)?;
         for layer in 0..self.config.layers() {
-            x = x.add(&self.composed_recurrence(&p, layer, &x)?)?;
-            x = x.add(&self.mlp(&p, layer, &x)?)?;
+            x = q16(x.add(&self.composed_recurrence(&p, layer, &x)?)?)?;
+            x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
         }
         let x = self.norm(&p, &x, "final_norm.weight")?;
         Ok(x.reshape((batch * time, self.config.width))?)
