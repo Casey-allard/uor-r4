@@ -77,3 +77,8 @@ path = "src/bin/carrier-fresh-slice.rs"
 [[bin]]
 name = "carrier-arms"
 path = "src/bin/carrier-arms.rs"
+
+[[bin]]
+name = "stage-t-run"
+path = "src/bin/stage-t-run.rs"
+

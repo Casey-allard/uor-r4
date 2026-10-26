@@ -38,6 +38,7 @@ pub mod q4_import;
 pub mod rows_source;
 pub mod rowsk_source;
 pub mod snapshot;
+pub mod stage_t;
 pub use objective::ObjectivePolicy;
 pub mod training;
 pub mod w2_capacity;
