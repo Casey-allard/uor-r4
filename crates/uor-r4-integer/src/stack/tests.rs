@@ -2706,6 +2706,124 @@ fn fbs_trunk_export_is_deterministic_and_parses() {
 }
 
 #[test]
+fn fbs_reference_quat_modes_match_their_definitions() {
+    use super::format::{ref_quat_mode, ref_snap_icosian, FbsQuatMode};
+    // Normalize: the float CUDA path's `q / sqrt(|q|^2 + eps)`.
+    let n = ref_quat_mode([3.0, 0.0, 4.0, 0.0], FbsQuatMode::Normalize, 1e-12);
+    for (got, want) in n.iter().zip([0.6, 0.0, 0.8, 0.0]) {
+        assert!((got - want).abs() < 1e-12, "{n:?}");
+    }
+    let tiny = ref_quat_mode([1e-6, 0.0, 0.0, 0.0], FbsQuatMode::Normalize, 1e-12);
+    assert!((tiny[0] - 1e-6 / (1e-12f64 + 1e-12).sqrt()).abs() < 1e-12, "{tiny:?}");
+    // Icosian: a unit icosian, and the identity snaps to itself.
+    assert_eq!(ref_quat_mode([1.0, 0.0, 0.0, 0.0], FbsQuatMode::Icosian, 1e-12), [1.0, 0.0, 0.0, 0.0]);
+    let s = ref_quat_mode([0.3, -0.2, 0.9, 0.1], FbsQuatMode::Icosian, 1e-12);
+    assert!((s.iter().map(|v| v * v).sum::<f64>() - 1.0).abs() < 1e-12, "{s:?}");
+    // Q12Icosian rounds to Q12 steps first: a gate below half a step rounds
+    // to zero and snaps as the zero vector does, not as its direction does.
+    let small = [1e-5, 0.0, 0.0, 0.0];
+    assert_eq!(ref_quat_mode(small, FbsQuatMode::Q12Icosian, 1e-12), ref_snap_icosian([0.0; 4]));
+    assert_eq!(ref_quat_mode(small, FbsQuatMode::Icosian, 1e-12), [1.0, 0.0, 0.0, 0.0]);
+    assert_ne!(ref_snap_icosian([0.0; 4]), [1.0, 0.0, 0.0, 0.0]);
+}
+
+#[test]
+fn fbs_reference_each_snap_site_reads_its_own_mode() {
+    use super::format::{
+        ref_hamilton, ref_hamilton_feed_forward, ref_quat_mode, FbsQuatMode, FbsReferenceSnaps,
+        RefRecurrence,
+    };
+    use FbsQuatMode::{Icosian, Normalize};
+    let close = |got: &[f64], want: &[f64], what: &str| {
+        assert!(
+            got.iter().zip(want).all(|(a, b)| (a - b).abs() < 1e-12) && got.len() == want.len(),
+            "{what}: {got:?} against {want:?}"
+        );
+    };
+    let quat = |v: &[f64]| [v[0], v[1], v[2], v[3]];
+
+    // The feed-forward gate: hamilton(mode(g), up) per 4-block.
+    let g = [0.3, -0.7, 0.2, 0.5, 1.5, 0.1, -0.4, 0.2];
+    let up = [1.0, 2.0, -1.0, 0.5, -0.3, 0.8, 0.2, -1.1];
+    for mode in [Icosian, Normalize] {
+        let h = ref_hamilton_feed_forward(&g, &up, mode);
+        for b in 0..2 {
+            let want = ref_hamilton(
+                ref_quat_mode(quat(&g[4 * b..]), mode, 1e-12),
+                quat(&up[4 * b..]),
+            );
+            close(&h[4 * b..4 * b + 4], &want, &format!("feed-forward {mode:?}"));
+        }
+    }
+    assert_ne!(
+        ref_hamilton_feed_forward(&g, &up, Icosian),
+        ref_hamilton_feed_forward(&g, &up, Normalize)
+    );
+
+    // One recurrence lane: tap 0 is 1 and every other table 0, so the
+    // convolution is the drive; the decay pre-activation 0.5 picks rate 8.
+    let mut taps = [0.0f32; 16];
+    taps[..4].copy_from_slice(&[1.0; 4]);
+    let rec = RefRecurrence::new(&taps, &[0.0; 4], &[0.0], false).expect("recurrence");
+    let lambda = 2f64.powi(-9);
+    let keep = (1.0 - lambda * lambda).sqrt();
+    let drive = [1.0, 2.0, 3.0, 4.0];
+    let out_gate = [0.5, 0.1, -0.2, 0.3];
+    let rotation = [0.6, -0.3, 0.2, 0.7];
+    let gate_out = [0.5, rotation[0], rotation[1], rotation[2], rotation[3]];
+    for snaps in [
+        FbsReferenceSnaps::INTEGER,
+        FbsReferenceSnaps::FLOAT,
+        FbsReferenceSnaps { transition: Icosian, gates: Normalize },
+        FbsReferenceSnaps { transition: Normalize, gates: Icosian },
+    ] {
+        let (mut hist, mut state) = (vec![0.0f64; 12], vec![0.0f64; 4]);
+        // Step 1, from a zero state: only the output gate's mode shows.
+        let gated = rec.step(&drive, &out_gate, &gate_out, &mut hist, &mut state, snaps);
+        let s1 = drive.map(|v| keep * v);
+        close(&state, &s1, &format!("{snaps:?} state 1"));
+        let want = ref_hamilton(ref_quat_mode(out_gate, snaps.gates, 1e-12), s1);
+        close(&gated, &want, &format!("{snaps:?} output 1"));
+        // Step 2: the transition's mode moves the carried state.
+        let gated = rec.step(&drive, &out_gate, &gate_out, &mut hist, &mut state, snaps);
+        let trans = ref_quat_mode(rotation, snaps.transition, 1e-6).map(|v| lambda * v);
+        let moved = ref_hamilton(trans, s1);
+        let s2: Vec<f64> = (0..4).map(|c| moved[c] + keep * drive[c]).collect();
+        close(&state, &s2, &format!("{snaps:?} state 2"));
+        let want = ref_hamilton(ref_quat_mode(out_gate, snaps.gates, 1e-12), quat(&s2));
+        close(&gated, &want, &format!("{snaps:?} output 2"));
+    }
+}
+
+#[test]
+fn fbs_reference_snaps_default_to_the_integer_path_and_each_switch_is_live() {
+    use super::format::FbsReferenceSnaps;
+    let snap = synthetic_fbs_trunk(20261026);
+    let sequence = [0u32, 5, 11, 19, 3, 27, 14, 31];
+    for quantized in [false, true] {
+        let default = snap.forward_f32(&sequence, quantized).expect("reference");
+        let integer = snap
+            .forward_f32_with(&sequence, quantized, FbsReferenceSnaps::INTEGER)
+            .expect("reference");
+        assert_eq!(default, integer, "quantized {quantized}");
+    }
+    // Each variant changes some query: the switches reach the forward.
+    let base = snap.forward_f32(&sequence, false).expect("reference");
+    for snaps in [FbsReferenceSnaps::FLOAT, FbsReferenceSnaps::FLOAT_EXPORT] {
+        let other = snap.forward_f32_with(&sequence, false, snaps).expect("reference");
+        assert!(
+            base.iter().zip(&other).any(|(a, b)| a.query != b.query),
+            "{snaps:?} leaves every query unchanged"
+        );
+    }
+    let float = snap.forward_f32_with(&sequence, false, FbsReferenceSnaps::FLOAT).expect("reference");
+    let export = snap
+        .forward_f32_with(&sequence, false, FbsReferenceSnaps::FLOAT_EXPORT)
+        .expect("reference");
+    assert!(float.iter().zip(&export).any(|(a, b)| a.query != b.query));
+}
+
+#[test]
 fn fbs_trunk_snapshot_json_round_trips_exactly() {
     // The float converter hands the snapshot over as JSON (`fbs-export`); every
     // f32 must read back to the same bits, so the export is the same bytes.

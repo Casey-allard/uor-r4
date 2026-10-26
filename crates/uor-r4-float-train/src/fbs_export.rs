@@ -16,7 +16,7 @@
 use candle_core::Tensor;
 use uor_r4_integer::discrete_d11::{spiralcore_orbit_roots, spiralcore_signed_axes};
 use uor_r4_integer::fbs_snapshot::{
-    FbsFloatPosition, FbsFloatReadout, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot,
+    FbsFloatPosition, FbsFloatReadout, FbsFloatSequence, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot,
 };
 
 use crate::geometric_stack::{
@@ -282,10 +282,19 @@ pub fn fbs_trunk_snapshot(model: &StackModel) -> Result<FbsTrunkSnapshot> {
 }
 
 /// The float GPU trunk's own output for every single-token input: its final
-/// hidden vector and its native writer's next token. `fbs-compare` holds the
-/// converted snapshot against it. GPU only.
-pub fn fbs_float_readout(model: &StackModel) -> Result<FbsFloatReadout> {
+/// hidden vector and its native writer's next token. With `export_mode`, both
+/// Hamilton gates run in the float sheets' D11 export mode (Q12-rounded, then
+/// snapped to the 120 icosians). `fbs-compare` holds the converted snapshot
+/// against it. GPU only.
+pub fn fbs_float_readout(model: &StackModel, export_mode: bool) -> Result<FbsFloatReadout> {
     check_no_sheet_arm()?;
+    if export_mode {
+        return crate::hamilton_sheet::with_d11_export_gates(|| fbs_float_readout(model, false))
+            .map(|r| FbsFloatReadout {
+                export_mode: true,
+                ..r
+            });
+    }
     let (vocab, width) = (model.config.vocab_size, model.config.width);
     let mut positions = Vec::with_capacity(vocab);
     for token in 0..vocab as u32 {
@@ -306,12 +315,44 @@ pub fn fbs_float_readout(model: &StackModel) -> Result<FbsFloatReadout> {
             hidden: finite_table("hidden", hidden)?,
         });
     }
+    // Eight fixed full-context sequences: past the first position they reach
+    // the transition, the later convolution taps and the carried state.
+    let time = model.config.context;
+    let mut sequences = Vec::with_capacity(READOUT_SEQUENCES);
+    for s in 0..READOUT_SEQUENCES {
+        let tokens: Vec<u32> = (0..time)
+            .map(|t| ((s * 37 + t * 11 + 1) % vocab) as u32)
+            .collect();
+        let hidden = model.hidden(&tokens, 1, time)?.to_vec2::<f32>()?;
+        let next = model
+            .native_next_token_ids(&tokens, 1, time)?
+            .flatten_all()?
+            .to_vec1::<u32>()?;
+        if next.len() != time {
+            return Err(invalid(
+                "the native writer returned other than one token per position",
+            ));
+        }
+        sequences.push(FbsFloatSequence {
+            tokens,
+            next,
+            hidden: hidden
+                .into_iter()
+                .map(|h| finite_table("hidden", h))
+                .collect::<Result<_>>()?,
+        });
+    }
     Ok(FbsFloatReadout {
         vocab,
         width,
+        export_mode: false,
         positions,
+        sequences,
     })
 }
+
+/// The fixed sequences [`fbs_float_readout`] reads, each the full context.
+pub const READOUT_SEQUENCES: usize = 8;
 
 #[cfg(test)]
 mod tests {
@@ -611,8 +652,39 @@ mod tests {
         }
 
         // The trunk reads out, and an active sheet arm is refused.
-        let readout = fbs_float_readout(&model)?;
-        assert_eq!(readout.positions.len(), snap.vocab);
+        let readout = fbs_float_readout(&model, false)?;
+        let export = fbs_float_readout(&model, true)?;
+        assert!(!readout.export_mode && export.export_mode);
+        for r in [&readout, &export] {
+            r.check(snap.vocab, snap.width, snap.context, r.export_mode)
+                .map_err(invalid)?;
+        }
+        // Causality, in both modes: a token read alone from a zero state is
+        // that token at the first position of a sequence. The export-mode gate
+        // hook once broke this at time 1 (claude-124).
+        for r in [&readout, &export] {
+            for q in &r.sequences {
+                let alone = &r.positions[q.tokens[0] as usize];
+                let gap = alone
+                    .hidden
+                    .iter()
+                    .zip(&q.hidden[0])
+                    .map(|(a, b)| (a - b).abs())
+                    .fold(0f32, f32::max);
+                assert!(
+                    gap <= 1e-5 && alone.next == q.next[0],
+                    "export_mode {}: token {} alone differs from position 0 of its sequence (gap {gap:e})",
+                    r.export_mode,
+                    q.tokens[0]
+                );
+            }
+        }
+        // The export mode reaches the forward: some hidden vector changes.
+        assert!(readout
+            .positions
+            .iter()
+            .zip(&export.positions)
+            .any(|(a, b)| a.hidden != b.hidden));
         crate::spiralcore_fbs_arms::set_fbs_arm(Some(
             crate::spiralcore_fbs_arms::FbsArm::OneAtomActive,
         ));
@@ -624,11 +696,12 @@ mod tests {
             for (name, json) in [
                 ("snapshot.json", serde_json::to_vec(&snap)?),
                 ("readout.json", serde_json::to_vec(&readout)?),
+                ("readout-export.json", serde_json::to_vec(&export)?),
             ] {
                 uor_r4_integer::fbs_snapshot::write_new_file(&dir.join(name), &json)?;
             }
             eprintln!(
-                "fbs converter: wrote snapshot.json and readout.json to {}",
+                "fbs converter: wrote snapshot.json, readout.json and readout-export.json to {}",
                 dir.display()
             );
         }

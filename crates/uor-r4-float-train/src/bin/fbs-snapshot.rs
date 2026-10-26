@@ -3,12 +3,13 @@
 //!
 //! It runs on one GPU, because the routes are read back through the model's
 //! CUDA projection (`fbs_export`). The serving build's `fbs-export` turns the
-//! JSON into the `UORLUT01` artifact; with `READOUT_JSON`, it also writes the
-//! float trunk's own single-token outputs for the serving build's
+//! JSON into the `UORLUT01` artifact. With `READOUT_JSON` it also writes the
+//! float trunk's own single-token outputs, and with `EXPORT_READOUT_JSON` the
+//! same in the float sheets' D11 export mode, for the serving build's
 //! `fbs-compare`.
 //!
 //! ```text
-//! fbs-snapshot MODEL_DIR OUT_JSON [READOUT_JSON]
+//! fbs-snapshot MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON]]
 //! ```
 //!
 //! It never replaces or leaves a partial output file, and it prints each
@@ -31,19 +32,23 @@ fn write(path: &str, json: &[u8]) -> Result<()> {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let (model_dir, out, readout) = match args.as_slice() {
-        [model_dir, out] => (model_dir, out, None),
-        [model_dir, out, readout] => (model_dir, out, Some(readout)),
+    let (model_dir, out, readouts) = match args.as_slice() {
+        [model_dir, out, readouts @ ..] if readouts.len() <= 2 => (model_dir, out, readouts),
         _ => {
-            eprintln!("usage: fbs-snapshot MODEL_DIR OUT_JSON [READOUT_JSON]");
+            eprintln!(
+                "usage: fbs-snapshot MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON]]"
+            );
             std::process::exit(2);
         }
     };
     let device = Device::new_cuda(0)?;
     let model = StackModel::load(Path::new(model_dir), &device)?;
     write(out, &serde_json::to_vec(&fbs_trunk_snapshot(&model)?)?)?;
-    if let Some(readout) = readout {
-        write(readout, &serde_json::to_vec(&fbs_float_readout(&model)?)?)?;
+    for (path, export_mode) in readouts.iter().zip([false, true]) {
+        write(
+            path,
+            &serde_json::to_vec(&fbs_float_readout(&model, export_mode)?)?,
+        )?;
     }
     Ok(())
 }
