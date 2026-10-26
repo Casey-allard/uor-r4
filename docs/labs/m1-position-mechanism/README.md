@@ -4,8 +4,8 @@
 - **Lab:** `antigravity`
 - **Issue:** `#2843` (`m1-position-mechanism`)
 - **Decision card:** `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6337522273`)
-- **Pre-registration:** [`docs/harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md`](../../harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md) (`TEST FITNESS: PENDING`)
-- **Code:** [`crates/uor-r4-discrete/src/position_mechanism.rs`](../../../crates/uor-r4-discrete/src/position_mechanism.rs)
+- **Pre-registration:** [`docs/harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md`](../../harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md) (`TEST FITNESS: FIT`)
+- **Code:** [`crates/uor-r4-discrete/src/position_mechanism.rs`](../../../crates/uor-r4-discrete/src/position_mechanism.rs), [`crates/uor-r4-discrete/src/order_slice.rs`](../../../crates/uor-r4-discrete/src/order_slice.rs)
 
 ## 1. Summary
 
@@ -128,4 +128,18 @@ Compacting `prefix[243]`, `transport_root[364]`, and `transport[364]` in `flock_
 | `Relation (K=8, S=1)` | `prefix_holonomy_v1 (1)` | 291,705 | **295,120 / 295,079** | 259,538 | **261,672 / 261,683** | `a267ccf13fc55e95…` |
 | `Relation (K=8, S=1)` | `endpoint_control_v1 (2)` | 297,933 | **301,073 / 300,930** | 264,455 | **266,329 / 266,321** | `9dd7cdfe4aa180a4…` |
 | `Relation (K=8, S=1)` | `identity_control_v1 (3)` | 300,908 | **304,054 / 303,947** | 266,800 | **268,637 / 268,641** | `9dd7cdfe4aa180a4…` |
+
+## 6. Paired order-slice scorer, `C_shuf` window helper, and post-`#3205` `FIT` synchronization (`antigravity-88`, 2026-10-25)
+
+Resolves the remaining pre-registration and scorer prerequisites noted in `kimi-33/REPORT.md` (`#3111`, lines 16 and 64) and closes `#2843` (`needs_gpu: false`, PR `#3256`, [`DECISION.md`](../../loop/tasks/m1-position-mechanism/antigravity-88/DECISION.md)):
+
+1. **Frozen slice verification, `C_shuf` window helper & paired McNemar scorer (`crates/uor-r4-discrete/src/order_slice.rs`):**
+   - `parse_frozen_slice`: parses `docs/labs/m1-position-mechanism/order-slice-v1.tsv` and verifies its SHA-256 (`f76dc5c7ff6c359dd4c9158abc280ff29105cb611f6c4c2bdba6fdfed0035b3a`), row count (`1,620`), and strictly ascending `row_ordinal < 14,287` and `target_position` invariants.
+   - `shuffle_prefix_window`: applies the identical splitmix64 Fisher-Yates permutation of `position_mechanism::shuffle_prefix_roots` to prefix `Identity` entries `0..L-1` while keeping the query token `window[L - 1]` and prefix token multiset fixed (`C_shuf`).
+   - `integer_ceil_two_sqrt`, `score_position_contrast`, `evaluate_position_order_seed`, and `grade_position_order_two_seeds`: exact integer paired McNemar scorer (zero floating-point operations, `D32`) verifying both $b - c \ge F_I = \max(24, \lceil 2\sqrt{b + c}\rceil)$ with $\Delta\text{admitted} \ge 0$ (`H_pos(ordered)` vs `C_match(ordered)`) and $b - c \ge F_I$ (`H_pos(ordered)` vs `C_shuf`) across full DEV (`14,287`), `P_succ` (`3,847`), and the frozen order slice (`1,620`), plus the owner's `2026-10-24T03:41:41Z` fresh-V2 replication rule ($b - c \ge \lceil 2\sqrt{b + c}\rceil$, no 24-row floor, `#2028` comment `6379430093`) and 3-branch outcome decision table (`PassPromote`, `FailDevCloseConfig` keeping fresh V2 unopened and sealed, `FailTransferCloseConfig`).
+   - **Unit controls:** `cargo test --locked -p uor-r4-discrete --lib order_slice` -> `10 passed; 0 failed`; `cargo test --locked -p uor-r4-discrete --lib position_mechanism` -> `10 passed; 0 failed`.
+2. **Pre-registration sheet synchronization (`docs/harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md`):**
+   - Pinned the exact `#3111`/`#3205` GPU `flock_vector` final block-$b$ transport definition (`last[node]` payload-block root anchor `tr = root_id(rv, g)`, immutable `query_payload`, internal tree aggregation on `g[BFS + frame[child]*16 + frame[c0]]`, and byte-packed `unsigned char` stack arrays), cited the `#3205` RTX 5090 qualification receipts (`0de22708…`, `9d1072d3…`), pinned the single A8 proxy-trunk configuration (`c695ad21a`, `DRIVER_SOURCE_SHA256 = 04c51654…`), and recorded the fresh-context non-author `TEST FITNESS: FIT` and D68 decision review.
+3. **Training status (`CHARTER.md` §4.6):** The two-seed GPU order training run (`H_pos` vs `C_match` and `C_shuf`) remains `NOT_RUN` (mechanism construction, finite CPU/GPU controls, and pre-registration only).
+
 
