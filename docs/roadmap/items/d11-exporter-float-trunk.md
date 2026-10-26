@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, m1-d11-exporter-discrete, owner-decision-float-path-scope]
-scope: [crates/uor-r4-training/**, crates/uor-r4-integer/**, crates/uor-r4-float-train/**, docs/mechanisms/lut-serving.md, docs/harness/prep/d11-exporter-float-trunk*, docs/labs/d11-exporter-float-trunk/**, docs/loop/tasks/d11-exporter-float-trunk/**, docs/research/notebook/m4-serving.md]
+scope: [crates/uor-r4-training/**, crates/uor-r4-integer/**, crates/uor-r4-float-train/**, docs/harness/prep/d11-exporter-float-trunk*, docs/labs/d11-exporter-float-trunk/**, docs/loop/tasks/d11-exporter-float-trunk/**, docs/research/notebook/m4-serving.md]
 ---
 
 ## Why it matters
@@ -28,6 +28,8 @@ Without it no float-trained trunk can be served, so Stages 3–5 of the float pa
   - So the work left is an FBS `(atom, action)` projection path and a vector-writer head, in the exporter and in the integer runtime, with finite CPU controls.
   - Prior art to reuse: the recurrence-fit lab's integer exporter (`docs/labs/recurrence-gates-six-recurrence-fit/README.md:94`) and `pure_i32_q12_writer_oracle` (`hamilton_sheet.rs:1245`).
 - **No GPU evaluator exists for a UORLUT01 stack container.** CHARTER §3.6 keeps panel scoring of an exported artifact on the GPU. The work needs either a GPU evaluator of the container, or a bit-exact parity proof between the sheets' GPU export mode and the container.
+
+**Scope note (claude-121, #3254; D68 owner log on #2820).** `docs/mechanisms/lut-serving.md` is not in this item's scope. It is also in `infra-loop-harness`'s scope, which Codex's idle draft #3169 holds, and that overlap refused this item's claim. This item records its results in its lab record (`docs/labs/d11-exporter-float-trunk/**`) and in `docs/research/notebook/m4-serving.md`. The mechanism-page row and status for this result are written by an infra-loop-harness item-maintenance unit once the umbrella is unclaimed. Every exporter REPORT lists this as open.
 
 **What the earlier text below listed:**
 
