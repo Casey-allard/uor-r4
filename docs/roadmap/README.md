@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 19 |
+| ready | 20 |
 | held | 15 |
 | decision | 1 |
 | done | 58 |
-| total | 93 |
+| total | 94 |
 
 ## Start here
 
@@ -48,6 +48,7 @@ These items are ready and open to anyone.
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
+| [Improve within-cell token selection with versioned reads](items/m1-within-cell-writer.md) | ready | a lab | yes | [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | not yet synced |
 | [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | held | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | done | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
@@ -235,6 +236,7 @@ flowchart LR
   n_m1_w2_code_utilization["m1-w2-code-utilization"]
   n_m1_w4_float_credit_sheet["m1-w4-float-credit-sheet"]
   n_m1_wider_code_carrier["m1-wider-code-carrier"]
+  n_m1_within_cell_writer["m1-within-cell-writer"]
   n_m2_donor_corpus_generation["m2-donor-corpus-generation"]
   n_m2_fresh_heldout_panel["m2-fresh-heldout-panel"]
   n_m2_pin_train_mask_sheet["m2-pin-train-mask-sheet"]
@@ -304,6 +306,7 @@ flowchart LR
   n_m1_bvg_k_stage_t_training --> n_m1_close_saved_model
   n_m1_bvg_k_stage_t_training --> n_m1_trunk_assembly_and_training
   n_m1_bvg_k_stage_t_training --> n_m1_w4_float_credit_sheet
+  n_m1_bvg_k_stage_t_training --> n_m1_within_cell_writer
   n_m1_close_saved_model --> n_m2_train_grounded_replies
   n_m1_close_saved_model --> n_m4_export_uorlut01_cli
   n_m1_d11_exporter_discrete --> n_d11_exporter_float_trunk
