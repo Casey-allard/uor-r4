@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-full-dose-rerun, m1-bvg-k-stage-t-training, m1-export-gap-and-toks]
-scope: [crates/uor-r4-discrete/**, crates/uor-r4-integer/**, docs/labs/m1-d11-artifact-scorer/instrument/**, docs/harness/prep/m1-close-saved-model*, docs/labs/m1-close-saved-model/**, docs/loop/tasks/m1-close-saved-model/**, docs/research/notebook/m1-discrete-attention.md, docs/roadmap/items/m1-close-saved-model.md]
+scope: [crates/uor-r4-discrete/**, crates/uor-r4-integer/**, docs/labs/m1-d11-artifact-scorer/instrument/**, docs/harness/prep/m1-close-saved-model*, docs/labs/m1-close-saved-model/**, docs/loop/tasks/m1-close-saved-model/**, docs/research/notebook/m1-discrete-attention.md]
 notebook: docs/research/notebook/m1-discrete-attention.md
 ---
 

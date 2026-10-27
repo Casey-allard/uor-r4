@@ -1307,6 +1307,13 @@ impl IntegerDiscreteModel {
         &self.cells
     }
 
+    pub fn packed_codebook_roots(&self) -> Vec<u32> {
+        self.codebook_roots
+            .iter()
+            .map(|&r| u32::from(pack_4block_roots(r)))
+            .collect()
+    }
+
     fn route_read(&self, prefix: &[u32], plan: &RowPlan) -> Result<Vec<[i32; 8]>> {
         let blocks = self.shape.blocks as usize;
         let stages = self.shape.stages as usize;

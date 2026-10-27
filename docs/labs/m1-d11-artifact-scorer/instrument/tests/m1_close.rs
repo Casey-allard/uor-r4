@@ -105,10 +105,7 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
     assert_eq!(audit["fresh_v2_seal_intact"], true);
     assert_eq!(audit["registered_bars"]["dev_psucc_t2_top1"], 1_245);
     assert_eq!(audit["registered_bars"]["dev_psucc_rows_c192"], 3_847);
-    assert_eq!(
-        audit["registered_bars"]["dev_psucc_unigram_top1_c192"],
-        194
-    );
+    assert_eq!(audit["registered_bars"]["dev_psucc_unigram_top1_c192"], 194);
     let inv = audit["all_saved_discrete_models_inventory"]
         .as_array()
         .unwrap();
@@ -149,7 +146,10 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
 
     // Prospective fresh-seal check: the Stage T receipt has dev_decision = FAIL_BAR_D_HOLD_FRESH_SEAL,
     // which validate_fresh_transfer_gate refuses before touching disk.
-    assert_eq!(fz_gate_receipt["dev_decision"], "FAIL_BAR_D_HOLD_FRESH_SEAL");
+    assert_eq!(
+        fz_gate_receipt["dev_decision"],
+        "FAIL_BAR_D_HOLD_FRESH_SEAL"
+    );
     let err = validate_fresh_transfer_gate(
         &fz_gate_receipt,
         &fz.seed_1.artifact_sha256,
@@ -239,87 +239,84 @@ fn negative_gate_checks_on_each_of_five_m1_bars_and_prospective_fresh_seal() {
 }
 
 #[test]
-fn clean_room_integer_discrete_model_loads_19_table_trunk_d11_with_zero_export_gap_and_serving_toks() {
-    use m1_d11_artifact_scorer_instrument::{
-        toks::{default_prompt, time_serving, Protocol},
-        IntegerDiscreteModel,
-    };
+fn clean_room_integer_discrete_model_loads_19_table_trunk_d11_with_zero_export_gap_and_serving_toks(
+) {
+    use m1_d11_artifact_scorer_instrument::toks::{default_prompt, time_serving, Protocol};
     use uor_r4_discrete::{
-        position_mechanism::PositionStepTable,
-        snapshot::{export_d11, GateMode, ModelSnapshot, SnapshotSpec, SNAPSHOT_SCHEMA},
+        d11_export::export_d11,
+        metadata::BinderPlan,
+        normalization_mechanism::{identify_orbit_root, orbit_root_coords, NormalizationMode},
+        snapshot::Snapshot,
         trunk::{
-            compute_recurrence_state, evaluate_joint_pointer_full_writer, export_trunk_d11,
-            identify_orbit_root, NormalizationMode, OrbitRootNormFrames, RecurrenceMode,
-            TrunkTables, TrunkTrainRow,
+            build_trunk_norm_frames, build_trunk_step_table, compute_recurrence_state,
+            evaluate_joint_pointer_full_writer, export_trunk_d11, RecurrenceMode, TrunkTables,
+            TrunkTrainRow,
         },
-        w2_capacity::{orbit_root_coords, pack_code},
-        READ_WIDTH,
+        w2_capacity::pack_code,
+        ObjectivePolicy, ReadInitialization, ReadSpec, Spec, SCHEMA,
     };
+    use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
-    let spec = SnapshotSpec {
-        blocks: 4,
+    const READ_WIDTH: usize = 32;
+    let spec = Spec {
         vocabulary: 4096,
+        blocks: 4,
         context: 192,
-        cells: 256,
         kept_cells: 8,
-        leaves_per_stage: 8,
-        sweeps: 1,
-        read_mode: "flock".to_owned(),
-        gate_mode: GateMode::FrozenZeroV1,
     };
-    let stages = 7u32;
+    let stages = BinderPlan::new(spec.context as usize).unwrap().stages() as u32;
+    let read_spec = ReadSpec::Flock { kept: 8 };
+    let gate_len = read_spec.gate_count(spec.blocks, stages).unwrap() as usize;
     let mut table = Vec::with_capacity(4096 * READ_WIDTH);
-    let mut cells = Vec::with_capacity(4096);
     let mut roots = vec![[0u8; 4]; 4096];
     let mut coords = vec![[0i32; READ_WIDTH]; 4096];
-    let mut cell_tokens = vec![Vec::new(); 256];
+    let mut cell_tokens: [Vec<u16>; 256] = std::array::from_fn(|_| Vec::new());
     for v in 0..4096u32 {
-        let cell = (v % 256) as u8;
-        cells.push(u32::from(cell));
-        cell_tokens[usize::from(cell)].push(v as u16);
         let r0 = (v & 0xF) as u8;
         let r1 = ((v >> 4) & 0xF) as u8;
         let r2 = ((v >> 8) & 0xF) as u8;
         let r3 = ((v.wrapping_mul(7) ^ (v >> 3)) & 0xF) as u8;
         let r_arr = [r0, r1, r2, r3];
         roots[v as usize] = r_arr;
+        let cell = (usize::from(r0) << 4) | usize::from(r3);
+        cell_tokens[cell].push(v as u16);
         let mut vec32 = [0i32; READ_WIDTH];
         for b in 0..4 {
-            let blk = orbit_root_coords(r_arr[b]);
+            let blk = orbit_root_coords(r_arr[b]).unwrap();
             vec32[b * 8..(b + 1) * 8].copy_from_slice(&blk);
         }
         coords[v as usize] = vec32;
         table.extend_from_slice(&vec32);
     }
-    let gates_len = (spec.blocks * stages * spec.leaves_per_stage * 8) as usize;
-    let mut gates = vec![0i32; gates_len];
-    for g in 0..(spec.blocks * stages * spec.leaves_per_stage) as usize {
-        gates[g * 8] = 2;
-        gates[g * 8 + 1] = 2;
-        gates[g * 8 + 2] = 2;
-        gates[g * 8 + 3] = 2;
-    }
-    let snapshot = ModelSnapshot {
-        schema: SNAPSHOT_SCHEMA.to_owned(),
-        spec: spec.clone(),
-        cells,
+    let snapshot = Snapshot {
+        schema: SCHEMA.to_owned(),
+        spec,
+        read_spec,
+        objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+        read_initialization: ReadInitialization::ActiveLeafV1,
+        normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+        position: None,
+        address_metric: Default::default(),
+        seed: 1,
+        epoch: 5,
         table,
         routes: vec![0u32; (spec.blocks * stages) as usize],
-        gates,
-        operator_kappa:
-            "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b".to_owned(),
+        gates: vec![1i32; gate_len],
+        operator_kappa: "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b"
+            .to_owned(),
         composition_kappa:
             "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0".to_owned(),
         kernel_sha256: "11".repeat(32),
-        driver_source_sha256: "22".repeat(32),
+        source_sha256: "22".repeat(32),
+        geometry_sha256: "33".repeat(32),
     };
 
     let base_bytes = export_d11(&snapshot).unwrap();
     let base_model = IntegerDiscreteModel::from_bytes(&base_bytes).unwrap();
     assert!(!base_model.is_trunk_d11());
 
-    let step_table = PositionStepTable::canonical();
-    let norm_frames = OrbitRootNormFrames::canonical();
+    let step_table = build_trunk_step_table(spec.blocks, 0).unwrap();
+    let norm_frames = build_trunk_norm_frames(spec.blocks, 0).unwrap();
 
     let prefixes: [Vec<u32>; 5] = [
         vec![7, 12, 7, 19],
@@ -360,6 +357,16 @@ fn clean_room_integer_discrete_model_loads_19_table_trunk_d11_with_zero_export_g
                 rec_unit_code: rec_code,
                 query_token,
                 target_token,
+            });
+        }
+        for _ in 0..4 {
+            train_rows.push(TrunkTrainRow {
+                read_code: read_code ^ 0x0001,
+                rec_code,
+                rec_shuf_code: rec_code,
+                rec_unit_code: rec_code,
+                query_token,
+                target_token: target_token + 1,
             });
         }
     }
@@ -442,4 +449,64 @@ fn clean_room_integer_discrete_model_loads_19_table_trunk_d11_with_zero_export_g
     let toks = time_serving(&trunk_model, &prompt, protocol).unwrap();
     assert!(toks["prefill"]["median_tokens_per_s"].as_u64().unwrap() > 0);
     assert!(toks["decode"]["median_tokens_per_s"].as_u64().unwrap() > 0);
+
+    // Verify `ArtifactTables::from_bytes`, C++/CUDA kernel body (`host_score`),
+    // `reference_check` (`evaluate_prefix` + `observe_target`), and `planted_fault_control` (`B4`)
+    // on the 19-table `uor-r4.lut-discrete-trunk/1` artifact.
+    let (tables, trunk_model_2) =
+        m1_d11_artifact_scorer_instrument::artifact::ArtifactTables::from_bytes(&trunk_bytes)
+            .unwrap();
+    assert_eq!(tables.trunk[0], 1);
+    let dev_rows: Vec<m1_d11_artifact_scorer_instrument::DevRow> = prefixes
+        .iter()
+        .enumerate()
+        .map(|(idx, pfx)| m1_d11_artifact_scorer_instrument::DevRow {
+            ordinal: idx as u64,
+            target_position: pfx.len() as u64,
+            target_token: (1000 + idx * 317) as u32,
+            prefix: pfx.clone(),
+        })
+        .collect();
+    let views: Vec<&[u32]> = dev_rows.iter().map(|r| r.prefix.as_slice()).collect();
+    let targets: Vec<u32> = dev_rows.iter().map(|r| r.target_token).collect();
+    let packed =
+        m1_d11_artifact_scorer_instrument::kernel::pack_rows_with_targets(&views, &targets)
+            .unwrap();
+
+    // Failing-first check: with the 19-table trunk gate set aside (`trunk = vec![0]`),
+    // `host_score` evaluates the unrotated 4-table vector and disagrees with `trunk_model_2`.
+    let mut tables_no_trunk = tables.clone();
+    tables_no_trunk.trunk = vec![0u32];
+    let scores_no_trunk =
+        m1_d11_artifact_scorer_instrument::kernel::host_score(&tables_no_trunk, &packed).unwrap();
+    let ref_no_trunk = m1_d11_artifact_scorer_instrument::reference_check(
+        &trunk_model_2,
+        &dev_rows,
+        &scores_no_trunk,
+    );
+    assert_eq!(ref_no_trunk["checked"], prefixes.len() as u64);
+    assert_eq!(ref_no_trunk["agreed"], 0);
+
+    // Restored check: with the 19-table trunk gate active (`tables.trunk[0] == 1`),
+    // `host_score` matches `trunk_model_2::observe_target` on all 5 rows (`agreed == checked`)
+    // and passes `planted_fault_control` (`B4`).
+    let scores = m1_d11_artifact_scorer_instrument::kernel::host_score(&tables, &packed).unwrap();
+    let ref_ok =
+        m1_d11_artifact_scorer_instrument::reference_check(&trunk_model_2, &dev_rows, &scores);
+    assert_eq!(ref_ok["checked"], prefixes.len() as u64);
+    assert_eq!(
+        ref_ok["agreed"],
+        prefixes.len() as u64,
+        "first_mismatch={}",
+        ref_ok["first_mismatch"]
+    );
+    let b4 = m1_d11_artifact_scorer_instrument::planted_fault_control(
+        &trunk_bytes,
+        &tables,
+        &dev_rows,
+        &scores,
+        |ft| m1_d11_artifact_scorer_instrument::kernel::host_score(ft, &packed),
+    )
+    .unwrap();
+    assert_eq!(b4["b4_pass"], true);
 }

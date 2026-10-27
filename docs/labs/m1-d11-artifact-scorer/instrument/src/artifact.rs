@@ -13,6 +13,21 @@ pub const READ_ROUTE: i32 = 0;
 pub const READ_FLOCK: i32 = 1;
 pub const READ_RELATION: i32 = 2;
 
+const TRUNK_SPARSE_TABLES: [&str; 12] = [
+    "discrete.trunk.read_table",
+    "discrete.trunk.rec_table",
+    "discrete.trunk.read_rec_table",
+    "discrete.trunk.rec_shuf_table",
+    "discrete.trunk.read_rec_shuf_table",
+    "discrete.trunk.rec_unit_table",
+    "discrete.trunk.read_rec_unit_table",
+    "discrete.trunk.query_table",
+    "discrete.trunk.query_read_table",
+    "discrete.trunk.query_rec_table",
+    "discrete.trunk.query_rec_shuf_table",
+    "discrete.trunk.query_rec_unit_table",
+];
+
 /// An artifact's sections as the kernel reads them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactTables {
@@ -29,6 +44,9 @@ pub struct ArtifactTables {
     pub gates: Vec<i32>,
     /// The row plans for prefix lengths `1..=context` ([`crate::kernel::row_plans`]).
     pub plans: Vec<i32>,
+    /// Optional packed 19-table `uor-r4.lut-discrete-trunk/1` tables (`trunk[0] == 1`
+    /// when active, `vec![0]` for 4-table artifacts).
+    pub trunk: Vec<u32>,
     /// sha256 of the artifact bytes, as the integer reader reports it.
     pub artifact_sha256: String,
 }
@@ -56,6 +74,20 @@ fn words(data: &[u8], header: &Value, name: &str, len: usize) -> Result<Vec<[u8;
     Ok(span
         .chunks_exact(4)
         .map(|b| [b[0], b[1], b[2], b[3]])
+        .collect())
+}
+
+fn words_any_len(data: &[u8], header: &Value, name: &str) -> Result<Vec<u32>, String> {
+    let entry = header["tables"]
+        .as_array()
+        .and_then(|tables| tables.iter().find(|t| t["name"] == name))
+        .ok_or_else(|| format!("artifact lacks table {name}"))?;
+    let len = entry["len"]
+        .as_u64()
+        .ok_or_else(|| format!("table {name} lacks a len"))? as usize;
+    Ok(words(data, header, name, len)?
+        .into_iter()
+        .map(u32::from_le_bytes)
         .collect())
 }
 
@@ -122,6 +154,57 @@ impl ArtifactTables {
             .into_iter()
             .map(i32::from_le_bytes)
             .collect();
+        let trunk = if model.is_trunk_d11() {
+            let step_candidates: Vec<u32> =
+                words(data, &header, "discrete.trunk.step_candidates", 64)?
+                    .into_iter()
+                    .map(u32::from_le_bytes)
+                    .collect();
+            let norm_candidates: Vec<u32> =
+                words(data, &header, "discrete.trunk.norm_candidates", 4)?
+                    .into_iter()
+                    .map(u32::from_le_bytes)
+                    .collect();
+            let unigram: Vec<u32> = words(data, &header, "discrete.trunk.unigram", 1 + vocab)?
+                .into_iter()
+                .map(u32::from_le_bytes)
+                .collect();
+            let packed_roots = model.packed_codebook_roots();
+            if packed_roots.len() != vocab {
+                return Err("packed_codebook_roots length disagrees with vocabulary".into());
+            }
+            let mut packed = Vec::with_capacity(94 + 2 * vocab);
+            packed.push(1u32);
+            packed.extend_from_slice(&step_candidates);
+            packed.extend_from_slice(&norm_candidates);
+            packed.extend_from_slice(&unigram);
+            packed.extend_from_slice(&packed_roots);
+            let meta_start = packed.len();
+            packed.resize(meta_start + 24, 0u32);
+            for (idx, &tname) in TRUNK_SPARSE_TABLES.iter().enumerate() {
+                let raw = words_any_len(data, &header, tname)?;
+                if raw.len() % 3 != 0 {
+                    return Err(format!(
+                        "sparse trunk table {tname} length not divisible by 3"
+                    ));
+                }
+                let mut triples: Vec<[u32; 3]> =
+                    raw.chunks_exact(3).map(|c| [c[0], c[1], c[2]]).collect();
+                triples.sort_by_key(|t| (t[0], t[1]));
+                let offset = u32::try_from(packed.len()).map_err(|_| "trunk offset overflow")?;
+                let count = u32::try_from(triples.len()).map_err(|_| "trunk count overflow")?;
+                packed[meta_start + 2 * idx] = offset;
+                packed[meta_start + 2 * idx + 1] = count;
+                for [k, tok, cnt] in triples {
+                    packed.push(k);
+                    packed.push(tok);
+                    packed.push(cnt);
+                }
+            }
+            packed
+        } else {
+            vec![0u32]
+        };
         let tables = Self {
             shape: shape_words,
             table,
@@ -129,6 +212,7 @@ impl ArtifactTables {
             routes,
             gates,
             plans: crate::kernel::row_plans(shape.context)?,
+            trunk,
             artifact_sha256: model.artifact_sha256().to_owned(),
         };
         Ok((tables, model))

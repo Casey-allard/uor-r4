@@ -75,6 +75,7 @@ typedef struct {
     const uint32_t* routes; // blocks * stages
     const int32_t* gates;   // blocks * stages, then stages * 5 for Relation
     const D11Plan* plans;   // context records: prefix lengths 1..=context
+    const uint32_t* trunk;  // optional 19-table trunk data (trunk[0] == 1 when active)
 } D11Model;
 
 typedef struct {
@@ -486,6 +487,232 @@ D11_HD static uint32_t d11_token_distance(const D11Model* m, const int32_t* q, u
     return sum;
 }
 
+D11_HD static int32_t d11_cl06_inverse(int32_t a) {
+    return d11_compose(d11_compose(a, a), a);
+}
+
+D11_HD static uint32_t d11_trunk_sparse_get(const uint32_t* trunk, int32_t vocab,
+                                            int32_t table_idx, uint32_t key, uint32_t tok) {
+    int32_t meta = 70 + 2 * vocab + 2 * table_idx;
+    uint32_t base = trunk[meta];
+    uint32_t n = trunk[meta + 1];
+    const uint32_t* triples = trunk + base;
+    uint32_t lo = 0u;
+    uint32_t hi = n;
+    while (lo < hi) {
+        uint32_t mid = lo + ((hi - lo) >> 1);
+        uint32_t k_mid = triples[3u * mid];
+        uint32_t t_mid = triples[3u * mid + 1u];
+        if (k_mid < key || (k_mid == key && t_mid < tok)) {
+            lo = mid + 1u;
+        } else if (k_mid > key || t_mid > tok) {
+            hi = mid;
+        } else {
+            return triples[3u * mid + 2u];
+        }
+    }
+    return 0u;
+}
+
+D11_HD static void d11_trunk_sparse_key_range(const uint32_t* trunk, int32_t vocab,
+                                              int32_t table_idx, uint32_t key,
+                                              uint32_t* out_lo, uint32_t* out_hi) {
+    int32_t meta = 70 + 2 * vocab + 2 * table_idx;
+    uint32_t base = trunk[meta];
+    uint32_t n = trunk[meta + 1];
+    const uint32_t* triples = trunk + base;
+    uint32_t lo = 0u;
+    uint32_t hi = n;
+    while (lo < hi) {
+        uint32_t mid = lo + ((hi - lo) >> 1);
+        if (triples[3u * mid] < key) {
+            lo = mid + 1u;
+        } else {
+            hi = mid;
+        }
+    }
+    uint32_t start = lo;
+    hi = n;
+    while (lo < hi) {
+        uint32_t mid = lo + ((hi - lo) >> 1);
+        if (triples[3u * mid] <= key) {
+            lo = mid + 1u;
+        } else {
+            hi = mid;
+        }
+    }
+    *out_lo = start;
+    *out_hi = lo;
+}
+
+D11_HD static void d11_trunk_consider_candidate(const uint32_t* trunk, int32_t vocab,
+                                                uint32_t q_key, uint32_t r_key, uint32_t c_key,
+                                                int32_t has_ptr, uint32_t ptr_tok, uint32_t tok,
+                                                uint64_t* best_s, uint32_t* best_u,
+                                                uint32_t* best_tok) {
+    if (tok >= (uint32_t)vocab) {
+        return;
+    }
+    uint32_t qr_key = (q_key << 16) | r_key;
+    uint32_t qc_key = (q_key << 16) | c_key;
+    uint32_t rc_key = (r_key << 16) | c_key;
+    uint64_t c_q = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 7, q_key, tok);
+    uint64_t c_qr = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 8, qr_key, tok);
+    uint64_t c_r = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 0, r_key, tok);
+    uint64_t c_qc = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 9, qc_key, tok);
+    uint64_t c_rr = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 2, rc_key, tok);
+    uint64_t ptr_boost = (has_ptr && ptr_tok == tok) ? (1ULL << 8) : 0ULL;
+    uint64_t s = (c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + ptr_boost;
+    uint32_t u = trunk[70 + (int32_t)tok];
+    if (s > *best_s || (s == *best_s && s > 0ULL && u > *best_u)
+        || (s == *best_s && s > 0ULL && u == *best_u && tok < *best_tok)) {
+        *best_s = s;
+        *best_u = u;
+        *best_tok = tok;
+    }
+}
+
+// DiscreteTrunkTables::apply_joint_pointer_gate (discrete_d11.rs:627-662).
+D11_HD static int32_t d11_trunk_apply_joint_pointer_gate(
+    const D11Model* m, const uint32_t* prefix, int32_t length, int32_t* q) {
+    if (m->blocks != 4) {
+        return D11_ERR_SHAPE;
+    }
+    int32_t read_roots[4];
+    for (int32_t b = 0; b < 4; ++b) {
+        read_roots[b] = d11_root_id(q + b * 8);
+        if (read_roots[b] < 0) {
+            return D11_ERR_ORBIT;
+        }
+    }
+    uint32_t r_key = ((uint32_t)read_roots[0] & 0xFu)
+        | (((uint32_t)read_roots[1] & 0xFu) << 4)
+        | (((uint32_t)read_roots[2] & 0xFu) << 8)
+        | (((uint32_t)read_roots[3] & 0xFu) << 12);
+
+    const uint32_t* step_candidates = m->trunk + 1;
+    const uint32_t* norm_candidates = m->trunk + 65;
+    const uint32_t* packed_roots = m->trunk + 70 + m->vocabulary;
+
+    int32_t last_pos = length - 1;
+    int32_t prev_pos = last_pos > 0 ? last_pos - 1 : 0;
+    int32_t mid_pos = last_pos / 2;
+    uint32_t c_key = 0u;
+    for (int32_t b = 0; b < 4; ++b) {
+        int32_t acc = D11_IDENTITY;
+        int32_t f_prev = D11_IDENTITY;
+        int32_t f_mid = D11_IDENTITY;
+        for (int32_t pos = 0; pos < length; ++pos) {
+            uint32_t tok = prefix[pos];
+            int32_t r = (int32_t)((packed_roots[tok] >> (4 * b)) & 0xFu);
+            int32_t step = (int32_t)step_candidates[(b << 4) + r];
+            acc = d11_compose(step, acc);
+            if (pos == prev_pos) {
+                f_prev = acc;
+            }
+            if (pos == mid_pos) {
+                f_mid = acc;
+            }
+        }
+        int32_t f_last = acc;
+        int32_t h_prev = d11_compose(f_last, d11_cl06_inverse(f_prev));
+        int32_t h_mid = d11_compose(f_last, d11_cl06_inverse(f_mid));
+
+        int32_t r_start = (int32_t)((packed_roots[prefix[0]] >> (4 * b)) & 0xFu);
+        int32_t r_last = (int32_t)((packed_roots[prefix[last_pos]] >> (4 * b)) & 0xFu);
+        int32_t r_prev = (int32_t)((packed_roots[prefix[prev_pos]] >> (4 * b)) & 0xFu);
+        int32_t r_mid = (int32_t)((packed_roots[prefix[mid_pos]] >> (4 * b)) & 0xFu);
+
+        int32_t q_coords[8];
+        int32_t prev_coords[8];
+        int32_t mid_coords[8];
+        int32_t start_coords[8];
+        for (int32_t d = 0; d < 8; ++d) {
+            q_coords[d] = (int32_t)D11_ROOTS[r_last][d];
+            prev_coords[d] = (int32_t)D11_ROOTS[r_prev][d];
+            mid_coords[d] = (int32_t)D11_ROOTS[r_mid][d];
+            start_coords[d] = (int32_t)D11_ROOTS[r_start][d];
+        }
+        int32_t prev_rot[8];
+        int32_t mid_rot[8];
+        int32_t full_rot[8];
+        d11_action(h_prev, prev_coords, prev_rot);
+        d11_action(h_mid, mid_coords, mid_rot);
+        d11_action(f_last, start_coords, full_rot);
+
+        int32_t sum_block[8];
+        for (int32_t d = 0; d < 8; ++d) {
+            sum_block[d] = q_coords[d] + prev_rot[d] + mid_rot[d] + full_rot[d];
+        }
+        int32_t snapped_root = d11_snap(sum_block, 4);
+        int32_t snapped_coords[8];
+        for (int32_t d = 0; d < 8; ++d) {
+            snapped_coords[d] = (int32_t)D11_ROOTS[snapped_root][d];
+        }
+        int32_t align_frame = (int32_t)norm_candidates[b];
+        int32_t normalized_block[8];
+        d11_action(align_frame, snapped_coords, normalized_block);
+        int32_t norm_root = d11_root_id(normalized_block);
+        if (norm_root < 0) {
+            return D11_ERR_ORBIT;
+        }
+        c_key |= ((uint32_t)norm_root & 0xFu) << (4 * b);
+    }
+
+    int32_t has_ptr = 0;
+    uint32_t ptr_tok = 0u;
+    if (length >= 2) {
+        uint32_t q_code = packed_roots[prefix[last_pos]];
+        for (int32_t i = 0; i < last_pos; ++i) {
+            if (packed_roots[prefix[i]] == q_code) {
+                has_ptr = 1;
+                ptr_tok = prefix[i + 1];
+            }
+        }
+    }
+
+    uint32_t q_key = prefix[last_pos];
+    uint32_t best_tok = m->trunk[69];
+    uint64_t best_s = 0ULL;
+    uint32_t best_u = 0u;
+
+    int32_t cand_tables[3] = {7, 0, 1};
+    uint32_t cand_keys[3] = {q_key, r_key, c_key};
+    for (int32_t ti = 0; ti < 3; ++ti) {
+        int32_t table_idx = cand_tables[ti];
+        uint32_t key = cand_keys[ti];
+        uint32_t lo = 0u;
+        uint32_t hi = 0u;
+        d11_trunk_sparse_key_range(m->trunk, m->vocabulary, table_idx, key, &lo, &hi);
+        uint32_t base = m->trunk[70 + 2 * m->vocabulary + 2 * table_idx];
+        for (uint32_t idx = lo; idx < hi; ++idx) {
+            uint32_t tok = m->trunk[base + 3u * idx + 1u];
+            d11_trunk_consider_candidate(m->trunk, m->vocabulary, q_key, r_key, c_key,
+                                         has_ptr, ptr_tok, tok, &best_s, &best_u, &best_tok);
+        }
+    }
+    if (has_ptr) {
+        d11_trunk_consider_candidate(m->trunk, m->vocabulary, q_key, r_key, c_key,
+                                     has_ptr, ptr_tok, ptr_tok, &best_s, &best_u, &best_tok);
+    }
+    if (best_tok >= (uint32_t)m->vocabulary) {
+        return D11_ERR_SHAPE;
+    }
+    uint32_t target_packed = packed_roots[best_tok];
+    for (int32_t b = 0; b < 4; ++b) {
+        int32_t src = read_roots[b];
+        int32_t dst = (int32_t)((target_packed >> (4 * b)) & 0xFu);
+        int32_t frame = (int32_t)D11_BFS[(src << 4) + dst];
+        int32_t rotated[8];
+        d11_action(frame, q + b * 8, rotated);
+        int32_t snapped_root = d11_snap(rotated, 1);
+        for (int32_t d = 0; d < 8; ++d) {
+            q[b * 8 + d] = (int32_t)D11_ROOTS[snapped_root][d];
+        }
+    }
+    return D11_OK;
+}
+
 // evaluate_prefix (:1165-1256) and observe_target (:1278-1378).
 D11_HD static void d11_evaluate_row(
     const D11Model* m, const uint32_t* prefix, int32_t length, uint32_t target, D11Scratch* s,
@@ -533,6 +760,13 @@ D11_HD static void d11_evaluate_row(
             status = d11_flock_relation_block(m, prefix, length, p, s, b,
                                               m->read_mode == D11_READ_RELATION, q);
         }
+        if (status != D11_OK) {
+            out->status = status;
+            return;
+        }
+    }
+    if (m->trunk != 0 && m->trunk[0] != 0u) {
+        status = d11_trunk_apply_joint_pointer_gate(m, prefix, length, out->read_vector);
         if (status != D11_OK) {
             out->status = status;
             return;

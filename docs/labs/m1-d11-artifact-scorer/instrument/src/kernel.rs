@@ -283,6 +283,7 @@ mod host {
         pub routes: *const u32,
         pub gates: *const i32,
         pub plans: *const i32,
+        pub trunk: *const u32,
     }
 
     extern "C" {
@@ -331,6 +332,7 @@ pub fn host_score(tables: &ArtifactTables, rows: &PackedRows) -> Result<Vec<RowS
         routes: tables.routes.as_ptr(),
         gates: tables.gates.as_ptr(),
         plans: tables.plans.as_ptr(),
+        trunk: tables.trunk.as_ptr(),
     };
     let mut scratch = vec![0u32; SCRATCH_WORDS];
     let mut out = vec![0u32; count * ROW_OUT_WORDS];

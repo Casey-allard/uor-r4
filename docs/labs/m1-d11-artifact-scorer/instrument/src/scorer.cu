@@ -12,6 +12,7 @@
 extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* cells,
                                           const uint32_t* routes, const int32_t* gates,
                                           const int32_t* shape, const D11Plan* plans,
+                                          const uint32_t* trunk,
                                           const uint32_t* prefixes,
                                           const int32_t* lengths, const uint32_t* targets,
                                           int32_t rows, int32_t stride, D11Scratch* scratch,
@@ -34,6 +35,7 @@ extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* 
     model.routes = routes;
     model.gates = gates;
     model.plans = plans;
+    model.trunk = trunk;
     d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
                      &scratch[row], &out[row]);
 }

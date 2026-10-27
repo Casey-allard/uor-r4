@@ -64,6 +64,7 @@ pub struct DeviceScorer {
     gates: CudaSlice<i32>,
     shape: CudaSlice<i32>,
     plans: CudaSlice<i32>,
+    trunk: CudaSlice<u32>,
     function: sys::CUfunction,
     module: Module,
     stream: Arc<CudaStream>,
@@ -106,6 +107,7 @@ impl DeviceScorer {
             gates: stream.clone_htod(&tables.gates).map_err(cuda)?,
             shape: stream.clone_htod(&tables.shape).map_err(cuda)?,
             plans: stream.clone_htod(&tables.plans).map_err(cuda)?,
+            trunk: stream.clone_htod(&tables.trunk).map_err(cuda)?,
             function,
             module,
             stream,
@@ -151,6 +153,7 @@ impl DeviceScorer {
                 let (gates, _g3) = self.gates.device_ptr(&self.stream);
                 let (shape, _g4) = self.shape.device_ptr(&self.stream);
                 let (plans, _g5) = self.plans.device_ptr(&self.stream);
+                let (trunk, _g_trunk) = self.trunk.device_ptr(&self.stream);
                 let (prefix_ptr, _g6) = prefixes.device_ptr(&self.stream);
                 let (length_ptr, _g7) = lengths.device_ptr(&self.stream);
                 let (target_ptr, _g8) = targets.device_ptr(&self.stream);
@@ -160,13 +163,14 @@ impl DeviceScorer {
                 let mut row_stride = rows.stride;
                 let arg =
                     |value: &sys::CUdeviceptr| value as *const sys::CUdeviceptr as *mut c_void;
-                let mut params: [*mut c_void; 13] = [
+                let mut params: [*mut c_void; 14] = [
                     arg(&table),
                     arg(&cells),
                     arg(&routes),
                     arg(&gates),
                     arg(&shape),
                     arg(&plans),
+                    arg(&trunk),
                     arg(&prefix_ptr),
                     arg(&length_ptr),
                     arg(&target_ptr),

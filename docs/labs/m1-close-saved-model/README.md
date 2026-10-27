@@ -1,6 +1,6 @@
 # M1 Close Saved Model (`m1-close-saved-model`, `#2837` / `#2029`)
 
-- **Lab:** `antigravity` (`antigravity-105` PR `#3301`, `antigravity-106` PR `#3304`, `antigravity-107` PR `#3308`)
+- **Lab:** `antigravity` (`antigravity-105` PR `#3301`, `antigravity-106` PR `#3304`, `antigravity-107` PR `#3308`, `antigravity-108` PR `#3310`)
 - **Milestone:** M1 (`#2029`), Step 8 of `PLAN.md` (`m1-close-saved-model`, `#2837`)
 - **Pre-registration sheet:** [`docs/harness/prep/m1-close-saved-model-2026-10-26.md`](../../harness/prep/m1-close-saved-model-2026-10-26.md)
 - **Machine-checked evidence:** [`evidence/m1-close-grade.json`](evidence/m1-close-grade.json) (`schema: "uor-r4.m1-close-saved-model/1"`) and [`evidence/stage-t-fz-fresh-gate-receipt.json`](evidence/stage-t-fz-fresh-gate-receipt.json) (`schema: "uor-r4.m1-fresh-transfer-gate/1"`)
@@ -43,7 +43,7 @@ The 4-table Stage 1/2 schema (`discrete.table`, `discrete.cells`, `discrete.rout
 
 ---
 
-## 3. Code improvements and Path A two-seed evaluation delivered in `#2837` (`antigravity-105`, `antigravity-106`, & `antigravity-107`)
+## 3. Code improvements and Path A two-seed evaluation delivered in `#2837` (`antigravity-105`, `antigravity-106`, `antigravity-107`, & `antigravity-108`)
 
 1. **Joint-first hierarchy + 4-block $\mathcal{O}_{16}^4$ orbit-root causal pointer + post-rotation full `OuterL1V1` writer + 19-table `UORLUT01` container (`crates/uor-r4-discrete/src/trunk.rs`):**
    - Added `TrunkTables::level3_joint_hierarchy_score`, `select_level3_joint_hierarchy_admitted`, `select_level3_joint_hierarchy_global`, and `evaluate_joint_hierarchy_full_writer` (`(c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q`), lifting two-seed `ft/dev` `top-1` from `2,988` / `2,989` (`#2844` `Level 3`) to **`6,943 / 14,287` (`+643` over `T2 = 6,300`)** on `roots0` (`checkpoint-00000.json`, `4,096 / 4,096` distinct vectors) and **`6,674` / `6,665` (`+374` / `+365` over `T2 = 6,300`)** on `roots_final` (`final-checkpoint.json`, `4,008 / 4,096` distinct vectors, `88` collisions), and **`6,875 / 14,287` (`+110` over `T2_fresh = 6,765`, `P_succ = 1,382` / `1,390 > 1,375`)** on stored `#2844` `fresh_v2` streams.
@@ -52,7 +52,9 @@ The 4-table Stage 1/2 schema (`discrete.table`, `discrete.cells`, `discrete.rout
 2. **Clean-room 19-table `uor-r4.lut-discrete-trunk/1` reader & evaluator in `crates/uor-r4-integer/src/discrete_d11.rs` (`antigravity-107`):**
    - Extended `IntegerDiscreteModel::from_bytes` (`DISCRETE_TRUNK_SCHEMA = "uor-r4.lut-discrete-trunk/1"`) to load and validate all 19 sections (`discrete.table`, `discrete.cells`, `discrete.routes`, `discrete.gates` + 15 `discrete.trunk.*` sections, contiguous 64-byte alignment, zero padding, zero trailing bytes, candidate range `0..16`, and sparse triple integrity), and wired `DiscreteTrunkTables::apply_joint_pointer_gate` (`compute_rec_code` + `orbit_root_causal_successor` + `select_level3_joint_pointer_global` + `BFS` `DiscreteHamiltonGateV1` rotation + `snap(..., 1)` orbit projection) into `IntegerDiscreteModel::evaluate_prefix` before post-rotation `OuterL1V1` cell admission (`A_W(q_trunk)`) and token ranking.
    - Verified `0` export gap between clean-room `IntegerDiscreteModel::evaluate_prefix` and `uor_r4_discrete::trunk::evaluate_joint_pointer_full_writer` across all test prefixes, planted-fault `B4` rejection (corrupted magic, unexpected trailing byte, corrupted sparse triple token), and clean-room `time_serving` (`d11-scorer toks`) in `tests/m1_close.rs`.
-3. **Corrected `DEV_PSUCC_T2_TOP1` (`1,245` vs `1,729`) and registered `trunk-joint-pointer-v1-d11` in `docs/labs/m1-d11-artifact-scorer/instrument/`:**
+3. **19-table `uor-r4.lut-discrete-trunk/1` C++/CUDA `d11_score_rows` scorer kernel and `DeviceScorer` parity (`antigravity-108`):**
+   - Extended `ArtifactTables::from_bytes` (`docs/labs/m1-d11-artifact-scorer/instrument/src/artifact.rs`), `d11_evaluate_row` (`src/kernel_core.h`), `d11_score_rows` (`src/scorer.cu`), `host::CModel` (`src/kernel.rs`), and `DeviceScorer` (`src/device.rs`) to pack and execute the 19-table `uor-r4.lut-discrete-trunk/1` joint-pointer Hamilton gate (`d11_trunk_apply_joint_pointer_gate`) in both host C++ and CUDA device scoring, achieving `0` mismatches against `IntegerDiscreteModel::observe_target` (`reference_check` `agreed == checked`) and passing `planted_fault_control` (`B4`) on 19-table trunk `.d11` artifacts.
+4. **Corrected `DEV_PSUCC_T2_TOP1` (`1,245` vs `1,729`) and registered `trunk-joint-pointer-v1-d11` in `docs/labs/m1-d11-artifact-scorer/instrument/`:**
    - Fixed `DEV_PSUCC_T2_TOP1` in `src/m1_close.rs` from `1,729` (which was `#2844`'s `fresh_v2` `Level 1_global` count) to the exact `ft/dev` `P_succ` (`3,847` rows at `context = 192`) `T2` count **`1,245`** (`Unigram = 194`), and updated `trunk-joint-pointer-v1-d11` in `m1-close-grade.json` with `bar_a_pass = true`, `bar_b_pass = true`, `bar_c_pass = true`, and `bar_d_pass = true`.
 
 ---
