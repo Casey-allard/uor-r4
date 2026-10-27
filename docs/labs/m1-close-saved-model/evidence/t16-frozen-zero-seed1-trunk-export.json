@@ -1,0 +1,41 @@
+{
+  "accepted_updates": 420,
+  "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "base_artifact_sha256": "fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca",
+  "bytes": 86536132,
+  "checkpoint_model_sha256": "de8d94ba15e3f7889681a244e5480b260f68ae5ee7f57944d44f4da8fef4e817",
+  "distinct_train_query_tokens": 1266,
+  "distinct_train_read_codes": 19385,
+  "distinct_train_read_rec_pairs": 796076,
+  "distinct_train_recurrence_codes": 55440,
+  "file_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "gate_r_dev": {
+    "admitted": 5009,
+    "distinct_read_codes": 4067,
+    "reference_mismatches": 0,
+    "rows": 14287,
+    "top1": 455,
+    "top8": 1484
+  },
+  "read_mode": "Relation { kept: 8, sweeps: 1 }",
+  "round_trip_verified": true,
+  "schema": "uor-r4.d11-scorer-trunk-export/1",
+  "seed": 1,
+  "shape": {
+    "blocks": 4,
+    "context": 192,
+    "epoch": 420,
+    "kept_cells": 8,
+    "objective_policy": "nearest_address_margin_v1",
+    "read_initialization": "active_leaf_v1",
+    "read_kept": 8,
+    "read_mode": "relation",
+    "read_sweeps": 1,
+    "seed": 1,
+    "stages": 5,
+    "vocabulary": 4096
+  },
+  "train_rows_captured": 1049856,
+  "trunk_dev_sample_checked": 64,
+  "trunk_dev_sample_reference_mismatches": 0
+}

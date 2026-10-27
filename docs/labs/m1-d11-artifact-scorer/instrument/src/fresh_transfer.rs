@@ -47,18 +47,24 @@ pub const K16_FRESH_TOKENS_SHA256: &str =
 pub const K16_FRESH_MASK_SHA256: &str =
     "8287d20d2c76d388ab7ed9becda6f209d224574a933fa2d14c7bdda3663f5ce4";
 
-/// Registered DEV and TRAIN corpus pins (`CHARTER.md` §4.8).
+/// Stage 3 `cut_fresh_slice` (`#2844`) 14,287-row slice digests.
+pub const STAGE3_CUT_FRESH_TOKENS_SHA256: &str =
+    "1f8bf88d8deee51574c68ffd8976ce4415fc8aed5602213d6905a37a138517ea";
+pub const STAGE3_CUT_FRESH_MASK_SHA256: &str =
+    "fe87363920e19bf072e9fe3a7289e6cd2f1abde6c2431caae8f5c8494d3829d5";
+
+/// Registered DEV and TRAIN corpus pins (`CHARTER.md` §4.8 and `report.json` `df5d074a…`).
 pub const DEV_TOKENS_SHA256: &str =
-    "0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546";
+    "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b";
 pub const DEV_MASK_SHA256: &str =
-    "a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327";
+    "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078";
 pub const DEV_ELIGIBLE_TARGETS: u64 = 14_287;
 pub const DEV_UNIGRAM_TOP1: u64 = 1_226;
 pub const DEV_T2_TOP1: u64 = 6_300;
 pub const TRAIN_TOKENS_SHA256: &str =
-    "3dee858fe16ffba3eb32ffbe2ffacbcfa139aa3b9cc8d9b4bc8fb8a34f56c35a";
+    "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8";
 pub const TRAIN_MASK_SHA256: &str =
-    "b5e7352dd22bd1d168d92761d7eb6703198931a752f8bc74ef43734d7441bf32";
+    "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3";
 pub const MATCHED_TRAIN_BATCHES: usize = 16_404;
 pub const MATCHED_TRAIN_ROWS: usize = 1_049_856;
 pub const FULL_PANEL_NOISE_FLOOR: u64 = 24;
@@ -72,9 +78,9 @@ fn is_lower_hex_64(value: &str) -> bool {
 }
 
 /// Refuses any `CorpusSource` that points to a `Split::Fresh` slice or to the
-/// pinned sealed fresh digests (`0b7e754c…` / `a1cda529…` or `82ead8db…` /
-/// `8287d20d…`) on the unscoped DEV scoring path (`dev_rows` and
-/// `rows_from_corpus`).
+/// pinned sealed fresh digests (`0b7e754c…` / `a1cda529…`, `82ead8db…` /
+/// `8287d20d…`, or `1f8bf88d…` / `fe873639…`) on the unscoped DEV scoring path
+/// (`dev_rows` and `rows_from_corpus`).
 pub fn refuse_sealed_fresh_source(source: &CorpusSource) -> Result<(), String> {
     let tok_sha = source.tokens.sha256.as_str();
     let mask_sha = source.mask.sha256.as_str();
@@ -83,7 +89,9 @@ pub fn refuse_sealed_fresh_source(source: &CorpusSource) -> Result<(), String> {
     let is_fresh_hash = tok_sha == FRESH_V2_TOKENS_SHA256
         || mask_sha == FRESH_V2_MASK_SHA256
         || tok_sha == K16_FRESH_TOKENS_SHA256
-        || mask_sha == K16_FRESH_MASK_SHA256;
+        || mask_sha == K16_FRESH_MASK_SHA256
+        || tok_sha == STAGE3_CUT_FRESH_TOKENS_SHA256
+        || mask_sha == STAGE3_CUT_FRESH_MASK_SHA256;
     let is_fresh_path = tok_path.contains("fresh_v2")
         || mask_path.contains("fresh_v2")
         || tok_path.contains("fresh-sealed")
@@ -230,17 +238,18 @@ pub fn mcnemar_floor(min_floor: u64, discordant: u64) -> u64 {
     min_floor.max(k)
 }
 
-/// Exact prefix copy-successor predicate (`evidence::is_copy_successor` on raw
-/// token prefixes): true iff `prefix` has length >= 3 and there exists an index
-/// `i` with `i + 1 < prefix.len()` such that `prefix[i] == query` and
-/// `prefix[i + 1] == target`.
+/// Exact prefix copy-successor predicate (`attention_evidence::is_copy_successor`
+/// on raw token prefixes): true iff `prefix` has at least one prior occurrence
+/// of `query = *prefix.last()` and the most recent prior occurrence (`rposition`)
+/// is immediately followed by `target`.
 pub fn is_prefix_copy_successor(prefix: &[u32], target: u32) -> bool {
     let Some(&query) = prefix.last() else {
         return false;
     };
-    prefix
-        .windows(2)
-        .any(|pair| pair[0] == query && pair[1] == target)
+    prefix[..prefix.len() - 1]
+        .iter()
+        .rposition(|&tok| tok == query)
+        .is_some_and(|index| prefix[index + 1] == target)
 }
 
 /// Builds the frozen TRAIN count tables (`Unigram` and `T2` context-free

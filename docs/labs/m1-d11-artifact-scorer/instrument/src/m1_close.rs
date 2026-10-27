@@ -623,17 +623,171 @@ pub fn canonical_stage_t_rel_candidate() -> M1CloseCandidateInput {
     }
 }
 
+/// Canonical two-seed 19-table `UORLUT01` (`uor-r4.lut-discrete-trunk/1`)
+/// `Stage T` `T16_fz` (`FrozenZeroV1`, `Relation` read `kept=8, sweeps=1`,
+/// `B = 4`, `C = 192`, `16,404` batches) candidate input exported via
+/// `d11-scorer export-trunk` and scored across two independent CUDA builds
+/// (`Build A` and `Build B`) on 1x RTX 5090 (`antigravity-110`, `#2837` / `#2841`).
+pub fn canonical_trunk_joint_pointer_fz_candidate() -> M1CloseCandidateInput {
+    M1CloseCandidateInput {
+        candidate_id: "trunk-joint-pointer-v1-d11".to_owned(),
+        family: "Stage T B=4 C=192 Relation read (FrozenZeroV1) + 19-table uor-r4.lut-discrete-trunk/1".to_owned(),
+        relation_policy: "FrozenZeroV1".to_owned(),
+        fit_review_url:
+            "https://github.com/UOR-Foundation/uor-r4/issues/2841#issuecomment-6432026082"
+                .to_owned(),
+        prerun_review_url:
+            "https://github.com/UOR-Foundation/uor-r4/issues/2841#issuecomment-6432026082"
+                .to_owned(),
+        seed_1: M1SeedMetrics {
+            seed: 1,
+            checkpoint_sha256:
+                "0831900fc6c04b4489215dc93876f87a173b2c6c16b6635dde2f2ff24c1015a4".to_owned(),
+            model_snapshot_sha256:
+                "de8d94ba15e3f7889681a244e5480b260f68ae5ee7f57944d44f4da8fef4e817".to_owned(),
+            artifact_sha256:
+                "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d".to_owned(),
+            artifact_bytes: 86_536_132,
+            d11_reader_accepted: true,
+            d11_export_includes_full_scoring_path: true,
+            dev_rows: DEV_ELIGIBLE_TARGETS,
+            d11_dev_top1: 7_002,
+            d11_dev_top8: 7_485,
+            d11_dev_admitted: 9_012,
+            train_eval_dev_top1: 7_002,
+            train_eval_dev_top8: 7_485,
+            train_eval_dev_admitted: 9_012,
+            row_mismatches: 0,
+            export_gap_b2_pass: true,
+            planted_fault_b4_pass: true,
+            laptop_prefill_median_tok_s: 2_596_805,
+            laptop_decode_median_tok_s: 11_026,
+            gpu_context_tok_s: 34_625_934,
+            gpu_response_tok_s: 183_206,
+            psucc_rows: DEV_PSUCC_ROWS_C192,
+            psucc_d11_top1: Some(1_779),
+            stage3_trunk_level3_dev_top1: Some(7_002),
+            stage3_trunk_level3_psucc_top1: Some(1_779),
+        },
+        seed_2: M1SeedMetrics {
+            seed: 2,
+            checkpoint_sha256:
+                "8bbb59503a16b8bbd2cc723cbd3bc405543f65dfab00ee9ed6c4e9b43271842c".to_owned(),
+            model_snapshot_sha256:
+                "6f77137b3960563211e76b4de482434cc11bc9245ab578a4e47d139fd77f0fd9".to_owned(),
+            artifact_sha256:
+                "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de".to_owned(),
+            artifact_bytes: 84_943_328,
+            d11_reader_accepted: true,
+            d11_export_includes_full_scoring_path: true,
+            dev_rows: DEV_ELIGIBLE_TARGETS,
+            d11_dev_top1: 7_001,
+            d11_dev_top8: 7_478,
+            d11_dev_admitted: 9_010,
+            train_eval_dev_top1: 7_001,
+            train_eval_dev_top8: 7_478,
+            train_eval_dev_admitted: 9_010,
+            row_mismatches: 0,
+            export_gap_b2_pass: true,
+            planted_fault_b4_pass: true,
+            laptop_prefill_median_tok_s: 2_764_260,
+            laptop_decode_median_tok_s: 10_573,
+            gpu_context_tok_s: 34_225_309,
+            gpu_response_tok_s: 181_086,
+            psucc_rows: DEV_PSUCC_ROWS_C192,
+            psucc_d11_top1: Some(1_770),
+            stage3_trunk_level3_dev_top1: Some(7_001),
+            stage3_trunk_level3_psucc_top1: Some(1_770),
+        },
+        fresh_transfer_report: Some(json!({
+            "bar_e_pass": true,
+            "fresh_mask_sha256": FRESH_V2_MASK_SHA256,
+            "fresh_row_binding_sha256": FRESH_V2_ROW_BINDING_SHA256,
+            "fresh_seal_sha256": FRESH_V2_SEAL_SHA256,
+            "fresh_tokens_sha256": FRESH_V2_TOKENS_SHA256,
+            "outcome": "PASS_BAR_E_FRESH_TRANSFER",
+            "schema": FRESH_TRANSFER_REPORT_SCHEMA,
+            "seed_1": {
+                "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+                "b4_pass": true,
+                "b_vs_t2": 1_149,
+                "b_vs_unigram": 5_977,
+                "beats_psucc_t2": true,
+                "beats_t2": true,
+                "beats_unigram": true,
+                "c_vs_t2": 516,
+                "c_vs_unigram": 41,
+                "model_top1": 7_215,
+                "model_top8": 7_688,
+                "parity_ok": true,
+                "psucc_b_vs_t2": 569,
+                "psucc_c_vs_t2": 96,
+                "psucc_model_top1": 1_713,
+                "psucc_rows": FRESH_V2_PSUCC_ROWS,
+                "psucc_t2_top1": 1_240,
+                "psucc_unigram_top1": 229,
+                "reference_mismatches": 0,
+                "refused_rows": 0,
+                "required_floor_psucc_vs_t2": 52,
+                "required_floor_vs_t2": 82,
+                "required_floor_vs_unigram": 156,
+                "rows": FRESH_V2_ELIGIBLE_TARGETS,
+                "seed": 1,
+                "seed_pass": true,
+                "t2_top1": 6_582,
+                "unigram_top1": 1_279
+            },
+            "seed_2": {
+                "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+                "b4_pass": true,
+                "b_vs_t2": 1_163,
+                "b_vs_unigram": 5_990,
+                "beats_psucc_t2": true,
+                "beats_t2": true,
+                "beats_unigram": true,
+                "c_vs_t2": 517,
+                "c_vs_unigram": 41,
+                "model_top1": 7_228,
+                "model_top8": 7_696,
+                "parity_ok": true,
+                "psucc_b_vs_t2": 567,
+                "psucc_c_vs_t2": 96,
+                "psucc_model_top1": 1_711,
+                "psucc_rows": FRESH_V2_PSUCC_ROWS,
+                "psucc_t2_top1": 1_240,
+                "psucc_unigram_top1": 229,
+                "reference_mismatches": 0,
+                "refused_rows": 0,
+                "required_floor_psucc_vs_t2": 52,
+                "required_floor_vs_t2": 82,
+                "required_floor_vs_unigram": 156,
+                "rows": FRESH_V2_ELIGIBLE_TARGETS,
+                "seed": 2,
+                "seed_pass": true,
+                "t2_top1": 6_582,
+                "unigram_top1": 1_279
+            },
+            "two_seed_spread_full": 13,
+            "two_seed_spread_psucc": 2
+        })),
+    }
+}
+
 /// Builds the complete `uor-r4.m1-close-saved-model/1` five-bar audit and its
-/// paired Stage T `T16_fz` `FreshTransferGateReceipt` JSON.
+/// paired 19-table `Stage T` `T16_fz` `FreshTransferGateReceipt` JSON.
 pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
+    let trunk_input = canonical_trunk_joint_pointer_fz_candidate();
     let fz_input = canonical_stage_t_fz_candidate();
     let rel_input = canonical_stage_t_rel_candidate();
+    let trunk_verdicts = evaluate_m1_closing_bars(&trunk_input)?;
     let fz_verdicts = evaluate_m1_closing_bars(&fz_input)?;
     let rel_verdicts = evaluate_m1_closing_bars(&rel_input)?;
+    let trunk_gate_receipt = build_fresh_transfer_gate_receipt(&trunk_input, &trunk_verdicts);
     let fz_gate_receipt = build_fresh_transfer_gate_receipt(&fz_input, &fz_verdicts);
     let rel_gate_receipt = build_fresh_transfer_gate_receipt(&rel_input, &rel_verdicts);
 
-    let any_pass = fz_verdicts.m1_close_pass || rel_verdicts.m1_close_pass;
+    let any_pass =
+        trunk_verdicts.m1_close_pass || fz_verdicts.m1_close_pass || rel_verdicts.m1_close_pass;
     let m1_milestone_status = if any_pass {
         "CLOSED_PASS"
     } else {
@@ -649,6 +803,7 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
         "m1_milestone_status": m1_milestone_status,
         "not_run_is_not_pass": true,
         "fresh_v2_seal_intact": !fz_verdicts.bars_a_to_d_pass && !rel_verdicts.bars_a_to_d_pass,
+        "fresh_v2_authorized_by_trunk_bars_a_to_d": trunk_verdicts.bars_a_to_d_pass && trunk_verdicts.bar_e_fresh_transfer_two_seeds,
         "registered_bars": {
             "dev_rows": DEV_ELIGIBLE_TARGETS,
             "dev_unigram_top1": DEV_UNIGRAM_TOP1,
@@ -667,6 +822,11 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
         },
         "two_seed_exported_d11_candidates": [
             {
+                "input": trunk_input.to_json(),
+                "verdicts": trunk_verdicts.to_json(),
+                "fresh_transfer_gate_receipt": trunk_gate_receipt.clone(),
+            },
+            {
                 "input": fz_input.to_json(),
                 "verdicts": fz_verdicts.to_json(),
                 "fresh_transfer_gate_receipt": fz_gate_receipt,
@@ -677,9 +837,48 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
                 "fresh_transfer_gate_receipt": rel_gate_receipt,
             }
         ],
-        "all_saved_discrete_models_inventory": [
-            {
-                "id": "k16-a-route-b2",
+    });
+    let inv_trunk = json!({
+        "id": "trunk-joint-pointer-v1-d11",
+        "source_unit": "docs/labs/m1-close-saved-model/README.md (#2837, #2841, antigravity-105..110)",
+        "read_mode": "Flock (B=4, C=256, FrozenZeroV1) + DiscreteHamiltonGateV1 + DiscreteQuaternionRecurrenceV1 + OrbitRootCausalPointerV1 + Post-Rotation OuterL1V1 (19-table uor-r4.lut-discrete-trunk/1)",
+        "seeds_evaluated": 2,
+        "seed_1_artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+        "seed_2_artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+        "d11_dev_top1": [7_002, 7_001],
+        "d11_dev_top8": [7_485, 7_478],
+        "d11_dev_admitted": [9_012, 9_010],
+        "d11_dev_psucc_top1": [1_779, 1_770],
+        "d11_dev_psucc_top8": [1_906, 1_899],
+        "d11_fresh_v2_top1": [7_215, 7_228],
+        "d11_fresh_v2_top8": [7_688, 7_696],
+        "d11_fresh_v2_psucc_top1": [1_713, 1_711],
+        "laptop_prefill_median_tok_s": [2_596_805, 2_764_260],
+        "laptop_decode_median_tok_s": [11_026, 10_573],
+        "gpu_score_elapsed_us": [77_983, 78_896],
+        "fz_joint_hierarchy_dev_top1_roots0": [6_943, 6_943],
+        "fz_joint_hierarchy_dev_top1_roots_final": [6_674, 6_665],
+        "fz_joint_hierarchy_fresh_q_rec_top1": [6_875, 6_875],
+        "fz_joint_pointer_dev_top1_roots0": [7_702, 7_701],
+        "fz_joint_pointer_dev_top1_roots_final": [7_386, 7_374],
+        "fz_joint_pointer_dev_psucc_top1": [2_090, 2_086],
+        "fz_joint_pointer_fresh_q_rec_ptr_top1": [7_703, 7_722],
+        "fz_joint_pointer_fresh_psucc_top1": [2_408, 2_413],
+        "trunk_d11_exported": true,
+        "clean_room_4table_d11_accepted": false,
+        "clean_room_19table_d11_accepted": true,
+        "bar_a_pass": true,
+        "bar_b_pass": true,
+        "bar_c_pass": true,
+        "bar_d_pass": true,
+        "bar_e_pass": true,
+        "bar_e_status": "PASS_BAR_E_FRESH_TRANSFER",
+        "m1_close_pass": true,
+        "blocking_reason": "None — passes all five M1 closing bars (a)-(e) across both seeds on two independent ahead-of-time CUDA builds (Build A and Build B on RTX 5090 compute_120): Bar (a) 19-table uor-r4.lut-discrete-trunk/1 (86,536,132 B / 84,943,328 B) accepted by crates/uor-r4-integer::IntegerDiscreteModel::from_bytes; Bar (b) 0 export gap (14,287/14,287 agreed) + planted-fault B4 rejection (1,260/1,262 cell flips, 656/682 route/gate flips); Bar (c) laptop decode median 11,026/10,573 tok/s (prefill 2,596,805/2,764,260 tok/s) and GPU 183,206/181,086 response tok/s (34,625,934/34,225,309 context tok/s); Bar (d) ft/dev top-1 7,002/7,001 (+702/+701 over T2=6,300, +5,776/+5,775 over Unigram=1,226) and P_succ 1,779/1,770 (+534/+525 over T2_psucc=1,245); Bar (e) sealed Fresh V2 top-1 7,215/7,228 (+633/+646 over T2=6,582 vs required McNemar floor 82; +5,936/+5,949 over Unigram=1,279 vs required floor 156) and P_succ 1,713/1,711 (+473/+471 over T2_psucc=1,240 vs required floor 52) with 0 reference mismatches and B4 pass"
+    });
+    let inventory = json!([
+        {
+            "id": "k16-a-route-b2",
                 "source_unit": "archive/2026-10-16-m1-closures/k16-train-and-serve.md",
                 "read_mode": "Route (B=2, C=64)",
                 "seeds_evaluated": 1,
@@ -818,38 +1017,17 @@ pub fn canonical_m1_saved_model_audit() -> Result<(Value, Value), String> {
                 "bar_e_status": "UNAVAILABLE_NOT_RUN",
                 "blocking_reason": "Beats Unigram (1,226) by +1,762/+1,763 (T16_fz) and +1,001/+1,000 (T16_rel) across 2 seeds, but base trunk-model.d11 omits trunk tables and pre-rotation A_W(q_read) = 5,009 + marginal c_q weight (64 vs 32) cap Level 3 at 2,989 < T2 6,300"
             },
-            {
-                "id": "trunk-joint-pointer-v1-d11",
-                "source_unit": "docs/labs/m1-close-saved-model/README.md (#2837, antigravity-105, antigravity-106, antigravity-107)",
-                "read_mode": "Flock (B=4, C=256, FrozenZeroV1) + DiscreteHamiltonGateV1 + DiscreteQuaternionRecurrenceV1 + OrbitRootCausalPointerV1 + Post-Rotation OuterL1V1",
-                "seeds_evaluated": 2,
-                "fz_joint_hierarchy_dev_top1_roots0": [6_943, 6_943],
-                "fz_joint_hierarchy_dev_top1_roots_final": [6_674, 6_665],
-                "fz_joint_hierarchy_fresh_q_rec_top1": [6_875, 6_875],
-                "fz_joint_pointer_dev_top1_roots0": [7_702, 7_701],
-                "fz_joint_pointer_dev_top1_roots_final": [7_386, 7_374],
-                "fz_joint_pointer_dev_psucc_top1": [2_090, 2_086],
-                "fz_joint_pointer_fresh_q_rec_ptr_top1": [7_703, 7_722],
-                "fz_joint_pointer_fresh_psucc_top1": [2_408, 2_413],
-                "trunk_d11_exported": true,
-                "clean_room_4table_d11_accepted": false,
-                "clean_room_19table_d11_accepted": true,
-                "bar_a_pass": true,
-                "bar_b_pass": true,
-                "bar_c_pass": true,
-                "bar_d_pass": true,
-                "bar_e_status": "UNAVAILABLE_NOT_RUN",
-                "blocking_reason": "Clears Bar (a) (19-table uor-r4.lut-discrete-trunk/1 accepted by crates/uor-r4-integer::IntegerDiscreteModel::from_bytes), Bar (b) (0 export gap between IntegerDiscreteModel::evaluate_prefix and evaluate_joint_pointer_full_writer + planted-fault B4 rejection), Bar (c) (laptop d11-scorer toks + 34,325-34,337 context tok/s GPU), and Bar (d) on ft/dev across both seeds (7,702/7,701 on roots0 and 7,386/7,374 on roots_final vs T2=6,300; P_succ 2,090/2,086 vs T2_psucc=1,245); held only on Bar (e) (#2841 d11-scorer fresh-score on sealed Fresh V2 slice 0b7e754c.../a1cda529...)"
-            }
-        ],
-        "structural_diagnosis_and_pivot": {
-            "bottleneck_1_pre_rotation_shortlist": "In 4-table UORLUT01 (IntegerDiscreteModel::evaluate_prefix), the 8-cell shortlist A_W(q_read) admits at most 5,009 / 14,287 DEV targets (35.06% < T2 = 6,300), and G_restr(A_W) = 3,084 < 6,300.",
-            "bottleneck_2_marginal_read_code_collision": "A single 16-bit read code c_read in O_16^4 without query/recurrence conditioning has unconstrained table ceiling T(c_read) = 4,085 on Stage T T16_fz (3,414 on Rung-0 Q4, projected ceiling 3,552 in #3179 QB=B2) < T2 = 6,300.",
-            "bottleneck_3_level3_marginal_query_inversion_and_d11_export": "In #2844 TrunkAssemblyV1, select_level3_full_trunk weighted marginal query count 64 * c_q above joint (query, read) 32 * c_qr and (query, rec) 16 * c_qc while restricting candidates to pre-rotation A_W(q_read), and trunk-model.d11 exported only the 4-table Stage 2 snapshot.",
-            "pivot_path_a_discrete_joint_post_rotation_d11": "Select target via joint-first hierarchy (select_level3_joint_hierarchy_global: 6,943/6,943 on ft/dev roots0, 6,674/6,665 on roots_final, 6,875/6,875 on fresh_v2) or joint-pointer hierarchy (select_level3_joint_pointer_global with 4-block O_16^4 orbit-root causal pointer: 7,702/7,701 on ft/dev roots0, 7,386/7,374 on roots_final, 2,090/2,086 on P_succ vs T2_psucc=1,245, and 7,703/7,722 on fresh_v2), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize/serve all 19 trunk sections via export_trunk_d11 and crates/uor-r4-integer::IntegerDiscreteModel (Bars (a)-(d) PASS; only #2841 Bar (e) fresh-score remains).",
-            "pivot_path_b_offline_float_trunk_export_d11": "Offline float-trained SpiralCore / FBS multi-layer trunk exported to integer UORLUT01 via d11-exporter-float-trunk (#2818, CHARTER.md §3.6 / D37)."
-        }
+            inv_trunk
+    ]);
+    let mut audit = audit;
+    audit["all_saved_discrete_models_inventory"] = inventory;
+    audit["structural_diagnosis_and_pivot"] = json!({
+        "bottleneck_1_pre_rotation_shortlist": "In 4-table UORLUT01 (IntegerDiscreteModel::evaluate_prefix), the 8-cell shortlist A_W(q_read) admits at most 5,009 / 14,287 DEV targets (35.06% < T2 = 6,300), and G_restr(A_W) = 3,084 < 6,300.",
+        "bottleneck_2_marginal_read_code_collision": "A single 16-bit read code c_read in O_16^4 without query/recurrence conditioning has unconstrained table ceiling T(c_read) = 4,085 on Stage T T16_fz (3,414 on Rung-0 Q4, projected ceiling 3,552 in #3179 QB=B2) < T2 = 6,300.",
+        "bottleneck_3_level3_marginal_query_inversion_and_d11_export": "In #2844 TrunkAssemblyV1, select_level3_full_trunk weighted marginal query count 64 * c_q above joint (query, read) 32 * c_qr and (query, rec) 16 * c_qc while restricting candidates to pre-rotation A_W(q_read), and trunk-model.d11 exported only the 4-table Stage 2 snapshot.",
+        "pivot_path_a_discrete_joint_post_rotation_d11": "Resolved and closed in antigravity-105..110: select target via joint-pointer hierarchy (select_level3_joint_pointer_global with 4-block O_16^4 orbit-root causal pointer), rotate q_read -> q_trunk via DiscreteHamiltonGateV1, score q_trunk through post-rotation full OuterL1V1 writer (A_W(q_trunk)), and serialize/serve all 19 trunk sections via d11-scorer export-trunk and crates/uor-r4-integer::IntegerDiscreteModel (Bars (a)-(e) PASS across both seeds on Build A and Build B: DEV 7,002/7,001 vs T2=6,300, Fresh V2 7,215/7,228 vs T2=6,582).",
+        "pivot_path_b_offline_float_trunk_export_d11": "Offline float-trained SpiralCore / FBS multi-layer trunk exported to integer UORLUT01 via d11-exporter-float-trunk (#2818, CHARTER.md §3.6 / D37)."
     });
 
-    Ok((audit, fz_gate_receipt))
+    Ok((audit, trunk_gate_receipt))
 }

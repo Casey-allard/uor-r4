@@ -1,0 +1,41 @@
+{
+  "accepted_updates": 420,
+  "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+  "base_artifact_sha256": "a75ea7f5907275fd4c1e853ee76135a7a2615ba8302aaadf362bfa7eb96ae12a",
+  "bytes": 84943328,
+  "checkpoint_model_sha256": "6f77137b3960563211e76b4de482434cc11bc9245ab578a4e47d139fd77f0fd9",
+  "distinct_train_query_tokens": 1266,
+  "distinct_train_read_codes": 19385,
+  "distinct_train_read_rec_pairs": 795317,
+  "distinct_train_recurrence_codes": 54563,
+  "file_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+  "gate_r_dev": {
+    "admitted": 5009,
+    "distinct_read_codes": 4067,
+    "reference_mismatches": 0,
+    "rows": 14287,
+    "top1": 455,
+    "top8": 1484
+  },
+  "read_mode": "Relation { kept: 8, sweeps: 1 }",
+  "round_trip_verified": true,
+  "schema": "uor-r4.d11-scorer-trunk-export/1",
+  "seed": 2,
+  "shape": {
+    "blocks": 4,
+    "context": 192,
+    "epoch": 420,
+    "kept_cells": 8,
+    "objective_policy": "nearest_address_margin_v1",
+    "read_initialization": "active_leaf_v1",
+    "read_kept": 8,
+    "read_mode": "relation",
+    "read_sweeps": 1,
+    "seed": 2,
+    "stages": 5,
+    "vocabulary": 4096
+  },
+  "train_rows_captured": 1049856,
+  "trunk_dev_sample_checked": 64,
+  "trunk_dev_sample_reference_mismatches": 0
+}

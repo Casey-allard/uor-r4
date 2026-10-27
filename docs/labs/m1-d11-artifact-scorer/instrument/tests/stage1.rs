@@ -436,3 +436,203 @@ fn fresh_transfer_gate_refuses_until_two_seed_dev_bar_passes_and_evaluates_exact
     assert_eq!(report["bar_e_pass"], json!(true));
     assert_eq!(report["outcome"], json!("PASS_BAR_E_FRESH_TRANSFER"));
 }
+
+#[test]
+fn fresh_transfer_pins_match_sealed_corpora_and_export_trunk_with_scorer_roundtrips() {
+    use inst::fresh_transfer::{
+        refuse_sealed_fresh_source, DEV_MASK_SHA256, DEV_TOKENS_SHA256, TRAIN_MASK_SHA256,
+        TRAIN_TOKENS_SHA256,
+    };
+    assert_eq!(
+        DEV_TOKENS_SHA256,
+        "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+    );
+    assert_eq!(
+        DEV_MASK_SHA256,
+        "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+    );
+    assert_eq!(
+        TRAIN_TOKENS_SHA256,
+        "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+    );
+    assert_eq!(
+        TRAIN_MASK_SHA256,
+        "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+    );
+
+    // Disguised Stage 3 cut_fresh_slice digests must also be refused on the DEV path.
+    let stage3_cut_disguised = CorpusSource {
+        split: Split::Dev,
+        tokens: FilePin {
+            path: "/nonexistent/tokens.u16".into(),
+            sha256: "1f8bf88d8deee51574c68ffd8976ce4415fc8aed5602213d6905a37a138517ea".into(),
+        },
+        mask: FilePin {
+            path: "/nonexistent/response_mask.u8".into(),
+            sha256: "fe87363920e19bf072e9fe3a7289e6cd2f1abde6c2431caae8f5c8494d3829d5".into(),
+        },
+        expected_payload_tokens: 46_669,
+        expected_eligible_targets: 14_287,
+    };
+    assert!(refuse_sealed_fresh_source(&stage3_cut_disguised).is_err());
+    assert!(inst::fresh_transfer::is_prefix_copy_successor(&[0, 7, 12, 7], 12));
+    assert!(
+        !inst::fresh_transfer::is_prefix_copy_successor(&[0, 7, 12, 7, 19, 7], 12),
+        "copy-successor checks only the most recent prior occurrence of query (rposition)"
+    );
+
+    // Exercise `export_trunk_with_scorer` end-to-end on a 4-block, 4096-vocab fixture.
+    use uor_r4_discrete::normalization_mechanism::orbit_root_coords;
+    use uor_r4_discrete::training::{
+        CodebookInitialization, CounterfactualPath, DriverConfig, RelationLearningPolicy,
+        SchedulePolicy,
+    };
+    use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
+
+    let spec = Spec {
+        vocabulary: 4096,
+        blocks: 4,
+        context: 6,
+        kept_cells: 8,
+    };
+    let stages = BinderPlan::new(spec.context as usize).unwrap().stages() as u32;
+    let read_spec = ReadSpec::Relation { kept: 1, sweeps: 1 };
+    let gate_len = read_spec.gate_count(spec.blocks, stages).unwrap() as usize;
+    let mut table = Vec::with_capacity(4096 * 32);
+    for v in 0..4096u32 {
+        let r_arr = [
+            (v & 0xF) as u8,
+            ((v >> 4) & 0xF) as u8,
+            ((v >> 8) & 0xF) as u8,
+            ((v.wrapping_mul(7) ^ (v >> 3)) & 0xF) as u8,
+        ];
+        for b in 0..4 {
+            table.extend_from_slice(&orbit_root_coords(r_arr[b]).unwrap());
+        }
+    }
+    let snapshot = Snapshot {
+        schema: SCHEMA.to_owned(),
+        spec,
+        read_spec,
+        objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+        read_initialization: ReadInitialization::ActiveLeafV1,
+        normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+        position: None,
+        address_metric: Default::default(),
+        seed: 1,
+        epoch: 3,
+        table,
+        routes: vec![0u32; (spec.blocks * stages) as usize],
+        gates: vec![0i32; gate_len],
+        operator_kappa: OPERATOR_KAPPA.to_owned(),
+        composition_kappa: COMPOSITION_KAPPA.to_owned(),
+        kernel_sha256: "11".repeat(32),
+        source_sha256: "22".repeat(32),
+        geometry_sha256: "33".repeat(32),
+    };
+    let ckpt = checkpoint_for(&snapshot, 3);
+
+    let tmp_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../../local/antigravity/test-export-trunk-fixture");
+    std::fs::create_dir_all(&tmp_dir).unwrap();
+    let tok_words: [u16; 8] = [0, 7, 12, 7, 19, 0, 7, 12];
+    let dev_tok_words: [u16; 8] = [0, 11, 23, 11, 5, 0, 11, 23];
+    let mask_bytes = [1u8; 8];
+    let mut uort_bytes = vec![0u8; 64];
+    uort_bytes[..4].copy_from_slice(b"UORT");
+    uort_bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+    uort_bytes[8..16].copy_from_slice(&(tok_words.len() as u64).to_le_bytes());
+    uort_bytes[16..20].copy_from_slice(&4096u32.to_le_bytes());
+    for t in tok_words {
+        uort_bytes.extend_from_slice(&t.to_le_bytes());
+    }
+    let mut dev_uort_bytes = vec![0u8; 64];
+    dev_uort_bytes[..4].copy_from_slice(b"UORT");
+    dev_uort_bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+    dev_uort_bytes[8..16].copy_from_slice(&(dev_tok_words.len() as u64).to_le_bytes());
+    dev_uort_bytes[16..20].copy_from_slice(&4096u32.to_le_bytes());
+    for t in dev_tok_words {
+        dev_uort_bytes.extend_from_slice(&t.to_le_bytes());
+    }
+    let train_tok = tmp_dir.join("train_tokens.u16");
+    let train_mask = tmp_dir.join("train_mask.u8");
+    let dev_tok = tmp_dir.join("dev_tokens.u16");
+    let dev_mask = tmp_dir.join("dev_mask.u8");
+    let tok_json = tmp_dir.join("tokenizer.json");
+    let tbl_json = tmp_dir.join("table.json");
+    std::fs::write(&train_tok, &uort_bytes).unwrap();
+    std::fs::write(&train_mask, &mask_bytes).unwrap();
+    std::fs::write(&dev_tok, &dev_uort_bytes).unwrap();
+    std::fs::write(&dev_mask, &mask_bytes).unwrap();
+    std::fs::write(&tok_json, b"{}").unwrap();
+    std::fs::write(&tbl_json, b"[]").unwrap();
+
+    let cfg = DriverConfig {
+        schema: "uor-r4.discrete-corpus-driver/1".into(),
+        spec,
+        read_spec,
+        objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+        read_initialization: ReadInitialization::ActiveLeafV1,
+        normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+        position: None,
+        address_metric: Default::default(),
+        relation_learning_policy: RelationLearningPolicy::FrozenZeroV1,
+        counterfactual_path: CounterfactualPath::RowsV1,
+        codebook_initialization: CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: tbl_json,
+                sha256: sha256(b"[]"),
+            },
+        },
+        coordinate_block: uor_r4_discrete::training::CoordinateBlock(16),
+        seed: 1,
+        batch_rows: 4,
+        train: CorpusSource {
+            split: Split::Train,
+            tokens: FilePin {
+                path: train_tok,
+                sha256: sha256(&uort_bytes),
+            },
+            mask: FilePin {
+                path: train_mask,
+                sha256: sha256(&mask_bytes),
+            },
+            expected_payload_tokens: 8,
+            expected_eligible_targets: 6,
+        },
+        dev: CorpusSource {
+            split: Split::Dev,
+            tokens: FilePin {
+                path: dev_tok,
+                sha256: sha256(&dev_uort_bytes),
+            },
+            mask: FilePin {
+                path: dev_mask,
+                sha256: sha256(&mask_bytes),
+            },
+            expected_payload_tokens: 8,
+            expected_eligible_targets: 6,
+        },
+        tokenizer: FilePin {
+            path: tok_json,
+            sha256: sha256(b"{}"),
+        },
+        bos: BosIdentity {
+            token: "<|bos|>".into(),
+            id: 0,
+        },
+        schedule: SchedulePolicy::InterleavedReadEvery8V1,
+    };
+    let exported = inst::export_trunk_with_scorer(&ckpt, &cfg, 4, |tables, packed| {
+        inst::kernel::host_score(tables, packed)
+    })
+    .expect("export_trunk_with_scorer");
+    let _ = std::fs::remove_dir_all(&tmp_dir);
+    assert_eq!(exported.report["round_trip_verified"], json!(true));
+    assert_eq!(
+        exported.report["trunk_dev_sample_reference_mismatches"],
+        json!(0)
+    );
+    let model = IntegerDiscreteModel::from_bytes(&exported.bytes).expect("trunk model");
+    assert!(model.is_trunk_d11());
+}

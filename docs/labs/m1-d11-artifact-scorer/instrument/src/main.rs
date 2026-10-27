@@ -1,4 +1,5 @@
 //! `d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON`
+//! `d11-scorer export-trunk CHECKPOINT_JSON CONFIG_JSON OUT_LUT REPORT_JSON`
 //! `d11-scorer rows CONFIG_JSON OUT_JSON`
 //! `d11-scorer score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON]`
 //! `d11-scorer fresh-score SEED1_LUT SEED2_LUT FRESH_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON`
@@ -68,6 +69,9 @@ fn run(args: &[String]) -> Result<(), String> {
                 exported.report["file_sha256"]
             );
             Ok(())
+        }
+        [command, checkpoint, config, out, report] if command == "export-trunk" => {
+            export_trunk(checkpoint, config, out, report)
         }
         [command, config, out] if command == "rows" => {
             let config: DriverConfig = serde_json::from_value(read_json(config)?)
@@ -146,13 +150,46 @@ fn run(args: &[String]) -> Result<(), String> {
             );
             Ok(())
         }
-        _ => Err("usage: d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON | rows CONFIG_JSON OUT_JSON \
+        _ => Err("usage: d11-scorer export CHECKPOINT_JSON OUT_LUT REPORT_JSON \
+                  | export-trunk CHECKPOINT_JSON CONFIG_JSON OUT_LUT REPORT_JSON | rows CONFIG_JSON OUT_JSON \
                   | score ARTIFACT_LUT CONFIG_JSON REPORT_JSON ROWS_JSONL [--reference] [--train-eval TRAIN_EVAL_JSON GAP_REPORT_JSON] \
                   | fresh-score SEED1_LUT SEED2_LUT FRESH_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON \
                   | m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON \
                   | toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]"
             .into()),
     }
+}
+
+#[cfg(not(feature = "cuda"))]
+fn export_trunk(_: &str, _: &str, _: &str, _: &str) -> Result<(), String> {
+    Err("export-trunk runs on the GPU: build with --features cuda (and UOR_NVCC_ARCH)".into())
+}
+
+#[cfg(feature = "cuda")]
+fn export_trunk(checkpoint: &str, config: &str, out: &str, report: &str) -> Result<(), String> {
+    use inst::device::DeviceScorer;
+    use inst::fresh_transfer::MATCHED_TRAIN_BATCHES;
+    refuse_existing(&[out, report])?;
+    let ckpt_val = read_json(checkpoint)?;
+    let cfg: DriverConfig =
+        serde_json::from_value(read_json(config)?).map_err(|e| format!("{config}: {e}"))?;
+    let exported = inst::export_trunk_with_scorer(
+        &ckpt_val,
+        &cfg,
+        MATCHED_TRAIN_BATCHES,
+        |tables, packed| DeviceScorer::new(0, tables)?.score(packed),
+    )?;
+    write_new(out, &exported.bytes)?;
+    write_new(report, &json_bytes(&exported.report)?)?;
+    println!(
+        "exported trunk {} bytes, file sha256 {}, train_rows {}, distinct_read_codes {}, distinct_rec_codes {}",
+        exported.bytes.len(),
+        exported.report["file_sha256"],
+        exported.report["train_rows_captured"],
+        exported.report["distinct_train_read_codes"],
+        exported.report["distinct_train_recurrence_codes"]
+    );
+    Ok(())
 }
 
 #[cfg(not(feature = "cuda"))]

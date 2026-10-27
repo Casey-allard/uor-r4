@@ -186,7 +186,9 @@ pub fn fresh_rows(
     artifact_sha256: &str,
 ) -> Result<Vec<DevRow>, String> {
     fresh_transfer::validate_fresh_transfer_gate(decision_receipt, artifact_sha256, &config.dev)?;
-    config.validate().map_err(|e| e.to_string())?;
+    let mut validated_cfg = config.clone();
+    validated_cfg.dev.split = uor_r4_discrete::corpus::Split::Dev;
+    validated_cfg.validate().map_err(|e| e.to_string())?;
     let fresh = PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)
         .map_err(|e| e.to_string())?;
     rows_from_corpus_unchecked(&fresh, config.spec.context, config.batch_rows)
@@ -219,6 +221,8 @@ pub fn score_summary(
         return Err("scores do not cover the rows".into());
     }
     let (mut top1, mut top8, mut admitted, mut refused) = (0u64, 0u64, 0u64, 0u64);
+    let (mut psucc_rows, mut psucc_top1, mut psucc_top8, mut psucc_admitted) =
+        (0u64, 0u64, 0u64, 0u64);
     let (mut token_hinge_sum, mut address_hinge_sum, mut rank_hinge_sum) = (0u64, 0u64, 0u64);
     let (mut loss_ta_sum, mut loss_tr_sum) = (0u64, 0u64);
     let mut lines = Vec::new();
@@ -231,9 +235,18 @@ pub fn score_summary(
         if score.status != 0 {
             refused += 1;
         }
-        top1 += u64::from(score.status == 0 && score.prediction == row.target_token);
-        top8 += u64::from(score.top8.contains(&row.target_token));
-        admitted += u64::from(score.admitted_cells.contains(&cell));
+        let hit1 = score.status == 0 && score.prediction == row.target_token;
+        let hit8 = score.top8.contains(&row.target_token);
+        let adm = score.admitted_cells.contains(&cell);
+        top1 += u64::from(hit1);
+        top8 += u64::from(hit8);
+        admitted += u64::from(adm);
+        if fresh_transfer::is_prefix_copy_successor(&row.prefix, row.target_token) {
+            psucc_rows += 1;
+            psucc_top1 += u64::from(hit1);
+            psucc_top8 += u64::from(hit8);
+            psucc_admitted += u64::from(adm);
+        }
         token_hinge_sum += score.token_hinge;
         address_hinge_sum += score.address_hinge;
         rank_hinge_sum += score.rank_hinge;
@@ -278,6 +291,10 @@ pub fn score_summary(
         "top1": top1,
         "top8": top8,
         "admitted": admitted,
+        "psucc_rows": psucc_rows,
+        "psucc_top1": psucc_top1,
+        "psucc_top8": psucc_top8,
+        "psucc_admitted": psucc_admitted,
         "token_hinge_sum": token_hinge_sum,
         "address_hinge_sum": address_hinge_sum,
         "cell_rank_hinge_sum": rank_hinge_sum,
@@ -645,4 +662,271 @@ pub fn rows_report(rows: &[DevRow]) -> Value {
         "rows_sha256": rows_sha256(rows),
         "row_metadata": listed,
     })
+}
+
+/// Exports a 19-table `uor-r4.lut-discrete-trunk/1` container (`Exported`) from a
+/// `DriverCheckpoint` JSON and `DriverConfig` by scoring `config.dev` (for Gate R)
+/// and up to `max_train_batches` batches of `config.train` through `score_fn`
+/// (which runs `DeviceScorer` on the GPU when called from `d11-scorer export-trunk`),
+/// computing the seed-bound `DiscreteQuaternionRecurrenceV1` (`ActiveHolonomyV1`,
+/// `ShuffledOrderControlV1`, `UnitSnapControlV1`) states across worker threads,
+/// fitting `TrunkTables`, and round-trip verifying via `export_and_verify_trunk_artifact`.
+pub fn export_trunk_with_scorer(
+    checkpoint: &Value,
+    config: &DriverConfig,
+    max_train_batches: usize,
+    score_fn: impl Fn(
+        &artifact::ArtifactTables,
+        &kernel::PackedRows,
+    ) -> Result<Vec<kernel::RowScore>, String>,
+) -> Result<Exported, String> {
+    let base_exported = export_checkpoint(checkpoint)?;
+    let (base_tables, base_model) = artifact::ArtifactTables::from_bytes(&base_exported.bytes)?;
+    let model_val = checkpoint.get("model").ok_or("checkpoint lacks model")?;
+    let mut snapshot: Snapshot =
+        serde_json::from_value(model_val.clone()).map_err(|e| format!("checkpoint model: {e}"))?;
+    snapshot.position = None;
+    config.validate().map_err(|e| e.to_string())?;
+    if config.spec != snapshot.spec {
+        return Err("config.spec does not match checkpoint snapshot.spec".into());
+    }
+
+    // 1. Gate R check on config.dev
+    let dev_rows_vec = dev_rows(config)?;
+    let dev_views: Vec<&[u32]> = dev_rows_vec.iter().map(|r| r.prefix.as_slice()).collect();
+    let dev_targets: Vec<u32> = dev_rows_vec.iter().map(|r| r.target_token).collect();
+    let dev_packed = kernel::pack_rows_with_targets(&dev_views, &dev_targets)?;
+    let dev_scores = score_fn(&base_tables, &dev_packed)?;
+    let dev_ref = reference_check(&base_model, &dev_rows_vec, &dev_scores);
+    let dev_ref_mismatches = dev_ref["checked"]
+        .as_u64()
+        .unwrap_or(0)
+        .saturating_sub(dev_ref["agreed"].as_u64().unwrap_or(0));
+    if dev_ref_mismatches != 0 {
+        return Err(format!(
+            "Gate R reference mismatch on dev before trunk export: {}",
+            dev_ref["first_mismatch"]
+        ));
+    }
+    let (dev_summary, _) = score_summary(&base_tables, &dev_rows_vec, &dev_scores)?;
+    let mut dev_read_codes = std::collections::BTreeSet::new();
+    for sc in &dev_scores {
+        let q_read: [i32; 32] = sc
+            .read_vector
+            .as_slice()
+            .try_into()
+            .map_err(|_| "dev read_vector length != 32".to_string())?;
+        let rc =
+            uor_r4_discrete::w2_capacity::decode_read_vector(&q_read).map_err(|e| e.to_string())?;
+        dev_read_codes.insert(rc);
+    }
+
+    // 2. Capture up to `max_train_batches` batches of `config.train`
+    let train_corpus = PreparedCorpus::load(&config.train, config.spec.vocabulary, &config.bos)
+        .map_err(|e| e.to_string())?;
+    let (codebook_roots, _) = uor_r4_discrete::trunk::decode_codebook_table(&snapshot.table)
+        .map_err(|e| e.to_string())?;
+    let seed_offset = (snapshot.seed.saturating_sub(1)) as usize;
+    let step_table =
+        uor_r4_discrete::trunk::build_trunk_step_table(snapshot.spec.blocks, seed_offset)
+            .map_err(|e| e.to_string())?;
+    let norm_frames =
+        uor_r4_discrete::trunk::build_trunk_norm_frames(snapshot.spec.blocks, seed_offset)
+            .map_err(|e| e.to_string())?;
+
+    let mut raw_prefixes: Vec<Vec<u32>> = Vec::new();
+    let mut raw_targets: Vec<u32> = Vec::new();
+    let mut first = 0u64;
+    for _ in 0..max_train_batches {
+        if first >= train_corpus.eligible_len() as u64 {
+            break;
+        }
+        let batch = train_corpus
+            .batch(first, config.spec.context, config.batch_rows)
+            .map_err(|e| e.to_string())?;
+        for (window, &target) in batch.windows.iter().zip(&batch.targets) {
+            raw_prefixes.push(window.iter().map(|id| id.token).collect());
+            raw_targets.push(target);
+        }
+        if batch.next_target <= first {
+            return Err("train corpus batch cursor did not advance".into());
+        }
+        first = batch.next_target;
+    }
+
+    let total_train = raw_prefixes.len();
+    let mut read_codes = Vec::with_capacity(total_train);
+    const SCORE_CHUNK: usize = 262_144;
+    let mut chunk_start = 0usize;
+    while chunk_start < total_train {
+        let chunk_end = (chunk_start + SCORE_CHUNK).min(total_train);
+        let views: Vec<&[u32]> = raw_prefixes[chunk_start..chunk_end]
+            .iter()
+            .map(|p| p.as_slice())
+            .collect();
+        let packed = kernel::pack_rows_with_targets(&views, &raw_targets[chunk_start..chunk_end])?;
+        let scores = score_fn(&base_tables, &packed)?;
+        for sc in scores {
+            if sc.status != 0 {
+                return Err(format!("train row refused with status {}", sc.status));
+            }
+            let q_read: [i32; 32] = sc
+                .read_vector
+                .as_slice()
+                .try_into()
+                .map_err(|_| "train read_vector length != 32".to_string())?;
+            let rc = uor_r4_discrete::w2_capacity::decode_read_vector(&q_read)
+                .map_err(|e| e.to_string())?;
+            read_codes.push(rc);
+        }
+        chunk_start = chunk_end;
+    }
+
+    // Compute recurrence states across worker threads in deterministic order
+    let workers = std::thread::available_parallelism()
+        .map(|n| n.get().min(16))
+        .unwrap_or(4)
+        .max(1);
+    let slice_len = total_train.div_ceil(workers).max(1);
+    let mut train_rows = Vec::with_capacity(total_train);
+    std::thread::scope(|s| -> Result<(), String> {
+        let mut handles = Vec::new();
+        for w in 0..workers {
+            let start = w * slice_len;
+            if start >= total_train {
+                break;
+            }
+            let end = ((w + 1) * slice_len).min(total_train);
+            let pfx_slice = &raw_prefixes[start..end];
+            let tgt_slice = &raw_targets[start..end];
+            let rc_slice = &read_codes[start..end];
+            let roots_ref = &codebook_roots;
+            let step_ref = &step_table;
+            let norm_ref = &norm_frames;
+            handles.push(s.spawn(move || -> Result<Vec<uor_r4_discrete::trunk::TrunkTrainRow>, String> {
+                let mut out = Vec::with_capacity(end - start);
+                for i in 0..(end - start) {
+                    let global_idx = start + i;
+                    let win_u16: Vec<u16> = pfx_slice[i].iter().map(|&t| t as u16).collect();
+                    let query_token = *win_u16.last().ok_or("empty train prefix")?;
+                    let target_token = u16::try_from(tgt_slice[i]).map_err(|_| "target > u16")?;
+                    let row_seed = (global_idx as u64).wrapping_add(1);
+                    let (_, rec_code) = uor_r4_discrete::trunk::compute_recurrence_state(
+                        &win_u16,
+                        roots_ref,
+                        step_ref,
+                        norm_ref,
+                        uor_r4_discrete::trunk::RecurrenceMode::ActiveHolonomyV1,
+                        uor_r4_discrete::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
+                        row_seed,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    let (_, rec_shuf_code) = uor_r4_discrete::trunk::compute_recurrence_state(
+                        &win_u16,
+                        roots_ref,
+                        step_ref,
+                        norm_ref,
+                        uor_r4_discrete::trunk::RecurrenceMode::ShuffledOrderControlV1,
+                        uor_r4_discrete::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
+                        row_seed,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    let (_, rec_unit_code) = uor_r4_discrete::trunk::compute_recurrence_state(
+                        &win_u16,
+                        roots_ref,
+                        step_ref,
+                        norm_ref,
+                        uor_r4_discrete::trunk::RecurrenceMode::ActiveHolonomyV1,
+                        uor_r4_discrete::normalization_mechanism::NormalizationMode::UnitSnapControlV1,
+                        row_seed,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    out.push(uor_r4_discrete::trunk::TrunkTrainRow {
+                        read_code: rc_slice[i],
+                        rec_code,
+                        rec_shuf_code,
+                        rec_unit_code,
+                        query_token,
+                        target_token,
+                    });
+                }
+                Ok(out)
+            }));
+        }
+        for h in handles {
+            let chunk_rows = h
+                .join()
+                .map_err(|_| "recurrence worker thread panicked".to_string())??;
+            train_rows.extend(chunk_rows);
+        }
+        Ok(())
+    })?;
+
+    let trunk_tables =
+        uor_r4_discrete::trunk::TrunkTables::build(&train_rows).map_err(|e| e.to_string())?;
+    let token_cells: Vec<u16> = base_tables.cells.iter().map(|&c| c as u16).collect();
+    let (manifest, bytes) = uor_r4_discrete::trunk::export_and_verify_trunk_artifact(
+        &snapshot,
+        &token_cells,
+        &step_table,
+        &norm_frames,
+        &trunk_tables,
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Verify clean-room IntegerDiscreteModel and ArtifactTables + score_fn agreement on dev sample
+    let (trunk_artifact_tables, trunk_model) = artifact::ArtifactTables::from_bytes(&bytes)?;
+    let sample_n = dev_rows_vec.len().min(64);
+    let sample_views: Vec<&[u32]> = dev_rows_vec[..sample_n]
+        .iter()
+        .map(|r| r.prefix.as_slice())
+        .collect();
+    let sample_targets: Vec<u32> = dev_rows_vec[..sample_n]
+        .iter()
+        .map(|r| r.target_token)
+        .collect();
+    let sample_packed = kernel::pack_rows_with_targets(&sample_views, &sample_targets)?;
+    let sample_scores = score_fn(&trunk_artifact_tables, &sample_packed)?;
+    let sample_ref = reference_check(&trunk_model, &dev_rows_vec[..sample_n], &sample_scores);
+    let sample_mismatches = sample_ref["checked"]
+        .as_u64()
+        .unwrap_or(0)
+        .saturating_sub(sample_ref["agreed"].as_u64().unwrap_or(0));
+    if sample_mismatches != 0 {
+        return Err(format!(
+            "trunk D11 sample reference mismatch after export: {}",
+            sample_ref["first_mismatch"]
+        ));
+    }
+
+    let shape_json = serde_json::to_value(trunk_model.shape()).map_err(|e| e.to_string())?;
+    let report = json!({
+        "schema": "uor-r4.d11-scorer-trunk-export/1",
+        "file_sha256": manifest.d11_binary_sha256,
+        "artifact_sha256": trunk_model.artifact_sha256(),
+        "bytes": manifest.d11_binary_bytes,
+        "base_artifact_sha256": base_exported.report["file_sha256"],
+        "checkpoint_model_sha256": base_exported.report["checkpoint_model_sha256"],
+        "accepted_updates": base_exported.report["accepted_updates"],
+        "seed": snapshot.seed,
+        "read_mode": format!("{:?}", trunk_model.read_mode()),
+        "shape": shape_json,
+        "gate_r_dev": {
+            "rows": dev_rows_vec.len(),
+            "top1": dev_summary["top1"],
+            "top8": dev_summary["top8"],
+            "admitted": dev_summary["admitted"],
+            "distinct_read_codes": dev_read_codes.len(),
+            "reference_mismatches": dev_ref_mismatches,
+        },
+        "train_rows_captured": train_rows.len(),
+        "distinct_train_read_codes": manifest.distinct_train_read_codes,
+        "distinct_train_recurrence_codes": manifest.distinct_train_recurrence_codes,
+        "distinct_train_read_rec_pairs": manifest.distinct_train_read_rec_pairs,
+        "distinct_train_query_tokens": manifest.distinct_train_query_tokens,
+        "round_trip_verified": manifest.round_trip_verified,
+        "trunk_dev_sample_checked": sample_n,
+        "trunk_dev_sample_reference_mismatches": sample_mismatches,
+    });
+    Ok(Exported { bytes, report })
 }

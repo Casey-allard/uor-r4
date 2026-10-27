@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 13 |
+| ready | 12 |
 | held | 11 |
 | decision | 1 |
-| done | 70 |
+| done | 71 |
 | total | 95 |
 
 ## Start here
@@ -41,7 +41,6 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
@@ -52,6 +51,7 @@ These items are ready and open to anyone.
 | [Replace the 5-value address key with a full-vector metric](items/m1-address-key-full-vector.md) | done | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#2834](https://github.com/UOR-Foundation/uor-r4/issues/2834) |
 | [Draft the BVG-K Stage T pre-registration sheet (C2 has passed)](items/m1-bvg-k-block-apply-c2.md) | done | a lab | no | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-w2-code-utilization](items/m1-w2-code-utilization.md) | [#2835](https://github.com/UOR-Foundation/uor-r4/issues/2835) |
 | [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | done | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md), [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-w2-code-utilization](items/m1-w2-code-utilization.md), [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
+| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | done | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
 | [Build the D11 exporter CLI, GPU panel scorer and tok/s harness for step 6](items/m1-d11-artifact-scorer.md) | done | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#3248](https://github.com/UOR-Foundation/uor-r4/issues/3248) |
 | [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | done | anyone | no | none | [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838) |
 | [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | done | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-d11-artifact-scorer](items/m1-d11-artifact-scorer.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |

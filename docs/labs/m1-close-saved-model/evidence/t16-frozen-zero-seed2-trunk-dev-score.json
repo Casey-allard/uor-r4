@@ -1,0 +1,54 @@
+{
+  "address_hinge_sum": 157244,
+  "admitted": 9010,
+  "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+  "cell_rank_hinge_sum": 467982,
+  "device": {
+    "compute_capability": [
+      12,
+      0
+    ],
+    "cubin_sha256": "c513559a64fc7fcd83e6ee90e893bc91b2f6452d29cf4605cd8b7e3585235cd1",
+    "image_target": "sm_120",
+    "ordinal": 0,
+    "ptx_sha256": "5eca26218bde5a74aee90b30d5c5270bbe0146a3ad2a87cf22c8bf770b30dce7",
+    "resources": "ptxas info    : 0 bytes gmem\nptxas info    : Compiling entry function 'd11_score_rows' for 'sm_120'\nptxas info    : Function properties for d11_score_rows\n    704 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads\nptxas info    : Used 164 registers, used 0 barriers, 704 bytes cumulative stack size\nptxas info    : Compile time = 1026.402 ms\n"
+  },
+  "loss_ta_numerator_sum": 9755552,
+  "loss_tr_numerator_sum": 19699168,
+  "planted_fault_b4": {
+    "b4_pass": true,
+    "container_cells_tamper_rejected": true,
+    "container_routes_lsb_hash_changed": true,
+    "container_routes_oob_rejected": true,
+    "in_memory_cells_fault": {
+      "mismatched_rows": 1262,
+      "mutated_token": 1155,
+      "total_rows": 14287
+    },
+    "in_memory_route_or_gate_fault": {
+      "mismatched_rows": 682,
+      "read_mode_code": 2,
+      "total_rows": 14287
+    }
+  },
+  "psucc_admitted": 3080,
+  "psucc_rows": 5182,
+  "psucc_top1": 2360,
+  "psucc_top8": 2512,
+  "reference": {
+    "agreed": 14287,
+    "checked": 14287,
+    "first_mismatch": null
+  },
+  "refused": 0,
+  "row_records_sha256": "c7006eab7c4f34811e77c7fcd446899496c2e19463df15dae9715e942938e795",
+  "rows": 14287,
+  "rows_sha256": "d933c533b8b95b4ed6cb54cf96fe83c25a221e3e3226f9a212f52c7bfc1a7074",
+  "schema": "uor-r4.d11-scorer-score/1",
+  "score_elapsed_us": 78896,
+  "scores_sha256": "5768efb95318580108d881e853332b82830b2fc912bcfa71b3fe47f2f0d3b914",
+  "token_hinge_sum": 590468,
+  "top1": 7001,
+  "top8": 7478
+}

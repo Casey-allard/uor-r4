@@ -572,7 +572,9 @@ impl SparseCountTable {
             let tok = tok_u32 as u16;
             let entry = counts.entry(key).or_default();
             if entry.insert(tok, cnt).is_some() {
-                return Err(invalid("duplicate (key, token) in SparseCountTable triples"));
+                return Err(invalid(
+                    "duplicate (key, token) in SparseCountTable triples",
+                ));
             }
             total = total.saturating_add(u64::from(cnt));
         }
@@ -1119,7 +1121,14 @@ pub fn evaluate_joint_pointer_full_writer(
     }
     let (top8, admitted_cells) =
         writer_score_full_outer_l1(&q_trunk, codebook_coords, cell_tokens, KEPT_CELLS_DEFAULT)?;
-    Ok((chosen_tok, pointer_succ, q_trunk, frames, top8, admitted_cells))
+    Ok((
+        chosen_tok,
+        pointer_succ,
+        q_trunk,
+        frames,
+        top8,
+        admitted_cells,
+    ))
 }
 
 /// Evaluate one row through the joint-first `Level 3` hierarchy + `DiscreteHamiltonGateV1`
@@ -1978,7 +1987,9 @@ pub fn import_trunk_d11(
 
     let unigram_words = read_u32_section("discrete.trunk.unigram")?;
     if unigram_words.len() != 1 + VOCABULARY || unigram_words[0] >= VOCABULARY as u32 {
-        return Err(invalid("discrete.trunk.unigram length or best_global invalid"));
+        return Err(invalid(
+            "discrete.trunk.unigram length or best_global invalid",
+        ));
     }
     let unigram_best_global = unigram_words[0] as u16;
     let unigram_counts = unigram_words[1..].to_vec();
@@ -2018,12 +2029,15 @@ pub fn export_and_verify_trunk_artifact(
 ) -> Result<(TrunkArtifactManifestV1, Vec<u8>)> {
     let mut base_snap = snapshot.clone();
     base_snap.position = None;
-    let bytes = export_d11(&base_snap)?;
-    let decoded = import_d11(&bytes)?;
+    let bytes = export_trunk_d11(&base_snap, step_table, norm_frames, tables)?;
+    let (decoded, decoded_steps, decoded_norms, decoded_tables) = import_trunk_d11(&bytes)?;
     let round_trip_verified = decoded.table == base_snap.table
         && decoded.routes == base_snap.routes
         && decoded.gates == base_snap.gates
         && decoded.epoch == base_snap.epoch
+        && decoded_steps == *step_table
+        && decoded_norms == *norm_frames
+        && decoded_tables == *tables
         && token_cells.len() == VOCABULARY;
     if !round_trip_verified {
         return Err(invalid(
@@ -3351,6 +3365,23 @@ mod tests {
         assert_eq!(restored_steps, step_table);
         assert_eq!(restored_norms, norm_frames);
         assert_eq!(restored_tables, tables);
+
+        let token_cells = vec![0u16; VOCABULARY];
+        let (manifest, verified_bytes) = export_and_verify_trunk_artifact(
+            &snapshot,
+            &token_cells,
+            &step_table,
+            &norm_frames,
+            &tables,
+        )
+        .unwrap();
+        assert!(manifest.round_trip_verified);
+        assert_eq!(verified_bytes, bytes);
+        let (_, manifest_steps, manifest_norms, manifest_tables) =
+            import_trunk_d11(&verified_bytes).unwrap();
+        assert_eq!(manifest_steps, step_table);
+        assert_eq!(manifest_norms, norm_frames);
+        assert_eq!(manifest_tables, tables);
 
         let q_read = root_vector(unpack_code(100));
         let window = [40u16, 9, 3333, 55, 9];

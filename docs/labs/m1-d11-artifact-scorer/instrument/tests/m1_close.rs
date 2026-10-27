@@ -7,9 +7,10 @@ use m1_d11_artifact_scorer_instrument::fresh_transfer::{
 };
 use m1_d11_artifact_scorer_instrument::m1_close::{
     build_fresh_transfer_gate_receipt, canonical_m1_saved_model_audit,
-    canonical_stage_t_fz_candidate, canonical_stage_t_rel_candidate, evaluate_m1_closing_bars,
-    M1CloseCandidateInput, DEV_PSUCC_ROWS, DEV_PSUCC_ROWS_C192, DEV_PSUCC_T2_TOP1,
-    DEV_PSUCC_UNIGRAM_TOP1_C192, M1_CLOSE_SCHEMA,
+    canonical_stage_t_fz_candidate, canonical_stage_t_rel_candidate,
+    canonical_trunk_joint_pointer_fz_candidate, evaluate_m1_closing_bars, M1CloseCandidateInput,
+    DEV_PSUCC_ROWS, DEV_PSUCC_ROWS_C192, DEV_PSUCC_T2_TOP1, DEV_PSUCC_UNIGRAM_TOP1_C192,
+    M1_CLOSE_SCHEMA,
 };
 use uor_r4_discrete::corpus::{CorpusSource, FilePin, Split};
 
@@ -94,15 +95,13 @@ fn synthetic_passing_candidate() -> M1CloseCandidateInput {
 
 #[test]
 fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_intact() {
-    let (audit, fz_gate_receipt) = canonical_m1_saved_model_audit().unwrap();
+    let (audit, trunk_gate_receipt) = canonical_m1_saved_model_audit().unwrap();
     assert_eq!(audit["schema"], M1_CLOSE_SCHEMA);
-    assert_eq!(audit["m1_close_pass"], false);
-    assert_eq!(
-        audit["m1_milestone_status"],
-        "OPEN_HELD_AT_STEP_8_PIVOT_REQUIRED"
-    );
+    assert_eq!(audit["m1_close_pass"], true);
+    assert_eq!(audit["m1_milestone_status"], "CLOSED_PASS");
     assert_eq!(audit["not_run_is_not_pass"], true);
     assert_eq!(audit["fresh_v2_seal_intact"], true);
+    assert_eq!(audit["fresh_v2_authorized_by_trunk_bars_a_to_d"], true);
     assert_eq!(audit["registered_bars"]["dev_psucc_t2_top1"], 1_245);
     assert_eq!(audit["registered_bars"]["dev_psucc_rows_c192"], 3_847);
     assert_eq!(audit["registered_bars"]["dev_psucc_unigram_top1_c192"], 194);
@@ -111,12 +110,43 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
         .unwrap();
     assert_eq!(inv.len(), 9);
     assert_eq!(inv[8]["id"], "trunk-joint-pointer-v1-d11");
-    assert_eq!(inv[8]["bar_d_pass"], true);
     assert_eq!(inv[8]["bar_a_pass"], true);
+    assert_eq!(inv[8]["bar_b_pass"], true);
+    assert_eq!(inv[8]["bar_c_pass"], true);
+    assert_eq!(inv[8]["bar_d_pass"], true);
+    assert_eq!(inv[8]["bar_e_pass"], true);
+    assert_eq!(inv[8]["m1_close_pass"], true);
     assert_eq!(inv[8]["clean_room_19table_d11_accepted"], true);
     assert_eq!(DEV_PSUCC_T2_TOP1, 1_245);
     assert_eq!(DEV_PSUCC_ROWS_C192, 3_847);
     assert_eq!(DEV_PSUCC_UNIGRAM_TOP1_C192, 194);
+
+    let trunk = canonical_trunk_joint_pointer_fz_candidate();
+    let trunk_v = evaluate_m1_closing_bars(&trunk).unwrap();
+    assert!(trunk_v.bar_a_d11_self_contained);
+    assert!(trunk_v.bar_b_export_gap_and_b4);
+    assert!(trunk_v.bar_c_tokens_per_s_reported);
+    assert!(trunk_v.bar_d_dev_beats_unigram_and_t2_two_seeds);
+    assert!(trunk_v.bars_a_to_d_pass);
+    assert!(trunk_v.bar_e_fresh_transfer_two_seeds);
+    assert!(trunk_v.m1_close_pass);
+    assert_eq!(trunk_v.outcome, "PASS_M1_ALL_FIVE_BARS");
+    assert_eq!(
+        trunk_gate_receipt["dev_decision"],
+        "PASS_BARS_A_TO_D_TWO_SEEDS"
+    );
+    validate_fresh_transfer_gate(
+        &trunk_gate_receipt,
+        &trunk.seed_1.artifact_sha256,
+        &fresh_v2_source(),
+    )
+    .unwrap();
+    validate_fresh_transfer_gate(
+        &trunk_gate_receipt,
+        &trunk.seed_2.artifact_sha256,
+        &fresh_v2_source(),
+    )
+    .unwrap();
 
     let fz = canonical_stage_t_fz_candidate();
     let fz_v = evaluate_m1_closing_bars(&fz).unwrap();
@@ -144,8 +174,9 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
     assert!(!rel_v.bar_e_fresh_transfer_two_seeds);
     assert!(!rel_v.m1_close_pass);
 
-    // Prospective fresh-seal check: the Stage T receipt has dev_decision = FAIL_BAR_D_HOLD_FRESH_SEAL,
+    // Prospective fresh-seal check: the 4-table Stage T receipt has dev_decision = FAIL_BAR_D_HOLD_FRESH_SEAL,
     // which validate_fresh_transfer_gate refuses before touching disk.
+    let fz_gate_receipt = build_fresh_transfer_gate_receipt(&fz, &fz_v);
     assert_eq!(
         fz_gate_receipt["dev_decision"],
         "FAIL_BAR_D_HOLD_FRESH_SEAL"

@@ -1,0 +1,20 @@
+# Decision Card: Close `m1-close-saved-model` (`#2837`, `status: done`)
+
+- **Lab:** `antigravity`
+- **Unit:** `antigravity-110` (PR `#3312`)
+- **Item:** `m1-close-saved-model` (`#2837`, Milestone M1 `#2029`)
+- **Authority:** `CHARTER.md` §5.1 (`D68`), `PLAN.md` Step 8
+
+## 1. Whole-project context read first
+
+- Read `CHARTER.md` (§2 M1, §3, §4, §5), `PLAN.md`, `docs/roadmap/items/m1-close-saved-model.md`, `docs/roadmap/items/m1-fresh-panel-transfer.md`, `docs/harness/prep/m1-close-saved-model-2026-10-26.md`, `docs/harness/prep/m1-fresh-panel-transfer-2026-10-26.md`, `docs/labs/m1-close-saved-model/README.md`, and `docs/research/notebook/m1-discrete-attention.md`.
+
+## 2. Decision
+
+Transition `docs/roadmap/items/m1-close-saved-model.md` from `status: ready` to `status: done` and re-render `docs/roadmap/README.md` (`Closes #2837`), because all five M1 closing bars (a)–(e) (`CHARTER.md` §2 M1, `PLAN.md` Step 8, `docs/roadmap/items/m1-close-saved-model.md`) are met simultaneously across two seeds (`seed = 1` and `seed = 2`) and two independent ahead-of-time CUDA builds (`Build A` `ce5843b00dee006cf89a1028f80b5125221393dbfb549b09c2273f3e6d3660f4` and `Build B` `0357abf8ca70cd463b7976eebef5ddea2dbfb7d9128ef1246246f665e25fed17`, `ptx_sha256` `5eca26218bde5a74aee90b30d5c5270bbe0146a3ad2a87cf22c8bf770b30dce7`, `cubin_sha256` `c513559a64fc7fcd83e6ee90e893bc91b2f6452d29cf4605cd8b7e3585235cd1`) on `1x RTX 5090` (`vast-57903382`, archive `caseyallard/uor-r4-store:results/antigravity/m1-close-saved-model-2026-10-26/outputs`, `m1-close-saved-model-20261026.tar` SHA-256 `a758ca0962d68c43d2796fcf7e43e3af57dccf0d82849f3b11a9f4e2294d1506`):
+
+1. **Bar (a) (`bar_a_d11_self_contained = true`):** Seed 1 (`04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d`, `86,536,132` B) and Seed 2 (`1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de`, `84,943,328` B) export to self-contained 19-table `UORLUT01` (`uor-r4.lut-discrete-trunk/1`) containers accepted by clean-room `crates/uor-r4-integer::IntegerDiscreteModel::from_bytes` (`#![forbid(unsafe_code)]`), with zero external side-tables.
+2. **Bar (b) (`bar_b_export_gap_and_b4 = true`):** `Gate R` reproduces `#2839` / `#2844` on `ft/dev` (`5,009 >= 4,894` base admission, `G-Adm` PASS; `256 / 256` occupied cells, `G-Occ` PASS; `9,012` / `9,010` post-rotation admission) and `mw-balp/train` (`1,049,856` rows); GPU `d11-scorer score --reference` agrees on `14,287 / 14,287` rows (`0` export gap) and passes `planted_fault_control` (`B4`).
+3. **Bar (c) (`bar_c_tokens_per_s_reported = true`):** Laptop `d11-scorer toks` (`11,026` / `10,573 tok/s` decode median, `2,596,805` / `2,764,260 tok/s` prefill median), pod CPU `toks` (`11,017` / `10,591 tok/s` decode median), and GPU `d11-scorer score` (`183,206` / `181,086` response `tok/s`, `34,625,934` / `34,225,309` context `tok/s`).
+4. **Bar (d) (`bar_d_dev_beats_unigram_and_t2_two_seeds = true`):** On `ft/dev` (`14,287` rows, `Unigram = 1,226`, `T2 = 6,300`, required target `>= 6,324`), Seed 1 scores **`7,002 / 14,287`** (`+702` over `T2`) and Seed 2 scores **`7,001 / 14,287`** (`+701` over `T2`); on `ft/dev` `P_succ` (`3,847` rows, `Unigram = 194`, `T2_psucc = 1,245`, required target `>= 1,265`), Seed 1 scores **`1,779 / 3,847`** (`+534` over `T2_psucc`) and Seed 2 scores **`1,770 / 3,847`** (`+525` over `T2_psucc`).
+5. **Bar (e) (`bar_e_fresh_transfer_two_seeds = true`, `#2841`):** On sealed `Fresh V2` (`0b7e754c…` / `a1cda529…`, `14,479` rows, `3,594` `P_succ` rows; `Unigram = 1,279`, `T2 = 6,582`, `T2_psucc = 1,240`), Seed 1 scores **`7,215 / 14,479`** (`+5,936` over Unigram vs required McNemar floor `156`; `+633` over `T2` vs required floor `82`) and **`1,713 / 3,594`** on `P_succ` (`+473` over `T2_psucc` vs required floor `52`); Seed 2 scores **`7,228 / 14,479`** (`+5,949` over Unigram vs floor `156`; `+646` over `T2` vs floor `82`) and **`1,711 / 3,594`** on `P_succ` (`+471` over `T2_psucc` vs floor `52`), with `0` reference mismatches and `B4` pass.
