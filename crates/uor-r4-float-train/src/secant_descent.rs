@@ -244,6 +244,34 @@ pub(crate) fn on_rate_select_fwd_values(pairs: &[f32]) {
     });
 }
 
+/// Run `f` with every rate selection's table index recorded, in call order (`in_space_long`).
+pub(crate) fn with_rate_indices<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, Vec<u8>)> {
+    /// Turns the capture off on every way out of [`with_rate_indices`], a panic included.
+    struct CaptureOff;
+    impl Drop for CaptureOff {
+        fn drop(&mut self) {
+            HOOK_STATE.with(|cell| cell.borrow_mut().capture_rate_fwd = false);
+        }
+    }
+    HOOK_STATE.with(|cell| {
+        let mut st = cell.borrow_mut();
+        if st.capture_rate_fwd {
+            return Err(invalid(
+                "rate-index capture is already on; nested captures are refused",
+            ));
+        }
+        st.capture_rate_fwd = true;
+        st.captured_rate_indices.clear();
+        Ok(())
+    })?;
+    let off = CaptureOff;
+    let out = f();
+    drop(off);
+    let captured =
+        HOOK_STATE.with(|cell| std::mem::take(&mut cell.borrow_mut().captured_rate_indices));
+    Ok((out?, captured))
+}
+
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
 pub(crate) fn is_capturing_rate_fwd() -> bool {
     HOOK_STATE.with(|cell| cell.borrow().capture_rate_fwd)

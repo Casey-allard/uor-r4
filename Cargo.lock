@@ -2372,6 +2372,7 @@ dependencies = [
  "sha2",
  "uor-r4-core",
  "uor-r4-integer",
+ "uor-r4-tokenizer",
 ]
 
 [[package]]
