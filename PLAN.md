@@ -35,6 +35,7 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
 
 | Direction | Status | Date | Note |
 |---|---|---|---|
+| "we may have to pause for a moment and try to refocus on exactly what mechanisms we need to make this work, what we have, what order they need to be in, what geometry/mathematical domain they have to be in for downstream so that the mechanisms works cleanly from first trained "token" (or whatever we end up using) to last emitted work in the answer to a user's question" | open | 2026-10-27 | Claude's chat. The full text, with the goal (GPT-4-class, trained below datacenter scale, served on an M1-class laptop), is in item `pipeline-map`, which carries the map (claude-147). |
 | "please reign in the project sprawl and get us back to a workable central source of truth we can run off of" | done | 2026-10-24 | Claude's chat, by 2026-10-25T00:03:59Z. This file is the one plan, and the held work is released (D77, claude-82). `loop next` ranking by unblock count follows as its own unit. |
 | "please dont let us get locked down in CI hell, if something doesn't matter to the project it can be removed or skipped" | done | 2026-10-24 | Owner chose "Yes, change them (Recommended)". Six bookkeeping rules are advisory and banned presence scans added files (D76, #3170). The docs-workflow steps follow in a separate PR. |
 | #2828: "Close it on its result (Recommended)" | done | 2026-10-24 | D78. Effort moves to the discrete block apply on the M1 path. |
