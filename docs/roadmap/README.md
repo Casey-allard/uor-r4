@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 11 |
+| ready | 12 |
 | held | 10 |
 | decision | 1 |
 | done | 73 |
-| total | 95 |
+| total | 96 |
 
 ## Start here
 
@@ -134,6 +134,7 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
+| [Train the FBS trunk in its own space until its replies read their prompts](items/in-space-trunk-to-text.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
@@ -200,6 +201,7 @@ flowchart LR
   n_e8_orbit_memory_sigmoid_free_iteration["e8-orbit-memory-sigmoid-free-iteration"]
   n_float_training_module["float-training-module"]
   n_hamilton_gate_offline_float_sheet["hamilton-gate-offline-float-sheet"]
+  n_in_space_trunk_to_text["in-space-trunk-to-text"]
   n_infra_desktop_client_tauri["infra-desktop-client-tauri"]
   n_infra_loop_harness["infra-loop-harness"]
   n_infra_loop_pr02_item_keys["infra-loop-pr02-item-keys"]
@@ -271,6 +273,7 @@ flowchart LR
   n_float_training_module --> n_d11_exporter_float_trunk
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
+  n_float_training_module --> n_in_space_trunk_to_text
   n_float_training_module --> n_r_secant_surrogate_descent
   n_float_training_module --> n_recurrence_gates_six_recurrence_fit
   n_float_training_module --> n_spiralcore_fbs_offline_float_sheet
@@ -367,4 +370,5 @@ flowchart LR
   n_r_secant_surrogate_descent --> n_hamilton_gate_offline_float_sheet
   n_r_secant_surrogate_descent --> n_recurrence_gates_six_recurrence_fit
   n_r_secant_surrogate_descent --> n_spiralcore_fbs_offline_float_sheet
+  n_spiralcore_fbs_offline_float_sheet --> n_in_space_trunk_to_text
 ```
