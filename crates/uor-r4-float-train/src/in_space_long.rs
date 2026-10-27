@@ -97,6 +97,9 @@ pub struct Checkpoint {
     pub dev_admitted_hits: usize,
     /// DEV decoded as the whole table's nearest token to the predicted point.
     pub dev_nearest: NearestReading,
+    /// DEV decoded by the writer, the served decoder, on the same points and rows as
+    /// `dev_nearest`; its `hits` must equal `dev_top1_hits`.
+    pub dev_writer: WriterReading,
     pub dev_scored_rows: usize,
     pub dev_loss: f64,
     /// DEV's token hinge: the target's displacement score against the best admitted rivals.
@@ -359,6 +362,17 @@ pub struct NearestReading {
     pub query_spread: f64,
 }
 
+/// The writer's decoding of the same DEV rows as [`NearestReading`]: the token the served
+/// decoder (`native_vector_writer`, the one `fbs-toks` decodes with) picks for each scored row.
+/// Its `hits` must equal the writer panel's own top-1 (`dev_top1_hits`) on the same checkpoint.
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+pub struct WriterReading {
+    pub hits: usize,
+    pub opening_hits: usize,
+    /// How many distinct tokens the openings are decoded as.
+    pub opening_distinct_picks: usize,
+}
+
 /// Each column's standard deviation across `rows`' rows, averaged over columns.
 fn spread(rows: &Tensor) -> Result<f64> {
     let centred = rows.broadcast_sub(&rows.mean_keepdim(0)?)?;
@@ -372,19 +386,23 @@ fn spread(rows: &Tensor) -> Result<f64> {
     ))
 }
 
-/// [`NearestReading`] over the DEV windows; `mask` is DEV's response mask, by corpus position.
+/// [`NearestReading`] over the DEV windows, and the writer's [`WriterReading`] of the same rows
+/// from the same points; `mask` is DEV's response mask, by corpus position.
 fn nearest_reading(
     model: &StackModel,
     dev: &[CausalWindow],
     mask: &[u8],
     seed: u64,
     step: usize,
-) -> Result<NearestReading> {
+) -> Result<(NearestReading, WriterReading)> {
     let table = table(model)?;
+    let writer = model.native_vector_writer()?;
     hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, || {
         let mut reading = NearestReading::default();
+        let mut written = WriterReading::default();
         let mut openings = std::collections::BTreeMap::<u32, usize>::new();
         let mut picks = std::collections::BTreeSet::<u32>::new();
+        let mut written_picks = std::collections::BTreeSet::<u32>::new();
         let (mut all_queries, mut opening_queries) = (Vec::new(), Vec::new());
         for chunk in dev.chunks(hs::SHEET_EVAL_BATCH) {
             let windows: Vec<&CausalWindow> = chunk.iter().collect();
@@ -403,13 +421,23 @@ fn nearest_reading(
             let best = nearest_scores(&query, &table)?
                 .argmax(1)?
                 .to_vec1::<u32>()?;
-            for ((pick, target), open) in best.iter().zip(&targets).zip(&opens) {
+            // The served decoder on the same points: the writer's pick among its kept cells.
+            let served = writer
+                .write(&query)?
+                .flatten_all()?
+                .to_dtype(DType::U32)?
+                .to_vec1::<u32>()?;
+            let rows = best.iter().zip(&served).zip(&targets).zip(&opens);
+            for (((pick, served), target), open) in rows {
                 reading.hits += usize::from(pick == target);
+                written.hits += usize::from(served == target);
                 if *open {
                     reading.opening_rows += 1;
                     reading.opening_hits += usize::from(pick == target);
+                    written.opening_hits += usize::from(served == target);
                     *openings.entry(*target).or_default() += 1;
                     picks.insert(*pick);
+                    written_picks.insert(*served);
                 }
             }
             let at: Vec<u32> = (0..opens.len() as u32)
@@ -423,13 +451,14 @@ fn nearest_reading(
         }
         reading.commonest_opening_rows = openings.values().copied().max().unwrap_or(0);
         reading.opening_distinct_picks = picks.len();
+        written.opening_distinct_picks = written_picks.len();
         if !opening_queries.is_empty() {
             reading.opening_query_spread = spread(&Tensor::cat(&opening_queries, 0)?)?;
         }
         if !all_queries.is_empty() {
             reading.query_spread = spread(&Tensor::cat(&all_queries, 0)?)?;
         }
-        Ok(reading)
+        Ok((reading, written))
     })
 }
 
@@ -1017,7 +1046,7 @@ pub fn inspect_run(
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
             Ok(hidden.index_select(&idx, 0)?)
         })?;
-        let nearest = nearest_reading(&model, &dev_windows, &dev_mask, seed, step)?;
+        let (nearest, _) = nearest_reading(&model, &dev_windows, &dev_mask, seed, step)?;
         let first_cells = model
             .native_head_candidates(&query)?
             .cell_ids()
@@ -1630,7 +1659,8 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             false,
         )?;
         let dev_loss = panel_loss(model, &dev_windows, config.seed, step, false)?;
-        let nearest = nearest_reading(model, &dev_windows, &dev_mask, config.seed, step)?;
+        let (nearest, written) =
+            nearest_reading(model, &dev_windows, &dev_mask, config.seed, step)?;
         let point = Checkpoint {
             step,
             epoch: (step * config.batch) as f64 / usable.len() as f64,
@@ -1639,6 +1669,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             dev_top8_hits: dev.top8_hits,
             dev_admitted_hits: dev.admitted_target_hits,
             dev_nearest: nearest,
+            dev_writer: written,
             dev_scored_rows: dev.scored_rows,
             dev_loss,
             dev_token_margin: dev.token_margin,
