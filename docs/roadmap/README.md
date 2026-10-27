@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 12 |
-| held | 12 |
+| ready | 13 |
+| held | 11 |
 | decision | 1 |
 | done | 70 |
 | total | 95 |
@@ -42,7 +42,7 @@ These items are ready and open to anyone.
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
 | [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
-| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | held | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
+| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | done | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
@@ -160,7 +160,7 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
+| [Build the loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
 | [Create the separate scanned D37 float training module](items/float-training-module.md) | done | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
 | [Bench inbox rule: each lab reads the bench messages addressed to it](items/infra-bench-inbox-rule.md) | done | a lab | no | none | [#2955](https://github.com/UOR-Foundation/uor-r4/issues/2955) |
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | done | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |

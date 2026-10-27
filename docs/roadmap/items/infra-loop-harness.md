@@ -1,6 +1,6 @@
 ---
 id: infra-loop-harness
-title: Build the five-lab loop harness (the loop subcommands of uor-harness)
+title: Build the loop harness (the loop subcommands of uor-harness)
 milestone: infra
 area: tooling
 status: ready
@@ -12,17 +12,39 @@ scope: [PLAN.md, docs/roadmap/items/*.md, crates/uor-r4-harness/src/loopreview.r
 
 ## Why it matters
 
-Five labs from five vendors work on UOR-R4 at once, with nobody watching each step. Records that drifted out of date have cost the project more than any other failure. The loop gives every unit of work a written order with a clear scope, proves "done" with gates anyone can rerun, needs a review from another vendor at the exact head (during the setup, from Claude's fresh-context reviewers; D59), and renders the shared status pages from committed inputs so nobody edits them by hand. See [the loop page](../../loop/README.md). It is adapted from the Loop Kit by Ron Brazil.
+Four labs from four vendors work on UOR-R4 at once, with nobody watching each step. There were five until Codex left on 26 Oct 2026; see `docs/harness/labs.json`. Records that drifted out of date have cost the project more than any other failure.
+
+The loop gives every unit of work:
+- a written order with a clear scope;
+- gates anyone can rerun to prove "done";
+- an exact-head review. Since D66 (24 Oct 2026) that is the lab's own fresh-context review; before that it was another vendor's, and Claude's fresh-context reviewers during the setup (D59).
+
+It also renders the shared status pages from committed inputs, so nobody edits them by hand. See [the loop page](../../loop/README.md). It is adapted from the Loop Kit by Ron Brazil.
 
 ## What is missing
 
-None of the loop tooling exists. No `loop …` subcommand of `uor-harness` is built: not `next`, `arrive`, `claim`, `gates`, `render`, `review`, `queue`, `close`, `drive`, `guard`, `install` or `onboard`. There is no `docs/harness/labs.json`, no `gates.json`, no rendered STATE or HANDOFF, and no policy job in CI. Roadmap items carry no `scope:` or "Cancel if" yet. Today labs follow the loop by hand: an ORDER and REPORT in `docs/loop/tasks/`, and an exact-head review posted in free text, which for the setup PRs comes from Claude's fresh-context reviewers (D59). The policy gate will stay advisory on GitHub, because there is no org admin to add a GitHub App or change the ruleset, so the supervisor's local queue step is the lock.
+**For the build: nothing,** as of the claude-139 audit (27 Oct 2026).
+- Every `loop …` subcommand on the build plan is on `main`: `next`, `arrive`, `claim`, `gates`, `render`, `review`, `queue`, `close`, `drive`, `guard`, `install` and `onboard`.
+- So are `docs/harness/labs.json`, `gates.json`, the rendered STATE and HANDOFF, and the policy job.
+- Items carry `scope:` and "Cancel if".
+- Each build-plan PR's planted fault is held by a test that passes on `main`. Row 5's "one fixture per rule" is shown by test names.
+- The four labs each have a committed onboarding receipt and a merged, verified loop unit.
+
+See `docs/loop/tasks/infra-loop-harness/claude-139/REPORT.md`.
+
+The policy gate stays advisory on GitHub, because there is no org admin to add a GitHub App or change the ruleset. So the supervisor's local queue step is the lock.
+
+**This item is also the maintenance umbrella.** Its `scope:` holds `PLAN.md`, `docs/roadmap/items/*.md`, the mechanism pages and other shared records. Labs claim it for item-file maintenance (scope fixes, new items) and for the records around the loop, as in claude-106, -108, -121, -137 and -138 and antigravity-80 and -109. No other item covers those paths.
 
 ## Done when
 
 Every PR in the build plan on [the loop page](../../loop/README.md#build-plan) is merged, each with its planted fault turning its gate red. The four labs (Kimi, Claude, DeepSeek, Antigravity) are onboarded, each with a committed onboarding receipt. Each lab has completed one loop task end to end: claim, probe, work, gates, report, review by another vendor, queue, and verify on fresh `main`.
 
 ## How to start
+
+**For a maintenance unit now:** claim this item with `uor-harness loop claim infra-loop-harness --lab-topic <topic>`, and narrow the ORDER's scope to the files the unit touches. Shared registration files never go in `scope:` (`loopclaim.rs`, `SHARED_FILES`), because every loop PR may edit them.
+
+**How the harness was built, kept as history.** Steps 1 and 2 describe the setup as it ran. D59 ended on 22 Oct and D66 replaced cross-vendor review on 24 Oct.
 
 1. Read [the loop page](../../loop/README.md) and CHARTER §5.10. PR A (the charter change, this item and the page) must be in every build PR's base; check by hand until PR 5, then by the gate.
 2. Team split: Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author, with one exception. Until the other labs run the loop, each setup PR gets its exact-head review from Claude's fresh-context reviewers, whichever lab built it, and no other lab, Kimi included, is asked (D59). While Claude runs alone, Claude also builds every setup PR, and each other client's adapter is added when that lab joins (D52, amended).
@@ -34,7 +56,7 @@ Every PR in the build plan on [the loop page](../../loop/README.md#build-plan) i
 ## Rules that apply
 
 - **Rust first** (CHARTER §3.11): the harness is Rust, and no new Python is added.
-- **Delivery path** (§5.5): PR, exact-head review (for the setup PRs, from Claude's fresh-context reviewers under D59), merge queue, verify on fresh `main`, then delete the branch and worktree.
+- **Delivery path** (§5.5): PR, the lab's own fresh-context exact-head review in the same session (D66), merge queue, verify on fresh `main`, then delete the branch and worktree. Other labs audit after the merge.
 - **Owner-only boundaries** (§5.1, §5.2): the charter, owner-only registries, caps and releases stay the owner's. An owner release is approved in the lab's own chat and recorded verbatim with the time.
 - **The kit's text stays private**: write in our own words; the copyright check runs locally only.
 
