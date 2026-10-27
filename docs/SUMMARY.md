@@ -23,6 +23,7 @@
 # The model
 
 - [The model, end to end](model/architecture.md)
+  - [The pipeline map](model/pipeline-map.md)
   - [How the model learns](model/training.md)
   - [Data and tokenizer](model/data-and-tokenizer.md)
   - [Serving and export](model/serving-and-export.md)

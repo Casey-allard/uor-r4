@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 13 |
+| ready | 12 |
 | held | 10 |
 | decision | 1 |
-| done | 73 |
+| done | 74 |
 | total | 97 |
 
 ## Start here
@@ -135,7 +135,6 @@ These items are ready and open to anyone.
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
 | [Train the FBS trunk in its own space until its replies read their prompts](items/in-space-trunk-to-text.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
-| [Map the model end to end: each stage's domain, size, hardware and cost](items/pipeline-map.md) | ready | a lab | no | none | not yet synced |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
@@ -147,6 +146,7 @@ These items are ready and open to anyone.
 | [Run a Hamilton gate offline-float sheet with language fit and export gap](items/hamilton-gate-offline-float-sheet.md) | done | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2824](https://github.com/UOR-Foundation/uor-r4/issues/2824) |
 | [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | done | anyone | no | none | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
 | [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | done | a lab | no | none | [#2876](https://github.com/UOR-Foundation/uor-r4/issues/2876) |
+| [Map the model end to end: each stage's domain, size, hardware and cost](items/pipeline-map.md) | done | a lab | no | none | not yet synced |
 | [Train the finite relational head](items/r-finite-relational-head.md) | done | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2877](https://github.com/UOR-Foundation/uor-r4/issues/2877) |
 | [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | done | anyone | no | none | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |
 | [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | done | a lab | yes | none | [#2881](https://github.com/UOR-Foundation/uor-r4/issues/2881) |

@@ -6,6 +6,8 @@ UOR-R4 turns text into a short list of whole numbers per word, looks back at a f
 
 *The current pipeline. Solid boxes exist in `crates/uor-r4-discrete`. Dashed boxes are slots a transformer fills that this model has not filled.*
 
+This page covers the discrete path only, and some of its stages are out of date. For example, an exporter now exists for both paths. [The pipeline map](pipeline-map.md) covers both model paths stage by stage as of 27 October: each stage's domain, size, hardware and measured cost, the scale arithmetic for the goal, the ranked gaps and the order of work.
+
 ## How to read the status labels
 
 - **Built** means the source exists and passes its finite construction controls. These are small, fixed GPU tests that show the code does what it says. A control is not a language result.
