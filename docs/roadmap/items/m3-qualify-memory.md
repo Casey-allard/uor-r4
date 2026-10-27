@@ -6,8 +6,9 @@ area: evaluation
 status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m2-train-grounded-replies, m3-memory-turn-discriminator-gate, m3-policy-precedence-and-sieve-tests]
-scope: [crates/uor-r4-integer/**, crates/uor-r4-training/**, docs/labs/m3-qualify-memory/**]
+depends_on: [m1-close-saved-model, object-store-consumer-m3, m3-memory-turn-discriminator-gate, m3-policy-precedence-and-sieve-tests]
+notebook: docs/research/notebook/m3-durable-memory.md
+scope: [crates/uor-r4-integer/**, crates/uor-r4-object-store/**, docs/mechanisms/exact-memory.md, docs/mechanisms/object-store.md, docs/harness/prep/m3-qualify-memory*, docs/labs/m3-qualify-memory/**, docs/loop/tasks/m3-qualify-memory/**, docs/research/notebook/m3-durable-memory.md]
 ---
 
 ## Why it matters

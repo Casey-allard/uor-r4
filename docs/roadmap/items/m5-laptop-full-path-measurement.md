@@ -7,7 +7,8 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: [m4-export-uorlut01-cli]
-scope: [crates/uor-r4-integer/**, docs/labs/m5-laptop-full-path-measurement/**, docs/compute/**]
+notebook: docs/research/notebook/m4-serving.md
+scope: [crates/uor-r4-integer/**, docs/harness/prep/m5-laptop-full-path-measurement*, docs/labs/m5-laptop-full-path-measurement/**, docs/loop/tasks/m5-laptop-full-path-measurement/**, docs/compute/**, docs/research/notebook/m4-serving.md]
 ---
 
 ## Why it matters

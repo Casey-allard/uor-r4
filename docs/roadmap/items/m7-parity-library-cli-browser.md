@@ -7,7 +7,8 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: [m7-studio-connect-wasm-engine, m4-export-uorlut01-cli]
-scope: [crates/uor-r4-integer/**, web/**, docs/products/**, docs/labs/m7-parity-library-cli-browser/**, docs/harness/panels/m7-parity.json, docs/roadmap/items/m7-parity-library-cli-browser.md]
+notebook: docs/research/notebook/m4-serving.md
+scope: [crates/uor-r4-integer/**, web/**, docs/products/**, docs/harness/prep/m7-parity-library-cli-browser*, docs/labs/m7-parity-library-cli-browser/**, docs/loop/tasks/m7-parity-library-cli-browser/**, docs/harness/panels/m7-parity.json, docs/roadmap/items/m7-parity-library-cli-browser.md, docs/research/notebook/m4-serving.md]
 ---
 
 ## Why it matters

@@ -84,7 +84,7 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m2-train-grounded-replies](items/m2-train-grounded-replies.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | [#2858](https://github.com/UOR-Foundation/uor-r4/issues/2858) |
+| [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m1-close-saved-model](items/m1-close-saved-model.md), [object-store-consumer-m3](items/object-store-consumer-m3.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | [#2858](https://github.com/UOR-Foundation/uor-r4/issues/2858) |
 | [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | ready | anyone | no | none | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
 | [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | done | anyone | no | none | [#2854](https://github.com/UOR-Foundation/uor-r4/issues/2854) |
 | [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | done | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | [#2855](https://github.com/UOR-Foundation/uor-r4/issues/2855) |
@@ -257,6 +257,7 @@ flowchart LR
   n_m7_studio_connect_wasm_engine["m7-studio-connect-wasm-engine"]
   n_m8_independent_verification["m8-independent-verification"]
   n_m8_release_packaging["m8-release-packaging"]
+  n_object_store_consumer_m3["object-store-consumer-m3"]
   n_owner_decision_float_path_scope["owner-decision-float-path-scope"]
   n_r_finite_relational_head["r-finite-relational-head"]
   n_r_quaternion_transport_order["r-quaternion-transport-order"]
@@ -313,6 +314,7 @@ flowchart LR
   n_m1_bvg_k_stage_t_training --> n_r_rank_objective_keeps_cells
   n_m1_bvg_k_stage_t_training --> n_r_ranking_with_admission_intact
   n_m1_close_saved_model --> n_m2_train_grounded_replies
+  n_m1_close_saved_model --> n_m3_qualify_memory
   n_m1_close_saved_model --> n_m4_export_uorlut01_cli
   n_m1_d11_artifact_scorer --> n_m1_export_gap_and_toks
   n_m1_d11_exporter_discrete --> n_d11_exporter_float_trunk
@@ -340,7 +342,6 @@ flowchart LR
   n_m2_fresh_heldout_panel --> n_m2_train_grounded_replies
   n_m2_pin_train_mask_sheet --> n_m2_pin_train_mask_sheet_cli_repair
   n_m2_pin_train_mask_sheet --> n_m2_train_grounded_replies
-  n_m2_train_grounded_replies --> n_m3_qualify_memory
   n_m3_memory_turn_discriminator_gate --> n_m3_qualify_memory
   n_m3_nonrelation_prose_panel --> n_m3_memory_turn_discriminator_gate
   n_m3_policy_precedence_and_sieve_tests --> n_m3_qualify_memory
@@ -360,6 +361,7 @@ flowchart LR
   n_m7_studio_connect_wasm_engine --> n_infra_desktop_client_tauri
   n_m7_studio_connect_wasm_engine --> n_m7_parity_library_cli_browser
   n_m8_release_packaging --> n_m8_independent_verification
+  n_object_store_consumer_m3 --> n_m3_qualify_memory
   n_owner_decision_float_path_scope --> n_d11_exporter_float_trunk
   n_owner_decision_float_path_scope --> n_float_training_module
   n_r_secant_surrogate_descent --> n_hamilton_gate_offline_float_sheet
