@@ -8,6 +8,7 @@
 //! matrix product exist on this path.
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,8 @@ use crate::{invalid, Result};
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
 /// Header schema of a discrete SpiralCore/FBS `UORLUT01` artifact.
 pub const DISCRETE_SCHEMA: &str = "uor-r4.lut-discrete/1";
+/// Header schema of a 19-table discrete SpiralCore/FBS + post-rotation trunk `UORLUT01` artifact.
+pub const DISCRETE_TRUNK_SCHEMA: &str = "uor-r4.lut-discrete-trunk/1";
 /// Source snapshot schema recorded by `uor-r4-discrete`.
 pub const SNAPSHOT_SCHEMA: &str = "uor-r4.discrete-spiralcore-fbs/2";
 
@@ -391,8 +394,276 @@ pub struct DiscreteTargetObservation {
     pub selected_loss: u64,
 }
 
-/// Loaded discrete SpiralCore/FBS model served from a `UORLUT01` (`uor-r4.lut-discrete/1`)
-/// integer container.
+/// Sparse integer count table keyed by `u32` (16-bit or 28-bit state keys) -> `u16` token -> `u32` count.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct DiscreteSparseCountTable {
+    entries: BTreeMap<u32, BTreeMap<u16, u32>>,
+}
+
+impl DiscreteSparseCountTable {
+    fn from_triples(words: &[u32], vocabulary: usize) -> Result<Self> {
+        if words.len() % 3 != 0 {
+            return Err(invalid(
+                "sparse trunk count table word length must be a multiple of 3",
+            ));
+        }
+        let mut entries: BTreeMap<u32, BTreeMap<u16, u32>> = BTreeMap::new();
+        for chunk in words.chunks_exact(3) {
+            let key = chunk[0];
+            let tok_u32 = chunk[1];
+            let cnt = chunk[2];
+            if (tok_u32 as usize) >= vocabulary || cnt == 0 {
+                return Err(invalid(
+                    "sparse trunk count table contains invalid token or zero count",
+                ));
+            }
+            let tok = u16::try_from(tok_u32)
+                .map_err(|_| invalid("sparse trunk count table token overflows u16"))?;
+            let map = entries.entry(key).or_default();
+            if map.insert(tok, cnt).is_some() {
+                return Err(invalid(
+                    "duplicate (key, token) entry in sparse trunk count table",
+                ));
+            }
+        }
+        Ok(Self { entries })
+    }
+
+    fn get(&self, key: u32, tok: u16) -> u32 {
+        self.entries
+            .get(&key)
+            .and_then(|m| m.get(&tok).copied())
+            .unwrap_or(0)
+    }
+
+    fn entries(&self, key: u32) -> Option<&BTreeMap<u16, u32>> {
+        self.entries.get(&key)
+    }
+}
+
+fn pack_4block_roots(roots: [u8; 4]) -> u16 {
+    u16::from(roots[0] & 0xF)
+        | (u16::from(roots[1] & 0xF) << 4)
+        | (u16::from(roots[2] & 0xF) << 8)
+        | (u16::from(roots[3] & 0xF) << 12)
+}
+
+fn orbit_root_causal_successor(prefix: &[u32], codebook_roots: &[[u8; 4]]) -> Result<Option<u16>> {
+    if prefix.len() < 2 {
+        return Ok(None);
+    }
+    let query_tok = prefix[prefix.len() - 1] as usize;
+    let query_roots = codebook_roots
+        .get(query_tok)
+        .copied()
+        .ok_or_else(|| invalid("query_tok out of codebook_roots bounds"))?;
+    let mut matched_succ = None;
+    for p in 0..(prefix.len() - 1) {
+        let p_tok = prefix[p] as usize;
+        let p_roots = codebook_roots
+            .get(p_tok)
+            .copied()
+            .ok_or_else(|| invalid("prefix token out of codebook_roots bounds"))?;
+        if p_roots == query_roots {
+            let succ_tok = u16::try_from(prefix[p + 1])
+                .map_err(|_| invalid("successor token overflows u16"))?;
+            if usize::from(succ_tok) >= codebook_roots.len() {
+                return Err(invalid("successor token out of codebook_roots bounds"));
+            }
+            matched_succ = Some(succ_tok);
+        }
+    }
+    Ok(matched_succ)
+}
+
+/// Optional 15-table post-rotation joint-pointer trunk (`uor-r4.lut-discrete-trunk/1`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct DiscreteTrunkTables {
+    step_candidates: [u8; 64],
+    norm_candidates: [u8; 4],
+    unigram_best_global: u16,
+    unigram_counts: Vec<u32>,
+    read_table: DiscreteSparseCountTable,
+    rec_table: DiscreteSparseCountTable,
+    read_rec_table: DiscreteSparseCountTable,
+    rec_shuf_table: DiscreteSparseCountTable,
+    read_rec_shuf_table: DiscreteSparseCountTable,
+    rec_unit_table: DiscreteSparseCountTable,
+    read_rec_unit_table: DiscreteSparseCountTable,
+    query_table: DiscreteSparseCountTable,
+    query_read_table: DiscreteSparseCountTable,
+    query_rec_table: DiscreteSparseCountTable,
+    query_rec_shuf_table: DiscreteSparseCountTable,
+    query_rec_unit_table: DiscreteSparseCountTable,
+}
+
+impl DiscreteTrunkTables {
+    fn level3_joint_pointer_score(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        pointer_succ: Option<u16>,
+        tok: u16,
+    ) -> u64 {
+        let q_key = u32::from(query_token);
+        let r_key = u32::from(read_code);
+        let qr_key = (u32::from(query_token) << 16) | u32::from(read_code);
+        let qc_key = (u32::from(query_token) << 16) | u32::from(rec_code);
+        let rc_key = (u32::from(read_code) << 16) | u32::from(rec_code);
+        let c_q = u64::from(self.query_table.get(q_key, tok));
+        let c_qr = u64::from(self.query_read_table.get(qr_key, tok));
+        let c_r = u64::from(self.read_table.get(r_key, tok));
+        let c_qc = u64::from(self.query_rec_table.get(qc_key, tok));
+        let c_rr = u64::from(self.read_rec_table.get(rc_key, tok));
+        let ptr_boost = if pointer_succ == Some(tok) {
+            1u64 << 8
+        } else {
+            0u64
+        };
+        (c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + ptr_boost
+    }
+
+    fn select_level3_joint_pointer_global(
+        &self,
+        query_token: u16,
+        read_code: u16,
+        rec_code: u16,
+        pointer_succ: Option<u16>,
+    ) -> u16 {
+        let q_key = u32::from(query_token);
+        let r_key = u32::from(read_code);
+        let c_key = u32::from(rec_code);
+        let vocab = self.unigram_counts.len();
+        let mut best_tok = self.unigram_best_global;
+        let mut best_s = 0u64;
+        let mut best_u = 0u32;
+
+        let mut consider = |tok: u16| {
+            if usize::from(tok) >= vocab {
+                return;
+            }
+            let s = self.level3_joint_pointer_score(
+                query_token,
+                read_code,
+                rec_code,
+                pointer_succ,
+                tok,
+            );
+            let u = self.unigram_counts[usize::from(tok)];
+            if s > best_s
+                || (s == best_s && s > 0 && u > best_u)
+                || (s == best_s && s > 0 && u == best_u && tok < best_tok)
+            {
+                best_s = s;
+                best_u = u;
+                best_tok = tok;
+            }
+        };
+
+        for map_opt in [
+            self.query_table.entries(q_key),
+            self.read_table.entries(r_key),
+            self.rec_table.entries(c_key),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            for &tok in map_opt.keys() {
+                consider(tok);
+            }
+        }
+        if let Some(ptr_tok) = pointer_succ {
+            consider(ptr_tok);
+        }
+        best_tok
+    }
+
+    fn compute_rec_code(&self, prefix: &[u32], codebook_roots: &[[u8; 4]]) -> Result<u16> {
+        let len = prefix.len();
+        let last_pos = len - 1;
+        let prev_pos = last_pos.saturating_sub(1);
+        let mid_pos = last_pos / 2;
+        let mut out_roots = [0u8; 4];
+        let mut prefix_acc = [0usize; MAX_CONTEXT];
+        for b in 0..4 {
+            let mut acc = usize::from(IDENTITY);
+            for (pos, &tok) in prefix.iter().enumerate() {
+                let r = usize::from(codebook_roots[tok as usize][b]);
+                let step = usize::from(self.step_candidates[(b << 4) + r]);
+                acc = compose(step, acc);
+                prefix_acc[pos] = acc;
+            }
+            let f_last = prefix_acc[last_pos];
+            let h_prev = compose(f_last, cl06_inverse(prefix_acc[prev_pos]));
+            let h_mid = compose(f_last, cl06_inverse(prefix_acc[mid_pos]));
+
+            let r_start = usize::from(codebook_roots[prefix[0] as usize][b]);
+            let r_last = usize::from(codebook_roots[prefix[last_pos] as usize][b]);
+            let r_prev = usize::from(codebook_roots[prefix[prev_pos] as usize][b]);
+            let r_mid = usize::from(codebook_roots[prefix[mid_pos] as usize][b]);
+
+            let q_coords = orbit_root_coords(r_last);
+            let prev_rot = action(h_prev, &orbit_root_coords(r_prev));
+            let mid_rot = action(h_mid, &orbit_root_coords(r_mid));
+            let full_rot = action(f_last, &orbit_root_coords(r_start));
+
+            let mut sum_block = [0i32; 8];
+            for d in 0..8 {
+                sum_block[d] = q_coords[d] + prev_rot[d] + mid_rot[d] + full_rot[d];
+            }
+            let snapped_root = snap(&sum_block, 4);
+            let snapped_coords = orbit_root_coords(snapped_root);
+            let align_frame = usize::from(self.norm_candidates[b]);
+            let normalized_block = action(align_frame, &snapped_coords);
+            let norm_root = root_id(&normalized_block)
+                .ok_or_else(|| invalid("normalized recurrence block outside 16-root orbit"))?
+                as u8;
+            out_roots[b] = norm_root;
+        }
+        Ok(pack_4block_roots(out_roots))
+    }
+
+    fn apply_joint_pointer_gate(
+        &self,
+        prefix: &[u32],
+        q_blocks: &mut [[i32; 8]],
+        codebook_roots: &[[u8; 4]],
+    ) -> Result<()> {
+        if q_blocks.len() != 4 {
+            return Err(invalid("joint-pointer trunk gate requires 4 blocks"));
+        }
+        let mut read_roots = [0u8; 4];
+        for b in 0..4 {
+            read_roots[b] = root_id(&q_blocks[b])
+                .ok_or_else(|| invalid("read block outside 16-root orbit"))?
+                as u8;
+        }
+        let read_code = pack_4block_roots(read_roots);
+        let rec_code = self.compute_rec_code(prefix, codebook_roots)?;
+        let pointer_succ = orbit_root_causal_successor(prefix, codebook_roots)?;
+        let query_token = u16::try_from(prefix[prefix.len() - 1])
+            .map_err(|_| invalid("query token overflows u16"))?;
+        let chosen_tok =
+            self.select_level3_joint_pointer_global(query_token, read_code, rec_code, pointer_succ);
+        let target_roots = codebook_roots
+            .get(usize::from(chosen_tok))
+            .copied()
+            .ok_or_else(|| invalid("chosen_tok out of codebook_roots bounds"))?;
+        for b in 0..4 {
+            let src = usize::from(read_roots[b]);
+            let dst = usize::from(target_roots[b]);
+            let frame = usize::from(BFS[(src << 4) + dst]);
+            let rotated = action(frame, &q_blocks[b]);
+            let snapped_root = snap(&rotated, 1);
+            q_blocks[b] = orbit_root_coords(snapped_root);
+        }
+        Ok(())
+    }
+}
+
+/// Loaded discrete SpiralCore/FBS model served from a `UORLUT01` (`uor-r4.lut-discrete/1`
+/// or 19-table `uor-r4.lut-discrete-trunk/1`) integer container.
 #[derive(Clone, Debug)]
 pub struct IntegerDiscreteModel {
     shape: DiscreteLutShape,
@@ -402,6 +673,8 @@ pub struct IntegerDiscreteModel {
     artifact_sha256: String,
     /// `[token][block]` 8D orbit-root coordinates.
     token_blocks: Vec<Vec<[i32; 8]>>,
+    /// Precomputed 4-block orbit root indices `[token][0..4]` when `blocks == 4`.
+    codebook_roots: Vec<[u8; 4]>,
     /// Pre-verified writer cell `0..256` per token.
     cells: Vec<u32>,
     /// `[block][stage]` route action index `0..64`.
@@ -410,6 +683,8 @@ pub struct IntegerDiscreteModel {
     level_gates: Vec<Vec<i32>>,
     /// `[stage][edge_type]` relation-edge gate trits in `-1..=1` (empty unless `Relation`).
     relation_gates: Vec<[i32; EDGE_TYPES]>,
+    /// Optional 15-table post-rotation joint-pointer trunk (`uor-r4.lut-discrete-trunk/1`).
+    trunk: Option<DiscreteTrunkTables>,
     /// When `true`, projects intermediate tree/frame state transport to the identity frame
     /// (`A_0 = I_8`) on the local query token block and zeroes all level and relation gates.
     state_transport_knockout: bool,
@@ -600,6 +875,7 @@ pub fn spiralcore_orbit_roots() -> &'static [[i8; 8]; 16] {
 
 /// The eight signed-axis codes of Cl(0,6) state `a`: `code & 7` is the source
 /// axis, `code & 8` negates.
+#[allow(dead_code)]
 pub(crate) fn cl06_axes(a: usize) -> [u8; 8] {
     let mut codes = [0u8; 8];
     codes.copy_from_slice(&AXES[a * 8..a * 8 + 8]);
@@ -626,12 +902,12 @@ pub(crate) fn fbs_binder_summary(length: usize) -> Result<(usize, usize, u32)> {
 }
 
 impl IntegerDiscreteModel {
-    /// Load and validate a `UORLUT01` (`uor-r4.lut-discrete/1`) file from disk.
+    /// Load and validate a `UORLUT01` (`uor-r4.lut-discrete/1` or `uor-r4.lut-discrete-trunk/1`) file from disk.
     pub fn load(path: &Path) -> Result<Self> {
         Self::from_bytes(&std::fs::read(path)?)
     }
 
-    /// Parse and validate a `UORLUT01` (`uor-r4.lut-discrete/1`) byte buffer.
+    /// Parse and validate a `UORLUT01` (`uor-r4.lut-discrete/1` or `uor-r4.lut-discrete-trunk/1`) byte buffer.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() < 16 || &bytes[..8] != MAGIC {
             return Err(invalid("missing UORLUT01 magic"));
@@ -644,9 +920,18 @@ impl IntegerDiscreteModel {
         }
         let header: DiscreteLutHeader =
             serde_json::from_slice(&bytes[16..16 + (header_len as usize)])?;
-        if header.schema != DISCRETE_SCHEMA || !header.matrices.is_empty() {
+        let is_trunk = match header.schema.as_str() {
+            DISCRETE_SCHEMA => false,
+            DISCRETE_TRUNK_SCHEMA => true,
+            _ => {
+                return Err(invalid(
+                    "discrete UORLUT01 artifact requires schema uor-r4.lut-discrete/1 or uor-r4.lut-discrete-trunk/1",
+                ));
+            }
+        };
+        if !header.matrices.is_empty() {
             return Err(invalid(
-                "discrete UORLUT01 artifact requires schema uor-r4.lut-discrete/1 and empty matrices",
+                "discrete UORLUT01 artifact requires empty matrices",
             ));
         }
         if header.source.snapshot_schema != SNAPSHOT_SCHEMA
@@ -699,9 +984,40 @@ impl IntegerDiscreteModel {
             return Err(invalid("unsupported discrete read initialization"));
         }
 
-        if header.tables.len() != 4 {
-            return Err(invalid("discrete UORLUT01 requires exactly four tables"));
+        if (!is_trunk && header.tables.len() != 4)
+            || (is_trunk && (header.tables.len() != 19 || s.blocks != 4))
+        {
+            return Err(invalid(
+                "discrete UORLUT01 requires 4 tables (uor-r4.lut-discrete/1) or 19 tables with 4 blocks (uor-r4.lut-discrete-trunk/1)",
+            ));
         }
+        if is_trunk {
+            let mut prev_end = 0usize;
+            for entry in &header.tables {
+                let start = usize::try_from(entry.span.offset)
+                    .map_err(|_| invalid("table offset overflow"))?;
+                let span_bytes = usize::try_from(entry.span.bytes)
+                    .map_err(|_| invalid("table bytes overflow"))?;
+                let end = start
+                    .checked_add(span_bytes)
+                    .ok_or_else(|| invalid("table end overflow"))?;
+                if start % ALIGN != 0
+                    || start < prev_end
+                    || start - prev_end >= ALIGN
+                    || end > data.len()
+                    || data[prev_end..start].iter().any(|&b| b != 0)
+                {
+                    return Err(invalid(
+                        "discrete UORLUT01 section ordering, alignment gap, or zero-padding invalid",
+                    ));
+                }
+                prev_end = end;
+            }
+            if prev_end != data.len() {
+                return Err(invalid("discrete UORLUT01 has unexpected trailing bytes"));
+            }
+        }
+
         let read_section =
             |name: &str, expected_kind: SectionKind, expected_len: usize| -> Result<&[u8]> {
                 let entry = header
@@ -767,10 +1083,16 @@ impl IntegerDiscreteModel {
         }
 
         let mut token_blocks = Vec::with_capacity(vocab);
+        let mut codebook_roots = if blocks == 4 {
+            Vec::with_capacity(vocab)
+        } else {
+            Vec::new()
+        };
         for token in 0..vocab {
             let mut tb = Vec::with_capacity(blocks);
             let mut first_root = 0u32;
             let mut last_root = 0u32;
+            let mut roots4 = [0u8; 4];
             for block in 0..blocks {
                 let start = (token * blocks + block) * 8;
                 let mut coords = [0i32; 8];
@@ -784,6 +1106,9 @@ impl IntegerDiscreteModel {
                 if block + 1 == blocks {
                     last_root = root;
                 }
+                if block < 4 {
+                    roots4[block] = root as u8;
+                }
                 tb.push(coords);
             }
             let expected_cell = (first_root << 4) + last_root;
@@ -791,6 +1116,9 @@ impl IntegerDiscreteModel {
                 return Err(invalid(
                     "discrete.cells entry disagrees with discrete.table endpoint roots",
                 ));
+            }
+            if blocks == 4 {
+                codebook_roots.push(roots4);
             }
             token_blocks.push(tb);
         }
@@ -811,6 +1139,104 @@ impl IntegerDiscreteModel {
             }
         }
 
+        let trunk = if is_trunk {
+            let read_u32_any = |idx: usize, expected_name: &str| -> Result<Vec<u32>> {
+                let entry = header
+                    .tables
+                    .get(idx)
+                    .ok_or_else(|| invalid(format!("missing trunk table index {idx}")))?;
+                if entry.name != expected_name || entry.kind != SectionKind::U32 {
+                    return Err(invalid(format!(
+                        "trunk table {expected_name} name or kind mismatch"
+                    )));
+                }
+                let expected_bytes = entry
+                    .len
+                    .checked_mul(4)
+                    .ok_or_else(|| invalid("trunk table byte size overflow"))?;
+                if (entry.span.offset as usize) % ALIGN != 0
+                    || entry.span.bytes != expected_bytes as u64
+                {
+                    return Err(invalid(format!(
+                        "trunk table {expected_name} alignment or byte span mismatch"
+                    )));
+                }
+                let start = usize::try_from(entry.span.offset)
+                    .map_err(|_| invalid("trunk table offset overflow"))?;
+                let end = start
+                    .checked_add(expected_bytes)
+                    .ok_or_else(|| invalid("trunk table end overflow"))?;
+                let slice = data
+                    .get(start..end)
+                    .ok_or_else(|| invalid(format!("trunk table {expected_name} out of bounds")))?;
+                Ok(slice
+                    .chunks_exact(4)
+                    .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                    .collect())
+            };
+
+            let step_words = read_u32_any(4, "discrete.trunk.step_candidates")?;
+            if step_words.len() != 64 || step_words.iter().any(|&w| w >= 16) {
+                return Err(invalid(
+                    "discrete.trunk.step_candidates requires 64 candidates in 0..16",
+                ));
+            }
+            let mut step_candidates = [0u8; 64];
+            for (dst, &w) in step_candidates.iter_mut().zip(&step_words) {
+                *dst = w as u8;
+            }
+
+            let norm_words = read_u32_any(5, "discrete.trunk.norm_candidates")?;
+            if norm_words.len() != 4 || norm_words.iter().any(|&w| w >= 16) {
+                return Err(invalid(
+                    "discrete.trunk.norm_candidates requires 4 candidates in 0..16",
+                ));
+            }
+            let mut norm_candidates = [0u8; 4];
+            for (dst, &w) in norm_candidates.iter_mut().zip(&norm_words) {
+                *dst = w as u8;
+            }
+
+            let unigram_words = read_u32_any(6, "discrete.trunk.unigram")?;
+            if unigram_words.len() != 1 + vocab
+                || (unigram_words[0] as usize) >= vocab
+                || unigram_words[1..].iter().all(|&c| c == 0)
+            {
+                return Err(invalid(
+                    "discrete.trunk.unigram length, best_global, or counts invalid",
+                ));
+            }
+            let unigram_best_global = u16::try_from(unigram_words[0])
+                .map_err(|_| invalid("unigram_best_global overflows u16"))?;
+            let unigram_counts = unigram_words[1..].to_vec();
+
+            let read_sparse = |idx: usize, name: &str| -> Result<DiscreteSparseCountTable> {
+                let words = read_u32_any(idx, name)?;
+                DiscreteSparseCountTable::from_triples(&words, vocab)
+            };
+
+            Some(DiscreteTrunkTables {
+                step_candidates,
+                norm_candidates,
+                unigram_best_global,
+                unigram_counts,
+                read_table: read_sparse(7, "discrete.trunk.read_table")?,
+                rec_table: read_sparse(8, "discrete.trunk.rec_table")?,
+                read_rec_table: read_sparse(9, "discrete.trunk.read_rec_table")?,
+                rec_shuf_table: read_sparse(10, "discrete.trunk.rec_shuf_table")?,
+                read_rec_shuf_table: read_sparse(11, "discrete.trunk.read_rec_shuf_table")?,
+                rec_unit_table: read_sparse(12, "discrete.trunk.rec_unit_table")?,
+                read_rec_unit_table: read_sparse(13, "discrete.trunk.read_rec_unit_table")?,
+                query_table: read_sparse(14, "discrete.trunk.query_table")?,
+                query_read_table: read_sparse(15, "discrete.trunk.query_read_table")?,
+                query_rec_table: read_sparse(16, "discrete.trunk.query_rec_table")?,
+                query_rec_shuf_table: read_sparse(17, "discrete.trunk.query_rec_shuf_table")?,
+                query_rec_unit_table: read_sparse(18, "discrete.trunk.query_rec_unit_table")?,
+            })
+        } else {
+            None
+        };
+
         let artifact_sha256 = hex::encode(Sha256::digest(bytes));
         Ok(Self {
             shape: header.shape,
@@ -819,12 +1245,19 @@ impl IntegerDiscreteModel {
             objective_policy,
             artifact_sha256,
             token_blocks,
+            codebook_roots,
             cells,
             routes,
             level_gates,
             relation_gates,
+            trunk,
             state_transport_knockout: false,
         })
+    }
+
+    /// Returns `true` when this model was loaded from a 19-table `uor-r4.lut-discrete-trunk/1` container.
+    pub fn is_trunk_d11(&self) -> bool {
+        self.trunk.is_some()
     }
 
     /// Return a copy of this model with intermediate state transport knocked out:
@@ -1193,7 +1626,7 @@ impl IntegerDiscreteModel {
             return Err(invalid("prefix token ID outside vocabulary"));
         }
         let plan = build_row_plan(prefix.len())?;
-        let (q_blocks, relation_scores) = match self.read_mode {
+        let (mut q_blocks, relation_scores) = match self.read_mode {
             DiscreteReadMode::Route => (self.route_read(prefix, &plan)?, None),
             DiscreteReadMode::Flock { kept } => {
                 self.flock_or_relation_read(prefix, &plan, kept as usize, 0, false)?
@@ -1202,6 +1635,11 @@ impl IntegerDiscreteModel {
                 self.flock_or_relation_read(prefix, &plan, kept as usize, sweeps, true)?
             }
         };
+        if !self.state_transport_knockout {
+            if let Some(ref trunk) = self.trunk {
+                trunk.apply_joint_pointer_gate(prefix, &mut q_blocks, &self.codebook_roots)?;
+            }
+        }
 
         let mut occupied = [false; 256];
         for &cell in &self.cells {
@@ -1686,5 +2124,160 @@ mod tests {
         bad_shape.stages = 2;
         let bad_stages = build_discrete_uorlut01(bad_shape, &tokens, &[0, 0], &[0, 0]);
         assert!(IntegerDiscreteModel::from_bytes(&bad_stages).is_err());
+    }
+
+    #[test]
+    fn trunk_d11_19_table_loader_evaluates_joint_pointer_and_rejects_planted_faults() {
+        let shape = DiscreteLutShape {
+            vocabulary: 3,
+            blocks: 4,
+            context: 4,
+            kept_cells: 3,
+            stages: 2,
+            read_mode: "route".to_owned(),
+            read_kept: 0,
+            read_sweeps: 0,
+            objective_policy: "nearest_address_margin_v1".to_owned(),
+            read_initialization: "zero_gates_v1".to_owned(),
+            seed: 7,
+            epoch: 1,
+        };
+        let tok0 = [A, A, A, A];
+        let tok1 = [NEG_A, NEG_A, NEG_A, NEG_A];
+        let tok2 = [B, B, B, B];
+        let tokens = [tok0, tok1, tok2];
+        let table: Vec<i32> = tokens.iter().flatten().flatten().copied().collect();
+        let cells: Vec<u32> = tokens
+            .iter()
+            .map(|blocks| {
+                let r0 = root_id(&blocks[0]).unwrap() as u32;
+                let r3 = root_id(&blocks[3]).unwrap() as u32;
+                (r0 << 4) + r3
+            })
+            .collect();
+        let routes = [0u32; 8];
+        let gates = [0i32; 8];
+
+        let mut blob = Vec::new();
+        let mut tables = Vec::new();
+        let push_u32 = |blob: &mut Vec<u8>, name: &str, words: &[u32]| -> SectionSpec {
+            let bytes: Vec<u8> = words.iter().flat_map(|x| x.to_le_bytes()).collect();
+            SectionSpec {
+                name: name.to_owned(),
+                kind: SectionKind::U32,
+                len: words.len(),
+                span: push_section(blob, &bytes),
+            }
+        };
+        let table_bytes: Vec<u8> = table.iter().flat_map(|x| x.to_le_bytes()).collect();
+        tables.push(SectionSpec {
+            name: "discrete.table".to_owned(),
+            kind: SectionKind::I32,
+            len: table.len(),
+            span: push_section(&mut blob, &table_bytes),
+        });
+        tables.push(push_u32(&mut blob, "discrete.cells", &cells));
+        tables.push(push_u32(&mut blob, "discrete.routes", &routes));
+        let gates_bytes: Vec<u8> = gates.iter().flat_map(|x| x.to_le_bytes()).collect();
+        tables.push(SectionSpec {
+            name: "discrete.gates".to_owned(),
+            kind: SectionKind::I32,
+            len: gates.len(),
+            span: push_section(&mut blob, &gates_bytes),
+        });
+
+        let step_words = [1u32; 64];
+        tables.push(push_u32(
+            &mut blob,
+            "discrete.trunk.step_candidates",
+            &step_words,
+        ));
+        let norm_words = [0u32; 4];
+        tables.push(push_u32(
+            &mut blob,
+            "discrete.trunk.norm_candidates",
+            &norm_words,
+        ));
+        let unigram_words = [0u32, 10, 5, 3];
+        tables.push(push_u32(
+            &mut blob,
+            "discrete.trunk.unigram",
+            &unigram_words,
+        ));
+
+        // Direct query_table for query_token = 0 toward token 2 (`[B, B, B, B]`) with count 5.
+        for name in [
+            "discrete.trunk.read_table",
+            "discrete.trunk.rec_table",
+            "discrete.trunk.read_rec_table",
+            "discrete.trunk.rec_shuf_table",
+            "discrete.trunk.read_rec_shuf_table",
+            "discrete.trunk.rec_unit_table",
+            "discrete.trunk.read_rec_unit_table",
+            "discrete.trunk.query_table",
+            "discrete.trunk.query_read_table",
+            "discrete.trunk.query_rec_table",
+            "discrete.trunk.query_rec_shuf_table",
+            "discrete.trunk.query_rec_unit_table",
+        ] {
+            let words: &[u32] = if name == "discrete.trunk.query_table" {
+                &[0, 2, 5]
+            } else {
+                &[]
+            };
+            tables.push(push_u32(&mut blob, name, words));
+        }
+
+        let header = DiscreteLutHeader {
+            schema: DISCRETE_TRUNK_SCHEMA.to_owned(),
+            shape,
+            matrices: Vec::new(),
+            tables,
+            source: DiscreteLutSource {
+                snapshot_schema: SNAPSHOT_SCHEMA.to_owned(),
+                snapshot_sha256: "00".repeat(32),
+                operator_kappa: OPERATOR_KAPPA.to_owned(),
+                composition_kappa: COMPOSITION_KAPPA.to_owned(),
+                kernel_sha256: "11".repeat(32),
+                source_sha256: "22".repeat(32),
+                geometry_sha256: "33".repeat(32),
+            },
+        };
+        let json = serde_json::to_vec(&header).unwrap();
+        let mut container = Vec::with_capacity(16 + json.len() + ALIGN + blob.len());
+        container.extend_from_slice(MAGIC);
+        container.extend_from_slice(&(json.len() as u64).to_le_bytes());
+        container.extend_from_slice(&json);
+        let pad = (ALIGN - container.len() % ALIGN) % ALIGN;
+        container.resize(container.len() + pad, 0);
+        container.extend_from_slice(&blob);
+
+        let model = IntegerDiscreteModel::from_bytes(&container).unwrap();
+        assert!(model.is_trunk_d11());
+        let eval = model.evaluate_prefix(&[0]).unwrap();
+        let expected_b4: Vec<i32> = tok2.iter().flatten().copied().collect();
+        assert_eq!(eval.read_vector, expected_b4);
+        assert_eq!(eval.prediction, 2);
+
+        // Causal pointer successor `[0, 1, 2, 0]` points to successor token `1` (`ptr_boost = 256 > 5`),
+        // rotating `q_blocks` to `tok1` (`[NEG_A, NEG_A, NEG_A, NEG_A]`) and predicting `1`.
+        let eval_ptr = model.evaluate_prefix(&[0, 1, 2, 0]).unwrap();
+        let expected_neg_a4: Vec<i32> = tok1.iter().flatten().copied().collect();
+        assert_eq!(eval_ptr.read_vector, expected_neg_a4);
+        assert_eq!(eval_ptr.prediction, 1);
+
+        // Planted fault 1: trailing byte is rejected.
+        let mut bad_trailing = container.clone();
+        bad_trailing.push(0);
+        assert!(IntegerDiscreteModel::from_bytes(&bad_trailing).is_err());
+
+        // Planted fault 2: corrupted tail token in query_table (`2 -> 99 >= vocab`) is rejected.
+        let header_len = u64::from_le_bytes(container[8..16].try_into().unwrap()) as usize;
+        let unaligned = 16 + header_len;
+        let data_start = unaligned + (ALIGN - unaligned % ALIGN) % ALIGN;
+        let q_offset = data_start + (header.tables[14].span.offset as usize) + 4;
+        let mut bad_tail = container;
+        bad_tail[q_offset..q_offset + 4].copy_from_slice(&99u32.to_le_bytes());
+        assert!(IntegerDiscreteModel::from_bytes(&bad_tail).is_err());
     }
 }

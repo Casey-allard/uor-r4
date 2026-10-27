@@ -115,7 +115,8 @@ fn canonical_saved_models_pass_bars_a_b_c_and_fail_bar_d_leaving_fresh_seal_inta
     assert_eq!(inv.len(), 9);
     assert_eq!(inv[8]["id"], "trunk-joint-pointer-v1-d11");
     assert_eq!(inv[8]["bar_d_pass"], true);
-    assert_eq!(inv[8]["bar_a_pass"], false);
+    assert_eq!(inv[8]["bar_a_pass"], true);
+    assert_eq!(inv[8]["clean_room_19table_d11_accepted"], true);
     assert_eq!(DEV_PSUCC_T2_TOP1, 1_245);
     assert_eq!(DEV_PSUCC_ROWS_C192, 3_847);
     assert_eq!(DEV_PSUCC_UNIGRAM_TOP1_C192, 194);
@@ -235,4 +236,210 @@ fn negative_gate_checks_on_each_of_five_m1_bars_and_prospective_fresh_seal() {
     assert!(!v_break_e.bar_e_fresh_transfer_two_seeds);
     assert!(!v_break_e.m1_close_pass);
     assert_eq!(v_break_e.outcome, "HOLD_M1_OPEN_BAR_E_UNMET");
+}
+
+#[test]
+fn clean_room_integer_discrete_model_loads_19_table_trunk_d11_with_zero_export_gap_and_serving_toks() {
+    use m1_d11_artifact_scorer_instrument::{
+        toks::{default_prompt, time_serving, Protocol},
+        IntegerDiscreteModel,
+    };
+    use uor_r4_discrete::{
+        position_mechanism::PositionStepTable,
+        snapshot::{export_d11, GateMode, ModelSnapshot, SnapshotSpec, SNAPSHOT_SCHEMA},
+        trunk::{
+            compute_recurrence_state, evaluate_joint_pointer_full_writer, export_trunk_d11,
+            identify_orbit_root, NormalizationMode, OrbitRootNormFrames, RecurrenceMode,
+            TrunkTables, TrunkTrainRow,
+        },
+        w2_capacity::{orbit_root_coords, pack_code},
+        READ_WIDTH,
+    };
+
+    let spec = SnapshotSpec {
+        blocks: 4,
+        vocabulary: 4096,
+        context: 192,
+        cells: 256,
+        kept_cells: 8,
+        leaves_per_stage: 8,
+        sweeps: 1,
+        read_mode: "flock".to_owned(),
+        gate_mode: GateMode::FrozenZeroV1,
+    };
+    let stages = 7u32;
+    let mut table = Vec::with_capacity(4096 * READ_WIDTH);
+    let mut cells = Vec::with_capacity(4096);
+    let mut roots = vec![[0u8; 4]; 4096];
+    let mut coords = vec![[0i32; READ_WIDTH]; 4096];
+    let mut cell_tokens = vec![Vec::new(); 256];
+    for v in 0..4096u32 {
+        let cell = (v % 256) as u8;
+        cells.push(u32::from(cell));
+        cell_tokens[usize::from(cell)].push(v as u16);
+        let r0 = (v & 0xF) as u8;
+        let r1 = ((v >> 4) & 0xF) as u8;
+        let r2 = ((v >> 8) & 0xF) as u8;
+        let r3 = ((v.wrapping_mul(7) ^ (v >> 3)) & 0xF) as u8;
+        let r_arr = [r0, r1, r2, r3];
+        roots[v as usize] = r_arr;
+        let mut vec32 = [0i32; READ_WIDTH];
+        for b in 0..4 {
+            let blk = orbit_root_coords(r_arr[b]);
+            vec32[b * 8..(b + 1) * 8].copy_from_slice(&blk);
+        }
+        coords[v as usize] = vec32;
+        table.extend_from_slice(&vec32);
+    }
+    let gates_len = (spec.blocks * stages * spec.leaves_per_stage * 8) as usize;
+    let mut gates = vec![0i32; gates_len];
+    for g in 0..(spec.blocks * stages * spec.leaves_per_stage) as usize {
+        gates[g * 8] = 2;
+        gates[g * 8 + 1] = 2;
+        gates[g * 8 + 2] = 2;
+        gates[g * 8 + 3] = 2;
+    }
+    let snapshot = ModelSnapshot {
+        schema: SNAPSHOT_SCHEMA.to_owned(),
+        spec: spec.clone(),
+        cells,
+        table,
+        routes: vec![0u32; (spec.blocks * stages) as usize],
+        gates,
+        operator_kappa:
+            "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b".to_owned(),
+        composition_kappa:
+            "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0".to_owned(),
+        kernel_sha256: "11".repeat(32),
+        driver_source_sha256: "22".repeat(32),
+    };
+
+    let base_bytes = export_d11(&snapshot).unwrap();
+    let base_model = IntegerDiscreteModel::from_bytes(&base_bytes).unwrap();
+    assert!(!base_model.is_trunk_d11());
+
+    let step_table = PositionStepTable::canonical();
+    let norm_frames = OrbitRootNormFrames::canonical();
+
+    let prefixes: [Vec<u32>; 5] = [
+        vec![7, 12, 7, 19],
+        vec![7, 19, 7, 12],
+        vec![3, 7, 12],
+        vec![19, 3, 7, 40, 9],
+        (0..64).map(|i| ((i * 73 + 11) % 4096) as u32).collect(),
+    ];
+    let mut train_rows = Vec::new();
+    for (idx, pfx) in prefixes.iter().enumerate() {
+        let base_eval = base_model.evaluate_prefix(pfx).unwrap();
+        let mut r4 = [0u8; 4];
+        for b in 0..4 {
+            let blk: [i32; 8] = base_eval.read_vector[b * 8..(b + 1) * 8]
+                .try_into()
+                .unwrap();
+            r4[b] = identify_orbit_root(&blk).unwrap();
+        }
+        let read_code = pack_code(r4);
+        let win_u16: Vec<u16> = pfx.iter().map(|&t| t as u16).collect();
+        let (_, rec_code) = compute_recurrence_state(
+            &win_u16,
+            &roots,
+            &step_table,
+            &norm_frames,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            0,
+        )
+        .unwrap();
+        let query_token = *win_u16.last().unwrap();
+        let target_token = (1000 + idx * 317) as u16;
+        for _ in 0..3 {
+            train_rows.push(TrunkTrainRow {
+                read_code,
+                rec_code,
+                rec_shuf_code: rec_code,
+                rec_unit_code: rec_code,
+                query_token,
+                target_token,
+            });
+        }
+    }
+    let trunk_tables = TrunkTables::build(&train_rows).unwrap();
+    let trunk_bytes =
+        export_trunk_d11(&snapshot, &step_table, &norm_frames, &trunk_tables).unwrap();
+    let trunk_model = IntegerDiscreteModel::from_bytes(&trunk_bytes).unwrap();
+    assert!(trunk_model.is_trunk_d11());
+
+    for pfx in &prefixes {
+        let d11_eval = trunk_model.evaluate_prefix(pfx).unwrap();
+        let base_eval = base_model.evaluate_prefix(pfx).unwrap();
+        let q_read: [i32; READ_WIDTH] = base_eval.read_vector.clone().try_into().unwrap();
+        let mut r4 = [0u8; 4];
+        for b in 0..4 {
+            let blk: [i32; 8] = q_read[b * 8..(b + 1) * 8].try_into().unwrap();
+            r4[b] = identify_orbit_root(&blk).unwrap();
+        }
+        let read_code = pack_code(r4);
+        let win_u16: Vec<u16> = pfx.iter().map(|&t| t as u16).collect();
+        let (_, rec_code) = compute_recurrence_state(
+            &win_u16,
+            &roots,
+            &step_table,
+            &norm_frames,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            0,
+        )
+        .unwrap();
+        let (ref_chosen_tok, ref_ptr, ref_q_trunk, _, ref_top8, ref_admitted) =
+            evaluate_joint_pointer_full_writer(
+                &q_read,
+                &win_u16,
+                read_code,
+                rec_code,
+                RecurrenceMode::ActiveHolonomyV1,
+                NormalizationMode::ScaleMatchedSnapV1,
+                &trunk_tables,
+                &roots,
+                &coords,
+                &cell_tokens,
+            )
+            .unwrap();
+
+        assert_eq!(
+            d11_eval.read_vector, ref_q_trunk,
+            "pfx={pfx:?} read_code={read_code:#06x} rec_code={rec_code:#06x} ref_chosen_tok={ref_chosen_tok} ref_ptr={ref_ptr:?}"
+        );
+        let ref_admitted_u32: Vec<u32> = ref_admitted
+            .iter()
+            .take(spec.kept_cells as usize)
+            .map(|&c| u32::from(c))
+            .collect();
+        assert_eq!(d11_eval.admitted_cells, ref_admitted_u32);
+        assert_eq!(d11_eval.top8, ref_top8);
+        assert_eq!(d11_eval.prediction, ref_top8[0]);
+    }
+
+    let mut bad_magic = trunk_bytes.clone();
+    bad_magic[0] ^= 1;
+    assert!(IntegerDiscreteModel::from_bytes(&bad_magic).is_err());
+
+    let mut bad_trailing = trunk_bytes.clone();
+    bad_trailing.push(0);
+    assert!(IntegerDiscreteModel::from_bytes(&bad_trailing).is_err());
+
+    let mut bad_tail = trunk_bytes.clone();
+    let last_tok_hi = bad_tail.len() - 5;
+    bad_tail[last_tok_hi] ^= 0xff;
+    assert!(IntegerDiscreteModel::from_bytes(&bad_tail).is_err());
+
+    let prompt = default_prompt(spec.vocabulary, 192);
+    let protocol = Protocol {
+        warmup: 1,
+        runs: 3,
+        prompt_tokens: 192,
+        decode_tokens: 16,
+    };
+    let toks = time_serving(&trunk_model, &prompt, protocol).unwrap();
+    assert!(toks["prefill"]["median_tokens_per_s"].as_u64().unwrap() > 0);
+    assert!(toks["decode"]["median_tokens_per_s"].as_u64().unwrap() > 0);
 }
