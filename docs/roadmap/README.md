@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 12 |
+| ready | 14 |
 | held | 10 |
 | decision | 1 |
 | done | 74 |
-| total | 97 |
+| total | 99 |
 
 ## Start here
 
@@ -135,6 +135,8 @@ These items are ready and open to anyone.
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
 | [Train the FBS trunk in its own space until its replies read their prompts](items/in-space-trunk-to-text.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
+| [Serve the Hamming read from the integer artifact on the laptop](items/integer-hamming-read.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
+| [Make the decoder that serves the decoder that was measured](items/one-decoder.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md) | not yet synced |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
@@ -219,6 +221,7 @@ flowchart LR
   n_infra_loop_pr11_progress_window["infra-loop-pr11-progress-window"]
   n_infra_loop_pr12_git_hooks["infra-loop-pr12-git-hooks"]
   n_infra_loop_render_review["infra-loop-render-review"]
+  n_integer_hamming_read["integer-hamming-read"]
   n_loop_render_review_hardening["loop-render-review-hardening"]
   n_m1_a8_finite_cuda_qualification["m1-a8-finite-cuda-qualification"]
   n_m1_a8_full_dose_rerun["m1-a8-full-dose-rerun"]
@@ -261,6 +264,7 @@ flowchart LR
   n_m8_independent_verification["m8-independent-verification"]
   n_m8_release_packaging["m8-release-packaging"]
   n_object_store_consumer_m3["object-store-consumer-m3"]
+  n_one_decoder["one-decoder"]
   n_owner_decision_float_path_scope["owner-decision-float-path-scope"]
   n_r_finite_relational_head["r-finite-relational-head"]
   n_r_quaternion_transport_order["r-quaternion-transport-order"]
@@ -275,6 +279,8 @@ flowchart LR
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
   n_float_training_module --> n_in_space_trunk_to_text
+  n_float_training_module --> n_integer_hamming_read
+  n_float_training_module --> n_one_decoder
   n_float_training_module --> n_r_secant_surrogate_descent
   n_float_training_module --> n_recurrence_gates_six_recurrence_fit
   n_float_training_module --> n_spiralcore_fbs_offline_float_sheet
@@ -372,4 +378,5 @@ flowchart LR
   n_r_secant_surrogate_descent --> n_recurrence_gates_six_recurrence_fit
   n_r_secant_surrogate_descent --> n_spiralcore_fbs_offline_float_sheet
   n_spiralcore_fbs_offline_float_sheet --> n_in_space_trunk_to_text
+  n_spiralcore_fbs_offline_float_sheet --> n_integer_hamming_read
 ```
