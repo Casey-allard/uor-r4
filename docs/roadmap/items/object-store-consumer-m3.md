@@ -3,11 +3,12 @@ id: object-store-consumer-m3
 title: Wire the object store into the model and run the durable-memory bars
 milestone: M3
 area: architecture
-status: held
+status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
-scope: [crates/uor-r4-core/**, crates/uor-r4-integer/**, crates/uor-r4-object-store/**, docs/mechanisms/exact-memory.md, docs/mechanisms/object-store.md, docs/labs/object-store-consumer-m3/**]
+notebook: docs/research/notebook/m3-durable-memory.md
+scope: [crates/uor-r4-object-store/**, docs/mechanisms/exact-memory.md, docs/mechanisms/object-store.md, docs/labs/object-store-consumer-m3/**, docs/harness/prep/object-store-consumer-m3*, docs/loop/tasks/object-store-consumer-m3/**, docs/research/notebook/m3-durable-memory.md]
 ---
 
 ## Why it matters

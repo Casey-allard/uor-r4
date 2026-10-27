@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: false
 depends_on: []
 notebook: docs/research/notebook/m4-serving.md
-scope: [crates/uor-r4-discrete/**, crates/uor-r4-integer/**, docs/mechanisms/lut-serving.md, docs/model/serving-and-export.md, docs/research/findings.md, docs/research/open-questions.md, docs/labs/m4-lawful-likelihood-bpb/**, docs/harness/prep/m4-lawful-likelihood-bpb*]
+scope: [docs/model/serving-and-export.md, docs/research/findings.md, docs/research/open-questions.md, docs/labs/m4-lawful-likelihood-bpb/**, docs/harness/prep/m4-lawful-likelihood-bpb*, docs/loop/tasks/m4-lawful-likelihood-bpb/**, docs/research/notebook/m4-serving.md]
 ---
 
 ## Why it matters
