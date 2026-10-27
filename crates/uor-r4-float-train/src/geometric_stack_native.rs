@@ -1115,6 +1115,19 @@ impl StackModel {
         for layer in 0..self.config.layers() {
             x = q16(x.add(&self.composed_recurrence(&p, layer, &x)?)?)?;
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
+            // The content read (claude-145), when one is set on this thread: after layer 3, keyed
+            // on the input tokens' own points.
+            if layer + 1 == crate::flock_read_content::CONTENT_AFTER_LAYER {
+                if let Some(read) = crate::flock_read_content::content_read() {
+                    let table = self
+                        .variables()
+                        .get("embedding.weight")
+                        .ok_or_else(|| invalid("the model has no shared vector table"))?
+                        .as_tensor()
+                        .clone();
+                    x = q16(read.apply(&x, ids, &table)?)?;
+                }
+            }
         }
         let x = self.norm(&p, &x, "final_norm.weight")?;
         Ok(x.reshape((batch * time, self.config.width))?)

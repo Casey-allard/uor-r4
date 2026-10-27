@@ -69,6 +69,9 @@ pub struct LongConfig {
     /// Keep this many earlier positions in a Flock read on the trunk's points; 0 is no read
     /// (`flock_read`).
     pub flock_read: usize,
+    /// Keep this many earlier positions in a content-keyed read inside the trunk; 0 is no read
+    /// (`flock_read_content`).
+    pub content_read: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -84,7 +87,8 @@ pub struct Checkpoint {
     pub train_loss_mean: Option<f64>,
     /// The writer's own DEV panel (`hamilton_sheet::evaluate_dev_panel`): its top-1, top-8 and
     /// admitted counts, and `dev_loss` with the token and address margins below, read the trunk
-    /// without the Flock read. `dev_nearest` goes through [`crate::flock_read::points`].
+    /// without the Flock read (a content read, being inside the trunk, is in them). `dev_nearest`
+    /// goes through [`crate::flock_read::points`].
     pub dev_top1_hits: usize,
     pub dev_top8_hits: usize,
     pub dev_admitted_hits: usize,
@@ -123,6 +127,8 @@ pub struct Inspection {
     /// The Flock read's per-coordinate weight, mean of its absolute values, when the checkpoint
     /// has a read.
     pub flock_weight_mean_abs: Option<f64>,
+    /// The same for the content read, when the checkpoint has one.
+    pub content_weight_mean_abs: Option<f64>,
 }
 
 /// One fixed DEV prompt with the model's greedy reply and the true reply, as text.
@@ -145,7 +151,18 @@ impl Drop for ArmGuard {
         crate::geometric_stack::set_reflected_floor(false);
         crate::geometric_stack::set_input_table_fixed(false);
         crate::flock_read::set_flock_read(None);
+        crate::flock_read_content::set_content_read(None);
     }
+}
+
+/// Set this thread's Flock read and content read from the checkpoint `directory`, each to none
+/// when the checkpoint has none.
+fn load_reads(directory: &Path, device: &Device) -> Result<()> {
+    crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(directory, device)?);
+    crate::flock_read_content::set_content_read(crate::flock_read_content::ContentRead::load(
+        directory, device,
+    )?);
+    Ok(())
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -427,6 +444,171 @@ fn opens_reply(mask: &[u8], position: usize) -> bool {
     position > 0 && mask[position - 1] == 0
 }
 
+/// How well the prompt words a window shows could name its reply's first token: TRAIN's
+/// commonest opening for each key, scored on DEV's openings ([`opening_bound`]). A count over the
+/// corpus, not a model: it bounds what a read that finds those words could add to the openings.
+#[derive(Clone, Debug, Serialize)]
+pub struct OpeningBound {
+    /// `none`, `first-k` (the first `k` prompt tokens the window shows) or `last-k` (the `k`
+    /// tokens before the opening).
+    pub key: String,
+    pub train_rows: usize,
+    pub train_keys: usize,
+    pub dev_rows: usize,
+    /// DEV openings whose key TRAIN never saw; TRAIN's commonest opening names them.
+    pub dev_unseen: usize,
+    pub dev_hits: usize,
+    /// TRAIN's most frequent keys, decoded, with their commonest opening and its share.
+    pub top: Vec<OpeningKey>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct OpeningKey {
+    pub key: String,
+    pub opening: String,
+    pub train_rows: usize,
+    pub opening_rows: usize,
+}
+
+/// Each opening in `windows`: the prompt tokens its window shows before it, in order, and its
+/// target. The prompt runs back from the opening to the last response token or BOS.
+fn openings(windows: &[CausalWindow], mask: &[u8]) -> Vec<(Vec<u32>, u32)> {
+    let mut rows = Vec::new();
+    for w in windows {
+        let scored = w
+            .scored_offsets
+            .iter()
+            .zip(&w.scored_targets)
+            .zip(&w.scored_corpus_positions);
+        for ((&offset, &target), &position) in scored {
+            if !opens_reply(mask, position) {
+                continue;
+            }
+            // The corpus position of `input_ids[0]`.
+            let base = position - 1 - offset;
+            let mut first = offset + 1;
+            while first > 0 {
+                let i = first - 1;
+                if w.input_ids[i] == hs::SHEET_BOS_ID || mask[base + i] == 1 {
+                    break;
+                }
+                first = i;
+            }
+            rows.push((w.input_ids[first..=offset].to_vec(), target));
+        }
+    }
+    rows
+}
+
+/// The commonest target in `counts` and its count, ties to the smaller token id.
+fn commonest(counts: &std::collections::BTreeMap<u32, usize>) -> Option<(u32, usize)> {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))
+        .map(|(&t, &c)| (t, c))
+}
+
+/// Which prompt tokens an [`OpeningBound`] keys on.
+#[derive(Clone, Copy, Debug)]
+enum PromptKey {
+    None,
+    First(usize),
+    Last(usize),
+}
+
+impl PromptKey {
+    fn of(self, prompt: &[u32]) -> &[u32] {
+        match self {
+            PromptKey::None => &[],
+            PromptKey::First(k) => &prompt[..k.min(prompt.len())],
+            PromptKey::Last(k) => &prompt[prompt.len() - k.min(prompt.len())..],
+        }
+    }
+
+    fn name(self) -> String {
+        match self {
+            PromptKey::None => "none".to_owned(),
+            PromptKey::First(k) => format!("first-{k}"),
+            PromptKey::Last(k) => format!("last-{k}"),
+        }
+    }
+}
+
+fn bound(
+    key: PromptKey,
+    train: &[(Vec<u32>, u32)],
+    dev: &[(Vec<u32>, u32)],
+    decode: &dyn Fn(&[u32]) -> String,
+) -> OpeningBound {
+    let pick = |prompt| key.of(prompt);
+    let mut table =
+        std::collections::BTreeMap::<Vec<u32>, std::collections::BTreeMap<u32, usize>>::new();
+    let mut overall = std::collections::BTreeMap::<u32, usize>::new();
+    for (prompt, target) in train {
+        *table
+            .entry(pick(prompt).to_vec())
+            .or_default()
+            .entry(*target)
+            .or_default() += 1;
+        *overall.entry(*target).or_default() += 1;
+    }
+    let fallback = commonest(&overall).map(|(t, _)| t);
+    let (mut dev_unseen, mut dev_hits) = (0, 0);
+    for (prompt, target) in dev {
+        let named = match table.get(pick(prompt)) {
+            Some(counts) => commonest(counts).map(|(t, _)| t),
+            None => {
+                dev_unseen += 1;
+                fallback
+            }
+        };
+        dev_hits += usize::from(named == Some(*target));
+    }
+    let mut keys: Vec<(&Vec<u32>, usize)> = table
+        .iter()
+        .map(|(k, counts)| (k, counts.values().sum()))
+        .collect();
+    keys.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+    let top = keys
+        .into_iter()
+        .take(8)
+        .filter_map(|(k, rows)| {
+            let (opening, opening_rows) = commonest(&table[k])?;
+            Some(OpeningKey {
+                key: decode(k),
+                opening: decode(&[opening]),
+                train_rows: rows,
+                opening_rows,
+            })
+        })
+        .collect();
+    OpeningBound {
+        key: key.name(),
+        train_rows: train.len(),
+        train_keys: table.len(),
+        dev_rows: dev.len(),
+        dev_unseen,
+        dev_hits,
+        top,
+    }
+}
+
+/// [`OpeningBound`] for no key, the first 1–8 prompt tokens and the last 1–4.
+pub fn opening_bound(data_root: &Path) -> Result<Vec<OpeningBound>> {
+    let tokenizer = pinned_tokenizer(data_root)?;
+    let decode = |ids: &[u32]| tail(&tokenizer.decode(ids), 80);
+    let (train_tokens, train_mask) = load_train_split(data_root)?;
+    let (train_windows, _) =
+        hs::build_document_windows(&train_tokens, &train_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let (dev_windows, dev_mask) = load_dev(data_root)?;
+    let train = openings(&train_windows, &train_mask);
+    let dev = openings(&dev_windows, &dev_mask);
+    let keys = std::iter::once(PromptKey::None)
+        .chain((1..=8).map(PromptKey::First))
+        .chain((1..=4).map(PromptKey::Last));
+    Ok(keys.map(|key| bound(key, &train, &dev, &decode)).collect())
+}
+
 /// `samples` DEV windows spread over the panel whose first scored target opens a reply, with at
 /// least 16 tokens of prompt before it. `mask` is DEV's response mask.
 fn sample_windows<'a>(
@@ -587,7 +769,7 @@ pub fn context_reach(
     crate::geometric_stack::set_reflected_floor(reflect_floor);
     let _guard = ArmGuard;
     let model = StackModel::load(checkpoint, device)?;
-    crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(checkpoint, device)?);
+    load_reads(checkpoint, device)?;
     let firsts: Vec<(&CausalWindow, usize)> = dev_windows
         .iter()
         .filter_map(|w| {
@@ -727,7 +909,7 @@ pub fn decode_speed(
     crate::geometric_stack::set_reflected_floor(reflect_floor);
     let _guard = ArmGuard;
     let model = StackModel::load(checkpoint, device)?;
-    crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(checkpoint, device)?);
+    load_reads(checkpoint, device)?;
     let source = dev_windows
         .iter()
         .find(|w| w.input_ids.iter().all(|&id| id != hs::SHEET_BOS_ID))
@@ -791,7 +973,7 @@ pub fn inspect_run(
             .unwrap_or_default();
         let step: usize = name.trim_start_matches("step-").parse().unwrap_or(0);
         let model = StackModel::load(&dir, device)?;
-        crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(&dir, device)?);
+        load_reads(&dir, device)?;
         let (dev, _) = hs::evaluate_dev_panel(
             &model,
             &dev_windows,
@@ -841,6 +1023,10 @@ pub fn inspect_run(
                 Some(read) => Some(scalar(read.weight_mean_abs()?)?),
                 None => None,
             },
+            content_weight_mean_abs: match crate::flock_read_content::content_read() {
+                Some(content) => Some(scalar(content.read.weight_mean_abs()?)?),
+                None => None,
+            },
         });
     }
     Ok(readings)
@@ -848,8 +1034,21 @@ pub fn inspect_run(
 
 /// The pinned TRAIN split's windows with at least 4 scored targets, each context-long; at least
 /// `batch` of them.
-fn load_train(data_root: &Path, batch: usize) -> Result<Vec<CausalWindow>> {
-    let (train_tokens, train_mask) = hs::load_pinned_uort_split(
+/// The pinned tokenizer.
+fn pinned_tokenizer(data_root: &Path) -> Result<ByteBpeTokenizer> {
+    let tokenizer_bytes = fs::read(data_root.join("tokenizer.json"))?;
+    if sha256_bytes(&tokenizer_bytes) != hs::PINNED_TOKENIZER_SHA256 {
+        return Err(invalid(
+            "tokenizer.json differs from the pinned d36d3e87 tokenizer",
+        ));
+    }
+    ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
+        .ok_or_else(|| invalid("tokenizer.json is not a byte-level BPE tokenizer"))
+}
+
+/// The pinned TRAIN split's tokens and response mask.
+fn load_train_split(data_root: &Path) -> Result<(Vec<u32>, Vec<u8>)> {
+    hs::load_pinned_uort_split(
         &data_root.join("mw-balp/train/tokens.u16"),
         &data_root.join("mw-balp/train/response_mask.u8"),
         hs::PINNED_TRAIN_TOKENS_SHA256,
@@ -858,7 +1057,11 @@ fn load_train(data_root: &Path, batch: usize) -> Result<Vec<CausalWindow>> {
         hs::EXPECTED_TRAIN_ELIGIBLE_TARGETS,
         hs::SHEET_VOCAB,
         hs::SHEET_BOS_ID,
-    )?;
+    )
+}
+
+fn load_train(data_root: &Path, batch: usize) -> Result<Vec<CausalWindow>> {
+    let (train_tokens, train_mask) = load_train_split(data_root)?;
     let (train_windows, _) =
         hs::build_document_windows(&train_tokens, &train_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
     let usable: Vec<CausalWindow> = train_windows
@@ -900,6 +1103,15 @@ pub fn gradient_norms(
             hs::SHEET_WIDTH,
             device,
         )?));
+    }
+    if config.content_read > 0 {
+        crate::flock_read_content::set_content_read(Some(
+            crate::flock_read_content::ContentRead::new(
+                config.content_read,
+                hs::SHEET_WIDTH,
+                device,
+            )?,
+        ));
     }
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
     let (ids, scored, targets) = assemble(&windows);
@@ -991,14 +1203,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     fs::create_dir_all(out)?;
     fs::write(out.join("config.json"), serde_json::to_vec_pretty(config)?)?;
 
-    let tokenizer_bytes = fs::read(data_root.join("tokenizer.json"))?;
-    if sha256_bytes(&tokenizer_bytes) != hs::PINNED_TOKENIZER_SHA256 {
-        return Err(invalid(
-            "tokenizer.json differs from the pinned d36d3e87 tokenizer",
-        ));
-    }
-    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
-        .ok_or_else(|| invalid("tokenizer.json is not a byte-level BPE tokenizer"))?;
+    let tokenizer = pinned_tokenizer(data_root)?;
 
     let usable = load_train(data_root, config.batch)?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
@@ -1028,6 +1233,19 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         None
     };
     let mut flock = flock;
+    // The content read, when on: claude-144's parameters and optimizer, applied inside the trunk.
+    let mut content = if config.content_read > 0 {
+        let read = crate::flock_read_content::ContentRead::new(
+            config.content_read,
+            hs::SHEET_WIDTH,
+            device,
+        )?;
+        crate::flock_read_content::set_content_read(Some(read.clone()));
+        let opt = crate::flock_read::FlockAdamW::new(&read.read)?;
+        Some((read, opt))
+    } else {
+        None
+    };
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -1144,6 +1362,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(read) = crate::flock_read::flock_read() {
             read.save(&directory)?;
         }
+        if let Some(read) = crate::flock_read_content::content_read() {
+            read.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -1198,6 +1419,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some((read, opt)) = flock.as_mut() {
             opt.step(read, &grads, lr)?;
         }
+        if let Some((content, opt)) = content.as_mut() {
+            opt.step(&content.read, &grads, lr)?;
+        }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
@@ -1247,6 +1471,41 @@ mod tests {
         let mask = [0u8, 0, 1, 1, 0, 1];
         let opens: Vec<bool> = [2, 3, 5].iter().map(|&p| opens_reply(&mask, p)).collect();
         assert_eq!(opens, [true, false, true]);
+    }
+
+    #[test]
+    fn openings_carry_the_prompt_their_window_shows_back_to_the_last_reply() {
+        // BOS, a prompt (10 11 12), a reply (20 21), a prompt (13 14), a reply (22).
+        let tokens = [0u32, 10, 11, 12, 20, 21, 13, 14, 22];
+        let mask = [0u8, 0, 0, 0, 1, 1, 0, 0, 1];
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 16, 0).unwrap();
+        assert_eq!(
+            openings(&windows, &mask),
+            [(vec![10, 11, 12], 20), (vec![13, 14], 22)]
+        );
+    }
+
+    #[test]
+    fn the_bound_names_each_key_by_its_commonest_train_opening() {
+        let train = [
+            (vec![10, 11, 12], 20),
+            (vec![13, 14], 22),
+            (vec![10, 30], 20),
+            (vec![10, 31], 23),
+        ];
+        let dev = [(vec![10, 99], 20), (vec![13, 98], 22), (vec![50], 20)];
+        let decode = |ids: &[u32]| format!("{ids:?}");
+        let first = bound(PromptKey::First(1), &train, &dev, &decode);
+        // Key 10 opens with 20 twice and 23 once; key 13 with 22; key 50 is unseen and takes
+        // TRAIN's commonest opening, 20.
+        assert_eq!(
+            (first.dev_hits, first.dev_unseen, first.train_keys),
+            (3, 1, 2)
+        );
+        assert_eq!(first.top[0].key, "[10]");
+        assert_eq!((first.top[0].train_rows, first.top[0].opening_rows), (3, 2));
+        let none = bound(PromptKey::None, &train, &dev, &decode);
+        assert_eq!((none.dev_hits, none.dev_unseen), (2, 0));
     }
 
     #[cfg(feature = "cuda")]

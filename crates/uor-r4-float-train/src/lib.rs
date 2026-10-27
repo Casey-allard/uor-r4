@@ -12,10 +12,11 @@ use std::fmt;
 
 pub mod cuda_stack_kernels;
 pub mod fbs_export;
+pub mod flock_read;
+pub mod flock_read_content;
 #[path = "geometric_stack_native.rs"]
 pub mod geometric_stack;
 pub mod hamilton_sheet;
-pub mod flock_read;
 pub mod in_space_long;
 pub mod kernel_controls;
 pub mod native_starling_spec;

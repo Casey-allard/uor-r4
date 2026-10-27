@@ -72,9 +72,9 @@ pub fn points(model: &StackModel, ids: &[u32], batch: usize, time: usize) -> Res
 #[derive(Clone)]
 pub struct FlockRead {
     neighbours: usize,
-    query_rotation: Var,
-    key_rotation: Var,
-    weight: Var,
+    pub(crate) query_rotation: Var,
+    pub(crate) key_rotation: Var,
+    pub(crate) weight: Var,
 }
 
 impl FlockRead {
@@ -120,6 +120,11 @@ impl FlockRead {
 
     /// Write the read's parameters to `directory/flock_read.safetensors`, the neighbour count with them.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        self.save_as(directory, FILE)
+    }
+
+    /// Write the read's parameters to `directory/file`, the neighbour count with them.
+    pub(crate) fn save_as(&self, directory: &Path, file: &str) -> Result<()> {
         std::fs::create_dir_all(directory)?;
         let mut tensors = std::collections::HashMap::new();
         for (name, var) in self.variables() {
@@ -127,13 +132,18 @@ impl FlockRead {
         }
         let count = Tensor::new(&[self.neighbours as u32], self.weight.device())?;
         tensors.insert("neighbours".to_owned(), count);
-        candle_core::safetensors::save(&tensors, directory.join(FILE))?;
+        candle_core::safetensors::save(&tensors, directory.join(file))?;
         Ok(())
     }
 
     /// The read saved in `directory`, or none when the checkpoint has no read.
     pub fn load(directory: &Path, device: &Device) -> Result<Option<Self>> {
-        let path = directory.join(FILE);
+        Self::load_from(directory, FILE, device)
+    }
+
+    /// The read saved as `directory/file`, or none when there is no such file.
+    pub(crate) fn load_from(directory: &Path, file: &str, device: &Device) -> Result<Option<Self>> {
+        let path = directory.join(file);
         if !path.exists() {
             return Ok(None);
         }
@@ -157,7 +167,7 @@ impl FlockRead {
     }
 
     /// `hidden` rows rotated lane by lane by `rotation`'s unit quaternions.
-    fn rotate(&self, rotation: &Var, hidden: &Tensor) -> Result<Tensor> {
+    pub(crate) fn rotate(&self, rotation: &Var, hidden: &Tensor) -> Result<Tensor> {
         let gate = rotation
             .as_tensor()
             .reshape((1, hidden.dim(1)?))?
