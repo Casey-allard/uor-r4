@@ -66,6 +66,9 @@ pub struct LongConfig {
     pub fold_scores: bool,
     /// A reflecting floor and clamped ceiling for the rate score (`geometric_stack::set_reflected_floor`).
     pub reflect_floor: bool,
+    /// Keep this many earlier positions in a Flock read on the trunk's points; 0 is no read
+    /// (`flock_read`).
+    pub flock_read: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -79,6 +82,9 @@ pub struct Checkpoint {
     pub step: usize,
     pub epoch: f64,
     pub train_loss_mean: Option<f64>,
+    /// The writer's own DEV panel (`hamilton_sheet::evaluate_dev_panel`): its top-1, top-8 and
+    /// admitted counts, and `dev_loss` with the token and address margins below, read the trunk
+    /// without the Flock read. `dev_nearest` goes through [`crate::flock_read::points`].
     pub dev_top1_hits: usize,
     pub dev_top8_hits: usize,
     pub dev_admitted_hits: usize,
@@ -114,6 +120,9 @@ pub struct Inspection {
     pub query_spread: f64,
     pub query_mean_abs: f64,
     pub table_mean_abs: f64,
+    /// The Flock read's per-coordinate weight, mean of its absolute values, when the checkpoint
+    /// has a read.
+    pub flock_weight_mean_abs: Option<f64>,
 }
 
 /// One fixed DEV prompt with the model's greedy reply and the true reply, as text.
@@ -135,6 +144,7 @@ impl Drop for ArmGuard {
         crate::geometric_stack::set_folded_scores(false);
         crate::geometric_stack::set_reflected_floor(false);
         crate::geometric_stack::set_input_table_fixed(false);
+        crate::flock_read::set_flock_read(None);
     }
 }
 
@@ -267,7 +277,7 @@ fn batch_loss(
     targets: &[u32],
     batch: usize,
 ) -> Result<Tensor> {
-    let hidden = model.hidden(ids, batch, SHEET_CONTEXT)?;
+    let hidden = crate::flock_read::points(model, ids, batch, SHEET_CONTEXT)?;
     let idx = Tensor::from_vec(scored.to_vec(), scored.len(), model.device())?;
     query_loss(model, objective, &hidden.index_select(&idx, 0)?, targets)
 }
@@ -341,7 +351,7 @@ fn nearest_reading(
                 .flat_map(|w| w.scored_corpus_positions.iter())
                 .map(|&p| opens_reply(mask, p))
                 .collect();
-            let hidden = model.hidden(&ids, windows.len(), SHEET_CONTEXT)?;
+            let hidden = crate::flock_read::points(model, &ids, windows.len(), SHEET_CONTEXT)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), model.device())?;
             let query = hidden.index_select(&idx, 0)?.detach();
             let best = nearest_scores(&query, &table)?
@@ -457,7 +467,7 @@ fn greedy_reply(
         for _ in 0..reply_tokens {
             let window = &ids[ids.len().saturating_sub(SHEET_CONTEXT)..];
             let next = if objective == PointObjective::Nearest {
-                let hidden = model.hidden(window, 1, window.len())?;
+                let hidden = crate::flock_read::points(model, window, 1, window.len())?;
                 nearest_scores(&hidden.narrow(0, window.len() - 1, 1)?, &table)?
                     .argmax(1)?
                     .to_vec1::<u32>()?
@@ -577,6 +587,7 @@ pub fn context_reach(
     crate::geometric_stack::set_reflected_floor(reflect_floor);
     let _guard = ArmGuard;
     let model = StackModel::load(checkpoint, device)?;
+    crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(checkpoint, device)?);
     let firsts: Vec<(&CausalWindow, usize)> = dev_windows
         .iter()
         .filter_map(|w| {
@@ -589,7 +600,7 @@ pub fn context_reach(
         .collect();
     hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
         let points = |ids: &[u32], offs: &[usize]| -> Result<Tensor> {
-            let hidden = model.hidden(ids, offs.len(), SHEET_CONTEXT)?;
+            let hidden = crate::flock_read::points(&model, ids, offs.len(), SHEET_CONTEXT)?;
             let idx: Vec<u32> = offs
                 .iter()
                 .enumerate()
@@ -642,7 +653,7 @@ pub fn context_reach(
             .flat_map(|(w, _)| w.input_ids.iter().copied())
             .collect();
         let (_, captured) = crate::secant_descent::with_rate_indices(|| {
-            model.hidden(&ids, probe.len(), SHEET_CONTEXT)
+            crate::flock_read::points(&model, &ids, probe.len(), SHEET_CONTEXT)
         })?;
         let lanes = hs::SHEET_WIDTH / 4;
         let per_layer = probe.len() * SHEET_CONTEXT * lanes;
@@ -716,6 +727,7 @@ pub fn decode_speed(
     crate::geometric_stack::set_reflected_floor(reflect_floor);
     let _guard = ArmGuard;
     let model = StackModel::load(checkpoint, device)?;
+    crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(checkpoint, device)?);
     let source = dev_windows
         .iter()
         .find(|w| w.input_ids.iter().all(|&id| id != hs::SHEET_BOS_ID))
@@ -779,6 +791,7 @@ pub fn inspect_run(
             .unwrap_or_default();
         let step: usize = name.trim_start_matches("step-").parse().unwrap_or(0);
         let model = StackModel::load(&dir, device)?;
+        crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(&dir, device)?);
         let (dev, _) = hs::evaluate_dev_panel(
             &model,
             &dev_windows,
@@ -789,7 +802,7 @@ pub fn inspect_run(
             false,
         )?;
         let query = hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, || {
-            let hidden = model.hidden(&ids, probe.len(), SHEET_CONTEXT)?;
+            let hidden = crate::flock_read::points(&model, &ids, probe.len(), SHEET_CONTEXT)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
             Ok(hidden.index_select(&idx, 0)?)
         })?;
@@ -824,6 +837,10 @@ pub fn inspect_run(
                     .abs()?
                     .mean_all()?,
             )?,
+            flock_weight_mean_abs: match crate::flock_read::flock_read() {
+                Some(read) => Some(scalar(read.weight_mean_abs()?)?),
+                None => None,
+            },
         });
     }
     Ok(readings)
@@ -877,6 +894,13 @@ pub fn gradient_norms(
     crate::geometric_stack::set_input_table_fixed(config.fix_input_table);
     let _guard = ArmGuard;
     let model = build_fbs_model(FbsArm::OneAtomActive, config.seed, device)?;
+    if config.flock_read > 0 {
+        crate::flock_read::set_flock_read(Some(crate::flock_read::FlockRead::new(
+            config.flock_read,
+            hs::SHEET_WIDTH,
+            device,
+        )?));
+    }
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
     let (ids, scored, targets) = assemble(&windows);
     let grads = hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
@@ -913,7 +937,7 @@ pub fn gradient_norms(
         .ok_or_else(|| invalid("the model has no shared vector table"))?;
     let output_side =
         hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
-            let hidden = model.hidden(&ids, config.batch, SHEET_CONTEXT)?;
+            let hidden = crate::flock_read::points(&model, &ids, config.batch, SHEET_CONTEXT)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
             let query = hidden.index_select(&idx, 0)?.detach();
             Ok(query_loss(&model, config.objective, &query, &targets)?.backward()?)
@@ -995,6 +1019,15 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     crate::geometric_stack::set_input_table_fixed(config.fix_input_table);
     let _guard = ArmGuard;
     let model = build_fbs_model(FbsArm::OneAtomActive, config.seed, device)?;
+    // The Flock read, when on: its own parameters and optimizer, applied by `points`.
+    let flock = if config.flock_read > 0 {
+        let read = crate::flock_read::FlockRead::new(config.flock_read, hs::SHEET_WIDTH, device)?;
+        crate::flock_read::set_flock_read(Some(read.clone()));
+        Some((read.clone(), crate::flock_read::FlockAdamW::new(&read)?))
+    } else {
+        None
+    };
+    let mut flock = flock;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -1106,7 +1139,11 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                 ),
             )?;
         }
-        model.save(&save_root.join(format!("step-{step:06}")))?;
+        let directory = save_root.join(format!("step-{step:06}"));
+        model.save(&directory)?;
+        if let Some(read) = crate::flock_read::flock_read() {
+            read.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -1158,6 +1195,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         };
         let lr = config.lr + (config.lr_end - config.lr) * progress;
         opt_main.update_filtered(&model, &grads, lr, |name| !name.ends_with("rec.decay"))?;
+        if let Some((read, opt)) = flock.as_mut() {
+            opt.step(read, &grads, lr)?;
+        }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
