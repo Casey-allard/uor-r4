@@ -72,6 +72,9 @@ pub struct LongConfig {
     /// Keep this many earlier positions in a content-keyed read inside the trunk; 0 is no read
     /// (`flock_read_content`).
     pub content_read: usize,
+    /// Hamming flock attention with this many heads after layer 2 and on the readout; 0 is no read
+    /// (`flock_read_hamming`).
+    pub hamming_read: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -129,6 +132,8 @@ pub struct Inspection {
     pub flock_weight_mean_abs: Option<f64>,
     /// The same for the content read, when the checkpoint has one.
     pub content_weight_mean_abs: Option<f64>,
+    /// The same for the Hamming reads, over both depths, when the checkpoint has them.
+    pub hamming_weight_mean_abs: Option<f64>,
 }
 
 /// One fixed DEV prompt with the model's greedy reply and the true reply, as text.
@@ -152,17 +157,41 @@ impl Drop for ArmGuard {
         crate::geometric_stack::set_input_table_fixed(false);
         crate::flock_read::set_flock_read(None);
         crate::flock_read_content::set_content_read(None);
+        crate::flock_read_hamming::set_hamming_reads(None);
     }
 }
 
-/// Set this thread's Flock read and content read from the checkpoint `directory`, each to none
-/// when the checkpoint has none.
+/// Set this thread's Flock read, content read and Hamming reads from the checkpoint `directory`,
+/// each to none when the checkpoint has none.
 fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(directory, device)?);
     crate::flock_read_content::set_content_read(crate::flock_read_content::ContentRead::load(
         directory, device,
     )?);
+    crate::flock_read_hamming::set_hamming_reads(crate::flock_read_hamming::HammingReads::load(
+        directory, device,
+    )?);
     Ok(())
+}
+
+/// The Hamming reads `config` asks for, set on this thread, with their optimizer; none when off.
+fn start_hamming(
+    config: &LongConfig,
+    device: &Device,
+) -> Result<
+    Option<(
+        crate::flock_read_hamming::HammingReads,
+        crate::flock_read::FlockAdamW,
+    )>,
+> {
+    if config.hamming_read == 0 {
+        return Ok(None);
+    }
+    let reads =
+        crate::flock_read_hamming::HammingReads::new(config.hamming_read, hs::SHEET_WIDTH, device)?;
+    crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
+    let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
+    Ok(Some((reads, opt)))
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -1027,13 +1056,340 @@ pub fn inspect_run(
                 Some(content) => Some(scalar(content.read.weight_mean_abs()?)?),
                 None => None,
             },
+            hamming_weight_mean_abs: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) => Some(scalar(reads.weight_mean_abs()?)?),
+                None => None,
+            },
         });
     }
     Ok(readings)
 }
 
-/// The pinned TRAIN split's windows with at least 4 scored targets, each context-long; at least
-/// `batch` of them.
+/// Key, value and filler token ranges for the recall task: disjoint, and clear of BOS (0).
+pub const RECALL_KEYS: std::ops::Range<u32> = 16..528;
+pub const RECALL_VALUES: std::ops::Range<u32> = 528..1_040;
+pub const RECALL_FILLER: std::ops::Range<u32> = 1_040..4_096;
+/// The recall task's query distance buckets, `d = q − p`, each drawn uniformly inside.
+pub const RECALL_BUCKETS: [(usize, usize); 4] = [(2, 8), (9, 32), (33, 96), (97, 180)];
+/// Held-out recall windows scored at each checkpoint.
+pub const RECALL_EVAL_WINDOWS: u64 = 128;
+/// The held-out windows' seed offset. A held-out window equals a training window only if their
+/// generator states collide, which for these seeds needs a training index far past any run.
+const RECALL_EVAL_SEED: u64 = 0x5EED_F00D;
+
+/// One window of the multi-query associative recall task, after
+/// `uor-r4-training/examples/mqar-bench.rs`, and each scored row's distance bucket.
+///
+/// The window is `context` tokens, BOS first. Each pair writes its key at `p` and its value at
+/// `p + 1`. Its query writes the key again at `q = p + d`, with `d` drawn inside the pair's
+/// bucket, and the only scored target, at offset `q`, is the value. Keys, values and filler come
+/// from disjoint ranges. Keys and values are distinct within a window, and pairings are fresh
+/// for every `(seed, index)`, so a value can only be recalled from the context.
+///
+/// The longest bucket is placed first, while the window is empty, so its distances stay uniform.
+/// A window that cannot hold every pair is an error, never a thinner bucket.
+pub fn recall_window(
+    seed: u64,
+    index: u64,
+    context: usize,
+    pairs_per_bucket: usize,
+) -> Result<(CausalWindow, Vec<usize>)> {
+    let mut state = seed
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add(index.wrapping_mul(0xD1B5_4A32_D192_ED03))
+        | 1;
+    let mut next = move || {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    };
+    let draw = |range: &std::ops::Range<u32>, x: u64| {
+        range.start + (x % u64::from(range.end - range.start)) as u32
+    };
+    let mut ids: Vec<u32> = (0..context).map(|_| draw(&RECALL_FILLER, next())).collect();
+    ids[0] = hs::SHEET_BOS_ID;
+    let mut taken = vec![false; context];
+    taken[0] = true;
+    let (mut keys, mut values) = (Vec::new(), Vec::new());
+    let mut rows: Vec<(usize, u32, usize)> = Vec::new();
+    for (bucket, &(low, high)) in RECALL_BUCKETS.iter().enumerate().rev() {
+        let (mut placed, mut tries) = (0, 0);
+        while placed < pairs_per_bucket && tries < 10_000 {
+            tries += 1;
+            let d = low + (next() % (high - low + 1) as u64) as usize;
+            if d + 3 >= context {
+                continue;
+            }
+            let p = 1 + (next() % (context - d - 2) as u64) as usize;
+            let q = p + d;
+            if [p, p + 1, q, q + 1]
+                .iter()
+                .any(|&i| i >= context || taken[i])
+            {
+                continue;
+            }
+            let (key, value) = (draw(&RECALL_KEYS, next()), draw(&RECALL_VALUES, next()));
+            if keys.contains(&key) || values.contains(&value) {
+                continue;
+            }
+            for i in [p, p + 1, q, q + 1] {
+                taken[i] = true;
+            }
+            (ids[p], ids[p + 1], ids[q], ids[q + 1]) = (key, value, key, value);
+            keys.push(key);
+            values.push(value);
+            rows.push((q, value, bucket));
+            placed += 1;
+        }
+        if placed < pairs_per_bucket {
+            return Err(invalid(format!(
+                "a {context}-token recall window holds only {placed} of {pairs_per_bucket} pairs in bucket {low}-{high}"
+            )));
+        }
+    }
+    rows.sort_unstable();
+    let base = index as usize * context;
+    let window = CausalWindow {
+        doc_id: index as usize,
+        input_ids: ids,
+        scored_offsets: rows.iter().map(|r| r.0).collect(),
+        scored_targets: rows.iter().map(|r| r.1).collect(),
+        scored_corpus_positions: rows.iter().map(|r| base + r.0 + 1).collect(),
+    };
+    Ok((window, rows.iter().map(|r| r.2).collect()))
+}
+
+/// One recall checkpoint's reading, one line of `recall.jsonl` ([`run_recall`]).
+#[derive(Clone, Debug, Serialize)]
+pub struct RecallReading {
+    pub step: usize,
+    pub train_loss_mean: Option<f64>,
+    /// Held-out queries per distance bucket ([`RECALL_BUCKETS`]), and how many of them the whole
+    /// table's nearest token to the predicted point names right.
+    pub rows: [usize; 4],
+    pub hits: [usize; 4],
+    pub train_seconds: f64,
+    pub train_context_tokens_per_second: f64,
+    /// Each read's weight, mean of its absolute values, when the run has that read.
+    pub content_weight_mean_abs: Option<f64>,
+    pub hamming_weight_mean_abs: Option<f64>,
+    /// The Hamming reads' margins in bits, read by read and head by head: a margin below every
+    /// distance weighs nothing and gets no gradient back.
+    pub hamming_margins: Option<Vec<f64>>,
+}
+
+/// Recall hits per bucket on the held-out `windows`, decoded as the whole table's nearest token.
+fn recall_hits(
+    model: &StackModel,
+    windows: &[(CausalWindow, Vec<usize>)],
+    seed: u64,
+) -> Result<([usize; 4], [usize; 4])> {
+    let table = table(model)?;
+    let (mut rows, mut hits) = ([0usize; 4], [0usize; 4]);
+    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
+        for chunk in windows.chunks(16) {
+            let refs: Vec<&CausalWindow> = chunk.iter().map(|(w, _)| w).collect();
+            let (ids, scored, targets) = assemble(&refs);
+            let hidden = crate::flock_read::points(model, &ids, refs.len(), SHEET_CONTEXT)?;
+            let idx = Tensor::from_vec(scored, targets.len(), model.device())?;
+            let picks = nearest_scores(&hidden.index_select(&idx, 0)?, &table)?
+                .argmax(1)?
+                .to_vec1::<u32>()?;
+            let buckets = chunk.iter().flat_map(|(_, b)| b.iter().copied());
+            for ((pick, target), bucket) in picks.iter().zip(&targets).zip(buckets) {
+                rows[bucket] += 1;
+                hits[bucket] += usize::from(pick == target);
+            }
+        }
+        Ok(())
+    })?;
+    Ok((rows, hits))
+}
+
+/// Train the trunk on the recall task, fresh windows every step, with `config`'s reads and
+/// optimizer settings as [`run_long`] uses them, scoring held-out recall per distance bucket
+/// every `eval_every` steps into `out/recall.jsonl`.
+pub fn run_recall(
+    out: &Path,
+    config: &LongConfig,
+    pairs_per_bucket: usize,
+    device: &Device,
+) -> Result<()> {
+    if config.steps == 0 || config.batch == 0 || config.eval_every == 0 || pairs_per_bucket == 0 {
+        return Err(invalid(
+            "steps, batch, eval-every and pairs must be positive",
+        ));
+    }
+    if out.exists() {
+        return Err(invalid(format!(
+            "{} exists; a run never writes over one",
+            out.display()
+        )));
+    }
+    fs::create_dir_all(out)?;
+    fs::write(out.join("config.json"), serde_json::to_vec_pretty(config)?)?;
+    // The task itself, for the record: `config.json` holds only the runner's settings.
+    let task =
+        serde_json::json!({ "pairs_per_bucket": pairs_per_bucket, "context": SHEET_CONTEXT });
+    fs::write(out.join("recall.json"), serde_json::to_vec_pretty(&task)?)?;
+    arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
+    crate::geometric_stack::set_retention_rates(config.retain_rates);
+    crate::geometric_stack::set_folded_scores(config.fold_scores);
+    crate::geometric_stack::set_reflected_floor(config.reflect_floor);
+    crate::geometric_stack::set_input_table_fixed(config.fix_input_table);
+    let _guard = ArmGuard;
+    let model = build_fbs_model(FbsArm::OneAtomActive, config.seed, device)?;
+    let mut flock = if config.flock_read > 0 {
+        let read = crate::flock_read::FlockRead::new(config.flock_read, hs::SHEET_WIDTH, device)?;
+        crate::flock_read::set_flock_read(Some(read.clone()));
+        let opt = crate::flock_read::FlockAdamW::new(&read)?;
+        Some((read, opt))
+    } else {
+        None
+    };
+    let mut content = if config.content_read > 0 {
+        let read = crate::flock_read_content::ContentRead::new(
+            config.content_read,
+            hs::SHEET_WIDTH,
+            device,
+        )?;
+        crate::flock_read_content::set_content_read(Some(read.clone()));
+        let opt = crate::flock_read::FlockAdamW::new(&read.read)?;
+        Some((read, opt))
+    } else {
+        None
+    };
+    // The Hamming reads, when on: their own optimizer, applied inside the trunk.
+    let mut hamming = start_hamming(config, device)?;
+    let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
+    let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
+    let held_out: Vec<(CausalWindow, Vec<usize>)> = (0..RECALL_EVAL_WINDOWS)
+        .map(|i| {
+            recall_window(
+                config.seed ^ RECALL_EVAL_SEED,
+                i,
+                SHEET_CONTEXT,
+                pairs_per_bucket,
+            )
+        })
+        .collect::<Result<_>>()?;
+    let log = out.join("recall.jsonl");
+    let (mut train_seconds, mut loss_sum, mut loss_steps) = (0.0f64, 0.0f64, 0usize);
+    let reading = |step: usize, loss: Option<f64>, seconds: f64| -> Result<()> {
+        let (rows, hits) = recall_hits(&model, &held_out, config.seed)?;
+        let context_tokens = (step * config.batch * SHEET_CONTEXT) as f64;
+        let scalar = |t: Tensor| -> Result<f64> { Ok(f64::from(t.to_scalar::<f32>()?)) };
+        let line = RecallReading {
+            step,
+            train_loss_mean: loss,
+            rows,
+            hits,
+            train_seconds: seconds,
+            train_context_tokens_per_second: if seconds > 0.0 {
+                context_tokens / seconds
+            } else {
+                0.0
+            },
+            content_weight_mean_abs: match crate::flock_read_content::content_read() {
+                Some(read) => Some(scalar(read.read.weight_mean_abs()?)?),
+                None => None,
+            },
+            hamming_weight_mean_abs: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) => Some(scalar(reads.weight_mean_abs()?)?),
+                None => None,
+            },
+            hamming_margins: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) => Some(reads.margins()?),
+                None => None,
+            },
+        };
+        println!(
+            "[recall] step {step} hits {:?} of {:?} train {seconds:.0}s",
+            line.hits, line.rows
+        );
+        append_line(&log, &serde_json::to_string(&line)?)
+    };
+    reading(0, None, 0.0)?;
+    for step in 0..config.steps {
+        let windows: Vec<CausalWindow> = (0..config.batch)
+            .map(|b| {
+                recall_window(
+                    config.seed,
+                    (step * config.batch + b) as u64,
+                    SHEET_CONTEXT,
+                    pairs_per_bucket,
+                )
+                .map(|(window, _)| window)
+            })
+            .collect::<Result<_>>()?;
+        let refs: Vec<&CausalWindow> = windows.iter().collect();
+        let (ids, scored, targets) = assemble(&refs);
+        let started = Instant::now();
+        let (value, grads) = hs::with_gate_mode(
+            HamiltonArm::HamiltonActive,
+            config.seed,
+            step + 1,
+            false,
+            || {
+                let loss = batch_loss(
+                    &model,
+                    config.objective,
+                    &ids,
+                    &scored,
+                    &targets,
+                    config.batch,
+                )?;
+                let value = f64::from(loss.to_scalar::<f32>()?);
+                if !value.is_finite() {
+                    return Err(invalid(format!("non-finite recall loss at step {step}")));
+                }
+                Ok((value, loss.backward()?))
+            },
+        )?;
+        let progress = if config.steps == 1 {
+            1.0
+        } else {
+            step as f64 / (config.steps - 1) as f64
+        };
+        let lr = config.lr + (config.lr_end - config.lr) * progress;
+        opt_main.update_filtered(&model, &grads, lr, |name| !name.ends_with("rec.decay"))?;
+        if let Some((read, opt)) = flock.as_mut() {
+            opt.step(read, &grads, lr)?;
+        }
+        if let Some((read, opt)) = content.as_mut() {
+            opt.step(&read.read, &grads, lr)?;
+        }
+        if let Some((reads, opt)) = hamming.as_mut() {
+            opt.step_vars(&reads.variables(), &grads, lr)?;
+        }
+        opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
+            name.ends_with("rec.decay")
+        })?;
+        device.synchronize()?;
+        train_seconds += started.elapsed().as_secs_f64();
+        loss_sum += value;
+        loss_steps += 1;
+        if (step + 1) % config.eval_every == 0 || step + 1 == config.steps {
+            reading(step + 1, Some(loss_sum / loss_steps as f64), train_seconds)?;
+            (loss_sum, loss_steps) = (0.0, 0);
+        }
+    }
+    // The final model and its reads, for the record and for any later reading.
+    let directory = out.join(format!("models/step-{:06}", config.steps));
+    model.save(&directory)?;
+    if let Some(read) = crate::flock_read::flock_read() {
+        read.save(&directory)?;
+    }
+    if let Some(read) = crate::flock_read_content::content_read() {
+        read.save(&directory)?;
+    }
+    if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
+        reads.save(&directory)?;
+    }
+    Ok(())
+}
+
 /// The pinned tokenizer.
 fn pinned_tokenizer(data_root: &Path) -> Result<ByteBpeTokenizer> {
     let tokenizer_bytes = fs::read(data_root.join("tokenizer.json"))?;
@@ -1060,6 +1416,8 @@ fn load_train_split(data_root: &Path) -> Result<(Vec<u32>, Vec<u8>)> {
     )
 }
 
+/// The pinned TRAIN split's windows with at least 4 scored targets, each context-long; at least
+/// `batch` of them.
 fn load_train(data_root: &Path, batch: usize) -> Result<Vec<CausalWindow>> {
     let (train_tokens, train_mask) = load_train_split(data_root)?;
     let (train_windows, _) =
@@ -1113,6 +1471,7 @@ pub fn gradient_norms(
             )?,
         ));
     }
+    let _hamming = start_hamming(config, device)?;
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
     let (ids, scored, targets) = assemble(&windows);
     let grads = hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
@@ -1246,6 +1605,8 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     } else {
         None
     };
+    // The Hamming reads, when on: their own optimizer, applied inside the trunk.
+    let mut hamming = start_hamming(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -1365,6 +1726,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(read) = crate::flock_read_content::content_read() {
             read.save(&directory)?;
         }
+        if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
+            reads.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -1422,6 +1786,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some((content, opt)) = content.as_mut() {
             opt.step(&content.read, &grads, lr)?;
         }
+        if let Some((reads, opt)) = hamming.as_mut() {
+            opt.step_vars(&reads.variables(), &grads, lr)?;
+        }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
@@ -1471,6 +1838,73 @@ mod tests {
         let mask = [0u8, 0, 1, 1, 0, 1];
         let opens: Vec<bool> = [2, 3, 5].iter().map(|&p| opens_reply(&mask, p)).collect();
         assert_eq!(opens, [true, false, true]);
+    }
+
+    #[test]
+    fn a_recall_query_names_the_value_after_its_keys_only_earlier_copy() {
+        for index in 0..64 {
+            let (w, buckets) = recall_window(7, index, SHEET_CONTEXT, 4).unwrap();
+            assert_eq!(w.input_ids.len(), SHEET_CONTEXT);
+            assert_eq!(w.input_ids[0], hs::SHEET_BOS_ID);
+            assert_eq!(w.scored_offsets.len(), 16, "window {index}");
+            let rows = w.scored_offsets.iter().zip(&w.scored_targets).zip(&buckets);
+            for ((&q, &value), &bucket) in rows {
+                let key = w.input_ids[q];
+                assert!(RECALL_KEYS.contains(&key) && RECALL_VALUES.contains(&value));
+                let earlier: Vec<usize> = (0..q).filter(|&i| w.input_ids[i] == key).collect();
+                assert_eq!(earlier.len(), 1, "window {index}, query {q}");
+                let p = earlier[0];
+                assert_eq!((w.input_ids[p + 1], w.input_ids[q + 1]), (value, value));
+                let (low, high) = RECALL_BUCKETS[bucket];
+                assert!((low..=high).contains(&(q - p)), "d = {} in {bucket}", q - p);
+            }
+            // No two pairs share a value, so a value names one key only.
+            let mut values = w.scored_targets.clone();
+            values.sort_unstable();
+            values.dedup();
+            assert_eq!(values.len(), w.scored_targets.len(), "window {index}");
+            let pair_positions = 4 * w.scored_offsets.len();
+            let filler = w
+                .input_ids
+                .iter()
+                .filter(|t| RECALL_FILLER.contains(t))
+                .count();
+            assert_eq!(filler + pair_positions + 1, SHEET_CONTEXT);
+        }
+    }
+
+    #[test]
+    fn a_window_too_small_for_its_pairs_is_refused_and_far_distances_stay_uniform() {
+        // 12 pairs per bucket need 192 positions of a 192-token window that also holds BOS.
+        assert!(recall_window(1, 0, SHEET_CONTEXT, 12).is_err());
+        // The longest bucket is placed first, so even a crowded window (8 pairs per bucket, 128 of
+        // 192 positions) fills it, with distances uniform over 97..=180. Placed last, it underfills.
+        let mut far = Vec::new();
+        for index in 0..256 {
+            let (w, buckets) = recall_window(3, index, SHEET_CONTEXT, 8).unwrap();
+            for (&q, &bucket) in w.scored_offsets.iter().zip(&buckets) {
+                if bucket == 3 {
+                    let key = w.input_ids[q];
+                    let p = (0..q).find(|&i| w.input_ids[i] == key).unwrap();
+                    far.push((q - p) as f64);
+                }
+            }
+        }
+        let mean = far.iter().sum::<f64>() / far.len() as f64;
+        assert!((mean - 138.5).abs() < 6.0, "mean far distance {mean}");
+    }
+
+    #[test]
+    fn recall_windows_are_seeded_and_fresh_per_index() {
+        let ids = |seed, index| {
+            recall_window(seed, index, SHEET_CONTEXT, 4)
+                .unwrap()
+                .0
+                .input_ids
+        };
+        assert_eq!(ids(1, 3), ids(1, 3));
+        assert_ne!(ids(1, 3), ids(1, 4));
+        assert_ne!(ids(1, 3), ids(2, 3));
     }
 
     #[test]

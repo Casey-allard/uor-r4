@@ -186,39 +186,7 @@ impl FlockRead {
         batch: usize,
         time: usize,
     ) -> Result<(Tensor, Tensor)> {
-        let device = query.device();
-        let kept = self.neighbours.min(time.saturating_sub(1)).max(1);
-        let earlier: Vec<u8> = (0..time * time)
-            .map(|i| u8::from(i % time < i / time))
-            .collect();
-        let earlier = Tensor::from_vec(earlier, (time, time), device)?;
-        let far = Tensor::full(FAR, (time, time), device)?;
-        let columns = Tensor::arange(0u32, time as u32, device)?
-            .unsqueeze(0)?
-            .broadcast_as((time, time))?;
-        let (query, key) = (query.detach(), key.detach());
-        let (mut picks, mut real) = (Vec::with_capacity(batch), Vec::with_capacity(batch));
-        for b in 0..batch {
-            let q = query.narrow(0, b * time, time)?;
-            let k = key.narrow(0, b * time, time)?;
-            let distance = q
-                .unsqueeze(1)?
-                .broadcast_sub(&k.unsqueeze(0)?)?
-                .abs()?
-                .mean(2)?;
-            let mut left = earlier.where_cond(&distance, &far)?;
-            let offset = Tensor::new(&[(b * time) as u32], device)?;
-            let (mut at_all, mut ok_all) = (Vec::with_capacity(kept), Vec::with_capacity(kept));
-            for _ in 0..kept {
-                let at = left.argmin_keepdim(1)?;
-                ok_all.push(left.gather(&at, 1)?.lt(FAR / 2.0)?);
-                left = columns.broadcast_eq(&at)?.where_cond(&far, &left)?;
-                at_all.push(at.broadcast_add(&offset)?);
-            }
-            picks.push(Tensor::cat(&at_all, 1)?);
-            real.push(Tensor::cat(&ok_all, 1)?);
-        }
-        Ok((Tensor::cat(&picks, 0)?, Tensor::cat(&real, 0)?))
+        choose_nearest(query, key, batch, time, self.neighbours)
     }
 
     /// The read applied to `hidden` rows `(batch * time, width)` of the windows `ids`, against the
@@ -274,6 +242,52 @@ impl FlockRead {
     }
 }
 
+/// For each row of `query` (`batch` windows of `time`), the global row indices of the
+/// `neighbours` earlier keys nearest it in mean L1, `(batch * time, kept)`, and which of them are
+/// real, `(batch * time, kept)` u8. A row with fewer earlier positions keeps fewer real ones.
+/// Hard, exact and detached: repeated argmin, and the choice carries no gradient.
+pub(crate) fn choose_nearest(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    neighbours: usize,
+) -> Result<(Tensor, Tensor)> {
+    let device = query.device();
+    let kept = neighbours.min(time.saturating_sub(1)).max(1);
+    let earlier: Vec<u8> = (0..time * time)
+        .map(|i| u8::from(i % time < i / time))
+        .collect();
+    let earlier = Tensor::from_vec(earlier, (time, time), device)?;
+    let far = Tensor::full(FAR, (time, time), device)?;
+    let columns = Tensor::arange(0u32, time as u32, device)?
+        .unsqueeze(0)?
+        .broadcast_as((time, time))?;
+    let (query, key) = (query.detach(), key.detach());
+    let (mut picks, mut real) = (Vec::with_capacity(batch), Vec::with_capacity(batch));
+    for b in 0..batch {
+        let q = query.narrow(0, b * time, time)?;
+        let k = key.narrow(0, b * time, time)?;
+        let distance = q
+            .unsqueeze(1)?
+            .broadcast_sub(&k.unsqueeze(0)?)?
+            .abs()?
+            .mean(2)?;
+        let mut left = earlier.where_cond(&distance, &far)?;
+        let offset = Tensor::new(&[(b * time) as u32], device)?;
+        let (mut at_all, mut ok_all) = (Vec::with_capacity(kept), Vec::with_capacity(kept));
+        for _ in 0..kept {
+            let at = left.argmin_keepdim(1)?;
+            ok_all.push(left.gather(&at, 1)?.lt(FAR / 2.0)?);
+            left = columns.broadcast_eq(&at)?.where_cond(&far, &left)?;
+            at_all.push(at.broadcast_add(&offset)?);
+        }
+        picks.push(Tensor::cat(&at_all, 1)?);
+        real.push(Tensor::cat(&ok_all, 1)?);
+    }
+    Ok((Tensor::cat(&picks, 0)?, Tensor::cat(&real, 0)?))
+}
+
 /// AdamW for the read's three parameters, in tensor arithmetic on their device, with the trunk's
 /// constants (beta1 0.9, beta2 0.95, epsilon 1e-8) and its own global-norm clip at 1. No weight
 /// decay: [`hamilton_gate`] divides each quaternion by its norm, so the rotations stay unit whatever
@@ -291,12 +305,17 @@ pub const FLOCK_CLIP: f64 = 1.0;
 
 impl FlockAdamW {
     pub fn new(read: &FlockRead) -> Result<Self> {
-        let zeros = |v: &Var| v.as_tensor().zeros_like();
+        Self::for_vars(&read.variables().map(|(_, var)| var))
+    }
+
+    /// The same optimizer over any list of parameters, stepped with [`FlockAdamW::step_vars`] in
+    /// the same order.
+    pub fn for_vars(vars: &[&Var]) -> Result<Self> {
         let mut first = Vec::new();
         let mut second = Vec::new();
-        for (_, var) in read.variables() {
-            first.push(zeros(var)?);
-            second.push(zeros(var)?);
+        for var in vars {
+            first.push(var.as_tensor().zeros_like()?);
+            second.push(var.as_tensor().zeros_like()?);
         }
         Ok(Self {
             first,
@@ -308,10 +327,14 @@ impl FlockAdamW {
     /// One update of `read`'s parameters from `grads` at learning rate `lr`. A parameter with no
     /// gradient is left as it is.
     pub fn step(&mut self, read: &FlockRead, grads: &GradStore, lr: f64) -> Result<()> {
-        let present: Vec<Option<Tensor>> = read
-            .variables()
+        self.step_vars(&read.variables().map(|(_, var)| var), grads, lr)
+    }
+
+    /// One update of `vars` (the list [`FlockAdamW::for_vars`] was built with) from `grads`.
+    pub fn step_vars(&mut self, vars: &[&Var], grads: &GradStore, lr: f64) -> Result<()> {
+        let present: Vec<Option<Tensor>> = vars
             .iter()
-            .map(|(_, var)| grads.get(var.as_tensor()).cloned())
+            .map(|var| grads.get(var.as_tensor()).cloned())
             .collect();
         let mut squared = 0.0f64;
         for grad in present.iter().flatten() {
@@ -329,7 +352,7 @@ impl FlockAdamW {
         self.step += 1;
         let correct1 = 1.0 - FLOCK_BETA1.powi(self.step);
         let correct2 = 1.0 - FLOCK_BETA2.powi(self.step);
-        for (i, ((_, var), grad)) in read.variables().iter().zip(&present).enumerate() {
+        for (i, (var, grad)) in vars.iter().zip(&present).enumerate() {
             let Some(grad) = grad else { continue };
             let grad = grad.affine(scale, 0.0)?;
             self.first[i] = self.first[i]

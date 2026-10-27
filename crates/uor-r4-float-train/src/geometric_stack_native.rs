@@ -1128,8 +1128,34 @@ impl StackModel {
                     x = q16(read.apply(&x, ids, &table)?)?;
                 }
             }
+            // The Hamming read inside the stream (claude-146), when set on this thread: after
+            // layer 2, keyed on the input tokens' own points.
+            if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
+                if let Some(read) = reads.at_depth(layer + 1) {
+                    let table = self
+                        .variables()
+                        .get("embedding.weight")
+                        .ok_or_else(|| invalid("the model has no shared vector table"))?
+                        .as_tensor()
+                        .clone();
+                    x = q16(read.apply(&x, ids, &table)?)?;
+                }
+            }
         }
-        let x = self.norm(&p, &x, "final_norm.weight")?;
+        let mut x = self.norm(&p, &x, "final_norm.weight")?;
+        // The Hamming readout (claude-146): where a copy head found an earlier copy of the current
+        // token, the decoded point moves toward the point of the token that followed it.
+        if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
+            if let Some(read) = reads.readout() {
+                let table = self
+                    .variables()
+                    .get("embedding.weight")
+                    .ok_or_else(|| invalid("the model has no shared vector table"))?
+                    .as_tensor()
+                    .clone();
+                x = read.apply_readout(&x, ids, &table)?;
+            }
+        }
         Ok(x.reshape((batch * time, self.config.width))?)
     }
     fn mlp(&self, p: &Params<'_>, layer: usize, x: &Tensor) -> Result<Tensor> {
