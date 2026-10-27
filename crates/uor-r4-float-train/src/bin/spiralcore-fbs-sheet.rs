@@ -47,7 +47,7 @@
 
 use std::collections::BTreeMap;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use candle_core::Device;
 use uor_r4_float_train::spiralcore_fbs_sheet::{
@@ -60,7 +60,7 @@ use uor_r4_float_train::{FloatTrainError, Result};
 
 /// The options of `d11-artifact-gap`, `d11-train-probe`, `d11-train-export`, `d11-residual`,
 /// `d11-snap-trace`, `d11-forced-snaps` and `d11-forced-summary`.
-const GAP_OPTIONS: [&str; 17] = [
+const GAP_OPTIONS: [&str; 20] = [
     "--expect-unforced",
     "--receipts",
     "--faithful",
@@ -78,7 +78,41 @@ const GAP_OPTIONS: [&str; 17] = [
     "--trace",
     "--windows-count",
     "--stored-run",
+    "--steps",
+    "--preds-d11-out",
+    "--preds-artifact-out",
 ];
+
+/// The one dose the longer-dual sheet registers besides the default.
+const LONGER_STEPS: usize = 2_048;
+
+fn train_steps(extra: &BTreeMap<String, String>, mode: &str) -> Result<usize> {
+    if extra.contains_key("--steps")
+        && !matches!(
+            mode,
+            "d11-train-probe" | "d11-train-export" | "d11-artifact-gap" | "d11-residual"
+        )
+    {
+        return Err(FloatTrainError::Invalid(format!(
+            "--steps is not valid for {mode}"
+        )));
+    }
+    let steps = extra
+        .get("--steps")
+        .map(|value| {
+            value
+                .parse::<usize>()
+                .map_err(|_| FloatTrainError::Invalid("--steps must be an integer".to_owned()))
+        })
+        .transpose()?
+        .unwrap_or(1_024);
+    match steps {
+        1_024 | LONGER_STEPS => Ok(steps),
+        _ => Err(FloatTrainError::Invalid(
+            "--steps must be 1024 or 2048".to_owned(),
+        )),
+    }
+}
 
 type Args = (
     String,
@@ -88,7 +122,8 @@ type Args = (
     BTreeMap<String, String>,
 );
 
-/// The options of `d11-residual` (claude-132): every one required but `--stored-d11-preds`.
+/// The options of `d11-residual` (claude-132): every one required but `--stored-d11-preds` and
+/// `--stage4b`.
 #[derive(Debug, PartialEq)]
 struct ResidualArgs {
     model_dir: PathBuf,
@@ -98,6 +133,7 @@ struct ResidualArgs {
     model_sha256: String,
     stored_preds: PathBuf,
     stored_d11_preds: Option<PathBuf>,
+    stage4b: Option<PathBuf>,
     seed: u64,
     label: String,
 }
@@ -117,11 +153,27 @@ fn residual_args(extra: &BTreeMap<String, String>) -> Result<ResidualArgs> {
         model_sha256: option("--model-sha256")?,
         stored_preds: PathBuf::from(option("--stored-preds")?),
         stored_d11_preds: extra.get("--stored-d11-preds").map(PathBuf::from),
+        stage4b: extra.get("--stage4b").map(PathBuf::from),
         seed: option("--seed")?
             .parse()
             .map_err(|_| FloatTrainError::Invalid("--seed must be an integer".to_owned()))?,
         label: option("--label")?,
     })
+}
+
+/// A prediction vector option's path, if the caller supplied it.
+fn prediction_path(extra: &BTreeMap<String, String>, name: &str) -> Option<PathBuf> {
+    extra.get(name).map(PathBuf::from)
+}
+
+/// Writes a receipt's prediction vector to an explicitly requested output, never over a file.
+fn write_prediction(path: &Path, value: &serde_json::Value, option: &str) -> Result<()> {
+    if !value.is_array() {
+        return Err(FloatTrainError::Invalid(format!(
+            "{option} has no prediction vector in this receipt"
+        )));
+    }
+    write_receipt(path, value)
 }
 
 /// `--faithful`'s models, `label:seed` separated by commas (claude-135).
@@ -180,6 +232,8 @@ fn main() -> Result<()> {
     };
     let train_forward =
         TrainForward::parse(extra.get("--train-forward").map_or("d11", String::as_str))?;
+    // Bind and validate the step count before the CUDA device is opened.
+    let steps = train_steps(&extra, &mode)?;
     let device = Device::new_cuda(0)?;
     match mode.as_str() {
         "synthetic-probe" => {
@@ -263,7 +317,7 @@ fn main() -> Result<()> {
             write_receipt(&out, &value)
         }
         "d11-train-probe" => {
-            let value = run_d11_train_probe(&data_root, train_forward, &device)?;
+            let value = run_d11_train_probe(&data_root, train_forward, steps, &device)?;
             println!(
                 "[d11-train-probe] forward={} train_learns={} learns={} train_loss_0={} train_loss_31={} dev_loss_0={} dev_loss_32={} s_per_step={} projected_full_s={} under_one_hour_per_seed={}",
                 value["train_forward"],
@@ -288,6 +342,7 @@ fn main() -> Result<()> {
                 &save_dir,
                 &PathBuf::from(option("--stage4b")?),
                 train_forward,
+                steps,
                 &device,
             )?;
             for s in value["seeds"].as_array().into_iter().flatten() {
@@ -321,9 +376,11 @@ fn main() -> Result<()> {
                 &PathBuf::from(option("--evaluator")?),
                 &option("--windows-sha256")?,
                 &option("--artifact-sha256")?,
+                &option("--model-sha256")?,
                 &PathBuf::from(option("--stage4b")?),
                 &PathBuf::from(option("--stored-preds")?),
                 seed,
+                steps,
                 &device,
             )?;
             println!(
@@ -345,7 +402,17 @@ fn main() -> Result<()> {
                 value["i_dev_denominator"],
                 value["gap_inside_band"],
             );
-            write_receipt(&out, &value)
+            write_receipt(&out, &value)?;
+            if let Some(path) = prediction_path(&extra, "--preds-d11-out") {
+                return Err(FloatTrainError::Invalid(format!(
+                    "d11-artifact-gap has no D11 predictions; {} would be empty",
+                    path.display()
+                )));
+            }
+            if let Some(path) = prediction_path(&extra, "--preds-artifact-out") {
+                write_prediction(&path, &value["preds_artifact"], "--preds-artifact-out")?;
+            }
+            Ok(())
         }
         "d11-residual" => {
             let a = residual_args(&extra)?;
@@ -358,8 +425,10 @@ fn main() -> Result<()> {
                 &a.model_sha256,
                 &a.stored_preds,
                 a.stored_d11_preds.as_deref(),
+                a.stage4b.as_deref(),
                 a.seed,
                 &a.label,
+                steps,
                 &device,
             )?;
             let p = &value["pairs"]["d11_vs_artifact"];
@@ -382,7 +451,14 @@ fn main() -> Result<()> {
                 value["instruments_pass"],
                 value["classification"],
             );
-            write_receipt(&out, &value)
+            write_receipt(&out, &value)?;
+            if let Some(path) = prediction_path(&extra, "--preds-d11-out") {
+                write_prediction(&path, &value["preds_d11"], "--preds-d11-out")?;
+            }
+            if let Some(path) = prediction_path(&extra, "--preds-artifact-out") {
+                write_prediction(&path, &value["preds_artifact"], "--preds-artifact-out")?;
+            }
+            Ok(())
         }
         "d11-snap-trace" => {
             let number = |name: &str| -> Result<u64> {
@@ -493,11 +569,91 @@ mod tests {
     }
 
     #[test]
-    fn the_residual_options_parse_and_only_the_stored_panel_is_optional() -> Result<()> {
+    fn the_train_step_option_accepts_only_the_two_registered_doses() -> Result<()> {
+        let mut extra = BTreeMap::new();
+        assert_eq!(train_steps(&extra, "d11-train-export")?, 1_024);
+        extra.insert("--steps".to_owned(), "2048".to_owned());
+        assert_eq!(train_steps(&extra, "d11-train-export")?, 2_048);
+        for invalid in [
+            "0",
+            "1",
+            "512",
+            "1023",
+            "1025",
+            "2047",
+            "2049",
+            "4096",
+            "not-a-number",
+        ] {
+            extra.insert("--steps".to_owned(), invalid.to_owned());
+            assert!(
+                train_steps(&extra, "d11-train-export").is_err(),
+                "{invalid} must be refused"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_train_step_option_is_rejected_by_modes_that_do_not_consume_it() -> Result<()> {
+        let mut extra = BTreeMap::new();
+        extra.insert("--steps".to_owned(), "2048".to_owned());
+        for mode in [
+            "d11-train-probe",
+            "d11-train-export",
+            "d11-artifact-gap",
+            "d11-residual",
+        ] {
+            assert_eq!(train_steps(&extra, mode)?, 2_048);
+        }
+        for mode in ["full", "d11-export-gap", "d11-snap-trace"] {
+            assert!(train_steps(&extra, mode).is_err(), "{mode}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn every_cli_option_the_prediction_and_stage4b_paths_need_is_parsed() -> Result<()> {
+        for option in [
+            "--stage4b",
+            "--steps",
+            "--model-sha256",
+            "--preds-d11-out",
+            "--preds-artifact-out",
+        ] {
+            assert!(GAP_OPTIONS.contains(&option), "{option} is a CLI option");
+        }
+        let mut extra = residual_extra();
+        extra.insert("--stage4b".to_owned(), "gap.json".to_owned());
+        extra.insert("--preds-d11-out".to_owned(), "d11.json".to_owned());
+        extra.insert(
+            "--preds-artifact-out".to_owned(),
+            "artifact.json".to_owned(),
+        );
+        assert_eq!(
+            residual_args(&extra)?.stage4b,
+            Some(PathBuf::from("gap.json"))
+        );
+        assert_eq!(
+            prediction_path(&extra, "--preds-d11-out"),
+            Some(PathBuf::from("d11.json"))
+        );
+        assert_eq!(
+            prediction_path(&extra, "--preds-artifact-out"),
+            Some(PathBuf::from("artifact.json"))
+        );
+        // The prediction outputs are optional, not residual-required fields.
+        assert_eq!(prediction_path(&BTreeMap::new(), "--preds-d11-out"), None);
+        Ok(())
+    }
+
+    #[test]
+    fn the_residual_options_parse_and_only_the_optional_panels_are_optional() -> Result<()> {
         let mut extra = residual_extra();
         // Every option the mode reads is one the parser accepts.
         assert!(extra.keys().all(|k| GAP_OPTIONS.contains(&k.as_str())));
         assert!(GAP_OPTIONS.contains(&"--stored-d11-preds"));
+        assert!(GAP_OPTIONS.contains(&"--stage4b"));
         // Each option lands in its own field, so no two can be swapped unnoticed.
         assert_eq!(
             residual_args(&extra)?,
@@ -509,6 +665,7 @@ mod tests {
                 model_sha256: "s".to_owned(),
                 stored_preds: PathBuf::from("p.json"),
                 stored_d11_preds: None,
+                stage4b: None,
                 seed: 2,
                 label: "dual-c131".to_owned(),
             }
@@ -517,6 +674,11 @@ mod tests {
         assert_eq!(
             residual_args(&extra)?.stored_d11_preds,
             Some(PathBuf::from("d.json"))
+        );
+        extra.insert("--stage4b".to_owned(), "gap.json".to_owned());
+        assert_eq!(
+            residual_args(&extra)?.stage4b,
+            Some(PathBuf::from("gap.json"))
         );
         for required in residual_extra().keys() {
             let mut missing = residual_extra();

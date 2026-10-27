@@ -738,11 +738,40 @@ fn load_dev(data_root: &Path) -> Result<(Vec<CausalWindow>, usize)> {
     hs::build_document_windows(&dev_tokens, &dev_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)
 }
 
-/// The pinned TRAIN and DEV splits under `data_root`, and the training batches.
+/// The training input preflight: the requested batches and the split's shape.
+#[derive(Clone, Debug, Serialize)]
+pub struct BatchInfo {
+    pub batch_count: usize,
+    pub used_windows: usize,
+    pub usable_windows: usize,
+    pub total_windows: usize,
+    pub train_tokens: usize,
+    pub scored_targets: usize,
+    pub peak_host_rss_bytes: Option<u64>,
+}
+
+/// Peak host resident set size in bytes, read from Linux `/proc/self/status`'s `VmHWM`; `None`
+/// where the kernel does not expose it (the macOS host, for example).
+fn peak_host_rss_bytes() -> Option<u64> {
+    let status = fs::read_to_string("/proc/self/status").ok()?;
+    parse_vm_hwm_kb(&status).map(|kb| kb.saturating_mul(1_024))
+}
+
+/// The peak resident set size in KiB from a `/proc/self/status` text.
+fn parse_vm_hwm_kb(status: &str) -> Option<u64> {
+    status.lines().find_map(|line| {
+        let rest = line.strip_prefix("VmHWM:")?;
+        rest.split_whitespace().next()?.parse().ok()
+    })
+}
+
+/// The pinned TRAIN and DEV splits under `data_root`, the requested training batches (one fresh
+/// batch per step), and the preflight metadata: the whole training split's window counts, the
+/// loaded batch and scored-target counts, the token count, and peak host RSS where available.
 fn load_inputs(
     data_root: &Path,
     batches: usize,
-) -> Result<(Vec<TrainBatch>, Vec<CausalWindow>, usize)> {
+) -> Result<(Vec<TrainBatch>, Vec<CausalWindow>, usize, BatchInfo)> {
     let (train_tokens, train_mask) = hs::load_pinned_uort_split(
         &data_root.join("mw-balp/train/tokens.u16"),
         &data_root.join("mw-balp/train/response_mask.u8"),
@@ -753,6 +782,13 @@ fn load_inputs(
         hs::SHEET_VOCAB,
         hs::SHEET_BOS_ID,
     )?;
+    let (train_windows, _) =
+        hs::build_document_windows(&train_tokens, &train_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let total_windows = train_windows.len();
+    let usable_windows = train_windows
+        .iter()
+        .filter(|window| window.scored_offsets.len() >= 4)
+        .count();
     let (dev_windows, dev_docs) = load_dev(data_root)?;
     let train = hs::build_training_batches(
         &train_tokens,
@@ -762,13 +798,22 @@ fn load_inputs(
         batches,
         hs::SHEET_BOS_ID,
     )?;
-    Ok((train, dev_windows, dev_docs))
+    let info = BatchInfo {
+        batch_count: train.len(),
+        used_windows: train.len() * SHEET_TRAIN_BATCH,
+        usable_windows,
+        total_windows,
+        train_tokens: train_tokens.len(),
+        scored_targets: train.iter().map(|(_, _, targets)| targets.len()).sum(),
+        peak_host_rss_bytes: peak_host_rss_bytes(),
+    };
+    Ok((train, dev_windows, dev_docs, info))
 }
 
 /// Probe (b): 32 steps of the two trained-route arms on `mw-balp/train`, the full DEV panel in
 /// both modes (`I-DEV-Denominator`), route mobility, and the projected full-run wall time.
 pub fn run_throughput_probe(data_root: &Path, device: &Device) -> Result<serde_json::Value> {
-    let (batches, dev_windows, dev_docs) = load_inputs(data_root, 32)?;
+    let (batches, dev_windows, dev_docs, _) = load_inputs(data_root, 32)?;
     let mut runs = Vec::new();
     for arm in [FbsArm::OneAtomActive, FbsArm::TwoAtomMix] {
         let out = run_fbs_arm(arm, 1, 32, &batches, &dev_windows, &[0, 32], device)?;
@@ -1049,7 +1094,7 @@ pub struct FbsSheetReceipt {
 /// `G-Fbs-Sheet-Fit` and `G-Fbs-ExportGap` pass.
 pub fn run_full_sheet(data_root: &Path, device: &Device) -> Result<FbsSheetReceipt> {
     let exactness = export_exactness_check(device, 0x5eed)?;
-    let (batches, dev_windows, dev_docs) = load_inputs(data_root, TRAIN_BATCHES)?;
+    let (batches, dev_windows, dev_docs, _) = load_inputs(data_root, TRAIN_BATCHES)?;
     let targets: Vec<u32> = dev_windows
         .iter()
         .flat_map(|w| w.scored_targets.iter().copied())
@@ -1219,7 +1264,7 @@ pub fn run_d11_export_gap(
     use uor_r4_integer::fbs_snapshot::{write_new_file, FbsReadoutMode};
 
     fs::create_dir(save_dir)?;
-    let (batches, dev_windows, dev_docs) = load_inputs(data_root, TRAIN_BATCHES)?;
+    let (batches, dev_windows, dev_docs, _) = load_inputs(data_root, TRAIN_BATCHES)?;
     let targets: Vec<u32> = dev_windows
         .iter()
         .flat_map(|w| w.scored_targets.iter().copied())
@@ -1459,22 +1504,26 @@ pub fn run_d11_artifact_gap(
     evaluator: &Path,
     windows_sha256: &str,
     artifact_sha256: &str,
+    model_sha256_pin: &str,
     stage4b: &Path,
     stored_preds: &Path,
     seed: u64,
+    steps: usize,
     device: &Device,
 ) -> Result<serde_json::Value> {
     use crate::fbs_export::round_tables_as_exported;
 
-    let (dev_windows, dev_docs) = load_dev(data_root)?;
-    let targets: Vec<u32> = dev_windows
-        .iter()
-        .flat_map(|w| w.scored_targets.iter().copied())
-        .collect();
-    let receipt: serde_json::Value = serde_json::from_slice(&fs::read(stage4b)?)?;
+    let stage4b_bytes = fs::read(stage4b)?;
+    let stage4b_sha256 = sha256_bytes(&stage4b_bytes);
+    let receipt: serde_json::Value = serde_json::from_slice(&stage4b_bytes)?;
     let noise = receipt["noise_band_dev_loss"]
         .as_f64()
         .ok_or_else(|| invalid("the Stage 4b receipt has no noise band"))?;
+    let trained_steps = receipt_trained_steps(&receipt)?;
+    if trained_steps != steps {
+        return Err(invalid("the Stage 4b receipt and evaluation steps differ"));
+    }
+    validate_longer_train_receipt(&receipt, trained_steps)?;
     let stage4b_seed = receipt["seeds"]
         .as_array()
         .and_then(|s| s.iter().find(|v| v["seed"].as_u64() == Some(seed)))
@@ -1484,18 +1533,23 @@ pub fn run_d11_artifact_gap(
         .ok_or_else(|| invalid("the Stage 4b receipt has no float loss"))?;
     let stored: Vec<u32> = serde_json::from_slice(&fs::read(stored_preds)?)?;
 
+    let (dev_windows, dev_docs) = load_dev(data_root)?;
+    let targets: Vec<u32> = dev_windows
+        .iter()
+        .flat_map(|w| w.scored_targets.iter().copied())
+        .collect();
     let loaded = StackModel::load(model_dir, device)?;
-    // I-Save-Load: the saved model's plain panel is claude-126's, row for row.
+    // I-Save-Load: the saved model's plain panel is claude-126's, row for row, at `steps`.
     let (float, float_preds) = hs::evaluate_dev_panel(
         &loaded,
         &dev_windows,
         HamiltonArm::HamiltonActive,
         seed,
-        STEPS,
+        steps,
         false,
         false,
     )?;
-    let loss_float = panel_loss(&loaded, &dev_windows, seed, STEPS, false)?;
+    let loss_float = panel_loss(&loaded, &dev_windows, seed, steps, false)?;
     hs::clear_active_arm();
     let i_save_load = float_preds == stored && (loss_float - stored_loss).abs() <= 1e-6;
 
@@ -1512,10 +1566,13 @@ pub fn run_d11_artifact_gap(
             "the evaluator's run does not cover the DEV windows",
         ));
     }
-    // I-Inputs: the evaluator read the sheet's windows and this seed's pinned artifact.
-    let i_inputs = run.sequences_sha256 == windows_sha256 && run.artifact_sha256 == artifact_sha256;
+    // I-Inputs: the evaluator read the sheet's windows, this seed's pinned artifact and this
+    // model's safetensors file.
     let model_sha256 = sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
     let config_sha256 = sha256_bytes(&fs::read(model_dir.join("config.json"))?);
+    let i_inputs = run.sequences_sha256 == windows_sha256
+        && run.artifact_sha256 == artifact_sha256
+        && model_sha256 == model_sha256_pin;
     let i_verify = run.verify.as_array().is_some_and(|checks| {
         checks.len() == 2
             && checks.iter().all(|c| c["equal"] == serde_json::json!(true))
@@ -1550,12 +1607,16 @@ pub fn run_d11_artifact_gap(
     let within = export_gap_within(noise, loss_float, loss_artifact, &paired);
     let instruments_ok = i_save_load && i_inputs && i_verify && i_dev;
     let net = paired.a_hit_b_miss_c as isize - paired.a_miss_b_hit_b as isize;
+    let preds_artifact_sha256 = preds_sha256(&preds);
     Ok(serde_json::json!({
         "sheet": "docs/harness/prep/d11-exporter-float-trunk-artifact-gap-2026-10-26.md",
         // The sheet the trained models answer to, as their training receipt names it (claude-131).
         "training_sheet": receipt["sheet"],
         "seed": seed,
         "arm": D11_EXPORT_ARM.name(),
+        "trained_steps": trained_steps,
+        "eval_step": steps,
+        "stage4b_sha256": stage4b_sha256,
         "dev_documents": dev_docs,
         "dev_windows": dev_windows.len(),
         "artifact_sha256": run.artifact_sha256,
@@ -1575,7 +1636,8 @@ pub fn run_d11_artifact_gap(
         "net_gap_rows": net,
         "f_i": f_i(paired.a_hit_b_miss_c, paired.a_miss_b_hit_b),
         "within_band": within,
-        "preds_artifact_sha256": preds_sha256(&preds),
+        "preds_artifact": preds,
+        "preds_artifact_sha256": preds_artifact_sha256,
         "preds_float_sha256": preds_sha256(&float_preds),
         "i_save_load": i_save_load,
         "i_inputs": i_inputs,
@@ -1756,6 +1818,133 @@ fn classify_residual(
     }
 }
 
+fn receipt_trained_steps(receipt: &serde_json::Value) -> Result<usize> {
+    if let Some(value) = receipt.get("steps") {
+        return value
+            .as_u64()
+            .map(|steps| steps as usize)
+            .ok_or_else(|| invalid("the training receipt has an invalid steps field"));
+    }
+    let runs = receipt["runs"]
+        .as_array()
+        .ok_or_else(|| invalid("the legacy Stage 4b receipt has no runs or steps"))?;
+    let mut steps = runs.iter().map(|run| {
+        run["steps"]
+            .as_u64()
+            .map(|steps| steps as usize)
+            .ok_or_else(|| invalid("a legacy Stage 4b run has no steps"))
+    });
+    let first = steps
+        .next()
+        .ok_or_else(|| invalid("the legacy Stage 4b receipt has no runs"))??;
+    for run_steps in steps {
+        if run_steps? != first {
+            return Err(invalid("the legacy Stage 4b runs have different steps"));
+        }
+    }
+    Ok(first)
+}
+
+fn validate_longer_train_receipt(receipt: &serde_json::Value, steps: usize) -> Result<()> {
+    if receipt_trained_steps(receipt)? != steps {
+        return Err(invalid("the training receipt and requested steps differ"));
+    }
+    if steps != STEPS && steps != 2_048 {
+        return Err(invalid(
+            "only the 1024 and 2048 training receipts are registered",
+        ));
+    }
+    if receipt.get("steps").is_none() {
+        if steps == STEPS
+            && receipt["sheet"].as_str()
+                == Some("docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md")
+        {
+            return Ok(());
+        }
+        return Err(invalid(
+            "a receipt without top-level steps must be the legacy Stage 4b shape",
+        ));
+    }
+    let forward = TrainForward::parse(
+        receipt["train_forward"]
+            .as_str()
+            .ok_or_else(|| invalid("the training receipt has no train_forward"))?,
+    )?;
+    let expected_sheet = d11_train_sheet(forward, steps)?;
+    for (field, expected) in [
+        ("steps", serde_json::json!(steps)),
+        ("train_batches", serde_json::json!(steps)),
+        (
+            "eval_steps",
+            serde_json::to_value(training_eval_steps(steps)?)?,
+        ),
+        ("sheet", serde_json::json!(expected_sheet)),
+    ] {
+        if receipt.get(field) != Some(&expected) {
+            return Err(invalid(format!(
+                "the training receipt has the wrong or missing {field}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn reloaded_loss_matches(stored: Option<f64>, actual: f64) -> bool {
+    stored.is_none_or(|expected| (actual - expected).abs() <= 1e-6)
+}
+
+/// The Stage 4b training receipt's identity and readings, when a residual check is given one.
+struct Stage4bIdentity {
+    sha256: String,
+    noise_band_dev_loss: f64,
+    training_sheet: Option<String>,
+    trained_steps: usize,
+    loss_float_by_seed: BTreeMap<u64, f64>,
+}
+
+fn read_stage4b_identity(path: &Path) -> Result<Stage4bIdentity> {
+    let bytes = fs::read(path)?;
+    let receipt: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let trained_steps = receipt_trained_steps(&receipt)?;
+    validate_longer_train_receipt(&receipt, trained_steps)?;
+    let mut loss_float_by_seed = BTreeMap::new();
+    for seed in receipt["seeds"]
+        .as_array()
+        .ok_or_else(|| invalid("the Stage 4b receipt has no seeds"))?
+    {
+        loss_float_by_seed.insert(
+            seed["seed"]
+                .as_u64()
+                .ok_or_else(|| invalid("a Stage 4b seed has no id"))?,
+            seed["loss_float"]
+                .as_f64()
+                .ok_or_else(|| invalid("a Stage 4b seed has no float loss"))?,
+        );
+    }
+    Ok(Stage4bIdentity {
+        sha256: sha256_bytes(&bytes),
+        noise_band_dev_loss: receipt["noise_band_dev_loss"]
+            .as_f64()
+            .ok_or_else(|| invalid("the Stage 4b receipt has no noise band"))?,
+        training_sheet: receipt["sheet"].as_str().map(str::to_owned),
+        trained_steps,
+        loss_float_by_seed,
+    })
+}
+
+/// The residual counterfactual: F against D within the paired F_I, and D's panel loss within the
+/// Stage 4b noise band of F's.
+fn residual_counterfactual(
+    noise: f64,
+    loss_float: f64,
+    loss_d11: f64,
+    paired: &PairedDiscordance,
+) -> bool {
+    let net = (paired.a_hit_b_miss_c as isize - paired.a_miss_b_hit_b as isize).unsigned_abs();
+    net <= f_i(paired.a_hit_b_miss_c, paired.a_miss_b_hit_b)
+        && (loss_d11 - loss_float).abs() <= noise
+}
+
 /// The residual check of claude-131's pivot note (claude-132), for one saved model and its
 /// artifact's stored, verified evaluator run, on the GPU.
 /// - **F**, the plain-float panel, which must reproduce `stored_preds` (`I-Save-Load`);
@@ -1766,7 +1955,9 @@ fn classify_residual(
 ///
 /// [`classify_residual`] decides whether the artifact computes its D11 forward: H against A for
 /// the head, D against A row by row and under the paired test for the whole. The Q12 drift
-/// between D's and A's queries says where a departure sits.
+/// between D's and A's queries says where a departure sits. `steps` is the model's trained step,
+/// used for the panels' gate hook; the optional Stage 4b receipt supplies the noise band and
+/// training sheet for the counterfactual.
 #[allow(clippy::too_many_arguments)]
 pub fn run_d11_residual(
     data_root: &Path,
@@ -1777,12 +1968,33 @@ pub fn run_d11_residual(
     model_sha256_pin: &str,
     stored_preds: &Path,
     stored_d11_preds: Option<&Path>,
+    stage4b: Option<&Path>,
     seed: u64,
     label: &str,
+    steps: usize,
     device: &Device,
 ) -> Result<serde_json::Value> {
     use crate::fbs_export::round_tables_as_exported;
 
+    let stage4b = match stage4b {
+        Some(path) => Some(read_stage4b_identity(path)?),
+        None => None,
+    };
+    if let Some(identity) = &stage4b {
+        if identity.trained_steps != steps {
+            return Err(invalid("the Stage 4b receipt and evaluation steps differ"));
+        }
+    }
+    let stored_loss = match &stage4b {
+        Some(identity) => Some(
+            identity
+                .loss_float_by_seed
+                .get(&seed)
+                .copied()
+                .ok_or_else(|| invalid("the Stage 4b receipt has no float loss for this seed"))?,
+        ),
+        None => None,
+    };
     let stored_d11: Option<Vec<u32>> = match stored_d11_preds {
         Some(path) => Some(serde_json::from_slice(&fs::read(path)?)?),
         None => None,
@@ -1801,15 +2013,16 @@ pub fn run_d11_residual(
             &dev_windows,
             HamiltonArm::HamiltonActive,
             seed,
-            STEPS,
+            steps,
             export_mode,
             false,
         )
     };
     let (f_metrics, f_preds) = panel(false)?;
     let (e_metrics, e_preds) = panel(true)?;
+    let loss_float = panel_loss(&loaded, &dev_windows, seed, steps, false)?;
     hs::clear_active_arm();
-    let i_save_load = f_preds == stored;
+    let i_save_load = f_preds == stored && reloaded_loss_matches(stored_loss, loss_float);
 
     let run: EvaluatorRun = serde_json::from_slice(&fs::read(evaluator)?)?;
     let width = loaded.config.width;
@@ -1838,6 +2051,7 @@ pub fn run_d11_residual(
     let i_dev = a_preds.len() == hs::EXPECTED_DEV_ELIGIBLE_TARGETS;
 
     round_tables_as_exported(&loaded)?;
+    let loss_d11 = panel_loss_d11(&loaded, &dev_windows)?;
     let (d_metrics, d_preds) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
     let (_, d_again) = hs::evaluate_dev_panel_d11(&loaded, &dev_windows)?;
     let d_queries = hs::with_d11_mode(|| hs::dev_panel_q12_queries(&loaded, &dev_windows))?;
@@ -1875,6 +2089,16 @@ pub fn run_d11_residual(
     };
     let top1 = |preds: &[u32]| preds.iter().zip(&targets).filter(|(p, t)| p == t).count();
     let d_vs_a = pair("d11", &d_preds, "artifact", &a_preds);
+    let f_vs_d_paired =
+        hs::compute_paired_discordance("float", &f_preds, "d11", &d_preds, &targets, seed);
+    let counterfactual_within_band = stage4b.as_ref().map(|stage4b| {
+        residual_counterfactual(
+            stage4b.noise_band_dev_loss,
+            loss_float,
+            loss_d11,
+            &f_vs_d_paired,
+        )
+    });
     // I-D-Stored: where the model's D11 panel was stored when it was trained (Stage 4b), the
     // recomputed panel is that one, row for row.
     let i_d_stored = stored_d11.as_ref().map(|s| *s == d_preds);
@@ -1903,7 +2127,41 @@ pub fn run_d11_residual(
         a_preds.len(),
         d16_vs_a["within"] == serde_json::json!(true),
     );
-    Ok(serde_json::json!({
+    let preds_d11_sha256 = preds_sha256(&d_preds);
+    let preds_artifact_sha256 = preds_sha256(&a_preds);
+    // Keep the nested summaries out of one large `json!` macro: serde's macro recursion limit
+    // is below the receipt's full nesting.
+    let top1_readings = serde_json::json!({
+        "float": f_metrics.top1_hits,
+        "export_mode": e_metrics.top1_hits,
+        "d11": d_metrics.top1_hits,
+        "d11_q16": d16_metrics.top1_hits,
+        "head_on_artifact_queries": top1(&h_preds),
+        "artifact": top1(&a_preds),
+    });
+    let pairs = serde_json::json!({
+        "d11_vs_artifact": d_vs_a,
+        "head_vs_artifact": pair("head", &h_preds, "artifact", &a_preds),
+        "d11_vs_head": pair("d11", &d_preds, "head", &h_preds),
+        "export_mode_vs_artifact": pair("export_mode", &e_preds, "artifact", &a_preds),
+        "export_mode_vs_d11": pair("export_mode", &e_preds, "d11", &d_preds),
+        "float_vs_d11": pair("float", &f_preds, "d11", &d_preds),
+        "float_vs_artifact": pair("float", &f_preds, "artifact", &a_preds),
+        "d11_q16_vs_artifact": d16_vs_a,
+        "d11_vs_d11_q16": pair("d11", &d_preds, "d11_q16", &d16_preds),
+    });
+    let drift_d11 = drift_summary(&drift, |i| d_preds[i] != a_preds[i]);
+    let drift_d11_q16 = drift_summary(&drift_q16, |i| d16_preds[i] != a_preds[i]);
+    let drift_readings_value = serde_json::json!({
+        "artifact_vs_d11": drift_readings(&a_queries, &d_queries, width)?,
+        "artifact_vs_d11_q16": drift_readings(&a_queries, &d16_queries, width)?,
+        "d11_q16_vs_d11": drift_readings(&d16_queries, &d_queries, width)?,
+    });
+    let rule = serde_json::json!({
+        "faithful_percent": RESIDUAL_FAITHFUL_PERCENT,
+        "departure_percent": RESIDUAL_DEPARTURE_PERCENT,
+    });
+    let mut value = serde_json::json!({
         "sheet": "docs/harness/prep/d11-exporter-float-trunk-investigation-2026-10-26.md",
         "residual_sheet": "docs/harness/prep/d11-exporter-float-trunk-residual-2026-10-26.md",
         "label": label,
@@ -1915,33 +2173,7 @@ pub fn run_d11_residual(
         "artifact_sha256": run.artifact_sha256,
         "windows_sha256": run.sequences_sha256,
         "evaluator_build": run.build,
-        "top1": {
-            "float": f_metrics.top1_hits,
-            "export_mode": e_metrics.top1_hits,
-            "d11": d_metrics.top1_hits,
-            "d11_q16": d16_metrics.top1_hits,
-            "head_on_artifact_queries": top1(&h_preds),
-            "artifact": top1(&a_preds),
-        },
         "d11_q12_oracle_mismatches": d_metrics.q12_i32_oracle_mismatches,
-        "pairs": {
-            "d11_vs_artifact": d_vs_a,
-            "head_vs_artifact": pair("head", &h_preds, "artifact", &a_preds),
-            "d11_vs_head": pair("d11", &d_preds, "head", &h_preds),
-            "export_mode_vs_artifact": pair("export_mode", &e_preds, "artifact", &a_preds),
-            "export_mode_vs_d11": pair("export_mode", &e_preds, "d11", &d_preds),
-            "float_vs_d11": pair("float", &f_preds, "d11", &d_preds),
-            "float_vs_artifact": pair("float", &f_preds, "artifact", &a_preds),
-            "d11_q16_vs_artifact": d16_vs_a,
-            "d11_vs_d11_q16": pair("d11", &d_preds, "d11_q16", &d16_preds),
-        },
-        "q12_drift_d11_vs_artifact": drift_summary(&drift, |i| d_preds[i] != a_preds[i]),
-        "q12_drift_d11_q16_vs_artifact": drift_summary(&drift_q16, |i| d16_preds[i] != a_preds[i]),
-        "drift_readings": {
-            "artifact_vs_d11": drift_readings(&a_queries, &d_queries, width)?,
-            "artifact_vs_d11_q16": drift_readings(&a_queries, &d16_queries, width)?,
-            "d11_q16_vs_d11": drift_readings(&d16_queries, &d_queries, width)?,
-        },
         "d11_q16_q12_oracle_mismatches": d16_metrics.q12_i32_oracle_mismatches,
         "i_head_q16": i_head_q16,
         "classification_q16": classification_q16,
@@ -1954,12 +2186,62 @@ pub fn run_d11_residual(
         "i_d_stored": i_d_stored,
         "instruments_pass": instruments_ok,
         "instruments_pass_q16": instruments_q16_ok,
-        "rule": {
-            "faithful_percent": RESIDUAL_FAITHFUL_PERCENT,
-            "departure_percent": RESIDUAL_DEPARTURE_PERCENT,
-        },
         "classification": classification,
-    }))
+    });
+    {
+        let object = value
+            .as_object_mut()
+            .ok_or_else(|| invalid("the residual receipt is not an object"))?;
+        object.insert(
+            "trained_steps".to_owned(),
+            serde_json::json!(stage4b.as_ref().map(|stage4b| stage4b.trained_steps)),
+        );
+        object.insert(
+            "stored_loss_float".to_owned(),
+            serde_json::json!(stored_loss),
+        );
+        object.insert(
+            "eval_step".to_owned(),
+            serde_json::json!(stage4b.as_ref().map(|_| steps)),
+        );
+        object.insert(
+            "stage4b_sha256".to_owned(),
+            serde_json::json!(stage4b.as_ref().map(|stage4b| stage4b.sha256.clone())),
+        );
+        object.insert(
+            "training_sheet".to_owned(),
+            serde_json::json!(stage4b
+                .as_ref()
+                .and_then(|stage4b| stage4b.training_sheet.clone())),
+        );
+        object.insert("loss_float".to_owned(), serde_json::json!(loss_float));
+        object.insert("loss_d11".to_owned(), serde_json::json!(loss_d11));
+        object.insert(
+            "loss_gap_d11".to_owned(),
+            serde_json::json!(loss_d11 - loss_float),
+        );
+        object.insert(
+            "counterfactual_within_band".to_owned(),
+            serde_json::json!(counterfactual_within_band),
+        );
+        object.insert("top1".to_owned(), top1_readings);
+        object.insert("pairs".to_owned(), pairs);
+        object.insert("q12_drift_d11_vs_artifact".to_owned(), drift_d11);
+        object.insert("q12_drift_d11_q16_vs_artifact".to_owned(), drift_d11_q16);
+        object.insert("drift_readings".to_owned(), drift_readings_value);
+        object.insert("rule".to_owned(), rule);
+        object.insert("preds_d11".to_owned(), serde_json::json!(d_preds));
+        object.insert(
+            "preds_d11_sha256".to_owned(),
+            serde_json::json!(preds_d11_sha256),
+        );
+        object.insert("preds_artifact".to_owned(), serde_json::json!(a_preds));
+        object.insert(
+            "preds_artifact_sha256".to_owned(),
+            serde_json::json!(preds_artifact_sha256),
+        );
+    }
+    Ok(value)
 }
 
 /// The shape of the snap trace (claude-134): per layer, `lanes` transition roots, `lanes` output
@@ -2966,48 +3248,90 @@ fn hex_bytes(text: &str) -> Result<Vec<u8>> {
 }
 
 /// The prep sheet a D11-trained run answers to.
-fn d11_train_sheet(forward: TrainForward) -> Result<&'static str> {
-    match forward {
-        TrainForward::D11 => {
+fn d11_train_sheet(forward: TrainForward, steps: usize) -> Result<&'static str> {
+    match (forward, steps) {
+        (TrainForward::D11, STEPS) => {
             Ok("docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md")
         }
-        TrainForward::Dual => {
+        (TrainForward::Dual, STEPS) => {
             Ok("docs/harness/prep/d11-exporter-float-trunk-dual-train-2026-10-26.md")
         }
-        TrainForward::Plain => Err(invalid(
+        (TrainForward::Dual, 2_048) => {
+            Ok("docs/harness/prep/d11-exporter-float-trunk-longer-dual-2026-10-26.md")
+        }
+        (TrainForward::Dual, _) => Err(invalid(
+            "a dual dose other than 1024 or 2048 has no registered prep sheet",
+        )),
+        (TrainForward::D11, _) => Err(invalid(
+            "a longer D11-only dose has no registered prep sheet",
+        )),
+        (TrainForward::Plain, _) => Err(invalid(
             "plain training is Stage 4b's (d11-export-gap), not a D11-trained run",
         )),
     }
 }
 
-/// Probe (b) of D11-trained training (claude-130, claude-131): 32 steps of [`D11_EXPORT_ARM`] on
-/// seed 1 trained as `forward` says, the DEV panel at steps 0 and 32, and the projected wall time of
-/// the full run (two seeds of [`STEPS`] steps, each evaluated at [`EVAL_STEPS`]). In the dual mode
-/// the training loss is the sum of the plain and D11-mode losses.
+fn training_eval_steps(steps: usize) -> Result<Vec<usize>> {
+    if steps < STEPS {
+        return Err(invalid("training steps must be at least 1024"));
+    }
+    let mut eval_steps = EVAL_STEPS.to_vec();
+    if steps != STEPS {
+        eval_steps.push(steps);
+    }
+    Ok(eval_steps)
+}
+
+/// The steps a `d11-train-probe` runs: the full requested dose is loaded for preflight, the first
+/// 32 of its batches are trained.
+const PROBE_STEPS: usize = 32;
+
+/// The projected wall time of a full run: `steps` fresh batches at `per_step` seconds, and
+/// `eval_count` evaluation points plus the final reload evaluation, each at `eval_seconds` (the
+/// float and export-mode panels already summed).
+fn projected_train_seconds(
+    per_step: f64,
+    eval_seconds: f64,
+    steps: usize,
+    eval_count: usize,
+) -> f64 {
+    per_step * steps as f64 + eval_seconds * (eval_count as f64 + 1.0)
+}
+
+/// Probe (b) of D11-trained training (claude-130, claude-131): the requested full dose's batches
+/// are loaded as a preflight (one fresh batch per step), the first [`PROBE_STEPS`] of them train
+/// [`D11_EXPORT_ARM`] on seed 1 as `forward` says, and the DEV panel is read at steps 0, 1 and 32.
+/// In the dual mode the training loss is the sum of the plain and D11-mode losses.
 pub fn run_d11_train_probe(
     data_root: &Path,
     forward: TrainForward,
+    steps: usize,
     device: &Device,
 ) -> Result<serde_json::Value> {
-    let sheet = d11_train_sheet(forward)?;
-    let (batches, dev_windows, dev_docs) = load_inputs(data_root, 32)?;
+    let sheet = d11_train_sheet(forward, steps)?;
+    let (batches, dev_windows, dev_docs, info) = load_inputs(data_root, steps)?;
+    let probe_batches = batches
+        .get(..PROBE_STEPS)
+        .ok_or_else(|| invalid("the requested dose did not load enough probe batches"))?;
+    let actual_eval_steps = [0usize, 1, PROBE_STEPS];
     let out = run_fbs_arm_with(
         D11_EXPORT_ARM,
         forward,
         1,
-        32,
-        &batches,
+        PROBE_STEPS,
+        probe_batches,
         &dev_windows,
-        &[0, 1, 32],
+        &actual_eval_steps,
         device,
     )?;
     let first = &out.run.eval[0];
     // The evaluation after step 1 carries step 0's D11-mode training loss.
     let after_first = &out.run.eval[1];
     let last = out.run.final_point()?;
-    let per_step = out.run.train_wall_seconds / 32.0;
+    let per_step = out.run.train_wall_seconds / PROBE_STEPS as f64;
     let eval_seconds = last.dev_float.eval_wall_seconds + last.dev_int.eval_wall_seconds;
-    let projected_seed = per_step * STEPS as f64 + eval_seconds * 2.0 * EVAL_STEPS.len() as f64;
+    let eval_steps = training_eval_steps(steps)?;
+    let projected_seed = projected_train_seconds(per_step, eval_seconds, steps, eval_steps.len());
     let train_learns = match (after_first.train_loss, last.train_loss) {
         (Some(a), Some(b)) => b < a,
         _ => false,
@@ -3016,6 +3340,11 @@ pub fn run_d11_train_probe(
         "probe": "d11-train-probe",
         "sheet": sheet,
         "train_forward": forward.name(),
+        "probe_steps": PROBE_STEPS,
+        "target_steps": steps,
+        "actual_eval_steps": actual_eval_steps,
+        "projected_eval_steps": eval_steps,
+        "inputs": info,
         "kernels": kernel_identity(),
         "dev_documents": dev_docs,
         "dev_windows": dev_windows.len(),
@@ -3046,18 +3375,22 @@ pub fn run_d11_train_export(
     save_dir: &Path,
     stage4b: &Path,
     forward: TrainForward,
+    steps: usize,
     device: &Device,
 ) -> Result<serde_json::Value> {
     use crate::fbs_export::fbs_trunk_snapshot;
     use uor_r4_integer::fbs_snapshot::write_new_file;
 
-    let sheet = d11_train_sheet(forward)?;
-    let receipt: serde_json::Value = serde_json::from_slice(&fs::read(stage4b)?)?;
+    let sheet = d11_train_sheet(forward, steps)?;
+    let stage4b_bytes = fs::read(stage4b)?;
+    let stage4b_sha256 = sha256_bytes(&stage4b_bytes);
+    let receipt: serde_json::Value = serde_json::from_slice(&stage4b_bytes)?;
     let noise = receipt["noise_band_dev_loss"]
         .as_f64()
         .ok_or_else(|| invalid("the Stage 4b receipt has no noise band"))?;
+    let eval_steps = training_eval_steps(steps)?;
     fs::create_dir(save_dir)?;
-    let (batches, dev_windows, dev_docs) = load_inputs(data_root, TRAIN_BATCHES)?;
+    let (batches, dev_windows, dev_docs, info) = load_inputs(data_root, steps)?;
     let mut seeds = Vec::new();
     let mut instruments_ok = true;
     for seed in SEEDS {
@@ -3065,32 +3398,38 @@ pub fn run_d11_train_export(
             D11_EXPORT_ARM,
             forward,
             seed,
-            STEPS,
+            steps,
             &batches,
             &dev_windows,
-            &EVAL_STEPS,
+            &eval_steps,
             device,
         )?;
         let last = out.run.final_point()?;
         let dir = save_dir.join(format!("seed-{seed}"));
         fs::create_dir(&dir)?;
-        out.model.save(&dir.join("model"))?;
-        let loaded = StackModel::load(&dir.join("model"), device)?;
+        let model_dir = dir.join("model");
+        out.model.save(&model_dir)?;
+        let model_safetensors_sha256 =
+            sha256_bytes(&fs::read(model_dir.join("model.safetensors"))?);
+        let model_config_sha256 = sha256_bytes(&fs::read(model_dir.join("config.json"))?);
+        let loaded = StackModel::load(&model_dir, device)?;
         let (_, reloaded_preds) = hs::evaluate_dev_panel(
             &loaded,
             &dev_windows,
             HamiltonArm::HamiltonActive,
             seed,
-            STEPS,
+            steps,
             false,
             false,
         )?;
-        let reloaded_loss = panel_loss(&loaded, &dev_windows, seed, STEPS, false)?;
+        let reloaded_loss = panel_loss(&loaded, &dev_windows, seed, steps, false)?;
         let i_save_load = reloaded_preds == out.preds_float && reloaded_loss == last.dev_loss_float;
         hs::clear_active_arm();
         instruments_ok &= i_save_load;
         let snapshot = fbs_trunk_snapshot(&loaded)?;
-        write_new_file(&dir.join("snapshot.json"), &serde_json::to_vec(&snapshot)?)?;
+        let snapshot_bytes = serde_json::to_vec(&snapshot)?;
+        write_new_file(&dir.join("snapshot.json"), &snapshot_bytes)?;
+        let snapshot_sha256 = sha256_bytes(&snapshot_bytes);
         write_new_file(
             &dir.join("preds-float.json"),
             &serde_json::to_vec(&out.preds_float)?,
@@ -3103,6 +3442,9 @@ pub fn run_d11_train_export(
             "export_mode": last.dev_int,
             "loss_float": last.dev_loss_float,
             "loss_export_mode": last.dev_loss_int,
+            "model_safetensors_sha256": model_safetensors_sha256,
+            "model_config_sha256": model_config_sha256,
+            "snapshot_sha256": snapshot_sha256,
             "preds_float_sha256": preds_sha256(&out.preds_float),
             "i_save_load": i_save_load,
             "reloaded_loss_float": reloaded_loss,
@@ -3112,6 +3454,11 @@ pub fn run_d11_train_export(
     Ok(serde_json::json!({
         "sheet": sheet,
         "train_forward": forward.name(),
+        "steps": steps,
+        "train_batches": info.batch_count,
+        "eval_steps": eval_steps,
+        "inputs": info,
+        "stage4b_sha256": stage4b_sha256,
         "kernels": kernel_identity(),
         "dev_documents": dev_docs,
         "dev_windows": dev_windows.len(),
@@ -3144,6 +3491,21 @@ pub fn write_receipt(path: &Path, value: &serde_json::Value) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn longer_training_adds_only_the_final_evaluation_point() {
+        assert_eq!(training_eval_steps(STEPS).unwrap(), EVAL_STEPS);
+        assert_eq!(
+            training_eval_steps(2_048).unwrap(),
+            [0, 256, 512, 1_024, 2_048]
+        );
+        for invalid in [0, 1, 1_023] {
+            assert!(
+                training_eval_steps(invalid).is_err(),
+                "{invalid} must be refused"
+            );
+        }
+    }
 
     #[test]
     fn the_noise_threshold_follows_the_sheet() {
@@ -3558,11 +3920,163 @@ mod tests {
             assert_eq!(TrainForward::parse(forward.name())?, forward);
         }
         assert!(TrainForward::parse("both").is_err());
-        assert!(d11_train_sheet(TrainForward::D11)?.ends_with("d11-train-2026-10-26.md"));
-        assert!(d11_train_sheet(TrainForward::Dual)?.ends_with("dual-train-2026-10-26.md"));
+        assert_eq!(
+            d11_train_sheet(TrainForward::D11, STEPS)?,
+            "docs/harness/prep/d11-exporter-float-trunk-d11-train-2026-10-26.md"
+        );
+        assert_eq!(
+            d11_train_sheet(TrainForward::Dual, STEPS)?,
+            "docs/harness/prep/d11-exporter-float-trunk-dual-train-2026-10-26.md"
+        );
+        assert_eq!(
+            d11_train_sheet(TrainForward::Dual, 2_048)?,
+            "docs/harness/prep/d11-exporter-float-trunk-longer-dual-2026-10-26.md"
+        );
+        for steps in [0, 1, 1_023, 1_025, 2_047, 2_049, 4_096] {
+            assert!(
+                d11_train_sheet(TrainForward::Dual, steps).is_err(),
+                "Dual {steps} must be refused"
+            );
+        }
+        assert!(d11_train_sheet(TrainForward::D11, 2_048).is_err());
         // Plain training of the export arm is Stage 4b's run, not a D11-trained one.
-        assert!(d11_train_sheet(TrainForward::Plain).is_err());
+        assert!(d11_train_sheet(TrainForward::Plain, STEPS).is_err());
         Ok(())
+    }
+
+    #[test]
+    fn the_projection_counts_each_eval_point_and_the_reload() {
+        // The registered example: 0.5 s/step of training and 2 s per eval point plus the
+        // reload evaluation.
+        assert_eq!(projected_train_seconds(0.5, 2.0, 2_048, 5), 1_036.0);
+        assert_eq!(projected_train_seconds(0.5, 2.0, 1_024, 4), 522.0);
+        assert_eq!(projected_train_seconds(0.0, 0.0, 2_048, 5), 0.0);
+    }
+
+    #[test]
+    fn the_peak_rss_parser_reads_vm_hwm() {
+        let status = "Name:\tspiralcore\nVmPeak:\t  5000 kB\nVmHWM:\t  1234 kB\nVmRSS:\t 1000 kB\n";
+        assert_eq!(parse_vm_hwm_kb(status), Some(1_234));
+        assert_eq!(parse_vm_hwm_kb("Name:\tspiralcore\n"), None);
+        assert_eq!(parse_vm_hwm_kb("VmHWM:\tnot-a-number kB\n"), None);
+    }
+
+    #[test]
+    fn the_batch_preflight_serializes_every_field() -> Result<()> {
+        let info = BatchInfo {
+            batch_count: 2_048,
+            used_windows: 8_192,
+            usable_windows: 20_000,
+            total_windows: 21_000,
+            train_tokens: 1_500_000,
+            scored_targets: 100_000,
+            peak_host_rss_bytes: None,
+        };
+        let value = serde_json::to_value(&info)?;
+        assert_eq!(value["batch_count"], serde_json::json!(2_048));
+        assert_eq!(value["used_windows"], serde_json::json!(8_192));
+        assert_eq!(value["usable_windows"], serde_json::json!(20_000));
+        assert_eq!(value["total_windows"], serde_json::json!(21_000));
+        assert_eq!(value["train_tokens"], serde_json::json!(1_500_000));
+        assert_eq!(value["scored_targets"], serde_json::json!(100_000));
+        assert_eq!(value["peak_host_rss_bytes"], serde_json::Value::Null);
+        Ok(())
+    }
+
+    #[test]
+    fn the_longer_receipt_identity_is_exact() {
+        let valid = serde_json::json!({
+            "steps": 2_048,
+            "train_forward": "dual",
+            "train_batches": 2_048,
+            "eval_steps": [0, 256, 512, 1_024, 2_048],
+            "sheet": "docs/harness/prep/d11-exporter-float-trunk-longer-dual-2026-10-26.md"
+        });
+        assert!(validate_longer_train_receipt(&valid, 2_048).is_ok());
+        assert!(validate_longer_train_receipt(&valid, 1_024).is_err());
+        for (label, key, value) in [
+            ("steps", "steps", serde_json::json!(1_024)),
+            ("train_forward", "train_forward", serde_json::json!("d11")),
+            ("train_batches", "train_batches", serde_json::json!(1_024)),
+            ("eval_steps", "eval_steps", serde_json::json!([0, 2_048])),
+            ("sheet", "sheet", serde_json::json!("other")),
+        ] {
+            let mut changed = valid.clone();
+            changed[key] = value;
+            assert!(
+                validate_longer_train_receipt(&changed, 2_048).is_err(),
+                "{label}"
+            );
+            let mut missing = valid.clone();
+            missing.as_object_mut().unwrap().remove(key);
+            assert!(
+                validate_longer_train_receipt(&missing, 2_048).is_err(),
+                "missing {label}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_1024_receipt_identity_and_legacy_shape_are_exact() -> Result<()> {
+        let current = serde_json::json!({
+            "steps": 1_024,
+            "train_forward": "dual",
+            "train_batches": 1_024,
+            "eval_steps": [0, 256, 512, 1_024],
+            "sheet": "docs/harness/prep/d11-exporter-float-trunk-dual-train-2026-10-26.md"
+        });
+        assert!(validate_longer_train_receipt(&current, 1_024).is_ok());
+        assert!(validate_longer_train_receipt(&current, 2_048).is_err());
+        let mut wrong_batches = current.clone();
+        wrong_batches["train_batches"] = serde_json::json!(2_048);
+        assert!(validate_longer_train_receipt(&wrong_batches, 1_024).is_err());
+
+        let legacy = serde_json::json!({
+            "sheet": "docs/harness/prep/d11-exporter-float-trunk-stage4b-2026-10-26.md",
+            "runs": [{"steps": 1_024}, {"steps": 1_024}]
+        });
+        assert_eq!(receipt_trained_steps(&legacy)?, 1_024);
+        assert!(validate_longer_train_receipt(&legacy, 1_024).is_ok());
+        assert!(validate_longer_train_receipt(&legacy, 2_048).is_err());
+        let mut mixed = legacy.clone();
+        mixed["runs"][1]["steps"] = serde_json::json!(2_048);
+        assert!(receipt_trained_steps(&mixed).is_err());
+        let mut legacy_2048 = legacy;
+        for run in legacy_2048["runs"].as_array_mut().unwrap() {
+            run["steps"] = serde_json::json!(2_048);
+        }
+        assert_eq!(receipt_trained_steps(&legacy_2048)?, 2_048);
+        assert!(validate_longer_train_receipt(&legacy_2048, 1_024).is_err());
+        assert!(validate_longer_train_receipt(&legacy_2048, 2_048).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_residual_loss_is_checked_when_a_training_receipt_is_supplied() {
+        assert!(reloaded_loss_matches(None, 1.25));
+        assert!(reloaded_loss_matches(Some(1.25), 1.25));
+        assert!(!reloaded_loss_matches(Some(1.0), 1.25));
+    }
+
+    #[test]
+    fn the_counterfactual_needs_both_the_paired_and_the_loss_band() {
+        let paired = |b: usize, c: usize| PairedDiscordance {
+            arm_a: "float".into(),
+            arm_b: "d11".into(),
+            seed: 1,
+            a_hit_b_miss_c: b,
+            a_miss_b_hit_b: c,
+            net_advantage_rows: b as isize - c as isize,
+        };
+        // Net 0, loss gap inside the band; and the gap counts in either direction.
+        assert!(residual_counterfactual(0.05, 2.0, 2.04, &paired(10, 10)));
+        assert!(residual_counterfactual(0.05, 2.0, 1.96, &paired(0, 0)));
+        // The loss band is inclusive; one step beyond it fails even with a zero net.
+        assert!(!residual_counterfactual(0.02, 2.0, 2.04, &paired(0, 0)));
+        // F_I's floor is 24: a net of 24 is inside, 25 is not, in either direction.
+        assert!(residual_counterfactual(1.0, 2.0, 2.04, &paired(60, 36)));
+        assert!(!residual_counterfactual(1.0, 2.0, 2.04, &paired(61, 36)));
+        assert!(!residual_counterfactual(1.0, 2.0, 2.04, &paired(36, 61)));
     }
 
     /// On one GPU (claude-131): the dual step's gradient is the plain backward's plus the D11
