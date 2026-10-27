@@ -1,4 +1,4 @@
-# The loop: how five labs work on UOR-R4
+# The loop: how four labs work on UOR-R4
 
 This page describes the loop that every lab follows. Most of its tooling is built; the steps table and the build plan say which parts are still to build.
 CHARTER.md §5.10 holds the rule; this page explains it. Where they disagree, the charter wins.
@@ -9,7 +9,7 @@ Markers used below: **(exists)** means the tool or file is in `main` today; **(t
 ## Credit
 
 The loop is adapted from **the Loop Kit by Ron Brazil**. His kit keeps one AI agent on course with a written order for each task, changes that can be undone, a few short notes that carry memory between sessions, and checks anyone can rerun.
-UOR-R4 keeps those ideas and adapts them for five labs from five vendors working at once. The kit's own text is private to the owner and is not in this repository. Everything here is written in our own words.
+UOR-R4 keeps those ideas and adapts them for four labs from four vendors working at once (five until Codex left on 26 Oct 2026). The kit's own text is private to the owner and is not in this repository. Everything here is written in our own words.
 
 ## Kit-to-loop map
 
@@ -133,15 +133,16 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 - `policy` runs `uor-harness loop pr-check --ci`. It checks order, scope, commit order, REPORT, owner paths, rule sources, the rendered-file lock, read path and FILEMAP. Since D76 (owner, 25 Oct 2026), six of these are advisory and only print `WARN`: scope, commit order, rule sources, rendered-file lock, read path and FILEMAP. Order, banned presence, REPORT, owner paths, the review record and the required checks still fail a PR. Banned presence also scans added files, which it skipped before D76. On PR events it builds the base branch's code and reads the PR's commits only as data, never running the PR's code. The review record and the required checks are checked at queue time, because they do not exist yet when the job runs.
 - **The policy gate is advisory on GitHub.** There is no org admin, so there is no GitHub App and no ruleset change. `required-transport` runs after the policy job, always. It records `policy: <verdict> (run <id>)` in each of the five required checks' summaries and leaves them green (owner, 21 Oct 2026: "Record only"). The policy is enforced locally: `loop pr-check --pr <n>` refuses a PR whose required checks lack `policy: pass` from GitHub Actions, or carry a commit status of the same name. A supervisor queues a PR only when that check is green and the review it accepts is at the head: Claude's for a setup PR under D59; otherwise the ORDER lab's own fresh-context record or another vendor's (D66).
 
-## The five labs
+## The four labs
 
 | Lab | Vendor | Role |
 |---|---|---|
 | Kimi | Moonshot | PM, and builder or reviewer on other labs' items |
 | Claude | Anthropic | builder and reviewer; leads the loop's architecture |
-| Codex | OpenAI | builder and reviewer |
 | DeepSeek | DeepSeek | builder and reviewer |
 | Antigravity | Google | builder and reviewer |
+
+**Codex (OpenAI) left the loop on 26 Oct 2026.** It works independently on lexlean-r4. The owner said: "codex is not currently working with the rest of the groups, it is working independently on lexlean-r4 so it should not be included". It is out of `docs/harness/labs.json` (claude-138). Its client adapter, its onboarding receipt and its past units stay as history, and the rows below that name Codex record what was true then.
 
 **Registry (to build).** `docs/harness/labs.json`, owner-only, lists each lab's vendor, client, allowed model ids, lane and open-PR limit (3). A `UOR_LAB` value outside it is refused.
 

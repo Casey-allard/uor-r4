@@ -23,6 +23,30 @@ fn bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_uor-harness"))
 }
 
+/// Register, in a fixture's own copy of the registry, every client adapter the real registry no
+/// longer lists. These tests drive each adapter, and an adapter stays supported after its lab
+/// leaves the project (codex, claude-138); the real registry is never touched.
+fn register_every_client(labs_json: &Path) {
+    let text = fs::read_to_string(labs_json).expect("fixture labs.json");
+    let mut doc: serde_json::Value = serde_json::from_str(&text).expect("fixture labs.json parses");
+    let labs = doc["labs"].as_object_mut().expect("labs object");
+    for client in CLIENTS {
+        labs.entry(client).or_insert_with(|| {
+            serde_json::json!({
+                "vendor": "fixture",
+                "client": client,
+                "headless": "fixture",
+                "open_pr_limit": 3
+            })
+        });
+    }
+    fs::write(
+        labs_json,
+        serde_json::to_string_pretty(&doc).unwrap() + "\n",
+    )
+    .expect("write fixture labs.json");
+}
+
 /// Build a minimal UOR-R4 worktree fixture with `CHARTER.md`, `AGENTS.md`, `docs/loop/README.md`,
 /// `docs/harness/{labs.json,owner-paths.json,rule-sources.json}`, an item with `scope:`, and an
 /// active ORDER for `lab`.
@@ -43,6 +67,7 @@ fn make_uor_fixture(lab: &str) -> tempfile::TempDir {
     ] {
         fs::copy(real.join(rel), root.join(rel)).expect("copy registry");
     }
+    register_every_client(&root.join("docs/harness/labs.json"));
     fs::write(
         root.join("CHARTER.md"),
         "# CHARTER\n\n## §5.10 The loop\n\nCharter rule book.\n",
@@ -125,9 +150,15 @@ fn make_synthetic_kit() -> tempfile::TempDir {
 }
 
 /// The planted fault for loop PR 9: each client's canary write to a denied path is refused.
+///
+/// It drives every adapter, so it runs in a fixture whose registry lists them all. On the real
+/// repository an adapter whose lab has left (codex, claude-138) is refused for not being
+/// registered, before its payload reaches the path rule. The real-repository canaries of the
+/// registered labs run in `committed_onboarding_receipts_are_valid_and_canaries_refuse`.
 #[test]
 fn each_clients_canary_write_is_refused() {
-    let root = repo_root();
+    let fixture = make_uor_fixture("claude");
+    let root = fixture.path().to_path_buf();
     for client in CLIENTS {
         let reason = run_canary(&root, client)
             .unwrap_or_else(|e| panic!("canary for {client} was not refused: {e}"));
@@ -752,13 +783,61 @@ fn install_skills_backups_and_replace_refusal() {
     assert!(normalize_skill_frontmatter(raw).contains("description: \"A: B\""));
 }
 
-/// All five committed onboarding receipts in `docs/harness/onboarding/<client>.json` exist, match
-/// `docs/harness/labs.json`, and pass live canary refusal verification.
+/// Every registered lab's committed onboarding receipt in `docs/harness/onboarding/<lab>.json`
+/// exists, matches `docs/harness/labs.json`, and passes live canary refusal verification. The
+/// registry, not `CLIENTS`, sets which receipts are checked (claude-138).
 #[test]
 fn committed_onboarding_receipts_are_valid_and_canaries_refuse() {
     let root = repo_root();
-    let verified = check_all_receipts(&root).expect("all 5 onboarding receipts must pass");
-    assert_eq!(verified, CLIENTS);
+    let registered: Vec<String> = uor_r4_harness::labs::load_labs(&root)
+        .expect("labs.json loads")
+        .into_keys()
+        .collect();
+    let verified =
+        check_all_receipts(&root).expect("every registered lab's onboarding receipt must pass");
+    assert_eq!(verified, registered);
+}
+
+/// An adapter whose lab has left the registry stays a known client, and the guard refuses that lab
+/// inside UOR-R4 (the `CLIENTS` doc; codex, claude-138).
+#[test]
+fn an_adapter_whose_lab_left_the_registry_is_refused_inside_the_repo() {
+    let fixture = make_uor_fixture("claude");
+    let root = fixture.path();
+    let labs_json = root.join("docs/harness/labs.json");
+    let mut doc: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&labs_json).expect("read")).expect("parse");
+    doc["labs"]
+        .as_object_mut()
+        .expect("labs object")
+        .remove("codex");
+    fs::write(&labs_json, doc.to_string()).expect("write");
+    assert!(CLIENTS.contains(&"codex"), "codex keeps its adapter");
+    let payload = canary_payload_for_client(root, "codex");
+    match evaluate_guard(root, "codex", "codex", "PreToolUse", &payload) {
+        GuardOutcome::Refused(reason) => {
+            assert!(
+                reason.contains("\"codex\"") && reason.contains("labs.json"),
+                "{reason}"
+            );
+        }
+        other => panic!("codex must be refused once it leaves the registry: {other:?}"),
+    }
+}
+
+/// A registered lab with no client adapter cannot hold a valid receipt, so the receipt check
+/// refuses it instead of skipping it.
+#[test]
+fn a_registered_lab_without_a_client_adapter_fails_the_receipt_check() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    fs::create_dir_all(dir.path().join("docs/harness")).expect("mkdir");
+    fs::write(
+        dir.path().join("docs/harness/labs.json"),
+        r#"{"labs":{"gemini":{"vendor":"g","client":"g","headless":"g","open_pr_limit":3}}}"#,
+    )
+    .expect("write labs.json");
+    let err = check_all_receipts(dir.path()).expect_err("gemini has no adapter");
+    assert!(err.contains("gemini has no client adapter"), "{err}");
 }
 
 /// `loop copyright` detects an 8-word overlap against a Loop Kit source and passes when prose is in

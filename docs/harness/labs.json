@@ -1,10 +1,9 @@
 {
   "schema": 1,
-  "note": "The registry of the five labs. The harness refuses a lab name that is not listed here, so a mistyped UOR_LAB cannot create records owned by nobody real. Only the owner changes this file (docs/harness/owner-paths.json).",
+  "note": "The registry of the four labs. The harness refuses a lab name that is not listed here, so a mistyped UOR_LAB cannot create records owned by nobody real. Only the owner changes this file (docs/harness/owner-paths.json).",
   "labs": {
     "antigravity": {"vendor": "Google", "client": "Antigravity", "headless": "agy -p", "open_pr_limit": 3},
     "claude": {"vendor": "Anthropic", "client": "Claude Code", "headless": "claude -p", "open_pr_limit": 3},
-    "codex": {"vendor": "OpenAI", "client": "Codex", "headless": "codex exec", "open_pr_limit": 3},
     "deepseek": {"vendor": "DeepSeek", "client": "DeepSeek harness", "headless": "dsh", "open_pr_limit": 3},
     "kimi": {"vendor": "Moonshot AI", "client": "Kimi Code", "headless": "kimi -p", "open_pr_limit": 3, "role": "pm"}
   }

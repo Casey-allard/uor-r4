@@ -37,7 +37,10 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-/// The five registered client names, in canonical sorted order.
+/// The five client adapters the guard supports, in canonical sorted order. Which labs work on the
+/// project is the registry's call (`docs/harness/labs.json`): an adapter stays supported after its
+/// lab leaves, as codex's did on 26 Oct 2026 (claude-138), and the guard then refuses that lab
+/// inside UOR-R4 because the registry no longer lists it.
 pub const CLIENTS: [&str; 5] = ["antigravity", "claude", "codex", "deepseek", "kimi"];
 
 /// The six Loop Kit skills installed for every client (`start-here` is excluded so it can never
@@ -4299,13 +4302,20 @@ pub fn write_onboarding_receipt(
     Ok(path)
 }
 
-/// Verify all five committed onboarding receipts in `docs/harness/onboarding/<client>.json` and
-/// re-run each client's live canary write refusal check.
+/// Verify the committed onboarding receipt `docs/harness/onboarding/<lab>.json` of every lab in
+/// `docs/harness/labs.json`, and re-run each one's live canary write refusal check.
+///
+/// The registry, not [`CLIENTS`], says which labs must hold a receipt. A lab that has left keeps its
+/// adapter, and its committed receipt stays as unchecked history (codex, 26 Oct 2026, claude-138).
+/// A registered lab with no client adapter is refused.
 pub fn check_all_receipts(repo: &Path) -> Result<Vec<String>, String> {
     let labs = crate::labs::load_labs(repo)?;
     let expected_skills: Vec<String> = ALLOWED_SKILLS.iter().map(|s| (*s).to_string()).collect();
     let mut verified = Vec::new();
-    for client in CLIENTS {
+    for (lab, lab_info) in &labs {
+        let client = check_client(lab)
+            .map_err(|e| format!("registered lab {lab} has no client adapter: {e}"))?;
+        let client = client.as_str();
         let path = onboarding_receipt_path(repo, client);
         let text = fs::read_to_string(&path).map_err(|e| {
             format!(
@@ -4321,9 +4331,6 @@ pub fn check_all_receipts(repo: &Path) -> Result<Vec<String>, String> {
                 path.display()
             ));
         }
-        let Some(lab_info) = labs.get(client) else {
-            return Err(format!("{client} is not in docs/harness/labs.json"));
-        };
         if receipt.vendor != lab_info.vendor || receipt.headless != lab_info.headless {
             return Err(format!(
                 "receipt {} vendor/headless disagrees with docs/harness/labs.json",

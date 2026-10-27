@@ -1,0 +1,181 @@
+From 212ab50385863704c8a4fcf7a116bb7cfcade352 Mon Sep 17 00:00:00 2001
+From: Casey Allard <lionelcallardiv@gmail.com>
+Date: Sat, 24 Oct 2026 23:50:15 +0000
+Subject: [PATCH 1/3] [codex] record D63 documentation clarification scope
+
+Lab: codex
+Order: docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+---
+ .../tasks/infra-loop-harness/codex-1/ORDER.md | 37 +++++++++++++++++++
+ .../tasks/infra-loop-harness/codex-1/PLAN.md  | 11 ++++++
+ 2 files changed, 48 insertions(+)
+ create mode 100644 docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+ create mode 100644 docs/loop/tasks/infra-loop-harness/codex-1/PLAN.md
+
+diff --git a/docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md b/docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+new file mode 100644
+index 000000000..4070a557d
+--- /dev/null
++++ b/docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+@@ -0,0 +1,37 @@
++# ORDER: infra-loop-harness, codex-1 (D63 finite-probe scope)
++
++Lab: codex. Item: [infra-loop-harness](../../../../roadmap/items/infra-loop-harness.md) (#2904). Setup row: 8.
++Base: `71d9247a87ba45588ea00a583d5321ae2a3d6082`.
++
++## Goal
++
++Keep the migrated decision index and PLAN factually accurate: clarify what D63's already-executed finite arithmetic probe establishes, with its historical row preserved. References #2913 and #2833; no completion or status change is claimed.
++
++## Cancel probe (run first)
++
++Check fresh main for an existing clarification, open peer PR overlap, the D63 and PLAN wording, and the arithmetic source blob. Cancel if the wording is repaired, claimed by a peer, or its source evidence has changed. Class: instrument (documentation scope).
++
++## Files in scope
++
++- `docs/integration/DECISIONS.md`: append one factual clarification after the existing decision rows; preserve all prior rows.
++- `PLAN.md`: qualify only the exact-memory finite-probe cell; preserve its status, date, cancellation condition and pending oracle text.
++- `docs/loop/tasks/infra-loop-harness/codex-1/**`: this new unit's ORDER, PLAN and REPORT.
++
++Expected size: five Markdown files, about 110 added lines; no code or generated files.
++
++## Owner approval
++
++`docs/integration/DECISIONS.md` is an owner path. The direct user history supplied with this task authorizes factual documentation upkeep, not a scientific ruling. At UTC minute `2026-10-18T05:46Z` (source timestamp `2026-10-18T05:46:42.322509+00:00`), the user said, verbatim excerpt: "make sure the correct readmes and other documentation are also true, make sure out claims are up to date and accurate and please just keep general housekeeping on the repo."
++
++At UTC minute `2026-10-18T14:10Z` (source timestamp `2026-10-18T14:10:08.549791+00:00`), the user said: "please merge these pr's all the way through as you keep updating the repo to keep it current, do not wait on me or we will run out of date". These are standing documentation and protected-delivery instructions; they are not an approval of arithmetic correctness, an experiment bar, model compute or spend.
++
++## Done when
++
++- Host: append-only comparison proves D63 and every earlier row unchanged; the clarification cites the reported four-test result and #2972's post-merge review, and does not claim general arithmetic correctness.
++- Host: PLAN keeps the exact-memory row's `closed`, `2026-10-24`, cancellation condition and registered-oracle PENDING text byte-identical.
++- Documentation wording, links/archive baseline, roadmap and local policy gates pass; the actual owner-path gate accepts the recorded direct authorization.
++- Fresh-context adversarial exact-head review, required checks, protected merge and delivered-tree verification complete if permitted.
++
++## Stop and ask if
++
++An owner-path action is denied, the approval gate rejects the direct evidence, a peer repairs or claims the same text, or completing the task requires implementation, historical evidence, scientific gates, run readiness, settings, deployment or unrelated file changes. Do not bypass a block, run a model experiment, spend, delete branches or contact external agents.
+diff --git a/docs/loop/tasks/infra-loop-harness/codex-1/PLAN.md b/docs/loop/tasks/infra-loop-harness/codex-1/PLAN.md
+new file mode 100644
+index 000000000..07d325a3d
+--- /dev/null
++++ b/docs/loop/tasks/infra-loop-harness/codex-1/PLAN.md
+@@ -0,0 +1,11 @@
++# PLAN: codex-1, D63 finite-probe scope
++
++1. Commit the ORDER and this plan before changing either current-facing document.
++2. Append the next factual clarification to DECISIONS and qualify the matching PLAN cell, preserving historical rows and scientific state.
++3. Validate scope, preservation, documentation and actual policy gates; obtain a fresh-context exact-head review and carry protected delivery through if permitted.
++
++## Cancel probe result
++
++At `71d9247a87ba45588ea00a583d5321ae2a3d6082`, D63 still says "Exact arithmetic is answered"; PLAN still reports the four finite controls without linking the unresolved review. The only open PR, #3111, concerns position mechanisms. The arithmetic module remains blob `d18644c1f49b8bd77aa3470a2bc0762c09d9e511`.
++
++The [four-test report](https://github.com/UOR-Foundation/uor-r4/issues/2833#issuecomment-6382217138) at `9aaaf13bb` and [#2972's post-merge findings](https://github.com/UOR-Foundation/uor-r4/pull/2972#issuecomment-6343617086) are both still present; no later comment on #2972 resolves the findings. Class: instrument. The scoped factual clarification is still needed; no arithmetic test or model run was repeated.
+-- 
+2.54.0 (Apple Git-157)
+
+
+From 84ed36aac6cd7c0d331a050cc9d570192d5a069b Mon Sep 17 00:00:00 2001
+From: Casey Allard <lionelcallardiv@gmail.com>
+Date: Sat, 24 Oct 2026 23:51:24 +0000
+Subject: [PATCH 2/3] [codex] qualify finite arithmetic probe evidence without
+ changing state
+
+Lab: codex
+Order: docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+---
+ PLAN.md                       | 2 +-
+ docs/integration/DECISIONS.md | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/PLAN.md b/PLAN.md
+index a6590a225..777871f32 100644
+--- a/PLAN.md
++++ b/PLAN.md
+@@ -21,7 +21,7 @@ A premise row's Status is `open` until its probe has run; `closed` means the pro
+ | Exact integer/geometric reads can carry a language model at all | The finite D11 stack suite is answered (3/3 at `127632bc3` and independently confirmed). Next evidence is the registered M1 closing-bar run (CHARTER §4 row 8): D11-export integer top-1 beats unigram (1,226/14,287) and T2 (6,300/14,287) on DEV, two seeds, tokens/s reported | held | 2026-10-23 | both seeds fail to beat the T2 table at full registered scale after the instrument class is ruled out |
+ | The 16-root E8 orbit with Cl(0,6) frames can carry sequence position | Finite controls answered 10/10 at `b03d08e85` (#2843 comment `6380719988`); this is not an order-effect or language result. The registered order test (H_pos vs matched endpoint control + shuffled null) remains PENDING (#2843) | closed | 2026-10-24 | the parameter-matched endpoint control ties prefix holonomy on the registered panel |
+ | Scale-matched orbit-root snapping holds multi-stage residual blocks lawful | Finite controls answered 13/13 at `5844d911c` (#2842 comment `6381825466`); this is not a trunk or language result. The registered N_snap vs C_unscaled/C_raw trunk test remains PENDING (#2842) | closed | 2026-10-24 | the un-scaled or raw control matches N_snap on the registered panel |
+-| Exact addressed memory can serve durable conversation facts | Exact arithmetic controls answered 4/4 at `9aaaf13bb` (#2833 comment `6382217138`); this is not durable-conversation capability. The address-as-read oracle's fresh-context FIT (#2833: NOT_FIT until the held checkpoint is pinned) and GPU run remain PENDING | closed | 2026-10-24 | the true-address oracle gains nothing over the sieve and baseline arms |
++| Exact addressed memory can serve durable conversation facts | Four existing arithmetic tests were [reported passing, 4/4 at `9aaaf13bb`](https://github.com/UOR-Foundation/uor-r4/issues/2833#issuecomment-6382217138); this closes only the finite probe (D75), without establishing general arithmetic correctness or resolving [#2972's post-merge findings](https://github.com/UOR-Foundation/uor-r4/pull/2972#issuecomment-6343617086). This is not durable-conversation capability. The address-as-read oracle's fresh-context FIT (#2833: NOT_FIT until the held checkpoint is pinned) and GPU run remain PENDING | closed | 2026-10-24 | the true-address oracle gains nothing over the sieve and baseline arms |
+ | Number-aware tokenization is decidable and fixable | `cargo test -p uor-r4-tokenizer --test training number_aware_three_arm_comparison_and_digit_piece_census` — the 3-arm census (#2872, merged): Digits(false)+ByteLevel forms all 100 two-digit pieces with zero space-prefixed absorption | closed | 2026-10-22 | — (proven on both vocab sizes, digests pinned) |
+ | The R14 reply instrument is non-vacuous | `cargo test -p uor-r4-training --bin chat-grade --features native-rung0` — the v2 grader's constant/copy controls fail, the selective oracle passes, the closest archived run lands just under (PM ruling, #2029 6339245936) | closed | 2026-10-22 | — (ruled non-vacuous; the reply bar stays suspended with no target) |
+ | Reasoning comes from intermediate geometry and exact memory, not surface templates | Four-arm ablation instrument controls answered 3/3 at `9aaaf13bb` (#2866 comment `6382231845`); this is not reasoning evidence. The frozen-panel factorial-drop versus memorized-template-flatness question remains PENDING (#2866) | closed | 2026-10-24 | KnockoutBoth leaves panel accuracy at the count-table ceiling |
+diff --git a/docs/integration/DECISIONS.md b/docs/integration/DECISIONS.md
+index 947c9faa5..edb48748e 100644
+--- a/docs/integration/DECISIONS.md
++++ b/docs/integration/DECISIONS.md
+@@ -277,5 +277,6 @@ From D43 on, each decision gets one row here: what was decided, the reason, the
+ | D72 | 2026-10-24 | D11 integer serving (UORLUT01) moves from ACTIVE to READY until a lawful trained model is exported through it. Hopf observation splits in two on the board: the kept-fibre map is READY, and sector routing stays PARKED with its reopen condition. | The owner chose "D11 READY, split Hopf (Recommended)" in Claude's chat at 2026-10-24T03:41:41Z (#2874). The engine and its zero-multiply audits are green, but no model built under today's rules has been exported through it. The kept-fibre map is built and unit-tested and its language test never ran; only sector routing failed. | D11 stays ACTIVE as the end-of-pipeline contract; Hopf observation stays one PARKED row. | Low: a board and page edit. |
+ | D73 | 2026-10-24 | A model trained in float offline (D37) counts toward M1, M2 and the product once it is exported to the D11 integer artifact and scored there, with the export gap reported. A discrete-trained model also counts. Claude's own decision under D68, not the owner's: architect dispositions are advisory, and no status is terminal (CHARTER §4.1, D22), so an architect RETIRE reads as PARKED with its reopen condition. | The owner chose "Both counts once exported and discrete-trained" in Claude's chat at 2026-10-24T03:41:41Z (#2875). The ruling does not say how architect dispositions meet the READY/PARKED statuses, so Claude decided that part under D68 with a fresh-context decision review. | Only a discrete-trained model counts (D39 item 1 as written); a float model counts without export; an architect RETIRE ends a mechanism. | Medium: milestone claims may come to rest on exported float models. |
+ | D74 | 2026-10-24 | Spin-native weights and ternary/XOR arithmetic move from PARKED to READY. | The owner chose "Keep both READY" in Claude's chat at 2026-10-24T03:41:41Z (#2876). Their caveats stand: spin-native weights reached 1.5148 BPB only through a banned dense Hamilton-block multiply, and a dense ternary sum is still dense (D25). | Keep both PARKED; build a geometric alphabet first. | Low: a board and page edit. |
++| D75 | 2026-10-24 | Factual clarification of D63: its `closed` premise records only the already-executed finite probe. Four existing arithmetic tests were [reported passing at `9aaaf13bb`](https://github.com/UOR-Foundation/uor-r4/issues/2833#issuecomment-6382217138). This establishes neither general arithmetic correctness nor resolution of [#2972's post-merge findings](https://github.com/UOR-Foundation/uor-r4/pull/2972#issuecomment-6343617086). The registered address-as-read oracle remains PENDING; no experiment bar, milestone status or run readiness changes here. | D63's phrase "Exact arithmetic is answered" exceeds the four-test report's scope; the arithmetic source still matches blob `d18644c1f49b8bd77aa3470a2bc0762c09d9e511` at `71d9247a`. | Treating four passing tests as general correctness; rewriting the historical D63 row. | Low: a later append-only clarification. |
+ 
+ [orig]: ../../archive/integration/DECISIONS-2026-10-19.md
+-- 
+2.54.0 (Apple Git-157)
+
+
+From 52bab590e3b75ba433a3f605570f85aa9a87aacc Mon Sep 17 00:00:00 2001
+From: Casey Allard <lionelcallardiv@gmail.com>
+Date: Sat, 24 Oct 2026 23:53:20 +0000
+Subject: [PATCH 3/3] [codex] record D63 documentation checks and remaining
+ findings
+
+Lab: codex
+Order: docs/loop/tasks/infra-loop-harness/codex-1/ORDER.md
+---
+ .../infra-loop-harness/codex-1/REPORT.md      | 40 +++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 docs/loop/tasks/infra-loop-harness/codex-1/REPORT.md
+
+diff --git a/docs/loop/tasks/infra-loop-harness/codex-1/REPORT.md b/docs/loop/tasks/infra-loop-harness/codex-1/REPORT.md
+new file mode 100644
+index 000000000..7169a1167
+--- /dev/null
++++ b/docs/loop/tasks/infra-loop-harness/codex-1/REPORT.md
+@@ -0,0 +1,40 @@
++# REPORT: infra-loop-harness, codex-1 (D63 finite-probe scope)
++
++Lab: codex. Order: [ORDER.md](ORDER.md). Base: `71d9247a87ba45588ea00a583d5321ae2a3d6082`.
++
++## What did not work, first
++
++- D63's "Exact arithmetic is answered" overstates the cited four-test report. The implementation is unchanged at blob `d18644c1f49b8bd77aa3470a2bc0762c09d9e511`; this task repairs no implementation or post-merge finding.
++- The in-progress local policy check after the content commit failed only because this REPORT was not yet added. Its owner-path check passed using the direct standing documentation authorization recorded in the ORDER. Final-head validation is posted on the PR.
++
++## What changed
++
++- `212ab5038` committed this unit's ORDER and pre-edit plan/cancel-probe record first, within its own task folder.
++- `84ed36aa` appended D75 as a factual clarification and qualified the matching PLAN cell. Existing decision rows are byte-identical; PLAN's closed status, date, cancellation condition and oracle PENDING text are unchanged.
++- This REPORT completes the new scoped record. Size: five Markdown files (two existing documents and three task records), no code, tests or generated changes; below the ORDER's approximate 110-line estimate.
++
++## Measurements
++
++No new arithmetic test, model experiment or capability measurement. The four-test result is attributed to the [existing report at `9aaaf13bb`](https://github.com/UOR-Foundation/uor-r4/issues/2833#issuecomment-6382217138). The [post-merge review of #2972](https://github.com/UOR-Foundation/uor-r4/pull/2972#issuecomment-6343617086) remains linked and unresolved by this documentation change.
++
++## Checks run at the head
++
++- Preservation comparisons: removing only D75 reproduces the base DECISIONS file exactly; PLAN's status/date/cancel cells and full oracle-pending suffix match the base.
++- `git diff --check` and Rust claim-wording pass.
++- Rust `loop gates --full --lab codex`: 11 GREEN; these are tooling checks, not model evidence.
++- `xtask links` baseline: 0 new broken links (961 pre-existing at the pre-edit baseline).
++- `xtask archive-verify`: 0 regressions; 10,806 archive files, 0 modified or deleted.
++- Roadmap check: 91 items OK. Roadmap render, catalog, five computed figures and four charts are current, without generated-file changes.
++- `loop report --check` and `loop pr-check --local` final verdicts, exact-head adversarial review and CI are recorded on the PR. The owner-path gate checks the recorded direct authorization; no approval or review is fabricated.
++
++## Skills used
++
++`using-git-worktrees` for isolation; `verification-before-completion` for evidence before claims; `requesting-code-review` for a fresh-context adversarial review at the published head.
++
++## Still open
++
++#2972's arithmetic, causal-control and other post-merge findings. The registered address-as-read oracle remains PENDING with its listed prerequisites. No experiment bar, milestone, run readiness, source implementation or owner policy changes here. No issue sync, model compute, spend, branch deletion or manual deployment is part of this unit.
++
++## Plain summary
++
++Four existing tests were reported passing. That closes the already-executed finite probe, while broader arithmetic correctness and the published review findings remain separate. The current documents now say exactly that, with the historical decision and research state preserved.
+-- 
+2.54.0 (Apple Git-157)
+
