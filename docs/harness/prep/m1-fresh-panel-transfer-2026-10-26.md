@@ -6,7 +6,7 @@
 - Milestone: M1 (`#2029`), closing bar (e) read with bar (d) (`CHARTER.md` §4.3, §4.5, §4.8, D39)
 - Mechanism: [`discrete-attention`](../../mechanisms/discrete-attention.md) (`READY`) and [`bvg-k`](../../mechanisms/bvg-k.md) (`READY`)
 - Parent sheets: [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md), [`m1-export-gap-and-toks-DRAFT-2026-10-23.md`](m1-export-gap-and-toks-DRAFT-2026-10-23.md)
-- Status: **REGISTERED — HELD ON TWO-SEED DEV BAR-(a)–(d) PASS (`UNAVAILABLE_NOT_RUN`)**
+- Status: **EXECUTED — `PASS_BAR_E_FRESH_TRANSFER` (`antigravity-110`, `#3312`; `antigravity-111`, `#3318`)**
 
 ## 1. Question
 
@@ -25,7 +25,7 @@ Read with `CHARTER.md` §4.8 bar (d) (`D39`) and §4.3 (`>= 2` seeds, `>= 200` f
    - `M_fresh(s) - U_fresh >= max(24, ceil(2 * sqrt(b_U(s) + c_U(s))), |M_fresh(1) - M_fresh(2)|)`
    - `M_fresh(s) - T2_fresh >= max(24, ceil(2 * sqrt(b_T2(s) + c_T2(s))), |M_fresh(1) - M_fresh(2)|)`
    where `ceil(2 * sqrt(d))` is evaluated in exact integer arithmetic as the smallest integer `k >= 0` such that `k * k >= 4 * d`.
-3. **G-Fresh-Psucc (copy-successor fresh transfer bar, `3,594` `P_succ` rows of `fresh_v2`):** Carrying forward the A8 fresh transfer bar (`m1-attention-a8-address-cells-learning-2026-10-19.md:73,120`), on the `3,594` copy-successor rows (`prefix.windows(2).any(|w| w[0] == query && w[1] == target)`), both seeds must satisfy:
+3. **G-Fresh-Psucc (copy-successor fresh transfer bar, `3,594` `P_succ` rows of `fresh_v2`):** Carrying forward the A8 fresh transfer bar (`m1-attention-a8-address-cells-learning-2026-10-19.md:73,120`), on the `3,594` copy-successor rows (`inst::fresh_transfer::is_prefix_copy_successor`: `prefix[..prefix.len() - 1].iter().rposition(|&tok| tok == query).is_some_and(|index| prefix[index + 1] == target)`, with the `4,900`-row `windows(2).any(...)` variant also audited), both seeds must satisfy:
    - `M_psucc(s) - T2_psucc >= max(20, ceil(2 * sqrt(b_psucc(s) + c_psucc(s))), |M_psucc(1) - M_psucc(2)|)`
 4. **G-Fresh-Integrity (clean-room integer parity and planted-fault control on `fresh_v2`):** On both seeds:
    - `refused_rows == 0` across all `14,479` rows;
@@ -50,18 +50,20 @@ Read with `CHARTER.md` §4.8 bar (d) (`D39`) and §4.3 (`>= 2` seeds, `>= 200` f
     - `G_train` (`T2`): query-token `(q = prefix.last() -> target_token)` successor frequency table on `mw-balp/train`, ranked by `(highest count, lowest token id)` with fallback to `U_train` only when `q` is unseen in `mw-balp/train` (scores `6,300 / 14,287` on `ft/dev`).
   - Zero fresh or DEV tokens ever enter `U_train` or `G_train`.
 - **Candidate `UORLUT01` model artifacts (`seed = 1` and `seed = 2`):**
-  - Currently `UNAVAILABLE_NOT_RUN`: the Stage T checkpoints scored in `#3287` (`t16-frozen-zero` `455 / 14,287` and `506 / 14,287`; `t16-relation` `371 / 14,287` and `337 / 14,287`) are below the DEV `T2` bar (`6,300 / 14,287`), so `validate_fresh_transfer_gate` refuses to open the fresh panel. When a candidate model passes M1 bars (a)–(d) on `ft/dev` across both seeds, its two exported `UORLUT01` `artifact_sha256` digests are bound in `DECISION_RECEIPT_JSON` prior to the fresh run.
+  - Exported 19-table `UORLUT01` (`uor-r4.lut-discrete-trunk/1`) artifacts of `trunk-joint-pointer-v1-d11` (`T16_fz` `FrozenZeroV1` Seeds `1` and `2`, passing M1 Bars (a)–(d) on `ft/dev` with `d11_dev_top1 = 7,002` and `7,001 / 14,287 >= 6,324`, `psucc_d11_top1 = 1,779` and `1,770 / 3,847 >= 1,265`, `0` export gap, and `B4` pass):
+    - Seed 1 (`t16-frozen-zero-seed1-trunk.d11`, `86,536,132` bytes): SHA-256 `04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d`.
+    - Seed 2 (`t16-frozen-zero-seed2-trunk.d11`, `84,943,328` bytes): SHA-256 `1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de`.
 
 ## 4. Data split and seal verification without opening
 
-All corpus splits are pinned by SHA-256 and verified against the stored preservation archives without extracting, reading, or scoring the fresh rows:
+All corpus splits are pinned by SHA-256 and verified against the stored preservation archives without extracting, reading, or scoring the fresh rows prior to `G-Fresh-Gate`:
 
 - **TRAIN split (`mw-balp/train`, count-table source only):**
-  - `tokens.u16`: SHA-256 `3dee858fe16ffba3eb32ffbe2ffacbcfa139aa3b9cc8d9b4bc8fb8a34f56c35a` (`26,214,400` payload tokens, `10,975,281` eligible targets; first `16,404` batches = `1,049,856` matched TRAIN rows).
-  - `response_mask.u8`: SHA-256 `b5e7352dd22bd1d168d92761d7eb6703198931a752f8bc74ef43734d7441bf32`.
+  - `tokens.u16`: SHA-256 `3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8` (`26,214,400` payload tokens, `10,975,281` eligible targets; first `16,404` batches = `1,049,856` matched TRAIN rows).
+  - `response_mask.u8`: SHA-256 `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`.
 - **DEV split (`ft/dev`, gate prerequisite only, never reported as fresh):**
-  - `tokens.u16`: SHA-256 `0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546` (`44,300` payload tokens, `14,287` eligible targets, `3,847` `P_succ` rows).
-  - `response_mask.u8`: SHA-256 `a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327`.
+  - `tokens.u16`: SHA-256 `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` (`44,300` payload tokens, `14,287` eligible targets, `3,847` `P_succ` rows).
+  - `response_mask.u8`: SHA-256 `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`.
 - **Sealed Fresh V2 transfer panel (`fresh_v2`, opened once only after `G-Fresh-Gate` passes):**
   - Preservation archive: `icloud:UOR-R4/results/codex/codex-attention-dose1-fresh-v2-preservation.tar` (`5,614,080` bytes, MD5 `318fb430c9726c9600a897eb1e3d767a`, SHA-256 `2cd13ef672990a01f7a9e63023e03afacecb9ba8883cd9d7d844ca12cfb60143`), stream-verified on 2026-10-26 without extracting or opening row contents:
     - `tokens.u16` (`89,420` bytes = 64-byte `UORT` header + `44,678 * 2` payload bytes across `400` retained `milestone_world_v2` documents with `0` exact full TRAIN/DEV document overlap): SHA-256 `0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8`.
@@ -102,7 +104,13 @@ All corpus splits are pinned by SHA-256 and verified against the stored preserva
 
 ## 9. Verdict
 
-- **Reviewer:** Fresh-context non-author subagent `27655669-ec58-40ba-bcd0-b66880e8f91e` (`gemini-4-argon-high`, 2026-10-26)
-- **Posted review & D68 owner log:** `#2841` (`#issuecomment-6423732020`)
+- **Initial Reviewer:** Fresh-context non-author subagent `27655669-ec58-40ba-bcd0-b66880e8f91e` (`gemini-4-argon-high`, 2026-10-26, `#issuecomment-6423732020`)
+- **Pre-run & FIT Reviewer (`trunk-joint-pointer-v1-d11`):** Fresh-context non-author subagent `f3238439-9ed8-4ca8-bb97-348f599481d1` (`gemini-4-argon-high`, 2026-10-26, `#issuecomment-6432026082`)
+- **Execution (`1x RTX 5090` `vast-57903382`, `Build A` `ce5843b00dee006cf89a1028f80b5125221393dbfb549b09c2273f3e6d3660f4` and `Build B` `0357abf8ca70cd463b7976eebef5ddea2dbfb7d9128ef1246246f665e25fed17`, `ptx_sha256` `5eca26218bde5a74aee90b30d5c5270bbe0146a3ad2a87cf22c8bf770b30dce7`, `cubin_sha256` `c513559a64fc7fcd83e6ee90e893bc91b2f6452d29cf4605cd8b7e3585235cd1`, archive `m1-close-saved-model-20261026.tar` SHA-256 `a758ca0962d68c43d2796fcf7e43e3af57dccf0d82849f3b11a9f4e2294d1506`):**
+  - `G-Fresh-Gate`: **PASS** (`trunk-joint-pointer-v1-d11-fresh-gate-receipt.json`)
+  - `G-Fresh-Full` (`14,479` rows, `U_fresh = 1,279`, `T2_fresh = 6,582`): **PASS** (`seed_1 = 7,215` [`+5,936` vs `U_fresh`, `+633` vs `T2_fresh`, floor `82`]; `seed_2 = 7,228` [`+5,949` vs `U_fresh`, `+646` vs `T2_fresh`, floor `82`]; `two_seed_spread_full = 13`)
+  - `G-Fresh-Psucc` (`3,594` `rposition` `P_succ` rows, `U_psucc = 229`, `T2_psucc = 1,240`): **PASS** (`seed_1 = 1,713` [`+473` vs `T2_psucc`, floor `52`]; `seed_2 = 1,711` [`+471` vs `T2_psucc`, floor `52`]; `two_seed_spread_psucc = 2`; `windows(2)` `4,900`-row variant: `2,333` and `2,329` vs `1,863` [`+470` / `+466`, floor `53`])
+  - `G-Fresh-Integrity`: **PASS** (`refused_rows = 0`, `reference_mismatches = 0`, `b4_pass = true`)
+  - Outcome: **`PASS_BAR_E_FRESH_TRANSFER`** (`bar_e_pass = true`)
 
 TEST FITNESS: FIT

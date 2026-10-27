@@ -108,7 +108,7 @@ Nothing was deleted. Dated records from before 18 October moved unchanged into `
 
 ### 21. What happened to the 437 of 512 and the 0.877 results I may have seen?
 
-Both are old and narrow. The 437 of 512 replies were later judged to be panel fitting, and they fell to 0 of 128 on opened transfer rows (a genuinely fresh test has not run) ([native geometric engine](../mechanisms/native-geometric.md)). The 0.877 bits per byte was a float score on one 19.9 million parameter stack that used softmax and matrix multiplication; served through the integer engine it scored 0.933 against a 0.90 bar, and the two numbers were not measured on the same windows ([serving and export](../model/serving-and-export.md)). Neither is a result of the current model.
+Both are old and narrow. The 437 of 512 replies were later judged to be panel fitting, and they fell to 0 of 128 on opened transfer rows ([native geometric engine](../mechanisms/native-geometric.md); for the current discrete M1 model, the pre-registered sealed `Fresh V2` transfer test has now run across two seeds, scoring `7,215` and `7,228` of `14,479` against `1,279` unigram and `6,582` `T2`, **measurement**, [m1-fresh-panel-transfer](../labs/m1-fresh-panel-transfer/README.md)). The 0.877 bits per byte was a float score on one 19.9 million parameter stack that used softmax and matrix multiplication; served through the integer engine it scored 0.933 against a 0.90 bar, and the two numbers were not measured on the same windows ([serving and export](../model/serving-and-export.md)). Neither is a result of the current model.
 
 ### 22. What is in `projects/`?
 

@@ -636,3 +636,93 @@ fn fresh_transfer_pins_match_sealed_corpora_and_export_trunk_with_scorer_roundtr
     let model = IntegerDiscreteModel::from_bytes(&exported.bytes).expect("trunk model");
     assert!(model.is_trunk_d11());
 }
+
+#[test]
+fn m1_fresh_panel_transfer_evidence_and_sheet_pins_pass_bar_e() {
+    use inst::fresh_transfer::{
+        validate_fresh_transfer_gate, DEV_MASK_SHA256, DEV_TOKENS_SHA256,
+        FRESH_V2_ELIGIBLE_TARGETS, FRESH_V2_MASK_SHA256, FRESH_V2_PAYLOAD_TOKENS,
+        FRESH_V2_PSUCC_ROWS, FRESH_V2_TOKENS_SHA256, TRAIN_MASK_SHA256, TRAIN_TOKENS_SHA256,
+    };
+
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../..");
+    let ev_dir = root.join("docs/labs/m1-fresh-panel-transfer/evidence");
+    let gate_receipt: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(ev_dir.join("trunk-joint-pointer-v1-d11-fresh-gate-receipt.json"))
+            .expect("fresh gate receipt in docs/labs/m1-fresh-panel-transfer/evidence"),
+    )
+    .expect("parse fresh gate receipt");
+    let rpos_report: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(ev_dir.join("t16-frozen-zero-trunk-fresh-score-rposition.json"))
+            .expect("rposition fresh score in docs/labs/m1-fresh-panel-transfer/evidence"),
+    )
+    .expect("parse rposition fresh score");
+    let win2_report: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(ev_dir.join("t16-frozen-zero-trunk-fresh-score.json"))
+            .expect("windows2 fresh score in docs/labs/m1-fresh-panel-transfer/evidence"),
+    )
+    .expect("parse windows2 fresh score");
+
+    let fresh_v2_source = CorpusSource {
+        split: Split::Dev,
+        tokens: FilePin {
+            path: "/nonexistent/fresh_v2/tokens.u16".into(),
+            sha256: FRESH_V2_TOKENS_SHA256.into(),
+        },
+        mask: FilePin {
+            path: "/nonexistent/fresh_v2/response_mask.u8".into(),
+            sha256: FRESH_V2_MASK_SHA256.into(),
+        },
+        expected_payload_tokens: FRESH_V2_PAYLOAD_TOKENS,
+        expected_eligible_targets: FRESH_V2_ELIGIBLE_TARGETS,
+    };
+    let s1_art = "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d";
+    let s2_art = "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de";
+    validate_fresh_transfer_gate(&gate_receipt, s1_art, &fresh_v2_source)
+        .expect("gate receipt validates seed 1");
+    validate_fresh_transfer_gate(&gate_receipt, s2_art, &fresh_v2_source)
+        .expect("gate receipt validates seed 2");
+
+    for rep in [&rpos_report, &win2_report] {
+        assert_eq!(rep["bar_e_pass"], json!(true));
+        assert_eq!(rep["outcome"], json!("PASS_BAR_E_FRESH_TRANSFER"));
+        assert_eq!(rep["seed_1"]["rows"], json!(FRESH_V2_ELIGIBLE_TARGETS));
+        assert_eq!(rep["seed_1"]["model_top1"], json!(7_215));
+        assert_eq!(rep["seed_2"]["model_top1"], json!(7_228));
+        assert_eq!(rep["seed_1"]["unigram_top1"], json!(1_279));
+        assert_eq!(rep["seed_1"]["t2_top1"], json!(6_582));
+        assert_eq!(rep["seed_1"]["refused_rows"], json!(0));
+        assert_eq!(rep["seed_2"]["refused_rows"], json!(0));
+        assert_eq!(rep["seed_1"]["reference_mismatches"], json!(0));
+        assert_eq!(rep["seed_2"]["reference_mismatches"], json!(0));
+        assert_eq!(rep["seed_1"]["b4_pass"], json!(true));
+        assert_eq!(rep["seed_2"]["b4_pass"], json!(true));
+    }
+    assert_eq!(rpos_report["seed_1"]["psucc_rows"], json!(FRESH_V2_PSUCC_ROWS));
+    assert_eq!(rpos_report["seed_1"]["psucc_model_top1"], json!(1_713));
+    assert_eq!(rpos_report["seed_2"]["psucc_model_top1"], json!(1_711));
+    assert_eq!(rpos_report["seed_1"]["psucc_t2_top1"], json!(1_240));
+    assert_eq!(win2_report["seed_1"]["psucc_rows"], json!(4_900));
+    assert_eq!(win2_report["seed_1"]["psucc_model_top1"], json!(2_333));
+    assert_eq!(win2_report["seed_2"]["psucc_model_top1"], json!(2_329));
+    assert_eq!(win2_report["seed_1"]["psucc_t2_top1"], json!(1_863));
+
+    let sheet = std::fs::read_to_string(
+        root.join("docs/harness/prep/m1-fresh-panel-transfer-2026-10-26.md"),
+    )
+    .expect("read prep sheet");
+    for pin in [
+        TRAIN_TOKENS_SHA256,
+        TRAIN_MASK_SHA256,
+        DEV_TOKENS_SHA256,
+        DEV_MASK_SHA256,
+        FRESH_V2_TOKENS_SHA256,
+        FRESH_V2_MASK_SHA256,
+    ] {
+        assert!(
+            sheet.contains(pin),
+            "prep sheet must contain registered corpus SHA-256 pin {pin}"
+        );
+    }
+}
+
