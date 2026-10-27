@@ -99,7 +99,7 @@ The map of lawful parts still has gaps that no test can fill until someone build
 
 ## What counts as success for the first milestone
 
-The charter sets the M1 closing bar: integer top-1 through the D11 export beats both count tables on the same development panel, on each of two seeds, with tokens per second reported. A bits-per-byte bar returns later, once a lawful likelihood exists (charter §4.8). That settles the old open question about scoring a model with no likelihood, for M1 only. A lawful likelihood is still unbuilt. A conversation bar (M2) is further off, and a float student would need a new owner decision (`docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md` section 4, stage 5).
+The charter sets the M1 closing bar: integer top-1 through the D11 export beats both count tables on the same development panel, on each of two seeds, with tokens per second reported. A bits-per-byte bar returns later, once a lawful likelihood exists (charter §4.8). That settles the old open question about scoring a model with no likelihood, for M1 only. For M4, the potential-ratio lawful likelihood (`PRLL`, [`lawful_likelihood.rs`](../../crates/uor-r4-integer/src/lawful_likelihood.rs), `#2945`) and its pre-registration sheet ([`m4-lawful-likelihood-bpb-2026-10-23.md`](../harness/prep/m4-lawful-likelihood-bpb-2026-10-23.md), `#2861`) are now built and registered (`TEST FITNESS: FIT`), while the GPU held-out stream scoring run remains open under `m4-export-uorlut01-cli` (`#2859`). A conversation bar (M2) is further off, and a float student would need a new owner decision (`docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md` section 4, stage 5).
 
 ## Go deeper
 

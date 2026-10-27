@@ -3,7 +3,7 @@ id: m4-lawful-likelihood-bpb
 title: Build a lawful likelihood so bits per byte can be scored
 milestone: M4
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []
