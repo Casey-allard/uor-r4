@@ -16,9 +16,14 @@
 //!    half of the heads (**copy heads**), the point of the current token `x_t` through that same
 //!    rotation, so a repeated token is an exact match however the rotation learns; for the rest
 //!    (**type heads**), the residual through a second rotation, which must learn what to ask for.
-//!    No point is turned by position: the owner's direction is SpiralCore's transport spin for
-//!    position, not a rotary code ("we do not need rope", 13 Oct), and the trunk's recurrence
-//!    already carries order. The value is `x` rotated by a third quaternion.
+//!    No point is turned by an index code: the owner's direction is SpiralCore's transport spin
+//!    for position, not a rotary code ("we do not need rope", 13 Oct). With the type spin on
+//!    ([`HammingReads::with_type_spin`], claude-151), the type heads compare positions through
+//!    that transport's quaternion form: a frame per position, the running product of each token's
+//!    icosian step, turned out of each position's own frame, so the angle between two positions'
+//!    points depends only on the steps of the tokens between them. Their sign codes also see the
+//!    frame the two share, so the Hamming distance follows those steps on average over it, not
+//!    exactly. The value is `x` rotated by a third quaternion.
 //! 2. **Codes.** Each coordinate's bit is 1 at or above 0, as [`pack_signs`] packs it. The forward
 //!    pass compares the ±1 codes, so the distance is exactly the Hamming distance
 //!    `popcount(q XOR k)` that serving computes. The backward pass treats the code as the identity
@@ -99,6 +104,9 @@ pub struct HammingRead {
     pub(crate) value_rotation: Var,
     pub(crate) margin: Var,
     pub(crate) weight: Var,
+    /// The type heads' position signal, when on ([`HammingReads::with_type_spin`]): the per-lane
+    /// rotation that turns each token's point into its icosian step (claude-151).
+    pub(crate) step_rotation: Option<Var>,
 }
 
 /// The reads at every depth in [`HAMMING_DEPTHS`], in that order.
@@ -116,6 +124,26 @@ impl HammingReads {
             .map(|_| HammingRead::new(heads, width, device))
             .collect::<Result<Vec<_>>>()?;
         Ok(Self { reads })
+    }
+
+    /// The same reads with the type heads' position signal on (claude-151): SpiralCore's
+    /// path-dependent transport in its quaternion group. Each token steps each type-head lane by
+    /// the unit icosian nearest its table point (through a learned per-lane rotation, starting at
+    /// the identity); a position's frame is the product of the steps so far in its window; a type
+    /// head turns its query at `t` and its key at `s` by their frames' inverses, so it compares
+    /// them through `F_t ⊗ F_s⁻¹`, the steps of the tokens between them. Copy heads are untouched.
+    pub fn with_type_spin(mut self) -> Result<Self> {
+        for read in &mut self.reads {
+            let lanes = read.weight.dim(1)? / 4;
+            let identity: Vec<f32> = (0..lanes).flat_map(|_| [1.0f32, 0.0, 0.0, 0.0]).collect();
+            let device = read.weight.device();
+            read.step_rotation = Some(Var::from_tensor(&Tensor::from_vec(
+                identity,
+                (lanes, 4),
+                device,
+            )?)?);
+        }
+        Ok(self)
     }
 
     /// The read inside the stream after `depth` layers, if one runs there.
@@ -205,6 +233,11 @@ impl HammingReads {
                 value_rotation: get(&format!("d{depth}.value_rotation"))?,
                 margin: get(&format!("d{depth}.margin"))?,
                 weight: get(&format!("d{depth}.weight"))?,
+                // Present only when the read was trained with the type heads' position signal.
+                step_rotation: tensors
+                    .get(&format!("d{depth}.step_rotation"))
+                    .map(Var::from_tensor)
+                    .transpose()?,
             });
         }
         Ok(Some(Self { reads }))
@@ -251,21 +284,26 @@ impl HammingRead {
             value_rotation: rotation()?,
             margin: Var::from_tensor(&Tensor::from_vec(margins, heads, device)?)?,
             weight: Var::zeros((2, width), DType::F32, device)?,
+            step_rotation: None,
         })
     }
 
-    fn named(&self) -> [(&'static str, &Var); 5] {
-        [
+    fn named(&self) -> Vec<(&'static str, &Var)> {
+        let mut named = vec![
             ("query_rotation", &self.query_rotation),
             ("key_rotation", &self.key_rotation),
             ("value_rotation", &self.value_rotation),
             ("margin", &self.margin),
             ("weight", &self.weight),
-        ]
+        ];
+        if let Some(step) = &self.step_rotation {
+            named.push(("step_rotation", step));
+        }
+        named
     }
 
-    fn variables(&self) -> [&Var; 5] {
-        self.named().map(|(_, var)| var)
+    fn variables(&self) -> Vec<&Var> {
+        self.named().into_iter().map(|(_, var)| var).collect()
     }
 
     /// `points` rows rotated lane by lane by `rotation`'s unit quaternions.
@@ -343,6 +381,30 @@ impl HammingRead {
             1,
         )?;
         let key = Self::rotate(&self.key_rotation, &previous)?;
+        // The type heads' position signal, when on: each position's frame is the product of its
+        // window's icosian steps so far, one per token; a type head's query at `t` and key at `s`
+        // are each turned by their own frame's inverse, so their angle depends only on the steps
+        // between (the sign codes below also see the frame the two share).
+        let (query, key) = match &self.step_rotation {
+            None => (query, key),
+            Some(step_rotation) => {
+                let type_width = width - copy_width;
+                let steps = snap_icosian(
+                    &Self::rotate(step_rotation, &current)?
+                        .narrow(1, copy_width, type_width)?
+                        .contiguous()?,
+                )?;
+                let inverse = conjugate(&prefix_frames(&steps, batch, time)?)?;
+                let turn = |p: &Tensor| -> Result<Tensor> {
+                    let turned = hamilton_gate(
+                        &inverse,
+                        &p.narrow(1, copy_width, type_width)?.contiguous()?,
+                    )?;
+                    Ok(Tensor::cat(&[&p.narrow(1, 0, copy_width)?, &turned], 1)?)
+                };
+                (turn(&query)?, turn(&key)?)
+            }
+        };
         let value = Self::rotate(&self.value_rotation, &points)?;
         // ±1 by `p ≥ 0` forward, as `pack_signs` packs it, so 0 is a 1 bit; the identity backward.
         let code = |p: &Tensor| -> Result<Tensor> {
@@ -439,6 +501,68 @@ impl HammingRead {
             .add(&means[1].broadcast_mul(&type_weight)?)?;
         Ok(points.add(&added)?.reshape((batch, time, width))?)
     }
+}
+
+/// Each 4-block of `points` `(rows, 4 · lanes)` as the unit icosian (the 120 elements of 2I,
+/// SpiralCore's quaternion group, `hamilton_sheet::h4_unit_roots_f32`) nearest it in direction,
+/// by the largest inner product, as `hamilton_sheet`'s own icosian snap chooses. Straight
+/// through: the forward pass is the icosian, the backward pass the identity.
+pub(crate) fn snap_icosian(points: &Tensor) -> Result<Tensor> {
+    let (rows, width) = points.dims2()?;
+    let device = points.device();
+    let roots: Vec<f32> = crate::hamilton_sheet::h4_unit_roots_f32()
+        .iter()
+        .flatten()
+        .copied()
+        .collect();
+    let roots = Tensor::from_vec(roots, (120, 4), device)?;
+    let nearest = points
+        .detach()
+        .reshape((rows * width / 4, 1, 4))?
+        .broadcast_mul(&roots.unsqueeze(0)?)?
+        .sum(2)?
+        .argmax(1)?;
+    let snapped = roots.index_select(&nearest, 0)?.reshape((rows, width))?;
+    Ok(points.add(&snapped.sub(points)?.detach())?)
+}
+
+/// The inclusive product of each window's steps, `F_t = u_t ⊗ u_{t−1} ⊗ … ⊗ u_0`, lane by lane,
+/// for `steps` rows `(batch · time, 4 · lanes)` of unit quaternions. A Hillis–Steele scan: one
+/// Hamilton product per doubling of the span, about log₂ `time` of them. The product is
+/// associative but not commutative, so the later segment always multiplies from the left.
+pub(crate) fn prefix_frames(steps: &Tensor, batch: usize, time: usize) -> Result<Tensor> {
+    let (rows, width) = steps.dims2()?;
+    let identity: Vec<f32> = (0..width / 4)
+        .flat_map(|_| [1.0f32, 0.0, 0.0, 0.0])
+        .collect();
+    let identity = Tensor::from_vec(identity, (1, 1, width), steps.device())?;
+    let mut frames = steps.reshape((batch, time, width))?;
+    let mut span = 1;
+    while span < time {
+        let earlier = Tensor::cat(
+            &[
+                &identity.broadcast_as((batch, span, width))?.contiguous()?,
+                &frames.narrow(1, 0, time - span)?,
+            ],
+            1,
+        )?;
+        frames = hamilton_gate(
+            &frames.reshape((rows, width))?.contiguous()?,
+            &earlier.reshape((rows, width))?.contiguous()?,
+        )?
+        .reshape((batch, time, width))?;
+        span *= 2;
+    }
+    Ok(frames.reshape((rows, width))?)
+}
+
+/// Each 4-block's quaternion conjugate, `(w, −x, −y, −z)`: a unit quaternion's inverse.
+pub(crate) fn conjugate(q: &Tensor) -> Result<Tensor> {
+    let width = q.dim(1)?;
+    let signs: Vec<f32> = (0..width / 4)
+        .flat_map(|_| [1.0f32, -1.0, -1.0, -1.0])
+        .collect();
+    Ok(q.broadcast_mul(&Tensor::from_vec(signs, (1, width), q.device())?)?)
 }
 
 /// A distance no real pair reaches: positions that are not earlier.
@@ -608,8 +732,23 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn a_copy_head_reads_what_followed_the_earlier_copy_of_its_token() {
+        copy_case(false);
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_copy_head_reads_what_followed_the_earlier_copy_of_its_token_with_the_type_spin_on() {
+        // The position signal turns the type heads only, so the copy heads stay exact.
+        copy_case(true);
+    }
+
+    #[cfg(feature = "cuda")]
+    fn copy_case(spin: bool) {
         let device = Device::new_cuda(0).unwrap();
-        let reads = HammingReads::new(4, 256, &device).unwrap();
+        let mut reads = HammingReads::new(4, 256, &device).unwrap();
+        if spin {
+            reads = reads.with_type_spin().unwrap();
+        }
         let read = &reads.reads[0];
         // Only the copy heads' row of weights on, so the added part is theirs alone.
         let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
@@ -652,6 +791,161 @@ mod tests {
         for r in [0usize, 1, 3, 4, 6, 7] {
             assert!(added[r].iter().all(|&v| v == 0.0), "row {r}");
         }
+    }
+
+    /// Pseudo-random unit quaternions, `(rows, 4 · lanes)`.
+    #[cfg(feature = "cuda")]
+    fn unit_quaternions(rows: usize, lanes: usize, salt: usize, device: &Device) -> Tensor {
+        let raw: Vec<f32> = (0..rows * lanes * 4)
+            .map(|i| ((((i + salt) * 2_654_435_761) % 1_000) as f32 / 500.0) - 0.999)
+            .collect();
+        let mut unit = Vec::with_capacity(raw.len());
+        for q in raw.chunks(4) {
+            let n = q.iter().map(|v| v * v).sum::<f32>().sqrt();
+            unit.extend(q.iter().map(|v| v / n));
+        }
+        Tensor::from_vec(unit, (rows, lanes * 4), device).unwrap()
+    }
+
+    /// The Hamilton product `a ⊗ b` of two quaternions, on the host.
+    #[cfg(feature = "cuda")]
+    fn product(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
+        [
+            a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+            a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+            a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+            a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+        ]
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_frames_are_the_running_product_of_the_steps() {
+        let device = Device::new_cuda(0).unwrap();
+        // Two windows of 11 positions (not a power of two), 3 lanes.
+        let (batch, time, lanes) = (2, 11, 3);
+        let steps = unit_quaternions(batch * time, lanes, 7, &device);
+        let frames = prefix_frames(&steps, batch, time)
+            .unwrap()
+            .to_vec2::<f32>()
+            .unwrap();
+        let steps = steps.to_vec2::<f32>().unwrap();
+        for b in 0..batch {
+            for l in 0..lanes {
+                // The later step multiplies from the left: F_t = u_t ⊗ F_{t−1}.
+                let mut running = [1.0f32, 0.0, 0.0, 0.0];
+                for t in 0..time {
+                    let r = b * time + t;
+                    let u: [f32; 4] = steps[r][4 * l..4 * l + 4].try_into().unwrap();
+                    running = product(u, running);
+                    for (c, want) in running.iter().enumerate() {
+                        let got = frames[r][4 * l + c];
+                        assert!(
+                            (got - want).abs() < 1e-4,
+                            "window {b}, lane {l}, t {t}: {got} {want}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_relative_frame_ignores_every_step_at_or_before_the_earlier_position() {
+        let device = Device::new_cuda(0).unwrap();
+        let (time, lanes, s, t) = (9, 2, 3, 7);
+        let base = unit_quaternions(time, lanes, 11, &device);
+        // The same steps but at position 1 (≤ s), and the same steps but at position 5 (in (s, t]).
+        let replace = |at: usize| -> Tensor {
+            let fresh = unit_quaternions(1, lanes, 999, &device);
+            Tensor::cat(
+                &[
+                    &base.narrow(0, 0, at).unwrap(),
+                    &fresh,
+                    &base.narrow(0, at + 1, time - at - 1).unwrap(),
+                ],
+                0,
+            )
+            .unwrap()
+        };
+        let relative = |steps: &Tensor| -> Vec<f32> {
+            let frames = prefix_frames(steps, 1, time).unwrap();
+            let inverse = conjugate(&frames).unwrap();
+            // F_t ⊗ F_s⁻¹, the frame of position t seen from position s.
+            hamilton_gate(
+                &frames.narrow(0, t, 1).unwrap().contiguous().unwrap(),
+                &inverse.narrow(0, s, 1).unwrap().contiguous().unwrap(),
+            )
+            .unwrap()
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap()
+        };
+        let (here, early, between) = (
+            relative(&base),
+            relative(&replace(1)),
+            relative(&replace(5)),
+        );
+        for (a, b) in here.iter().zip(&early) {
+            assert!(
+                (a - b).abs() < 1e-4,
+                "a step at or before s moved the relative frame"
+            );
+        }
+        // A step between s and t does move it: the frame is path-dependent, not an index code.
+        assert!(here.iter().zip(&between).any(|(a, b)| (a - b).abs() > 1e-2));
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn every_step_is_a_unit_icosian() {
+        let device = Device::new_cuda(0).unwrap();
+        let points = residual(1, 8, 256, &device).reshape((8, 256)).unwrap();
+        let steps = snap_icosian(&points).unwrap().to_vec2::<f32>().unwrap();
+        let roots = crate::hamilton_sheet::h4_unit_roots_f32();
+        for row in &steps {
+            for q in row.chunks(4) {
+                assert!(
+                    roots
+                        .iter()
+                        .any(|r| r.iter().zip(q).all(|(a, b)| (a - b).abs() < 1e-6)),
+                    "{q:?} is not one of the 120 unit icosians"
+                );
+            }
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_spin_turns_the_type_heads_and_only_them() {
+        let device = Device::new_cuda(0).unwrap();
+        let ids: Vec<u32> = (0..24).map(|i| (i % 5) as u32 * 3).collect();
+        let x = residual(1, 24, 256, &device);
+        let table = table(16, 256, &device);
+        let out = |spin: bool, row: usize| -> Vec<f32> {
+            let mut reads = HammingReads::new(4, 256, &device).unwrap();
+            if spin {
+                reads = reads.with_type_spin().unwrap();
+            }
+            let read = &reads.reads[0];
+            let only: Vec<f32> = (0..512)
+                .map(|i| f32::from(u8::from(i / 256 == row)))
+                .collect();
+            read.weight
+                .set(&Tensor::from_vec(only, (2, 256), &device).unwrap())
+                .unwrap();
+            read.apply(&x, &ids, &table)
+                .unwrap()
+                .flatten_all()
+                .unwrap()
+                .to_vec1::<f32>()
+                .unwrap()
+        };
+        // The copy heads' part is the same with the spin on and off; the type heads' part moves.
+        assert_eq!(out(false, 0), out(true, 0));
+        assert_ne!(out(false, 1), out(true, 1));
     }
 
     #[cfg(feature = "cuda")]

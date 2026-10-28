@@ -1,6 +1,6 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest] [--steps N]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--samples N] [--reply-tokens N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -61,6 +61,7 @@ fn main() -> Result<()> {
         flock_read: 0,
         content_read: 0,
         hamming_read: 0,
+        type_spin: false,
         samples: 6,
         reply_tokens: 48,
     };
@@ -112,6 +113,7 @@ fn main() -> Result<()> {
             "--flock-read" => config.flock_read = number(&value)?,
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
+            "--type-spin" => config.type_spin = switch(&value)?,
             "--lr" | "--lr-end" | "--decay-mult" => {
                 let v: f64 = value
                     .parse()

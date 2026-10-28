@@ -75,6 +75,9 @@ pub struct LongConfig {
     /// Hamming flock attention with this many heads after layer 2 and on the readout; 0 is no read
     /// (`flock_read_hamming`).
     pub hamming_read: usize,
+    /// The Hamming read's type heads compare positions through SpiralCore's path-dependent
+    /// icosian transport (`HammingReads::with_type_spin`, claude-151); off by default.
+    pub type_spin: bool,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -190,8 +193,11 @@ fn start_hamming(
     if config.hamming_read == 0 {
         return Ok(None);
     }
-    let reads =
+    let mut reads =
         crate::flock_read_hamming::HammingReads::new(config.hamming_read, hs::SHEET_WIDTH, device)?;
+    if config.type_spin {
+        reads = reads.with_type_spin()?;
+    }
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
