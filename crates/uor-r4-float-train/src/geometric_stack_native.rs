@@ -1112,12 +1112,15 @@ impl StackModel {
         // session's 2^-16 grid; otherwise `q16_residual` returns it unchanged.
         let q16 = crate::hamilton_sheet::q16_residual;
         let mut x = q16(self.embed(ids, batch, time)?)?;
+        stage_clock::mark("embed");
         // The prompt register's slots (claude-155) live for one forward only: none survive from a
         // forward that failed between the stream and the readout.
         crate::flock_read_register::set_register_slots(None);
         for layer in 0..self.config.layers() {
             x = q16(x.add(&self.composed_recurrence(&p, layer, &x)?)?)?;
+            stage_clock::mark_with(|| format!("layer{layer}.recurrence"));
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
+            stage_clock::mark_with(|| format!("layer{layer}.mlp"));
             // The content read (claude-145), when one is set on this thread: after layer 3, keyed
             // on the input tokens' own points.
             if layer + 1 == crate::flock_read_content::CONTENT_AFTER_LAYER {
@@ -1129,6 +1132,7 @@ impl StackModel {
                         .as_tensor()
                         .clone();
                     x = q16(read.apply(&x, ids, &table)?)?;
+                    stage_clock::mark_with(|| format!("layer{layer}.content_read"));
                 }
             }
             // The Hamming read inside the stream (claude-146), when set on this thread: after
@@ -1142,6 +1146,7 @@ impl StackModel {
                         .as_tensor()
                         .clone();
                     x = q16(read.apply(&x, ids, &table)?)?;
+                    stage_clock::mark_with(|| format!("layer{layer}.hamming_read"));
                 }
             }
             // The opening read (claude-154), when set on this thread: after layer 2, the mean of
@@ -1155,6 +1160,7 @@ impl StackModel {
                         .as_tensor()
                         .clone();
                     x = q16(read.apply(&x, ids, &table)?)?;
+                    stage_clock::mark_with(|| format!("layer{layer}.opening_read"));
                 }
                 // The prompt register (claude-155), when set on this thread: its slots over the
                 // current turn's span, added to the stream and kept for this forward's readout.
@@ -1162,10 +1168,12 @@ impl StackModel {
                     let slots = reg.slots(&x, ids)?;
                     x = q16(reg.apply_stream(&x, &slots)?)?;
                     crate::flock_read_register::set_register_slots(Some(slots));
+                    stage_clock::mark_with(|| format!("layer{layer}.register"));
                 }
             }
         }
         let mut x = self.norm(&p, &x, "final_norm.weight")?;
+        stage_clock::mark("final_norm");
         // The Hamming readout (claude-146): where a copy head found an earlier copy of the current
         // token, the decoded point moves toward the point of the token that followed it.
         if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
@@ -1177,6 +1185,7 @@ impl StackModel {
                     .as_tensor()
                     .clone();
                 x = read.apply_readout(&x, ids, &table)?;
+                stage_clock::mark("readout.hamming");
             }
         }
         // The prompt register's readout (claude-155): the slots the stream kept, taken so none
@@ -1184,6 +1193,7 @@ impl StackModel {
         if let Some(slots) = crate::flock_read_register::take_register_slots() {
             if let Some(reg) = crate::flock_read_register::prompt_register() {
                 x = reg.apply_readout(&x, &slots)?;
+                stage_clock::mark("readout.register");
             }
         }
         Ok(x.reshape((batch * time, self.config.width))?)
@@ -1798,6 +1808,140 @@ pub const KEEP_TABLE: [f32; 16] = [
 /// clamped to the last entry, so a score of exactly `k / RATE_ENTRIES` selects
 /// entry `k`.
 pub const RATE_ENTRIES: usize = 16;
+
+/// Stage times for one training step (fbs-cost-profile, claude-157). Off unless a profiled step
+/// starts it; then each [`stage_clock::mark`] names the stage that just ended and records a CUDA
+/// event on candle's stream, with the host's clock beside it. Nothing waits between marks, so a
+/// profiled step runs as an unprofiled one does; [`stage_clock::finish`] reads the events.
+pub mod stage_clock {
+    use crate::{invalid, Result};
+    use candle_core::Device;
+    use std::cell::RefCell;
+    use std::time::Instant;
+
+    /// One stage: the time from the mark before it to its own, on the GPU and on the host.
+    #[derive(Clone, Debug, serde::Serialize)]
+    pub struct StageTime {
+        pub name: String,
+        /// `None` off CUDA.
+        pub gpu_ms: Option<f64>,
+        pub host_ms: f64,
+    }
+
+    struct Mark {
+        name: String,
+        host: Instant,
+        #[cfg(feature = "cuda")]
+        event: Option<cudarc::driver::CudaEvent>,
+    }
+
+    struct Clock {
+        #[cfg(feature = "cuda")]
+        stream: Option<std::sync::Arc<cudarc::driver::CudaStream>>,
+        marks: Vec<Mark>,
+        /// The first failed event record, reported by `finish`, so a mark never fails.
+        error: Option<String>,
+    }
+
+    thread_local! {
+        static CLOCK: RefCell<Option<Clock>> = const { RefCell::new(None) };
+    }
+
+    /// Turn the clock off with nothing read: a step that failed between `start` and `finish`
+    /// leaves none on for the next run on this thread.
+    pub fn reset() {
+        CLOCK.with(|c| *c.borrow_mut() = None);
+    }
+
+    /// Start the clock on this thread for a step on `device`, with its first mark.
+    pub fn start(device: &Device) {
+        #[cfg(feature = "cuda")]
+        let stream = match device {
+            Device::Cuda(d) => Some(d.cuda_stream()),
+            _ => None,
+        };
+        #[cfg(not(feature = "cuda"))]
+        let _ = device;
+        CLOCK.with(|c| {
+            *c.borrow_mut() = Some(Clock {
+                #[cfg(feature = "cuda")]
+                stream,
+                marks: Vec::with_capacity(64),
+                error: None,
+            })
+        });
+        mark("start");
+    }
+
+    /// End the stage `name` here; nothing when the clock is off.
+    pub fn mark(name: &str) {
+        mark_with(|| name.to_string());
+    }
+
+    /// [`mark`], with the name built only when the clock is on.
+    pub fn mark_with(name: impl FnOnce() -> String) {
+        CLOCK.with(|c| {
+            let mut c = c.borrow_mut();
+            let Some(clock) = c.as_mut() else {
+                return;
+            };
+            #[cfg(feature = "cuda")]
+            let event = clock.stream.as_ref().and_then(|stream| {
+                // Timing must be asked for: an event made with no flags cannot be timed.
+                match stream
+                    .record_event(Some(cudarc::driver::sys::CUevent_flags::CU_EVENT_DEFAULT))
+                {
+                    Ok(event) => Some(event),
+                    Err(e) => {
+                        clock
+                            .error
+                            .get_or_insert_with(|| format!("record_event: {e:?}"));
+                        None
+                    }
+                }
+            });
+            clock.marks.push(Mark {
+                name: name(),
+                host: Instant::now(),
+                #[cfg(feature = "cuda")]
+                event,
+            });
+        });
+    }
+
+    /// Stop the clock with a last mark, `end`: one [`StageTime`] per mark after `start`, each
+    /// from the mark before it. Waits for the events; `None` when the clock was off.
+    pub fn finish() -> Result<Option<Vec<StageTime>>> {
+        mark("end");
+        let Some(clock) = CLOCK.with(|c| c.borrow_mut().take()) else {
+            return Ok(None);
+        };
+        if let Some(e) = clock.error {
+            return Err(invalid(format!("stage clock: {e}")));
+        }
+        let mut stages = Vec::with_capacity(clock.marks.len());
+        for pair in clock.marks.windows(2) {
+            let (before, at) = (&pair[0], &pair[1]);
+            #[cfg(feature = "cuda")]
+            let gpu_ms = match (&before.event, &at.event) {
+                (Some(a), Some(b)) => {
+                    Some(f64::from(a.elapsed_ms(b).map_err(|e| {
+                        invalid(format!("stage clock: elapsed_ms: {e:?}"))
+                    })?))
+                }
+                _ => None,
+            };
+            #[cfg(not(feature = "cuda"))]
+            let gpu_ms = None;
+            stages.push(StageTime {
+                name: at.name.clone(),
+                gpu_ms,
+                host_ms: at.host.duration_since(before.host).as_secs_f64() * 1e3,
+            });
+        }
+        Ok(Some(stages))
+    }
+}
 
 /// The table index a clamped score selects.
 #[inline]

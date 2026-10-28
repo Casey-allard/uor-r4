@@ -25,6 +25,7 @@ use candle_core::{DType, Device, Tensor};
 use serde::Serialize;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
+use crate::geometric_stack::stage_clock::{self, StageTime};
 use crate::geometric_stack::{StackAdamW, StackModel};
 use crate::hamilton_sheet::{self as hs, CausalWindow, HamiltonArm, SHEET_CONTEXT};
 use crate::spiralcore_fbs_arms::{self as arms, FbsArm};
@@ -129,6 +130,10 @@ pub struct LongConfig {
     pub train_split: Option<TrainSplit>,
     pub samples: usize,
     pub reply_tokens: usize,
+    /// Profile this many training steps by stage (fbs-cost-profile, claude-157): see
+    /// [`profile_window`]. 0 is off, and left out of `config.json`.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub profile: usize,
 }
 
 /// One checkpoint's reading, one line of `progress.jsonl`.
@@ -451,6 +456,7 @@ fn nearest_loss(model: &StackModel, query: &Tensor, targets: &[u32], cell: bool)
         .broadcast_as(scores.shape())?
         .broadcast_ne(&target_ids)?;
     let rivals = best_positions(&scores, &allowed, hs::SHEET_RIVALS)?;
+    stage_clock::mark("objective.table_search");
     let rival_vectors =
         table
             .index_select(&rivals.flatten_all()?, 0)?
@@ -466,7 +472,9 @@ fn nearest_loss(model: &StackModel, query: &Tensor, targets: &[u32], cell: bool)
         .abs()?
         .mean_keepdim(1)?
         .neg()?;
-    rival_hinge(&rival, &target_score, cell)
+    let loss = rival_hinge(&rival, &target_score, cell)?;
+    stage_clock::mark("objective.hinge");
+    Ok(loss)
 }
 
 fn batch_loss(
@@ -479,7 +487,9 @@ fn batch_loss(
 ) -> Result<Tensor> {
     let hidden = crate::flock_read::points(model, ids, batch, SHEET_CONTEXT)?;
     let idx = Tensor::from_vec(scored.to_vec(), scored.len(), model.device())?;
-    query_loss(model, objective, &hidden.index_select(&idx, 0)?, targets)
+    let query = hidden.index_select(&idx, 0)?;
+    stage_clock::mark("points.select");
+    query_loss(model, objective, &query, targets)
 }
 
 /// `objective`'s loss for the predicted points `query`, one row per target.
@@ -1957,9 +1967,198 @@ pub fn gradient_norms(
 }
 
 /// Train, score, write text and save, as the module documentation says. `out` must not exist.
+/// Training steps run before the profile's window opens (fbs-cost-profile, claude-157): past
+/// step 0's diagnostics and the first steps' allocations.
+pub const PROFILE_WARMUP: usize = 8;
+
+/// Where `step` sits in a `profile`-step window: `Some(true)` for a profiled step, `Some(false)`
+/// for the unprofiled step after it, whose time it is compared with, and `None` outside the
+/// window or when `profile` is 0. The window is the `2 * profile` steps after
+/// [`PROFILE_WARMUP`], profiled and unprofiled in turn.
+pub fn profile_window(step: usize, profile: usize) -> Option<bool> {
+    if profile == 0
+        || step < PROFILE_WARMUP
+        || step >= PROFILE_WARMUP.saturating_add(profile.saturating_mul(2))
+    {
+        return None;
+    }
+    Some((step - PROFILE_WARMUP).is_multiple_of(2))
+}
+
+/// One profiled training step, one line of `profile.jsonl`.
+#[derive(Clone, Debug, Serialize)]
+pub struct ProfileRow {
+    pub step: usize,
+    pub loss: f64,
+    /// The step's host time through its closing wait for the GPU, as every step is timed.
+    pub step_ms: f64,
+    /// Each stage from the mark before it, in step order; the last, `end`, is the closing mark,
+    /// with nothing queued before it since `optimizer.decay`, so about zero GPU time.
+    pub stages: Vec<StageTime>,
+    /// The stages' GPU times summed: the GPU's span from the step's first mark to its last.
+    pub gpu_span_ms: f64,
+    /// The unprofiled step after this one, timed as every training step is.
+    pub next_unprofiled_ms: Option<f64>,
+}
+
+/// One stage's medians over the profiled steps.
+#[derive(Clone, Debug, Serialize)]
+pub struct StageSummary {
+    pub name: String,
+    pub gpu_ms: f64,
+    pub host_ms: f64,
+}
+
+/// `profile.json`: the profiled steps' stages against the unprofiled steps' time.
+#[derive(Clone, Debug, Serialize)]
+pub struct ProfileSummary {
+    pub profiled_steps: usize,
+    /// Each stage's median, in step order.
+    pub stages: Vec<StageSummary>,
+    /// The stage medians' GPU times summed by group: `forward`, `objective`, `backward`,
+    /// `optimizer` and `end`.
+    pub groups: Vec<(String, f64)>,
+    /// The stage medians' GPU times summed.
+    pub stage_sum_ms: f64,
+    /// The median of the unprofiled steps' times.
+    pub median_unprofiled_ms: f64,
+    /// `stage_sum_ms / median_unprofiled_ms`.
+    pub ratio: f64,
+    /// The item's bar: the stages sum to the measured step time within 10%.
+    pub within_10pct: bool,
+    /// The median of the profiled steps' host times, timed as the unprofiled ones are.
+    pub median_profiled_ms: f64,
+    /// `median_profiled_ms / median_unprofiled_ms - 1`: what the clock itself adds to a step. The
+    /// stage sum cannot show it, since both spans start and end with the GPU idle.
+    pub clock_overhead: f64,
+    /// The three stages with the largest median GPU time, largest first.
+    pub top3: Vec<String>,
+    /// The same, among the forward and objective stages only: the backward holds every stage's
+    /// gradient in one time.
+    pub top3_forward: Vec<String>,
+}
+
+/// The median of `values` (the mean of the middle two for an even count); NaN when empty.
+fn median(values: &mut [f64]) -> f64 {
+    if values.is_empty() {
+        return f64::NAN;
+    }
+    values.sort_by(f64::total_cmp);
+    let mid = values.len() / 2;
+    if values.len() % 2 == 1 {
+        values[mid]
+    } else {
+        (values[mid - 1] + values[mid]) / 2.0
+    }
+}
+
+/// The group a stage's time counts in.
+fn stage_group(name: &str) -> &'static str {
+    if name == "points.select" || name.starts_with("objective.") {
+        "objective"
+    } else if name == "backward" {
+        "backward"
+    } else if name.starts_with("optimizer.") {
+        "optimizer"
+    } else if name == "end" {
+        "end"
+    } else {
+        "forward"
+    }
+}
+
+/// The profile's summary: each stage's medians over `rows` in the first row's stage order, the
+/// group sums, and the sum against the unprofiled steps' median.
+pub fn summarize_profile(rows: &[ProfileRow]) -> ProfileSummary {
+    let names: Vec<String> = rows
+        .first()
+        .map(|r| r.stages.iter().map(|s| s.name.clone()).collect())
+        .unwrap_or_default();
+    let stages: Vec<StageSummary> = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let mut gpu: Vec<f64> = rows
+                .iter()
+                .filter_map(|r| r.stages.get(i).and_then(|s| s.gpu_ms))
+                .collect();
+            let mut host: Vec<f64> = rows
+                .iter()
+                .filter_map(|r| r.stages.get(i).map(|s| s.host_ms))
+                .collect();
+            StageSummary {
+                name: name.clone(),
+                gpu_ms: median(&mut gpu),
+                host_ms: median(&mut host),
+            }
+        })
+        .collect();
+    let mut groups: Vec<(String, f64)> = ["forward", "objective", "backward", "optimizer", "end"]
+        .iter()
+        .map(|g| (g.to_string(), 0.0))
+        .collect();
+    for s in &stages {
+        if let Some(g) = groups.iter_mut().find(|(g, _)| g == stage_group(&s.name)) {
+            g.1 += s.gpu_ms;
+        }
+    }
+    let stage_sum_ms: f64 = stages.iter().map(|s| s.gpu_ms).sum();
+    let mut unprofiled: Vec<f64> = rows.iter().filter_map(|r| r.next_unprofiled_ms).collect();
+    let median_unprofiled_ms = median(&mut unprofiled);
+    let ratio = stage_sum_ms / median_unprofiled_ms;
+    let mut profiled: Vec<f64> = rows.iter().map(|r| r.step_ms).collect();
+    let median_profiled_ms = median(&mut profiled);
+    let mut ranked: Vec<&StageSummary> = stages.iter().collect();
+    ranked.sort_by(|a, b| b.gpu_ms.total_cmp(&a.gpu_ms));
+    let names_of = |keep: &dyn Fn(&str) -> bool| -> Vec<String> {
+        ranked
+            .iter()
+            .filter(|s| keep(&s.name))
+            .take(3)
+            .map(|s| s.name.clone())
+            .collect()
+    };
+    let top3 = names_of(&|_| true);
+    let top3_forward = names_of(&|n| matches!(stage_group(n), "forward" | "objective"));
+    ProfileSummary {
+        profiled_steps: rows.len(),
+        top3,
+        top3_forward,
+        stages,
+        groups,
+        stage_sum_ms,
+        median_unprofiled_ms,
+        ratio,
+        within_10pct: (ratio - 1.0).abs() <= 0.10,
+        median_profiled_ms,
+        clock_overhead: median_profiled_ms / median_unprofiled_ms - 1.0,
+    }
+}
+
 pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Device) -> Result<()> {
     if config.steps == 0 || config.batch == 0 || config.eval_every == 0 {
         return Err(invalid("steps, batch and eval-every must be positive"));
+    }
+    // A clock left on by a run that failed mid-step on this thread starts no stage of this one.
+    stage_clock::reset();
+    if config.profile > 0 {
+        let window_end = config
+            .profile
+            .checked_mul(2)
+            .and_then(|w| w.checked_add(PROFILE_WARMUP))
+            .ok_or_else(|| invalid(format!("--profile {} is too large", config.profile)))?;
+        if config.steps < window_end {
+            return Err(invalid(format!(
+                "--profile {} needs at least {window_end} steps: {PROFILE_WARMUP} of warm-up, \
+                 then each profiled step and the unprofiled step after it",
+                config.profile
+            )));
+        }
+        if !device.is_cuda() {
+            return Err(invalid(
+                "--profile times the GPU's stages and needs a CUDA device",
+            ));
+        }
     }
     if out.exists() {
         return Err(invalid(format!(
@@ -2153,6 +2352,10 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     let mut order = epoch_order(usable.len(), config.seed, 0);
     let mut cursor = 0usize;
     let mut epoch = 0u64;
+    // The profile (fbs-cost-profile, claude-157): each profiled step waits for the unprofiled
+    // step after it, whose time it is compared with.
+    let mut profiled_row: Option<ProfileRow> = None;
+    let mut profile_rows: Vec<ProfileRow> = Vec::new();
     for step in 0..config.steps {
         if cursor + config.batch > order.len() {
             epoch += 1;
@@ -2165,7 +2368,11 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             .collect();
         cursor += config.batch;
         let (ids, scored, targets) = assemble(&windows);
+        let profiled = profile_window(step, config.profile);
         let started = Instant::now();
+        if profiled == Some(true) {
+            stage_clock::start(device);
+        }
         // The gate hook carries the real step: at step 0 its backward runs diagnostics with host
         // syncs, and a checkpoint's replies leave it at 0.
         let (value, grads) = hs::with_gate_mode(
@@ -2182,11 +2389,17 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                     &targets,
                     config.batch,
                 )?;
+                // The copy to the host waits for the GPU to finish the forward. Only the nearest
+                // and cell objectives mark their own stages; the sheet's and Voronoi objectives
+                // count in this one.
                 let value = f64::from(loss.to_scalar::<f32>()?);
+                stage_clock::mark("objective.readback");
                 if !value.is_finite() {
                     return Err(invalid(format!("non-finite training loss at step {step}")));
                 }
-                Ok((value, loss.backward()?))
+                let grads = loss.backward()?;
+                stage_clock::mark("backward");
+                Ok((value, grads))
             },
         )?;
         // Linear from `lr` at the first step to `lr_end` at the last.
@@ -2197,6 +2410,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         };
         let lr = config.lr + (config.lr_end - config.lr) * progress;
         opt_main.update_filtered(&model, &grads, lr, |name| !name.ends_with("rec.decay"))?;
+        stage_clock::mark("optimizer.main");
         if let Some((read, opt)) = flock.as_mut() {
             opt.step(read, &grads, lr)?;
         }
@@ -2212,11 +2426,54 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some((reg, opt)) = register.as_mut() {
             opt.step_vars(&reg.variables(), &grads, lr)?;
         }
+        stage_clock::mark("optimizer.reads");
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
+        stage_clock::mark("optimizer.decay");
+        // Reading the events waits for the GPU, as the synchronization below would.
+        let stages = stage_clock::finish()?;
         device.synchronize()?;
-        train_seconds += started.elapsed().as_secs_f64();
+        let step_seconds = started.elapsed().as_secs_f64();
+        train_seconds += step_seconds;
+        match (profiled, stages) {
+            (Some(true), Some(stages)) => {
+                let gpu_span_ms = stages.iter().filter_map(|s| s.gpu_ms).sum();
+                profiled_row = Some(ProfileRow {
+                    step,
+                    loss: value,
+                    step_ms: step_seconds * 1e3,
+                    stages,
+                    gpu_span_ms,
+                    next_unprofiled_ms: None,
+                });
+            }
+            (Some(false), _) => {
+                if let Some(mut row) = profiled_row.take() {
+                    row.next_unprofiled_ms = Some(step_seconds * 1e3);
+                    append_line(&out.join("profile.jsonl"), &serde_json::to_string(&row)?)?;
+                    profile_rows.push(row);
+                }
+                if Some(step + 1) == config.profile.checked_mul(2).map(|w| w + PROFILE_WARMUP) {
+                    let summary = summarize_profile(&profile_rows);
+                    fs::write(
+                        out.join("profile.json"),
+                        serde_json::to_vec_pretty(&summary)?,
+                    )?;
+                    println!(
+                        "[profile] {} steps: stages sum to {:.3} ms against {:.3} ms unprofiled \
+                         (ratio {:.3}); the clock adds {:.3}; top three {:?}",
+                        summary.profiled_steps,
+                        summary.stage_sum_ms,
+                        summary.median_unprofiled_ms,
+                        summary.ratio,
+                        summary.clock_overhead,
+                        summary.top3
+                    );
+                }
+            }
+            _ => {}
+        }
         loss_sum += value;
         loss_steps += 1;
         if (step + 1) % config.eval_every == 0 || step + 1 == config.steps {
@@ -2456,6 +2713,7 @@ mod tests {
             train_split: None,
             samples: 6,
             reply_tokens: 48,
+            profile: 0,
         }
     }
 
@@ -2642,6 +2900,172 @@ mod tests {
             .to_scalar::<f32>()
             .unwrap();
         assert!((writer - ours).abs() < 1e-6, "{writer} != {ours}");
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_stage_clock_times_a_step_without_changing_its_loss() {
+        let device = Device::new_cuda(0).unwrap();
+        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
+        let ids: Vec<u32> = (0..SHEET_CONTEXT as u32).map(|i| (i * 37) % 4096).collect();
+        let (scored, targets) = ([10u32, 50, 100, 191], [11u32, 2000, 7, 300]);
+        let loss = || batch_loss(&model, PointObjective::Cell, &ids, &scored, &targets, 1).unwrap();
+        let off = loss().to_scalar::<f32>().unwrap();
+        stage_clock::start(&device);
+        let on = loss();
+        on.backward().unwrap();
+        stage_clock::mark("backward");
+        let stages = stage_clock::finish().unwrap().expect("the clock was on");
+        // Events mark the stream and change no kernel: the loss is the same, bit for bit.
+        assert_eq!(off.to_bits(), on.to_scalar::<f32>().unwrap().to_bits());
+        let names: Vec<&str> = stages.iter().map(|s| s.name.as_str()).collect();
+        for want in [
+            "embed",
+            "layer0.recurrence",
+            "layer0.mlp",
+            "final_norm",
+            "points.select",
+            "objective.table_search",
+            "objective.hinge",
+            "backward",
+            "end",
+        ] {
+            assert!(names.contains(&want), "{names:?} lacks {want}");
+        }
+        assert!(
+            stages
+                .iter()
+                .all(|s| s.gpu_ms.is_some_and(|ms| ms >= 0.0) && s.host_ms >= 0.0),
+            "{stages:?}"
+        );
+        // Off again: a mark does nothing, and there is nothing to finish.
+        stage_clock::mark("after");
+        assert!(stage_clock::finish().unwrap().is_none());
+    }
+
+    #[test]
+    fn the_profile_window_alternates_after_the_warm_up() {
+        assert_eq!(profile_window(PROFILE_WARMUP, 0), None);
+        assert_eq!(profile_window(PROFILE_WARMUP - 1, 3), None);
+        let window: Vec<Option<bool>> = (PROFILE_WARMUP..PROFILE_WARMUP + 7)
+            .map(|step| profile_window(step, 3))
+            .collect();
+        assert_eq!(
+            window,
+            [
+                Some(true),
+                Some(false),
+                Some(true),
+                Some(false),
+                Some(true),
+                Some(false),
+                None
+            ]
+        );
+    }
+
+    fn profile_row(scale: f64, unprofiled_ms: f64) -> ProfileRow {
+        let stage = |name: &str, gpu_ms: f64| StageTime {
+            name: name.to_string(),
+            gpu_ms: Some(gpu_ms * scale),
+            host_ms: gpu_ms * scale / 2.0,
+        };
+        let stages = vec![
+            stage("embed", 1.0),
+            stage("layer0.recurrence", 6.0),
+            stage("points.select", 0.5),
+            stage("objective.table_search", 3.0),
+            stage("backward", 8.0),
+            stage("optimizer.main", 1.5),
+            stage("end", 0.0),
+        ];
+        ProfileRow {
+            step: PROFILE_WARMUP,
+            loss: 1.0,
+            step_ms: unprofiled_ms,
+            gpu_span_ms: stages.iter().filter_map(|s| s.gpu_ms).sum(),
+            stages,
+            next_unprofiled_ms: Some(unprofiled_ms),
+        }
+    }
+
+    #[test]
+    fn the_profile_summary_takes_medians_sums_groups_and_reads_the_bar() {
+        // Three steps: each stage's median is the middle step's, at scale 1.
+        let summary = summarize_profile(&[
+            profile_row(0.9, 21.0),
+            profile_row(1.0, 20.0),
+            profile_row(1.3, 19.0),
+        ]);
+        assert_eq!(summary.profiled_steps, 3);
+        let gpu: Vec<f64> = summary.stages.iter().map(|s| s.gpu_ms).collect();
+        assert_eq!(gpu, [1.0, 6.0, 0.5, 3.0, 8.0, 1.5, 0.0]);
+        assert_eq!(summary.stages[1].host_ms, 3.0);
+        let group = |g: &str| summary.groups.iter().find(|(n, _)| n == g).unwrap().1;
+        assert_eq!(
+            [
+                group("forward"),
+                group("objective"),
+                group("backward"),
+                group("optimizer"),
+                group("end")
+            ],
+            [7.0, 3.5, 8.0, 1.5, 0.0]
+        );
+        assert_eq!(
+            (summary.stage_sum_ms, summary.median_unprofiled_ms),
+            (20.0, 20.0)
+        );
+        assert!(summary.within_10pct && summary.ratio == 1.0);
+        assert_eq!(
+            summary.top3,
+            ["backward", "layer0.recurrence", "objective.table_search"]
+        );
+        assert_eq!(
+            summary.top3_forward,
+            ["layer0.recurrence", "objective.table_search", "embed"]
+        );
+        assert_eq!(
+            (summary.median_profiled_ms, summary.clock_overhead),
+            (20.0, 0.0)
+        );
+        // A clock that slows the profiled steps shows in its overhead, which the sum cannot see.
+        let mut slowed = profile_row(1.0, 20.0);
+        slowed.step_ms = 22.0;
+        let slowed = summarize_profile(&[slowed]);
+        assert!(slowed.within_10pct && (slowed.clock_overhead - 0.1).abs() < 1e-12);
+        // The stages summing to far more than an unprofiled step, or far less, misses the bar.
+        let over = summarize_profile(&[profile_row(1.0, 15.0), profile_row(1.0, 15.0)]);
+        assert!(!over.within_10pct && over.ratio > 1.3);
+        let under = summarize_profile(&[profile_row(1.0, 30.0)]);
+        assert!(!under.within_10pct && under.ratio < 0.7);
+    }
+
+    #[test]
+    fn a_profiled_run_refuses_a_window_it_cannot_hold_and_a_device_without_cuda() {
+        let missing = std::env::temp_dir().join(format!("claude-157-none-{}", std::process::id()));
+        let refusal = |profile: usize, steps: usize| -> String {
+            let mut config = config(0, None);
+            (config.profile, config.steps) = (profile, steps);
+            match run_long(&missing, &missing.join("out"), &config, &Device::Cpu) {
+                Err(e) => e.to_string(),
+                Ok(()) => "ran".to_string(),
+            }
+        };
+        assert!(refusal(usize::MAX, 72).contains("too large"));
+        assert!(refusal(3, 13).contains("needs at least 14 steps"));
+        assert!(refusal(3, 14).contains("needs a CUDA device"));
+        assert!(!missing.exists());
+    }
+
+    #[test]
+    fn a_config_without_the_profile_writes_no_profile_key() {
+        let mut config = config(0, None);
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(!json.contains("profile"), "{json}");
+        config.profile = 3;
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(json.contains("\"profile\": 3"), "{json}");
     }
 
     #[cfg(feature = "cuda")]

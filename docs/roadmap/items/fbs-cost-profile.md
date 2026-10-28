@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: []
 notebook: docs/research/notebook/float-training.md
-scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-integer/src/bin/fbs-toks.rs, docs/harness/prep/fbs-cost-profile*, docs/loop/tasks/fbs-cost-profile/**, docs/research/notebook/float-training.md, docs/roadmap/items/fbs-cost-profile.md]
+scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-integer/src/stack/session.rs, docs/harness/prep/fbs-cost-profile*, docs/loop/tasks/fbs-cost-profile/**, docs/research/notebook/float-training.md, docs/roadmap/items/fbs-cost-profile.md]
 ---
 
 ## Why it matters
@@ -36,6 +36,13 @@ And after the pivot vote:
   - the share spent in the reads.
 - **Serving:** `fbs-toks` on the M1 decodes at 231–268 tok/s for 1.1M values, which the map estimates at 5,000 to 6,000 times below the chip's bandwidth limit. There is no split between the trunk, the readout (writer or whole table) and the loop.
 - **The test runner's decode** re-runs the whole window for every token, so its tokens/s is the runner's, not the model's.
+- **Training is done (claude-157, 28 Oct).** Done-when 1, and done-when 3 for training, are met ([REPORT](../../loop/tasks/fbs-cost-profile/claude-157/REPORT.md)):
+  - the backward takes 62% / 54% of a step;
+  - the whole-table search takes 13% / 34%;
+  - (a)'s two Hamming reads take 16%;
+  - the trunk takes 5% / 9%.
+
+  Still open: the served token (done-when 2), and the backward's own split. The serving twin lives in `crates/uor-r4-integer/src/stack/session.rs`, now in this item's scope.
 
 ## Done when
 
