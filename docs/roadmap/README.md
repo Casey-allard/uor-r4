@@ -23,8 +23,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 | ready | 13 |
 | held | 10 |
 | decision | 1 |
-| done | 75 |
-| total | 99 |
+| done | 78 |
+| total | 102 |
 
 ## Start here
 
@@ -134,8 +134,8 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Train the FBS trunk in its own space until its replies read their prompts](items/in-space-trunk-to-text.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
 | [Serve the Hamming read from the integer artifact on the laptop](items/integer-hamming-read.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
+| [Route the user's turn to an exact memory built from TRAIN, read at the readout](items/route-plus-memory.md) | ready | a lab | yes | none | not yet synced |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
@@ -144,11 +144,14 @@ These items are ready and open to anyone.
 | [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
 | [Build a hard-selection step for carrier credit](items/carrier-credit-hard-selection.md) | done | a lab | yes | none | [#2819](https://github.com/UOR-Foundation/uor-r4/issues/2819) |
+| [Profile one training step and one served token, stage by stage](items/fbs-cost-profile.md) | done | a lab | yes | none | not yet synced |
 | [Run a Hamilton gate offline-float sheet with language fit and export gap](items/hamilton-gate-offline-float-sheet.md) | done | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2824](https://github.com/UOR-Foundation/uor-r4/issues/2824) |
+| [Train the FBS trunk in its own space until its replies read their prompts](items/in-space-trunk-to-text.md) | done | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
 | [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | done | anyone | no | none | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
 | [Make the decoder that serves the decoder that was measured](items/one-decoder.md) | done | a lab | yes | [float-training-module](items/float-training-module.md) | not yet synced |
 | [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | done | a lab | no | none | [#2876](https://github.com/UOR-Foundation/uor-r4/issues/2876) |
 | [Map the model end to end: each stage's domain, size, hardware and cost](items/pipeline-map.md) | done | a lab | no | none | not yet synced |
+| [Revise the pipeline map with claude-149 to claude-155, ranked by cost per token](items/pipeline-map-revision.md) | done | a lab | no | [pipeline-map](items/pipeline-map.md) | not yet synced |
 | [Train the finite relational head](items/r-finite-relational-head.md) | done | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2877](https://github.com/UOR-Foundation/uor-r4/issues/2877) |
 | [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | done | anyone | no | none | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |
 | [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | done | a lab | yes | none | [#2881](https://github.com/UOR-Foundation/uor-r4/issues/2881) |
@@ -266,6 +269,8 @@ flowchart LR
   n_object_store_consumer_m3["object-store-consumer-m3"]
   n_one_decoder["one-decoder"]
   n_owner_decision_float_path_scope["owner-decision-float-path-scope"]
+  n_pipeline_map["pipeline-map"]
+  n_pipeline_map_revision["pipeline-map-revision"]
   n_r_finite_relational_head["r-finite-relational-head"]
   n_r_quaternion_transport_order["r-quaternion-transport-order"]
   n_r_rank_objective_keeps_cells["r-rank-objective-keeps-cells"]
@@ -374,6 +379,7 @@ flowchart LR
   n_object_store_consumer_m3 --> n_m3_qualify_memory
   n_owner_decision_float_path_scope --> n_d11_exporter_float_trunk
   n_owner_decision_float_path_scope --> n_float_training_module
+  n_pipeline_map --> n_pipeline_map_revision
   n_r_secant_surrogate_descent --> n_hamilton_gate_offline_float_sheet
   n_r_secant_surrogate_descent --> n_recurrence_gates_six_recurrence_fit
   n_r_secant_surrogate_descent --> n_spiralcore_fbs_offline_float_sheet

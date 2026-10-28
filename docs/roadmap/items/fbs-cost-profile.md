@@ -62,3 +62,24 @@ And after the pivot vote:
 2. **One served token, profiled by stage** on the M1 in `fbs-toks`: each trunk layer, the readout (writer and whole-table nearest, each timed), and the loop overhead, summing within 10%.
 3. For each of the top three costs, one line on the cheapest change that would remove most of it, with its effect on prediction stated as measured or as a hypothesis.
 4. One notebook row and a REPORT. A one-page sheet with a fresh FIT comes before the GPU part (CHARTER §4.5), because it runs training steps.
+
+## How to start
+
+Read:
+- the [pipeline map](../../model/pipeline-map.md), "The scale arithmetic" and stages 4, 7, 9 and 11;
+- `train-in-space --profile K` in [`in_space_long.rs`](../../../crates/uor-r4-float-train/src/in_space_long.rs) (claude-157);
+- `fbs-toks --stages` and `IntegerStackSession::measure_fbs_step_stages` in [`stack/session.rs`](../../../crates/uor-r4-integer/src/stack/session.rs) (claude-158).
+
+The training half runs steps on the GPU, so it needs a one-page sheet with a fresh FIT first (CHARTER §4.5). The serving half times the served artifact on the M1 and needs no sheet.
+
+## Rules that apply
+
+- **Geometry only** (CHARTER §3.1–§3.3): the instruments change no computation. The training clock records events on the step's stream, and its own cost is measured (`clock_overhead`); the serving twin runs the served step's own kernels.
+- **Claims** (§4.6): each stage time is a measurement with its source. A cheaper change named for a cost is a hypothesis until it is run.
+- **Serving stays integer** (D11, §3.6): `step` and its call graph stay untouched for the zero-multiply audit.
+
+## Sources
+
+- The owner's words, 28 Oct 2026, in claude's chat (quoted above).
+- [claude-157](../../loop/tasks/fbs-cost-profile/claude-157/REPORT.md) and [claude-158](../../loop/tasks/fbs-cost-profile/claude-158/REPORT.md)
+- [`docs/model/pipeline-map.md`](../../model/pipeline-map.md)
