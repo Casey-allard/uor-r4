@@ -103,6 +103,19 @@ pub struct LongConfig {
     /// `config.json` when none, so a run without the read writes the same file as before.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opening_anchor: Option<crate::flock_read_opening::OpeningAnchor>,
+    /// The prompt register (claude-155) after layer 2 and on the readout: this many slots over
+    /// the current turn's span; 0 is no register (`flock_read_register`). Left out of
+    /// `config.json` when 0.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub prompt_register: usize,
+    /// How many span positions each register slot weighs; set exactly when `prompt_register` is,
+    /// and left out of `config.json` when none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register_picks: Option<usize>,
+    /// How the register's slots choose their positions; set exactly when `prompt_register` is,
+    /// and left out of `config.json` when none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register_select: Option<crate::flock_read_register::RegisterSelect>,
     /// The trunk's width: the shared table's columns and every read's width (default 256,
     /// `hamilton_sheet::SHEET_WIDTH`); a multiple of 8.
     pub width: usize,
@@ -176,6 +189,24 @@ pub struct Inspection {
     /// The same for the opening read (claude-154), when the checkpoint has one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opening_weight_mean_abs: Option<f64>,
+    /// The same for the prompt register (claude-155), when the checkpoint has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register_weight_mean_abs: Option<f64>,
+    /// The last checkpoint's nearest-token DEV reading with each register slot dropped in turn,
+    /// then all of them, when it has a register (claude-155).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register_drop: Option<Vec<RegisterDrop>>,
+}
+
+/// The nearest-token DEV reading with one prompt-register slot, or every slot, dropped
+/// ([`PromptRegister::without_slot`](crate::flock_read_register::PromptRegister::without_slot)).
+#[derive(Clone, Debug, Serialize)]
+pub struct RegisterDrop {
+    /// The dropped slot's index, or `"all"`.
+    pub slot: serde_json::Value,
+    pub hits: usize,
+    pub opening_hits: usize,
+    pub copied_hits: usize,
 }
 
 /// One fixed DEV prompt with the model's greedy reply and the true reply, as text.
@@ -201,11 +232,13 @@ impl Drop for ArmGuard {
         crate::flock_read_content::set_content_read(None);
         crate::flock_read_hamming::set_hamming_reads(None);
         crate::flock_read_opening::set_opening_read(None);
+        crate::flock_read_register::set_prompt_register(None);
+        crate::flock_read_register::set_register_slots(None);
     }
 }
 
-/// Set this thread's Flock read, content read, Hamming reads and opening read from the checkpoint
-/// `directory`, each to none when the checkpoint has none.
+/// Set this thread's Flock read, content read, Hamming reads, opening read and prompt register
+/// from the checkpoint `directory`, each to none when the checkpoint has none.
 fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(directory, device)?);
     crate::flock_read_content::set_content_read(crate::flock_read_content::ContentRead::load(
@@ -217,6 +250,9 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read_opening::set_opening_read(crate::flock_read_opening::OpeningRead::load(
         directory, device,
     )?);
+    crate::flock_read_register::set_prompt_register(
+        crate::flock_read_register::PromptRegister::load(directory, device)?,
+    );
     Ok(())
 }
 
@@ -267,6 +303,35 @@ fn start_opening(
     let opt = crate::flock_read::FlockAdamW::for_vars(&read.variables())?;
     Ok(Some((read, opt)))
 }
+
+/// The prompt register `config` asks for (claude-155), set on this thread, with its own
+/// optimizer; none when off.
+fn start_register(
+    config: &LongConfig,
+    device: &Device,
+) -> Result<
+    Option<(
+        crate::flock_read_register::PromptRegister,
+        crate::flock_read::FlockAdamW,
+    )>,
+> {
+    if config.prompt_register == 0 {
+        return Ok(None);
+    }
+    let reg = crate::flock_read_register::PromptRegister::new(
+        config.prompt_register,
+        config.register_picks.unwrap_or(DEFAULT_REGISTER_PICKS),
+        config.register_select.unwrap_or_default(),
+        config.width,
+        device,
+    )?;
+    crate::flock_read_register::set_prompt_register(Some(reg.clone()));
+    let opt = crate::flock_read::FlockAdamW::for_vars(&reg.variables())?;
+    Ok(Some((reg, opt)))
+}
+
+/// How many span positions a register slot weighs when the run names none (claude-155).
+pub const DEFAULT_REGISTER_PICKS: usize = 8;
 
 fn is_zero(n: &usize) -> bool {
     *n == 0
@@ -1231,7 +1296,8 @@ pub fn inspect_run(
     let probe: Vec<&CausalWindow> = dev_windows.iter().take(hs::SHEET_EVAL_BATCH).collect();
     let (ids, scored, _) = assemble(&probe);
     let mut readings = Vec::with_capacity(dirs.len());
-    for dir in dirs {
+    let last = dirs.len().saturating_sub(1);
+    for (index, dir) in dirs.into_iter().enumerate() {
         let name = dir
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
@@ -1254,6 +1320,27 @@ pub fn inspect_run(
             Ok(hidden.index_select(&idx, 0)?)
         })?;
         let (nearest, _) = nearest_reading(&model, &dev_windows, &dev_mask, seed, step)?;
+        // The last checkpoint's register, one slot dropped at a time and then all of them
+        // (claude-155): the same nearest-token reading, with the register restored after each.
+        let register_drop = match crate::flock_read_register::prompt_register() {
+            Some(reg) if index == last => {
+                let mut rows = Vec::with_capacity(reg.q() + 1);
+                for slot in (0..reg.q()).map(Some).chain([None]) {
+                    crate::flock_read_register::set_prompt_register(Some(reg.without_slot(slot)?));
+                    let dropped = nearest_reading(&model, &dev_windows, &dev_mask, seed, step);
+                    crate::flock_read_register::set_prompt_register(Some(reg.clone()));
+                    let (dropped, _) = dropped?;
+                    rows.push(RegisterDrop {
+                        slot: slot.map_or_else(|| "all".into(), serde_json::Value::from),
+                        hits: dropped.hits,
+                        opening_hits: dropped.opening_hits,
+                        copied_hits: dropped.copied_hits,
+                    });
+                }
+                Some(rows)
+            }
+            _ => None,
+        };
         let first_cells = model
             .native_head_candidates(&query)?
             .cell_ids()
@@ -1300,6 +1387,11 @@ pub fn inspect_run(
                 Some(read) => Some(scalar(read.weight_mean_abs()?)?),
                 None => None,
             },
+            register_weight_mean_abs: match crate::flock_read_register::prompt_register() {
+                Some(reg) => Some(scalar(reg.weight_mean_abs()?)?),
+                None => None,
+            },
+            register_drop,
         });
     }
     Ok(readings)
@@ -1416,6 +1508,8 @@ pub struct RecallReading {
     pub hamming_weight_mean_abs: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opening_weight_mean_abs: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register_weight_mean_abs: Option<f64>,
     /// The Hamming reads' margins in bits, read by read and head by head: a margin below every
     /// distance weighs nothing and gets no gradient back.
     pub hamming_margins: Option<Vec<f64>>,
@@ -1503,6 +1597,8 @@ pub fn run_recall(
     let mut hamming = start_hamming(config, device)?;
     // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
     let mut opening = start_opening(config, device)?;
+    // The prompt register (claude-155), when on: its own optimizer, applied inside the trunk.
+    let mut register = start_register(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
     let held_out: Vec<(CausalWindow, Vec<usize>)> = (0..RECALL_EVAL_WINDOWS)
@@ -1542,6 +1638,10 @@ pub fn run_recall(
             },
             opening_weight_mean_abs: match crate::flock_read_opening::opening_read() {
                 Some(read) => Some(scalar(read.weight_mean_abs()?)?),
+                None => None,
+            },
+            register_weight_mean_abs: match crate::flock_read_register::prompt_register() {
+                Some(reg) => Some(scalar(reg.weight_mean_abs()?)?),
                 None => None,
             },
             hamming_margins: match crate::flock_read_hamming::hamming_reads() {
@@ -1611,6 +1711,9 @@ pub fn run_recall(
         if let Some((read, opt)) = opening.as_mut() {
             opt.step_vars(&read.variables(), &grads, lr)?;
         }
+        if let Some((reg, opt)) = register.as_mut() {
+            opt.step_vars(&reg.variables(), &grads, lr)?;
+        }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
@@ -1637,6 +1740,9 @@ pub fn run_recall(
     }
     if let Some(read) = crate::flock_read_opening::opening_read() {
         read.save(&directory)?;
+    }
+    if let Some(reg) = crate::flock_read_register::prompt_register() {
+        reg.save(&directory)?;
     }
     Ok(())
 }
@@ -1773,6 +1879,7 @@ pub fn gradient_norms(
     }
     let _hamming = start_hamming(config, device)?;
     let _opening = start_opening(config, device)?;
+    let _register = start_register(config, device)?;
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
     let (ids, scored, targets) = assemble(&windows);
     let grads = hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
@@ -1907,6 +2014,8 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     let mut hamming = start_hamming(config, device)?;
     // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
     let mut opening = start_opening(config, device)?;
+    // The prompt register (claude-155), when on: its own optimizer, applied inside the trunk.
+    let mut register = start_register(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -2034,6 +2143,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(read) = crate::flock_read_opening::opening_read() {
             read.save(&directory)?;
         }
+        if let Some(reg) = crate::flock_read_register::prompt_register() {
+            reg.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -2096,6 +2208,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         }
         if let Some((read, opt)) = opening.as_mut() {
             opt.step_vars(&read.variables(), &grads, lr)?;
+        }
+        if let Some((reg, opt)) = register.as_mut() {
+            opt.step_vars(&reg.variables(), &grads, lr)?;
         }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
@@ -2332,6 +2447,9 @@ mod tests {
             hamming_read: 0,
             opening_read,
             opening_anchor,
+            prompt_register: 0,
+            register_picks: None,
+            register_select: None,
             width: hs::SHEET_WIDTH,
             type_spin: false,
             fix_input_table: false,
@@ -2385,6 +2503,63 @@ mod tests {
             assert_eq!((read.k(), read.anchor()), (5, OpeningAnchor::Last));
         }
         assert!(crate::flock_read_opening::opening_read().is_none());
+        fs::remove_dir_all(&directory).unwrap();
+    }
+
+    use crate::flock_read_register::{PromptRegister, RegisterSelect};
+
+    #[test]
+    fn a_config_without_the_register_writes_none_of_its_keys() {
+        for json in [config(0, None), config(8, Some(OpeningAnchor::Turn))]
+            .map(|c| String::from_utf8(serde_json::to_vec_pretty(&c).unwrap()).unwrap())
+        {
+            for key in ["prompt_register", "register_picks", "register_select"] {
+                assert!(!json.contains(key), "{json}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_config_with_the_register_writes_its_three_keys_after_the_opening_reads() {
+        for (q, select, name) in [
+            (8, RegisterSelect::Learned, "learned"),
+            (1, RegisterSelect::All, "all"),
+        ] {
+            let mut with = config(8, Some(OpeningAnchor::Turn));
+            (with.prompt_register, with.register_picks) = (q, Some(8));
+            with.register_select = Some(select);
+            let json = String::from_utf8(serde_json::to_vec_pretty(&with).unwrap()).unwrap();
+            let keys = format!(
+                "\"opening_anchor\": \"turn\",\n  \"prompt_register\": {q},\n  \"register_picks\": 8,\n  \"register_select\": \"{name}\",\n  \"width\": 256,"
+            );
+            assert!(json.contains(&keys), "{json}");
+        }
+    }
+
+    #[test]
+    fn a_checkpoint_with_a_register_sets_it_on_the_thread_until_the_guard_drops() {
+        // Save and load only: the vendored candle computes nothing on the CPU, but files move.
+        let device = Device::Cpu;
+        let directory =
+            std::env::temp_dir().join(format!("claude-155-load-reads-{}", std::process::id()));
+        PromptRegister::new(3, 5, RegisterSelect::Learned, 8, &device)
+            .unwrap()
+            .save(&directory)
+            .unwrap();
+        {
+            let _guard = ArmGuard;
+            load_reads(&directory, &device).unwrap();
+            let reg = crate::flock_read_register::prompt_register().expect("the register is set");
+            assert_eq!(
+                (reg.q(), reg.picks(), reg.select()),
+                (3, 5, RegisterSelect::Learned)
+            );
+            crate::flock_read_register::set_register_slots(Some(
+                Tensor::zeros(1, candle_core::DType::F32, &device).unwrap(),
+            ));
+        }
+        assert!(crate::flock_read_register::prompt_register().is_none());
+        assert!(crate::flock_read_register::take_register_slots().is_none());
         fs::remove_dir_all(&directory).unwrap();
     }
 

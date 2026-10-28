@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -11,7 +11,7 @@
 //!
 //! `train-in-space --data-root DIR --decode-speed CHECKPOINT [--objective nearest] [--retain-rates 0|1] [--reply-tokens N]`
 //!
-//! `train-in-space --recall PAIRS --out DIR [--steps N] [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--retain-rates 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last]`:
+//! `train-in-space --recall PAIRS --out DIR [--steps N] [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--retain-rates 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all]`:
 //! the multi-query associative recall task (`in_space_long::run_recall`), `PAIRS` key-value pairs
 //! per distance bucket in each 192-token window, fresh every step; held-out recall per bucket goes
 //! to `DIR/recall.jsonl`, and the final model to `DIR/models/`. Needs no `--data-root`, and
@@ -33,9 +33,10 @@ use std::path::PathBuf;
 
 use candle_core::Device;
 use uor_r4_float_train::flock_read_opening::OpeningAnchor;
+use uor_r4_float_train::flock_read_register::RegisterSelect;
 use uor_r4_float_train::in_space_long::{
     context_reach, decode_speed, gradient_norms, inspect_run, opening_bound, root_separation,
-    run_long, run_recall, LongConfig, PointObjective, TrainSplit,
+    run_long, run_recall, LongConfig, PointObjective, TrainSplit, DEFAULT_REGISTER_PICKS,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
@@ -50,6 +51,7 @@ fn main() -> Result<()> {
     let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
     let (mut opening_read, mut opening_anchor) = (None, None);
+    let (mut prompt_register, mut register_picks, mut register_select) = (None, None, None);
     let mut config = LongConfig {
         objective: PointObjective::Sheet,
         steps: 32_768,
@@ -69,6 +71,9 @@ fn main() -> Result<()> {
         hamming_read: 0,
         opening_read: 0,
         opening_anchor: None,
+        prompt_register: 0,
+        register_picks: None,
+        register_select: None,
         width: uor_r4_float_train::hamilton_sheet::SHEET_WIDTH,
         type_spin: false,
         samples: 6,
@@ -142,6 +147,33 @@ fn main() -> Result<()> {
                     }
                 })
             }
+            "--prompt-register" => match number(&value)? {
+                q @ 1..=16 => prompt_register = Some(q),
+                _ => {
+                    return Err(FloatTrainError::Invalid(
+                        "--prompt-register wants 1 to 16".to_owned(),
+                    ))
+                }
+            },
+            "--register-picks" => match number(&value)? {
+                k @ 1..=32 => register_picks = Some(k),
+                _ => {
+                    return Err(FloatTrainError::Invalid(
+                        "--register-picks wants 1 to 32".to_owned(),
+                    ))
+                }
+            },
+            "--register-select" => {
+                register_select = Some(match value.as_str() {
+                    "learned" => RegisterSelect::Learned,
+                    "all" => RegisterSelect::All,
+                    other => {
+                        return Err(FloatTrainError::Invalid(format!(
+                            "--register-select wants learned or all, not {other}"
+                        )))
+                    }
+                })
+            }
             "--width" => config.width = number(&value)?,
             "--type-spin" => config.type_spin = switch(&value)?,
             "--train-split" => split_dir = Some(PathBuf::from(&value)),
@@ -176,6 +208,25 @@ fn main() -> Result<()> {
             ))
         }
         (None, None) => {}
+    }
+    // The prompt register (claude-155): its picks and select are written exactly when it is on.
+    match (prompt_register, register_picks, register_select) {
+        (Some(q), _, Some(RegisterSelect::All)) if q != 1 => {
+            return Err(FloatTrainError::Invalid(
+                "--register-select all wants --prompt-register 1".to_owned(),
+            ))
+        }
+        (Some(q), picks, select) => {
+            config.prompt_register = q;
+            config.register_picks = Some(picks.unwrap_or(DEFAULT_REGISTER_PICKS));
+            config.register_select = Some(select.unwrap_or_default());
+        }
+        (None, None, None) => {}
+        (None, _, _) => {
+            return Err(FloatTrainError::Invalid(
+                "--register-picks and --register-select need --prompt-register".to_owned(),
+            ))
+        }
     }
     if config.lr_end.is_nan() {
         config.lr_end = config.lr;

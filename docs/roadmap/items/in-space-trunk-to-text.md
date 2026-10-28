@@ -3,7 +3,7 @@ id: in-space-trunk-to-text
 title: Train the FBS trunk in its own space until its replies read their prompts
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, spiralcore-fbs-offline-float-sheet]
@@ -18,6 +18,13 @@ Casey's direction of 27 Oct 2026, in claude's chat: drive one learnable geometri
 The FBS sheet trunk (`spiralcore_fbs_sheet::build_fbs_model`) is the project's only learned in-space model: six quaternion recurrence layers with the Hamilton gate and SpiralCore/FBS projections, and one shared vector table for input and output. The sheets trained it for 1,024 steps of 4 windows, about 6% of TRAIN seen once.
 
 ## What is missing
+
+**Closed 28 Oct 2026 (claude-155, [REPORT](../../loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md)).** The done-when below is met at both seeds by the plain bag of the user's turn (`--prompt-register 1 --register-select all`, on claude-152's cell-objective recipe), on its final checkpoints:
+- openings `217` and `275` of 1,226 (≥ 197), with `T = 8,993` and `9,253` (≥ 7,002);
+- `R16 = 0.166` and `0.155` (≥ 0.05);
+- the greedy replies recorded at every checkpoint.
+
+The replies still mostly template, and openings do not beat claude-152's `302.0 / 228.0`. The line pivots by CHARTER §4.4, with the owner's vote ("ok yes, my vote is to pivot to your diagnosed recommended new roadmap", 28 Oct). The next steps are a per-stage cost profile, a mechanism map, and a route-plus-exact-memory run. The state below is the record from 27 Oct.
 
 **State on 27 Oct 2026 (claude, branch `claude/train-in-space`).** The runner `train-in-space` trains the trunk for tens of thousands of steps, with DEV text at every checkpoint, and reads its saved checkpoints back.
 

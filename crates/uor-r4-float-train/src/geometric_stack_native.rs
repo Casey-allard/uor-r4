@@ -1112,6 +1112,9 @@ impl StackModel {
         // session's 2^-16 grid; otherwise `q16_residual` returns it unchanged.
         let q16 = crate::hamilton_sheet::q16_residual;
         let mut x = q16(self.embed(ids, batch, time)?)?;
+        // The prompt register's slots (claude-155) live for one forward only: none survive from a
+        // forward that failed between the stream and the readout.
+        crate::flock_read_register::set_register_slots(None);
         for layer in 0..self.config.layers() {
             x = q16(x.add(&self.composed_recurrence(&p, layer, &x)?)?)?;
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
@@ -1153,6 +1156,13 @@ impl StackModel {
                         .clone();
                     x = q16(read.apply(&x, ids, &table)?)?;
                 }
+                // The prompt register (claude-155), when set on this thread: its slots over the
+                // current turn's span, added to the stream and kept for this forward's readout.
+                if let Some(reg) = crate::flock_read_register::prompt_register() {
+                    let slots = reg.slots(&x, ids)?;
+                    x = q16(reg.apply_stream(&x, &slots)?)?;
+                    crate::flock_read_register::set_register_slots(Some(slots));
+                }
             }
         }
         let mut x = self.norm(&p, &x, "final_norm.weight")?;
@@ -1167,6 +1177,13 @@ impl StackModel {
                     .as_tensor()
                     .clone();
                 x = read.apply_readout(&x, ids, &table)?;
+            }
+        }
+        // The prompt register's readout (claude-155): the slots the stream kept, taken so none
+        // outlive this forward.
+        if let Some(slots) = crate::flock_read_register::take_register_slots() {
+            if let Some(reg) = crate::flock_read_register::prompt_register() {
+                x = reg.apply_readout(&x, &slots)?;
             }
         }
         Ok(x.reshape((batch * time, self.config.width))?)
