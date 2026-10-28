@@ -3,7 +3,7 @@ id: pipeline-map-revision
 title: Revise the pipeline map with claude-149 to claude-155, ranked by cost per token
 milestone: research
 area: architecture
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [pipeline-map]
@@ -49,6 +49,8 @@ On 28 Oct, in claude's chat, after claude-155's diagnosis, the owner decided:
 
   It found no record of a golden-ratio C4 → R4 projection, of a "complex–Riemannian bridge" by that name (the nearest is ADR-0003's zeta phases), or of a hard-coded choice winning. These need a full read, not the search's summary.
 
+  **Corrected by claude-159's full read.** The bridge is on record: ADR-0003 §5, "Direction-preserving golden radial bridge", is the "complex-to-Riemannian lift" R_φ(z) = φ·E(z) on E : ℂ² → ℝ⁴. It is exact in ℤ[φ]; its algebra is built and tested, with no language result. The map is from ℂ², not ℂ⁴. No hard-coded choice won: on PR #455, averaging did. The archived Python router is `projects/research-archives/code/gemini-dev/prime-router/server.py`. See the map's section "The archived prime and angular router".
+
 ## Done when
 
 1. `docs/model/pipeline-map.md` is revised:
@@ -60,3 +62,25 @@ On 28 Oct, in claude's chat, after claude-155's diagnosis, the owner decided:
    - what it would cost per token today;
    - which of its pieces (Hopf oracle, zeta phases, φ couplings, choice rule) fits which stage, and in which domain.
 3. The revision is merged, and PLAN's 27 Oct refocus direction is set to `done` in the same PR. One `[claude, for Casey]` note on #2028 gives its link, the re-ranked top five gaps and the first unit.
+
+## How to start
+
+Read:
+- the map, [`docs/model/pipeline-map.md`](../../model/pipeline-map.md);
+- the REPORTs of claude-150 to claude-158 (`docs/loop/tasks/one-decoder/`, `docs/loop/tasks/in-space-trunk-to-text/`, `docs/loop/tasks/fbs-cost-profile/`);
+- the archived router: [ADR-0003](../../reference/adr/0003-fixed-zeta-prime-route-attention.md), [its qualification record](../../../archive/prime_route_attention_qualification_958.md), [the ancestor's evidence note](../../../archive/prime_router_geometric_context_evidence.md), [the Hopf mechanism page](../../mechanisms/hopf-observation.md) and `projects/research-archives/code/gemini-dev/prime-router/`.
+
+This is document work: no GPU run and no pre-registration (CHARTER §4.5).
+
+## Rules that apply
+
+- **Geometry only** (CHARTER §3.1–§3.3): every mechanism, training signal and fix comes from the project's geometry. No softmax or squashing anywhere, including losses, gradients, sampling and renamed or table forms. No dense matrix multiplication or GEMM, including wrappers and hand loops.
+- **Claims** (§4.6): each number is labelled as a measurement with its source, a proof from code or arithmetic, or a hypothesis.
+- **Changes to §3 are the owner's** (§5.1): where the map finds a constraint that costs speed, it proposes; it never relaxes.
+
+## Sources
+
+- Casey's directions, 27 and 28 Oct 2026, in claude's chat (quoted above).
+- [`docs/model/pipeline-map.md`](../../model/pipeline-map.md)
+- [claude-157](../../loop/tasks/fbs-cost-profile/claude-157/REPORT.md) and [claude-158](../../loop/tasks/fbs-cost-profile/claude-158/REPORT.md), the cost profiles.
+- [`docs/reference/adr/0003-fixed-zeta-prime-route-attention.md`](../../reference/adr/0003-fixed-zeta-prime-route-attention.md)
