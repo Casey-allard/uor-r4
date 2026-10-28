@@ -35,6 +35,9 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
 
 | Direction | Status | Date | Note |
 |---|---|---|---|
+| "I don't care what we serve at long as it is cheap" | open | 2026-10-28 | Claude's chat. The criterion for every stage is cost per token; the number format is chosen under it. `pipeline-map-revision` ranks by it, and `fbs-cost-profile` measures it (claude-156). |
+| "determinism is still probably the goal but like you said we can do the training in float and maybe just export the integer exact... either way it is worth looking into the archived hopf golden ratio complex - riemannian bridge we used for the original prime router or angular router" | open | 2026-10-28 | Claude's chat. Training stays float and serving integer through an exact export, as CHARTER §3.6–3.7 already say; no charter change. The archived router is read in `pipeline-map-revision` (claude-156). |
+| "ok yes, my vote is to pivot to your diagnosed recommended new roadmap" | open | 2026-10-28 | Claude's chat, after claude-155's diagnosis (#3343, "The pivot"). The roadmap is `fbs-cost-profile`, `pipeline-map-revision` and `route-plus-memory` (claude-156). Done when all three are merged. |
 | "we may have to pause for a moment and try to refocus on exactly what mechanisms we need to make this work, what we have, what order they need to be in, what geometry/mathematical domain they have to be in for downstream so that the mechanisms works cleanly from first trained "token" (or whatever we end up using) to last emitted work in the answer to a user's question" | open | 2026-10-27 | Claude's chat. The full text, with the goal (GPT-4-class, trained below datacenter scale, served on an M1-class laptop), is in item `pipeline-map` (claude-147). The map is [`docs/model/pipeline-map.md`](docs/model/pipeline-map.md) (claude-148). It defines each stage and ranks the gaps; its order of work, U1–U9, carries the steps still missing. |
 | "please reign in the project sprawl and get us back to a workable central source of truth we can run off of" | done | 2026-10-24 | Claude's chat, by 2026-10-25T00:03:59Z. This file is the one plan, and the held work is released (D77, claude-82). `loop next` ranking by unblock count follows as its own unit. |
 | "please dont let us get locked down in CI hell, if something doesn't matter to the project it can be removed or skipped" | done | 2026-10-24 | Owner chose "Yes, change them (Recommended)". Six bookkeeping rules are advisory and banned presence scans added files (D76, #3170). The docs-workflow steps follow in a separate PR. |
@@ -70,6 +73,11 @@ DEV panel, with tokens/s reported. M1 closes on the saved-model path (D79).
 - `m1-normalization-mechanism` (#2842): its order and norm tests.
 
 Both feed the trunk.
+
+**The trunk line's pivot (owner's vote, 28 Oct).** `in-space-trunk-to-text` closed at claude-155. These come next, in order; the first two can run side by side:
+- `fbs-cost-profile`: one training step and one served token, profiled by stage.
+- `pipeline-map-revision`: the map revised with claude-149 to claude-155, the storage diagnosis and the archived router, ranked by cost per token.
+- `route-plus-memory`: the decisive run, the user's turn routed to an exact memory built from TRAIN and read at the readout, against a no-memory control.
 
 ## The route M2–M8
 
