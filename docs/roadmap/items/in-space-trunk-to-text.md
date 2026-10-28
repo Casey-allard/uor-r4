@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, spiralcore-fbs-offline-float-sheet]
 notebook: docs/research/notebook/float-training.md
-scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/secant_descent.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/Cargo.toml, crates/uor-r4-float-train/src/flock_read*.rs, Cargo.lock, docs/harness/prep/in-space-trunk-to-text*, docs/labs/in-space-trunk-to-text/**, docs/loop/tasks/in-space-trunk-to-text/**, docs/research/notebook/float-training.md, docs/roadmap/items/in-space-trunk-to-text.md]
+scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/secant_descent.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/Cargo.toml, crates/uor-r4-float-train/src/flock_read*.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/spiralcore_fbs*.rs, crates/uor-r4-float-train/src/native_vector_writer.rs, Cargo.lock, docs/harness/prep/in-space-trunk-to-text*, docs/labs/in-space-trunk-to-text/**, docs/loop/tasks/in-space-trunk-to-text/**, docs/research/notebook/float-training.md, docs/roadmap/items/in-space-trunk-to-text.md]
 ---
 
 ## Why it matters

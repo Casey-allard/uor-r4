@@ -1933,10 +1933,15 @@ pub struct HamiltonArmRunResult {
 }
 
 pub fn build_hamilton_model(seed: u64, device: &Device) -> Result<StackModel> {
+    build_hamilton_model_at(seed, SHEET_WIDTH, device)
+}
+
+/// The sheet's model at `width` in place of `SHEET_WIDTH`; every other setting is the sheet's.
+pub fn build_hamilton_model_at(seed: u64, width: usize, device: &Device) -> Result<StackModel> {
     let mut config = StackConfig::transformer_control(seed);
     config.arch = StackArch::Geometric;
     config.pattern = "rrrrrr".into();
-    config.width = SHEET_WIDTH;
+    config.width = width;
     config.heads = SHEET_HEADS;
     config.mlp_hidden = SHEET_MLP_HIDDEN;
     config.context = SHEET_CONTEXT;

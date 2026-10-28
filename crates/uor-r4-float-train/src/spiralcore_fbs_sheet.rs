@@ -84,7 +84,17 @@ impl Drop for ArmGuard {
 
 /// The sheet's model for `arm` at `seed`.
 pub fn build_fbs_model(arm: FbsArm, seed: u64, device: &Device) -> Result<StackModel> {
-    let mut model = hs::build_hamilton_model(seed, device)?;
+    build_fbs_model_at(arm, seed, hs::SHEET_WIDTH, device)
+}
+
+/// The sheet's model for `arm` at `seed` and `width`.
+pub fn build_fbs_model_at(
+    arm: FbsArm,
+    seed: u64,
+    width: usize,
+    device: &Device,
+) -> Result<StackModel> {
+    let mut model = hs::build_hamilton_model_at(seed, width, device)?;
     if arm == FbsArm::TwoAtomMix {
         model.widen_fbs_queries_two_path()?;
     }
@@ -3491,6 +3501,77 @@ pub fn write_receipt(path: &Path, value: &serde_json::Value) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every variable of `model` by name: its shape and its values as F32.
+    fn tensors_of(model: &StackModel) -> Result<Vec<(String, Vec<usize>, Vec<f32>)>> {
+        model
+            .variables()
+            .iter()
+            .map(|(name, var)| {
+                let t = var.as_tensor();
+                Ok((
+                    name.clone(),
+                    t.dims().to_vec(),
+                    t.flatten_all()?
+                        .to_dtype(candle_core::DType::F32)?
+                        .to_vec1::<f32>()?,
+                ))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_width_builder_at_256_is_the_sheet_builder() -> Result<()> {
+        let at = build_fbs_model_at(FbsArm::OneAtomActive, 1, 256, &Device::Cpu)?;
+        let sheet = build_fbs_model(FbsArm::OneAtomActive, 1, &Device::Cpu)?;
+        assert_eq!(
+            at.variables()["embedding.weight"].as_tensor().dims(),
+            &[4096, 256]
+        );
+        let (a, b) = (tensors_of(&at)?, tensors_of(&sheet)?);
+        assert_eq!(a.len(), b.len());
+        for (x, y) in a.iter().zip(&b) {
+            assert_eq!(x, y, "tensor {} differs", x.0);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn the_width_builder_builds_512_and_its_hamming_reads_round_trip() -> Result<()> {
+        let model = build_fbs_model_at(FbsArm::OneAtomActive, 1, 512, &Device::Cpu)?;
+        assert_eq!(
+            model.variables()["embedding.weight"].as_tensor().dims(),
+            &[4096, 512]
+        );
+        // A Hamming head holds at most one 64-bit word, so 512 needs at least 8 heads; 4 refuse.
+        assert!(crate::flock_read_hamming::HammingReads::new(4, 512, &Device::Cpu).is_err());
+        let reads = crate::flock_read_hamming::HammingReads::new(8, 512, &Device::Cpu)?;
+        let root = std::env::temp_dir().join(format!(
+            "fbs-width-512-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root)?;
+        reads.save(&root)?;
+        let loaded = crate::flock_read_hamming::HammingReads::load(&root, &Device::Cpu)?
+            .ok_or_else(|| invalid("the saved Hamming reads did not load"))?;
+        std::fs::remove_dir_all(&root)?;
+        let (saved, back) = (reads.variables(), loaded.variables());
+        assert_eq!(saved.len(), back.len());
+        for (s, l) in saved.iter().zip(&back) {
+            assert_eq!(s.as_tensor().dims(), l.as_tensor().dims());
+            assert_eq!(
+                s.as_tensor().flatten_all()?.to_vec1::<f32>()?,
+                l.as_tensor().flatten_all()?.to_vec1::<f32>()?
+            );
+        }
+        assert!(saved
+            .iter()
+            .any(|v| v.as_tensor().dims().last() == Some(&512)));
+        Ok(())
+    }
 
     #[test]
     fn longer_training_adds_only_the_final_evaluation_point() {

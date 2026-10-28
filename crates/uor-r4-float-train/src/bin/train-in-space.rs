@@ -1,6 +1,7 @@
-//! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest] [--steps N]
+//! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
+//! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -32,7 +33,7 @@ use std::path::PathBuf;
 use candle_core::Device;
 use uor_r4_float_train::in_space_long::{
     context_reach, decode_speed, gradient_norms, inspect_run, opening_bound, root_separation,
-    run_long, run_recall, LongConfig, PointObjective,
+    run_long, run_recall, LongConfig, PointObjective, TrainSplit,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 
@@ -44,6 +45,7 @@ fn main() -> Result<()> {
     let mut grad_norms = false;
     let mut decode = None;
     let mut bound = false;
+    let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
     let mut config = LongConfig {
         objective: PointObjective::Sheet,
@@ -58,9 +60,11 @@ fn main() -> Result<()> {
         fold_scores: false,
         reflect_floor: false,
         fix_input_table: false,
+        train_split: None,
         flock_read: 0,
         content_read: 0,
         hamming_read: 0,
+        width: uor_r4_float_train::hamilton_sheet::SHEET_WIDTH,
         type_spin: false,
         samples: 6,
         reply_tokens: 48,
@@ -93,9 +97,10 @@ fn main() -> Result<()> {
                     "sheet" => PointObjective::Sheet,
                     "voronoi" => PointObjective::Voronoi,
                     "nearest" => PointObjective::Nearest,
+                    "cell" => PointObjective::Cell,
                     other => {
                         return Err(FloatTrainError::Invalid(format!(
-                            "--objective wants sheet, voronoi or nearest, not {other}"
+                            "--objective wants sheet, voronoi, nearest or cell, not {other}"
                         )))
                     }
                 }
@@ -113,7 +118,11 @@ fn main() -> Result<()> {
             "--flock-read" => config.flock_read = number(&value)?,
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
+            "--width" => config.width = number(&value)?,
             "--type-spin" => config.type_spin = switch(&value)?,
+            "--train-split" => split_dir = Some(PathBuf::from(&value)),
+            "--train-sha256" => split_tokens = Some(value.clone()),
+            "--train-mask-sha256" => split_mask = Some(value.clone()),
             "--lr" | "--lr-end" | "--decay-mult" => {
                 let v: f64 = value
                     .parse()
@@ -134,6 +143,20 @@ fn main() -> Result<()> {
     if config.lr_end.is_nan() {
         config.lr_end = config.lr;
     }
+    config.train_split = match (split_dir, split_tokens, split_mask) {
+        (None, None, None) => None,
+        (Some(dir), Some(tokens_sha256), Some(mask_sha256)) => Some(TrainSplit {
+            dir,
+            tokens_sha256,
+            mask_sha256,
+        }),
+        _ => {
+            return Err(FloatTrainError::Invalid(
+                "--train-split needs --train-sha256 and --train-mask-sha256, and they need it"
+                    .to_owned(),
+            ))
+        }
+    };
     let modes = [
         inspect.is_some(),
         reach.is_some(),
@@ -168,7 +191,7 @@ fn main() -> Result<()> {
     }
     let device = Device::new_cuda(0)?;
     if let Some(checkpoint) = decode {
-        let nearest = config.objective == PointObjective::Nearest;
+        let nearest = config.objective.decodes_nearest();
         for speed in decode_speed(
             &data_root,
             &checkpoint,
