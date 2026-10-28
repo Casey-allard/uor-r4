@@ -3017,6 +3017,160 @@ fn stack_step_fbs(
     Ok(())
 }
 
+/// The whole-table nearest token to the query (`-L1` at Q12 over every
+/// writer-table row, ties to the smaller id): the readout a model trained
+/// with the cell objective decodes, timed beside the writer. It reads only.
+fn stack_whole_table_nearest(fbs: &FbsModel, vocab: usize, q: &[i32]) -> u32 {
+    let d = q.len();
+    let (mut token, mut token_score) = (u32::MAX, i64::MIN);
+    let mut at = 0usize;
+    for candidate in 0..vocab {
+        let mut sum = 0i64;
+        for (&x, &t) in q.iter().zip(&fbs.writer_table[at..at + d]) {
+            sum = sum.wrapping_add(i64::from(core::hint::black_box(x).abs_diff(i32::from(t))));
+        }
+        let score = sum.wrapping_neg();
+        if score > token_score {
+            (token, token_score) = (candidate as u32, score);
+        }
+        at += d;
+    }
+    token
+}
+
+/// [`stack_step_fbs`] with a clock at each stage (fbs-cost-profile,
+/// claude-158). Runs the same kernels in the same order, so the session ends
+/// in the same state; `stack_step_fbs` and `step` are untouched for the
+/// zero-multiply audit. Fills `ns` in the order
+/// [`IntegerStackSession::measure_fbs_step_stages`] lists and returns the
+/// whole-table nearest token.
+#[inline(never)]
+#[cfg(not(target_arch = "wasm32"))]
+fn stack_step_fbs_timed(
+    session: &mut IntegerStackSession<'_>,
+    fbs: &FbsModel,
+    token: u32,
+    ns: &mut Vec<u64>,
+) -> Result<u32, StackError> {
+    use std::time::Instant;
+    let lap = |since: &mut Instant, ns: &mut Vec<u64>| {
+        let now = Instant::now();
+        ns.push(now.duration_since(*since).as_nanos() as u64);
+        *since = now;
+    };
+    ns.clear();
+    let start = Instant::now();
+    let mut since = start;
+    let model = session.model;
+    let (s, n) = (&model.shape, &model.numerics);
+    let (d, heads, mlp) = (s.width, s.heads, s.mlp);
+    if token as usize >= s.vocab {
+        return Err(StackError::Token {
+            token,
+            vocab: s.vocab,
+        });
+    }
+    if session.position >= s.context {
+        return Err(StackError::ContextFull { context: s.context });
+    }
+    let b = &mut session.b;
+    let at = stack_mul_u64(u64::from(token), d as u64) as usize;
+    for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
+        *x = to_exp_i32(i64::from(t), Q12_EXP, RESIDUAL_EXP);
+    }
+    lap(&mut since, ns);
+    for (layer, layer_state) in fbs.layers.iter().zip(session.states.iter_mut()) {
+        let LayerState::Recurrence { state, history } = layer_state.as_mut() else {
+            debug_assert!(false, "an FBS layer's state is not a recurrence");
+            return Err(StackError::SessionState);
+        };
+        stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
+        stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
+        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_FINE_EXP, &mut b.branches);
+        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate_out);
+        let act_exp = stack_recurrence_core(model, layer.tables(), state, history, b, false);
+        stack_fbs_gather(&layer.rec_out, &b.act[..d], act_exp, &mut b.proj);
+        for (x, p) in b.x.iter_mut().zip(&b.proj) {
+            *x = x.saturating_add(*p);
+        }
+        lap(&mut since, ns);
+        stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
+        stack_norm_gain(&mut b.scratch[..d], &layer.mlp_gain);
+        stack_fbs_gather(&layer.mlp_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate);
+        stack_fbs_gather(&layer.mlp_up, &b.scratch[..d], NORM_FINE_EXP, &mut b.up);
+        stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
+        let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
+        stack_fbs_gather(&layer.mlp_down, &b.act[..mlp], act_exp, &mut b.proj);
+        for (x, p) in b.x.iter_mut().zip(&b.proj) {
+            *x = x.saturating_add(*p);
+        }
+        lap(&mut since, ns);
+    }
+    stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
+    stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
+    for (q, &v) in b.query_q12.iter_mut().zip(&b.scratch[..d]) {
+        *q = to_exp_i32(v, NORM_FINE_EXP, Q12_EXP).clamp(-32768, 32767);
+    }
+    lap(&mut since, ns);
+    b.native_token = stack_native_writer(
+        fbs,
+        s.vocab,
+        &b.query_q12,
+        &mut b.cells,
+        &mut b.native_kept,
+    );
+    lap(&mut since, ns);
+    session.tokens.push(token);
+    session.position += 1;
+    session.cache_at += d;
+    session.lift_at += heads;
+    lap(&mut since, ns);
+    ns.push(start.elapsed().as_nanos() as u64);
+    let nearest_start = Instant::now();
+    let nearest = stack_whole_table_nearest(fbs, s.vocab, &session.b.query_q12);
+    ns.push(nearest_start.elapsed().as_nanos() as u64);
+    Ok(nearest)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl IntegerStackSession<'_> {
+    /// [`Self::step_native`] with a clock at each stage of the SpiralCore/FBS
+    /// step (fbs-cost-profile, claude-158). The session ends in the state
+    /// `step_native` leaves, with the same choice. `ns` is cleared and holds,
+    /// in nanoseconds and in this order:
+    /// - the embedding (bounds checks and the writer-table row in);
+    /// - for each layer, its recurrence and then its feed-forward block, each
+    ///   with its residual add;
+    /// - the final norm and the query at Q12;
+    /// - the native writer;
+    /// - the bookkeeping (the token pushed and the cursors advanced);
+    /// - the whole step (the stages above and the clock reads between them);
+    /// - a whole-table nearest search over the query, after the step and
+    ///   outside its time, whose token is returned beside the step.
+    pub fn measure_fbs_step_stages(
+        &mut self,
+        token: u32,
+        ns: &mut Vec<u64>,
+    ) -> Result<(NativeStep, u32), StackError> {
+        ns.clear();
+        let model = self.model;
+        let Some(fbs) = &model.fbs else {
+            return Err(StackError::Shape(
+                "stage timing serves a SpiralCore/FBS model; time a dense stack's phases instead",
+            ));
+        };
+        let nearest = stack_step_fbs_timed(self, fbs, token, ns)?;
+        Ok((
+            NativeStep {
+                token: self.b.native_token,
+                kept_cells: self.b.native_kept.clone(),
+                query_q12: self.b.query_q12.clone(),
+            },
+            nearest,
+        ))
+    }
+}
+
 /// One recurrence step from the normalized state (pair tables built), into
 /// `b.proj`.
 #[inline(never)]
@@ -4052,6 +4206,75 @@ fn stack_pointer(
 fn pointer_coefficient(weight: u64, total: u64) -> u128 {
     let reciprocal = stack_div_u128(1u128 << 93, u128::from(total.max(1)));
     stack_mul_u128(u128::from(weight), reciprocal).wrapping_add(1 << 30) >> 31
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod fbs_stage_tests {
+    use super::*;
+
+    /// The nearest writer-table row to `q` by `L1`, ties to the smaller id, by brute force.
+    fn brute_nearest(fbs: &FbsModel, vocab: usize, q: &[i32]) -> u32 {
+        let mut best = (i64::MAX, 0u32);
+        for (id, row) in fbs.writer_table.chunks(q.len()).take(vocab).enumerate() {
+            let distance: i64 = q
+                .iter()
+                .zip(row)
+                .map(|(&x, &t)| (i64::from(x) - i64::from(t)).abs())
+                .sum();
+            if distance < best.0 {
+                best = (distance, id as u32);
+            }
+        }
+        best.1
+    }
+
+    #[test]
+    fn the_stage_timed_fbs_step_is_the_served_step() {
+        let snap = super::super::synthetic::synthetic_fbs_trunk(7);
+        let bytes = super::super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let model = IntegerStackModel::parse(&bytes).expect("parse");
+        let fbs = model.fbs.as_ref().expect("an FBS model");
+        let (vocab, context) = (model.shape.vocab, model.shape.context);
+        let (mut plain, mut timed) = (model.session(), model.session());
+        let mut ns = Vec::new();
+        for i in 0..context.min(48) {
+            let token = ((i * 37 + 5) % vocab) as u32;
+            let want = plain.step_native(token).expect("step");
+            let (got, nearest) = timed.measure_fbs_step_stages(token, &mut ns).expect("timed step");
+            assert_eq!(got, want, "position {i}");
+            // The embedding, each layer's two blocks, the final norm, the writer, the bookkeeping,
+            // the whole step and the nearest search.
+            assert_eq!(ns.len(), 2 * fbs.layers.len() + 6);
+            // A sanity check only: the stages tile the step, so the step is at least their sum.
+            let stages: u64 = ns[..ns.len() - 2].iter().sum();
+            assert!(ns[ns.len() - 2] >= stages, "{ns:?}");
+            assert_eq!(nearest, brute_nearest(fbs, vocab, &got.query_q12), "position {i}");
+        }
+        assert_eq!(plain.save_state(), timed.save_state());
+        assert_eq!(plain.tokens(), timed.tokens());
+    }
+
+    #[test]
+    fn the_whole_table_nearest_takes_the_smaller_id_on_a_tie() {
+        let fbs = FbsModel {
+            layers: Vec::new(),
+            final_gain: Vec::new(),
+            writer_table: vec![1, 1, 3, 3, -1, -1],
+            roots_q12: [[0; 8]; 16],
+            kept_cells: 1,
+        };
+        // Rows 0 and 2 both lie 2 from the origin; rows 0 and 1 both lie 2 from (2, 2).
+        assert_eq!(stack_whole_table_nearest(&fbs, 3, &[0, 0]), 0);
+        assert_eq!(stack_whole_table_nearest(&fbs, 3, &[2, 2]), 0);
+        assert_eq!(stack_whole_table_nearest(&fbs, 3, &[3, 3]), 1);
+        assert_eq!(stack_whole_table_nearest(&fbs, 3, &[-2, -1]), 2);
+        for q in [[0, 0], [2, 2], [3, 3], [-2, -1], [5, -4]] {
+            assert_eq!(
+                stack_whole_table_nearest(&fbs, 3, &q),
+                brute_nearest(&fbs, 3, &q)
+            );
+        }
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

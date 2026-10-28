@@ -2,7 +2,7 @@
 //! (d11-exporter-float-trunk Stage 4b, claude-126).
 //!
 //! ```text
-//! fbs-toks ARTIFACT [--prompt ID,ID,...]
+//! fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages]
 //! ```
 //!
 //! The protocol follows the step-6 one (`docs/labs/m1-d11-artifact-scorer`,
@@ -18,6 +18,13 @@
 //!
 //! The served path is `IntegerStackSession::step_native`; argument parsing,
 //! timing, statistics and JSON are outside it. It prints one JSON line.
+//!
+//! `--stages` (fbs-cost-profile, claude-158) runs the protocol a second time
+//! through `IntegerStackSession::measure_fbs_step_stages` and adds `stages`:
+//! each stage's median over the timed decode steps, their sum against the
+//! step, a whole-table nearest search's median beside the writer, and the
+//! step against the plain protocol's per-token time. The plain protocol's
+//! numbers are taken first and unchanged.
 
 use std::process::{Command, ExitCode};
 use std::time::Instant;
@@ -25,7 +32,7 @@ use std::time::Instant;
 use serde_json::json;
 use uor_r4_integer::stack::IntegerStackModel;
 
-const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...]";
+const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages]";
 const PREFILL: usize = 128;
 const DECODE: usize = 64;
 const WARMUP: usize = 1;
@@ -137,6 +144,103 @@ fn protocol<S: Stepper>(
     }))
 }
 
+/// The protocol's runs again through `measure_fbs_step_stages`
+/// (fbs-cost-profile, claude-158): every timed run's decode steps, each as its
+/// stage times, and the reply, which every run must repeat.
+fn stage_protocol(
+    model: &IntegerStackModel,
+    prompt: &[u32],
+) -> Result<(Vec<Vec<u64>>, Vec<u32>), String> {
+    let mut rows = Vec::with_capacity(RUNS * DECODE);
+    let mut reply: Option<Vec<u32>> = None;
+    let mut ns = Vec::new();
+    for run in 0..WARMUP + RUNS {
+        let mut session = model.session();
+        let mut step = |token: u32, ns: &mut Vec<u64>| -> Result<u32, String> {
+            session
+                .measure_fbs_step_stages(token, ns)
+                .map(|(s, _)| s.token)
+                .map_err(|e| e.to_string())
+        };
+        let mut next = 0;
+        for &t in prompt {
+            next = step(t, &mut ns)?;
+        }
+        let mut written = vec![next];
+        for _ in 0..DECODE {
+            next = step(next, &mut ns)?;
+            written.push(next);
+            if run >= WARMUP {
+                rows.push(ns.clone());
+            }
+        }
+        match &reply {
+            Some(first) if *first != written => {
+                return Err("stage-timed runs wrote different replies".to_owned())
+            }
+            Some(_) => {}
+            None => reply = Some(written),
+        }
+    }
+    Ok((rows, reply.unwrap_or_default()))
+}
+
+/// The stages `measure_fbs_step_stages` times, in its order, for `layers` layers.
+fn stage_names(layers: usize) -> Vec<String> {
+    let mut names = vec!["embed".to_owned()];
+    for l in 0..layers {
+        names.push(format!("layer{l}.recurrence"));
+        names.push(format!("layer{l}.mlp"));
+    }
+    names.extend(["final_norm", "writer", "bookkeeping"].map(str::to_owned));
+    names
+}
+
+/// The stage profile of the decode steps in `rows`: each stage's median, their
+/// sum against the median step (per mille), the whole-table nearest's median,
+/// and the step against the plain protocol's per-token decode time. Their
+/// difference, `loop_overhead_ns`, is the cost outside the step: the loop, and
+/// `step_native`'s copies of the kept cells and the query into its `NativeStep`.
+fn stage_report(
+    rows: &[Vec<u64>],
+    plain_decode_ns: u64,
+    plain_reply: &[u32],
+    staged_reply: &[u32],
+) -> Result<serde_json::Value, String> {
+    let width = rows.first().map_or(0, Vec::len);
+    if width < 6 || (width - 6) % 2 != 0 || rows.iter().any(|r| r.len() != width) {
+        return Err(format!(
+            "stage rows of {width} times do not fit the stage order"
+        ));
+    }
+    let column = |i: usize| {
+        let mut values: Vec<u64> = rows.iter().map(|r| r[i]).collect();
+        values.sort_unstable();
+        median(&values)
+    };
+    let names = stage_names((width - 6) / 2);
+    let stages: Vec<serde_json::Value> = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| json!({ "name": name, "median_ns": column(i) }))
+        .collect();
+    let stage_sum: u64 = (0..names.len()).map(column).sum();
+    let (step, nearest) = (column(width - 2), column(width - 1));
+    let per_token = plain_decode_ns / DECODE as u64;
+    Ok(json!({
+        "decode_steps": rows.len(),
+        "stages": stages,
+        "stage_sum_ns": stage_sum,
+        "step_median_ns": step,
+        "stage_sum_per_mille_of_step": stage_sum * 1000 / step.max(1),
+        "whole_table_nearest_median_ns": nearest,
+        "plain_decode_per_token_ns": per_token,
+        "step_per_mille_of_plain_token": step * 1000 / per_token.max(1),
+        "loop_overhead_ns": per_token as i64 - step as i64,
+        "replies_match": plain_reply == staged_reply,
+    }))
+}
+
 /// One line of a command's output, or `None` when it does not run.
 fn probe(program: &str, args: &[&str]) -> Option<String> {
     let out = Command::new(program).args(args).output().ok()?;
@@ -159,6 +263,8 @@ fn hardware() -> serde_json::Value {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    let stages = args.iter().any(|a| a == "--stages");
+    let args: Vec<String> = args.into_iter().filter(|a| a != "--stages").collect();
     let (path, prompt_arg) = match args.as_slice() {
         [path] => (path, None),
         [path, flag, ids] if flag == "--prompt" => (path, Some(ids)),
@@ -198,13 +304,22 @@ fn run() -> Result<(), String> {
         ));
     }
     let timing = protocol(|| model.session(), &prompt)?;
-    let report = json!({
+    let mut report = json!({
         "schema": "uor-r4.fbs-toks/1",
         "artifact_sha256": model.artifact_sha256(),
         "prompt": prompt,
         "timing": timing,
         "hardware": hardware(),
     });
+    if stages {
+        let (rows, staged_reply) = stage_protocol(&model, &prompt)?;
+        let plain_decode = report["timing"]["decode"]["median_ns"]
+            .as_u64()
+            .ok_or("the plain protocol wrote no decode median")?;
+        let plain_reply: Vec<u32> = serde_json::from_value(report["timing"]["reply"].clone())
+            .map_err(|e| format!("the plain protocol's reply: {e}"))?;
+        report["stages"] = stage_report(&rows, plain_decode, &plain_reply, &staged_reply)?;
+    }
     println!("{report}");
     Ok(())
 }
@@ -238,6 +353,52 @@ mod tests {
                 token + 1
             })
         }
+    }
+
+    #[test]
+    fn the_stage_report_takes_medians_and_reads_the_step_against_the_plain_token() {
+        // One layer: embed, recurrence, mlp, final norm, writer, bookkeeping, step, nearest.
+        let row = |scale: u64| -> Vec<u64> {
+            [10, 40, 20, 5, 15, 2, 100, 300]
+                .iter()
+                .map(|v| v * scale)
+                .collect()
+        };
+        let rows = [row(1), row(2), row(3)];
+        let report = stage_report(&rows, 64 * 250, &[1, 2], &[1, 2]).expect("report");
+        assert_eq!(report["decode_steps"], 3);
+        let names: Vec<&str> = report["stages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "embed",
+                "layer0.recurrence",
+                "layer0.mlp",
+                "final_norm",
+                "writer",
+                "bookkeeping"
+            ]
+        );
+        // The middle row's stages: 20 + 80 + 40 + 10 + 30 + 4 = 184, against its step of 200.
+        assert_eq!(report["stage_sum_ns"], 184);
+        assert_eq!(report["step_median_ns"], 200);
+        assert_eq!(report["stage_sum_per_mille_of_step"], 920);
+        assert_eq!(report["whole_table_nearest_median_ns"], 600);
+        // The plain protocol's decode: 250 ns a token, so the loop costs 50 beside the step.
+        assert_eq!(report["plain_decode_per_token_ns"], 250);
+        assert_eq!(report["step_per_mille_of_plain_token"], 800);
+        assert_eq!(report["loop_overhead_ns"], 50);
+        assert_eq!(report["replies_match"], true);
+        let other = stage_report(&rows, 64 * 250, &[1, 2], &[1, 3]).expect("report");
+        assert_eq!(other["replies_match"], false);
+        // Rows that do not fit the stage order are refused.
+        assert!(stage_report(&[vec![1, 2, 3, 4, 5, 6, 7]], 1, &[], &[]).is_err());
+        assert!(stage_report(&[], 1, &[], &[]).is_err());
     }
 
     #[test]
