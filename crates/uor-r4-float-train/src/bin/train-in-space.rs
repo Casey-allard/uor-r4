@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N]`
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -11,7 +11,7 @@
 //!
 //! `train-in-space --data-root DIR --decode-speed CHECKPOINT [--objective nearest] [--retain-rates 0|1] [--reply-tokens N]`
 //!
-//! `train-in-space --recall PAIRS --out DIR [--steps N] [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--retain-rates 0|1] [--flock-read K] [--content-read K] [--hamming-read H]`:
+//! `train-in-space --recall PAIRS --out DIR [--steps N] [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--retain-rates 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last]`:
 //! the multi-query associative recall task (`in_space_long::run_recall`), `PAIRS` key-value pairs
 //! per distance bucket in each 192-token window, fresh every step; held-out recall per bucket goes
 //! to `DIR/recall.jsonl`, and the final model to `DIR/models/`. Needs no `--data-root`, and
@@ -19,7 +19,8 @@
 //!
 //! `train-in-space --data-root DIR --opening-bound 1`: how well the prompt words a window shows
 //! could name each reply opening, as TRAIN's commonest opening per key scored on DEV. A count
-//! over the corpus that needs no GPU; one JSON line per key.
+//! over the corpus that needs no GPU; one JSON line per key, then one line per split
+//! (`dev`, `train`) with how many openings the opening read's turn anchor keeps the first-8 key at.
 //!
 //! Long training of the SpiralCore/FBS geometric trunk in its own space, with text at every
 //! checkpoint (`uor_r4_float_train::in_space_long`). GPU only. `--data-root` holds `tokenizer.json`,
@@ -31,6 +32,7 @@ use std::env;
 use std::path::PathBuf;
 
 use candle_core::Device;
+use uor_r4_float_train::flock_read_opening::OpeningAnchor;
 use uor_r4_float_train::in_space_long::{
     context_reach, decode_speed, gradient_norms, inspect_run, opening_bound, root_separation,
     run_long, run_recall, LongConfig, PointObjective, TrainSplit,
@@ -47,6 +49,7 @@ fn main() -> Result<()> {
     let mut bound = false;
     let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
+    let (mut opening_read, mut opening_anchor) = (None, None);
     let mut config = LongConfig {
         objective: PointObjective::Sheet,
         steps: 32_768,
@@ -64,6 +67,8 @@ fn main() -> Result<()> {
         flock_read: 0,
         content_read: 0,
         hamming_read: 0,
+        opening_read: 0,
+        opening_anchor: None,
         width: uor_r4_float_train::hamilton_sheet::SHEET_WIDTH,
         type_spin: false,
         samples: 6,
@@ -118,6 +123,25 @@ fn main() -> Result<()> {
             "--flock-read" => config.flock_read = number(&value)?,
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
+            "--opening-read" => match number(&value)? {
+                k @ 1..=16 => opening_read = Some(k),
+                _ => {
+                    return Err(FloatTrainError::Invalid(
+                        "--opening-read wants 1 to 16".to_owned(),
+                    ))
+                }
+            },
+            "--opening-anchor" => {
+                opening_anchor = Some(match value.as_str() {
+                    "turn" => OpeningAnchor::Turn,
+                    "last" => OpeningAnchor::Last,
+                    other => {
+                        return Err(FloatTrainError::Invalid(format!(
+                            "--opening-anchor wants turn or last, not {other}"
+                        )))
+                    }
+                })
+            }
             "--width" => config.width = number(&value)?,
             "--type-spin" => config.type_spin = switch(&value)?,
             "--train-split" => split_dir = Some(PathBuf::from(&value)),
@@ -139,6 +163,19 @@ fn main() -> Result<()> {
                 )))
             }
         }
+    }
+    // The opening read (claude-154): its anchor is written exactly when the read is on.
+    match (opening_read, opening_anchor) {
+        (Some(k), anchor) => {
+            config.opening_read = k;
+            config.opening_anchor = Some(anchor.unwrap_or_default());
+        }
+        (None, Some(_)) => {
+            return Err(FloatTrainError::Invalid(
+                "--opening-anchor needs --opening-read".to_owned(),
+            ))
+        }
+        (None, None) => {}
     }
     if config.lr_end.is_nan() {
         config.lr_end = config.lr;
@@ -184,8 +221,12 @@ fn main() -> Result<()> {
     let data_root =
         data_root.ok_or_else(|| FloatTrainError::Invalid("--data-root is required".to_owned()))?;
     if bound {
-        for row in opening_bound(&data_root)? {
+        let (rows, checks) = opening_bound(&data_root)?;
+        for row in rows {
             println!("{}", serde_json::to_string(&row)?);
+        }
+        for check in checks {
+            println!("{}", serde_json::to_string(&check)?);
         }
         return Ok(());
     }

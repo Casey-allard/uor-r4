@@ -95,6 +95,14 @@ pub struct LongConfig {
     /// Hamming flock attention with this many heads after layer 2 and on the readout; 0 is no read
     /// (`flock_read_hamming`).
     pub hamming_read: usize,
+    /// The opening read (claude-154) after layer 2: the mean of up to this many opening token
+    /// points; 0 is no read (`flock_read_opening`). Left out of `config.json` when 0.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub opening_read: usize,
+    /// Where the opening read's slots start; set exactly when `opening_read` is, and left out of
+    /// `config.json` when none, so a run without the read writes the same file as before.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_anchor: Option<crate::flock_read_opening::OpeningAnchor>,
     /// The trunk's width: the shared table's columns and every read's width (default 256,
     /// `hamilton_sheet::SHEET_WIDTH`); a multiple of 8.
     pub width: usize,
@@ -165,6 +173,9 @@ pub struct Inspection {
     pub content_weight_mean_abs: Option<f64>,
     /// The same for the Hamming reads, over both depths, when the checkpoint has them.
     pub hamming_weight_mean_abs: Option<f64>,
+    /// The same for the opening read (claude-154), when the checkpoint has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_weight_mean_abs: Option<f64>,
 }
 
 /// One fixed DEV prompt with the model's greedy reply and the true reply, as text.
@@ -189,17 +200,21 @@ impl Drop for ArmGuard {
         crate::flock_read::set_flock_read(None);
         crate::flock_read_content::set_content_read(None);
         crate::flock_read_hamming::set_hamming_reads(None);
+        crate::flock_read_opening::set_opening_read(None);
     }
 }
 
-/// Set this thread's Flock read, content read and Hamming reads from the checkpoint `directory`,
-/// each to none when the checkpoint has none.
+/// Set this thread's Flock read, content read, Hamming reads and opening read from the checkpoint
+/// `directory`, each to none when the checkpoint has none.
 fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read::set_flock_read(crate::flock_read::FlockRead::load(directory, device)?);
     crate::flock_read_content::set_content_read(crate::flock_read_content::ContentRead::load(
         directory, device,
     )?);
     crate::flock_read_hamming::set_hamming_reads(crate::flock_read_hamming::HammingReads::load(
+        directory, device,
+    )?);
+    crate::flock_read_opening::set_opening_read(crate::flock_read_opening::OpeningRead::load(
         directory, device,
     )?);
     Ok(())
@@ -226,6 +241,35 @@ fn start_hamming(
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
+}
+
+/// The opening read `config` asks for (claude-154), set on this thread, with its own optimizer;
+/// none when off.
+fn start_opening(
+    config: &LongConfig,
+    device: &Device,
+) -> Result<
+    Option<(
+        crate::flock_read_opening::OpeningRead,
+        crate::flock_read::FlockAdamW,
+    )>,
+> {
+    if config.opening_read == 0 {
+        return Ok(None);
+    }
+    let read = crate::flock_read_opening::OpeningRead::new(
+        config.opening_read,
+        config.width,
+        config.opening_anchor.unwrap_or_default(),
+        device,
+    )?;
+    crate::flock_read_opening::set_opening_read(Some(read.clone()));
+    let opt = crate::flock_read::FlockAdamW::for_vars(&read.variables())?;
+    Ok(Some((read, opt)))
+}
+
+fn is_zero(n: &usize) -> bool {
+    *n == 0
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -625,8 +669,24 @@ pub struct OpeningKey {
 /// Each opening in `windows`: the prompt tokens its window shows before it, in order, and its
 /// target. The prompt runs back from the opening to the last response token or BOS.
 fn openings(windows: &[CausalWindow], mask: &[u8]) -> Vec<(Vec<u32>, u32)> {
+    opening_rows(windows, mask)
+        .into_iter()
+        .map(|row| (row.prompt, row.target))
+        .collect()
+}
+
+/// One opening [`openings`] yields, with where it stands: its window's index and the offset of
+/// the input token it is predicted from.
+struct OpeningRow {
+    window: usize,
+    offset: usize,
+    prompt: Vec<u32>,
+    target: u32,
+}
+
+fn opening_rows(windows: &[CausalWindow], mask: &[u8]) -> Vec<OpeningRow> {
     let mut rows = Vec::new();
-    for w in windows {
+    for (index, w) in windows.iter().enumerate() {
         let scored = w
             .scored_offsets
             .iter()
@@ -646,10 +706,54 @@ fn openings(windows: &[CausalWindow], mask: &[u8]) -> Vec<(Vec<u32>, u32)> {
                 }
                 first = i;
             }
-            rows.push((w.input_ids[first..=offset].to_vec(), target));
+            rows.push(OpeningRow {
+                window: index,
+                offset,
+                prompt: w.input_ids[first..=offset].to_vec(),
+                target,
+            });
         }
     }
     rows
+}
+
+/// How often the opening read's turn anchor (claude-154) keeps, at an opening, the same tokens
+/// as the probe's first-8 key: `opening_slots(input_ids, 8, Turn)[offset]` as tokens against
+/// `prompt[..8]` ([`opening_bound`]).
+#[derive(Clone, Debug, Serialize)]
+pub struct AnchorCheck {
+    /// The split, `dev` or `train`.
+    pub anchor_check: String,
+    pub openings: usize,
+    pub agree: usize,
+}
+
+fn anchor_check(split: &str, windows: &[CausalWindow], mask: &[u8]) -> AnchorCheck {
+    use crate::flock_read_opening::{opening_slots, OpeningAnchor};
+    let key = PromptKey::First(8);
+    let rows = opening_rows(windows, mask);
+    let mut agree = 0;
+    let mut slots = (usize::MAX, Vec::new());
+    for row in &rows {
+        // Rows come window by window, so each window's slots are worked out once.
+        let w = &windows[row.window];
+        if slots.0 != row.window {
+            slots = (
+                row.window,
+                opening_slots(&w.input_ids, 8, OpeningAnchor::Turn),
+            );
+        }
+        let kept: Vec<u32> = slots.1[row.offset]
+            .iter()
+            .map(|&s| w.input_ids[s])
+            .collect();
+        agree += usize::from(kept == key.of(&row.prompt));
+    }
+    AnchorCheck {
+        anchor_check: split.to_owned(),
+        openings: rows.len(),
+        agree,
+    }
 }
 
 /// The commonest target in `counts` and its count, ties to the smaller token id.
@@ -745,8 +849,9 @@ fn bound(
     }
 }
 
-/// [`OpeningBound`] for no key, the first 1–8 prompt tokens and the last 1–4.
-pub fn opening_bound(data_root: &Path) -> Result<Vec<OpeningBound>> {
+/// [`OpeningBound`] for no key, the first 1–8 prompt tokens and the last 1–4, and the opening
+/// read's [`AnchorCheck`] on DEV and on TRAIN.
+pub fn opening_bound(data_root: &Path) -> Result<(Vec<OpeningBound>, Vec<AnchorCheck>)> {
     let tokenizer = pinned_tokenizer(data_root)?;
     let decode = |ids: &[u32]| tail(&tokenizer.decode(ids), 80);
     let (train_tokens, train_mask) = load_train_split(data_root)?;
@@ -758,7 +863,14 @@ pub fn opening_bound(data_root: &Path) -> Result<Vec<OpeningBound>> {
     let keys = std::iter::once(PromptKey::None)
         .chain((1..=8).map(PromptKey::First))
         .chain((1..=4).map(PromptKey::Last));
-    Ok(keys.map(|key| bound(key, &train, &dev, &decode)).collect())
+    let checks = vec![
+        anchor_check("dev", &dev_windows, &dev_mask),
+        anchor_check("train", &train_windows, &train_mask),
+    ];
+    Ok((
+        keys.map(|key| bound(key, &train, &dev, &decode)).collect(),
+        checks,
+    ))
 }
 
 /// `samples` DEV windows spread over the panel whose first scored target opens a reply, with at
@@ -1184,6 +1296,10 @@ pub fn inspect_run(
                 Some(reads) => Some(scalar(reads.weight_mean_abs()?)?),
                 None => None,
             },
+            opening_weight_mean_abs: match crate::flock_read_opening::opening_read() {
+                Some(read) => Some(scalar(read.weight_mean_abs()?)?),
+                None => None,
+            },
         });
     }
     Ok(readings)
@@ -1298,6 +1414,8 @@ pub struct RecallReading {
     /// Each read's weight, mean of its absolute values, when the run has that read.
     pub content_weight_mean_abs: Option<f64>,
     pub hamming_weight_mean_abs: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_weight_mean_abs: Option<f64>,
     /// The Hamming reads' margins in bits, read by read and head by head: a margin below every
     /// distance weighs nothing and gets no gradient back.
     pub hamming_margins: Option<Vec<f64>>,
@@ -1383,6 +1501,8 @@ pub fn run_recall(
     };
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
     let mut hamming = start_hamming(config, device)?;
+    // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
+    let mut opening = start_opening(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
     let held_out: Vec<(CausalWindow, Vec<usize>)> = (0..RECALL_EVAL_WINDOWS)
@@ -1418,6 +1538,10 @@ pub fn run_recall(
             },
             hamming_weight_mean_abs: match crate::flock_read_hamming::hamming_reads() {
                 Some(reads) => Some(scalar(reads.weight_mean_abs()?)?),
+                None => None,
+            },
+            opening_weight_mean_abs: match crate::flock_read_opening::opening_read() {
+                Some(read) => Some(scalar(read.weight_mean_abs()?)?),
                 None => None,
             },
             hamming_margins: match crate::flock_read_hamming::hamming_reads() {
@@ -1484,6 +1608,9 @@ pub fn run_recall(
         if let Some((reads, opt)) = hamming.as_mut() {
             opt.step_vars(&reads.variables(), &grads, lr)?;
         }
+        if let Some((read, opt)) = opening.as_mut() {
+            opt.step_vars(&read.variables(), &grads, lr)?;
+        }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
         })?;
@@ -1507,6 +1634,9 @@ pub fn run_recall(
     }
     if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
         reads.save(&directory)?;
+    }
+    if let Some(read) = crate::flock_read_opening::opening_read() {
+        read.save(&directory)?;
     }
     Ok(())
 }
@@ -1642,6 +1772,7 @@ pub fn gradient_norms(
         ));
     }
     let _hamming = start_hamming(config, device)?;
+    let _opening = start_opening(config, device)?;
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
     let (ids, scored, targets) = assemble(&windows);
     let grads = hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
@@ -1774,6 +1905,8 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     };
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
     let mut hamming = start_hamming(config, device)?;
+    // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
+    let mut opening = start_opening(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -1898,6 +2031,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(reads) = crate::flock_read_hamming::hamming_reads() {
             reads.save(&directory)?;
         }
+        if let Some(read) = crate::flock_read_opening::opening_read() {
+            read.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -1957,6 +2093,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         }
         if let Some((reads, opt)) = hamming.as_mut() {
             opt.step_vars(&reads.variables(), &grads, lr)?;
+        }
+        if let Some((read, opt)) = opening.as_mut() {
+            opt.step_vars(&read.variables(), &grads, lr)?;
         }
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
@@ -2152,6 +2291,101 @@ mod tests {
             openings(&windows, &mask),
             [(vec![10, 11, 12], 20), (vec![13, 14], 22)]
         );
+    }
+
+    #[test]
+    fn the_anchor_check_counts_openings_whose_turn_slots_are_the_first_8_key() {
+        // BOS, a prompt (10 11 12), a reply (20 21) closed by EOS, a prompt (13 14), a reply (22)
+        // with no EOS, then a prompt (15) and a reply (23). The turn anchor starts after BOS and
+        // after EOS, so it keeps the probe's key at the first two openings; at the third it still
+        // runs from the EOS, through the reply 22.
+        let tokens = [0u32, 10, 11, 12, 20, 21, 1, 13, 14, 22, 15, 23];
+        let mask = [0u8, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1];
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 16, 0).unwrap();
+        assert_eq!(
+            openings(&windows, &mask),
+            [(vec![10, 11, 12], 20), (vec![13, 14], 22), (vec![15], 23)]
+        );
+        let check = anchor_check("dev", &windows, &mask);
+        assert_eq!((check.openings, check.agree), (3, 2));
+        assert_eq!(
+            serde_json::to_string(&check).unwrap(),
+            r#"{"anchor_check":"dev","openings":3,"agree":2}"#
+        );
+    }
+
+    fn config(opening_read: usize, opening_anchor: Option<OpeningAnchor>) -> LongConfig {
+        LongConfig {
+            objective: PointObjective::Sheet,
+            steps: 1,
+            batch: 1,
+            eval_every: 1,
+            seed: 1,
+            lr: 0.002,
+            lr_end: 0.002,
+            decay_mult: 20.0,
+            retain_rates: false,
+            fold_scores: false,
+            reflect_floor: false,
+            flock_read: 0,
+            content_read: 0,
+            hamming_read: 0,
+            opening_read,
+            opening_anchor,
+            width: hs::SHEET_WIDTH,
+            type_spin: false,
+            fix_input_table: false,
+            train_split: None,
+            samples: 6,
+            reply_tokens: 48,
+        }
+    }
+
+    use crate::flock_read_opening::OpeningAnchor;
+
+    #[test]
+    fn a_config_without_the_opening_read_writes_neither_of_its_keys() {
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
+        assert!(!json.contains("opening_read"), "{json}");
+        assert!(!json.contains("opening_anchor"), "{json}");
+        // The keys around them stand as they did before the read.
+        assert!(
+            json.contains("\"hamming_read\": 0,\n  \"width\": 256,"),
+            "{json}"
+        );
+    }
+
+    #[test]
+    fn a_config_with_the_opening_read_writes_both_of_its_keys() {
+        for (anchor, name) in [(OpeningAnchor::Turn, "turn"), (OpeningAnchor::Last, "last")] {
+            let json =
+                String::from_utf8(serde_json::to_vec_pretty(&config(8, Some(anchor))).unwrap())
+                    .unwrap();
+            let keys = format!(
+                "\"hamming_read\": 0,\n  \"opening_read\": 8,\n  \"opening_anchor\": \"{name}\",\n  \"width\": 256,"
+            );
+            assert!(json.contains(&keys), "{json}");
+        }
+    }
+
+    #[test]
+    fn a_checkpoint_with_an_opening_read_sets_it_on_the_thread_until_the_guard_drops() {
+        // Save and load only: the vendored candle computes nothing on the CPU, but files move.
+        let device = Device::Cpu;
+        let directory =
+            std::env::temp_dir().join(format!("claude-154-load-reads-{}", std::process::id()));
+        crate::flock_read_opening::OpeningRead::new(5, 8, OpeningAnchor::Last, &device)
+            .unwrap()
+            .save(&directory)
+            .unwrap();
+        {
+            let _guard = ArmGuard;
+            load_reads(&directory, &device).unwrap();
+            let read = crate::flock_read_opening::opening_read().expect("the opening read is set");
+            assert_eq!((read.k(), read.anchor()), (5, OpeningAnchor::Last));
+        }
+        assert!(crate::flock_read_opening::opening_read().is_none());
+        fs::remove_dir_all(&directory).unwrap();
     }
 
     #[test]

@@ -1141,6 +1141,19 @@ impl StackModel {
                     x = q16(read.apply(&x, ids, &table)?)?;
                 }
             }
+            // The opening read (claude-154), when set on this thread: after layer 2, the mean of
+            // the opening tokens' own points.
+            if layer + 1 == 2 {
+                if let Some(read) = crate::flock_read_opening::opening_read() {
+                    let table = self
+                        .variables()
+                        .get("embedding.weight")
+                        .ok_or_else(|| invalid("the model has no shared vector table"))?
+                        .as_tensor()
+                        .clone();
+                    x = q16(read.apply(&x, ids, &table)?)?;
+                }
+            }
         }
         let mut x = self.norm(&p, &x, "final_norm.weight")?;
         // The Hamming readout (claude-146): where a copy head found an earlier copy of the current
