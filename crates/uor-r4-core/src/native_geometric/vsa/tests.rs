@@ -753,3 +753,99 @@ fn test_hrr_associative_unbinding_continuation_prediction() {
         corr_99
     );
 }
+
+#[test]
+fn test_bipolar_accumulator_superposition_and_exact_algebraic_revert() {
+    use super::accumulator::BipolarAccumulator8192;
+    use super::hypervector::Hypervector8192;
+
+    let mut acc = BipolarAccumulator8192::new();
+    let mut items = Vec::with_capacity(15);
+
+    for i in 0..15u64 {
+        let hv = Hypervector8192::from_seed(0x2026_1027_u64, i.wrapping_mul(17).wrapping_add(1));
+        acc.accumulate(&hv, 1);
+        items.push(hv);
+    }
+
+    let bundled = acc.project();
+
+    for (idx, item) in items.iter().enumerate() {
+        let excess = bundled.excess_overlap_bits(item);
+        assert!(
+            excess >= 180,
+            "stored item {idx} excess bits {excess} fell below +4 sigma (180 bits)"
+        );
+    }
+
+    let random_probe = Hypervector8192::from_seed(0xDEAD_BEEF_CAFE_BABEu64, 0x9999);
+    let noise_excess = bundled.excess_overlap_bits(&random_probe);
+    assert!(
+        noise_excess.abs() < 135,
+        "orthogonal probe excess bits {noise_excess} exceeded 3 sigma noise bound"
+    );
+
+    let snapshot_before = acc;
+    let transient = Hypervector8192::from_seed(0xBAD0_FA11_ED00_0001u64, 42);
+
+    acc.accumulate(&transient, 3);
+    let dist_during = acc.project().hamming_distance(&bundled);
+    assert!(dist_during > 500);
+
+    acc.accumulate(&transient, -3);
+    assert_eq!(acc.project().hamming_distance(&bundled), 0);
+    assert_eq!(acc.counts, snapshot_before.counts);
+}
+
+#[test]
+fn test_weighted_accumulator_and_rolling_bipolar_context() {
+    use super::accumulator::BipolarAccumulator4096;
+    use super::context_engine::{encode_prime_stride_ngram, RollingBipolarContext};
+    use super::hypervector::WORDS_4096;
+
+    let salient = Hypervector4096::from_seed(0xABCD_0001, 1);
+    let mut stopwords = Vec::with_capacity(12);
+    for i in 0..12u64 {
+        stopwords.push(Hypervector4096::from_seed(0xABCD_0002, i + 100));
+    }
+
+    let mut equal_list = Vec::with_capacity(13);
+    equal_list.push(salient);
+    equal_list.extend_from_slice(&stopwords);
+    let equal_bundle = Hypervector4096::bundle(&equal_list);
+    let equal_excess = equal_bundle.excess_overlap_bits(&salient);
+
+    let mut weighted_acc = BipolarAccumulator4096::new();
+    weighted_acc.accumulate(&salient, 6);
+    for sw in &stopwords {
+        weighted_acc.accumulate(sw, 1);
+    }
+    let weighted_bundle = weighted_acc.project();
+    let weighted_excess = weighted_bundle.excess_overlap_bits(&salient);
+
+    assert!(weighted_excess > equal_excess + 256);
+    assert!(weighted_excess >= 600);
+
+    let codebook = Codebook::<WORDS_4096>::new(256, 0x7777_8888);
+    let mut rolling = RollingBipolarContext::<WORDS_4096, 16>::new();
+
+    for step in 0..48u32 {
+        let token = (step * 7 + 3) % 256;
+        let weight = if step % 5 == 0 { 4i16 } else { 1i16 };
+        rolling.push_token(&codebook, token, weight);
+    }
+
+    let mut fresh = BipolarAccumulator4096::new();
+    for step in 32..48u32 {
+        let token = (step * 7 + 3) % 256;
+        let weight = if step % 5 == 0 { 4i16 } else { 1i16 };
+        fresh.accumulate(&codebook.get(token), weight);
+    }
+
+    assert_eq!(rolling.accumulator.counts, fresh.counts);
+    assert_eq!(rolling.project(), fresh.project());
+
+    let seq_ab = encode_prime_stride_ngram(&[10, 20, 30], &codebook);
+    let seq_ba = encode_prime_stride_ngram(&[30, 20, 10], &codebook);
+    assert!(seq_ab.excess_overlap_bits(&seq_ba).abs() < 128);
+}

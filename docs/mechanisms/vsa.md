@@ -83,7 +83,8 @@ VSA; hyperdimensional computing (HDC); binary spatter code; `Hypervector4096`; H
 
 ## Code
 
-- [`native_geometric/vsa/hypervector.rs`](../../crates/uor-r4-core/src/native_geometric/vsa/hypervector.rs): XOR bind, rotation, majority bundle, bit-count Hamming, Q1.15 score. Siblings: `codebook.rs`, `context_engine.rs`, `attention.rs`, `hierarchical.rs`.
+- [`native_geometric/vsa/hypervector.rs`](../../crates/uor-r4-core/src/native_geometric/vsa/hypervector.rs): XOR bind, rotation, majority bundle, bit-count Hamming, excess overlap bits above $D/2$, 8-bit sector routing, Q1.15 score (`Hypervector2048`, `Hypervector4096`, `Hypervector8192`). Siblings: `accumulator.rs`, `codebook.rs`, `context_engine.rs`, `attention.rs`, `hierarchical.rs`.
+- [`native_geometric/vsa/accumulator.rs`](../../crates/uor-r4-core/src/native_geometric/vsa/accumulator.rs): signed `i16` bipolar integer accumulator (`BipolarAccumulator`, `BipolarAccumulator2048`, `BipolarAccumulator4096`, `BipolarAccumulator8192`) with weighted bundling, exact $O(1)$ algebraic subtraction, dyadic shift decay, and top-$k$ seed sparsification; paired with `RollingBipolarContext` and `encode_prime_stride_ngram` in [`context_engine.rs`](../../crates/uor-r4-core/src/native_geometric/vsa/context_engine.rs).
 - [`learner/vsa_codes.rs`](../../crates/uor-r4-core/src/native_geometric/learner/vsa_codes.rs): the three code modes. [`jepa_trainer.rs`](../../crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs) holds the trained scale.
 - [`bin/ablate-prose.rs`](../../crates/uor-r4-core/src/bin/ablate-prose.rs): the held-out scorer with VSA ablations. [`set-vsa-code-mode.rs`](../../crates/uor-r4-core/src/bin/set-vsa-code-mode.rs): the load-time code swap.
 - [`semantic/vsa.rs`](../../crates/uor-r4-core/src/semantic/vsa.rs): the router geometry and facet stores.

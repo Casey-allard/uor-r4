@@ -14,11 +14,17 @@ pub const WORDS_2048: usize = 32;
 /// Number of 64-bit words for a 4096-bit hypervector (4096 / 64 = 64).
 pub const WORDS_4096: usize = 64;
 
+/// Number of 64-bit words for an 8192-bit hypervector (8192 / 64 = 128).
+pub const WORDS_8192: usize = 128;
+
 /// Standard 2048-bit binary hypervector.
 pub type Hypervector2048 = Hypervector<WORDS_2048>;
 
 /// Standard 4096-bit binary hypervector.
 pub type Hypervector4096 = Hypervector<WORDS_4096>;
+
+/// Standard 8192-bit binary hypervector.
+pub type Hypervector8192 = Hypervector<WORDS_8192>;
 
 /// Default hypervector representation for native geometric context (4096 bits).
 pub type DefaultHypervector = Hypervector4096;
@@ -411,6 +417,44 @@ impl<const WORDS: usize> Hypervector<WORDS> {
             // Exact identity `x * (2^15 - 1)`. MEASURED NO-OP at release; see `similarity_q15`.
             (((correlation << 15) - correlation) / total) as i16
         }
+    }
+
+    /// Exact integer bit margin above random chance ($\text{matching\_bits} - D / 2$).
+    ///
+    /// For independent random hypervectors of dimension $D$, $\mu = D / 2$ and
+    /// $\sigma = \sqrt{D} / 2$ ($32$ bits for $D = 4096$, $\approx 45$ bits for $D = 8192$).
+    /// Requires zero floating point and zero multiplication (D11).
+    #[inline]
+    pub fn excess_overlap_bits(&self, other: &Self) -> i32 {
+        let half = (Self::dimension_bits() >> 1) as i32;
+        (self.hamming_similarity(other) as i32) - half
+    }
+
+    /// Compute an 8-bit coarse routing sector ID by taking the majority `popcount`
+    /// across 8 equal sub-blocks of `WORDS / 8` 64-bit words.
+    #[inline]
+    pub fn sector_id_u8(&self) -> u8 {
+        if WORDS < 8 {
+            return (self.data.first().copied().unwrap_or(0) & 0xFF) as u8;
+        }
+        let words_per_sector = WORDS >> 3;
+        let half_bits = (words_per_sector << 5) as u32; // (words_per_sector * 64) / 2
+        let mut sector = 0u8;
+        let mut bit = 0usize;
+        while bit < 8 {
+            let base = bit * words_per_sector;
+            let mut ones = 0u32;
+            let mut w = 0usize;
+            while w < words_per_sector {
+                ones += self.data[base + w].count_ones();
+                w += 1;
+            }
+            if ones >= half_bits {
+                sector |= 1u8 << bit;
+            }
+            bit += 1;
+        }
+        sector
     }
 }
 

@@ -4,11 +4,46 @@
 //! cyclic positional permutation, and parallel majority bundling.
 //! Zero runtime heap allocations and zero runtime floats on serving hot paths.
 
+use super::accumulator::BipolarAccumulator;
 use super::codebook::Codebook;
 use super::hypervector::Hypervector;
 
 /// Maximum static window capacity for the zero-allocation rolling context engine.
 pub const DEFAULT_MAX_WINDOW: usize = 64;
+
+/// First 16 odd primes used as cyclic bit-rotation strides for non-aliasing
+/// positional mixing across sequence steps.
+pub const PRIME_STRIDES: [usize; 16] =
+    [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59];
+
+/// Encode an ordered sequence of tokens using coprime cyclic rotation strides
+/// from [`PRIME_STRIDES`].
+pub fn encode_prime_stride_ngram<const WORDS: usize>(
+    tokens: &[u32],
+    codebook: &Codebook<WORDS>,
+) -> Hypervector<WORDS> {
+    let n = tokens.len();
+    if n == 0 {
+        return Hypervector::zero();
+    }
+    if n == 1 {
+        return codebook.get(tokens[0]);
+    }
+
+    let mut bound = Hypervector::zero();
+    for (i, &tok) in tokens.iter().enumerate() {
+        let lag = n - 1 - i;
+        let base = codebook.get(tok);
+        let shift = if lag == 0 {
+            0
+        } else {
+            PRIME_STRIDES[(lag - 1) & 15]
+        };
+        let permuted = base.permute(shift);
+        bound = bound.bind(&permuted);
+    }
+    bound
+}
 
 /// Pure function: Encode an ordered sequence of tokens into a single n-gram hypervector.
 ///
@@ -357,5 +392,107 @@ impl<const WORDS: usize, const MAX_WINDOW: usize> RollingVsaContext<WORDS, MAX_W
     ) -> i16 {
         let cand_vec = codebook.get(candidate_token);
         target_context.bipolar_correlation_q15(&cand_vec)
+    }
+}
+
+/// Incremental $O(1)$ rolling context engine backed by a persistent [`BipolarAccumulator`].
+///
+/// Unlike [`RollingVsaContext`] (which recomputes an equal-weight majority vote over the
+/// window from scratch), `RollingBipolarContext` maintains signed `i16` bit counters across
+/// a fixed ring buffer of `(Hypervector<WORDS>, i16)` entries:
+/// - Pushing a new vector with integer importance `weight` adds `+weight` in $O(1)$.
+/// - When the window reaches `MAX_WINDOW`, the oldest entry is **algebraically subtracted**
+///   (`-old_weight`) in $O(1)$, keeping the accumulator bit-for-bit identical to a fresh
+///   reconstruction over the active window.
+#[derive(Clone, Debug)]
+pub struct RollingBipolarContext<const WORDS: usize, const MAX_WINDOW: usize = DEFAULT_MAX_WINDOW> {
+    pub ring_vectors: [Hypervector<WORDS>; MAX_WINDOW],
+    pub ring_weights: [i16; MAX_WINDOW],
+    pub accumulator: BipolarAccumulator<WORDS>,
+    pub cursor: usize,
+    pub length: usize,
+}
+
+impl<const WORDS: usize, const MAX_WINDOW: usize> Default
+    for RollingBipolarContext<WORDS, MAX_WINDOW>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const WORDS: usize, const MAX_WINDOW: usize> RollingBipolarContext<WORDS, MAX_WINDOW> {
+    /// Initialize an empty rolling bipolar context.
+    pub const fn new() -> Self {
+        Self {
+            ring_vectors: [Hypervector::zero(); MAX_WINDOW],
+            ring_weights: [0i16; MAX_WINDOW],
+            accumulator: BipolarAccumulator::new(),
+            cursor: 0,
+            length: 0,
+        }
+    }
+
+    /// Clear the ring buffer and zero the bipolar accumulator.
+    pub fn clear(&mut self) {
+        self.ring_vectors = [Hypervector::zero(); MAX_WINDOW];
+        self.ring_weights = [0i16; MAX_WINDOW];
+        self.accumulator.clear();
+        self.cursor = 0;
+        self.length = 0;
+    }
+
+    /// Number of active entries currently in the rolling window.
+    #[inline]
+    pub const fn len(&self) -> usize {
+        self.length
+    }
+
+    /// Whether the rolling window is empty.
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
+        self.length == 0
+    }
+
+    /// Push a hypervector with positive integer `weight` into the rolling window.
+    ///
+    /// If `self.length == MAX_WINDOW`, the oldest entry at `self.cursor` is first
+    /// subtracted from `self.accumulator` via `accumulate(&old_hv, -old_weight)`.
+    #[inline]
+    pub fn push_vector(&mut self, hv: Hypervector<WORDS>, weight: i16) {
+        if MAX_WINDOW == 0 || weight <= 0 {
+            return;
+        }
+        if self.length == MAX_WINDOW {
+            let old_hv = self.ring_vectors[self.cursor];
+            let old_w = self.ring_weights[self.cursor];
+            if old_w > 0 {
+                self.accumulator.accumulate(&old_hv, -old_w);
+            }
+        } else {
+            self.length += 1;
+        }
+
+        self.ring_vectors[self.cursor] = hv;
+        self.ring_weights[self.cursor] = weight;
+        self.accumulator.accumulate(&hv, weight);
+        self.cursor = (self.cursor + 1) % MAX_WINDOW;
+    }
+
+    /// Push a token from `codebook` with integer importance `weight` (`+4` for salient
+    /// content tokens, `+1` for structural stopwords).
+    #[inline]
+    pub fn push_token(&mut self, codebook: &Codebook<WORDS>, token: u32, weight: i16) {
+        let hv = codebook.get(token);
+        self.push_vector(hv, weight);
+    }
+
+    /// Project the live bipolar accumulator onto a binary [`Hypervector`].
+    #[inline]
+    pub fn project(&self) -> Hypervector<WORDS> {
+        if self.length == 0 {
+            return Hypervector::zero();
+        }
+        self.accumulator.project()
     }
 }

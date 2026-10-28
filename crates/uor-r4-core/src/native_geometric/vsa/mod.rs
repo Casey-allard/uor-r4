@@ -11,6 +11,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod accumulator;
 pub mod attention;
 pub mod codebook;
 pub mod context_engine;
@@ -20,6 +21,9 @@ pub mod hypervector;
 #[cfg(test)]
 mod tests;
 
+pub use accumulator::{
+    BipolarAccumulator, BipolarAccumulator2048, BipolarAccumulator4096, BipolarAccumulator8192,
+};
 pub use attention::{
     HeadRole, MultiHeadVsaAttention, MultiHeadVsaResult, CANONICAL_ATTENTION_64,
     CANONICAL_ATTENTION_SEED, DEFAULT_ATTENTION_THRESHOLD, NUM_ATTENTION_HEADS,
@@ -27,12 +31,13 @@ pub use attention::{
 pub use codebook::Codebook;
 pub use context_engine::{
     encode_associative_transition_context, encode_attended_multiscale_context,
-    encode_multiscale_context, encode_ngram, encode_positional_context, RollingVsaContext,
-    DEFAULT_MAX_WINDOW,
+    encode_multiscale_context, encode_ngram, encode_positional_context, encode_prime_stride_ngram,
+    RollingBipolarContext, RollingVsaContext, DEFAULT_MAX_WINDOW, PRIME_STRIDES,
 };
 pub use hierarchical::{
     HierarchicalCodebook, LeafBucket, Shortlist, LEAF_BUCKET_CAPACITY, MAX_PER_SECTOR,
 };
 pub use hypervector::{
-    DefaultHypervector, Hypervector, Hypervector2048, Hypervector4096, WORDS_2048, WORDS_4096,
+    DefaultHypervector, Hypervector, Hypervector2048, Hypervector4096, Hypervector8192, WORDS_2048,
+    WORDS_4096, WORDS_8192,
 };

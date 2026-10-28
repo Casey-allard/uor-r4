@@ -9,6 +9,7 @@ pub mod bindings;
 pub mod durable_consumer;
 mod hash;
 mod manifest;
+pub mod manifold_sketch;
 pub mod peer;
 mod record;
 mod store;
