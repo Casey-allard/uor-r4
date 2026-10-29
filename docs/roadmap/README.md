@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 12 |
+| ready | 17 |
 | held | 10 |
 | decision | 1 |
 | done | 79 |
-| total | 102 |
+| total | 107 |
 
 ## Start here
 
@@ -134,7 +134,12 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
+| [Split each served FBS layer, then vector kernels exact against the scalar step](items/fbs-serving-kernels.md) | ready | a lab | no | [fbs-cost-profile](items/fbs-cost-profile.md) | not yet synced |
 | [Serve the Hamming read from the integer artifact on the laptop](items/integer-hamming-read.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [spiralcore-fbs-offline-float-sheet](items/spiralcore-fbs-offline-float-sheet.md) | not yet synced |
+| [Split the training backward, and run a cheaper rival search against (a)](items/training-step-cost.md) | ready | a lab | yes | [fbs-cost-profile](items/fbs-cost-profile.md) | not yet synced |
+| [Serve the turn memory from the integer artifact on the laptop](items/turn-memory-integer.md) | ready | a lab | yes | [route-plus-memory](items/route-plus-memory.md) | not yet synced |
+| [Carry the turn memory past a reply's first word](items/turn-memory-reply.md) | ready | a lab | yes | [route-plus-memory](items/route-plus-memory.md) | not yet synced |
+| [Make the native writer's admission hold at every seed](items/writer-admission.md) | ready | a lab | yes | [one-decoder](items/one-decoder.md) | not yet synced |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
@@ -205,6 +210,8 @@ flowchart LR
   n_d11_exporter_float_trunk["d11-exporter-float-trunk"]
   n_d41_driver_math_pilot["d41-driver-math-pilot"]
   n_e8_orbit_memory_sigmoid_free_iteration["e8-orbit-memory-sigmoid-free-iteration"]
+  n_fbs_cost_profile["fbs-cost-profile"]
+  n_fbs_serving_kernels["fbs-serving-kernels"]
   n_float_training_module["float-training-module"]
   n_hamilton_gate_offline_float_sheet["hamilton-gate-offline-float-sheet"]
   n_in_space_trunk_to_text["in-space-trunk-to-text"]
@@ -278,8 +285,15 @@ flowchart LR
   n_r_secant_surrogate_descent["r-secant-surrogate-descent"]
   n_r_vocab_4096_vs_16384["r-vocab-4096-vs-16384"]
   n_recurrence_gates_six_recurrence_fit["recurrence-gates-six-recurrence-fit"]
+  n_route_plus_memory["route-plus-memory"]
   n_spiralcore_fbs_offline_float_sheet["spiralcore-fbs-offline-float-sheet"]
+  n_training_step_cost["training-step-cost"]
+  n_turn_memory_integer["turn-memory-integer"]
+  n_turn_memory_reply["turn-memory-reply"]
+  n_writer_admission["writer-admission"]
   n_d41_driver_math_pilot --> n_m2_donor_corpus_generation
+  n_fbs_cost_profile --> n_fbs_serving_kernels
+  n_fbs_cost_profile --> n_training_step_cost
   n_float_training_module --> n_d11_exporter_float_trunk
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
@@ -377,12 +391,15 @@ flowchart LR
   n_m7_studio_connect_wasm_engine --> n_m7_parity_library_cli_browser
   n_m8_release_packaging --> n_m8_independent_verification
   n_object_store_consumer_m3 --> n_m3_qualify_memory
+  n_one_decoder --> n_writer_admission
   n_owner_decision_float_path_scope --> n_d11_exporter_float_trunk
   n_owner_decision_float_path_scope --> n_float_training_module
   n_pipeline_map --> n_pipeline_map_revision
   n_r_secant_surrogate_descent --> n_hamilton_gate_offline_float_sheet
   n_r_secant_surrogate_descent --> n_recurrence_gates_six_recurrence_fit
   n_r_secant_surrogate_descent --> n_spiralcore_fbs_offline_float_sheet
+  n_route_plus_memory --> n_turn_memory_integer
+  n_route_plus_memory --> n_turn_memory_reply
   n_spiralcore_fbs_offline_float_sheet --> n_in_space_trunk_to_text
   n_spiralcore_fbs_offline_float_sheet --> n_integer_hamming_read
 ```
