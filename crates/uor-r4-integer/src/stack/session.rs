@@ -3042,8 +3042,9 @@ fn stack_whole_table_nearest(fbs: &FbsModel, vocab: usize, q: &[i32]) -> u32 {
 /// claude-158). Runs the same kernels in the same order, so the session ends
 /// in the same state; `stack_step_fbs` and `step` are untouched for the
 /// zero-multiply audit. Fills `ns` in the order
-/// [`IntegerStackSession::measure_fbs_step_stages`] lists and returns the
-/// whole-table nearest token.
+/// [`IntegerStackSession::measure_fbs_step_stages`] lists, or with `parts`
+/// the order [`IntegerStackSession::measure_fbs_step_parts`] lists, and
+/// returns the whole-table nearest token.
 #[inline(never)]
 #[cfg(not(target_arch = "wasm32"))]
 fn stack_step_fbs_timed(
@@ -3051,12 +3052,19 @@ fn stack_step_fbs_timed(
     fbs: &FbsModel,
     token: u32,
     ns: &mut Vec<u64>,
+    parts: bool,
 ) -> Result<u32, StackError> {
     use std::time::Instant;
     let lap = |since: &mut Instant, ns: &mut Vec<u64>| {
         let now = Instant::now();
         ns.push(now.duration_since(*since).as_nanos() as u64);
         *since = now;
+    };
+    // A lap inside a block, taken only when the blocks are split into parts.
+    let part = |since: &mut Instant, ns: &mut Vec<u64>| {
+        if parts {
+            lap(since, ns);
+        }
     };
     ns.clear();
     let start = Instant::now();
@@ -3086,9 +3094,12 @@ fn stack_step_fbs_timed(
         };
         stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
+        part(&mut since, ns);
         stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_FINE_EXP, &mut b.branches);
         stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate_out);
+        part(&mut since, ns);
         let act_exp = stack_recurrence_core(model, layer.tables(), state, history, b, false);
+        part(&mut since, ns);
         stack_fbs_gather(&layer.rec_out, &b.act[..d], act_exp, &mut b.proj);
         for (x, p) in b.x.iter_mut().zip(&b.proj) {
             *x = x.saturating_add(*p);
@@ -3096,10 +3107,14 @@ fn stack_step_fbs_timed(
         lap(&mut since, ns);
         stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.mlp_gain);
+        part(&mut since, ns);
         stack_fbs_gather(&layer.mlp_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate);
         stack_fbs_gather(&layer.mlp_up, &b.scratch[..d], NORM_FINE_EXP, &mut b.up);
+        part(&mut since, ns);
         stack_swiglu(model, &b.gate, &b.up, &mut b.scratch[..mlp]);
+        part(&mut since, ns);
         let act_exp = stack_quantize16(&b.scratch[..mlp], PRODUCT_EXP, &mut b.act[..mlp]);
+        part(&mut since, ns);
         stack_fbs_gather(&layer.mlp_down, &b.act[..mlp], act_exp, &mut b.proj);
         for (x, p) in b.x.iter_mut().zip(&b.proj) {
             *x = x.saturating_add(*p);
@@ -3159,7 +3174,39 @@ impl IntegerStackSession<'_> {
                 "stage timing serves a SpiralCore/FBS model; time a dense stack's phases instead",
             ));
         };
-        let nearest = stack_step_fbs_timed(self, fbs, token, ns)?;
+        let nearest = stack_step_fbs_timed(self, fbs, token, ns, false)?;
+        Ok((
+            NativeStep {
+                token: self.b.native_token,
+                kept_cells: self.b.native_kept.clone(),
+                query_q12: self.b.query_q12.clone(),
+            },
+            nearest,
+        ))
+    }
+
+    /// [`Self::measure_fbs_step_stages`] with each layer's two blocks split
+    /// into their parts (fbs-serving-kernels, claude-163). `ns` holds the
+    /// same times in the same order, except that each layer's two block
+    /// times are replaced by nine part times, which sum to them:
+    /// - the recurrence block: its norm with the gain; the input and gate
+    ///   gathers; the recurrence core; the output gather with the residual add;
+    /// - the feed-forward block: its norm with the gain; the gate and up
+    ///   gathers; the gated product; the requantization; the down gather with
+    ///   the residual add.
+    pub fn measure_fbs_step_parts(
+        &mut self,
+        token: u32,
+        ns: &mut Vec<u64>,
+    ) -> Result<(NativeStep, u32), StackError> {
+        ns.clear();
+        let model = self.model;
+        let Some(fbs) = &model.fbs else {
+            return Err(StackError::Shape(
+                "part timing serves a SpiralCore/FBS model; time a dense stack's phases instead",
+            ));
+        };
+        let nearest = stack_step_fbs_timed(self, fbs, token, ns, true)?;
         Ok((
             NativeStep {
                 token: self.b.native_token,
@@ -4246,6 +4293,31 @@ mod fbs_stage_tests {
             // the whole step and the nearest search.
             assert_eq!(ns.len(), 2 * fbs.layers.len() + 6);
             // A sanity check only: the stages tile the step, so the step is at least their sum.
+            let stages: u64 = ns[..ns.len() - 2].iter().sum();
+            assert!(ns[ns.len() - 2] >= stages, "{ns:?}");
+            assert_eq!(nearest, brute_nearest(fbs, vocab, &got.query_q12), "position {i}");
+        }
+        assert_eq!(plain.save_state(), timed.save_state());
+        assert_eq!(plain.tokens(), timed.tokens());
+    }
+
+    #[test]
+    fn the_part_timed_fbs_step_is_the_served_step() {
+        let snap = super::super::synthetic::synthetic_fbs_trunk(7);
+        let bytes = super::super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let model = IntegerStackModel::parse(&bytes).expect("parse");
+        let fbs = model.fbs.as_ref().expect("an FBS model");
+        let (vocab, context) = (model.shape.vocab, model.shape.context);
+        let (mut plain, mut timed) = (model.session(), model.session());
+        let mut ns = Vec::new();
+        for i in 0..context.min(48) {
+            let token = ((i * 37 + 5) % vocab) as u32;
+            let want = plain.step_native(token).expect("step");
+            let (got, nearest) = timed.measure_fbs_step_parts(token, &mut ns).expect("timed step");
+            assert_eq!(got, want, "position {i}");
+            // The embedding, each layer's nine parts, the final norm, the writer, the
+            // bookkeeping, the whole step and the nearest search.
+            assert_eq!(ns.len(), 9 * fbs.layers.len() + 6);
             let stages: u64 = ns[..ns.len() - 2].iter().sum();
             assert!(ns[ns.len() - 2] >= stages, "{ns:?}");
             assert_eq!(nearest, brute_nearest(fbs, vocab, &got.query_q12), "position {i}");

@@ -2,7 +2,7 @@
 //! (d11-exporter-float-trunk Stage 4b, claude-126).
 //!
 //! ```text
-//! fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages]
+//! fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]
 //! ```
 //!
 //! The protocol follows the step-6 one (`docs/labs/m1-d11-artifact-scorer`,
@@ -25,6 +25,12 @@
 //! step, a whole-table nearest search's median beside the writer, and the
 //! step against the plain protocol's per-token time. The plain protocol's
 //! numbers are taken first and unchanged.
+//!
+//! `--parts` (fbs-serving-kernels, claude-163) implies `--stages` and runs the
+//! protocol a third time through `IntegerStackSession::measure_fbs_step_parts`,
+//! which splits each layer's two blocks into nine parts. It adds `parts`: the
+//! same profile by part, and under `against_blocks` each block's parts summed
+//! against that block's median from the `--stages` run, per mille.
 
 use std::process::{Command, ExitCode};
 use std::time::Instant;
@@ -32,7 +38,7 @@ use std::time::Instant;
 use serde_json::json;
 use uor_r4_integer::stack::IntegerStackModel;
 
-const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages]";
+const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]";
 const PREFILL: usize = 128;
 const DECODE: usize = 64;
 const WARMUP: usize = 1;
@@ -144,12 +150,31 @@ fn protocol<S: Stepper>(
     }))
 }
 
+/// The two blocks `measure_fbs_step_stages` times in each layer, in its order.
+const BLOCKS: [&str; 2] = ["recurrence", "mlp"];
+/// The nine parts `measure_fbs_step_parts` times in each layer, in its order;
+/// each is named after the block it belongs to.
+const PARTS: [&str; 9] = [
+    "recurrence.norm",
+    "recurrence.gather_in",
+    "recurrence.core",
+    "recurrence.gather_out",
+    "mlp.norm",
+    "mlp.gather_in",
+    "mlp.product",
+    "mlp.requant",
+    "mlp.gather_out",
+];
+
 /// The protocol's runs again through `measure_fbs_step_stages`
-/// (fbs-cost-profile, claude-158): every timed run's decode steps, each as its
-/// stage times, and the reply, which every run must repeat.
+/// (fbs-cost-profile, claude-158), or with `parts` through
+/// `measure_fbs_step_parts` (fbs-serving-kernels, claude-163): every timed
+/// run's decode steps, each as its stage times, and the reply, which every
+/// run must repeat.
 fn stage_protocol(
     model: &IntegerStackModel,
     prompt: &[u32],
+    parts: bool,
 ) -> Result<(Vec<Vec<u64>>, Vec<u32>), String> {
     let mut rows = Vec::with_capacity(RUNS * DECODE);
     let mut reply: Option<Vec<u32>> = None;
@@ -157,10 +182,13 @@ fn stage_protocol(
     for run in 0..WARMUP + RUNS {
         let mut session = model.session();
         let mut step = |token: u32, ns: &mut Vec<u64>| -> Result<u32, String> {
-            session
-                .measure_fbs_step_stages(token, ns)
-                .map(|(s, _)| s.token)
-                .map_err(|e| e.to_string())
+            if parts {
+                session.measure_fbs_step_parts(token, ns)
+            } else {
+                session.measure_fbs_step_stages(token, ns)
+            }
+            .map(|(s, _)| s.token)
+            .map_err(|e| e.to_string())
         };
         let mut next = 0;
         for &t in prompt {
@@ -185,30 +213,35 @@ fn stage_protocol(
     Ok((rows, reply.unwrap_or_default()))
 }
 
-/// The stages `measure_fbs_step_stages` times, in its order, for `layers` layers.
-fn stage_names(layers: usize) -> Vec<String> {
+/// The stages timed in order for `layers` layers, each layer's named by
+/// `per_layer` ([`BLOCKS`] or [`PARTS`]).
+fn stage_names(layers: usize, per_layer: &[&str]) -> Vec<String> {
     let mut names = vec!["embed".to_owned()];
     for l in 0..layers {
-        names.push(format!("layer{l}.recurrence"));
-        names.push(format!("layer{l}.mlp"));
+        names.extend(per_layer.iter().map(|p| format!("layer{l}.{p}")));
     }
     names.extend(["final_norm", "writer", "bookkeeping"].map(str::to_owned));
     names
 }
 
-/// The stage profile of the decode steps in `rows`: each stage's median, their
-/// sum against the median step (per mille), the whole-table nearest's median,
-/// and the step against the plain protocol's per-token decode time. Their
-/// difference, `loop_overhead_ns`, is the cost outside the step: the loop, and
-/// `step_native`'s copies of the kept cells and the query into its `NativeStep`.
+/// The stage profile of the decode steps in `rows`, each layer's stages named
+/// by `per_layer`: each stage's median, their sum against the median step (per
+/// mille), the whole-table nearest's median, and the step against the plain
+/// protocol's per-token decode time. Their difference, `loop_overhead_ns`, is
+/// the cost outside the step: the loop, and `step_native`'s copies of the kept
+/// cells and the query into its `NativeStep`.
 fn stage_report(
     rows: &[Vec<u64>],
+    per_layer: &[&str],
     plain_decode_ns: u64,
     plain_reply: &[u32],
     staged_reply: &[u32],
 ) -> Result<serde_json::Value, String> {
     let width = rows.first().map_or(0, Vec::len);
-    if width < 6 || (width - 6) % 2 != 0 || rows.iter().any(|r| r.len() != width) {
+    if width < 6
+        || !(width - 6).is_multiple_of(per_layer.len())
+        || rows.iter().any(|r| r.len() != width)
+    {
         return Err(format!(
             "stage rows of {width} times do not fit the stage order"
         ));
@@ -218,7 +251,7 @@ fn stage_report(
         values.sort_unstable();
         median(&values)
     };
-    let names = stage_names((width - 6) / 2);
+    let names = stage_names((width - 6) / per_layer.len(), per_layer);
     let stages: Vec<serde_json::Value> = names
         .iter()
         .enumerate()
@@ -239,6 +272,65 @@ fn stage_report(
         "loop_overhead_ns": per_token as i64 - step as i64,
         "replies_match": plain_reply == staged_reply,
     }))
+}
+
+/// Each layer's block against its parts (fbs-serving-kernels, claude-163): for
+/// every block in `blocks` (a [`BLOCKS`] report), the medians of its parts in
+/// `parts` (a [`PARTS`] report) summed, against the block's own median, per
+/// mille, and whether every block lies within 10% (900 to 1,100 per mille).
+fn blocks_against_parts(
+    blocks: &serde_json::Value,
+    parts: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let medians = |report: &serde_json::Value| -> Result<Vec<(String, u64)>, String> {
+        report["stages"]
+            .as_array()
+            .ok_or("a stage report without stages")?
+            .iter()
+            .map(|s| match (s["name"].as_str(), s["median_ns"].as_u64()) {
+                (Some(name), Some(ns)) => Ok((name.to_owned(), ns)),
+                _ => Err("a stage without a name or a median".to_owned()),
+            })
+            .collect()
+    };
+    let (blocks, parts) = (medians(blocks)?, medians(parts)?);
+    let mut rows = Vec::new();
+    let mut within = true;
+    for (block, block_ns) in blocks.iter().filter(|(name, _)| {
+        name.starts_with("layer") && BLOCKS.iter().any(|b| name.ends_with(&format!(".{b}")))
+    }) {
+        let prefix = format!("{block}.");
+        // The block's kind (`recurrence` or `mlp`) names how many parts it has.
+        let kind = block.rsplit('.').next().unwrap_or_default();
+        let expected = PARTS
+            .iter()
+            .filter(|p| p.starts_with(&format!("{kind}.")))
+            .count();
+        let found: Vec<u64> = parts
+            .iter()
+            .filter(|(name, _)| name.starts_with(&prefix))
+            .map(|(_, ns)| *ns)
+            .collect();
+        if found.len() != expected {
+            return Err(format!(
+                "{} of {block}'s {expected} parts were timed",
+                found.len()
+            ));
+        }
+        let summed: u64 = found.iter().sum();
+        let per_mille = summed * 1000 / (*block_ns).max(1);
+        within &= (900..=1100).contains(&per_mille);
+        rows.push(json!({
+            "block": block,
+            "block_median_ns": block_ns,
+            "parts_sum_ns": summed,
+            "per_mille": per_mille,
+        }));
+    }
+    if rows.is_empty() {
+        return Err("the block report holds no layer blocks".to_owned());
+    }
+    Ok(json!({ "blocks": rows, "within_10_percent": within }))
 }
 
 /// One line of a command's output, or `None` when it does not run.
@@ -263,8 +355,12 @@ fn hardware() -> serde_json::Value {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let stages = args.iter().any(|a| a == "--stages");
-    let args: Vec<String> = args.into_iter().filter(|a| a != "--stages").collect();
+    let parts = args.iter().any(|a| a == "--parts");
+    let stages = parts || args.iter().any(|a| a == "--stages");
+    let args: Vec<String> = args
+        .into_iter()
+        .filter(|a| a != "--stages" && a != "--parts")
+        .collect();
     let (path, prompt_arg) = match args.as_slice() {
         [path] => (path, None),
         [path, flag, ids] if flag == "--prompt" => (path, Some(ids)),
@@ -312,13 +408,20 @@ fn run() -> Result<(), String> {
         "hardware": hardware(),
     });
     if stages {
-        let (rows, staged_reply) = stage_protocol(&model, &prompt)?;
+        let (rows, staged_reply) = stage_protocol(&model, &prompt, false)?;
         let plain_decode = report["timing"]["decode"]["median_ns"]
             .as_u64()
             .ok_or("the plain protocol wrote no decode median")?;
         let plain_reply: Vec<u32> = serde_json::from_value(report["timing"]["reply"].clone())
             .map_err(|e| format!("the plain protocol's reply: {e}"))?;
-        report["stages"] = stage_report(&rows, plain_decode, &plain_reply, &staged_reply)?;
+        report["stages"] = stage_report(&rows, &BLOCKS, plain_decode, &plain_reply, &staged_reply)?;
+        if parts {
+            let (rows, parted_reply) = stage_protocol(&model, &prompt, true)?;
+            let mut parted =
+                stage_report(&rows, &PARTS, plain_decode, &plain_reply, &parted_reply)?;
+            parted["against_blocks"] = blocks_against_parts(&report["stages"], &parted)?;
+            report["parts"] = parted;
+        }
     }
     println!("{report}");
     Ok(())
@@ -365,7 +468,7 @@ mod tests {
                 .collect()
         };
         let rows = [row(1), row(2), row(3)];
-        let report = stage_report(&rows, 64 * 250, &[1, 2], &[1, 2]).expect("report");
+        let report = stage_report(&rows, &BLOCKS, 64 * 250, &[1, 2], &[1, 2]).expect("report");
         assert_eq!(report["decode_steps"], 3);
         let names: Vec<&str> = report["stages"]
             .as_array()
@@ -394,11 +497,70 @@ mod tests {
         assert_eq!(report["step_per_mille_of_plain_token"], 800);
         assert_eq!(report["loop_overhead_ns"], 50);
         assert_eq!(report["replies_match"], true);
-        let other = stage_report(&rows, 64 * 250, &[1, 2], &[1, 3]).expect("report");
+        let other = stage_report(&rows, &BLOCKS, 64 * 250, &[1, 2], &[1, 3]).expect("report");
         assert_eq!(other["replies_match"], false);
         // Rows that do not fit the stage order are refused.
-        assert!(stage_report(&[vec![1, 2, 3, 4, 5, 6, 7]], 1, &[], &[]).is_err());
-        assert!(stage_report(&[], 1, &[], &[]).is_err());
+        assert!(stage_report(&[vec![1, 2, 3, 4, 5, 6, 7]], &BLOCKS, 1, &[], &[]).is_err());
+        assert!(stage_report(&[], &BLOCKS, 1, &[], &[]).is_err());
+        // Nine parts a layer: a row of 6 + 9 fits, one of 6 + 2 does not.
+        assert!(stage_report(&[vec![1; 15]], &PARTS, 1, &[], &[]).is_ok());
+        assert!(stage_report(&[vec![1; 8]], &PARTS, 1, &[], &[]).is_err());
+    }
+
+    #[test]
+    fn each_block_is_read_against_the_sum_of_its_parts() {
+        // One layer. Blocks: recurrence 100, mlp 200.
+        let blocks = stage_report(
+            &[vec![5, 100, 200, 1, 1, 1, 400, 9]],
+            &BLOCKS,
+            64 * 500,
+            &[],
+            &[],
+        )
+        .expect("blocks");
+        // Parts: the recurrence's four sum to 95 (950 per mille); the mlp's five to 230 (1,150).
+        let row = vec![5, 10, 40, 30, 15, 20, 60, 100, 20, 30, 1, 1, 1, 420, 9];
+        let parts = stage_report(&[row], &PARTS, 64 * 500, &[], &[]).expect("parts");
+        let names: Vec<&str> = parts["stages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names[1], "layer0.recurrence.norm");
+        assert_eq!(names[9], "layer0.mlp.gather_out");
+        let read = blocks_against_parts(&blocks, &parts).expect("against");
+        assert_eq!(read["blocks"][0]["block"], "layer0.recurrence");
+        assert_eq!(read["blocks"][0]["parts_sum_ns"], 95);
+        assert_eq!(read["blocks"][0]["per_mille"], 950);
+        assert_eq!(read["blocks"][1]["block"], "layer0.mlp");
+        assert_eq!(read["blocks"][1]["parts_sum_ns"], 230);
+        assert_eq!(read["blocks"][1]["per_mille"], 1150);
+        // The mlp's parts lie 15% above its block, so not every block is within 10%.
+        assert_eq!(read["within_10_percent"], false);
+        // Within 10% at both: the mlp's parts brought to 210 (1,050 per mille).
+        let row = vec![5, 10, 40, 30, 15, 20, 60, 80, 20, 30, 1, 1, 1, 400, 9];
+        let parts = stage_report(&[row], &PARTS, 64 * 500, &[], &[]).expect("parts");
+        let read = blocks_against_parts(&blocks, &parts).expect("against");
+        assert_eq!(read["blocks"][1]["per_mille"], 1050);
+        assert_eq!(read["within_10_percent"], true);
+        // A part report that names no part of a block is refused.
+        assert!(blocks_against_parts(&blocks, &blocks).is_err());
+        // So is one that holds only some of a block's parts: a second layer's
+        // blocks against a one-layer part report.
+        let two = stage_report(
+            &[vec![5, 100, 200, 100, 200, 1, 1, 1, 700, 9]],
+            &BLOCKS,
+            64 * 500,
+            &[],
+            &[],
+        )
+        .expect("two layers");
+        assert!(blocks_against_parts(&two, &parts).is_err());
+        let mut short = parts.clone();
+        short["stages"].as_array_mut().unwrap().remove(9);
+        let err = blocks_against_parts(&blocks, &short).expect_err("a missing part");
+        assert_eq!(err, "4 of layer0.mlp's 5 parts were timed");
     }
 
     #[test]
