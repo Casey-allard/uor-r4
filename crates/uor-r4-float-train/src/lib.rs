@@ -15,6 +15,7 @@ pub mod fbs_export;
 pub mod flock_read;
 pub mod flock_read_content;
 pub mod flock_read_hamming;
+pub mod flock_read_memory;
 pub mod flock_read_opening;
 pub mod flock_read_register;
 #[path = "geometric_stack_native.rs"]

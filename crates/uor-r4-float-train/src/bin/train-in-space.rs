@@ -1,11 +1,16 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1]`
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
 //! (`in_space_long::profile_window`; fbs-cost-profile, claude-157).
+//!
+//! `--turn-memory K` keys each reply opening on the first K ids of its turn and moves its readout
+//! point toward the token TRAIN's table stores for that key, through a weight that starts at 0
+//! (`flock_read_memory`; route-plus-memory, claude-161). `--turn-memory-empty 1` runs it with an
+//! empty table, the no-memory control.
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -83,6 +88,8 @@ fn main() -> Result<()> {
         samples: 6,
         reply_tokens: 48,
         profile: 0,
+        turn_memory: 0,
+        turn_memory_empty: false,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -122,6 +129,8 @@ fn main() -> Result<()> {
             }
             "--steps" => config.steps = number(&value)?,
             "--profile" => config.profile = number(&value)?,
+            "--turn-memory" => config.turn_memory = number(&value)?,
+            "--turn-memory-empty" => config.turn_memory_empty = switch(&value)?,
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,

@@ -1196,6 +1196,20 @@ impl StackModel {
                 stage_clock::mark("readout.register");
             }
         }
+        // The turn memory (route-plus-memory, claude-161): at the opening rows the caller named
+        // for this forward, the point moves toward the token TRAIN's table stores for the turn.
+        if let Some(memory) = crate::flock_read_memory::turn_memory() {
+            if let Some(rows) = crate::flock_read_memory::memory_rows() {
+                let table = self
+                    .variables()
+                    .get("embedding.weight")
+                    .ok_or_else(|| invalid("the model has no shared vector table"))?
+                    .as_tensor()
+                    .clone();
+                x = memory.apply_readout(&x, ids, &rows, &table)?;
+                stage_clock::mark("readout.memory");
+            }
+        }
         Ok(x.reshape((batch * time, self.config.width))?)
     }
     fn mlp(&self, p: &Params<'_>, layer: usize, x: &Tensor) -> Result<Tensor> {

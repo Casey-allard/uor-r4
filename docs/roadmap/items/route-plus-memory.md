@@ -3,7 +3,7 @@ id: route-plus-memory
 title: Route the user's turn to an exact memory built from TRAIN, read at the readout
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []

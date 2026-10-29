@@ -134,6 +134,13 @@ pub struct LongConfig {
     /// [`profile_window`]. 0 is off, and left out of `config.json`.
     #[serde(skip_serializing_if = "is_zero")]
     pub profile: usize,
+    /// The turn memory (route-plus-memory, claude-161): key each reply opening on this many ids
+    /// of its turn; 0 is no memory, and left out of `config.json`.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub turn_memory: usize,
+    /// The turn memory with an empty table, the no-memory control (L-010); left out when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub turn_memory_empty: bool,
 }
 
 /// One checkpoint's reading, one line of `progress.jsonl`.
@@ -201,6 +208,12 @@ pub struct Inspection {
     /// then all of them, when it has a register (claude-155).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub register_drop: Option<Vec<RegisterDrop>>,
+    /// The turn memory's weight (claude-161), when the checkpoint has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memory_weight_mean_abs: Option<f64>,
+    /// The last checkpoint's nearest reading with the turn memory taken out (claude-161).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memory_drop: Option<RegisterDrop>,
 }
 
 /// The nearest-token DEV reading with one prompt-register slot, or every slot, dropped
@@ -239,6 +252,8 @@ impl Drop for ArmGuard {
         crate::flock_read_opening::set_opening_read(None);
         crate::flock_read_register::set_prompt_register(None);
         crate::flock_read_register::set_register_slots(None);
+        crate::flock_read_memory::set_turn_memory(None);
+        crate::flock_read_memory::set_memory_rows(None);
     }
 }
 
@@ -258,6 +273,9 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read_register::set_prompt_register(
         crate::flock_read_register::PromptRegister::load(directory, device)?,
     );
+    crate::flock_read_memory::set_turn_memory(crate::flock_read_memory::TurnMemory::load(
+        directory, device,
+    )?);
     Ok(())
 }
 
@@ -337,6 +355,89 @@ fn start_register(
 
 /// How many span positions a register slot weighs when the run names none (claude-155).
 pub const DEFAULT_REGISTER_PICKS: usize = 8;
+
+/// How many of the opening rows `rows` (each a window's index into `windows` and its opening
+/// offsets) the memory's own key finds in its table: `(rows, hits)`.
+fn memory_hits(
+    memory: &crate::flock_read_memory::TurnMemory,
+    windows: &[CausalWindow],
+    rows: &[(usize, Vec<usize>)],
+) -> Result<(usize, usize)> {
+    let (mut total, mut hits) = (0, 0);
+    for (index, offsets) in rows {
+        if offsets.is_empty() {
+            continue;
+        }
+        let ids = &windows[*index].input_ids;
+        let (_, hit) = memory.stored(ids, ids.len(), offsets)?;
+        total += offsets.len();
+        hits += hit.iter().filter(|&&h| h > 0.0).count();
+    }
+    Ok((total, hits))
+}
+
+/// A turn memory as a run starts it, with its own optimizer.
+type MemoryStart = (
+    crate::flock_read_memory::TurnMemory,
+    crate::flock_read::FlockAdamW,
+);
+
+/// The turn memory `config` asks for (claude-161), set on this thread, with its own optimizer,
+/// and each of `usable`'s windows' opening offsets (the input offsets that predict a reply's
+/// first token, by the split's response mask); none and no offsets when off. The table is built
+/// from every TRAIN window, as the `--opening-bound` probe builds it, or left empty for the
+/// no-memory control.
+fn start_memory(
+    data_root: &Path,
+    config: &LongConfig,
+    usable: &[CausalWindow],
+    device: &Device,
+) -> Result<(Option<MemoryStart>, Vec<Vec<usize>>)> {
+    if config.turn_memory == 0 {
+        if config.turn_memory_empty {
+            return Err(invalid("--turn-memory-empty needs --turn-memory K"));
+        }
+        return Ok((None, Vec::new()));
+    }
+    let (tokens, mask) = match config.train_split.as_ref() {
+        None => load_train_split(data_root)?,
+        Some(split) => load_named_split(split)?,
+    };
+    let (windows, _) = hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let train = openings(&windows, &mask);
+    let table = if config.turn_memory_empty {
+        std::collections::HashMap::new()
+    } else {
+        crate::flock_read_memory::build_table(&train, config.turn_memory)
+    };
+    println!(
+        "[memory] key {} ids; TRAIN openings {}; table keys {}{}",
+        config.turn_memory,
+        train.len(),
+        table.len(),
+        if config.turn_memory_empty {
+            " (the empty control)"
+        } else {
+            ""
+        }
+    );
+    let memory =
+        crate::flock_read_memory::TurnMemory::new(config.turn_memory, table, config.width, device)?;
+    crate::flock_read_memory::set_turn_memory(Some(memory.clone()));
+    let opt = crate::flock_read::FlockAdamW::for_vars(&memory.variables())?;
+    let offsets = usable
+        .iter()
+        .map(|w| {
+            w.scored_offsets
+                .iter()
+                .zip(&w.scored_corpus_positions)
+                .filter(|(_, &position)| opens_reply(&mask, position))
+                .map(|(&offset, _)| offset)
+                .collect()
+        })
+        .collect();
+    Ok((Some((memory, opt)), offsets))
+}
 
 fn is_zero(n: &usize) -> bool {
     *n == 0
@@ -616,7 +717,20 @@ fn nearest_reading(
                         .map(move |((&o, &p), &t)| copies_prompt(w, o, p, t, mask))
                 })
                 .collect();
-            let hidden = crate::flock_read::points(model, &ids, windows.len(), SHEET_CONTEXT)?;
+            // The turn memory (claude-161) moves the opening rows only, as training names them.
+            if crate::flock_read_memory::turn_memory().is_some() {
+                crate::flock_read_memory::set_memory_rows(Some(
+                    scored
+                        .iter()
+                        .zip(&opens)
+                        .filter(|(_, &open)| open)
+                        .map(|(&row, _)| row as usize)
+                        .collect(),
+                ));
+            }
+            let hidden = crate::flock_read::points(model, &ids, windows.len(), SHEET_CONTEXT);
+            crate::flock_read_memory::set_memory_rows(None);
+            let hidden = hidden?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), model.device())?;
             let query = hidden.index_select(&idx, 0)?.detach();
             let best = nearest_scores(&query, &table)?
@@ -989,7 +1103,16 @@ fn greedy_reply(
         for _ in 0..reply_tokens {
             let window = &ids[ids.len().saturating_sub(SHEET_CONTEXT)..];
             let next = if objective.decodes_nearest() {
-                let hidden = crate::flock_read::points(model, window, 1, window.len())?;
+                // The reply's first step is its opening row, the one the turn memory moves.
+                if reply.is_empty()
+                    && !window.is_empty()
+                    && crate::flock_read_memory::turn_memory().is_some()
+                {
+                    crate::flock_read_memory::set_memory_rows(Some(vec![window.len() - 1]));
+                }
+                let hidden = crate::flock_read::points(model, window, 1, window.len());
+                crate::flock_read_memory::set_memory_rows(None);
+                let hidden = hidden?;
                 nearest_scores(&hidden.narrow(0, window.len() - 1, 1)?, &table)?
                     .argmax(1)?
                     .to_vec1::<u32>()?
@@ -1351,6 +1474,22 @@ pub fn inspect_run(
             }
             _ => None,
         };
+        // The last checkpoint's reading with the turn memory taken out (claude-161), restored after.
+        let memory_drop = match crate::flock_read_memory::turn_memory() {
+            Some(memory) if index == last => {
+                crate::flock_read_memory::set_turn_memory(None);
+                let dropped = nearest_reading(&model, &dev_windows, &dev_mask, seed, step);
+                crate::flock_read_memory::set_turn_memory(Some(memory));
+                let (dropped, _) = dropped?;
+                Some(RegisterDrop {
+                    slot: "memory".into(),
+                    hits: dropped.hits,
+                    opening_hits: dropped.opening_hits,
+                    copied_hits: dropped.copied_hits,
+                })
+            }
+            _ => None,
+        };
         let first_cells = model
             .native_head_candidates(&query)?
             .cell_ids()
@@ -1402,6 +1541,11 @@ pub fn inspect_run(
                 None => None,
             },
             register_drop,
+            memory_weight_mean_abs: match crate::flock_read_memory::turn_memory() {
+                Some(memory) => Some(scalar(memory.weight_mean_abs()?)?),
+                None => None,
+            },
+            memory_drop,
         });
     }
     Ok(readings)
@@ -2215,6 +2359,37 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     let mut opening = start_opening(config, device)?;
     // The prompt register (claude-155), when on: its own optimizer, applied inside the trunk.
     let mut register = start_register(config, device)?;
+    // The turn memory (claude-161), when on: its table from TRAIN, its own optimizer, and each
+    // usable window's opening offsets, which name the rows it moves.
+    let (mut memory, train_openings) = start_memory(data_root, config, &usable, device)?;
+    // How often the read's own key finds the table at an opening row, on TRAIN's usable windows
+    // and on DEV: the table is keyed from the probe's prompts and read through the turn anchor,
+    // so this is the measured agreement, not one assumed.
+    if let Some((mem, _)) = memory.as_ref() {
+        let train_rows: Vec<(usize, Vec<usize>)> = train_openings
+            .iter()
+            .enumerate()
+            .map(|(i, offsets)| (i, offsets.clone()))
+            .collect();
+        let (rows, hits) = memory_hits(mem, &usable, &train_rows)?;
+        println!("[memory] TRAIN opening rows {rows}, hits {hits}");
+        let dev_rows: Vec<(usize, Vec<usize>)> = dev_windows
+            .iter()
+            .enumerate()
+            .map(|(i, w)| {
+                let offsets = w
+                    .scored_offsets
+                    .iter()
+                    .zip(&w.scored_corpus_positions)
+                    .filter(|(_, &position)| opens_reply(&dev_mask, position))
+                    .map(|(&offset, _)| offset)
+                    .collect();
+                (i, offsets)
+            })
+            .collect();
+        let (rows, hits) = memory_hits(mem, &dev_windows, &dev_rows)?;
+        println!("[memory] DEV opening rows {rows}, hits {hits}");
+    }
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
 
@@ -2345,6 +2520,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(reg) = crate::flock_read_register::prompt_register() {
             reg.save(&directory)?;
         }
+        if let Some(memory) = crate::flock_read_memory::turn_memory() {
+            memory.save(&directory)?;
+        }
         Ok(())
     };
 
@@ -2362,12 +2540,26 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             order = epoch_order(usable.len(), config.seed, epoch);
             cursor = 0;
         }
-        let windows: Vec<&CausalWindow> = order[cursor..cursor + config.batch]
-            .iter()
-            .map(|&i| &usable[i])
-            .collect();
+        let picked = &order[cursor..cursor + config.batch];
+        let windows: Vec<&CausalWindow> = picked.iter().map(|&i| &usable[i]).collect();
+        // The batch's opening rows, which the turn memory moves; none when it is off.
+        crate::flock_read_memory::set_memory_rows(memory.as_ref().map(|_| {
+            picked
+                .iter()
+                .enumerate()
+                .flat_map(|(b, &i)| {
+                    train_openings[i]
+                        .iter()
+                        .map(move |&offset| b * SHEET_CONTEXT + offset)
+                })
+                .collect()
+        }));
         cursor += config.batch;
         let (ids, scored, targets) = assemble(&windows);
+        // The memory's rows are `b · SHEET_CONTEXT + offset`, so every window must be whole.
+        if ids.len() != config.batch * SHEET_CONTEXT {
+            return Err(invalid("a training batch's windows are not context-long"));
+        }
         let profiled = profile_window(step, config.profile);
         let started = Instant::now();
         if profiled == Some(true) {
@@ -2426,6 +2618,10 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some((reg, opt)) = register.as_mut() {
             opt.step_vars(&reg.variables(), &grads, lr)?;
         }
+        if let Some((mem, opt)) = memory.as_mut() {
+            opt.step_vars(&mem.variables(), &grads, lr)?;
+        }
+        crate::flock_read_memory::set_memory_rows(None);
         stage_clock::mark("optimizer.reads");
         opt_decay.update_filtered(&model, &grads, lr * config.decay_mult, |name| {
             name.ends_with("rec.decay")
@@ -2714,6 +2910,8 @@ mod tests {
             samples: 6,
             reply_tokens: 48,
             profile: 0,
+            turn_memory: 0,
+            turn_memory_empty: false,
         }
     }
 
@@ -3066,6 +3264,36 @@ mod tests {
         config.profile = 3;
         let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         assert!(json.contains("\"profile\": 3"), "{json}");
+    }
+
+    #[test]
+    fn a_config_without_the_turn_memory_writes_neither_of_its_keys() {
+        let mut config = config(0, None);
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(!json.contains("turn_memory"), "{json}");
+        config.turn_memory = 8;
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(
+            json.contains("\"turn_memory\": 8") && !json.contains("turn_memory_empty"),
+            "{json}"
+        );
+        config.turn_memory_empty = true;
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(json.contains("\"turn_memory_empty\": true"), "{json}");
+    }
+
+    #[test]
+    fn the_empty_memory_control_refuses_a_run_with_no_memory() {
+        let mut config = config(0, None);
+        config.turn_memory_empty = true;
+        let missing = std::env::temp_dir().join(format!("claude-161-none-{}", std::process::id()));
+        let refused = start_memory(&missing, &config, &[], &Device::Cpu)
+            .err()
+            .map(|e| e.to_string());
+        assert!(refused.is_some_and(|e| e.contains("--turn-memory-empty needs")));
+        config.turn_memory_empty = false;
+        let (memory, offsets) = start_memory(&missing, &config, &[], &Device::Cpu).unwrap();
+        assert!(memory.is_none() && offsets.is_empty());
     }
 
     #[cfg(feature = "cuda")]
