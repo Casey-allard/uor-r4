@@ -1,0 +1,1440 @@
+{
+  "schema": "uor-r4.cpu-served-forward-audit/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "artifact": {
+    "sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "bytes": 2144960
+  },
+  "token_sequence_sha256": "fea7b32778ecbdd7adee1941e98c89cf96bbc762f5f1beb0be24e36a456fbbc5",
+  "head": "native_vector",
+  "reply_start": null,
+  "contract": {
+    "schema": "uor-r4.exact-fbs-contract/1",
+    "substrate": "integer-fixed-point-deterministic",
+    "qualification": "gpu-required-for-model-qualification",
+    "representations": [
+      "token/writer table: i16 at Q12 (2^-12)",
+      "residual stream x: i32 at 2^-16",
+      "recurrence state: i64 at 2^-16; three previous drive rows: i32 at 2^-16",
+      "normalized values: i64 at 2^-24; product activations: i16 at a dynamic exponent",
+      "native readout query: i32 at Q12, clamped to [-32768,32767]",
+      "route maps: one input 8-block atom, eight 3-bit signed-permutation coordinates per output block"
+    ],
+    "operation_order": [
+      "token id selects the shared token/writer row and converts Q12 to residual Q16",
+      "for each layer: recurrence RMS norm, gain, rec_in/rec_gate gathers, bias/tap recurrence, transition action, Hamilton output gate and rec_out residual add",
+      "same layer: MLP RMS norm, gain, mlp_gate/mlp_up gathers, Hamilton feed-forward, dynamic i16 quantize, mlp_down residual add",
+      "a Hamming read runs after its declared layer depth; a read at the layer count runs after the final norm",
+      "final RMS norm and gain, optional readout Hamming read, then optional exact opening/reply memory move",
+      "convert the final residual to Q12 and run the artifact-declared nearest or native writer head",
+      "on an opening exact-key miss with a point table, the point key may replace the head token"
+    ],
+    "rounding": [
+      "fixed shifts add half a unit before an arithmetic right shift; expansion shifts saturate i64",
+      "the RMS mean division and reciprocal truncate, isqrt returns floor, and the normalized quotient rounds through the serving kernel's half-up shift",
+      "Hamilton products round through the serving kernels' half-up integer shifts",
+      "dynamic i16 activation quantization selects its exponent from the maximum magnitude and rounds each value once",
+      "Hamming, memory and readout payload arithmetic use the integer kernels' signed half-away-from-zero shift",
+      "Hamming head means divide the weighted payload sum by the number of nonzero-weight kept positions, then divide the per-head sums by the number of contributing heads; both integer quotients truncate toward zero"
+    ],
+    "saturation": [
+      "Q12 readout coordinates saturate at [-32768,32767]",
+      "i16 product activations clamp at [-32767,32767] after exponent selection",
+      "integer kernel additions/shifts clamp or wrap exactly as the serving kernel implementation specifies; the CPU oracle mirrors that order",
+      "route gathers convert to residual exponent with the serving rounded shift; residual additions saturate i32",
+      "memory moves round the weighted interpolation once and clamp only at the i64 boundary"
+    ],
+    "ties": [
+      "Hamming candidates order by (distance, earlier position) and keep the first K",
+      "whole-table nearest and kept-cell token scans choose the smaller token id on an exact score tie",
+      "native writer cells choose the smaller cell id on an exact score tie",
+      "point-key targets choose the commonest target, then the smaller target id, on the least L1 distance",
+      "icosian transitions and gates choose the first root minimizing H4 distance, as the shared serving selector does"
+    ],
+    "reads": [
+      "copy heads key the writer-table points and rank prior positions by popcount XOR",
+      "type heads use the read's query rotation to name a Hamming word and its value rotation to produce the candidate payload",
+      "copy/type mixtures and per-channel weights are added at the depth recorded in the artifact",
+      "at t stream tokens the current serving call scans s in 1..t-1, so it excludes the immediately preceding position t-1; this audit models that observed range rather than the documented ideal",
+      "no dense attention, probability normalization or exponentiation is present"
+    ],
+    "memory": [
+      "opening and reply keys are exact token vectors looked up in sorted tables",
+      "turn ids are cut from the current key-window block after the latest BOS/EOS boundary, capped by the artifact's k or reply-turn limit",
+      "a reply key is the retained turn ids when that prompt row is in the block, then MEMORY_PAD, reply length, MEMORY_PAD and the current token",
+      "MEMORY_PAD is a key separator and trailing pads are not part of the exact key",
+      "a hit moves the final normalized point toward the named writer row by the table's per-channel Q24 weight",
+      "an opening miss may scan the point table once; equal least distances are grouped by target and counted"
+    ],
+    "readout": [
+      "native vector: score 256 root-pair cells by Q12 L1, keep K with smaller-cell ties, then scan only those cells' writer rows with smaller-token ties",
+      "native vector nearest: scan every writer row by Q12 L1 with smaller-token ties and keep no cells"
+    ]
+  },
+  "manifest": {
+    "shape": {
+      "vocab": 4096,
+      "width": 256,
+      "mlp": 384,
+      "layers": 6,
+      "heads": 1,
+      "lanes": 64,
+      "context": 192,
+      "kept_cells": 8
+    },
+    "projection": "spiralcore_fbs_signed_axis_permutation",
+    "recurrence": "recurrence_only_geometric_decay_rate",
+    "recurrence_pattern": "rrrrrr",
+    "recurrence_gates": "geometric_hamilton_output_with_dyadic_rate",
+    "transition_action": "raw_unit_quaternion",
+    "feed_forward_gate": "raw_unit_quaternion_hamilton",
+    "feed_forward_action": "hamilton_gated_signed_axis_route",
+    "layers": [
+      {
+        "index": 0,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      },
+      {
+        "index": 1,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      },
+      {
+        "index": 2,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      },
+      {
+        "index": 3,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      },
+      {
+        "index": 4,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      },
+      {
+        "index": 5,
+        "serialized_table_payload_bytes": 6688,
+        "decoded_resident_table_bytes": 8272,
+        "rec_gain_bytes": 512,
+        "mlp_gain_bytes": 512,
+        "rec_in_map_bytes": 640,
+        "rec_gate_map_bytes": 400,
+        "rec_out_map_bytes": 320,
+        "mlp_gate_map_bytes": 480,
+        "mlp_up_map_bytes": 480,
+        "mlp_down_map_bytes": 320,
+        "conv_taps_bytes": 2048,
+        "conv_bias_bytes": 1024,
+        "gate_bias_bytes": 1280,
+        "decay_offset_bytes": 256
+      }
+    ],
+    "final_gain_bytes": 512,
+    "writer_table_bytes": 2097152,
+    "hamming": null,
+    "memory": null,
+    "readout": {
+      "mode": "native_vector_cells_l1",
+      "kept_cells": 8,
+      "roots": 16,
+      "writer_table_bytes": 2097152
+    },
+    "serialized_table_payload_bytes": 2137792,
+    "decoded_resident_table_bytes": 2147296
+  },
+  "parity": {
+    "positions_checked": 64,
+    "query_coordinates_compared": 16384,
+    "query_coordinate_mismatches": 0,
+    "token_decisions_compared": 64,
+    "token_mismatches": 0,
+    "kept_cells_compared": 512,
+    "kept_cell_mismatches": 0,
+    "mismatches_recorded": 0,
+    "mismatches_omitted": 0,
+    "mismatches": [],
+    "cpu_decision_sha256": "029991dd2c1a24c940a142a0abb5f15da4f7200b08738f8123e591ec130d641e",
+    "serving_decision_sha256": "029991dd2c1a24c940a142a0abb5f15da4f7200b08738f8123e591ec130d641e",
+    "instrument_fault": false
+  },
+  "modelled_sequence_cost": [
+    {
+      "stage": "embedding",
+      "modelled_stage_table_footprint_bytes": 134217728,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_0_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_1_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_2_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_3_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_4_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_recurrence_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_recurrence_gathers",
+      "modelled_stage_table_footprint_bytes": 66560,
+      "route_output_coordinates": 53248,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_recurrence_core",
+      "modelled_stage_table_footprint_bytes": 294912,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 8192,
+      "hamilton_products": 8192,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_rec_out_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_mlp_norm_gain",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_mlp_gathers",
+      "modelled_stage_table_footprint_bytes": 61440,
+      "route_output_coordinates": 49152,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_hamilton_product",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 6144,
+      "hamilton_products": 6144,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_activation_quantize",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "layer_5_mlp_down_residual",
+      "modelled_stage_table_footprint_bytes": 20480,
+      "route_output_coordinates": 16384,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "final_norm_query",
+      "modelled_stage_table_footprint_bytes": 32768,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 64,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "query_q12",
+      "modelled_stage_table_footprint_bytes": 0,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 0,
+      "readout_coordinate_comparisons": 0
+    },
+    {
+      "stage": "readout",
+      "modelled_stage_table_footprint_bytes": 134217728,
+      "route_output_coordinates": 0,
+      "norm_isqrt": 0,
+      "integer_divisions": 0,
+      "hamilton_products": 0,
+      "hamming_candidate_comparisons": 0,
+      "hamming_popcount_words": 0,
+      "memory_key_lookups": 0,
+      "point_table_rows_on_opening_miss": 0,
+      "readout_candidate_tokens": 8192,
+      "readout_coordinate_comparisons": 2113536
+    }
+  ],
+  "cost_basis": "stage table bytes are semantic decoded-table footprints (shared tables may recur); serialized and decoded-resident totals are separate; candidates come from artifact dimensions and position; readout coordinates model the serving kernel's precomputed root scores; none are hardware cache or performance counters",
+  "surrogate_gradient_operations": [
+    {
+      "operation": "export rounding of trunk, Hamming tables and memory weights",
+      "exact_artifact_forward": "operates only on already-quantized artifact values",
+      "float_training_behavior": "train-as-served rounds float variables in place before each training forward and restores the float masters afterward",
+      "required_gradient": "straight_through",
+      "rationale": "the round is piecewise constant and has zero almost everywhere; the float master needs the served forward's upstream gradient",
+      "evidence": "crates/uor-r4-float-train/src/in_space_long.rs: ServedValues, round_if_served"
+    },
+    {
+      "operation": "icosian snap for recurrence transitions and Hamilton gates",
+      "exact_artifact_forward": "selects a discrete H4 root and applies its exact signed action",
+      "float_training_behavior": "float forward uses the snapped root while the backward carries the local S^3 tangent gradient",
+      "required_gradient": "straight_through",
+      "rationale": "root identity is discrete; the pre-snap transport direction remains the trainable quantity",
+      "evidence": "crates/uor-r4-float-train/src/hamilton_sheet.rs and spiralcore_fbs.rs"
+    },
+    {
+      "operation": "raw quaternion normalization and Hamilton products",
+      "exact_artifact_forward": "integer square root/division and integer Hamilton multiplication",
+      "float_training_behavior": "ordinary differentiable float normalization and Hamilton product followed by export rounding",
+      "required_gradient": "exact",
+      "rationale": "the float shadow can differentiate the same rational expression before finite quantized evaluation",
+      "evidence": "crates/uor-r4-cpu-train/src/fbs.rs: raw_rotation, hamilton_scale; float train Hamilton kernels"
+    },
+    {
+      "operation": "dynamic i16 activation quantization",
+      "exact_artifact_forward": "chooses an exponent from maximum magnitude, rounds once and clamps",
+      "float_training_behavior": "float activations remain differentiable until export rounding",
+      "required_gradient": "unresolved",
+      "rationale": "the exponent and integer residue are discrete; train-as-served does not yet route its float training forward through this activation quantizer",
+      "evidence": "crates/uor-r4-cpu-train/src/fbs.rs: quantize16; float geometric stack"
+    },
+    {
+      "operation": "Hamming copy/type candidate ranking",
+      "exact_artifact_forward": "sorts exact popcount XOR distances and reads the kept positions",
+      "float_training_behavior": "sign codes are produced with a straight-through sign bridge and payloads retain a differentiable path",
+      "required_gradient": "straight_through",
+      "rationale": "hard candidate identity has no useful dense derivative; code and payload parameters need local credit",
+      "evidence": "crates/uor-r4-float-train/src/flock_read_hamming.rs and flock_read_register.rs"
+    },
+    {
+      "operation": "exact opening/reply table key selection",
+      "exact_artifact_forward": "binary-searches token keys; only a hit applies a move",
+      "float_training_behavior": "the float read chooses its memory rows and moves through a differentiable weighted point operation",
+      "required_gradient": "straight_through",
+      "rationale": "the discrete key identity is not differentiated; hit weights and move weights carry gradient",
+      "evidence": "crates/uor-r4-float-train/src/flock_read_memory.rs"
+    },
+    {
+      "operation": "point-key fallback on an opening miss",
+      "exact_artifact_forward": "scans exact Q12 L1 rows and returns the commonest least-distance target",
+      "float_training_behavior": "the float reference forms an L1-named opening through a detached decision path",
+      "required_gradient": "straight_through",
+      "rationale": "the named token is discrete; query-table parameters require an explicit surrogate or table update",
+      "evidence": "crates/uor-r4-float-train/src/in_space_long.rs: l1_named and opening-key probes"
+    },
+    {
+      "operation": "native writer cell and token selection",
+      "exact_artifact_forward": "hard top-K cells and hard smallest-token tie break",
+      "float_training_behavior": "float cross-entropy and rank-margin objectives train token/address scores rather than the discrete selection",
+      "required_gradient": "secant",
+      "rationale": "hard top-K has no dense derivative; registered rank-margin and secant descent provide downstream credit through score margins",
+      "evidence": "crates/uor-r4-float-train/src/native_vector_writer.rs and secant_descent.rs"
+    },
+    {
+      "operation": "integer RMS reciprocal and exponent bookkeeping",
+      "exact_artifact_forward": "isqrt and reciprocal round to finite integer values",
+      "float_training_behavior": "float RMSNorm is differentiable; export changes the finite values",
+      "required_gradient": "straight_through",
+      "rationale": "the algebraic float normalization is differentiable, while the served isqrt/reciprocal and exponent changes are finite and need an explicit straight-through boundary",
+      "evidence": "crates/uor-r4-float-train/src/geometric_stack.rs; integer rms kernels"
+    },
+    {
+      "operation": "turn-memory dropout during training",
+      "exact_artifact_forward": "absent: serving applies every exact memory hit",
+      "float_training_behavior": "a deterministic PRNG drops configured training windows so the trunk is also trained without memory",
+      "required_gradient": "unresolved",
+      "rationale": "the mask is discrete and training-only; no current contract states how a dropout-conditioned float state maps back to the served memory-on state",
+      "evidence": "crates/uor-r4-float-train/src/in_space_long.rs: memory_dropped and turn_memory_dropout"
+    },
+    {
+      "operation": "reply Hamming row cut during training",
+      "exact_artifact_forward": "absent: serving exposes all causal prior positions",
+      "float_training_behavior": "reply-row training limits the Hamming read to positions before the current reply or omits it before the reply",
+      "required_gradient": "unresolved",
+      "rationale": "the row-selection mask is discrete and has no served counterpart; whether this train-only conditioning should be retained or eliminated needs a registered comparison",
+      "evidence": "crates/uor-r4-float-train/src/in_space_long.rs: reply_read_train and set_trained_cut"
+    },
+    {
+      "operation": "gradient through a full artifact-only integer hidden trajectory",
+      "exact_artifact_forward": "no gradient exists in serving",
+      "float_training_behavior": "train-as-served still executes the ordinary float forward and rounds values before each step",
+      "required_gradient": "unresolved",
+      "rationale": "no registered trainer currently backpropagates through the exact integer route, snap, quantize and selection graph",
+      "evidence": "crates/uor-r4-float-train/src/in_space_long.rs: run_long and ServedValues"
+    }
+  ],
+  "timing": {
+    "measurement": "single fresh, uninstrumented parity pass followed by separate fresh CPU-oracle and CPU-serving timing passes; no warm-up",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "logical_cpus": 32,
+    "timed_positions": 64,
+    "cpu_oracle_elapsed_ns": 14776994,
+    "cpu_oracle_tokens_per_second": 4331.0567765000105,
+    "serving_elapsed_ns": 17995456,
+    "serving_tokens_per_second": 3556.4533624488317,
+    "stages": [
+      {
+        "stage": "embedding",
+        "total_ns": 3654,
+        "mean_ns": 57
+      },
+      {
+        "stage": "layer_0_rec_norm_gain",
+        "total_ns": 110618,
+        "mean_ns": 1728
+      },
+      {
+        "stage": "layer_0_rec_gathers",
+        "total_ns": 87330,
+        "mean_ns": 1364
+      },
+      {
+        "stage": "layer_0_recurrence_core",
+        "total_ns": 1500450,
+        "mean_ns": 23444
+      },
+      {
+        "stage": "layer_0_rec_out_residual",
+        "total_ns": 26055,
+        "mean_ns": 407
+      },
+      {
+        "stage": "layer_0_mlp_norm_gain",
+        "total_ns": 106305,
+        "mean_ns": 1661
+      },
+      {
+        "stage": "layer_0_mlp_gathers",
+        "total_ns": 81662,
+        "mean_ns": 1275
+      },
+      {
+        "stage": "layer_0_gated_product",
+        "total_ns": 771372,
+        "mean_ns": 12052
+      },
+      {
+        "stage": "layer_0_activation_quantize",
+        "total_ns": 32223,
+        "mean_ns": 503
+      },
+      {
+        "stage": "layer_0_mlp_down_residual",
+        "total_ns": 24232,
+        "mean_ns": 378
+      },
+      {
+        "stage": "layer_1_rec_norm_gain",
+        "total_ns": 106772,
+        "mean_ns": 1668
+      },
+      {
+        "stage": "layer_1_rec_gathers",
+        "total_ns": 87626,
+        "mean_ns": 1369
+      },
+      {
+        "stage": "layer_1_recurrence_core",
+        "total_ns": 1441644,
+        "mean_ns": 22525
+      },
+      {
+        "stage": "layer_1_rec_out_residual",
+        "total_ns": 22231,
+        "mean_ns": 347
+      },
+      {
+        "stage": "layer_1_mlp_norm_gain",
+        "total_ns": 105261,
+        "mean_ns": 1644
+      },
+      {
+        "stage": "layer_1_mlp_gathers",
+        "total_ns": 78831,
+        "mean_ns": 1231
+      },
+      {
+        "stage": "layer_1_gated_product",
+        "total_ns": 749770,
+        "mean_ns": 11715
+      },
+      {
+        "stage": "layer_1_activation_quantize",
+        "total_ns": 32194,
+        "mean_ns": 503
+      },
+      {
+        "stage": "layer_1_mlp_down_residual",
+        "total_ns": 22657,
+        "mean_ns": 354
+      },
+      {
+        "stage": "layer_2_rec_norm_gain",
+        "total_ns": 105993,
+        "mean_ns": 1656
+      },
+      {
+        "stage": "layer_2_rec_gathers",
+        "total_ns": 88194,
+        "mean_ns": 1378
+      },
+      {
+        "stage": "layer_2_recurrence_core",
+        "total_ns": 1668019,
+        "mean_ns": 26062
+      },
+      {
+        "stage": "layer_2_rec_out_residual",
+        "total_ns": 22529,
+        "mean_ns": 352
+      },
+      {
+        "stage": "layer_2_mlp_norm_gain",
+        "total_ns": 105030,
+        "mean_ns": 1641
+      },
+      {
+        "stage": "layer_2_mlp_gathers",
+        "total_ns": 78626,
+        "mean_ns": 1228
+      },
+      {
+        "stage": "layer_2_gated_product",
+        "total_ns": 716171,
+        "mean_ns": 11190
+      },
+      {
+        "stage": "layer_2_activation_quantize",
+        "total_ns": 32021,
+        "mean_ns": 500
+      },
+      {
+        "stage": "layer_2_mlp_down_residual",
+        "total_ns": 22840,
+        "mean_ns": 356
+      },
+      {
+        "stage": "layer_3_rec_norm_gain",
+        "total_ns": 105760,
+        "mean_ns": 1652
+      },
+      {
+        "stage": "layer_3_rec_gathers",
+        "total_ns": 85705,
+        "mean_ns": 1339
+      },
+      {
+        "stage": "layer_3_recurrence_core",
+        "total_ns": 1539148,
+        "mean_ns": 24049
+      },
+      {
+        "stage": "layer_3_rec_out_residual",
+        "total_ns": 22458,
+        "mean_ns": 350
+      },
+      {
+        "stage": "layer_3_mlp_norm_gain",
+        "total_ns": 105128,
+        "mean_ns": 1642
+      },
+      {
+        "stage": "layer_3_mlp_gathers",
+        "total_ns": 82297,
+        "mean_ns": 1285
+      },
+      {
+        "stage": "layer_3_gated_product",
+        "total_ns": 794653,
+        "mean_ns": 12416
+      },
+      {
+        "stage": "layer_3_activation_quantize",
+        "total_ns": 32258,
+        "mean_ns": 504
+      },
+      {
+        "stage": "layer_3_mlp_down_residual",
+        "total_ns": 22573,
+        "mean_ns": 352
+      },
+      {
+        "stage": "layer_4_rec_norm_gain",
+        "total_ns": 107002,
+        "mean_ns": 1671
+      },
+      {
+        "stage": "layer_4_rec_gathers",
+        "total_ns": 93973,
+        "mean_ns": 1468
+      },
+      {
+        "stage": "layer_4_recurrence_core",
+        "total_ns": 1540693,
+        "mean_ns": 24073
+      },
+      {
+        "stage": "layer_4_rec_out_residual",
+        "total_ns": 22302,
+        "mean_ns": 348
+      },
+      {
+        "stage": "layer_4_mlp_norm_gain",
+        "total_ns": 106734,
+        "mean_ns": 1667
+      },
+      {
+        "stage": "layer_4_mlp_gathers",
+        "total_ns": 81311,
+        "mean_ns": 1270
+      },
+      {
+        "stage": "layer_4_gated_product",
+        "total_ns": 844721,
+        "mean_ns": 13198
+      },
+      {
+        "stage": "layer_4_activation_quantize",
+        "total_ns": 31993,
+        "mean_ns": 499
+      },
+      {
+        "stage": "layer_4_mlp_down_residual",
+        "total_ns": 22488,
+        "mean_ns": 351
+      },
+      {
+        "stage": "layer_5_rec_norm_gain",
+        "total_ns": 105808,
+        "mean_ns": 1653
+      },
+      {
+        "stage": "layer_5_rec_gathers",
+        "total_ns": 86399,
+        "mean_ns": 1349
+      },
+      {
+        "stage": "layer_5_recurrence_core",
+        "total_ns": 1455491,
+        "mean_ns": 22742
+      },
+      {
+        "stage": "layer_5_rec_out_residual",
+        "total_ns": 22235,
+        "mean_ns": 347
+      },
+      {
+        "stage": "layer_5_mlp_norm_gain",
+        "total_ns": 106061,
+        "mean_ns": 1657
+      },
+      {
+        "stage": "layer_5_mlp_gathers",
+        "total_ns": 81865,
+        "mean_ns": 1279
+      },
+      {
+        "stage": "layer_5_gated_product",
+        "total_ns": 772167,
+        "mean_ns": 12065
+      },
+      {
+        "stage": "layer_5_activation_quantize",
+        "total_ns": 32261,
+        "mean_ns": 504
+      },
+      {
+        "stage": "layer_5_mlp_down_residual",
+        "total_ns": 22603,
+        "mean_ns": 353
+      },
+      {
+        "stage": "final_norm_query",
+        "total_ns": 122256,
+        "mean_ns": 1910
+      },
+      {
+        "stage": "readout",
+        "total_ns": 1312899,
+        "mean_ns": 20514
+      },
+      {
+        "stage": "bookkeeping",
+        "total_ns": 1994,
+        "mean_ns": 31
+      }
+    ]
+  }
+}

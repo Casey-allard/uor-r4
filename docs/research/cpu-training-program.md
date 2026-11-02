@@ -78,6 +78,7 @@ Local synthetic diagnostics on the Ryzen 9 9950X recorded:
 - precomputed joint-pointer trunk rows: 132,385 rows/s on one thread and 1,793,613 rows/s on 16 threads;
 - current synthetic integer FBS forward: about 5.4-7.5k tok/s with the native writer and 1.4-1.83k tok/s with whole-table nearest.
 - full Hamming plus memory FBS path: about 3.1k tok/s on the current six-layer synthetic shape.
+- served-forward audit on the two public trained raw FBS seeds: 4,331 / 5,649 CPU-oracle tok/s and 3,556 / 4,681 instrumented serving tok/s over 64 positions, with zero mismatches over 16,384 Q12 coordinates, 64 tokens and 512 kept cells per seed. These single-pass timings separate parity from timing and are component diagnostics, not a capability result.
 - first tied-table rank-margin unit: about 236 accepted-step attempts/s on a width-64, two-layer synthetic Hamming path; 56 of 64 repeated steps accepted.
 - exact BVG-K parameter candidates: 758.970 to 790.051 candidate evaluations/s on width 64, across normalization, bias, decay and route groups.
 - matched panel evaluator: 10,802.874 synthetic rows/s with zero CPU/serving query, token or kept-cell mismatches and 6,320 KiB peak RSS.

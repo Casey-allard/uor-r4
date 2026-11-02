@@ -18,6 +18,17 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `cpu-public-fbs-parity` binds both public raw FBS seeds, compares every complete Q12 query/token/kept-cell result over 192 positions per seed, and exercises one 16-sample rank-margin/panel control per seed. It is trained-artifact component evidence, not useful-learning or complete-reply evidence.
 
+`cpu-served-forward-audit` defines the supported exact FBS contract in
+`served_forward::exact_fbs_contract`, emits the artifact's active mechanism
+manifest, compares every query coordinate, token and kept cell with
+`IntegerStackSession`, and reports modelled stage work. Its timing section uses
+separate fresh CPU-oracle and CPU-serving passes after parity; table bytes are
+semantic stage footprints, not hardware cache counters. `--no-timing` removes
+the measured section and makes the JSON byte-deterministic for a fixed artifact,
+token sequence and reply cursor. The report also inventories float-only training
+operations and their exact, straight-through, secant or unresolved treatment.
+It is an instrument, not a qualification result.
+
 `CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval checkpoints plus reloadable final checkpoint and `UORLUT01` artifacts, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. Each checkpoint carries a sidecar binding for the source artifact, corpus inputs, trainer seed, split controls and checkpoint bytes. An optional eleventh argument resumes from a bound interval checkpoint; the step argument remains the total target, so only the remaining steps execute. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
 
 ## Checks
@@ -32,6 +43,7 @@ cargo run --release -p uor-r4-cpu-train --bin cpu-counterfactual-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-panel-export-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-public-discrete-parity -- <public-fixture-dir>
 cargo run --release -p uor-r4-cpu-train --bin cpu-public-fbs-parity -- <public-fbs-fixture-dir>
+cargo run --release -p uor-r4-cpu-train --bin cpu-served-forward-audit -- --artifact <fbs-artifact> --tokens 0,7,11 --no-timing
 cargo run --release -p uor-r4-cpu-train --bin cpu-corpus-driver -- <artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
 cargo run --release -p uor-r4-cpu-train --bin cpu-discrete-corpus-driver -- <four-table-artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
 ```

@@ -17,6 +17,7 @@ mod hamming;
 mod memory;
 mod panel;
 mod quant_shadow;
+mod served_forward;
 mod train;
 
 pub use corpus::{validate_corpus_manifest, CpuCorpusIdentity, CpuCorpusSplit, CpuMaskedCorpus};
@@ -44,6 +45,12 @@ pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,
     CpuQuantizationPanelReading, CpuQuantizationShadow, CpuQuantizationStep, QuantizationGate,
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
+};
+pub use served_forward::{
+    audit_served_forward, exact_fbs_contract, ExactFbsContract, GradientTreatment,
+    ServedForwardAuditConfig, ServedForwardAuditError, ServedForwardAuditReport,
+    ServedForwardManifest, ServedForwardParity, ServedForwardStageCost, SurrogateOperation,
+    CPU_SERVED_FORWARD_AUDIT_SCHEMA,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,
