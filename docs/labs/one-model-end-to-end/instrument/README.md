@@ -11,6 +11,13 @@ cargo run --release --offline --bin heldout-panel -- \
   conversations=400 seed=1 protocol=2
 ```
 
+`heldout-panel` is behind the `panel-writer` feature so the evidence-only graph does not pull the
+offline training dependencies:
+
+```sh
+cargo run --release --offline --features panel-writer --bin heldout-panel -- ...
+```
+
 `cell=dev,dev` holds prompt phrasing out. `cell=train,train` is a generated control. The writer emits
 `tokens.u16`, `response_mask.u8` and a hash-bound `manifest.json`.
 
@@ -20,7 +27,7 @@ The input paths are explicit. `train-role` is required with a reference index an
 is canonical TRAIN or a generated control:
 
 ```sh
-cargo run --release --offline --bin m2-evidence -- \
+cargo run --release --offline --features cpu-parity --bin m2-evidence -- \
   artifact=MODEL.d11 \
   tokenizer=TOKENIZER.json \
   panel-tokens=PANEL/tokens.u16 \
@@ -44,12 +51,15 @@ The report contains:
 - reference prompt/reply exact overlap and reply 4-/8-gram novelty;
 - value-masked prompt and reply template overlap at K = 256 and 1,024;
 - an independent `CpuWriterCore` comparison against the integer serving writer;
+- for supported four-table artifacts, a full independent CPU read-query/writer comparison;
 - explicit `unavailable` entries for data or controls not supplied.
 
-The input UORT, tokenizer hash, manifest hashes, vocabulary, BOS, conversation count and response
-inventory are checked before scoring. Empty corpora, zero response runs, `max-targets=0`, malformed
-artifacts, unknown or duplicate arguments and an existing output path are refused. An output is
-created with `create_new` and never replaced.
+The input UORT header vocabulary, tokenizer structure/hash, manifest hashes, vocabulary, BOS,
+conversation count and response inventory are checked before scoring. Each document's BOS is
+excluded from prompt and first-8-key runs, matching the census and turn-memory semantics. Empty
+corpora, missing prompt or response runs, zero targets, `max-targets=0`, malformed artifacts,
+unknown or duplicate arguments and an existing output path are refused. An output is created with
+`create_new` and never replaced.
 
 The template census follows `train-in-space --census`: TRAIN's K most frequent tokens are kept, all
 single-digit tokenizer pieces are masked, every other token is replaced by one mask sentinel, and
@@ -58,11 +68,14 @@ masked-prompt share is at most 0.5.
 
 ### Parity boundary
 
-For the current 19-table M1 artifact, the independent CPU writer reproduces the serving writer from
-the serving trunk's Q12 query: admitted cells, top-8 and top-1. Full two-sided CPU-trunk parity is
-reported unavailable because `uor-r4-cpu-train` currently implements the four-table discrete read
-path, not the 15 additional M1 trunk tables. This is a writer check, not an alias for a second
-independent trunk evaluation.
+For a supported four-table `uor-r4.lut-discrete/1` artifact, `cpu_engine_parity` uses
+`CpuDiscreteProposalScorer` to recompute the query and checks query coordinates, admitted cells,
+top-8 and top-1 against integer serving.
+
+For the current 19-table M1 artifact, that full comparison is unavailable because `uor-r4-cpu-train`
+implements the four-table discrete read path, not the 15 additional M1 trunk tables. The report
+still independently reproduces the writer from each serving trunk Q12 query and records the full
+trunk check as unavailable rather than treating a second serving call as parity.
 
 ### Evidence still unavailable without more inputs
 

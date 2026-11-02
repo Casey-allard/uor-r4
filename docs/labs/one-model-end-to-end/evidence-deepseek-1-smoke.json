@@ -160,13 +160,22 @@
     "top8_mismatches": 0,
     "token_mismatches": 0,
     "query_source": "integer_serving_trunk_q12",
-    "full_cpu_trunk_parity": "unavailable: the independent CPU writer consumes the serving trunk's Q12 query; the 19-table M1 trunk is not duplicated by the CPU research path"
+    "trunk_query_scope": "serving trunk Q12 query; cpu_engine_parity records whether a fully independent CPU query is available for this artifact family"
+  },
+  "cpu_engine_parity": {
+    "rows": 0,
+    "query_coordinates_checked": 0,
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "unavailable": "artifact schema uor-r4.lut-discrete-trunk/1 with 19 tables is outside the four-table CPU discrete read implementation"
   },
   "unavailable": {
     "count_table_control": "no count-table arm is supplied to this evidence pass",
     "generated_complete_reply": "requires a sealed/generated reply file; corpus rows are teacher-forced targets",
     "generated_reply_novelty": "requires model-generated replies; the report measures reference and panel overlap only",
-    "independent_cpu_trunk_query": "unavailable: the independent CPU writer consumes the serving trunk's Q12 query; the 19-table M1 trunk is not duplicated by the CPU research path",
+    "independent_cpu_trunk_query": "artifact schema uor-r4.lut-discrete-trunk/1 with 19 tables is outside the four-table CPU discrete read implementation",
     "memory_off_control": "no serving-session memory-off arm is supplied to this evidence pass",
     "no_read_control": "no model read-ablation arm is supplied to this evidence pass"
   }

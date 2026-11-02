@@ -10,20 +10,26 @@ description = "M-world v2 held-out-phrasing panels and the CPU-only stratified e
 [workspace]
 resolver = "2"
 
+[features]
+panel-writer = ["dep:uor-r4-training", "dep:uor-r4-core"]
+cpu-parity = ["dep:uor-r4-integer", "dep:uor-r4-cpu-train"]
+
 [[bin]]
 name = "heldout-panel"
 path = "src/main.rs"
+required-features = ["panel-writer"]
 
 [[bin]]
 name = "m2-evidence"
 path = "src/bin/m2-evidence.rs"
+required-features = ["cpu-parity"]
 
 [dependencies]
-uor-r4-training = { path = "../../../../crates/uor-r4-training" }
-uor-r4-core = { path = "../../../../crates/uor-r4-core" }
+uor-r4-training = { path = "../../../../crates/uor-r4-training", optional = true }
+uor-r4-core = { path = "../../../../crates/uor-r4-core", optional = true }
 uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
-uor-r4-integer = { path = "../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
-uor-r4-cpu-train = { path = "../../../../crates/uor-r4-cpu-train" }
+uor-r4-integer = { path = "../../../../crates/uor-r4-integer", features = ["serving-wasm"], optional = true }
+uor-r4-cpu-train = { path = "../../../../crates/uor-r4-cpu-train", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.8"

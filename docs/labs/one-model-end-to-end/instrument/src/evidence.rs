@@ -15,8 +15,12 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use uor_r4_cpu_train::{CpuWriterCore, ABSENT_CELL, READ_WIDTH, VOCABULARY};
+use uor_r4_cpu_train::{
+    CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuWriterCore, ABSENT_CELL, READ_WIDTH,
+    VOCABULARY,
+};
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
+use uor_r4_tokenizer::ByteBpeTokenizer;
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -130,7 +134,7 @@ pub struct WriterParity {
     pub top8_mismatches: u64,
     pub token_mismatches: u64,
     pub query_source: String,
-    pub full_cpu_trunk_parity: String,
+    pub trunk_query_scope: String,
 }
 
 impl WriterParity {
@@ -141,7 +145,7 @@ impl WriterParity {
             top8_mismatches: 0,
             token_mismatches: 0,
             query_source: "unavailable".to_owned(),
-            full_cpu_trunk_parity: reason.into(),
+            trunk_query_scope: reason.into(),
         }
     }
 
@@ -159,11 +163,58 @@ impl WriterParity {
             top8_mismatches: 0,
             token_mismatches: 0,
             query_source: "integer_serving_trunk_q12".to_owned(),
-            full_cpu_trunk_parity:
-                "unavailable: the independent CPU writer consumes the serving trunk's Q12 query; \
-                 the 19-table M1 trunk is not duplicated by the CPU research path"
+            trunk_query_scope:
+                "serving trunk Q12 query; cpu_engine_parity records whether a fully independent \
+                 CPU query is available for this artifact family"
                     .to_owned(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct CpuEngineParity {
+    pub rows: u64,
+    pub query_coordinates_checked: u64,
+    pub query_coordinate_mismatches: u64,
+    pub admitted_cell_mismatches: u64,
+    pub top8_mismatches: u64,
+    pub token_mismatches: u64,
+    pub unavailable: Option<String>,
+}
+
+impl CpuEngineParity {
+    fn from_reading(reading: uor_r4_cpu_train::CpuDiscretePanelExportReading) -> Self {
+        Self {
+            rows: reading.rows,
+            query_coordinates_checked: reading.query_coordinates_checked,
+            query_coordinate_mismatches: reading.query_coordinate_mismatches,
+            admitted_cell_mismatches: reading.admitted_cell_mismatches,
+            top8_mismatches: reading.top8_mismatches,
+            token_mismatches: reading.token_mismatches,
+            unavailable: None,
+        }
+    }
+
+    fn unavailable(reason: impl Into<String>) -> Self {
+        Self {
+            rows: 0,
+            query_coordinates_checked: 0,
+            query_coordinate_mismatches: 0,
+            admitted_cell_mismatches: 0,
+            top8_mismatches: 0,
+            token_mismatches: 0,
+            unavailable: Some(reason.into()),
+        }
+    }
+
+    fn is_exact(&self) -> bool {
+        self.unavailable.is_none()
+            && self.rows > 0
+            && self.query_coordinates_checked > 0
+            && self.query_coordinate_mismatches == 0
+            && self.admitted_cell_mismatches == 0
+            && self.top8_mismatches == 0
+            && self.token_mismatches == 0
     }
 }
 
@@ -228,6 +279,7 @@ pub struct EvidenceReport {
     pub reply_overlap: Option<ReplyOverlap>,
     pub template_overlap: Option<TemplateOverlap>,
     pub writer_parity: WriterParity,
+    pub cpu_engine_parity: CpuEngineParity,
     pub unavailable: BTreeMap<String, String>,
 }
 
@@ -464,7 +516,7 @@ struct Manifest {
     tokenizer: ManifestToken,
 }
 
-fn parse_uort(token_bytes: &[u8], mask: &[u8]) -> Result<Vec<u32>> {
+fn parse_uort(token_bytes: &[u8], mask: &[u8], expected_vocabulary: usize) -> Result<Vec<u32>> {
     if token_bytes.len() < 64 || &token_bytes[..4] != b"UORT" {
         return Err("tokens.u16 is not a canonical UORT file".to_owned());
     }
@@ -492,9 +544,9 @@ fn parse_uort(token_bytes: &[u8], mask: &[u8]) -> Result<Vec<u32>> {
             .and_then(|bytes| bytes.checked_add(64))
             != Some(token_bytes.len())
         || usize::try_from(count).ok() != Some(mask.len())
-        || vocabulary == 0
+        || usize::try_from(vocabulary).ok() != Some(expected_vocabulary)
     {
-        return Err("UORT header or payload length differs".to_owned());
+        return Err("UORT header or payload identity differs".to_owned());
     }
     Ok(token_bytes[64..]
         .chunks_exact(2)
@@ -508,6 +560,9 @@ fn valid_sha256(value: &str) -> bool {
 
 fn read_tokenizer(path: &Path) -> Result<TokenizerCensus> {
     let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    if ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes).is_none() {
+        return Err("tokenizer JSON is not a supported byte-level BPE tokenizer".to_owned());
+    }
     let value: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|error| format!("tokenizer: {error}"))?;
     let vocab = value["model"]["vocab"]
@@ -579,7 +634,7 @@ fn read_corpus(files: &CorpusFiles, context: usize, vocabulary: usize, bos: u32)
             files.manifest.display()
         ));
     }
-    let tokens = parse_uort(&token_bytes, &mask)?;
+    let tokens = parse_uort(&token_bytes, &mask, vocabulary)?;
     if identity.tokens != tokens.len()
         || identity.tokens == 0
         || identity.max_tokens < context
@@ -604,7 +659,19 @@ fn read_corpus(files: &CorpusFiles, context: usize, vocabulary: usize, bos: u32)
         .enumerate()
         .map(|(index, &start)| start..starts.get(index + 1).copied().unwrap_or(tokens.len()))
         .collect();
-    let runs = collect_runs(&mask, &documents);
+    let runs = collect_runs(&tokens, &mask, &documents, bos);
+    if !runs.iter().any(|run| run.mask == 0) {
+        return Err(format!(
+            "{}: corpus has no prompt runs",
+            files.manifest.display()
+        ));
+    }
+    if !runs.iter().any(|run| run.mask == 1) {
+        return Err(format!(
+            "{}: corpus has no response runs",
+            files.manifest.display()
+        ));
+    }
     if identity
         .conversations
         .is_some_and(|conversations| conversations != documents.len())
@@ -647,10 +714,10 @@ fn read_corpus(files: &CorpusFiles, context: usize, vocabulary: usize, bos: u32)
     })
 }
 
-fn collect_runs(mask: &[u8], documents: &[Range<usize>]) -> Vec<Run> {
+fn collect_runs(tokens: &[u32], mask: &[u8], documents: &[Range<usize>], bos: u32) -> Vec<Run> {
     let mut runs = Vec::new();
     for (document, span) in documents.iter().enumerate() {
-        let mut start = span.start;
+        let mut start = span.start + usize::from(tokens.get(span.start) == Some(&bos));
         while start < span.end {
             let value = mask[start];
             let mut end = start + 1;
@@ -942,6 +1009,38 @@ fn observe_writer_parity(
     Ok(())
 }
 
+fn observe_cpu_engine_parity(
+    artifact: &ArtifactIdentity,
+    artifact_bytes: &[u8],
+    targets: &[Target],
+) -> Result<CpuEngineParity> {
+    if artifact.schema != "uor-r4.lut-discrete/1" || artifact.tables != 4 {
+        return Ok(CpuEngineParity::unavailable(format!(
+            "artifact schema {} with {} tables is outside the four-table CPU discrete read implementation",
+            artifact.schema, artifact.tables
+        )));
+    }
+    let samples = targets
+        .iter()
+        .map(|target| CpuDiscreteProposalSample {
+            prefix: target.prefix.clone(),
+            target: target.target,
+        })
+        .collect::<Vec<_>>();
+    let scorer = CpuDiscreteProposalScorer::from_bytes(artifact_bytes)
+        .map_err(|error| format!("independent CPU discrete engine: {error}"))?;
+    let reading = scorer
+        .export_parity(artifact_bytes, &samples)
+        .map_err(|error| format!("independent CPU discrete parity: {error}"))?;
+    let parity = CpuEngineParity::from_reading(reading);
+    if !parity.is_exact() {
+        return Err(format!(
+            "independent CPU discrete engine differs from integer serving: {parity:?}"
+        ));
+    }
+    Ok(parity)
+}
+
 fn observe_targets<F>(
     artifact: &ArtifactIdentity,
     targets: &[Target],
@@ -1050,6 +1149,7 @@ fn evaluate_model(
     if targets.is_empty() {
         return Err("panel has no measured response targets".to_owned());
     }
+    let cpu_engine_parity = observe_cpu_engine_parity(artifact, artifact_bytes, &targets)?;
     let (writer, mut writer_parity) = if shape.vocabulary as usize == VOCABULARY
         && shape.blocks as usize == READ_WIDTH / 8
         && (1..=16).contains(&shape.kept_cells)
@@ -1090,10 +1190,9 @@ fn evaluate_model(
         "requires model-generated replies; the report measures reference and panel overlap only"
             .to_owned(),
     );
-    unavailable.insert(
-        "independent_cpu_trunk_query".to_owned(),
-        writer_parity.full_cpu_trunk_parity.clone(),
-    );
+    if let Some(reason) = &cpu_engine_parity.unavailable {
+        unavailable.insert("independent_cpu_trunk_query".to_owned(), reason.clone());
+    }
     unavailable.insert(
         "count_table_control".to_owned(),
         "no count-table arm is supplied to this evidence pass".to_owned(),
@@ -1122,6 +1221,7 @@ fn evaluate_model(
         reply_overlap,
         template_overlap,
         writer_parity,
+        cpu_engine_parity,
         unavailable,
     })
 }
@@ -1338,15 +1438,18 @@ mod tests {
         let path = directory.0.join("tokenizer.json");
         let tokenizer = serde_json::json!({
             "model": {
+                "type": "BPE",
                 "vocab": {
                     "<|bos|>": 0,
-                    "a": 10,
-                    "b": 20,
-                    "0": 30,
-                    "\u{120}1": 31,
-                    "hello": 32
-                }
-            }
+                    "a": 1,
+                    "b": 2,
+                    "hello": 3,
+                    "0": 4,
+                    "\u{120}1": 5
+                },
+                "merges": []
+            },
+            "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": true}
         });
         fs::write(&path, serde_json::to_vec(&tokenizer).unwrap()).unwrap();
         let census = read_tokenizer(&path).unwrap();
@@ -1368,7 +1471,7 @@ mod tests {
                 start..starts.get(index + 1).copied().unwrap_or(tokens.len())
             })
             .collect();
-        let runs = collect_runs(mask, &documents);
+        let runs = collect_runs(tokens, mask, &documents, 0);
         Corpus {
             path: PathBuf::from("fixture"),
             tokens: tokens.to_vec(),
@@ -1411,6 +1514,8 @@ mod tests {
         let prompts = run_index(&panel, 0);
         let replies = run_index(&panel, 1);
         let reply = panel.runs.iter().find(|run| run.mask == 1).unwrap();
+        let prompt = panel.runs.iter().find(|run| run.mask == 0).unwrap();
+        assert_eq!(run_tokens(&panel, prompt), [10, 11, 12]);
         let metadata = metadata_for(
             &panel,
             reply,
@@ -1422,6 +1527,18 @@ mod tests {
         assert_eq!(metadata.prompt_seen, Some(true));
         assert_eq!(metadata.keyed, Some(true));
         assert_eq!(metadata.reply_seen, Some(true));
+
+        let successor = corpus(
+            &[0, 10, 11, 20, 21, 30, 31, 40, 41],
+            &[0, 0, 0, 1, 1, 0, 0, 1, 1],
+        );
+        let prompts = successor
+            .runs
+            .iter()
+            .filter(|run| run.mask == 0)
+            .map(|run| run_tokens(&successor, run).to_vec())
+            .collect::<Vec<_>>();
+        assert_eq!(prompts, vec![vec![10, 11], vec![30, 31]]);
     }
 
     #[test]
@@ -1452,14 +1569,14 @@ mod tests {
     #[test]
     fn value_masks_follow_the_census_rule_and_collapse_adjacent_values() {
         let (_directory, tokenizer) = written_tokenizer("value-mask");
-        assert_eq!(tokenizer.digits, HashSet::from([30, 31]));
+        assert_eq!(tokenizer.digits, HashSet::from([4, 5]));
         assert_eq!(
             value_mask(
-                &[10, 30, 31, 20, 40, 41, 10],
-                &HashSet::from([10, 20]),
+                &[1, 4, 5, 2, 6, 7, 1],
+                &HashSet::from([1, 2]),
                 &tokenizer.digits,
             ),
-            vec![10, CENSUS_MASK, 20, CENSUS_MASK, 10]
+            vec![1, CENSUS_MASK, 2, CENSUS_MASK, 1]
         );
     }
 
@@ -1496,7 +1613,9 @@ mod tests {
         let directory = TempDir::new("tokenizer-no-vocab");
         let path = directory.0.join("tokenizer.json");
         fs::write(&path, br#"{"model":{}}"#).unwrap();
-        assert!(read_tokenizer(&path).unwrap_err().contains("model.vocab"));
+        assert!(read_tokenizer(&path)
+            .unwrap_err()
+            .contains("supported byte-level BPE"));
 
         let (_directory, tokenizer) = written_tokenizer("tokenizer-binding");
         let mut panel = corpus(&[0, 10, 11, 20, 21], &[0, 0, 0, 1, 1]);
@@ -1520,9 +1639,11 @@ mod tests {
 
     #[test]
     fn malformed_uort_and_manifest_identity_are_refused() {
-        assert!(parse_uort(b"not-uort", &[]).is_err());
+        assert!(parse_uort(b"not-uort", &[], 4096).is_err());
         let empty = uort(&[], 4096);
-        assert!(parse_uort(&empty, &[]).is_err());
+        assert!(parse_uort(&empty, &[], 4096).is_err());
+        let wrong_vocabulary = uort(&[0, 1], 4095);
+        assert!(parse_uort(&wrong_vocabulary, &[0, 1], 4096).is_err());
 
         let (_directory, files) = written_corpus("manifest-mismatch", &[0, 10, 20], &[0, 0, 1]);
         let mut manifest: serde_json::Value =
@@ -1667,6 +1788,7 @@ mod tests {
             reply_overlap: None,
             template_overlap: None,
             writer_parity: WriterParity::from_serving_query(),
+            cpu_engine_parity: CpuEngineParity::unavailable("fixture"),
             unavailable: BTreeMap::new(),
         };
         assert_eq!(

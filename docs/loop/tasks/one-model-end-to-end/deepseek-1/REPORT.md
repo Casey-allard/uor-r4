@@ -9,6 +9,8 @@ Lab: deepseek. Order: [ORDER.md](ORDER.md).
 - **Generated complete-reply and generated novelty are not measured.** The available public input is a teacher-forced UORT panel. Reporting those metrics as zero would confuse reference overlap with model generation, so they are explicitly unavailable.
 - **Exact prompt and reply overlap alone cannot separate a new wording from a known template whose values changed.** The completed lane now applies the project's K = 256/1,024 value-mask census and reports a `prompt-template` stratum directly.
 - **The first evidence draft accepted empty inputs, could replace an output in a race and did not bind all manifest identity fields.** These were found in independent review. Empty corpora, zero targets, incomplete/unknown arguments, malformed hashes/content and existing output paths now fail closed, and reports use `create_new`.
+- **The first template pass included each document BOS in its first prompt run.** That disagreed with the canonical census and changed first-turn exact/template/key calculations. Prompt and reply runs now begin after BOS at every document boundary.
+- **The UORT embedded vocabulary and 19-table/four-table parity boundary needed stronger checks.** The UORT vocabulary must now equal the manifest/artifact vocabulary, and the report distinguishes full four-table CPU engine parity from the writer-only, explicitly unavailable 19-table M1 reading.
 
 ## What changed
 
@@ -18,6 +20,7 @@ Lab: deepseek. Order: [ORDER.md](ORDER.md).
 - Added next-token admission, top-1, top-8 and stratified readings for prompt overlap, first-8 memory keys, reference-reply overlap and reply opening/continuation.
 - Added tokenizer-bound value-masked prompt and reply template overlap at K = 256 and 1,024, including the fixed new-template test and row-level `prompt-template` stratum.
 - Added independent `CpuWriterCore` recomputation from the integer serving trunk's Q12 query, with fail-closed admitted-cell, top-8 and token parity.
+- Added full independent query, admitted-cell, top-8 and token parity through `CpuDiscreteProposalScorer` for supported four-table artifacts; the 19-table M1 report records that full comparison as unavailable.
 - Bound manifest bytes, split, M-world cell, seed, conversation count and tokenizer hash into each corpus identity. `train-role` distinguishes canonical TRAIN from a generated control.
 - Updated `heldout-panel` to emit the complete corpus manifest needed by the evaluator.
 - Added thirteen library tests and three CLI tests covering exact run indexing, prompt/reply metadata, deterministic capping, 4-/8-gram overlap, value masking, tokenizer binding, malformed UORT/manifests, artifact vocabulary/BOS mismatch, empty inputs, absent-reference strata, a planted writer-metric error, deterministic serialization, argument refusal and create-new output.
@@ -59,7 +62,16 @@ target/release/m2-evidence artifact=.../m1-s1.d11 \
 ```
 
 The exact panel and control identities are in `evidence-deepseek-1-smoke.json`.
-Report SHA-256: `ee4e855be4b9ff28690ccb18892cf4bd2094afd73299e88a2a7cffcd028fbe03`.
+Report SHA-256: `2fc34ee636a24481cda96fdc85dfa627c81032f4297c0ae70766c303a4ab7a2b`.
+
+The full four-table CPU-engine path was exercised separately on public M1 base seed 1
+(`t16-frozen-zero-seed1.lut`, SHA-256
+`fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca`) over 128 public DEV
+targets. `cpu_engine_parity` checked 4,096 independent Q12 query coordinates and found zero
+query, admitted-cell, top-8 or token mismatches. The 19-table M1 smoke above retains writer-only
+parity and reports that full independent trunk comparison as unavailable. The four-table result is
+committed as `docs/labs/one-model-end-to-end/evidence-deepseek-1-four-table-parity.json`
+(SHA-256 `e3e4e3b868dffc4953b018cc7afcbc643622e4493a3f8f835a4c507a9bbdc5ea`).
 
 The two generated corpora can be recreated from the public tokenizer with:
 
@@ -68,6 +80,12 @@ heldout-panel out=.../panel tokenizer=.../tokenizer-seed-1.json \
   cell=dev,dev conversations=16 seed=4201 protocol=2
 heldout-panel out=.../train-control tokenizer=.../tokenizer-seed-1.json \
   cell=train,train conversations=64 seed=4101 protocol=2
+```
+
+Both commands run with the instrument's `panel-writer` feature:
+
+```sh
+cargo run --offline --features panel-writer --bin heldout-panel -- ...
 ```
 
 ## What this decides for M2
@@ -82,7 +100,8 @@ control rather than canonical TRAIN and has no generated replies.
 
 ## Checks run at the head
 
-- `cargo test --offline --all-targets`: 13 evidence tests, 1 panel-writer test and 3 CLI tests passed.
+- `cargo test --offline --features cpu-parity --lib --bin m2-evidence -j1`: 13 evidence tests and 3 CLI tests passed.
+- `cargo test --offline --features panel-writer --bin heldout-panel -j1`: the panel-writer test passed after the repository's known duplicate Cargo artifact race was cleared.
 - `cargo clippy --offline --all-targets -- -D warnings`: passed; only pre-existing path-dependency warnings appeared.
 - `rustfmt --check` on the changed Rust files: passed.
 - `cargo build --offline --bins -j1` with an isolated target directory passed; the public

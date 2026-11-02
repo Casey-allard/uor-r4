@@ -1,0 +1,116 @@
+{
+  "schema": "uor-r4.m2-evidence/1",
+  "artifact": {
+    "path": "/tmp/uor-four-table-s1.lut",
+    "sha256": "fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca",
+    "model_sha256": "fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca",
+    "schema": "uor-r4.lut-discrete/1",
+    "tables": 4,
+    "vocabulary": 4096,
+    "context": 192,
+    "blocks": 4,
+    "kept_cells": 8,
+    "read_mode": "relation"
+  },
+  "tokenizer": {
+    "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/driver-tokenizer.json",
+    "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "vocabulary": 4096,
+    "digit_tokens": 11,
+    "mask_ks": [
+      256,
+      1024
+    ]
+  },
+  "panel": {
+    "path": "/tmp/uor-m2-four-table-panel",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab",
+    "split": "train",
+    "cell_phrasing": null,
+    "cell_value": null,
+    "seed": null,
+    "conversations": null,
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "documents": 400,
+    "tokens": 42856,
+    "response_targets": 14287,
+    "prompt_runs": 1226,
+    "reply_runs": 1226,
+    "max_tokens": 256,
+    "reference_role": null
+  },
+  "train": null,
+  "measured_targets": 128,
+  "overall": {
+    "targets": 128,
+    "admitted": 41,
+    "top1": 3,
+    "top8": 14
+  },
+  "strata": {
+    "memory-key:unavailable": {
+      "targets": 128,
+      "admitted": 41,
+      "top1": 3,
+      "top8": 14
+    },
+    "prompt-overlap:unavailable": {
+      "targets": 128,
+      "admitted": 41,
+      "top1": 3,
+      "top8": 14
+    },
+    "prompt-template:unavailable": {
+      "targets": 128,
+      "admitted": 41,
+      "top1": 3,
+      "top8": 14
+    },
+    "reference-reply-overlap:unavailable": {
+      "targets": 128,
+      "admitted": 41,
+      "top1": 3,
+      "top8": 14
+    },
+    "reply-position:continuation": {
+      "targets": 118,
+      "admitted": 41,
+      "top1": 3,
+      "top8": 14
+    },
+    "reply-position:opening": {
+      "targets": 10,
+      "admitted": 0,
+      "top1": 0,
+      "top8": 0
+    }
+  },
+  "reply_overlap": null,
+  "template_overlap": null,
+  "writer_parity": {
+    "rows": 128,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "query_source": "integer_serving_trunk_q12",
+    "trunk_query_scope": "serving trunk Q12 query; cpu_engine_parity records whether a fully independent CPU query is available for this artifact family"
+  },
+  "cpu_engine_parity": {
+    "rows": 128,
+    "query_coordinates_checked": 4096,
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "unavailable": null
+  },
+  "unavailable": {
+    "count_table_control": "no count-table arm is supplied to this evidence pass",
+    "generated_complete_reply": "requires a sealed/generated reply file; corpus rows are teacher-forced targets",
+    "generated_reply_novelty": "requires model-generated replies; the report measures reference and panel overlap only",
+    "memory_off_control": "no serving-session memory-off arm is supplied to this evidence pass",
+    "no_read_control": "no model read-ablation arm is supplied to this evidence pass"
+  }
+}
