@@ -19,11 +19,36 @@ export interface LoadResult {
     };
 }
 
+export interface ApiProvider {
+    id: string;
+    label: string;
+    preset: string;
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+}
+
+export interface ModelSourceList {
+    active: { kind: string; id: string | null };
+    wasm: Record<string, unknown>;
+    api: ApiProvider[];
+}
+
 export interface ModelSourcesApi {
+    catalog(): { models: Array<{ id?: string; label?: string; url: string; note?: string; sha256?: string }> };
+    loadModelCatalog(): Promise<void>;
+    list(): ModelSourceList;
+    active(): { kind: string; id: string | null };
+    apiConfig(id?: string): ApiProvider | null;
     setActive(next: { kind: string; id: string }): unknown;
+    addApi(input: Partial<ApiProvider>): ApiProvider;
+    updateApi(id: string, patch: Partial<ApiProvider>): ApiProvider;
+    removeApi(id: string): ModelSourceList;
     loadPublished(idOrEntry: unknown, operation?: LoadOperation): Promise<LoadResult>;
     loadFromUrl(rawUrl: string, operation?: LoadOperation): Promise<LoadResult>;
     loadLocalFile(file: File, operation?: LoadOperation): Promise<LoadResult>;
     loadBundled(operation?: LoadOperation): Promise<LoadResult>;
     testApi(id?: string): Promise<{ ok: boolean; detail?: string; models?: unknown[] }>;
 }
+
+export const ModelSources: ModelSourcesApi;

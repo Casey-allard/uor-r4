@@ -1,6 +1,6 @@
 import { LOAD_PROGRESS_EVENT } from '../../assets/js/model_sources.js';
 import type { LoadOperation, LoadResult, ModelSourcesApi } from '../../assets/js/model_sources.js';
-import { LifecycleStore } from '../state/lifecycle.js';
+import { classifyEndpoint, LifecycleStore } from '../state/lifecycle.js';
 
 export { LOAD_PROGRESS_EVENT };
 
@@ -15,6 +15,7 @@ export interface WorkerCapabilities {
     sha256_verified?: boolean | null;
     engine_supported?: boolean;
     can_generate?: boolean;
+    can_predict?: boolean;
     source?: string;
 }
 
@@ -155,6 +156,7 @@ export function createModelSourceAdapter(
             return attempt(operation, () => sources.loadBundled(operation));
         },
         selectApi(sourceId, endpoint) {
+            classifyEndpoint(endpoint);
             sources.setActive({ kind: 'api', id: sourceId });
             store.dispatch({ type: 'api/selected', sourceId, endpoint });
         },
@@ -169,7 +171,6 @@ export function createModelSourceAdapter(
                     store.dispatch({ type: 'api/testFinished', sourceId: targetId, ok });
                 }
             };
-            sources.setActive({ kind: 'api', id: targetId });
             store.dispatch({ type: 'api/testStarted', sourceId: targetId });
             try {
                 const result = await sources.testApi(targetId);
@@ -207,6 +208,7 @@ export function createModelSourceAdapter(
                             verified: capabilities?.sha256_verified ?? null,
                             engineSupported: capabilities?.engine_supported,
                             canGenerate: capabilities?.can_generate,
+                            canPredict: capabilities?.can_predict,
                             source: capabilities?.source,
                         },
                     });

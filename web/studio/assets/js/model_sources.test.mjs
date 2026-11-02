@@ -22,15 +22,18 @@ function deferred() {
 }
 
 let moduleCounter = 0;
-async function fresh(fetchImpl) {
+async function fresh(fetchImpl, seed) {
     const listeners = new Map();
     const events = [];
     const values = new Map();
-    globalThis.localStorage = {
+    if (seed) values.set('uor.studio.modelSources.v1', JSON.stringify(seed));
+    const storage = {
+        fail: false,
         getItem(key) { return values.has(key) ? values.get(key) : null; },
-        setItem(key, value) { values.set(key, value); },
+        setItem(key, value) { if (this.fail) throw new Error('storage full'); values.set(key, value); },
         removeItem(key) { values.delete(key); },
     };
+    globalThis.localStorage = storage;
     globalThis.document = {
         baseURI: 'https://example.test/',
         addEventListener(type, listener) {
@@ -45,7 +48,7 @@ async function fresh(fetchImpl) {
     };
     moduleCounter += 1;
     const module = await import(`./model_sources.js?test=${moduleCounter}`);
-    return { api: module.ModelSources, events, LOAD_PROGRESS_EVENT: module.LOAD_PROGRESS_EVENT };
+    return { api: module.ModelSources, events, storage, LOAD_PROGRESS_EVENT: module.LOAD_PROGRESS_EVENT };
 }
 
 test('loadFromUrl emits real byte progress and one finalization', async () => {
@@ -140,4 +143,48 @@ test('bundled loads accept operation metadata and finalize', async () => {
     const progress = events.filter((event) => event.type === LOAD_PROGRESS_EVENT);
     assert.equal(progress.at(-1).detail.phase, 'finalizing');
     assert.equal(progress.at(-1).detail.operationId, 3);
+});
+
+test('model catalog loading emits the actual catalog change', async () => {
+    const { api, events } = await fresh(async () => new Response(JSON.stringify({ schema: 'uor-r4.studio-models/1', models: [{ id: 'm1', label: 'M1', url: 'https://example.com/m1.lut' }] }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    await api.loadModelCatalog();
+    assert.ok(events.some((event) => event.type === 'uor-model-catalog-changed'));
+    assert.equal(api.catalog().models[0].id, 'published-m1');
+    assert.equal(api.catalog().models[0].label, 'M1');
+});
+
+test('non-HTTP API sources cannot be selected or persisted', async () => {
+    const invalid = { id: 'bad', label: 'Bad', preset: 'custom', baseUrl: 'ftp://example.com/v1', model: 'model', apiKey: '', createdAt: 1 };
+    const { api } = await fresh(async () => { throw new Error('network must not run'); }, { wasm: {}, api: [invalid], active: { kind: 'wasm', id: 'bundled-demo' } });
+    assert.throws(() => api.updateApi(invalid.id, { baseUrl: 'ftp://example.com/v1' }), /Only HTTP\(S\) API endpoints are supported/);
+    assert.throws(() => api.setActive({ kind: 'api', id: invalid.id }), /Only HTTP\(S\) API endpoints are supported/);
+    assert.deepEqual(api.active(), { kind: 'wasm', id: 'bundled-demo' });
+});
+
+test('a persisted active non-HTTP API source falls back to the local selection', async () => {
+    const invalid = { id: 'bad', label: 'Bad', preset: 'custom', baseUrl: 'ftp://example.com/v1', model: 'model', apiKey: '', createdAt: 1 };
+    const { api } = await fresh(async () => { throw new Error('network must not run'); }, { wasm: {}, api: [invalid], active: { kind: 'api', id: 'bad' } });
+    assert.deepEqual(api.active(), { kind: 'wasm', id: 'bundled-demo' });
+    assert.equal(api.apiConfig(), null);
+});
+
+test('API provider writes roll back when browser storage fails', async () => {
+    const { api, storage, events } = await fresh(async () => { throw new Error('network must not run'); });
+    const existing = api.list().api[0];
+    storage.fail = true;
+    assert.throws(() => api.addApi({ id: 'api-new', label: 'New', baseUrl: 'https://new.example.com/v1', model: 'model' }), /Could not persist model sources/);
+    assert.equal(api.list().api.some((item) => item.id === 'api-new'), false);
+    assert.throws(() => api.updateApi(existing.id, { baseUrl: 'https://changed.example.com/v1' }), /Could not persist model sources/);
+    assert.equal(api.list().api.find((item) => item.id === existing.id).baseUrl, existing.baseUrl);
+    assert.equal(events.filter((event) => event.type === 'uor-model-source-changed').length, 0);
+    storage.fail = false;
+    api.setActive({ kind: 'api', id: existing.id });
+    events.length = 0;
+    storage.fail = true;
+    assert.throws(() => api.setActive({ kind: 'wasm', id: 'bundled-demo' }), /Could not persist model sources/);
+    assert.deepEqual(api.active(), { kind: 'api', id: existing.id });
+    assert.throws(() => api.removeApi(existing.id), /Could not persist model sources/);
+    assert.equal(api.list().api.some((item) => item.id === existing.id), true);
+    assert.deepEqual(api.active(), { kind: 'api', id: existing.id });
+    assert.equal(events.filter((event) => event.type === 'uor-model-source-changed').length, 0);
 });

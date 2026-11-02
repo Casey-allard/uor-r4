@@ -1,10 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
 import { createModelSourceAdapter, LOAD_PROGRESS_EVENT } from './modelSourceAdapter.js';
+import type { ApiProvider, ModelSourceList } from '../../assets/js/model_sources.js';
 
 function sources() {
     const result = { bytes: new Uint8Array(), fileName: 'model.lut', expectedSha256: 'abc', meta: { schema: 'uor-r4.lut-stack/1' } };
+    const provider: ApiProvider = { id: 'api-a', label: 'API A', preset: 'custom', baseUrl: 'https://api.example.com/v1', model: 'model-a', apiKey: '' };
+    const list = (): ModelSourceList => ({ active: { kind: 'wasm', id: 'bundled-demo' }, wasm: {}, api: [provider] });
     return {
+        catalog: vi.fn(() => ({ models: [] })),
+        loadModelCatalog: vi.fn(async () => undefined),
+        list: vi.fn(list),
+        active: vi.fn(() => list().active),
+        apiConfig: vi.fn((id?: string) => id && id !== provider.id ? null : provider),
+        addApi: vi.fn((input: Partial<ApiProvider>) => ({ ...provider, ...input, id: input.id || 'api-new' })),
+        updateApi: vi.fn((id: string, patch: Partial<ApiProvider>) => ({ ...provider, ...patch, id })),
+        removeApi: vi.fn(() => list()),
         loadPublished: vi.fn(async () => result),
         loadFromUrl: vi.fn(async (url: string) => ({ ...result, fileName: url.split('/').pop() || 'downloaded-stack.lut' })),
         loadLocalFile: vi.fn(async () => result),
@@ -84,6 +95,7 @@ describe('model source adapter', () => {
         expect(store.getState().artifact.phase).toBe('unselected');
         await adapter.testApi('api-a');
         expect(api.testApi).toHaveBeenCalledWith('api-a');
+        expect(api.setActive).toHaveBeenCalledTimes(1);
         expect(api.setActive).toHaveBeenCalledWith({ kind: 'api', id: 'api-a' });
         expect(store.getState().api.testStatus).toBe('passed');
     });
@@ -116,7 +128,7 @@ describe('model source adapter', () => {
         adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'old', file_name: 'a.lut', artifact_sha256: 'abc' } });
         expect(store.canRun()).toBe(false);
         await vi.waitFor(() => expect(transport.postMessage).toHaveBeenCalledTimes(2));
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'b.lut', artifact_sha256: 'abc', sha256_verified: true, engine_supported: true, can_generate: false, source: 'url' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'b.lut', artifact_sha256: 'abc', sha256_verified: true, engine_supported: true, can_generate: false, can_predict: true, source: 'url' } });
         expect(store.getState().residentArtifact).toMatchObject({
             sourceId: 'url',
             schema: 'new',
@@ -125,6 +137,7 @@ describe('model source adapter', () => {
             verified: true,
             engineSupported: true,
             canGenerate: false,
+            canPredict: true,
             source: 'url',
         });
         expect(store.canRun()).toBe(true);
@@ -186,6 +199,14 @@ describe('model source adapter', () => {
         finish();
         await pending;
         expect(store.getState().api.testStatus).toBe('untested');
+    });
+
+    it('rejects a non-HTTP API selection before changing active state', () => {
+        const api = sources();
+        const adapter = createModelSourceAdapter(store, api, worker());
+        expect(() => adapter.selectApi('api-a', 'ftp://example.com/v1')).toThrow('Only HTTP(S) API endpoints are supported.');
+        expect(api.setActive).not.toHaveBeenCalled();
+        expect(store.getState().selectedSource).toBeNull();
     });
 
     it('refuses to test an endpoint that is not selected', async () => {

@@ -524,6 +524,9 @@
             mode: 'wasm',
             apiConfig: null,
             activeStreamId: null,
+            chatRequests: {},
+            activeChatRequestId: null,
+            predictionRequests: {},
             editorSaveTimer: null,
             booted: false,
             tokenizerArtifact: null,
@@ -653,10 +656,10 @@
         function deleteConversation(id) {
             if (app.generating) {
                 toast('Stop the current reply before deleting a conversation.', 'warn');
-                return;
+                return false;
             }
             var conversation = app.conversations.find(function (item) { return item.id === id; });
-            if (!conversation) return;
+            if (!conversation) return false;
             if (app.worker && app.mode === 'wasm') {
                 app.worker.postMessage({ action: 'close_session', payload: { conversationId: id } });
             }
@@ -668,20 +671,22 @@
             renderConversationList();
             renderMessages();
             restoreActiveConversation();
+            return true;
         }
 
         function selectConversation(id) {
             if (app.generating) {
                 toast('Stop the current reply before switching conversations.', 'warn');
-                return;
+                return false;
             }
-            if (!app.conversations.some(function (conversation) { return conversation.id === id; })) return;
+            if (!app.conversations.some(function (conversation) { return conversation.id === id; })) return false;
             app.activeConversationId = id;
             persistConversations();
             renderConversationList();
             renderMessages();
             restoreActiveConversation();
             setView('chat');
+            return true;
         }
 
         function restoreActiveConversation() {
@@ -756,6 +761,7 @@
 
         function appendMessageElement(role, content, meta) {
             var container = $('#chatMessages');
+            if (!container) return null;
             var existingEmpty = container.querySelector('.chat-empty');
             if (existingEmpty) existingEmpty.remove();
             var wrapper = document.createElement('article');
@@ -929,6 +935,15 @@
         }
 
         function renderDiscretePrediction(message) {
+            var predictionGenerationId = app.predictionRequests[message.id];
+            if (message.id === app.activePredictionRequestId && predictionGenerationId !== undefined) {
+                delete app.predictionRequests[message.id];
+                app.activePredictionRequestId = null;
+                if (app.activeGenerationId === predictionGenerationId) app.activeGenerationId = null;
+                app.generating = false;
+                updateComposerState();
+                document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'complete', generationId: predictionGenerationId } }));
+            }
             var result = $('#predictorResult');
             var list = $('#predictorTop');
             var status = $('#predictorStatus');
@@ -971,22 +986,30 @@
             document.documentElement.dataset.predictorDecoded = JSON.stringify(decoded);
         }
 
-        function runPrediction() {
+        function runPrediction(providedPrompt) {
             var status = $('#predictorStatus');
+            if (app.activePredictionRequestId) {
+                toast('Wait for the current prediction to finish.', 'warn');
+                return false;
+            }
+            if (app.generating) {
+                toast('Stop the current reply before predicting.', 'warn');
+                return false;
+            }
             if (!app.worker || !app.caps || !isDiscreteCapabilities(app.caps)) {
                 toast('Load the M1 discrete model first under Model sources.', 'warn');
-                return;
+                return false;
             }
             if (!app.tokenizerArtifact) {
                 toast('This model has no stack-bound tokenizer loaded; prediction needs it to encode the prompt.', 'error');
                 if (status) status.textContent = 'No stack-bound tokenizer is loaded for this artifact.';
-                return;
+                return false;
             }
             var input = $('#predictorInput');
-            var prompt = input ? input.value : '';
+            var prompt = typeof providedPrompt === 'string' ? providedPrompt : (input ? input.value : '');
             if (!prompt || !prompt.trim()) {
                 toast('Type a prompt to predict from.', 'warn');
-                return;
+                return false;
             }
             var vocab = discreteVocabSize();
             var tokenIds;
@@ -995,18 +1018,26 @@
             } catch (error) {
                 toast('Tokenizer could not encode the prompt: ' + error, 'error');
                 if (status) status.textContent = 'Tokenizer error: ' + error;
-                return;
+                return false;
             }
             if (!tokenIds || tokenIds.length === 0) {
                 toast('The tokenizer returned no token ids for that prompt.', 'error');
-                return;
+                return false;
             }
             if (status) status.textContent = 'Predicting from ' + tokenIds.length + ' prompt tokens…';
+            nextGenerationId();
+            var predictionRequestId = 'predict-' + Date.now().toString(36);
+            app.activePredictionRequestId = predictionRequestId;
+            app.predictionRequests[predictionRequestId] = app.activeGenerationId;
+            app.activeGenerationKind = 'wasm';
+            app.generating = true;
+            updateComposerState();
             app.worker.postMessage({
                 action: 'predict_discrete',
-                id: 'predict-' + Date.now().toString(36),
+                id: predictionRequestId,
                 payload: { tokenIds: tokenIds, topK: 8 },
             });
+            return true;
         }
 
         /* ------------------------------------------------------------ status & toasts */
@@ -1048,7 +1079,7 @@
         }
 
         function updatePrivacyStatus() {
-            if (app.mode === 'api') {
+            if (app.mode === 'api' || (app.generating && app.activeGenerationKind === 'api')) {
                 setChip('#privacyStatus', 'warn', 'API mode: prompts leave this device', 'Chat requests go to the configured OpenAI-compatible endpoint.');
             } else {
                 setChip('#privacyStatus', 'ok', 'Local only', 'Local WASM mode: prompts and replies stay in this tab.');
@@ -1062,9 +1093,10 @@
             var stop = $('#btnStop');
             if (!send || !stop) return;
             send.hidden = app.generating;
-            stop.hidden = !app.generating;
+            stop.hidden = !app.generating || Boolean(app.activePredictionRequestId);
+            stop.disabled = Boolean(app.activePredictionRequestId);
             var ready = app.mode === 'api' ? Boolean(app.apiConfig) : Boolean(app.caps);
-            send.disabled = app.generating;
+            send.disabled = app.generating || !ready;
             send.title = app.generating ? 'A reply is in progress.' : (ready ? 'Send the prompt.' : 'Load a model source first.');
         }
 
@@ -1204,7 +1236,7 @@
                 return;
             }
             if (message.action === 'generate_error') {
-                finishGenerationWithError(message.error || 'Generation failed.');
+                finishGenerationWithError(message.error || 'Generation failed.', message.id, app.chatRequests[message.id]);
                 return;
             }
             if (message.action === 'session_exported') {
@@ -1236,6 +1268,15 @@
                         : workerError;
                     setEngineStatus('unavailable', 'err', 'Engine unavailable: ' + reason);
                 }
+                var failedPredictionId = app.predictionRequests[message.id];
+                if (message.id === app.activePredictionRequestId && failedPredictionId !== undefined) {
+                    delete app.predictionRequests[message.id];
+                    app.activePredictionRequestId = null;
+                    if (app.activeGenerationId === failedPredictionId) app.activeGenerationId = null;
+                    app.generating = false;
+                    updateComposerState();
+                    document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'error', generationId: failedPredictionId, error: workerError } }));
+                }
                 toast(workerError, 'error');
                 return;
             }
@@ -1249,13 +1290,38 @@
             return null;
         }
 
-        function beginGeneration(conversation) {
+        function nextGenerationId() {
+            app.generationSerial = (app.generationSerial || 0) + 1;
+            app.activeGenerationId = app.generationSerial;
+            return app.activeGenerationId;
+        }
+
+        function chatRequestMatches(requestId, generationId) {
+            return !app.activePredictionRequestId
+                && requestId === app.activeChatRequestId
+                && app.chatRequests[requestId] === generationId
+                && app.chatGenerationId === generationId;
+        }
+
+        function clearChatRequest(requestId) {
+            delete app.chatRequests[requestId];
+            if (app.activeChatRequestId === requestId) app.activeChatRequestId = null;
+        }
+
+        function beginGeneration(conversation, requestId) {
+            nextGenerationId();
+            app.chatGenerationId = app.activeGenerationId;
+            app.activeChatRequestId = requestId === undefined ? app.chatGenerationId : requestId;
+            app.chatRequests[app.activeChatRequestId] = app.chatGenerationId;
+            app.activeGenerationKind = app.mode;
             app.generating = true;
             app.assistantBuffer = '';
             updateComposerState();
             var placeholder = appendMessageElement('assistant', '', 'streaming…');
-            placeholder.wrapper.dataset.streaming = 'true';
-            app.streamingBodyEl = placeholder.body;
+            if (placeholder) {
+                placeholder.wrapper.dataset.streaming = 'true';
+                app.streamingBodyEl = placeholder.body;
+            }
             setMetrics('Waiting for the first token…');
             scrollChat(true);
             var button = $('#btnSend');
@@ -1264,10 +1330,15 @@
         }
 
         function finishLocalGeneration(message) {
+            var localGenerationId = app.chatRequests[message.id];
+            if (!chatRequestMatches(message.id, localGenerationId)) return;
             var conversation = activeConversation();
             if (!conversation) {
+                clearChatRequest(message.id);
+                app.chatGenerationId = null;
                 app.generating = false;
                 updateComposerState();
+                document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: message.stoppedBy === 'cancelled' ? 'stopped' : 'complete', generationId: localGenerationId } }));
                 return;
             }
             var text = typeof message.fullText === 'string' ? message.fullText : app.assistantBuffer;
@@ -1303,9 +1374,13 @@
             requestCheckpoint(conversation);
             renderConversationList();
             scrollChat(false);
+            clearChatRequest(message.id);
+            app.chatGenerationId = null;
+            document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: message.stoppedBy === 'cancelled' ? 'stopped' : 'complete', generationId: localGenerationId } }));
         }
 
-        function finishGenerationWithError(errorText) {
+        function finishGenerationWithError(errorText, requestId, generationId) {
+            if (!chatRequestMatches(requestId, generationId)) return false;
             var friendlyError = String(errorText);
             if (/ContextFull/i.test(friendlyError)) {
                 friendlyError = 'The bundled demo has a 64-token context. Shorten the prompt, or load the M1 trunk / an API provider for a longer context.';
@@ -1328,10 +1403,15 @@
             app.generating = false;
             app.streamingBodyEl = null;
             app.assistantBuffer = '';
+            updatePrivacyStatus();
             updateComposerState();
             setMetrics('Error');
             toast(String(errorText), 'error');
             scrollChat(true);
+            clearChatRequest(requestId);
+            app.chatGenerationId = null;
+            document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'error', generationId: generationId, error: String(errorText) } }));
+            return true;
         }
 
         function generationTokenLimit() {
@@ -1351,10 +1431,11 @@
                 setView('model');
                 return false;
             }
-            beginGeneration(conversation);
+            var requestId = makeId('gen');
+            beginGeneration(conversation, requestId);
             app.worker.postMessage({
                 action: 'generate',
-                id: makeId('gen'),
+                id: requestId,
                 payload: {
                     conversationId: conversation.id,
                     messages: [{ role: 'user', content: prompt }],
@@ -1364,12 +1445,28 @@
             return true;
         }
 
-        async function sendViaApi(prompt, conversation) {
-            beginGeneration(conversation);
-            app.abortController = new AbortController();
+        function apiMessages(conversation) {
             var messages = conversation.messages
                 .filter(function (message) { return message.role === 'user' || message.role === 'assistant'; })
                 .map(function (message) { return { role: message.role, content: message.content }; });
+            var attachments = window.__studioUi && typeof window.__studioUi.getAttachments === 'function'
+                ? window.__studioUi.getAttachments()
+                : [];
+            if (attachments.length) {
+                var context = attachments.map(function (item) {
+                    return '--- ' + String(item.name || 'attachment.txt') + ' ---\n' + String(item.content || '');
+                }).join('\n\n');
+                messages.unshift({ role: 'user', content: 'Workspace context:\n' + context });
+            }
+            return messages;
+        }
+
+        async function sendViaApi(prompt, conversation, preparedMessages) {
+            var messages = preparedMessages || apiMessages(conversation);
+            beginGeneration(conversation);
+            var apiRequestId = app.activeChatRequestId;
+            var apiGenerationId = app.chatGenerationId;
+            app.abortController = new AbortController();
             try {
                 await streamChatCompletions({
                     config: app.apiConfig || configFromSources(),
@@ -1382,6 +1479,7 @@
                         scrollChat(false);
                     },
                     onDone: function (result) {
+                        if (!chatRequestMatches(apiRequestId, apiGenerationId)) return;
                         var text = app.assistantBuffer;
                         var placeholder = document.querySelector('#chatMessages .msg[data-streaming="true"]');
                         if (placeholder) {
@@ -1397,24 +1495,28 @@
                         app.generating = false;
                         app.streamingBodyEl = null;
                         app.abortController = null;
+                        updatePrivacyStatus();
                         updateComposerState();
                         setMetrics('API response · ' + text.length + ' chars');
                         renderConversationList();
                         scrollChat(false);
+                        clearChatRequest(apiRequestId);
+                        app.chatGenerationId = null;
+                        document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: result && result.stopped ? 'stopped' : 'complete', generationId: apiGenerationId } }));
                     },
                     onError: function (error) {
-                        finishApiWithError(error);
+                        finishApiWithError(error, apiRequestId, apiGenerationId);
                     },
                 });
             } catch (error) {
                 if (!app.generating) return;
-                finishApiWithError(error);
+                finishApiWithError(error, apiRequestId, apiGenerationId);
             }
         }
 
-        function finishApiWithError(error) {
-            finishGenerationWithError(error && error.message ? error.message : String(error));
-            app.abortController = null;
+        function finishApiWithError(error, requestId, generationId) {
+            var finished = finishGenerationWithError(error && error.message ? error.message : String(error), requestId, generationId);
+            if (finished) app.abortController = null;
         }
 
         /* ------------------------------------------------------------ composer */
@@ -1427,54 +1529,112 @@
         }
 
         function stopGeneration() {
+            if (app.activePredictionRequestId) return;
             if (!app.generating) return;
-            if (app.mode === 'api') {
+            if ((app.activeGenerationKind || app.mode) === 'api') {
                 if (app.abortController) app.abortController.abort();
                 return;
             }
             if (app.worker) app.worker.postMessage({ action: 'cancel' });
         }
 
-        function sendFromComposer() {
-            if (app.generating) return;
+        function sendFromComposer(providedPrompt) {
+            if (app.generating) return false;
+            if (app.activePredictionRequestId) {
+                toast('Wait for the current prediction to finish.', 'warn');
+                return false;
+            }
             var input = $('#chatInput');
-            if (!input) return;
-            var prompt = input.value.trim();
+            var prompt = typeof providedPrompt === 'string' ? providedPrompt.trim() : (input ? input.value.trim() : '');
             if (!prompt) {
-                input.focus();
-                return;
+                if (input) input.focus();
+                return false;
             }
             if (app.mode === 'api' && !app.apiConfig) {
                 toast('Configure an OpenAI-compatible API endpoint under Model sources first.', 'warn');
                 setView('model');
-                return;
+                return false;
             }
-            if (app.mode === 'wasm' && !app.caps) {
+            if (app.mode === 'wasm' && (!app.worker || !app.caps)) {
                 toast('Load a local model first under Model sources.', 'warn');
                 setView('model');
-                return;
+                return false;
             }
-            var conversation = ensureConversation();
-            conversation.messages.push({ role: 'user', content: prompt, meta: null });
-            conversation.sourceKind = app.mode;
-            touchConversation(conversation);
-            appendMessageElement('user', prompt, null);
-            input.value = '';
-            autoGrowTextarea();
-            renderConversationList();
-            scrollChat(true);
-            if (app.mode === 'api') {
-                sendViaApi(prompt, conversation);
-            } else {
-                sendViaWorker(prompt, conversation);
+            var history = app.conversations.map(function (item) {
+                return { conversation: item, messages: item.messages.slice(), title: item.title, updatedAt: item.updatedAt, sourceKind: item.sourceKind };
+            });
+            var activeId = app.activeConversationId;
+            var inputValue = input ? input.value : '';
+            var generationState = {
+                serial: app.generationSerial,
+                activeId: app.activeGenerationId,
+                chatId: app.chatGenerationId,
+                requestId: app.activeChatRequestId,
+                requests: { ...app.chatRequests },
+                kind: app.activeGenerationKind,
+                generating: app.generating,
+                abortController: app.abortController,
+                assistantBuffer: app.assistantBuffer,
+                streamingBodyEl: app.streamingBodyEl,
+            };
+            function rollbackStart() {
+                app.conversations = history.map(function (entry) { return entry.conversation; });
+                history.forEach(function (entry) {
+                    entry.conversation.messages = entry.messages;
+                    entry.conversation.title = entry.title;
+                    entry.conversation.updatedAt = entry.updatedAt;
+                    entry.conversation.sourceKind = entry.sourceKind;
+                });
+                app.activeConversationId = activeId;
+                app.generationSerial = generationState.serial;
+                app.activeGenerationId = generationState.activeId;
+                app.chatGenerationId = generationState.chatId;
+                app.activeChatRequestId = generationState.requestId;
+                app.chatRequests = generationState.requests;
+                app.activeGenerationKind = generationState.kind;
+                app.generating = generationState.generating;
+                app.abortController = generationState.abortController;
+                app.assistantBuffer = generationState.assistantBuffer;
+                app.streamingBodyEl = generationState.streamingBodyEl;
+                if (input) { input.value = inputValue; autoGrowTextarea(); }
+                persistConversations();
+                renderConversationList();
+                renderMessages();
+                updateComposerState();
+                setMetrics('Ready');
+            }
+            try {
+                var conversation = ensureConversation();
+                conversation.messages.push({ role: 'user', content: prompt, meta: null });
+                conversation.sourceKind = app.mode;
+                touchConversation(conversation);
+                appendMessageElement('user', prompt, null);
+                if (input) {
+                    input.value = '';
+                    autoGrowTextarea();
+                }
+                renderConversationList();
+                scrollChat(true);
+                var preparedMessages = app.mode === 'api' ? apiMessages(conversation) : null;
+                var started = app.mode === 'api' ? sendViaApi(prompt, conversation, preparedMessages) : sendViaWorker(prompt, conversation);
+                if (started === false) { rollbackStart(); return false; }
+                return app.activeGenerationId;
+            } catch (_error) {
+                rollbackStart();
+                return false;
             }
         }
 
         /* ------------------------------------------------------------ model sources */
 
+        function abortApiForLocalSource() {
+            if (app.generating && app.activeGenerationKind === 'api' && app.abortController) app.abortController.abort();
+        }
+
         function onModelSourceChanged(event) {
             var detail = event && event.detail ? event.detail : {};
             if (detail.kind === 'wasm' && detail.bytes) {
+                abortApiForLocalSource();
                 app.mode = 'wasm';
                 app.apiConfig = null;
                 app.tokenizerArtifact = detail.tokenizerArtifact || null;
@@ -1512,7 +1672,31 @@
                 toast('API mode active. Prompts now go to ' + (detail.apiConfig.baseUrl || 'the configured endpoint') + '.', 'warn');
                 return;
             }
+            if (detail.kind === 'state' && detail.apiConfig) {
+                var active = ModelSources.active();
+                if (active && active.kind === 'api' && active.id === detail.id) {
+                    app.mode = 'api';
+                    app.apiConfig = detail.apiConfig;
+                    setModelStatus('API · ' + (detail.apiConfig.model || detail.apiConfig.label || 'endpoint'), 'accent', detail.apiConfig.baseUrl || '');
+                    updatePrivacyStatus();
+                    updateComposerState();
+                    renderMessages();
+                }
+                return;
+            }
+            if (detail.kind === 'state' && detail.removedActive) {
+                abortApiForLocalSource();
+                app.mode = 'wasm';
+                app.apiConfig = null;
+                app.caps = null;
+                setModelStatus('No model selected; load a local artifact', 'muted');
+                updatePrivacyStatus();
+                updateComposerState();
+                renderMessages();
+                return;
+            }
             if (detail.kind === 'wasm') {
+                abortApiForLocalSource();
                 app.mode = 'wasm';
                 app.apiConfig = null;
                 var list = ModelSources.list();
@@ -1523,6 +1707,17 @@
                 renderMessages();
                 if (app.caps) setModelStatus(app.caps.status_label || 'loaded', app.caps.synthetic ? 'warn' : 'ok', describeCapabilities());
             }
+        }
+
+        function onApiConfigChanged(event) {
+            var detail = event && event.detail ? event.detail : {};
+            if (!detail.id) return;
+            app.apiConfig = ModelSources.apiConfig(detail.id);
+            if (app.apiConfig) {
+                setModelStatus('API · ' + (app.apiConfig.model || app.apiConfig.label || 'endpoint'), 'accent', app.apiConfig.baseUrl || '');
+                updatePrivacyStatus();
+            }
+            updateComposerState();
         }
 
         function bindHeader() {
@@ -1538,13 +1733,14 @@
         function startNewChat() {
             if (app.generating) {
                 toast('Stop the current reply before starting a new chat.', 'warn');
-                return;
+                return false;
             }
             newConversation(true);
             restoreActiveConversation();
             setView('chat');
             var input = $('#chatInput');
             if (input) input.focus();
+            return true;
         }
 
         /* ------------------------------------------------------------ editor */
@@ -1771,6 +1967,7 @@
             updateComposerState();
             setView('chat');
             document.addEventListener('uor-model-source-changed', onModelSourceChanged);
+            document.addEventListener('uor-api-config-changed', onApiConfigChanged);
             document.documentElement.dataset.studioReady = '1';
             // Narrow diagnostics surface used by the local headless verification helpers.
             window.UORStudioDiagnostics = {
@@ -1875,8 +2072,8 @@
                 });
             },
             activeSessionId: function () { return app.activeConversationId; },
-            selectSession: function (id) { selectConversation(id); return true; },
-            newSession: function () { startNewChat(); return true; },
+            selectSession: function (id) { return selectConversation(id); },
+            newSession: function () { return startNewChat(); },
             renameSession: function (id, title) {
                 var conversation = app.conversations.find(function (item) { return item.id === id; });
                 if (!conversation) return false;
@@ -1917,11 +2114,11 @@
                     }
                 }, null, 2);
             },
-            deleteSession: function (id) {
+            deleteSession: function (id, createReplacement) {
                 var wasActive = app.activeConversationId === id;
-                deleteConversation(id);
-                if (wasActive) startNewChat();
-                return true;
+                var deleted = deleteConversation(id);
+                if (wasActive && deleted && createReplacement !== false) startNewChat();
+                return deleted;
             },
             getConversationMessages: function (id) {
                 var conversation = id
@@ -1960,7 +2157,14 @@
                 input.focus();
                 try { input.setSelectionRange(input.value.length, input.value.length); } catch (error) { /* optional */ }
                 return true;
-            }
+            },
+            sendPrompt: function (text) {
+                return sendFromComposer(String(text || ''));
+            },
+            predict: function (text) {
+                return runPrediction(String(text || '')) ? app.activeGenerationId : false;
+            },
+            stopGeneration: stopGeneration
         };
 
         if (document.readyState === 'loading') {

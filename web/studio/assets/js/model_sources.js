@@ -130,6 +130,12 @@ function nextId(prefix) {
     return prefix + '-' + Date.now().toString(36) + '-' + idCounter.toString(36);
 }
 
+function requireApiBaseUrl(value) {
+    let url;
+    try { url = new URL(String(value || '').trim()); } catch (_error) { throw new Error('Only HTTP(S) API endpoints are supported.'); }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Only HTTP(S) API endpoints are supported.');
+}
+
 function apiEntry(input) {
     return {
         id: input.id || nextId('api'),
@@ -166,8 +172,9 @@ function loadState() {
         let active = parsed.active && (parsed.active.kind === 'wasm' || parsed.active.kind === 'api')
             ? { kind: parsed.active.kind, id: parsed.active.id || null }
             : fallback.active;
-        if (active.kind === 'api' && !api.some((item) => item.id === active.id)) {
-            active = fallback.active;
+        if (active.kind === 'api') {
+            const selected = api.find((item) => item.id === active.id);
+            try { requireApiBaseUrl(selected && selected.baseUrl); } catch (_error) { active = fallback.active; }
         }
         return { wasm, api, active };
     } catch (_error) {
@@ -187,8 +194,10 @@ let editing = null; // { id: string|null, values: {...} }
 function persist() {
     try {
         globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        return true;
     } catch (_error) {
         setMessage('error', 'Could not persist model sources: browser storage is unavailable or full.');
+        return false;
     }
 }
 
@@ -245,10 +254,16 @@ function setActive(next) {
     if (next.kind === 'api' && !findApi(next.id)) {
         throw new Error('That API endpoint no longer exists.');
     }
+    if (next.kind === 'api') requireApiBaseUrl(findApi(next.id).baseUrl);
+    const previous = clone(state.active);
     selectionEpoch += 1;
     state.active = { kind: next.kind, id: next.kind === 'api' ? next.id : (next.id || 'bundled-demo') };
-    persist();
-    message = { tone: 'muted', text: '' };
+    if (!persist()) {
+        state.active = previous;
+        selectionEpoch -= 1;
+        throw new Error(message.text);
+    }
+    setMessage('muted', '');
     if (mounted) mounted.render();
     emit({ kind: state.active.kind, id: state.active.id, apiConfig: state.active.kind === 'api' ? publicConfig(activeApi()) : null });
     return publicList();
@@ -449,6 +464,7 @@ async function loadModelCatalog() {
             });
         });
         catalog.models = published;
+        document.dispatchEvent(new CustomEvent('uor-model-catalog-changed'));
         if (mounted) mounted.render();
     } catch (_error) {
         // A publish catalog is optional; a missing or malformed one is ignored.
@@ -637,8 +653,13 @@ const api = {
     addApi(input) {
         const entry = apiEntry(input || {});
         if (!entry.baseUrl) throw new Error('An API base URL is required.');
+        requireApiBaseUrl(entry.baseUrl);
         state.api.push(entry);
-        persist();
+        if (!persist()) {
+            state.api.pop();
+            throw new Error(message.text);
+        }
+        setMessage('muted', '');
         if (mounted) mounted.render();
         emit({ kind: 'state', id: entry.id, apiConfig: publicConfig(entry) });
         return clone(entry);
@@ -647,8 +668,19 @@ const api = {
     updateApi(id, patch) {
         const entry = findApi(id);
         if (!entry) throw new Error('No API endpoint with that id.');
+        const previous = clone(entry);
         Object.assign(entry, apiEntry(Object.assign({}, entry, patch, { id: entry.id, createdAt: entry.createdAt })));
-        persist();
+        try {
+            requireApiBaseUrl(entry.baseUrl);
+        } catch (error) {
+            Object.assign(entry, previous);
+            throw error;
+        }
+        if (!persist()) {
+            Object.assign(entry, previous);
+            throw new Error(message.text);
+        }
+        setMessage('muted', '');
         if (mounted) mounted.render();
         emit({ kind: 'state', id: entry.id, apiConfig: publicConfig(entry) });
         return clone(entry);
@@ -657,13 +689,21 @@ const api = {
     removeApi(id) {
         const index = state.api.findIndex((item) => item.id === id);
         if (index < 0) return publicList();
+        const removed = state.api[index];
+        const previousActive = clone(state.active);
+        const removedActive = previousActive.kind === 'api' && previousActive.id === id;
         state.api.splice(index, 1);
-        if (state.active.kind === 'api' && state.active.id === id) {
+        if (removedActive) {
             state.active = { kind: 'wasm', id: state.wasm.id || 'bundled-demo' };
         }
-        persist();
+        if (!persist()) {
+            state.api.splice(index, 0, removed);
+            state.active = previousActive;
+            throw new Error(message.text);
+        }
+        setMessage('muted', '');
         if (mounted) mounted.render();
-        emit({ kind: 'state', id: null });
+        emit({ kind: 'state', id: null, removedActive });
         return publicList();
     },
 

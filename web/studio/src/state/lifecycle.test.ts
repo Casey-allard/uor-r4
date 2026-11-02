@@ -66,6 +66,15 @@ describe('artifact lifecycle', () => {
         expect(store.canRun()).toBe(true);
     });
 
+    it('does not run a ready resident belonging to another source', () => {
+        const store = new LifecycleStore();
+        const current = selectAndStart(store, 'model-a');
+        store.dispatch({ type: 'artifact/ready', operation: current, artifact: { sourceId: 'model-b', schema: 'uor-r4.lut-stack/1', canGenerate: true } });
+        expect(store.getState().artifact.phase).toBe('ready');
+        expect(store.getState().residentArtifact?.sourceId).toBe('model-b');
+        expect(store.canRun()).toBe(false);
+    });
+
     it('ignores stale progress, ready, and failure events after superseding a load', () => {
         const store = new LifecycleStore();
         const first = selectAndStart(store, 'model-a');
@@ -112,6 +121,14 @@ describe('API source state', () => {
         expect(store.canRun()).toBe(true);
     });
 
+    it('resets connection test state when an artifact is selected', () => {
+        const store = new LifecycleStore();
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        store.dispatch({ type: 'api/testStarted', sourceId: 'api-a' });
+        store.dispatch({ type: 'artifact/selected', sourceId: 'model-a' });
+        expect(store.getState().api.testStatus).toBe('untested');
+    });
+
     it('tracks an independent connection test', () => {
         const store = new LifecycleStore();
         store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
@@ -129,7 +146,7 @@ describe('file lifecycle', () => {
         const store = new LifecycleStore();
         expect(store.getState().file.phase).toBe('no-folder');
         expect(store.canSave()).toBe(false);
-        store.dispatch({ type: 'file/saveStarted' });
+        store.dispatch({ type: 'file/saveStarted', path: 'notes.md' });
         expect(store.getState().file.phase).toBe('no-folder');
     });
 
@@ -139,10 +156,10 @@ describe('file lifecycle', () => {
         expect(store.getState().file.phase).toBe('clean');
         store.dispatch({ type: 'file/dirty' });
         expect(store.getState().file.phase).toBe('dirty');
-        store.dispatch({ type: 'file/saveStarted' });
+        store.dispatch({ type: 'file/saveStarted', path: 'notes.md' });
         expect(store.getState().file.phase).toBe('saving');
         expect(store.canSave()).toBe(false);
-        store.dispatch({ type: 'file/saveFinished' });
+        store.dispatch({ type: 'file/saveFinished', path: 'notes.md' });
         expect(store.getState().file.phase).toBe('saved');
         expect(store.canSave()).toBe(true);
     });
@@ -151,11 +168,20 @@ describe('file lifecycle', () => {
         const store = new LifecycleStore();
         store.dispatch({ type: 'file/opened', path: 'notes.md' });
         store.dispatch({ type: 'file/dirty' });
-        store.dispatch({ type: 'file/saveStarted' });
-        store.dispatch({ type: 'file/saveFailed', error: 'disk full' });
+        store.dispatch({ type: 'file/saveStarted', path: 'notes.md' });
+        store.dispatch({ type: 'file/saveFailed', path: 'notes.md', error: 'disk full' });
         expect(store.getState().file.phase).toBe('error');
         expect(store.getState().file.error).toBe('disk full');
         expect(store.canSave()).toBe(true);
+    });
+
+    it('does not apply an old save result to a newly selected file', () => {
+        const store = new LifecycleStore();
+        store.dispatch({ type: 'file/opened', path: 'a.md' });
+        store.dispatch({ type: 'file/saveStarted', path: 'a.md' });
+        store.dispatch({ type: 'file/opened', path: 'b.md' });
+        store.dispatch({ type: 'file/saveFailed', path: 'a.md', error: 'old failure' });
+        expect(store.getState().file).toMatchObject({ path: 'b.md', phase: 'clean', error: null });
     });
 });
 
@@ -167,7 +193,7 @@ describe('generation privacy', () => {
         store.dispatch({ type: 'artifact/selected', sourceId: 'model-b' });
         expect(store.getState().session.activeGeneration?.source.id).toBe('api-a');
         expect(store.getState().session.activeGeneration?.privacy).toBe('remoteAPI');
-        store.dispatch({ type: 'generation/finished', outcome: 'complete' });
+        store.dispatch({ type: 'generation/finished', outcome: 'complete', generationId: 1 });
         expect(store.getState().session.lastGeneration?.source.id).toBe('api-a');
         expect(store.getState().session.lastGeneration?.privacy).toBe('remoteAPI');
     });
@@ -176,12 +202,12 @@ describe('generation privacy', () => {
         const store = new LifecycleStore();
         readyArtifact(store, 'model-a');
         store.dispatch({ type: 'generation/started', source: { kind: 'artifact', id: 'model-a' } });
-        store.dispatch({ type: 'generation/finished', outcome: 'stopped' });
+        store.dispatch({ type: 'generation/finished', outcome: 'stopped', generationId: 1 });
         expect(store.getState().session.phase).toBe('stopped');
         expect(store.getState().session.lastGeneration?.privacy).toBe('localWASM');
         store.dispatch({ type: 'api/selected', sourceId: 'api-b', endpoint: 'http://127.0.0.1:8000' });
         store.dispatch({ type: 'generation/started', source: { kind: 'api', id: 'api-b', endpoint: 'http://127.0.0.1:8000' } });
-        store.dispatch({ type: 'generation/finished', outcome: 'error' });
+        store.dispatch({ type: 'generation/finished', outcome: 'error', generationId: 2 });
         expect(store.getState().session.phase).toBe('error');
         expect(store.getState().session.lastGeneration?.privacy).toBe('loopbackAPI');
     });
@@ -214,6 +240,7 @@ describe('endpoint privacy classification', () => {
         expect(classifyEndpoint('https://api.example.com')).toBe('remoteAPI');
         expect(classifyEndpoint('http://172.32.0.1')).toBe('remoteAPI');
         expect(() => classifyEndpoint('not a url')).toThrow(TypeError);
+        expect(() => classifyEndpoint('ftp://example.com/v1')).toThrow(TypeError);
     });
 
     it('does not treat private-looking public hostnames as local networks', () => {
@@ -260,6 +287,21 @@ describe('generation source authority', () => {
         expect(() => store.dispatch({ type: 'generation/started', source: { kind: 'api', id: 'api-a' } })).not.toThrow();
         expect(store.getState().session.phase).toBe('error');
         expect(store.canRun()).toBe(false);
+    });
+});
+
+describe('lifecycle subscriptions', () => {
+    it('notifies external transitions and stops after unsubscribe', () => {
+        const store = new LifecycleStore();
+        let calls = 0;
+        const unsubscribe = store.subscribe(() => { calls += 1; });
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        expect(calls).toBe(1);
+        store.dispatch({ type: 'api/testStarted', sourceId: 'other' });
+        expect(calls).toBe(1);
+        unsubscribe();
+        store.dispatch({ type: 'api/selected', sourceId: 'api-b', endpoint: 'https://other.example.com/v1' });
+        expect(calls).toBe(1);
     });
 });
 

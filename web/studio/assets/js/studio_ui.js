@@ -64,6 +64,18 @@
         window.dispatchEvent(new CustomEvent('uor-settings-changed', { detail: Object.assign({}, settings) }));
     }
     function setThemeChoice(theme) { settings.theme = theme === 'light' ? 'light' : (theme === 'system' ? 'system' : 'dark'); saveSettings(); applySettings(); updateThemeButton(); }
+    function updateSettings(patch) {
+        if (!patch || typeof patch !== 'object') return;
+        if (patch.theme !== undefined) settings.theme = patch.theme === 'light' ? 'light' : (patch.theme === 'system' ? 'system' : 'dark');
+        if (patch.reduceMotion !== undefined) settings.reduceMotion = Boolean(patch.reduceMotion);
+        if (patch.fontSize !== undefined) settings.fontSize = Math.max(10, Math.min(24, Number.isFinite(Number(patch.fontSize)) ? Number(patch.fontSize) : defaults.fontSize));
+        if (patch.tabSize !== undefined) settings.tabSize = Math.max(1, Math.min(8, Number.isFinite(Number(patch.tabSize)) ? Number(patch.tabSize) : defaults.tabSize));
+        if (patch.wordWrap !== undefined) settings.wordWrap = Boolean(patch.wordWrap);
+        saveSettings();
+        applySettings();
+        updateThemeButton();
+    }
+
     function updateThemeButton() {
         var label = effectiveTheme() === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
         ['btnTheme', 'railTheme'].forEach(function (id) { var node = document.getElementById(id); if (node) node.setAttribute('title', label); });
@@ -442,7 +454,9 @@
             if (chips) chips.appendChild(chip);
             if (inspector) { var row = document.createElement('li'); row.className = 'attachment-row'; row.textContent = item.name; inspector.appendChild(row); }
         });
+        document.dispatchEvent(new CustomEvent('uor-attachments-changed', { detail: { count: attachments.length } }));
     }
+    function removeAttachment(name) { attachments = attachments.filter(function (item) { return item.name !== name; }); saveAttachments(); renderAttachments(); }
     function clearAttachments() { attachments = []; saveAttachments(); renderAttachments(); }
     function attachContext() {
         var files = window.__studioFiles;
@@ -708,11 +722,14 @@
     function clearSessions() {
         var list = hook('listSessions');
         var deleteFn = hook('deleteSession');
-        if (!list || !deleteFn) { toast('Session store not ready.', 'error'); return; }
+        if (!list || !deleteFn) { toast('Session store not ready.', 'error'); return { cleared: 0, total: 0, error: 'Session store not ready.' }; }
         var sessions = list();
-        sessions.forEach(function (session) { deleteFn(session.id); });
-        toast('Cleared ' + sessions.length + ' session(s).', 'success');
+        var cleared = 0;
+        sessions.forEach(function (session) { if (deleteFn(session.id, false)) cleared += 1; });
+        if (cleared === sessions.length) toast('Cleared ' + cleared + ' session(s).', 'success');
+        else toast('Cleared ' + cleared + ' of ' + sessions.length + ' session(s); stop the current reply before deleting the rest.', 'warn');
         window.setTimeout(renderSessionEnhancements, 60);
+        return { cleared: cleared, total: sessions.length };
     }
     function clearEditor() { var files = window.__studioFiles; if (files && files.closeAll) files.closeAll(); else { var text = document.getElementById('editorText'); if (text) text.value = ''; } toast('Editor tabs cleared.', 'success'); }
 
@@ -980,10 +997,15 @@
             toggleTheme: toggleTheme,
             setTheme: setThemeChoice,
             getSettings: function () { return Object.assign({}, settings); },
+            updateSettings: updateSettings,
             updateStatus: updateStatus,
             getAttachments: function () { return attachments.slice(); },
             addAttachment: addAttachment,
-            clearAttachments: clearAttachments
+            removeAttachment: removeAttachment,
+            clearAttachments: clearAttachments,
+            templatePrompt: templatePrompt,
+            clearSessions: clearSessions,
+            clearEditor: clearEditor
         });
         window.dispatchEvent(new CustomEvent('uor-studio-v2-ready'));
     }

@@ -61,9 +61,31 @@ were "not organized or labeled very well". The page is now a workable AI studio:
   is sticky and the status bar is two labeled rows; measured `scrollWidth == innerWidth`.
 - **Contract:** every pre-existing element id and handler is preserved (hidden compatibility block
   where the UI moved), the two status markers and the data-studio-ready boot contract are intact,
-  the engine/worker/model-source/API layer is untouched, no external assets or requests are added,
-  and all four verifiers pass with assertions untouched. The page remains offline-first: no
+  the engine/worker/API client are unchanged, model-source changes are limited to tested provider/catalog/storage behavior, no external assets or requests are added,
+  and the strict static checks pass with assertions intact. Real-browser/worker parity checks remain later work. The page remains offline-first: no
   external request at load; remote model/API contacts are user-initiated only.
+
+### Typed workflow components (development library)
+
+The `src/` library now contains the lifecycle store and all eight approved core components:
+AppShell, ModelPicker, WorkspaceEditor, AgentComposer, SessionList, Inspector, Guide, and Settings.
+`StudioApp` composes them without mounting or replacing the live page. AgentComposer, WorkspaceEditor,
+ModelPicker, SessionList, and Inspector subscribe to one store; AppShell, Guide, and Settings are
+coordinated through props and callbacks.
+The components call the existing file/session/UI/model-source APIs through typed bridges. Small public
+hooks forward editor content, generation completion, settings, and attachment changes; the engine,
+worker, tokenizer, and `studio_api.js` remain unchanged. Existing provider credentials are not
+rendered or copied into component state. Newly entered keys are held only in the modal draft until saved, then persisted through the existing `modelSources.v1` writer; the draft is cleared after a successful save. Failed storage writes roll back and remain visible in the dialog.
+Narrow live-page bridge corrections correlate chat completion, include attachments in API prompts, and return per-session clear results without creating a replacement session; the engine, worker, tokenizer, and `studio_api.js` are unchanged.
+
+Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. The library
+build emits uncommitted `dist/` output; `src/studio.css` does not alter the legacy `index.css`.
+Native progress and dialog elements preserve unknown totals and indeterminate finalization; dialogs
+use native focus semantics, while browser focus-return verification remains in the parity record.
+M1 discrete artifacts are labeled next-token prediction, not conversational chat.
+
+This is core-workflow evidence only. Full real-browser/worker parity, mobile/accessibility checks,
+one-time browser-data migration, publisher changes, and production cutover remain later units.
 
 This directory holds the page source. **The wasm bundle, the demo model and the tokenizer are
 generated, never committed** (CHARTER §3.13 forbids committed binaries and corpora); the generated
