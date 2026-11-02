@@ -27,6 +27,12 @@ So before the model the project ships is trained, the scoring must be able to te
 
 ## What is missing
 
+- **Served-surrogate primitives exist; trainer wiring remains open.** Q16
+  residual and dynamic i16 activation quantization now have exact scalar
+  forward controls, straight-through bridge code and a combined wrapper with
+  the existing D11 snaps/Q12 bridge. The next unit must insert them into the
+  real hidden path, reject unsupported training-only memory behavior, and run
+  the matched four-arm comparison before this changes the end-to-end model.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

@@ -456,7 +456,7 @@ impl HamiltonArm {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct GateHookState {
     active_arm: Option<HamiltonArm>,
     seed: u64,
@@ -570,6 +570,9 @@ thread_local! {
     /// The Q16 control (claude-133): round the trunk's residual stream to 2^-16. It is apart from
     /// the gate hook, which `with_d11_mode` saves and restores.
     static ROUND_RESIDUAL_Q16: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// Straight-through gradients for the Q16 residual and dynamic i16 activation quantization.
+    static BRIDGE_Q16_RESIDUAL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static BRIDGE_ACTIVATION_I16: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// The integer session's residual exponent (`RESIDUAL_EXP`, −16): its residual stream is on the
@@ -578,7 +581,8 @@ pub const Q16_SCALE: f32 = 65536.0;
 
 /// Runs `f` with the trunk's residual stream rounded to 2^-16 after the embedding and after each
 /// sublayer add, where the integer session holds it (claude-133, the Q16 control). It restores
-/// the flag as it was. An evaluation control: it has no backward bridge.
+/// the flag as it was. Called directly, it is an evaluation control with no backward bridge;
+/// [`with_served_surrogate_training`] enables the Q16 straight-through bridge.
 pub fn with_q16_residual<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
     /// Restores the flag on every exit, a panic included (claude-133 code review).
     struct Restore(bool);
@@ -601,9 +605,131 @@ pub(crate) fn q16_residual(x: Tensor) -> Result<Tensor> {
     if !is_rounding_residual_q16() {
         return Ok(x);
     }
-    Ok(x.affine(f64::from(Q16_SCALE), 0.0)?
-        .round()?
-        .affine(1.0 / f64::from(Q16_SCALE), 0.0)?)
+    let scaled = x.affine(f64::from(Q16_SCALE), 0.0)?;
+    let rounded = scaled
+        .affine(1.0, 0.5)?
+        .floor()?
+        .clamp(f64::from(i32::MIN), f64::from(i32::MAX))?
+        .affine(1.0 / f64::from(Q16_SCALE), 0.0)?;
+    if !BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()) {
+        return Ok(rounded);
+    }
+    let dtype = x.dtype();
+    let inside = (scaled.ge(f64::from(i32::MIN))?.to_dtype(dtype)?
+        * scaled.lt(f64::from(i32::MAX))?.to_dtype(dtype)?)?;
+    let free = x.mul(&inside)?;
+    Ok((&free + (rounded - &free)?.detach())?)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+fn q16_residual_scalar(value: f32) -> f32 {
+    (value * Q16_SCALE + 0.5)
+        .floor()
+        .clamp(i32::MIN as f32, i32::MAX as f32)
+        / Q16_SCALE
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+fn q16_residual_ste_scalar(value: f32) -> (f32, f32) {
+    let scaled = value * Q16_SCALE;
+    // `i32::MAX as f32` rounds up to 2^31, so the upper bound is exclusive.
+    let gradient = if scaled >= i32::MIN as f32 && scaled < i32::MAX as f32 {
+        1.0
+    } else {
+        0.0
+    };
+    (q16_residual_scalar(value), gradient)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+fn activation_scale_scalar(max: f64) -> f64 {
+    let mut scale = 1.0;
+    let mut threshold = 32768.0;
+    for _ in 15..64 {
+        if max >= threshold {
+            scale *= 0.5;
+        }
+        threshold *= 2.0;
+    }
+    scale
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+fn activation_quantize16_ste_scalar(value: f32, scale: f64) -> (f32, f32) {
+    let scale = scale as f32;
+    let scaled = value * scale;
+    let rounded = (scaled + 0.5).floor().clamp(-32767.0, 32767.0);
+    let gradient = if (-32767.0..=32767.0).contains(&scaled) {
+        1.0
+    } else {
+        0.0
+    };
+    (rounded / scale, gradient)
+}
+
+/// Quantize each row to signed i16 at a power-of-two scale selected from the row maximum.
+/// Forward values are dequantized to the input scale. Under the served-surrogate wrapper the
+/// gradient reaches the unquantized activation inside the clamp and is zero where it saturates.
+#[cfg_attr(not(feature = "cuda"), allow(dead_code))]
+pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
+    let max = x.abs()?.max_keepdim(candle_core::D::Minus1)?;
+    let device = x.device();
+    let mut scale = Tensor::ones_like(&max)?;
+    for bit in 15..64 {
+        let threshold = 2f64.powi(bit);
+        let factor = max.ge(threshold)?.where_cond(
+            &Tensor::full(0.5, max.shape(), device)?,
+            &Tensor::full(1.0, max.shape(), device)?,
+        )?;
+        scale = scale.broadcast_mul(&factor)?;
+    }
+    let scaled = x.broadcast_mul(&scale)?;
+    let quantized = scaled
+        .affine(1.0, 0.5)?
+        .floor()?
+        .clamp(-32767.0, 32767.0)?
+        .broadcast_div(&scale)?;
+    if !BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()) {
+        return Ok(quantized);
+    }
+    let dtype = x.dtype();
+    let inside = (scaled.ge(-32767.0)?.to_dtype(dtype)? * scaled.le(32767.0)?.to_dtype(dtype)?)?;
+    let free = x.mul(&inside)?;
+    Ok((&free + (quantized - &free)?.detach())?)
+}
+
+/// Enable the served graph's discrete training boundaries together: D11 snaps and Q12 query,
+/// Q16 residual quantization and dynamic i16 activation quantization. Full trainer wiring
+/// remains outside this primitive unit; this function makes the intended shadow explicit.
+pub fn with_served_surrogate_training<T>(
+    seed: u64,
+    step: usize,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    struct Restore {
+        round: bool,
+        q16: bool,
+        activation: bool,
+        hook: GateHookState,
+    }
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ROUND_RESIDUAL_Q16.with(|value| value.set(self.round));
+            BRIDGE_Q16_RESIDUAL.with(|value| value.set(self.q16));
+            BRIDGE_ACTIVATION_I16.with(|value| value.set(self.activation));
+            GATE_HOOK.with(|cell| {
+                *cell.borrow_mut() = self.hook.clone();
+            });
+        }
+    }
+    let hook = GATE_HOOK.with(|cell| cell.borrow().clone());
+    let _restore = Restore {
+        round: ROUND_RESIDUAL_Q16.with(|value| value.replace(true)),
+        q16: BRIDGE_Q16_RESIDUAL.with(|value| value.replace(true)),
+        activation: BRIDGE_ACTIVATION_I16.with(|value| value.replace(true)),
+        hook,
+    };
+    with_d11_training(seed, step, f)
 }
 
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
@@ -2948,6 +3074,204 @@ mod tests {
             std::panic::catch_unwind(|| with_q16_residual(|| -> Result<()> { panic!("inside") }));
         assert!(panicked.is_err());
         assert!(!is_rounding_residual_q16());
+        Ok(())
+    }
+
+    #[test]
+    fn served_surrogate_scalar_and_state_controls_are_exact() -> Result<()> {
+        assert_eq!(q16_residual_scalar(1.4 / Q16_SCALE), 1.0 / Q16_SCALE);
+        assert_eq!(q16_residual_scalar(-2.6 / Q16_SCALE), -3.0 / Q16_SCALE);
+        assert_eq!(q16_residual_scalar(-0.5 / Q16_SCALE), 0.0);
+        assert_eq!(q16_residual_scalar(32768.0), i32::MAX as f32 / Q16_SCALE);
+        assert_eq!(activation_scale_scalar(40_000.0), 0.5);
+        assert_eq!(activation_scale_scalar(70_000.0), 0.25);
+        assert_eq!(activation_scale_scalar(2f64.powi(63)), 2f64.powi(-49));
+        let integer_scale = |max: u64| {
+            let shift = (64 - max.leading_zeros()) as i32 - 15;
+            2f64.powi(-shift.max(0))
+        };
+        for max in [
+            0,
+            1,
+            (1 << 15) - 1,
+            1 << 15,
+            (1 << 16) - 1,
+            u32::MAX as u64,
+            1 << 47,
+            // The greatest f64 below 2^63. Casting 2^63 - 1 rounds it up to the boundary.
+            (1 << 63) - 1024,
+            1 << 63,
+            u64::MAX,
+        ] {
+            assert_eq!(activation_scale_scalar(max as f64), integer_scale(max));
+        }
+        let huge_scale = activation_scale_scalar(1e30) as f32;
+        assert!(!(-32767.0..=32767.0).contains(&(1e30 * huge_scale)));
+        assert!((-32767.0..=32767.0).contains(&(1.0 * huge_scale)));
+
+        GATE_HOOK.with(|cell| {
+            let mut hook = cell.borrow_mut();
+            hook.active_arm = Some(HamiltonArm::RandomGateNull);
+            hook.seed = 77;
+            hook.step = 9;
+            hook.fwd_call_idx = 11;
+            hook.bwd_call_idx = 13;
+            hook.icosian_export_mode = true;
+            hook.snap_transition = true;
+            hook.bridge_d11 = true;
+            hook.capture_telemetry = true;
+            hook.cuda_error_checks_passed = 17;
+            hook.total_blocks_observed = 19;
+            hook.g_norm_samples = vec![1.0, 2.0];
+            hook.icosian_histogram[7] = 3;
+            hook.downstream_gain_samples = vec![0.25, 0.5];
+        });
+        let original_hook = GATE_HOOK.with(|cell| cell.borrow().clone());
+
+        let row = [40_000.0f32, -12_001.0, 3.0, -1.0];
+        let scale = activation_scale_scalar(40_000.0) as f32;
+        assert_eq!(
+            row.map(|value| (value * scale + 0.5).floor().clamp(-32767.0, 32767.0) / scale),
+            [40_000.0, -12_000.0, 4.0, 0.0]
+        );
+        let q16_gradients = [
+            q16_residual_ste_scalar(1.4 / Q16_SCALE),
+            q16_residual_ste_scalar(-0.5 / Q16_SCALE),
+            q16_residual_ste_scalar(32768.0),
+        ];
+        assert_eq!(
+            q16_gradients,
+            [
+                (1.0 / Q16_SCALE, 1.0),
+                (0.0, 1.0),
+                (i32::MAX as f32 / Q16_SCALE, 0.0),
+            ]
+        );
+        let mut planted_q16_gradient = q16_gradients;
+        planted_q16_gradient[2].1 = 1.0;
+        assert_ne!(
+            planted_q16_gradient, q16_gradients,
+            "a forward-only control must reject the planted Q16 saturation-gradient fault"
+        );
+
+        let activation_gradients =
+            row.map(|value| activation_quantize16_ste_scalar(value, f64::from(scale)));
+        assert_eq!(
+            activation_gradients,
+            [
+                (40_000.0, 1.0),
+                (-12_000.0, 1.0),
+                (4.0, 1.0),
+                (0.0, 1.0),
+            ]
+        );
+        let clamped_scale = activation_scale_scalar(1e30) as f32;
+        let clamped_activation = [
+            activation_quantize16_ste_scalar(1e30, f64::from(clamped_scale)),
+            activation_quantize16_ste_scalar(1.0, f64::from(clamped_scale)),
+        ];
+        assert_eq!(clamped_activation[1], (0.0, 1.0));
+        assert_eq!(clamped_activation[0].1, 0.0);
+        let mut planted_activation_gradient = clamped_activation;
+        planted_activation_gradient[0].1 = 1.0;
+        assert_ne!(
+            planted_activation_gradient, clamped_activation,
+            "a forward-only control must reject the planted activation-clamp-gradient fault"
+        );
+        assert!(with_served_surrogate_training(1, 0, || {
+            Ok(is_rounding_residual_q16()
+                && is_bridging_d11()
+                && BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get())
+                && BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()))
+        })?);
+        assert!(!is_rounding_residual_q16());
+        assert_eq!(is_bridging_d11(), original_hook.bridge_d11);
+        assert!(!BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()));
+        assert!(!BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()));
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), original_hook));
+        assert!(
+            with_served_surrogate_training(1, 0, || -> Result<()> { Err(invalid("inside")) })
+                .is_err()
+        );
+        assert!(!is_rounding_residual_q16());
+        assert_eq!(is_bridging_d11(), original_hook.bridge_d11);
+        assert!(!BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()));
+        assert!(!BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()));
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), original_hook));
+        let panicked = std::panic::catch_unwind(|| {
+            let _ = with_served_surrogate_training(1, 0, || -> Result<()> { panic!("inside") });
+        });
+        assert!(panicked.is_err());
+        assert!(!is_rounding_residual_q16());
+        assert_eq!(is_bridging_d11(), original_hook.bridge_d11);
+        assert!(!BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()));
+        assert!(!BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()));
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), original_hook));
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn served_surrogate_gradients_are_exact_on_cuda() -> Result<()> {
+        use candle_core::Var;
+
+        let device = Device::new_cuda(0)?;
+        let q16 = Var::from_vec(
+            vec![
+                1.4 / f64::from(Q16_SCALE) as f32,
+                -2.6 / f64::from(Q16_SCALE) as f32,
+                32768.0,
+            ],
+            (3,),
+            &device,
+        )?;
+        let weights = Tensor::new(&[1f32, 1.0, 1.0], &device)?;
+        let rounded =
+            with_served_surrogate_training(1, 0, || q16_residual(q16.as_tensor().clone()))?;
+        let grads = (rounded * weights)?.sum_all()?.backward()?;
+        assert_eq!(
+            grads
+                .get(q16.as_tensor())
+                .expect("Q16 straight-through gradient")
+                .to_vec1::<f32>()?,
+            vec![1.0, 1.0, 0.0]
+        );
+
+        let activation = Var::from_vec(
+            vec![40_000.0, -12_001.0, 3.0, -1.0, 70_001.0, 7.0, -3.0, 3.0],
+            (2, 4),
+            &device,
+        )?;
+        let quantized =
+            with_served_surrogate_training(1, 0, || activation_quantize16(activation.as_tensor()))?;
+        assert_eq!(
+            quantized.to_vec2::<f32>()?,
+            vec![
+                vec![40_000.0, -12_000.0, 4.0, 0.0],
+                vec![70_000.0, 8.0, -4.0, 4.0],
+            ]
+        );
+        let ones = Tensor::ones_like(&quantized)?;
+        let grads = (quantized * ones)?.sum_all()?.backward()?;
+        assert_eq!(
+            grads
+                .get(activation.as_tensor())
+                .expect("activation straight-through gradient")
+                .to_vec2::<f32>()?,
+            vec![vec![1.0; 4]; 2]
+        );
+
+        let clamped = Var::from_vec(vec![1e30, 1.0], (1, 2), &device)?;
+        let output =
+            with_served_surrogate_training(1, 0, || activation_quantize16(clamped.as_tensor()))?;
+        let grads = output.sum_all()?.backward()?;
+        assert_eq!(
+            grads
+                .get(clamped.as_tensor())
+                .expect("clamped activation gradient")
+                .to_vec2::<f32>()?,
+            vec![vec![0.0, 1.0]]
+        );
         Ok(())
     }
 
