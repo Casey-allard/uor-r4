@@ -52,6 +52,7 @@
 //! instructions.
 
 mod chat;
+mod dialogue_memory;
 pub mod flock;
 mod format;
 mod hamming;
@@ -69,6 +70,10 @@ mod tests;
 use std::fmt;
 
 pub use chat::{StackChat, StackChatError, StackReply, StackStop, CHAT_CONTEXT, CYCLE_REPEATS};
+pub use dialogue_memory::{
+    is_query as is_dialogue_query, recall as recall_from_dialogue,
+    recall_value as recall_value_from_dialogue, SieveRecall,
+};
 
 pub use flock::{
     flock_select_integer, rank_table_q31, raw_rank_weights_q16, top_k_select_integer, FlockEntry,

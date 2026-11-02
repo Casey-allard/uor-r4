@@ -17,7 +17,10 @@ use uor_r4_integer::generation::conversation::{
 use uor_r4_integer::generation::Stop;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
-use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackChatError, StackError, StackReply};
+use uor_r4_integer::stack::{
+    is_dialogue_query, recall_from_dialogue, IntegerStackModel, SieveRecall, StackChat,
+    StackChatError, StackError, StackReply,
+};
 
 /// How the stack path picks each token: `IntegerStackSession::serve_step`.
 const STACK_DECODING: &str =
@@ -56,6 +59,8 @@ struct CliArgs {
     system_prompt: Option<String>,
     /// One-turn explicit system-memory value for the stack chat path.
     memory: Option<String>,
+    /// Derive the next memory value from prior user turns.
+    memory_sieve: bool,
     temperature: f64,
     top_k: usize,
     seed: u64,
@@ -91,8 +96,54 @@ impl PendingMemory {
     }
 }
 
+struct ConversationMemory {
+    pending: PendingMemory,
+    sieve: bool,
+    user_turns: Vec<String>,
+}
+
+impl ConversationMemory {
+    fn new(pending: Option<String>, sieve: bool) -> Self {
+        Self {
+            pending: PendingMemory::new(pending),
+            sieve,
+            user_turns: Vec::new(),
+        }
+    }
+
+    fn value_for(&self, user: &str) -> (Option<String>, bool) {
+        if let Some(value) = self.pending.value() {
+            return (Some(value.to_owned()), true);
+        }
+        if !self.sieve {
+            return (None, false);
+        }
+        let history: Vec<&str> = self.user_turns.iter().map(String::as_str).collect();
+        let value = match recall_from_dialogue(&history, user) {
+            SieveRecall::Value(value) => Some(value),
+            SieveRecall::Absent => Some("none".to_owned()),
+            SieveRecall::NotRequested => None,
+        };
+        (value, false)
+    }
+
+    fn finish_turn(&mut self, user: &str, explicit_memory: bool) {
+        if explicit_memory {
+            self.pending.finish_turn();
+        }
+        if !is_dialogue_query(user) {
+            self.user_turns.push(user.to_owned());
+        }
+    }
+
+    fn reset(&mut self) {
+        self.pending.clear();
+        self.user_turns.clear();
+    }
+}
+
 fn handle_memory_command(
-    pending: &mut PendingMemory,
+    memory: &mut ConversationMemory,
     command: &str,
 ) -> std::result::Result<String, StackChatError> {
     let rest = command
@@ -100,15 +151,23 @@ fn handle_memory_command(
         .ok_or_else(|| StackChatError::InvalidMemory("not an /memory command".into()))?
         .trim();
     if rest.is_empty() {
-        Ok(match pending.value() {
+        let mode = if memory.sieve { "auto" } else { "manual" };
+        let queued = match memory.pending.value() {
             Some(value) => format!("Queued {}", StackChat::memory_content(value)?),
             None => "No memory value is queued.".to_owned(),
-        })
+        };
+        Ok(format!("Mode: {mode}. {queued}"))
     } else if rest.eq_ignore_ascii_case("clear") {
-        pending.clear();
+        memory.pending.clear();
         Ok("Cleared the queued memory value.".to_owned())
+    } else if rest.eq_ignore_ascii_case("auto") {
+        memory.sieve = true;
+        Ok("Automatic dialogue memory enabled.".to_owned())
+    } else if rest.eq_ignore_ascii_case("manual") {
+        memory.sieve = false;
+        Ok("Automatic dialogue memory disabled.".to_owned())
     } else {
-        Ok(format!("Queued {}", pending.set(rest)?))
+        Ok(format!("Queued {}", memory.pending.set(rest)?))
     }
 }
 
@@ -127,6 +186,7 @@ impl Default for CliArgs {
             restore_session: None,
             system_prompt: None,
             memory: None,
+            memory_sieve: false,
             temperature: 0.0,
             top_k: 16,
             seed: 0,
@@ -171,6 +231,9 @@ fn print_usage() {
     eprintln!("  -s, --system <PROMPT>       Initial persistent system persona");
     eprintln!(
         "      --memory <VALUE>        Queue System: Memory: <VALUE>. for the next stack-chat turn"
+    );
+    eprintln!(
+        "      --memory-sieve          Derive System: Memory from prior user turns in the REPL"
     );
     eprintln!(
         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
@@ -232,6 +295,9 @@ fn parse_cli_args() -> CliArgs {
                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--memory'");
                     process::exit(1);
                 }
+            }
+            "--memory-sieve" => {
+                args.memory_sieve = true;
             }
             "--stack" => {
                 idx += 1;
@@ -498,6 +564,18 @@ fn parse_cli_args() -> CliArgs {
     if args.memory.is_some() && args.prompt_ids.is_some() {
         eprintln!(
             "{ANSI_RED_BOLD}error:{ANSI_RESET} '--memory' requires a text turn; it does not apply to '--prompt-ids'"
+        );
+        process::exit(1);
+    }
+    if args.memory_sieve && args.stack_path.is_none() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--memory-sieve' requires text chat with '--stack'"
+        );
+        process::exit(1);
+    }
+    if args.memory_sieve && (args.say.is_some() || args.prompt_ids.is_some()) {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--memory-sieve' requires the multi-turn REPL"
         );
         process::exit(1);
     }
@@ -963,35 +1041,78 @@ mod tests {
     use uor_r4_integer::session::{ChatSession, ChatTokenStream, StreamStopReason};
 
     #[test]
-    fn pending_memory_command_applies_once_and_refuses_invalid_replacement() {
-        let mut pending = PendingMemory::default();
+    fn dialogue_memory_commands_and_turn_lifecycle_are_exact() {
+        let mut memory = ConversationMemory::new(None, false);
         assert_eq!(
-            handle_memory_command(&mut pending, "/memory").unwrap(),
-            "No memory value is queued."
+            handle_memory_command(&mut memory, "/memory").unwrap(),
+            "Mode: manual. No memory value is queued."
         );
         assert_eq!(
-            handle_memory_command(&mut pending, "/memory Pickle").unwrap(),
+            handle_memory_command(&mut memory, "/memory Pickle").unwrap(),
             "Queued Memory: Pickle."
         );
-        assert_eq!(pending.value(), Some("Pickle"));
+        assert_eq!(memory.pending.value(), Some("Pickle"));
         assert_eq!(
-            handle_memory_command(&mut pending, "/memory").unwrap(),
-            "Queued Memory: Pickle."
+            handle_memory_command(&mut memory, "/memory").unwrap(),
+            "Mode: manual. Queued Memory: Pickle."
         );
-        pending.finish_turn();
-        assert_eq!(pending.value(), None);
+        let (value, explicit) = memory.value_for("first user turn");
+        assert_eq!(value.as_deref(), Some("Pickle"));
+        assert!(explicit);
+        memory.finish_turn("first user turn", explicit);
+        assert_eq!(memory.pending.value(), None);
 
         assert_eq!(
-            handle_memory_command(&mut pending, "/memory tomatoes").unwrap(),
+            handle_memory_command(&mut memory, "/memory tomatoes").unwrap(),
             "Queued Memory: tomatoes."
         );
-        assert!(handle_memory_command(&mut pending, "/memory two\nlines").is_err());
-        assert_eq!(pending.value(), Some("tomatoes"));
+        assert!(handle_memory_command(&mut memory, "/memory two\nlines").is_err());
+        assert_eq!(memory.pending.value(), Some("tomatoes"));
         assert_eq!(
-            handle_memory_command(&mut pending, "/memory clear").unwrap(),
+            handle_memory_command(&mut memory, "/memory clear").unwrap(),
             "Cleared the queued memory value."
         );
-        assert_eq!(pending.value(), None);
+        assert_eq!(memory.pending.value(), None);
+        assert_eq!(
+            handle_memory_command(&mut memory, "/memory auto").unwrap(),
+            "Automatic dialogue memory enabled."
+        );
+        assert!(memory.sieve);
+        assert_eq!(
+            handle_memory_command(&mut memory, "/memory manual").unwrap(),
+            "Automatic dialogue memory disabled."
+        );
+        assert!(!memory.sieve);
+    }
+
+    #[test]
+    fn automatic_dialogue_memory_tracks_user_turns_and_resets() {
+        let mut memory = ConversationMemory::new(None, true);
+        let (none, explicit) = memory.value_for("Hello!");
+        assert_eq!(none, None);
+        assert!(!explicit);
+        memory.finish_turn("The new puppy at our house is named Pickle.", explicit);
+        let (value, explicit) = memory.value_for("What did we name the new puppy?");
+        assert_eq!(value.as_deref(), Some("Pickle"));
+        assert!(!explicit);
+        memory.finish_turn("What did we name the new puppy?", explicit);
+
+        handle_memory_command(&mut memory, "/memory Goldie").unwrap();
+        let (override_value, explicit) = memory.value_for("What did we name the new puppy?");
+        assert_eq!(override_value.as_deref(), Some("Goldie"));
+        assert!(explicit);
+        memory.finish_turn("What did we name the new puppy?", explicit);
+        let (restored_value, explicit) = memory.value_for("What did we name the new puppy?");
+        assert_eq!(restored_value.as_deref(), Some("Pickle"));
+        assert!(!explicit);
+
+        let (absent, explicit) = memory.value_for("What did I eat for breakfast yesterday?");
+        assert_eq!(absent.as_deref(), Some("none"));
+        assert!(!explicit);
+
+        memory.reset();
+        assert_eq!(memory.user_turns.len(), 0);
+        assert_eq!(memory.pending.value(), None);
     }
 
     #[test]
@@ -1331,7 +1452,9 @@ fn stack_help() {
     println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Available Slash Commands (stack path):");
     println!("  /reset, /clear        Reset dialogue history and start a fresh conversation");
     println!("  /memory <VALUE>       Queue System: Memory: <VALUE>. for the next user turn");
-    println!("  /memory               Show the queued memory value");
+    println!("  /memory auto          Derive memory from prior user turns");
+    println!("  /memory manual        Disable automatic memory");
+    println!("  /memory               Show the memory mode and queued value");
     println!("  /memory clear         Clear the queued memory value");
     println!("  /history              Display the exact token history length and context");
     println!("  /tokens               Display the exact token ids of the conversation");
@@ -1485,7 +1608,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     let stdin = io::stdin();
     let mut reader = stdin.lock();
     let mut turns = 0usize;
-    let mut pending_memory = PendingMemory::new(cli.memory.clone());
+    let mut memory = ConversationMemory::new(cli.memory.clone(), cli.memory_sieve);
     loop {
         print!("{ANSI_CYAN_BOLD}User>{ANSI_RESET} ");
         if io::stdout().flush().is_err() {
@@ -1515,13 +1638,13 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                         "/memory" => {
                             println!(
                                 "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} {}",
-                                handle_memory_command(&mut pending_memory, trimmed)?
+                                handle_memory_command(&mut memory, trimmed)?
                             );
                         }
                         "/reset" | "/clear" => {
                             chat.reset();
                             chat.seed(&initial)?;
-                            pending_memory.clear();
+                            memory.reset();
                             turns = 0;
                             println!(
                                 "{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Dialogue history reset cleanly."
@@ -1543,6 +1666,14 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                     }
                     continue;
                 }
+                let (turn_memory, explicit_memory) = memory.value_for(trimmed);
+                if let Some(value) = turn_memory.as_deref() {
+                    let source = if explicit_memory { "explicit" } else { "sieve" };
+                    println!(
+                        "{ANSI_YELLOW_BOLD}[memory {source}]{ANSI_RESET} {}",
+                        StackChat::memory_content(value)?
+                    );
+                }
                 print!("{ANSI_GREEN_BOLD}Assistant>{ANSI_RESET} ");
                 io::stdout().flush().ok();
                 let started = std::time::Instant::now();
@@ -1550,13 +1681,13 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                     &mut chat,
                     &initial,
                     trimmed,
-                    pending_memory.value(),
+                    turn_memory.as_deref(),
                     cli.max_tokens,
                 ) {
                     Ok(reply) => {
                         let seconds = started.elapsed().as_secs_f64();
                         print_stack_reply(&reply, chat.tokens().len(), seconds);
-                        pending_memory.finish_turn();
+                        memory.finish_turn(trimmed, explicit_memory);
                         turns += 1;
                     }
                     Err(error) => {

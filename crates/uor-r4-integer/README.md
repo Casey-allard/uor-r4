@@ -218,7 +218,11 @@ refused because this engine has no integer categorical sampler. `--say` prints a
 `--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
 same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
 `/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement
-extraction and an automatic lookup are the next serving layer, not an implicit fallback.
+extraction is opt-in through `--memory-sieve` or `/memory auto`. The deterministic sieve searches
+only previous user turns, ranks clauses by shared normalized content words and recency, and extracts
+a bounded name, time, location, age or predicate value. `/memory manual` disables it and `/reset`
+clears both the fact log and any queued explicit value. Explicit memory overrides the sieve for one
+turn. Generated assistant text is never treated as fact data.
 
 `--discrete <model.lut> --prompt-ids <CSV> [--max-tokens N]` serves a `uor-r4.lut-discrete/1`
 artifact directly through `discrete_d11::IntegerDiscreteModel`. Each step appends the evaluator's
