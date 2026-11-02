@@ -1501,6 +1501,63 @@ mod tests {
         artifact_with(true, true)
     }
 
+    fn full_path_artifact(point_table: bool, reply_table: bool) -> Vec<u8> {
+        let mut snapshot = synthetic_fbs_trunk_with(
+            705,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 96,
+                layers: 3,
+                context: 20,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        );
+        snapshot.readout_nearest = false;
+        snapshot.hamming = Some(synthetic_hamming(snapshot.width, 3, 4, 706));
+        snapshot.memory = Some(FbsMemorySnapshot {
+            k: 4,
+            key_window: 20,
+            opening: vec![FbsMemoryEntry {
+                key: vec![0, 7],
+                value: 42,
+            }],
+            opening_weight: vec![1.0; snapshot.width],
+            reply: reply_table.then(|| uor_r4_integer::stack::FbsReplyTable {
+                turn: 3,
+                entries: vec![
+                    FbsMemoryEntry {
+                        key: vec![42, 77, MEMORY_PAD, 1, MEMORY_PAD, 11],
+                        value: 42,
+                    },
+                    FbsMemoryEntry {
+                        key: vec![42, 77, MEMORY_PAD, 2, MEMORY_PAD, 22],
+                        value: 77,
+                    },
+                ],
+                weight: vec![1.0; snapshot.width],
+            }),
+        });
+        let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        if point_table {
+            add_point_key_uorlut01(
+                &bytes,
+                &PointKeyImage {
+                    width: snapshot.width,
+                    points: vec![0; snapshot.width],
+                    targets: vec![99],
+                },
+            )
+            .unwrap()
+        } else {
+            bytes
+        }
+    }
+
     fn uort(tokens: &[u32], vocabulary: u32) -> Vec<u8> {
         let mut bytes = vec![0u8; 64];
         bytes[..4].copy_from_slice(b"UORT");
@@ -1766,6 +1823,114 @@ mod tests {
         assert_eq!(memory.memory_key_lookups, 1);
         assert_eq!(memory.point_table_rows_on_opening_miss, 2);
         assert_eq!(report.manifest.memory.as_ref().unwrap().reply_rows, 0);
+    }
+
+    #[test]
+    fn full_path_audit_covers_hamming_memory_point_key_and_native_head() {
+        let tokens = vec![0, 42, 77, 11, 22];
+        let config = ServedForwardAuditConfig {
+            tokens: tokens.clone(),
+            token_source: None,
+            expected_artifact_sha256: None,
+            reply_start: Some(3),
+            measure_timing: false,
+        };
+        let without_point = full_path_artifact(false, true);
+        let with_point = full_path_artifact(true, true);
+        let without_reply = full_path_artifact(true, false);
+        let plain = audit_served_forward(&without_point, &config).unwrap();
+        let first = audit_served_forward(&with_point, &config).unwrap();
+        let second = audit_served_forward(&with_point, &config).unwrap();
+
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
+        assert!(!first.parity.instrument_fault);
+        assert_eq!(first.parity.query_coordinate_mismatches, 0);
+        assert_eq!(first.parity.token_mismatches, 0);
+        assert_eq!(first.parity.kept_cell_mismatches, 0);
+        assert!(first.parity.mismatches.is_empty());
+        assert_eq!(first.parity.positions_checked, tokens.len());
+        assert_eq!(
+            first.parity.query_coordinates_compared,
+            (tokens.len() * 64) as u64
+        );
+        assert_eq!(first.parity.token_decisions_compared, tokens.len() as u64);
+        assert_eq!(first.parity.kept_cells_compared, (tokens.len() * 8) as u64);
+        assert_eq!(
+            first.parity.cpu_decision_sha256,
+            first.parity.serving_decision_sha256
+        );
+        assert_eq!(first.parity.cpu_decision_sha256.len(), 64);
+        assert_ne!(
+            first.parity.cpu_decision_sha256, plain.parity.cpu_decision_sha256,
+            "the point-key fallback changes the row-2 head decision"
+        );
+
+        assert_eq!(first.head, "native_vector");
+        let hamming = first.manifest.hamming.as_ref().unwrap();
+        assert_eq!(hamming.heads, 4);
+        assert!(hamming.copy_heads > 0);
+        assert!(hamming.type_heads > 0);
+        assert_eq!(
+            hamming
+                .reads
+                .iter()
+                .map(|read| read.depth)
+                .collect::<Vec<_>>(),
+            vec![1, 3]
+        );
+        let memory = first.manifest.memory.as_ref().unwrap();
+        assert_eq!(memory.opening_rows, 1);
+        assert_eq!(memory.reply_rows, 2);
+        assert_eq!(memory.reply_turn, Some(3));
+        assert_eq!(memory.point_key.as_ref().unwrap().rows, 1);
+        assert!(plain.manifest.memory.as_ref().unwrap().point_key.is_none());
+
+        let stage = |name: &str| {
+            first
+                .modelled_sequence_cost
+                .iter()
+                .find(|stage| stage.stage == name)
+                .unwrap_or_else(|| panic!("missing modelled stage {name}"))
+        };
+        for name in ["layer_0_hamming_stream", "hamming_readout"] {
+            let read = stage(name);
+            assert_eq!(read.hamming_candidate_comparisons, 24, "{name}");
+            assert_eq!(
+                read.hamming_popcount_words, read.hamming_candidate_comparisons,
+                "{name}"
+            );
+            assert_eq!(read.hamilton_products, 120, "{name}");
+        }
+        let turn_memory = stage("turn_memory");
+        assert_eq!(turn_memory.memory_key_lookups, 3);
+        assert_eq!(turn_memory.point_table_rows_on_opening_miss, 1);
+        assert_eq!(stage("readout").readout_candidate_tokens, 80);
+
+        let served = |artifact: &[u8]| {
+            let model = IntegerStackModel::parse(artifact).unwrap();
+            let mut session = model.session();
+            let mut steps = Vec::new();
+            for (row, &token) in tokens.iter().enumerate() {
+                if row + 1 == 3 {
+                    session.mark_reply_start();
+                }
+                steps.push(session.step_native(token).unwrap());
+            }
+            steps
+        };
+        let with_reply = served(&with_point);
+        let reply_miss = served(&without_reply);
+        assert_ne!(with_reply[3].query_q12, reply_miss[3].query_q12);
+        assert_ne!(with_reply[4].query_q12, reply_miss[4].query_q12);
+        assert_eq!(with_reply[2].token, 99);
+        assert_ne!(
+            served(&without_point)[2].token,
+            99,
+            "the control without a point table cannot take the fallback"
+        );
     }
 
     #[test]
