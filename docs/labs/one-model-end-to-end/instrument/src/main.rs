@@ -41,6 +41,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use uor_r4_core::native_geometric::mmap_corpus::CorpusWriter;
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
@@ -69,6 +70,10 @@ fn split_name(split: Split) -> &'static str {
     }
 }
 
+fn sha256(bytes: &[u8]) -> String {
+    hex::encode(Sha256::digest(bytes))
+}
+
 /// `heldout-panel decode split=DIR tokenizer=FILE [docs=2] [skip=0]`: print documents of a UORT
 /// split as text, one line per mask run, marked `P` (mask 0) or `R` (mask 1). A diagnostic for
 /// comparing a panel's encoding with TRAIN's.
@@ -90,7 +95,11 @@ fn decode_split(args: &BTreeMap<String, String>) -> Result<()> {
     let flush = |run: &mut Vec<u32>, run_mask: u8, doc: usize| {
         if !run.is_empty() && doc > skip && doc <= skip + docs {
             let kind = if run_mask == 1 { 'R' } else { 'P' };
-            println!("{doc} {kind} {:?} {:?}", tokenizer.decode(run), &run[..run.len().min(12)]);
+            println!(
+                "{doc} {kind} {:?} {:?}",
+                tokenizer.decode(run),
+                &run[..run.len().min(12)]
+            );
         }
         run.clear();
     };
@@ -142,7 +151,9 @@ fn main() -> Result<()> {
     // role-marker tokens only under it; under protocol 1 its exact-prompt share was 0 (claude-204).
     let version: u8 = get("protocol").map_or(Ok(2), |v| v.parse())?;
 
-    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
+    let tokenizer_bytes = fs::read(&tokenizer_path)?;
+    let tokenizer_sha256 = sha256(&tokenizer_bytes);
+    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
         .ok_or("tokenizer JSON is not a supported byte-level BPE")?;
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)
         .map_err(|e| format!("protocol: {e}"))?;
@@ -221,6 +232,8 @@ fn main() -> Result<()> {
     fs::write(out.join("response_mask.u8"), &mask)?;
     let manifest = json!({
         "schema": "uor-r4-chat-corpus/v1",
+        "mask_schema": "uor-r4-response-mask/u8/v1",
+        "split": split_name(cell.phrasing),
         "writer": "one-model-end-to-end heldout-panel (claude-204)",
         "world": "m-world-v2",
         "cell": {"phrasing": split_name(cell.phrasing), "value": split_name(cell.value)},
@@ -230,9 +243,22 @@ fn main() -> Result<()> {
         "dialogue_protocol_version": version,
         "probe_screen": "none (milestone_world_v2_probe is preserved under cfg(any()))",
         "tokens": total,
+        "tokens_bytes": tokens.len() * 2 + 64,
+        "tokens_sha256": sha256(&fs::read(out.join("tokens.u16"))?),
         "response_tokens": mask.iter().filter(|&&m| m == 1).count(),
+        "mask_bytes": mask.len(),
+        "mask_sha256": sha256(&mask),
+        "max_tokens": CONTEXT,
+        "tokenizer": {
+            "vocab_size": vocab,
+            "bos_id": 0,
+            "sha256": tokenizer_sha256,
+        },
     });
-    fs::write(out.join("manifest.json"), serde_json::to_vec_pretty(&manifest)?)?;
+    fs::write(
+        out.join("manifest.json"),
+        serde_json::to_vec_pretty(&manifest)?,
+    )?;
     println!("{manifest}");
     Ok(())
 }
@@ -244,8 +270,14 @@ mod tests {
     #[test]
     fn a_cell_names_its_phrasing_and_value_split() {
         let cell = cell_of("dev,train").unwrap();
-        assert_eq!((cell.phrasing, cell.value), (Split::Development, Split::Train));
-        assert_eq!(cell_of(" train , dev ").unwrap(), Cell::new(Split::Train, Split::Development));
+        assert_eq!(
+            (cell.phrasing, cell.value),
+            (Split::Development, Split::Train)
+        );
+        assert_eq!(
+            cell_of(" train , dev ").unwrap(),
+            Cell::new(Split::Train, Split::Development)
+        );
         assert!(cell_of("dev").is_err());
         assert!(cell_of("dev,test").is_err());
     }

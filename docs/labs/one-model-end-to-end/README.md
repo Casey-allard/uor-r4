@@ -1,5 +1,22 @@
 # one-model-end-to-end: the census, the held-out-phrasing panel and the overturn check (claude-202, claude-204, claude-205; 29 Oct 2026)
 
+## The CPU evidence lane (deepseek-1, 2 Nov 2026)
+
+[`instrument/`](instrument) also builds a CPU-only `m2-evidence` command. It evaluates a discrete integer artifact on a canonical UORT panel and separates next-token accuracy into prompt-overlap, first-8 key, reply-overlap and opening/continuation strata. It reads an optional TRAIN-format split as the reference index. It also recomputes the writer independently from the serving Q12 query. It does not require a GPU and does not edit the serving engine.
+
+```sh
+cd docs/labs/one-model-end-to-end/instrument
+cargo run --release --bin m2-evidence -- \
+  artifact=MODEL.d11 \
+  tokenizer=TOKENIZER.json \
+  panel-tokens=PANEL/tokens.u16 panel-mask=PANEL/response_mask.u8 panel-manifest=PANEL/manifest.json \
+  train-tokens=REFERENCE/tokens.u16 train-mask=REFERENCE/response_mask.u8 \
+  train-manifest=REFERENCE/manifest.json train-role=generated_control \
+  max-targets=1024 out=NEW_REPORT.json
+```
+
+The report binds artifact and corpus manifests, tokenizer and content hashes; counts admission, top-1 and top-8; reports exact and value-masked prompt/reply overlap, reply 4-/8-gram novelty and a new-template stratum at K = 1,024; and marks missing controls or data as unavailable. It distinguishes `canonical_train` from `generated_control`; the role is required when a reference index is supplied. The current 19-table M1 smoke has exact writer parity from the serving Q12 query. Full two-sided CPU-trunk parity remains unavailable because the CPU research path does not implement the 15 additional M1 trunk tables. The first public artifact/panel smoke run is in the [deepseek-1 REPORT](../../loop/tasks/one-model-end-to-end/deepseek-1/REPORT.md).
+
 ## The overturn check (claude-205)
 
 **The question.** Does the trunk that learned to lean on the turn memory read worse than one that never had it, on the rows the memory names none of? The rows are DEV's 3,406 unnamed later rows and 32 unkeyed openings, 3,438 pooled. It is done-when 2, under [its sheet](../../harness/prep/one-model-end-to-end-overturn-2026-10-29.md) (FIT, PRE-RUN PASS).

@@ -3,18 +3,28 @@ name = "one-model-end-to-end-panel"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "The held-out-phrasing panel writer of one-model-end-to-end (claude-204): M-world v2 conversations of one cell, as a UORT split"
+description = "M-world v2 held-out-phrasing panels and the CPU-only stratified evidence lane for one-model-end-to-end"
 
 # A standalone instrument, outside the repository's workspace, like
 # docs/labs/m2-fresh-heldout-panel/instrument.
 [workspace]
+resolver = "2"
 
 [[bin]]
 name = "heldout-panel"
 path = "src/main.rs"
 
+[[bin]]
+name = "m2-evidence"
+path = "src/bin/m2-evidence.rs"
+
 [dependencies]
 uor-r4-training = { path = "../../../../crates/uor-r4-training" }
 uor-r4-core = { path = "../../../../crates/uor-r4-core" }
 uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
+uor-r4-integer = { path = "../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-cpu-train = { path = "../../../../crates/uor-r4-cpu-train" }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
