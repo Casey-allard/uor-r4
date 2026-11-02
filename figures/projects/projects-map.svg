@@ -40,7 +40,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <!-- model -->
 <rect class="model" x="36" y="78" width="408" height="72" rx="12"/>
 <text class="mname" x="240" y="106" text-anchor="middle">The UOR-R4 model</text>
-<text class="detail" x="240" y="124" text-anchor="middle">pre-alpha: 0 of 8 milestones complete</text>
+<text class="detail" x="240" y="124" text-anchor="middle">pre-alpha: M1 complete, 1 of 8; no useful chat</text>
 <text class="detail" x="240" y="140" text-anchor="middle">crates/uor-r4-discrete</text>
 
 <!-- wasm-gemm-gnaf outside the research folder -->

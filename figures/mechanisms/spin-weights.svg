@@ -282,5 +282,5 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="b" x="676" y="498">Equal-parameter pair (outlined)</text>
 <text class="n" x="676" y="514">1.5136 and 1.5148 are 0.0012 apart,</text><text class="n" x="676" y="529">about one noise unit (noise 0.0012</text><text class="n" x="676" y="544">to 0.0041): level, not better.</text>
 <text class="n" x="676" y="570">At equal width the quaternion model</text><text class="n" x="676" y="585">is 0.088 worse (1.4959 against 1.4078).</text>
-<text class="n" x="16" y="740">Sphere and dot layout are schematic; the angles in the zoom are drawn to the stated ratio. Numbers are from the records. Status: parked.</text>
+<text class="n" x="16" y="740">Sphere and dot layout are schematic; the angles in the zoom are drawn to the stated ratio. Numbers are from the records. Status: READY by D74.</text>
 </svg>

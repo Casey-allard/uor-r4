@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 936" width="1200" height="936" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title id="t">Geometric primitives and operators</title>
-<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are written as dormant source for the earlier float trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.</desc>
+<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate and the SpiralCore/FBS projection are trained and served in the FBS trunk under lut-stack/5; the geometric recurrence gates and the rank-margin objective are dormant source for the earlier float trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="935" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Geometric primitives and operators: the historical float form</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical operator inventory, 13 October 2026. Float source is inactive; current M1: architecture.svg.</text>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Geometric primitives and operators</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Inventory, 31 October 2026. Historical rows are inactive float source; the current model: architecture.svg.</text>
 <text x="40" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Primitive / operator</text>
 <text x="350" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">What it does</text>
 <text x="700" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
@@ -60,19 +60,19 @@
 <text x="783.5" y="489" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
 <text x="880" y="490" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compiler and native paths</text>
 <rect x="40" y="514" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="514" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<rect x="40" y="514" width="6" height="46" rx="3" fill="#007A5E" stroke="#007A5E" stroke-width="1"/>
 <text x="60" y="542" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">G2 Hamilton gate</text>
 <text x="350" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a rotation q(g) ⊗ u, not a squash</text>
-<rect x="700" y="526" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="783.5" y="541" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
-<text x="880" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk feed-forward and recurrence</text>
+<rect x="700" y="526" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="734.5" y="541" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<text x="880" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">FBS trunk; served under lut-stack/5</text>
 <rect x="40" y="566" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="566" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<rect x="40" y="566" width="6" height="46" rx="3" fill="#007A5E" stroke="#007A5E" stroke-width="1"/>
 <text x="60" y="594" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">SpiralCore / FBS projection</text>
 <text x="350" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">select one carrier, transport by BFS</text>
-<rect x="700" y="578" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="783.5" y="593" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
-<text x="880" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">every trunk projection</text>
+<rect x="700" y="578" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="734.5" y="593" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<text x="880" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">FBS trunk routes; served (/5)</text>
 <rect x="40" y="618" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="618" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="646" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Geometric recurrence gates</text>
@@ -104,8 +104,10 @@
 <text x="40" y="846" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Shaded rows: the geometric primitives. White rows: operators of the earlier float trunk, written to replace softmax, squashing and dense products.</text>
 <path d="M40,888 L1160,888" fill="none" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="910" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
-<rect x="110" y="895" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
-<text x="152" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Historical · inactive</text>
-<rect x="332.15" y="895" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="374.15" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
+<rect x="110" y="895" width="34" height="20" rx="5" fill="#E3F4EE" stroke="#007A5E" stroke-width="2"/>
+<text x="152" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Working</text>
+<rect x="232.05" y="895" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="274.05" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Historical · inactive</text>
+<rect x="454.20000000000005" y="895" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="496.20000000000005" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
 </svg>

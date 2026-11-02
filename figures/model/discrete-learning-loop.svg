@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 592" width="960" role="img" aria-labelledby="t d">
 <title id="t">One batch of discrete learning</title>
-<desc id="d">A loop for one training batch. A stack of 64 example rows feeds a baseline pass done once per row. A grid of 64 rows by 16 lanes (the current state, called stay, plus 15 rotations) scores every row; the column sums are 16 integer losses and the lowest sum is chosen, with ties going to stay. An apply step commits the move only if its loss is strictly lower than staying; otherwise it refuses and nothing changes. After a commit the stored table is validated on the GPU, then the loop moves to the next coordinate: a vector block, a route frame or a gate. A timing strip compares one proposal on one RTX 5090: ordinary 3.843 seconds against row-parallel 0.0691 seconds, 55.6 times faster. Side panel A shows BVG-K, which scores K = 16 coordinates in one launch and commits them as one block only if the joint loss beats the best single move; scoring is about 16 times faster and block apply about 8 times, on fixtures. Side panel B shows the offline float path as a separate scanned module, held with no sheet registered, which can reach the integer table only through an export-gap check against the two-seed noise band.</desc>
+<desc id="d">A loop for one training batch. A stack of 64 example rows feeds a baseline pass done once per row. A grid of 64 rows by 16 lanes (the current state, called stay, plus 15 rotations) scores every row; the column sums are 16 integer losses and the lowest sum is chosen, with ties going to stay. An apply step commits the move only if its loss is strictly lower than staying; otherwise it refuses and nothing changes. After a commit the stored table is validated on the GPU, then the loop moves to the next coordinate: a vector block, a route frame or a gate. A timing strip compares one proposal on one RTX 5090: ordinary 3.843 seconds against row-parallel 0.0691 seconds, 55.6 times faster. Side panel A shows BVG-K, which scores K = 16 coordinates in one launch and commits them as one block only if the joint loss beats the best single move; scoring is about 16 times faster and block apply about 8 times, on fixtures; BVG-K was subsequently used in Stage T and the saved M1 lineage, so those rates are not presented as full-run measurements. Side panel B shows the offline float path as a separate scanned module, which trains the FBS trunk and exports it with exact rotations and its DEV export gap inside the bar under lut-stack/5, which can reach the integer table only through an export-gap check against the two-seed noise band.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -229,8 +229,8 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="small" x="796" y="199" text-anchor="middle">commit as one block only if the joint</text>
 <text class="small" x="796" y="214" text-anchor="middle">loss beats the best single move</text>
 <text class="detail" x="672" y="240">Scoring about 16 times faster, block apply</text>
-<text class="detail" x="672" y="253">about 8 times, at K = 16 (fixtures).</text>
-<text class="detail" x="672" y="266">Construction tests only; not yet run.</text>
+<text class="detail" x="672" y="253">about 8 times, at K = 16 (fixture timings).</text>
+<text class="detail" x="672" y="266">Used in Stage T and the M1 lineage.</text>
 
 <!-- side panel B -->
 <rect class="panel" x="656" y="290" width="280" height="150" rx="10"/>
@@ -238,7 +238,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="float" x="672" y="318" width="248" height="50" rx="7"/>
 <text class="small" x="796" y="334" text-anchor="middle">float forward + gradient + optimizer</text>
 <text class="detail" x="796" y="348" text-anchor="middle">a separate scanned module</text>
-<text class="detail" x="796" y="361" text-anchor="middle">held: no sheet registered</text>
+<text class="detail" x="796" y="361" text-anchor="middle">trains the FBS trunk (29 Oct)</text>
 <path class="flow" d="M740 368 V386" marker-end="url(#a)"/>
 <rect class="box" x="672" y="386" width="132" height="34" rx="7"/>
 <text class="detail" x="738" y="400" text-anchor="middle" style="fill:var(--ink)">export gap within the</text>
@@ -260,5 +260,5 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="small" x="148" y="526">0.0691 s (55.6 times faster)</text>
 
 <text class="note" x="24" y="562">Square shading and bar heights are illustrative; only 6 of the 64 rows are drawn. The 64 x 16 layout, the timings and the K = 16 ratios are data.</text>
-<text class="note" x="24" y="578">Training is held. The timing is a non-gating measurement that was not qualified.</text>
+<text class="note" x="24" y="578">Stage T and the M1 lineage used BVG-K. The timing is a non-gating measurement that was not qualified.</text>
 </svg>

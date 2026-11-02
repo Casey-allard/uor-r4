@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1018" width="960" role="img" aria-labelledby="t d">
 <title id="t">D11 integer table serving</title>
-<desc id="d">Three stacked panels. Panel A: one dot product with no multiply. An integer activation x is turned once into a table of 16 multiples, 0 to 15 times x, using additions only. Three 4-bit weight codes each select one slot; the selected values pass a shift for the group scale and drop into a running sum. A counter reads multiply instructions: 0. Panel B: integer-engine outputs against reference outputs lie exactly on the diagonal, maximum difference 0 on 64 windows for three 29M artifacts. Two short bars show the real cost of rounding the weights, 0.00883 bits per byte on identical positions of the 19.9M stack and 0.009288 on a 512-window matched triple. A separate faint strip shows the 0.90 bar and the served readings 1.20138, 1.24402 and 1.24233, so the shortfall is the model, not the engine. Panel C: 44 native symbol ranges in the release binary and seven named WebAssembly symbols, all counted at zero multiply, zero divide and zero float instructions. The audit counts instructions and says nothing about model quality.</desc>
+<desc id="d">Three stacked panels. Panel A illustrates the dense/FBS 4-bit stack, not M1's table-native discrete schema: one projection built from adds and table reads. An integer activation x becomes a table of 16 multiples using additions only. Three 4-bit weight codes each select one slot, then group-scale shifts and a running sum. Panel B: exact integer exports. Older 29M outputs match their reference on 64 windows, while rounding those older weights cost 0.00883 and 0.009288 bits per byte. The current discrete M1 pair has exact 14,287-row DEV agreement and B4 pass, with DEV 7,002 / 7,001, Fresh V2 7,215 / 7,228 and p-f 7,850 / 7,872. Panel C: 44 native symbol ranges and seven WebAssembly serving symbols, all with zero float instructions; integer multiply and divide are allowed and counted since D80 and D81. The M1 pair serves at 10,876 / 10,566 native decode tok/s on Apple M1 under the bar-f remeasurement; the older close-grade bar-c rate is 11,026 / 10,573. A separate strip compares the 0.90 BPB bar with served readings of 1.20138, 1.24233 and 1.24402. The audit counts instructions and says nothing about model quality or useful conversation. On p-f, 62.5% of reference replies are verbatim TRAIN replies: reference-data overlap, not a generated-copy rate or new reply kinds.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -46,11 +46,11 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
   <marker id="aho" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="aho-p" d="M0,0 L10,5 L0,10 z"/></marker>
 </defs>
 <rect class="bg" x="0" y="0" width="960" height="1018"/>
-<text class="t" x="24" y="38">D11 integer serving: an exact engine with no multiply instruction</text>
+<text class="t" x="24" y="38">D11 integer serving: an exact whole-number engine</text>
 
 <!-- Panel A -->
 <rect class="panel" x="16" y="56" width="928" height="262" rx="6"/>
-<text class="h" x="32" y="82">A. One dot product, no multiply instruction</text>
+<text class="h" x="32" y="82">A. Dense/FBS projection built from adds and table reads</text>
 <rect class="box" x="32" y="100" width="110" height="40" rx="5"/>
 <text class="b mid" x="87" y="118">activation x</text><text class="s mid" x="87" y="133">(an integer)</text>
 <line class="arrow" x1="87" y1="142" x2="87" y2="158"/>
@@ -87,13 +87,13 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="box" x="278" y="228" width="120" height="34" rx="5"/><text class="b mid" x="338" y="249">weight code 5</text>
 <rect class="box" x="614" y="228" width="120" height="34" rx="5"/><text class="b mid" x="674" y="249">weight code 11</text>
 <rect class="okbox" x="760" y="222" width="168" height="48" rx="5"/>
-<text class="s mid" x="844" y="238">multiply instructions</text><text class="big mid" x="844" y="263">0</text>
+<text class="s mid" x="844" y="238">weight products:</text><text class="big mid" x="844" y="263">table reads</text>
 <text class="n" x="32" y="290">The table holds 16 multiples of x (0, x, 2x … 15x), built once with additions only. Each 4-bit weight code picks one slot.</text>
 <text class="n" x="32" y="308">Weights are 4-bit codes in groups of 32 with a one-byte scale, applied by shifts. The three codes drawn are illustrative.</text>
 
 <!-- Panel B -->
 <rect class="panel" x="16" y="334" width="928" height="410" rx="6"/>
-<text class="h" x="32" y="360">B. The engine is exact; the real cost is in rounding the weights</text>
+<text class="h" x="32" y="360">B. Exact exports; older rounding cost was in the weights</text>
 <text class="n" x="64" y="384">integer-engine logits</text>
 <line class="axis" x1="64" y1="392" x2="64" y2="572"/>
 <line class="axis" x1="64" y1="572" x2="244" y2="572"/>
@@ -105,7 +105,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <circle class="pt" cx="229.6" cy="406.4" r="4"/>
 <text class="n mid" x="154" y="590">reference logits</text>
 <text class="b" x="32" y="612">Maximum difference 0 on 64 windows</text>
-<text class="n" x="32" y="628">three 29M artifacts; the points are schematic</text>
+<text class="n" x="32" y="628">Older 29M artifacts; the discrete M1 pair has exact 14,287-row DEV agreement and B4 pass</text>
 
 <text class="b" x="340" y="384">Real cost of rounding the weights (bits per byte)</text>
 <rect class="f-blue" x="350" y="404" width="247.2" height="24"/>
@@ -135,7 +135,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="h" x="32" y="786">C. The audit: instructions are counted in the compiled program</text>
 <text class="b" x="32" y="810">44 native symbol ranges in the release binary</text>
 <g><rect class="tile" x="32.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="52.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="72.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="92.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="113.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="133.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="153.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="174.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="194.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="214.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="235.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="255.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="275.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="295.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="316.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="336.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="356.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="377.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="397.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="417.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="438.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="458.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="478.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="498.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="519.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="539.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="559.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="580.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="600.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="620.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="641.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="661.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="681.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="701.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="722.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="742.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="762.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="783.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="803.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="823.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="844.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="864.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="884.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="904.9" y="820" width="17" height="18" rx="2"/></g>
-<text class="l" x="32" y="858">Each of the 44 tiles: multiply 0, divide 0, float 0.</text>
+<text class="l" x="32" y="858">Each of the 44 tiles: float 0; integer mul/div allowed and counted (D80/D81).</text>
 <text class="b" x="32" y="888">7 WebAssembly serving symbols</text>
 <rect class="wtile" x="32" y="898" width="84" height="32" rx="4"/><text class="s mid" x="74" y="918">loadStack</text>
 <rect class="wtile" x="122" y="898" width="64" height="32" rx="4"/><text class="s mid" x="154" y="918">step</text>
@@ -144,7 +144,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="wtile" x="417" y="898" width="123" height="32" rx="4"/><text class="s mid" x="478.5" y="918">weightsPerToken</text>
 <rect class="wtile" x="546" y="898" width="222" height="32" rx="4"/><text class="s mid" x="657" y="918">stack::IntegerStackSession::step</text>
 <rect class="wtile" x="774" y="898" width="149" height="32" rx="4"/><text class="s mid" x="848.5" y="918">stack::stack_argmax</text>
-<text class="l" x="32" y="954">Each of the 7: multiply 0, divide 0, float 0.</text>
+<text class="l" x="32" y="954">Each of the 7: float 0; integer mul/div allowed and counted (D80/D81).</text>
 <text class="n" x="32" y="974">The audit counts instructions; it says nothing about model quality.</text>
 <text class="n" x="32" y="990">The SIMD kernels in the WebAssembly build are unintegrated fixtures that the audit never exercises.</text>
 </svg>

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 450" width="960" role="img" aria-labelledby="t d">
 <title id="t">How UOR-R4 predicts the next word</title>
-<desc id="d">Four panels read left to right. 1, Text: the phrase "the cat sat on the" is cut into five numbered pieces by a tokenizer with 4,096 pieces; the fifth piece is the newest. 2, Address: each piece lands on a point of a ring of 16 evenly spaced points, a stand-in for the geometric object; both copies of "the" land on the same point. An inset shows one address as 4 blocks of 8 whole numbers, the first block written as (2, -2, 0, 0, 0, 0, 0, 0), marked illustrative. 3, Local read: the newest piece reads only three nearby earlier points, found by address, while the rest of the history stays grey. 4, Next token: two of eight drawers of words open near what was read and the nearest word, "mat", is picked, with no softmax. A band underneath says every step uses whole numbers only: add, subtract, compare and table look-up, with no multiply and no decimals. A corner tag says this is the design, not a working result: 0 of 8 milestones are complete.</desc>
+<desc id="d">Four panels read left to right. 1, Text: the phrase "the cat sat on the" is cut into five numbered pieces by a tokenizer with 4,096 pieces; the fifth piece is the newest. 2, Address: each piece lands on a point of a ring of 16 evenly spaced points, a stand-in for the geometric object; both copies of "the" land on the same point. An inset shows one address as 4 blocks of 8 whole numbers, the first block written as (2, -2, 0, 0, 0, 0, 0, 0), marked illustrative. 3, Local read: the newest piece reads only three nearby earlier points, found by address, while the rest of the history stays grey. 4, Next token: two of eight drawers of words open near what was read and the nearest word, "mat", is picked, with no squashing. A band underneath says serving uses whole numbers only: add, subtract, multiply, compare and table look-up, with no floats; integer multiply and divide are allowed by D80 and D81, and the FBS trunk is float-trained and exported with exact rotations and its DEV export gap inside the bar. A corner tag says M1 is complete, 1 of 8 milestones, but this is the design, not useful conversation.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -54,9 +54,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 
 <!-- Title -->
 <text class="title" x="20" y="36">How UOR-R4 predicts the next word</text>
-<text class="sub" x="20" y="58">One turn of the loop, as designed. Every step works on whole numbers.</text>
+<text class="sub" x="20" y="58">One turn of the loop, as designed. Served as whole numbers; the FBS trunk is float-trained, then exported with exact rotations and its DEV export gap inside the bar.</text>
 <rect class="tag" x="640" y="22" width="300" height="26" rx="13"/>
-<text class="note" x="790" y="39" text-anchor="middle">Design, not a working result: 0 of 8 milestones</text>
+<text class="note" x="790" y="39" text-anchor="middle">M1 complete: 1 of 8; not useful chat</text>
 
 <!-- Panel 1: Text -->
 <rect class="card" x="20" y="80" width="206" height="296" rx="12"/>
@@ -210,9 +210,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="lbl" x="837" y="288" text-anchor="middle">next: <tspan class="strong">mat</tspan></text>
 <text class="lbl" x="837" y="320" text-anchor="middle">Open a few drawers,</text>
 <text class="lbl" x="837" y="336" text-anchor="middle">pick the nearest word</text>
-<text class="note" x="837" y="356" text-anchor="middle">no softmax; 256 drawers in all</text>
+<text class="note" x="837" y="356" text-anchor="middle">no squashing; 256 drawers in all</text>
 
 <!-- Band -->
 <rect class="band" x="20" y="392" width="920" height="40" rx="10"/>
-<text class="band-text" x="480" y="417" text-anchor="middle"><tspan class="strong">Whole numbers only:</tspan> add, subtract, compare, table look-up. No multiply, no decimals.</text>
+<text class="band-text" x="480" y="417" text-anchor="middle"><tspan class="strong">Served as whole numbers:</tspan> add, subtract, integer multiply/divide, compare, table look-up. No floats.</text>
 </svg>

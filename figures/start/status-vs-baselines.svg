@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
-<title id="t">Trained model against count tables</title>
-<desc id="d">Horizontal bars on one scale from 0 to 14,287 development-panel positions. Next-word table 6,300, unigram table 1,226, trained model seed 2 463, trained model seed 1 65. A dashed line at 6,300 marks the new M1 bar: beat both tables on each of two seeds. The trained model is far below both tables.</desc>
+<title id="t">Saved M1 model against count tables</title>
+<desc id="d">Horizontal bars on one scale from 0 to 14,287 development-panel positions. Next-word table 6,300, unigram table 1,226, saved M1 model seed 2 7,001, saved M1 model seed 1 7,002. A dashed line at 6,324 marks M1's closing target: T2 6,300 plus 24. Both seeds pass the target and beat both tables.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
@@ -25,9 +25,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 </style>
 <rect class="bg" x="0" y="0" width="960" height="440"/>
 <text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Correct first guesses on 14,287 development-panel positions</text>
-<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">The best trained model against two simple count tables, on one scale. Higher is better.</text>
+<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">The saved M1 model against two simple count tables, on one scale. Higher is better.</text>
 <rect x="16" y="68" width="16" height="12" rx="2" class="f-blue"/>
-<text x="40" y="79" font-size="13" class="t-body" text-anchor="start">Trained model</text>
+<text x="40" y="79" font-size="13" class="t-body" text-anchor="start">Saved M1 model</text>
 <rect x="160" y="68" width="16" height="12" rx="2" class="f-muted"/>
 <text x="184" y="79" font-size="13" class="t-body" text-anchor="start">Count table</text>
 <line x1="270" y1="112" x2="270" y2="348" class="s-rule" stroke-width="1"/>
@@ -47,16 +47,16 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text x="16" y="212" font-size="11" class="t-muted" text-anchor="start">always the most common token</text>
 <rect x="270" y="182" width="54.1" height="34" fill-opacity="0.7" class="f-muted"/>
 <text x="332.1" y="204" font-size="13" class="t-ink b" text-anchor="start">1,226</text>
-<text x="16" y="255" font-size="13" class="t-ink b" text-anchor="start">Trained model, seed 2</text>
-<text x="16" y="270" font-size="11" class="t-muted" text-anchor="start">variant A</text>
-<rect x="270" y="240" width="20.4" height="34" rx="2" class="f-blue"/>
-<text x="298.4" y="262" font-size="13" class="t-ink b" text-anchor="start">463</text>
-<text x="16" y="313" font-size="13" class="t-ink b" text-anchor="start">Trained model, seed 1</text>
-<text x="16" y="328" font-size="11" class="t-muted" text-anchor="start">variant A</text>
-<rect x="270" y="298" width="2.9" height="34" rx="2" class="f-blue"/>
-<text x="280.9" y="320" font-size="13" class="t-ink b" text-anchor="start">65</text>
-<line x1="547.8" y1="112" x2="547.8" y2="348" class="s-verm" stroke-width="2" stroke-dasharray="6 4"/>
-<text x="555.8" y="100" font-size="13" class="t-body" text-anchor="start">new M1 bar: beat both tables, on each of two seeds</text>
-<text x="16" y="412" font-size="11" class="t-muted" text-anchor="start">Variant R (101 and 230) is omitted: it collapsed to 19 or 20 of 256 cells.</text>
-<text x="16" y="428" font-size="11" class="t-muted" text-anchor="start">Source: docs/labs/k16-outcome-call-2026-10-19; docs/labs/host-diagnostics-2026-10-17.</text>
+<text x="16" y="255" font-size="13" class="t-ink b" text-anchor="start">Saved M1 model, seed 2</text>
+<text x="16" y="270" font-size="11" class="t-muted" text-anchor="start">integer UORLUT01</text>
+<rect x="270" y="240" width="308.7" height="34" rx="2" class="f-blue"/>
+<text x="586.7" y="262" font-size="13" class="t-ink b" text-anchor="start">7,001</text>
+<text x="16" y="313" font-size="13" class="t-ink b" text-anchor="start">Saved M1 model, seed 1</text>
+<text x="16" y="328" font-size="11" class="t-muted" text-anchor="start">integer UORLUT01</text>
+<rect x="270" y="298" width="308.8" height="34" rx="2" class="f-blue"/>
+<text x="586.8" y="320" font-size="13" class="t-ink b" text-anchor="start">7,002</text>
+<line x1="548.9" y1="112" x2="548.9" y2="348" class="s-verm" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="556.9" y="100" font-size="13" class="t-body" text-anchor="start">M1 target 6,324 (T2 + 24): passed at both seeds</text>
+<text x="16" y="412" font-size="11" class="t-muted" text-anchor="start">Exact 14,287-row DEV export/reference agreement and B4 pass at both seeds.</text>
+<text x="16" y="428" font-size="11" class="t-muted" text-anchor="start">Source: docs/labs/m1-close-saved-model; archive/labs/host-diagnostics-2026-10-17/README.md.</text>
 </svg>

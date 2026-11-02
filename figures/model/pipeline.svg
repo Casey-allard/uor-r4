@@ -1,184 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" role="img" aria-labelledby="t d">
-<title id="t">The model pipeline, stage by stage</title>
-<desc id="d">A left-to-right pipeline. Text goes to stage 1, the tokenizer with 4,096 pieces (built). Stage 2 is the token table of 4 blocks of 8 integers (trained in). Stage 3 is the ordered context, a tree of positions (built). Stage 4 is the reads Route, Flock and Relation (trained in). Stage 5 is the writer with admission, 256 cells with K kept (trained in). Stage 6 is the rank-margin loss (trained in). Stage 7, discrete learning on the GPU, sits below the line: it receives the loss and updates the token table and the reads (trained in). Stage 8, export to a D11 integer artifact, is a dashed empty box: missing, no code. Stage 9 is serving: the engine is built but has never been used for this model. Three dashed boxes above the line mark parts a transformer has and this model lacks: position, normalization and a feed-forward block on the discrete path, each with no mechanism assigned. Most boxes are solid, so the chain mostly exists, but it stops short of a shippable file.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" role="img" aria-labelledby="t d">
+<title id="t">Two separate model pipelines: discrete M1 and float-trained FBS</title>
+<desc id="d">Two explicit, separate lanes share only the integer D11 serving boundary. The upper green lane is the completed discrete M1 model: BPE-4096 tokenizer and shared table, PositionHolonomyV1 with discrete quaternion recurrence, Flock FrozenZeroV1 plus an orbit-root causal pointer, discrete Hamilton mixing with OrbitRootSnapNormV1, post-rotation OuterL1V1 readout trained with rank-margin hinge, and a 19-table UORLUT01 export. M1 passes six bars at two seeds: DEV 7,002 / 7,001, Fresh V2 7,215 / 7,228 and p-f 7,850 / 7,872, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s. The lower blue lane is the separate float-trained FBS research model: a learned 4,096 by 256 table, SpiralCore transport spin, FBS recurrence with Hamilton gate and RMS norm, Hamming copy heads and exact turn memory whose joined serving remains open, the in-model point key and whole-table nearest readout with greedy parity still missed, and lut-stack/5 export with exact rotations and its DEV export gap inside the bar. FBS serves at 4,217 to 4,504 tok/s. Current work localizes claude-232's parity MISS before p-x; joined serving and R7 remain open. On p-f, 62.5% of reference replies are verbatim TRAIN replies, so M1 is not useful-chat qualification.</desc>
 <style>
-svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
-      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
-      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
-@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
-      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
-      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
-.bg { fill: var(--bg); }
-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
-.title { font-size: 19px; font-weight: 600; }
-.sub { font-size: 12.5px; fill: var(--muted); }
-.name { font-size: 13px; font-weight: 600; }
-.detail { font-size: 11px; fill: var(--muted); }
-.tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; }
-.tag-built { fill: var(--blue); }
-.tag-trained { fill: var(--green); }
-.tag-missing { fill: var(--verm); }
-.note { font-size: 11px; fill: var(--muted); }
-.badge-t { font-size: 11px; font-weight: 700; fill: var(--bg); }
-.q { font-size: 12px; font-weight: 700; fill: var(--verm); }
-.in { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
-.built { fill: var(--blue); fill-opacity: 0.12; stroke: var(--blue); stroke-width: 1.75; }
-.trained { fill: var(--green); fill-opacity: 0.12; stroke: var(--green); stroke-width: 1.75; }
-.ring { fill: none; stroke: var(--green); stroke-width: 1.25; }
-.missing { fill: none; stroke: var(--verm); stroke-width: 1.75; stroke-dasharray: 5 4; }
-.badge-b { fill: var(--blue); }
-.badge-g { fill: var(--green); }
-.badge-v { fill: var(--verm); }
-.flow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
-.flow-learn { stroke: var(--green); stroke-width: 1.75; fill: none; }
-.flow-miss { stroke: var(--verm); stroke-width: 1.75; fill: none; stroke-dasharray: 5 4; }
-.stub { stroke: var(--verm); stroke-width: 1.25; fill: none; stroke-dasharray: 3 3; }
-.dot { fill: var(--verm); }
-.rule { stroke: var(--rule); stroke-width: 1; }
-.ah { fill: var(--muted); }
-.ah-g { fill: var(--green); }
-.ah-v { fill: var(--verm); }
+svg { --bg:#ffffff; --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa; --blue:#0072b2; --green:#007a5e; --orange:#b06d00; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --muted:#9da7b1; --rule:#30363d; --panel:#161b22; --blue:#58a6ff; --green:#3fb950; --orange:#f0b72f; } }
+.bg { fill:var(--bg); }
+text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; fill:var(--ink); font-size:13px; }
+.title { font-size:19px; font-weight:650; }
+.sub { font-size:12.5px; fill:var(--muted); }
+.lane-m1 { font-size:12px; font-weight:750; letter-spacing:.05em; fill:var(--green); }
+.lane-fbs { font-size:12px; font-weight:750; letter-spacing:.05em; fill:var(--blue); }
+.name { font-size:12px; font-weight:650; }
+.detail { font-size:10.5px; fill:var(--muted); }
+.note { font-size:11.5px; fill:var(--muted); }
+.open-text { font-size:10.5px; font-weight:650; fill:var(--orange); }
+.panel-m1 { fill:var(--green); fill-opacity:.035; stroke:var(--green); stroke-opacity:.45; stroke-width:1.5; }
+.panel-fbs { fill:var(--blue); fill-opacity:.035; stroke:var(--blue); stroke-opacity:.45; stroke-width:1.5; }
+.m1 { fill:var(--green); fill-opacity:.11; stroke:var(--green); stroke-width:1.6; }
+.fbs { fill:var(--blue); fill-opacity:.10; stroke:var(--blue); stroke-width:1.6; }
+.open { fill:var(--panel); stroke:var(--orange); stroke-width:1.6; stroke-dasharray:5 4; }
+.flow { fill:none; stroke:var(--muted); stroke-width:1.5; }
+.head { fill:var(--muted); }
+.rule { stroke:var(--rule); stroke-width:1; }
 </style>
-<defs>
-  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
-  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-g" d="M0 0 L10 5 L0 10 z"/></marker>
-  <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-v" d="M0 0 L10 5 L0 10 z"/></marker>
-</defs>
-<rect class="bg" x="0" y="0" width="960" height="560"/>
-<text class="title" x="24" y="34">From text to a served model: what exists today</text>
-<text class="sub" x="24" y="56">Dashed boxes above the line are parts a transformer has that this model has not filled.</text>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+<rect class="bg" width="960" height="600"/>
+<text class="title" x="24" y="34">Two models, two pipelines, one integer serving boundary</text>
+<text class="sub" x="24" y="56">M1 is complete on the saved discrete model. FBS is a separate float-trained research line.</text>
 
-<!-- empty slots above the line -->
-<path class="stub" d="M324 144 V250"/>
-<path class="stub" d="M480 144 V166 H530 V250"/>
-<path class="stub" d="M630 144 V166 H530"/>
-<circle class="dot" cx="324" cy="250" r="3"/>
-<circle class="dot" cx="530" cy="250" r="3"/>
-<rect class="missing" x="254" y="84" width="140" height="60" rx="8"/>
-<text class="name" x="324" y="106" text-anchor="middle">position</text>
-<text class="detail" x="324" y="123" text-anchor="middle">no mechanism assigned</text>
-<text class="q" x="382" y="100" text-anchor="middle">?</text>
-<rect class="missing" x="410" y="84" width="140" height="60" rx="8"/>
-<text class="name" x="480" y="102" text-anchor="middle">feed-forward</text>
-<text class="detail" x="480" y="117" text-anchor="middle">(discrete path)</text>
-<text class="detail" x="480" y="132" text-anchor="middle">no mechanism assigned</text>
-<text class="q" x="538" y="100" text-anchor="middle">?</text>
-<rect class="missing" x="560" y="84" width="140" height="60" rx="8"/>
-<text class="name" x="630" y="106" text-anchor="middle">normalization</text>
-<text class="detail" x="630" y="123" text-anchor="middle">no mechanism assigned</text>
-<text class="q" x="688" y="100" text-anchor="middle">?</text>
+<text class="lane-m1" x="24" y="84">M1 · DISCRETE MODEL · COMPLETE AT TWO SEEDS</text>
+<rect class="panel-m1" x="24" y="96" width="912" height="192" rx="12"/>
+<path class="flow" d="M176 168 H182" marker-end="url(#a)"/><path class="flow" d="M320 168 H326" marker-end="url(#a)"/><path class="flow" d="M464 168 H470" marker-end="url(#a)"/><path class="flow" d="M608 168 H614" marker-end="url(#a)"/><path class="flow" d="M752 168 H758" marker-end="url(#a)"/>
+<rect class="m1" x="40" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="108" y="140" text-anchor="middle">Tokenizer + table</text>
+<text class="detail" x="108" y="161" text-anchor="middle">BPE · 4,096 pieces</text>
+<text class="detail" x="108" y="178" text-anchor="middle">shared input/carry/output</text>
+<text class="detail" x="108" y="195" text-anchor="middle">4 blocks × 8 integers</text>
+<rect class="m1" x="184" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="252" y="140" text-anchor="middle">Position + context</text>
+<text class="detail" x="252" y="161" text-anchor="middle">PositionHolonomyV1</text>
+<text class="detail" x="252" y="178" text-anchor="middle">discrete quaternion</text>
+<text class="detail" x="252" y="195" text-anchor="middle">recurrence · ordered tree</text>
+<rect class="m1" x="328" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="396" y="140" text-anchor="middle">Reads</text>
+<text class="detail" x="396" y="161" text-anchor="middle">Flock FrozenZeroV1</text>
+<text class="detail" x="396" y="178" text-anchor="middle">orbit-root causal pointer</text>
+<text class="detail" x="396" y="195" text-anchor="middle">hard selection · no softmax</text>
+<rect class="m1" x="472" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="540" y="140" text-anchor="middle">Mixing + norm</text>
+<text class="detail" x="540" y="161" text-anchor="middle">discrete Hamilton gate</text>
+<text class="detail" x="540" y="178" text-anchor="middle">OrbitRootSnapNormV1</text>
+<text class="detail" x="540" y="195" text-anchor="middle">not FBS RMS norm</text>
+<rect class="m1" x="616" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="684" y="140" text-anchor="middle">Readout + learning</text>
+<text class="detail" x="684" y="161" text-anchor="middle">post-rotation OuterL1V1</text>
+<text class="detail" x="684" y="178" text-anchor="middle">rank-margin integer hinge</text>
+<text class="detail" x="684" y="195" text-anchor="middle">discrete legal moves</text>
+<rect class="m1" x="760" y="118" width="136" height="104" rx="8"/>
+<text class="name" x="828" y="140" text-anchor="middle">Export + serving</text>
+<text class="detail" x="828" y="161" text-anchor="middle">19 tables · UORLUT01</text>
+<text class="detail" x="828" y="178" text-anchor="middle">exact 14,287-row DEV</text>
+<text class="detail" x="828" y="195" text-anchor="middle">Apple M1 · D11 integer</text>
+<text class="note" x="40" y="248">DEV 7,002 / 7,001 · Fresh V2 7,215 / 7,228 · p-f 7,850 / 7,872</text>
+<text class="note" x="40" y="269">Decode 10,876 / 10,566 tok/s · p-f: 62.5% of reference replies are verbatim TRAIN; not useful chat.</text>
 
-<!-- main line connectors -->
-<path class="flow" d="M109 250 H127" marker-end="url(#a)"/>
-<path class="flow" d="M212 250 H226" marker-end="url(#a)"/>
-<path class="flow" d="M319 250 H333" marker-end="url(#a)"/>
-<path class="flow" d="M418 250 H432" marker-end="url(#a)"/>
-<path class="flow" d="M525 250 H535" marker-end="url(#a)"/>
-<path class="flow-miss" d="M830 250 H848" marker-end="url(#av)"/>
+<text class="lane-fbs" x="24" y="318">FBS · FLOAT-TRAINED RESEARCH MODEL · SEPARATE FROM M1</text>
+<rect class="panel-fbs" x="24" y="330" width="912" height="192" rx="12"/>
+<path class="flow" d="M176 402 H182" marker-end="url(#a)"/><path class="flow" d="M320 402 H326" marker-end="url(#a)"/><path class="flow" d="M464 402 H470" marker-end="url(#a)"/><path class="flow" d="M608 402 H614" marker-end="url(#a)"/><path class="flow" d="M752 402 H758" marker-end="url(#a)"/>
+<rect class="fbs" x="40" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="108" y="374" text-anchor="middle">Learned FBS table</text>
+<text class="detail" x="108" y="395" text-anchor="middle">BPE-4096 token ids</text>
+<text class="detail" x="108" y="412" text-anchor="middle">4,096 × 256 vectors</text>
+<text class="detail" x="108" y="429" text-anchor="middle">float training under D37</text>
+<rect class="fbs" x="184" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="252" y="374" text-anchor="middle">Position</text>
+<text class="detail" x="252" y="395" text-anchor="middle">SpiralCore transport</text>
+<text class="detail" x="252" y="412" text-anchor="middle">spin · no RoPE</text>
+<text class="detail" x="252" y="429" text-anchor="middle">trained and served</text>
+<rect class="fbs" x="328" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="396" y="374" text-anchor="middle">Mixing + norm</text>
+<text class="detail" x="396" y="395" text-anchor="middle">FBS recurrence</text>
+<text class="detail" x="396" y="412" text-anchor="middle">Hamilton gate</text>
+<text class="detail" x="396" y="429" text-anchor="middle">RMS norm · isqrt</text>
+<rect class="open" x="472" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="540" y="374" text-anchor="middle">Reads + memory</text>
+<text class="detail" x="540" y="395" text-anchor="middle">Hamming + copy heads</text>
+<text class="detail" x="540" y="412" text-anchor="middle">exact turn memory</text>
+<text class="open-text" x="540" y="429" text-anchor="middle">joined serving open</text>
+<rect class="fbs" x="616" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="684" y="374" text-anchor="middle">Point key + readout</text>
+<text class="detail" x="684" y="395" text-anchor="middle">in-model point key</text>
+<text class="detail" x="684" y="412" text-anchor="middle">whole-table nearest</text>
+<text class="open-text" x="684" y="429" text-anchor="middle">greedy parity MISS</text>
+<rect class="fbs" x="760" y="352" width="136" height="104" rx="8"/>
+<text class="name" x="828" y="374" text-anchor="middle">Export + serving</text>
+<text class="detail" x="828" y="395" text-anchor="middle">lut-stack/5 · D11 integer</text>
+<text class="detail" x="828" y="412" text-anchor="middle">exact rotations · DEV gap</text>
+<text class="detail" x="828" y="429" text-anchor="middle">4,217–4,504 tok/s</text>
+<text class="note" x="40" y="482">Current: localize claude-232's trunk, Hamming-read and readout mismatch before parity and p-x.</text>
+<text class="note" x="40" y="503">The /7 memory path is synthetic-fixture only; trained parity and restore are open. Joined serving and R7 remain open.</text>
 
-<!-- 0 text -->
-<rect class="in" x="24" y="190" width="85" height="124" rx="8"/>
-<text class="name" x="66.5" y="254" text-anchor="middle">text</text>
-
-<!-- 1 tokenizer -->
-<rect class="built" x="127" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-b" cx="127" cy="190" r="10"/><text class="badge-t" x="127" y="194" text-anchor="middle">1</text>
-<text class="name" x="169.5" y="224" text-anchor="middle">tokenizer</text>
-<text class="detail" x="169.5" y="256" text-anchor="middle">4,096</text>
-<text class="detail" x="169.5" y="270" text-anchor="middle">pieces</text>
-<text class="tag tag-built" x="169.5" y="302" text-anchor="middle">BUILT</text>
-
-<!-- 2 token table -->
-<rect x="226" y="186" width="93" height="132" rx="11" class="ring"/>
-<rect class="trained" x="230" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-g" cx="230" cy="190" r="10"/><text class="badge-t" x="230" y="194" text-anchor="middle">2</text>
-<text class="name" x="272.5" y="224" text-anchor="middle">token</text>
-<text class="name" x="272.5" y="241" text-anchor="middle">table</text>
-<text class="detail" x="272.5" y="263" text-anchor="middle">4 blocks of</text>
-<text class="detail" x="272.5" y="277" text-anchor="middle">8 integers</text>
-<text class="tag tag-trained" x="272.5" y="302" text-anchor="middle">TRAINED IN</text>
-
-<!-- 3 ordered context -->
-<rect class="built" x="333" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-b" cx="333" cy="190" r="10"/><text class="badge-t" x="333" y="194" text-anchor="middle">3</text>
-<text class="name" x="375.5" y="224" text-anchor="middle">ordered</text>
-<text class="name" x="375.5" y="241" text-anchor="middle">context</text>
-<text class="detail" x="375.5" y="263" text-anchor="middle">tree of</text>
-<text class="detail" x="375.5" y="277" text-anchor="middle">positions</text>
-<text class="tag tag-built" x="375.5" y="302" text-anchor="middle">BUILT</text>
-
-<!-- 4 reads -->
-<rect x="432" y="186" width="93" height="132" rx="11" class="ring"/>
-<rect class="trained" x="436" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-g" cx="436" cy="190" r="10"/><text class="badge-t" x="436" y="194" text-anchor="middle">4</text>
-<text class="name" x="478.5" y="232" text-anchor="middle">reads</text>
-<text class="detail" x="478.5" y="256" text-anchor="middle">Route, Flock,</text>
-<text class="detail" x="478.5" y="270" text-anchor="middle">Relation</text>
-<text class="tag tag-trained" x="478.5" y="302" text-anchor="middle">TRAINED IN</text>
-
-<!-- 5 writer -->
-<rect x="535" y="186" width="93" height="132" rx="11" class="ring"/>
-<rect class="trained" x="539" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-g" cx="539" cy="190" r="10"/><text class="badge-t" x="539" y="194" text-anchor="middle">5</text>
-<text class="name" x="581.5" y="224" text-anchor="middle">writer</text>
-<text class="name" x="581.5" y="241" text-anchor="middle">+ admission</text>
-<text class="detail" x="581.5" y="263" text-anchor="middle">256 cells,</text>
-<text class="detail" x="581.5" y="277" text-anchor="middle">K kept</text>
-<text class="tag tag-trained" x="581.5" y="302" text-anchor="middle">TRAINED IN</text>
-
-<!-- 6 loss -->
-<rect x="638" y="186" width="93" height="132" rx="11" class="ring"/>
-<rect class="trained" x="642" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-g" cx="642" cy="190" r="10"/><text class="badge-t" x="642" y="194" text-anchor="middle">6</text>
-<text class="name" x="684.5" y="224" text-anchor="middle">rank-margin</text>
-<text class="name" x="684.5" y="241" text-anchor="middle">loss</text>
-<text class="detail" x="684.5" y="263" text-anchor="middle">integer</text>
-<text class="detail" x="684.5" y="277" text-anchor="middle">hinge</text>
-<text class="tag tag-trained" x="684.5" y="302" text-anchor="middle">TRAINED IN</text>
-
-<!-- 8 export (missing) -->
-<rect class="missing" x="745" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-v" cx="745" cy="190" r="10"/><text class="badge-t" x="745" y="194" text-anchor="middle">8</text>
-<text class="name" x="787.5" y="224" text-anchor="middle">export</text>
-<text class="detail" x="787.5" y="256" text-anchor="middle">D11 integer</text>
-<text class="detail" x="787.5" y="270" text-anchor="middle">artifact</text>
-<text class="detail" x="787.5" y="286" text-anchor="middle">no code</text>
-<text class="tag tag-missing" x="787.5" y="302" text-anchor="middle">MISSING</text>
-<text class="q" x="818" y="210" text-anchor="middle">?</text>
-
-<!-- 9 serving -->
-<rect class="built" x="848" y="190" width="85" height="124" rx="8"/>
-<circle class="badge-b" cx="848" cy="190" r="10"/><text class="badge-t" x="848" y="194" text-anchor="middle">9</text>
-<text class="name" x="890.5" y="224" text-anchor="middle">serving</text>
-<text class="detail" x="890.5" y="248" text-anchor="middle">engine built;</text>
-<text class="detail" x="890.5" y="262" text-anchor="middle">not used for</text>
-<text class="detail" x="890.5" y="276" text-anchor="middle">this model</text>
-<text class="tag tag-built" x="890.5" y="302" text-anchor="middle">BUILT</text>
-
-<!-- 7 learning (below the line) -->
-<path class="flow" d="M684.5 318 V386" marker-end="url(#a)"/>
-<text class="note" x="692" y="356">integer loss</text>
-<path class="flow-learn" d="M530 390 V350 H478.5 V320" marker-end="url(#ag)"/>
-<text class="note" x="486" y="343">route frames, gates</text>
-<path class="flow-learn" d="M500 422 H272.5 V320" marker-end="url(#ag)"/>
-<text class="note" x="282" y="414">vector blocks</text>
-<path class="flow-miss" d="M700 422 H787.5 V320" marker-end="url(#av)"/>
-<text class="note" x="796" y="372">trained snapshot</text>
-<text class="note" x="796" y="386">(no exporter yet)</text>
-<rect x="496" y="386" width="208" height="72" rx="11" class="ring"/>
-<rect class="trained" x="500" y="390" width="200" height="64" rx="8"/>
-<circle class="badge-g" cx="500" cy="390" r="10"/><text class="badge-t" x="500" y="394" text-anchor="middle">7</text>
-<text class="name" x="600" y="414" text-anchor="middle">discrete learning (GPU)</text>
-<text class="detail" x="600" y="430" text-anchor="middle">16 legal states, keeps a strict gain</text>
-<text class="tag tag-trained" x="600" y="446" text-anchor="middle">TRAINED IN</text>
-
-<!-- key -->
-<line class="rule" x1="24" y1="476" x2="936" y2="476"/>
-<rect class="built" x="24" y="486" width="30" height="16" rx="4"/>
-<text class="note" x="64" y="498"><tspan font-weight="700">BUILT</tspan>: the source exists and passes its small fixed controls (not a language result).</text>
-<rect x="21" y="508" width="36" height="22" rx="6" class="ring"/>
-<rect class="trained" x="24" y="511" width="30" height="16" rx="4"/>
-<text class="note" x="64" y="523"><tspan font-weight="700">TRAINED IN</tspan>: took part in a learning run, helped or not. No stage has learned language yet.</text>
-<rect class="missing" x="24" y="536" width="30" height="12" rx="4"/>
-<text class="note" x="64" y="546"><tspan font-weight="700">MISSING</tspan>: no code, or no mechanism assigned.</text>
+<line class="rule" x1="24" y1="544" x2="936" y2="544"/>
+<rect class="m1" x="40" y="558" width="28" height="18" rx="4"/><text class="note" x="78" y="572">M1 complete</text>
+<rect class="fbs" x="190" y="558" width="28" height="18" rx="4"/><text class="note" x="228" y="572">FBS working</text>
+<rect class="open" x="356" y="558" width="28" height="18" rx="4"/><text class="note" x="394" y="572">Open join or parity</text>
 </svg>

@@ -367,5 +367,5 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="cell" x="876" y="342" width="14" height="14" rx="2"/>
 <text class="t" x="646" y="378">Routed subset: only the selected cells are</text><text class="t" x="646" y="394">read (a hypothesis, never built).</text>
 <text class="tb" x="646" y="426">The multiplier goes away;</text><text class="tb" x="646" y="442">the dense sum stays.</text>
-<text class="n" x="16" y="472">Weights, activations and the query are worked examples. The AND-and-subtract identity is exact (re-checked in 5,000 random trials). Status: parked.</text>
+<text class="n" x="16" y="472">Weights, activations and the query are worked examples. The AND-and-subtract identity is exact (re-checked in 5,000 random trials). Status: READY by D74.</text>
 </svg>

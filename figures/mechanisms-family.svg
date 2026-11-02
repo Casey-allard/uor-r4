@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 824" width="960" role="img" aria-labelledby="t d">
-<title id="t">Family tree of the 27 mechanisms</title>
-<desc id="d">A left-to-right family tree of the 22 mechanisms that have a recorded parent or child, with five more shown in a strip for having no recorded lineage, so all 27 appear. Each box carries a name and a status word: ACTIVE (solid border), READY (dashed border) or PARKED (dotted border). Edges: a solid arrow means successor, a dotted arrow means the target is the integer or discrete form of the source, and a double line means specialisation. Discrete learning is the single sink, with five incoming lineages: native geometric, carrier credit, legal construction, SpiralCore/FBS and ternary/XOR. The R4G1 graph leads to the native geometric engine and to D11 integer serving. The native geometric engine leads to the geometric stack, the prime-zeta codebook, the object store, the rank-margin hinge, discrete learning and relation read. The geometric stack leads to the Hamilton gate, recurrence gates and flock read. Routed read leads to flock read, which specialises into relation read; pointer key also feeds relation read. The prime-zeta codebook leads to address cells, spin-native weights lead to SpiralCore/FBS, and exact memory specialises into E8 orbit memory. The no-lineage strip holds admission and the tokenizer (ACTIVE) and Hopf observation, read binding and VSA (PARKED).</desc>
+<title id="t">Mechanism lineage from 19 October 2026, with current statuses</title>
+<desc id="d">A left-to-right family tree of the 22 mechanisms that had a recorded parent or child on 19 October 2026, with five more shown in a strip for having no recorded lineage, so all 27 entries from that date appear. The lineage is historical; the status words are current on 31 October 2026, not frozen at the audit. This is not the current 28-row board, which later split Hopf observation. Each box carries a name and a current status word: ACTIVE (solid border), READY (dashed border) or PARKED (dotted border). Edges: a solid arrow means successor, a dotted arrow means the target is the integer or discrete form of the source, and a double line means specialisation. Discrete learning is the single sink, with five incoming lineages: native geometric, carrier credit, legal construction, SpiralCore/FBS and ternary/XOR. The R4G1 graph leads to the native geometric engine and to D11 integer serving. The native geometric engine leads to the geometric stack, the prime-zeta codebook, the object store, the rank-margin hinge, discrete learning and relation read. The geometric stack leads to the Hamilton gate, recurrence gates and flock read. Routed read leads to flock read, which specialises into relation read; pointer key also feeds relation read. The prime-zeta codebook leads to address cells, spin-native weights lead to SpiralCore/FBS, and exact memory specialises into E8 orbit memory. The no-lineage strip holds admission and the tokenizer (ACTIVE), Hopf observation split into kept-fibre READY and sector-routing PARKED, and read binding and VSA (PARKED).</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -33,8 +33,8 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
   <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
 </defs>
 <rect class="bg" x="0" y="0" width="960" height="824"/>
-<text class="title" x="24" y="34">Family tree of the 27 mechanisms</text>
-<text class="sub" x="24" y="56">Left to right: older mechanisms to what grew out of them. Discrete learning is the one sink, with five incoming lineages.</text>
+<text class="title" x="24" y="34">Mechanism lineage: 19 October 2026; current status</text>
+<text class="sub" x="24" y="56">Lineage from the audit; statuses current on 31 Oct. The board has 28 rows after the Hopf split. Discrete learning is the sink.</text>
 
 <!-- edges -->
 <path class="e-d" d="M174 110 H784" marker-end="url(#a)"/>
@@ -68,12 +68,12 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="n-p" x="24" y="138" width="150" height="36" rx="8"/>
 <text class="nm" x="34" y="153">Legal construction</text>
 <text class="st st-p" x="34" y="167">PARKED</text>
-<rect class="n-p" x="24" y="184" width="150" height="36" rx="8"/>
+<rect class="n-r" x="24" y="184" width="150" height="36" rx="8"/>
 <text class="nm" x="34" y="199">Ternary/XOR</text>
-<text class="st st-p" x="34" y="213">PARKED</text>
-<rect class="n-p" x="24" y="230" width="150" height="36" rx="8"/>
+<text class="st st-r" x="34" y="213">READY</text>
+<rect class="n-r" x="24" y="230" width="150" height="36" rx="8"/>
 <text class="nm" x="34" y="245">Spin-native weights</text>
-<text class="st st-p" x="34" y="259">PARKED</text>
+<text class="st st-r" x="34" y="259">READY</text>
 <rect class="n-p" x="24" y="276" width="150" height="36" rx="8"/>
 <text class="nm" x="34" y="291">R4G1 graph</text>
 <text class="st st-p" x="34" y="305">PARKED</text>
@@ -86,9 +86,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="n-p" x="24" y="552" width="150" height="36" rx="8"/>
 <text class="nm" x="34" y="567">Pointer key</text>
 <text class="st st-p" x="34" y="581">PARKED</text>
-<rect class="n-r" x="214" y="230" width="150" height="36" rx="8"/>
+<rect class="n-a" x="214" y="230" width="150" height="36" rx="8"/>
 <text class="nm" x="224" y="245">SpiralCore/FBS</text>
-<text class="st st-r" x="224" y="259">READY</text>
+<text class="st st-a" x="224" y="259">ACTIVE</text>
 <rect class="n-p" x="214" y="276" width="150" height="36" rx="8"/>
 <text class="nm" x="224" y="291">Native geometric</text>
 <text class="st st-p" x="224" y="305">PARKED</text>
@@ -110,9 +110,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="n-a" x="404" y="460" width="150" height="36" rx="8"/>
 <text class="nm" x="414" y="475">Rank-margin hinge</text>
 <text class="st st-a" x="414" y="489">ACTIVE</text>
-<rect class="n-r" x="594" y="322" width="150" height="36" rx="8"/>
+<rect class="n-a" x="594" y="322" width="150" height="36" rx="8"/>
 <text class="nm" x="604" y="337">Hamilton gate</text>
-<text class="st st-r" x="604" y="351">READY</text>
+<text class="st st-a" x="604" y="351">ACTIVE</text>
 <rect class="n-r" x="594" y="368" width="150" height="36" rx="8"/>
 <text class="nm" x="604" y="383">Recurrence gates</text>
 <text class="st st-r" x="604" y="397">READY</text>
@@ -140,9 +140,9 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="n-a" x="234" y="654" width="150" height="36" rx="8"/>
 <text class="nm" x="244" y="669">Tokenizer</text>
 <text class="st st-a" x="244" y="683">ACTIVE</text>
-<rect class="n-p" x="414" y="654" width="150" height="36" rx="8"/>
+<rect class="n-r" x="414" y="654" width="150" height="36" rx="8"/>
 <text class="nm" x="424" y="669">Hopf observation</text>
-<text class="st st-p" x="424" y="683">PARKED</text>
+<text class="st st-r" x="424" y="683">fibre R / sector P</text>
 <rect class="n-p" x="594" y="654" width="150" height="36" rx="8"/>
 <text class="nm" x="604" y="669">Read binding</text>
 <text class="st st-p" x="604" y="683">PARKED</text>
@@ -153,11 +153,11 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <!-- legend -->
 <text class="head" x="24" y="734">Status</text>
 <rect class="n-a" x="24" y="744" width="34" height="18" rx="5"/>
-<text class="lab" x="66" y="757"><tspan font-weight="700">ACTIVE</tspan>, 10: on the current model path</text>
+<text class="lab" x="66" y="757"><tspan font-weight="700">ACTIVE</tspan>, 12: on the current model path</text>
 <rect class="n-r" x="336" y="744" width="34" height="18" rx="5"/>
-<text class="lab" x="378" y="757"><tspan font-weight="700">READY</tspan>, 4: built and tested, not yet trained in</text>
+<text class="lab" x="378" y="757"><tspan font-weight="700">READY</tspan>, 5: built and tested, not yet trained in</text>
 <rect class="n-p" x="640" y="744" width="34" height="18" rx="5"/>
-<text class="lab" x="682" y="757"><tspan font-weight="700">PARKED</tspan>, 13: tried forms failed; stays open</text>
+<text class="lab" x="682" y="757"><tspan font-weight="700">PARKED</tspan>, 11: tried forms failed; stays open</text>
 <text class="head" x="24" y="788">Arrows</text>
 <path class="e" d="M24 802 H64" marker-end="url(#a)"/>
 <text class="lab" x="74" y="806">successor: came from, or was replaced by</text>

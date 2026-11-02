@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 568" width="960" height="568" role="img" aria-labelledby="t d">
 <title id="t">Phases and weekly activity, June to October 2026</title>
-<desc id="d">A time axis from 10 June to 19 October 2026. Two rows of bands mark the five phases A to E. Below, an area chart of catalog records per day: nothing before 21 Jul (GitHub items only), then a rise to a peak of 74 records on 13 Oct.</desc>
+<desc id="d">A time axis from 10 June to 19 October 2026. Two rows of bands mark the historical audit phases A to E; the later Phase F and Phase G are not shown. Below, an area chart of catalog records per day: nothing before 21 Jul (GitHub items only), then a rise to a peak of 74 records on 13 Oct.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
@@ -25,7 +25,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 </style>
 <rect class="bg" x="0" y="0" width="960" height="568"/>
 <text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Five approaches in sequence, and the records each day left behind</text>
-<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">Catalog records per day, 10 June to 19 October 2026, under the five phases A to E.</text>
+<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">Historical audit records per day, 10 June to 19 October 2026, under phases A to E; later Phase F/G are in docs/research/history.md.</text>
 <rect x="64" y="76" width="476.7" height="20" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
 <text x="302.3" y="91" font-size="13" class="t-ink b" text-anchor="middle">A</text>
 <rect x="528.4" y="100" width="91.7" height="20" fill-opacity="0.28" class="f-orange s-orange" stroke-width="1.5"/>

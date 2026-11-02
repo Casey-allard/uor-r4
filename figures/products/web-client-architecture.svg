@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 548" width="960" role="img" aria-labelledby="t d">
 <title id="t">Web client architecture</title>
-<desc id="d">A browser window with three stacked layers. Top: the Studio page (index.html) with three panes, editor, chat and model manager; it exists but still points at a retired engine. Middle: a Web Worker holding the WebAssembly engine (uor-r4-integer, serving-wasm feature) with its calls init, loadStack, step, saveSession and restoreSession; this is drawn solid because it is built and tested on a synthetic model (PR 2654). Bottom: browser storage holding the model file (model.uorlut01) and session snapshots (UR4SESS1). The wiring from the Studio to the worker and the storage cache are drawn dashed and marked planned (M7). Outside the window on the left, a static file host sends one dashed arrow in, labelled first visit only: page and model file, check SHA-256. On the right, an arrow to a model server is crossed out: no prompts leave the device.</desc>
+<desc id="d">A browser window with three stacked layers. Top: the Studio page (index.html) with the v2 Workspace/Agent/Models/Guide interface and Sessions, connected to the integer worker and verified on a synthetic stand-in. Middle: a Web Worker holding the WebAssembly engine (uor-r4-integer, serving-wasm feature) with its calls init, loadStack, step, saveSession and restoreSession, tested on a synthetic model. Bottom: browser storage. Session snapshots (UR4SESS1) are verified on the synthetic stand-in; the download-once model cache is planned, not delivered. Solid wiring means verified on that stand-in; accepted-model parity and the model cache remain open. Integer adds, shifts and table look-ups are used, with hardware integer multiply and divide allowed by D80 and D81. Outside the window on the left, a static file host sends one dashed arrow in, labelled first visit only: page and model file, check SHA-256. On the right, local WASM mode keeps prompts on the device; an optional user-configured OpenAI-compatible API sends prompts to the user's chosen endpoint.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -45,8 +45,8 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 </defs>
 <rect class="bg" x="0" y="0" width="960" height="548"/>
 
-<text class="title" x="24" y="36">The web client: one download, then everything stays in the tab</text>
-<text class="sub" x="24" y="58">Solid: built and tested on a synthetic model. Dashed: planned for milestone M7.</text>
+<text class="title" x="24" y="36">The web client: local WASM in the tab; optional user API</text>
+<text class="sub" x="24" y="58">Solid: verified on a synthetic stand-in. Dashed: accepted-model work remains open.</text>
 
 <!-- Browser window -->
 <rect class="window" x="210" y="80" width="560" height="448" rx="10"/>
@@ -58,7 +58,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <!-- Layer 1: Studio page -->
 <rect class="solid" x="230" y="122" width="520" height="98" rx="8"/>
 <text class="layer" x="246" y="144">Studio page (index.html)</text>
-<text class="note" x="734" y="144" text-anchor="end">exists; still points at a retired engine</text>
+<text class="note" x="734" y="144" text-anchor="end">connected to the integer worker; synthetic verified</text>
 <rect class="pane" x="246" y="156" width="156" height="50" rx="6"/>
 <text class="pane-text" x="324" y="186" text-anchor="middle">editor</text>
 <rect class="pane" x="412" y="156" width="156" height="50" rx="6"/>
@@ -66,10 +66,10 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="pane" x="578" y="156" width="156" height="50" rx="6"/>
 <text class="pane-text" x="656" y="186" text-anchor="middle">model manager</text>
 
-<!-- Wiring Studio <-> worker (planned) -->
-<line class="flow-plan" x1="440" y1="222" x2="440" y2="256" marker-end="url(#arr)"/>
-<line class="flow-plan" x1="470" y1="256" x2="470" y2="222" marker-end="url(#arr)"/>
-<text class="note-plan" x="486" y="244">wiring: planned (M7)</text>
+<!-- Wiring Studio <-> worker (verified on the stand-in) -->
+<line class="flow" x1="440" y1="222" x2="440" y2="256" marker-end="url(#arr)"/>
+<line class="flow" x1="470" y1="256" x2="470" y2="222" marker-end="url(#arr)"/>
+<text class="note-plan" x="486" y="244">wiring: synthetic verified</text>
 
 <!-- Layer 2: Web Worker + engine (built) -->
 <rect class="solid" x="230" y="260" width="520" height="138" rx="8"/>
@@ -83,20 +83,22 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="call" x="412" y="334" width="48" height="24" rx="12"/><text class="mono" x="436" y="350" text-anchor="middle">step</text>
 <rect class="call" x="468" y="334" width="100" height="24" rx="12"/><text class="mono" x="518" y="350" text-anchor="middle">saveSession</text>
 <rect class="call" x="576" y="334" width="124" height="24" rx="12"/><text class="mono" x="638" y="350" text-anchor="middle">restoreSession</text>
-<text class="note" x="262" y="376">integer adds, shifts and table look-ups only</text>
+<text class="note" x="262" y="376">integer adds, shifts, table look-ups, and allowed integer multiply/divide (D80/D81)</text>
 
-<!-- Worker <-> storage (planned) -->
+<!-- Planned model-cache wiring; verified synthetic session wiring -->
 <line class="flow-plan" x1="400" y1="434" x2="400" y2="400" marker-end="url(#arr)"/>
-<text class="note" x="390" y="422" text-anchor="end">load model</text>
-<line class="flow-plan" x1="580" y1="400" x2="580" y2="434" marker-end="url(#arr)"/>
+<text class="note" x="390" y="422" text-anchor="end">model cache planned</text>
+<line class="flow" x1="580" y1="400" x2="580" y2="434" marker-end="url(#arr)"/>
 <text class="note" x="590" y="422">save session</text>
 
-<!-- Layer 3: browser storage (planned) -->
-<rect class="planned" x="230" y="438" width="520" height="76" rx="8"/>
+<!-- Layer 3: solid synthetic session storage; dashed planned model cache -->
+<rect class="solid" x="230" y="438" width="520" height="76" rx="8"/>
 <text class="layer" x="246" y="460">Browser storage</text>
-<text class="note-plan" x="734" y="460" text-anchor="end">planned (M7)</text>
-<path class="file" d="M262,470 L276,470 L284,478 L284,500 L262,500 Z"/>
+<text class="note-plan" x="734" y="460" text-anchor="end">session verified; model cache planned</text>
+<rect class="planned" x="246" y="468" width="204" height="38" rx="6"/>
+<path class="planned" d="M262,470 L276,470 L284,478 L284,500 L262,500 Z"/>
 <text class="mono" x="294" y="490">model.uorlut01</text>
+<rect class="pane" x="462" y="468" width="274" height="38" rx="6"/>
 <rect class="file" x="480" y="472" width="22" height="26" rx="3"/>
 <line class="flow" x1="485" y1="481" x2="497" y2="481"/>
 <line class="flow" x1="485" y1="489" x2="497" y2="489"/>
@@ -111,13 +113,12 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="note" x="24" y="310">download page and model,</text>
 <text class="note" x="24" y="326">check SHA-256</text>
 
-<!-- Right: model server, crossed out -->
+<!-- Right: optional API, not a default server -->
 <line class="flow" x1="772" y1="240" x2="808" y2="240" marker-end="url(#arr)"/>
-<line class="cross" x1="782" y1="230" x2="798" y2="250"/>
-<line class="cross" x1="798" y1="230" x2="782" y2="250"/>
+<text class="note" x="812" y="270">not the default</text>
 <rect class="ext-none" x="812" y="210" width="124" height="60" rx="8"/>
-<text class="name" x="874" y="236" text-anchor="middle">Model server</text>
-<text class="detail" x="874" y="254" text-anchor="middle">none</text>
-<text class="blocked" x="812" y="294">No prompts leave</text>
-<text class="blocked" x="812" y="310">the device</text>
+<text class="name" x="874" y="236" text-anchor="middle">Optional API</text>
+<text class="detail" x="874" y="254" text-anchor="middle">user-chosen</text>
+<text class="blocked" x="812" y="294">Local: no prompts</text>
+<text class="blocked" x="812" y="310">leave device; API: chosen</text>
 </svg>

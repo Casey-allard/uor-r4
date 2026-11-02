@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 716" width="960" role="img" aria-labelledby="t d">
 <title id="t">Transformer parts and their geometric replacements</title>
-<desc id="d">Two aligned columns. The left column lists fourteen parts of a transformer from input to output: tokenizer, embedding, position, attention (what to read), attention (mixing), copy heads, context memory (KV cache), feed-forward, gates and activations, normalization, output head (softmax), loss (cross-entropy), optimizer (backprop) and runtime. An arrow from each part points to the UOR-R4 mechanisms meant to replace it, drawn as chips whose outline and label give the status: solid green ACTIVE, dashed amber READY, dotted purple PARKED. Position and normalization have no mechanism and are drawn as empty dashed red boxes labelled gap 1 and gap 2. A blue dot marks the seven rows trained together on today's discrete path: tokenizer, embedding, both attention rows, output head, loss and optimizer; that path has no feed-forward layer and no position mechanism. The board counts 10 ACTIVE, 4 READY and 13 PARKED mechanisms.</desc>
+<desc id="d">Two aligned columns. The left column lists fourteen parts of a transformer from input to output: tokenizer, embedding, position, attention (what to read), attention (mixing), copy heads, context memory (KV cache), feed-forward, gates and activations, normalization, output head (softmax), loss (cross-entropy), optimizer (backprop) and runtime. An arrow from each part points to the UOR-R4 mechanisms meant to replace it, drawn as chips whose outline and label give the status: solid green ACTIVE, dashed amber READY, dotted purple PARKED. Position names both FBS SpiralCore transport and M1 PositionHolonomyV1; normalization names both FBS RMS norm and M1 OrbitRootSnapNormV1. Hopf is split: the kept-fibre map is READY and sector routing is PARKED. The discrete M1 composition also includes a discrete quaternion recurrence and Hamilton gate. Hamilton gate and the FBS SpiralCore/FBS routes are ACTIVE; the dated float projection form remains READY (31 October 2026). On p-f, 62.5% of reference replies are verbatim TRAIN replies: reference-data overlap, not a generated-copy rate or new reply kinds.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -42,15 +42,15 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="bg" x="0" y="0" width="960" height="716"/>
 
 <text class="title" x="24" y="36">Transformer parts and their geometric replacements</text>
-<text class="sub" x="24" y="58">Each part beside the UOR-R4 mechanisms meant to replace it. Two parts, position and normalization, have none.</text>
+<text class="sub" x="24" y="58">FBS: SpiralCore position and RMS norm. M1: PositionHolonomyV1 and OrbitRootSnapNormV1.</text>
 
 <!-- Legend -->
 <rect class="chip-active" x="24" y="76" width="26" height="16" rx="4"/>
-<text class="legend" x="58" y="89"><tspan class="strong">ACTIVE (10)</tspan> on today's model path</text>
-<rect class="chip-ready" x="274" y="76" width="26" height="16" rx="4"/>
-<text class="legend" x="308" y="89"><tspan class="strong">READY (4)</tspan> built and tested, never trained</text>
+<text class="legend" x="58" y="89"><tspan class="strong">ACTIVE (12)</tspan> on today's model path</text>
+<rect class="chip-active" x="274" y="76" width="26" height="16" rx="4"/>
+<text class="legend" x="308" y="89"><tspan class="strong">READY (5)</tspan> built and tested, not yet trained in</text>
 <rect class="chip-parked" x="554" y="76" width="26" height="16" rx="4"/>
-<text class="legend" x="588" y="89"><tspan class="strong">PARKED (13)</tspan> tried forms failed; still open</text>
+<text class="legend" x="588" y="89"><tspan class="strong">PARKED (11)</tspan> tried forms failed; still open</text>
 
 <line class="rule" x1="24" y1="106" x2="936" y2="106"/>
 <text class="colhead" x="24" y="128">Transformer part</text>
@@ -73,20 +73,23 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="lbl" x="354" y="196">prime-zeta codebook · address cells</text>
 <text class="st st-active" x="647" y="195" text-anchor="end">ACTIVE</text>
 <circle class="onpath" cx="912" cy="191" r="6"/>
-<rect class="part part-gap" x="24" y="214" width="270" height="29" rx="6"/>
+<rect class="part" x="24" y="214" width="270" height="29" rx="6"/>
 <text class="lbl strong" x="38" y="233">Position</text>
 <line class="flow" x1="300" y1="228" x2="334" y2="228" marker-end="url(#arr)"/>
-<rect class="gap" x="344" y="214" width="300" height="29" rx="6"/>
-<text class="gap-text" x="358" y="233">No mechanism (gap 1)</text>
+<rect class="chip-active" x="344" y="214" width="300" height="29" rx="6"/>
+<text class="lbl" x="358" y="233">FBS spin · M1 PositionHolonomyV1</text>
 <rect class="part" x="24" y="251" width="270" height="29" rx="6"/>
 <text class="lbl" x="38" y="270">Attention: what to read</text>
 <line class="flow" x1="300" y1="265" x2="334" y2="265" marker-end="url(#arr)"/>
 <rect class="chip-active" x="344" y="251" width="319" height="29" rx="6"/>
 <text class="lbl" x="354" y="270">route · flock · relation · admission</text>
 <text class="st st-active" x="653" y="269" text-anchor="end">ACTIVE</text>
-<rect class="chip-parked" x="671" y="251" width="105" height="29" rx="6"/>
+<rect class="chip-ready" x="671" y="251" width="100" height="29" rx="6"/>
 <text class="lbl" x="681" y="270">Hopf</text>
-<text class="st st-parked" x="766" y="269" text-anchor="end">PARKED</text>
+<text class="st st-ready" x="761" y="269" text-anchor="end">READY</text>
+<rect class="chip-parked" x="779" y="251" width="101" height="29" rx="6"/>
+<text class="lbl" x="789" y="270">sector</text>
+<text class="st st-parked" x="876" y="269" text-anchor="end">PARKED</text>
 <circle class="onpath" cx="912" cy="265" r="6"/>
 <rect class="part" x="24" y="288" width="270" height="29" rx="6"/>
 <text class="lbl" x="38" y="307">Attention: mixing</text>
@@ -113,23 +116,26 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="part" x="24" y="399" width="270" height="29" rx="6"/>
 <text class="lbl" x="38" y="418">Feed-forward</text>
 <line class="flow" x1="300" y1="413" x2="334" y2="413" marker-end="url(#arr)"/>
-<rect class="chip-ready" x="344" y="399" width="273" height="29" rx="6"/>
+<rect class="chip-active" x="344" y="399" width="273" height="29" rx="6"/>
 <text class="lbl" x="354" y="418">SpiralCore/FBS · Hamilton gate</text>
-<text class="st st-ready" x="607" y="417" text-anchor="end">READY</text>
+<text class="st st-active" x="607" y="417" text-anchor="end">ACTIVE</text>
 <rect class="chip-parked" x="625" y="399" width="179" height="29" rx="6"/>
 <text class="lbl" x="635" y="418">E8 orbit memory</text>
 <text class="st st-parked" x="794" y="417" text-anchor="end">PARKED</text>
 <rect class="part" x="24" y="436" width="270" height="29" rx="6"/>
 <text class="lbl" x="38" y="455">Gates and activations</text>
 <line class="flow" x1="300" y1="450" x2="334" y2="450" marker-end="url(#arr)"/>
-<rect class="chip-ready" x="344" y="436" width="286" height="29" rx="6"/>
-<text class="lbl" x="354" y="455">Hamilton gate · recurrence gates</text>
-<text class="st st-ready" x="620" y="454" text-anchor="end">READY</text>
-<rect class="part part-gap" x="24" y="473" width="270" height="29" rx="6"/>
+<rect class="chip-active" x="344" y="436" width="150" height="29" rx="6"/>
+<text class="lbl" x="354" y="455">Hamilton gate</text>
+<text class="st st-active" x="484" y="454" text-anchor="end">ACTIVE</text>
+<rect class="chip-ready" x="502" y="436" width="166" height="29" rx="6"/>
+<text class="lbl" x="512" y="455">recurrence gates</text>
+<text class="st st-ready" x="658" y="454" text-anchor="end">READY</text>
+<rect class="part" x="24" y="473" width="270" height="29" rx="6"/>
 <text class="lbl strong" x="38" y="492">Normalization</text>
 <line class="flow" x1="300" y1="487" x2="334" y2="487" marker-end="url(#arr)"/>
-<rect class="gap" x="344" y="473" width="300" height="29" rx="6"/>
-<text class="gap-text" x="358" y="492">No mechanism (gap 2)</text>
+<rect class="chip-active" x="344" y="473" width="300" height="29" rx="6"/>
+<text class="lbl" x="358" y="492">FBS RMS · M1 OrbitRootSnapNormV1</text>
 <rect class="part" x="24" y="510" width="270" height="29" rx="6"/>
 <text class="lbl" x="38" y="529">Output head (softmax)</text>
 <line class="flow" x1="300" y1="524" x2="334" y2="524" marker-end="url(#arr)"/>
@@ -166,6 +172,6 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 
 <!-- Footer -->
 <circle class="onpath" cx="30" cy="676" r="5"/>
-<text class="legend" x="42" y="680">Trained together on today's discrete path. That path has no feed-forward layer and no position mechanism.</text>
-<text class="note" x="24" y="702">Counts from the mechanism board, 19 October 2026. The board keeps D11 integer serving ACTIVE; the audit would call it READY.</text>
+<text class="legend" x="42" y="680">M1: discrete recurrence, Hamilton gate, PositionHolonomyV1, OrbitRootSnapNormV1. FBS: SpiralCore transport and RMS norm.</text>
+<text class="note" x="24" y="702">Status from the mechanism board, 31 October 2026: 12 ACTIVE, 5 READY, 11 PARKED.</text>
 </svg>

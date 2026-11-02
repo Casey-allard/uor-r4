@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">The D11 serving pipeline</title>
-<desc id="d">The integer engine serves exported stack artifacts with adds, shifts, compares and table reads and is bit-exact with its float reference; the existing artifacts are historical because they contain prohibited reads, and the compliant trunk cannot be exported until the engine binds its new modes. The native learner has its own integer runtime and terminal chat.</desc>
+<title id="t">The D11 serving pipeline, 31 October 2026</title>
+<desc id="d">The integer engine serves the saved discrete M1 pair and the separate float-trained FBS trunk. The M1 pair has exact 14,287-row DEV export agreement and reaches 10,876 / 10,566 native decode tok/s on Apple M1 under the bar-f remeasurement; the older close-grade bar-c rate is 11,026 / 10,573. FBS lut-stack/5 has exact rotations and its export gap inside the bar at DEV scope and reaches 4,217–4,504 tok/s; the separate snapped artifact reaches 4,829 tok/s. Integer multiply and divide are allowed and floats are banned. Next, localize claude-232's parity MISS before p-x, then a reachable memory key and joined integer serving with R7. Studio has synthetic parity plus public M1 top-8 next-token prediction after an explicit download; desktop uses a synthetic stand-in. Neither is a qualified product. On p-f, 62.5% of reference replies are verbatim TRAIN replies: reference-data overlap, not a generated-copy rate or new reply kinds.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="659" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Historical serving paths and D11 target</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical executors below are excluded from the selected build. Unified D11 serving remains unqualified.</text>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Serving: D11 integers only</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">31 October 2026. Integer multiply and divide are allowed (D80, D81); floats, transcendentals and dense matmul stay banned.</text>
 <text x="40" y="118" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">STACK MODEL</text>
-<rect x="40" y="130" width="300" height="128" rx="10" fill="url(#hF)" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="2 3"/>
+<rect x="40" y="130" width="300" height="128" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
 <text x="54" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Exported artifacts</text>
-<text x="54" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">uor-r4.lut-stack/3; the existing</text>
-<text x="54" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">ones contain prohibited reads,</text>
-<text x="54" y="209" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">so they are historical evidence</text>
-<rect x="54" y="228" width="62" height="22" rx="11" fill="#57606A" stroke="#57606A" stroke-width="1.5"/>
-<text x="85" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">FROZEN</text>
+<text x="54" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">lut-discrete-trunk/1: the M1 pair;</text>
+<text x="54" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">lut-stack/5: the separate FBS trunk;</text>
+<text x="54" y="209" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">/6 carries more Hamming hooks</text>
+<rect x="54" y="228" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.5" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
 <rect x="370" y="130" width="420" height="128" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
 <text x="384" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">uor-r4-integer: the D11 engine</text>
-<text x="384" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">format, kernels (add / shift / table) and session;</text>
-<text x="384" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">bit-exact with its float reference on 3,072 targets</text>
+<text x="384" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">integer kernels with multiply and divide, integer</text>
+<text x="384" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">square root; replies byte-identical (claude-177)</text>
 <rect x="384" y="228" width="69" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
 <text x="418.5" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
 <rect x="820" y="130" width="340" height="128" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
 <text x="834" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">uor-r4-stack, uor-chat --stack</text>
-<text x="834" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">generate and chat; greedy argmax over</text>
-<text x="834" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">integer scores, no sampling</text>
+<text x="834" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">generate and chat on token ids;</text>
+<text x="834" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">R7, typed text in and out: not built</text>
 <rect x="834" y="228" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
 <text x="893" y="243" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
 <path d="M340,194 L370,194" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
 <path d="M790,194 L820,194" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="370" y="276" width="790" height="76" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="384" y="302" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Next: export the compliant trunk</text>
-<text x="384" y="323" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the engine must first bind the geometric recurrence gates, the SpiralCore/FBS projection and the OP3a head</text>
+<rect x="370" y="276" width="790" height="76" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="384" y="302" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Next: the model's parts served in integers</text>
+<text x="384" y="323" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">integer-hamming-read session hooks, turn-memory-integer, and the served readout (nearest, or writer-admission)</text>
 <text x="40" y="384" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">NATIVE LEARNER</text>
 <rect x="40" y="396" width="300" height="104" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
 <text x="54" y="422" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Native artifact</text>
@@ -49,16 +49,15 @@
 <text x="893" y="485" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
 <path d="M340,448 L370,448" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
 <path d="M790,448 L820,448" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<text x="40" y="540" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Gates: the serving rules R1 to R5; audits scripts/serving_multiplier_check.py and scripts/audit_zero_matmul_serving.py. The Pages Studio runs the</text>
-<text x="40" y="558" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">older R4G1 router in WASM (frozen). Laptop energy per token (M5) and the API/WASM path for the model (M7) are not built yet.</text>
+<text x="40" y="540" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Saved discrete M1 pair: 10,876 / 10,566 native decode tok/s on Apple M1.</text>
+<text x="40" y="558" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Separate FBS serving: 270, then 3,042 with exact structured kernels, then 4,829 snapped tok/s; integer multiply and divide (claude-163–177).</text>
+<text x="40" y="576" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">FBS /5 DEV gap pass: 4,217–4,504 tok/s. Studio: synthetic parity plus public M1 top-8 prediction; desktop: synthetic stand-in; neither is a qualified product.</text>
 <path d="M40,614 L1160,614" fill="none" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="636" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
 <rect x="110" y="621" width="34" height="20" rx="5" fill="#E3F4EE" stroke="#007A5E" stroke-width="2"/>
 <text x="152" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Working</text>
 <rect x="232.05" y="621" width="34" height="20" rx="5" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
 <text x="274.05" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Built &amp; tested</text>
-<rect x="404.15000000000003" y="621" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="446.15000000000003" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
-<rect x="526.2" y="621" width="34" height="20" rx="5" fill="url(#hF)" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="2 3"/>
-<text x="568.2" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Frozen</text>
+<rect x="404.15000000000003" y="621" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="446.15000000000003" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
 </svg>

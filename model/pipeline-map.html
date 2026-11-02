@@ -1,0 +1,628 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The pipeline map - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded "><a href="../start/repository-layout.html"><strong aria-hidden="true">7.</strong> How the repository is laid out</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">8.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">8.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">8.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">8.3.</strong> The desktop client</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">8.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">9.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/pipeline-map.html" class="active"><strong aria-hidden="true">9.1.</strong> The pipeline map</a></li><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">9.2.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">9.3.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">9.4.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">9.5.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">10.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">10.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">10.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">10.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">10.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">10.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">10.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">10.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">11.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">11.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">11.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">11.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">11.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">11.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">11.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">11.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">11.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">11.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">11.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">11.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">11.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">11.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">11.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">11.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">11.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">11.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">11.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">11.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">11.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">11.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">11.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">11.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">11.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">11.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">11.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">11.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">12.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">12.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">12.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">12.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">12.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">12.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">12.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">12.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">12.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">12.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">12.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">12.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">12.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">12.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">12.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">12.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">12.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">12.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">12.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">12.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">12.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">12.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">12.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">12.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">12.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">12.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">12.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">12.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/cpu-training.html"><strong aria-hidden="true">12.5.6.</strong> CPU training research</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">12.5.7.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">13.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">13.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">13.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">14.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/index.html"><strong aria-hidden="true">15.</strong> Reference documents</a></li><li class="chapter-item expanded "><a href="../reference/storage.html"><strong aria-hidden="true">16.</strong> Storage indexes</a></li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">17.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">18.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">19.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">20.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">21.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">22.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">22.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">22.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">22.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">22.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">22.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">22.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">22.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="the-pipeline-map"><a class="header" href="#the-pipeline-map">The pipeline map</a></h1>
+<p>This page follows one token from the training data to the last word of a reply served on an Apple M1 laptop. For each stage it gives seven things, cost first:</p>
+<ul>
+<li>its cost per token, measured where a profile exists;</li>
+<li>the mechanism;</li>
+<li>the exact domain it reads and the domain it writes, and whether the next stage reads that domain;</li>
+<li>its size now and the size the goal needs;</li>
+<li>its hardware;</li>
+<li>its status;</li>
+<li>what it depends on.</li>
+</ul>
+<p>It answers the owner's direction of 27 October 2026 (recorded verbatim in the item <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/roadmap/items/pipeline-map.md"><code>pipeline-map</code></a>). The goal is a local model of about GPT-4's ability, trained on less than a datacenter and served on a laptop like this one.</p>
+<p><strong>This revision (31 Oct)</strong> retains claude-159's cost-per-token map and adds:</p>
+<ul>
+<li>claude-149 to claude-158, as listed under <a href="#what-changed-since-the-first-map">what changed since the first map</a>;</li>
+<li>the owner's 28 Oct criterion: "I don't care what we serve at long as it is cheap";</li>
+<li>the saved discrete M1 close and claude-211's bar-f result, and claude-217's current new-phrasing opening failure;</li>
+<li>a section on <a href="#the-archived-prime-and-angular-router">the archived prime and angular router</a>.</li>
+</ul>
+<p>The page ends with:</p>
+<ul>
+<li>the scale arithmetic for the goal;</li>
+<li>the gaps, ranked;</li>
+<li>an order of work.</li>
+</ul>
+<p><strong>Labels.</strong></p>
+<ul>
+<li><strong>Measurement:</strong> a recorded run; its source is named.</li>
+<li><strong>Proof:</strong> follows from the code or from arithmetic on stated numbers.</li>
+<li><strong>Hypothesis:</strong> untested.</li>
+<li><strong>External:</strong> a published figure from outside the project, with the publication named under <a href="#sources-outside-the-project">Sources outside the project</a>.</li>
+</ul>
+<p>Code line numbers are at <code>5bc6f6522</code>. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">Float-training notebook</a> rows are named by unit and date, because the notebook adds new rows at the top.</p>
+<p><strong>The hardware this page targets</strong> (measurement, <code>sysctl</code> on this laptop, 27 Oct; the same machine as <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-126/REPORT.md">claude-126's timing</a>, line 73, and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158's profile</a>):</p>
+<ul>
+<li>Apple M1, with 4 performance and 4 efficiency cores;</li>
+<li>16 GiB of memory (17,179,869,184 bytes);</li>
+<li>macOS 27.</li>
+</ul>
+<p>The M1's other units are an 8-core GPU and a 16-core Neural Engine (external, Apple). Training runs on one RTX 5090 per pod.</p>
+<h2 id="what-changed-since-the-first-map"><a class="header" href="#what-changed-since-the-first-map">What changed since the first map</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Unit</th><th>Result</th><th>Where it lands</th></tr></thead><tbody>
+<tr><td>claude-149</td><td>The map's units became roadmap items.</td><td>Order of work</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-decoder/claude-150/REPORT.md">claude-150</a></td><td>One decoder: the writer held at seed 1 (<code>8,430</code> top-1, nearest <code>6,762</code>) and never learned at seed 2 (<code>493</code>, nearest <code>6,909</code>). <strong>Decision: serve whole-table nearest.</strong></td><td>Stage 7</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-151/REPORT.md">claude-151</a></td><td>The Hamming read's type spin, built from SpiralCore's quaternion group: negative (openings spin/twin <code>208/298</code>, <code>291/200</code>, <code>234/302</code>; seed 2 passed the openings bar, and no checkpoint met the done-when).</td><td>Stage 5</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-152/REPORT.md">claude-152</a></td><td>The cell objective (only the nearest wrong token pushed): top-1 <code>9,328 / 10,573</code>, the best final checkpoints then. Copies <code>1,517 / 2,933</code> of 4,130. Openings <code>306 / 245</code>.</td><td>Stages 4, 5, 9</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-153/REPORT.md">claude-153</a></td><td>Width 512 with 8 heads: the best fit, <code>10,152 / 11,140</code>. It failed the prompt-use bar (copies <code>2,394 / 3,265</code>), at about half the training speed (<code>17,033</code> against <code>38,578</code> with no read).</td><td>Stages 4, 9</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-154/REPORT.md">claude-154</a></td><td>The opening read: negative (openings <code>206 / 156</code> against <code>302 / 228</code>); removing it changes <code>25 / 19</code> of 14,287 tokens.</td><td>Stage 5</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a></td><td>The plain bag of the user's turn <strong>meets <code>in-space-trunk-to-text</code>'s done-when</strong> (openings <code>217 / 275</code>, <code>R16</code> <code>0.166 / 0.155</code>). The learned register collapses training (<code>T</code> <code>684 / 1,246</code>). <strong>Diagnosis:</strong> routing works, storage is missing.</td><td>Stages 5, 6; the gaps</td></tr>
+<tr><td>claude-156</td><td>The owner's pivot became three items: this one, <code>fbs-cost-profile</code> and <code>route-plus-memory</code>.</td><td>Order of work</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a></td><td>One training step by stage, on an RTX 5090 (all shares are of the step). <strong>(a), width 256 with 4 heads:</strong> backward 62%, whole-table search 13%, the two Hamming reads 16%, the trunk's forward 5%. <strong>Width 512 with no read:</strong> backward 54%, search 34%, the trunk's forward 9%.</td><td>Stages 3, 4, 5, 7, 9</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a></td><td>One served token by stage, on the M1: a step of 3.73 ms, 3.77 ms a decoded token (265 tok/s). The six layers are 98.6% of the step, the writer 0.6%, and a whole-table nearest would be 21 times the writer.</td><td>Stages 4, 7, 11</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/route-plus-memory/claude-161/REPORT.md">claude-161</a></td><td>Route + exact memory: openings <code>598.7 / 598.3</code> of 1,226 against an empty-table control's <code>266.3 / 281.0</code>; no training cost; claude-161's opening table only.</td><td>Stages 4, 6; gap 1</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-179/REPORT.md">claude-179</a></td><td>Deterministic backward: two runs give the same model byte for byte.</td><td>Stage 9; gap 5</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-182/REPORT.md">claude-182</a></td><td><code>lut-stack/5</code> keeps the rotations exact; the export gap passes at DEV scope; it serves at 4,217 to 4,320 tok/s.</td><td>Stage 10; gap 5</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-serving-vector-kernel/claude-185/REPORT.md">claude-185</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-serving-vector-kernel/claude-186/REPORT.md">186</a></td><td>Serving profile and an integer square root: <code>lut-stack/5</code> at 4,491 / 4,504 tok/s (+7.5%).</td><td>Stage 11</td></tr>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-hamming-read/claude-188/REPORT.md">claude-188</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-hamming-read/claude-189/REPORT.md">189</a></td><td><code>lut-stack/6</code> carries the Hamming reads; the copy heads' integer kernel matches an f64 reference. Session hooks next.</td><td>Stage 5; R5</td></tr>
+</tbody></table>
+</div>
+<h2 id="two-model-paths"><a class="header" href="#two-model-paths">Two model paths</a></h2>
+<p>The repository trains two different models, and they do not meet:</p>
+<div class="table-wrapper"><table><thead><tr><th></th><th>Float in-space trunk ("FBS trunk")</th><th>Discrete path</th></tr></thead><tbody>
+<tr><td>Code</td><td><a href="https://github.com/UOR-Foundation/uor-r4/tree/main/crates/uor-r4-float-train"><code>crates/uor-r4-float-train</code></a></td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/README.md"><code>crates/uor-r4-discrete</code></a></td></tr>
+<tr><td>What it carries</td><td>The replies: DEV text at every checkpoint (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training notebook</a>, row of 27 Oct "Exploration")</td><td>The M1 bar (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/PLAN.md">PLAN</a>, "The path to M1")</td></tr>
+<tr><td>Table</td><td>4,096 × 256 float values</td><td>4,096 tokens × 4 blocks of 8 integers, each block one of 16 E8 roots (<a href="architecture.html">the model, end to end</a>, stage 2)</td></tr>
+<tr><td>Export</td><td><code>uor-r4.lut-stack/5</code> (unsnapped, claude-181 and claude-182), through <code>fbs-export</code></td><td><code>uor-r4.lut-discrete-trunk/1</code>, the M1 19-table pair</td></tr>
+<tr><td>Best DEV top-1 of 14,287</td><td><strong>11,140</strong> whole-table nearest, float, width 512 with 8 Hamming heads, cell objective, seed 2 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-153/REPORT.md">claude-153</a>)</td><td><strong>7,002 / 7,001</strong> integer top-1, the saved M1 pair (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/m1-close-saved-model/README.md">M1 close</a>)</td></tr>
+</tbody></table>
+</div>
+<p>They share:</p>
+<ul>
+<li>the tokenizer and the data;</li>
+<li>the D11 runtime crate, <a href="https://github.com/UOR-Foundation/uor-r4/tree/main/crates/uor-r4-integer"><code>crates/uor-r4-integer</code></a>.</li>
+</ul>
+<p>They share no table, no trunk and no artifact format. This page follows the FBS trunk for the current complete-reply work, while the discrete path supplies the M1 result. The M1 pair also scores 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/m1-fresh-panel-transfer/README.md">Fresh V2</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md">bar-f</a>). The p-f reference replies are 62.5% verbatim TRAIN replies, so M1 is not useful-chat qualification.</p>
+<h2 id="the-chain-at-a-glance"><a class="header" href="#the-chain-at-a-glance">The chain at a glance</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>#</th><th>Stage</th><th>Cost per served token (M1)</th><th>Cost in a training step (RTX 5090)</th><th>Reads → writes</th><th>Does the next stage read it in that domain?</th></tr></thead><tbody>
+<tr><td>1</td><td>Data</td><td>none</td><td>2 bytes per token (proof)</td><td>text → token ids (u16) in windows of 192</td><td>yes</td></tr>
+<tr><td>2</td><td>Tokenizer</td><td>not measured</td><td>not measured</td><td>UTF-8 bytes → ids in [0, 4,096)</td><td>yes</td></tr>
+<tr><td>3</td><td>Table</td><td>one row, inside the embedding's 83 ns</td><td>inside the forward</td><td>an id → a point in ℝ²⁵⁶</td><td>yes, as trunk input. The readout compares against the same points</td></tr>
+<tr><td>4</td><td>Trunk</td><td><strong>3.68 ms, 98.6%</strong></td><td><strong>forward 4.8 ms, 5%</strong> (its backward is inside the backward's 62%)</td><td>one table point per position → a state in ℝ²⁵⁶</td><td>yes, but the state carries about 6 tokens back</td></tr>
+<tr><td>5</td><td>Look-back</td><td>none: the integer runtime has no read</td><td><strong>15.9 ms, 16%</strong> (two Hamming reads, forward)</td><td>sign codes in {0,1}⁶⁴ per head → a moved readout point</td><td>yes for copies: the readout-move form landed (claude-146), and copies rose (claude-152)</td></tr>
+<tr><td>6</td><td>Long memory</td><td>none: no stage reads it</td><td>none</td><td>an exact address → stored bytes</td><td><strong>no</strong>: no stage forms the address, and no stage reads the bytes</td></tr>
+<tr><td>7</td><td>Readout</td><td>writer <strong>23 µs, 0.6%</strong>; whole-table nearest <strong>486 µs</strong></td><td>whole-table search <strong>13.0 ms, 13%</strong></td><td>a query point in ℝ²⁵⁶ → a token id</td><td>yes. The decision is to serve nearest (claude-150), at 21 times the writer's cost</td></tr>
+<tr><td>8</td><td>Decode loop</td><td><strong>36 µs outside the step, 1% of the plain token</strong></td><td>none</td><td>an id → the next id, greedy</td><td>ids only: the FBS artifact has no text path</td></tr>
+<tr><td>9</td><td>Training</td><td>none</td><td><strong>96.5 ms a step, 31,718 context tok/s</strong> at (a)</td><td>windows → float weights</td><td>yes</td></tr>
+<tr><td>10</td><td>Integer export</td><td>once per model</td><td>none</td><td>a trained model snapshot (discrete tables or FBS float weights) → a <code>UORLUT01</code> integer artifact</td><td>discrete M1: exact 14,287-row DEV agreement and B4 pass. FBS <code>/5</code>: inside the export-gap bar at DEV scope</td></tr>
+<tr><td>11</td><td>Serving on M1</td><td><strong>3.77 ms a token (the step 3.73), 265 tok/s</strong></td><td>none</td><td>the artifact and prompt ids → reply ids</td><td>—</td></tr>
+</tbody></table>
+</div>
+<p>Serving shares are of a step on claude-126's width-256 export (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>); training shares are of claude-152's (a) step (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a>). The two platforms differ in hardware, number type and what a step holds, so shares are compared only within each column.</p>
+<h2 id="the-stages"><a class="header" href="#the-stages">The stages</a></h2>
+<h3 id="1-data"><a class="header" href="#1-data">1. Data</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td>Training reads 2 bytes per token (proof, u16). Serving: none.</td></tr>
+<tr><td>Mechanism</td><td>Memory dialogues <code>mw-balp</code>, generated by this project, cut into 192-token windows: 68,218 usable training windows (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "Exploration"). It is pinned by sha256 at load (<code>PINNED_TRAIN_*</code>, claude-152). A 13-times-larger mixed corpus hurt: the model learned to repeat the user's numbers and lost the language (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-152/REPORT.md">claude-152</a>). <code>distill-d1</code>, a one-time donor corpus, is registered and not generated. It needs the owner's release at dispatch (<a href="data-and-tokenizer.html">data and tokenizer</a> lines 56, 79). Merged.</td></tr>
+<tr><td>Domain</td><td>Text in, token ids out. The ids fit in u16 (proof: 4,096 &lt; 65,536). The trainer reads them directly.</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> TRAIN has 7,512,797 tokens (2,425,925 scored targets); DEV has 42,856 tokens (14,287 scored targets). Measurement, <a href="data-and-tokenizer.html">data and tokenizer</a> line 50. <strong>Goal:</strong> Phi-3-mini, at 3.8B parameters, used 3.3T tokens for 69% on MMLU. Chinchilla's rule is about 20 tokens per parameter (both external). 3.3T is about 440,000 times the corpus now (proof).</td></tr>
+<tr><td>Hardware</td><td>Generated offline; read by the GPU trainer; never on the M1.</td></tr>
+<tr><td>Status</td><td>Corpus counts measured. No corpus beyond 7.5M tokens fits the test's dialogues.</td></tr>
+<tr><td>Depends on</td><td>Upstream: the tokenizer, which fixes the ids. Downstream: training.</td></tr>
+</tbody></table>
+</div>
+<h3 id="2-tokenizer"><a class="header" href="#2-tokenizer">2. Tokenizer</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td>Not measured; it runs outside <code>fbs-toks</code>, which takes ids.</td></tr>
+<tr><td>Mechanism</td><td>Byte-level BPE, 4,096 pieces, identity <code>d36d3e87</code>, pinned for every corpus and artifact (<a href="data-and-tokenizer.html">data and tokenizer</a> lines 14, 34, 85). A <code>train-bpe</code> command builds 259 to 65,536 pieces (line 36); no model has used it. Merged.</td></tr>
+<tr><td>Domain</td><td>UTF-8 bytes to ids in [0, 4,096), and ids back to bytes. The table indexes by id: yes.</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> 4,096 pieces with no multi-digit piece, so 84 is the pieces 8 and 4 (line 38). <strong>Goal:</strong> GPT-4's encoding, <code>cl100k_base</code>, has 100,256 tokens (external), 24 times this. The readout's writer refuses more than 8,192 identities (stage 7).</td></tr>
+<tr><td>Hardware</td><td>CPU for both training and serving; on the M1, a performance core.</td></tr>
+<tr><td>Status</td><td>Built and pinned (measurement of identity).</td></tr>
+<tr><td>Depends on</td><td>Upstream: the data. Downstream: the table, and the decode loop for text out.</td></tr>
+</tbody></table>
+</div>
+<h3 id="3-table"><a class="header" href="#3-table">3. Table</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Serving:</strong> one row in, inside the embedding stage's 83 ns (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>). <strong>Training:</strong> the input row is inside the forward. The table as the objective's rival set is in stage 7.</td></tr>
+<tr><td>Mechanism</td><td>One shared float table, <code>embedding.weight</code>, 4,096 × 256. It is the input embedding and also the readout's points (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "Exploration": "one shared vector table for input and output"). Built by <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/hamilton_sheet.rs"><code>build_hamilton_model</code></a> (line 1935), with <code>SHEET_VOCAB</code> = 4,096 and <code>SHEET_WIDTH</code> = 256 (lines 61, 67). The discrete path uses 4 blocks of 8 integers per token, each block one of 16 E8 roots (<a href="architecture.html">architecture</a>, stage 2). Merged.</td></tr>
+<tr><td>Domain</td><td>An id in; a point in ℝ²⁵⁶ out (discrete: ℤ³², four root blocks). The trunk reads it: yes. <strong>The readout compares the trunk's output against these same points.</strong> Their gradient is split: the output side gets 0.0030 against 1.24 for the input side under the clamp, so the decoding geometry gets 1/410 of the table's gradient. Measurement, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "fold-against-clamp".</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> 1,048,576 values, 4 MiB as f32 (proof), 94% of the model's 1,112,576 learnable values (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>, "The pivot"). <strong>Goal:</strong> at 100,256 tokens × width 1,024, the table alone would hold 102,662,144 values (proof; the shape is an illustration, not a design).</td></tr>
+<tr><td>Hardware</td><td>Trained on the GPU. Served as part of the integer artifact on the M1 CPU.</td></tr>
+<tr><td>Status</td><td>Built. The gradient split is measured.</td></tr>
+<tr><td>Depends on</td><td>Upstream: the tokenizer. Downstream: the trunk, the look-back's codes, and the readout.</td></tr>
+</tbody></table>
+</div>
+<h3 id="4-trunk"><a class="header" href="#4-trunk">4. Trunk</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Serving, measured</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>): 3.68 ms of a 3.73 ms step on the M1, 98.6%. That is 613 µs a layer: the recurrence block (three route gathers around the recurrence core) 352–364 µs, and the feed-forward block (three gathers, the gated product and the requantization) 253–259 µs. That is about 57 ns per learnable value, scalar integer code with no NEON. Which part of each block dominates is not split. <strong>Training, measured</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a>): the forward is 4.8 ms of a 96.5 ms step at width 256 (5%), and 6.9 of 79.0 ms at width 512 (9%). Each recurrence is 0.55–0.84 ms of GPU time, and its host time is 0.99 of that: host-bound by the sheet's rule. The layer right after the stream's read is the exception, at 1.69 ms of host time. The trunk's backward is inside the backward (62% / 54%), not split.</td></tr>
+<tr><td>Mechanism</td><td>The FBS sheet, all merged. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/hamilton_sheet.rs"><code>hamilton_sheet.rs</code></a> lines 61–72 and 1935–1953, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/geometric_stack_native.rs"><code>geometric_stack_native.rs</code></a> lines 101, 344, 479 and 687, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/spiralcore_fbs.rs"><code>spiralcore_fbs.rs</code></a> lines 26–28 and 257: <ul><li>six recurrence layers (pattern <code>rrrrrr</code>);</li><li>width 256, as 64 quaternion lanes;</li><li>4 heads;</li><li>a 384-wide inner block;</li><li>a context of 192;</li><li>the Hamilton gate, with geometric recurrence gates and quaternion rotation;</li><li>a convolution of width 4;</li><li>six maps per layer, <code>rec.in</code>, <code>rec.gate</code>, <code>rec.out</code> and the three <code>mlp</code> maps (<code>shapes()</code>, line 687), each a SpiralCore/FBS projection of shape <code>[out/8, stages, 8]</code> in place of a dense matrix (<code>QUATERNION_MAPS</code>, line 479; line 344).</li></ul> The saved discrete M1 model combines Flock <code>FrozenZeroV1</code>, <code>DiscreteHamiltonGateV1</code>, <code>DiscreteQuaternionRecurrenceV1</code>, <code>PositionHolonomyV1</code>, <code>OrbitRootSnapNormV1</code>, an orbit-root causal pointer and post-rotation <code>OuterL1V1</code>; the earlier Route/Relation reads are Stage T history, not the closing composition (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/m1-close-saved-model/README.md">M1 close</a>).</td></tr>
+<tr><td>Domain</td><td>One table point per position in; a state in ℝ²⁵⁶ after the final norm out. The readout reads it as a query point in the table's space: yes. <strong>What the state carries:</strong> replacing the token k places back with BOS moves the opening point by 5.97 at k = 0, 0.37 at k = 6 and 0.04 at k = 12. 57–66% of lane positions in layers 1–5 sit at the shortest memory rate after training, against 33% at step 0. Both measurements: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "Exploration".</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> 64,000 learnable values in the six layers and the final norm (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>, "The pivot"). Each layer has six FBS maps holding 8,448 values, with 4 stages for inputs of 256 and 384, plus 2,176 norm, convolution, gate and decay values (proof by arithmetic on <code>shapes()</code>, line 687). With the table, the model holds 1,112,576 values, 94% of them the table. The state does not grow with context (proof: a recurrence). Width 512 is the best fit measured (Status, below). <strong>Goal:</strong> Phi-3-mini has 3.8B parameters (external), about 3,400 times this whole model.</td></tr>
+<tr><td>Hardware</td><td>Training: the current FBS implementation and every qualification run remain GPU-only; the model refuses CUDA-free execution in F32 with SpiralCore/FBS, with "no host or dense fallback" (<code>geometric_stack_native.rs</code> line 938). D84's separate CPU research module is development-only and does not change this current model path. Serving: the integer runtime on the M1 CPU, scalar code. Native NEON table kernels exist only for an older frozen stack (<a href="../products/desktop-client.html">desktop client</a> line 49). The M1 GPU and Neural Engine are unused.</td></tr>
+<tr><td>Status</td><td><strong>Fit is measured:</strong> whole-table nearest top-1 is <code>9,328 / 10,573</code> at width 256 with the cell objective (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-152/REPORT.md">claude-152</a>), and <code>10,152 / 11,140</code> at width 512 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-153/REPORT.md">claude-153</a>). Both FBS measurements are above the bigram's 6,300; separately, the saved M1 model's DEV seed-1 score of 7,002 is above the 6,324 close target (T2 + 24). <strong>Storage is measured short:</strong> the trunk holds 64,000 values beside a 1,048,576-value table. Routing the prompt in works (stage 5), but the associations that pick a reply's first token have nowhere to be stored. Openings never beat claude-152's <code>302.0 / 228.0</code> by the sheet's margin (bar <code>347.3</code>), where a lookup of the prompt's first 8 tokens names <code>607</code> of 1,226 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>, "The pivot"). <strong>Since 28 Oct (29 Oct state):</strong> exact turn memory names <code>598.7 / 598.3</code> of the same 1,226 openings at two seeds, against <code>266.3 / 281.0</code> for an empty-table control, with no training cost (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/route-plus-memory/claude-161/REPORT.md">claude-161</a>). That is the first word of a reply only.</td></tr>
+</tbody></table>
+</div>
+<h3 id="5-look-back"><a class="header" href="#5-look-back">5. Look-back</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Training, measured</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a>): the two Hamming reads, in the stream after layer 2 and on the readout, cost 7.9 ms each in the forward of a 96.5 ms step (16% together). They are GPU-bound (host time 0.86 of GPU time), and the same cost at both places. Their backward is inside the backward. Rates with the bag <code>28,560 / 21,430</code> and with the learned register <code>12,573 / 12,641</code> context tok/s, against (a)'s <code>32,049</code> with the Hamming read alone; these ran on different hosts, so the gap is a bound (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>). <strong>Serving:</strong> none, because the integer runtime has no read. <strong>By arithmetic</strong> (from the read's shapes): 4 heads × 64 bits is 32 bytes of code per position per read. With reads at two points, a token costs 8N popcounts and reads 64N bytes at context N. At N = 32,768 that is 2 MiB per token. A dense model's cache, at Llama-2-7B's shape (32 layers, width 4,096, 16-bit keys and values; external), is 512 KiB <strong>per position</strong>, or 16 GiB per token at the same N: 8,192 times as many bytes (proof).</td></tr>
+<tr><td>Mechanism</td><td><strong>Merged (claude-146, #3332): the Hamming read.</strong> <ul><li>each earlier position's key is the sign code of its token's table point after a learned per-lane rotation, 64 bits per head, with 4 heads (8 at width 512);</li><li>the match is popcount of XOR, a hard top 16, weighted by max(0, m − d)/m;</li><li>copy heads move the readout point n toward the copied token's point c: n + w(c − n).</li></ul> <strong>Variants since:</strong> <ul><li>type spin, through SpiralCore's quaternion group: negative, with seed 2 passing the openings bar only (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-151/REPORT.md">claude-151</a>);</li><li>the opening read, the mean of the turn's first 8 points after layer 2: negative, and ignored, since its removal changes <code>25 / 19</code> tokens (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-154/REPORT.md">claude-154</a>);</li><li><strong>the plain bag of the user's turn</strong> (one slot, uniform over the span, by a doubling scan): it meets <code>in-space-trunk-to-text</code>'s done-when. Dropping it costs <code>1,514 / 1,648</code> tokens and <code>189 / 236</code> openings (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>);</li><li>the learned prompt register: collapses training (<code>T</code> <code>684 / 1,246</code>), with untested causes: keys bent through the live stream, and slot starts that coincide in groups (claude-155).</li></ul> Earlier, negative against their bars: the state-keyed Flock read (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-144/REPORT.md">claude-144</a>) and the content read (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-145/REPORT.md">claude-145</a>).</td></tr>
+<tr><td>Domain</td><td>Sign codes in {0,1}⁶⁴ per head; out, a moved readout point in ℝ²⁵⁶. <strong>The readout reads it: yes.</strong> With the cell objective, the read names <code>1,517 / 2,933</code> of 4,130 copied rows (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-152/REPORT.md">claude-152</a>). At width 512 the same trunk without the read copies about a quarter of them (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-153/REPORT.md">claude-153</a>). Points added inside the stream are ignored: the opening read (claude-154), and the two earlier copy forms, whose payload "reads to the trunk as its own input" and "barely moves where the prediction lands" (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-146/REPORT.md">claude-146</a> lines 29–30).</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> a context of 192 (<code>SHEET_CONTEXT</code>, <code>hamilton_sheet.rs</code> line 66). The serving session cannot slide its window (<code>fbs-toks.rs</code> line 9). The discrete path's window holds at most 243 = 3⁵ positions (<a href="architecture.html">architecture</a>, stage 3). <strong>Goal:</strong> GPT-4 shipped with 8,192 and 32,768 tokens of context (external), 43 to 171 times this.</td></tr>
+<tr><td>Hardware</td><td>Training: GPU. Serving: none. The integer runtime has no Hamming read and no bag.</td></tr>
+<tr><td>Status</td><td>Copies measured positive; openings measured flat. The bag carries the turn into the trunk, and the trunk cannot store what to do with it (stage 4). <strong>Since 27 Oct:</strong> claude-189 built the copy heads' integer kernel, which matches an f64 reference (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-hamming-read/claude-189/REPORT.md">claude-189</a>); the served session does not use it yet.</td></tr>
+</tbody></table>
+</div>
+<h3 id="6-long-memory"><a class="header" href="#6-long-memory">6. Long memory</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td>Per read: 384 bytes and 8 fingerprint checks for a small range (measurement, <a href="../mechanisms/object-store.html">object store</a> line 46). How many reads a token needs is undefined while no stage issues them. <strong>By arithmetic:</strong> a lookup keyed by the turn's first <code>k</code> ids is a hash and a load, far below the trunk's 3.68 ms. This is the form <code>route-plus-memory</code> ran (claude-161), with no measured training cost.</td></tr>
+<tr><td>Mechanism</td><td>The object store, merged (<a href="../mechanisms/object-store.html">object store</a>). A record is a scale byte, a 12-byte fingerprint and a 32-byte leaf (line 23). A range read authenticates only the branches it touches (line 31). The E8 orbit memory is PARKED, at about 59 MB per layer (<a href="../mechanisms/e8-orbit-memory.html">e8-orbit-memory</a> line 34). The archived prime routes (gcd admission over n-let keys) are in <a href="#the-archived-prime-and-angular-router">the archived router</a>.</td></tr>
+<tr><td>Domain</td><td>An exact address in; stored bytes out. <strong>For the object store, no stage reads its output or forms its input.</strong> <ul><li>With the true address supplied by the oracle, the answer was right 80 of 80 times, against 20 of 80 for the deterministic sieve and 0 of 80 with no memory (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/PLAN.md">PLAN</a>, the exact-memory premise).</li><li>Free-running with an exact hint recovered 0 of 40 (<a href="../mechanisms/exact-memory.html">exact memory</a> line 11).</li><li><strong>The evidence for keying it by the turn:</strong> TRAIN's commonest opening per first-8-token key names <code>607</code> of DEV's 1,226 openings. TRAIN has <code>212,968</code> openings over <code>26,450</code> distinct prompt starts (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-154/REPORT.md">claude-154</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-155/REPORT.md">claude-155</a>). claude-154's turn anchor already forms that key exactly at every opening.</li></ul></td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> a 23-byte range of a 32,768-byte object reads 8 nodes, 384 bytes (measurement, <a href="../mechanisms/object-store.html">object store</a> line 46). A record stores 32 bytes in 45, about 1.4 times the payload (proof). <strong>Goal:</strong> hold facts in place of parameters, at whatever size a laptop disk allows (hypothesis).</td></tr>
+<tr><td>Hardware</td><td>CPU, memory and disk, on both the GPU host and the M1. No GPU work.</td></tr>
+<tr><td>Status</td><td>The store is measured, and for the opening it is now connected (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/route-plus-memory/claude-161/REPORT.md">claude-161</a>). Exact turn memory keyed by the user's first 8 tokens names <code>598.7 / 598.3</code> of DEV's 1,226 reply openings at two seeds, against <code>266.3 / 281.0</code> for an empty-table control and <code>302.0 / 228.0</code> for the prior model (ceiling 607). DEV top-1 is <code>9,490 / 10,368</code>. The opening table moves the first word, and the completed reply table extends later rows. The <code>/7</code> engine serves both tables on synthetic fixtures; trained-artifact parity and memory-session restore remain open.</td></tr>
+<tr><td>Depends on</td><td>Upstream: an address, which the turn anchor can form (claude-154). Downstream: the readout. The look-back's lesson applies: a stored token must land as its table point where the readout reads.</td></tr>
+</tbody></table>
+</div>
+<h3 id="7-readout"><a class="header" href="#7-readout">7. Readout</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Serving, measured on the M1</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>): the writer 23 µs (0.6% of a step); a whole-table nearest 486 µs, 21 times the writer and 13% of a step. <strong>Training, measured</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a>): the cell objective's whole-table search is 13.0 ms of a 96.5 ms step at width 256, and 26.6 of 79.0 ms at width 512. It is GPU-bound (host time 0.04–0.06 of GPU time), and it doubles with the width. Its gradient is inside the backward. <strong>By arithmetic:</strong> whole-table nearest is 4,096 × 256 = 1,048,576 absolute differences; the writer is 8 cells × 16 tokens × 256 = 32,768, plus ranking the cells. At 100,256 tokens and width 1,024, whole-table nearest would be 102,662,144 per token, and a sublinear index would be needed (hypothesis).</td></tr>
+<tr><td>Mechanism</td><td>Two decoders, both merged, both scoring by negative mean L1 distance to table points: <ul><li><strong>The writer</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/native_vector_writer.rs"><code>native_vector_writer.rs</code></a> lines 13–39). It has 256 cells, keeps 1 to 16 of them (8 here), and picks the nearest token inside them. It refuses more than 8,192 identities, a width above 1,024, or more than 16 kept cells. <code>fbs-toks</code> decodes with it.</li><li><strong>Whole-table nearest</strong> (<code>nearest_scores</code>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/in_space_long.rs"><code>in_space_long.rs</code></a> line 204). The float runs evaluate with it, and the cell objective trains against it. Its integer form now exists beside the served step (<code>stack_whole_table_nearest</code>, claude-158).</li></ul> The discrete path uses an integer writer: it opens K = 8 of 256 cells, and admission caps every stage above it (<a href="architecture.html">architecture</a>, stage 5).</td></tr>
+<tr><td>Domain</td><td>A query in ℝ²⁵⁶ in, a token id out. The decode loop reads it: yes. <strong>One decoder</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-decoder/claude-150/REPORT.md">claude-150</a>). The <code>voronoi</code> objective, whose margin can be met, made the writer hold at seed 1: <code>8,430</code> writer against <code>6,762</code> nearest at step 32,768, peaking at <code>8,581</code>. At seed 2 it never learned: <code>493</code> against <code>6,909</code>, with the target's cell admitted on only <code>461</code>–<code>714</code> of 14,287 rows. A decoder that works at one seed of two cannot be the one served, so <strong>the decision is to serve whole-table nearest</strong>, the decoder the cell objective trains for. Before that, the two decoders disagreed on one checkpoint at 345 against 7,813 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "Exploration"). On the discrete path, a table keyed by the read code predicts 3,414 rows against the writer's 149 (<a href="../research/notebook/m1-discrete-attention.html">m1-discrete-attention</a> line 97).</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> 4,096 candidates. <strong>Goal:</strong> about 100,000 (stage 2), beyond the writer's limit of 8,192.</td></tr>
+<tr><td>Hardware</td><td>Training: GPU. Serving: M1 CPU, scalar.</td></tr>
+<tr><td>Status</td><td>Decided: nearest. That decision costs 21 times the writer on the M1 today, and grows with the vocabulary. <strong>What might make the cheap readout correct (hypothesis):</strong> the writer's admission, so the target's cell is kept at every seed as it is at seed 1. Why admission failed at seed 2 is not known (claude-150).</td></tr>
+<tr><td>Depends on</td><td>Upstream: the table, the trunk and the look-back. Downstream: the decode loop.</td></tr>
+</tbody></table>
+</div>
+<h3 id="8-decode-loop"><a class="header" href="#8-decode-loop">8. Decode loop</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Measured on the M1</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>): 36 µs outside the step, 1% of the plain per-token time. That holds the loop and <code>step_native</code>'s copies of the kept cells and the query.</td></tr>
+<tr><td>Mechanism</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/bin/fbs-toks.rs"><code>fbs-toks</code></a> (lines 9–11): a 128-token prefill, then 64 greedy decode steps, each feeding back "the token the writer chose". The step is <code>stack_step_fbs</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/stack/session.rs"><code>stack/session.rs</code></a> line 2953). Its stage-timed twin, <code>measure_fbs_step_stages</code>, is exact against <code>step_native</code> (claude-158). A text loop, with the tokenizer and a turn-end token, exists only for the older bundle (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/generation.rs"><code>generation.rs</code></a>, lines 196–202). <code>uor-chat --stack</code> takes raw <code>--prompt-ids</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/bin/uor-chat.rs"><code>uor-chat.rs</code></a> line 48). Merged.</td></tr>
+<tr><td>Domain</td><td>Id in, next id out. <strong>Text out is not wired for the FBS artifact.</strong> Sampling is greedy. No lawful sampling rule exists, since softmax is banned (CHARTER §3.2).</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> a reply fits in what is left of the 192-token window; the session cannot slide it (<code>fbs-toks.rs</code> line 9). <strong>Goal:</strong> prompt and reply inside a context of 8,192 to 32,768 tokens, as GPT-4 shipped with (external, stage 5).</td></tr>
+<tr><td>Hardware</td><td>Training: none; this is a serving stage. Serving: M1 CPU.</td></tr>
+<tr><td>Status</td><td>Ids are measured. Replies are fluent but templated: they do not follow the question, and only rarely bring back the user's number ("Hi is 5246.", <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/in-space-trunk-to-text/claude-152/REPORT.md">claude-152</a>).</td></tr>
+<tr><td>Depends on</td><td>Upstream: the readout and the tokenizer. Downstream: the user.</td></tr>
+</tbody></table>
+</div>
+<h3 id="9-training"><a class="header" href="#9-training">9. Training</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Measured, one training step by stage</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-157/REPORT.md">claude-157</a>). <strong>(a), width 256 with 4 Hamming heads:</strong> 96.5 ms a step, 31,718 context tok/s. The backward is 62%, the whole-table search 13%, the reads 16%, the trunk's forward 5% and the optimizer 3%. <strong>Width 512 with no read:</strong> 79.0 ms, 38,809 tok/s. The backward is 54%, the search 34% and the trunk's forward 9%. The backward's host time is 0.98–0.99 of its GPU time: it waits on launches or on a sync inside it, not yet told apart. <strong>Single-run rates measured since the first map:</strong> <code>41,018–41,295</code> alone (claude-150, no read), <code>32,049</code> at (a) (claude-152), <code>38,578</code> at width 512 with no read and <code>17,033</code> with 8 heads (claude-153).</td></tr>
+<tr><td>Mechanism</td><td>All merged. A float, offline trainer, allowed by D37: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/in_space_long.rs"><code>in_space_long.rs</code></a> and <code>train-in-space</code>. The objective is a hinge, not a likelihood: <ul><li><code>hinge</code> at margin 1 (line 181);</li><li><code>nearest_loss</code> (line 260): the nearest objective averages the hinges against the whole table's <code>SHEET_RIVALS</code> = 8 nearest wrong tokens, and <strong>the cell objective</strong> keeps only the nearest one's (claude-152);</li><li><code>voronoi_loss</code> (line 220);</li><li>the writer's <code>MarginHinge</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/hamilton_sheet.rs"><code>hamilton_sheet.rs</code></a> line 70).</li></ul> <code>train-in-space --profile K</code> times each stage with CUDA events (claude-157). The discrete path learns by trying all 16 legal states of one table entry on the GPU against an integer rank-margin hinge (<a href="architecture.html">architecture</a>, stages 6–7).</td></tr>
+<tr><td>Domain</td><td>Windows in; float weights out. The exporter reads them: yes.</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> up to 32,768 steps × 16 windows, 7.7 epochs (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 27 Oct "Exploration"). <strong>Goal:</strong> Llama 3.1 405B trained on 15.6T tokens with 3.8 × 10²⁵ FLOPs (external). The aim is GPT-4 ability for far less.</td></tr>
+<tr><td>Hardware</td><td>One RTX 5090 per pod on Vast, at $0.56/h (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-140/REPORT.md">claude-140</a> line 27). The project's cap is 4 pods and $8/h (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/AGENTS.md">AGENTS.md</a>, "Compute").</td></tr>
+<tr><td>Status</td><td>Measured. <strong>Deterministic since claude-179:</strong> the backward uses a fixed-order reduction, and two training runs give the same model byte for byte (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-179/REPORT.md">claude-179</a>). History: before it, five runs of one recipe gave seed-1 top-1 values of 745, 1,472, 1,780, 2,914 and 3,845 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-140/REPORT.md">claude-140</a> line 9), from float <code>atomicAdd</code> sums in the FBS backward. Training speed with the memory: <code>31,851 / 29,564</code> context tok/s (claude-161).</td></tr>
+<tr><td>Depends on</td><td>Upstream: the data and every model stage. Downstream: the export.</td></tr>
+</tbody></table>
+</div>
+<h3 id="10-integer-export"><a class="header" href="#10-integer-export">10. Integer export</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td>Once per model, not per token.</td></tr>
+<tr><td>Mechanism</td><td>Both merged: <ul><li><strong>FBS:</strong> <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-float-train/src/fbs_export.rs"><code>fbs_export.rs</code></a> snapshots the float model. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/bin/fbs-export.rs"><code>fbs-export</code></a> writes <code>UORLUT01</code> artifacts: <code>uor-r4.lut-stack/4</code> when snapped (lines 1–2), and <code>/5</code> unsnapped since claude-181 (<code>/6</code> carries the Hamming reads, claude-188).</li><li><strong>Discrete M1:</strong> the saved 19-table <code>uor-r4.lut-discrete-trunk/1</code> pair, 86,536,132 bytes at seed 1 and 84,943,328 bytes at seed 2 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/m1-close-saved-model/README.md">M1 close</a>). The earlier four-table <code>uor-r4.lut-discrete/1</code>, 542,260 bytes per Stage T checkpoint, is historical (<a href="../research/notebook/m4-serving.html">m4-serving</a> line 17).</li></ul></td></tr>
+<tr><td>Domain</td><td>Float weights in, integer codes out for FBS; learned discrete tables in, integer codes out for M1. The runtime reads each artifact in its declared domain. <strong>Whether the artifact computes what was trained:</strong> <ul><li><strong>Discrete M1:</strong> exact reference agreement on all 14,287 DEV rows at both seeds, with the planted-fault B4 check passing. The earlier four-table Stage T exports also had zero gap on their four checkpoints; those are not the closing model.</li><li><strong>FBS:</strong> no on 28 Oct and earlier. The D11 forward's own gap from float lies outside its tolerance on all six receipts, by 17 to 287 rows; the export itself moves each by at most 8 rows (line 14). The 25 Oct sheet's Build A gap was 1,914 rows, a FAIL (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/research/notebook/float-training.md">float-training</a>, row of 25 Oct).</li><li><strong>Since claude-181 and claude-182 (DEV scope):</strong> the gap sits in the 120-root snaps. The unsnapped contract <code>lut-stack/5</code> keeps the rotations exact and is inside the export-gap bar on both seeds (net 6 and -8 against F_I 24) (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-182/REPORT.md">claude-182</a>).</li></ul></td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> the M1 pair is 86,536,132 and 84,943,328 bytes. FBS: claude-126's width-256 export is about 2 MB (the store's listing). <strong>Goal:</strong> an artifact that fits beside its store in a 16 GiB laptop. For scale, 7B values at 4 bits would take 3.5 GB (proof by arithmetic; an illustration, not a design).</td></tr>
+<tr><td>Hardware</td><td>Training: none; export runs once, on the host CPU, after training. A GPU evaluator of the artifact is qualified bit-exact (<a href="../research/notebook/m4-serving.html">m4-serving</a> line 23). Serving: the artifact is read by the M1 CPU (stage 11).</td></tr>
+<tr><td>Status</td><td>Exact on the saved discrete M1 pair at both seeds. On the separate FBS path the export gap passes at DEV scope under <code>lut-stack/5</code> (claude-182); the "with repeats" confirming run is still open.</td></tr>
+<tr><td>Depends on</td><td>Upstream: training. Comparing two training runs needs a deterministic backward or repeats with a stated spread (stage 9). Downstream: serving.</td></tr>
+</tbody></table>
+</div>
+<h3 id="11-serving-on-m1"><a class="header" href="#11-serving-on-m1">11. Serving on M1</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Field</th><th>Now</th></tr></thead><tbody>
+<tr><td>Cost per token</td><td><strong>Saved discrete M1 pair:</strong> Apple M1 decode at <strong>10,876 / 10,566 tok/s</strong> for the two seeds, with 192-token prefill and 64-token decode (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md">bar-f report</a>); the older close-grade bar-c measurement is 11,026 / 10,573 tok/s. <strong>Separate FBS profile, one served token by stage</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-cost-profile/claude-158/REPORT.md">claude-158</a>; claude-126's width-256 FBS export, AC power): 3.73 ms a step and 3.77 ms a decoded token (265 tok/s decode): <ul><li>the six layers 3.68 ms (98.6%);</li><li>the writer 23 µs (0.6%);</li><li>the final norm 6 µs;</li><li>the embedding and bookkeeping under 0.1 µs.</li></ul> 36 µs a token falls outside the step. <strong>Historical four-table Stage T rates:</strong> <code>FrozenZero</code> decodes at 12,630 and 12,523 tok/s, at top-1 455 of 14,287, and <code>Relation</code> at 1,197 and 1,118 (<a href="../research/notebook/m4-serving.html">m4-serving</a> line 17); these are not the closing M1 pair. The older 29M stack ran 68 to 80 tok/s on 8 threads, teacher-forced (<a href="serving-and-export.html">serving and export</a> line 82). <strong>Energy:</strong> table-emulated products cost 0.00413 J/token against 0.00096 for float, about 4.3 times as much, on a dense model (line 83).</td></tr>
+<tr><td>Mechanism</td><td>The D11 engine: integer only, with no float. The M1 pair loads as self-contained 19-table discrete artifacts. Since D80 and D81 (28 Oct 2026) the engine may use hardware integer multiply and divide, and since claude-177 the separate FBS stack's products and quotients do. claude-177's audit of the native release build found 44 symbol ranges with no float, using 47 multiplies and 1 divide (<a href="../research/notebook/m4-serving.html">m4-serving</a>, claude-177's row). The rule is D11 as amended by D80 and D81 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md">DECISIONS</a> line 72, CHARTER §3.6). Merged.</td></tr>
+<tr><td>Domain</td><td>The artifact and prompt ids in; reply ids out.</td></tr>
+<tr><td>Size</td><td><strong>Now:</strong> the M1 pair is 86,536,132 and 84,943,328 bytes; the historical four-table Stage T artifact is 542,260 bytes. <strong>Goal:</strong> fit a capable model in a 16 GiB laptop alongside its store.</td></tr>
+<tr><td>Hardware</td><td>Training: none; this is a serving stage. Serving: M1 performance cores only, scalar code. Not used: <ul><li><strong>NEON:</strong> used only by an older frozen stack (<a href="../products/desktop-client.html">desktop client</a> line 49);</li><li><strong>GPU:</strong> has no lawful kernel yet. Popcount and L1 nearest need no multiply, so a lawful kernel is possible (hypothesis);</li><li><strong>Neural Engine:</strong> Core ML exposes it as a tensor engine for convolution and matrix products, so no lawful use under §3.3 is known (hypothesis).</li></ul></td></tr>
+<tr><td>Status</td><td>The saved M1 pair is served exactly at its declared scope but does not hold a useful conversation. The separate FBS step is profiled; its initial profile's cost is the trunk's scalar kernels.</td></tr>
+<tr><td>Depends on</td><td>Upstream: the export, the decode loop and the text path (missing for FBS).</td></tr>
+</tbody></table>
+</div>
+<h2 id="the-archived-prime-and-angular-router"><a class="header" href="#the-archived-prime-and-angular-router">The archived prime and angular router</a></h2>
+<p>The owner, 28 Oct: "it is worth looking into the archived hopf golden ratio complex - riemannian bridge we used for the original prime router or angular router". This section reads it from the files the archive holds.</p>
+<p><strong>What it was, in three generations:</strong></p>
+<ol>
+<li><strong>The ancestor</strong>, a Python "R4 Prime Router" (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/research-archives/code/gemini-dev/prime-router/server.py"><code>server.py</code></a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/research-archives/code/gemini-dev/prime-router/README.md">README</a>; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/prime_router_geometric_context_evidence.md">evidence note</a>).
+<ul>
+<li>Word vectors (GloVe blended with geometric coordinates) lie on a hypersphere, and a query is the sum of its words.</li>
+<li>A brain state evolves as H ← normalize(γ·H + (1−γ)·S_query) (README).</li>
+<li>Retrieval scores shared prime factors ×100, then cosine, then a window slice norm.</li>
+<li>The Hopf coordinates (χ, δ, α) and the top sentence went into the system prompt of a local Ollama model (<code>gemma4:e2b</code>).</li>
+<li>The "Riemannian Hopf canvas" is its 3-D stereographic view of the zeta rings.</li>
+<li>Its next word is a greedy argmax over <code>VOCAB_MATRIX @ S</code>, which is a dense product. Above temperature 0, one path samples from a normalized exponential, which is banned.</li>
+</ul>
+</li>
+<li><strong>ADR-0003</strong>, fixed-zeta prime routes (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/reference/adr/0003-fixed-zeta-prime-route-attention.md">ADR</a>; the pointer at <code>archive/adr/0003-…</code> names a moved path).
+<ul>
+<li><strong>Zeta phases:</strong> θ_j(p) = wrap(γ_j·log p) per prime atom, with a compiled phase-delta table at runtime (§1).</li>
+<li><strong>Semiprime transition experts:</strong> e_t = p_(t−1)·p_t, with gcd(e_t, e_(t+1)) = p_t (§2).</li>
+<li><strong>An n-let context key:</strong> the product of the last k primes.</li>
+<li><strong>An S³ compute state</strong> with its Hopf observation h ∈ S², the fibre phase kept as torsion (§3).</li>
+<li><strong>The choice rule:</strong> least integer energy over a few index rows.</li>
+<li><strong>§5, the direction-preserving golden radial bridge.</strong> This is the "golden ratio complex–Riemannian bridge" the owner remembers. With E : ℂ² → ℝ⁴ the ordinary identification, R_φ(z) = φ·E(z), and φ = (1 + √5)/2. It preserves direction exactly: angle, prime direction and Hopf sector are unchanged, and only the radial shell moves. In ℤ[φ], a shell step is the integer Fibonacci step (a, b)·φ → (b, a + b): one add, or one subtraction for φ⁻¹. The map is from ℂ², not ℂ⁴.</li>
+</ul>
+</li>
+<li><strong>The prime-route pointer</strong> (1–2 Oct, <code>70d8a223c</code> #1587, <code>f9c926925</code> #1589).
+<ul>
+<li>Each token has a registered prime, and a position's key is the product of its last W tokens' distinct primes.</li>
+<li>A source is admitted when it shares a factor with the query (gcd &gt; 1).</li>
+<li>Admitted sources are scored by ln gcd plus recency, then by a normalized exponential, which is now banned. The ranked variant adds a learned score.</li>
+</ul>
+</li>
+</ol>
+<p><strong>What was measured</strong> (each a measurement, source named):</p>
+<ul>
+<li>
+<p><strong>The ancestor:</strong> angular routing and decodability only, never generation, and not reproduced under today's gates. Verdict: inconclusive (<a href="../mechanisms/hopf-observation.html">hopf-observation</a>, "What has been tried").</p>
+</li>
+<li>
+<p><strong>Hopf sector routing:</strong></p>
+<ul>
+<li>#303: 7 of 512 sectors occupied;</li>
+<li>#306, after a fixed signed projection: 43 of 512;</li>
+<li>#430: as a retrieval filter, MRR 0.0045 against 0.0743, no retrieval value.</li>
+</ul>
+<p><strong>Sector routing is PARKED; the kept-fibre map is READY</strong> (D72, <a href="../mechanisms/hopf-observation.html">hopf-observation</a>).</p>
+</li>
+<li>
+<p><strong>ADR-0003 as a whole:</strong> <code>RETAIN_STORAGE_RECALL_ONLY</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/prime_route_attention_qualification_958.md">qualification</a>). The product probe never ran: there was no prompt-to-address compiler, no address-to-token decoder and no generation loop. The learned four-coordinate mixer before it "selected support but did not transport adequate semantic value": a 4.44% real-against-permuted held-out advantage against a 5% gate (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/geometric_mixer_qualification_951.md">#951</a>, recorded on #958).</p>
+</li>
+<li>
+<p><strong>The prime-ranked pointer</strong> (10 Oct, <a href="../mechanisms/pointer-key.html">pointer-key</a>): the hit rate rose from 0.377 to 0.545. Memory answers stayed at 19, 21 and 23 of 40, against a bar of 25. The intended key, entity prime × attribute prime, was never built.</p>
+</li>
+<li>
+<p><strong>The choice rule:</strong> on PR #455's context-class test (not the router), among the latent arms hard selection got 22.81% top-1, top-3 24.54% and averaging over all 25.91%. Hard selection did not win. The test's own fixed baseline, at 26.42%, was above all three.</p>
+</li>
+<li>
+<p><strong>The golden bridge (§5):</strong> built and tested as algebra (the ℤ[φ] steps are <code>IMPLEMENTED_SUBSTRATE</code> and pass their source-free fixtures, <code>PASS_SOURCE_FREE</code>, ADR-0003 and the qualification record). It has no language result, and no rule ties a zeta phase or n-let to a shell ("bound only as structural transport", ADR-0003).</p>
+</li>
+<li>
+<p><strong>The exact-memory sieve:</strong> 20 of 80 against 80 of 80 with the true address, and 0 of 80 with no memory (stage 6).</p>
+</li>
+</ul>
+<p><strong>Cost per token today, by arithmetic:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Piece</th><th>Operations per token</th><th>Integer and multiplier-free?</th></tr></thead><tbody>
+<tr><td>Zeta phase step θ_j</td><td>2J table reads and adds (J up to 512)</td><td>yes, with a compiled table</td></tr>
+<tr><td>Semiprime or n-let key update</td><td>1 integer multiply and 1 divide, or a hash of the last k ids</td><td>as a product, no (a multiply); as a hash of ids, yes</td></tr>
+<tr><td>gcd admission over n-let keys</td><td>1 binary gcd per candidate: up to about 244 shift-and-subtract steps for an 8-prime key of about 122 bits</td><td>yes (subtractions and shifts)</td></tr>
+<tr><td>Hopf observation h(z1, z2)</td><td>8 products and about 5 adds per 4-vector</td><td>no (products)</td></tr>
+<tr><td>Golden radial shell step in ℤ[φ]</td><td>1 integer add (1 subtraction for φ⁻¹)</td><td>yes</td></tr>
+<tr><td>Ancestor cosine retrieval</td><td>grows with the items stored; float</td><td>no</td></tr>
+</tbody></table>
+</div>
+<p><strong>Which piece fits which stage, and in which domain</strong> (all hypotheses unless marked):</p>
+<ul>
+<li><strong>Long memory (stage 6): the prime and n-let key is the closest fit.</strong> A key from the turn's first k ids, with exact admission, is the form <code>route-plus-memory</code> runs: a table built from TRAIN, read at the readout. The archive's measured lesson is that admission alone raised the hit rate but not the answers (the prime-ranked pointer). Why is a hypothesis: the pointer page's own reading is that the found token did not reach the prediction. The plan puts the stored token where the readout reads, which tests it. The slot-address key (entity prime × attribute prime) remains untested.</li>
+<li><strong>Look-back (stage 5): the choice rule.</strong> #455's ordering (averaging over all, then top-3, then hard selection) matches the current evidence. The uniform bag is the read that works (claude-155), and the learned hard-picking register collapsed.</li>
+<li><strong>Table and trunk (stages 3 and 4): zeta phases and the golden shell.</strong>
+<ul>
+<li>θ_j(p) is a fixed angular code per token, computed once per vocabulary. It could seed the table's directions or the read's keys at no per-token cost.</li>
+<li>The golden bridge changes only radius. So it carries a level or scale, not a route: for example, a memory tier or a confidence shell, at one integer add.</li>
+<li>Neither has been tested in this trunk.</li>
+</ul>
+</li>
+<li><strong>Readout (stage 7): nothing archived serves it.</strong> That was ADR-0003's own missing piece, an address-to-token decoder (recorded as <code>NOT_RUN</code> in the qualification record).</li>
+<li><strong>The Hopf oracle:</strong> as a sector router it is measured negative (#430). The kept fibre is ready as extra integer state, untested for language.</li>
+</ul>
+<p><strong>Against the owner's memory:</strong></p>
+<ul>
+<li><strong>"Golden ratio … complex – Riemannian bridge":</strong> yes, ADR-0003 §5. It is from ℂ², not ℂ⁴, and it is a radial similarity. It was built and tested as algebra, with no language result.</li>
+<li><strong>"Angular router":</strong> yes, the zeta phases and the ancestor's angular routing.</li>
+<li><strong>"Hopf as a quick oracle":</strong> yes as designed. Measured as a router, it is negative.</li>
+<li><strong>"Hard coded actually did win":</strong> read here as hard selection, not on the record: on #455, among the latent arms, averaging won. Read as a fixed rule instead of a learned one, #455's fixed baseline (26.42%) did beat the learned arms.</li>
+</ul>
+<h2 id="the-scale-arithmetic-for-the-goal"><a class="header" href="#the-scale-arithmetic-for-the-goal">The scale arithmetic for the goal</a></h2>
+<p>GPT-4's own size and training data are not published (GPT-4 Technical Report, external). The comparisons below therefore use published open models of known size as reference points.</p>
+<div class="table-wrapper"><table><thead><tr><th>Quantity</th><th>Now</th><th>Reference (external)</th><th>Ratio (proof)</th></tr></thead><tbody>
+<tr><td>Training tokens</td><td>7,512,797 (stage 1)</td><td>Phi-3-mini: 3.3T. Llama 3.1 405B: 15.6T</td><td>about 440,000× to Phi-3-mini</td></tr>
+<tr><td>Trainable values</td><td>1,112,576 (stage 4)</td><td>Phi-3-mini: 3.8B</td><td>about 3,400×</td></tr>
+<tr><td>Context</td><td>192 (stage 5)</td><td>GPT-4: 8,192 and 32,768</td><td>43× and 171×</td></tr>
+<tr><td>Vocabulary</td><td>4,096 (stage 2)</td><td><code>cl100k_base</code>: 100,256</td><td>24×</td></tr>
+<tr><td>Training throughput</td><td>31,718–41,295 context tok/s per run, one run per RTX 5090 (stage 9)</td><td>—</td><td>1T tokens in about 70 to 91 days on 4 GPUs, assuming perfect scaling (below)</td></tr>
+<tr><td>Decode on this laptop</td><td>265 tok/s at 1.1M values, 98.6% in the trunk (stage 11)</td><td>A dense 7B model at 4 bits: weights of 3.5 GB against about 68 GB/s of M1 memory bandwidth, a ceiling near 19.5 tok/s</td><td>see below</td></tr>
+</tbody></table>
+</div>
+<p><strong>Training time</strong> (proof by arithmetic from the measured single-run rates, valid only for this 1.1M-value model):</p>
+<ul>
+<li>At 4 GPUs, one run each, the rate would be 127,000 to 165,000 tok/s. That assumes one model trains across them with perfect scaling, a hypothesis: no multi-GPU run of one model is recorded.</li>
+<li>At that rate, 1T tokens take about 70 to 91 days and $3,800 to $4,900 at $0.56/h a GPU. 15.6T take about 3.0 to 3.9 years.</li>
+<li>Cutting the step's own costs (the backward and the search, stage 9) shortens all of these.</li>
+</ul>
+<p><strong>Serving speed per value read</strong> (measurement and proof):</p>
+<ul>
+<li>A token reads about 64,000 trunk values and about 33,000 writer values (stages 4 and 7) in 3.73 ms, about 2.6 × 10⁷ values a second.</li>
+<li>A dense 4-bit model limited only by bandwidth reads about 1.4 × 10¹¹ values per second on this chip (68.3 GB/s at half a byte each).</li>
+<li>So per value read, the integer runtime is about 5,000 times slower than that bandwidth limit.</li>
+</ul>
+<p><strong>The profile now says where the time goes:</strong> 98.6% in the six layers' scalar kernels, at about 57 ns per learnable value (claude-158). The bandwidth is not what binds.</p>
+<p><strong>Where the geometry claims to change the arithmetic</strong>, and what is measured:</p>
+<div class="table-wrapper"><table><thead><tr><th>Claim</th><th>What it would change</th><th>Measured</th><th>Hoped for</th></tr></thead><tbody>
+<tr><td>Facts live in exact memory, not in parameters</td><td>Fewer parameters for the same knowledge. Language models store about 2 bits of knowledge per parameter (Allen-Zhu and Li, external).</td><td>With the true address supplied, 80/80, against 0/80 with no memory. Free-running, 0/40. A lookup by the turn's first 8 tokens names 607 of 1,226 openings, against the trunk's best of about 300 (stage 6).</td><td>That a turn-keyed memory read at the readout carries the openings the trunk cannot store (<code>route-plus-memory</code>).</td></tr>
+<tr><td>Long context by popcount</td><td>Look-back reads 64 bytes per position, not 512 KiB: 8,192 times fewer (proof, stage 5).</td><td>The Hamming read copies (<code>1,517 / 2,933</code> of 4,130), at 16% of a training step. The integer runtime has no read yet (stage 5).</td><td>That an integer read serves it at the arithmetic's cost.</td></tr>
+<tr><td>A recurrence with constant state</td><td>Memory per token does not grow with context (proof, stage 4).</td><td>The state carries about 6 tokens back (stage 4).</td><td>That retention or a look-back extends it.</td></tr>
+<tr><td>Integer serving with no multiplier</td><td>Runs on any CPU, with an exact artifact.</td><td>265 tok/s for 1.1M values, 98.6% in scalar trunk kernels; the discrete export is exact. Energy is 4.3 times worse on an older dense model (stage 11).</td><td>That vector kernels, exact against the scalar step, serve a capable model at a useful speed.</td></tr>
+<tr><td>Training below datacenter scale</td><td>1T tokens on 4 GPUs in about 70 to 91 days, about $3,800 to $4,900, if one model scales across them (above).</td><td>Only for 1.1M values. Deterministic since claude-179 (stage 9).</td><td>That ability arrives at a small enough size for this budget. No scaling slope has been measured beyond width 512's gain (stage 4).</td></tr>
+</tbody></table>
+</div>
+<h2 id="the-gaps-ranked-by-what-blocks-a-cheap-capable-model-first"><a class="header" href="#the-gaps-ranked-by-what-blocks-a-cheap-capable-model-first">The gaps, ranked by what blocks a cheap, capable model first</a></h2>
+<ol>
+<li><strong>Reply opening on new phrasing and the memory key that cannot reach it.</strong> Routing the turn works on familiar wording: exact turn memory names <code>598.7 / 598.3</code> of 1,226 DEV openings at two seeds. But its key is the turn's exact first token ids, so a reworded known question can find no stored key. On p-s, teacher-forced reply openings are only 17.4%, 13.7% and 18.6% at three seeds, against 80.8%, 80.2% and 79.9% on later tokens; the memory adds only 14–16 of 1,400 openings. The cycle step ends every registered loop but leaves content underpowered, so greedy stays the decode. <strong>The capability blocker is starting the right reply on new phrasing, not merely continuing or stopping a loop</strong> (claude-217, stages 5 and 6). Claude-218 found trunk-state keys offline. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-model-end-to-end/claude-219/REPORT.md">Claude-219</a> then served the point key for the first reply token in free generation on fresh p-v: templates improve by +13/+8/+12 and exact replies by +9/+8/+12 at three seeds. It reaches only 12–18% of the forced-opening lift, and the sign key is inconclusive at this panel size. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-model-end-to-end/claude-220/REPORT.md">Claude-220</a> then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-222/REPORT.md">Claude-222</a> has built the integer point table, search and <code>/8</code> record, with 380 library tests and a full serving audit. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-224/REPORT.md">Claude-224</a> has built the panel decode and grade. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md">Claude-227</a> passed retention GPU parity within the 3% bar; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-228/REPORT.md">Claude-228</a> built the run's reference/read-back/BOS checks; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-229/REPORT.md">Claude-229</a> found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md">Claude-231</a> built the nearest readout and export on native and browser paths; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md">claude-232</a> then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun.</li>
+<li><strong>The served decoder: correct and expensive, or cheap and unreliable.</strong>
+<ul>
+<li>Whole-table nearest is the decision (claude-150). It costs 21 times the writer on the M1 (13% of a token) and 13–34% of a training step, and it grows with the vocabulary (stage 7).</li>
+<li>The writer costs 0.6% of a token, but its admission failed at one seed of two.</li>
+<li>Making the writer's admission hold is what makes the cheap readout the correct one.</li>
+</ul>
+</li>
+<li><strong>Serving speed: met by exact structured kernels, not by vector kernels</strong> (stage 11).
+<ul>
+<li>claude-163's split put the cost in the recurrence core and the gated product.</li>
+<li>Exact structured kernels (claude-164 to claude-169) took a served token on the M1 from 270 to 3,042–3,044 tok/s. The hardware multiply and divide (claude-177, D80 and D81) then took it to 4,829 / 4,827. Every reply was byte-identical. That is about 3.3 ns per learnable value over a whole token, against 57 ns before (claude-158). The 3.3 is derived from claude-177's 4,829 tok/s and the earlier 5.2 ns at 3,043, not measured directly.</li>
+<li>Sorting the icosian snap's candidates (claude-241) then took it from 4,915 tok/s, its own base binary measured alongside, to 6,480 tok/s, with the step from 204.6 to 156.5 µs, and every reply byte-identical. A query with no zero coordinate and four distinct magnitudes now scores 3 or 5 roots, not 17. The snap is still the largest single kernel, at 32% of the sampled thread, down from 45%. The unsnapped contract runs no snap, so this does not apply to it (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/fbs-snap-sort/claude-241/REPORT.md">REPORT</a>).</li>
+<li>The unsnapped contract (<code>lut-stack/5</code>) serves at 4,217–4,320 tok/s (claude-182). It is about 30 µs a token slower than snapped, all of it in the two parts that run its rotation (claude-185).</li>
+<li>One reciprocal in place of the rotation's four divides was exact but 5% slower (claude-185).</li>
+<li><strong>Open question:</strong> whether a vector kernel brings the per-value rate near the hardware's. Nothing has shown it.</li>
+</ul>
+</li>
+<li><strong>Training cost: the backward is 54–62% of a step and host-bound, and the whole-table search is 13–34%</strong> (stage 9). Splitting the backward with the driver's profiler names the next change. A rival search over a subset, such as the writer's kept cells, removes most of the search's cost; its effect on prediction must be run.</li>
+<li><strong>The FBS export gap now passes at DEV scope, and training repeats.</strong> Under <code>lut-stack/5</code> the export gap is inside the bar on both seeds (claude-182), and the backward is fixed-order, so two runs give the same model byte for byte (claude-179). The "with repeats" confirming run is still open. The discrete M1 export has exact 14,287-row DEV agreement at both seeds: DEV 7,002 / 7,001, Fresh V2 7,215 / 7,228 and p-f 7,850 / 7,872 (stages 9 and 10).</li>
+<li><strong>The serving session cannot slide its 192-token window, and the integer runtime has no look-back</strong> (stages 5 and 8). Long context, the geometry's main claim, cannot be served yet.</li>
+<li><strong>The FBS artifact has no text path.</strong> It takes ids and gives ids (stage 8).</li>
+<li><strong>The two model paths do not join.</strong> The M1 bar rests on the discrete path, the replies on the FBS trunk, and they use different tables, trunks and formats (Two model paths).</li>
+<li><strong>Scale caps, with one data point.</strong> Width 512 fits best (<code>10,152 / 11,140</code>), at about half the training speed with 8 heads. The writer allows at most 8,192 identities and width 1,024. The corpus is 7.5M tokens, and no run has measured how ability grows beyond that (stages 1, 4 and 7).</li>
+<li><strong>Greedy decoding only, and the cost of multiplier-free serving.</strong> A lawful sampling rule does not exist and has no decision. The multiplier-free rule has one: D80 and D81 (28 Oct 2026) allow the integer multiply and divide. The 4.3-fold energy cost was measured on an older model under the old rule (stages 8 and 11).</li>
+</ol>
+<h2 id="recommended-order-of-work"><a class="header" href="#recommended-order-of-work">Recommended order of work</a></h2>
+<p>Each unit is one loop session. "Pass" and "fail" say what each outcome unlocks. The first map's U1 (the Hamming read, claude-146), U2 (one decoder, claude-150) and U9's profile (claude-157, claude-158) are done.</p>
+<div class="table-wrapper"><table><thead><tr><th>Unit</th><th>What it does</th><th>A pass unlocks</th><th>A fail unlocks</th></tr></thead><tbody>
+<tr><td>R1</td><td><strong>Done</strong> (<code>route-plus-memory</code>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/route-plus-memory/claude-161/REPORT.md">claude-161</a>): exact turn memory names <code>598.7 / 598.3</code> of 1,226 openings at two seeds, for the first word only.</td><td>The follow-on is no longer the completed <code>turn-memory-reply</code> item: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-model-end-to-end/claude-219/REPORT.md">claude-219</a> selected the point key, and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-model-end-to-end/claude-220/REPORT.md">claude-220</a> served it inside one float model on p-w. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-222/REPORT.md">Claude-222</a> has built the integer point table, search and <code>/8</code> record, with 380 library tests and a full serving audit. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-224/REPORT.md">Claude-224</a> has built the panel decode and grade. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md">Claude-227</a> passed retention GPU parity within the 3% bar; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-228/REPORT.md">Claude-228</a> built the run's reference/read-back/BOS checks; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-229/REPORT.md">Claude-229</a> found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md">Claude-231</a> built the nearest readout and export on native and browser paths; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md">claude-232</a> then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun.</td><td>A negative closes the configuration, not the mechanism.</td></tr>
+<tr><td>R2</td><td><strong>The writer's admission</strong> (the <code>one-decoder</code> line): make the target's cell be kept at every seed, then read the writer against nearest on the same checkpoints.</td><td>The served readout costs 0.6% of a token instead of 13%, and scales past 4,096 tokens without a full search.</td><td>Serve nearest, and build a sublinear index before a larger vocabulary.</td></tr>
+<tr><td>R3</td><td><strong>Done, by exact structured kernels, not NEON</strong> (<code>fbs-serving-kernels</code>, claude-163 to claude-170; then claude-177). Each served layer was split, and exact kernels were checked against <code>step_native</code> and timed with <code>fbs-toks --parts</code>: 270 → 3,042–3,044 tok/s, then 4,829 / 4,827 with the hardware multiply and divide.</td><td><strong>Met:</strong> about 3.3 ns per learnable value over a whole token, derived from claude-177's 4,829 tok/s.<br><strong>Open:</strong> whether a vector kernel brings that near the hardware's rate, and whether the rate extrapolates. Neither is shown (<code>fbs-serving-vector-kernel</code>).</td><td>The kernels' layout is redesigned before a larger model is served.</td></tr>
+<tr><td>R4</td><td><strong>Split the backward</strong> (driver's profiler), and run <strong>a cheaper rival search</strong> against (a).</td><td>Training's cost per token falls, so every later run costs less.</td><td>Keep the search, and report its share.</td></tr>
+<tr><td>R5</td><td>An integer Hamming read and bag in <code>uor-r4-integer</code>, and a sliding session with a ring of codes longer than 192. <strong>29 Oct:</strong> <code>lut-stack/6</code> carries the reads (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-hamming-read/claude-188/REPORT.md">claude-188</a>), and the copy-head kernel is built (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-hamming-read/claude-189/REPORT.md">claude-189</a>). The session hooks are next.</td><td>The look-back and long context are served on the laptop.</td><td>The look-back stays float-only; find the part that does not export.</td></tr>
+<tr><td>R6</td><td><strong>Done at DEV scope:</strong> a fixed-order backward (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-179/REPORT.md">claude-179</a>), and the export gap passes under <code>lut-stack/5</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/d11-exporter-float-trunk/claude-182/REPORT.md">claude-182</a>). The confirming run with repeats stays open.</td><td>Runs can be compared, and the export gap has a verdict at DEV scope.</td><td>Report every comparison with a stated spread from repeats.</td></tr>
+<tr><td>R7</td><td>A text path for the FBS artifact: the tokenizer, the dialogue protocol and the turn-end token, in <code>uor-chat --stack</code>.</td><td>A typed question gets a typed reply on this laptop.</td><td>The protocol bundle needs porting first.</td></tr>
+<tr><td>R8</td><td>A scale probe: width 1,024 (the writer's limit), and a corpus beyond 7.5M tokens that fits the test's dialogues. <code>distill-d1</code> needs the owner's release.</td><td>A measured slope of ability against size: the first number for the goal arithmetic.</td><td>The architecture's scaling becomes the open question before anything larger is trained.</td></tr>
+</tbody></table>
+</div>
+<p>R1 comes first because reply opening on new phrasing is the measured capability blocker, and exact memory is the cheapest place to address it. R2 and R3 make the served model cheap: the readout and kernels. R4 makes every later run cheaper. R2 to R4 can run beside R1 when their files do not overlap.</p>
+<p><strong>The order now in force (31 Oct):</strong> claude-217 is done and leaves greedy in place. Claude-218 found trunk-state keys offline; claude-219 showed a partial free-generation gain on fresh p-v. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/one-model-end-to-end/claude-220/REPORT.md">Claude-220</a> then served the point key inside one float model on fresh p-w, improving templates by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-222/REPORT.md">Claude-222</a> has built the integer point table, search and <code>/8</code> record, with 380 library tests and a full serving audit. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-224/REPORT.md">Claude-224</a> has built the panel decode and grade. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md">Claude-227</a> passed retention GPU parity within the 3% bar; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-228/REPORT.md">Claude-228</a> built the run's reference/read-back/BOS checks; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/point-key-integer/claude-229/REPORT.md">Claude-229</a> found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md">Claude-231</a> built the nearest readout and export on native and browser paths; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md">claude-232</a> then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun, then every required integer part, R7, and one integer model scored end to end on fresh prompts with tokens per second. Cost work follows. See <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/PLAN.md">PLAN.md</a>.</p>
+<h2 id="proposal-for-the-owners-queue"><a class="header" href="#proposal-for-the-owners-queue">Proposal for the owner's queue</a></h2>
+<p>This is only a proposal. No §3 constraint is relaxed here, and this page waits on no answer.</p>
+<p>The multiplier-free rule (D11, until D80 and D81 amended CHARTER §3.6 on 28 Oct 2026) had one measured cost: 4.3 times the energy, on an older dense model (stage 11). claude-158's profile puts 98.6% of a served FBS token in the trunk's scalar kernels. It does not split the share spent in table-emulated products inside them. If the owner wants that share as a number, R3's per-layer split can report it.</p>
+<h2 id="sources-outside-the-project"><a class="header" href="#sources-outside-the-project">Sources outside the project</a></h2>
+<ul>
+<li>Apple, M1 announcement (November 2020): 8-core GPU at 2.6 TFLOPS; 16-core Neural Engine at 11 trillion operations per second. LPDDR4X-4266 on a 128-bit bus gives 4,266 MT/s × 16 bytes ≈ 68.3 GB/s.</li>
+<li>OpenAI, <em>GPT-4 Technical Report</em> (2023): no parameter count or training data size is disclosed. The March 2023 announcement offered 8,192 and 32,768 tokens of context.</li>
+<li>OpenAI, <code>tiktoken</code>: the <code>cl100k_base</code> encoding used by GPT-4 has 100,256 tokens.</li>
+<li>Touvron et al., <em>Llama 2: Open Foundation and Fine-Tuned Chat Models</em> (2023): the 7B model has 32 layers and width 4,096, with one key and one value per head.</li>
+<li>Llama Team, <em>The Llama 3 Herd of Models</em> (2024): the 405B model trained on 15.6T tokens with 3.8 × 10²⁵ FLOPs.</li>
+<li>Abdin et al., <em>Phi-3 Technical Report</em> (2024): Phi-3-mini has 3.8B parameters, trained on 3.3T tokens, and scores 69% on MMLU.</li>
+<li>Hoffmann et al., <em>Training Compute-Optimal Large Language Models</em> (2022): about 20 training tokens per parameter.</li>
+<li>Allen-Zhu and Li, <em>Physics of Language Models: Part 3.3, Knowledge Capacity Scaling Laws</em> (2024): about 2 bits of knowledge per parameter.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../model/architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../model/training.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../model/architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../model/training.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

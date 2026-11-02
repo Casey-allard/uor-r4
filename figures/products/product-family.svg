@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" role="img" aria-labelledby="t d">
 <title id="t">One model file, two clients</title>
-<desc id="d">One model file sits in the centre: the model artifact, a UORLUT01 file of integers only, pinned by its SHA-256 checksum, tagged "not yet shipped: 0 of 8 milestones". Two arrows leave it. The left arrow goes to a browser window, the web client, which runs the file in WebAssembly inside a tab with the Studio as its shell. The right arrow goes to a laptop, the desktop client: a Tauri app with a native engine, durable memory (D19) and offline use, tagged "spec only". The same Studio panel, an editor beside a chat, is drawn inside both clients to show one shared interface. A dashed border around everything reads "on your device, no model server".</desc>
+<desc id="d">One model file sits in the centre: the model artifact, a UORLUT01 file of integers only, pinned by its SHA-256 checksum, tagged "M1 complete, 1 of 8; no product release". Two arrows leave it. The left arrow goes to a browser window, the web client, which runs the file in WebAssembly inside a tab with the Studio as its shell. The right arrow goes to a laptop, the desktop client: a Tauri app with a native engine, durable memory (D19) and offline use, tagged "synthetic verified". The same Studio panel, an editor beside a chat, is drawn inside both clients to show one shared interface. A dashed border around everything reads "local mode: no default model server". For the web Studio only, an optional user-configured OpenAI-compatible API sends prompts to the endpoint the user chooses; the desktop shell has no OpenAI-compatible API mode.</desc>
 <style>
 svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
       --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
@@ -53,11 +53,11 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <!-- Device boundary -->
 <rect class="device" x="24" y="76" width="912" height="346" rx="16"/>
 <rect class="bg" x="40" y="66" width="250" height="20"/>
-<text class="device-label" x="48" y="81">On your device: no model server</text>
+<text class="device-label" x="48" y="81">Local mode: no default model server</text>
 
 <!-- Centre: model file -->
 <rect class="tag-no" x="340" y="104" width="280" height="24" rx="12"/>
-<text class="tag-no-text" x="480" y="120" text-anchor="middle">NOT YET SHIPPED: 0 of 8 milestones</text>
+<text class="tag-no-text" x="480" y="120" text-anchor="middle">M1 COMPLETE: 1 of 8; no product release</text>
 <path class="file" d="M446,146 L496,146 L516,166 L516,246 L446,246 Z"/>
 <path class="fold" d="M496,146 L496,166 L516,166 Z"/>
 <line class="fileline" x1="458" y1="184" x2="502" y2="184"/>
@@ -104,7 +104,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="window-spec" x="640" y="122" width="240" height="196" rx="8"/>
 <path class="base" d="M612,318 L908,318 L896,334 L624,334 Z"/>
 <rect class="tag-spec" x="806" y="98" width="74" height="20" rx="10"/>
-<text class="tag-spec-text" x="843" y="112" text-anchor="middle">spec only</text>
+<text class="tag-spec-text" x="843" y="112" text-anchor="middle">synthetic verified</text>
 <!-- Studio panel (shared) -->
 <g transform="translate(650,146)">
   <rect class="studio" x="0" y="0" width="220" height="150" rx="6"/>

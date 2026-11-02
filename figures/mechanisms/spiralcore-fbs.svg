@@ -345,5 +345,6 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="cell" x="860" y="424" width="20" height="20" rx="3"/>
 <text class="n" x="888" y="438">atom 1</text>
 <text class="t" x="684" y="464">Selected: each output block reads</text><text class="t" x="684" y="480">exactly one atom, and there is no</text><text class="t" x="684" y="496">coefficient for any pair.</text>
-<text class="n" x="16" y="522">Tree, ring layout, atom choices and grid sizes are schematic. The 8-vector example is computed from the SpiralCore octonion table. Status: ready.</text>
+<text class="n" x="16" y="508">Tree, ring layout, atom choices and grid sizes are schematic. The 8-vector example is computed from the SpiralCore octonion table.</text>
+<text class="n" x="16" y="526">Status: FBS routes ACTIVE; float projection READY.</text>
 </svg>

@@ -311,5 +311,5 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text class="n" x="658" y="346">Non-root queries that find their code scope,</text><text class="n" x="658" y="362">16 dimensions, 192 scopes (as keys, not a read).</text>
 <rect class="box" x="658" y="372" width="272" height="56" rx="6"/>
 <text class="b" x="670" y="392">As a read score in a language model</text><text class="n" x="670" y="408">ahead of dot in 3 of 4 seeds, mean 0.018 nats,</text><text class="n" x="670" y="422">below its 0.03 bar</text>
-<text class="n" x="16" y="466">Schematic: points, cells and trees are illustrative. The numbers are measured counts from the records. Status: parked.</text>
+<text class="n" x="16" y="466">Schematic: points, cells and trees are illustrative. The numbers are measured counts from the records. Status: kept fibre READY; sector routing PARKED.</text>
 </svg>

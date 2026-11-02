@@ -5,7 +5,7 @@
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="759" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Historical float operator path (12–13 October)</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Delivered float source is inactive. Current integer M1 data flow: architecture.svg.</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Delivered float source is inactive. The current model: architecture.svg.</text>
 <rect x="40" y="150" width="120" height="92" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
 <text x="54" y="176" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">token x_t</text>
 <text x="54" y="197" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">byte-BPE id</text>
