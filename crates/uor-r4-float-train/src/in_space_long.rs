@@ -550,7 +550,10 @@ fn run_trained_cut(checkpoint: &Path) -> Result<Option<ReadScope>> {
 
 /// Whether the run saved beside `checkpoint` trained as served. A checkpoint copied without its
 /// run config is scored through the plain path, as before.
-fn run_train_as_served(checkpoint: &Path) -> Result<bool> {
+fn run_train_as_served(checkpoint: &Path, served_forward: Option<bool>) -> Result<bool> {
+    if let Some(served) = served_forward {
+        return Ok(served);
+    }
     let checkpoint = checkpoint
         .canonicalize()
         .unwrap_or_else(|_| checkpoint.to_path_buf());
@@ -5666,9 +5669,10 @@ pub fn decode_speed(
     seed: u64,
     arm: FbsArm,
     device: &Device,
+    served_forward: Option<bool>,
 ) -> Result<Vec<DecodeSpeed>> {
     check_run_arm(checkpoint, arm)?;
-    let served = run_train_as_served(checkpoint)?;
+    let served = run_train_as_served(checkpoint, served_forward)?;
     let (dev_windows, _) = load_dev(data_root)?;
     arms::set_fbs_arm(Some(arm));
     crate::geometric_stack::set_retention_rates(retain_rates);
@@ -5719,9 +5723,10 @@ pub fn inspect_run(
     seed: u64,
     arm: FbsArm,
     device: &Device,
+    served_forward: Option<bool>,
 ) -> Result<Vec<Inspection>> {
     check_run_arm(run, arm)?;
-    let served = run_train_as_served(run)?;
+    let served = run_train_as_served(run, served_forward)?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     arms::set_fbs_arm(Some(arm));
     crate::geometric_stack::set_retention_rates(retain_rates);
@@ -6100,6 +6105,7 @@ pub fn score_rows(
     traces: &[(String, Vec<usize>)],
     forces: Vec<(String, DecisionForce)>,
     device: &Device,
+    served_forward: Option<bool>,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     if served_arm && !keys {
@@ -6233,7 +6239,7 @@ pub fn score_rows(
     // A run trained with the reply's read held to the prompt scores its rows the same way
     // (claude-216); its decodes take the cut through `--reply-read`, as served.
     let trained = run_trained_cut(checkpoint)?;
-    let trained_as_served = run_train_as_served(checkpoint)?;
+    let trained_as_served = run_train_as_served(checkpoint, served_forward)?;
     set_trained_cut(trained);
     println!("[cut] scoring with the trained cut: {}", trained.map_or("none", |s| s.name()));
     let memory = crate::flock_read_memory::turn_memory();
@@ -13912,15 +13918,18 @@ mod tests {
         fs::create_dir_all(&step).unwrap();
         fs::write(run.join("config.json"), &cut).unwrap();
         assert_eq!(run_trained_cut(&step).unwrap(), Some(ReadScope::All));
-        assert!(!run_train_as_served(&step).unwrap());
+        assert!(!run_train_as_served(&step, None).unwrap());
         config.train_as_served = true;
         let served = serde_json::to_vec_pretty(&config).unwrap();
         fs::write(run.join("config.json"), &served).unwrap();
-        assert!(run_train_as_served(&step).unwrap());
+        assert!(run_train_as_served(&step, None).unwrap());
+        assert!(run_train_as_served(&step, Some(true)).unwrap());
         assert_eq!(run_trained_cut(&step).unwrap(), Some(ReadScope::All));
         fs::write(run.join("config.json"), plain.as_bytes()).unwrap();
         assert_eq!(run_trained_cut(&step).unwrap(), None);
-        assert!(!run_train_as_served(&step).unwrap());
+        assert!(!run_train_as_served(&step, None).unwrap());
+        assert!(run_train_as_served(&step, Some(true)).unwrap());
+        assert!(!run_train_as_served(&step, Some(false)).unwrap());
         fs::remove_dir_all(&run).unwrap();
     }
 

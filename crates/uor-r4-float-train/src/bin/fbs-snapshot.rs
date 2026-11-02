@@ -475,6 +475,7 @@ fn inspect(ties: &str, data_root: &str, run: &str) -> Result<()> {
         seed,
         FbsArm::OneAtomActive,
         &device,
+        None,
     )? {
         println!("{}", serde_json::to_string(&reading)?);
     }

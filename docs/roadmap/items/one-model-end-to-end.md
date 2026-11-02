@@ -33,7 +33,9 @@ So before the model the project ships is trained, the scoring must be able to te
   scored query and D11 checkpoint evaluation. Training-only reply cuts are
   refused because the artifact cannot carry them. The next unit must run the
   matched four-arm comparison on CUDA; this host cannot execute the tensor
-  graph under D24/D29.
+  graph under D24/D29. A FIT-reviewed two-mode × two-seed comparison harness
+  and a scoring-only `--served-forward` override are ready; the four GPU runs
+  remain `NOT_RUN` while no CUDA device is available.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

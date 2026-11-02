@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1]`
 //!
 //! `--train-as-served 1` trains through the graph the integer artifact serves
 //! (one-model-end-to-end, claude-258 and deepseek-4): the trunk's tables, Hamming reads and turn
@@ -9,6 +9,9 @@
 //! i16 activations and the Q12 scored query are active; the gradient moves the float values the
 //! rounded forward came from; and every checkpoint is scored and saved through that same served
 //! forward. It refuses reads or training-only cuts that the export does not carry.
+//!
+//! `--served-forward 0|1` overrides the saved run mode only for `--inspect`, `--decode-speed` and
+//! `--score-rows`, so different training modes can be scored through the same served graph.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
@@ -207,6 +210,7 @@ fn main() -> Result<()> {
     let mut served_grade_on = false;
     let mut panel_prompts_on = false;
     let mut integer_grade_on = false;
+    let mut served_forward = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -402,6 +406,7 @@ fn main() -> Result<()> {
                 })?
             }
             "--train-as-served" => config.train_as_served = switch(&value)?,
+            "--served-forward" => served_forward = Some(switch(&value)?),
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,
@@ -567,6 +572,12 @@ fn main() -> Result<()> {
             "--train-as-served applies to training with --out only".to_owned(),
         ));
     }
+    served_forward_applies(
+        served_forward,
+        inspect.is_some(),
+        decode.is_some(),
+        score.is_some(),
+    )?;
     if overturn_on && fresh_v2.is_some() {
         return Err(FloatTrainError::Invalid(
             "--overturn reads Fresh V2 from the scored files; it takes no --fresh-v2".to_owned(),
@@ -863,6 +874,7 @@ fn main() -> Result<()> {
             &traces,
             forces,
             &device,
+            served_forward,
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }
@@ -881,6 +893,7 @@ fn main() -> Result<()> {
             config.seed,
             config.fbs_arm,
             &device,
+            served_forward,
         )? {
             println!("{}", serde_json::to_string(&speed)?);
         }
@@ -925,6 +938,7 @@ fn main() -> Result<()> {
             config.seed,
             config.fbs_arm,
             &device,
+            served_forward,
         )? {
             println!("{}", serde_json::to_string(&reading)?);
         }
@@ -1018,6 +1032,21 @@ fn keyed_decode_arg(value: &str) -> Result<Vec<(String, f32)>> {
     Ok(keyed)
 }
 
+fn served_forward_applies(
+    served_forward: Option<bool>,
+    inspect: bool,
+    decode: bool,
+    score: bool,
+) -> Result<()> {
+    if served_forward.is_some() && !(inspect || decode || score) {
+        return Err(FloatTrainError::Invalid(
+            "--served-forward applies to --inspect, --decode-speed and --score-rows only"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1054,5 +1083,14 @@ mod tests {
         assert!(panel_arg("p-dev").is_err());
         assert!(panel_arg("=dir").is_err());
         assert!(panel_arg("name=").is_err());
+    }
+
+    #[test]
+    fn served_forward_is_a_scoring_only_override() {
+        assert!(served_forward_applies(None, false, false, false).is_ok());
+        assert!(served_forward_applies(Some(true), true, false, false).is_ok());
+        assert!(served_forward_applies(Some(false), false, true, false).is_ok());
+        assert!(served_forward_applies(Some(true), false, false, true).is_ok());
+        assert!(served_forward_applies(Some(true), false, false, false).is_err());
     }
 }
