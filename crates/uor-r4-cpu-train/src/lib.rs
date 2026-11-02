@@ -29,7 +29,9 @@ pub use discrete_route::{
     CpuDiscreteProposalScorer, CpuDiscreteProposalScoring, CpuDiscreteRelation, CpuDiscreteRoute,
     CpuDiscreteSchedule, CpuDiscreteScoreError, CPU_DISCRETE_CHECKPOINT_SCHEMA,
 };
-pub use fbs::{CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError};
+pub use fbs::{
+    CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
+};
 pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,
     PanelReading,

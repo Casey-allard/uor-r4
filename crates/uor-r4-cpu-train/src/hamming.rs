@@ -256,6 +256,13 @@ impl CpuHamming {
             .collect()
     }
 
+    pub(crate) fn payload_lengths(&self, context: usize) -> Vec<usize> {
+        self.reads
+            .iter()
+            .map(|read| read.types.as_ref().map_or(0, |_| context * self.width))
+            .collect()
+    }
+
     pub(crate) fn stream(
         &self,
         depth: usize,

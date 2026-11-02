@@ -54,6 +54,47 @@ pub struct CpuFbsStep {
     pub query_q12: Vec<i32>,
 }
 
+pub const CPU_FBS_SESSION_CHECKPOINT_SCHEMA: &str = "uor-r4.cpu-fbs-session-checkpoint/1";
+const CPU_FBS_SESSION_SUBSTRATE: &str = "cpu-development-research";
+const CPU_FBS_SESSION_QUALIFICATION: &str = "gpu-required";
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuFbsSessionShape {
+    vocab: usize,
+    width: usize,
+    mlp: usize,
+    layers: usize,
+    kept_cells: usize,
+    context: usize,
+    hamming: bool,
+    memory: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuFbsSessionPayload {
+    artifact_sha256: String,
+    shape: CpuFbsSessionShape,
+    position: usize,
+    state: Vec<Vec<i64>>,
+    history: Vec<Vec<i32>>,
+    tokens: Vec<u32>,
+    hamming_payloads: Vec<Vec<i64>>,
+    memory_anchors: MemoryAnchors,
+    reply_start: Option<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuFbsSessionCheckpoint {
+    schema: String,
+    substrate: String,
+    qualification: String,
+    state_sha256: String,
+    payload: CpuFbsSessionPayload,
+}
+
 #[derive(Clone)]
 struct Map {
     atoms: Vec<u16>,
@@ -106,6 +147,7 @@ impl Layer {
 
 #[derive(Clone)]
 pub struct CpuFbsForward {
+    artifact_sha256: Option<String>,
     vocab: usize,
     width: usize,
     mlp: usize,
@@ -173,6 +215,7 @@ impl CpuFbsForward {
         if let Some(memory) = memory {
             forward.memory = Some(CpuTurnMemory::new(memory, forward.width).map_err(invalid)?);
         }
+        forward.artifact_sha256 = Some(uor_r4_discrete::corpus::sha256(bytes));
         Ok(forward)
     }
 
@@ -205,6 +248,7 @@ impl CpuFbsForward {
             return Err(invalid("kept cells must be in 1..=16"));
         }
         Ok(Self {
+            artifact_sha256: None,
             vocab,
             width,
             mlp,
@@ -277,6 +321,170 @@ impl CpuFbsForward {
         }
         self.memory_anchors = MemoryAnchors::default();
         self.reply_start = None;
+    }
+
+    pub fn checkpoint_bytes(&self) -> Result<Vec<u8>> {
+        let artifact_sha256 = self
+            .artifact_sha256
+            .clone()
+            .ok_or_else(|| invalid("CPU FBS session has no artifact identity"))?;
+        let payload = CpuFbsSessionPayload {
+            artifact_sha256,
+            shape: self.session_shape(),
+            position: self.position,
+            state: self.state.clone(),
+            history: self.history.clone(),
+            tokens: self.tokens.clone(),
+            hamming_payloads: self.hamming_payloads.clone(),
+            memory_anchors: self.memory_anchors.clone(),
+            reply_start: self.reply_start,
+        };
+        self.validate_session_payload(&payload)?;
+        let state_sha256 = uor_r4_discrete::corpus::sha256(
+            &serde_json::to_vec(&payload).map_err(|error| invalid(error.to_string()))?,
+        );
+        serde_json::to_vec(&CpuFbsSessionCheckpoint {
+            schema: CPU_FBS_SESSION_CHECKPOINT_SCHEMA.to_owned(),
+            substrate: CPU_FBS_SESSION_SUBSTRATE.to_owned(),
+            qualification: CPU_FBS_SESSION_QUALIFICATION.to_owned(),
+            state_sha256,
+            payload,
+        })
+        .map_err(|error| invalid(error.to_string()))
+    }
+
+    pub fn resume(checkpoint_bytes: &[u8], artifact: &[u8]) -> Result<Self> {
+        let checkpoint: CpuFbsSessionCheckpoint =
+            serde_json::from_slice(checkpoint_bytes).map_err(|error| invalid(error.to_string()))?;
+        if checkpoint.schema != CPU_FBS_SESSION_CHECKPOINT_SCHEMA
+            || checkpoint.substrate != CPU_FBS_SESSION_SUBSTRATE
+            || checkpoint.qualification != CPU_FBS_SESSION_QUALIFICATION
+        {
+            return Err(invalid(
+                "CPU FBS session checkpoint schema, substrate or qualification differs",
+            ));
+        }
+        uor_r4_discrete::corpus::validate_sha256(&checkpoint.state_sha256)
+            .map_err(|error| invalid(error.to_string()))?;
+        let state_bytes =
+            serde_json::to_vec(&checkpoint.payload).map_err(|error| invalid(error.to_string()))?;
+        if uor_r4_discrete::corpus::sha256(&state_bytes) != checkpoint.state_sha256 {
+            return Err(invalid("CPU FBS session checkpoint state hash differs"));
+        }
+        let artifact_sha256 = uor_r4_discrete::corpus::sha256(artifact);
+        if checkpoint.payload.artifact_sha256 != artifact_sha256 {
+            return Err(invalid(
+                "CPU FBS session checkpoint artifact identity differs",
+            ));
+        }
+        let mut forward = Self::from_artifact(artifact)?;
+        forward.validate_session_payload(&checkpoint.payload)?;
+        let payload = checkpoint.payload;
+        forward.position = payload.position;
+        forward.state = payload.state;
+        forward.history = payload.history;
+        forward.tokens = payload.tokens;
+        forward.hamming_payloads = payload.hamming_payloads;
+        forward.memory_anchors = payload.memory_anchors;
+        forward.reply_start = payload.reply_start;
+        Ok(forward)
+    }
+
+    fn session_shape(&self) -> CpuFbsSessionShape {
+        CpuFbsSessionShape {
+            vocab: self.vocab,
+            width: self.width,
+            mlp: self.mlp,
+            layers: self.layers.len(),
+            kept_cells: self.kept_cells,
+            context: self.context,
+            hamming: self.hamming.is_some(),
+            memory: self.memory.is_some(),
+        }
+    }
+
+    fn validate_session_payload(&self, payload: &CpuFbsSessionPayload) -> Result<()> {
+        let expected_sha256 = self
+            .artifact_sha256
+            .as_deref()
+            .ok_or_else(|| invalid("CPU FBS session has no artifact identity"))?;
+        if payload.artifact_sha256 != expected_sha256
+            || payload.shape != self.session_shape()
+            || payload.position > self.context
+            || payload.position != payload.tokens.len()
+            || payload.state.len() != self.layers.len()
+            || payload.history.len() != self.layers.len()
+            || payload.state.iter().any(|state| state.len() != self.width)
+            || payload
+                .history
+                .iter()
+                .any(|history| history.len() != 3 * self.width)
+            || payload
+                .tokens
+                .iter()
+                .any(|&token| token as usize >= self.vocab)
+        {
+            return Err(invalid(
+                "CPU FBS session dynamic state differs from its artifact shape",
+            ));
+        }
+        let expected_payloads = self
+            .hamming
+            .as_ref()
+            .map(|hamming| hamming.payload_lengths(self.context))
+            .unwrap_or_default();
+        if payload.hamming_payloads.len() != expected_payloads.len()
+            || payload
+                .hamming_payloads
+                .iter()
+                .zip(&expected_payloads)
+                .any(|(cache, &expected)| {
+                    let future_start = payload.position.saturating_mul(self.width);
+                    cache.len() != expected
+                        || cache
+                            .get(future_start..)
+                            .is_some_and(|future| future.iter().any(|&value| value != 0))
+                })
+        {
+            return Err(invalid(
+                "CPU FBS Hamming caches differ from their artifact shape",
+            ));
+        }
+        let anchors = &payload.memory_anchors;
+        let anchor_tokens_valid = anchors
+            .opening
+            .iter()
+            .chain(&anchors.reply)
+            .all(|&token| (token as usize) < self.vocab);
+        let anchor_limits_valid = self
+            .memory
+            .as_ref()
+            .map(|memory| {
+                let (opening, reply) = memory.anchor_limits();
+                anchors.opening.len() <= opening && anchors.reply.len() <= reply
+            })
+            .unwrap_or_else(|| anchors == &MemoryAnchors::default());
+        let reply_valid = match payload.reply_start {
+            None => anchors == &MemoryAnchors::default(),
+            Some(start) => {
+                start > 0
+                    && start <= payload.position.saturating_add(1)
+                    && start <= self.context.saturating_add(1)
+                    && self.memory.as_ref().is_none_or(|memory| {
+                        // A pending opening has not overwritten the anchors from the
+                        // previous reply yet. Their structurally valid prior values
+                        // are inert and must round-trip exactly.
+                        start > payload.position
+                            || anchors == &memory.anchors_at(&payload.tokens, start)
+                    })
+            }
+        };
+        if !anchor_tokens_valid || !anchor_limits_valid || !reply_valid {
+            return Err(invalid(
+                "CPU FBS memory anchors or reply cursor differ from their artifact shape",
+            ));
+        }
+        Ok(())
     }
 
     pub fn step(&mut self, token: u32, head: CpuFbsHead) -> Result<CpuFbsStep> {
@@ -1035,6 +1243,27 @@ mod tests {
         memory_weight: f32,
         point_targets: Option<Vec<u32>>,
     ) -> (IntegerStackModel, CpuFbsForward) {
+        let bytes = memory_artifact_with(
+            seed,
+            head,
+            hamming,
+            opening_hit,
+            memory_weight,
+            point_targets,
+        );
+        let model = IntegerStackModel::parse(&bytes).unwrap();
+        let cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
+        (model, cpu)
+    }
+
+    fn memory_artifact_with(
+        seed: u64,
+        head: CpuFbsHead,
+        hamming: bool,
+        opening_hit: bool,
+        memory_weight: f32,
+        point_targets: Option<Vec<u32>>,
+    ) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
             FbsSynth {
@@ -1100,9 +1329,7 @@ mod tests {
             )
             .unwrap();
         }
-        let model = IntegerStackModel::parse(&bytes).unwrap();
-        let cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
-        (model, cpu)
+        bytes
     }
 
     fn assert_memory_parity(
@@ -1418,6 +1645,209 @@ mod tests {
             expected.push(reset_step.token);
         }
         assert!(!expected.is_empty());
+    }
+
+    const SESSION_PROCESS_CHECKPOINT: &str = "UOR_CPU_FBS_SESSION_CHECKPOINT";
+    const SESSION_PROCESS_ARTIFACT: &str = "UOR_CPU_FBS_SESSION_ARTIFACT";
+    const SESSION_PROCESS_OUTPUT: &str = "UOR_CPU_FBS_SESSION_OUTPUT";
+
+    fn session_result(step: &CpuFbsStep, checkpoint: &CpuFbsForward) -> serde_json::Value {
+        serde_json::json!({
+            "token": step.token,
+            "kept_cells": step.kept_cells,
+            "query_q12": step.query_q12,
+            "checkpoint_sha256": uor_r4_discrete::corpus::sha256(
+                &checkpoint.checkpoint_bytes().unwrap()
+            ),
+        })
+    }
+
+    fn session_checkpoint_fixture() -> (Vec<u8>, Vec<u8>, CpuFbsForward) {
+        let artifact =
+            memory_artifact_with(105, CpuFbsHead::Writer, true, false, 0.5, Some(vec![99]));
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        for (row, token) in memory_script().into_iter().take(3).enumerate() {
+            if row == 1 {
+                forward.mark_reply_start();
+            }
+            forward.step(token, CpuFbsHead::Writer).unwrap();
+        }
+        let checkpoint = forward.checkpoint_bytes().unwrap();
+        (artifact, checkpoint, forward)
+    }
+
+    #[test]
+    fn cpu_fbs_session_checkpoint_process_helper() {
+        let Ok(checkpoint_path) = std::env::var(SESSION_PROCESS_CHECKPOINT) else {
+            return;
+        };
+        let artifact_path = std::env::var(SESSION_PROCESS_ARTIFACT).unwrap();
+        let output_path = std::env::var(SESSION_PROCESS_OUTPUT).unwrap();
+        let checkpoint = std::fs::read(checkpoint_path).unwrap();
+        let artifact = std::fs::read(artifact_path).unwrap();
+        let mut forward = CpuFbsForward::resume(&checkpoint, &artifact).unwrap();
+        let step = forward.step(77, CpuFbsHead::Writer).unwrap();
+        std::fs::write(
+            output_path,
+            serde_json::to_vec(&session_result(&step, &forward)).unwrap(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn cpu_fbs_session_survives_process_restart() {
+        let (artifact, checkpoint, mut uninterrupted) = session_checkpoint_fixture();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let base = std::env::temp_dir().join(format!(
+            "uor-r4-cpu-fbs-session-{}-{nonce}",
+            std::process::id()
+        ));
+        let checkpoint_path = base.with_extension("checkpoint");
+        let artifact_path = base.with_extension("d11");
+        let output_path = base.with_extension("result");
+        std::fs::write(&checkpoint_path, &checkpoint).unwrap();
+        std::fs::write(&artifact_path, &artifact).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .arg("--exact")
+            .arg("fbs::tests::cpu_fbs_session_checkpoint_process_helper")
+            .arg("--nocapture")
+            .env(SESSION_PROCESS_CHECKPOINT, &checkpoint_path)
+            .env(SESSION_PROCESS_ARTIFACT, &artifact_path)
+            .env(SESSION_PROCESS_OUTPUT, &output_path)
+            .env("RUST_TEST_THREADS", "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "session helper failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let child: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&output_path).unwrap()).unwrap();
+        let expected_step = uninterrupted.step(77, CpuFbsHead::Writer).unwrap();
+        assert_eq!(child, session_result(&expected_step, &uninterrupted));
+        std::fs::remove_file(checkpoint_path).unwrap();
+        std::fs::remove_file(artifact_path).unwrap();
+        std::fs::remove_file(output_path).unwrap();
+    }
+
+    #[test]
+    fn pending_second_reply_round_trips_with_prior_anchors() {
+        let artifact =
+            memory_artifact_with(111, CpuFbsHead::Writer, true, true, 1.0, Some(vec![99]));
+        let mut uninterrupted = CpuFbsForward::from_artifact(&artifact).unwrap();
+        for (row, token) in memory_script().into_iter().take(5).enumerate() {
+            if row == 1 {
+                uninterrupted.mark_reply_start();
+            }
+            uninterrupted.step(token, CpuFbsHead::Writer).unwrap();
+        }
+        uninterrupted.mark_reply_start();
+        let checkpoint = uninterrupted.checkpoint_bytes().unwrap();
+        let mut restored = CpuFbsForward::resume(&checkpoint, &artifact).unwrap();
+        assert_eq!(restored.checkpoint_bytes().unwrap(), checkpoint);
+        assert_eq!(
+            restored.step(99, CpuFbsHead::Writer).unwrap(),
+            uninterrupted.step(99, CpuFbsHead::Writer).unwrap()
+        );
+        assert_eq!(
+            restored.checkpoint_bytes().unwrap(),
+            uninterrupted.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn restored_hamming_and_memory_session_resets_like_a_fresh_stream() {
+        let (artifact, checkpoint, _) = session_checkpoint_fixture();
+        let mut restored = CpuFbsForward::resume(&checkpoint, &artifact).unwrap();
+        restored.reset();
+        let mut fresh = CpuFbsForward::from_artifact(&artifact).unwrap();
+        for (row, token) in memory_script().into_iter().enumerate() {
+            if row == 1 {
+                restored.mark_reply_start();
+                fresh.mark_reply_start();
+            }
+            assert_eq!(
+                restored.step(token, CpuFbsHead::Writer).unwrap(),
+                fresh.step(token, CpuFbsHead::Writer).unwrap()
+            );
+        }
+        assert_eq!(
+            restored.checkpoint_bytes().unwrap(),
+            fresh.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn cpu_fbs_session_checkpoint_refuses_identity_shape_and_state_corruption() {
+        let (artifact, checkpoint, forward) = session_checkpoint_fixture();
+        let restored = CpuFbsForward::resume(&checkpoint, &artifact).unwrap();
+        assert_eq!(restored.checkpoint_bytes().unwrap(), checkpoint);
+        let value: serde_json::Value = serde_json::from_slice(&checkpoint).unwrap();
+        let resealed = |value: &mut serde_json::Value| {
+            let state = serde_json::to_vec(&value["payload"]).unwrap();
+            value["state_sha256"] = serde_json::json!(uor_r4_discrete::corpus::sha256(&state));
+            serde_json::to_vec(value).unwrap()
+        };
+        for mutate in [
+            |value: &mut serde_json::Value| value["schema"] = serde_json::json!("wrong"),
+            |value: &mut serde_json::Value| value["substrate"] = serde_json::json!("gpu"),
+            |value: &mut serde_json::Value| value["qualification"] = serde_json::json!("qualified"),
+            |value: &mut serde_json::Value| value["unexpected"] = serde_json::json!(true),
+            |value: &mut serde_json::Value| {
+                value["payload"]["artifact_sha256"] = serde_json::json!("00".repeat(32))
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["shape"]["width"] = serde_json::json!(96)
+            },
+            |value: &mut serde_json::Value| value["payload"]["position"] = serde_json::json!(2),
+            |value: &mut serde_json::Value| {
+                value["payload"]["state"][0].as_array_mut().unwrap().pop();
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["history"][0].as_array_mut().unwrap().pop();
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["hamming_payloads"][0]
+                    .as_array_mut()
+                    .unwrap()
+                    .pop();
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["hamming_payloads"][0][192] = serde_json::json!(1)
+            },
+            |value: &mut serde_json::Value| value["payload"]["tokens"][0] = serde_json::json!(9999),
+            |value: &mut serde_json::Value| {
+                value["payload"]["memory_anchors"]["opening"] = serde_json::json!([9999])
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["memory_anchors"]["opening"] = serde_json::json!([7])
+            },
+            |value: &mut serde_json::Value| {
+                value["payload"]["reply_start"] = serde_json::Value::Null
+            },
+            |value: &mut serde_json::Value| value["payload"]["reply_start"] = serde_json::json!(99),
+        ] {
+            let mut bad = value.clone();
+            mutate(&mut bad);
+            assert!(CpuFbsForward::resume(&resealed(&mut bad), &artifact).is_err());
+        }
+        let mut bad_hash = value.clone();
+        bad_hash["payload"]["position"] = serde_json::json!(0);
+        assert!(CpuFbsForward::resume(&serde_json::to_vec(&bad_hash).unwrap(), &artifact).is_err());
+        let mut other_artifact = artifact.clone();
+        *other_artifact.last_mut().unwrap() ^= 1;
+        assert!(CpuFbsForward::resume(&checkpoint, &other_artifact).is_err());
+        let mut truncated = checkpoint.clone();
+        truncated.pop();
+        assert!(CpuFbsForward::resume(&truncated, &artifact).is_err());
+        let mut trailing = checkpoint.clone();
+        trailing.push(b'0');
+        assert!(CpuFbsForward::resume(&trailing, &artifact).is_err());
+        assert!(forward.checkpoint_bytes().is_ok());
     }
 
     #[test]

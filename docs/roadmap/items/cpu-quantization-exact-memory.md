@@ -16,6 +16,10 @@ scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/loop/tasks/cpu-
 
 Earlier learned-rounding work retained likelihood but bounded admission lost source rows. Current exact export and turn-memory mechanisms now provide a direct way to measure whether a training gain survives serving.
 
+## Progress
+
+Hamming reads and exact turn memory have finite parity with serving. The supported CPU FBS session now also has a versioned, artifact-bound checkpoint covering recurrence/history, Hamming payload caches, opening/reply anchors and reply position; a child-process restore and reset control reproduce the uninterrupted next step exactly. Quantization-aware updates and the float-shadow comparison remain open.
+
 ## What is missing
 
 Port free lookup, sign-code Hamming reads and exact turn memory; add quantization-aware checkpoints that retain admission; compare float-shadow and integer-server scores on the same rows; demonstrate deterministic memory restore and reset.

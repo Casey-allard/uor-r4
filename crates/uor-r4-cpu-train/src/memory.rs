@@ -99,10 +99,11 @@ impl PointKey {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct MemoryAnchors {
-    opening: Vec<u32>,
-    reply: Vec<u32>,
+    pub(crate) opening: Vec<u32>,
+    pub(crate) reply: Vec<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -181,6 +182,21 @@ impl CpuTurnMemory {
 
     pub(crate) fn point_name(&self, query: &[i32]) -> Option<Result<(u32, i64), String>> {
         self.point.as_ref().map(|point| point.name(query))
+    }
+
+    pub(crate) fn anchor_limits(&self) -> (usize, usize) {
+        (self.k, self.reply_turn.unwrap_or(0))
+    }
+
+    pub(crate) fn anchors_at(&self, tokens: &[u32], reply_start: usize) -> MemoryAnchors {
+        let row = reply_start.saturating_sub(1);
+        MemoryAnchors {
+            opening: self.turn_ids(tokens, row, self.k),
+            reply: self
+                .reply_turn
+                .map(|turn| self.turn_ids(tokens, row, turn))
+                .unwrap_or_default(),
+        }
     }
 
     fn block_start(&self, row: usize) -> usize {
