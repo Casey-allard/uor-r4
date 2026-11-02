@@ -710,7 +710,12 @@ mod tests {
     use super::*;
     use uor_r4_discrete::normalization_mechanism::orbit_root_coords;
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
-    use uor_r4_integer::stack::{export_fbs_trunk_uorlut01, FbsTrunkSnapshot};
+    use uor_r4_integer::stack::{
+        add_point_key_uorlut01, export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot,
+        FbsReplyTable, FbsTrunkSnapshot, PointKeyImage, MEMORY_PAD,
+    };
+
+    use crate::{audit_served_forward, ServedForwardAuditConfig};
 
     fn canonical_snapshot(hamming: bool) -> FbsTrunkSnapshot {
         let mut snapshot = synthetic_fbs_trunk_with(
@@ -786,6 +791,43 @@ mod tests {
             .find(|&token| token != sample.target)
             .unwrap();
         (artifact, config, sample, query, rival)
+    }
+
+    fn full_path_artifact() -> Vec<u8> {
+        let mut snapshot = canonical_snapshot(true);
+        snapshot.memory = Some(FbsMemorySnapshot {
+            k: 4,
+            key_window: snapshot.context,
+            opening: vec![FbsMemoryEntry {
+                key: vec![0, 7],
+                value: 42,
+            }],
+            opening_weight: vec![1.0; snapshot.width],
+            reply: Some(FbsReplyTable {
+                turn: 3,
+                entries: vec![
+                    FbsMemoryEntry {
+                        key: vec![42, 77, MEMORY_PAD, 1, MEMORY_PAD, 11],
+                        value: 42,
+                    },
+                    FbsMemoryEntry {
+                        key: vec![42, 77, MEMORY_PAD, 2, MEMORY_PAD, 22],
+                        value: 77,
+                    },
+                ],
+                weight: vec![1.0; snapshot.width],
+            }),
+        });
+        let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        add_point_key_uorlut01(
+            &bytes,
+            &PointKeyImage {
+                width: snapshot.width,
+                points: vec![0; snapshot.width],
+                targets: vec![99],
+            },
+        )
+        .unwrap()
     }
 
     fn admitted_samples(probe: &mut CpuRankMarginTrainer, count: usize) -> Vec<RankMarginSample> {
@@ -892,6 +934,115 @@ mod tests {
             assert_eq!(actual.token, expected.token);
             assert_eq!(actual.kept_cells, expected.kept_cells);
         }
+    }
+
+    #[test]
+    fn a_trained_writer_preserves_the_full_served_path_and_exact_audit() {
+        let artifact = full_path_artifact();
+        let config = RankMarginConfig::default();
+        let mut probe = CpuRankMarginTrainer::from_artifact(
+            &artifact,
+            vec![RankMarginSample {
+                input: vec![0],
+                target: 0,
+            }],
+            config,
+            701,
+        )
+        .unwrap();
+        let samples = admitted_samples(&mut probe, 8);
+        let mut trainer =
+            CpuRankMarginTrainer::from_artifact(&artifact, samples.clone(), config, 701).unwrap();
+        let steps = trainer.train_steps(samples.len()).unwrap();
+        let accepted = steps.iter().filter(|step| step.updated).count();
+        assert_eq!(
+            accepted,
+            steps.len(),
+            "every admitted full-path sample must accept its update"
+        );
+        assert_ne!(trainer.artifact(), artifact, "training wrote no artifact");
+
+        let span = writer_span(trainer.artifact());
+        for (index, (&before, &after)) in artifact.iter().zip(trainer.artifact()).enumerate() {
+            if index < span.start || index >= span.end {
+                assert_eq!(before, after, "non-writer byte {index} changed");
+            }
+        }
+
+        let audit_config = ServedForwardAuditConfig {
+            tokens: vec![0, 42, 77, 11, 22],
+            token_source: None,
+            expected_artifact_sha256: None,
+            reply_start: Some(3),
+            measure_timing: false,
+        };
+        let untrained = audit_served_forward(&artifact, &audit_config).unwrap();
+        let trained = audit_served_forward(trainer.artifact(), &audit_config).unwrap();
+        let repeated = audit_served_forward(trainer.artifact(), &audit_config).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&trained).unwrap(),
+            serde_json::to_vec(&repeated).unwrap(),
+            "the trained audit is not deterministic"
+        );
+        for report in [&untrained, &trained] {
+            assert!(!report.parity.instrument_fault);
+            assert_eq!(report.head, "native_vector");
+            assert_eq!(report.parity.query_coordinate_mismatches, 0);
+            assert_eq!(report.parity.token_mismatches, 0);
+            assert_eq!(report.parity.kept_cell_mismatches, 0);
+            assert_eq!(
+                report.parity.cpu_decision_sha256,
+                report.parity.serving_decision_sha256
+            );
+
+            let hamming = report.manifest.hamming.as_ref().unwrap();
+            assert_eq!(hamming.heads, 4);
+            assert!(hamming.copy_heads > 0);
+            assert!(hamming.type_heads > 0);
+            assert!(
+                hamming.reads.iter().any(|read| read.depth == 2),
+                "the readout-depth Hamming read is not active"
+            );
+            let memory = report.manifest.memory.as_ref().unwrap();
+            assert_eq!(memory.opening_rows, 1);
+            assert_eq!(memory.reply_rows, 2);
+            assert_eq!(memory.reply_turn, Some(3));
+            assert_eq!(memory.point_key.as_ref().unwrap().rows, 1);
+            assert!(report
+                .modelled_sequence_cost
+                .iter()
+                .any(|stage| { stage.stage == "turn_memory" && stage.memory_key_lookups > 0 }));
+            assert!(report
+                .modelled_sequence_cost
+                .iter()
+                .any(|stage| stage.hamming_candidate_comparisons > 0));
+            assert!(report
+                .modelled_sequence_cost
+                .iter()
+                .any(|stage| stage.stage == "readout" && stage.readout_candidate_tokens > 0));
+        }
+        assert_ne!(
+            trained.parity.cpu_decision_sha256, untrained.parity.cpu_decision_sha256,
+            "the accepted writer update changed no complete served decision"
+        );
+        let model = IntegerStackModel::parse(trainer.artifact()).unwrap();
+        let mut session = model.session();
+        let mut served = Vec::new();
+        for (row, &token) in audit_config.tokens.iter().enumerate() {
+            if row + 1 == 3 {
+                session.mark_reply_start();
+            }
+            served.push(session.step_native(token).unwrap());
+        }
+        assert_eq!(
+            served[2].token, 99,
+            "the trained artifact did not take the opening point-key fallback"
+        );
+
+        let checkpoint = trainer.checkpoint().unwrap();
+        let resumed = CpuRankMarginTrainer::resume(&checkpoint, samples).unwrap();
+        assert_eq!(resumed.artifact(), trainer.artifact());
+        assert_eq!(resumed.checkpoint().unwrap(), checkpoint);
     }
 
     #[test]

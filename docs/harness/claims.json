@@ -62,6 +62,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/trained-full-path-audit": {
+    "branch": "deepseek/trained-full-path-audit",
+    "claimed_at": "2026-11-02T16:56:17-05:00",
+    "head": "e6aad12b6",
+    "lab": "deepseek",
+    "note": ""
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",
