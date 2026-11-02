@@ -41,6 +41,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/public-chat-baseline": {
+    "branch": "deepseek/public-chat-baseline",
+    "claimed_at": "2026-11-02T14:45:17-05:00",
+    "head": "b44402e0c",
+    "lab": "deepseek",
+    "note": ""
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",

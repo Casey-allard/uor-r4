@@ -25,6 +25,23 @@ This item is the last part of the open owner direction's order: "`turn-memory-re
 
 So before the model the project ships is trained, the scoring must be able to tell recall of a template from reading the prompt.
 
+## Current public-artifact baseline
+
+On 2 November, the two published dual-c131 integer artifacts were run through
+the product `uor-chat` path under their trained protocol 2 on a fixed
+eight-entry public conversational panel, at seeds 1 and 2 with an exact seed-1
+repeat. The integration path passed: all 24 processes exited 0, all 33 replies
+stopped by EOS or the 16-token cap, every reply text decoded from its recorded
+ids, and the repeat matched all text, ids, stops and history depths. Both fixed
+multi-turn memory anchors failed on both seeds. Peak RSS was 11,592 KiB and
+observed reply rates were 144.47–350.35 ids/s on the local workstation.
+
+This is an ungraded product baseline, not a language or mechanism result. It
+establishes that the public artifact is connected and deterministic and is not
+ready for a useful-chat demonstration; it does not change this item's status or
+replace the served-training comparison above. Full transcripts and pins:
+[public-chat post-smoke baseline](../../labs/one-model-end-to-end/public-chat-post-smoke-2026-11-02/README.md).
+
 ## What is missing
 
 - **Served-surrogate training is wired; GPU validation remains open.** Q16
