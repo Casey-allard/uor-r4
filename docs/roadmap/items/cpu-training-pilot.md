@@ -25,7 +25,7 @@ The bounded public internal-development pilot has executed and failed its regist
 | Shared-vector forward and exact serving arithmetic | Supported for the recurrence-only/no-pointer FBS mode, including snapped and raw gate/transition combinations; synthetic and public trained-artifact CPU/serving parity controls pass. |
 | Exact served-forward contract and workload audit | Delivered for the same supported FBS mode. `cpu-served-forward-audit` binds the artifact, reports active mechanisms, compares every Q12 query/token/kept-cell decision, separates modelled work from measured CPU timing, and inventories float-only gradient treatments. Both public raw seeds pass a 64-position complete-decision control. A follow-up corrected the contract's Hamming-range narrative and added independent integer/CPU/float boundary tests; the kernels were already causal and correct. A composed synthetic control now exercises Hamming stream/readout reads, opening miss with point-key fallback, two reply rows and the native head with exact parity. The public artifacts still lack Hamming/memory records, so trained full-path evidence remains unavailable. |
 | Candidate artifact gate | `scripts/audit_served_forward_gate.py` binds a `UORT` token slice and optional expected artifact hash, validates the complete deterministic audit, and atomically promotes only exact-passing artifacts. Public seed 1 passed on a 64-token corpus slice with zero decision mismatches. Candidate export scripts still need to adopt it. |
-| Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. |
+| Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. The exact CPU corpus driver now binds configurable rank-margin/coordinate-step/limit settings into checkpoint identity. The two-seed 1/16/64-Q12 step comparison remained ranking-negative; larger steps moved the margin but not enough held-out predictions. See [deepseek-9](../../loop/tasks/cpu-training-pilot/deepseek-9/REPORT.md). |
 | Matched admission and exact checkpoint export control | Panel evaluator and gate delivered on finite fixtures. |
 | Trained artifact plus internal query panel | Bound: public dual-c131 seeds 1 and 2 have exact CPU/serving parity; the strict corpus driver creates document-disjoint public development samples. |
 | Tested public 64→256 interval restart | Passed. A FIT-reviewed post-FIT control resumed hash-bound step-64 checkpoints in fresh processes to step 256 and produced byte-identical final artifact/checkpoint state on both public seeds. Other steps and crash consistency remain untested. |
@@ -45,6 +45,14 @@ The pre-registered two-seed zero-versus-256-step run completed on the Ryzen 9 99
 | 2 | 224 → 224 | 285 → 285 | 292 → 292 | fail registered gain bar |
 
 This is a negative for the tested public 256-step configuration, not a rejection of rank margin, FBS or CPU training generally.
+
+The subsequent two-seed step-size comparison tested 1,024 attempts at 1, 16
+and 64 Q12 units per accepted coordinate update. Unit-step seed 1 lost one
+admitted target; step-16 lost one top-8; step-64 gained only 3 top-1 rows
+against a 43-row bar. Seed 2 was unchanged through step-16, while step-64 lost
+3 top-1 rows for a 1-row top-8 gain. Exact CPU/serving export stayed perfect
+throughout. This is another bounded configuration negative and does not reject
+all rank-margin or CPU credit assignments.
 
 ## What is missing
 

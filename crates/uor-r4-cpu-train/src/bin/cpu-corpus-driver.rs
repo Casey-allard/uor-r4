@@ -20,6 +20,12 @@ struct CheckpointBinding {
     manifest_sha256: String,
     tokenizer_sha256: String,
     trainer_seed: u64,
+    #[serde(default = "default_margin_q12")]
+    margin_q12: i32,
+    #[serde(default = "default_step_q12")]
+    step_q12: i16,
+    #[serde(default = "default_parameter_limit_q12")]
+    parameter_limit_q12: i16,
     evaluation_stride: usize,
     max_evaluation: usize,
     completed_steps: u64,
@@ -33,12 +39,25 @@ struct Config {
     mask: PathBuf,
     manifest: PathBuf,
     seed: u64,
+    rank_margin: RankMarginConfig,
     steps: usize,
     evaluation_stride: usize,
     max_evaluation: usize,
     checkpoint_every: usize,
     checkpoint_dir: PathBuf,
     resume_checkpoint: Option<PathBuf>,
+}
+
+fn default_margin_q12() -> i32 {
+    RankMarginConfig::default().margin_q12
+}
+
+fn default_step_q12() -> i16 {
+    RankMarginConfig::default().step_q12
+}
+
+fn default_parameter_limit_q12() -> i16 {
+    RankMarginConfig::default().parameter_limit_q12
 }
 
 fn main() {
@@ -99,7 +118,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let mut baseline_panel = CpuPanelEvaluator::from_artifact(
         &artifact,
         split.evaluation.clone(),
-        RankMarginConfig::default().margin_q12,
+        config.rank_margin.margin_q12,
     )
     .map_err(|error| error.to_string())?;
     let baseline = baseline_panel
@@ -119,7 +138,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         let trainer = CpuRankMarginTrainer::from_artifact(
             &artifact,
             split.training.clone(),
-            RankMarginConfig::default(),
+            config.rank_margin,
             config.seed,
         )
         .map_err(|error| error.to_string())?;
@@ -191,7 +210,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let mut final_panel = CpuPanelEvaluator::from_artifact(
         trainer.artifact(),
         split.evaluation.clone(),
-        RankMarginConfig::default().margin_q12,
+        config.rank_margin.margin_q12,
     )
     .map_err(|error| error.to_string())?;
     let final_reading = final_panel.evaluate().map_err(|error| error.to_string())?;
@@ -284,6 +303,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         },
         "run": {
             "seed": config.seed,
+            "rank_margin": config.rank_margin,
+            "final_epoch": trainer.epoch(),
             "steps": target_steps,
             "resumed_from_step": resumed_from_step,
             "executed_steps": executed_steps,
@@ -357,6 +378,9 @@ fn checkpoint_binding(
         manifest_sha256: manifest_sha256.to_owned(),
         tokenizer_sha256: identity.tokenizer_sha256.clone(),
         trainer_seed: config.seed,
+        margin_q12: config.rank_margin.margin_q12,
+        step_q12: config.rank_margin.step_q12,
+        parameter_limit_q12: config.rank_margin.parameter_limit_q12,
         evaluation_stride: config.evaluation_stride,
         max_evaluation: config.max_evaluation,
         completed_steps,
@@ -426,6 +450,9 @@ fn resume_checkpoint(
         || binding.manifest_sha256 != expected.manifest_sha256
         || binding.tokenizer_sha256 != expected.tokenizer_sha256
         || binding.trainer_seed != expected.trainer_seed
+        || binding.margin_q12 != expected.margin_q12
+        || binding.step_q12 != expected.step_q12
+        || binding.parameter_limit_q12 != expected.parameter_limit_q12
         || binding.evaluation_stride != expected.evaluation_stride
         || binding.max_evaluation != expected.max_evaluation
     {
@@ -503,16 +530,70 @@ fn peak_rss_kib() -> Option<u64> {
 
 fn parse_args() -> Result<Config, String> {
     let values = std::env::args().skip(1).collect::<Vec<_>>();
-    if !matches!(values.len(), 10 | 11) {
+    parse_args_from(&values)
+}
+
+fn parse_args_from(values: &[String]) -> Result<Config, String> {
+    let mut positional = Vec::new();
+    let mut rank_margin = RankMarginConfig::default();
+    let mut at = 0;
+    while at < values.len() {
+        match values[at].as_str() {
+            "--margin-q12" | "--step-q12" | "--parameter-limit-q12" => {
+                let flag = values[at].as_str();
+                let value = values
+                    .get(at + 1)
+                    .ok_or_else(|| format!("{flag} needs a positive integer"))?;
+                match flag {
+                    "--margin-q12" => {
+                        rank_margin.margin_q12 = value
+                            .parse::<i32>()
+                            .ok()
+                            .filter(|value| *value > 0)
+                            .ok_or_else(|| "--margin-q12 needs a positive integer".to_owned())?;
+                    }
+                    "--step-q12" => {
+                        rank_margin.step_q12 = value
+                            .parse::<i16>()
+                            .ok()
+                            .filter(|value| *value > 0)
+                            .ok_or_else(|| "--step-q12 needs a positive integer".to_owned())?;
+                    }
+                    "--parameter-limit-q12" => {
+                        rank_margin.parameter_limit_q12 = value
+                            .parse::<i16>()
+                            .ok()
+                            .filter(|value| *value > 0)
+                            .ok_or_else(|| {
+                                "--parameter-limit-q12 needs a positive integer".to_owned()
+                            })?;
+                    }
+                    _ => unreachable!(),
+                }
+                at += 2;
+            }
+            flag if flag.starts_with("--") => {
+                return Err(format!("unknown option {flag}"));
+            }
+            value => {
+                positional.push(value);
+                at += 1;
+            }
+        }
+    }
+    if !matches!(positional.len(), 10 | 11) {
         return Err(
             "usage: cpu-corpus-driver <artifact> <tokens.u16> <mask.u8> <manifest.json> \
              <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> \
-             <checkpoint-dir> [resume-checkpoint]"
+             <checkpoint-dir> [resume-checkpoint] \
+             [--margin-q12 N] [--step-q12 N] [--parameter-limit-q12 N]"
                 .to_owned(),
         );
     }
     let parse_usize = |index: usize, name: &str| -> Result<usize, String> {
-        values[index].parse().map_err(|_| format!("{name} differs"))
+        positional[index]
+            .parse()
+            .map_err(|_| format!("{name} differs"))
     };
     let steps = parse_usize(5, "steps")?;
     let checkpoint_every = parse_usize(8, "checkpoint every")?;
@@ -520,17 +601,20 @@ fn parse_args() -> Result<Config, String> {
         return Err("checkpoint every must be positive".to_owned());
     }
     Ok(Config {
-        artifact: Path::new(&values[0]).to_path_buf(),
-        tokens: Path::new(&values[1]).to_path_buf(),
-        mask: Path::new(&values[2]).to_path_buf(),
-        manifest: Path::new(&values[3]).to_path_buf(),
-        seed: values[4].parse().map_err(|_| "seed differs".to_owned())?,
+        artifact: Path::new(positional[0]).to_path_buf(),
+        tokens: Path::new(positional[1]).to_path_buf(),
+        mask: Path::new(positional[2]).to_path_buf(),
+        manifest: Path::new(positional[3]).to_path_buf(),
+        seed: positional[4]
+            .parse()
+            .map_err(|_| "seed differs".to_owned())?,
+        rank_margin,
         steps,
         evaluation_stride: parse_usize(6, "evaluation stride")?,
         max_evaluation: parse_usize(7, "max evaluation")?,
         checkpoint_every,
-        checkpoint_dir: Path::new(&values[9]).to_path_buf(),
-        resume_checkpoint: values.get(10).map(PathBuf::from),
+        checkpoint_dir: Path::new(positional[9]).to_path_buf(),
+        resume_checkpoint: positional.get(10).map(PathBuf::from),
     })
 }
 
@@ -650,6 +734,7 @@ mod tests {
             mask: fixture.mask.clone(),
             manifest: fixture.manifest.clone(),
             seed: 41,
+            rank_margin: RankMarginConfig::default(),
             steps,
             evaluation_stride: 2,
             max_evaluation: 16,
@@ -678,6 +763,7 @@ mod tests {
         assert_eq!(reference["panel_final"], resumed["panel_final"]);
         assert_eq!(resumed["run"]["resumed_from_step"], 2);
         assert_eq!(resumed["run"]["executed_steps"], 4);
+        assert_eq!(resumed["run"]["final_epoch"], 0);
         assert_eq!(resumed["resume"]["verified"], true);
 
         let binding_path = binding_path(&interval);
@@ -711,6 +797,13 @@ mod tests {
             (
                 "trainer_seed",
                 serde_json::json!(99),
+                "corpus, seed or split",
+            ),
+            ("margin_q12", serde_json::json!(2), "corpus, seed or split"),
+            ("step_q12", serde_json::json!(2), "corpus, seed or split"),
+            (
+                "parameter_limit_q12",
+                serde_json::json!(4096),
                 "corpus, seed or split",
             ),
             (
@@ -782,5 +875,48 @@ mod tests {
         assert!(!path.exists());
         assert!(!path.with_extension("partial").exists());
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    fn driver_args(extra: &[&str]) -> Vec<String> {
+        let mut values = [
+            "artifact", "tokens", "mask", "manifest", "1", "8", "2", "16", "2", "out",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+        values.extend(extra.iter().map(|value| (*value).to_owned()));
+        values
+    }
+
+    #[test]
+    fn update_geometry_arguments_are_positive_and_backward_compatible() {
+        let default = parse_args_from(&driver_args(&[])).unwrap();
+        assert_eq!(default.rank_margin, RankMarginConfig::default());
+        let changed = parse_args_from(&driver_args(&[
+            "--margin-q12",
+            "2",
+            "--step-q12",
+            "16",
+            "--parameter-limit-q12",
+            "4096",
+        ]))
+        .unwrap();
+        assert_eq!(
+            changed.rank_margin,
+            RankMarginConfig {
+                margin_q12: 2,
+                step_q12: 16,
+                parameter_limit_q12: 4096,
+            }
+        );
+        for bad in [
+            vec!["--step-q12", "0"],
+            vec!["--margin-q12", "-1"],
+            vec!["--parameter-limit-q12", "32768"],
+            vec!["--step-q12"],
+            vec!["--unknown", "1"],
+        ] {
+            assert!(parse_args_from(&driver_args(&bad)).is_err(), "{bad:?}");
+        }
     }
 }

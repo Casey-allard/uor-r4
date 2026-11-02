@@ -136,6 +136,10 @@ impl CpuRankMarginTrainer {
         self.step
     }
 
+    pub fn epoch(&self) -> u64 {
+        self.epoch
+    }
+
     pub fn artifact(&self) -> &[u8] {
         &self.artifact
     }

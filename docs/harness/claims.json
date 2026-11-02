@@ -27,6 +27,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-rank-step": {
+    "branch": "deepseek/cpu-rank-step",
+    "claimed_at": "2026-11-02T14:04:18-05:00",
+    "head": "9c9b712a4",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/harness-registry-reconcile": {
     "branch": "deepseek/harness-registry-reconcile",
     "claimed_at": "2026-11-02T04:56:29-05:00",
