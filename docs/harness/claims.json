@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-pilot-prereg": {
+    "branch": "deepseek/cpu-pilot-prereg",
+    "claimed_at": "2026-11-02T03:58:17-05:00",
+    "head": "16129464b",
+    "lab": "deepseek",
+    "note": ""
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",
