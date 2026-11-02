@@ -1,0 +1,9 @@
+hello
+/tokens
+How are you today?
+/tokens
+What can you help me with?
+/tokens
+Tell me something about the sea.
+/tokens
+/quit

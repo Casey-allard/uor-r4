@@ -1,0 +1,10 @@
+b-s3 max 1 real 0.2737
+b-s3 max 177 real 0.6297
+b-s3 max 1 real 0.2941
+b-s3 max 177 real 0.3959
+b-s3 max 1 real 0.2608
+b-s3 max 177 real 0.4004
+b-s3 max 1 real 0.2733
+b-s3 max 177 real 0.4076
+b-s3 max 1 real 0.2678
+b-s3 max 177 real 0.3877

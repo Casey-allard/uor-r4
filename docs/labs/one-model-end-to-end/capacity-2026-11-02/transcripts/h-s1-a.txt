@@ -1,0 +1,33 @@
+  Artifact          : local/claude/claude-259-capacity/served/h-s1.uorlut
+  Artifact SHA-256  : 1ba010f7ff715878...
+  Tokenizer         : ~/uor-r4/local/claude/data/w2-inputs/2026-10-25/driver-data/tokenizer.json
+  Stack Shape       : vocab 4096 | width 256 | heads 1 | mlp 384 | pattern rrrrrr
+  Read / Transport  : dot | rotation true | pointer no
+  Context Capacity  : 192 tokens (artifact declaration)
+  Dialogue Protocol : uor-r4.literal-role-dialogue/2 (blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc)
+  Decoding          : greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick), no float sampling
+  Turn Memory       : opening 26450 keys | reply 573801 keys (reply start marked each turn)
+  Worker Threads    : 1
+  [notice] The sealed bundle contract fixes context at 256; this artifact declares 192.
+  Type /help for slash commands, /quit to exit.
+================================================================================
+User> Assistant> Got it, your lucky number is 47.
+[served] 13 id(s) | stop eos | history 31 | 370.06 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2496, 2144, 2471, 435, 223, 22, 25, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 2144, 2471, 435, 223, 22, 25, 16, 1]
+User> Assistant> Your lucky number is 47.
+[served] 9 id(s) | stop eos | history 56 | 349.24 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2496, 2144, 2471, 435, 223, 22, 25, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 2144, 2471, 33, 201, 35, 560, 652, 714, 28, 2997, 2144, 2471, 435, 223, 22, 25, 16, 1]
+User> Assistant> Got it, your friend is.
+[served] 9 id(s) | stop eos | history 83 | 285.94 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2496, 2144, 2471, 435, 223, 22, 25, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 2144, 2471, 33, 201, 35, 560, 652, 714, 28, 2997, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 2496, 688, 360, 435, 379, 282, 67, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 360, 435, 16, 1]
+User> Assistant> Your friend is 47.
+[served] 8 id(s) | stop eos | history 108 | 303.64 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2496, 2144, 2471, 435, 223, 22, 25, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 2144, 2471, 33, 201, 35, 560, 652, 714, 28, 2997, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 2496, 688, 360, 435, 379, 282, 67, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 360, 435, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 360, 386, 1412, 33, 201, 35, 560, 652, 714, 28, 2997, 360, 435, 223, 22, 25, 16, 1]
+User> Assistant> Got it, you grew up in L is newd wonderful.
+[served] 15 id(s) | stop eos | history 142 | 414.92 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2496, 2144, 2471, 435, 223, 22, 25, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 2144, 2471, 33, 201, 35, 560, 652, 714, 28, 2997, 2144, 2471, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 2496, 688, 360, 435, 379, 282, 67, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 360, 435, 16, 1, 201, 55, 2728, 28, 1601, 435, 627, 360, 386, 1412, 33, 201, 35, 560, 652, 714, 28, 2997, 360, 435, 223, 22, 25, 16, 1, 201, 55, 2728, 28, 340, 1981, 368, 315, 363, 289, 68, 292, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 351, 1981, 368, 315, 363, 435, 545, 70, 1974, 16, 1]
+User> Assistant> [notice] The turn needs 223 of 192 positions; starting a new conversation.
+W later's knowven'm one toginging you?
+[served] 14 id(s) | stop eos | history 31 | 363.27 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 534, 797, 454, 340, 1493, 368, 33, 201, 35, 560, 652, 714, 28, 534, 2274, 386, 657, 773, 915, 731, 268, 73, 300, 300, 351, 33, 1]
+User> [uor-chat] Session ended. Goodbye!

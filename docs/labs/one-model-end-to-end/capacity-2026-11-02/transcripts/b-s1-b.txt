@@ -1,0 +1,26 @@
+  Artifact          : local/claude/claude-259-capacity/served/b-s1.uorlut
+  Artifact SHA-256  : f04f3039c7ee09c3...
+  Tokenizer         : ~/uor-r4/local/claude/data/w2-inputs/2026-10-25/driver-data/tokenizer.json
+  Stack Shape       : vocab 4096 | width 256 | heads 1 | mlp 384 | pattern rrrrrr
+  Read / Transport  : dot | rotation true | pointer no
+  Context Capacity  : 192 tokens (artifact declaration)
+  Dialogue Protocol : uor-r4.literal-role-dialogue/2 (blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc)
+  Decoding          : greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick), no float sampling
+  Turn Memory       : opening 26450 keys | reply 573801 keys (reply start marked each turn)
+  Worker Threads    : 1
+  [notice] The sealed bundle contract fixes context at 256; this artifact declares 192.
+  Type /help for slash commands, /quit to exit.
+================================================================================
+User> Assistant> Here are twoital of ch aatototot
+[served] 12 id(s) | stop short_cycle | history 23 | 755.73 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 318, 275, 484, 1082, 3695, 372, 641, 261, 299, 302, 302, 302]
+User> Assistant> Pretty good, thank you!
+[served] 9 id(s) | stop eos | history 47 | 490.58 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 318, 275, 484, 1082, 3695, 372, 641, 261, 299, 302, 302, 302, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 971, 623, 576, 561, 14, 1461, 351, 3, 1]
+User> Assistant> Pretty good, thank you!
+[served] 9 id(s) | stop eos | history 73 | 449.51 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 318, 275, 484, 1082, 3695, 372, 641, 261, 299, 302, 302, 302, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 971, 623, 576, 561, 14, 1461, 351, 3, 1, 201, 55, 2728, 28, 1601, 469, 351, 436, 519, 331, 33, 201, 35, 560, 652, 714, 28, 971, 623, 576, 561, 14, 1461, 351, 3, 1]
+User> Assistant> Got it, thanks for telling me.
+[served] 12 id(s) | stop eos | history 103 | 512.25 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 318, 275, 484, 1082, 3695, 372, 641, 261, 299, 302, 302, 302, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 971, 623, 576, 561, 14, 1461, 351, 3, 1, 201, 55, 2728, 28, 1601, 469, 351, 436, 519, 331, 33, 201, 35, 560, 652, 714, 28, 971, 623, 576, 561, 14, 1461, 351, 3, 1, 201, 55, 2728, 28, 273, 540, 519, 577, 666, 265, 1582, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 1461, 85, 388, 1265, 300, 519, 16, 1]
+User> [uor-chat] Session ended. Goodbye!

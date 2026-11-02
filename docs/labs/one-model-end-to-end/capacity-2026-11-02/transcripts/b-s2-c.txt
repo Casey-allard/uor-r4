@@ -1,0 +1,33 @@
+  Artifact          : local/claude/claude-259-capacity/served/b-s2.uorlut
+  Artifact SHA-256  : 4d411f35c8ce49d2...
+  Tokenizer         : ~/uor-r4/local/claude/data/w2-inputs/2026-10-25/driver-data/tokenizer.json
+  Stack Shape       : vocab 4096 | width 256 | heads 1 | mlp 384 | pattern rrrrrr
+  Read / Transport  : dot | rotation true | pointer no
+  Context Capacity  : 192 tokens (artifact declaration)
+  Dialogue Protocol : uor-r4.literal-role-dialogue/2 (blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc)
+  Decoding          : greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick), no float sampling
+  Turn Memory       : opening 26450 keys | reply 573801 keys (reply start marked each turn)
+  Worker Threads    : 1
+  [notice] The sealed bundle contract fixes context at 256; this artifact declares 192.
+  Type /help for slash commands, /quit to exit.
+================================================================================
+User> Assistant> Hey! Nice to hear from you.
+[served] 11 id(s) | stop eos | history 25 | 613.22 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 310, 75, 403, 16, 201, 35, 560, 652, 714, 28, 318, 91, 3, 2237, 552, 268, 1098, 583, 351, 16, 1]
+User> Assistant> The cat is happy.
+[served] 6 id(s) | stop eos | history 52 | 263.79 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 310, 75, 403, 16, 201, 35, 560, 652, 714, 28, 318, 91, 3, 2237, 552, 268, 1098, 583, 351, 16, 1, 201, 55, 2728, 28, 1049, 612, 71, 299, 902, 519, 28, 677, 269, 1074, 16, 201, 35, 560, 652, 714, 28, 287, 462, 435, 378, 16, 1]
+User> Assistant> The cat is blue today.
+[served] 7 id(s) | stop eos | history 80 | 281.49 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 310, 75, 403, 16, 201, 35, 560, 652, 714, 28, 318, 91, 3, 2237, 552, 268, 1098, 583, 351, 16, 1, 201, 55, 2728, 28, 1049, 612, 71, 299, 902, 519, 28, 677, 269, 1074, 16, 201, 35, 560, 652, 714, 28, 287, 462, 435, 378, 16, 1, 201, 55, 2728, 28, 379, 420, 261, 262, 380, 1691, 331, 265, 2708, 360, 16, 201, 35, 560, 652, 714, 28, 287, 462, 435, 924, 1719, 16, 1]
+User> Assistant> The opposite of hard is happy.
+[served] 11 id(s) | stop eos | history 116 | 346.35 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 310, 75, 403, 16, 201, 35, 560, 652, 714, 28, 318, 91, 3, 2237, 552, 268, 1098, 583, 351, 16, 1, 201, 55, 2728, 28, 1049, 612, 71, 299, 902, 519, 28, 677, 269, 1074, 16, 201, 35, 560, 652, 714, 28, 287, 462, 435, 378, 16, 1, 201, 55, 2728, 28, 379, 420, 261, 262, 380, 1691, 331, 265, 2708, 360, 16, 201, 35, 560, 652, 714, 28, 287, 462, 435, 924, 1719, 16, 1, 201, 55, 2728, 28, 273, 540, 519, 261, 2708, 383, 3961, 265, 332, 330, 1647, 718, 372, 881, 16, 201, 35, 560, 652, 714, 28, 287, 332, 330, 1647, 718, 372, 881, 435, 378, 16, 1]
+User> Assistant> [notice] The turn needs 203 of 192 positions; starting a new conversation.
+I'm sorry you feel place.
+[served] 8 id(s) | stop eos | history 31 | 226.21 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 340, 898, 583, 310, 307, 77, 70, 277, 78, 74, 67, 773, 16, 201, 35, 560, 652, 714, 28, 340, 915, 779, 351, 736, 964, 16, 1]
+User> Assistant> Got it, your dog is K.
+[served] 10 id(s) | stop eos | history 61 | 23.05 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 340, 898, 583, 310, 307, 77, 70, 277, 78, 74, 67, 773, 16, 201, 35, 560, 652, 714, 28, 340, 915, 779, 351, 736, 964, 16, 1, 201, 55, 2728, 28, 340, 500, 261, 466, 1028, 772, 260, 266, 375, 16, 201, 35, 560, 652, 714, 28, 1155, 302, 311, 14, 631, 466, 435, 935, 16, 1]
+User> [uor-chat] Session ended. Goodbye!

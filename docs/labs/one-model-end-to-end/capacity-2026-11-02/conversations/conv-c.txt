@@ -1,0 +1,13 @@
+Hi there.
+/tokens
+Repeat after me: red and green.
+/tokens
+Make a sentence with the word friend.
+/tokens
+Tell me a word that means the opposite of hard.
+/tokens
+I come from Hirkdoulhaven.
+/tokens
+I have a dog called Cheedse.
+/tokens
+/quit

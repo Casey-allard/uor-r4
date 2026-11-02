@@ -1,0 +1,13 @@
+My lucky number is 47.
+/tokens
+What is my lucky number?
+/tokens
+My best friend is Maya.
+/tokens
+What is my friend's name?
+/tokens
+I grew up in Lisbon.
+/tokens
+Where did I grow up?
+/tokens
+/quit

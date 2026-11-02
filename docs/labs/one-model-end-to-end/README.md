@@ -1,5 +1,9 @@
 # one-model-end-to-end: the census, the held-out-phrasing panel and the overturn check (claude-202, claude-204, claude-205; 29 Oct 2026)
 
+## The capacity sweep's served evidence (claude-259, 2 Nov 2026)
+
+[`capacity-2026-11-02/`](capacity-2026-11-02/README.md) holds what the laptop served from the capacity sweep's six exports: the conversations, the transcripts, the decode timings, the parity summaries and a trace of the copy read. The [REPORT](../../loop/tasks/one-model-end-to-end/claude-259/REPORT.md) reads them.
+
 ## The CPU evidence lane (deepseek-1, 2 Nov 2026)
 
 [`instrument/`](instrument) also builds a CPU-only `m2-evidence` command. It evaluates a discrete integer artifact on a canonical UORT panel and separates next-token accuracy into prompt-overlap, first-8 key, reply-overlap and opening/continuation strata. It reads an optional TRAIN-format split as the reference index. It also recomputes the writer independently from the serving Q12 query. It does not require a GPU and does not edit the serving engine.

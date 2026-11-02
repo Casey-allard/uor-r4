@@ -1,0 +1,10 @@
+h-s2 max 1 real 0.2717
+h-s2 max 177 real 0.3922
+h-s2 max 1 real 0.2549
+h-s2 max 177 real 0.4064
+h-s2 max 1 real 0.3530
+h-s2 max 177 real 0.5078
+h-s2 max 1 real 0.2553
+h-s2 max 177 real 0.3988
+h-s2 max 1 real 0.2673
+h-s2 max 177 real 0.4102

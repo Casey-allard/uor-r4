@@ -1,0 +1,30 @@
+  Artifact          : local/claude/claude-259-capacity/served/b-s3.uorlut
+  Artifact SHA-256  : 05c0a9544a46c7a5...
+  Tokenizer         : ~/uor-r4/local/claude/data/w2-inputs/2026-10-25/driver-data/tokenizer.json
+  Stack Shape       : vocab 4096 | width 256 | heads 1 | mlp 384 | pattern rrrrrr
+  Read / Transport  : dot | rotation true | pointer no
+  Context Capacity  : 192 tokens (artifact declaration)
+  Dialogue Protocol : uor-r4.literal-role-dialogue/2 (blake3:3f42bcfce7728512076549c63b88387e13c8156fe35c0f91d9b112439f3739cc)
+  Decoding          : greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick), no float sampling
+  Turn Memory       : opening 26450 keys | reply 573801 keys (reply start marked each turn)
+  Worker Threads    : 1
+  [notice] The sealed bundle contract fixes context at 256; this artifact declares 192.
+  Type /help for slash commands, /quit to exit.
+================================================================================
+User> Assistant> hello
+,,,
+[served] 5 id(s) | stop short_cycle | history 16 | 491.63 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14]
+User> Assistant> hello
+,,,
+[served] 5 id(s) | stop short_cycle | history 36 | 338.81 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14]
+User> Assistant> hello
+,,,
+[served] 5 id(s) | stop short_cycle | history 58 | 303.74 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 1601, 469, 351, 436, 519, 331, 33, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14]
+User> Assistant> hello
+,,,
+[served] 5 id(s) | stop short_cycle | history 81 | 283.18 id/s
+User> [uor-chat] Token ids: [0, 55, 2728, 28, 2513, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 2577, 484, 351, 1719, 33, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 1601, 469, 351, 436, 519, 331, 33, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14, 201, 55, 2728, 28, 273, 540, 519, 577, 666, 265, 1582, 16, 201, 35, 560, 652, 714, 28, 2513, 201, 14, 14, 14]
+User> [uor-chat] Session ended. Goodbye!
