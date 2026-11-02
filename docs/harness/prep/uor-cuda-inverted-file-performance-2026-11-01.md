@@ -65,3 +65,27 @@ The corrected publication/warmup/oracle runs completed, but review then found co
 ## Final corrected rerun FITs
 
 **TEST FITNESS: FIT**, non-author, 2026-11-01, RTX 5090 rerun at `719a9a7861deb595dfc5269ffec8a5e7e53cb39b` with `compute_120`/`sm_120`, new root `cuda-performance-7`; and separate RTX 4090 rerun at the same source with `compute_89`/`sm_89`, new root `cuda-performance-8`. Each requires the 504-row correctness file, 240 records with per-launch oracle checks, complete-caller warmups, and complete-caller timing that ends immediately after the public scan, before oracle comparison or measurement construction. Every earlier measurement root remains rejected and is not valid for claims. Any source change requires a new pushed head and FIT.
+
+## Base artifact
+
+This is a performance-instrument unit, not a trained-model run. The base is the exact printed-source head bound by each FIT above plus the GPU-built and fresh CPU-built inverted-file indexes checked before timing. The manifest binds the source and PTX/cubin hashes; no model artifact is reused or inferred.
+
+## Data split
+
+Correctness uses the guarded 504-row `correctness.tsv` suite. Timing uses the declared V ∈ {64,256,1024,4096}, K ∈ {1,8,16} grid with fixed query seed 7. There is no training split and no model-quality inference; each timed configuration is checked against the independent oracle.
+
+## Steps
+
+Warm up three times per configuration, then retain ten measured repetitions at each of kernel-only, direct-API and complete-caller scope. Keep every raw row, including outliers. The expected evidence is 240 JSONL records plus the 504-row correctness file for each accepted card run.
+
+## Stop rule
+
+Stop before timing on any correctness, index, identity, manifest, resource, or oracle mismatch. A malformed or incomplete run is `INCOMPLETE`, not a performance result. Preserve the failed attempt and require a new pushed head and FIT after any instrument change.
+
+## Cost
+
+One GPU at a time for an initial allocation of at most one hour at the displayed Vast rate, within the shared four-pod and $8/hour caps. No cross-library, energy, portability or release claim is purchased or licensed by this measurement.
+
+## Minimum test power
+
+Each accepted card run requires all 504 correctness rows, 240 retained timing records across the declared grid and scopes, complete hardware/compiler/source identities, and per-launch oracle checks. The 5090 and 4090 are separate rows; this sheet does not license an external replication or cross-card ratio.

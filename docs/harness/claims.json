@@ -1,8 +1,8 @@
 {
-  "deepseek/cpu-program-reconcile": {
-    "branch": "deepseek/cpu-program-reconcile",
-    "claimed_at": "2026-11-02T03:07:24-05:00",
-    "head": "9c7fbbd8e",
+  "deepseek/cpu-harness-prep-shape-2": {
+    "branch": "deepseek/cpu-harness-prep-shape-2",
+    "claimed_at": "2026-11-02T04:21:43-05:00",
+    "head": "fa874959a",
     "lab": "deepseek",
     "note": ""
   },
@@ -10,6 +10,13 @@
     "branch": "deepseek/cpu-pilot-prereg",
     "claimed_at": "2026-11-02T03:58:17-05:00",
     "head": "16129464b",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/cpu-program-reconcile": {
+    "branch": "deepseek/cpu-program-reconcile",
+    "claimed_at": "2026-11-02T03:07:24-05:00",
+    "head": "9c7fbbd8e",
     "lab": "deepseek",
     "note": ""
   },
