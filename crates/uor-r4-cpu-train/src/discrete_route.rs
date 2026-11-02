@@ -1116,6 +1116,43 @@ pub struct CpuDiscreteProposalScoring {
     pub proposal: CpuDiscreteProposal,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuDiscretePanelReading {
+    pub rows: u64,
+    pub target_admitted: u64,
+    pub top1_correct: u64,
+    pub top8_correct: u64,
+    pub margin_loss_sum: u64,
+    pub target_rank_sum: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuDiscretePanelExportReading {
+    pub rows: u64,
+    pub query_coordinates_checked: u64,
+    pub query_coordinate_mismatches: u64,
+    pub admitted_cell_mismatches: u64,
+    pub top8_mismatches: u64,
+    pub token_mismatches: u64,
+}
+
+impl CpuDiscretePanelExportReading {
+    pub fn is_exact(&self) -> bool {
+        self.query_coordinate_mismatches == 0
+            && self.admitted_cell_mismatches == 0
+            && self.top8_mismatches == 0
+            && self.token_mismatches == 0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CpuDiscreteBlock {
+    pub kind: CpuDiscreteProposalKind,
+    pub indices: Vec<usize>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CpuDiscreteScoreError {
     pub status: u32,
@@ -1298,6 +1335,155 @@ impl CpuDiscreteProposalScorer {
             eligible_rows: eligible.len(),
             proposal,
         })
+    }
+
+    /// Evaluate the current exact writer over causal rows. This is a
+    /// development reading, not a language-qualification result.
+    pub fn evaluate_samples(
+        &self,
+        samples: &[CpuDiscreteProposalSample],
+    ) -> Result<CpuDiscretePanelReading> {
+        if samples.is_empty() {
+            return Err(invalid("discrete panel evaluation requires rows"));
+        }
+        let mut reading = CpuDiscretePanelReading {
+            rows: 0,
+            target_admitted: 0,
+            top1_correct: 0,
+            top8_correct: 0,
+            margin_loss_sum: 0,
+            target_rank_sum: 0,
+        };
+        for sample in samples {
+            let query = self.read(&self.model, &sample.prefix)?;
+            let observation = writer_observation(
+                &query,
+                self.token_blocks(&self.model),
+                sample.target,
+                self.kept_cells,
+                self.objective,
+            )?;
+            reading.rows = reading
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| invalid("discrete panel row count overflows"))?;
+            reading.target_admitted = reading
+                .target_admitted
+                .checked_add(u64::from(observation.target_admitted))
+                .ok_or_else(|| invalid("discrete panel admission count overflows"))?;
+            reading.top1_correct = reading
+                .top1_correct
+                .checked_add(u64::from(observation.top8[0] == sample.target))
+                .ok_or_else(|| invalid("discrete panel top-1 count overflows"))?;
+            reading.top8_correct = reading
+                .top8_correct
+                .checked_add(u64::from(observation.top8.contains(&sample.target)))
+                .ok_or_else(|| invalid("discrete panel top-8 count overflows"))?;
+            reading.margin_loss_sum = reading
+                .margin_loss_sum
+                .checked_add(observation.loss)
+                .ok_or_else(|| invalid("discrete panel loss sum overflows"))?;
+            reading.target_rank_sum = reading
+                .target_rank_sum
+                .checked_add(
+                    u64::try_from(observation.target_rank)
+                        .map_err(|_| invalid("discrete panel target rank overflows"))?,
+                )
+                .ok_or_else(|| invalid("discrete panel rank sum overflows"))?;
+        }
+        Ok(reading)
+    }
+
+    pub fn query(&self, sample: &CpuDiscreteProposalSample) -> Result<Vec<i32>> {
+        self.read(&self.model, &sample.prefix)
+    }
+
+    pub fn top8(&self, sample: &CpuDiscreteProposalSample) -> Result<[u32; 8]> {
+        let query = self.query(sample)?;
+        writer_observation(
+            &query,
+            self.token_blocks(&self.model),
+            sample.target,
+            self.kept_cells,
+            self.objective,
+        )
+        .map(|reading| reading.top8)
+    }
+
+    pub fn export_parity(
+        &self,
+        artifact: &[u8],
+        samples: &[CpuDiscreteProposalSample],
+    ) -> Result<CpuDiscretePanelExportReading> {
+        if samples.is_empty() {
+            return Err(invalid("discrete export parity requires rows"));
+        }
+        let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::from_bytes(artifact)
+            .map_err(|error| invalid(format!("discrete serving artifact: {error}")))?;
+        let mut reading = CpuDiscretePanelExportReading {
+            rows: 0,
+            query_coordinates_checked: 0,
+            query_coordinate_mismatches: 0,
+            admitted_cell_mismatches: 0,
+            top8_mismatches: 0,
+            token_mismatches: 0,
+        };
+        for sample in samples {
+            let query = self.query(sample)?;
+            let observation = writer_observation(
+                &query,
+                self.token_blocks(&self.model),
+                sample.target,
+                self.kept_cells,
+                self.objective,
+            )?;
+            let served = model
+                .evaluate_prefix(&sample.prefix)
+                .map_err(|error| invalid(format!("discrete serving row: {error}")))?;
+            reading.rows = reading
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| invalid("discrete export row count overflows"))?;
+            reading.query_coordinates_checked = reading
+                .query_coordinates_checked
+                .checked_add(
+                    u64::try_from(query.len())
+                        .map_err(|_| invalid("discrete query length overflows"))?,
+                )
+                .ok_or_else(|| invalid("discrete query count overflows"))?;
+            reading.query_coordinate_mismatches = reading
+                .query_coordinate_mismatches
+                .checked_add(
+                    u64::try_from(
+                        query
+                            .iter()
+                            .zip(&served.read_vector)
+                            .filter(|(left, right)| left != right)
+                            .count()
+                            + query.len().abs_diff(served.read_vector.len()),
+                    )
+                    .unwrap_or(u64::MAX),
+                )
+                .ok_or_else(|| invalid("discrete query mismatch count overflows"))?;
+            let cpu_cells = admitted_cells(&query, self.token_blocks(&self.model), self.kept_cells);
+            reading.admitted_cell_mismatches = reading
+                .admitted_cell_mismatches
+                .checked_add(u64::from(cpu_cells != served.admitted_cells))
+                .ok_or_else(|| invalid("discrete admitted-cell mismatch count overflows"))?;
+            let mut served_top8 = [u32::MAX; 8];
+            for (slot, &token) in served.top8.iter().take(8).enumerate() {
+                served_top8[slot] = token;
+            }
+            reading.top8_mismatches = reading
+                .top8_mismatches
+                .checked_add(u64::from(observation.top8 != served_top8))
+                .ok_or_else(|| invalid("discrete top-8 mismatch count overflows"))?;
+            reading.token_mismatches = reading
+                .token_mismatches
+                .checked_add(u64::from(observation.top8[0] != served.prediction))
+                .ok_or_else(|| invalid("discrete token mismatch count overflows"))?;
+        }
+        Ok(reading)
     }
 
     fn validate_proposal(&self, kind: CpuDiscreteProposalKind, index: usize) -> Result<()> {
@@ -1631,6 +1817,7 @@ pub struct CpuDiscreteProposalApplier {
     epoch: u64,
     source_artifact_sha256: String,
     source_identity: CpuDiscreteSourceIdentity,
+    base_artifact: Vec<u8>,
 }
 
 impl CpuDiscreteProposalApplier {
@@ -1644,6 +1831,7 @@ impl CpuDiscreteProposalApplier {
             epoch,
             source_artifact_sha256: uor_r4_discrete::corpus::sha256(bytes),
             source_identity: CpuDiscreteSourceIdentity::from_header(&header)?,
+            base_artifact: bytes.to_vec(),
         })
     }
 
@@ -1865,6 +2053,87 @@ impl CpuDiscreteProposalApplier {
             epoch_before,
             epoch_after: self.epoch,
         })
+    }
+
+    /// Rebuild the four-table `UORLUT01` artifact from the current exact
+    /// model state. The header's epoch advances with the model; every section
+    /// length and span remains fixed.
+    pub fn artifact_bytes(&self) -> Result<Vec<u8>> {
+        if self.base_artifact.is_empty() {
+            return Err(invalid(
+                "CPU checkpoint was resumed without its source artifact",
+            ));
+        }
+        let mut artifact_header = header(&self.base_artifact)?;
+        artifact_header["shape"]["epoch"] = serde_json::json!(self.epoch);
+        let tables = artifact_header["tables"]
+            .as_array()
+            .ok_or_else(|| invalid("discrete artifact tables differ"))?
+            .clone();
+        let model = CpuDiscreteModelState::from_scorer(&self.scorer);
+        let table = flattened_token_table(&self.scorer);
+        let cells = token_cells(&self.scorer);
+        let (routes, gates) = flattened_read_state(&self.scorer)?;
+        let mut data = Vec::<u8>::new();
+        for entry in tables {
+            let name = entry["name"]
+                .as_str()
+                .ok_or_else(|| invalid("discrete artifact table name differs"))?;
+            let offset = usize::try_from(
+                entry["span"]["offset"]
+                    .as_u64()
+                    .ok_or_else(|| invalid("discrete artifact span offset differs"))?,
+            )
+            .map_err(|_| invalid("discrete artifact span offset exceeds usize"))?;
+            if offset < data.len() {
+                return Err(invalid(
+                    "discrete artifact writeback requires contiguous table spans",
+                ));
+            }
+            data.resize(offset, 0);
+            let section_start = data.len();
+            match name {
+                "discrete.table" => append_i32(&mut data, &table),
+                "discrete.cells" => append_u32(&mut data, &cells),
+                "discrete.routes" => append_u32(&mut data, &routes),
+                "discrete.gates" => append_i32(&mut data, &gates),
+                _ => {
+                    return Err(invalid(
+                        "CPU discrete writeback supports only the four base tables",
+                    ))
+                }
+            }
+            let section_bytes = data.len() - section_start;
+            if entry["span"]["bytes"].as_u64() != Some(section_bytes as u64) {
+                return Err(invalid("discrete artifact writeback table length differs"));
+            }
+        }
+        let header_bytes =
+            serde_json::to_vec(&artifact_header).map_err(|error| invalid(error.to_string()))?;
+        let unaligned = 16usize
+            .checked_add(header_bytes.len())
+            .ok_or_else(|| invalid("discrete artifact header length overflows"))?;
+        let data_start = unaligned
+            .checked_add(63)
+            .ok_or_else(|| invalid("discrete artifact alignment overflows"))?
+            / 64
+            * 64;
+        let mut artifact = vec![0u8; data_start + data.len()];
+        artifact[..8].copy_from_slice(b"UORLUT01");
+        artifact[8..16].copy_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+        artifact[16..16 + header_bytes.len()].copy_from_slice(&header_bytes);
+        artifact[data_start..].copy_from_slice(&data);
+        let parsed_header = header(&artifact)?;
+        validate_layout(&artifact, &parsed_header)?;
+        let reparsed = CpuDiscreteProposalScorer::from_bytes(&artifact)?;
+        if canonical_json_sha256(&model)?
+            != canonical_json_sha256(&CpuDiscreteModelState::from_scorer(&reparsed))?
+        {
+            return Err(invalid(
+                "CPU discrete artifact writeback changed the model state",
+            ));
+        }
+        Ok(artifact)
     }
 }
 
@@ -2341,6 +2610,8 @@ impl CpuDiscreteChooserState {
 struct CpuDiscreteLineage {
     schema: String,
     source_artifact_sha256: String,
+    #[serde(default)]
+    source_epoch: u64,
     source_identity: CpuDiscreteSourceIdentity,
     schedule: CpuDiscreteSchedule,
 }
@@ -2377,15 +2648,11 @@ pub struct CpuDiscreteCheckpointDriver {
 impl CpuDiscreteCheckpointDriver {
     pub fn from_artifact(bytes: &[u8], schedule: CpuDiscreteSchedule) -> Result<Self> {
         let applier = CpuDiscreteProposalApplier::from_bytes(bytes)?;
-        if applier.epoch != 0 {
-            return Err(invalid(
-                "CPU checkpoint must start from an epoch-zero source artifact",
-            ));
-        }
         schedule.validate_for_model(&applier.scorer.model)?;
         let lineage = CpuDiscreteLineage {
             schema: CPU_DISCRETE_LINEAGE_SCHEMA.into(),
             source_artifact_sha256: applier.source_artifact_sha256.clone(),
+            source_epoch: applier.epoch,
             source_identity: applier.source_identity.clone(),
             schedule,
         };
@@ -2408,6 +2675,17 @@ impl CpuDiscreteCheckpointDriver {
         &mut self.applier
     }
 
+    pub fn score(
+        &self,
+        kind: CpuDiscreteProposalKind,
+        index: usize,
+        samples: &[CpuDiscreteProposalSample],
+    ) -> std::result::Result<CpuDiscreteProposalScoring, CpuDiscreteScoreError> {
+        self.applier
+            .scorer
+            .score(kind, index, samples, self.applier.epoch)
+    }
+
     pub fn cursor(&self) -> &Cursor {
         &self.cursor
     }
@@ -2426,7 +2704,12 @@ impl CpuDiscreteCheckpointDriver {
             committed,
             moves,
         )?;
-        if self.applier.epoch != next.accepted_updates {
+        let expected_next_epoch = self
+            .lineage
+            .source_epoch
+            .checked_add(next.accepted_updates)
+            .ok_or_else(|| invalid("CPU model epoch overflows"))?;
+        if self.applier.epoch != expected_next_epoch {
             return Err(invalid(
                 "CPU model epoch did not advance with the committed batch",
             ));
@@ -2439,9 +2722,14 @@ impl CpuDiscreteCheckpointDriver {
         self.lineage
             .schedule
             .validate_cursor(&self.cursor, &self.applier.scorer.model)?;
-        if self.applier.epoch != self.cursor.accepted_updates {
+        let expected_epoch = self
+            .lineage
+            .source_epoch
+            .checked_add(self.cursor.accepted_updates)
+            .ok_or_else(|| invalid("CPU source epoch overflows"))?;
+        if self.applier.epoch != expected_epoch {
             return Err(invalid(
-                "CPU model epoch differs from accepted checkpoint updates",
+                "CPU model epoch differs from source epoch plus accepted updates",
             ));
         }
         let model = CpuDiscreteModelState::from_scorer(&self.applier.scorer);
@@ -2469,6 +2757,32 @@ impl CpuDiscreteCheckpointDriver {
     }
 
     pub fn resume(bytes: &[u8], expected_source_artifact_sha256: &str) -> Result<Self> {
+        Self::resume_inner(bytes, expected_source_artifact_sha256, None)
+    }
+
+    /// Resume a checkpoint with its authenticated source artifact attached so
+    /// the driver can emit an updated four-table artifact.
+    pub fn resume_with_artifact(
+        bytes: &[u8],
+        expected_source_artifact_sha256: &str,
+        source_artifact: &[u8],
+    ) -> Result<Self> {
+        let actual = uor_r4_discrete::corpus::sha256(source_artifact);
+        if actual != expected_source_artifact_sha256 {
+            return Err(invalid("CPU resume source artifact sha256 differs"));
+        }
+        Self::resume_inner(
+            bytes,
+            expected_source_artifact_sha256,
+            Some(source_artifact),
+        )
+    }
+
+    fn resume_inner(
+        bytes: &[u8],
+        expected_source_artifact_sha256: &str,
+        source_artifact: Option<&[u8]>,
+    ) -> Result<Self> {
         let checkpoint: CpuDiscreteCheckpoint =
             serde_json::from_slice(bytes).map_err(|error| invalid(error.to_string()))?;
         if checkpoint.schema != CPU_DISCRETE_CHECKPOINT_SCHEMA
@@ -2529,11 +2843,25 @@ impl CpuDiscreteCheckpointDriver {
             .lineage
             .schedule
             .validate_cursor(&checkpoint.cursor, &model)?;
-        if checkpoint.model_epoch != checkpoint.cursor.accepted_updates {
+        let expected_epoch = checkpoint
+            .lineage
+            .source_epoch
+            .checked_add(checkpoint.cursor.accepted_updates)
+            .ok_or_else(|| invalid("CPU checkpoint source epoch overflows"))?;
+        if checkpoint.model_epoch != expected_epoch {
             return Err(invalid(
-                "CPU checkpoint model epoch differs from accepted updates",
+                "CPU checkpoint model epoch differs from source epoch plus accepted updates",
             ));
         }
+        let base_artifact = if let Some(source_artifact) = source_artifact {
+            let source_header = header(source_artifact)?;
+            if source_header["shape"]["epoch"].as_u64() != Some(checkpoint.lineage.source_epoch) {
+                return Err(invalid("CPU resume source epoch differs from checkpoint"));
+            }
+            source_artifact.to_vec()
+        } else {
+            Vec::new()
+        };
         let applier = CpuDiscreteProposalApplier {
             scorer: CpuDiscreteProposalScorer {
                 chooser,
@@ -2544,11 +2872,63 @@ impl CpuDiscreteCheckpointDriver {
             epoch: checkpoint.model_epoch,
             source_artifact_sha256: checkpoint.source_artifact_sha256,
             source_identity: checkpoint.lineage.source_identity.clone(),
+            base_artifact,
         };
         Ok(Self {
             applier,
             lineage: checkpoint.lineage,
             cursor: checkpoint.cursor,
+        })
+    }
+
+    pub fn artifact_bytes(&self) -> Result<Vec<u8>> {
+        self.applier.artifact_bytes()
+    }
+
+    pub fn next_block(&self) -> Result<CpuDiscreteBlock> {
+        let model = &self.applier.scorer.model;
+        self.lineage.schedule.validate_cursor(&self.cursor, model)?;
+        let length = self.lineage.schedule.block_length(&self.cursor, model)?;
+        let length =
+            usize::try_from(length).map_err(|_| invalid("CPU block length exceeds usize"))?;
+        let (kind, start, size) = if self
+            .lineage
+            .schedule
+            .is_read_batch(self.cursor.completed_batches, model)?
+        {
+            let (_, o_read) = family_cursors(
+                self.cursor.completed_batches,
+                self.lineage.schedule.coordinate_block,
+                self.lineage.schedule.policy,
+                self.lineage.schedule.dimensions(model).0,
+                self.lineage.schedule.dimensions(model).1,
+            )
+            .map_err(|error| invalid(error.to_string()))?;
+            let kind = match model {
+                CpuDiscreteProposalModel::Route(_) => CpuDiscreteProposalKind::Route,
+                CpuDiscreteProposalModel::Active(_) => CpuDiscreteProposalKind::Gate,
+            };
+            (kind, o_read, self.lineage.schedule.dimensions(model).1)
+        } else {
+            let (o_vec, _) = family_cursors(
+                self.cursor.completed_batches,
+                self.lineage.schedule.coordinate_block,
+                self.lineage.schedule.policy,
+                self.lineage.schedule.dimensions(model).0,
+                self.lineage.schedule.dimensions(model).1,
+            )
+            .map_err(|error| invalid(error.to_string()))?;
+            (
+                CpuDiscreteProposalKind::Table,
+                o_vec,
+                self.lineage.schedule.dimensions(model).0,
+            )
+        };
+        let start =
+            usize::try_from(start % size).map_err(|_| invalid("CPU block start exceeds usize"))?;
+        Ok(CpuDiscreteBlock {
+            kind,
+            indices: (start..start + length).collect(),
         })
     }
 }
@@ -2764,6 +3144,160 @@ fn writer_loss(
             .ok_or_else(|| invalid("proposal rank loss overflows"))?,
     };
     Ok(CpuWriterLoss { loss, token_rivals })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct CpuWriterObservation {
+    loss: u64,
+    top8: [u32; 8],
+    target_admitted: bool,
+    target_rank: usize,
+}
+
+fn writer_observation(
+    query: &[i32],
+    token_blocks: &[Vec<[i32; 8]>],
+    target: u32,
+    kept_cells: usize,
+    objective: CpuDiscreteObjective,
+) -> Result<CpuWriterObservation> {
+    let loss = writer_loss(query, token_blocks, target, kept_cells, objective)?;
+    let blocks = token_blocks
+        .first()
+        .map(Vec::len)
+        .ok_or_else(|| invalid("proposal writer codebook is empty"))?;
+    if query.len() != blocks * 8 || target as usize >= token_blocks.len() {
+        return Err(invalid("proposal writer row shape differs"));
+    }
+    let mut token_cells = Vec::with_capacity(token_blocks.len());
+    let mut occupied = [false; 256];
+    for token in token_blocks {
+        let first = identify_orbit_root(&token[0])
+            .ok_or_else(|| invalid("proposal writer first block off orbit"))?;
+        let last = identify_orbit_root(token.last().unwrap())
+            .ok_or_else(|| invalid("proposal writer last block off orbit"))?;
+        let cell = usize::from(first) * 16 + usize::from(last);
+        occupied[cell] = true;
+        token_cells.push(cell);
+    }
+    let mut used = [false; 256];
+    let mut admitted = Vec::with_capacity(kept_cells);
+    for _ in 0..kept_cells {
+        let mut best = None;
+        for cell in 0..256 {
+            if occupied[cell] && !used[cell] {
+                let cost = writer_cell_distance(query, blocks, cell);
+                if best.is_none_or(|(best_cost, best_cell)| {
+                    cost < best_cost || (cost == best_cost && cell < best_cell)
+                }) {
+                    best = Some((cost, cell));
+                }
+            }
+        }
+        let Some((_, cell)) = best else {
+            break;
+        };
+        used[cell] = true;
+        admitted.push(cell);
+    }
+    let target_admitted = admitted.contains(&token_cells[target as usize]);
+    let mut ranked = Vec::new();
+    for (token, &cell) in token_cells.iter().enumerate() {
+        if admitted.contains(&cell) {
+            ranked.push((
+                writer_token_distance(query, blocks, &token_blocks[token]),
+                token as u32,
+            ));
+        }
+    }
+    ranked.sort_unstable();
+    let mut top8 = [u32::MAX; 8];
+    for (slot, &(_, token)) in ranked.iter().take(8).enumerate() {
+        top8[slot] = token;
+    }
+    let target_rank = ranked
+        .iter()
+        .position(|&(_, token)| token == target)
+        .map_or(ranked.len(), |rank| rank + 1);
+    Ok(CpuWriterObservation {
+        loss: loss.loss,
+        top8,
+        target_admitted,
+        target_rank,
+    })
+}
+
+fn admitted_cells(query: &[i32], token_blocks: &[Vec<[i32; 8]>], kept_cells: usize) -> Vec<u32> {
+    let blocks = token_blocks.first().map_or(0, Vec::len);
+    let mut occupied = [false; 256];
+    for token in token_blocks {
+        let first = identify_orbit_root(&token[0]).expect("model token blocks were validated");
+        let last =
+            identify_orbit_root(token.last().unwrap()).expect("model token blocks were validated");
+        occupied[usize::from(first) * 16 + usize::from(last)] = true;
+    }
+    let mut candidates = (0..256)
+        .filter(|&cell| occupied[cell])
+        .map(|cell| (writer_cell_distance(query, blocks, cell), cell))
+        .collect::<Vec<_>>();
+    candidates.sort_unstable();
+    candidates
+        .into_iter()
+        .take(kept_cells)
+        .map(|(_, cell)| cell as u32)
+        .collect()
+}
+
+fn flattened_token_table(scorer: &CpuDiscreteProposalScorer) -> Vec<i32> {
+    scorer
+        .model
+        .token_blocks()
+        .iter()
+        .flat_map(|token| token.iter().flat_map(|block| block.iter().copied()))
+        .collect()
+}
+
+fn token_cells(scorer: &CpuDiscreteProposalScorer) -> Vec<u32> {
+    scorer
+        .model
+        .token_blocks()
+        .iter()
+        .map(|token| {
+            let first = identify_orbit_root(&token[0]).expect("model token blocks were validated");
+            let last = identify_orbit_root(token.last().unwrap())
+                .expect("model token blocks were validated");
+            u32::from(first) * 16 + u32::from(last)
+        })
+        .collect()
+}
+
+fn flattened_read_state(scorer: &CpuDiscreteProposalScorer) -> Result<(Vec<u32>, Vec<i32>)> {
+    match &scorer.model {
+        CpuDiscreteProposalModel::Route(route) => Ok((
+            route.routes.iter().flatten().copied().collect(),
+            vec![0; route.blocks * route.stages],
+        )),
+        CpuDiscreteProposalModel::Active(active) => {
+            let mut gates = active
+                .level_gates
+                .iter()
+                .flatten()
+                .copied()
+                .collect::<Vec<_>>();
+            if let ActiveLeafMode::Relation { relation_gates, .. } = &active.mode {
+                gates.extend(relation_gates.iter().flatten().copied());
+            }
+            Ok((active.routes.clone(), gates))
+        }
+    }
+}
+
+fn append_i32(output: &mut Vec<u8>, values: &[i32]) {
+    output.extend(values.iter().flat_map(|value| value.to_le_bytes()));
+}
+
+fn append_u32(output: &mut Vec<u8>, values: &[u32]) {
+    output.extend(values.iter().flat_map(|value| value.to_le_bytes()));
 }
 
 fn writer_cell_distance(query: &[i32], blocks: usize, cell: usize) -> u32 {
@@ -3139,6 +3673,77 @@ mod tests {
                 oracle.evaluate_prefix(prefix).unwrap().read_vector
             );
         }
+    }
+
+    #[test]
+    fn cpu_discrete_writeback_round_trips_serving_and_advances_epoch() {
+        let artifact = serialized_route();
+        let samples = vec![CpuDiscreteProposalSample {
+            prefix: vec![0, 1, 2],
+            target: 0,
+        }];
+        let mut applier = CpuDiscreteProposalApplier::from_bytes(&artifact).unwrap();
+        let source_epoch = applier.epoch;
+        let receipt = applier
+            .apply(
+                CpuDiscreteProposalKind::Table,
+                0,
+                CpuDiscreteProposal {
+                    lane: 1,
+                    current_loss: 10,
+                    selected_loss: 9,
+                    epoch: source_epoch,
+                    sensitive: true,
+                },
+            )
+            .unwrap();
+        assert!(receipt.applied);
+        let rewritten = applier.artifact_bytes().unwrap();
+        let scorer = CpuDiscreteProposalScorer::from_bytes(&rewritten).unwrap();
+        let parity = scorer.export_parity(&rewritten, &samples).unwrap();
+        assert!(parity.is_exact(), "{parity:?}");
+        assert!(scorer.export_parity(&rewritten, &[]).is_err());
+        let header = header(&rewritten).unwrap();
+        assert_eq!(header["shape"]["epoch"], json!(source_epoch + 1));
+        let serving = IntegerDiscreteModel::from_bytes(&rewritten).unwrap();
+        assert_eq!(serving.shape().epoch, source_epoch + 1);
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_preserves_nonzero_source_epoch() {
+        let artifact = set_route_epoch(serialized_route(), 420);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap();
+        let mut driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        assert_eq!(driver.applier().epoch(), 420);
+        assert_eq!(driver.cursor().accepted_updates, 0);
+        driver.advance_after_batch(false, 0).unwrap();
+        let checkpoint = driver.checkpoint_bytes().unwrap();
+        let source = driver.checkpoint().unwrap().source_artifact_sha256;
+        let resumed =
+            CpuDiscreteCheckpointDriver::resume_with_artifact(&checkpoint, &source, &artifact)
+                .unwrap();
+        assert_eq!(resumed.applier().epoch(), 420);
+        assert_eq!(resumed.cursor().completed_batches, 1);
+        assert_eq!(
+            resumed.artifact_bytes().unwrap(),
+            driver.artifact_bytes().unwrap()
+        );
+    }
+
+    fn set_route_epoch(artifact: Vec<u8>, epoch: u64) -> Vec<u8> {
+        let header_len = u64::from_le_bytes(artifact[8..16].try_into().unwrap()) as usize;
+        let data_start = (16usize + header_len).div_ceil(64) * 64;
+        let mut value: Value = serde_json::from_slice(&artifact[16..16 + header_len]).unwrap();
+        value["shape"]["epoch"] = json!(epoch);
+        let header = serde_json::to_vec(&value).unwrap();
+        let new_data_start = (16usize + header.len()).div_ceil(64) * 64;
+        let mut output = vec![0u8; new_data_start + artifact.len() - data_start];
+        output[..8].copy_from_slice(b"UORLUT01");
+        output[8..16].copy_from_slice(&(header.len() as u64).to_le_bytes());
+        output[16..16 + header.len()].copy_from_slice(&header);
+        output[new_data_start..].copy_from_slice(&artifact[data_start..]);
+        output
     }
 
     #[test]
@@ -4793,6 +5398,39 @@ mod tests {
         assert_eq!(
             resumed.checkpoint_bytes().unwrap(),
             driver.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn cpu_discrete_interleaved_schedule_crosses_eight_batches_into_a_gate_read() {
+        let artifact = serialized_flock_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[1, 0, 1, 0],
+            2,
+        );
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 1, 2, 16).unwrap();
+        let mut driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        let mut kinds = Vec::new();
+        for _ in 0..10 {
+            kinds.push(driver.next_block().unwrap().kind);
+            driver.advance_after_batch(false, 0).unwrap();
+        }
+        assert_eq!(
+            kinds,
+            [
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Gate,
+                CpuDiscreteProposalKind::Table,
+                CpuDiscreteProposalKind::Table,
+            ]
         );
     }
 

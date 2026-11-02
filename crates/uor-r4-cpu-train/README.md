@@ -10,6 +10,8 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop to normalization gains, convolution/gate biases, decay offsets and all six FBS route tables through bounded BVG-K coordinate blocks. `CpuPanelEvaluator` grades a finite panel and records target admission, top-1/top-8, rank margin and component-wise CPU-versus-serving query/token/kept-cell gaps. `panel_admission_gate` refuses checkpoint admission loss or any serving mismatch; these are component controls, not a language result.
 
+`cpu-discrete-corpus-driver` connects the exact discrete proposal/apply/checkpoint path to a strict masked corpus. It starts from a four-table `uor-r4.lut-discrete/1` artifact at any recorded epoch, executes bounded K=1 vector/read coordinates with the GPU short-final-batch semantics, reports matched panel and CPU-versus-serving readings, writes hash-bound interval/final checkpoints, and reconstructs a reloadable four-table artifact from the trained state. Its target-rank sum is over tokens in admitted cells, not all vocabulary entries. It refuses the 19-table M1 trunk because the CPU scorer does not implement the extra trunk tables. This is a development screener, not GPU training qualification.
+
 `CpuQuantizationShadow` pairs a no-read FBS snapshot with its exact Q12 artifact, applies accepted Q12 table deltas to both, and records the float-shadow, quantized-reference and exact CPU/serving decisions on one finite panel. Its checkpoint binds both states and refuses admission loss, serving drift or `EXPORT_LIMITED` float-only gains. This is component evidence only.
 
 `cpu-public-discrete-parity` binds the public M1 seed-1 discrete artifact and public DEV split by SHA-256, extracts the trained codebook, and compares `CpuWriterCore` with `IntegerDiscreteModel` across all 14,287 eligible rows. It reproduces the published GPU aggregate `9,012` admitted, `7,002` top-1 and `7,485` top-8 with zero row mismatches.
@@ -31,6 +33,7 @@ cargo run --release -p uor-r4-cpu-train --bin cpu-panel-export-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-public-discrete-parity -- <public-fixture-dir>
 cargo run --release -p uor-r4-cpu-train --bin cpu-public-fbs-parity -- <public-fbs-fixture-dir>
 cargo run --release -p uor-r4-cpu-train --bin cpu-corpus-driver -- <artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
+cargo run --release -p uor-r4-cpu-train --bin cpu-discrete-corpus-driver -- <four-table-artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
 ```
 
 The forward benchmark prints read-free, copy-only, copy-plus-type and full Hamming-plus-memory cases with hashes and process peak RSS. Its readings are component throughput, not training or language evidence.

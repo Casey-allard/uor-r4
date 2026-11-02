@@ -1,0 +1,128 @@
+{
+  "schema": "uor-r4.cpu-discrete-corpus-smoke/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source_commit": "dc2c0e447",
+  "binary_sha256": "9e5696c9a53a4e46808f7f7f5f50cd037a003fb2f5b724edd74cfb873e97b248",
+  "machine": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "cores": 16,
+    "threads": 32
+  },
+  "command": "cpu-discrete-corpus-driver <four-table-artifact> <dev-tokens.u16> <dev-response-mask.u8> <dev-manifest.json> <seed> 4 2 128 2 <new-checkpoint-dir>",
+  "inputs": {
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab",
+    "training_documents": 200,
+    "evaluation_documents": 118,
+    "training_targets": 7080,
+    "evaluation_targets": 128
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "source_artifact_sha256": "fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca",
+      "final_artifact_sha256": "ad92bb38315b94ed6b84e68d0231990be2ea88054eabd33c2b6d238dbbe77828",
+      "final_checkpoint_sha256": "6b36a989d23c15d53ff988089433d488fa661d19f4ab69b3cefa1953c0c6dbdd",
+      "completed_steps": 4,
+      "resumed_from_step": 0,
+      "executed_steps_this_invocation": 4,
+      "accepted_updates": 2,
+      "refused_updates": 2,
+      "accepted_updates_this_invocation": 2,
+      "refused_updates_this_invocation": 2,
+      "context_tokens_this_invocation": 22804,
+      "target_visits_this_invocation": 256,
+      "context_tokens_per_second_this_invocation": 38842.11690388778,
+      "target_visits_per_second_this_invocation": 436.04551514625814,
+      "wall_seconds": 0.906039676,
+      "peak_rss_kib": 19488,
+      "panel": {
+        "rows": 128,
+        "before": {
+          "target_admitted": 46,
+          "top1_correct": 2,
+          "top8_correct": 9,
+          "margin_loss_sum": 115712,
+          "target_rank_sum": 12105
+        },
+        "after": {
+          "target_admitted": 46,
+          "top1_correct": 4,
+          "top8_correct": 10,
+          "margin_loss_sum": 115680,
+          "target_rank_sum": 11970
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "source_artifact_sha256": "a75ea7f5907275fd4c1e853ee76135a7a2615ba8302aaadf362bfa7eb96ae12a",
+      "final_artifact_sha256": "7f76e09177f1a32dd8b1d80d6ddc3bbedba8ef49c22797ebfc68062edf68fce1",
+      "final_checkpoint_sha256": "e9305d14af9aa8f98db5e3e91679ddf8358158d239af2f17bc68ceca2f6ffa27",
+      "completed_steps": 4,
+      "resumed_from_step": 0,
+      "executed_steps_this_invocation": 4,
+      "accepted_updates": 2,
+      "refused_updates": 2,
+      "accepted_updates_this_invocation": 2,
+      "refused_updates_this_invocation": 2,
+      "context_tokens_this_invocation": 22804,
+      "target_visits_this_invocation": 256,
+      "context_tokens_per_second_this_invocation": 39483.843456776216,
+      "target_visits_per_second_this_invocation": 443.2496020406381,
+      "wall_seconds": 0.878721528,
+      "peak_rss_kib": 19420,
+      "panel": {
+        "rows": 128,
+        "before": {
+          "target_admitted": 46,
+          "top1_correct": 2,
+          "top8_correct": 9,
+          "margin_loss_sum": 115712,
+          "target_rank_sum": 12105
+        },
+        "after": {
+          "target_admitted": 46,
+          "top1_correct": 4,
+          "top8_correct": 10,
+          "margin_loss_sum": 115680,
+          "target_rank_sum": 11970
+        }
+      }
+    }
+  ],
+  "export_parity": {
+    "rows_per_seed": 128,
+    "query_coordinates_checked_per_seed": 4096,
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0
+  },
+  "restart": {
+    "seed": 1,
+    "resumed_from_step": 2,
+    "target_step": 4,
+    "accepted_updates": 2,
+    "refused_updates": 2,
+    "accepted_updates_this_invocation": 0,
+    "refused_updates_this_invocation": 2,
+    "context_tokens_this_invocation": 15365,
+    "target_visits_this_invocation": 128,
+    "context_tokens_per_second_this_invocation": 45254.98066921646,
+    "target_visits_per_second_this_invocation": 377.00211686688624,
+    "uninterrupted_artifact_sha256": "ad92bb38315b94ed6b84e68d0231990be2ea88054eabd33c2b6d238dbbe77828",
+    "resumed_artifact_sha256": "ad92bb38315b94ed6b84e68d0231990be2ea88054eabd33c2b6d238dbbe77828",
+    "uninterrupted_checkpoint_sha256": "6b36a989d23c15d53ff988089433d488fa661d19f4ab69b3cefa1953c0c6dbdd",
+    "resumed_checkpoint_sha256": "6b36a989d23c15d53ff988089433d488fa661d19f4ab69b3cefa1953c0c6dbdd"
+  },
+  "limits": [
+    "Four-step component smoke only; no capability or language claim.",
+    "Public artifact TRAIN exposure is not verified.",
+    "The evaluation rows are document-disjoint within the public DEV input, not sealed fresh data.",
+    "The driver supports K=1 and the four base tables only.",
+    "The 19-table M1 trunk is refused."
+  ]
+}

@@ -50,3 +50,7 @@ path = "src/bin/cpu-public-fbs-parity.rs"
 [[bin]]
 name = "cpu-corpus-driver"
 path = "src/bin/cpu-corpus-driver.rs"
+
+[[bin]]
+name = "cpu-discrete-corpus-driver"
+path = "src/bin/cpu-discrete-corpus-driver.rs"
