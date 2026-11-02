@@ -173,6 +173,83 @@ pub struct LongConfig {
     /// same cut to its rows. Left out of `config.json` when none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply_read_train: Option<ReadScope>,
+    /// Train as served (one-model-end-to-end, claude-258): before each step's forward, the trunk's
+    /// tables, the Hamming reads and the turn memory's weights are rounded as the integer export
+    /// rounds them, so the loss and its gradient are the served model's; the gradient then moves
+    /// the float values they were rounded from ([`ServedValues`]). Every checkpoint is scored and
+    /// saved at the rounded values, so rounding a saved step as exported changes nothing. Left
+    /// out of `config.json` when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub train_as_served: bool,
+}
+
+/// The float values one step rounded as served ([`LongConfig::train_as_served`], claude-258):
+/// every variable of the trunk, the Hamming reads and the turn memory, each with a copy of its
+/// value before the rounding. [`ServedValues::restore`] puts the copies back, so the optimizer
+/// moves the float values, and an update finer than the export's step accumulates instead of
+/// being rounded away.
+struct ServedValues {
+    float: Vec<(candle_core::Var, Tensor)>,
+}
+
+impl ServedValues {
+    /// Copy each variable's value, then round them in place with the export's own roundings
+    /// (`fbs_export::round_tables_as_exported`, `round_hamming_as_exported`,
+    /// `round_memory_as_exported`). A rounding the export refuses leaves every value as it was.
+    fn round(
+        model: &StackModel,
+        reads: Option<&crate::flock_read_hamming::HammingReads>,
+        memory: Option<&crate::flock_read_memory::TurnMemory>,
+    ) -> Result<Self> {
+        let mut vars: Vec<&candle_core::Var> = model.variables().values().collect();
+        if let Some(reads) = reads {
+            vars.extend(reads.variables());
+        }
+        if let Some(memory) = memory {
+            vars.extend(memory.variables());
+        }
+        let float = vars
+            .into_iter()
+            .map(|var| Ok((var.clone(), var.as_tensor().copy()?)))
+            .collect::<Result<Vec<_>>>()?;
+        let served = Self { float };
+        let rounded = (|| -> Result<()> {
+            crate::fbs_export::round_tables_as_exported(model)?;
+            if let Some(reads) = reads {
+                crate::fbs_export::round_hamming_as_exported(reads)?;
+            }
+            if let Some(memory) = memory {
+                crate::fbs_export::round_memory_as_exported(memory)?;
+            }
+            Ok(())
+        })();
+        match rounded {
+            Ok(()) => Ok(served),
+            Err(refused) => {
+                served.restore()?;
+                Err(refused)
+            }
+        }
+    }
+
+    /// Put each variable's float value back.
+    fn restore(self) -> Result<()> {
+        for (var, value) in self.float {
+            var.set(&value)?;
+        }
+        Ok(())
+    }
+}
+
+/// [`ServedValues::round`] when the run trains as served; none, with nothing changed, when not.
+fn round_if_served(
+    on: bool,
+    model: &StackModel,
+    reads: Option<&crate::flock_read_hamming::HammingReads>,
+    memory: Option<&crate::flock_read_memory::TurnMemory>,
+) -> Result<Option<ServedValues>> {
+    on.then(|| ServedValues::round(model, reads, memory))
+        .transpose()
 }
 
 fn is_zero_u32(n: &u32) -> bool {
@@ -9375,6 +9452,24 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             ));
         }
     }
+    // Training as served (claude-258) rounds what the export carries: the trunk, the Hamming
+    // read and the turn memory. A read it does not carry would train at values no artifact holds,
+    // and a run with folded or reflected rate scores has no export at all (`run_rate_reading`).
+    if config.train_as_served
+        && (config.flock_read > 0
+            || config.content_read > 0
+            || config.opening_read > 0
+            || config.prompt_register > 0
+            || config.type_spin
+            || config.fold_scores
+            || config.reflect_floor)
+    {
+        return Err(invalid(
+            "--train-as-served rounds the trunk, the Hamming read and the turn memory as the export \
+             does; the Flock, content and opening reads, the prompt register and the type spin \
+             have no exported form, and the export refuses folded or reflected rate scores",
+        ));
+    }
     if out.exists() {
         return Err(invalid(format!(
             "{} exists; a run never writes over one",
@@ -9503,6 +9598,14 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                       train_loss_mean: Option<f64>,
                       train_seconds: f64|
      -> Result<()> {
+        // Trained as served (claude-258), the checkpoint is scored and saved at the exported
+        // values, through the reads and memory set on this thread, which share their variables.
+        let served = round_if_served(
+            config.train_as_served,
+            model,
+            crate::flock_read_hamming::hamming_reads().as_ref(),
+            crate::flock_read_memory::turn_memory().as_ref(),
+        )?;
         let (dev, _) = hs::evaluate_dev_panel(
             model,
             &dev_windows,
@@ -9613,6 +9716,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(memory) = crate::flock_read_memory::turn_memory() {
             memory.save(&directory)?;
         }
+        if let Some(served) = served {
+            served.restore()?;
+        }
         Ok(())
     };
 
@@ -9678,6 +9784,16 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if profiled == Some(true) {
             stage_clock::start(device);
         }
+        // Trained as served (claude-258): the forward and its gradient at the exported values.
+        let served = round_if_served(
+            config.train_as_served,
+            &model,
+            hamming.as_ref().map(|(reads, _)| reads),
+            memory.as_ref().map(|(mem, _)| mem),
+        )?;
+        if served.is_some() {
+            stage_clock::mark("served.round");
+        }
         // The gate hook carries the real step: at step 0 its backward runs diagnostics with host
         // syncs, and a checkpoint's replies leave it at 0.
         let (value, grads) = hs::with_gate_mode(
@@ -9707,6 +9823,11 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                 Ok((value, grads))
             },
         )?;
+        // The gradient, taken at the exported values, moves the float values they came from.
+        if let Some(served) = served {
+            served.restore()?;
+            stage_clock::mark("served.restore");
+        }
         // Linear from `lr` at the first step to `lr_end` at the last.
         let progress = if config.steps == 1 {
             1.0
@@ -10634,6 +10755,7 @@ mod tests {
             turn_memory_dropout: 0,
             fbs_arm: FbsArm::OneAtomActive,
             reply_read_train: None,
+            train_as_served: false,
         }
     }
 
@@ -13911,5 +14033,257 @@ mod tests {
         let old = r#"{"position":4,"prompt":[1],"reply":[2],"reference":[3],"reply_text":"a","reference_text":"b"}"#;
         let sample: IdSample = serde_json::from_str(old).unwrap();
         assert_eq!((sample.reply_keys, sample.reply_named, sample.reference_keys), (0, 0, 0));
+    }
+
+    /// claude-258: the trunk, Hamming reads and turn memory a training run holds, with the reads'
+    /// and the memory's weights moved off the export's grid (they start at 0, which it holds), so
+    /// rounding each part as exported moves it.
+    fn served_parts(
+        device: &Device,
+    ) -> Result<(
+        StackModel,
+        crate::flock_read_hamming::HammingReads,
+        crate::flock_read_memory::TurnMemory,
+    )> {
+        let model = build_fbs_model_at(FbsArm::OneAtomActive, 1, hs::SHEET_WIDTH, device)?;
+        let reads = crate::flock_read_hamming::HammingReads::new(4, hs::SHEET_WIDTH, device)?;
+        let memory = crate::flock_read_memory::TurnMemory::new(
+            8,
+            std::collections::HashMap::new(),
+            hs::SHEET_WIDTH,
+            device,
+        )?;
+        let off_grid = |var: &candle_core::Var| -> Result<()> {
+            let values: Vec<f32> = (0..var.elem_count())
+                .map(|i| 0.123_456_7 + i as f32 * 1e-7)
+                .collect();
+            var.set(&Tensor::from_vec(values, var.shape(), device)?)?;
+            Ok(())
+        };
+        for read in &reads.reads {
+            off_grid(&read.weight)?;
+        }
+        off_grid(&memory.weight)?;
+        Ok((model, reads, memory))
+    }
+
+    fn served_vars<'a>(
+        model: &'a StackModel,
+        reads: &'a crate::flock_read_hamming::HammingReads,
+        memory: &'a crate::flock_read_memory::TurnMemory,
+    ) -> Vec<&'a candle_core::Var> {
+        let mut vars: Vec<&candle_core::Var> = model.variables().values().collect();
+        vars.extend(reads.variables());
+        vars.extend(memory.variables());
+        vars
+    }
+
+    fn served_bits(vars: &[&candle_core::Var]) -> Result<Vec<Vec<u32>>> {
+        vars.iter()
+            .map(|var| {
+                let values = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+                Ok(values.into_iter().map(f32::to_bits).collect())
+            })
+            .collect()
+    }
+
+    /// A checkpoint's save as [`run_long`] makes it: rounded as served when `on`, then put back.
+    fn save_step(
+        dir: &Path,
+        on: bool,
+        model: &StackModel,
+        reads: &crate::flock_read_hamming::HammingReads,
+        memory: &crate::flock_read_memory::TurnMemory,
+    ) -> Result<()> {
+        fs::create_dir_all(dir)?;
+        let served = round_if_served(on, model, Some(reads), Some(memory))?;
+        model.save(dir)?;
+        reads.save(dir)?;
+        memory.save(dir)?;
+        if let Some(served) = served {
+            served.restore()?;
+        }
+        Ok(())
+    }
+
+    /// Which of the trunk, the Hamming reads and the turn memory saved in `dir` the export's own
+    /// rounding changes, on the CPU, which stores and moves the values (D24/D29).
+    fn export_changes(dir: &Path) -> Result<[bool; 3]> {
+        let device = Device::Cpu;
+        let model = StackModel::load(dir, &device)?;
+        let reads = crate::flock_read_hamming::HammingReads::load(dir, &device)?
+            .ok_or_else(|| invalid("no saved Hamming reads"))?;
+        let memory = crate::flock_read_memory::TurnMemory::load(dir, &device)?
+            .ok_or_else(|| invalid("no saved turn memory"))?;
+        let trunk: Vec<&candle_core::Var> = model.variables().values().collect();
+        let held = [
+            served_bits(&trunk)?,
+            served_bits(&reads.variables())?,
+            served_bits(&memory.variables())?,
+        ];
+        crate::fbs_export::round_tables_as_exported(&model)?;
+        crate::fbs_export::round_hamming_as_exported(&reads)?;
+        crate::fbs_export::round_memory_as_exported(&memory)?;
+        Ok([
+            held[0] != served_bits(&trunk)?,
+            held[1] != served_bits(&reads.variables())?,
+            held[2] != served_bits(&memory.variables())?,
+        ])
+    }
+
+    /// claude-258: a checkpoint saved as served is one the export's rounding leaves unchanged in
+    /// every part, and the run's own values are the float ones again after it. Saved without the
+    /// rounding, the same values are ones the export changes in every part. The training steps
+    /// themselves run on the GPU only (D24/D29), in the test after this one.
+    #[test]
+    fn a_step_saved_as_served_is_one_its_export_leaves_unchanged() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("claude-258-saved-{}", std::process::id()));
+        let (model, reads, memory) = served_parts(&Device::Cpu)?;
+        let vars = served_vars(&model, &reads, &memory);
+        let float = served_bits(&vars)?;
+        save_step(&root.join("on"), true, &model, &reads, &memory)?;
+        assert_eq!(served_bits(&vars)?, float, "the float values are back");
+        assert_eq!(export_changes(&root.join("on"))?, [false; 3]);
+        save_step(&root.join("off"), false, &model, &reads, &memory)?;
+        assert_eq!(export_changes(&root.join("off"))?, [true; 3]);
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// claude-258: three training steps on the GPU, through the trunk's own loss and the run's
+    /// own optimizers in [`run_long`]'s order. As served, each forward reads the tables on the
+    /// export's grid, the run's values stay float, and the saved step is one the export leaves
+    /// unchanged; without the switch, the export changes every part of the saved step.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "needs a CUDA device; run on the pod"]
+    fn three_steps_trained_as_served_save_a_step_the_export_leaves_unchanged() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let root = std::env::temp_dir().join(format!("claude-258-gpu-{}", std::process::id()));
+        let batch = 2;
+        let ids: Vec<u32> = (0..batch * SHEET_CONTEXT)
+            .map(|i| ((i * 37 + 5) % hs::SHEET_VOCAB) as u32)
+            .collect();
+        let scored: Vec<u32> = (0..batch * SHEET_CONTEXT - 1)
+            .step_by(7)
+            .map(|i| i as u32)
+            .collect();
+        let targets: Vec<u32> = scored.iter().map(|&i| ids[i as usize + 1]).collect();
+        for on in [true, false] {
+            let (model, reads, memory) = served_parts(&device)?;
+            crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
+            crate::flock_read_memory::set_turn_memory(Some(memory.clone()));
+            let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
+            let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
+            let mut opt_reads = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
+            let mut opt_memory = crate::flock_read::FlockAdamW::for_vars(&memory.variables())?;
+            for step in 0..3 {
+                let served = round_if_served(on, &model, Some(&reads), Some(&memory))?;
+                assert_eq!(
+                    crate::fbs_export::check_tables_rounded_as_exported(&model).is_ok(),
+                    on,
+                    "step {step}"
+                );
+                let grads =
+                    hs::with_gate_mode(HamiltonArm::HamiltonActive, 1, step + 1, false, || {
+                        let loss = batch_loss(
+                            &model,
+                            PointObjective::Cell,
+                            &ids,
+                            &scored,
+                            &targets,
+                            batch,
+                        )?;
+                        Ok(loss.backward()?)
+                    })?;
+                if let Some(served) = served {
+                    served.restore()?;
+                }
+                opt_main.update_filtered(&model, &grads, 1e-3, |name| {
+                    main_optimizer_updates(name, FbsArm::OneAtomActive)
+                })?;
+                opt_reads.step_vars(&reads.variables(), &grads, 1e-3)?;
+                opt_memory.step_vars(&memory.variables(), &grads, 1e-3)?;
+                opt_decay.update_filtered(&model, &grads, 1e-3, |name| {
+                    name.ends_with("rec.decay")
+                })?;
+            }
+            // The run's own values stay float: the optimizer moved them, not their rounding.
+            assert!(crate::fbs_export::check_tables_rounded_as_exported(&model).is_err());
+            let dir = root.join(if on { "on" } else { "off" });
+            save_step(&dir, on, &model, &reads, &memory)?;
+            let changes = export_changes(&dir)?;
+            assert_eq!(changes, if on { [false; 3] } else { [true; 3] }, "on {on}");
+            crate::flock_read_hamming::set_hamming_reads(None);
+            crate::flock_read_memory::set_turn_memory(None);
+        }
+        fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// claude-258: without the switch nothing is rounded, so a run without it trains as before,
+    /// and its `config.json` has no new key.
+    #[test]
+    fn training_without_the_switch_rounds_nothing() -> Result<()> {
+        let (model, reads, memory) = served_parts(&Device::Cpu)?;
+        let vars = served_vars(&model, &reads, &memory);
+        let before = served_bits(&vars)?;
+        assert!(round_if_served(false, &model, Some(&reads), Some(&memory))?.is_none());
+        assert_eq!(served_bits(&vars)?, before);
+        let mut set = config(0, None);
+        let json = serde_json::to_string(&set)?;
+        assert!(!json.contains("train_as_served"), "{json}");
+        set.train_as_served = true;
+        let json = serde_json::to_string(&set)?;
+        assert!(json.contains("\"train_as_served\":true"), "{json}");
+        Ok(())
+    }
+
+    /// claude-258: a rounding the export refuses, here a margin that rounds to 0, leaves every
+    /// value as it was, the trunk's tables rounded before it included.
+    #[test]
+    fn a_refused_rounding_leaves_every_value_as_it_was() -> Result<()> {
+        let (model, reads, memory) = served_parts(&Device::Cpu)?;
+        reads.reads[0]
+            .margin
+            .set(&Tensor::from_vec(vec![1e-7f32; 4], 4, &Device::Cpu)?)?;
+        let vars = served_vars(&model, &reads, &memory);
+        let before = served_bits(&vars)?;
+        let refused = round_if_served(true, &model, Some(&reads), Some(&memory));
+        assert!(
+            matches!(&refused, Err(e) if e.to_string().contains("not positive")),
+            "{:?}",
+            refused.err()
+        );
+        assert_eq!(served_bits(&vars)?, before);
+        Ok(())
+    }
+
+    /// claude-258: training as served refuses the reads the export does not carry, the type spin,
+    /// and folded or reflected rate scores, before the run writes anything.
+    #[test]
+    fn training_as_served_refuses_what_the_export_does_not_carry() {
+        let missing = std::env::temp_dir().join(format!("claude-258-none-{}", std::process::id()));
+        let refusal = |set: fn(&mut LongConfig)| -> String {
+            let mut config = config(0, None);
+            config.train_as_served = true;
+            set(&mut config);
+            match run_long(&missing, &missing.join("out"), &config, &Device::Cpu) {
+                Err(e) => e.to_string(),
+                Ok(()) => "ran".to_string(),
+            }
+        };
+        for set in [
+            (|c: &mut LongConfig| c.flock_read = 1) as fn(&mut LongConfig),
+            |c| c.content_read = 1,
+            |c| c.opening_read = 1,
+            |c| c.prompt_register = 1,
+            |c| c.type_spin = true,
+            |c| c.fold_scores = true,
+            |c| c.reflect_floor = true,
+        ] {
+            assert!(refusal(set).contains("--train-as-served"));
+        }
+        assert!(!missing.exists());
     }
 }

@@ -1,7 +1,14 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1]`
+//!
+//! `--train-as-served 1` trains on the values the integer artifact serves (one-model-end-to-end,
+//! claude-258): before each step's forward the trunk's tables, the Hamming reads and the turn
+//! memory's weights are rounded as the export rounds them, the gradient at those values moves the
+//! float values they came from, and every checkpoint is scored and saved rounded, so its export
+//! changes nothing (`in_space_long::ServedValues`). It refuses the reads the export does not
+//! carry and the type spin.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
@@ -242,6 +249,7 @@ fn main() -> Result<()> {
         turn_memory_dropout: 0,
         fbs_arm: uor_r4_float_train::spiralcore_fbs_arms::FbsArm::OneAtomActive,
         reply_read_train: None,
+        train_as_served: false,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -393,6 +401,7 @@ fn main() -> Result<()> {
                     ))
                 })?
             }
+            "--train-as-served" => config.train_as_served = switch(&value)?,
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,
@@ -550,6 +559,12 @@ fn main() -> Result<()> {
         return Err(FloatTrainError::Invalid(
             "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1 or --integer-grade 1"
                 .to_owned(),
+        ));
+    }
+    // Training as served is a training switch; no other mode would read it.
+    if config.train_as_served && (!modes[7] || recall > 0) {
+        return Err(FloatTrainError::Invalid(
+            "--train-as-served applies to training with --out only".to_owned(),
         ));
     }
     if overturn_on && fresh_v2.is_some() {
