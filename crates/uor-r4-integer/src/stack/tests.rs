@@ -75,6 +75,10 @@ fn artifact(seed: u64) -> Vec<u8> {
 
 /// [`artifact`] with extra `u32` table sections appended after the others.
 fn artifact_with(seed: u64, extra: &[(&str, &[u32])]) -> Vec<u8> {
+    artifact_with_context(seed, extra, CONTEXT)
+}
+
+fn artifact_with_context(seed: u64, extra: &[(&str, &[u32])], context: usize) -> Vec<u8> {
     let mut rng = Lcg(seed);
     let mut b = Builder {
         matrices: Vec::new(),
@@ -112,7 +116,7 @@ fn artifact_with(seed: u64, extra: &[(&str, &[u32])]) -> Vec<u8> {
     }
     b.matrix(&mut rng, "l1.null", HEADS, WIDTH);
     b.i32s("l1.null_bias", &[4_000, -9_000]);
-    let ages: Vec<i32> = (0..HEADS * CONTEXT).map(|i| -((i as i32) << 12)).collect();
+    let ages: Vec<i32> = (0..HEADS * context).map(|i| -((i as i32) << 12)).collect();
     b.i32s("l1.age", &ages);
     b.i16s("l1.beta", &[code(3, 0), code(9, -1)]);
     b.i32s("l1.offset", &[1 << 24, 3 << 23]);
@@ -143,7 +147,7 @@ fn artifact_with(seed: u64, extra: &[(&str, &[u32])]) -> Vec<u8> {
         "schema": super::STACK_SCHEMA,
         "shape": {
             "vocab": VOCAB, "width": WIDTH, "heads": HEADS, "mlp": MLP, "pattern": "ra",
-            "read": "lorentz", "rotation": true, "context": CONTEXT,
+            "read": "lorentz", "rotation": true, "context": context,
         },
         "group": 32,
         "numerics": {
@@ -1537,7 +1541,7 @@ fn chat_tokenizer_json() -> Vec<u8> {
 /// every byte).
 fn chat_tokenizer_json_sized(vocab: usize) -> Vec<u8> {
     let table = alphabet();
-    let mut bytes: Vec<u8> = b"User: Assistant: System:\nHilmotwae".to_vec();
+    let mut bytes: Vec<u8> = b"User: Assistant: System: Memory: b.\nHilmotwae".to_vec();
     bytes.sort_unstable();
     bytes.dedup();
     for byte in 0u8..=255 {
@@ -1682,6 +1686,90 @@ fn stack_chat_rejects_a_message_with_literal_special_tokens() -> ChatTest {
     chat.seed(&[0])?;
     let error = chat.reply("Hi <|eos|>", 2).expect_err("special tokens");
     assert!(matches!(error, super::StackChatError::NotAUserTurn));
+    Ok(())
+}
+
+#[test]
+fn stack_chat_encodes_system_memory_between_user_and_assistant() -> ChatTest {
+    let model = IntegerStackModel::parse(&artifact_with_context(29, &[], 64))?;
+    let json = chat_tokenizer_json();
+    let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let expected = chat
+        .protocol()
+        .bind(chat.tokenizer())?
+        .encode_assistant_suffix(
+            &[
+                uor_r4_tokenizer::dialogue::Message {
+                    role: "user",
+                    content: "a",
+                },
+                uor_r4_tokenizer::dialogue::Message {
+                    role: "system",
+                    content: "Memory: b.",
+                },
+            ],
+            false,
+        )
+        .tokens;
+    assert_eq!(
+        chat.tokenizer().decode(&expected),
+        "User: a\nSystem: Memory: b.\nAssistant:"
+    );
+    chat.seed(&[chat.protocol().bos_id])?;
+    chat.reply_with_memory("a", Some("b"), 1)?;
+    assert_eq!(&chat.tokens()[1..1 + expected.len()], expected);
+    Ok(())
+}
+
+#[test]
+fn stack_chat_no_memory_is_the_existing_reply_path() -> ChatTest {
+    let (model, json, _) = fbs_chat(31)?;
+    let bos = 0;
+    let mut reference = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let mut history = vec![bos];
+    history.extend(
+        reference
+            .protocol()
+            .bind(reference.tokenizer())?
+            .encode_user_prefix("Hi", false)
+            .tokens,
+    );
+    reference.seed(&[bos])?;
+    let expected = reference.reply_history(&history, 2)?;
+
+    let mut explicit = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    explicit.seed(&[bos])?;
+    let explicit_reply = explicit.reply_with_memory("Hi", None, 2)?;
+    assert_eq!(explicit_reply.ids, expected.ids);
+    assert_eq!(explicit_reply.text, expected.text);
+    assert_eq!(explicit_reply.stop, expected.stop);
+    assert_eq!(explicit.tokens(), reference.tokens());
+    Ok(())
+}
+
+#[test]
+fn stack_chat_refuses_invalid_memory_without_mutating_history() -> ChatTest {
+    let (model, json) = chat(37)?;
+    for value in ["", "two\nlines", "two\rlines", "<|eos|>"] {
+        let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+        chat.seed(&[chat.protocol().bos_id])?;
+        let before = chat.tokens().to_vec();
+        let error = chat
+            .reply_with_memory("Hi", Some(value), 1)
+            .expect_err("invalid memory must be refused");
+        assert!(
+            matches!(
+                error,
+                super::StackChatError::InvalidMemory(_) | super::StackChatError::NotAUserTurn
+            ),
+            "{error}"
+        );
+        assert_eq!(chat.tokens(), before, "{value:?}");
+    }
+    assert_eq!(
+        super::StackChat::memory_content("Pickle")?,
+        "Memory: Pickle."
+    );
     Ok(())
 }
 

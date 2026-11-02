@@ -215,6 +215,10 @@ stack artifact directly, through `stack::IntegerStackModel` under the literal-ro
 over `next_token_scores()` with pointer mixtures included, exact token history, and an over-context
 turn refused rather than truncated. The stack path is **greedy only** — a nonzero `--temperature` is
 refused because this engine has no integer categorical sampler. `--say` prints a JSON record.
+`--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
+same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
+`/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement
+extraction and an automatic lookup are the next serving layer, not an implicit fallback.
 
 `--discrete <model.lut> --prompt-ids <CSV> [--max-tokens N]` serves a `uor-r4.lut-discrete/1`
 artifact directly through `discrete_d11::IntegerDiscreteModel`. Each step appends the evaluator's

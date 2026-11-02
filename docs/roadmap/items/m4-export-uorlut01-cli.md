@@ -19,6 +19,13 @@ M4 (issue #2032) is the step that turns the selected M1-to-M3 work into one acce
 
 One M3-qualified model must be exported as a single UORLUT01 file, serve through `uor-chat`, report its training-to-D11 export gap and meet the held-out quality bar. The M1 pair is exported and served with exact 14,287-row DEV agreement, but no model has passed M4. M4 remains open under D67, not under a blanket owner hold.
 
+The explicit `System: Memory: {value}.` serving turn now exists. On both public
+FBS seeds, adding it changed the model's reply ids in every matched arm, but
+neither factual answer contained the supplied value and the positive and
+`Memory: none.` controls collapsed to the same malformed reply. The serving
+format is connected; automatic statement extraction and trained recall quality
+remain open. See [the report](../../loop/tasks/m4-export-uorlut01-cli/deepseek-1/REPORT.md).
+
 The native and WASM serving audits pass at their declared scopes. The final M4 build must retain 0 float, 0 softmax or squashing and 0 dense matmul; integer multiply and divide are allowed and audited under D80/D81.
 
 The M1 pair settles that a discrete model can use table-native UORLUT01. What remains open is the selected M4 model's accepted CLI/session path and the held-out byte panel behind the unchanged 0.90 bits-per-byte bar.

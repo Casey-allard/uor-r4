@@ -1,4 +1,11 @@
 {
+  "deepseek/chat-memory-bridge": {
+    "branch": "deepseek/chat-memory-bridge",
+    "claimed_at": "2026-11-02T15:26:55-05:00",
+    "head": "e06473303",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/cpu-corpus-resume": {
     "branch": "deepseek/cpu-corpus-resume",
     "claimed_at": "2026-11-02T05:18:19-05:00",

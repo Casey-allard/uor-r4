@@ -29,7 +29,7 @@
 use std::fmt;
 use std::path::Path;
 
-use uor_r4_tokenizer::dialogue::DialogueProtocol;
+use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 use super::{IntegerStackModel, IntegerStackSession, StackError};
@@ -58,6 +58,8 @@ pub enum StackChatError {
     EmptyHistory,
     /// The message had no user turn, or carried literal special tokens.
     NotAUserTurn,
+    /// A system-memory value was empty, multiline or otherwise not a plain value.
+    InvalidMemory(String),
     /// The turn does not fit the artifact's declared context. The caller may
     /// reset the conversation; this path never truncates.
     Context { needed: usize, context: usize },
@@ -77,6 +79,9 @@ impl fmt::Display for StackChatError {
             Self::NotAUserTurn => formatter.write_str(
                 "the message is not one plain user turn (empty, or carrying role markers or special tokens)",
             ),
+            Self::InvalidMemory(reason) => {
+                write!(formatter, "invalid system-memory value: {reason}")
+            }
             Self::Context { needed, context } => write!(
                 formatter,
                 "the turn needs {needed} positions of a {context}-position context; reset the \
@@ -244,19 +249,56 @@ impl<'m> StackChat<'m> {
         self.feed(history, false)
     }
 
+    /// The exact system turn used for a recall value.
+    pub fn memory_content(value: &str) -> Result<String, StackChatError> {
+        if value.is_empty() {
+            return Err(StackChatError::InvalidMemory("value is empty".into()));
+        }
+        if value.contains(['\r', '\n']) {
+            return Err(StackChatError::InvalidMemory(
+                "value contains a line break".into(),
+            ));
+        }
+        Ok(format!("Memory: {value}."))
+    }
+
     /// One greedy reply to a user message, under the literal-role protocol.
     pub fn reply(
         &mut self,
         user: &str,
         max_new_tokens: usize,
     ) -> Result<StackReply, StackChatError> {
+        self.reply_with_memory(user, None, max_new_tokens)
+    }
+
+    /// One greedy reply to a user message with an optional system-memory turn.
+    /// The memory value is encoded as `System: Memory: {value}.` between the
+    /// user turn and the assistant marker.
+    pub fn reply_with_memory(
+        &mut self,
+        user: &str,
+        memory: Option<&str>,
+        max_new_tokens: usize,
+    ) -> Result<StackReply, StackChatError> {
         let has_history = self.history.len() > 1;
+        let memory = memory.map(Self::memory_content).transpose()?;
+        let mut messages = Vec::with_capacity(2);
+        messages.push(Message {
+            role: "user",
+            content: user,
+        });
+        if let Some(memory) = memory.as_deref() {
+            messages.push(Message {
+                role: "system",
+                content: memory,
+            });
+        }
         let prefix = self
             .protocol
             .bind(&self.tokenizer)
             .map_err(|error| StackChatError::Protocol(error.to_string()))?
-            .encode_user_prefix(user, has_history);
-        if prefix.emitted_turns != 1 || prefix.special_token_occurrences != 0 {
+            .encode_assistant_suffix(&messages, has_history);
+        if prefix.emitted_turns != messages.len() || prefix.special_token_occurrences != 0 {
             return Err(StackChatError::NotAUserTurn);
         }
         let mut history = self.history.clone();
