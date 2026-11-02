@@ -18,11 +18,13 @@ Earlier learned-rounding work retained likelihood but bounded admission lost sou
 
 ## Progress
 
-Hamming reads and exact turn memory have finite parity with serving. The supported CPU FBS session now also has a versioned, artifact-bound checkpoint covering recurrence/history, Hamming payload caches, opening/reply anchors and reply position; a child-process restore and reset control reproduce the uninterrupted next step exactly. Quantization-aware updates and the float-shadow comparison remain open.
+Hamming reads and exact turn memory have finite parity with serving. The supported CPU FBS session also has a versioned, artifact-bound checkpoint covering recurrence/history, Hamming payload caches, opening/reply anchors and reply position; a child-process restore and reset control reproduce the uninterrupted next step exactly.
+
+Deepseek-2 adds a finite no-Hamming/no-memory quantization-shadow checkpoint: accepted Q12 table deltas are applied to the continuous source shadow, every update must re-export the exact artifact, and the gate distinguishes exact gain, admission loss, export loss and float-only `EXPORT_LIMITED` gain.
 
 ## What is missing
 
-Port free lookup, sign-code Hamming reads and exact turn memory; add quantization-aware checkpoints that retain admission; compare float-shadow and integer-server scores on the same rows; demonstrate deterministic memory restore and reset.
+The mechanisms are delivered on finite fixtures. A trained FBS float snapshot and matched query panel are still unavailable, so trained-artifact, complete-reply and fresh-phrasing outcomes remain `NOT_RUN`.
 
 ## Done when
 

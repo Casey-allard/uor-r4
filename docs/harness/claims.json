@@ -1,8 +1,8 @@
 {
-  "deepseek/cpu-discrete-resume": {
-    "branch": "deepseek/cpu-discrete-resume",
-    "claimed_at": "2026-11-01T23:25:43-05:00",
-    "head": "245f47089",
+  "deepseek/cpu-quant-shadow": {
+    "branch": "deepseek/cpu-quant-shadow",
+    "claimed_at": "2026-11-02T00:16:13-05:00",
+    "head": "14b8b0144",
     "lab": "deepseek",
     "note": ""
   },

@@ -10,6 +10,8 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop to normalization gains, convolution/gate biases, decay offsets and all six FBS route tables through bounded BVG-K coordinate blocks. `CpuPanelEvaluator` grades a finite panel and records target admission, top-1/top-8, rank margin and component-wise CPU-versus-serving query/token/kept-cell gaps. `panel_admission_gate` refuses checkpoint admission loss or any serving mismatch; these are component controls, not a language result.
 
+`CpuQuantizationShadow` pairs a no-read FBS snapshot with its exact Q12 artifact, applies accepted Q12 table deltas to both, and records the float-shadow, quantized-reference and exact CPU/serving decisions on one finite panel. Its checkpoint binds both states and refuses admission loss, serving drift or `EXPORT_LIMITED` float-only gains. This is component evidence only.
+
 `cpu-public-discrete-parity` binds the public M1 seed-1 discrete artifact and public DEV split by SHA-256, extracts the trained codebook, and compares `CpuWriterCore` with `IntegerDiscreteModel` across all 14,287 eligible rows. It reproduces the published GPU aggregate `9,012` admitted, `7,002` top-1 and `7,485` top-8 with zero row mismatches.
 
 `cpu-public-fbs-parity` binds both public raw FBS seeds, compares every complete Q12 query/token/kept-cell result over 192 positions per seed, and exercises one 16-sample rank-margin/panel control per seed. It is trained-artifact component evidence, not useful-learning or complete-reply evidence.

@@ -17,7 +17,8 @@ fn invalid(message: impl Into<String>) -> CpuTrainError {
     CpuTrainError::Invalid(message.into())
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RankMarginConfig {
     /// Required per-coordinate separation between the target and its hardest wrong rival.
     pub margin_q12: i32,
@@ -51,7 +52,8 @@ impl RankMarginConfig {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RankMarginSample {
     /// Causal prefix; the final token's query predicts `target`.
     pub input: Vec<u32>,

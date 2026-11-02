@@ -14,7 +14,8 @@ fn invalid(message: impl Into<String>) -> CpuTrainError {
     CpuTrainError::Invalid(message.into())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PanelExportReading {
     pub query_coordinates_checked: u64,
     pub query_coordinate_mismatches: u64,
@@ -31,7 +32,8 @@ impl PanelExportReading {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PanelReading {
     pub artifact_digest: [u8; 32],
     pub sample_fingerprint: [u8; 32],

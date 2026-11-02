@@ -15,6 +15,7 @@ mod fbs;
 mod hamming;
 mod memory;
 mod panel;
+mod quant_shadow;
 mod train;
 
 pub use counterfactual::{
@@ -35,6 +36,11 @@ pub use fbs::{
 pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,
     PanelReading,
+};
+pub use quant_shadow::{
+    quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,
+    CpuQuantizationPanelReading, CpuQuantizationShadow, CpuQuantizationStep, QuantizationGate,
+    CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,
