@@ -2,9 +2,28 @@
 
 Lab: claude. Item: [one-model-end-to-end](../../roadmap/items/one-model-end-to-end.md) (#3407). ORDER: [claude-259](../../loop/tasks/one-model-end-to-end/claude-259/ORDER.md). Path step 2, "a model that replies". Round 2, after the first FIT's five blockers.
 
+TEST FITNESS: FIT
+
+PRE-RUN: PASS
+
+**Shape-only amendment, 2 November 2026.** The recorded FIT and pre-run PASS
+are #3407 comment `6581697644`, already reported by the merged capacity REPORT.
+This amendment only adds the harness's discoverable pre-registration headings
+and restates facts already fixed in this sheet; no arm, data, bar, stop rule,
+measurement or result changed.
+
 ## Question
 
 Does a larger trained-as-served model reply better on prompts phrased in ways TRAIN never used, and at what cost in served speed? The sealed (r-drop) run's DEV top-1 stops rising by step 2,048 (11,770 → 11,841 of 14,287 by step 16,384) while its train loss keeps falling. So more steps at width 256 buy nothing. The model's size has not been varied since claude-153 (28 Oct, before the turn memory).
+
+## Base artifact
+
+This is a training sweep, so its candidate artifacts are the checkpoints each
+arm produces; it starts from claude-211's pinned (r-drop) recipe and the merged
+claude-258 trained-as-served path (PR #3559). `train-in-space` and
+`fbs-snapshot` are built `--locked` on every pod, their SHA-256 values are
+recorded before the smoke, and the final arm evidence is saved under the
+`results/claude/one-model-end-to-end-capacity-2026-11-02/` store root.
 
 ## Arms
 
@@ -39,7 +58,10 @@ R1, R2, R3 and R5 are read from `samples-{panel}-greedy-memory.json` by `local/c
   - Decode tok/s, that unit's protocol: a 177-token run minus a 1-token run, the median of 5. This is the arm's cost. The shared-GPU training rate is not.
   - The arm that ships is served at all three seeds.
 
-## Decision table
+## Bar
+
+The bar is the pre-registered decision table below. Its paired-floor definition
+and ordered rows were fixed before the run.
 
 **Per seed**, an arm X against (b) on R1 is one of three verdicts:
 - **better**: b − c > 2·√(b + c), with b + c ≥ 10;
@@ -70,7 +92,7 @@ X **carries** when it is better at all three seeds. The rows are read in order; 
   - Past that, or if the export refuses, the arm's R6 is an instrument fault, not a reading. R1 to R5 stand: they are read from the GPU's files, which score the served values.
 - **I-4 pairing:** every arm at a seed decodes the same prompts in the same order. `grade.sh` stops on a mismatch of `position` and `prompt` taken index by index.
 
-## Data
+## Data split
 
 - **TRAIN, DEV and the tokenizer:** `w2-inputs/2026-10-25/driver-data/`. The code pins them and refuses any other at load (`crates/uor-r4-float-train/src/hamilton_sheet.rs`, the `PINNED_*` constants); the job records the sums.
 
@@ -86,6 +108,28 @@ X **carries** when it is better at all three seeds. The rows are read in order; 
 - **p-v:** `inputs/claude/heldout-panel-p-v-2026-10-30` (seed 2111). `tokens.u16` is `3488eef5bba82c3d3b97633fbd92f568c237636e6bb44d9decbdb8886d4196f0` and `response_mask.u8` is `c170fd0ac9568f98fa3e2ab5f22af0fe31b94ea14bbbf802daf446e20d5ca023`.
 - Both panels are checked against their own `SHA256SUMS` and these values. No size was ever chosen on either.
 - **The binaries:** `train-in-space` and `fbs-snapshot`, built on each pod from this unit's head (which holds PR #3559), `--locked`, with sha256s recorded before the smoke.
+
+## Steps
+
+1. Build the pinned binaries on each pod and record their SHA-256 values.
+2. Run I-1's 256-step smoke for the configured layout; drop only an arm that
+   fails the registered smoke and record the failure.
+3. Train every surviving arm for the same 8,192 steps.
+4. Score each checkpoint greedily with memory on and out on DEV, p-w and p-v.
+5. Snapshot the checkpoint, export serviceable arms and compare float/integer
+   first tokens under I-3.
+6. Serve the protocol-2 conversations on the laptop and compute tokens/s.
+7. Apply the decision table in order and save every output under the pinned
+   store root before taking any pod down.
+
+## Minimum test power
+
+Three model seeds, four pre-registered size arms before the memory-fault drop,
+1,202 paired p-w prompts and 393 p-v prompts per seed. The existing reference
+decodes pair 339–384 p-w prompts per seed against a paired floor of 37–39, so
+R1 can detect a net shift of about 3% of the panel; exact-reply counts alone
+could not decide it. The 1,024-width arm remains absent because it exceeded the
+32 GiB test GPU, and is not counted as evidence.
 
 ## Cost and stop rule
 
