@@ -392,18 +392,24 @@ impl TypeHeads {
     /// as the copy mean: each head's `Σ w_s · v_s / max(1, #{w_s > 0})`, then the mean over the
     /// heads that found a candidate, both truncating toward zero.
     pub fn mean(&self, queries: &[u64], tokens: &[u32], payloads: &[i64]) -> Option<Vec<i128>> {
-        self.mean_by(queries, payloads, |j, query| self.choose(j, query, tokens))
+        self.mean_by(queries, tokens, payloads, None)
     }
 
-    /// [`Self::mean`] over the kept positions `choose` gives each head for its query code.
-    fn mean_by(&self, queries: &[u64], payloads: &[i64], choose: impl Fn(usize, u64) -> Vec<(usize, u32)>) -> Option<Vec<i128>> {
+    /// [`Self::mean`], with each head `j`'s kept positions from [`Self::choose_forced`] under
+    /// `force[j]` when `force` is given, else from [`Self::choose`]. It takes no `choose` closure:
+    /// its captures were copied through a SIMD register (`fmov`), which the audit refuses (claude-255).
+    fn mean_by(&self, queries: &[u64], tokens: &[u32], payloads: &[i64], force: Option<&[HeadForce]>) -> Option<Vec<i128>> {
         let width = self.width;
         let mut sum = vec![0i128; width];
         let mut found = 0i128;
         for (j, &query) in queries.iter().enumerate() {
             let mut head = vec![0i128; width];
             let mut count = 0i128;
-            for (s, d) in choose(j, query) {
+            let kept = match force {
+                Some(heads) => self.choose_forced(j, query, tokens, &heads[j]),
+                None => self.choose(j, query, tokens),
+            };
+            for (s, d) in kept {
                 let weight = copy_weight_q31(self.margins[j], d);
                 if weight == 0 {
                     continue;
@@ -669,7 +675,7 @@ impl ServedHamming {
                 *query = forced;
             }
         }
-        types.mean_by(&queries, payloads, |j, query| types.choose_forced(j, query, tokens, &heads[j]))
+        types.mean_by(&queries, tokens, payloads, Some(heads))
     }
 
     /// Read `i`'s choices at the last row `t` of `tokens`, its type heads asking with the hook's
