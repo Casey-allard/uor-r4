@@ -542,4 +542,12 @@ mod tests {
         assert!(check_payload_cache(1, 1 << 16, (1 << 13) + 1).is_err());
         assert!(check_payload_cache(usize::MAX, 2, 2).is_err());
     }
+
+    #[test]
+    fn candidates_include_the_immediate_predecessor_and_exclude_the_current_row() {
+        // Five stream tokens put the current row at 4. Valid payload positions are 1..4:
+        // 3 is the immediate predecessor, 0 has no predecessor, and 4 is the current row.
+        let kept = nearest(0, 4, 16, |_| 0);
+        assert_eq!(kept, vec![(1, 0), (2, 0), (3, 0)]);
+    }
 }

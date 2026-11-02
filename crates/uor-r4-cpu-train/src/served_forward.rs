@@ -106,7 +106,7 @@ pub fn exact_fbs_contract() -> ExactFbsContract {
             "copy heads key the writer-table points and rank prior positions by popcount XOR".to_owned(),
             "type heads use the read's query rotation to name a Hamming word and its value rotation to produce the candidate payload".to_owned(),
             "copy/type mixtures and per-channel weights are added at the depth recorded in the artifact".to_owned(),
-            "at t stream tokens the current serving call scans s in 1..t-1, so it excludes the immediately preceding position t-1; this audit models that observed range rather than the documented ideal".to_owned(),
+            "at zero-based current row r, Hamming candidates are 1 <= s < r: s = r-1 carries the immediately preceding payload, position 0 has no predecessor, and current row r is excluded".to_owned(),
             "no dense attention, probability normalization or exponentiation is present".to_owned(),
         ],
         memory: vec![

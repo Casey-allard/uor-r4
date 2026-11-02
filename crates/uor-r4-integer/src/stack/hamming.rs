@@ -305,6 +305,19 @@ fn nearest(query: u64, t: usize, kept: usize, key: impl Fn(usize) -> u64) -> Vec
     candidates.into_iter().map(|(d, s)| (s, d)).collect()
 }
 
+#[cfg(test)]
+mod candidate_range_tests {
+    use super::nearest;
+
+    #[test]
+    fn candidates_include_the_immediate_predecessor_and_exclude_the_current_row() {
+        // Five stream tokens put the current row at 4. Valid payload positions are 1..4:
+        // 3 is the immediate predecessor, 0 has no predecessor, and 4 is the current row.
+        let kept = nearest(0, 4, 16, |_| 0);
+        assert_eq!(kept, vec![(1, 0), (2, 0), (3, 0)]);
+    }
+}
+
 /// One read's type heads, built for serving (claude-195): the float read's heads `h ≥ heads / 2`.
 ///
 /// A type head asks with the code of the hook's input `p_t` through the query rotation, and its

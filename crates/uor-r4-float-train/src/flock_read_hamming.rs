@@ -1322,6 +1322,16 @@ mod tests {
         .unwrap();
     }
 
+    #[test]
+    fn candidates_include_the_immediate_predecessor_and_exclude_the_current_row() {
+        // Five stream positions put the current row at 4. Position 3 is the immediately
+        // preceding payload, position 0 has no predecessor, and current row 4 is excluded.
+        assert!(!is_candidate(0, 4, 1, usize::MAX));
+        assert!(is_candidate(1, 4, 1, usize::MAX));
+        assert!(is_candidate(3, 4, 1, usize::MAX));
+        assert!(!is_candidate(4, 4, 1, usize::MAX));
+    }
+
     /// claude-235 (its GPU half): on ±1 codes with planted ties, the tie rule keeps, in order,
     /// the positions the integer session keeps: ascending bit distance, then ascending `s`.
     #[cfg(feature = "cuda")]
