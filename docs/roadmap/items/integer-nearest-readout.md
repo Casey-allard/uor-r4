@@ -3,7 +3,7 @@ id: integer-nearest-readout
 title: Serve the trained model's readout in the integer artifact
 milestone: research
 area: serving
-status: ready
+status: held
 open_to: lab
 needs_gpu: false
 depends_on: [integer-retention-rates, one-decoder]
@@ -38,7 +38,8 @@ The project's first hurdle is one working model end to end, served from its inte
 
 ## What is missing
 
-- **Next: the trace instrument, then the sheet that reads Q5,** under claude-247's card. Q1 to Q4 held in claude-246, so done-when 3 waits on Q5 alone.
+- **Held on 2 Nov 2026 by Casey, who stopped the Q5 track** ([claude-257](../../loop/tasks/integer-nearest-readout/claude-257/REPORT.md)): "This whole Q track seems like an enormous waste of time and a derailment of our project"; then "Stop Q5 now (Recommended)". Q1 to Q4 held in claude-246: R picks the reference token as often as the trained model. Q5 explains the leftover disagreements and changes no pick, so no unit takes it up. The project's next work is one model end to end, trained on the exact values it is served with.
+- **(Held) the trace instrument, then the sheet that reads Q5,** under claude-247's card.
   - **The instrument** records every decision of the card's five kinds on F, T and R: Hamming codes, kept sets, memory lookups, rate buckets and the nearest. It forces codes and rate buckets, and writes each side's query at the traced positions, so each side can score the other's pick.
     - The card's scope change is in place: `stack/hamming.rs`, `flock_read_hamming.rs`, `geometric_stack_native.rs`, `cuda_stack.cu` and `in_space_long.rs` are in this item's `scope:` (claude-248).
     - **F's and T's files are in the scope too** ([claude-250](../../loop/tasks/infra-loop-harness/claude-250/ORDER.md)): `flock_read_memory.rs` for the memory lookups, `geometric_stack_native_cuda.rs` for the rate buckets, and `bin/train-in-space.rs` for the options. `wasm_serve.rs` and `wasm_bindgen_exports.rs` left the scope: the rest of Q5 touches neither, and an open Studio item lists both. A later unit that needs either adds it back.
@@ -54,7 +55,7 @@ The project's first hurdle is one working model end to end, served from its inte
       - R's DEV s1 rows and traces, plain and forced, are byte for byte as at the base.
     - **The replay driver's arithmetic step is built** ([claude-256](../../loop/tasks/integer-nearest-readout/claude-256/REPORT.md)). `replay_step` runs a step's whole forced replay, forcing each differing code or bucket in forward order. `fbs-toks ARTIFACT --decision-replay` runs it for (T, R) with R from the artifact as Q. It also carries claude-254's round-2 points: f32's rounding bound on a float pick, and R's smaller-id tie.
       - **On DEV s1:** T's trace checks against its table. Of 4,382 offsets inside R's window, T and R pick equal at 4,380, and both differences replay to near ties (14 passes). T's windows read on past the reference, and those picks are counted, not compared.
-    - **Next, the structure step (F, T):** `train-in-space`'s single-window float mode, so that Q = T runs one window per pass on the GPU, driving the same `replay_step`. Each float pass is now a whole `score_rows` run (204 s on F's s1).
+    - **The structure step (F, T) was stopped mid-smoke** ([claude-257](../../loop/tasks/integer-nearest-readout/claude-257/REPORT.md)). Its `train-in-space --decision-replay` was not merged; the code is kept as `code-archived.patch` in that unit's folder. Of DEV s1's 190 offsets where F and T pick differently, 61 replayed before the stop: 0 accounted, 0 refused. 57 of the 61, all in windows whose first token is 0, share one first clear flip at step 0, layer 0, lane 23 (1.19 × G₁₀), where both sides read the same token: the export's rounding alone moves a clear decision.
   - **The sheet** registers the card's rule verbatim, with a fresh FIT and a pre-run review. Its Row 0 is the card's: I-F, I-R, I-Twin, I-Rerun, I-Force, I-Align, I-Complete, I-Set and I-Inputs. GPU for F and T, under an hour; the laptop for R.
 - **Leads for the trace,** layer by layer: the trunk, Hamming read, memory and readout. Recheck end-to-end parity before rerunning p-x.
   - **The clear-margin disagreements** (g above G₁₀) first, as Q5 requires.

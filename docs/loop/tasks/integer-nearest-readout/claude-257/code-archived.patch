@@ -1,0 +1,1849 @@
+diff --git a/crates/uor-r4-float-train/src/bin/train-in-space.rs b/crates/uor-r4-float-train/src/bin/train-in-space.rs
+index 2f1cd9139..b9487b7c2 100644
+--- a/crates/uor-r4-float-train/src/bin/train-in-space.rs
++++ b/crates/uor-r4-float-train/src/bin/train-in-space.rs
+@@ -121,6 +121,20 @@
+ //! as used, and refuses a run in which one was not taken; that split's memory-pass rows are the
+ //! forced forward's. Refused, before any forward: a position that is not traced and R's refusals.
+ //!
++//! `train-in-space --data-root DIR --decision-replay CHECKPOINT --reference F_TRACE --other-trace
++//! T_TRACE --deciles F_DECILES --g10 N --reference-table F_SNAPSHOT --out DIR [--replay-split
++//! dev|NAME] [--panel NAME=DIR ...] [--at POSITION:OFFSET ...]`, with the run's arm flags
++//! (claude-257, Q5's forced replay of the structure step (F, T)): Q is T, the evaluation copy at
++//! `CHECKPOINT` rounded as exported, loaded once; P is F's trace of the split's windows, with
++//! F's deciles and F's own table (its snapshot's embed); T_TRACE is T's trace of the same windows
++//! (claude-252). Without `--at`, it replays every reply offset at which the two traces' picks
++//! differ. Each pass runs the replayed window's own eval batch, with that window traced under Φ;
++//! pass 0 must reproduce T's sealed window byte for byte (I-Rerun). Each replay is appended to
++//! `replay-{split}.lines.jsonl` as it ends, and the `uor-r4.decision-replay/1` record is written
++//! as `replay-{split}.json`; one JSON line is printed (`in_space_long::decision_replay`). Every
++//! input is read and checked before the GPU is touched (`in_space_long::read_replay_inputs`). It
++//! is a mode of its own: given beside any other mode, or `--recall`, it is refused.
++//!
+ //! `train-in-space --data-root DIR --panel-prompts 1 --out DIR [--panel NAME=DIR ...] [--runs DIR] --samples 1536 --reply-tokens 64`
+ //! (point-key-integer, claude-224) writes, with no model, the prompts a `--score-rows` run decodes on
+ //! DEV and each panel (`prompts-{split}.json`), for `fbs-toks --replies`. With `--runs` (claude-220's
+@@ -159,10 +173,12 @@ use candle_core::Device;
+ use uor_r4_float_train::flock_read_opening::OpeningAnchor;
+ use uor_r4_float_train::flock_read_register::RegisterSelect;
+ use uor_r4_float_train::in_space_long::{
+-    cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
+-    gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
+-    run_long, run_recall, score_rows, scopes_ok, DecodeRule, LongConfig, PointObjective, ReadScope,
+-    TrainSplit, DEFAULT_REGISTER_PICKS, MEMORY_DROPOUT_MAX,
++    cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decision_replay,
++    decode_speed, fbs_arm_named, grade, gradient_norms, inspect_run, integer_grade, key_grade,
++    keyed_grade, opening_bound, overturn, panel_prompts, read_grade, read_replay_inputs,
++    reply_bound, root_separation, run_long, run_recall, scopes_ok, score_rows, served_grade,
++    DecodeRule, LongConfig, PointObjective, ReadScope, TrainSplit, DEFAULT_REGISTER_PICKS,
++    MEMORY_DROPOUT_MAX,
+ };
+ use uor_r4_float_train::{FloatTrainError, Result};
+ use uor_r4_integer::fbs_snapshot::DecisionForce;
+@@ -181,6 +197,16 @@ fn main() -> Result<()> {
+     let mut extra_panels: Vec<(String, PathBuf)> = Vec::new();
+     let mut traces: Vec<(String, Vec<usize>)> = Vec::new();
+     let mut forces: Vec<(String, DecisionForce)> = Vec::new();
++    let mut replay: Option<PathBuf> = None;
++    let mut replay_split: Option<String> = None;
++    let (mut replay_reference, mut replay_other, mut replay_deciles, mut replay_table) = (
++        None::<String>,
++        None::<String>,
++        None::<String>,
++        None::<String>,
++    );
++    let mut replay_g10: Option<i64> = None;
++    let mut replay_at: Vec<(usize, usize)> = Vec::new();
+     let mut score = None;
+     let mut overturn_on = false;
+     let mut controls_on = false;
+@@ -347,6 +373,18 @@ fn main() -> Result<()> {
+             "--fresh-v2" => fresh_v2 = Some(PathBuf::from(&value)),
+             "--decision-trace" => traces.push(decision_trace_arg(&value)?),
+             "--decision-force" => forces.push(decision_force_arg(&value)?),
++            "--decision-replay" => replay = Some(PathBuf::from(&value)),
++            "--replay-split" => replay_split = Some(value.clone()),
++            "--reference" => replay_reference = Some(value.clone()),
++            "--other-trace" => replay_other = Some(value.clone()),
++            "--deciles" => replay_deciles = Some(value.clone()),
++            "--reference-table" => replay_table = Some(value.clone()),
++            "--g10" => {
++                replay_g10 = Some(value.parse().map_err(|_| {
++                    FloatTrainError::Invalid("--g10 wants a whole number".to_owned())
++                })?)
++            }
++            "--at" => replay_at.push(at_arg(&value)?),
+             "--panel" => {
+                 let panel = panel_arg(&value)?;
+                 if extra_panels.iter().any(|(name, _)| *name == panel.0) {
+@@ -530,9 +568,11 @@ fn main() -> Result<()> {
+         bound,
+         reply,
+         census_on,
+-        // `--score-rows`, `--controls` and `--panel-prompts` write to `--out` without training.
+-        out.is_some() && score.is_none() && !controls_on && !panel_prompts_on,
++        // `--score-rows`, `--decision-replay`, `--controls` and `--panel-prompts` write to `--out`
++        // without training.
++        out.is_some() && score.is_none() && replay.is_none() && !controls_on && !panel_prompts_on,
+         score.is_some(),
++        replay.is_some(),
+         overturn_on,
+         controls_on,
+         grade_on,
+@@ -548,7 +588,7 @@ fn main() -> Result<()> {
+     ];
+     if modes.iter().filter(|&&m| m).count() > 1 {
+         return Err(FloatTrainError::Invalid(
+-            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1 or --integer-grade 1"
++            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --decision-replay, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1 or --integer-grade 1"
+                 .to_owned(),
+         ));
+     }
+@@ -574,6 +614,7 @@ fn main() -> Result<()> {
+         let out = out.ok_or_else(|| FloatTrainError::Invalid("--recall needs --out".to_owned()))?;
+         if modes[..5].iter().any(|&m| m)
+             || score.is_some()
++            || replay.is_some()
+             || overturn_on
+             || controls_on
+             || grade_on
+@@ -647,6 +688,54 @@ fn main() -> Result<()> {
+             "--decision-force applies to --score-rows only".to_owned(),
+         ));
+     }
++    let replay_flags = replay_split.is_some()
++        || replay_reference.is_some()
++        || replay_other.is_some()
++        || replay_deciles.is_some()
++        || replay_table.is_some()
++        || replay_g10.is_some()
++        || !replay_at.is_empty();
++    if replay.is_none() && replay_flags {
++        return Err(FloatTrainError::Invalid(
++            "--replay-split, --reference, --other-trace, --deciles, --reference-table, --g10 and --at are --decision-replay's".to_owned(),
++        ));
++    }
++    if let Some(checkpoint) = replay {
++        let needed = |value: Option<String>, flag: &str| {
++            value.ok_or_else(|| FloatTrainError::Invalid(format!("--decision-replay needs {flag}")))
++        };
++        let out = out.ok_or_else(|| {
++            FloatTrainError::Invalid("--decision-replay needs --out DIR".to_owned())
++        })?;
++        let g10 = replay_g10.ok_or_else(|| {
++            FloatTrainError::Invalid("--decision-replay needs --g10 N".to_owned())
++        })?;
++        // Every input is read and checked before the GPU is touched.
++        let inputs = read_replay_inputs(
++            &needed(replay_reference, "--reference F_TRACE")?,
++            &needed(replay_other, "--other-trace T_TRACE")?,
++            &needed(replay_deciles, "--deciles F_DECILES")?,
++            &needed(replay_table, "--reference-table F_SNAPSHOT")?,
++            g10,
++            &replay_at,
++        )?;
++        let device = Device::new_cuda(0)?;
++        decision_replay(
++            &data_root,
++            &checkpoint,
++            &out,
++            replay_split.as_deref().unwrap_or("dev"),
++            &extra_panels,
++            &inputs,
++            config.retain_rates,
++            config.fold_scores,
++            config.reflect_floor,
++            config.seed,
++            config.fbs_arm,
++            &device,
++        )?;
++        return Ok(());
++    }
+     if cycle_grade_on {
+         let runs = runs
+             .ok_or_else(|| FloatTrainError::Invalid("--cycle-grade needs --runs DIR".to_owned()))?;
+@@ -931,6 +1020,14 @@ fn panel_arg(value: &str) -> Result<(String, PathBuf)> {
+     }
+ }
+ 
++/// `--at POSITION:OFFSET` (claude-257): one offset of `--decision-replay` to replay.
++fn at_arg(value: &str) -> Result<(usize, usize)> {
++    value
++        .split_once(':')
++        .and_then(|(p, o)| Some((p.parse().ok()?, o.parse().ok()?)))
++        .ok_or_else(|| FloatTrainError::Invalid(format!("--at {value}: not POSITION:OFFSET")))
++}
++
+ /// `--decision-trace SPLIT=POSITIONS_JSON` (claude-251): the split and the positions, a JSON array
+ /// of the windows' first scored positions, read from the file.
+ fn decision_trace_arg(value: &str) -> Result<(String, Vec<usize>)> {
+diff --git a/crates/uor-r4-float-train/src/in_space_long.rs b/crates/uor-r4-float-train/src/in_space_long.rs
+index 96eb2bd27..7e292c816 100644
+--- a/crates/uor-r4-float-train/src/in_space_long.rs
++++ b/crates/uor-r4-float-train/src/in_space_long.rs
+@@ -25,9 +25,11 @@ use std::time::Instant;
+ use candle_core::{DType, Device, Tensor};
+ use serde::{Deserialize, Serialize};
+ use uor_r4_integer::fbs_snapshot::{
+-    CodeRole, DecisionForce, DecisionForceWindow, DecisionHead, DecisionLayer, DecisionMemory,
+-    DecisionNearest, DecisionRead, DecisionStep, DecisionTrace, DecisionWindow, HammingTraceRead,
+-    HammingTraceWindow, DECISION_FORCE_SCHEMA, DECISION_TRACE_SCHEMA,
++    check_decision_trace, offset_step, parse_deciles, read_decision_trace, replay_step, sha256_hex,
++    snapshot_embed_table, CodeRole, DecisionDeciles, DecisionForce, DecisionForceWindow,
++    DecisionHead, DecisionLayer, DecisionMemory, DecisionNearest, DecisionRead, DecisionStep,
++    DecisionTrace, DecisionWindow, GradeSide, HammingTraceRead, HammingTraceWindow, NearestTable,
++    ReplayTally, DECISION_FORCE_SCHEMA, DECISION_REPLAY_SCHEMA, DECISION_TRACE_SCHEMA,
+ };
+ use uor_r4_tokenizer::ByteBpeTokenizer;
+ 
+@@ -5975,18 +5977,7 @@ pub fn score_rows(
+     // Q5's forced replay (claude-253): each forced split's set, on that split's trace, checked
+     // against the model's shape here, before any forward.
+     let (layers, lanes) = (model.config.layers(), model.config.width / 4);
+-    let reads: Vec<(usize, usize, usize)> = crate::flock_read_hamming::hamming_reads()
+-        .map(|r| {
+-            crate::flock_read_hamming::HAMMING_DEPTHS
+-                .iter()
+-                .zip(&r.reads)
+-                .map(|(&depth, read)| {
+-                    let width = model.config.width.checked_div(read.heads()).unwrap_or(0);
+-                    (depth, read.heads(), width)
+-                })
+-                .collect()
+-        })
+-        .unwrap_or_default();
++    let reads = traced_reads(&model);
+     let mut forced: BTreeMap<String, DecisionForce> = BTreeMap::new();
+     for (split, force) in forces {
+         let Some((_, positions)) = traces.iter().find(|(name, _)| *name == split) else {
+@@ -6323,6 +6314,551 @@ pub fn score_rows(
+     Ok(written)
+ }
+ 
++/// Each Hamming read's depth, heads and head width on `model`, which a forced set is checked
++/// against ([`FTrace::with_force`]); none without the reads.
++fn traced_reads(model: &StackModel) -> Vec<(usize, usize, usize)> {
++    crate::flock_read_hamming::hamming_reads()
++        .map(|r| {
++            crate::flock_read_hamming::HAMMING_DEPTHS
++                .iter()
++                .zip(&r.reads)
++                .map(|(&depth, read)| {
++                    let width = model.config.width.checked_div(read.heads()).unwrap_or(0);
++                    (depth, read.heads(), width)
++                })
++                .collect()
++        })
++        .unwrap_or_default()
++}
++
++/// One replay `--decision-replay` runs (claude-257): its window's position, its offset, and the
++/// step at that offset.
++pub type ReplayAt = (usize, usize, usize);
++
++/// What `train-in-space --decision-replay` reads before any forward (claude-257,
++/// [`read_replay_inputs`]): the structure step's reference P, F's trace of a split's windows, with
++/// F's deciles and F's own table; Q's sealed trace, T's of the same windows; the cell's G₁₀; and
++/// the offsets to replay.
++pub struct ReplayInputs {
++    pub reference: DecisionTrace,
++    /// Q's trace of the same windows, sealed by the run that traced them (claude-252).
++    pub other: DecisionTrace,
++    pub deciles: DecisionDeciles,
++    /// F's own table, rows of `table_width`.
++    pub table: Vec<f32>,
++    pub table_width: usize,
++    pub g10: i64,
++    /// Each replay: without `--at`, in the reference's window order; with it, in `--at`'s.
++    pub chosen: Vec<ReplayAt>,
++    /// Without `--at`, the offsets compared: every reply step at which both windows hold a nearest.
++    pub compared: Option<usize>,
++    /// Each file read, with its path and sha256, for the record.
++    pub sources: serde_json::Value,
++}
++
++/// The structure step's sides (claude-257): P is F's trace and Q T's, neither holds two windows at
++/// one position, and the deciles are F's, read from P's file, whose sha256 is `reference_sha`.
++fn check_replay_sides(
++    reference: &DecisionTrace,
++    reference_sha: &str,
++    other: &DecisionTrace,
++    deciles: &DecisionDeciles,
++) -> Result<()> {
++    if reference.side != "F" || other.side != "T" {
++        return Err(invalid(format!(
++            "--decision-replay replays the structure step (F, T), and the reference is side {} and the other trace side {}",
++            reference.side, other.side
++        )));
++    }
++    for trace in [reference, other] {
++        let mut seen = std::collections::BTreeSet::new();
++        if let Some(w) = trace.windows.iter().find(|w| !seen.insert(w.position)) {
++            return Err(invalid(format!(
++                "the {} trace holds two windows at position {}",
++                trace.side, w.position
++            )));
++        }
++    }
++    if deciles.side != "F" {
++        return Err(invalid(format!(
++            "the deciles are side {}'s, and the structure step reads F's",
++            deciles.side
++        )));
++    }
++    if deciles.trace.as_ref().map(|t| t.sha256.as_str()) != Some(reference_sha) {
++        return Err(invalid(
++            "the deciles were read from another trace than the reference",
++        ));
++    }
++    Ok(())
++}
++
++/// The steps at which `window` holds a nearest.
++fn nearest_steps(window: &DecisionWindow) -> Vec<usize> {
++    window
++        .steps
++        .iter()
++        .enumerate()
++        .filter(|(_, s)| s.nearest.is_some())
++        .map(|(t, _)| t)
++        .collect()
++}
++
++/// The offsets to replay (claude-257), each as its position, offset and step: those `at` names,
++/// or without it every reply step at which P's and Q's unforced picks differ, with the count of
++/// steps compared. Both traces must name the same windows, and each pair line up (I-Align): the
++/// same ids, `reply_start` and steps with a nearest. A named offset must be named once, in a
++/// traced window, inside it, and hold a nearest.
++fn replay_offsets(
++    reference: &DecisionTrace,
++    other: &DecisionTrace,
++    at: &[(usize, usize)],
++) -> Result<(Vec<ReplayAt>, Option<usize>)> {
++    let others: BTreeMap<usize, &DecisionWindow> =
++        other.windows.iter().map(|w| (w.position, w)).collect();
++    if others.len() != reference.windows.len() {
++        return Err(invalid(format!(
++            "the traces name {} and {} windows (I-Align)",
++            reference.windows.len(),
++            others.len()
++        )));
++    }
++    let mut pairs = Vec::with_capacity(others.len());
++    for p in &reference.windows {
++        let q = others.get(&p.position).ok_or_else(|| {
++            invalid(format!(
++                "position {}: the other trace has no such window (I-Align)",
++                p.position
++            ))
++        })?;
++        if p.ids != q.ids || p.reply_start != q.reply_start || nearest_steps(p) != nearest_steps(q)
++        {
++            return Err(invalid(format!(
++                "position {}: the windows read other ids, start their replies at other steps, or hold a nearest at other steps (I-Align)",
++                p.position
++            )));
++        }
++        pairs.push((p, *q));
++    }
++    if at.is_empty() {
++        let (mut chosen, mut compared) = (Vec::new(), 0usize);
++        for (p, q) in pairs {
++            let steps = p.steps.iter().zip(&q.steps).enumerate().skip(p.reply_start);
++            for (t, (sp, sq)) in steps {
++                if let (Some(np), Some(nq)) = (&sp.nearest, &sq.nearest) {
++                    compared += 1;
++                    if np.pick != nq.pick {
++                        chosen.push((p.position, t - p.reply_start, t));
++                    }
++                }
++            }
++        }
++        return Ok((chosen, Some(compared)));
++    }
++    let mut named = at.to_vec();
++    named.sort_unstable();
++    if let Some(p) = named.windows(2).find(|p| p[0] == p[1]) {
++        return Err(invalid(format!(
++            "--at {}:{} is named twice",
++            p[0].0, p[0].1
++        )));
++    }
++    let mut chosen = Vec::with_capacity(at.len());
++    for &(position, offset) in at {
++        let (p, _) = pairs
++            .iter()
++            .find(|(p, _)| p.position == position)
++            .ok_or_else(|| {
++                invalid(format!(
++                    "--at {position}:{offset}: the traces hold no window at that position"
++                ))
++            })?;
++        let step = offset_step(p, offset).map_err(invalid)?;
++        if p.steps[step].nearest.is_none() {
++            return Err(invalid(format!(
++                "--at {position}:{offset}: step {step} holds no nearest"
++            )));
++        }
++        chosen.push((position, offset, step));
++    }
++    Ok((chosen, None))
++}
++
++/// Reads and checks `--decision-replay`'s inputs before any forward (claude-257): the reference
++/// P at `reference`, Q's sealed trace at `other`, F's deciles at `deciles`, and F's snapshot at
++/// `table`, whose embed is F's own table. Beside [`check_replay_sides`] and [`replay_offsets`],
++/// F's table must give every nearest of P its recorded scores bit for bit
++/// (`check_decision_trace`).
++pub fn read_replay_inputs(
++    reference: &str,
++    other: &str,
++    deciles: &str,
++    table: &str,
++    g10: i64,
++    at: &[(usize, usize)],
++) -> Result<ReplayInputs> {
++    if g10 < 0 {
++        return Err(invalid(format!("--g10 {g10} is negative")));
++    }
++    let (reference_trace, reference_sha) = read_decision_trace(reference).map_err(invalid)?;
++    let (other_trace, other_sha) = read_decision_trace(other).map_err(invalid)?;
++    let deciles_text = fs::read(deciles).map_err(|e| invalid(format!("{deciles}: {e}")))?;
++    let parsed = parse_deciles(deciles, &deciles_text).map_err(invalid)?;
++    check_replay_sides(&reference_trace, &reference_sha, &other_trace, &parsed)?;
++    let table_bytes = fs::read(table).map_err(|e| invalid(format!("{table}: {e}")))?;
++    let (embed, width) = snapshot_embed_table(table, &table_bytes).map_err(invalid)?;
++    check_decision_trace(
++        &reference_trace,
++        NearestTable::F32 {
++            table: &embed,
++            width,
++        },
++    )
++    .map_err(|e| invalid(format!("{table} is not the reference's table: {e}")))?;
++    let (chosen, compared) = replay_offsets(&reference_trace, &other_trace, at)?;
++    let sources = serde_json::json!({
++        "reference": { "path": reference, "sha256": reference_sha, "side": reference_trace.side },
++        "other": { "path": other, "sha256": other_sha, "side": other_trace.side },
++        "deciles": { "path": deciles, "sha256": sha256_hex(&deciles_text), "trace": parsed.trace },
++        "reference_table": {
++            "path": table,
++            "sha256": sha256_hex(&table_bytes),
++            "rows": embed.len().checked_div(width).unwrap_or(0),
++            "width": width,
++        },
++    });
++    Ok(ReplayInputs {
++        reference: reference_trace,
++        other: other_trace,
++        deciles: parsed,
++        table: embed,
++        table_width: width,
++        g10,
++        chosen,
++        compared,
++        sources,
++    })
++}
++
++/// What [`replay_windows`] ran (claude-257): the tally, how many replays' pass 0 reproduced Q's
++/// sealed window (I-Rerun), Q's table's rows and width, and the replays' wall time, in all and
++/// each replay's in the tally's order.
++#[derive(Debug)]
++pub struct ReplayRun {
++    pub tally: ReplayTally,
++    pub rerun: usize,
++    pub table: (usize, usize),
++    pub replay_ms: u64,
++    pub replay_ms_each: Vec<u64>,
++}
++
++/// The eval batch a whole run scores the `i`th of `len` windows in (claude-257): [`row_picks`]
++/// takes its windows [`hs::SHEET_EVAL_BATCH`] at a time from the first, the last batch shorter.
++fn replay_batch(i: usize, len: usize) -> std::ops::Range<usize> {
++    let first = i / hs::SHEET_EVAL_BATCH * hs::SHEET_EVAL_BATCH;
++    first..(first + hs::SHEET_EVAL_BATCH).min(len)
++}
++
++/// I-Rerun (claude-257): pass 0 of a replay, Φ empty, traces Q's sealed `window` byte for byte,
++/// under the sealed trace's header. Otherwise, where they differ first.
++fn rerun_matches(
++    pass: &DecisionTrace,
++    sealed: &DecisionTrace,
++    window: &DecisionWindow,
++) -> std::result::Result<(), String> {
++    let [ran] = pass.windows.as_slice() else {
++        return Err(format!(
++            "position {}: pass 0 traced {} windows, not one (I-Rerun)",
++            window.position,
++            pass.windows.len()
++        ));
++    };
++    let head = |t: &DecisionTrace| {
++        (
++            t.schema.clone(),
++            t.side.clone(),
++            t.layers,
++            t.lanes,
++            t.heads,
++            t.kept,
++        )
++    };
++    let bytes = |w: &DecisionWindow| serde_json::to_vec(w).map_err(|e| e.to_string());
++    if head(pass) == head(sealed) && bytes(ran)? == bytes(window)? {
++        return Ok(());
++    }
++    let first = ran
++        .steps
++        .iter()
++        .zip(&window.steps)
++        .position(|(a, b)| a != b);
++    Err(format!(
++        "position {}: pass 0 is not T's sealed window, {} (I-Rerun)",
++        window.position,
++        match first {
++            Some(t) => format!("first at step {t}"),
++            None => "in its header, ids, reply start or step count".to_owned(),
++        }
++    ))
++}
++
++/// claude-257: each replay `inputs` chose, with `model` as Q (T, on an evaluation copy rounded as
++/// exported), over its split's `windows` and `mask`, each recorded as it ends, and appended to
++/// the line file at `lines` when one is named. Each pass runs [`row_picks`] on the replayed
++/// window's own eval batch ([`replay_batch`]), with only that window traced, under Φ; pass 0 must
++/// reproduce Q's sealed window ([`rerun_matches`]), or the replay is refused. Refused before the
++/// line file is created and before any forward: a sealed trace whose nearests' scores Q's own
++/// table does not give, a replayed position that names no window of the split, and a sealed
++/// window that does not read its split window's ids (I-Align).
++fn replay_windows(
++    model: &StackModel,
++    windows: &[CausalWindow],
++    mask: &[u8],
++    seed: u64,
++    train_step: usize,
++    inputs: &ReplayInputs,
++    lines: Option<&Path>,
++) -> Result<ReplayRun> {
++    let q = table(model)?;
++    let (rows, width) = q.dims2()?;
++    let q_table = q.flatten_all()?.to_vec1::<f32>()?;
++    let other_table = NearestTable::F32 {
++        table: &q_table,
++        width,
++    };
++    check_decision_trace(&inputs.other, other_table).map_err(|e| {
++        invalid(format!(
++            "the checkpoint's table is not the other trace's: {e}"
++        ))
++    })?;
++    let index: BTreeMap<usize, usize> = windows
++        .iter()
++        .enumerate()
++        .filter_map(|(i, w)| w.scored_corpus_positions.first().map(|&p| (p, i)))
++        .collect();
++    let sealed: BTreeMap<usize, &DecisionWindow> = inputs
++        .other
++        .windows
++        .iter()
++        .map(|w| (w.position, w))
++        .collect();
++    for &(position, _, _) in &inputs.chosen {
++        let (Some(&i), Some(window)) = (index.get(&position), sealed.get(&position)) else {
++            return Err(invalid(format!(
++                "position {position} names no window of the split"
++            )));
++        };
++        if windows[i].input_ids.get(..window.ids.len()) != Some(&window.ids[..]) {
++            return Err(invalid(format!(
++                "position {position}: the sealed window does not read its split window's ids (I-Align)"
++            )));
++        }
++    }
++    let (layers, lanes) = (model.config.layers(), model.config.width / 4);
++    let reads = traced_reads(model);
++    let reference = GradeSide {
++        trace: &inputs.reference,
++        table: NearestTable::F32 {
++            table: &inputs.table,
++            width: inputs.table_width,
++        },
++    };
++    let mut tally = match lines {
++        Some(path) => ReplayTally::with_lines(path).map_err(|e| {
++            invalid(format!(
++                "{}: {e}; a line file is never replaced",
++                path.display()
++            ))
++        })?,
++        None => ReplayTally::default(),
++    };
++    let mut rerun = 0;
++    let mut replay_ms_each = Vec::with_capacity(inputs.chosen.len());
++    let started = Instant::now();
++    for &(position, offset, step) in &inputs.chosen {
++        let batch = &windows[replay_batch(index[&position], windows.len())];
++        let this = Instant::now();
++        let done = replay_step(
++            reference,
++            other_table,
++            &inputs.deciles,
++            position,
++            step,
++            inputs.g10,
++            |phi| {
++                let force = DecisionForce {
++                    schema: DECISION_FORCE_SCHEMA.to_owned(),
++                    windows: vec![phi.clone()],
++                };
++                let mut trace = FTrace::new(&[position])
++                    .and_then(|t| t.on_side("T"))
++                    .and_then(|t| t.with_force(force, layers, lanes, &reads))
++                    .map_err(|e| e.to_string())?;
++                row_picks(
++                    model,
++                    batch,
++                    mask,
++                    seed,
++                    train_step,
++                    Some(&mut trace),
++                    |_, _| Ok(()),
++                )
++                .map_err(|e| e.to_string())?;
++                let trace = trace.finish().map_err(|e| e.to_string())?;
++                if phi.buckets.is_empty() && phi.codes.is_empty() {
++                    rerun_matches(&trace, &inputs.other, sealed[&position])?;
++                    rerun += 1;
++                }
++                Ok(trace)
++            },
++        );
++        replay_ms_each.push(this.elapsed().as_millis() as u64);
++        tally.record(position, offset, done.map(|replay| (step, replay)))?;
++    }
++    Ok(ReplayRun {
++        tally,
++        rerun,
++        table: (rows, width),
++        replay_ms: started.elapsed().as_millis() as u64,
++        replay_ms_each,
++    })
++}
++
++/// `train-in-space --decision-replay CHECKPOINT` (integer-nearest-readout, claude-257):
++/// claude-247's forced replay of the structure step (F, T) at each offset `inputs` chose
++/// ([`read_replay_inputs`]), with Q = T from the evaluation copy at `checkpoint`, rounded as
++/// exported, loaded once, on the split `split` (`dev`, or one of `panels`), as [`score_rows`]
++/// scores it in its memory pass ([`replay_windows`]). Each replay is appended to
++/// `out/replay-{split}.lines.jsonl` as it ends; the whole `uor-r4.decision-replay/1` record follows
++/// as `out/replay-{split}.json`, both created new. It prints one JSON line, and returns it. A
++/// refused replay is recorded with its refusal, the rest still run, and the command then fails.
++/// Refused before the model loads: a checkpoint that is not a copy or not its run's arm, a split
++/// that is not DEV or a named panel, and an output that exists; once its reads load and before
++/// any forward, a read R does not serve. The record names the settings the replays ran under.
++#[allow(clippy::too_many_arguments)]
++pub fn decision_replay(
++    data_root: &Path,
++    checkpoint: &Path,
++    out: &Path,
++    split: &str,
++    panels: &[(String, PathBuf)],
++    inputs: &ReplayInputs,
++    retain_rates: bool,
++    fold_scores: bool,
++    reflect_floor: bool,
++    seed: u64,
++    arm: FbsArm,
++    device: &Device,
++) -> Result<serde_json::Value> {
++    check_run_arm(checkpoint, arm)?;
++    let train_step: usize = checkpoint
++        .file_name()
++        .and_then(|n| n.to_str())
++        .and_then(|n| n.strip_prefix("step-"))
++        .and_then(|n| n.parse().ok())
++        .ok_or_else(|| invalid("--decision-replay wants a run's step-N checkpoint directory"))?;
++    if crate::fbs_export::checkpoint_trace_side(checkpoint)? != "T" {
++        return Err(invalid(
++            "--decision-replay runs Q = T, so it wants an evaluation copy rounded as exported (fbs-snapshot --round-as-exported)",
++        ));
++    }
++    let (windows, mask, panel_sha) = if split == "dev" {
++        let (windows, mask) = load_dev(data_root)?;
++        (windows, mask, None)
++    } else {
++        let dir = panels
++            .iter()
++            .find(|(name, _)| name == split && panel_name_ok(name))
++            .map(|(_, dir)| dir)
++            .ok_or_else(|| invalid(format!("--replay-split {split}: not dev or a --panel")))?;
++        let (tokens, mask, sha) = load_unpinned_uort(dir)?;
++        let windows =
++            hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?.0;
++        (windows, mask, Some(sha))
++    };
++    fs::create_dir_all(out)?;
++    let lines = out.join(format!("replay-{split}.lines.jsonl"));
++    let record_path = out.join(format!("replay-{split}.json"));
++    if let Some(found) = [&lines, &record_path].into_iter().find(|p| p.exists()) {
++        return Err(invalid(format!(
++            "{}: a replay record is never replaced",
++            found.display()
++        )));
++    }
++    arms::set_fbs_arm(Some(arm));
++    crate::geometric_stack::set_retention_rates(retain_rates);
++    crate::geometric_stack::set_folded_scores(fold_scores);
++    crate::geometric_stack::set_reflected_floor(reflect_floor);
++    let _guard = ArmGuard;
++    let model = StackModel::load(checkpoint, device)?;
++    load_reads(checkpoint, device)?;
++    let unserved = unserved_reads();
++    if !unserved.is_empty() {
++        return Err(invalid(format!(
++            "--decision-replay replays the decisions R serves, and this checkpoint also sets {}",
++            unserved.join(", ")
++        )));
++    }
++    let trained = run_trained_cut(checkpoint)?;
++    set_trained_cut(trained);
++    // The turn memory stays as loaded: the sealed trace is the memory pass's.
++    let run = replay_windows(
++        &model,
++        &windows,
++        &mask,
++        seed,
++        train_step,
++        inputs,
++        Some(&lines),
++    )?;
++    let (replayed, counts) = (&run.tally.replayed, &run.tally.counts);
++    let record = serde_json::json!({
++        "schema": DECISION_REPLAY_SCHEMA,
++        "checkpoint": { "path": checkpoint, "step": train_step, "side": "T" },
++        "settings": {
++            "seed": seed,
++            "arm": arm,
++            "retain_rates": retain_rates,
++            "fold_scores": fold_scores,
++            "reflect_floor": reflect_floor,
++            "trained_cut": trained,
++        },
++        "split": { "name": split, "windows": windows.len(), "panel_sha256": panel_sha },
++        "reference": inputs.sources["reference"],
++        "other": inputs.sources["other"],
++        "reference_table": inputs.sources["reference_table"],
++        "other_table": { "path": checkpoint, "rows": run.table.0, "width": run.table.1 },
++        "deciles": inputs.sources["deciles"],
++        "g10": inputs.g10,
++        "offsets_compared": inputs.compared,
++        "equal": inputs.compared.map(|c| c - replayed.len()),
++        "replays": replayed.len(),
++        "counts": counts,
++        "rerun": run.rerun,
++        "replay_ms": run.replay_ms,
++        "replay_ms_each": run.replay_ms_each,
++        "replayed": replayed,
++    });
++    let text = serde_json::to_vec_pretty(&record)?;
++    write_new(&record_path, &text)?;
++    let summary = serde_json::json!({
++        "schema": DECISION_REPLAY_SCHEMA,
++        "offsets_compared": record["offsets_compared"],
++        "equal": record["equal"],
++        "replays": record["replays"],
++        "counts": counts,
++        "rerun": run.rerun,
++        "replay_ms": run.replay_ms,
++        "out": record_path,
++        "sha256": sha256_hex(&text),
++    });
++    println!("{summary}");
++    run.tally
++        .refusals(&record_path.display().to_string())
++        .map_err(invalid)?;
++    Ok(summary)
++}
++
+ /// The served point key's table file (claude-220), in a scoring run's `out`.
+ pub const OPENING_TABLE_FILE: &str = "opening-table.safetensors";
+ 
+@@ -12312,6 +12848,586 @@ mod tests {
+         set_hamming_reads(None);
+     }
+ 
++    /// A replay test's window (claude-257): `picks` gives each step's nearest pick, or none.
++    fn replay_window(
++        position: usize,
++        ids: Vec<u32>,
++        reply_start: usize,
++        picks: &[Option<u32>],
++    ) -> DecisionWindow {
++        let step = |pick: Option<u32>| DecisionStep {
++            layers: Vec::new(),
++            readout: None,
++            memory: None,
++            nearest: pick.map(|pick| DecisionNearest {
++                pick,
++                score_q12: None,
++                score_f64: None,
++                runner_up: pick + 1,
++                runner_score_q12: None,
++                runner_score_f64: None,
++                query_q12: Vec::new(),
++                query_f32: Vec::new(),
++            }),
++        };
++        DecisionWindow {
++            position,
++            ids,
++            reply_start,
++            steps: picks.iter().map(|&p| step(p)).collect(),
++        }
++    }
++
++    fn replay_trace(side: &str, windows: Vec<DecisionWindow>) -> DecisionTrace {
++        DecisionTrace {
++            schema: DECISION_TRACE_SCHEMA.to_owned(),
++            side: side.to_owned(),
++            layers: 1,
++            lanes: 1,
++            heads: 2,
++            kept: 16,
++            windows,
++        }
++    }
++
++    /// claude-257: the structure step's sides are P = F and Q = T, neither holds two windows at one
++    /// position, and the deciles are F's, read from P's own file.
++    #[test]
++    fn the_structure_step_replay_takes_f_as_reference_and_t_as_other() {
++        use uor_r4_integer::fbs_snapshot::{DecisionSource, DECISION_DECILES_SCHEMA};
++        let window = |position| replay_window(position, vec![1, 2], 1, &[None, Some(3)]);
++        let (f, t) = (
++            replay_trace("F", vec![window(7)]),
++            replay_trace("T", vec![window(7)]),
++        );
++        let deciles = |side: &str, sha: &str| DecisionDeciles {
++            schema: DECISION_DECILES_SCHEMA.to_owned(),
++            side: side.to_owned(),
++            trace: Some(DecisionSource {
++                path: "f.json".to_owned(),
++                sha256: sha.to_owned(),
++            }),
++            families: Vec::new(),
++        };
++        let refusal = |p: &DecisionTrace, q: &DecisionTrace, d: &DecisionDeciles| {
++            check_replay_sides(p, "aa", q, d).unwrap_err().to_string()
++        };
++        check_replay_sides(&f, "aa", &t, &deciles("F", "aa")).unwrap();
++        assert!(refusal(&t, &t, &deciles("F", "aa")).contains("structure step (F, T)"));
++        assert!(refusal(&f, &f, &deciles("F", "aa")).contains("structure step (F, T)"));
++        let twice = replay_trace("T", vec![window(7), window(7)]);
++        assert!(refusal(&f, &twice, &deciles("F", "aa")).contains("two windows at position 7"));
++        let twice = replay_trace("F", vec![window(7), window(7)]);
++        assert!(refusal(&twice, &t, &deciles("F", "aa")).contains("two windows at position 7"));
++        assert!(refusal(&f, &t, &deciles("T", "aa")).contains("reads F's"));
++        assert!(refusal(&f, &t, &deciles("F", "bb")).contains("another trace"));
++        let mut unnamed = deciles("F", "aa");
++        unnamed.trace = None;
++        assert!(refusal(&f, &t, &unnamed).contains("another trace"));
++    }
++
++    /// claude-257: without `--at`, the offsets replayed are the reply steps where P's and Q's picks
++    /// differ, each compared once; the two traces must line up (I-Align); and a named offset must
++    /// be named once, in a traced window, inside it, and hold a nearest.
++    #[test]
++    fn the_replay_offsets_are_where_the_lined_up_picks_differ() {
++        let (ids, a, b) = (vec![1, 2, 3, 4, 5], vec![9, 8], vec![9, 7]);
++        let picks = |x: &[u32]| [None, Some(x[0]), None, Some(x[1]), Some(4)];
++        let p = replay_trace(
++            "F",
++            vec![
++                replay_window(7, ids.clone(), 1, &picks(&a)),
++                replay_window(3, ids.clone(), 1, &picks(&a)),
++            ],
++        );
++        let q = replay_trace(
++            "T",
++            vec![
++                replay_window(3, ids.clone(), 1, &picks(&a)),
++                replay_window(7, ids.clone(), 1, &picks(&b)),
++            ],
++        );
++        // Three nearests a window; position 7 differs at step 3, offset 2.
++        assert_eq!(
++            replay_offsets(&p, &q, &[]).unwrap(),
++            (vec![(7, 2, 3)], Some(6))
++        );
++        // A pick that differs before the reply starts is neither replayed nor compared.
++        let early = |x: u32| {
++            replay_trace(
++                "F",
++                vec![replay_window(
++                    7,
++                    ids.clone(),
++                    2,
++                    &[None, Some(x), None, Some(8), Some(4)],
++                )],
++            )
++        };
++        let (p_early, mut q_early) = (early(9), early(5));
++        q_early.side = "T".to_owned();
++        assert_eq!(
++            replay_offsets(&p_early, &q_early, &[]).unwrap(),
++            (vec![], Some(2))
++        );
++        assert_eq!(
++            replay_offsets(&p, &q, &[(3, 3), (7, 0)]).unwrap(),
++            (vec![(3, 3, 4), (7, 0, 1)], None)
++        );
++        let refusal = |q: &DecisionTrace, at: &[(usize, usize)]| {
++            replay_offsets(&p, q, at).unwrap_err().to_string()
++        };
++        assert!(refusal(&q, &[(7, 0), (7, 0)]).contains("named twice"));
++        assert!(refusal(&q, &[(5, 0)]).contains("no window at that position"));
++        assert!(refusal(&q, &[(7, 4)]).contains("past the window"));
++        assert!(refusal(&q, &[(7, 1)]).contains("holds no nearest"));
++        let line_up = |windows: Vec<DecisionWindow>| refusal(&replay_trace("T", windows), &[]);
++        assert!(line_up(vec![replay_window(7, ids.clone(), 1, &picks(&b))]).contains("(I-Align)"));
++        let mut other_ids = ids.clone();
++        other_ids[4] = 6;
++        for odd in [
++            replay_window(7, other_ids, 1, &picks(&b)),
++            replay_window(7, ids.clone(), 0, &picks(&b)),
++            replay_window(
++                7,
++                ids.clone(),
++                1,
++                &[None, Some(9), Some(1), Some(7), Some(4)],
++            ),
++            replay_window(5, ids.clone(), 1, &picks(&b)),
++        ] {
++            let r = line_up(vec![replay_window(3, ids.clone(), 1, &picks(&a)), odd]);
++            assert!(r.contains("(I-Align)"), "{r}");
++        }
++    }
++
++    /// claude-257: a replayed window's eval batch is the one [`row_picks`] scores it in, the
++    /// [`hs::SHEET_EVAL_BATCH`] windows from a multiple of it, the last batch shorter.
++    #[test]
++    fn a_replay_runs_the_window_s_own_eval_batch() {
++        let b = hs::SHEET_EVAL_BATCH;
++        assert_eq!(replay_batch(0, b + 2), 0..b);
++        assert_eq!(replay_batch(5, b + 2), 0..b);
++        assert_eq!(replay_batch(b - 1, b + 2), 0..b);
++        assert_eq!(replay_batch(b, b + 2), b..b + 2);
++        assert_eq!(replay_batch(b + 1, b + 2), b..b + 2);
++        assert_eq!(replay_batch(3, 4), 0..4);
++        assert_eq!(replay_batch(2 * b + 1, 3 * b), 2 * b..3 * b);
++    }
++
++    /// claude-257's I-Rerun: pass 0 holds when it traces Q's sealed window byte for byte under the
++    /// sealed header; otherwise it names where they first differ.
++    #[test]
++    fn a_rerun_holds_only_on_the_sealed_window() {
++        let sealed = replay_trace(
++            "T",
++            vec![replay_window(
++                7,
++                vec![1, 2, 3],
++                1,
++                &[None, Some(3), Some(4)],
++            )],
++        );
++        let window = &sealed.windows[0];
++        rerun_matches(&sealed, &sealed, window).unwrap();
++        let mut moved = sealed.clone();
++        moved.windows[0].steps[2]
++            .nearest
++            .as_mut()
++            .unwrap()
++            .runner_up = 9;
++        let e = rerun_matches(&moved, &sealed, window).unwrap_err();
++        assert!(
++            e.contains("first at step 2") && e.contains("(I-Rerun)"),
++            "{e}"
++        );
++        let mut head = sealed.clone();
++        head.kept = 8;
++        assert!(rerun_matches(&head, &sealed, window)
++            .unwrap_err()
++            .contains("its header"));
++        // The same steps under other ids, or another reply start, are not the sealed window.
++        let (mut ids, mut start) = (sealed.clone(), sealed.clone());
++        ids.windows[0].ids[2] = 9;
++        start.windows[0].reply_start = 2;
++        for moved in [ids, start] {
++            let e = rerun_matches(&moved, &sealed, window).unwrap_err();
++            assert!(
++                e.contains("in its header, ids, reply start or step count"),
++                "{e}"
++            );
++        }
++        let mut two = sealed.clone();
++        two.windows.push(window.clone());
++        assert!(rerun_matches(&two, &sealed, window)
++            .unwrap_err()
++            .contains("2 windows"));
++    }
++
++    /// Removes a replay test's folder however the test ends (claude-257).
++    #[cfg(feature = "cuda")]
++    struct ReplayDir(PathBuf);
++
++    #[cfg(feature = "cuda")]
++    impl ReplayDir {
++        /// A new folder `name` under the temp folder, any stale one of this process's removed.
++        fn new(name: &str) -> Self {
++            let dir = std::env::temp_dir().join(format!("{name}_{}", std::process::id()));
++            let _ = fs::remove_dir_all(&dir);
++            fs::create_dir_all(&dir).unwrap();
++            ReplayDir(dir)
++        }
++
++        /// Writes `bytes` to `name` in the folder, and returns its path.
++        fn file(&self, name: &str, bytes: &[u8]) -> String {
++            let path = self.0.join(name);
++            fs::write(&path, bytes).unwrap();
++            path.to_str().unwrap().to_owned()
++        }
++    }
++
++    #[cfg(feature = "cuda")]
++    impl Drop for ReplayDir {
++        fn drop(&mut self) {
++            let _ = fs::remove_dir_all(&self.0);
++        }
++    }
++
++    /// The replay tests' corpus (claude-257): 18 documents, each a prompt, a reply, a prompt and a
++    /// reply, whose lengths vary with the document, so an eval batch pads its windows unevenly.
++    #[cfg(feature = "cuda")]
++    fn replay_corpus() -> (Vec<u32>, Vec<u8>) {
++        let (mut tokens, mut mask) = (Vec::new(), Vec::new());
++        for doc in 0..18u32 {
++            tokens.push(hs::SHEET_BOS_ID);
++            mask.push(0u8);
++            let mut id = 40 * doc + 2;
++            for (len, flag) in [(10, 0u8), (6 + doc % 3, 1), (4, 0), (4 + doc % 2, 1)] {
++                for _ in 0..len {
++                    tokens.push(id);
++                    mask.push(flag);
++                    id += 1;
++                }
++            }
++        }
++        (tokens, mask)
++    }
++
++    /// The structure step's side files for a replay test (claude-257), in `dir`: P as Q's own
++    /// sealed trace marked side F, its deciles read from P's file, Q's table as F's snapshot, and
++    /// Q's trace; their paths as (reference, other, deciles, table).
++    #[cfg(feature = "cuda")]
++    fn replay_side_files(
++        dir: &ReplayDir,
++        sealed: &DecisionTrace,
++        host_table: &[f32],
++    ) -> [String; 4] {
++        use uor_r4_integer::fbs_snapshot::{decision_deciles, DecisionSource};
++        let reference = DecisionTrace {
++            side: "F".to_owned(),
++            ..sealed.clone()
++        };
++        let reference_bytes = serde_json::to_vec(&reference).unwrap();
++        let reference_path = dir.file("f.json", &reference_bytes);
++        let other_path = dir.file("t.json", &serde_json::to_vec(sealed).unwrap());
++        let mut deciles = decision_deciles(&reference).unwrap();
++        deciles.trace = Some(DecisionSource {
++            path: reference_path.clone(),
++            sha256: sha256_hex(&reference_bytes),
++        });
++        let deciles_path = dir.file("d.json", &serde_json::to_vec(&deciles).unwrap());
++        let snapshot = serde_json::json!({
++            "vocab": host_table.len() / hs::SHEET_WIDTH,
++            "width": hs::SHEET_WIDTH,
++            "embed": host_table,
++        });
++        let table_path = dir.file("s.json", &serde_json::to_vec(&snapshot).unwrap());
++        [reference_path, other_path, deciles_path, table_path]
++    }
++
++    /// Q's sealed trace with the last step's first kept set of the window at `position` reversed
++    /// (claude-257): no check of the trace reads it, so only the rerun can find it.
++    #[cfg(feature = "cuda")]
++    fn kept_set_edited(sealed: &DecisionTrace, position: usize) -> DecisionTrace {
++        let mut edited = sealed.clone();
++        let w = edited
++            .windows
++            .iter_mut()
++            .find(|w| w.position == position)
++            .unwrap();
++        let last = w.steps.len() - 1;
++        let kept = &mut w.steps[last].readout.as_mut().unwrap().heads[0].kept;
++        assert!(kept.len() > 1);
++        kept.reverse();
++        edited
++    }
++
++    /// claude-257 (Done-when 4, on the GPU): the structure step's replay on a small trunk with both
++    /// Hamming reads, P as Q's own trace. A whole run over 18 windows of uneven lengths, two eval
++    /// batches, traces three of them as side T. Without `--at` no offset differs, and every reply
++    /// step is compared. With `--at` at a window of each batch, each replay is one pass on its
++    /// window's own batch, accounted for, whose pass 0 is that window's sealed trace byte for byte
++    /// (I-Rerun); each is in the line file as recorded. A sealed trace with one kept set edited is
++    /// refused at pass 0 (I-Rerun); a position the split does not hold is refused before any
++    /// forward, and before the line file is created.
++    #[cfg(feature = "cuda")]
++    #[test]
++    fn the_structure_steps_replay_reruns_each_window_on_its_own_batch() {
++        use crate::flock_read_hamming::{set_hamming_reads, HammingReads};
++        use uor_r4_integer::fbs_snapshot::REPLAY_COUNTS;
++        let device = Device::new_cuda(0).unwrap();
++        let _guard = ArmGuard;
++        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
++        set_hamming_reads(Some(
++            HammingReads::new(4, hs::SHEET_WIDTH, &device).unwrap(),
++        ));
++        let (tokens, mask) = replay_corpus();
++        let (windows, _) =
++            hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID).unwrap();
++        assert_eq!(windows.len(), 18);
++        let position = |i: usize| windows[i].scored_corpus_positions[0];
++        let mut sealed = FTrace::new(&[position(1), position(5), position(17)])
++            .unwrap()
++            .on_side("T")
++            .unwrap();
++        row_picks(&model, &windows, &mask, 1, 0, Some(&mut sealed), |_, _| {
++            Ok(())
++        })
++        .unwrap();
++        let host_table = sealed.table.clone().unwrap();
++        let sealed = sealed.finish().unwrap();
++        let dir = ReplayDir::new("uor_structure_replay");
++        let [reference_path, other_path, deciles_path, table_path] =
++            replay_side_files(&dir, &sealed, &host_table);
++        let inputs = |at: &[(usize, usize)], other: &str| {
++            read_replay_inputs(
++                &reference_path,
++                other,
++                &deciles_path,
++                &table_path,
++                30_228,
++                at,
++            )
++            .unwrap()
++        };
++        let run = |windows: &[CausalWindow], inputs: &ReplayInputs, lines: Option<&Path>| {
++            replay_windows(&model, windows, &mask, 1, 0, inputs, lines)
++        };
++        let all = inputs(&[], &other_path);
++        let steps: usize = sealed.windows.iter().map(|w| nearest_steps(w).len()).sum();
++        assert_eq!((all.chosen.len(), all.compared), (0, Some(steps)));
++        let none = run(&windows, &all, None).unwrap();
++        assert_eq!((none.tally.replayed.len(), none.rerun), (0, 0));
++        // A window of each batch, the second batch two windows long.
++        let lines = dir.0.join("replay.lines.jsonl");
++        let named = inputs(&[(position(5), 0), (position(17), 1)], &other_path);
++        let two = run(&windows, &named, Some(&lines)).unwrap();
++        let counts: Vec<usize> = REPLAY_COUNTS.iter().map(|k| two.tally.counts[k]).collect();
++        assert_eq!(
++            (counts, two.rerun, two.replay_ms_each.len()),
++            (vec![2, 0, 0, 0, 0, 2, 2], 2, 2)
++        );
++        let written: Vec<serde_json::Value> = fs::read_to_string(&lines)
++            .unwrap()
++            .lines()
++            .map(|l| serde_json::from_str(l).unwrap())
++            .collect();
++        assert_eq!(written, two.tally.replayed);
++        assert_eq!(written[1]["replay"]["passes"][0]["outcome"], "nearest");
++        let edited_path = dir.file(
++            "t-edited.json",
++            &serde_json::to_vec(&kept_set_edited(&sealed, position(17))).unwrap(),
++        );
++        let one = inputs(&[(position(17), 1)], &edited_path);
++        let refused = run(&windows, &one, None).unwrap();
++        assert_eq!((refused.tally.counts["refused"], refused.rerun), (1, 0));
++        let why = refused.tally.replayed[0]["refused"]
++            .as_str()
++            .unwrap()
++            .to_owned();
++        assert!(why.contains("pass 0") && why.contains("(I-Rerun)"), "{why}");
++        // The split without window 17 holds no window at its position.
++        let early = dir.0.join("early.lines.jsonl");
++        let e = run(&windows[..16], &named, Some(&early))
++            .unwrap_err()
++            .to_string();
++        assert!(e.contains("names no window of the split"), "{e}");
++        assert!(
++            !early.exists(),
++            "a refusal before any forward leaves no line file"
++        );
++    }
++
++    /// claude-257 (Done-when 4, on the GPU): `--decision-replay` end to end, on an evaluation copy
++    /// rounded as exported of a small trunk with both Hamming reads, saved as a run's step 4, over
++    /// the panel `p-t`. P is Q's own trace, sealed from the copy as the command loads it. Without
++    /// `--at` it replays nothing, compares every reply step, and writes the record and an empty
++    /// line file. With `--at` at a window of each batch, each replay is one accounted pass, and
++    /// the record holds the settings and the line file's replays. It never replaces a record;
++    /// with one replay refused (I-Rerun) it writes both files and then fails; and it refuses the
++    /// source checkpoint, which is not a copy, and a split that is not a panel.
++    #[cfg(feature = "cuda")]
++    #[test]
++    fn the_structure_step_replay_runs_end_to_end_on_a_rounded_copy() {
++        use crate::flock_read_hamming::HammingReads;
++        use uor_r4_integer::fbs_snapshot::REPLAY_COUNTS;
++        let device = Device::new_cuda(0).unwrap();
++        let _guard = ArmGuard;
++        let dir = ReplayDir::new("uor_structure_replay_e2e");
++        let source = dir.0.join("f/models/step-000004");
++        build_fbs_model(FbsArm::OneAtomActive, 1, &device)
++            .unwrap()
++            .save(&source)
++            .unwrap();
++        HammingReads::new(4, hs::SHEET_WIDTH, &device)
++            .unwrap()
++            .save(&source)
++            .unwrap();
++        fs::write(dir.0.join("f/config.json"), br#"{"steps": 4}"#).unwrap();
++        let copy = dir.0.join("t/models/step-000004");
++        crate::fbs_export::write_rounded_copy(&source, &copy).unwrap();
++        // The panel p-t: the corpus behind a 64-byte UORT header.
++        let (tokens, mask) = replay_corpus();
++        let panel = dir.0.join("p-t");
++        fs::create_dir_all(&panel).unwrap();
++        let mut uort = vec![0u8; hs::UORT_HEADER_BYTES];
++        uort[..4].copy_from_slice(b"UORT");
++        uort[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
++        uort.extend(tokens.iter().flat_map(|&t| (t as u16).to_le_bytes()));
++        fs::write(panel.join("tokens.u16"), uort).unwrap();
++        fs::write(panel.join("response_mask.u8"), &mask).unwrap();
++        let panels = vec![("p-t".to_owned(), panel)];
++        // Q's sealed trace: the copy as the command loads it, at the copy's step.
++        arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
++        let model = StackModel::load(&copy, &device).unwrap();
++        load_reads(&copy, &device).unwrap();
++        set_trained_cut(run_trained_cut(&copy).unwrap());
++        let (windows, _) =
++            hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID).unwrap();
++        let position = |i: usize| windows[i].scored_corpus_positions[0];
++        let mut sealed = FTrace::new(&[position(1), position(5), position(17)])
++            .unwrap()
++            .on_side("T")
++            .unwrap();
++        row_picks(&model, &windows, &mask, 1, 4, Some(&mut sealed), |_, _| {
++            Ok(())
++        })
++        .unwrap();
++        let host_table = sealed.table.clone().unwrap();
++        let sealed = sealed.finish().unwrap();
++        drop(model);
++        let [reference_path, other_path, deciles_path, table_path] =
++            replay_side_files(&dir, &sealed, &host_table);
++        let edited_path = dir.file(
++            "t-edited.json",
++            &serde_json::to_vec(&kept_set_edited(&sealed, position(17))).unwrap(),
++        );
++        let replay =
++            |checkpoint: &Path, out: &str, split: &str, at: &[(usize, usize)], other: &str| {
++                let inputs = read_replay_inputs(
++                    &reference_path,
++                    other,
++                    &deciles_path,
++                    &table_path,
++                    30_228,
++                    at,
++                )
++                .unwrap();
++                decision_replay(
++                    &dir.0,
++                    checkpoint,
++                    &dir.0.join(out),
++                    split,
++                    &panels,
++                    &inputs,
++                    false,
++                    false,
++                    false,
++                    1,
++                    FbsArm::OneAtomActive,
++                    &device,
++                )
++            };
++        let read = |out: &str| -> (serde_json::Value, Vec<serde_json::Value>) {
++            let record =
++                serde_json::from_slice(&fs::read(dir.0.join(out).join("replay-p-t.json")).unwrap())
++                    .unwrap();
++            let lines = fs::read_to_string(dir.0.join(out).join("replay-p-t.lines.jsonl")).unwrap();
++            (
++                record,
++                lines
++                    .lines()
++                    .map(|l| serde_json::from_str(l).unwrap())
++                    .collect(),
++            )
++        };
++        let counts = |record: &serde_json::Value| -> Vec<u64> {
++            REPLAY_COUNTS
++                .iter()
++                .map(|k| record["counts"][k].as_u64().unwrap())
++                .collect()
++        };
++        let steps: usize = sealed.windows.iter().map(|w| nearest_steps(w).len()).sum();
++        replay(&copy, "none", "p-t", &[], &other_path).unwrap();
++        let (record, lines) = read("none");
++        assert_eq!(
++            (
++                record["replays"].as_u64(),
++                record["offsets_compared"].as_u64()
++            ),
++            (Some(0), Some(steps as u64))
++        );
++        assert_eq!(
++            (record["equal"].as_u64(), lines.len()),
++            (Some(steps as u64), 0)
++        );
++        let settings = serde_json::json!({
++            "seed": 1,
++            "arm": FbsArm::OneAtomActive,
++            "retain_rates": false,
++            "fold_scores": false,
++            "reflect_floor": false,
++            "trained_cut": null,
++        });
++        assert_eq!(record["settings"], settings);
++        let at = [(position(5), 0), (position(17), 1)];
++        replay(&copy, "two", "p-t", &at, &other_path).unwrap();
++        let (record, lines) = read("two");
++        assert_eq!(
++            (counts(&record), record["rerun"].as_u64()),
++            (vec![2, 0, 0, 0, 0, 2, 2], Some(2))
++        );
++        assert_eq!(
++            (
++                record["replayed"].as_array().unwrap(),
++                record["replay_ms_each"].as_array().unwrap().len()
++            ),
++            (&lines, 2)
++        );
++        let again = replay(&copy, "two", "p-t", &at, &other_path)
++            .unwrap_err()
++            .to_string();
++        assert!(again.contains("never replaced"), "{again}");
++        let e = replay(&copy, "edited", "p-t", &at, &edited_path)
++            .unwrap_err()
++            .to_string();
++        assert!(e.contains("1 of 2 replays were refused"), "{e}");
++        let (record, lines) = read("edited");
++        assert_eq!(
++            (record["counts"]["refused"].as_u64(), lines.len()),
++            (Some(1), 2)
++        );
++        assert!(lines[1]["refused"].as_str().unwrap().contains("(I-Rerun)"));
++        let e = replay(&source, "source", "p-t", &[], &other_path)
++            .unwrap_err()
++            .to_string();
++        assert!(e.contains("rounded as exported"), "{e}");
++        let e = replay(&copy, "unnamed", "p-x", &[], &other_path)
++            .unwrap_err()
++            .to_string();
++        assert!(e.contains("not dev or a --panel"), "{e}");
++    }
++
+     /// claude-218 (FIT round 1): each query is named by the commonest target among the TRAIN
+     /// openings at its least L1 distance, ties to the smaller id, across the search's blocks and
+     /// inside one; and by sign pattern, whose L1 is the Hamming distance over the width. On the
+diff --git a/crates/uor-r4-integer/src/bin/fbs-toks.rs b/crates/uor-r4-integer/src/bin/fbs-toks.rs
+index 42edc3147..d841e221f 100644
+--- a/crates/uor-r4-integer/src/bin/fbs-toks.rs
++++ b/crates/uor-r4-integer/src/bin/fbs-toks.rs
+@@ -98,12 +98,13 @@ use serde::Deserialize;
+ use serde_json::json;
+ use uor_r4_integer::fbs_snapshot::{
+     check_decision_trace, compare_hamming_traces, copy_code_check, copy_code_reads,
+-    decision_deciles, grade_pass, replay_step, write_new_file, DecisionDeciles, DecisionForce,
++    decision_deciles, grade_pass, offset_step, parse_deciles, read_decision_trace, replay_step,
++    sha256_hex, snapshot_embed_table, write_new_file, DecisionDeciles, DecisionForce,
+     DecisionForceWindow, DecisionNearest, DecisionSource, DecisionStep, DecisionTrace,
+     DecisionWindow, FbsFloatReadout, FbsReadoutMode, GradeSide, HammingTrace, NearestTable,
+-    PassOutcome, StepReplay, COPY_CODES_SCHEMA, DECISION_CHECK_SCHEMA, DECISION_DECILES_SCHEMA,
+-    DECISION_FORCE_SCHEMA, DECISION_GRADE_SCHEMA, DECISION_REPLAY_SCHEMA, DECISION_TRACE_SCHEMA,
+-    HAMMING_TRACE_SCHEMA,
++    PassOutcome, ReplayTally, StepReplay, COPY_CODES_SCHEMA, DECISION_CHECK_SCHEMA,
++    DECISION_DECILES_SCHEMA, DECISION_FORCE_SCHEMA, DECISION_GRADE_SCHEMA, DECISION_REPLAY_SCHEMA,
++    DECISION_TRACE_SCHEMA, HAMMING_TRACE_SCHEMA,
+ };
+ use uor_r4_integer::stack::{
+     hamming_trace_window, panel_reply, read_hamming_uorlut01, served_copy_codes_uorlut01,
+@@ -193,18 +194,6 @@ fn hamming_trace_compare(first: &str, second: &str) -> Result<(), String> {
+     Ok(())
+ }
+ 
+-/// A file's sha256, in hex.
+-fn sha256_hex(bytes: &[u8]) -> String {
+-    hex::encode(<sha2::Sha256 as sha2::Digest>::digest(bytes))
+-}
+-
+-/// The decision trace at `path` and its file's sha256.
+-fn read_decision_trace(path: &str) -> Result<(DecisionTrace, String), String> {
+-    let text = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+-    let trace = serde_json::from_slice(&text).map_err(|e| format!("{path}: {e}"))?;
+-    Ok((trace, sha256_hex(&text)))
+-}
+-
+ /// A side's own nearest table, owned (claude-247): R's writer table at Q12 and T's, that table
+ /// divided by 4096, from R's artifact; F's float table, its snapshot's `embed`.
+ enum OwnedTable {
+@@ -235,20 +224,8 @@ fn load_table(side: &str, path: &str) -> Result<(OwnedTable, String), String> {
+     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+     let sha = sha256_hex(&bytes);
+     let table = if side == "F" {
+-        #[derive(Deserialize)]
+-        struct Embed {
+-            vocab: usize,
+-            width: usize,
+-            embed: Vec<f32>,
+-        }
+-        let snapshot: Embed = serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))?;
+-        if snapshot.embed.len() != snapshot.vocab * snapshot.width {
+-            return Err(format!(
+-                "{path}: the embed is not {} rows of {}",
+-                snapshot.vocab, snapshot.width
+-            ));
+-        }
+-        OwnedTable::F32(snapshot.embed, snapshot.width)
++        let (embed, width) = snapshot_embed_table(path, &bytes)?;
++        OwnedTable::F32(embed, width)
+     } else {
+         let served = served_copy_codes_uorlut01(&bytes)
+             .map_err(|e| format!("{path}: the Hamming reads: {e}"))?
+@@ -363,34 +340,6 @@ fn needed<'a>(
+     flags.get(name).copied().ok_or_else(|| USAGE.to_owned())
+ }
+ 
+-/// The deciles in the file at `path`, whose bytes are `text` (claude-254). A file that names no
+-/// trace its G₁₀s were read from is refused (claude-256): no grade could say whose they are.
+-fn parse_deciles(path: &str, text: &[u8]) -> Result<DecisionDeciles, String> {
+-    let deciles: DecisionDeciles =
+-        serde_json::from_slice(text).map_err(|e| format!("{path}: {e}"))?;
+-    if deciles.trace.is_none() {
+-        return Err(format!(
+-            "{path}: the deciles name no trace they were read from"
+-        ));
+-    }
+-    Ok(deciles)
+-}
+-
+-/// The step at offset `offset` of `window`'s reply, refused past the window's steps.
+-fn offset_step(window: &DecisionWindow, offset: usize) -> Result<usize, String> {
+-    window
+-        .reply_start
+-        .checked_add(offset)
+-        .filter(|&s| s < window.steps.len())
+-        .ok_or_else(|| {
+-            format!(
+-                "position {}, offset {offset}: past the window's {} steps",
+-                window.position,
+-                window.steps.len()
+-            )
+-        })
+-}
+-
+ /// `--decision-grade` (claude-254): one pass of the forced replay (`grade_pass`) at each chosen
+ /// position, written new as `uor-r4.decision-grade/1`. `args` are the whole command line.
+ fn decision_grade_out(args: &[String]) -> Result<(), String> {
+@@ -1244,55 +1193,17 @@ fn decision_replay_out(path: &str, args: &[String]) -> Result<(), String> {
+         }
+         (chosen, None, None)
+     };
+-    let kinds = [
+-        "accounted",
+-        "unaccounted",
+-        "refused",
+-        "ended_kept",
+-        "ended_memory",
+-        "ended_nearest",
+-        "passes",
+-    ];
+-    let mut counts: std::collections::BTreeMap<&str, usize> =
+-        kinds.into_iter().map(|k| (k, 0)).collect();
+-    let mut replayed = Vec::with_capacity(chosen.len());
++    let mut tally = ReplayTally::default();
+     let started = Instant::now();
+     // Each replay is recorded as it ends; a refused one is recorded with its refusal, and the
+     // run goes on.
+     for (position, offset, unforced) in chosen {
+-        let (step, replay) = match run.replay(row_at(position)?, offset, unforced) {
+-            Ok(done) => done,
+-            Err(refused) => {
+-                *counts.entry("refused").or_default() += 1;
+-                replayed.push(json!({
+-                    "position": position,
+-                    "offset": offset,
+-                    "refused": refused,
+-                }));
+-                continue;
+-            }
+-        };
+-        let end = match replay.passes.last() {
+-            Some(PassOutcome::Kept { .. }) => "ended_kept",
+-            Some(PassOutcome::Memory { .. }) => "ended_memory",
+-            _ => "ended_nearest",
+-        };
+-        *counts.entry(end).or_default() += 1;
+-        *counts
+-            .entry(if replay.accounted {
+-                "accounted"
+-            } else {
+-                "unaccounted"
+-            })
+-            .or_default() += 1;
+-        *counts.entry("passes").or_default() += replay.passes.len();
+-        replayed.push(json!({
+-            "position": position,
+-            "offset": offset,
+-            "step": step,
+-            "replay": replay,
+-        }));
++        let done = run.replay(row_at(position)?, offset, unforced);
++        tally
++            .record(position, offset, done)
++            .map_err(|e| e.to_string())?;
+     }
++    let (replayed, counts) = (&tally.replayed, &tally.counts);
+     let elapsed_ms = started.elapsed().as_millis() as u64;
+     let record = json!({
+         "schema": DECISION_REPLAY_SCHEMA,
+@@ -1317,13 +1228,7 @@ fn decision_replay_out(path: &str, args: &[String]) -> Result<(), String> {
+         "{}",
+         json!({ "schema": DECISION_REPLAY_SCHEMA, "offsets_compared": record["offsets_compared"], "picks_beyond_r": record["picks_beyond_r"], "equal": record["equal"], "replays": record["replays"], "counts": record["counts"], "replay_ms": elapsed_ms, "out": out, "sha256": sha256_hex(&text) })
+     );
+-    match counts["refused"] {
+-        0 => Ok(()),
+-        refused => Err(format!(
+-            "{refused} of {} replays were refused; each is recorded in {out}",
+-            replayed.len()
+-        )),
+-    }
++    tally.refusals(out)
+ }
+ 
+ const PREFILL: usize = 128;
+diff --git a/crates/uor-r4-integer/src/fbs_snapshot.rs b/crates/uor-r4-integer/src/fbs_snapshot.rs
+index 01d4e6bdb..6260f075b 100644
+--- a/crates/uor-r4-integer/src/fbs_snapshot.rs
++++ b/crates/uor-r4-integer/src/fbs_snapshot.rs
+@@ -1924,6 +1924,179 @@ pub fn replay_step(
+     })
+ }
+ 
++/// The counts a [`ReplayTally`] keeps: the replays accounted for or not, refused, and ending at a
++/// kept set, a memory lookup or p's nearest, and the passes they ran.
++pub const REPLAY_COUNTS: [&str; 7] = [
++    "accounted",
++    "unaccounted",
++    "refused",
++    "ended_kept",
++    "ended_memory",
++    "ended_nearest",
++    "passes",
++];
++
++/// What a `--decision-replay` run records of its replays (claude-257): `fbs-toks`'s of the
++/// arithmetic step (T, R) and `train-in-space`'s of the structure step (F, T). Each entry is a
++/// replay's position, offset, step and [`StepReplay`], or its position, offset and refusal, in the
++/// order run. With a line file, each entry is also appended to it, one JSON object a line,
++/// written to the OS as its replay ends (not synced to disk), so a run cut short keeps every
++/// replay it finished. An entry is kept with its counts before its line is written, so a failed
++/// write leaves the tally whole and the line file short by that entry.
++#[derive(Debug)]
++pub struct ReplayTally {
++    pub replayed: Vec<serde_json::Value>,
++    /// Each of [`REPLAY_COUNTS`]; a refused replay counts no passes.
++    pub counts: BTreeMap<&'static str, usize>,
++    lines: Option<std::fs::File>,
++}
++
++impl Default for ReplayTally {
++    fn default() -> Self {
++        Self {
++            replayed: Vec::new(),
++            counts: REPLAY_COUNTS.into_iter().map(|k| (k, 0)).collect(),
++            lines: None,
++        }
++    }
++}
++
++impl ReplayTally {
++    /// A tally that also appends each entry to a line file at `path`, created new.
++    pub fn with_lines(path: &Path) -> std::io::Result<Self> {
++        Ok(Self {
++            lines: Some(OpenOptions::new().write(true).create_new(true).open(path)?),
++            ..Self::default()
++        })
++    }
++
++    /// Records the replay at `offset` of the window at `position`: `done` is its step and replay,
++    /// or its refusal.
++    pub fn record(
++        &mut self,
++        position: usize,
++        offset: usize,
++        done: Result<(usize, StepReplay), String>,
++    ) -> std::io::Result<()> {
++        let mut count = |key: &'static str, n: usize| {
++            *self.counts.entry(key).or_default() += n;
++        };
++        let entry = match done {
++            Ok((step, replay)) => {
++                count(
++                    match replay.passes.last() {
++                        Some(PassOutcome::Kept { .. }) => "ended_kept",
++                        Some(PassOutcome::Memory { .. }) => "ended_memory",
++                        _ => "ended_nearest",
++                    },
++                    1,
++                );
++                count(
++                    if replay.accounted {
++                        "accounted"
++                    } else {
++                        "unaccounted"
++                    },
++                    1,
++                );
++                count("passes", replay.passes.len());
++                serde_json::json!({
++                    "position": position,
++                    "offset": offset,
++                    "step": step,
++                    "replay": replay,
++                })
++            }
++            Err(refused) => {
++                count("refused", 1);
++                serde_json::json!({
++                    "position": position,
++                    "offset": offset,
++                    "refused": refused,
++                })
++            }
++        };
++        self.replayed.push(entry);
++        if let Some(lines) = &mut self.lines {
++            let mut line = serde_json::to_vec(self.replayed.last().expect("the entry just kept"))?;
++            line.push(b'\n');
++            lines.write_all(&line)?;
++            lines.flush()?;
++        }
++        Ok(())
++    }
++
++    /// Whether the run holds: no replay refused. Otherwise how many were, each recorded in `out`.
++    pub fn refusals(&self, out: &str) -> Result<(), String> {
++        match self.counts["refused"] {
++            0 => Ok(()),
++            refused => Err(format!(
++                "{refused} of {} replays were refused; each is recorded in {out}",
++                self.replayed.len()
++            )),
++        }
++    }
++}
++
++/// A file's sha256, in hex.
++pub fn sha256_hex(bytes: &[u8]) -> String {
++    hex::encode(<sha2::Sha256 as sha2::Digest>::digest(bytes))
++}
++
++/// The decision trace at `path` and its file's sha256.
++pub fn read_decision_trace(path: &str) -> Result<(DecisionTrace, String), String> {
++    let text = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
++    let trace = serde_json::from_slice(&text).map_err(|e| format!("{path}: {e}"))?;
++    Ok((trace, sha256_hex(&text)))
++}
++
++/// The deciles in the file at `path`, whose bytes are `text` (claude-254). A file that names no
++/// trace its G₁₀s were read from is refused (claude-256): no grade could say whose they are.
++pub fn parse_deciles(path: &str, text: &[u8]) -> Result<DecisionDeciles, String> {
++    let deciles: DecisionDeciles =
++        serde_json::from_slice(text).map_err(|e| format!("{path}: {e}"))?;
++    if deciles.trace.is_none() {
++        return Err(format!(
++            "{path}: the deciles name no trace they were read from"
++        ));
++    }
++    Ok(deciles)
++}
++
++/// The step at offset `offset` of `window`'s reply, refused past the window's steps.
++pub fn offset_step(window: &DecisionWindow, offset: usize) -> Result<usize, String> {
++    window
++        .reply_start
++        .checked_add(offset)
++        .filter(|&s| s < window.steps.len())
++        .ok_or_else(|| {
++            format!(
++                "position {}, offset {offset}: past the window's {} steps",
++                window.position,
++                window.steps.len()
++            )
++        })
++}
++
++/// F's own nearest table (claude-247), from the bytes of the snapshot at `path`: its `embed`, as
++/// rows of its `width`, and that width.
++pub fn snapshot_embed_table(path: &str, bytes: &[u8]) -> Result<(Vec<f32>, usize), String> {
++    #[derive(Deserialize)]
++    struct Embed {
++        vocab: usize,
++        width: usize,
++        embed: Vec<f32>,
++    }
++    let snapshot: Embed = serde_json::from_slice(bytes).map_err(|e| format!("{path}: {e}"))?;
++    if snapshot.embed.len() != snapshot.vocab * snapshot.width {
++        return Err(format!(
++            "{path}: the embed is not {} rows of {}",
++            snapshot.vocab, snapshot.width
++        ));
++    }
++    Ok((snapshot.embed, snapshot.width))
++}
++
+ /// What [`check_decision_trace`] checked on one unforced trace.
+ #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+ #[serde(deny_unknown_fields)]
+@@ -4328,4 +4501,131 @@ mod tests {
+         let err = g_replay(&p, |_: &DecisionForceWindow| Err("no GPU".to_owned())).unwrap_err();
+         assert_eq!(err, "pass 0: no GPU");
+     }
++
++    /// claude-257: the tally counts each replay by how it ended and whether it is accounted for,
++    /// keeps a refused one with its refusal and no passes, and writes each entry to its line file,
++    /// a line a replay, as it is recorded. Every count differs from the others, so a replay
++    /// counted under another key shows. The line file is created new, and the run fails once any
++    /// replay was refused.
++    #[test]
++    fn the_replay_tally_counts_each_replay_and_streams_it_as_it_ends() {
++        struct Scratch(PathBuf);
++        impl Drop for Scratch {
++            fn drop(&mut self) {
++                let _ = std::fs::remove_dir_all(&self.0);
++            }
++        }
++        let dir = Scratch(
++            std::env::temp_dir().join(format!("uor_fbs_replay_tally_{}", std::process::id())),
++        );
++        let _ = std::fs::remove_dir_all(&dir.0);
++        std::fs::create_dir_all(&dir.0).expect("scratch");
++        let path = dir.0.join("replay.lines.jsonl");
++        let nearest = PassOutcome::Nearest {
++            reference_pick: 1,
++            other_pick: 1,
++            reference_margin: 0.0,
++            other_margin: 0.0,
++            g10: 5,
++            near_tie: true,
++        };
++        let kept = PassOutcome::Kept {
++            step: 3,
++            depth: 1,
++            head: 0,
++            reference: vec![1, 2],
++            other: vec![2, 1],
++        };
++        let replay = |passes: Vec<PassOutcome>, accounted| StepReplay {
++            passes,
++            forced: DecisionForceWindow {
++                position: 7,
++                ..Default::default()
++            },
++            accounted,
++        };
++        let memory = PassOutcome::Memory {
++            step: 2,
++            reference: DecisionMemory {
++                key: vec![3, 4],
++                stored: Some(7),
++                opening: false,
++            },
++            other: DecisionMemory {
++                key: vec![3, 4],
++                stored: None,
++                opening: false,
++            },
++        };
++        // Each replay's passes, by how it ends, and whether it is accounted for: one ends at the
++        // nearest, three at a kept set and five at a memory lookup; seven are accounted for, two
++        // are not, and they run 13 passes.
++        let (n, k, m) = (nearest, kept, memory);
++        let replays: [(Vec<PassOutcome>, bool); 9] = [
++            (vec![n.clone()], true),
++            (vec![k.clone()], true),
++            (vec![n.clone(), k.clone()], false),
++            (vec![k.clone()], true),
++            (vec![m.clone()], true),
++            (vec![m.clone()], true),
++            (vec![m.clone()], true),
++            (vec![n.clone(), m.clone()], false),
++            (vec![n.clone(), n, m], true),
++        ];
++        let mut tally = ReplayTally::with_lines(&path).expect("a new line file");
++        for (offset, (passes, accounted)) in replays.iter().cloned().enumerate() {
++            tally
++                .record(7, offset, Ok((offset + 4, replay(passes, accounted))))
++                .expect("recorded");
++            if offset == 0 {
++                let lines = std::fs::read_to_string(&path).expect("lines");
++                assert_eq!(
++                    lines.lines().count(),
++                    1,
++                    "the first replay is on disk as it ends"
++                );
++            }
++        }
++        assert_eq!(tally.refusals("out.json"), Ok(()));
++        for position in 10..14 {
++            tally
++                .record(position, 1, Err("pass 0: no GPU".to_owned()))
++                .expect("recorded");
++        }
++        let counts: Vec<usize> = REPLAY_COUNTS.iter().map(|k| tally.counts[k]).collect();
++        // accounted, unaccounted, refused, ended_kept, ended_memory, ended_nearest, passes
++        assert_eq!(counts, [7, 2, 4, 3, 5, 1, 13]);
++        for (entry, (passes, accounted)) in tally.replayed.iter().zip(&replays) {
++            assert_eq!(entry["replay"]["accounted"], *accounted);
++            assert_eq!(
++                entry["replay"]["passes"].as_array().map(Vec::len),
++                Some(passes.len())
++            );
++        }
++        assert_eq!(
++            tally.replayed[9],
++            serde_json::json!({ "position": 10, "offset": 1, "refused": "pass 0: no GPU" })
++        );
++        assert_eq!(tally.replayed[2]["step"], 6);
++        let lines: Vec<serde_json::Value> = std::fs::read_to_string(&path)
++            .expect("lines")
++            .lines()
++            .map(|l| serde_json::from_str(l).expect("a JSON line"))
++            .collect();
++        assert_eq!(
++            lines, tally.replayed,
++            "each line is its replay's entry, in order"
++        );
++        assert_eq!(
++            tally.refusals("out.json"),
++            Err("4 of 13 replays were refused; each is recorded in out.json".to_owned())
++        );
++        // A line file is never replaced, and a tally without one keeps its entries only.
++        assert!(ReplayTally::with_lines(&path).is_err());
++        let mut plain = ReplayTally::default();
++        plain
++            .record(9, 1, Err("refused".to_owned()))
++            .expect("recorded");
++        assert_eq!(plain.replayed.len(), 1);
++    }
+ }
