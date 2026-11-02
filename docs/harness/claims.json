@@ -1,8 +1,8 @@
 {
-  "deepseek/cpu-corpus-artifact": {
-    "branch": "deepseek/cpu-corpus-artifact",
-    "claimed_at": "2026-11-02T03:04:36-05:00",
-    "head": "008eefc24",
+  "deepseek/cpu-program-reconcile": {
+    "branch": "deepseek/cpu-program-reconcile",
+    "claimed_at": "2026-11-02T03:07:24-05:00",
+    "head": "9c7fbbd8e",
     "lab": "deepseek",
     "note": ""
   },

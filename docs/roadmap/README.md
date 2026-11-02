@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 25 |
+| ready | 24 |
 | held | 10 |
 | decision | 1 |
-| done | 98 |
+| done | 99 |
 | total | 134 |
 
 ## Start here
@@ -139,7 +139,6 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Port exact CPU reads, counterfactual updates and BVG-K](items/cpu-discrete-training-path.md) | ready | a lab | no | [cpu-discrete-writer-core](items/cpu-discrete-writer-core.md) | [#3501](https://github.com/UOR-Foundation/uor-r4/issues/3501) |
 | [Add CPU quantization-aware training and exact memory](items/cpu-quantization-exact-memory.md) | ready | a lab | no | [cpu-shared-vector-train](items/cpu-shared-vector-train.md), [cpu-discrete-training-path](items/cpu-discrete-training-path.md) | [#3503](https://github.com/UOR-Foundation/uor-r4/issues/3503) |
 | [Train the CPU shared-vector path with a lawful rank margin](items/cpu-shared-vector-train.md) | ready | a lab | no | [cpu-shared-vector-forward](items/cpu-shared-vector-forward.md) | [#3505](https://github.com/UOR-Foundation/uor-r4/issues/3505) |
 | [Run and grade the bounded CPU training pilot](items/cpu-training-pilot.md) | ready | a lab | no | [cpu-discrete-training-path](items/cpu-discrete-training-path.md), [cpu-shared-vector-train](items/cpu-shared-vector-train.md), [cpu-quantization-exact-memory](items/cpu-quantization-exact-memory.md), [cpu-whole-path-exact-updates](items/cpu-whole-path-exact-updates.md) | [#3506](https://github.com/UOR-Foundation/uor-r4/issues/3506) |
@@ -160,6 +159,7 @@ These items are ready and open to anyone.
 | [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
 | [Build a hard-selection step for carrier credit](items/carrier-credit-hard-selection.md) | done | a lab | yes | none | [#2819](https://github.com/UOR-Foundation/uor-r4/issues/2819) |
+| [Port exact CPU reads, counterfactual updates and BVG-K](items/cpu-discrete-training-path.md) | done | a lab | no | [cpu-discrete-writer-core](items/cpu-discrete-writer-core.md) | [#3501](https://github.com/UOR-Foundation/uor-r4/issues/3501) |
 | [Build an exact CPU discrete writer and admission oracle](items/cpu-discrete-writer-core.md) | done | a lab | no | [cpu-training-program](items/cpu-training-program.md) | [#3502](https://github.com/UOR-Foundation/uor-r4/issues/3502) |
 | [Build CPU forward parity for the shared token/vector path](items/cpu-shared-vector-forward.md) | done | a lab | no | [cpu-training-program](items/cpu-training-program.md) | [#3504](https://github.com/UOR-Foundation/uor-r4/issues/3504) |
 | [Authorize and sequence systematic CPU training repair](items/cpu-training-program.md) | done | a lab | no | none | [#3507](https://github.com/UOR-Foundation/uor-r4/issues/3507) |

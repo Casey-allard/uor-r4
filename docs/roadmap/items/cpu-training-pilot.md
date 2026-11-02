@@ -22,13 +22,14 @@ Component speed does not show whether CPU training can improve a model at useful
 
 | Prerequisite | Current state |
 |---|---|
-| Shared-vector forward and exact serving arithmetic | Supported for the snapped/rotated/decay-rate/recurrence-only/no-pointer FBS mode; synthetic CPU/serving panel mismatches are zero. |
+| Shared-vector forward and exact serving arithmetic | Supported for the recurrence-only/no-pointer FBS mode, including snapped and raw gate/transition combinations; synthetic and public trained-artifact CPU/serving parity controls pass. |
 | Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. |
 | Matched admission and exact checkpoint export control | Panel evaluator and gate delivered on finite fixtures. |
-| Trained artifact plus query panel | Not bound; the private stored artifact remains unavailable without credentials. |
-| Discrete reads/proposals | #3501 remains downstream of the #3502 stored-observation blocker. |
-| Quantization-aware updates and float-shadow comparison | Not delivered; #3503 remains downstream. |
-| FIT pre-registration and pre-run review | Not authored. |
+| Trained artifact plus internal query panel | Bound: public dual-c131 seeds 1 and 2 have exact CPU/serving parity; the strict corpus driver creates document-disjoint public development samples. |
+| Sealed complete-reply and fresh-phrasing panels | Unavailable without credentials; `m2-fresh256` returns HTTP 401. A public 160-prompt panel supports only qualitative generation output, not correctness scoring. |
+| Discrete reads/proposals | #3501 is done with finite parity and restart controls. |
+| Quantization-aware updates and trained float shadow | Finite integer/float shadow controls are delivered; a genuine trained FBS float snapshot is not published, so the trained comparison remains `NOT_RUN`. |
+| FIT pre-registration and pre-run review | Not authored; the bounded public-corpus pilot is ready to pre-register after its final artifact-export control lands. |
 
 ## What is missing
 

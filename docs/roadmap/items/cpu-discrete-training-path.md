@@ -16,9 +16,9 @@ scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/loop/tasks/cpu-
 
 The discrete learner is the strongest comparison-heavy CPU candidate, but its early failures came from read/proposal/admission interactions that a writer-only oracle cannot expose.
 
-## Progress
+## What is missing
 
-Route, Flock and Relation reads, exact 16-lane proposal scoring, the chooser, single-coordinate apply, all-or-nothing BVG-K joint apply and deterministic checkpoint/restart now have independent finite parity slices. The batch boundary validates every committed lane before staging, all listed CUDA refusal statuses have immutability controls, and a restored child process reproduces the uninterrupted next decision, update, reading and checkpoint bytes. The CPU checkpoint writes the reference cursor fields while labeling its CPU development substrate and GPU qualification requirement.
+No component in this item is missing. Route, Flock and Relation reads, exact 16-lane proposal scoring, the chooser, single-coordinate apply, all-or-nothing BVG-K joint apply and deterministic checkpoint/restart have independent finite parity slices. The batch boundary validates every committed lane before staging, all listed CUDA refusal statuses have immutability controls, and a restored child process reproduces the uninterrupted next decision, update, reading and checkpoint bytes. The CPU checkpoint writes the reference cursor fields while labeling its CPU development substrate and GPU qualification requirement. Corpus training remains outside this component item.
 
 ## Done when
 
