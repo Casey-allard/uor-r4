@@ -9,7 +9,7 @@ needs_gpu: false
 depends_on: [cpu-discrete-training-path, cpu-shared-vector-train, cpu-quantization-exact-memory, cpu-whole-path-exact-updates]
 notebook: docs/research/notebook/cpu-training.md
 done_class: host
-scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/harness/prep/cpu-training-pilot*, docs/loop/tasks/cpu-training-pilot/**, docs/research/notebook/cpu-training.md, docs/roadmap/items/cpu-training-pilot.md]
+scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/harness/prep/cpu-training-pilot*, docs/loop/tasks/cpu-training-pilot/**, docs/research/cpu-training-program.md, docs/research/notebook/cpu-training.md, docs/roadmap/items/cpu-training-pilot.md]
 ---
 
 ## Why it matters
@@ -18,7 +18,7 @@ Component speed does not show whether CPU training can improve a model at useful
 
 ## Readiness as of 2 November 2026
 
-The bounded public internal-development pilot has executed and failed its registered ranking bar. The full item remains open because genuinely fresh complete-reply inputs and public-run interval restart are still unavailable.
+The bounded public internal-development pilot has executed and failed its registered ranking bar. The full item remains open because genuinely fresh complete-reply inputs and a configuration that clears a registered bar are still unavailable. Public 64→256 interval restart is now deterministic on both seeds.
 
 | Prerequisite | Current state |
 |---|---|
@@ -26,6 +26,7 @@ The bounded public internal-development pilot has executed and failed its regist
 | Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. |
 | Matched admission and exact checkpoint export control | Panel evaluator and gate delivered on finite fixtures. |
 | Trained artifact plus internal query panel | Bound: public dual-c131 seeds 1 and 2 have exact CPU/serving parity; the strict corpus driver creates document-disjoint public development samples. |
+| Tested public 64→256 interval restart | Passed. A FIT-reviewed post-FIT control resumed hash-bound step-64 checkpoints in fresh processes to step 256 and produced byte-identical final artifact/checkpoint state on both public seeds. Other steps and crash consistency remain untested. |
 | Sealed complete-reply and fresh-phrasing panels | Unavailable without credentials; `m2-fresh256` returns HTTP 401. A public 160-prompt panel supports only qualitative generation output, not correctness scoring. |
 | Discrete reads/proposals | #3501 is done with finite parity and restart controls. |
 | Quantization-aware updates and trained float shadow | Finite integer/float shadow controls are delivered; a genuine trained FBS float snapshot is not published, so the trained comparison remains `NOT_RUN`. |
@@ -44,7 +45,7 @@ This is a negative for the tested public 256-step configuration, not a rejection
 
 ## What is missing
 
-The bounded public pilot supplies cost, exact-export, admission and ranking evidence, but it is not a fresh capability test. The full item still needs credentialed sealed complete-reply and fresh-phrasing grading, public-corpus interval restart, and a configuration that clears a registered ranking or capability bar.
+The bounded public pilot supplies cost, exact-export, admission and ranking evidence, but it is not a fresh capability test. The full item still needs credentialed sealed complete-reply and fresh-phrasing grading and a configuration that clears a registered ranking or capability bar.
 
 ## Done when
 

@@ -1,0 +1,112 @@
+{
+  "schema": "uor-r4.cpu-corpus-resume-comparison/1",
+  "evidence_type": "registered-post-FIT",
+  "source_head": "a12f1a5775a330fa9d793e7ad669f5cf7f0fc563",
+  "fit_sheet_sha256": "275450b83d1b85904bee5043b3e29555f39e84efd6ff348cfa802e94d5cc83a9",
+  "binary_sha256": "200b5166172b10a70f05aae274caf5a1d371e0b682740cda4329a24a871c1241",
+  "substrate": "cpu-development-research",
+  "interval_steps": 64,
+  "target_steps": 256,
+  "seeds": [
+    {
+      "seed": 1,
+      "source_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "interval_checkpoint_sha256": "1ba0d8febe534d6f933b150a45a48c1ca8a87cfc6ba1bd4036debb504690f314",
+      "uninterrupted": {
+        "final_artifact_sha256": "db58f4efb3f4279e9c06f1667e1b014b70edf62ba43f0faaf37869c04886e50c",
+        "final_checkpoint_sha256": "d9e0f9d7858d222cb8b27fbc5750f7b0a8cfb3fba9ace214e2e88d895e042d0a",
+        "panel_final": {
+          "export": {
+            "kept_cell_mismatches": 0,
+            "kept_cells_checked": 8192,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates_checked": 262144,
+            "token_mismatches": 0
+          },
+          "margin_loss_sum": 11738434,
+          "samples": 1024,
+          "target_admitted": 396,
+          "target_rank_sum": 319266,
+          "top1_correct": 278,
+          "top8_correct": 384
+        },
+        "export_exact": true
+      },
+      "resumed": {
+        "resumed_from_step": 64,
+        "executed_steps": 192,
+        "final_artifact_sha256": "db58f4efb3f4279e9c06f1667e1b014b70edf62ba43f0faaf37869c04886e50c",
+        "final_checkpoint_sha256": "d9e0f9d7858d222cb8b27fbc5750f7b0a8cfb3fba9ace214e2e88d895e042d0a",
+        "panel_final": {
+          "export": {
+            "kept_cell_mismatches": 0,
+            "kept_cells_checked": 8192,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates_checked": 262144,
+            "token_mismatches": 0
+          },
+          "margin_loss_sum": 11738434,
+          "samples": 1024,
+          "target_admitted": 396,
+          "target_rank_sum": 319266,
+          "top1_correct": 278,
+          "top8_correct": 384
+        },
+        "export_exact": true
+      },
+      "artifact_equal": true,
+      "checkpoint_equal": true,
+      "panel_equal": true
+    },
+    {
+      "seed": 2,
+      "source_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "interval_checkpoint_sha256": "de9deb91e32e85cdcbbc07d45114ad73d6708a0b922a2ec0afeed26b4ccfa5bf",
+      "uninterrupted": {
+        "final_artifact_sha256": "6781fe807a1a1e47d386b50a78d7f0367e405da58c2cc5038b6b9967e0d23570",
+        "final_checkpoint_sha256": "85235546615a2a94954f41631c6dbdcc543e5230730a0ea94cc0bca972d0da9c",
+        "panel_final": {
+          "export": {
+            "kept_cell_mismatches": 0,
+            "kept_cells_checked": 8192,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates_checked": 262144,
+            "token_mismatches": 0
+          },
+          "margin_loss_sum": 29716006,
+          "samples": 1024,
+          "target_admitted": 292,
+          "target_rank_sum": 342466,
+          "top1_correct": 224,
+          "top8_correct": 285
+        },
+        "export_exact": true
+      },
+      "resumed": {
+        "resumed_from_step": 64,
+        "executed_steps": 192,
+        "final_artifact_sha256": "6781fe807a1a1e47d386b50a78d7f0367e405da58c2cc5038b6b9967e0d23570",
+        "final_checkpoint_sha256": "85235546615a2a94954f41631c6dbdcc543e5230730a0ea94cc0bca972d0da9c",
+        "panel_final": {
+          "export": {
+            "kept_cell_mismatches": 0,
+            "kept_cells_checked": 8192,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates_checked": 262144,
+            "token_mismatches": 0
+          },
+          "margin_loss_sum": 29716006,
+          "samples": 1024,
+          "target_admitted": 292,
+          "target_rank_sum": 342466,
+          "top1_correct": 224,
+          "top8_correct": 285
+        },
+        "export_exact": true
+      },
+      "artifact_equal": true,
+      "checkpoint_equal": true,
+      "panel_equal": true
+    }
+  ]
+}

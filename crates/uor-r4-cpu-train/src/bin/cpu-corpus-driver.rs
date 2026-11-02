@@ -3,11 +3,30 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use uor_r4_cpu_train::{
-    panel_admission_gate, validate_corpus_manifest, CpuMaskedCorpus, CpuPanelEvaluator,
-    CpuRankMarginTrainer, PanelGateDecision, RankMarginConfig,
+    panel_admission_gate, validate_corpus_manifest, CpuCorpusIdentity, CpuMaskedCorpus,
+    CpuPanelEvaluator, CpuRankMarginTrainer, PanelGateDecision, RankMarginConfig,
 };
 use uor_r4_integer::stack::IntegerStackModel;
 
+const CHECKPOINT_BINDING_SCHEMA: &str = "uor-r4.cpu-corpus-checkpoint-binding/1";
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct CheckpointBinding {
+    schema: String,
+    source_artifact_sha256: String,
+    tokens_sha256: String,
+    mask_sha256: String,
+    manifest_sha256: String,
+    tokenizer_sha256: String,
+    trainer_seed: u64,
+    evaluation_stride: usize,
+    max_evaluation: usize,
+    completed_steps: u64,
+    checkpoint_sha256: String,
+}
+
+#[derive(Clone)]
 struct Config {
     artifact: PathBuf,
     tokens: PathBuf,
@@ -19,22 +38,33 @@ struct Config {
     max_evaluation: usize,
     checkpoint_every: usize,
     checkpoint_dir: PathBuf,
+    resume_checkpoint: Option<PathBuf>,
 }
 
 fn main() {
-    if let Err(error) = run() {
-        eprintln!("cpu-corpus-driver: {error}");
-        std::process::exit(1);
+    match run() {
+        Ok(report) => println!("{report}"),
+        Err(error) => {
+            eprintln!("cpu-corpus-driver: {error}");
+            std::process::exit(1);
+        }
     }
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<String, String> {
     let config = parse_args()?;
+    let report = execute(&config)?;
+    serde_json::to_string_pretty(&report).map_err(|error| error.to_string())
+}
+
+fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let started = Instant::now();
     let artifact = std::fs::read(&config.artifact).map_err(|error| format!("artifact: {error}"))?;
+    let artifact_sha256 = uor_r4_discrete::corpus::sha256(&artifact);
     let token_bytes = std::fs::read(&config.tokens).map_err(|error| format!("tokens: {error}"))?;
     let mask = std::fs::read(&config.mask).map_err(|error| format!("mask: {error}"))?;
     let manifest = std::fs::read(&config.manifest).map_err(|error| format!("manifest: {error}"))?;
+    let manifest_sha256 = uor_r4_discrete::corpus::sha256(&manifest);
     let identity = validate_corpus_manifest(&manifest, &token_bytes, &mask)
         .map_err(|error| error.to_string())?;
     if identity.split != "train" {
@@ -75,13 +105,39 @@ fn run() -> Result<(), String> {
     let baseline = baseline_panel
         .evaluate()
         .map_err(|error| error.to_string())?;
-    let mut trainer = CpuRankMarginTrainer::from_artifact(
-        &artifact,
-        split.training.clone(),
-        RankMarginConfig::default(),
-        config.seed,
-    )
-    .map_err(|error| error.to_string())?;
+    let (mut trainer, resume) = if let Some(checkpoint_path) = &config.resume_checkpoint {
+        let (trainer, resume) = resume_checkpoint(
+            checkpoint_path,
+            &artifact_sha256,
+            &identity,
+            &manifest_sha256,
+            config,
+            split.training.clone(),
+        )?;
+        (trainer, serde_json::json!(resume))
+    } else {
+        let trainer = CpuRankMarginTrainer::from_artifact(
+            &artifact,
+            split.training.clone(),
+            RankMarginConfig::default(),
+            config.seed,
+        )
+        .map_err(|error| error.to_string())?;
+        (trainer, serde_json::Value::Null)
+    };
+    let resumed_from_step = trainer.step_count();
+    let target_steps =
+        u64::try_from(config.steps).map_err(|_| "target step count exceeds u64".to_owned())?;
+    if resumed_from_step > target_steps {
+        return Err(format!(
+            "resume checkpoint is already at step {resumed_from_step}, beyond target {target_steps}"
+        ));
+    }
+    let executed_steps =
+        usize::try_from(target_steps - resumed_from_step).map_err(|_| "step count differs")?;
+    if executed_steps > 0 && config.checkpoint_every == 0 {
+        return Err("checkpoint every must be positive for remaining steps".to_owned());
+    }
 
     std::fs::create_dir_all(&config.checkpoint_dir)
         .map_err(|error| format!("checkpoint directory: {error}"))?;
@@ -92,7 +148,7 @@ fn run() -> Result<(), String> {
     let mut context_tokens = 0usize;
     let mut target_visits = 0usize;
     let mut checkpoints = Vec::new();
-    for completed in 1..=config.steps {
+    for completed in resumed_from_step + 1..=target_steps {
         let step_started = Instant::now();
         let step = trainer.train_step().map_err(|error| error.to_string())?;
         step_elapsed += step_started.elapsed();
@@ -107,18 +163,26 @@ fn run() -> Result<(), String> {
         context_tokens = context_tokens
             .checked_add(split.training[step.sample].input.len())
             .ok_or_else(|| "training context-token count overflow".to_owned())?;
-        if completed % config.checkpoint_every == 0 {
+        if completed % config.checkpoint_every as u64 == 0 {
             let checkpoint_started = Instant::now();
             let bytes = trainer.checkpoint().map_err(|error| error.to_string())?;
             let path = config
                 .checkpoint_dir
                 .join(format!("step-{completed:012}.ckpt"));
-            std::fs::write(&path, &bytes)
-                .map_err(|error| format!("checkpoint {}: {error}", path.display()))?;
+            let binding_path = write_checkpoint(
+                &path,
+                &bytes,
+                &artifact_sha256,
+                &identity,
+                &manifest_sha256,
+                config,
+                completed,
+            )?;
             checkpoints.push(serde_json::json!({
                 "step": completed,
                 "path": path,
                 "sha256": uor_r4_discrete::corpus::sha256(&bytes),
+                "binding_path": binding_path,
             }));
             checkpoint_elapsed += checkpoint_started.elapsed();
         }
@@ -163,15 +227,22 @@ fn run() -> Result<(), String> {
 
     let final_checkpoint = trainer.checkpoint().map_err(|error| error.to_string())?;
     let final_checkpoint_path = config.checkpoint_dir.join("final.ckpt");
-    std::fs::write(&final_checkpoint_path, &final_checkpoint)
-        .map_err(|error| format!("final checkpoint: {error}"))?;
+    let final_binding_path = write_checkpoint(
+        &final_checkpoint_path,
+        &final_checkpoint,
+        &artifact_sha256,
+        &identity,
+        &manifest_sha256,
+        config,
+        target_steps,
+    )?;
     let resumed = CpuRankMarginTrainer::resume(&final_checkpoint, split.training.clone())
         .map_err(|error| format!("final checkpoint reload: {error}"))?;
     let final_artifact = trainer.artifact().to_vec();
     if resumed.artifact() != final_artifact {
         return Err("final checkpoint artifact differs from the trainer artifact".to_owned());
     }
-    if config.steps == 0 && final_artifact != artifact {
+    if target_steps == 0 && final_artifact != artifact {
         return Err("zero-step run changed the source artifact".to_owned());
     }
     let final_artifact_path = config.checkpoint_dir.join("final.uorlut");
@@ -187,7 +258,7 @@ fn run() -> Result<(), String> {
         "qualification": "gpu-required",
         "artifact": {
             "path": config.artifact,
-            "sha256": uor_r4_discrete::corpus::sha256(&artifact),
+            "sha256": artifact_sha256,
             "vocab": shape.vocab,
             "context": shape.context,
             "raw_gates": shape.raw_gates,
@@ -213,14 +284,16 @@ fn run() -> Result<(), String> {
         },
         "run": {
             "seed": config.seed,
-            "steps": config.steps,
+            "steps": target_steps,
+            "resumed_from_step": resumed_from_step,
+            "executed_steps": executed_steps,
             "accepted_updates": accepted,
             "refused_steps": refused,
             "target_visits": target_visits,
             "context_tokens": context_tokens,
             "step_elapsed_ms": step_elapsed.as_secs_f64() * 1_000.0,
-            "mean_step_ms": if config.steps > 0 {
-                step_elapsed.as_secs_f64() * 1_000.0 / config.steps as f64
+            "mean_step_ms": if executed_steps > 0 {
+                step_elapsed.as_secs_f64() * 1_000.0 / executed_steps as f64
             } else {
                 0.0
             },
@@ -236,7 +309,7 @@ fn run() -> Result<(), String> {
                 0.0
             },
             "steps_per_second": if step_seconds > 0.0 {
-                config.steps as f64 / step_seconds
+                executed_steps as f64 / step_seconds
             } else {
                 0.0
             },
@@ -246,10 +319,12 @@ fn run() -> Result<(), String> {
         "panel_baseline": panel_json(&baseline),
         "panel_final": panel_json(&final_reading),
         "panel_gate": gate,
+        "resume": resume,
         "checkpoints": checkpoints,
         "final_checkpoint": {
             "path": final_checkpoint_path,
             "sha256": uor_r4_discrete::corpus::sha256(&final_checkpoint),
+            "binding_path": final_binding_path,
         },
         "final_artifact": {
             "path": final_artifact_path,
@@ -259,11 +334,122 @@ fn run() -> Result<(), String> {
         },
         "scope": "CPU development-research component run; not GPU qualification, language quality or complete-reply evidence",
     });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
+    Ok(report)
+}
+
+fn binding_path(checkpoint: &Path) -> PathBuf {
+    checkpoint.with_extension("binding.json")
+}
+
+fn checkpoint_binding(
+    source_artifact_sha256: &str,
+    identity: &CpuCorpusIdentity,
+    manifest_sha256: &str,
+    config: &Config,
+    completed_steps: u64,
+    checkpoint_sha256: String,
+) -> CheckpointBinding {
+    CheckpointBinding {
+        schema: CHECKPOINT_BINDING_SCHEMA.to_owned(),
+        source_artifact_sha256: source_artifact_sha256.to_owned(),
+        tokens_sha256: identity.tokens_sha256.clone(),
+        mask_sha256: identity.mask_sha256.clone(),
+        manifest_sha256: manifest_sha256.to_owned(),
+        tokenizer_sha256: identity.tokenizer_sha256.clone(),
+        trainer_seed: config.seed,
+        evaluation_stride: config.evaluation_stride,
+        max_evaluation: config.max_evaluation,
+        completed_steps,
+        checkpoint_sha256,
+    }
+}
+
+fn write_checkpoint(
+    path: &Path,
+    bytes: &[u8],
+    source_artifact_sha256: &str,
+    identity: &CpuCorpusIdentity,
+    manifest_sha256: &str,
+    config: &Config,
+    completed_steps: u64,
+) -> Result<PathBuf, String> {
+    std::fs::write(path, bytes)
+        .map_err(|error| format!("checkpoint {}: {error}", path.display()))?;
+    let binding = checkpoint_binding(
+        source_artifact_sha256,
+        identity,
+        manifest_sha256,
+        config,
+        completed_steps,
+        uor_r4_discrete::corpus::sha256(bytes),
     );
-    Ok(())
+    let binding_path = binding_path(path);
+    let binding_bytes = serde_json::to_vec_pretty(&binding)
+        .map_err(|error| format!("checkpoint binding {}: {error}", binding_path.display()))?;
+    std::fs::write(&binding_path, binding_bytes)
+        .map_err(|error| format!("checkpoint binding {}: {error}", binding_path.display()))?;
+    Ok(binding_path)
+}
+
+fn resume_checkpoint(
+    checkpoint_path: &Path,
+    source_artifact_sha256: &str,
+    identity: &CpuCorpusIdentity,
+    manifest_sha256: &str,
+    config: &Config,
+    samples: Vec<uor_r4_cpu_train::RankMarginSample>,
+) -> Result<(CpuRankMarginTrainer, serde_json::Value), String> {
+    let checkpoint = std::fs::read(checkpoint_path)
+        .map_err(|error| format!("resume checkpoint {}: {error}", checkpoint_path.display()))?;
+    let checkpoint_sha256 = uor_r4_discrete::corpus::sha256(&checkpoint);
+    let binding_path = binding_path(checkpoint_path);
+    let binding_bytes = std::fs::read(&binding_path)
+        .map_err(|error| format!("resume binding {}: {error}", binding_path.display()))?;
+    let binding: CheckpointBinding = serde_json::from_slice(&binding_bytes)
+        .map_err(|error| format!("resume binding {}: {error}", binding_path.display()))?;
+    let expected = checkpoint_binding(
+        source_artifact_sha256,
+        identity,
+        manifest_sha256,
+        config,
+        binding.completed_steps,
+        checkpoint_sha256.clone(),
+    );
+    if binding.schema != expected.schema {
+        return Err("resume binding schema differs".to_owned());
+    }
+    if binding.source_artifact_sha256 != expected.source_artifact_sha256 {
+        return Err("resume binding source artifact differs".to_owned());
+    }
+    if binding.tokens_sha256 != expected.tokens_sha256
+        || binding.mask_sha256 != expected.mask_sha256
+        || binding.manifest_sha256 != expected.manifest_sha256
+        || binding.tokenizer_sha256 != expected.tokenizer_sha256
+        || binding.trainer_seed != expected.trainer_seed
+        || binding.evaluation_stride != expected.evaluation_stride
+        || binding.max_evaluation != expected.max_evaluation
+    {
+        return Err("resume binding corpus, seed or split differs".to_owned());
+    }
+    if binding.checkpoint_sha256 != checkpoint_sha256 {
+        return Err("resume binding checkpoint hash differs".to_owned());
+    }
+    let trainer = CpuRankMarginTrainer::resume(&checkpoint, samples)
+        .map_err(|error| format!("resume checkpoint: {error}"))?;
+    if trainer.step_count() != binding.completed_steps {
+        return Err("resume binding completed step differs from checkpoint".to_owned());
+    }
+    Ok((
+        trainer,
+        serde_json::json!({
+            "checkpoint_path": checkpoint_path,
+            "checkpoint_sha256": checkpoint_sha256,
+            "binding_path": binding_path,
+            "binding_sha256": uor_r4_discrete::corpus::sha256(&binding_bytes),
+            "completed_steps": binding.completed_steps,
+            "verified": true,
+        }),
+    ))
 }
 
 fn write_verified_artifact(path: &Path, artifact: &[u8]) -> Result<(), String> {
@@ -317,11 +503,11 @@ fn peak_rss_kib() -> Option<u64> {
 
 fn parse_args() -> Result<Config, String> {
     let values = std::env::args().skip(1).collect::<Vec<_>>();
-    if values.len() != 10 {
+    if !matches!(values.len(), 10 | 11) {
         return Err(
             "usage: cpu-corpus-driver <artifact> <tokens.u16> <mask.u8> <manifest.json> \
              <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> \
-             <checkpoint-dir>"
+             <checkpoint-dir> [resume-checkpoint]"
                 .to_owned(),
         );
     }
@@ -344,6 +530,7 @@ fn parse_args() -> Result<Config, String> {
         max_evaluation: parse_usize(7, "max evaluation")?,
         checkpoint_every,
         checkpoint_dir: Path::new(&values[9]).to_path_buf(),
+        resume_checkpoint: values.get(10).map(PathBuf::from),
     })
 }
 
@@ -352,6 +539,14 @@ mod tests {
     use super::*;
     use uor_r4_integer::stack::export_fbs_trunk_uorlut01;
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
+
+    struct CorpusFixture {
+        root: PathBuf,
+        artifact: PathBuf,
+        tokens: PathBuf,
+        mask: PathBuf,
+        manifest: PathBuf,
+    }
 
     fn artifact() -> Vec<u8> {
         let snapshot = synthetic_fbs_trunk_with(
@@ -370,6 +565,186 @@ mod tests {
             },
         );
         export_fbs_trunk_uorlut01(&snapshot).unwrap()
+    }
+
+    fn uort(tokens: &[u16], vocab: u32) -> Vec<u8> {
+        let mut bytes = vec![0u8; 64];
+        bytes[..4].copy_from_slice(b"UORT");
+        bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+        bytes[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
+        bytes[16..20].copy_from_slice(&vocab.to_le_bytes());
+        for token in tokens {
+            bytes.extend_from_slice(&token.to_le_bytes());
+        }
+        bytes
+    }
+
+    fn corpus_fixture(label: &str) -> CorpusFixture {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-cpu-corpus-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let artifact_path = root.join("source.uorlut");
+        std::fs::write(&artifact_path, artifact()).unwrap();
+        let mut tokens = Vec::new();
+        let mut mask = Vec::new();
+        for document in 0u16..4 {
+            tokens.push(0);
+            mask.push(0);
+            for offset in 1u16..12 {
+                tokens.push(10 + document * 20 + offset);
+                mask.push(1);
+            }
+        }
+        let token_bytes = uort(&tokens, 4096);
+        let tokens_path = root.join("tokens.u16");
+        let mask_path = root.join("response_mask.u8");
+        let manifest_path = root.join("manifest.json");
+        std::fs::write(&tokens_path, &token_bytes).unwrap();
+        std::fs::write(&mask_path, &mask).unwrap();
+        let manifest = serde_json::json!({
+            "schema": "uor-r4-chat-corpus/v1",
+            "mask_schema": "uor-r4-response-mask/u8/v1",
+            "split": "train",
+            "tokens": tokens.len(),
+            "tokens_bytes": token_bytes.len(),
+            "tokens_sha256": uor_r4_discrete::corpus::sha256(&token_bytes),
+            "mask_bytes": mask.len(),
+            "mask_sha256": uor_r4_discrete::corpus::sha256(&mask),
+            "response_tokens": mask.iter().filter(|&&value| value == 1).count(),
+            "max_tokens": 8,
+            "tokenizer": {
+                "vocab_size": 4096,
+                "bos_id": 0,
+                "sha256": "00".repeat(32)
+            }
+        });
+        std::fs::write(
+            &manifest_path,
+            serde_json::to_vec_pretty(&manifest).unwrap(),
+        )
+        .unwrap();
+        CorpusFixture {
+            root,
+            artifact: artifact_path,
+            tokens: tokens_path,
+            mask: mask_path,
+            manifest: manifest_path,
+        }
+    }
+
+    fn config(
+        fixture: &CorpusFixture,
+        steps: usize,
+        checkpoint_name: &str,
+        resume_checkpoint: Option<PathBuf>,
+    ) -> Config {
+        Config {
+            artifact: fixture.artifact.clone(),
+            tokens: fixture.tokens.clone(),
+            mask: fixture.mask.clone(),
+            manifest: fixture.manifest.clone(),
+            seed: 41,
+            steps,
+            evaluation_stride: 2,
+            max_evaluation: 16,
+            checkpoint_every: 2,
+            checkpoint_dir: fixture.root.join(checkpoint_name),
+            resume_checkpoint,
+        }
+    }
+
+    #[test]
+    fn interval_checkpoint_resume_reproduces_the_uninterrupted_run() {
+        let fixture = corpus_fixture("resume");
+        let reference = execute(&config(&fixture, 6, "reference", None)).unwrap();
+        execute(&config(&fixture, 2, "partial", None)).unwrap();
+        let interval = fixture.root.join("partial/step-000000000002.ckpt");
+        let resumed = execute(&config(&fixture, 6, "resumed", Some(interval.clone()))).unwrap();
+
+        assert_eq!(
+            reference["final_artifact"]["sha256"],
+            resumed["final_artifact"]["sha256"]
+        );
+        assert_eq!(
+            reference["final_checkpoint"]["sha256"],
+            resumed["final_checkpoint"]["sha256"]
+        );
+        assert_eq!(reference["panel_final"], resumed["panel_final"]);
+        assert_eq!(resumed["run"]["resumed_from_step"], 2);
+        assert_eq!(resumed["run"]["executed_steps"], 4);
+        assert_eq!(resumed["resume"]["verified"], true);
+
+        let binding_path = binding_path(&interval);
+        let original_binding = std::fs::read(&binding_path).unwrap();
+        let tamper_cases = [
+            (
+                "source_artifact_sha256",
+                serde_json::json!("00".repeat(32)),
+                "source artifact",
+            ),
+            (
+                "tokens_sha256",
+                serde_json::json!("00".repeat(32)),
+                "corpus, seed or split",
+            ),
+            (
+                "mask_sha256",
+                serde_json::json!("00".repeat(32)),
+                "corpus, seed or split",
+            ),
+            (
+                "manifest_sha256",
+                serde_json::json!("00".repeat(32)),
+                "corpus, seed or split",
+            ),
+            (
+                "tokenizer_sha256",
+                serde_json::json!("11".repeat(32)),
+                "corpus, seed or split",
+            ),
+            (
+                "trainer_seed",
+                serde_json::json!(99),
+                "corpus, seed or split",
+            ),
+            (
+                "evaluation_stride",
+                serde_json::json!(3),
+                "corpus, seed or split",
+            ),
+            (
+                "max_evaluation",
+                serde_json::json!(8),
+                "corpus, seed or split",
+            ),
+            (
+                "checkpoint_sha256",
+                serde_json::json!("00".repeat(32)),
+                "checkpoint hash",
+            ),
+            ("completed_steps", serde_json::json!(1), "completed step"),
+            ("schema", serde_json::json!("changed"), "schema"),
+        ];
+        for (field, value, expected_error) in tamper_cases {
+            let mut binding: serde_json::Value = serde_json::from_slice(&original_binding).unwrap();
+            binding[field] = value;
+            std::fs::write(&binding_path, serde_json::to_vec_pretty(&binding).unwrap()).unwrap();
+            let error = match execute(&config(&fixture, 6, "tampered", Some(interval.clone()))) {
+                Ok(_) => panic!("tampered {field} resumed"),
+                Err(error) => error,
+            };
+            assert!(
+                error.contains(expected_error),
+                "tampered {field} was not refused as expected: {error}"
+            );
+        }
+        std::fs::remove_dir_all(fixture.root).unwrap();
     }
 
     #[test]
