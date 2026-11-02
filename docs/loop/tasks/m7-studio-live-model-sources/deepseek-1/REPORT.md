@@ -44,7 +44,7 @@ References #3440. The item stays ready in this PR; the live publish below is the
 - node web/studio/verify_desktop_client.mjs -> all offline page & desktop client checks passed (pageWired:false).
 - headless-Chrome page E2E (local helper, not committed): boot, load bundled demo (469,252 B, lut-stack/1 synthetic stand-in, 15,968 weights/token), generate 32 tokens (3,855 tok/s), add/use an API source with the privacy badge, editor autosave and Use-as-prompt.
 - scripts/studio/build-and-publish.sh dry run -> staged tree, DRY RUN nothing pushed.
-- cargo run -q --locked -p uor-r4-claim-wording -- . ; git diff --check ; uor-harness loop pr-check --local -> pass.
+- `cargo run -q --locked -p uor-r4-claim-wording -- .` and `git diff --check` passed; the local PR check passed.
 - The exact-head review record is posted at the head before this PR goes ready; the five required checks carry policy: pass (run <id>).
 
 ## Skills used

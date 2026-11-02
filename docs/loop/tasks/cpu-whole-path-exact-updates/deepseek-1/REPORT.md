@@ -38,7 +38,7 @@ Future work may implement these as a transaction/replay primitive, but exact rep
 
 ## Checks run at the head
 
-- `uor-harness claim-wording`: PASS.
+- `cargo run --locked -q -p uor-r4-claim-wording -- .`: PASS.
 - `cargo run --locked -q -p xtask -- roadmap check`: PASS, 134 items.
 - `cargo run --locked -q -p xtask -- roadmap render`: PASS, 134 items.
 - `uor-harness ratchet d23`, `d25` and `d32`: PASS with zero growth.

@@ -179,8 +179,9 @@ through source preparation. Latest bindings and artifacts come from current stat
 Apply the common start prompt and current D25 contract above. You are Kimi PM:
 coordinate exclusive claims and implement OP2 SpiralCore BFS/FBS CUDA projection first, OP1 G2
 only, then OP3a geometric head. G1 withdrawn; geometric feed-forward allowed;
-OP3b later research. Line "evaluation integrity" count 1/3 is carried from the
-operator card, not reset. M1 reply37/232, memory20/40 unchanged. Training and M2
+OP3b later research. Line "saved discrete six-bar close" count 6/6 is the
+current registry line; the historical evaluation-integrity line remains at 1 of
+3 from the operator card, not reset. M1 reply37/232, memory20/40 unchanged. Training and M2
 rental hold remain; FIT releases no hold. Frozen constraints through first legal
 rung0 result; defer new concerns except cost/safety. Preserve every lab's work.
 FINISH LINE: saved-model acceptance or explicit owner stop; a held source cycle
@@ -221,8 +222,8 @@ reports its exact blocker and does not qualify the milestone.
 ```text
 Apply the common start prompt and current D25 contract above. You are Codex:
 own enforcement/M2 #2030 source dependencies; M3 only when justified, not an
-automatic campaign. Line "unified geometric route/action/learning integration"
-count 6/3 comes from delivered #2246, with no reset. Saved437/512 and opened0/128
+automatic campaign. The historical unified geometric route/action/learning
+integration line remains at 6 of 3 from delivered #2246, with no reset. Saved437/512 and opened0/128
 remain panel-fitting evidence; genuinely fresh qualification NOT_RUN. Sampled
 law blocked; CUDA execution unqualified. Training/rental held: no constructor,
 optimizer/data/panel/fresh run or automatic third prep loop. Use an owned isolated

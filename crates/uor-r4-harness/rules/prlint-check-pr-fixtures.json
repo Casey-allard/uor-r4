@@ -1,6 +1,6 @@
 {
   "_": [
-    "GOLDEN FIXTURES for prlint.check_pr, captured from PYTHON on 2026-10-14.",
+    "GOLDEN FIXTURES for prlint.check_pr, captured from the archived Python reference on 2026-11-02 against the current milestone registry.",
     "",
     "WHY: check_pr is the dispatcher - it is what makes the thirteen ported gates REACHABLE. A gate",
     "that agrees in isolation and a dispatcher that runs them in the wrong ORDER both pass their own",
@@ -76,13 +76,13 @@
           "tick `Checks run at this exact head` and paste the commands "
         ]
       ],
-      "summary": "lint exact addressed memory 0/3: OK - 0 error, 2 warn"
+      "summary": "lint learned grounding and abstention 0/3: OK - 0 error, 2 warn"
     },
     {
       "name": "complete",
       "ok": true,
       "problems": [],
-      "summary": "lint exact addressed memory 0/3: OK - 0 error, 0 warn (contract complete)"
+      "summary": "lint learned grounding and abstention 0/3: OK - 0 error, 0 warn (contract complete)"
     },
     {
       "name": "unknown-line",
@@ -91,8 +91,14 @@
         [
           "prlint.count_matches_registry",
           "warn",
-          "line 'nope not a line' is not in M1's registry lines (exact ",
-          "rename the line to one of: exact addressed memory, evaluatio"
+          "line 'nope not a line' is not in M1's registry lines (saved ",
+          "rename the line to one of: saved discrete six-bar close - renaming"
+        ],
+        [
+          "prlint.headline_vs_registry",
+          "warn",
+          "after 37/232 does not match the registry headline for M1 #2029",
+          "state the move (`headline 37/232 \u2192 after`) or correct the"
         ],
         [
           "prlint.record_path",
@@ -107,7 +113,7 @@
           "tick `Checks run at this exact head` and paste the commands "
         ]
       ],
-      "summary": "lint nope not a line 0/3: OK - 0 error, 3 warn"
+      "summary": "lint nope not a line 0/3: OK - 0 error, 4 warn"
     }
   ]
 }

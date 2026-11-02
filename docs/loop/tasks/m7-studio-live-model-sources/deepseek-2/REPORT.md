@@ -30,7 +30,7 @@ Live evidence (re-checked before recording): gh-pages d8e67c66976f19af86beb0dd10
 - gh api pages/builds/latest -> built at the gh-pages commit.
 - cargo run -q --locked -p xtask -- roadmap check -> 115 items OK (ready 17, done 87); roadmap render --check -> current.
 - cargo run -q --locked -p uor-r4-claim-wording -- . ; git diff --check -> pass.
-- uor-harness loop pr-check --local -> PASS; the five required checks carry policy: pass (run <id>).
+- `uor-harness loop pr-check --local` passed; the five required checks carry policy: pass (run ID).
 - The exact-head review record is posted at the head before this PR goes ready.
 
 ## Skills used

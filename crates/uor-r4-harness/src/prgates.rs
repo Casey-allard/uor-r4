@@ -613,7 +613,7 @@ mod registry_gate_tests {
         assert_eq!(p[0].severity, "warn");
         assert_eq!(
             p[0].message,
-            "line 'a line that does not exist' is not in M1's registry lines (exact addressed memory, evaluation integrity)"
+            "line 'a line that does not exist' is not in M1's registry lines (saved discrete six-bar close)"
         );
     }
 
@@ -625,19 +625,19 @@ mod registry_gate_tests {
     /// below it and *must* be reported.
     #[test]
     fn a_count_below_the_registry_is_reported() {
-        let body = "Line: unified geometric route/action/learning integration | count 0/3 | headline 437/512 -> 437/512\nDecision: KEEP\nReferences #2030\n";
+        let body = "Line: saved discrete six-bar close | count 5/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         let p = count_matches_registry(&fields(body), &regs());
         assert_eq!(p.len(), 1, "{p:?}");
         assert_eq!(
             p[0].message,
-            "declares 0/3 but docs/harness/milestones.json has 12/3 for line 'unified geometric route/action/learning integration'"
+            "declares 5/6 but docs/harness/milestones.json has 6/6 for line 'saved discrete six-bar close'"
         );
     }
 
     /// A count **at** the registry's raises nothing: this gate reports a reset, not agreement.
     #[test]
     fn a_count_at_the_registry_is_silent() {
-        let body = "Line: unified geometric route/action/learning integration | count 12/3 | headline 437/512 -> 437/512\nDecision: KEEP\nReferences #2030\n";
+        let body = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         assert!(count_matches_registry(&fields(body), &regs()).is_empty());
     }
 
@@ -645,7 +645,7 @@ mod registry_gate_tests {
     /// nag a lab whose body agrees with the registry.
     #[test]
     fn a_known_line_at_its_registry_count_is_silent() {
-        let body = "Line: evaluation integrity | count 1/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let body = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         assert!(count_matches_registry(&fields(body), &regs()).is_empty());
     }
 
@@ -662,7 +662,7 @@ mod registry_gate_tests {
     /// here: whether that is intended is a policy question, and the port matches Python either way.**
     #[test]
     fn the_headline_gate_fires_only_on_a_self_contradicting_body() {
-        let firing = "Line: exact addressed memory | count 0/3 | headline 5/232 -> 5/232\nDecision: KEEP\nReferences #2029\n";
+        let firing = "Line: saved discrete six-bar close | count 6/6 | headline 5/6 -> 5/6\nDecision: KEEP\nReferences #2029\n";
         let p = headline_vs_registry(&fields(firing), &regs());
         assert_eq!(
             p.len(),
@@ -677,14 +677,14 @@ mod registry_gate_tests {
             p[0].message
         );
         assert!(
-            p[0].message.contains("reply acceptable 37/232"),
+            p[0].message.contains("M1 closing bars 6/6"),
             "{}",
             p[0].message
         );
 
         // A body that STATES its move is never reported, even when the after value is nowhere near
         // the registry - because D21 lets a line move, and saying so is the whole declaration.
-        let moved = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 116/232\nDecision: KEEP\nReferences #2029\n";
+        let moved = "Line: saved discrete six-bar close | count 6/6 | headline 5/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         assert!(
             headline_vs_registry(&fields(moved), &regs()).is_empty(),
             "a stated move is the declaration, not an exception to it"
@@ -695,17 +695,20 @@ mod registry_gate_tests {
     /// a substring of another still finds its own.
     #[test]
     fn norm_and_find_line_prefer_the_exact_match() {
-        assert_eq!(norm("Exact  Addressed--Memory"), "exact addressed memory");
+        assert_eq!(
+            norm("Saved  Discrete--Six Bar Close"),
+            "saved discrete six bar close"
+        );
         assert_eq!(norm("---"), "");
         let r = regs();
         let m1 = r.milestones.iter().find(|m| m.id == "M1").expect("M1");
         assert_eq!(
-            find_line(Some(m1), "exact addressed memory").map(|l| l.name.clone()),
-            Some("exact addressed memory".into())
+            find_line(Some(m1), "saved discrete six-bar close").map(|l| l.name.clone()),
+            Some("saved discrete six-bar close".into())
         );
         // A substring either way still resolves, which is the second pass.
-        assert!(find_line(Some(m1), "addressed memory").is_some());
-        assert!(find_line(Some(m1), "memory").is_some());
+        assert!(find_line(Some(m1), "discrete six-bar").is_some());
+        assert!(find_line(Some(m1), "six-bar").is_some());
         assert!(find_line(Some(m1), "nothing like it").is_none());
     }
 
@@ -716,12 +719,12 @@ mod registry_gate_tests {
     fn the_milestone_is_the_one_the_body_is_about() {
         let r = regs();
         // Names M1's line, so M1 scores 3 on the line match regardless of issue order.
-        let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nReferences #2032 #2029\n";
+        let body = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nReferences #2032 #2029\n";
         let f = fields(body);
         assert_eq!(find_milestone(&r, &f).map(|m| m.id), Some("M1".into()));
 
         // Names M4's line -> M4.
-        let body4 = "Line: wide learned flock read | count 0/3 | headline 37/232 -> 37/232\nReferences #2032\n";
+        let body4 = "M4\nReferences #2032\n";
         assert_eq!(
             find_milestone(&r, &fields(body4)).map(|m| m.id),
             Some("M4".into())
@@ -747,15 +750,19 @@ pub fn pivot_at_three(f: &crate::prbody::Fields, regs: &Registries, today: &str)
     };
     let count = f.line_count;
     let reg_count = line.and_then(|l| l.count.as_i64());
+    let reg_of = line.and_then(|l| l.of.as_i64()).or(f.line_of).unwrap_or(3);
     let declared_three = count.is_some_and(|c| c >= 3);
     let registry_three = reg_count.is_some_and(|c| c >= 3);
     if !(declared_three || registry_three) || f.has_pivot {
         return Vec::new();
     }
     let where_ = if declared_three {
-        format!("{}/3 declared", count.unwrap_or(0))
+        format!("{}/{} declared", count.unwrap_or(0), f.line_of.unwrap_or(3))
     } else {
-        format!("registry count {}/3", reg_count.unwrap_or(0))
+        format!(
+            "registry count {reg_count_unwrap}/{reg_of}",
+            reg_count_unwrap = reg_count.unwrap_or(0)
+        )
     };
     let issue = milestone
         .as_ref()
@@ -871,40 +878,40 @@ mod pivot_record_tests {
     /// check whether the line really moved.
     #[test]
     fn both_branches_of_the_pivot_gate_are_reported_with_pythons_text() {
-        let registry_side = "Line: starling read | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2032\n";
+        let registry_side = "Line: saved discrete six-bar close | count 0/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         let p = pivot_at_three(&fields(registry_side), &regs(), "2026-10-14");
         assert_eq!(p.len(), 1, "{p:?}");
         assert_eq!(p[0].severity, "error");
         assert_eq!(
             p[0].message,
-            "line 'starling read' is at registry count 3/3 and the body announces no pivot"
+            "line 'saved discrete six-bar close' is at registry count 6/6 and the body announces no pivot"
         );
         assert!(
-            p[0].fix.contains("this PR is a pivot card on #2032"),
+            p[0].fix.contains("this PR is a pivot card on #2029"),
             "{}",
             p[0].fix
         );
 
-        let declared_side = "Line: exact addressed memory | count 3/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let declared_side = "Line: fixture pivot | count 3/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
         let p2 = pivot_at_three(&fields(declared_side), &regs(), "2026-10-14");
         assert_eq!(p2.len(), 1, "{p2:?}");
         assert_eq!(
             p2[0].message,
-            "line 'exact addressed memory' is at 3/3 declared and the body announces no pivot"
+            "line 'fixture pivot' is at 3/3 declared and the body announces no pivot"
         );
     }
 
     /// **Announcing a pivot silences it** — the gate asks for a decision, not for the line to stop.
     #[test]
     fn an_announced_pivot_silences_the_gate() {
-        let body = "Line: starling read | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\npivot card\nReferences #2032\n";
+        let body = "Line: saved discrete six-bar close | count 0/6 | headline 6/6 -> 6/6\nDecision: KEEP\npivot card\nReferences #2029\n";
         assert!(pivot_at_three(&fields(body), &regs(), "2026-10-14").is_empty());
     }
 
     /// A line below three raises nothing, so the gate does not nag every ordinary PR.
     #[test]
     fn a_line_below_three_is_silent() {
-        let body = "Line: evaluation integrity | count 1/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let body = "Line: learned grounding and abstention | count 0/3 | headline 0/1 -> 0/1\nDecision: KEEP\nReferences #2031\n";
         assert!(pivot_at_three(&fields(body), &regs(), "2026-10-14").is_empty());
     }
 
@@ -912,7 +919,7 @@ mod pivot_record_tests {
     /// describing a record it never wrote.
     #[test]
     fn both_record_path_branches_are_reported_with_pythons_text() {
-        let none = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let none = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n";
         let p = record_path(&fields(none), &repo(), "2026-10-14");
         assert_eq!(p.len(), 1, "{p:?}");
         assert_eq!(p[0].severity, "warn");
@@ -926,7 +933,7 @@ mod pivot_record_tests {
             "the fix names TODAY, which is why the date is a parameter"
         );
 
-        let missing = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/nope-2026-01-01/README.md\nReferences #2029\n";
+        let missing = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nRecord: docs/labs/nope-2026-01-01/README.md\nReferences #2029\n";
         let p2 = record_path(&fields(missing), &repo(), "2026-10-14");
         assert_eq!(p2.len(), 1, "{p2:?}");
         assert_eq!(
@@ -939,13 +946,13 @@ mod pivot_record_tests {
     /// usable: it must not report a lab that wrote its record.
     #[test]
     fn an_existing_record_is_silent() {
-        let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/prlint-registry-gates-2026-10-14/README.md\nReferences #2029\n";
+        let body = "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nRecord: docs/labs/prlint-registry-gates-2026-10-14/README.md\nReferences #2029\n";
         let p = record_path(&fields(body), &repo(), "2026-10-14");
         assert!(p.is_empty(), "an existing record must be silent: {p:?}");
     }
 
     const KEEP: &str =
-        "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n";
+        "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\n";
 
     /// Dated records moved byte-identically to `archive/evidence/…`; the parser still finds them.
     #[test]
@@ -1744,8 +1751,8 @@ mod check_pr_tests {
             let name = case.get("name").and_then(|v| v.as_str()).unwrap_or("?");
             let body = match name {
                 "empty" => "",
-                "minimal" => "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
-                "complete" => "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n- [x] Checks run at this exact head\n```\ncargo test -p uor-r4-harness\n```\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\nReferences #2029\n",
+                "minimal" => "Line: learned grounding and abstention | count 0/3 | headline 0/1 -> 0/1\nDecision: KEEP\nReferences #2031\n",
+                "complete" => "Line: learned grounding and abstention | count 0/3 | headline 0/1 -> 0/1\nDecision: KEEP\n- [x] Checks run at this exact head\n```\ncargo test -p uor-r4-harness\n```\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\nReferences #2031\n",
                 "unknown-line" => "Line: nope not a line | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
                 _ => continue,
             };
@@ -2200,17 +2207,17 @@ mod gates_declared_tests {
             ("empty", String::new()),
             ("no-line", "Decision: KEEP\nReferences #2029\n".into()),
             ("unknown-line", "Line: nope not a line | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n".into()),
-            ("count-below-registry", "Line: unified geometric route/action/learning integration | count 0/3 | headline 437/512 -> 437/512\nDecision: KEEP\nReferences #2030\n".into()),
-            ("no-headline-number", "Line: exact addressed memory | count 0/3\nDecision: KEEP\nReferences #2029\n".into()),
-            ("headline-not-moving", "Line: exact addressed memory | count 0/3 | headline 5/232 -> 5/232\nDecision: KEEP\nReferences #2029\n".into()),
-            ("registry-line-at-three", "Line: starling read | count 0/3 | headline 1/2 -> 1/2\nDecision: KEEP\nReferences #2032\n".into()),
-            ("no-decision", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nReferences #2029\n".into()),
-            ("no-record", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
-            ("claims-current-state", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nAdded a newest-first entry to docs/integration/current-state.md\n- [x] Checks run at this exact head\nReferences #2036\n".into()),
-            ("compute-without-prereg", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe model was evaluated over 200 rows.\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
-            ("cpu-claim", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe evaluation ran on the laptop with 200 rows accepted.\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
-            ("no-checks-no-commands", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\nReferences #2029\n".into()),
-            ("no-link", "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n- [x] Checks run at this exact head\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\n".into()),
+            ("count-below-registry", "Line: saved discrete six-bar close | count 5/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n".into()),
+            ("no-headline-number", "Line: saved discrete six-bar close | count 6/6\nDecision: KEEP\nReferences #2029\n".into()),
+            ("headline-not-moving", "Line: saved discrete six-bar close | count 6/6 | headline 5/6 -> 5/6\nDecision: KEEP\nReferences #2029\n".into()),
+            ("registry-line-at-three", "Line: saved discrete six-bar close | count 0/6 | headline 6/6 -> 6/6\nDecision: KEEP\nReferences #2029\n".into()),
+            ("no-decision", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nReferences #2029\n".into()),
+            ("no-record", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
+            ("claims-current-state", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nAdded a newest-first entry to docs/integration/current-state.md\n- [x] Checks run at this exact head\nReferences #2036\n".into()),
+            ("compute-without-prereg", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nThe model was evaluated over 200 rows.\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
+            ("cpu-claim", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nThe evaluation ran on the laptop with 200 rows accepted.\n- [x] Checks run at this exact head\nReferences #2029\n".into()),
+            ("no-checks-no-commands", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\nReferences #2029\n".into()),
+            ("no-link", "Line: saved discrete six-bar close | count 6/6 | headline 6/6 -> 6/6\nDecision: KEEP\n- [x] Checks run at this exact head\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\n".into()),
         ]
     }
 

@@ -30,7 +30,7 @@ No measurement. Roadmap counts at the head: 115 items OK; by status ready 18, he
 - cargo run -q --locked -p xtask -- roadmap render --check -> current.
 - cargo run -q --locked -p xtask -- roadmap sync (dry) -> exactly one create and the #2035 checklist change.
 - cargo run -q --locked -p xtask -- roadmap sync --apply -> created #3440, updated #2035, wrote the generated files.
-- cargo run -q --locked -p uor-r4-claim-wording -- . ; git diff --check ; uor-harness loop pr-check --local -> pass.
+- `cargo run -q --locked -p uor-r4-claim-wording -- .` and `git diff --check` passed; the local PR check passed.
 - The records review also re-ran the source page's two page-load harnesses (verify_studio_page.mjs, verify_studio_page_load.mjs): both pass, external: []. That is context for the item, not a claim about a Studio change in this PR.
 - The exact-head review record is posted at the head before this PR goes ready.
 
