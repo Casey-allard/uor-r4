@@ -64,6 +64,21 @@
 //!   step on the nearest, with R's Q12 query. The session refuses an artifact off R's path.
 //! - `--force FORCE_JSON` (`uor-r4.decision-force/1`) runs only the rows it names, each under
 //!   its own forced rate buckets and codes. The rows written keep `--forced`'s format.
+//!
+//! Q5's near-tie grader (claude-254), on the laptop, on traces any side writes. A table is the
+//! side's own: R's writer table from R's artifact, T's the same divided by 4096, F's the `embed`
+//! of its `fbs-snapshot` JSON.
+//! - `--decision-deciles TRACE_JSON OUT_JSON` writes, new, G₁₀(φ, P) for every family of a
+//!   reference side's (F or T) unforced trace of a cell (`uor-r4.decision-deciles/1`).
+//! - `--decision-check TRACE_JSON --table TABLE --out OUT_JSON` checks a whole unforced trace
+//!   as the grader checks each side: every entry is the one its score selects, every float code
+//!   is its coordinates' signs, and the table reproduces every nearest's two scores
+//!   (`uor-r4.decision-check/1`).
+//! - `--decision-grade REFERENCE OTHER --deciles DECILES_JSON --g10 G --reference-table TABLE
+//!   --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON` grades
+//!   one pass of the forced replay (`grade_pass`) at each chosen position, or, without `--at`,
+//!   at every nearest of each of OTHER's windows, with each window's forced set from
+//!   `FORCE_JSON` (none without it), and writes `uor-r4.decision-grade/1` new.
 
 use std::process::{Command, ExitCode};
 use std::time::Instant;
@@ -71,17 +86,19 @@ use std::time::Instant;
 use serde::Deserialize;
 use serde_json::json;
 use uor_r4_integer::fbs_snapshot::{
-    compare_hamming_traces, copy_code_check, copy_code_reads, write_new_file, DecisionForce,
-    DecisionForceWindow, DecisionNearest, DecisionStep, DecisionTrace, DecisionWindow,
-    FbsFloatReadout, FbsReadoutMode, HammingTrace, COPY_CODES_SCHEMA, DECISION_FORCE_SCHEMA,
-    DECISION_TRACE_SCHEMA, HAMMING_TRACE_SCHEMA,
+    check_decision_trace, compare_hamming_traces, copy_code_check, copy_code_reads,
+    decision_deciles, grade_pass, write_new_file, DecisionDeciles, DecisionForce,
+    DecisionForceWindow, DecisionNearest, DecisionSource, DecisionStep, DecisionTrace,
+    DecisionWindow, FbsFloatReadout, FbsReadoutMode, GradeSide, HammingTrace, NearestTable,
+    PassOutcome, COPY_CODES_SCHEMA, DECISION_CHECK_SCHEMA, DECISION_DECILES_SCHEMA,
+    DECISION_FORCE_SCHEMA, DECISION_GRADE_SCHEMA, DECISION_TRACE_SCHEMA, HAMMING_TRACE_SCHEMA,
 };
 use uor_r4_integer::stack::{
     hamming_trace_window, panel_reply, read_hamming_uorlut01, served_copy_codes_uorlut01,
     IntegerStackModel, ReplyEnd,
 };
 
-const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]";
+const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]\n       fbs-toks --decision-deciles TRACE_JSON OUT_JSON\n       fbs-toks --decision-check TRACE_JSON --table TABLE --out OUT_JSON\n       fbs-toks --decision-grade REFERENCE_TRACE OTHER_TRACE --deciles DECILES_JSON --g10 G --reference-table TABLE --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON";
 
 /// The prefills `--context-sweep` times, each followed by `DECODE` steps (claude-235).
 const SWEEP_PREFILLS: [usize; 4] = [32, 64, 96, 128];
@@ -160,6 +177,300 @@ fn hamming_trace_compare(first: &str, second: &str) -> Result<(), String> {
             "second": { "path": second, "side": b.side, "arm": b.arm },
             "comparison": comparison,
         })
+    );
+    Ok(())
+}
+
+/// A file's sha256, in hex.
+fn sha256_hex(bytes: &[u8]) -> String {
+    hex::encode(<sha2::Sha256 as sha2::Digest>::digest(bytes))
+}
+
+/// The decision trace at `path` and its file's sha256.
+fn read_decision_trace(path: &str) -> Result<(DecisionTrace, String), String> {
+    let text = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+    let trace = serde_json::from_slice(&text).map_err(|e| format!("{path}: {e}"))?;
+    Ok((trace, sha256_hex(&text)))
+}
+
+/// A side's own nearest table, owned (claude-247): R's writer table at Q12 and T's, that table
+/// divided by 4096, from R's artifact; F's float table, its snapshot's `embed`.
+enum OwnedTable {
+    Q12(Vec<i16>, usize),
+    F32(Vec<f32>, usize),
+}
+
+impl OwnedTable {
+    fn view(&self) -> NearestTable<'_> {
+        match self {
+            OwnedTable::Q12(table, width) => NearestTable::Q12 {
+                table,
+                width: *width,
+            },
+            OwnedTable::F32(table, width) => NearestTable::F32 {
+                table,
+                width: *width,
+            },
+        }
+    }
+}
+
+/// Side `side`'s own table from the file at `path`, and the file's sha256.
+fn load_table(side: &str, path: &str) -> Result<(OwnedTable, String), String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+    let sha = sha256_hex(&bytes);
+    let table = if side == "F" {
+        #[derive(Deserialize)]
+        struct Embed {
+            vocab: usize,
+            width: usize,
+            embed: Vec<f32>,
+        }
+        let snapshot: Embed = serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))?;
+        if snapshot.embed.len() != snapshot.vocab * snapshot.width {
+            return Err(format!(
+                "{path}: the embed is not {} rows of {}",
+                snapshot.vocab, snapshot.width
+            ));
+        }
+        OwnedTable::F32(snapshot.embed, snapshot.width)
+    } else {
+        let served = served_copy_codes_uorlut01(&bytes)
+            .map_err(|e| format!("{path}: the Hamming reads: {e}"))?
+            .ok_or_else(|| {
+                format!("{path}: the artifact has no Hamming read to take its writer table from")
+            })?;
+        if served.table.len() != served.vocab * served.width {
+            return Err(format!(
+                "{path}: the writer table is not {} rows of {}",
+                served.vocab, served.width
+            ));
+        }
+        match side {
+            "R" => OwnedTable::Q12(served.table, served.width),
+            "T" => OwnedTable::F32(
+                served
+                    .table
+                    .iter()
+                    .map(|&v| f32::from(v) / 4096.0)
+                    .collect(),
+                served.width,
+            ),
+            _ => return Err(format!("{path}: side {side} has no table; F, R and T do")),
+        }
+    };
+    Ok((table, sha))
+}
+
+/// `--decision-deciles` (claude-254): G₁₀(φ, P) for every family of the reference side's
+/// unforced trace at `trace`, written new to `out`; it prints the trace's and the file's sha256.
+fn decision_deciles_out(trace: &str, out: &str) -> Result<(), String> {
+    let (decisions, sha) = read_decision_trace(trace)?;
+    let mut deciles = decision_deciles(&decisions)?;
+    deciles.trace = Some(DecisionSource {
+        path: trace.to_owned(),
+        sha256: sha.clone(),
+    });
+    let text = serde_json::to_vec_pretty(&deciles).map_err(|e| e.to_string())?;
+    write_new_file(std::path::Path::new(out), &text).map_err(|e| format!("{out}: {e}"))?;
+    println!(
+        "{}",
+        json!({
+            "schema": DECISION_DECILES_SCHEMA,
+            "trace": { "path": trace, "sha256": sha, "side": decisions.side },
+            "families": deciles.families.len(),
+            "out": out,
+            "sha256": sha256_hex(&text),
+        })
+    );
+    Ok(())
+}
+
+/// `--decision-check` (claude-254): `check_decision_trace` on the unforced trace at `trace`
+/// with its side's own table at `table`, written new to `out`.
+fn decision_check_out(trace: &str, table: &str, out: &str) -> Result<(), String> {
+    let (decisions, sha) = read_decision_trace(trace)?;
+    let (owned, table_sha) = load_table(&decisions.side, table)?;
+    let check = check_decision_trace(&decisions, owned.view())?;
+    let record = json!({
+        "schema": DECISION_CHECK_SCHEMA,
+        "trace": { "path": trace, "sha256": sha, "side": decisions.side },
+        "table": { "path": table, "sha256": table_sha },
+        "check": check,
+    });
+    let text = serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?;
+    write_new_file(std::path::Path::new(out), &text).map_err(|e| format!("{out}: {e}"))?;
+    println!(
+        "{}",
+        json!({ "schema": DECISION_CHECK_SCHEMA, "check": check, "out": out, "sha256": sha256_hex(&text) })
+    );
+    Ok(())
+}
+
+/// `--decision-grade` (claude-254): one pass of the forced replay (`grade_pass`) at each chosen
+/// position, written new as `uor-r4.decision-grade/1`. `args` are the whole command line.
+fn decision_grade_out(args: &[String]) -> Result<(), String> {
+    let [_, reference, other, rest @ ..] = args else {
+        return Err(USAGE.to_owned());
+    };
+    let (mut deciles, mut g10, mut reference_table, mut other_table, mut force, mut out) =
+        (None, None, None, None, None, None);
+    let mut at = Vec::new();
+    let mut rest = rest.iter();
+    while let Some(flag) = rest.next() {
+        let value = rest.next().ok_or_else(|| USAGE.to_owned())?;
+        let slot = match flag.as_str() {
+            "--deciles" => &mut deciles,
+            "--g10" => &mut g10,
+            "--reference-table" => &mut reference_table,
+            "--other-table" => &mut other_table,
+            "--force" => &mut force,
+            "--out" => &mut out,
+            "--at" => {
+                let parsed = value
+                    .split_once(':')
+                    .and_then(|(p, o)| Some((p.parse::<usize>().ok()?, o.parse::<usize>().ok()?)));
+                at.push(parsed.ok_or_else(|| format!("--at {value}: not POSITION:OFFSET"))?);
+                continue;
+            }
+            _ => return Err(USAGE.to_owned()),
+        };
+        if slot.replace(value.as_str()).is_some() {
+            return Err(USAGE.to_owned());
+        }
+    }
+    let (Some(deciles_path), Some(g10), Some(reference_table), Some(other_table), Some(out)) =
+        (deciles, g10, reference_table, other_table, out)
+    else {
+        return Err(USAGE.to_owned());
+    };
+    let mut named = at.clone();
+    named.sort_unstable();
+    if let Some(p) = named.windows(2).find(|p| p[0] == p[1]) {
+        return Err(format!("--at {}:{} is named twice", p[0].0, p[0].1));
+    }
+    let g10: i64 = g10.parse().map_err(|e| format!("--g10 {g10}: {e}"))?;
+    let (rt, reference_sha) = read_decision_trace(reference)?;
+    let (ot, other_sha) = read_decision_trace(other)?;
+    let deciles_text = std::fs::read(deciles_path).map_err(|e| format!("{deciles_path}: {e}"))?;
+    let deciles: DecisionDeciles =
+        serde_json::from_slice(&deciles_text).map_err(|e| format!("{deciles_path}: {e}"))?;
+    let (rtab, rtab_sha) = load_table(&rt.side, reference_table)?;
+    let (otab, otab_sha) = load_table(&ot.side, other_table)?;
+    let (phi, force_record) = match force {
+        None => (Vec::new(), serde_json::Value::Null),
+        Some(path) => {
+            let text = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+            let set: DecisionForce =
+                serde_json::from_slice(&text).map_err(|e| format!("{path}: {e}"))?;
+            if set.schema != DECISION_FORCE_SCHEMA {
+                return Err(format!(
+                    "{path}: the schema is {}, not {DECISION_FORCE_SCHEMA}",
+                    set.schema
+                ));
+            }
+            let mut positions: Vec<usize> = set.windows.iter().map(|w| w.position).collect();
+            positions.sort_unstable();
+            if positions.windows(2).any(|p| p[0] == p[1]) {
+                return Err(format!("{path}: a position has two forced sets"));
+            }
+            (
+                set.windows,
+                json!({ "path": path, "sha256": sha256_hex(&text) }),
+            )
+        }
+    };
+    // Each chosen position, or every nearest of each of the other side's windows, as offsets.
+    let chosen: Vec<(usize, usize)> = if at.is_empty() {
+        ot.windows
+            .iter()
+            .flat_map(|w| {
+                let steps = w.steps.iter().enumerate().skip(w.reply_start);
+                steps
+                    .filter(|(_, s)| s.nearest.is_some())
+                    .map(|(t, _)| (w.position, t - w.reply_start))
+            })
+            .collect()
+    } else {
+        at
+    };
+    let sides = (
+        GradeSide {
+            trace: &rt,
+            table: rtab.view(),
+        },
+        GradeSide {
+            trace: &ot,
+            table: otab.view(),
+        },
+    );
+    let mut counts = std::collections::BTreeMap::<&str, usize>::new();
+    let mut passes = Vec::with_capacity(chosen.len());
+    for (position, offset) in chosen {
+        let place = format!("position {position}, offset {offset}");
+        let window = ot
+            .windows
+            .iter()
+            .find(|w| w.position == position)
+            .ok_or_else(|| format!("{place}: the other trace has no such window"))?;
+        let step = window
+            .reply_start
+            .checked_add(offset)
+            .filter(|&s| s < window.steps.len())
+            .ok_or_else(|| format!("{place}: past the window's {} steps", window.steps.len()))?;
+        let none = DecisionForceWindow {
+            position,
+            ..Default::default()
+        };
+        let forced = phi.iter().find(|f| f.position == position).unwrap_or(&none);
+        let outcome = grade_pass(sides.0, sides.1, &deciles, position, step, forced, g10)
+            .map_err(|e| format!("{place}: {e}"))?;
+        let (kind, near_tie) = match &outcome {
+            PassOutcome::Bucket { near_tie, .. } => ("bucket", *near_tie),
+            PassOutcome::Code { near_tie, .. } => ("code", *near_tie),
+            PassOutcome::Kept { .. } => ("kept", false),
+            PassOutcome::Memory { .. } => ("memory", false),
+            PassOutcome::Nearest {
+                near_tie,
+                reference_pick,
+                other_pick,
+                ..
+            } => {
+                if reference_pick == other_pick {
+                    *counts.entry("nearest_equal").or_default() += 1;
+                }
+                ("nearest", *near_tie)
+            }
+        };
+        *counts.entry(kind).or_default() += 1;
+        *counts.entry("near_tie").or_default() += usize::from(near_tie);
+        passes.push(json!({
+            "position": position,
+            "offset": offset,
+            "step": step,
+            "forced": forced.buckets.len() + forced.codes.len(),
+            "outcome": outcome,
+        }));
+    }
+    let record = json!({
+        "schema": DECISION_GRADE_SCHEMA,
+        "reference": { "path": reference, "sha256": reference_sha, "side": rt.side },
+        "other": { "path": other, "sha256": other_sha, "side": ot.side },
+        "reference_table": { "path": reference_table, "sha256": rtab_sha },
+        "other_table": { "path": other_table, "sha256": otab_sha },
+        // The cell's whole trace the deciles were read from, which may be more than `reference`.
+        "deciles": { "path": deciles_path, "sha256": sha256_hex(&deciles_text), "trace": deciles.trace },
+        "force": force_record,
+        "g10": g10,
+        "passes": passes.len(),
+        "counts": counts,
+        "graded": passes,
+    });
+    let text = serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?;
+    write_new_file(std::path::Path::new(out), &text).map_err(|e| format!("{out}: {e}"))?;
+    println!(
+        "{}",
+        json!({ "schema": DECISION_GRADE_SCHEMA, "passes": record["passes"], "counts": record["counts"], "out": out, "sha256": sha256_hex(&text) })
     );
     Ok(())
 }
@@ -967,9 +1278,23 @@ fn run() -> Result<(), String> {
         let model = IntegerStackModel::parse(&bytes).map_err(|e| format!("parse: {e}"))?;
         return forced(&model, &bytes, prompts, out, trace, force);
     }
+    if args.first().is_some_and(|a| a == "--decision-grade") {
+        return decision_grade_out(&args);
+    }
     match args.as_slice() {
         [flag, first, second] if flag == "--hamming-trace-compare" => {
             return hamming_trace_compare(first, second);
+        }
+        [flag, trace, out] if flag == "--decision-deciles" => {
+            return decision_deciles_out(trace, out);
+        }
+        [flag, trace, t, table, o, out]
+            if flag == "--decision-check" && t == "--table" && o == "--out" =>
+        {
+            return decision_check_out(trace, table, out);
+        }
+        [flag, ..] if flag == "--decision-deciles" || flag == "--decision-check" => {
+            return Err(USAGE.to_owned());
         }
         [path, flag, readout, out] if flag == "--hamming-trace" => {
             let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
