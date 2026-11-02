@@ -20,6 +20,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-counterfactual-compare": {
+    "branch": "deepseek/cpu-counterfactual-compare",
+    "claimed_at": "2026-11-02T17:28:58-05:00",
+    "head": "57ca99679",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/cpu-discrete-corpus": {
     "branch": "deepseek/cpu-discrete-corpus",
     "claimed_at": "2026-11-02T07:31:49-05:00",

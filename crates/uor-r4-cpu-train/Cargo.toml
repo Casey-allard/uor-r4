@@ -56,5 +56,9 @@ name = "cpu-corpus-driver"
 path = "src/bin/cpu-corpus-driver.rs"
 
 [[bin]]
+name = "cpu-counterfactual-corpus-driver"
+path = "src/bin/cpu-counterfactual-corpus-driver.rs"
+
+[[bin]]
 name = "cpu-discrete-corpus-driver"
 path = "src/bin/cpu-discrete-corpus-driver.rs"
