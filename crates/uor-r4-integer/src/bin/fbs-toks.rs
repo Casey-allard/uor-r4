@@ -79,6 +79,17 @@
 //!   one pass of the forced replay (`grade_pass`) at each chosen position, or, without `--at`,
 //!   at every nearest of each of OTHER's windows, with each window's forced set from
 //!   `FORCE_JSON` (none without it), and writes `uor-r4.decision-grade/1` new.
+//! - `ARTIFACT --decision-replay REFERENCE --prompts PROMPTS_JSON --deciles DECILES_JSON --g10 G
+//!   --reference-table TABLE [--at POSITION:OFFSET]... --out OUT_JSON` (claude-256) runs the
+//!   whole forced replay (`replay_step`) of the arithmetic step (T, R), R from ARTIFACT as Q, at
+//!   each chosen position, or, without `--at`, at every offset of REFERENCE's windows inside R's
+//!   (the row's prompt and reference) where R's unforced pick is not the reference's, the rest
+//!   counted equal. A float window reads on past the reference; its picks there are counted
+//!   beyond R's window, not compared. Each pass steps the row's prompt and its reference up to
+//!   the offset under Φ, as `--forced --force` steps a row. It
+//!   writes `uor-r4.decision-replay/1` new: each replay's passes, Φ, and whether it accounts for
+//!   its step.
+//! - Both refuse an `--at` named twice and a deciles file that names no trace.
 
 use std::process::{Command, ExitCode};
 use std::time::Instant;
@@ -87,18 +98,19 @@ use serde::Deserialize;
 use serde_json::json;
 use uor_r4_integer::fbs_snapshot::{
     check_decision_trace, compare_hamming_traces, copy_code_check, copy_code_reads,
-    decision_deciles, grade_pass, write_new_file, DecisionDeciles, DecisionForce,
+    decision_deciles, grade_pass, replay_step, write_new_file, DecisionDeciles, DecisionForce,
     DecisionForceWindow, DecisionNearest, DecisionSource, DecisionStep, DecisionTrace,
     DecisionWindow, FbsFloatReadout, FbsReadoutMode, GradeSide, HammingTrace, NearestTable,
-    PassOutcome, COPY_CODES_SCHEMA, DECISION_CHECK_SCHEMA, DECISION_DECILES_SCHEMA,
-    DECISION_FORCE_SCHEMA, DECISION_GRADE_SCHEMA, DECISION_TRACE_SCHEMA, HAMMING_TRACE_SCHEMA,
+    PassOutcome, StepReplay, COPY_CODES_SCHEMA, DECISION_CHECK_SCHEMA, DECISION_DECILES_SCHEMA,
+    DECISION_FORCE_SCHEMA, DECISION_GRADE_SCHEMA, DECISION_REPLAY_SCHEMA, DECISION_TRACE_SCHEMA,
+    HAMMING_TRACE_SCHEMA,
 };
 use uor_r4_integer::stack::{
     hamming_trace_window, panel_reply, read_hamming_uorlut01, served_copy_codes_uorlut01,
     IntegerStackModel, ReplyEnd,
 };
 
-const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]\n       fbs-toks --decision-deciles TRACE_JSON OUT_JSON\n       fbs-toks --decision-check TRACE_JSON --table TABLE --out OUT_JSON\n       fbs-toks --decision-grade REFERENCE_TRACE OTHER_TRACE --deciles DECILES_JSON --g10 G --reference-table TABLE --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON";
+const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]\n       fbs-toks --decision-deciles TRACE_JSON OUT_JSON\n       fbs-toks --decision-check TRACE_JSON --table TABLE --out OUT_JSON\n       fbs-toks --decision-grade REFERENCE_TRACE OTHER_TRACE --deciles DECILES_JSON --g10 G --reference-table TABLE --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON\n       fbs-toks ARTIFACT --decision-replay REFERENCE_TRACE --prompts PROMPTS_JSON --deciles DECILES_JSON --g10 G --reference-table TABLE [--at POSITION:OFFSET]... --out OUT_JSON";
 
 /// The prefills `--context-sweep` times, each followed by `DECODE` steps (claude-235).
 const SWEEP_PREFILLS: [usize; 4] = [32, 64, 96, 128];
@@ -217,6 +229,9 @@ impl OwnedTable {
 
 /// Side `side`'s own table from the file at `path`, and the file's sha256.
 fn load_table(side: &str, path: &str) -> Result<(OwnedTable, String), String> {
+    if !["F", "R", "T"].contains(&side) {
+        return Err(format!("{path}: side {side} has no table; F, R and T do"));
+    }
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
     let sha = sha256_hex(&bytes);
     let table = if side == "F" {
@@ -307,54 +322,103 @@ fn decision_check_out(trace: &str, table: &str, out: &str) -> Result<(), String>
     Ok(())
 }
 
+/// The named flags with their values, and each `--at POSITION:OFFSET` in order (claude-256).
+type DecisionFlags<'a> = (
+    std::collections::BTreeMap<&'a str, &'a str>,
+    Vec<(usize, usize)>,
+);
+
+/// The flags after `--decision-grade`'s or `--decision-replay`'s traces (claude-256): each of
+/// `names` at most once with its value, and `--at POSITION:OFFSET` any number of times, none
+/// named twice. Anything else is the usage.
+fn decision_flags<'a>(rest: &'a [String], names: &[&str]) -> Result<DecisionFlags<'a>, String> {
+    let (mut flags, mut at) = (std::collections::BTreeMap::new(), Vec::new());
+    let mut rest = rest.iter();
+    while let Some(flag) = rest.next() {
+        let value = rest.next().ok_or_else(|| USAGE.to_owned())?;
+        if flag == "--at" {
+            let parsed = value
+                .split_once(':')
+                .and_then(|(p, o)| Some((p.parse::<usize>().ok()?, o.parse::<usize>().ok()?)));
+            at.push(parsed.ok_or_else(|| format!("--at {value}: not POSITION:OFFSET"))?);
+        } else if !names.contains(&flag.as_str())
+            || flags.insert(flag.as_str(), value.as_str()).is_some()
+        {
+            return Err(USAGE.to_owned());
+        }
+    }
+    let mut named = at.clone();
+    named.sort_unstable();
+    if let Some(p) = named.windows(2).find(|p| p[0] == p[1]) {
+        return Err(format!("--at {}:{} is named twice", p[0].0, p[0].1));
+    }
+    Ok((flags, at))
+}
+
+/// Flag `name`'s value in `flags`, which the command needs.
+fn needed<'a>(
+    flags: &std::collections::BTreeMap<&str, &'a str>,
+    name: &str,
+) -> Result<&'a str, String> {
+    flags.get(name).copied().ok_or_else(|| USAGE.to_owned())
+}
+
+/// The deciles in the file at `path`, whose bytes are `text` (claude-254). A file that names no
+/// trace its G₁₀s were read from is refused (claude-256): no grade could say whose they are.
+fn parse_deciles(path: &str, text: &[u8]) -> Result<DecisionDeciles, String> {
+    let deciles: DecisionDeciles =
+        serde_json::from_slice(text).map_err(|e| format!("{path}: {e}"))?;
+    if deciles.trace.is_none() {
+        return Err(format!(
+            "{path}: the deciles name no trace they were read from"
+        ));
+    }
+    Ok(deciles)
+}
+
+/// The step at offset `offset` of `window`'s reply, refused past the window's steps.
+fn offset_step(window: &DecisionWindow, offset: usize) -> Result<usize, String> {
+    window
+        .reply_start
+        .checked_add(offset)
+        .filter(|&s| s < window.steps.len())
+        .ok_or_else(|| {
+            format!(
+                "position {}, offset {offset}: past the window's {} steps",
+                window.position,
+                window.steps.len()
+            )
+        })
+}
+
 /// `--decision-grade` (claude-254): one pass of the forced replay (`grade_pass`) at each chosen
 /// position, written new as `uor-r4.decision-grade/1`. `args` are the whole command line.
 fn decision_grade_out(args: &[String]) -> Result<(), String> {
     let [_, reference, other, rest @ ..] = args else {
         return Err(USAGE.to_owned());
     };
-    let (mut deciles, mut g10, mut reference_table, mut other_table, mut force, mut out) =
-        (None, None, None, None, None, None);
-    let mut at = Vec::new();
-    let mut rest = rest.iter();
-    while let Some(flag) = rest.next() {
-        let value = rest.next().ok_or_else(|| USAGE.to_owned())?;
-        let slot = match flag.as_str() {
-            "--deciles" => &mut deciles,
-            "--g10" => &mut g10,
-            "--reference-table" => &mut reference_table,
-            "--other-table" => &mut other_table,
-            "--force" => &mut force,
-            "--out" => &mut out,
-            "--at" => {
-                let parsed = value
-                    .split_once(':')
-                    .and_then(|(p, o)| Some((p.parse::<usize>().ok()?, o.parse::<usize>().ok()?)));
-                at.push(parsed.ok_or_else(|| format!("--at {value}: not POSITION:OFFSET"))?);
-                continue;
-            }
-            _ => return Err(USAGE.to_owned()),
-        };
-        if slot.replace(value.as_str()).is_some() {
-            return Err(USAGE.to_owned());
-        }
-    }
-    let (Some(deciles_path), Some(g10), Some(reference_table), Some(other_table), Some(out)) =
-        (deciles, g10, reference_table, other_table, out)
-    else {
-        return Err(USAGE.to_owned());
-    };
-    let mut named = at.clone();
-    named.sort_unstable();
-    if let Some(p) = named.windows(2).find(|p| p[0] == p[1]) {
-        return Err(format!("--at {}:{} is named twice", p[0].0, p[0].1));
-    }
+    let names = [
+        "--deciles",
+        "--g10",
+        "--reference-table",
+        "--other-table",
+        "--force",
+        "--out",
+    ];
+    let (flags, at) = decision_flags(rest, &names)?;
+    let (deciles_path, g10, reference_table, other_table, out) = (
+        needed(&flags, "--deciles")?,
+        needed(&flags, "--g10")?,
+        needed(&flags, "--reference-table")?,
+        needed(&flags, "--other-table")?,
+        needed(&flags, "--out")?,
+    );
+    let force = flags.get("--force").copied();
     let g10: i64 = g10.parse().map_err(|e| format!("--g10 {g10}: {e}"))?;
     let (rt, reference_sha) = read_decision_trace(reference)?;
     let (ot, other_sha) = read_decision_trace(other)?;
     let deciles_text = std::fs::read(deciles_path).map_err(|e| format!("{deciles_path}: {e}"))?;
-    let deciles: DecisionDeciles =
-        serde_json::from_slice(&deciles_text).map_err(|e| format!("{deciles_path}: {e}"))?;
+    let deciles = parse_deciles(deciles_path, &deciles_text)?;
     let (rtab, rtab_sha) = load_table(&rt.side, reference_table)?;
     let (otab, otab_sha) = load_table(&ot.side, other_table)?;
     let (phi, force_record) = match force {
@@ -413,11 +477,7 @@ fn decision_grade_out(args: &[String]) -> Result<(), String> {
             .iter()
             .find(|w| w.position == position)
             .ok_or_else(|| format!("{place}: the other trace has no such window"))?;
-        let step = window
-            .reply_start
-            .checked_add(offset)
-            .filter(|&s| s < window.steps.len())
-            .ok_or_else(|| format!("{place}: past the window's {} steps", window.steps.len()))?;
+        let step = offset_step(window, offset)?;
         let none = DecisionForceWindow {
             position,
             ..Default::default()
@@ -843,6 +903,43 @@ fn forced_row(position: usize, forced: &Forced) -> serde_json::Value {
     })
 }
 
+/// The decision window of the row at `position` that `forced_picks` read under a decision trace
+/// (claude-249): the prompt and the reference tokens fed, the reply from the prompt's last step.
+fn forced_window(
+    position: usize,
+    prompt: &[u32],
+    reference: &[u32],
+    forced: Forced,
+) -> Option<DecisionWindow> {
+    let fed = &reference[..forced.picks.len() - 1];
+    Some(DecisionWindow {
+        position,
+        ids: prompt.iter().chain(fed).copied().collect(),
+        reply_start: prompt.len() - 1,
+        steps: forced.steps?,
+    })
+}
+
+/// R's decision trace of `windows` on `model` (claude-249), its reads' head and kept counts
+/// from the artifact's bytes.
+fn r_decision_trace(
+    model: &IntegerStackModel,
+    artifact: &[u8],
+    windows: Vec<DecisionWindow>,
+) -> Result<DecisionTrace, String> {
+    let reads = read_hamming_uorlut01(artifact).map_err(|e| format!("the reads: {e}"))?;
+    let (heads, kept) = reads.map_or((0, 0), |r| (r.record.heads, r.record.kept));
+    Ok(DecisionTrace {
+        schema: DECISION_TRACE_SCHEMA.to_owned(),
+        side: "R".to_owned(),
+        layers: model.shape().layers(),
+        lanes: model.shape().lanes(),
+        heads,
+        kept,
+        windows,
+    })
+}
+
 /// `--forced` (integer-nearest-readout, claude-244): each panel prompt's teacher-forced top two on
 /// a nearest-head artifact (`forced_picks`), written new to `out` as a JSON array of rows. Under
 /// `trace` (claude-249) it also writes, new, each row's decisions as R's `uor-r4.decision-trace/1`;
@@ -879,32 +976,19 @@ fn forced(
         positions += forced.picks.len();
         capped += usize::from(forced.capped);
         written.push(forced_row(row.position, &forced));
-        if let Some(steps) = forced.steps {
-            let fed = &row.reference[..forced.picks.len() - 1];
-            windows.push(DecisionWindow {
-                position: row.position,
-                ids: row.prompt.iter().chain(fed).copied().collect(),
-                reply_start: row.prompt.len() - 1,
-                steps,
-            });
-        }
+        windows.extend(forced_window(
+            row.position,
+            &row.prompt,
+            &row.reference,
+            forced,
+        ));
     }
     let per_row_us = started.elapsed().as_micros() / written.len().max(1) as u128;
     let text = serde_json::to_vec(&written).map_err(|e| e.to_string())?;
     write_new_file(std::path::Path::new(out), &text).map_err(|e| format!("{out}: {e}"))?;
     let mut line = json!({ "rows": written.len(), "positions": positions, "capped": capped, "per_row_us": per_row_us as u64, "out": out, "sha256": hex::encode(<sha2::Sha256 as sha2::Digest>::digest(&text)) });
     if let Some(path) = trace {
-        let reads = read_hamming_uorlut01(artifact).map_err(|e| format!("the reads: {e}"))?;
-        let (heads, kept) = reads.map_or((0, 0), |r| (r.record.heads, r.record.kept));
-        let record = DecisionTrace {
-            schema: DECISION_TRACE_SCHEMA.to_owned(),
-            side: "R".to_owned(),
-            layers: model.shape().layers(),
-            lanes: model.shape().lanes(),
-            heads,
-            kept,
-            windows,
-        };
+        let record = r_decision_trace(model, artifact, windows)?;
         let text = serde_json::to_vec(&record).map_err(|e| e.to_string())?;
         write_new_file(std::path::Path::new(path), &text).map_err(|e| format!("{path}: {e}"))?;
         line["decision_trace"] = json!(path);
@@ -913,6 +997,333 @@ fn forced(
     }
     println!("{line}");
     Ok(())
+}
+
+/// What every replay of one `--decision-replay` run shares (claude-256): R from the artifact as
+/// Q, R's trace header (no windows), the reference side, the deciles and the cell's G₁₀.
+struct ReplayRun<'a> {
+    model: &'a IntegerStackModel,
+    header: DecisionTrace,
+    reference: GradeSide<'a>,
+    other_table: NearestTable<'a>,
+    deciles: &'a DecisionDeciles,
+    g10: i64,
+}
+
+impl ReplayRun<'_> {
+    /// The forced replay (`replay_step`) of the step at `offset` of `row`'s reply, and that
+    /// step. Each pass steps the prompt and the reference up to the offset under Φ
+    /// (`forced_picks`): the forward is causal, so a pass cut at p reads p's prefix as the whole
+    /// window does. Pass 0, with Φ empty, must pick `unforced`, R's unforced pick there
+    /// (I-Rerun).
+    fn replay(
+        &self,
+        row: &PanelPrompt,
+        offset: usize,
+        unforced: u32,
+    ) -> Result<(usize, StepReplay), String> {
+        let position = row.position;
+        let window = self
+            .reference
+            .trace
+            .windows
+            .iter()
+            .find(|w| w.position == position)
+            .ok_or_else(|| format!("position {position}: the reference has no such window"))?;
+        let step = offset_step(window, offset)?;
+        let cut = row.reference.get(..=offset).ok_or_else(|| {
+            format!(
+                "position {position}, offset {offset}: past the reference's {} tokens",
+                row.reference.len()
+            )
+        })?;
+        let replay = replay_step(
+            self.reference,
+            self.other_table,
+            self.deciles,
+            position,
+            step,
+            self.g10,
+            |phi| {
+                let forced = forced_picks(self.model, &row.prompt, cut, Some(phi))?;
+                let rerun = phi.buckets.is_empty() && phi.codes.is_empty();
+                if rerun && forced.picks.last() != Some(&unforced) {
+                    return Err(format!(
+                        "unforced, R picks {:?} at offset {offset}, not its unforced {unforced} (I-Rerun)",
+                        forced.picks.last()
+                    ));
+                }
+                let window = forced_window(position, &row.prompt, cut, forced)
+                    .ok_or("the decision trace is off")?;
+                Ok(DecisionTrace {
+                    windows: vec![window],
+                    ..self.header.clone()
+                })
+            },
+        )?;
+        Ok((step, replay))
+    }
+}
+
+/// The offsets of the reference's `window` inside R's window of `row` (its prompt and its
+/// reference less the last token) where R's unforced picks `r_picks` differ (claude-256), and how
+/// many of the window's picks (its steps with a nearest) lie past R's. A float side's window may
+/// read on past the reference; the forward is causal, so its first offsets read R's tokens. A
+/// window that does not start its reply at the prompt's last step, does not reach R's last
+/// offset, or reads other tokens in R's window is refused (I-Align).
+fn differing_offsets(
+    window: &DecisionWindow,
+    row: &PanelPrompt,
+    r_picks: &[u32],
+) -> Result<(Vec<usize>, usize), String> {
+    let n = r_picks.len();
+    let fed = &row.reference[..n.saturating_sub(1)];
+    let ids: Vec<u32> = row.prompt.iter().chain(fed).copied().collect();
+    let reply = window.steps.get(window.reply_start..).unwrap_or_default();
+    if window.reply_start + 1 != row.prompt.len()
+        || reply.len() < n
+        || window.ids.get(..ids.len()) != Some(&ids[..])
+    {
+        return Err(format!(
+            "position {}: the reference does not read R's {} tokens with its reply from the prompt's last step through R's {n} offsets (I-Align)",
+            window.position,
+            ids.len()
+        ));
+    }
+    let mut differ = Vec::new();
+    for (offset, (step, &r)) in reply.iter().zip(r_picks).enumerate() {
+        let pick = step.nearest.as_ref().map(|n| n.pick).ok_or_else(|| {
+            format!(
+                "position {}, offset {offset}: the reference has no nearest",
+                window.position
+            )
+        })?;
+        if pick != r {
+            differ.push(offset);
+        }
+    }
+    let beyond = reply[n..].iter().filter(|s| s.nearest.is_some()).count();
+    Ok((differ, beyond))
+}
+
+/// `--decision-replay` (claude-256): claude-247's forced replay of the arithmetic step (T, R),
+/// R from the artifact at `path` as Q, at each chosen position, or, without `--at`, at every
+/// offset inside R's window where R's unforced pick is not the reference's (`differing_offsets`,
+/// which counts the reference's picks past R's window); written new
+/// as `uor-r4.decision-replay/1`. `args` follow `--decision-replay` on the command line. It
+/// prints one JSON line: the offsets compared and equal, the replays, their counts and the file's
+/// sha256. Before any replay it refuses a reference that is not T's trace, holds two windows at
+/// one position, or is not the trace the deciles were read from; a `--reference-table` that is
+/// not the artifact itself; and a named offset past its window, its reference or R's offsets. A
+/// refused replay is recorded with its refusal, the rest still run, and the command then fails.
+fn decision_replay_out(path: &str, args: &[String]) -> Result<(), String> {
+    let [reference, rest @ ..] = args else {
+        return Err(USAGE.to_owned());
+    };
+    let names = [
+        "--prompts",
+        "--deciles",
+        "--g10",
+        "--reference-table",
+        "--out",
+    ];
+    let (flags, at) = decision_flags(rest, &names)?;
+    let (prompts, deciles_path, g10, reference_table, out) = (
+        needed(&flags, "--prompts")?,
+        needed(&flags, "--deciles")?,
+        needed(&flags, "--g10")?,
+        needed(&flags, "--reference-table")?,
+        needed(&flags, "--out")?,
+    );
+    let g10: i64 = g10.parse().map_err(|e| format!("--g10 {g10}: {e}"))?;
+    let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+    let model = IntegerStackModel::parse(&bytes).map_err(|e| format!("parse: {e}"))?;
+    forced_artifact(&model)?;
+    let (rt, reference_sha) = read_decision_trace(reference)?;
+    if rt.side != "T" {
+        return Err(format!(
+            "{reference}: side {}, but --decision-replay replays the arithmetic step (T, R)",
+            rt.side
+        ));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    if let Some(w) = rt.windows.iter().find(|w| !seen.insert(w.position)) {
+        return Err(format!(
+            "{reference}: two windows at position {}",
+            w.position
+        ));
+    }
+    let deciles_text = std::fs::read(deciles_path).map_err(|e| format!("{deciles_path}: {e}"))?;
+    let deciles = parse_deciles(deciles_path, &deciles_text)?;
+    if deciles.trace.as_ref().map(|t| t.sha256.as_str()) != Some(reference_sha.as_str()) {
+        return Err(format!(
+            "{deciles_path}: the deciles were read from another trace than {reference}"
+        ));
+    }
+    let prompts_text = std::fs::read(prompts).map_err(|e| format!("{prompts}: {e}"))?;
+    let rows: Vec<PanelPrompt> =
+        serde_json::from_slice(&prompts_text).map_err(|e| format!("{prompts}: {e}"))?;
+    // T's table is R's writer table divided by 4096, so its file is R's artifact.
+    let table_bytes =
+        std::fs::read(reference_table).map_err(|e| format!("{reference_table}: {e}"))?;
+    if table_bytes != bytes {
+        return Err(format!(
+            "{reference_table}: T's table is R's artifact divided by 4096, and this is not {path}"
+        ));
+    }
+    let (rtab, rtab_sha) = load_table(&rt.side, reference_table)?;
+    // R's own table: the writer table its nearest scans.
+    let writer = model
+        .fbs_writer_table()
+        .ok_or("the artifact has no FBS writer table")?;
+    let vocab = model.shape().vocab;
+    let run = ReplayRun {
+        model: &model,
+        header: r_decision_trace(&model, &bytes, Vec::new())?,
+        reference: GradeSide {
+            trace: &rt,
+            table: rtab.view(),
+        },
+        other_table: NearestTable::Q12 {
+            table: writer,
+            width: writer.len() / vocab,
+        },
+        deciles: &deciles,
+        g10,
+    };
+    let row_at = |position: usize| {
+        rows.iter()
+            .find(|r| r.position == position)
+            .ok_or_else(|| format!("position {position}: {prompts} has no such row"))
+    };
+    // The offsets named, or every one of the reference's inside R's window where R's unforced
+    // pick differs, each with R's unforced pick there, and the reference's picks past R's
+    // window.
+    let (chosen, compared, beyond) = if at.is_empty() {
+        let (mut chosen, mut compared, mut beyond) = (Vec::new(), 0usize, 0usize);
+        for window in &rt.windows {
+            let row = row_at(window.position)?;
+            let unforced = forced_picks(&model, &row.prompt, &row.reference, None)
+                .map_err(|e| format!("position {}: {e}", row.position))?;
+            let (differ, past) = differing_offsets(window, row, &unforced.picks)?;
+            compared += unforced.picks.len();
+            beyond += past;
+            chosen.extend(
+                differ
+                    .into_iter()
+                    .map(|offset| (window.position, offset, unforced.picks[offset])),
+            );
+        }
+        (chosen, Some(compared), Some(beyond))
+    } else {
+        // Each named offset is checked before any replay runs.
+        let mut chosen = Vec::with_capacity(at.len());
+        for (position, offset) in at {
+            let row = row_at(position)?;
+            let window = rt
+                .windows
+                .iter()
+                .find(|w| w.position == position)
+                .ok_or_else(|| format!("position {position}: the reference has no such window"))?;
+            offset_step(window, offset)?;
+            let cut = row.reference.get(..=offset).ok_or_else(|| {
+                format!(
+                    "position {position}, offset {offset}: past the reference's {} tokens",
+                    row.reference.len()
+                )
+            })?;
+            let unforced = forced_picks(&model, &row.prompt, cut, None)
+                .map_err(|e| format!("position {position}: {e}"))?;
+            let pick = unforced.picks.get(offset).copied().ok_or_else(|| {
+                format!(
+                    "position {position}, offset {offset}: past R's {} offsets",
+                    unforced.picks.len()
+                )
+            })?;
+            chosen.push((position, offset, pick));
+        }
+        (chosen, None, None)
+    };
+    let kinds = [
+        "accounted",
+        "unaccounted",
+        "refused",
+        "ended_kept",
+        "ended_memory",
+        "ended_nearest",
+        "passes",
+    ];
+    let mut counts: std::collections::BTreeMap<&str, usize> =
+        kinds.into_iter().map(|k| (k, 0)).collect();
+    let mut replayed = Vec::with_capacity(chosen.len());
+    let started = Instant::now();
+    // Each replay is recorded as it ends; a refused one is recorded with its refusal, and the
+    // run goes on.
+    for (position, offset, unforced) in chosen {
+        let (step, replay) = match run.replay(row_at(position)?, offset, unforced) {
+            Ok(done) => done,
+            Err(refused) => {
+                *counts.entry("refused").or_default() += 1;
+                replayed.push(json!({
+                    "position": position,
+                    "offset": offset,
+                    "refused": refused,
+                }));
+                continue;
+            }
+        };
+        let end = match replay.passes.last() {
+            Some(PassOutcome::Kept { .. }) => "ended_kept",
+            Some(PassOutcome::Memory { .. }) => "ended_memory",
+            _ => "ended_nearest",
+        };
+        *counts.entry(end).or_default() += 1;
+        *counts
+            .entry(if replay.accounted {
+                "accounted"
+            } else {
+                "unaccounted"
+            })
+            .or_default() += 1;
+        *counts.entry("passes").or_default() += replay.passes.len();
+        replayed.push(json!({
+            "position": position,
+            "offset": offset,
+            "step": step,
+            "replay": replay,
+        }));
+    }
+    let elapsed_ms = started.elapsed().as_millis() as u64;
+    let record = json!({
+        "schema": DECISION_REPLAY_SCHEMA,
+        "artifact": { "path": path, "sha256": sha256_hex(&bytes) },
+        "reference": { "path": reference, "sha256": reference_sha, "side": rt.side },
+        "prompts": { "path": prompts, "sha256": sha256_hex(&prompts_text) },
+        "reference_table": { "path": reference_table, "sha256": rtab_sha },
+        "other_table": { "path": path, "writer_rows": vocab, "width": writer.len() / vocab },
+        "deciles": { "path": deciles_path, "sha256": sha256_hex(&deciles_text), "trace": deciles.trace },
+        "g10": g10,
+        "offsets_compared": compared,
+        "picks_beyond_r": beyond,
+        "equal": compared.map(|c| c - replayed.len()),
+        "replays": replayed.len(),
+        "counts": counts,
+        "replay_ms": elapsed_ms,
+        "replayed": replayed,
+    });
+    let text = serde_json::to_vec_pretty(&record).map_err(|e| e.to_string())?;
+    write_new_file(std::path::Path::new(out), &text).map_err(|e| format!("{out}: {e}"))?;
+    println!(
+        "{}",
+        json!({ "schema": DECISION_REPLAY_SCHEMA, "offsets_compared": record["offsets_compared"], "picks_beyond_r": record["picks_beyond_r"], "equal": record["equal"], "replays": record["replays"], "counts": record["counts"], "replay_ms": elapsed_ms, "out": out, "sha256": sha256_hex(&text) })
+    );
+    match counts["refused"] {
+        0 => Ok(()),
+        refused => Err(format!(
+            "{refused} of {} replays were refused; each is recorded in {out}",
+            replayed.len()
+        )),
+    }
 }
 
 const PREFILL: usize = 128;
@@ -1280,6 +1691,11 @@ fn run() -> Result<(), String> {
     }
     if args.first().is_some_and(|a| a == "--decision-grade") {
         return decision_grade_out(&args);
+    }
+    if let [path, flag, rest @ ..] = args.as_slice() {
+        if flag == "--decision-replay" {
+            return decision_replay_out(path, rest);
+        }
     }
     match args.as_slice() {
         [flag, first, second] if flag == "--hamming-trace-compare" => {
@@ -1822,15 +2238,417 @@ mod tests {
         /// claude-249: the synthetic trunk exported as R's artifact is: neither the gates nor
         /// the transition snapped, with the nearest head.
         fn raw_artifact() -> IntegerStackModel {
+            IntegerStackModel::parse(&raw_bytes(false)).expect("parse")
+        }
+
+        /// [`raw_artifact`]'s bytes, `reads` adding four-head Hamming reads, as R's artifact
+        /// has them (claude-256).
+        fn raw_bytes(reads: bool) -> Vec<u8> {
+            use uor_r4_integer::stack::synthetic::synthetic_hamming;
             use uor_r4_integer::stack::{export_fbs_trunk_uorlut01_with, FbsExportSnaps};
             let mut snap = synthetic_fbs_trunk(7);
             snap.readout_nearest = true;
+            if reads {
+                snap.hamming = Some(synthetic_hamming(snap.width, snap.layers.len(), 4, 188));
+            }
             let raw = FbsExportSnaps {
                 gates: false,
                 transition: false,
             };
-            let bytes = export_fbs_trunk_uorlut01_with(&snap, raw).expect("export");
-            IntegerStackModel::parse(&bytes).expect("parse")
+            export_fbs_trunk_uorlut01_with(&snap, raw).expect("export")
+        }
+
+        /// claude-256: R's trace as a float side T writes one, on R's table divided by 4096:
+        /// each rate score q16 / 2^16, each code's coordinates ±1/2 by its bits, each nearest's
+        /// query Q12 / 4096 with its two scores recomputed on `table`. Its decisions are R's.
+        fn as_t(r: &DecisionTrace, table: NearestTable<'_>) -> DecisionTrace {
+            let coordinates = |code: u64| -> Vec<u32> {
+                (0..64)
+                    .map(|i| if code >> i & 1 == 1 { 0.5f32 } else { -0.5 }.to_bits())
+                    .collect()
+            };
+            let mut t = r.clone();
+            t.side = "T".to_owned();
+            for step in t.windows.iter_mut().flat_map(|w| &mut w.steps) {
+                for layer in &mut step.layers {
+                    let scores = layer.score_q16.drain(..);
+                    layer.score_f32 = scores.map(|s| (s as f32 / 65536.0).to_bits()).collect();
+                }
+                let reads = step.layers.iter_mut().filter_map(|l| l.read.as_mut());
+                for read in reads.chain(step.readout.as_mut()) {
+                    for head in &mut read.heads {
+                        head.query_f32 = coordinates(head.query);
+                        head.key_f32 = coordinates(head.key);
+                    }
+                }
+                if let Some(n) = step.nearest.as_mut() {
+                    let query = n.query_q12.drain(..);
+                    n.query_f32 = query.map(|q| (q as f32 / 4096.0).to_bits()).collect();
+                    (n.score_q12, n.runner_score_q12) = (None, None);
+                    let pick = table.score(n, n.pick).expect("a row");
+                    let runner = table.score(n, n.runner_up).expect("a row");
+                    (n.score_f64, n.runner_score_f64) =
+                        (Some(pick.to_bits()), Some(runner.to_bits()));
+                }
+            }
+            t
+        }
+
+        /// claude-256: a pass cut at p reads the picks and decisions up to p as the whole window
+        /// does; `--decision-replay`'s replay of R against R's own trace as T is one pass at each
+        /// offset; a pass 0 that does not pick R's unforced pick is refused (I-Rerun); and a T
+        /// rate bucket moved into the next entry ends pass 0 there and joins Φ, which R takes in
+        /// pass 1 (else the grade refuses it, I-Force).
+        #[test]
+        fn a_replay_on_r_cuts_its_window_at_p_and_forces_r() {
+            use uor_r4_integer::fbs_snapshot::ForcedBucket;
+            let bytes = raw_bytes(true);
+            let model = IntegerStackModel::parse(&bytes).expect("parse");
+            let writer = model.fbs_writer_table().expect("the FBS trunk");
+            let t_table: Vec<f32> = writer.iter().map(|&v| f32::from(v) / 4096.0).collect();
+            let width = writer.len() / model.shape().vocab;
+            let t_view = NearestTable::F32 {
+                table: &t_table,
+                width,
+            };
+            let r_view = NearestTable::Q12 {
+                table: writer,
+                width,
+            };
+            let none = DecisionForceWindow::default();
+            let prompt = prompts(model.shape().vocab)[2].clone();
+            let reference = [3u32, 5, 7];
+            let whole = forced_picks(&model, &prompt, &reference, Some(&none)).expect("whole");
+            let whole_steps = whole.steps.clone().expect("a trace");
+            let picks = whole.picks.clone();
+            for offset in 0..reference.len() {
+                let cut = forced_picks(&model, &prompt, &reference[..=offset], Some(&none))
+                    .expect("cut at p");
+                let p = prompt.len() - 1 + offset;
+                assert_eq!(cut.picks[..], whole.picks[..=offset], "offset {offset}");
+                assert_eq!(
+                    cut.steps.as_deref(),
+                    Some(&whole_steps[..=p]),
+                    "offset {offset}"
+                );
+            }
+            let row = PanelPrompt {
+                position: 4,
+                prompt: prompt.clone(),
+                reference: reference.to_vec(),
+                float_keyed: None,
+            };
+            let window = forced_window(row.position, &prompt, &reference, whole).expect("window");
+            let r = r_decision_trace(&model, &bytes, vec![window]).expect("R's trace");
+            let t = as_t(&r, t_view);
+            check_decision_trace(&t, t_view).expect("T's trace checks");
+            let replay_from = |t: &DecisionTrace, offset: usize, unforced: u32| {
+                let deciles = decision_deciles(t).expect("deciles");
+                let run = ReplayRun {
+                    model: &model,
+                    header: r_decision_trace(&model, &bytes, Vec::new()).expect("header"),
+                    reference: GradeSide {
+                        trace: t,
+                        table: t_view,
+                    },
+                    other_table: r_view,
+                    deciles: &deciles,
+                    g10: 0,
+                };
+                run.replay(&row, offset, unforced)
+            };
+            let replay = |t: &DecisionTrace, offset: usize| replay_from(t, offset, picks[offset]);
+            for offset in 0..reference.len() {
+                let (step, same) = replay(&t, offset).expect("a replay");
+                assert_eq!(step, prompt.len() - 1 + offset);
+                assert_eq!((same.passes.len(), same.accounted), (1, true), "{same:?}");
+            }
+            let vocab = model.shape().vocab as u32;
+            let rerun = replay_from(&t, 1, (picks[1] + 1) % vocab).expect_err("not R's pick");
+            assert!(rerun.contains("(I-Rerun)"), "{rerun}");
+            let mut moved = t.clone();
+            let layer = &mut moved.windows[0].steps[0].layers[0];
+            let entry = layer.entry[0];
+            let next = if entry < 15 { entry + 1 } else { entry - 1 };
+            layer.entry[0] = next;
+            layer.score_f32[0] = ((f32::from(next) + 0.5) / 16.0).to_bits();
+            let (_, forced) = replay(&moved, 2).expect("a replay R takes Φ in");
+            let want = ForcedBucket {
+                step: 0,
+                layer: 0,
+                lane: 0,
+                entry: next,
+            };
+            assert!(
+                matches!(&forced.passes[0], PassOutcome::Bucket { force, other_entry, .. } if *force == want && *other_entry == entry),
+                "{:?}",
+                forced.passes[0]
+            );
+            assert_eq!(forced.forced.buckets.first(), Some(&want));
+            assert!(forced.passes.len() >= 2, "{forced:?}");
+        }
+
+        /// claude-256: the unforced comparison reads the reference's offsets inside R's window,
+        /// and counts those past it, as a float window that reads on past the reference has
+        /// them; a pick that differs there is chosen. A window that reads other tokens in R's
+        /// window, stops short of R's last offset or starts its reply elsewhere is refused.
+        #[test]
+        fn the_unforced_comparison_reads_r_window_and_counts_the_rest() {
+            let model = raw_artifact();
+            let none = DecisionForceWindow::default();
+            let prompt = prompts(model.shape().vocab)[2].clone();
+            let reference = [3u32, 5, 7];
+            let whole = forced_picks(&model, &prompt, &reference, Some(&none)).expect("whole");
+            let picks = whole.picks.clone();
+            let window = forced_window(4, &prompt, &reference, whole).expect("window");
+            let row = PanelPrompt {
+                position: 4,
+                prompt: prompt.clone(),
+                reference: reference.to_vec(),
+                float_keyed: None,
+            };
+            assert_eq!(differing_offsets(&window, &row, &picks), Ok((vec![], 0)));
+            let mut longer = window.clone();
+            let last = longer.steps.last().cloned().expect("a step");
+            let mut unread = last.clone();
+            unread.nearest = None;
+            longer.ids.extend([7, 9, 11]);
+            longer.steps.extend([last.clone(), last, unread]);
+            assert_eq!(differing_offsets(&longer, &row, &picks), Ok((vec![], 2)));
+            let mut differs = longer.clone();
+            let nearest = differs.steps[window.reply_start + 1]
+                .nearest
+                .as_mut()
+                .expect("a nearest");
+            nearest.pick = (nearest.pick + 1) % model.shape().vocab as u32;
+            assert_eq!(differing_offsets(&differs, &row, &picks), Ok((vec![1], 2)));
+            let refused = |w: &DecisionWindow| {
+                let e = differing_offsets(w, &row, &picks).expect_err("refused");
+                assert!(e.contains("(I-Align)"), "{e}");
+            };
+            let mut other = longer.clone();
+            other.ids[prompt.len()] = (reference[0] + 1) % model.shape().vocab as u32;
+            refused(&other);
+            let mut short = window.clone();
+            short.steps.pop();
+            refused(&short);
+            let mut moved = longer;
+            moved.reply_start -= 1;
+            refused(&moved);
+        }
+
+        /// claude-256, round 2: `--decision-replay` on files. T's and R's tables load from R's
+        /// artifact; T's check is not circular (a T score off its table's is refused); R's reads
+        /// have four heads. A clean run compares R's window and replays nothing; a refused
+        /// replay is recorded with its refusal, and the command fails after writing its file.
+        /// Refused before any replay, writing nothing, each by its own check alone: a trace named
+        /// side R as the reference, two windows at one position, deciles read from another
+        /// trace, another artifact as the table, and a named offset past the window but inside
+        /// the reference.
+        #[test]
+        fn the_replay_command_records_each_replay_and_refuses_what_it_cannot_replay() {
+            /// The test's own folder, removed when the test ends, a failing one too.
+            struct Scratch(std::path::PathBuf);
+            impl Drop for Scratch {
+                fn drop(&mut self) {
+                    let _ = std::fs::remove_dir_all(&self.0);
+                }
+            }
+            let scratch = Scratch(
+                std::env::temp_dir().join(format!("uor_fbs_toks_replay_{}", std::process::id())),
+            );
+            let dir = &scratch.0;
+            let _ = std::fs::remove_dir_all(dir);
+            std::fs::create_dir_all(dir).expect("a scratch folder");
+            let path = |name: &str| dir.join(name).to_string_lossy().into_owned();
+            let put = |name: &str, bytes: &[u8]| std::fs::write(path(name), bytes).expect("write");
+            let bytes = raw_bytes(true);
+            put("r.uorlut", &bytes);
+            // Another artifact T's loader takes (snapped, with the same Hamming reads): only
+            // the table's identity check can refuse it.
+            let other = {
+                use uor_r4_integer::stack::synthetic::synthetic_hamming;
+                let mut snap = synthetic_fbs_trunk(7);
+                snap.readout_nearest = true;
+                snap.hamming = Some(synthetic_hamming(snap.width, snap.layers.len(), 4, 188));
+                export_fbs_trunk_uorlut01(&snap).expect("export")
+            };
+            assert_ne!(other, bytes);
+            put("other.uorlut", &other);
+            load_table("T", &path("other.uorlut")).expect("T's loader takes it");
+            let model = IntegerStackModel::parse(&bytes).expect("parse");
+            let writer = model.fbs_writer_table().expect("the FBS trunk");
+            let width = writer.len() / model.shape().vocab;
+            let t_table: Vec<f32> = writer.iter().map(|&v| f32::from(v) / 4096.0).collect();
+            let (r_owned, _) = load_table("R", &path("r.uorlut")).expect("R's table");
+            let (t_owned, _) = load_table("T", &path("r.uorlut")).expect("T's table");
+            assert!(
+                matches!(&r_owned, OwnedTable::Q12(t, w) if t[..] == writer[..] && *w == width)
+            );
+            assert!(matches!(&t_owned, OwnedTable::F32(t, w) if *t == t_table && *w == width));
+            let t_view = t_owned.view();
+            let none = DecisionForceWindow::default();
+            let prompt = prompts(model.shape().vocab)[2].clone();
+            let reference = [3u32, 5, 7];
+            let whole = forced_picks(&model, &prompt, &reference, Some(&none)).expect("whole");
+            let window = forced_window(4, &prompt, &reference, whole).expect("window");
+            let r = r_decision_trace(&model, &bytes, vec![window]).expect("R's trace");
+            let t = as_t(&r, t_view);
+            check_decision_trace(&t, t_view).expect("T's trace checks");
+            let reads: Vec<_> = t.windows[0]
+                .steps
+                .iter()
+                .flat_map(|s| s.layers.iter().filter_map(|l| l.read.as_ref()))
+                .collect();
+            assert!(!reads.is_empty() && reads.iter().all(|read| read.heads.len() == 4));
+            let mut tampered = t.clone();
+            let nearest = tampered.windows[0]
+                .steps
+                .iter_mut()
+                .find_map(|s| s.nearest.as_mut())
+                .expect("a nearest");
+            let score = f64::from_bits(nearest.score_f64.expect("a score"));
+            nearest.score_f64 = Some((score + 1.0).to_bits());
+            assert!(check_decision_trace(&tampered, t_view).is_err());
+            let json_of = |trace: &DecisionTrace| serde_json::to_vec(trace).expect("json");
+            let deciles_of = |trace: &DecisionTrace, name: &str| {
+                let mut deciles = decision_deciles(trace).expect("deciles");
+                deciles.trace = Some(DecisionSource {
+                    path: path(name),
+                    sha256: sha256_hex(&json_of(trace)),
+                });
+                serde_json::to_vec(&deciles).expect("json")
+            };
+            let mut twice = t.clone();
+            twice.windows.push(t.windows[0].clone());
+            let mut moved = t.clone();
+            let start = moved.windows[0].reply_start;
+            let nearest = moved.windows[0].steps[start + 2]
+                .nearest
+                .as_mut()
+                .expect("a nearest");
+            nearest.pick = (nearest.pick + 1) % model.shape().vocab as u32;
+            for (name, trace) in [("t", &t), ("twice", &twice), ("moved", &moved)] {
+                put(&format!("{name}.json"), &json_of(trace));
+                put(
+                    &format!("d-{name}.json"),
+                    &deciles_of(trace, &format!("{name}.json")),
+                );
+            }
+            // T's trace named side R, with deciles that name it: only the side check can refuse
+            // it (R's own trace has no deciles: G₁₀ is read on the reference side).
+            let mut as_r = t.clone();
+            as_r.side = "R".to_owned();
+            put("as-r.json", &json_of(&as_r));
+            let mut deciles = decision_deciles(&t).expect("deciles");
+            deciles.trace = Some(DecisionSource {
+                path: path("as-r.json"),
+                sha256: sha256_hex(&json_of(&as_r)),
+            });
+            put("d-as-r.json", &serde_json::to_vec(&deciles).expect("json"));
+            for (name, reference) in [("prompts", &reference[..]), ("long", &[3, 5, 7, 9])] {
+                let rows = json!([{ "position": 4, "prompt": prompt, "reference": reference }]);
+                put(
+                    &format!("{name}.json"),
+                    &serde_json::to_vec(&rows).expect("json"),
+                );
+            }
+            let run_on =
+                |prompts: &str, trace: &str, deciles: &str, table: &str, out: &str, at: &[&str]| {
+                    let mut args = vec![path(trace)];
+                    for (flag, value) in [
+                        ("--prompts", path(prompts)),
+                        ("--deciles", path(deciles)),
+                        ("--g10", "0".to_owned()),
+                        ("--reference-table", path(table)),
+                        ("--out", path(out)),
+                    ] {
+                        args.extend([flag.to_owned(), value]);
+                    }
+                    for a in at {
+                        args.extend(["--at".to_owned(), (*a).to_owned()]);
+                    }
+                    decision_replay_out(&path("r.uorlut"), &args)
+                };
+            let run = |trace: &str, deciles: &str, table: &str, out: &str, at: &[&str]| {
+                run_on("prompts.json", trace, deciles, table, out, at)
+            };
+            let read = |name: &str| -> serde_json::Value {
+                serde_json::from_slice(&std::fs::read(path(name)).expect("read")).expect("json")
+            };
+            run("t.json", "d-t.json", "r.uorlut", "same.json", &[]).expect("a clean run");
+            let same = read("same.json");
+            assert_eq!(
+                [&same["offsets_compared"], &same["equal"], &same["replays"]],
+                [&json!(3), &json!(3), &json!(0)]
+            );
+            let refused = run(
+                "moved.json",
+                "d-moved.json",
+                "r.uorlut",
+                "moved-out.json",
+                &[],
+            )
+            .expect_err("one replay refused");
+            assert_eq!(
+                refused,
+                format!(
+                    "1 of 1 replays were refused; each is recorded in {}",
+                    path("moved-out.json")
+                )
+            );
+            let moved_out = read("moved-out.json");
+            assert_eq!(moved_out["counts"]["refused"], 1);
+            assert_eq!(moved_out["replayed"][0]["offset"], 2);
+            // The moved pick is refused by pass 0's grade: T's table does not score it so.
+            assert!(
+                moved_out["replayed"][0]["refused"]
+                    .as_str()
+                    .is_some_and(|e| e.starts_with("pass 0: ")),
+                "{moved_out}"
+            );
+            let refusal = |trace: &str, deciles: &str, table: &str, at: &[&str]| {
+                run(trace, deciles, table, "never.json", at).expect_err("refused")
+            };
+            for (got, want) in [
+                (
+                    refusal("as-r.json", "d-as-r.json", "r.uorlut", &[]),
+                    "side R, but --decision-replay replays the arithmetic step (T, R)",
+                ),
+                (
+                    refusal("twice.json", "d-twice.json", "r.uorlut", &[]),
+                    "two windows at position 4",
+                ),
+                (
+                    refusal("t.json", "d-moved.json", "r.uorlut", &[]),
+                    "the deciles were read from another trace than",
+                ),
+                (
+                    refusal("t.json", "d-t.json", "other.uorlut", &[]),
+                    "T's table is R's artifact divided by 4096, and this is not",
+                ),
+            ] {
+                assert!(got.contains(want), "{got}");
+            }
+            // A reference that reads on past T's window: only the window's own check refuses
+            // offset 3 before any replay.
+            let past = run_on(
+                "long.json",
+                "t.json",
+                "d-t.json",
+                "r.uorlut",
+                "never.json",
+                &["4:3"],
+            )
+            .expect_err("refused");
+            assert_eq!(
+                past,
+                format!(
+                    "position 4, offset 3: past the window's {} steps",
+                    t.windows[0].steps.len()
+                )
+            );
+            assert!(!std::path::Path::new(&path("never.json")).exists());
         }
 
         /// claude-249: under the decision trace each row is the untraced row; the trace holds a
@@ -1988,5 +2806,90 @@ mod tests {
             protocol(flipping, &prompt).expect_err("different replies"),
             "timed runs wrote different replies"
         );
+    }
+
+    /// claude-256: the grader's and the replay's refusals that need no file: an `--at` named
+    /// twice (before any file is read), a flag named twice or unknown, a side with no table, an
+    /// offset past the window, and a deciles file that names no trace.
+    #[test]
+    fn the_decision_commands_refuse_what_they_cannot_grade() {
+        let args = |s: &[&str]| s.iter().map(|a| a.to_string()).collect::<Vec<_>>();
+        let names = ["--deciles", "--out"];
+        let flags = |s: &[&str]| decision_flags(&args(s), &names).map(|(_, at)| at);
+        assert_eq!(
+            flags(&["--at", "3:1", "--deciles", "d", "--at", "3:1"]),
+            Err("--at 3:1 is named twice".to_owned())
+        );
+        assert_eq!(
+            flags(&["--at", "3:1", "--at", "3:2", "--at", "3:1"]),
+            Err("--at 3:1 is named twice".to_owned())
+        );
+        assert!(flags(&["--at", "3"])
+            .unwrap_err()
+            .contains("not POSITION:OFFSET"));
+        for refused in [
+            &["--out", "a", "--out", "b"][..],
+            &["--force", "f"],
+            &["--out"],
+        ] {
+            assert_eq!(flags(refused), Err(USAGE.to_owned()), "{refused:?}");
+        }
+        let given = args(&["--at", "3:1", "--out", "o", "--at", "3:2"]);
+        let (named, at) = decision_flags(&given, &names).expect("flags");
+        assert_eq!(at, [(3, 1), (3, 2)]);
+        assert_eq!(needed(&named, "--out"), Ok("o"));
+        assert_eq!(needed(&named, "--deciles"), Err(USAGE.to_owned()));
+        let twice = ["--at", "1:0", "--at", "1:0"];
+        let grade = args(
+            &[
+                &["--decision-grade", "/no/such/p", "/no/such/q"][..],
+                &twice,
+            ]
+            .concat(),
+        );
+        assert_eq!(
+            decision_grade_out(&grade),
+            Err("--at 1:0 is named twice".to_owned())
+        );
+        let replay = args(&[&["/no/such/p"][..], &twice].concat());
+        assert_eq!(
+            decision_replay_out("/no/such/artifact", &replay),
+            Err("--at 1:0 is named twice".to_owned())
+        );
+        assert_eq!(
+            load_table("X", "/no/such/table").map(|_| ()),
+            Err("/no/such/table: side X has no table; F, R and T do".to_owned())
+        );
+        let step = DecisionStep {
+            layers: Vec::new(),
+            readout: None,
+            memory: None,
+            nearest: None,
+        };
+        let window = DecisionWindow {
+            position: 9,
+            ids: vec![1, 2, 3],
+            reply_start: 1,
+            steps: vec![step; 3],
+        };
+        assert_eq!(offset_step(&window, 1), Ok(2));
+        assert_eq!(
+            offset_step(&window, 2),
+            Err("position 9, offset 2: past the window's 3 steps".to_owned())
+        );
+        let deciles = |trace: serde_json::Value| {
+            let mut file =
+                json!({ "schema": DECISION_DECILES_SCHEMA, "side": "T", "families": [] });
+            if !trace.is_null() {
+                file["trace"] = trace;
+            }
+            serde_json::to_vec(&file).expect("json")
+        };
+        assert_eq!(
+            parse_deciles("d.json", &deciles(serde_json::Value::Null)).map(|_| ()),
+            Err("d.json: the deciles name no trace they were read from".to_owned())
+        );
+        let named = deciles(json!({ "path": "t.json", "sha256": "ab" }));
+        assert!(parse_deciles("d.json", &named).is_ok());
     }
 }

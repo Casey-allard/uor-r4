@@ -1138,6 +1138,12 @@ impl IntegerStackModel {
         Ok([best, second])
     }
 
+    /// The FBS writer table at Q12, `vocab` rows, that [`Self::whole_table_nearest_two`] scans
+    /// (claude-256), if the artifact has the FBS trunk.
+    pub fn fbs_writer_table(&self) -> Option<&[i16]> {
+        self.fbs.as_deref().map(|fbs| fbs.writer_table.as_slice())
+    }
+
     /// How many opening and reply keys the turn memory's tables hold, if it has one.
     pub fn turn_memory_table_lengths(&self) -> Option<(usize, Option<usize>)> {
         self.memory
