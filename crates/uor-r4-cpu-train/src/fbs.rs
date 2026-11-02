@@ -54,7 +54,7 @@ pub struct CpuFbsStep {
     pub query_q12: Vec<i32>,
 }
 
-pub const CPU_FBS_SESSION_CHECKPOINT_SCHEMA: &str = "uor-r4.cpu-fbs-session-checkpoint/1";
+pub const CPU_FBS_SESSION_CHECKPOINT_SCHEMA: &str = "uor-r4.cpu-fbs-session-checkpoint/2";
 const CPU_FBS_SESSION_SUBSTRATE: &str = "cpu-development-research";
 const CPU_FBS_SESSION_QUALIFICATION: &str = "gpu-required";
 
@@ -67,6 +67,8 @@ struct CpuFbsSessionShape {
     layers: usize,
     kept_cells: usize,
     context: usize,
+    raw_gates: bool,
+    raw_transition: bool,
     hamming: bool,
     memory: bool,
 }
@@ -158,6 +160,8 @@ pub struct CpuFbsForward {
     roots_q12: [[i32; 8]; 16],
     kept_cells: usize,
     context: usize,
+    raw_gates: bool,
+    raw_transition: bool,
     position: usize,
     state: Vec<Vec<i64>>,
     history: Vec<Vec<i32>>,
@@ -180,7 +184,13 @@ impl CpuFbsForward {
         let image = model.fbs_image().ok_or_else(|| {
             invalid("CPU FBS forward does not yet support Hamming reads or turn memory")
         })?;
-        Self::from_image(image, model.rms_epsilon(), model.shape().context)
+        Self::from_image(
+            image,
+            model.rms_epsilon(),
+            model.shape().context,
+            model.shape().raw_gates,
+            model.shape().raw_transition,
+        )
     }
 
     /// Parse artifact bytes and attach the Hamming reads as well as the FBS
@@ -198,7 +208,13 @@ impl CpuFbsForward {
         let image = model
             .fbs_trunk_image()
             .ok_or_else(|| invalid("CPU FBS forward could not recover the FBS trunk"))?;
-        let mut forward = Self::from_image(image, model.rms_epsilon(), context)?;
+        let mut forward = Self::from_image(
+            image,
+            model.rms_epsilon(),
+            context,
+            model.shape().raw_gates,
+            model.shape().raw_transition,
+        )?;
         if let Some(hamming) = hamming {
             let reads = CpuHamming::new(
                 &hamming,
@@ -219,7 +235,13 @@ impl CpuFbsForward {
         Ok(forward)
     }
 
-    fn from_image(image: FbsImage<'_>, rms_eps: Fixed, context: usize) -> Result<Self> {
+    fn from_image(
+        image: FbsImage<'_>,
+        rms_eps: Fixed,
+        context: usize,
+        raw_gates: bool,
+        raw_transition: bool,
+    ) -> Result<Self> {
         let width = image.final_gain.len();
         if width == 0 || !width.is_multiple_of(GROUP) || !width.is_multiple_of(4) {
             return Err(invalid("FBS width must be a positive multiple of 32"));
@@ -261,6 +283,8 @@ impl CpuFbsForward {
             roots_q12: *image.roots_q12,
             kept_cells: image.kept_cells,
             context,
+            raw_gates,
+            raw_transition,
             position: 0,
             tokens: Vec::with_capacity(context),
             hamming: None,
@@ -398,6 +422,8 @@ impl CpuFbsForward {
             layers: self.layers.len(),
             kept_cells: self.kept_cells,
             context: self.context,
+            raw_gates: self.raw_gates,
+            raw_transition: self.raw_transition,
             hamming: self.hamming.is_some(),
             memory: self.memory.is_some(),
         }
@@ -524,6 +550,8 @@ impl CpuFbsForward {
             let act_exp = recurrence(
                 d,
                 layer,
+                self.raw_transition,
+                self.raw_gates,
                 &mut self.state[index],
                 &mut self.history[index],
                 &branches,
@@ -541,7 +569,7 @@ impl CpuFbsForward {
             apply_gain(&mut scratch[..d], &layer.mlp_gain);
             gather(&layer.mlp_gate, &scratch[..d], NORM_FINE_EXP, &mut gate);
             gather(&layer.mlp_up, &scratch[..d], NORM_FINE_EXP, &mut up);
-            hamilton_feed_forward(&gate, &up, &mut scratch[..self.mlp]);
+            hamilton_feed_forward(&gate, &up, &mut scratch[..self.mlp], self.raw_gates);
             let act_exp = quantize16(&scratch[..self.mlp], PRODUCT_EXP, &mut act[..self.mlp]);
             gather(&layer.mlp_down, &act[..self.mlp], act_exp, &mut projected);
             for (left, right) in x.iter_mut().zip(&projected) {
@@ -626,13 +654,11 @@ fn validate_shape(model: &IntegerStackModel) -> Result<()> {
         || shape.rec_retention()
         || !shape.gate_hamilton()
         || !shape.rotation
-        || shape.raw_gates
-        || shape.raw_transition
         || shape.pointer.is_some()
         || shape.pattern.bytes().any(|kind| kind != b'r')
     {
         return Err(invalid(
-            "CPU FBS forward requires a snapped, rotated, decay-rate, recurrence-only FBS model",
+            "CPU FBS forward requires a rotated, decay-rate, recurrence-only FBS model",
         ));
     }
     Ok(())
@@ -713,6 +739,8 @@ fn apply_gain(values: &mut [i64], codes: &[i16]) {
 fn recurrence(
     width: usize,
     layer: &Layer,
+    raw_transition: bool,
+    raw_gates: bool,
     state: &mut [i64],
     history: &mut [i32],
     branches: &[i32],
@@ -751,7 +779,11 @@ fn recurrence(
             rotations[lane * 4 + 2],
             rotations[lane * 4 + 3],
         ];
-        let transition = snap_rotation(raw, lambda);
+        let transition = if raw_transition {
+            raw_rotation(raw, lambda, 4_295)
+        } else {
+            snap_rotation(raw, lambda)
+        };
         let held = [
             state[lane * 4],
             state[lane * 4 + 1],
@@ -767,15 +799,17 @@ fn recurrence(
     }
 
     for lane in 0..lanes {
-        let q = snap_rotation(
-            [
-                gate[lane * 4],
-                gate[lane * 4 + 1],
-                gate[lane * 4 + 2],
-                gate[lane * 4 + 3],
-            ],
-            1u64 << 31,
-        );
+        let raw_gate = [
+            gate[lane * 4],
+            gate[lane * 4 + 1],
+            gate[lane * 4 + 2],
+            gate[lane * 4 + 3],
+        ];
+        let q = if raw_gates {
+            raw_rotation(raw_gate, 1u64 << 31, 0)
+        } else {
+            snap_rotation(raw_gate, 1u64 << 31)
+        };
         let rhs = [
             shift(state[lane * 4], RESIDUAL_EXP - STATE_EXP),
             shift(state[lane * 4 + 1], RESIDUAL_EXP - STATE_EXP),
@@ -790,16 +824,18 @@ fn recurrence(
     quantize16(&scratch[..width], PRODUCT_EXP, &mut act[..width])
 }
 
-fn hamilton_feed_forward(gate: &[i32], up: &[i32], out: &mut [i64]) {
+fn hamilton_feed_forward(gate: &[i32], up: &[i32], out: &mut [i64], raw_gates: bool) {
     for ((out_lane, gate_lane), up_lane) in out
         .chunks_exact_mut(4)
         .zip(gate.chunks_exact(4))
         .zip(up.chunks_exact(4))
     {
-        let q = snap_rotation(
-            [gate_lane[0], gate_lane[1], gate_lane[2], gate_lane[3]],
-            1u64 << 31,
-        );
+        let raw = [gate_lane[0], gate_lane[1], gate_lane[2], gate_lane[3]];
+        let q = if raw_gates {
+            raw_rotation(raw, 1u64 << 31, 0)
+        } else {
+            snap_rotation(raw, 1u64 << 31)
+        };
         let product = hamilton(
             q,
             [
@@ -939,6 +975,24 @@ fn snap_rotation(raw: [i32; 4], lambda: u64) -> [i64; 4] {
         let sum = small_mul(lambda as i64, root[channel][0])
             .wrapping_add(small_mul(lambda_phi as i64, root[channel][1]));
         shift(sum, 1)
+    })
+}
+
+fn raw_rotation(raw: [i32; 4], lambda: u64, epsilon: u128) -> [i64; 4] {
+    let square = raw.iter().fold(0u128, |sum, &value| {
+        sum.wrapping_add(u128::from(square(i64::from(value))))
+    });
+    let norm = isqrt(square.wrapping_add(epsilon).wrapping_shl(32));
+    std::array::from_fn(|channel| {
+        let magnitude = (u128::from(raw[channel].unsigned_abs()) << 46)
+            .checked_div(norm)
+            .unwrap_or(0) as i128;
+        let unit = if raw[channel] < 0 {
+            magnitude.wrapping_neg()
+        } else {
+            magnitude
+        };
+        (i128::from(lambda).wrapping_mul(unit) >> 30) as i64
     })
 }
 
@@ -1135,6 +1189,26 @@ mod tests {
         type_scale: f32,
         depths: &[usize],
     ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
+        hamming_fixture_with_snaps(
+            seed,
+            layers,
+            head,
+            copy_scale,
+            type_scale,
+            depths,
+            FbsExportSnaps::SNAPPED,
+        )
+    }
+
+    fn hamming_fixture_with_snaps(
+        seed: u64,
+        layers: usize,
+        head: CpuFbsHead,
+        copy_scale: f32,
+        type_scale: f32,
+        depths: &[usize],
+        snaps: FbsExportSnaps,
+    ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
             FbsSynth {
@@ -1169,7 +1243,7 @@ mod tests {
             types.iter_mut().for_each(|weight| *weight *= type_scale);
         }
         snapshot.hamming = Some(hamming);
-        let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let bytes = export_fbs_trunk_uorlut01_with(&snapshot, snaps).unwrap();
         let model = IntegerStackModel::parse(&bytes).unwrap();
         let cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
         (model, cpu, free)
@@ -1192,7 +1266,27 @@ mod tests {
         type_scale: f32,
         head: CpuFbsHead,
     ) -> usize {
-        let (model, mut cpu, free) = hamming_fixture(seed, 3, head, copy_scale, type_scale, depths);
+        assert_hamming_parity_with_snaps(
+            seed,
+            depths,
+            copy_scale,
+            type_scale,
+            head,
+            FbsExportSnaps::SNAPPED,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn assert_hamming_parity_with_snaps(
+        seed: u64,
+        depths: &[usize],
+        copy_scale: f32,
+        type_scale: f32,
+        head: CpuFbsHead,
+        snaps: FbsExportSnaps,
+    ) -> usize {
+        let (model, mut cpu, free) =
+            hamming_fixture_with_snaps(seed, 3, head, copy_scale, type_scale, depths, snaps);
         let mut session = model.session();
         let mut free_session = free.session();
         let mut changed = 0;
@@ -1264,6 +1358,26 @@ mod tests {
         memory_weight: f32,
         point_targets: Option<Vec<u32>>,
     ) -> Vec<u8> {
+        memory_artifact_with_snaps(
+            seed,
+            head,
+            hamming,
+            opening_hit,
+            memory_weight,
+            point_targets,
+            FbsExportSnaps::SNAPPED,
+        )
+    }
+
+    fn memory_artifact_with_snaps(
+        seed: u64,
+        head: CpuFbsHead,
+        hamming: bool,
+        opening_hit: bool,
+        memory_weight: f32,
+        point_targets: Option<Vec<u32>>,
+        snaps: FbsExportSnaps,
+    ) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
             FbsSynth {
@@ -1317,7 +1431,7 @@ mod tests {
                 weight,
             }),
         });
-        let mut bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let mut bytes = export_fbs_trunk_uorlut01_with(&snapshot, snaps).unwrap();
         if let Some(targets) = point_targets {
             bytes = add_point_key_uorlut01(
                 &bytes,
@@ -1586,6 +1700,32 @@ mod tests {
     fn combined_hamming_and_memory_match_serving() {
         assert_memory_parity(83, CpuFbsHead::Writer, true, false, true);
         assert_memory_parity(89, CpuFbsHead::Nearest, true, true, false);
+    }
+
+    #[test]
+    fn raw_quaternions_compose_with_hamming_and_memory() {
+        let raw = FbsExportSnaps {
+            gates: false,
+            transition: false,
+        };
+        assert!(
+            assert_hamming_parity_with_snaps(331, &[1, 3], 1.0, 1.0, CpuFbsHead::Writer, raw,) > 0
+        );
+        let bytes = memory_artifact_with_snaps(
+            337,
+            CpuFbsHead::Writer,
+            true,
+            true,
+            0.5,
+            Some(vec![99]),
+            raw,
+        );
+        let model = IntegerStackModel::parse(&bytes).unwrap();
+        let mut cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
+        assert_eq!(
+            run_memory_parity(&model, &mut cpu, CpuFbsHead::Writer).len(),
+            memory_script().len()
+        );
     }
 
     #[test]
@@ -1862,7 +2002,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_gate_and_transition_artifacts_are_refused() {
+    fn every_snapped_and_raw_gate_transition_combination_matches_serving() {
         let snapshot = synthetic_fbs_trunk_with(
             23,
             FbsSynth {
@@ -1878,16 +2018,48 @@ mod tests {
                 decay_step: 0.25,
             },
         );
-        let bytes = export_fbs_trunk_uorlut01_with(
-            &snapshot,
-            FbsExportSnaps {
-                gates: false,
-                transition: false,
-            },
-        )
-        .unwrap();
-        let model = IntegerStackModel::parse(&bytes).unwrap();
-        assert!(CpuFbsForward::from_model(&model).is_err());
+        let tokens = [0, 1, 17, 63, 255, 511, 33, 7, 129, 256, 9, 44];
+        let mut traces = Vec::new();
+        for (raw_gates, raw_transition) in
+            [(false, false), (false, true), (true, false), (true, true)]
+        {
+            let bytes = export_fbs_trunk_uorlut01_with(
+                &snapshot,
+                FbsExportSnaps {
+                    gates: !raw_gates,
+                    transition: !raw_transition,
+                },
+            )
+            .unwrap();
+            let model = IntegerStackModel::parse(&bytes).unwrap();
+            let mut cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
+            let mut serving = model.session();
+            let mut trace = Vec::new();
+            for token in tokens {
+                let expected = serving.step_native(token).unwrap();
+                let actual = cpu.step(token, CpuFbsHead::Writer).unwrap();
+                let context = format!(
+                    "raw gates {raw_gates}, raw transition {raw_transition}, token {token}"
+                );
+                assert_eq!(actual.query_q12, expected.query_q12, "{context}");
+                assert_eq!(actual.token, expected.token, "{context}");
+                assert_eq!(actual.kept_cells, expected.kept_cells, "{context}");
+                trace.push(actual);
+            }
+            let checkpoint = cpu.checkpoint_bytes().unwrap();
+            let mut resumed = CpuFbsForward::resume(&checkpoint, &bytes).unwrap();
+            assert_eq!(resumed.checkpoint_bytes().unwrap(), checkpoint);
+            let expected = serving.step_native(101).unwrap();
+            let restored = resumed.step(101, CpuFbsHead::Writer).unwrap();
+            let uninterrupted = cpu.step(101, CpuFbsHead::Writer).unwrap();
+            assert_eq!(restored, uninterrupted);
+            assert_eq!(restored.query_q12, expected.query_q12);
+            assert_eq!(restored.token, expected.token);
+            assert_eq!(restored.kept_cells, expected.kept_cells);
+            traces.push(trace);
+        }
+        assert_ne!(traces[0], traces[1], "raw transition was ignored");
+        assert_ne!(traces[0], traces[2], "raw gates were ignored");
     }
 
     #[test]

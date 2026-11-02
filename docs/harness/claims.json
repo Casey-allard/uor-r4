@@ -13,6 +13,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-public-fbs-raw": {
+    "branch": "deepseek/cpu-public-fbs-raw",
+    "claimed_at": "2026-11-02T01:32:08-05:00",
+    "head": "52ddbb0b0",
+    "lab": "deepseek",
+    "note": ""
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",

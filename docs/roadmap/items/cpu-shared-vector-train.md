@@ -23,8 +23,9 @@ The component trainer is delivered but the item is not complete:
 - #3518 added exact tied-token-table rank-margin updates with full-forward acceptance, Hamming refresh, admission guard and deterministic checkpoint/resume.
 - #3522 added exact BVG-K counterfactual groups for normalization gains, convolution/gate biases, decay offsets and all six FBS route tables.
 - #3523 added matched panel evaluation, exact CPU-versus-serving query/token/kept-cell gaps, checkpoint/resume panel identity and a gate that refuses target-admission or export loss.
+- The raw-FBS unit adds exact unsnapped Hamilton-gate/transition parity, Hamming and exact-memory composition, and both public dual-c131 trained seeds over 192 positions with finite rank-margin/panel controls.
 
-All three are synthetic finite component results on fresh `main`; none is a corpus-training, complete-reply, fresh-phrasing or language result.
+The first three are synthetic finite component results. The public FBS check now binds genuine trained artifacts, but it remains a finite component/control result: none is a corpus-training, complete-reply, fresh-phrasing or language result.
 
 ## What is missing
 

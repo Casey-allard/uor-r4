@@ -42,3 +42,7 @@ path = "src/bin/cpu-public-discrete-parity.rs"
 [[bin]]
 name = "cpu-discrete-route-bench"
 path = "src/bin/cpu-discrete-route-bench.rs"
+
+[[bin]]
+name = "cpu-public-fbs-parity"
+path = "src/bin/cpu-public-fbs-parity.rs"

@@ -4,13 +4,15 @@ Isolated CPU development trainers authorized by D84. GPU remains the qualificati
 
 The first unit provides `CpuWriterCore`, an independent implementation of exact cell admission followed by full-vector token ranking. `WriterReading` exposes one row's top-8 and target outcomes; `WriterSummary` aggregates top-1, top-8 and target admission. These are component oracles, not a training result.
 
-`CpuFbsForward` executes the SpiralCore/FBS trunk and reproduces the serving query at Q12 with both whole-table nearest and native-cell writer heads. `from_artifact` loads Hamming copy/type reads, `/7` opening/reply memory and the `/8` point-key fallback; `mark_reply_start`, `clear_reply_start` and `reset` control the memory path. `from_model` remains the no-read, no-memory entry point.
+`CpuFbsForward` executes the SpiralCore/FBS trunk and reproduces the serving query at Q12 with both whole-table nearest and native-cell writer heads. It supports snapped and raw Hamilton gates/transitions. `from_artifact` loads Hamming copy/type reads, `/7` opening/reply memory and the `/8` point-key fallback; `mark_reply_start`, `clear_reply_start` and `reset` control the memory path. `from_model` remains the no-read, no-memory entry point.
 
 `CpuRankMarginTrainer` is the first finite learning unit on that path. It applies a deterministic frozen-query Q12 subgradient coordinate step to the target and hardest admitted rival rows of the single tied token table, reparses the patched artifact immediately to refresh Hamming codes, reports exact admission/top-1/top-8/rank readings, and round-trips a versioned checkpoint. Routes, gates and normalization remain unchanged; this is not yet a complete end-to-end trainer.
 
 `CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop to normalization gains, convolution/gate biases, decay offsets and all six FBS route tables through bounded BVG-K coordinate blocks. `CpuPanelEvaluator` grades a finite panel and records target admission, top-1/top-8, rank margin and component-wise CPU-versus-serving query/token/kept-cell gaps. `panel_admission_gate` refuses checkpoint admission loss or any serving mismatch; these are component controls, not a language result.
 
 `cpu-public-discrete-parity` binds the public M1 seed-1 discrete artifact and public DEV split by SHA-256, extracts the trained codebook, and compares `CpuWriterCore` with `IntegerDiscreteModel` across all 14,287 eligible rows. It reproduces the published GPU aggregate `9,012` admitted, `7,002` top-1 and `7,485` top-8 with zero row mismatches.
+
+`cpu-public-fbs-parity` binds both public raw FBS seeds, compares every complete Q12 query/token/kept-cell result over 192 positions per seed, and exercises one 16-sample rank-margin/panel control per seed. It is trained-artifact component evidence, not useful-learning or complete-reply evidence.
 
 ## Checks
 
@@ -23,6 +25,7 @@ cargo run --release -p uor-r4-cpu-train --bin cpu-rank-margin-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-counterfactual-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-panel-export-bench
 cargo run --release -p uor-r4-cpu-train --bin cpu-public-discrete-parity -- <public-fixture-dir>
+cargo run --release -p uor-r4-cpu-train --bin cpu-public-fbs-parity -- <public-fbs-fixture-dir>
 ```
 
 The forward benchmark prints read-free, copy-only, copy-plus-type and full Hamming-plus-memory cases with hashes and process peak RSS. Its readings are component throughput, not training or language evidence.
