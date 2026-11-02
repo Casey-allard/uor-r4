@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [turn-memory-reply]
 notebook: docs/research/notebook/float-training.md
-scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs]
+scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs]
 ---
 
 ## Why it matters
@@ -27,12 +27,13 @@ So before the model the project ships is trained, the scoring must be able to te
 
 ## What is missing
 
-- **Served-surrogate primitives exist; trainer wiring remains open.** Q16
-  residual and dynamic i16 activation quantization now have exact scalar
-  forward controls, straight-through bridge code and a combined wrapper with
-  the existing D11 snaps/Q12 bridge. The next unit must insert them into the
-  real hidden path, reject unsupported training-only memory behavior, and run
-  the matched four-arm comparison before this changes the end-to-end model.
+- **Served-surrogate training is wired; GPU validation remains open.** Q16
+  residuals and dynamic i16 recurrence/MLP activations now run in the real
+  geometric hidden path under `--train-as-served 1`, with D11 snaps, a Q12
+  scored query and D11 checkpoint evaluation. Training-only reply cuts are
+  refused because the artifact cannot carry them. The next unit must run the
+  matched four-arm comparison on CUDA; this host cannot execute the tensor
+  graph under D24/D29.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

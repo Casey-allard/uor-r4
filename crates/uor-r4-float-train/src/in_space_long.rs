@@ -173,12 +173,13 @@ pub struct LongConfig {
     /// same cut to its rows. Left out of `config.json` when none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply_read_train: Option<ReadScope>,
-    /// Train as served (one-model-end-to-end, claude-258): before each step's forward, the trunk's
-    /// tables, the Hamming reads and the turn memory's weights are rounded as the integer export
-    /// rounds them, so the loss and its gradient are the served model's; the gradient then moves
-    /// the float values they were rounded from ([`ServedValues`]). Every checkpoint is scored and
-    /// saved at the rounded values, so rounding a saved step as exported changes nothing. Left
-    /// out of `config.json` when false.
+    /// Train as served (one-model-end-to-end, claude-258 and deepseek-4): before each step's
+    /// forward, the trunk's tables, the Hamming reads and the turn memory's weights are rounded
+    /// as the integer export rounds them; the D11 gates/transition, Q16 residual and dynamic i16
+    /// activations are on; and the scored query is Q12. The gradient moves the float values the
+    /// rounded forward came from ([`ServedValues`]). Every checkpoint is scored in the same
+    /// served forward and saved at the rounded values, so rounding a saved step as exported
+    /// changes nothing. Left out of `config.json` when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub train_as_served: bool,
 }
@@ -190,6 +191,7 @@ pub struct LongConfig {
 /// being rounded away.
 struct ServedValues {
     float: Vec<(candle_core::Var, Tensor)>,
+    restored: bool,
 }
 
 impl ServedValues {
@@ -212,7 +214,10 @@ impl ServedValues {
             .into_iter()
             .map(|var| Ok((var.clone(), var.as_tensor().copy()?)))
             .collect::<Result<Vec<_>>>()?;
-        let served = Self { float };
+        let served = Self {
+            float,
+            restored: false,
+        };
         let rounded = (|| -> Result<()> {
             crate::fbs_export::round_tables_as_exported(model)?;
             if let Some(reads) = reads {
@@ -233,11 +238,30 @@ impl ServedValues {
     }
 
     /// Put each variable's float value back.
-    fn restore(self) -> Result<()> {
-        for (var, value) in self.float {
-            var.set(&value)?;
+    fn restore_values(&self) -> Result<()> {
+        for (var, value) in &self.float {
+            var.set(value)?;
         }
         Ok(())
+    }
+
+    /// Put each variable's float value back and mark the guard restored.
+    fn restore(mut self) -> Result<()> {
+        self.restore_values()?;
+        self.restored = true;
+        Ok(())
+    }
+}
+
+impl Drop for ServedValues {
+    fn drop(&mut self) {
+        if !self.restored {
+            // Every `?` between rounding and the explicit restore takes this path. A failed
+            // restoration cannot be reported from `Drop`, but it is no worse than leaving the
+            // rounded values in place; the explicit success/error path still returns any error.
+            let _ = self.restore_values();
+            self.restored = true;
+        }
     }
 }
 
@@ -250,6 +274,33 @@ fn round_if_served(
 ) -> Result<Option<ServedValues>> {
     on.then(|| ServedValues::round(model, reads, memory))
         .transpose()
+}
+
+/// Run a training step under the graph it will export, or retain the existing plain path.
+fn with_training_forward<T>(
+    served: bool,
+    seed: u64,
+    step: usize,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    if served {
+        hs::with_served_surrogate_training(seed, step + 1, f)
+    } else {
+        hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step + 1, false, f)
+    }
+}
+
+fn with_eval_forward<T>(
+    served: bool,
+    seed: u64,
+    step: usize,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    if served {
+        hs::with_served_surrogate_training(seed, step, f)
+    } else {
+        hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, f)
+    }
 }
 
 fn is_zero_u32(n: &u32) -> bool {
@@ -495,6 +546,39 @@ fn run_trained_cut(checkpoint: &Path) -> Result<Option<ReadScope>> {
         };
     }
     Ok(None)
+}
+
+/// Whether the run saved beside `checkpoint` trained as served. A checkpoint copied without its
+/// run config is scored through the plain path, as before.
+fn run_train_as_served(checkpoint: &Path) -> Result<bool> {
+    let checkpoint = checkpoint
+        .canonicalize()
+        .unwrap_or_else(|_| checkpoint.to_path_buf());
+    let candidates = [
+        Some(checkpoint.join("config.json")),
+        checkpoint
+            .parent()
+            .and_then(Path::parent)
+            .map(|run| run.join("config.json")),
+    ];
+    for path in candidates.into_iter().flatten() {
+        if !path.exists() {
+            continue;
+        }
+        let value: serde_json::Value = serde_json::from_slice(&fs::read(&path)?)
+            .map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+        if value.get("steps").is_none() {
+            continue;
+        }
+        return value
+            .get("train_as_served")
+            .map(|v| {
+                v.as_bool()
+                    .ok_or_else(|| invalid(format!("{}: train_as_served is not a bool", path.display())))
+            })
+            .unwrap_or(Ok(false));
+    }
+    Ok(false)
 }
 
 /// Set this thread's Flock read, content read, Hamming reads, opening read and prompt register
@@ -958,10 +1042,16 @@ fn batch_loss(
     scored: &[u32],
     targets: &[u32],
     batch: usize,
+    q12: bool,
 ) -> Result<Tensor> {
     let hidden = trained_points(model, ids, batch)?;
     let idx = Tensor::from_vec(scored.to_vec(), scored.len(), model.device())?;
     let query = hidden.index_select(&idx, 0)?;
+    let query = if q12 {
+        hs::q12_query(&query)?
+    } else {
+        query
+    };
     stage_clock::mark("points.select");
     query_loss(model, objective, &query, targets)
 }
@@ -1071,19 +1161,29 @@ fn nearest_reading(
     mask: &[u8],
     seed: u64,
     step: usize,
+    served: bool,
 ) -> Result<(NearestReading, WriterReading)> {
     let (mut all_queries, mut opening_queries) = (Vec::new(), Vec::new());
-    let picks = row_picks(model, dev, mask, seed, step, None, |query, opens| {
-        let at: Vec<u32> = (0..opens.len() as u32)
-            .filter(|&i| opens[i as usize])
-            .collect();
-        if !at.is_empty() {
-            let at = Tensor::from_vec(at.clone(), at.len(), model.device())?;
-            opening_queries.push(query.index_select(&at, 0)?);
-        }
-        all_queries.push(query.clone());
-        Ok(())
-    })?;
+    let picks = row_picks(
+        model,
+        dev,
+        mask,
+        seed,
+        step,
+        served,
+        None,
+        |query, opens| {
+            let at: Vec<u32> = (0..opens.len() as u32)
+                .filter(|&i| opens[i as usize])
+                .collect();
+            if !at.is_empty() {
+                let at = Tensor::from_vec(at.clone(), at.len(), model.device())?;
+                opening_queries.push(query.index_select(&at, 0)?);
+            }
+            all_queries.push(query.clone());
+            Ok(())
+        },
+    )?;
     let (mut reading, written) = fold_picks(&picks);
     if !opening_queries.is_empty() {
         reading.opening_query_spread = spread(&Tensor::cat(&opening_queries, 0)?)?;
@@ -1132,18 +1232,20 @@ fn fold_picks(picks: &[RowPick]) -> (NearestReading, WriterReading) {
 /// (its openings, and its reply table's later rows). `on_query` sees each batch's query rows
 /// and which of them open a reply. A `trace` (claude-251) records the decisions of the windows it
 /// names, in this same forward.
+#[allow(clippy::too_many_arguments)]
 fn row_picks(
     model: &StackModel,
     dev: &[CausalWindow],
     mask: &[u8],
     seed: u64,
     step: usize,
+    served: bool,
     mut trace: Option<&mut FTrace>,
     mut on_query: impl FnMut(&Tensor, &[bool]) -> Result<()>,
 ) -> Result<Vec<RowPick>> {
     let table = table(model)?;
     let writer = model.native_vector_writer()?;
-    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, || {
+    let forward = || {
         let mut out = Vec::new();
         for chunk in dev.chunks(hs::SHEET_EVAL_BATCH) {
             let windows: Vec<&CausalWindow> = chunk.iter().collect();
@@ -1227,7 +1329,12 @@ fn row_picks(
             });
             let hidden = hidden?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), model.device())?;
-            let query = hidden.index_select(&idx, 0)?.detach();
+            let query = hidden.index_select(&idx, 0)?;
+            let query = if served {
+                hs::q12_query(&query)?.detach()
+            } else {
+                query.detach()
+            };
             let scores = nearest_scores(&query, &table)?;
             let best = scores.argmax(1)?.to_vec1::<u32>()?;
             if let (Some(sink), Some((rows, reply)), Some((hamming, rates))) =
@@ -1290,7 +1397,8 @@ fn row_picks(
             on_query(&query, &opens)?;
         }
         Ok(out)
-    })
+    };
+    with_eval_forward(served, seed, step, forward)
 }
 
 /// claude-251, Q5's decision trace (side F, `uor-r4.decision-trace/1`): one split's windows to
@@ -2213,11 +2321,12 @@ fn opening_points(
     mask: &[u8],
     seed: u64,
     step: usize,
+    served: bool,
 ) -> Result<(Tensor, Vec<u32>, Vec<usize>)> {
     if crate::flock_read_memory::turn_memory().is_some() {
         return Err(invalid("the opening keys read the trunk's own points, with the memory off"));
     }
-    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, || {
+    with_eval_forward(served, seed, step, || {
         let (mut points, mut targets, mut positions) = (Vec::new(), Vec::new(), Vec::new());
         for chunk in windows.chunks(hs::SHEET_EVAL_BATCH) {
             let windows: Vec<&CausalWindow> = chunk.iter().collect();
@@ -2237,7 +2346,12 @@ fn opening_points(
             let hidden = trained_points(model, &ids, windows.len())?;
             let rows: Vec<u32> = open.iter().map(|&i| scored[i]).collect();
             let idx = Tensor::from_vec(rows, open.len(), model.device())?;
-            points.push(hidden.index_select(&idx, 0)?.detach());
+            let point = hidden.index_select(&idx, 0)?;
+            points.push(if served {
+                hs::q12_query(&point)?.detach()
+            } else {
+                point.detach()
+            });
             targets.extend(open.iter().map(|&i| batch_targets[i]));
             positions.extend(open.iter().map(|&i| batch_positions[i]));
         }
@@ -4756,18 +4870,15 @@ fn sample_windows<'a>(
     eligible.into_iter().step_by(stride).take(samples).collect()
 }
 
-/// The model's greedy reply to `prompt`: `reply_tokens` tokens on the last `SHEET_CONTEXT`
-/// tokens, stopping early at BOS. Each is the whole table's nearest token under
-/// [`PointObjective::Nearest`] or [`PointObjective::Cell`], else the writer's pick among its
-/// admitted cells.
-fn greedy_reply(
+fn greedy_reply_with_mode(
     model: &StackModel,
     objective: PointObjective,
     prompt: &[u32],
     reply_tokens: usize,
     seed: u64,
+    served: bool,
 ) -> Result<Vec<u32>> {
-    Ok(decode_reply(
+    Ok(decode_reply_with_mode(
         model,
         objective,
         prompt,
@@ -4778,8 +4889,30 @@ fn greedy_reply(
         None,
         ReadScope::Full,
         &[],
+        served,
     )?
     .tokens)
+}
+
+/// The native writer's next token from the last row of `hidden`, rounded to the served Q12 grid
+/// when `served`.
+fn native_writer_next_token(model: &StackModel, hidden: &Tensor, served: bool) -> Result<u32> {
+    let (rows, _) = hidden.dims2()?;
+    let point = hidden.narrow(0, rows.saturating_sub(1), 1)?;
+    let point = if served {
+        hs::q12_query(&point)?
+    } else {
+        point
+    };
+    model
+        .native_vector_writer()?
+        .write(&point)?
+        .flatten_all()?
+        .to_dtype(DType::U32)?
+        .to_vec1::<u32>()?
+        .last()
+        .copied()
+        .ok_or_else(|| invalid("the writer returned no token"))
 }
 
 /// How a reply picks each next token (one-model-end-to-end protocol, "The decode rules").
@@ -5100,7 +5233,7 @@ fn forced_opening() -> Option<u32> {
 /// prompt's response-mask flags `prompt_mask` and the reply's tokens; so the reply decoded reads
 /// only the prompt's positions, and an earlier reply in the prompt reads only before itself.
 #[allow(clippy::too_many_arguments)]
-fn decode_reply(
+fn decode_reply_with_mode(
     model: &StackModel,
     objective: PointObjective,
     prompt: &[u32],
@@ -5111,6 +5244,7 @@ fn decode_reply(
     eos: Option<u32>,
     scope: ReadScope,
     prompt_mask: &[u8],
+    served_mode: bool,
 ) -> Result<DecodedReply> {
     let flock = rule != DecodeRule::Greedy;
     if flock && !objective.decodes_nearest() {
@@ -5135,7 +5269,7 @@ fn decode_reply(
         )));
     }
     let table = table(model)?;
-    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
+    with_eval_forward(served_mode, seed, 0, || {
         let mut ids = prompt.to_vec();
         let mut reply = Vec::with_capacity(reply_tokens);
         let mut admitted = Vec::new();
@@ -5197,6 +5331,11 @@ fn decode_reply(
                 crate::flock_read_memory::set_reply_rows(None);
                 let hidden = hidden?;
                 let point = hidden.narrow(0, window.len() - 1, 1)?;
+                let point = if served_mode {
+                    hs::q12_query(&point)?
+                } else {
+                    point
+                };
                 // The served point key (claude-220) names the opening where the exact key misses,
                 // from this forward's own point, under the greedy rule only.
                 if serves_at(&reply, rule) {
@@ -5252,13 +5391,8 @@ fn decode_reply(
                     }
                 }
             } else {
-                *model
-                    .native_next_token_ids(window, 1, window.len())?
-                    .flatten_all()?
-                    .to_dtype(DType::U32)?
-                    .to_vec1::<u32>()?
-                    .last()
-                    .ok_or_else(|| invalid("the writer returned no token"))?
+                let hidden = model.hidden(window, 1, window.len())?;
+                native_writer_next_token(model, &hidden, served_mode)?
             };
             if token == hs::SHEET_BOS_ID {
                 break;
@@ -5534,6 +5668,7 @@ pub fn decode_speed(
     device: &Device,
 ) -> Result<Vec<DecodeSpeed>> {
     check_run_arm(checkpoint, arm)?;
+    let served = run_train_as_served(checkpoint)?;
     let (dev_windows, _) = load_dev(data_root)?;
     arms::set_fbs_arm(Some(arm));
     crate::geometric_stack::set_retention_rates(retain_rates);
@@ -5552,13 +5687,13 @@ pub fn decode_speed(
         PointObjective::Sheet
     };
     // One untimed reply first, so no context is charged for kernel loading.
-    greedy_reply(&model, objective, &source.input_ids[..16], 4, seed)?;
+    greedy_reply_with_mode(&model, objective, &source.input_ids[..16], 4, seed, served)?;
     let mut speeds = Vec::with_capacity(DECODE_CONTEXTS.len());
     for &context in &DECODE_CONTEXTS {
         let prompt = &source.input_ids[..context.min(source.input_ids.len())];
         let started = Instant::now();
         // BOS stops a reply early; count what was decoded.
-        let reply = greedy_reply(&model, objective, prompt, tokens, seed)?;
+        let reply = greedy_reply_with_mode(&model, objective, prompt, tokens, seed, served)?;
         device.synchronize()?;
         let seconds = started.elapsed().as_secs_f64();
         // A reply cut short by BOS ran one more forward pass, the one that produced BOS.
@@ -5586,6 +5721,7 @@ pub fn inspect_run(
     device: &Device,
 ) -> Result<Vec<Inspection>> {
     check_run_arm(run, arm)?;
+    let served = run_train_as_served(run)?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     arms::set_fbs_arm(Some(arm));
     crate::geometric_stack::set_retention_rates(retain_rates);
@@ -5609,21 +5745,33 @@ pub fn inspect_run(
         let step: usize = name.trim_start_matches("step-").parse().unwrap_or(0);
         let model = StackModel::load(&dir, device)?;
         load_reads(&dir, device)?;
-        let (dev, _) = hs::evaluate_dev_panel(
-            &model,
-            &dev_windows,
-            HamiltonArm::HamiltonActive,
-            seed,
-            step,
-            false,
-            false,
-        )?;
-        let query = hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, step, false, || {
+        let (dev, _) = if served {
+            hs::with_served_surrogate_training(seed, step, || {
+                hs::evaluate_dev_panel_d11(&model, &dev_windows)
+            })?
+        } else {
+            hs::evaluate_dev_panel(
+                &model,
+                &dev_windows,
+                HamiltonArm::HamiltonActive,
+                seed,
+                step,
+                false,
+                false,
+            )?
+        };
+        let query = with_eval_forward(served, seed, step, || {
             let hidden = crate::flock_read::points(&model, &ids, probe.len(), SHEET_CONTEXT)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
-            Ok(hidden.index_select(&idx, 0)?)
+            let query = hidden.index_select(&idx, 0)?;
+            if served {
+                hs::q12_query(&query)
+            } else {
+                Ok(query)
+            }
         })?;
-        let (nearest, _) = nearest_reading(&model, &dev_windows, &dev_mask, seed, step)?;
+        let (nearest, _) =
+            nearest_reading(&model, &dev_windows, &dev_mask, seed, step, served)?;
         // The last checkpoint's register, one slot dropped at a time and then all of them
         // (claude-155): the same nearest-token reading, with the register restored after each.
         let register_drop = match crate::flock_read_register::prompt_register() {
@@ -5631,7 +5779,8 @@ pub fn inspect_run(
                 let mut rows = Vec::with_capacity(reg.q() + 1);
                 for slot in (0..reg.q()).map(Some).chain([None]) {
                     crate::flock_read_register::set_prompt_register(Some(reg.without_slot(slot)?));
-                    let dropped = nearest_reading(&model, &dev_windows, &dev_mask, seed, step);
+                    let dropped =
+                        nearest_reading(&model, &dev_windows, &dev_mask, seed, step, served);
                     crate::flock_read_register::set_prompt_register(Some(reg.clone()));
                     let (dropped, _) = dropped?;
                     rows.push(RegisterDrop {
@@ -5649,7 +5798,8 @@ pub fn inspect_run(
         let memory_drop = match crate::flock_read_memory::turn_memory() {
             Some(memory) if index == last => {
                 crate::flock_read_memory::set_turn_memory(None);
-                let dropped = nearest_reading(&model, &dev_windows, &dev_mask, seed, step);
+                let dropped =
+                    nearest_reading(&model, &dev_windows, &dev_mask, seed, step, served);
                 crate::flock_read_memory::set_turn_memory(Some(memory));
                 let (dropped, _) = dropped?;
                 Some(RegisterDrop {
@@ -6083,6 +6233,7 @@ pub fn score_rows(
     // A run trained with the reply's read held to the prompt scores its rows the same way
     // (claude-216); its decodes take the cut through `--reply-read`, as served.
     let trained = run_trained_cut(checkpoint)?;
+    let trained_as_served = run_train_as_served(checkpoint)?;
     set_trained_cut(trained);
     println!("[cut] scoring with the trained cut: {}", trained.map_or("none", |s| s.name()));
     let memory = crate::flock_read_memory::turn_memory();
@@ -6100,7 +6251,14 @@ pub fn score_rows(
         // and read back, which must give the same bits, and the copy read back is the one served.
         let (train_tokens, train_mask) = load_train_split(data_root)?;
         let train_windows = windows_of(&train_tokens, &train_mask)?;
-        let (built, targets, _) = opening_points(&model, &train_windows, &train_mask, seed, step)?;
+        let (built, targets, _) = opening_points(
+            &model,
+            &train_windows,
+            &train_mask,
+            seed,
+            step,
+            trained_as_served,
+        )?;
         drop((train_windows, train_tokens, train_mask));
         let (train, train_targets) = if served_arm {
             let path = out.join(OPENING_TABLE_FILE);
@@ -6117,7 +6275,14 @@ pub fn score_rows(
         let named = splits
             .iter()
             .map(|split| {
-                let (query, targets, positions) = opening_points(&model, &split.windows, &split.mask, seed, step)?;
+                let (query, targets, positions) = opening_points(
+                    &model,
+                    &split.windows,
+                    &split.mask,
+                    seed,
+                    step,
+                    trained_as_served,
+                )?;
                 opening_keys(&split.name, &query, targets, positions, &train, &train_targets)
             })
             .collect::<Result<_>>()?;
@@ -6144,8 +6309,16 @@ pub fn score_rows(
                 }
                 None => None,
             };
-            let picks =
-                row_picks(&model, &split.windows, &split.mask, seed, step, trace.as_mut(), |_, _| Ok(()))?;
+            let picks = row_picks(
+                &model,
+                &split.windows,
+                &split.mask,
+                seed,
+                step,
+                trained_as_served,
+                trace.as_mut(),
+                |_, _| Ok(()),
+            )?;
             if let Some(trace) = trace {
                 let file = format!("decision-trace-{}.json", split.name);
                 let trace = trace.finish()?;
@@ -6200,7 +6373,12 @@ pub fn score_rows(
                     let prompt = &window.input_ids[..=off];
                     // The prompt's own flags: an earlier reply in it is limited as in training.
                     let flags = window_input_mask(std::slice::from_ref(window), &split.mask)?;
-                    let DecodedReply { tokens: reply, admitted, stepped, .. } = decode_reply(
+                    let DecodedReply {
+                        tokens: reply,
+                        admitted,
+                        stepped,
+                        ..
+                    } = decode_reply_with_mode(
                         &model,
                         PointObjective::Cell,
                         prompt,
@@ -6211,6 +6389,7 @@ pub fn score_rows(
                         Some(eos),
                         scope,
                         &flags[..=off],
+                        trained_as_served,
                     )?;
                     let reference = reference_reply(window, reply_tokens);
                     let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), named);
@@ -6285,7 +6464,7 @@ pub fn score_rows(
                     let reference = reference_reply(window, reply_tokens);
                     set_forced_opening(opening);
                     set_served_key(if serve { served_key.clone() } else { None });
-                    let decoded = decode_reply(
+                    let decoded = decode_reply_with_mode(
                         &model,
                         PointObjective::Cell,
                         prompt,
@@ -6296,6 +6475,7 @@ pub fn score_rows(
                         Some(eos),
                         ReadScope::Full,
                         &[],
+                        trained_as_served,
                     );
                     set_forced_opening(None);
                     set_served_key(None);
@@ -8986,6 +9166,7 @@ pub fn run_recall(
                     &scored,
                     &targets,
                     config.batch,
+                    false,
                 )?;
                 let value = f64::from(loss.to_scalar::<f32>()?);
                 if !value.is_finite() {
@@ -9192,6 +9373,7 @@ pub fn gradient_norms(
             &scored,
             &targets,
             config.batch,
+            false,
         )?
         .backward()?)
     })?;
@@ -9461,13 +9643,15 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             || config.opening_read > 0
             || config.prompt_register > 0
             || config.type_spin
+            || config.reply_read_train.is_some()
             || config.fold_scores
             || config.reflect_floor)
     {
         return Err(invalid(
             "--train-as-served rounds the trunk, the Hamming read and the turn memory as the export \
              does; the Flock, content and opening reads, the prompt register and the type spin \
-             have no exported form, and the export refuses folded or reflected rate scores",
+             have no exported form, the reply-read training cut is not served, and the export \
+             refuses folded or reflected rate scores",
         ));
     }
     if out.exists() {
@@ -9606,18 +9790,30 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             crate::flock_read_hamming::hamming_reads().as_ref(),
             crate::flock_read_memory::turn_memory().as_ref(),
         )?;
-        let (dev, _) = hs::evaluate_dev_panel(
-            model,
-            &dev_windows,
-            HamiltonArm::HamiltonActive,
-            config.seed,
-            step,
-            false,
-            false,
-        )?;
-        let dev_loss = panel_loss(model, &dev_windows, config.seed, step, false)?;
-        let (nearest, written) =
-            nearest_reading(model, &dev_windows, &dev_mask, config.seed, step)?;
+        let (dev, dev_loss, nearest, written) = if config.train_as_served {
+            hs::with_served_surrogate_training(config.seed, step, || {
+                let (dev, _) = hs::evaluate_dev_panel_d11(model, &dev_windows)?;
+                let dev_loss =
+                    crate::spiralcore_fbs_sheet::panel_loss_d11(model, &dev_windows)?;
+                let (nearest, written) =
+                    nearest_reading(model, &dev_windows, &dev_mask, config.seed, step, true)?;
+                Ok((dev, dev_loss, nearest, written))
+            })?
+        } else {
+            let (dev, _) = hs::evaluate_dev_panel(
+                model,
+                &dev_windows,
+                HamiltonArm::HamiltonActive,
+                config.seed,
+                step,
+                false,
+                false,
+            )?;
+            let dev_loss = panel_loss(model, &dev_windows, config.seed, step, false)?;
+            let (nearest, written) =
+                nearest_reading(model, &dev_windows, &dev_mask, config.seed, step, false)?;
+            (dev, dev_loss, nearest, written)
+        };
         let point = Checkpoint {
             step,
             epoch: (step * config.batch) as f64 / usable.len() as f64,
@@ -9664,12 +9860,13 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         for window in &prompts {
             let off = window.scored_offsets[0];
             let prompt = &window.input_ids[..=off];
-            let reply = greedy_reply(
+            let reply = greedy_reply_with_mode(
                 model,
                 config.objective,
                 prompt,
                 config.reply_tokens,
                 config.seed,
+                config.train_as_served,
             )?;
             let reference = reference_reply(window, config.reply_tokens);
             let sample = Sample {
@@ -9795,12 +9992,12 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             stage_clock::mark("served.round");
         }
         // The gate hook carries the real step: at step 0 its backward runs diagnostics with host
-        // syncs, and a checkpoint's replies leave it at 0.
-        let (value, grads) = hs::with_gate_mode(
-            HamiltonArm::HamiltonActive,
+        // syncs, and a checkpoint's replies leave it at 0. Training as served adds the complete
+        // quantization bridge and Q12 query used by the exported graph.
+        let (value, grads) = with_training_forward(
+            config.train_as_served,
             config.seed,
-            step + 1,
-            false,
+            step,
             || {
                 let loss = batch_loss(
                     &model,
@@ -9809,6 +10006,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                     &scored,
                     &targets,
                     config.batch,
+                    config.train_as_served,
                 )?;
                 // The copy to the host waits for the GPU to finish the forward. Only the nearest
                 // and cell objectives mark their own stages; the sheet's and Voronoi objectives
@@ -11403,7 +11601,8 @@ mod tests {
         let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
         let ids: Vec<u32> = (0..SHEET_CONTEXT as u32).map(|i| (i * 37) % 4096).collect();
         let (scored, targets) = ([10u32, 50, 100, 191], [11u32, 2000, 7, 300]);
-        let loss = || batch_loss(&model, PointObjective::Cell, &ids, &scored, &targets, 1).unwrap();
+        let loss =
+            || batch_loss(&model, PointObjective::Cell, &ids, &scored, &targets, 1, false).unwrap();
         let off = loss().to_scalar::<f32>().unwrap();
         stage_clock::start(&device);
         let on = loss();
@@ -11976,7 +12175,7 @@ mod tests {
             let shift = sample as u32 * 101;
             let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37 + shift) % 4096).collect();
             let decode = |rule| {
-                decode_reply(
+                decode_reply_with_mode(
                     &model,
                     PointObjective::Cell,
                     &prompt,
@@ -11987,6 +12186,7 @@ mod tests {
                     None,
                     ReadScope::Full,
                     &[],
+                    false,
                 )
                 .unwrap()
                 .tokens
@@ -12021,8 +12221,20 @@ mod tests {
             let shift = sample as u32 * 101;
             let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37 + shift) % 4096).collect();
             let decode = |rule| {
-                decode_reply(&model, PointObjective::Cell, &prompt, 32, 1, rule, sample, None, ReadScope::Full, &[])
-                    .unwrap()
+                decode_reply_with_mode(
+                    &model,
+                    PointObjective::Cell,
+                    &prompt,
+                    32,
+                    1,
+                    rule,
+                    sample,
+                    None,
+                    ReadScope::Full,
+                    &[],
+                    false,
+                )
+                .unwrap()
             };
             let greedy = decode(DecodeRule::Greedy).tokens;
             assert_eq!(decode(DecodeRule::CycleStep { k: 1, n: 4 }).tokens, greedy, "sample {sample}");
@@ -12070,7 +12282,20 @@ mod tests {
             crate::flock_read::points(&model, p, 1, p.len()).unwrap().narrow(0, p.len() - 1, 1).unwrap()
         };
         let decode = |p: &[u32], n: usize| {
-            decode_reply(&model, PointObjective::Cell, p, n, 1, DecodeRule::Greedy, 0, None, ReadScope::Full, &[]).unwrap()
+            decode_reply_with_mode(
+                &model,
+                PointObjective::Cell,
+                p,
+                n,
+                1,
+                DecodeRule::Greedy,
+                0,
+                None,
+                ReadScope::Full,
+                &[],
+                false,
+            )
+            .unwrap()
         };
         // A memory whose table holds a's own turn key, with a zero weight, so it moves nothing.
         let slots = opening_slots(&a, 8, OpeningAnchor::Turn);
@@ -12105,9 +12330,21 @@ mod tests {
         let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
         let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37) % 4096).collect();
         let decode = |prompt: &[u32], n| {
-            decode_reply(&model, PointObjective::Cell, prompt, n, 1, DecodeRule::Greedy, 0, None, ReadScope::Full, &[])
-                .unwrap()
-                .tokens
+            decode_reply_with_mode(
+                &model,
+                PointObjective::Cell,
+                prompt,
+                n,
+                1,
+                DecodeRule::Greedy,
+                0,
+                None,
+                ReadScope::Full,
+                &[],
+                false,
+            )
+            .unwrap()
+            .tokens
         };
         set_forced_opening(Some(77));
         let forced = decode(&prompt, 16);
@@ -12127,11 +12364,12 @@ mod tests {
         }
         let (windows, _) =
             hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID).unwrap();
-        let (points, targets, positions) = opening_points(&model, &windows, &mask, 1, 0).unwrap();
+        let (points, targets, positions) =
+            opening_points(&model, &windows, &mask, 1, 0, false).unwrap();
         assert_eq!(positions, [11, 21]);
         assert_eq!(targets, [20, 30]);
         let mut seen = Vec::new();
-        row_picks(&model, &windows, &mask, 1, 0, None, |query, opens| {
+        row_picks(&model, &windows, &mask, 1, 0, false, None, |query, opens| {
             let rows: Vec<u32> = (0..opens.len() as u32).filter(|&i| opens[i as usize]).collect();
             let idx = Tensor::from_vec(rows.clone(), rows.len(), query.device())?;
             seen.push(query.index_select(&idx, 0)?);
@@ -12174,7 +12412,7 @@ mod tests {
             hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID).unwrap();
         assert_eq!(windows.len(), 2);
         let picks = |trace: Option<&mut FTrace>| {
-            row_picks(&model, &windows, &mask, 1, 0, trace, |_, _| Ok(())).unwrap()
+            row_picks(&model, &windows, &mask, 1, 0, false, trace, |_, _| Ok(())).unwrap()
         };
         let plain = picks(None);
         let named = &windows[1];
@@ -12295,9 +12533,16 @@ mod tests {
                     .with_force(file, 6, lanes, &[(2, 4, head_width), (6, 4, head_width)])
                     .unwrap();
             }
-            let picks = row_picks(&model, &windows, &mask, 1, 0, Some(&mut trace), |_, _| {
-                Ok(())
-            })
+            let picks = row_picks(
+                &model,
+                &windows,
+                &mask,
+                1,
+                0,
+                false,
+                Some(&mut trace),
+                |_, _| Ok(()),
+            )
             .unwrap();
             (picks, trace.finish().unwrap())
         };
@@ -13667,8 +13912,15 @@ mod tests {
         fs::create_dir_all(&step).unwrap();
         fs::write(run.join("config.json"), &cut).unwrap();
         assert_eq!(run_trained_cut(&step).unwrap(), Some(ReadScope::All));
+        assert!(!run_train_as_served(&step).unwrap());
+        config.train_as_served = true;
+        let served = serde_json::to_vec_pretty(&config).unwrap();
+        fs::write(run.join("config.json"), &served).unwrap();
+        assert!(run_train_as_served(&step).unwrap());
+        assert_eq!(run_trained_cut(&step).unwrap(), Some(ReadScope::All));
         fs::write(run.join("config.json"), plain.as_bytes()).unwrap();
         assert_eq!(run_trained_cut(&step).unwrap(), None);
+        assert!(!run_train_as_served(&step).unwrap());
         fs::remove_dir_all(&run).unwrap();
     }
 
@@ -13690,7 +13942,7 @@ mod tests {
             let shift = sample as u32 * 101;
             let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37 + shift) % 4096).collect();
             let decode = |scope| {
-                let reply = decode_reply(
+                let reply = decode_reply_with_mode(
                     &model,
                     PointObjective::Cell,
                     &prompt,
@@ -13701,6 +13953,7 @@ mod tests {
                     None,
                     scope,
                     &vec![0; prompt.len()],
+                    false,
                 )
                 .unwrap()
                 .tokens;
@@ -13719,6 +13972,40 @@ mod tests {
         assert!(decoded > 0, "every reply was empty, so the check held vacuously");
     }
 
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn served_writer_decode_rounds_the_hidden_point_to_q12() -> Result<()> {
+        let device = Device::new_cuda(0).unwrap();
+        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device)?;
+        let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37) % 4096).collect();
+        let hidden =
+            hs::with_served_surrogate_training(1, 0, || model.hidden(&prompt, 1, prompt.len()))?;
+        let expected = native_writer_next_token(&model, &hidden, true)?;
+        let decoded = decode_reply_with_mode(
+            &model,
+            PointObjective::Sheet,
+            &prompt,
+            1,
+            1,
+            DecodeRule::Greedy,
+            0,
+            None,
+            ReadScope::Full,
+            &[],
+            true,
+        )?;
+        if expected == hs::SHEET_BOS_ID {
+            assert!(decoded.tokens.is_empty(), "BOS ends the reply");
+        } else {
+            assert_eq!(
+                decoded.tokens.first(),
+                Some(&expected),
+                "the served writer takes the Q12 point"
+            );
+        }
+        Ok(())
+    }
+
     /// claude-213 (its GPU half): on a model, the cell rule at margin 0 decodes exactly as
     /// greedy, admitting one candidate at every step, and records a count at each step; the
     /// objective's own margin admits more than one somewhere, so its draws do run.
@@ -13732,7 +14019,20 @@ mod tests {
             let shift = sample as u32 * 101;
             let prompt: Vec<u32> = (1..=24u32).map(|i| (i * 37 + shift) % 4096).collect();
             let decode = |rule| {
-                decode_reply(&model, PointObjective::Cell, &prompt, 16, 1, rule, sample, None, ReadScope::Full, &[]).unwrap()
+                decode_reply_with_mode(
+                    &model,
+                    PointObjective::Cell,
+                    &prompt,
+                    16,
+                    1,
+                    rule,
+                    sample,
+                    None,
+                    ReadScope::Full,
+                    &[],
+                    false,
+                )
+                .unwrap()
             };
             let greedy = decode(DecodeRule::Greedy);
             assert!(greedy.admitted.is_empty(), "greedy records no counts");
@@ -14141,6 +14441,17 @@ mod tests {
         let (model, reads, memory) = served_parts(&Device::Cpu)?;
         let vars = served_vars(&model, &reads, &memory);
         let float = served_bits(&vars)?;
+        {
+            let guard = round_if_served(true, &model, Some(&reads), Some(&memory))?
+                .expect("the rounding guard is on");
+            assert!(crate::fbs_export::check_tables_rounded_as_exported(&model).is_ok());
+            drop(guard);
+        }
+        assert_eq!(
+            served_bits(&vars)?,
+            float,
+            "an early return or panic drops the guard back to the float masters"
+        );
         save_step(&root.join("on"), true, &model, &reads, &memory)?;
         assert_eq!(served_bits(&vars)?, float, "the float values are back");
         assert_eq!(export_changes(&root.join("on"))?, [false; 3]);
@@ -14184,18 +14495,18 @@ mod tests {
                     on,
                     "step {step}"
                 );
-                let grads =
-                    hs::with_gate_mode(HamiltonArm::HamiltonActive, 1, step + 1, false, || {
-                        let loss = batch_loss(
-                            &model,
-                            PointObjective::Cell,
-                            &ids,
-                            &scored,
-                            &targets,
-                            batch,
-                        )?;
-                        Ok(loss.backward()?)
-                    })?;
+                let grads = with_training_forward(on, 1, step, || {
+                    let loss = batch_loss(
+                        &model,
+                        PointObjective::Cell,
+                        &ids,
+                        &scored,
+                        &targets,
+                        batch,
+                        on,
+                    )?;
+                    Ok(loss.backward()?)
+                })?;
                 if let Some(served) = served {
                     served.restore()?;
                 }
@@ -14259,6 +14570,23 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn the_training_forward_selects_and_restores_the_served_bridges() -> Result<()> {
+        let flags = || {
+            [
+                hs::is_rounding_residual_q16(),
+                hs::is_bridging_q16_residual(),
+                hs::is_bridging_activation_i16(),
+                hs::is_bridging_d11(),
+                hs::is_snapping_transition(),
+            ]
+        };
+        assert_eq!(with_training_forward(false, 1, 3, || Ok(flags()))?, [false; 5]);
+        assert_eq!(with_training_forward(true, 1, 3, || Ok(flags()))?, [true; 5]);
+        assert_eq!(flags(), [false; 5]);
+        Ok(())
+    }
+
     /// claude-258: training as served refuses the reads the export does not carry, the type spin,
     /// and folded or reflected rate scores, before the run writes anything.
     #[test]
@@ -14279,6 +14607,10 @@ mod tests {
             |c| c.opening_read = 1,
             |c| c.prompt_register = 1,
             |c| c.type_spin = true,
+            |c| {
+                c.hamming_read = 4;
+                c.reply_read_train = Some(ReadScope::Copy);
+            },
             |c| c.fold_scores = true,
             |c| c.reflect_floor = true,
         ] {

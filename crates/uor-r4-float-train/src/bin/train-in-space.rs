@@ -3,12 +3,12 @@
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
 //! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1]`
 //!
-//! `--train-as-served 1` trains on the values the integer artifact serves (one-model-end-to-end,
-//! claude-258): before each step's forward the trunk's tables, the Hamming reads and the turn
-//! memory's weights are rounded as the export rounds them, the gradient at those values moves the
-//! float values they came from, and every checkpoint is scored and saved rounded, so its export
-//! changes nothing (`in_space_long::ServedValues`). It refuses the reads the export does not
-//! carry and the type spin.
+//! `--train-as-served 1` trains through the graph the integer artifact serves
+//! (one-model-end-to-end, claude-258 and deepseek-4): the trunk's tables, Hamming reads and turn
+//! memory are rounded as the export rounds them; D11 gates/transition, Q16 residuals, dynamic
+//! i16 activations and the Q12 scored query are active; the gradient moves the float values the
+//! rounded forward came from; and every checkpoint is scored and saved through that same served
+//! forward. It refuses reads or training-only cuts that the export does not carry.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`

@@ -600,6 +600,18 @@ pub(crate) fn is_rounding_residual_q16() -> bool {
     ROUND_RESIDUAL_Q16.with(|c| c.get())
 }
 
+/// Whether the Q16 residual passes a straight-through gradient on this thread.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn is_bridging_q16_residual() -> bool {
+    BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get())
+}
+
+/// Whether dynamic i16 activations run on this thread.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn is_bridging_activation_i16() -> bool {
+    BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get())
+}
+
 /// `x` on the 2^-16 grid under [`with_q16_residual`]; `x` itself otherwise.
 pub(crate) fn q16_residual(x: Tensor) -> Result<Tensor> {
     if !is_rounding_residual_q16() {
@@ -698,9 +710,19 @@ pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
     Ok((&free + (quantized - &free)?.detach())?)
 }
 
+/// Quantize a learned activation boundary only under
+/// [`with_served_surrogate_training`], leaving plain forwards unchanged.
+pub(crate) fn served_activation_quantize16(x: &Tensor) -> Result<Tensor> {
+    if BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()) {
+        activation_quantize16(x)
+    } else {
+        Ok(x.clone())
+    }
+}
+
 /// Enable the served graph's discrete training boundaries together: D11 snaps and Q12 query,
-/// Q16 residual quantization and dynamic i16 activation quantization. Full trainer wiring
-/// remains outside this primitive unit; this function makes the intended shadow explicit.
+/// Q16 residual quantization and dynamic i16 activation quantization. `train-in-space` uses it
+/// around the real training forward and served checkpoint evaluation.
 pub fn with_served_surrogate_training<T>(
     seed: u64,
     step: usize,
@@ -3242,8 +3264,17 @@ mod tests {
             (2, 4),
             &device,
         )?;
-        let quantized =
-            with_served_surrogate_training(1, 0, || activation_quantize16(activation.as_tensor()))?;
+        assert_eq!(
+            served_activation_quantize16(activation.as_tensor())?.to_vec2::<f32>()?,
+            vec![
+                vec![40_000.0, -12_001.0, 3.0, -1.0],
+                vec![70_001.0, 7.0, -3.0, 3.0],
+            ],
+            "plain forwards retain the unquantized activation"
+        );
+        let quantized = with_served_surrogate_training(1, 0, || {
+            served_activation_quantize16(activation.as_tensor())
+        })?;
         assert_eq!(
             quantized.to_vec2::<f32>()?,
             vec![
@@ -3262,8 +3293,9 @@ mod tests {
         );
 
         let clamped = Var::from_vec(vec![1e30, 1.0], (1, 2), &device)?;
-        let output =
-            with_served_surrogate_training(1, 0, || activation_quantize16(clamped.as_tensor()))?;
+        let output = with_served_surrogate_training(1, 0, || {
+            served_activation_quantize16(clamped.as_tensor())
+        })?;
         let grads = output.sum_all()?.backward()?;
         assert_eq!(
             grads
