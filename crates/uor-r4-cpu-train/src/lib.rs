@@ -22,10 +22,11 @@ pub use counterfactual::{
     CounterfactualGroup, CounterfactualStep, CpuCounterfactualTrainer,
 };
 pub use discrete_route::{
-    CpuDiscreteApplyError, CpuDiscreteApplyReceipt, CpuDiscreteFlock, CpuDiscreteProposal,
-    CpuDiscreteProposalApplier, CpuDiscreteProposalChooser, CpuDiscreteProposalKind,
-    CpuDiscreteProposalMode, CpuDiscreteProposalSample, CpuDiscreteProposalScorer,
-    CpuDiscreteProposalScoring, CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteScoreError,
+    CpuBvgkBatchReceipt, CpuBvgkDecision, CpuBvgkRecord, CpuDiscreteApplyError,
+    CpuDiscreteApplyReceipt, CpuDiscreteFlock, CpuDiscreteProposal, CpuDiscreteProposalApplier,
+    CpuDiscreteProposalChooser, CpuDiscreteProposalKind, CpuDiscreteProposalMode,
+    CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuDiscreteProposalScoring,
+    CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteScoreError,
 };
 pub use fbs::{CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError};
 pub use panel::{
