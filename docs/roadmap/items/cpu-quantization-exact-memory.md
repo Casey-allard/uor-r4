@@ -3,7 +3,7 @@ id: cpu-quantization-exact-memory
 title: Add CPU quantization-aware training and exact memory
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [cpu-shared-vector-train, cpu-discrete-training-path]
@@ -24,7 +24,7 @@ Deepseek-2 adds a finite no-Hamming/no-memory quantization-shadow checkpoint: ac
 
 ## What is missing
 
-The mechanisms are delivered on finite fixtures. A trained FBS float snapshot and matched query panel are still unavailable, so trained-artifact, complete-reply and fresh-phrasing outcomes remain `NOT_RUN`.
+This component item is delivered. A trained FBS float snapshot and matched query panel are still unavailable, so trained-artifact, complete-reply and fresh-phrasing outcomes remain `NOT_RUN` under the downstream pilot rather than being silently treated as passes.
 
 ## Done when
 

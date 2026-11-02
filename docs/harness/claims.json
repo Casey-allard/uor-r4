@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-status-reconcile": {
+    "branch": "deepseek/cpu-status-reconcile",
+    "claimed_at": "2026-11-02T05:15:33-05:00",
+    "head": "137ba1764",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/harness-registry-reconcile": {
     "branch": "deepseek/harness-registry-reconcile",
     "claimed_at": "2026-11-02T04:56:29-05:00",

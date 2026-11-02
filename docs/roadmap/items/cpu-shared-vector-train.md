@@ -3,7 +3,7 @@ id: cpu-shared-vector-train
 title: Train the CPU shared-vector path with a lawful rank margin
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [cpu-shared-vector-forward]
@@ -18,7 +18,7 @@ This is the CPU form of direct token-to-vector training. It matters only if the 
 
 ## Progress
 
-The component trainer is delivered but the item is not complete:
+This component item is complete:
 
 - #3518 added exact tied-token-table rank-margin updates with full-forward acceptance, Hamming refresh, admission guard and deterministic checkpoint/resume.
 - #3522 added exact BVG-K counterfactual groups for normalization gains, convolution/gate biases, decay offsets and all six FBS route tables.
@@ -27,11 +27,11 @@ The component trainer is delivered but the item is not complete:
 - deepseek-5 adds strict canonical `UORT`/mask ingestion, document-disjoint causal samples, full-context validation, interval/final checkpointing and an explicit bounded corpus-driver CLI over the public trained artifacts.
 - deepseek-6 emits the final trained `UORLUT01` artifact beside the checkpoint, reloads it through the serving parser, and binds its bytes and hash to the trainer and resumed checkpoint.
 
-The first three are synthetic finite component results. The public FBS and corpus-driver units now bind genuine trained artifacts and a canonical public corpus, but they remain finite component/control results: no corpus-scale training, complete-reply, fresh-phrasing or language result has run.
+The first three are synthetic finite component results. The public FBS and corpus-driver units bind genuine trained artifacts and a canonical public corpus. The pre-registered public two-seed pilot has now run: both seeds preserved admission and exact export but failed the registered ranking gain, a configuration negative retained in the pilot REPORT.
 
 ## What is missing
 
-Pre-register and FIT the bounded pilot under `cpu-training-pilot`, then run it on two seeds. The driver and public trained artifacts are ready, but a trained float shadow and private/labeled complete-reply panels are still unavailable. The private-store parity prerequisite for the separate discrete path remains #3502/#3501.
+The remaining work belongs to the downstream [`cpu-training-pilot`](cpu-training-pilot.md) item: complete-reply and genuinely fresh-phrasing evidence, public-corpus interval restart, and a training configuration that clears a registered capability or ranking bar. A trained float shadow is also unavailable.
 
 ## Done when
 
