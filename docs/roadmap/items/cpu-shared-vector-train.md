@@ -25,6 +25,7 @@ The component trainer is delivered but the item is not complete:
 - #3523 added matched panel evaluation, exact CPU-versus-serving query/token/kept-cell gaps, checkpoint/resume panel identity and a gate that refuses target-admission or export loss.
 - The raw-FBS unit adds exact unsnapped Hamilton-gate/transition parity, Hamming and exact-memory composition, and both public dual-c131 trained seeds over 192 positions with finite rank-margin/panel controls.
 - deepseek-5 adds strict canonical `UORT`/mask ingestion, document-disjoint causal samples, full-context validation, interval/final checkpointing and an explicit bounded corpus-driver CLI over the public trained artifacts.
+- deepseek-6 emits the final trained `UORLUT01` artifact beside the checkpoint, reloads it through the serving parser, and binds its bytes and hash to the trainer and resumed checkpoint.
 
 The first three are synthetic finite component results. The public FBS and corpus-driver units now bind genuine trained artifacts and a canonical public corpus, but they remain finite component/control results: no corpus-scale training, complete-reply, fresh-phrasing or language result has run.
 

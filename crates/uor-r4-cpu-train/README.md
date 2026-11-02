@@ -16,7 +16,7 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `cpu-public-fbs-parity` binds both public raw FBS seeds, compares every complete Q12 query/token/kept-cell result over 192 positions per seed, and exercises one 16-sample rank-margin/panel control per seed. It is trained-artifact component evidence, not useful-learning or complete-reply evidence.
 
-`CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval and final checkpoints, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
+`CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval checkpoints plus reloadable final checkpoint and `UORLUT01` artifacts, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
 
 ## Checks
 

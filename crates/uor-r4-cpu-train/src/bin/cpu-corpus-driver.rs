@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -164,6 +165,21 @@ fn run() -> Result<(), String> {
     let final_checkpoint_path = config.checkpoint_dir.join("final.ckpt");
     std::fs::write(&final_checkpoint_path, &final_checkpoint)
         .map_err(|error| format!("final checkpoint: {error}"))?;
+    let resumed = CpuRankMarginTrainer::resume(&final_checkpoint, split.training.clone())
+        .map_err(|error| format!("final checkpoint reload: {error}"))?;
+    let final_artifact = trainer.artifact().to_vec();
+    if resumed.artifact() != final_artifact {
+        return Err("final checkpoint artifact differs from the trainer artifact".to_owned());
+    }
+    if config.steps == 0 && final_artifact != artifact {
+        return Err("zero-step run changed the source artifact".to_owned());
+    }
+    let final_artifact_path = config.checkpoint_dir.join("final.uorlut");
+    write_verified_artifact(&final_artifact_path, &final_artifact)?;
+    let final_artifact_sha256 = uor_r4_discrete::corpus::sha256(&final_artifact);
+    if !baseline.export.is_exact() || !final_reading.export.is_exact() {
+        return Err("CPU/serving query, token or kept-cell export mismatch".to_owned());
+    }
     let step_seconds = step_elapsed.as_secs_f64();
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-masked-corpus-run/1",
@@ -235,14 +251,39 @@ fn run() -> Result<(), String> {
             "path": final_checkpoint_path,
             "sha256": uor_r4_discrete::corpus::sha256(&final_checkpoint),
         },
+        "final_artifact": {
+            "path": final_artifact_path,
+            "sha256": final_artifact_sha256,
+            "reloaded": true,
+            "matches_source": final_artifact == artifact,
+        },
         "scope": "CPU development-research component run; not GPU qualification, language quality or complete-reply evidence",
     });
     println!(
         "{}",
         serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
     );
-    if !baseline.export.is_exact() || !final_reading.export.is_exact() {
-        return Err("CPU/serving query, token or kept-cell export mismatch".to_owned());
+    Ok(())
+}
+
+fn write_verified_artifact(path: &Path, artifact: &[u8]) -> Result<(), String> {
+    IntegerStackModel::parse(artifact)
+        .map_err(|error| format!("final artifact does not parse: {error}"))?;
+    let partial = path.with_extension("partial");
+    let mut file = std::fs::File::create(&partial)
+        .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
+    file.write_all(artifact)
+        .and_then(|()| file.sync_all())
+        .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
+    drop(file);
+    std::fs::rename(&partial, path)
+        .map_err(|error| format!("final artifact {}: {error}", path.display()))?;
+    let reloaded = std::fs::read(path)
+        .map_err(|error| format!("final artifact reload {}: {error}", path.display()))?;
+    if reloaded != artifact {
+        std::fs::remove_file(path)
+            .map_err(|error| format!("failed final artifact {}: {error}", path.display()))?;
+        return Err("final artifact reload differs from the trainer artifact".to_owned());
     }
     Ok(())
 }
@@ -304,4 +345,67 @@ fn parse_args() -> Result<Config, String> {
         checkpoint_every,
         checkpoint_dir: Path::new(&values[9]).to_path_buf(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uor_r4_integer::stack::export_fbs_trunk_uorlut01;
+    use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
+
+    fn artifact() -> Vec<u8> {
+        let snapshot = synthetic_fbs_trunk_with(
+            307,
+            FbsSynth {
+                vocab: 4096,
+                d: 64,
+                mlp: 64,
+                layers: 1,
+                context: 8,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        );
+        export_fbs_trunk_uorlut01(&snapshot).unwrap()
+    }
+
+    #[test]
+    fn final_artifact_write_is_byte_identical_and_reloadable() {
+        let artifact = artifact();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "uor-r4-cpu-corpus-artifact-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("final.uorlut");
+        write_verified_artifact(&path, &artifact).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), artifact);
+        IntegerStackModel::parse(&artifact).unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn final_artifact_write_refuses_non_uorlut_bytes() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "uor-r4-cpu-corpus-invalid-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("final.uorlut");
+        assert!(write_verified_artifact(&path, b"not a UORLUT01 artifact").is_err());
+        assert!(!path.exists());
+        assert!(!path.with_extension("partial").exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 }
