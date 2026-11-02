@@ -17,9 +17,11 @@ use uor_r4_integer::generation::conversation::{
 use uor_r4_integer::generation::Stop;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
-use uor_r4_integer::stack::{
-    stack_argmax, IntegerStackModel, StackChat, StackChatError, StackError, StackReply,
-};
+use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackChatError, StackError, StackReply};
+
+/// How the stack path picks each token: `IntegerStackSession::serve_step`.
+const STACK_DECODING: &str =
+    "greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick)";
 use uor_r4_integer::{IntegerError, Result};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 
@@ -1163,7 +1165,13 @@ fn print_stack_banner(
         chat.protocol().schema,
         chat.protocol().tokenizer_cid
     );
-    println!("  Decoding          : greedy integer argmax (stack_argmax), no float sampling");
+    println!("  Decoding          : {STACK_DECODING}, no float sampling");
+    if let Some((opening, reply)) = chat.model().turn_memory_table_lengths() {
+        println!(
+            "  Turn Memory       : opening {opening} keys | reply {} keys (reply start marked each turn)",
+            reply.map_or_else(|| "no".to_string(), |n| n.to_string())
+        );
+    }
     println!("  Worker Threads    : {threads}");
     if !chat.declares_chat_context() {
         println!(
@@ -1299,8 +1307,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         }
         let mut generated_ids = Vec::with_capacity(cli.max_tokens);
         for _ in 0..cli.max_tokens {
-            let logits = session.step(tok)?;
-            tok = stack_argmax(logits) as u32;
+            tok = session.serve_step(tok)?.0;
             generated_ids.push(tok);
         }
         let saved_bytes = uor_r4_integer::session_codec::encode(&session.save_state());
@@ -1316,7 +1323,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "tokenizer_cid": chat.protocol().tokenizer_cid,
             "protocol": chat.protocol(),
             "context": chat.context(),
-            "decoding": "greedy stack_argmax",
+            "decoding": STACK_DECODING,
             "prompt_ids": prompt_ids,
             "generated_ids": generated_ids,
             "last_token": tok,
@@ -1341,7 +1348,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "tokenizer_cid": chat.protocol().tokenizer_cid,
             "protocol": chat.protocol(),
             "context": chat.context(),
-            "decoding": "greedy stack_argmax",
+            "decoding": STACK_DECODING,
             "user": text,
             "reply_text": reply.text,
             "reply_ids": reply.ids,

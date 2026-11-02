@@ -1530,12 +1530,18 @@ fn alphabet() -> [char; 256] {
 /// exactly [`VOCAB`] entries: the bytes the literal-role markers and the test
 /// messages need, then filler bytes.
 fn chat_tokenizer_json() -> Vec<u8> {
+    chat_tokenizer_json_sized(VOCAB)
+}
+
+/// [`chat_tokenizer_json`] at `vocab` entries (at most 259: the specials and
+/// every byte).
+fn chat_tokenizer_json_sized(vocab: usize) -> Vec<u8> {
     let table = alphabet();
     let mut bytes: Vec<u8> = b"User: Assistant: System:\nHilmotwae".to_vec();
     bytes.sort_unstable();
     bytes.dedup();
     for byte in 0u8..=255 {
-        if bytes.len() == VOCAB - 3 {
+        if bytes.len() == vocab - 3 {
             break;
         }
         if !bytes.contains(&byte) {
@@ -1543,7 +1549,7 @@ fn chat_tokenizer_json() -> Vec<u8> {
         }
     }
     bytes.sort_unstable();
-    bytes.truncate(VOCAB - 3);
+    bytes.truncate(vocab - 3);
     let mut vocab = serde_json::Map::new();
     for (id, surface) in ["<|bos|>", "<|eos|>", "<|unk|>"].iter().enumerate() {
         vocab.insert((*surface).to_owned(), json!(id));
@@ -1695,6 +1701,157 @@ fn stack_chat_reset_and_seed_start_a_fresh_conversation() -> ChatTest {
         reply.ids,
         "a fresh conversation with the same history serves the same ids"
     );
+    Ok(())
+}
+
+/// The chat's FBS context: room for a stored opening key, a reply and a second turn.
+const FBS_CHAT_CONTEXT: usize = 32;
+
+/// claude-122's small SpiralCore/FBS trunk at a 32-token context with a turn memory (opening and
+/// reply tables, `k` 8, training's 192-token key block), as `fbs-export` writes a `/7` artifact,
+/// with a tokenizer of its vocabulary. Also returns the opening keys a turn can open with: the
+/// stored keys holding no `<|bos|>` or `<|eos|>`, which would move the turn's anchor.
+fn fbs_chat(seed: u64) -> Result<(IntegerStackModel, Vec<u8>, Vec<Vec<u32>>), StackError> {
+    let mut snap = synthetic_fbs_trunk_with(
+        seed,
+        FbsSynth {
+            context: FBS_CHAT_CONTEXT,
+            ..FBS_SYNTH_SMALL
+        },
+    );
+    let memory = synthetic_turn_memory(snap.vocab, snap.width, 8, 192, true, 40, seed ^ 0x5eed);
+    let keys = memory
+        .opening
+        .iter()
+        .map(|entry| entry.key.clone())
+        .filter(|key| key.iter().all(|&id| id > 1))
+        .collect();
+    snap.memory = Some(memory);
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap)?)?;
+    Ok((model, chat_tokenizer_json_sized(snap.vocab), keys))
+}
+
+/// The served continuation of `history` on a fresh session, as `fbs-toks` decodes a reply: with
+/// `mark`, the turn memory's reply start is marked before the history's last token is stepped;
+/// then each token is the one [`super::IntegerStackSession::serve_step`] serves, until EOS, a
+/// terminal cycle of length 1..=4 repeated three times, or the cap.
+fn served_reference(
+    model: &IntegerStackModel,
+    history: &[u32],
+    cap: usize,
+    eos: u32,
+    mark: bool,
+) -> Result<Vec<u32>, StackError> {
+    let mut session = model.session();
+    let mut pick = 0;
+    for (index, &id) in history.iter().enumerate() {
+        if mark && index + 1 == history.len() {
+            session.mark_reply_start();
+        }
+        pick = session.serve_step(id)?.0;
+    }
+    let mut ids = Vec::new();
+    for _ in 0..cap {
+        ids.push(pick);
+        if pick == eos || crate::generation::short_cycle(&ids).is_some() {
+            break;
+        }
+        pick = session.serve_step(pick)?.0;
+    }
+    Ok(ids)
+}
+
+/// claude-259: the chat serves a SpiralCore/FBS artifact. Its step has no logits, so the chat
+/// read `step`'s empty score row and refused every turn ("the engine returned 0 scores for a
+/// vocabulary of 4096" on a7r-s1); it now serves `serve_step`'s pick, the turn memory marked.
+#[test]
+fn stack_chat_serves_an_fbs_model_with_its_turn_memory() -> ChatTest {
+    let (model, json, keys) = fbs_chat(31)?;
+    assert!(model.fbs_writer_table().is_some() && model.turn_memory().is_some());
+    let mut chat = open_chat(&model, &json)?;
+    let (bos, eos) = (chat.protocol().bos_id, chat.protocol().eos_id);
+    assert!(!keys.is_empty());
+    for key in &keys {
+        let history = [&[bos][..], key].concat();
+        let cap = 12;
+        chat.seed(&[bos])?;
+        let reply = chat.reply_history(&history, cap)?;
+        assert_eq!(reply.ids, served_reference(&model, &history, cap, eos, true)?, "key {key:?}");
+    }
+    Ok(())
+}
+
+/// claude-259: the mark is where `fbs-toks` and training's reply rows put it, before the prompt's
+/// last token. Some stored opening keys serve a different reply with and without it; on every
+/// key the chat serves the marked one, also when the prompt was seeded (stepped unmarked) first.
+#[test]
+fn stack_chat_marks_the_reply_start_before_the_prompts_last_token() -> ChatTest {
+    let (model, json, keys) = fbs_chat(37)?;
+    let mut chat = open_chat(&model, &json)?;
+    let (bos, eos) = (chat.protocol().bos_id, chat.protocol().eos_id);
+    let cap = 12;
+    let mut differ = 0;
+    for key in &keys {
+        let history = [&[bos][..], key].concat();
+        let marked = served_reference(&model, &history, cap, eos, true)?;
+        if marked != served_reference(&model, &history, cap, eos, false)? {
+            differ += 1;
+        }
+        chat.seed(&[bos])?;
+        assert_eq!(chat.reply_history(&history, cap)?.ids, marked, "key {key:?}");
+        chat.seed(&history)?;
+        assert_eq!(chat.reply_history(&history, cap)?.ids, marked, "seeded key {key:?}");
+    }
+    assert!(differ > 0, "no stored opening key changes the reply: the test cannot see the mark");
+    Ok(())
+}
+
+/// claude-259: a second turn extends the session, and serves what a fresh session marked before
+/// the second prompt's last token serves (the memory moves only the readout, so the first turn's
+/// moves leave no trace in the state).
+#[test]
+fn stack_chat_marks_each_turn_of_an_fbs_conversation() -> ChatTest {
+    let (model, json, keys) = fbs_chat(41)?;
+    let mut chat = open_chat(&model, &json)?;
+    let (bos, eos) = (chat.protocol().bos_id, chat.protocol().eos_id);
+    let (first_key, second_key) = (&keys[0], &keys[1]);
+    chat.seed(&[bos])?;
+    let first_history = [&[bos][..], first_key].concat();
+    let first = chat.reply_history(&first_history, 6)?;
+    let mut second_history = [first_history.as_slice(), &first.ids].concat();
+    if first.stop != super::StackStop::Eos {
+        second_history.push(eos);
+    }
+    second_history.extend_from_slice(second_key);
+    let steps_before = chat.position();
+    let second = chat.reply_history(&second_history, 6)?;
+    assert_eq!(second.ids, served_reference(&model, &second_history, 6, eos, true)?);
+    assert!(
+        chat.position() - steps_before <= second_history.len() - first_history.len() + second.ids.len(),
+        "the session replayed the history"
+    );
+    Ok(())
+}
+
+/// claude-259: the chat's history is the tokens the session stepped, each once. A reply that ends
+/// on EOS or a short cycle leaves its last id pending; the next turn steps it and kept a second
+/// copy in the history ("16, 1, 1, 201" on a7r-s1), which the next turn's prompt then carried.
+#[test]
+fn stack_chat_keeps_a_pending_terminal_id_once() -> ChatTest {
+    let (model, json, keys) = fbs_chat(43)?;
+    let mut chat = open_chat(&model, &json)?;
+    let bos = chat.protocol().bos_id;
+    let mut pending = 0;
+    for pair in keys.windows(2) {
+        chat.seed(&[bos])?;
+        let first_history = [&[bos][..], &pair[0]].concat();
+        let first = chat.reply_history(&first_history, 8)?;
+        pending += usize::from(first.stop != super::StackStop::MaximumNewTokens);
+        let second_history = [chat.tokens(), &pair[1]].concat();
+        let second = chat.reply_history(&second_history, 4)?;
+        assert_eq!(chat.tokens(), &[second_history.as_slice(), &second.ids].concat()[..]);
+    }
+    assert!(pending > 0, "no first reply left an id pending: the test cannot see the copy");
     Ok(())
 }
 
