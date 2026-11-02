@@ -26,6 +26,13 @@ neither factual answer contained the supplied value and the positive and
 format is connected; automatic statement extraction and trained recall quality
 remain open. See [the report](../../loop/tasks/m4-export-uorlut01-cli/deepseek-1/REPORT.md).
 
+The exporter now applies the 256-wide per-attention-head limit only to
+attention stacks. All-recurrence FBS trunks at widths 512 and 1,024 export and
+serve in exact synthetic controls, matching the native writer's existing width
+limit and the Hamming read's separate head geometry. Claude's real width-512
+checkpoints still need re-export after merge. See
+[the wide-export report](../../loop/tasks/m4-export-uorlut01-cli/deepseek-2/REPORT.md).
+
 The native and WASM serving audits pass at their declared scopes. The final M4 build must retain 0 float, 0 softmax or squashing and 0 dense matmul; integer multiply and divide are allowed and audited under D80/D81.
 
 The M1 pair settles that a discrete model can use table-native UORLUT01. What remains open is the selected M4 model's accepted CLI/session path and the held-out byte panel behind the unchanged 0.90 bits-per-byte bar.

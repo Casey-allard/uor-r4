@@ -8,7 +8,7 @@ use super::format::MAX_READ_CACHE_BYTES;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
 use super::synthetic::{
     fbs_synthetic_non_square, fbs_synthetic_tiny_gain, synthetic_fbs_trunk, synthetic_fbs_trunk_with,
-    synthetic_turn_memory, FbsSynth, FBS_SYNTH_SMALL, Lcg,
+    synthetic_hamming, synthetic_turn_memory, FbsSynth, FBS_SYNTH_SMALL, Lcg,
 };
 
 /// A container under construction: the header's section lists and the data.
@@ -2966,6 +2966,62 @@ fn fbs_trunk_export_is_deterministic_and_parses() {
     }
     let writer = container.table_i16("writer.table").expect("writer table");
     assert_eq!(writer.len(), 256 * 32);
+}
+
+#[test]
+fn wide_all_recurrence_fbs_trunks_export_and_serve_past_the_attention_head_cap() {
+    for (seed, width) in [(701, 512), (702, 1_024)] {
+        let mut snapshot = synthetic_fbs_trunk_with(
+            seed,
+            FbsSynth {
+                vocab: 512,
+                d: width,
+                mlp: 96,
+                layers: 2,
+                context: 8,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        );
+        snapshot.hamming = Some(synthetic_hamming(
+            width,
+            snapshot.layers.len(),
+            width / 64,
+            seed ^ 0x57a7,
+        ));
+        let bytes = super::export_fbs_trunk_uorlut01(&snapshot).expect("wide FBS export");
+        assert_eq!(bytes, super::export_fbs_trunk_uorlut01(&snapshot).expect("repeat export"));
+        let model = IntegerStackModel::parse(&bytes).expect("wide FBS parse");
+        assert!(model.shape().projection_fbs());
+        assert_eq!((model.shape().width, model.shape().heads), (width, 1));
+        let mut first = model.session();
+        let mut second = model.session();
+        for token in [3u32, 5, 11] {
+            let left = first.step_native(token).expect("wide FBS step");
+            let right = second.step_native(token).expect("repeat wide FBS step");
+            assert_eq!(left.query_q12, right.query_q12);
+            assert_eq!(left.token, right.token);
+            assert_eq!(left.kept_cells, right.kept_cells);
+        }
+    }
+
+    let bytes = super::export_fbs_trunk_uorlut01(&synthetic_fbs_trunk(703)).expect("FBS export");
+    let model = IntegerStackModel::parse(&bytes).expect("FBS parse");
+    let mut attention = model.shape().clone();
+    attention.width = 512;
+    attention.heads = 1;
+    attention.pattern = "a".to_owned();
+    attention.projection = None;
+    attention.head = None;
+    attention.kept_cells = None;
+    attention.gate = None;
+    assert!(matches!(
+        attention.validate(),
+        Err(StackError::Shape("the head width exceeds 256"))
+    ));
 }
 
 #[test]

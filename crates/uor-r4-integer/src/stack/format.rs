@@ -505,7 +505,7 @@ impl StackShape {
             Some("the width is not a multiple of 4, of the group and of the heads")
         } else if !self.mlp.is_multiple_of(GROUP) {
             Some("the MLP width is not a multiple of the group")
-        } else if self.width / self.heads > 256 {
+        } else if self.width / self.heads > 256 && !self.projection_fbs() {
             Some("the head width exceeds 256")
         } else if self.vocab > MAX_VOCAB
             || self.width > MAX_WIDTH
