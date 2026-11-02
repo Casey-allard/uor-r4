@@ -24,12 +24,13 @@ The component trainer is delivered but the item is not complete:
 - #3522 added exact BVG-K counterfactual groups for normalization gains, convolution/gate biases, decay offsets and all six FBS route tables.
 - #3523 added matched panel evaluation, exact CPU-versus-serving query/token/kept-cell gaps, checkpoint/resume panel identity and a gate that refuses target-admission or export loss.
 - The raw-FBS unit adds exact unsnapped Hamilton-gate/transition parity, Hamming and exact-memory composition, and both public dual-c131 trained seeds over 192 positions with finite rank-margin/panel controls.
+- deepseek-5 adds strict canonical `UORT`/mask ingestion, document-disjoint causal samples, full-context validation, interval/final checkpointing and an explicit bounded corpus-driver CLI over the public trained artifacts.
 
-The first three are synthetic finite component results. The public FBS check now binds genuine trained artifacts, but it remains a finite component/control result: none is a corpus-training, complete-reply, fresh-phrasing or language result.
+The first three are synthetic finite component results. The public FBS and corpus-driver units now bind genuine trained artifacts and a canonical public corpus, but they remain finite component/control results: no corpus-scale training, complete-reply, fresh-phrasing or language result has run.
 
 ## What is missing
 
-Run the bounded pilot registered under `cpu-training-pilot` after its dependencies close. Bind a trained artifact and query panel, compare a float shadow with the exact integer server on the same rows, and preserve complete-reply and fresh-phrasing controls. The private-store parity prerequisite for the separate discrete path remains #3502/#3501.
+Pre-register and FIT the bounded pilot under `cpu-training-pilot`, then run it on two seeds. The driver and public trained artifacts are ready, but a trained float shadow and private/labeled complete-reply panels are still unavailable. The private-store parity prerequisite for the separate discrete path remains #3502/#3501.
 
 ## Done when
 

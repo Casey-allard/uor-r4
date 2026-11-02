@@ -517,7 +517,7 @@ pub(crate) fn validate_training_model(artifact: &[u8]) -> Result<()> {
 fn validate_samples(samples: &[RankMarginSample], forward: &CpuFbsForward) -> Result<()> {
     for (index, sample) in samples.iter().enumerate() {
         if sample.input.is_empty()
-            || sample.input.len() >= forward.context_length()
+            || sample.input.len() > forward.context_length()
             || sample
                 .input
                 .iter()

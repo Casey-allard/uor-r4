@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
+mod corpus;
 mod counterfactual;
 mod discrete_route;
 mod fbs;
@@ -18,6 +19,7 @@ mod panel;
 mod quant_shadow;
 mod train;
 
+pub use corpus::{validate_corpus_manifest, CpuCorpusIdentity, CpuCorpusSplit, CpuMaskedCorpus};
 pub use counterfactual::{
     CounterfactualBundle, CounterfactualCandidate, CounterfactualConfig, CounterfactualField,
     CounterfactualGroup, CounterfactualStep, CpuCounterfactualTrainer,

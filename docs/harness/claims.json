@@ -1,4 +1,11 @@
 {
+  "deepseek/cpu-corpus-driver": {
+    "branch": "deepseek/cpu-corpus-driver",
+    "claimed_at": "2026-11-02T02:18:20-05:00",
+    "head": "af1979886",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/cpu-quant-shadow": {
     "branch": "deepseek/cpu-quant-shadow",
     "claimed_at": "2026-11-02T00:16:13-05:00",
