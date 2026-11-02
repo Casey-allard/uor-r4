@@ -1,0 +1,98 @@
+{
+  "artifact": {
+    "context": 192,
+    "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+    "raw_gates": true,
+    "raw_transition": true,
+    "sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "vocab": 4096
+  },
+  "checkpoints": [],
+  "corpus": {
+    "documents": 400,
+    "evaluation_documents": 198,
+    "evaluation_stride": 2,
+    "evaluation_targets": 1024,
+    "manifest_schema": "uor-r4-chat-corpus/v1",
+    "manifest_split": "train",
+    "mask_bytes": 42856,
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "max_tokens": 256,
+    "response_targets": 14287,
+    "token_bytes": 85776,
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "tokens": 42856,
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "training_documents": 200,
+    "training_targets": 7080
+  },
+  "final_artifact": {
+    "matches_source": false,
+    "path": "local/deepseek/cpu-pilot/2026-11-02/probe-seed1/final.uorlut",
+    "reloaded": true,
+    "sha256": "6b35fed04be8a98168b7a7a0a22030300de5383b7576c0c06a812f28e7bb38c8"
+  },
+  "final_checkpoint": {
+    "path": "local/deepseek/cpu-pilot/2026-11-02/probe-seed1/final.ckpt",
+    "sha256": "46a78e6ce320440a96f285018028fc29980dff13ded9fa28ba9ae02b0abcb7d3"
+  },
+  "panel_baseline": {
+    "export": {
+      "kept_cell_mismatches": 0,
+      "kept_cells_checked": 8192,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates_checked": 262144,
+      "token_mismatches": 0
+    },
+    "margin_loss_sum": 11739473,
+    "samples": 1024,
+    "target_admitted": 396,
+    "target_rank_sum": 319318,
+    "top1_correct": 278,
+    "top8_correct": 384
+  },
+  "panel_final": {
+    "export": {
+      "kept_cell_mismatches": 0,
+      "kept_cells_checked": 8192,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates_checked": 262144,
+      "token_mismatches": 0
+    },
+    "margin_loss_sum": 11739438,
+    "samples": 1024,
+    "target_admitted": 396,
+    "target_rank_sum": 319308,
+    "top1_correct": 278,
+    "top8_correct": 384
+  },
+  "panel_gate": {
+    "decision": "accept",
+    "interpretation": "gate admission is an acceptance constraint, not a capability gain; use the raw readings",
+    "margin_loss_sum": -35,
+    "panel_changed": true,
+    "target_admitted": 0,
+    "top1_correct": 0,
+    "top8_correct": 0
+  },
+  "qualification": "gpu-required",
+  "run": {
+    "accepted_updates": 5,
+    "checkpoint_elapsed_ms": 0.0,
+    "context_tokens": 1052,
+    "context_tokens_per_second": 3764.788012159149,
+    "mean_step_ms": 17.46446275,
+    "peak_rss_kib": 51944,
+    "refused_steps": 11,
+    "seed": 1,
+    "step_elapsed_ms": 279.431404,
+    "steps": 16,
+    "steps_per_second": 57.25913326477793,
+    "target_visits": 16,
+    "target_visits_per_second": 57.25913326477793,
+    "wall_elapsed_ms": 61844.040056
+  },
+  "schema": "uor-r4.cpu-masked-corpus-run/1",
+  "scope": "CPU development-research component run; not GPU qualification, language quality or complete-reply evidence",
+  "substrate": "cpu-development-research"
+}

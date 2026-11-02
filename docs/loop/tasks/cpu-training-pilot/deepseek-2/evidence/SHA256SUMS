@@ -1,0 +1,15 @@
+e968d2c17bc94c90b3ffb4f7327fa882d2284d72ce2f858854812fcaa0fe9ffc  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/baseline-seed1.json
+f9577bb6da5bd3e7a87971fcd8e1073b311555f8b92efb8d3edee1ee67fadac3  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/baseline-seed2.json
+bc71550f5b23be293f18cf96970628ff908c4320707ab1ab6608e31424bd1372  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/binary.txt
+1aedaa9cce116919d39b1eb303a58865771582bc24fc259aa8e26cb212e0f59e  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/cargo.txt
+5cfe048704977d71873eda26ee3a33d48dcb1fee379a5aa033d0ecb10b2e56d9  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/df.txt
+881eb3c08ee0ad8e71c8f8791e4cab1489cff9485a77be200daa90d648c77c8f  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/dmi.txt
+2d2e460fda93d81b2274d2f6bc2bf8bfaa00d90020447eefc1d029e2524a6aec  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/free.txt
+62f8f5dfe74d0cda6c147b589760d284384bae7e1443bb1957823c3a005e6b37  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/lscpu.txt
+29ab3ce3cab1e5c2901a836ce2fd38e020fdce9776929f24f037e2a14b7063ea  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/probe-seed1.json
+3880fb08a87853dbef5657a21dbb2ea55b34a187259096c17c54bbb3b0e28059  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/probe-seed2.json
+4ad84f16acc2f3bdcfbc7b0788f1e74a4e649b962154a585b8f8d0b28eb0dd06  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/rustc.txt
+c3eb44edad51660b2fe6a9bbb2bab0cbda6d1561c029888f378b910d3658fedc  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/source.txt
+c4db73957a144f3378bb0d7edc5865bde05bd6fd41068fbd8c0abe63a375c7bb  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/train-seed1.json
+85fd051d8c680da397be44e3d17dd2c74a1a02b1f986a8d4e5b8ae5f319e335c  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/train-seed2.json
+ddcbbabb277d0f033eab45f271f2832ecf6b68a1c6fe7f980c2ebf2abc99cd6f  docs/loop/tasks/cpu-training-pilot/deepseek-2/evidence/uname.txt

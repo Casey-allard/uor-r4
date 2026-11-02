@@ -18,7 +18,7 @@ Component speed does not show whether CPU training can improve a model at useful
 
 ## Readiness as of 2 November 2026
 
-`NOT_ADMITTED`; no pilot compute or pre-registration is claimed.
+The bounded public internal-development pilot has executed and failed its registered ranking bar. The full item remains open because genuinely fresh complete-reply inputs and public-run interval restart are still unavailable.
 
 | Prerequisite | Current state |
 |---|---|
@@ -29,11 +29,22 @@ Component speed does not show whether CPU training can improve a model at useful
 | Sealed complete-reply and fresh-phrasing panels | Unavailable without credentials; `m2-fresh256` returns HTTP 401. A public 160-prompt panel supports only qualitative generation output, not correctness scoring. |
 | Discrete reads/proposals | #3501 is done with finite parity and restart controls. |
 | Quantization-aware updates and trained float shadow | Finite integer/float shadow controls are delivered; a genuine trained FBS float snapshot is not published, so the trained comparison remains `NOT_RUN`. |
-| FIT pre-registration and pre-run review | Not authored; the bounded public-corpus pilot is ready to pre-register after its final artifact-export control lands. |
+| FIT pre-registration and pre-run review | Complete. The public pilot sheet was FIT before compute and received a fresh non-author GO review. |
+
+## Public pilot result
+
+The pre-registered two-seed zero-versus-256-step run completed on the Ryzen 9 9950X. Exact CPU/serving export and target admission were preserved, but top-1 and top-8 did not move on either seed:
+
+| Seed | Top-1 baseline → 256 steps | Top-8 baseline → 256 steps | Admitted baseline → 256 steps | Verdict |
+|---|---:|---:|---:|---|
+| 1 | 278 → 278 | 384 → 384 | 396 → 396 | fail registered gain bar |
+| 2 | 224 → 224 | 285 → 285 | 292 → 292 | fail registered gain bar |
+
+This is a negative for the tested public 256-step configuration, not a rejection of rank margin, FBS or CPU training generally.
 
 ## What is missing
 
-Write a pre-registration with a non-author FIT and pre-run review; run at least two seeds or 200 fresh rows; record context-tokens/s, target visits/s, step time, peak RSS, wall time and resume determinism; grade both complete replies and fresh phrasing against headline-preserving controls.
+The bounded public pilot supplies cost, exact-export, admission and ranking evidence, but it is not a fresh capability test. The full item still needs credentialed sealed complete-reply and fresh-phrasing grading, public-corpus interval restart, and a configuration that clears a registered ranking or capability bar.
 
 ## Done when
 
