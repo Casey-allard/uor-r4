@@ -4,6 +4,7 @@ use uor_r4_core::spiralcore_operator::{cl06_finite_composition_table, Cl06Finite
 use uor_r4_discrete::normalization_mechanism::{
     identify_orbit_root, orbit_root_coords, NormFrameTable,
 };
+use uor_r4_discrete::training::{family_cursors, BlockCursor, Cursor, SchedulePolicy};
 
 use crate::CpuTrainError;
 
@@ -308,6 +309,7 @@ struct ActiveLeafModel {
     stages: usize,
     kept: usize,
     token_blocks: Vec<Vec<[i32; 8]>>,
+    routes: Vec<u32>,
     level_gates: Vec<Vec<i32>>,
     mode: ActiveLeafMode,
     composition: Cl06FiniteCompositionTable,
@@ -430,7 +432,15 @@ impl ActiveLeafModel {
                 }
             }
         };
-        Self::from_parts(label, context, kept, token_blocks, level_gates, mode)
+        Self::from_parts_with_routes(
+            label,
+            context,
+            kept,
+            token_blocks,
+            routes,
+            level_gates,
+            mode,
+        )
     }
 
     fn from_parts(
@@ -438,6 +448,28 @@ impl ActiveLeafModel {
         context: usize,
         kept: usize,
         token_blocks: Vec<Vec<[i32; 8]>>,
+        level_gates: Vec<Vec<i32>>,
+        mode: ActiveLeafMode,
+    ) -> Result<Self> {
+        let blocks = token_blocks.first().map_or(0, Vec::len);
+        let stages = level_gates.first().map_or(0, Vec::len);
+        Self::from_parts_with_routes(
+            label,
+            context,
+            kept,
+            token_blocks,
+            vec![0; blocks * stages],
+            level_gates,
+            mode,
+        )
+    }
+
+    fn from_parts_with_routes(
+        label: &str,
+        context: usize,
+        kept: usize,
+        token_blocks: Vec<Vec<[i32; 8]>>,
+        routes: Vec<u32>,
         level_gates: Vec<Vec<i32>>,
         mode: ActiveLeafMode,
     ) -> Result<Self> {
@@ -464,6 +496,8 @@ impl ActiveLeafModel {
             || level_gates
                 .iter()
                 .any(|row| row.len() != stages || row.iter().any(|gate| !(-1..=1).contains(gate)))
+            || routes.len() != blocks * stages
+            || routes.iter().any(|&action| action >= 64)
             || token_blocks.iter().any(|token| {
                 token.len() != blocks || token.iter().any(|block| root_id(block).is_none())
             })
@@ -479,6 +513,7 @@ impl ActiveLeafModel {
             stages,
             kept,
             token_blocks,
+            routes,
             level_gates,
             mode,
             composition,
@@ -807,7 +842,8 @@ impl CpuDiscreteRelation {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CpuDiscreteProposalMode {
     Route,
     Flock,
@@ -867,7 +903,7 @@ impl CpuDiscreteProposalChooser {
                 let flock = ActiveLeafModel::from_bytes(bytes, ActiveLeafKind::Flock)?;
                 (
                     CpuDiscreteProposalMode::Flock,
-                    Vec::new(),
+                    flock.routes,
                     flock.token_blocks,
                     gate_count,
                 )
@@ -876,7 +912,7 @@ impl CpuDiscreteProposalChooser {
                 let relation = ActiveLeafModel::from_bytes(bytes, ActiveLeafKind::Relation)?;
                 (
                     CpuDiscreteProposalMode::Relation,
-                    Vec::new(),
+                    relation.routes,
                     relation.token_blocks,
                     gate_count + RELATION_EDGE_TYPES * stages,
                 )
@@ -1017,6 +1053,54 @@ impl CpuDiscreteProposalChooser {
             CpuDiscreteProposalKind::Gate => index < self.gate_count,
         }
     }
+
+    fn from_model(model: &CpuDiscreteProposalModel) -> Result<Self> {
+        let (mode, blocks, stages, routes, token_blocks, gate_count) = match model {
+            CpuDiscreteProposalModel::Route(route) => (
+                CpuDiscreteProposalMode::Route,
+                route.blocks,
+                route.stages,
+                route.routes.iter().flatten().copied().collect(),
+                route.token_blocks.clone(),
+                route.blocks * route.stages,
+            ),
+            CpuDiscreteProposalModel::Active(active) => {
+                let (mode, relation_gates) = match &active.mode {
+                    ActiveLeafMode::Flock => (CpuDiscreteProposalMode::Flock, 0),
+                    ActiveLeafMode::Relation { .. } => (
+                        CpuDiscreteProposalMode::Relation,
+                        RELATION_EDGE_TYPES * active.stages,
+                    ),
+                };
+                (
+                    mode,
+                    active.blocks,
+                    active.stages,
+                    active.routes.clone(),
+                    active.token_blocks.clone(),
+                    active.blocks * active.stages + relation_gates,
+                )
+            }
+        };
+        let mut move_actions = [0u8; 16];
+        for (candidate, action) in move_actions.iter_mut().enumerate() {
+            *action = NormFrameTable::new(16, vec![candidate as u8; 16])
+                .map_err(|error| invalid(error.to_string()))?
+                .block_frame(0)
+                .map_err(|error| invalid(error.to_string()))?;
+        }
+        Ok(Self {
+            mode,
+            blocks,
+            stages,
+            routes,
+            token_blocks,
+            gate_count,
+            move_actions,
+            composition: cl06_finite_composition_table()
+                .map_err(|error| invalid(error.to_string()))?,
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1060,7 +1144,8 @@ pub struct CpuDiscreteProposalScorer {
     objective: CpuDiscreteObjective,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 enum CpuDiscreteObjective {
     NearestAddressMargin,
     OccupiedCellRankHinge,
@@ -1361,9 +1446,191 @@ pub struct CpuDiscreteApplyReceipt {
     pub applied: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuDiscreteSourceIdentity {
+    snapshot_schema: String,
+    snapshot_sha256: String,
+    operator_kappa: String,
+    composition_kappa: String,
+    kernel_sha256: String,
+    source_sha256: String,
+    geometry_sha256: String,
+    read_mode: String,
+    read_initialization: String,
+    context: usize,
+    vocabulary: usize,
+    blocks: usize,
+    stages: usize,
+    kept_cells: usize,
+    read_kept: usize,
+    read_sweeps: usize,
+    objective_policy: String,
+    seed: u32,
+}
+
+impl CpuDiscreteSourceIdentity {
+    fn from_header(header: &serde_json::Value) -> Result<Self> {
+        let source = &header["source"];
+        let shape = &header["shape"];
+        let required = |name: &str| {
+            source[name]
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| invalid(format!("proposal source {name} differs")))
+        };
+        let shape_string = |name: &str| {
+            shape[name]
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| invalid(format!("proposal shape {name} differs")))
+        };
+        let shape_usize = |name: &str| {
+            usize::try_from(shape[name].as_u64().unwrap_or(u64::MAX))
+                .map_err(|_| invalid(format!("proposal shape {name} differs")))
+        };
+        let identity = Self {
+            snapshot_schema: required("snapshot_schema")?,
+            snapshot_sha256: required("snapshot_sha256")?,
+            operator_kappa: required("operator_kappa")?,
+            composition_kappa: required("composition_kappa")?,
+            kernel_sha256: required("kernel_sha256")?,
+            source_sha256: required("source_sha256")?,
+            geometry_sha256: required("geometry_sha256")?,
+            read_mode: shape_string("read_mode")?,
+            read_initialization: shape_string("read_initialization")?,
+            context: shape_usize("context")?,
+            vocabulary: shape_usize("vocabulary")?,
+            blocks: shape_usize("blocks")?,
+            stages: shape_usize("stages")?,
+            kept_cells: shape_usize("kept_cells")?,
+            read_kept: shape_usize("read_kept")?,
+            read_sweeps: shape_usize("read_sweeps")?,
+            objective_policy: shape_string("objective_policy")?,
+            seed: u32::try_from(shape["seed"].as_u64().unwrap_or(u64::MAX))
+                .map_err(|_| invalid("proposal source seed differs"))?,
+        };
+        for hash in [
+            &identity.snapshot_sha256,
+            &identity.kernel_sha256,
+            &identity.source_sha256,
+            &identity.geometry_sha256,
+        ] {
+            uor_r4_discrete::corpus::validate_sha256(hash)
+                .map_err(|error| invalid(error.to_string()))?;
+        }
+        Ok(identity)
+    }
+
+    fn validate_model(&self, model: &CpuDiscreteModelState) -> Result<()> {
+        let (
+            read_mode,
+            read_initialization,
+            context,
+            vocabulary,
+            blocks,
+            stages,
+            kept_cells,
+            read_kept,
+            read_sweeps,
+            objective_policy,
+        ) = match model {
+            CpuDiscreteModelState::Route {
+                context,
+                kept_cells,
+                objective,
+                token_blocks,
+                ..
+            } => (
+                "route",
+                "zero_gates_v1",
+                *context,
+                token_blocks.len(),
+                token_blocks.first().map_or(0, Vec::len),
+                expected_stages(*context).unwrap_or(0),
+                *kept_cells,
+                0,
+                0,
+                objective_name(*objective),
+            ),
+            CpuDiscreteModelState::Flock {
+                context,
+                kept_cells,
+                objective,
+                read_kept,
+                token_blocks,
+                level_gates,
+                ..
+            } => (
+                "flock",
+                "active_leaf_v1",
+                *context,
+                token_blocks.len(),
+                token_blocks.first().map_or(0, Vec::len),
+                level_gates.first().map_or(0, Vec::len),
+                *kept_cells,
+                *read_kept,
+                0,
+                objective_name(*objective),
+            ),
+            CpuDiscreteModelState::Relation {
+                context,
+                kept_cells,
+                objective,
+                read_kept,
+                sweeps,
+                token_blocks,
+                level_gates,
+                ..
+            } => (
+                "relation",
+                "active_leaf_v1",
+                *context,
+                token_blocks.len(),
+                token_blocks.first().map_or(0, Vec::len),
+                level_gates.first().map_or(0, Vec::len),
+                *kept_cells,
+                *read_kept,
+                *sweeps,
+                objective_name(*objective),
+            ),
+        };
+        if (
+            self.read_mode.as_str(),
+            self.read_initialization.as_str(),
+            self.context,
+            self.vocabulary,
+            self.blocks,
+            self.stages,
+            self.kept_cells,
+            self.read_kept,
+            self.read_sweeps,
+            self.objective_policy.as_str(),
+        ) != (
+            read_mode,
+            read_initialization,
+            context,
+            vocabulary,
+            blocks,
+            stages,
+            kept_cells,
+            read_kept,
+            read_sweeps,
+            objective_policy,
+        ) {
+            return Err(invalid(
+                "CPU checkpoint model shape or objective differs from its source",
+            ));
+        }
+        Ok(())
+    }
+}
+
 pub struct CpuDiscreteProposalApplier {
     scorer: CpuDiscreteProposalScorer,
     epoch: u64,
+    source_artifact_sha256: String,
+    source_identity: CpuDiscreteSourceIdentity,
 }
 
 impl CpuDiscreteProposalApplier {
@@ -1375,6 +1642,8 @@ impl CpuDiscreteProposalApplier {
         Ok(Self {
             scorer: CpuDiscreteProposalScorer::from_bytes(bytes)?,
             epoch,
+            source_artifact_sha256: uor_r4_discrete::corpus::sha256(bytes),
+            source_identity: CpuDiscreteSourceIdentity::from_header(&header)?,
         })
     }
 
@@ -1627,6 +1896,668 @@ pub struct CpuBvgkBatchReceipt {
     pub epoch_after: u64,
 }
 
+pub const CPU_DISCRETE_CHECKPOINT_SCHEMA: &str = "uor-r4.cpu-discrete-checkpoint/1";
+const CPU_DISCRETE_LINEAGE_SCHEMA: &str = "uor-r4.cpu-discrete-lineage/1";
+const CPU_SUBSTRATE: &str = "cpu-development-research";
+const CPU_QUALIFICATION: &str = "gpu-required";
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuDiscreteSchedule {
+    policy: SchedulePolicy,
+    coordinate_block: u32,
+    batch_rows: u32,
+    eligible_targets: u64,
+}
+
+impl CpuDiscreteSchedule {
+    pub fn new(
+        policy: SchedulePolicy,
+        coordinate_block: u32,
+        batch_rows: u32,
+        eligible_targets: u64,
+    ) -> Result<Self> {
+        let schedule = Self {
+            policy,
+            coordinate_block,
+            batch_rows,
+            eligible_targets,
+        };
+        schedule.validate()?;
+        Ok(schedule)
+    }
+
+    fn validate(&self) -> Result<()> {
+        if self.policy.carrier_mode().is_some() {
+            return Err(invalid(
+                "CPU checkpoint does not yet represent CUDA carrier target selection",
+            ));
+        }
+        if !(1..=64).contains(&self.coordinate_block)
+            || !(1..=64).contains(&self.batch_rows)
+            || self.eligible_targets == 0
+        {
+            return Err(invalid(
+                "CPU checkpoint schedule requires coordinate block 1..64, batch rows 1..64 and targets > 0",
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_for_model(&self, model: &CpuDiscreteProposalModel) -> Result<()> {
+        self.validate()?;
+        if matches!(model, CpuDiscreteProposalModel::Active(_))
+            && self.policy != SchedulePolicy::InterleavedReadEvery8V1
+        {
+            return Err(invalid(
+                "active-leaf CPU checkpoint requires the interleaved schedule",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn policy(&self) -> SchedulePolicy {
+        self.policy
+    }
+
+    pub fn coordinate_block(&self) -> u32 {
+        self.coordinate_block
+    }
+
+    pub fn batch_rows(&self) -> u32 {
+        self.batch_rows
+    }
+
+    pub fn eligible_targets(&self) -> u64 {
+        self.eligible_targets
+    }
+
+    pub fn initial_cursor(&self) -> Cursor {
+        Cursor {
+            block: (self.coordinate_block > 1).then_some(BlockCursor {
+                o_vec: 0,
+                o_read: 0,
+                committed_moves: 0,
+            }),
+            ..Cursor::initial()
+        }
+    }
+
+    fn batches(&self) -> u64 {
+        self.eligible_targets.div_ceil(u64::from(self.batch_rows))
+    }
+
+    fn dimensions(&self, model: &CpuDiscreteProposalModel) -> (u64, u64) {
+        let vectors = (model.token_blocks().len() * model.blocks()) as u64;
+        let reads = match model {
+            CpuDiscreteProposalModel::Route(route) => (route.blocks * route.stages) as u64,
+            CpuDiscreteProposalModel::Active(active) => {
+                let relation = match active.mode {
+                    ActiveLeafMode::Flock => 0,
+                    ActiveLeafMode::Relation { .. } => RELATION_EDGE_TYPES * active.stages,
+                };
+                (active.blocks * active.stages + relation) as u64
+            }
+        };
+        (vectors, reads)
+    }
+
+    fn cycle(&self, model: &CpuDiscreteProposalModel) -> u64 {
+        let (vectors, reads) = self.dimensions(model);
+        match self.policy {
+            SchedulePolicy::CanonicalVectorThenReadV1 => vectors + reads,
+            SchedulePolicy::InterleavedReadEvery8V1 => {
+                let base_gates = match model {
+                    CpuDiscreteProposalModel::Route(route) => route.blocks * route.stages,
+                    CpuDiscreteProposalModel::Active(active) => active.blocks * active.stages,
+                };
+                vectors + base_gates as u64
+            }
+            SchedulePolicy::CarrierCreditV1
+            | SchedulePolicy::CarrierUniformTargetV1
+            | SchedulePolicy::CarrierUniformRowV1 => unreachable!("carrier schedules are refused"),
+        }
+    }
+
+    fn is_read_batch(
+        &self,
+        completed_batches: u64,
+        model: &CpuDiscreteProposalModel,
+    ) -> Result<bool> {
+        match self.policy {
+            SchedulePolicy::InterleavedReadEvery8V1 => Ok(completed_batches % 8 == 7),
+            SchedulePolicy::CanonicalVectorThenReadV1 => {
+                let (vectors, reads) = self.dimensions(model);
+                let k = u64::from(self.coordinate_block);
+                Ok(
+                    completed_batches % (vectors.div_ceil(k) + reads.div_ceil(k))
+                        >= vectors.div_ceil(k),
+                )
+            }
+            SchedulePolicy::CarrierCreditV1
+            | SchedulePolicy::CarrierUniformTargetV1
+            | SchedulePolicy::CarrierUniformRowV1 => Err(invalid("carrier schedules are refused")),
+        }
+    }
+
+    fn validate_cursor(&self, cursor: &Cursor, model: &CpuDiscreteProposalModel) -> Result<()> {
+        self.validate_for_model(model)?;
+        let batches = self.batches();
+        let cycle = self.cycle(model);
+        let expected_next_target = (cursor.completed_batches % batches)
+            .checked_mul(u64::from(self.batch_rows))
+            .ok_or_else(|| invalid("checkpoint target cursor overflow"))?;
+        if cursor.accepted_updates > cursor.completed_batches
+            || cursor.corpus_pass != cursor.completed_batches / batches
+            || cursor.next_target != expected_next_target
+            || cursor.next_coordinate != (cursor.completed_batches % cycle) as u32
+        {
+            return Err(invalid(
+                "checkpoint cursor differs from corpus/schedule cycle",
+            ));
+        }
+        let k = self.coordinate_block;
+        match (&cursor.block, k > 1) {
+            (None, false) => Ok(()),
+            (Some(_), false) => Err(invalid("coordinate block 1 cursor carries block fields")),
+            (None, true) => Err(invalid("coordinate block > 1 cursor requires block fields")),
+            (Some(block), true) => {
+                let (vectors, reads) = self.dimensions(model);
+                let expected =
+                    family_cursors(cursor.completed_batches, k, self.policy, vectors, reads)
+                        .map_err(|error| invalid(error.to_string()))?;
+                if (block.o_vec, block.o_read) != expected {
+                    return Err(invalid(
+                        "checkpoint o_vec/o_read differ from the block schedule",
+                    ));
+                }
+                let max_moves = cursor
+                    .accepted_updates
+                    .checked_mul(u64::from(k))
+                    .ok_or_else(|| invalid("checkpoint accepted-update bound overflow"))?;
+                if block.committed_moves < cursor.accepted_updates
+                    || block.committed_moves > max_moves
+                {
+                    return Err(invalid(
+                        "checkpoint committed_moves outside accepted-update bounds",
+                    ));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn block_length(&self, cursor: &Cursor, model: &CpuDiscreteProposalModel) -> Result<u64> {
+        if self.coordinate_block == 1 {
+            return Ok(1);
+        }
+        let (vectors, reads) = self.dimensions(model);
+        let (o_vec, o_read) = family_cursors(
+            cursor.completed_batches,
+            self.coordinate_block,
+            self.policy,
+            vectors,
+            reads,
+        )
+        .map_err(|error| invalid(error.to_string()))?;
+        let (ordinal, size) = if self.is_read_batch(cursor.completed_batches, model)? {
+            (o_read, reads)
+        } else {
+            (o_vec, vectors)
+        };
+        let start = ordinal % size;
+        Ok(size.min(start + u64::from(self.coordinate_block)) - start)
+    }
+
+    fn advance(
+        &self,
+        cursor: &Cursor,
+        model: &CpuDiscreteProposalModel,
+        committed: bool,
+        moves: u64,
+    ) -> Result<Cursor> {
+        self.validate_cursor(cursor, model)?;
+        let length = self.block_length(cursor, model)?;
+        if committed != (moves > 0) || moves > length {
+            return Err(invalid(
+                "batch commit needs 1..=block-length moves, and no commit none",
+            ));
+        }
+        let completed_batches = cursor
+            .completed_batches
+            .checked_add(1)
+            .ok_or_else(|| invalid("batch cursor overflow"))?;
+        let accepted_updates = cursor
+            .accepted_updates
+            .checked_add(u64::from(committed))
+            .ok_or_else(|| invalid("update cursor overflow"))?;
+        let block = if self.coordinate_block == 1 {
+            None
+        } else {
+            let (vectors, reads) = self.dimensions(model);
+            let (o_vec, o_read) = family_cursors(
+                completed_batches,
+                self.coordinate_block,
+                self.policy,
+                vectors,
+                reads,
+            )
+            .map_err(|error| invalid(error.to_string()))?;
+            Some(BlockCursor {
+                o_vec,
+                o_read,
+                committed_moves: cursor
+                    .block
+                    .ok_or_else(|| invalid("checkpoint block fields are absent"))?
+                    .committed_moves
+                    .checked_add(moves)
+                    .ok_or_else(|| invalid("move cursor overflow"))?,
+            })
+        };
+        Ok(Cursor {
+            completed_batches,
+            accepted_updates,
+            corpus_pass: completed_batches / self.batches(),
+            next_target: (completed_batches % self.batches())
+                .checked_mul(u64::from(self.batch_rows))
+                .ok_or_else(|| invalid("target cursor overflow"))?,
+            next_coordinate: (completed_batches % self.cycle(model)) as u32,
+            block,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
+enum CpuDiscreteModelState {
+    Route {
+        context: usize,
+        kept_cells: usize,
+        objective: CpuDiscreteObjective,
+        token_blocks: Vec<Vec<[i32; 8]>>,
+        routes: Vec<Vec<u32>>,
+    },
+    Flock {
+        context: usize,
+        kept_cells: usize,
+        objective: CpuDiscreteObjective,
+        read_kept: usize,
+        token_blocks: Vec<Vec<[i32; 8]>>,
+        routes: Vec<u32>,
+        level_gates: Vec<Vec<i32>>,
+    },
+    Relation {
+        context: usize,
+        kept_cells: usize,
+        objective: CpuDiscreteObjective,
+        read_kept: usize,
+        sweeps: usize,
+        token_blocks: Vec<Vec<[i32; 8]>>,
+        routes: Vec<u32>,
+        level_gates: Vec<Vec<i32>>,
+        relation_gates: Vec<[i32; RELATION_EDGE_TYPES]>,
+    },
+}
+
+fn objective_name(objective: CpuDiscreteObjective) -> &'static str {
+    match objective {
+        CpuDiscreteObjective::NearestAddressMargin => "nearest_address_margin_v1",
+        CpuDiscreteObjective::OccupiedCellRankHinge => "occupied_cell_rank_hinge_v1",
+    }
+}
+
+impl CpuDiscreteModelState {
+    fn from_scorer(scorer: &CpuDiscreteProposalScorer) -> Self {
+        match &scorer.model {
+            CpuDiscreteProposalModel::Route(route) => Self::Route {
+                context: route.context,
+                kept_cells: scorer.kept_cells,
+                objective: scorer.objective,
+                token_blocks: route.token_blocks.clone(),
+                routes: route.routes.clone(),
+            },
+            CpuDiscreteProposalModel::Active(active) => match &active.mode {
+                ActiveLeafMode::Flock => Self::Flock {
+                    context: active.context,
+                    kept_cells: scorer.kept_cells,
+                    objective: scorer.objective,
+                    read_kept: active.kept,
+                    token_blocks: active.token_blocks.clone(),
+                    routes: active.routes.clone(),
+                    level_gates: active.level_gates.clone(),
+                },
+                ActiveLeafMode::Relation {
+                    sweeps,
+                    relation_gates,
+                } => Self::Relation {
+                    context: active.context,
+                    kept_cells: scorer.kept_cells,
+                    objective: scorer.objective,
+                    read_kept: active.kept,
+                    sweeps: *sweeps,
+                    token_blocks: active.token_blocks.clone(),
+                    routes: active.routes.clone(),
+                    level_gates: active.level_gates.clone(),
+                    relation_gates: relation_gates.clone(),
+                },
+            },
+        }
+    }
+
+    fn restore(&self) -> Result<(CpuDiscreteProposalModel, usize, CpuDiscreteObjective)> {
+        match self {
+            Self::Route {
+                context,
+                kept_cells,
+                objective,
+                token_blocks,
+                routes,
+            } => Ok((
+                CpuDiscreteProposalModel::Route(CpuDiscreteRoute::from_parts(
+                    *context,
+                    token_blocks.clone(),
+                    routes.clone(),
+                )?),
+                *kept_cells,
+                *objective,
+            )),
+            Self::Flock {
+                context,
+                kept_cells,
+                objective,
+                read_kept,
+                token_blocks,
+                routes,
+                level_gates,
+            } => Ok((
+                CpuDiscreteProposalModel::Active(ActiveLeafModel::from_parts_with_routes(
+                    "Flock",
+                    *context,
+                    *read_kept,
+                    token_blocks.clone(),
+                    routes.clone(),
+                    level_gates.clone(),
+                    ActiveLeafMode::Flock,
+                )?),
+                *kept_cells,
+                *objective,
+            )),
+            Self::Relation {
+                context,
+                kept_cells,
+                objective,
+                read_kept,
+                sweeps,
+                token_blocks,
+                routes,
+                level_gates,
+                relation_gates,
+            } => Ok((
+                CpuDiscreteProposalModel::Active(ActiveLeafModel::from_parts_with_routes(
+                    "Relation",
+                    *context,
+                    *read_kept,
+                    token_blocks.clone(),
+                    routes.clone(),
+                    level_gates.clone(),
+                    ActiveLeafMode::Relation {
+                        sweeps: *sweeps,
+                        relation_gates: relation_gates.clone(),
+                    },
+                )?),
+                *kept_cells,
+                *objective,
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuDiscreteChooserState {
+    mode: CpuDiscreteProposalMode,
+    blocks: usize,
+    stages: usize,
+    routes: Vec<u32>,
+    token_blocks: Vec<Vec<[i32; 8]>>,
+    gate_count: usize,
+}
+
+impl CpuDiscreteChooserState {
+    fn from_chooser(chooser: &CpuDiscreteProposalChooser) -> Self {
+        Self {
+            mode: chooser.mode,
+            blocks: chooser.blocks,
+            stages: chooser.stages,
+            routes: chooser.routes.clone(),
+            token_blocks: chooser.token_blocks.clone(),
+            gate_count: chooser.gate_count,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CpuDiscreteLineage {
+    schema: String,
+    source_artifact_sha256: String,
+    source_identity: CpuDiscreteSourceIdentity,
+    schedule: CpuDiscreteSchedule,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuDiscreteCheckpoint {
+    pub schema: String,
+    pub substrate: String,
+    pub qualification: String,
+    pub source_artifact_sha256: String,
+    pub lineage_sha256: String,
+    pub cursor: Cursor,
+    pub model_epoch: u64,
+    pub model_sha256: String,
+    pub chooser_sha256: String,
+    lineage: CpuDiscreteLineage,
+    model: CpuDiscreteModelState,
+    chooser: CpuDiscreteChooserState,
+}
+
+impl CpuDiscreteCheckpoint {
+    pub fn schedule(&self) -> &CpuDiscreteSchedule {
+        &self.lineage.schedule
+    }
+}
+
+pub struct CpuDiscreteCheckpointDriver {
+    applier: CpuDiscreteProposalApplier,
+    lineage: CpuDiscreteLineage,
+    cursor: Cursor,
+}
+
+impl CpuDiscreteCheckpointDriver {
+    pub fn from_artifact(bytes: &[u8], schedule: CpuDiscreteSchedule) -> Result<Self> {
+        let applier = CpuDiscreteProposalApplier::from_bytes(bytes)?;
+        if applier.epoch != 0 {
+            return Err(invalid(
+                "CPU checkpoint must start from an epoch-zero source artifact",
+            ));
+        }
+        schedule.validate_for_model(&applier.scorer.model)?;
+        let lineage = CpuDiscreteLineage {
+            schema: CPU_DISCRETE_LINEAGE_SCHEMA.into(),
+            source_artifact_sha256: applier.source_artifact_sha256.clone(),
+            source_identity: applier.source_identity.clone(),
+            schedule,
+        };
+        let cursor = lineage.schedule.initial_cursor();
+        lineage
+            .schedule
+            .validate_cursor(&cursor, &applier.scorer.model)?;
+        Ok(Self {
+            applier,
+            lineage,
+            cursor,
+        })
+    }
+
+    pub fn applier(&self) -> &CpuDiscreteProposalApplier {
+        &self.applier
+    }
+
+    pub fn applier_mut(&mut self) -> &mut CpuDiscreteProposalApplier {
+        &mut self.applier
+    }
+
+    pub fn cursor(&self) -> &Cursor {
+        &self.cursor
+    }
+
+    pub fn schedule(&self) -> &CpuDiscreteSchedule {
+        &self.lineage.schedule
+    }
+
+    pub fn advance_after_batch(&mut self, committed: bool, moves: u64) -> Result<()> {
+        self.lineage
+            .schedule
+            .validate_cursor(&self.cursor, &self.applier.scorer.model)?;
+        let next = self.lineage.schedule.advance(
+            &self.cursor,
+            &self.applier.scorer.model,
+            committed,
+            moves,
+        )?;
+        if self.applier.epoch != next.accepted_updates {
+            return Err(invalid(
+                "CPU model epoch did not advance with the committed batch",
+            ));
+        }
+        self.cursor = next;
+        Ok(())
+    }
+
+    pub fn checkpoint(&self) -> Result<CpuDiscreteCheckpoint> {
+        self.lineage
+            .schedule
+            .validate_cursor(&self.cursor, &self.applier.scorer.model)?;
+        if self.applier.epoch != self.cursor.accepted_updates {
+            return Err(invalid(
+                "CPU model epoch differs from accepted checkpoint updates",
+            ));
+        }
+        let model = CpuDiscreteModelState::from_scorer(&self.applier.scorer);
+        self.lineage.source_identity.validate_model(&model)?;
+        let chooser = CpuDiscreteChooserState::from_chooser(&self.applier.scorer.chooser);
+        let lineage_sha256 = canonical_json_sha256(&self.lineage)?;
+        Ok(CpuDiscreteCheckpoint {
+            schema: CPU_DISCRETE_CHECKPOINT_SCHEMA.into(),
+            substrate: CPU_SUBSTRATE.into(),
+            qualification: CPU_QUALIFICATION.into(),
+            source_artifact_sha256: self.lineage.source_artifact_sha256.clone(),
+            lineage_sha256,
+            cursor: self.cursor,
+            model_epoch: self.applier.epoch,
+            model_sha256: canonical_json_sha256(&model)?,
+            chooser_sha256: canonical_json_sha256(&chooser)?,
+            lineage: self.lineage.clone(),
+            model,
+            chooser,
+        })
+    }
+
+    pub fn checkpoint_bytes(&self) -> Result<Vec<u8>> {
+        serde_json::to_vec(&self.checkpoint()?).map_err(|error| invalid(error.to_string()))
+    }
+
+    pub fn resume(bytes: &[u8], expected_source_artifact_sha256: &str) -> Result<Self> {
+        let checkpoint: CpuDiscreteCheckpoint =
+            serde_json::from_slice(bytes).map_err(|error| invalid(error.to_string()))?;
+        if checkpoint.schema != CPU_DISCRETE_CHECKPOINT_SCHEMA
+            || checkpoint.substrate != CPU_SUBSTRATE
+            || checkpoint.qualification != CPU_QUALIFICATION
+            || checkpoint.lineage.schema != CPU_DISCRETE_LINEAGE_SCHEMA
+        {
+            return Err(invalid("CPU checkpoint schema or substrate differs"));
+        }
+        for hash in [
+            expected_source_artifact_sha256,
+            &checkpoint.source_artifact_sha256,
+            &checkpoint.lineage.source_artifact_sha256,
+            &checkpoint.lineage_sha256,
+            &checkpoint.model_sha256,
+            &checkpoint.chooser_sha256,
+        ] {
+            uor_r4_discrete::corpus::validate_sha256(hash)
+                .map_err(|error| invalid(error.to_string()))?;
+        }
+        if checkpoint.source_artifact_sha256 != expected_source_artifact_sha256
+            || checkpoint.lineage.source_artifact_sha256 != expected_source_artifact_sha256
+        {
+            return Err(invalid("CPU checkpoint source artifact differs"));
+        }
+        if canonical_json_sha256(&checkpoint.lineage)? != checkpoint.lineage_sha256
+            || canonical_json_sha256(&checkpoint.model)? != checkpoint.model_sha256
+            || canonical_json_sha256(&checkpoint.chooser)? != checkpoint.chooser_sha256
+        {
+            return Err(invalid("CPU checkpoint identity hash differs"));
+        }
+        checkpoint.lineage.schedule.validate()?;
+        let source = &checkpoint.lineage.source_identity;
+        if source.snapshot_schema != FLOCK_SNAPSHOT_SCHEMA
+            || source.operator_kappa != FLOCK_OPERATOR_KAPPA
+            || source.composition_kappa != FLOCK_COMPOSITION_KAPPA
+        {
+            return Err(invalid("CPU checkpoint source geometry differs"));
+        }
+        for hash in [
+            &source.snapshot_sha256,
+            &source.kernel_sha256,
+            &source.source_sha256,
+            &source.geometry_sha256,
+        ] {
+            uor_r4_discrete::corpus::validate_sha256(hash)
+                .map_err(|error| invalid(error.to_string()))?;
+        }
+        let (model, kept_cells, objective) = checkpoint.model.restore()?;
+        source.validate_model(&checkpoint.model)?;
+        let chooser = CpuDiscreteProposalChooser::from_model(&model)?;
+        if CpuDiscreteChooserState::from_chooser(&chooser) != checkpoint.chooser {
+            return Err(invalid(
+                "CPU checkpoint chooser state differs from its model",
+            ));
+        }
+        checkpoint
+            .lineage
+            .schedule
+            .validate_cursor(&checkpoint.cursor, &model)?;
+        if checkpoint.model_epoch != checkpoint.cursor.accepted_updates {
+            return Err(invalid(
+                "CPU checkpoint model epoch differs from accepted updates",
+            ));
+        }
+        let applier = CpuDiscreteProposalApplier {
+            scorer: CpuDiscreteProposalScorer {
+                chooser,
+                model,
+                kept_cells,
+                objective,
+            },
+            epoch: checkpoint.model_epoch,
+            source_artifact_sha256: checkpoint.source_artifact_sha256,
+            source_identity: checkpoint.lineage.source_identity.clone(),
+        };
+        Ok(Self {
+            applier,
+            lineage: checkpoint.lineage,
+            cursor: checkpoint.cursor,
+        })
+    }
+}
+
+fn canonical_json_sha256<T: serde::Serialize>(value: &T) -> Result<String> {
+    let bytes = serde_json::to_vec(value).map_err(|error| invalid(error.to_string()))?;
+    Ok(uor_r4_discrete::corpus::sha256(&bytes))
+}
+
 fn apply_error(status: u32, message: impl Into<String>) -> CpuDiscreteApplyError {
     CpuDiscreteApplyError {
         status,
@@ -1665,6 +2596,13 @@ impl CpuDiscreteProposalModel {
         match self {
             Self::Route(route) => route.blocks,
             Self::Active(active) => active.blocks,
+        }
+    }
+
+    fn token_blocks(&self) -> &[Vec<[i32; 8]>] {
+        match self {
+            Self::Route(route) => &route.token_blocks,
+            Self::Active(active) => &active.token_blocks,
         }
     }
 
@@ -3364,7 +4302,7 @@ mod tests {
             2,
         );
         let mut applier = CpuDiscreteProposalApplier::from_bytes(&artifact).unwrap();
-        let prefix = [0u32, 1, 2, 3, 4, 1];
+        let prefix = [0u32, 1, 2];
         let initial_read = applier.scorer.read(&applier.scorer.model, &prefix).unwrap();
         let proposal = |lane, current, selected, epoch| CpuDiscreteProposal {
             lane,
@@ -3697,6 +4635,624 @@ mod tests {
             5
         );
         assert_eq!(route_state(&exhausted), before);
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoints_round_trip_every_read_mode() {
+        let route = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let flock = serialized_flock_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[1, 0, 1, 0],
+            2,
+        );
+        let relation = serialized_relation_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[0, 1, 0, 1],
+            &[[1, -1, 1, -1, 1], [-1, 1, -1, 1, -1]],
+            2,
+            2,
+        );
+        for (artifact, prefix, schedule) in [
+            (
+                route,
+                vec![0, 1, 2],
+                CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8)
+                    .unwrap(),
+            ),
+            (
+                flock,
+                vec![0, 1, 2],
+                CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 1, 2, 8).unwrap(),
+            ),
+            (
+                relation,
+                vec![0, 1, 2],
+                CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 1, 2, 8).unwrap(),
+            ),
+        ] {
+            let driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+            let source = driver.checkpoint().unwrap().source_artifact_sha256;
+            let before = driver.checkpoint_bytes().unwrap();
+            let resumed = CpuDiscreteCheckpointDriver::resume(&before, &source).unwrap();
+            assert_eq!(resumed.checkpoint_bytes().unwrap(), before);
+            assert_eq!(resumed.cursor(), driver.cursor());
+            assert_eq!(
+                resumed
+                    .applier()
+                    .scorer
+                    .read(&resumed.applier().scorer.model, &prefix)
+                    .unwrap(),
+                driver
+                    .applier()
+                    .scorer
+                    .read(&driver.applier().scorer.model, &prefix)
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_restart_continues_identically() {
+        let artifact = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 2, 2, 8).unwrap();
+        let mut uninterrupted =
+            CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        let record = |index, lane, epoch| CpuBvgkRecord {
+            kind: CpuDiscreteProposalKind::Table,
+            index,
+            proposal: CpuDiscreteProposal {
+                lane,
+                current_loss: 10,
+                selected_loss: 10 - lane as u64,
+                epoch,
+                sensitive: true,
+            },
+            eligible: true,
+            status: 0,
+        };
+        let records = [record(0, 1, 0), record(1, 2, 0)];
+        let decision = uninterrupted
+            .applier()
+            .decide_bvgk(CpuDiscreteProposalKind::Table, &records, Some(0))
+            .unwrap();
+        uninterrupted
+            .applier_mut()
+            .apply_bvgk(CpuDiscreteProposalKind::Table, &records, &decision)
+            .unwrap();
+        uninterrupted.advance_after_batch(true, 2).unwrap();
+
+        let checkpoint = uninterrupted.checkpoint_bytes().unwrap();
+        let source = uninterrupted.checkpoint().unwrap().source_artifact_sha256;
+        let mut resumed = CpuDiscreteCheckpointDriver::resume(&checkpoint, &source).unwrap();
+        assert_eq!(resumed.checkpoint_bytes().unwrap(), checkpoint);
+        let prefix = [0u32, 1, 2];
+        assert_eq!(
+            resumed
+                .applier()
+                .scorer
+                .read(&resumed.applier().scorer.model, &prefix)
+                .unwrap(),
+            uninterrupted
+                .applier()
+                .scorer
+                .read(&uninterrupted.applier().scorer.model, &prefix)
+                .unwrap()
+        );
+
+        let next = [record(2, 3, 1)];
+        let left_decision = uninterrupted
+            .applier()
+            .decide_bvgk(CpuDiscreteProposalKind::Table, &next, None)
+            .unwrap();
+        let right_decision = resumed
+            .applier()
+            .decide_bvgk(CpuDiscreteProposalKind::Table, &next, None)
+            .unwrap();
+        assert_eq!(right_decision, left_decision);
+        let left_receipt = uninterrupted
+            .applier_mut()
+            .apply_bvgk(CpuDiscreteProposalKind::Table, &next, &left_decision)
+            .unwrap();
+        let right_receipt = resumed
+            .applier_mut()
+            .apply_bvgk(CpuDiscreteProposalKind::Table, &next, &right_decision)
+            .unwrap();
+        assert_eq!(right_receipt, left_receipt);
+        uninterrupted.advance_after_batch(true, 1).unwrap();
+        resumed.advance_after_batch(true, 1).unwrap();
+        assert_eq!(
+            resumed.checkpoint_bytes().unwrap(),
+            uninterrupted.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn cpu_discrete_no_commit_advances_only_schedule_cursor() {
+        let artifact = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap();
+        let mut driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        let before = driver.checkpoint().unwrap();
+        driver.advance_after_batch(false, 0).unwrap();
+        let after = driver.checkpoint().unwrap();
+        assert_eq!(driver.cursor().completed_batches, 1);
+        assert_eq!(driver.cursor().accepted_updates, 0);
+        assert_eq!(driver.cursor().next_target, 2);
+        assert_eq!(driver.cursor().next_coordinate, 1);
+        assert_eq!(after.model_epoch, 0);
+        assert_eq!(after.model_sha256, before.model_sha256);
+        assert_eq!(after.chooser_sha256, before.chooser_sha256);
+        let resumed = CpuDiscreteCheckpointDriver::resume(
+            &driver.checkpoint_bytes().unwrap(),
+            &after.source_artifact_sha256,
+        )
+        .unwrap();
+        assert_eq!(
+            resumed.checkpoint_bytes().unwrap(),
+            driver.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_continues_typed_mutations_and_interleaved_blocks() {
+        fn apply_batch(
+            driver: &mut CpuDiscreteCheckpointDriver,
+            kind: CpuDiscreteProposalKind,
+            indices: &[usize],
+            lane: usize,
+        ) {
+            let epoch = driver.applier().epoch();
+            let records = indices
+                .iter()
+                .map(|&index| CpuBvgkRecord {
+                    kind,
+                    index,
+                    proposal: CpuDiscreteProposal {
+                        lane,
+                        current_loss: 10,
+                        selected_loss: 9,
+                        epoch,
+                        sensitive: true,
+                    },
+                    eligible: true,
+                    status: 0,
+                })
+                .collect::<Vec<_>>();
+            let decision = driver
+                .applier()
+                .decide_bvgk(kind, &records, Some(0))
+                .unwrap();
+            assert!(decision.commit.iter().all(|&committed| committed));
+            let receipt = driver
+                .applier_mut()
+                .apply_bvgk(kind, &records, &decision)
+                .unwrap();
+            driver
+                .advance_after_batch(true, receipt.committed.len() as u64)
+                .unwrap();
+        }
+
+        fn assert_continuation(
+            artifact: &[u8],
+            schedule: CpuDiscreteSchedule,
+            first_kind: CpuDiscreteProposalKind,
+            first_indices: &[usize],
+            second_kind: CpuDiscreteProposalKind,
+            second_indices: &[usize],
+        ) {
+            let mut uninterrupted =
+                CpuDiscreteCheckpointDriver::from_artifact(artifact, schedule).unwrap();
+            apply_batch(&mut uninterrupted, first_kind, first_indices, 1);
+            let checkpoint = uninterrupted.checkpoint_bytes().unwrap();
+            let source = uninterrupted.checkpoint().unwrap().source_artifact_sha256;
+            let mut resumed = CpuDiscreteCheckpointDriver::resume(&checkpoint, &source).unwrap();
+            let prefix = [0u32, 1, 2];
+            let read = |driver: &CpuDiscreteCheckpointDriver| {
+                driver
+                    .applier()
+                    .scorer
+                    .read(&driver.applier().scorer.model, &prefix)
+                    .unwrap()
+            };
+            assert_eq!(read(&resumed), read(&uninterrupted));
+            apply_batch(&mut resumed, second_kind, second_indices, 2);
+            apply_batch(&mut uninterrupted, second_kind, second_indices, 2);
+            assert_eq!(read(&resumed), read(&uninterrupted));
+            assert_eq!(
+                resumed.checkpoint_bytes().unwrap(),
+                uninterrupted.checkpoint_bytes().unwrap()
+            );
+        }
+
+        let route = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        assert_continuation(
+            &route,
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap(),
+            CpuDiscreteProposalKind::Route,
+            &[0],
+            CpuDiscreteProposalKind::Route,
+            &[1],
+        );
+        assert_continuation(
+            &route,
+            CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 3, 2, 8).unwrap(),
+            CpuDiscreteProposalKind::Table,
+            &[0, 1, 2],
+            CpuDiscreteProposalKind::Table,
+            &[3, 4, 5],
+        );
+
+        let flock = serialized_flock_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[1, 0, 1, 0],
+            2,
+        );
+        assert_continuation(
+            &flock,
+            CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 1, 2, 8).unwrap(),
+            CpuDiscreteProposalKind::Gate,
+            &[0],
+            CpuDiscreteProposalKind::Gate,
+            &[1],
+        );
+
+        let relation = serialized_relation_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[0, 1, 0, 1],
+            &[[1, -1, 1, -1, 1], [-1, 1, -1, 1, -1]],
+            2,
+            2,
+        );
+        let relation_tail = 2 * expected_stages(6).unwrap();
+        assert_continuation(
+            &relation,
+            CpuDiscreteSchedule::new(SchedulePolicy::InterleavedReadEvery8V1, 1, 2, 8).unwrap(),
+            CpuDiscreteProposalKind::Gate,
+            &[relation_tail],
+            CpuDiscreteProposalKind::Gate,
+            &[relation_tail + 1],
+        );
+    }
+
+    const CPU_CHECKPOINT_PROCESS_INPUT: &str = "UOR_CPU_DISCRETE_CHECKPOINT_INPUT";
+    const CPU_CHECKPOINT_PROCESS_SOURCE: &str = "UOR_CPU_DISCRETE_CHECKPOINT_SOURCE";
+    const CPU_CHECKPOINT_PROCESS_OUTPUT: &str = "UOR_CPU_DISCRETE_CHECKPOINT_OUTPUT";
+
+    #[test]
+    fn cpu_discrete_checkpoint_process_helper() {
+        let Some(input) = std::env::var_os(CPU_CHECKPOINT_PROCESS_INPUT) else {
+            return;
+        };
+        let source = std::env::var(CPU_CHECKPOINT_PROCESS_SOURCE).unwrap();
+        let output = std::env::var_os(CPU_CHECKPOINT_PROCESS_OUTPUT).unwrap();
+        let checkpoint = std::fs::read(input).unwrap();
+        let driver = CpuDiscreteCheckpointDriver::resume(&checkpoint, &source).unwrap();
+        let reading = driver
+            .applier()
+            .scorer
+            .read(&driver.applier().scorer.model, &[0, 1, 2])
+            .unwrap();
+        let result = json!({
+            "reading": reading,
+            "checkpoint_sha256": uor_r4_discrete::corpus::sha256(
+                &driver.checkpoint_bytes().unwrap()
+            ),
+        });
+        std::fs::write(output, serde_json::to_vec(&result).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_survives_process_restart() {
+        let artifact = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap();
+        let driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        let checkpoint = driver.checkpoint_bytes().unwrap();
+        let source = driver.checkpoint().unwrap().source_artifact_sha256;
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let checkpoint_path = std::env::temp_dir().join(format!(
+            "uor-r4-cpu-discrete-{}-{nonce}.checkpoint",
+            std::process::id()
+        ));
+        let output_path = checkpoint_path.with_extension("result");
+        std::fs::write(&checkpoint_path, &checkpoint).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .arg("--exact")
+            .arg("discrete_route::tests::cpu_discrete_checkpoint_process_helper")
+            .arg("--nocapture")
+            .env(CPU_CHECKPOINT_PROCESS_INPUT, &checkpoint_path)
+            .env(CPU_CHECKPOINT_PROCESS_SOURCE, &source)
+            .env(CPU_CHECKPOINT_PROCESS_OUTPUT, &output_path)
+            .env("RUST_TEST_THREADS", "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "checkpoint helper failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let child: Value = serde_json::from_slice(&std::fs::read(&output_path).unwrap()).unwrap();
+        let resumed = CpuDiscreteCheckpointDriver::resume(&checkpoint, &source).unwrap();
+        assert_eq!(
+            child["reading"],
+            json!(resumed
+                .applier()
+                .scorer
+                .read(&resumed.applier().scorer.model, &[0, 1, 2])
+                .unwrap())
+        );
+        assert_eq!(
+            child["checkpoint_sha256"],
+            json!(uor_r4_discrete::corpus::sha256(
+                &resumed.checkpoint_bytes().unwrap()
+            ))
+        );
+        std::fs::remove_file(checkpoint_path).unwrap();
+        std::fs::remove_file(output_path).unwrap();
+    }
+
+    #[test]
+    fn cpu_discrete_k3_resume_continues_after_truncated_family_block() {
+        let artifact = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 3, 2, 8).unwrap();
+        let mut uninterrupted =
+            CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule).unwrap();
+        let apply = |driver: &mut CpuDiscreteCheckpointDriver,
+                     kind: CpuDiscreteProposalKind,
+                     indices: &[usize]| {
+            let epoch = driver.applier().epoch();
+            let records = indices
+                .iter()
+                .map(|&index| CpuBvgkRecord {
+                    kind,
+                    index,
+                    proposal: CpuDiscreteProposal {
+                        lane: 1,
+                        current_loss: 2,
+                        selected_loss: 1,
+                        epoch,
+                        sensitive: true,
+                    },
+                    eligible: true,
+                    status: 0,
+                })
+                .collect::<Vec<_>>();
+            let decision = driver
+                .applier()
+                .decide_bvgk(kind, &records, Some(0))
+                .unwrap();
+            driver
+                .applier_mut()
+                .apply_bvgk(kind, &records, &decision)
+                .unwrap();
+            driver
+                .advance_after_batch(true, records.len() as u64)
+                .unwrap();
+        };
+        apply(
+            &mut uninterrupted,
+            CpuDiscreteProposalKind::Table,
+            &[0, 1, 2],
+        );
+        apply(
+            &mut uninterrupted,
+            CpuDiscreteProposalKind::Table,
+            &[3, 4, 5],
+        );
+        apply(
+            &mut uninterrupted,
+            CpuDiscreteProposalKind::Route,
+            &[0, 1, 2],
+        );
+        assert_eq!(uninterrupted.cursor().block.unwrap().o_read, 3);
+        let model = &uninterrupted.applier().scorer.model;
+        assert_eq!(
+            uninterrupted
+                .schedule()
+                .block_length(uninterrupted.cursor(), model)
+                .unwrap(),
+            1
+        );
+        let checkpoint = uninterrupted.checkpoint_bytes().unwrap();
+        let source = uninterrupted.checkpoint().unwrap().source_artifact_sha256;
+        let mut resumed = CpuDiscreteCheckpointDriver::resume(&checkpoint, &source).unwrap();
+        apply(&mut uninterrupted, CpuDiscreteProposalKind::Route, &[3]);
+        apply(&mut resumed, CpuDiscreteProposalKind::Route, &[3]);
+        assert_eq!(resumed.cursor().block.unwrap().o_read, 4);
+        assert_eq!(
+            resumed.checkpoint_bytes().unwrap(),
+            uninterrupted.checkpoint_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_refuses_cursor_and_identity_corruption() {
+        let artifact = serialized_route_with("route", vec![1, 2, 3, 4], 0, 0, 2, None, false);
+        let schedule =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap();
+        let driver =
+            CpuDiscreteCheckpointDriver::from_artifact(&artifact, schedule.clone()).unwrap();
+        let checkpoint = driver.checkpoint().unwrap();
+        let source = checkpoint.source_artifact_sha256.clone();
+        let bytes = driver.checkpoint_bytes().unwrap();
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        let refusal = |value: Value| {
+            let bytes = serde_json::to_vec(&value).unwrap();
+            assert!(CpuDiscreteCheckpointDriver::resume(&bytes, &source).is_err());
+        };
+        for mutate in [
+            |value: &mut Value| value["schema"] = json!("wrong"),
+            |value: &mut Value| value["substrate"] = json!("gpu"),
+            |value: &mut Value| value["qualification"] = json!("qualified"),
+            |value: &mut Value| value["lineage_sha256"] = json!("00".repeat(32)),
+            |value: &mut Value| value["model_sha256"] = json!("00".repeat(32)),
+            |value: &mut Value| value["chooser_sha256"] = json!("00".repeat(32)),
+            |value: &mut Value| value["cursor"]["accepted_updates"] = json!(1),
+            |value: &mut Value| value["cursor"]["next_target"] = json!(2),
+            |value: &mut Value| value["cursor"]["next_coordinate"] = json!(1),
+            |value: &mut Value| {
+                value["cursor"]["block"] = json!({"o_vec":0,"o_read":0,"committed_moves":0});
+            },
+            |value: &mut Value| value["model_epoch"] = json!(1),
+            |value: &mut Value| value["unexpected"] = json!(true),
+            |value: &mut Value| {
+                value["lineage"]["source_identity"]["snapshot_sha256"] = json!("zz")
+            },
+        ] {
+            let mut bad = value.clone();
+            mutate(&mut bad);
+            refusal(bad);
+        }
+        for invalid_schedule in [
+            CpuDiscreteSchedule {
+                policy: SchedulePolicy::CanonicalVectorThenReadV1,
+                coordinate_block: 0,
+                batch_rows: 2,
+                eligible_targets: 8,
+            },
+            CpuDiscreteSchedule {
+                policy: SchedulePolicy::CanonicalVectorThenReadV1,
+                coordinate_block: 1,
+                batch_rows: 0,
+                eligible_targets: 8,
+            },
+            CpuDiscreteSchedule {
+                policy: SchedulePolicy::CanonicalVectorThenReadV1,
+                coordinate_block: 1,
+                batch_rows: 2,
+                eligible_targets: 0,
+            },
+            CpuDiscreteSchedule {
+                policy: SchedulePolicy::CarrierCreditV1,
+                coordinate_block: 1,
+                batch_rows: 2,
+                eligible_targets: 8,
+            },
+        ] {
+            let mut checkpoint = checkpoint.clone();
+            checkpoint.lineage.schedule = invalid_schedule;
+            checkpoint.lineage_sha256 = canonical_json_sha256(&checkpoint.lineage).unwrap();
+            let forged = serde_json::to_vec(&checkpoint).unwrap();
+            assert!(CpuDiscreteCheckpointDriver::resume(&forged, &source).is_err());
+        }
+        let source_mutations: [fn(&mut CpuDiscreteSourceIdentity); 7] = [
+            |source| source.snapshot_schema = "wrong".into(),
+            |source| source.snapshot_sha256 = "zz".into(),
+            |source| source.operator_kappa = "wrong".into(),
+            |source| source.read_mode = "relation".into(),
+            |source| source.context += 1,
+            |source| source.vocabulary += 1,
+            |source| source.objective_policy = "occupied_cell_rank_hinge_v1".into(),
+        ];
+        for mutate in source_mutations {
+            let mut forged = checkpoint.clone();
+            mutate(&mut forged.lineage.source_identity);
+            forged.lineage_sha256 = canonical_json_sha256(&forged.lineage).unwrap();
+            assert!(CpuDiscreteCheckpointDriver::resume(
+                &serde_json::to_vec(&forged).unwrap(),
+                &source
+            )
+            .is_err());
+        }
+        let mut model_mismatch = checkpoint.clone();
+        let CpuDiscreteModelState::Route { token_blocks, .. } = &mut model_mismatch.model else {
+            unreachable!()
+        };
+        token_blocks[0][0] = [i32::MAX; 8];
+        model_mismatch.model_sha256 = canonical_json_sha256(&model_mismatch.model).unwrap();
+        assert!(CpuDiscreteCheckpointDriver::resume(
+            &serde_json::to_vec(&model_mismatch).unwrap(),
+            &source
+        )
+        .is_err());
+        let mut chooser_mismatch = checkpoint.clone();
+        chooser_mismatch.chooser.blocks += 1;
+        chooser_mismatch.chooser_sha256 = canonical_json_sha256(&chooser_mismatch.chooser).unwrap();
+        assert!(CpuDiscreteCheckpointDriver::resume(
+            &serde_json::to_vec(&chooser_mismatch).unwrap(),
+            &source
+        )
+        .is_err());
+        assert!(CpuDiscreteCheckpointDriver::resume(&bytes, &"00".repeat(32)).is_err());
+        let mut trailing = bytes;
+        trailing.push(b'0');
+        assert!(CpuDiscreteCheckpointDriver::resume(&trailing, &source).is_err());
+        let mut truncated = driver.checkpoint_bytes().unwrap();
+        truncated.pop();
+        assert!(CpuDiscreteCheckpointDriver::resume(&truncated, &source).is_err());
+
+        let k3 =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 3, 2, 8).unwrap();
+        let k3_driver = CpuDiscreteCheckpointDriver::from_artifact(&artifact, k3).unwrap();
+        let mut missing_block = k3_driver.checkpoint().unwrap();
+        missing_block.cursor.block = None;
+        let missing = serde_json::to_vec(&missing_block).unwrap();
+        assert!(CpuDiscreteCheckpointDriver::resume(&missing, &source).is_err());
+        let mut move_bound_overflow = k3_driver.checkpoint().unwrap();
+        let accepted_updates = u64::MAX / 2;
+        let (o_vec, o_read) = family_cursors(
+            accepted_updates,
+            3,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+            6,
+            4,
+        )
+        .unwrap();
+        move_bound_overflow.cursor.completed_batches = accepted_updates;
+        move_bound_overflow.cursor.accepted_updates = accepted_updates;
+        move_bound_overflow.cursor.corpus_pass = accepted_updates / 4;
+        move_bound_overflow.cursor.next_target = (accepted_updates % 4) * 2;
+        move_bound_overflow.cursor.next_coordinate = (accepted_updates % 10) as u32;
+        move_bound_overflow.cursor.block = Some(BlockCursor {
+            o_vec,
+            o_read,
+            committed_moves: accepted_updates,
+        });
+        move_bound_overflow.model_epoch = accepted_updates;
+        assert!(CpuDiscreteCheckpointDriver::resume(
+            &serde_json::to_vec(&move_bound_overflow).unwrap(),
+            &source
+        )
+        .is_err());
+
+        let mut overflow_cursor = checkpoint.cursor;
+        overflow_cursor.completed_batches = u64::MAX;
+        overflow_cursor.accepted_updates = 0;
+        overflow_cursor.corpus_pass = u64::MAX / 4;
+        overflow_cursor.next_target = (u64::MAX % 4) * 2;
+        overflow_cursor.next_coordinate = (u64::MAX % 10) as u32;
+        let mut overflow_checkpoint = checkpoint;
+        overflow_checkpoint.cursor = overflow_cursor;
+        overflow_checkpoint.lineage_sha256 =
+            canonical_json_sha256(&overflow_checkpoint.lineage).unwrap();
+        let overflow_bytes = serde_json::to_vec(&overflow_checkpoint).unwrap();
+        let mut overflow = CpuDiscreteCheckpointDriver::resume(&overflow_bytes, &source).unwrap();
+        let before = overflow.checkpoint_bytes().unwrap();
+        assert!(overflow.advance_after_batch(false, 0).is_err());
+        assert_eq!(overflow.checkpoint_bytes().unwrap(), before);
+    }
+
+    #[test]
+    fn cpu_discrete_checkpoint_refuses_carrier_schedule() {
+        assert!(CpuDiscreteSchedule::new(SchedulePolicy::CarrierCreditV1, 1, 2, 8).is_err());
+        let flock = serialized_flock_fixture(
+            6,
+            &[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            &[1, 0, 1, 0],
+            2,
+        );
+        let canonical =
+            CpuDiscreteSchedule::new(SchedulePolicy::CanonicalVectorThenReadV1, 1, 2, 8).unwrap();
+        assert!(CpuDiscreteCheckpointDriver::from_artifact(&flock, canonical).is_err());
     }
 
     #[test]

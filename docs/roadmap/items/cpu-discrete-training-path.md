@@ -3,7 +3,7 @@ id: cpu-discrete-training-path
 title: Port exact CPU reads, counterfactual updates and BVG-K
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [cpu-discrete-writer-core]
@@ -16,9 +16,9 @@ scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/loop/tasks/cpu-
 
 The discrete learner is the strongest comparison-heavy CPU candidate, but its early failures came from read/proposal/admission interactions that a writer-only oracle cannot expose.
 
-## What is missing
+## Progress
 
-Route, Flock and Relation reads, exact 16-lane proposal scoring, the chooser, single-coordinate apply and all-or-nothing BVG-K joint apply now have independent finite parity slices. The batch boundary validates every committed lane before staging and all listed CUDA refusal statuses have immutability controls. Next port the deterministic cursor/checkpoint and replay path. Preserve the current status codes and post-apply checks.
+Route, Flock and Relation reads, exact 16-lane proposal scoring, the chooser, single-coordinate apply, all-or-nothing BVG-K joint apply and deterministic checkpoint/restart now have independent finite parity slices. The batch boundary validates every committed lane before staging, all listed CUDA refusal statuses have immutability controls, and a restored child process reproduces the uninterrupted next decision, update, reading and checkpoint bytes. The CPU checkpoint writes the reference cursor fields while labeling its CPU development substrate and GPU qualification requirement.
 
 ## Done when
 
@@ -27,6 +27,8 @@ Route, Flock and Relation reads, exact 16-lane proposal scoring, the chooser, si
 - Admission-preserving acceptance and deterministic resume are tested across a restart.
 - The CPU trainer writes the same checkpoint identity fields as the reference format and labels the compute substrate.
 - One notebook row and a REPORT place every negative beside its configuration.
+
+No corpus training, language capability or qualification claim is included in this item.
 
 ## Cancel if
 
