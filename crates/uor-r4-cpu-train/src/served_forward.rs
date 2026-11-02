@@ -467,9 +467,81 @@ pub struct ServedForwardParity {
     pub instrument_fault: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ServedForwardTokenSource {
+    pub format: &'static str,
+    pub source_sha256: String,
+    pub offset: usize,
+    pub count: usize,
+    pub total_tokens: usize,
+    pub vocabulary: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UortTokenSlice {
+    pub tokens: Vec<u32>,
+    pub source: ServedForwardTokenSource,
+}
+
+/// Read a canonical little-endian `UORT` token span without requiring its response mask.
+pub fn read_uort_token_slice(bytes: &[u8], offset: usize, count: usize) -> Result<UortTokenSlice> {
+    const HEADER_BYTES: usize = 64;
+    if bytes.len() < HEADER_BYTES || &bytes[..4] != b"UORT" {
+        return Err(invalid("token source is not a canonical UORT file"));
+    }
+    let version = u32::from_le_bytes(bytes[4..8].try_into().expect("four-byte UORT version"));
+    let total = u64::from_le_bytes(
+        bytes[8..16]
+            .try_into()
+            .expect("eight-byte UORT token count"),
+    );
+    let vocabulary =
+        u32::from_le_bytes(bytes[16..20].try_into().expect("four-byte UORT vocabulary")) as usize;
+    let physical = total
+        .checked_mul(2)
+        .and_then(|payload| payload.checked_add(HEADER_BYTES as u64))
+        .ok_or_else(|| invalid("UORT byte length overflows"))?;
+    if version != 1
+        || !(1..=u16::MAX as usize + 1).contains(&vocabulary)
+        || bytes[20..HEADER_BYTES].iter().any(|&byte| byte != 0)
+        || physical != bytes.len() as u64
+        || total == 0
+        || count == 0
+        || offset
+            .checked_add(count)
+            .is_none_or(|end| end > total as usize)
+    {
+        return Err(invalid(
+            "UORT header, length or requested token span differs",
+        ));
+    }
+    let tokens = bytes[HEADER_BYTES + offset * 2..HEADER_BYTES + (offset + count) * 2]
+        .chunks_exact(2)
+        .map(|pair| u32::from(u16::from_le_bytes([pair[0], pair[1]])))
+        .collect::<Vec<_>>();
+    if let Some(&token) = tokens.iter().find(|&&token| token >= vocabulary as u32) {
+        return Err(invalid(format!(
+            "UORT token {token} is outside vocabulary {vocabulary}"
+        )));
+    }
+    Ok(UortTokenSlice {
+        tokens,
+        source: ServedForwardTokenSource {
+            format: "uort",
+            source_sha256: uor_r4_discrete::corpus::sha256(bytes),
+            offset,
+            count,
+            total_tokens: total as usize,
+            vocabulary,
+        },
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServedForwardAuditConfig {
     pub tokens: Vec<u32>,
+    pub token_source: Option<ServedForwardTokenSource>,
+    pub expected_artifact_sha256: Option<String>,
     /// One-based next row at which the reply's opening key applies.
     pub reply_start: Option<usize>,
     pub measure_timing: bool,
@@ -479,6 +551,8 @@ impl ServedForwardAuditConfig {
     pub fn new(tokens: Vec<u32>) -> Self {
         Self {
             tokens,
+            token_source: None,
+            expected_artifact_sha256: None,
             reply_start: None,
             measure_timing: false,
         }
@@ -492,6 +566,7 @@ pub struct ServedForwardAuditReport {
     pub qualification: &'static str,
     pub artifact: ArtifactIdentity,
     pub token_sequence_sha256: String,
+    pub token_source: Option<ServedForwardTokenSource>,
     pub head: &'static str,
     pub reply_start: Option<usize>,
     pub contract: ExactFbsContract,
@@ -514,8 +589,31 @@ pub fn audit_served_forward(
     if config.tokens.is_empty() {
         return Err(invalid("the audit requires at least one token"));
     }
+    if let Some(source) = &config.token_source {
+        if source.count != config.tokens.len()
+            || source.source_sha256.len() != 64
+            || !source
+                .source_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(invalid(
+                "token-source provenance differs from the selected tokens",
+            ));
+        }
+    }
     let model = IntegerStackModel::parse(artifact)
         .map_err(|error| invalid(format!("artifact does not parse: {error}")))?;
+    if let Some(expected) = &config.expected_artifact_sha256 {
+        uor_r4_discrete::corpus::validate_sha256(expected)
+            .map_err(|error| invalid(format!("expected artifact sha256: {error}")))?;
+        if !model.artifact_sha256().eq_ignore_ascii_case(expected) {
+            return Err(invalid(format!(
+                "artifact sha256 {} differs from expected {expected}",
+                model.artifact_sha256()
+            )));
+        }
+    }
     let context = model.shape().context;
     if config.tokens.len() > context {
         return Err(invalid(format!(
@@ -636,6 +734,7 @@ pub fn audit_served_forward(
             bytes: artifact.len() as u64,
         },
         token_sequence_sha256: token_sequence_sha256(&config.tokens),
+        token_source: config.token_source.clone(),
         head: match head {
             CpuFbsHead::Nearest => "native_vector_nearest",
             CpuFbsHead::Writer => "native_vector",
@@ -1402,6 +1501,18 @@ mod tests {
         artifact_with(true, true)
     }
 
+    fn uort(tokens: &[u32], vocabulary: u32) -> Vec<u8> {
+        let mut bytes = vec![0u8; 64];
+        bytes[..4].copy_from_slice(b"UORT");
+        bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+        bytes[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
+        bytes[16..20].copy_from_slice(&vocabulary.to_le_bytes());
+        for token in tokens {
+            bytes.extend_from_slice(&(*token as u16).to_le_bytes());
+        }
+        bytes
+    }
+
     #[test]
     fn contract_states_truncating_and_rounding_boundaries() {
         let contract = exact_fbs_contract();
@@ -1418,10 +1529,58 @@ mod tests {
     }
 
     #[test]
+    fn uort_slice_and_expected_artifact_identity_are_bound() {
+        let artifact = artifact();
+        let source = uort(&[0, 7, 11, 42, 77, 99], 512);
+        let slice = read_uort_token_slice(&source, 1, 4).unwrap();
+        assert_eq!(slice.tokens, vec![7, 11, 42, 77]);
+        assert_eq!(slice.source.offset, 1);
+        assert_eq!(slice.source.count, 4);
+        assert_eq!(slice.source.total_tokens, 6);
+        assert_eq!(slice.source.vocabulary, 512);
+        assert_eq!(
+            slice.source.source_sha256,
+            uor_r4_discrete::corpus::sha256(&source)
+        );
+
+        let sha256 = uor_r4_discrete::corpus::sha256(&artifact);
+        let report = audit_served_forward(
+            &artifact,
+            &ServedForwardAuditConfig {
+                tokens: slice.tokens,
+                token_source: Some(slice.source),
+                expected_artifact_sha256: Some(sha256),
+                reply_start: None,
+                measure_timing: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(report.token_source.unwrap().offset, 1);
+
+        let mut malformed = source;
+        malformed[20] = 1;
+        assert!(read_uort_token_slice(&malformed, 0, 1).is_err());
+        assert!(read_uort_token_slice(&uort(&[0, 7], 512), 1, 2).is_err());
+        assert!(audit_served_forward(
+            &artifact,
+            &ServedForwardAuditConfig {
+                tokens: vec![0],
+                token_source: None,
+                expected_artifact_sha256: Some("0".repeat(64)),
+                reply_start: None,
+                measure_timing: false,
+            },
+        )
+        .is_err());
+    }
+
+    #[test]
     fn deterministic_report_checks_all_decisions_and_accounts_cost() {
         let artifact = artifact();
         let config = ServedForwardAuditConfig {
             tokens: vec![0, 7, 11, 42, 77],
+            token_source: None,
+            expected_artifact_sha256: None,
             reply_start: Some(3),
             measure_timing: false,
         };
@@ -1471,6 +1630,8 @@ mod tests {
             &artifact,
             &ServedForwardAuditConfig {
                 tokens: vec![0, 7, 11],
+                token_source: None,
+                expected_artifact_sha256: None,
                 reply_start: None,
                 measure_timing: true,
             },
@@ -1589,6 +1750,8 @@ mod tests {
             &bytes,
             &ServedForwardAuditConfig {
                 tokens: vec![0, 7, 11, 42],
+                token_source: None,
+                expected_artifact_sha256: None,
                 reply_start: Some(2),
                 measure_timing: false,
             },
@@ -1623,6 +1786,8 @@ mod tests {
             &artifact,
             &ServedForwardAuditConfig {
                 tokens: vec![0],
+                token_source: None,
+                expected_artifact_sha256: None,
                 reply_start: Some(2),
                 measure_timing: false,
             }

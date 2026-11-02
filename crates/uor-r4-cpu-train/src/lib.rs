@@ -47,10 +47,10 @@ pub use quant_shadow::{
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
 };
 pub use served_forward::{
-    audit_served_forward, exact_fbs_contract, ExactFbsContract, GradientTreatment,
-    ServedForwardAuditConfig, ServedForwardAuditError, ServedForwardAuditReport,
-    ServedForwardManifest, ServedForwardParity, ServedForwardStageCost, SurrogateOperation,
-    CPU_SERVED_FORWARD_AUDIT_SCHEMA,
+    audit_served_forward, exact_fbs_contract, read_uort_token_slice, ExactFbsContract,
+    GradientTreatment, ServedForwardAuditConfig, ServedForwardAuditError, ServedForwardAuditReport,
+    ServedForwardManifest, ServedForwardParity, ServedForwardStageCost, ServedForwardTokenSource,
+    SurrogateOperation, UortTokenSlice, CPU_SERVED_FORWARD_AUDIT_SCHEMA,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,

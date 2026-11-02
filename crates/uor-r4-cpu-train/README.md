@@ -29,6 +29,21 @@ token sequence and reply cursor. The report also inventories float-only training
 operations and their exact, straight-through, secant or unresolved treatment.
 It is an instrument, not a qualification result.
 
+For release candidates, bind a real corpus slice instead of a hand-written list:
+
+```sh
+python3 scripts/audit_served_forward_gate.py \
+  --binary target/release/cpu-served-forward-audit \
+  --artifact ARTIFACT \
+  --uort TOKENS.u16 --token-offset 0 --token-count 192 \
+  --expected-artifact-sha256 SHA256 \
+  --report REPORT.json --promote FINAL.uorlut
+```
+
+The gate validates the complete deterministic report and refuses to overwrite
+the report or final artifact. Build the audit in an isolated Cargo target when
+the workspace's mixed-feature integer outputs may collide.
+
 `CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval checkpoints plus reloadable final checkpoint and `UORLUT01` artifacts, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. Each checkpoint carries a sidecar binding for the source artifact, corpus inputs, trainer seed, split controls and checkpoint bytes. An optional eleventh argument resumes from a bound interval checkpoint; the step argument remains the total target, so only the remaining steps execute. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
 
 ## Checks
