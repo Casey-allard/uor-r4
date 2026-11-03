@@ -14541,6 +14541,81 @@ mod tests {
         Ok(())
     }
 
+    /// claude-262: one training step as served reaches every projection that reads a requantized
+    /// activation. Each layer's `mlp.down` and `rec.out` table gets a gradient whose norm
+    /// is within 4x of the plain step's, from the same initial values, and never 0. Before, the
+    /// served stand-in rounded those activations to whole numbers, so most of them were 0 and so
+    /// was the gradient of the weight that reads them.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_step_as_served_reaches_every_projection_after_a_requantized_activation() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let batch = 2;
+        let ids: Vec<u32> = (0..batch * SHEET_CONTEXT)
+            .map(|i| ((i * 37 + 5) % hs::SHEET_VOCAB) as u32)
+            .collect();
+        let scored: Vec<u32> = (0..batch * SHEET_CONTEXT - 1)
+            .step_by(7)
+            .map(|i| i as u32)
+            .collect();
+        let targets: Vec<u32> = scored.iter().map(|&i| ids[i as usize + 1]).collect();
+        let mut norms: Vec<Vec<(String, f32)>> = Vec::new();
+        for on in [false, true] {
+            let (model, reads, memory) = served_parts(&device)?;
+            crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
+            crate::flock_read_memory::set_turn_memory(Some(memory.clone()));
+            let served = round_if_served(on, &model, Some(&reads), Some(&memory))?;
+            let grads = with_training_forward(on, 1, 0, || {
+                let loss = batch_loss(
+                    &model,
+                    PointObjective::Cell,
+                    &ids,
+                    &scored,
+                    &targets,
+                    batch,
+                    on,
+                )?;
+                Ok(loss.backward()?)
+            })?;
+            if let Some(served) = served {
+                served.restore()?;
+            }
+            crate::flock_read_hamming::set_hamming_reads(None);
+            crate::flock_read_memory::set_turn_memory(None);
+            let mut arm = Vec::new();
+            // The FBS trunk holds each projection as its SpiralCore table, `….spiralcore_fbs`,
+            // in place of the dense `….weight`.
+            for layer in 0..model.config.layers() {
+                for table in ["mlp.down.spiralcore_fbs", "rec.out.spiralcore_fbs"] {
+                    let name = format!("layers.{layer:02}.{table}");
+                    let var = model
+                        .variables()
+                        .get(&name)
+                        .ok_or_else(|| invalid(format!("the trunk lacks {name}")))?;
+                    let norm = match grads.get(var.as_tensor()) {
+                        Some(g) => g.sqr()?.sum_all()?.sqrt()?.to_scalar::<f32>()?,
+                        None => 0.0,
+                    };
+                    arm.push((name, norm));
+                }
+            }
+            norms.push(arm);
+        }
+        assert!(
+            !norms[0].is_empty(),
+            "the trunk has no layers, so the check is vacuous"
+        );
+        for ((name, plain), (_, served)) in norms[0].iter().zip(&norms[1]) {
+            assert!(*plain > 0.0, "{name}: the plain step gives it no gradient");
+            let ratio = served / plain;
+            assert!(
+                (0.25..=4.0).contains(&ratio),
+                "{name}: gradient norm {served} as served against {plain} plain"
+            );
+        }
+        Ok(())
+    }
+
     /// claude-258: without the switch nothing is rounded, so a run without it trains as before,
     /// and its `config.json` has no new key.
     #[test]

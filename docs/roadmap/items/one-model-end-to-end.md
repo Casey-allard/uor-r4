@@ -44,16 +44,20 @@ replace the served-training comparison above. Full transcripts and pins:
 
 ## What is missing
 
-- **Served-surrogate training is wired; its operational gate failed.** Q16
-  residuals and dynamic i16 recurrence/MLP activations run in the real
-  geometric hidden path under `--train-as-served 1`, with D11 snaps, a Q12
-  scored query and D11 checkpoint evaluation. The FIT-reviewed four-run
-  comparison completed: both served checkpoints survived export rounding
-  unchanged, but training took 6.83–6.96× plain against a 2× ceiling, and the
-  quality smoke was inconclusive. The wiring is not ready for a longer run.
-  The next unit is a focused quantizer-cost repair and matched rerun; the
-  49-pass activation-scale loop is a hypothesis, not a measured cause. See
-  [the decision report](../../loop/tasks/one-model-end-to-end/deepseek-5/REPORT.md).
+- **Served-surrogate training is repaired; it now passes the operational
+  gate, near the ceiling.** Q16 residuals and dynamic i16 recurrence/MLP
+  activations run in the real geometric hidden path under
+  `--train-as-served 1`, with D11 snaps, a Q12 scored query and D11 checkpoint
+  evaluation. [deepseek-5](../../loop/tasks/one-model-end-to-end/deepseek-5/REPORT.md)'s
+  four-run comparison took 6.83–6.96× plain. [claude-262](../../loop/tasks/one-model-end-to-end/claude-262/REPORT.md)
+  found two faults: the activation requantizer had dropped the step's
+  exponent `PRODUCT_EXP = −32`, and the D11 snap's 4-axis score `sum` launched
+  one GPU block per score. It repaired both, each pinned by a CUDA test, and
+  reran the same sheet. Served training then took 1.79–1.84× plain, and both
+  checkpoints survived export rounding unchanged. The quality smoke stayed
+  inconclusive, with served above plain on the bar's evaluator top-1 (53 / 67
+  against 40 / 43, band 24) and on DEV nearest (305 / 357 against 239 / 248). The step's 1.85× margin to the 2× ceiling and served-run
+  openings are still open before a longer run.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

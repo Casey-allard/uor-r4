@@ -18,6 +18,12 @@ use serde::{Deserialize, Serialize};
 /// (`stack::kernels::RESIDUAL_EXP`, held equal by a stack test).
 pub const FBS_FIXED_EXP: i32 = -16;
 
+/// The exponent the FBS step holds both requantized activations at, the MLP's
+/// gated product and the recurrence's output, before `stack_quantize16`
+/// (`stack::kernels::PRODUCT_EXP`, held equal by a stack test). The float
+/// trainer's served stand-in reads its activations at it (claude-262).
+pub const FBS_ACTIVATION_EXP: i32 = -32;
+
 /// Encode a finite scalar as a grid code `±(16 + m) 2^(e - 4)` with
 /// `1 <= e + 64 <= 127`: the exporter's form for gains and convolution taps.
 /// `stack::encode_grid_code` wraps it.

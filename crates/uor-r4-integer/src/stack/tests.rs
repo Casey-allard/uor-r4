@@ -3143,6 +3143,25 @@ fn fbs_reference_snaps_default_to_the_integer_path_and_each_switch_is_live() {
 }
 
 #[test]
+fn fbs_activation_exponent_is_the_requantized_product() {
+    use crate::fbs_snapshot::FBS_ACTIVATION_EXP;
+    // claude-262: the float trainer's served stand-in reads both requantized
+    // activations at this exponent.
+    assert_eq!(FBS_ACTIVATION_EXP, super::kernels::PRODUCT_EXP);
+    // `stack_quantize16` keeps 15 bits of the row's largest magnitude: a row
+    // of 0.3, -0.12 and 0.004 held at 2^-32 is served at 2^-16, not rounded
+    // to whole numbers.
+    let held: Vec<i64> = [0.3f64, -0.12, 0.004]
+        .iter()
+        .map(|v| (v * 2f64.powi(-FBS_ACTIVATION_EXP)).round() as i64)
+        .collect();
+    let mut out = [0i16; 3];
+    let exp = super::kernels::stack_quantize16(&held, FBS_ACTIVATION_EXP, &mut out);
+    assert_eq!(exp, -16);
+    assert_eq!(out, [19661, -7864, 262]);
+}
+
+#[test]
 fn fbs_exported_roundings_match_the_stack_exporter() {
     use crate::fbs_snapshot::{fixed_value, q12_value, FBS_FIXED_EXP};
     // The ungated roundings the float converter's D11 mode reads are the ones

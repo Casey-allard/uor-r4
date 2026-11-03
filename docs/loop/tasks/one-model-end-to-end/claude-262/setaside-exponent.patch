@@ -1,0 +1,27 @@
+diff --git a/crates/uor-r4-float-train/src/hamilton_sheet.rs b/crates/uor-r4-float-train/src/hamilton_sheet.rs
+index 536d301b4..cc6354b36 100644
+--- a/crates/uor-r4-float-train/src/hamilton_sheet.rs
++++ b/crates/uor-r4-float-train/src/hamilton_sheet.rs
+@@ -669,8 +669,8 @@ fn q16_residual_ste_scalar(value: f32) -> (f32, f32) {
+ /// served as `round(v · scale) / scale` with `scale = 2^(-ACTIVATION_EXP - s)`.
+ #[cfg_attr(not(test), allow(dead_code))]
+ fn activation_scale_scalar(max: f64) -> f64 {
+-    let integer = (max * 2f64.powi(-ACTIVATION_EXP)).min(ACTIVATION_SATURATED);
+-    let mut scale = 2f64.powi(-ACTIVATION_EXP);
++    let integer = max.min(ACTIVATION_SATURATED);
++    let mut scale = 1.0;
+     let mut threshold = 32768.0;
+     for _ in 15..64 {
+         if integer >= threshold {
+@@ -706,10 +706,9 @@ pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
+         .abs()?
+         .max_keepdim(candle_core::D::Minus1)?
+         .detach()
+-        .affine(2f64.powi(-ACTIVATION_EXP), 0.0)?
+         .clamp(0.0, ACTIVATION_SATURATED)?;
+     let ones = Tensor::ones_like(&integer)?;
+-    let mut scale = ones.affine(2f64.powi(-ACTIVATION_EXP), 0.0)?;
++    let mut scale = ones.clone();
+     // `s = max(bit_length − 15, 0)` is at most 48, so six halvings find it: `s ≥ k` exactly when
+     // the magnitude is at least 2^(14 + k), and each pass takes `bits` more of the shift where
+     // the magnitude left after the earlier passes reaches 2^(14 + bits). Every factor is a power
