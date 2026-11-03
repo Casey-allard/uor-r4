@@ -1,0 +1,52 @@
+{
+  "schema": "uor-r4.cpu-served-forward-export-gate-smoke/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "scope": "Zero-step public artifact promotion through the full served-forward audit; no training or capability claim.",
+  "source_commit": "08213d45b",
+  "driver_sha256": "f678c238b7f4039596815603237a8e6f04de0d7dbee2bf9104e14e7892cba426",
+  "inputs": {
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "configuration": {
+    "steps": 0,
+    "evaluation_stride": 2,
+    "maximum_evaluation_rows": 64,
+    "audit_position_cap": 64
+  },
+  "panel": {
+    "samples": 64,
+    "top1": 17,
+    "top8": 22,
+    "admitted": 25,
+    "margin_loss_sum": 473004,
+    "rank_sum": 19747,
+    "gate": "accept",
+    "artifact_matches_source": true
+  },
+  "served_forward_audit": {
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "artifact_bytes": 2144960,
+    "positions_checked": 64,
+    "query_coordinates_compared": 16384,
+    "token_decisions_compared": 64,
+    "kept_cells_compared": 512,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0,
+    "instrument_fault": false,
+    "token_sequence_sha256": "4da2bcba76b11694142617f0071bc89f9699bff6b6e1163cc9abbd49e2d995b6",
+    "cpu_decision_sha256": "66b43e690f5a07bdef06e6f301f4b8be6b88b66f78c366b1a39266a2021b6e82",
+    "serving_decision_sha256": "66b43e690f5a07bdef06e6f301f4b8be6b88b66f78c366b1a39266a2021b6e82",
+    "receipt_sha256": "0175e1c6c6bd7bc3100ff8403a8b048edaf9de4edc89873f90f26acc2070973e",
+    "receipt_bytes": 44544
+  },
+  "limits": [
+    "The zero-step run promotes the unchanged public raw artifact; it proves the gate and receipt path, not trained-artifact improvement.",
+    "The public artifact contains no Hamming, turn-memory or point-key records.",
+    "This is not a GPU qualification, complete-reply or language result."
+  ]
+}

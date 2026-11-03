@@ -3,12 +3,14 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use uor_r4_cpu_train::{
-    panel_admission_gate, validate_corpus_manifest, CpuCorpusIdentity, CpuMaskedCorpus,
-    CpuPanelEvaluator, CpuRankMarginTrainer, PanelGateDecision, RankMarginConfig,
+    audit_served_forward, panel_admission_gate, read_uort_token_slice, validate_corpus_manifest,
+    CpuCorpusIdentity, CpuMaskedCorpus, CpuPanelEvaluator, CpuRankMarginTrainer, PanelGateDecision,
+    RankMarginConfig, ServedForwardAuditConfig, ServedForwardAuditReport, UortTokenSlice,
 };
 use uor_r4_integer::stack::IntegerStackModel;
 
 const CHECKPOINT_BINDING_SCHEMA: &str = "uor-r4.cpu-corpus-checkpoint-binding/1";
+const FINAL_AUDIT_POSITIONS: usize = 64;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -144,6 +146,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             identity.max_tokens, shape.context
         ));
     }
+    let audit_tokens = uort_audit_tokens(&token_bytes, shape.context)?;
     let corpus = CpuMaskedCorpus::from_bytes(
         &token_bytes,
         &mask,
@@ -317,7 +320,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         return Err("zero-step run changed the source artifact".to_owned());
     }
     let final_artifact_path = config.checkpoint_dir.join("final.uorlut");
-    write_verified_artifact(&final_artifact_path, &final_artifact)?;
+    let (final_audit_path, final_audit, final_audit_sha256) =
+        write_verified_artifact(&final_artifact_path, &final_artifact, &audit_tokens)?;
     let final_artifact_sha256 = uor_r4_discrete::corpus::sha256(&final_artifact);
     if !baseline.export.is_exact() || !final_reading.export.is_exact() {
         return Err("CPU/serving query, token or kept-cell export mismatch".to_owned());
@@ -407,6 +411,15 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             "sha256": final_artifact_sha256,
             "reloaded": true,
             "matches_source": final_artifact == artifact,
+        },
+        "served_forward_audit": {
+            "path": final_audit_path,
+            "sha256": final_audit_sha256,
+            "positions_checked": final_audit.parity.positions_checked,
+            "query_coordinates_compared": final_audit.parity.query_coordinates_compared,
+            "token_decisions_compared": final_audit.parity.token_decisions_compared,
+            "kept_cells_compared": final_audit.parity.kept_cells_compared,
+            "decision_sha256": final_audit.parity.cpu_decision_sha256,
         },
         "scope": "CPU development-research component run; not GPU qualification, language quality or complete-reply evidence",
     });
@@ -536,26 +549,122 @@ fn resume_checkpoint(
     ))
 }
 
-fn write_verified_artifact(path: &Path, artifact: &[u8]) -> Result<(), String> {
-    IntegerStackModel::parse(artifact)
-        .map_err(|error| format!("final artifact does not parse: {error}"))?;
-    let partial = path.with_extension("partial");
-    let mut file = std::fs::File::create(&partial)
-        .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
-    file.write_all(artifact)
-        .and_then(|()| file.sync_all())
-        .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
-    drop(file);
-    std::fs::rename(&partial, path)
-        .map_err(|error| format!("final artifact {}: {error}", path.display()))?;
-    let reloaded = std::fs::read(path)
-        .map_err(|error| format!("final artifact reload {}: {error}", path.display()))?;
-    if reloaded != artifact {
-        std::fs::remove_file(path)
-            .map_err(|error| format!("failed final artifact {}: {error}", path.display()))?;
-        return Err("final artifact reload differs from the trainer artifact".to_owned());
+fn uort_audit_tokens(bytes: &[u8], context: usize) -> Result<UortTokenSlice, String> {
+    let first = read_uort_token_slice(bytes, 0, 1).map_err(|error| error.to_string())?;
+    let count = FINAL_AUDIT_POSITIONS
+        .min(context)
+        .min(first.source.total_tokens);
+    if count == 1 {
+        Ok(first)
+    } else {
+        read_uort_token_slice(bytes, 0, count).map_err(|error| error.to_string())
+    }
+}
+
+fn validate_served_forward_export(
+    report: &ServedForwardAuditReport,
+    artifact: &[u8],
+    tokens: &UortTokenSlice,
+) -> Result<(), String> {
+    let artifact_sha256 = uor_r4_discrete::corpus::sha256(artifact);
+    if report.artifact.sha256 != artifact_sha256 || report.artifact.bytes != artifact.len() as u64 {
+        return Err("served-forward audit artifact identity differs".to_owned());
+    }
+    if report.token_source.as_ref() != Some(&tokens.source) {
+        return Err("served-forward audit token provenance differs".to_owned());
+    }
+    let parity = &report.parity;
+    if parity.positions_checked != tokens.tokens.len() {
+        return Err("served-forward audit position count differs".to_owned());
+    }
+    let positions = parity.positions_checked as u64;
+    let expected_coordinates = positions
+        .checked_mul(report.manifest.shape.width as u64)
+        .ok_or_else(|| "served-forward audit Q12 count overflows".to_owned())?;
+    let expected_kept_cells = positions
+        .checked_mul(report.manifest.shape.kept_cells as u64)
+        .ok_or_else(|| "served-forward audit kept-cell count overflows".to_owned())?;
+    if parity.query_coordinates_compared != expected_coordinates
+        || parity.token_decisions_compared != positions
+        || parity.kept_cells_compared != expected_kept_cells
+    {
+        return Err("served-forward audit decision counts differ".to_owned());
+    }
+    if parity.query_coordinate_mismatches != 0
+        || parity.token_mismatches != 0
+        || parity.kept_cell_mismatches != 0
+        || parity.instrument_fault
+        || parity.cpu_decision_sha256 != parity.serving_decision_sha256
+        || !parity.mismatches.is_empty()
+        || parity.mismatches_recorded != 0
+        || parity.mismatches_omitted != 0
+    {
+        return Err("served-forward CPU/serving parity failed".to_owned());
     }
     Ok(())
+}
+
+fn write_verified_artifact(
+    path: &Path,
+    artifact: &[u8],
+    tokens: &UortTokenSlice,
+) -> Result<(PathBuf, ServedForwardAuditReport, String), String> {
+    IntegerStackModel::parse(artifact)
+        .map_err(|error| format!("final artifact does not parse: {error}"))?;
+    let audit_config = ServedForwardAuditConfig {
+        tokens: tokens.tokens.clone(),
+        token_source: Some(tokens.source.clone()),
+        expected_artifact_sha256: Some(uor_r4_discrete::corpus::sha256(artifact)),
+        reply_start: None,
+        measure_timing: false,
+    };
+    let audit = audit_served_forward(artifact, &audit_config)
+        .map_err(|error| format!("final served-forward audit: {error}"))?;
+    validate_served_forward_export(&audit, artifact, tokens)
+        .map_err(|error| format!("final served-forward audit: {error}"))?;
+    let audit_bytes = serde_json::to_vec_pretty(&audit)
+        .map_err(|error| format!("final served-forward audit JSON: {error}"))?;
+    let audit_sha256 = uor_r4_discrete::corpus::sha256(&audit_bytes);
+    let audit_path = path.with_extension("audit.json");
+    if path.exists() || audit_path.exists() {
+        return Err("final artifact or audit receipt already exists".to_owned());
+    }
+
+    let partial = path.with_extension("partial");
+    let audit_partial = audit_path.with_extension("partial");
+    let published = (|| {
+        let mut file = std::fs::File::create(&partial)
+            .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
+        file.write_all(artifact)
+            .and_then(|()| file.sync_all())
+            .map_err(|error| format!("final artifact {}: {error}", partial.display()))?;
+        drop(file);
+        let mut audit_file = std::fs::File::create(&audit_partial)
+            .map_err(|error| format!("final audit {}: {error}", audit_partial.display()))?;
+        audit_file
+            .write_all(&audit_bytes)
+            .and_then(|()| audit_file.sync_all())
+            .map_err(|error| format!("final audit {}: {error}", audit_partial.display()))?;
+        drop(audit_file);
+        std::fs::rename(&audit_partial, &audit_path)
+            .map_err(|error| format!("final audit {}: {error}", audit_path.display()))?;
+        std::fs::rename(&partial, path)
+            .map_err(|error| format!("final artifact {}: {error}", path.display()))?;
+        let reloaded = std::fs::read(path)
+            .map_err(|error| format!("final artifact reload {}: {error}", path.display()))?;
+        let audit_reloaded = std::fs::read(&audit_path)
+            .map_err(|error| format!("final audit reload {}: {error}", audit_path.display()))?;
+        if reloaded != artifact || audit_reloaded != audit_bytes {
+            return Err("final artifact or served-forward audit reload differs".to_owned());
+        }
+        Ok((audit_path.clone(), audit, audit_sha256))
+    })();
+    if published.is_err() {
+        for failed in [&partial, &audit_partial, path, &audit_path] {
+            let _ = std::fs::remove_file(failed);
+        }
+    }
+    published
 }
 
 fn panel_json(reading: &uor_r4_cpu_train::PanelReading) -> serde_json::Value {
@@ -974,39 +1083,79 @@ mod tests {
 
     #[test]
     fn final_artifact_write_is_byte_identical_and_reloadable() {
-        let artifact = artifact();
-        let nonce = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let directory = std::env::temp_dir().join(format!(
-            "uor-r4-cpu-corpus-artifact-{}-{nonce}",
-            std::process::id()
-        ));
-        std::fs::create_dir_all(&directory).unwrap();
-        let path = directory.join("final.uorlut");
-        write_verified_artifact(&path, &artifact).unwrap();
+        let fixture = corpus_fixture("artifact");
+        let artifact = std::fs::read(&fixture.artifact).unwrap();
+        let token_bytes = std::fs::read(&fixture.tokens).unwrap();
+        let tokens = uort_audit_tokens(&token_bytes, 8).unwrap();
+        let path = fixture.root.join("gate/final.uorlut");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let (audit_path, audit, audit_sha256) =
+            write_verified_artifact(&path, &artifact, &tokens).unwrap();
         assert_eq!(std::fs::read(&path).unwrap(), artifact);
         IntegerStackModel::parse(&artifact).unwrap();
-        std::fs::remove_dir_all(directory).unwrap();
+        assert_eq!(audit.parity.positions_checked, 8);
+        assert_eq!(audit.parity.query_coordinate_mismatches, 0);
+        assert_eq!(audit.parity.token_mismatches, 0);
+        assert_eq!(audit.parity.kept_cell_mismatches, 0);
+        assert_eq!(audit_path, path.with_extension("audit.json"));
+        let audit_bytes = std::fs::read(&audit_path).unwrap();
+        assert_eq!(uor_r4_discrete::corpus::sha256(&audit_bytes), audit_sha256);
+        let persisted: serde_json::Value = serde_json::from_slice(&audit_bytes).unwrap();
+        assert_eq!(persisted["artifact"]["sha256"], audit.artifact.sha256);
+        std::fs::remove_dir_all(fixture.root).unwrap();
     }
 
     #[test]
     fn final_artifact_write_refuses_non_uorlut_bytes() {
-        let nonce = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let directory = std::env::temp_dir().join(format!(
-            "uor-r4-cpu-corpus-invalid-{}-{nonce}",
-            std::process::id()
-        ));
-        std::fs::create_dir_all(&directory).unwrap();
-        let path = directory.join("final.uorlut");
-        assert!(write_verified_artifact(&path, b"not a UORLUT01 artifact").is_err());
+        let fixture = corpus_fixture("invalid-artifact");
+        let token_bytes = std::fs::read(&fixture.tokens).unwrap();
+        let tokens = uort_audit_tokens(&token_bytes, 8).unwrap();
+        let path = fixture.root.join("gate/final.uorlut");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        assert!(write_verified_artifact(&path, b"not a UORLUT01 artifact", &tokens).is_err());
         assert!(!path.exists());
+        assert!(!path.with_extension("audit.json").exists());
         assert!(!path.with_extension("partial").exists());
-        std::fs::remove_dir_all(directory).unwrap();
+        std::fs::remove_dir_all(fixture.root).unwrap();
+    }
+
+    #[test]
+    fn audit_failure_and_tampered_report_are_refused() {
+        let fixture = corpus_fixture("audit-gate");
+        let artifact = std::fs::read(&fixture.artifact).unwrap();
+        let token_bytes = std::fs::read(&fixture.tokens).unwrap();
+        let mut tokens = uort_audit_tokens(&token_bytes, 8).unwrap();
+        let path = fixture.root.join("gate/final.uorlut");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+
+        let audit_config = ServedForwardAuditConfig {
+            tokens: tokens.tokens.clone(),
+            token_source: Some(tokens.source.clone()),
+            expected_artifact_sha256: Some(uor_r4_discrete::corpus::sha256(&artifact)),
+            reply_start: None,
+            measure_timing: false,
+        };
+        let report = audit_served_forward(&artifact, &audit_config).unwrap();
+        validate_served_forward_export(&report, &artifact, &tokens).unwrap();
+
+        let mut tampered = report.clone();
+        tampered.parity.query_coordinate_mismatches = 1;
+        assert!(
+            validate_served_forward_export(&tampered, &artifact, &tokens)
+                .unwrap_err()
+                .contains("parity failed")
+        );
+
+        tokens.tokens[0] = 4096;
+        assert!(write_verified_artifact(&path, &artifact, &tokens).is_err());
+        assert!(!path.exists());
+        assert!(!path.with_extension("audit.json").exists());
+        assert!(!path.with_extension("partial").exists());
+        assert!(!path
+            .with_extension("audit.json")
+            .with_extension("partial")
+            .exists());
+        std::fs::remove_dir_all(fixture.root).unwrap();
     }
 
     fn driver_args(extra: &[&str]) -> Vec<String> {

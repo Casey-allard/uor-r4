@@ -1,4 +1,11 @@
 {
+  "deepseek/audit-export-gate": {
+    "branch": "deepseek/audit-export-gate",
+    "claimed_at": "2026-11-03T01:55:46-05:00",
+    "head": "08213d45b",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/capacity-sheet-shape": {
     "branch": "deepseek/capacity-sheet-shape",
     "claimed_at": "2026-11-02T17:50:54-05:00",
