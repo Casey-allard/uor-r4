@@ -19,6 +19,11 @@ The owner wants the AI Webstudio's live chat window to behave like an ordinary L
 
 The live plain-JS composer does not provide complete keyboard/history behavior, explicit text-file paste/drop/picker handling, or one truthful streaming-metrics path. Its native same-origin bootstrap is not registered as an ephemeral model source, and existing editing/API behavior can lose or silently truncate input. Image decomposition is a separate follow-up; this unit must not imply visual understanding.
 
+Repair, 3 November 2026: a mixed clipboard event carrying both text and a
+text/source file now attaches the file while leaving the text to insert
+normally. File-only paste remains intercepted, text-only paste remains native,
+and nothing sends implicitly. See [deepseek-3](../../loop/tasks/studio-conversational-composer/deepseek-3/REPORT.md).
+
 ## Done when
 
 - Enter sends, Shift+Enter inserts a newline, and IME confirmation never sends. ArrowUp/Down recalls submitted raw prompts with multiline/caret behavior and restores the in-progress draft. Existing send readiness and Escape/Stop behavior remain intact.

@@ -151,9 +151,11 @@ export function createComposerInput({ textarea, picker, onSend, onFiles, getHist
     }
 
     function paste(event) {
-        const files = Array.from(event.clipboardData && event.clipboardData.files || []);
+        const clipboard = event.clipboardData;
+        const files = Array.from(clipboard && clipboard.files || []);
         if (!files.length) return;
-        event.preventDefault();
+        const text = typeof clipboard?.getData === 'function' ? clipboard.getData('text/plain') : '';
+        if (!text) event.preventDefault();
         filesCallback(files);
     }
 

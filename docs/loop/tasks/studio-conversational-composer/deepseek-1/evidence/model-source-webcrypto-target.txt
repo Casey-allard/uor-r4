@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: loadFromUrl emits real byte progress and one finalization
+ok 1 - loadFromUrl emits real byte progress and one finalization # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.623467
+  ...
+# Subtest: unknown totals never acquire a percentage
+ok 2 - unknown totals never acquire a percentage # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.046208
+  ...
+# Subtest: a stale completion cannot select or emit a source change
+ok 3 - a stale completion cannot select or emit a source change # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.026721
+  ...
+# Subtest: an explicit API selection supersedes an in-flight metadata load
+ok 4 - an explicit API selection supersedes an in-flight metadata load # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.028193
+  ...
+# Subtest: legacy calls without metadata retain their behavior
+ok 5 - legacy calls without metadata retain their behavior # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.033564
+  ...
+# Subtest: published loads forward operation metadata
+ok 6 - published loads forward operation metadata
+  ---
+  duration_ms: 27.429691
+  ...
+# Subtest: local files finalize without fabricated byte stages
+ok 7 - local files finalize without fabricated byte stages # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.151369
+  ...
+# Subtest: bundled loads accept operation metadata and finalize
+ok 8 - bundled loads accept operation metadata and finalize # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.03713
+  ...
+# Subtest: model catalog loading emits the actual catalog change
+ok 9 - model catalog loading emits the actual catalog change # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.230549
+  ...
+# Subtest: non-HTTP API sources cannot be selected or persisted
+ok 10 - non-HTTP API sources cannot be selected or persisted # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.086525
+  ...
+# Subtest: a persisted active non-HTTP API source falls back to the local selection
+ok 11 - a persisted active non-HTTP API source falls back to the local selection # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.030218
+  ...
+# Subtest: API provider writes roll back when browser storage fails
+ok 12 - API provider writes roll back when browser storage fails # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.027202
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 11
+# todo 0
+# duration_ms 94.692694
