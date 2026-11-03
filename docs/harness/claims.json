@@ -216,6 +216,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/served-gain-training": {
+    "branch": "deepseek/served-gain-training",
+    "claimed_at": "2026-11-03T12:28:16-05:00",
+    "head": "c4c267c53",
+    "lab": "deepseek",
+    "note": "final served gain distance training through exact CPU/serving replay"
+  },
   "deepseek/served-rounding-item": {
     "branch": "deepseek/served-rounding-item",
     "claimed_at": "2026-11-02T23:38:15-05:00",

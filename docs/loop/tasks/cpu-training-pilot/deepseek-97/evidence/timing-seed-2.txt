@@ -1,0 +1,23 @@
+	Command being timed: "env RAYON_NUM_THREADS=16 local/deepseek/served-gain-target/release/cpu-gain-panel-driver /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json local/deepseek/gain-panel/deepseek-97/seed-2 --expected-artifact-sha256 da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1 --expected-tokens-sha256 0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b --expected-mask-sha256 a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078 --expected-manifest-sha256 ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab --expected-memory-sha256 070d66364112d4527d3043998f023f435ec73455b9a617aa94695403c62bd089 --memory-steps 8 --steps 8 --keys 8 --per-key 8 --key-tokens 8 --reply-turn 8 --seed 1"
+	User time (seconds): 255.27
+	System time (seconds): 0.91
+	Percent of CPU this job got: 1302%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.66
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 267212
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 464814
+	Voluntary context switches: 2893
+	Involuntary context switches: 3206
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 17248
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

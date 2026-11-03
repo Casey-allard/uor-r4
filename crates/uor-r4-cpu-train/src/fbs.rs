@@ -55,7 +55,8 @@ pub struct CpuFbsStep {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct CpuMemoryTrace {
+pub(crate) struct CpuServedTrace {
+    pub(crate) norm_before_final_gain: Vec<i64>,
     pub(crate) norm_before_memory: Vec<i64>,
     pub(crate) memory: Option<MemoryMove>,
 }
@@ -523,14 +524,18 @@ impl CpuFbsForward {
         self.step_inner(token, head, false).map(|(step, _)| step)
     }
 
-    pub(crate) fn step_with_memory_trace(
+    pub(crate) fn step_with_trace(
         &mut self,
         token: u32,
         head: CpuFbsHead,
-    ) -> Result<(CpuFbsStep, CpuMemoryTrace)> {
+    ) -> Result<(CpuFbsStep, CpuServedTrace)> {
         let (step, trace) = self.step_inner(token, head, true)?;
         let trace = trace.ok_or_else(|| invalid("CPU FBS memory trace is absent"))?;
         Ok((step, trace))
+    }
+
+    pub(crate) fn supports_gain_replay(&self) -> bool {
+        self.hamming.is_none()
     }
 
     pub(crate) fn query_from_norm(&self, norm: &[i64]) -> Result<Vec<i32>> {
@@ -573,12 +578,53 @@ impl CpuFbsForward {
         Ok(token)
     }
 
+    pub(crate) fn replay_final_gain(
+        &self,
+        norm_before_final_gain: &[i64],
+        gain: &[i16],
+        memory: Option<MemoryMove>,
+        opening_weights: &[i32],
+        reply_weights: Option<&[i32]>,
+    ) -> Result<(Vec<i32>, u32)> {
+        if norm_before_final_gain.len() != self.width
+            || gain.len() != self.width
+            || opening_weights.len() != self.width
+            || reply_weights.is_some_and(|weights| weights.len() != self.width)
+        {
+            return Err(invalid("CPU FBS final-gain replay dimensions differ"));
+        }
+        let mut norm = norm_before_final_gain.to_vec();
+        apply_gain(&mut norm, gain);
+        if let Some(memory) = memory {
+            if let Some(stored) = memory.stored {
+                let weights = if memory.opening {
+                    opening_weights
+                } else {
+                    reply_weights.ok_or_else(|| {
+                        invalid("CPU FBS final-gain replay lost its reply weights")
+                    })?
+                };
+                crate::memory::move_point_with_weight(
+                    stored,
+                    &self.writer_table,
+                    weights,
+                    &mut norm,
+                );
+            }
+        }
+        let query = self.query_from_norm(&norm)?;
+        let opening_used_point =
+            memory.is_some_and(|memory| memory.opening && memory.stored.is_none());
+        let token = self.writer_token_from_query(&query, opening_used_point)?;
+        Ok((query, token))
+    }
+
     fn step_inner(
         &mut self,
         token: u32,
         head: CpuFbsHead,
         capture_memory_trace: bool,
-    ) -> Result<(CpuFbsStep, Option<CpuMemoryTrace>)> {
+    ) -> Result<(CpuFbsStep, Option<CpuServedTrace>)> {
         if token as usize >= self.vocab {
             return Err(invalid(format!(
                 "token {token} is outside vocabulary {}",
@@ -652,6 +698,7 @@ impl CpuFbsForward {
         }
 
         rms_norm_fine(&x, self.rms_eps, &mut scratch[..d]);
+        let norm_before_final_gain = capture_memory_trace.then(|| scratch[..d].to_vec());
         apply_gain(&mut scratch[..d], &self.final_gain);
         if let Some(hamming) = &self.hamming {
             hamming.readout(
@@ -661,7 +708,11 @@ impl CpuFbsForward {
                 &mut scratch[..d],
             );
         }
-        let norm_before_memory = capture_memory_trace.then(|| scratch[..d].to_vec());
+        let norm_before_memory = if capture_memory_trace {
+            scratch[..d].to_vec()
+        } else {
+            Vec::new()
+        };
         let memory_move: Option<MemoryMove> = match (&self.memory, self.reply_start) {
             (Some(memory), Some(reply_start)) => memory.apply(
                 &self.tokens,
@@ -705,7 +756,8 @@ impl CpuFbsForward {
             }
         }
         self.position += 1;
-        let trace = norm_before_memory.map(|norm_before_memory| CpuMemoryTrace {
+        let trace = norm_before_final_gain.map(|norm_before_final_gain| CpuServedTrace {
+            norm_before_final_gain,
             norm_before_memory,
             memory: memory_move,
         });

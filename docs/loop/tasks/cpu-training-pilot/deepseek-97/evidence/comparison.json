@@ -1,0 +1,175 @@
+{
+  "schema": "uor-r4.cpu-served-gain-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "sheet": "docs/harness/prep/cpu-training-pilot-gain-2026-11-03.md",
+  "source_commit": "ef75026b4cc26f38f783461f566135f82f7fb1ed",
+  "review_head": "e1cb44fc81ce4b360a1a6c6ddf12062c3d8abb07",
+  "run_head": "17a23c6e2",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cpus": 32,
+    "rayon_threads": 16,
+    "os": "Ubuntu 24.04.3 LTS",
+    "kernel": "Linux 7.0.0-42-generic x86_64"
+  },
+  "runtime": {
+    "binary_sha256": "f115b3d49d5bc9b709128e8d7ca0c67aa9c8fa2cb8c81a2e3cf8ca9b738ff553",
+    "binary_path": "local/deepseek/served-gain-target/release/cpu-gain-panel-driver",
+    "build_command": "CARGO_TARGET_DIR=local/deepseek/served-gain-target cargo build --locked --package uor-r4-cpu-train --release --bin cpu-gain-panel-driver",
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)",
+    "source_blobs": {
+      "crates/uor-r4-cpu-train/src/bin/cpu-gain-panel-driver.rs": "b47fb4ba8c065b3e7657c9bad472cd68a1befc73",
+      "crates/uor-r4-cpu-train/src/gain_train.rs": "77ec44c36ace03a393b753f9d9ba45cb6b8d9ac6",
+      "crates/uor-r4-cpu-train/src/memory_train.rs": "afabbcee3d359c3b810ebd58947c1744f15d72bb",
+      "crates/uor-r4-cpu-train/src/fbs.rs": "4a9c3f9469f3da648ed9654229b18d3fce2aafac",
+      "crates/uor-r4-cpu-train/src/memory.rs": "3da84f9d346d46b4c9090069128ef4b927e2e700"
+    },
+    "search_mode": "cached_final_gain",
+    "parallelized_work": [
+      "teacher-forced trace construction across independent samples",
+      "final-gain candidates across the Rayon pool",
+      "matched evaluation arms across independent samples",
+      "CPU/serving parity samples across the Rayon pool"
+    ],
+    "ordered_reduction": "indexed parallel results are collected in candidate order and reduced serially, preserving coordinate/sign tie order"
+  },
+  "selection": {
+    "keys": 8,
+    "key_tokens": 8,
+    "per_key": 8,
+    "training_samples": 58,
+    "evaluation_samples": 56,
+    "evaluation_decisions": 2431
+  },
+  "seeds": {
+    "1": {
+      "report": "seed-1.json",
+      "report_sha256": "3c31d8b762a986abeccf30110946cd820052a9f3e5f9e83dbc9fe0d36c73ab88",
+      "timing": "timing-seed-1.txt",
+      "timing_sha256": "55f39c1ef46cc9fcb69a372104de69ac6551773ed72098c8fcf7713f3568a727",
+      "gain_baseline_sha256": "3ad89c7b80df52f9e1e4d878c072982e9fb613b8453ded0dd50c3ee905e0ee44",
+      "trained_artifact_sha256": "085e4e75f5b89f279a253b6da0177414042be910dd2523a1cfd726920054a7b2",
+      "random_artifact_sha256": "5703d18b08709ee2107cfc56cc0bbca5a880a8d1aed6ce723668ac82a4956d6c",
+      "retained_artifact_root": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/gain-panel/deepseek-97/seed-1",
+      "accepted_updates": 8,
+      "wall_elapsed_ms": 19612.885763000002,
+      "time_elapsed_seconds": 19.62,
+      "user_cpu_seconds": 253.11,
+      "system_cpu_seconds": 0.74,
+      "effective_cores": 12.94,
+      "cpu_percent": 1293,
+      "peak_rss_kib": 261012,
+      "frozen": {
+        "top1": 291,
+        "target_distance": 2820387931
+      },
+      "trained": {
+        "top1": 291,
+        "target_distance": 2803588443
+      },
+      "random": {
+        "top1": 291,
+        "target_distance": 2817628372
+      },
+      "memory_off": {
+        "top1": 278,
+        "target_distance": 2821353534
+      },
+      "trained_memory_off": {
+        "top1": 278,
+        "target_distance": 2804554046
+      },
+      "distance_improvement_vs_frozen": 16799488,
+      "distance_improvement_vs_random": 14039929,
+      "paired_top1_delta_vs_frozen": 0,
+      "discordant_frozen_only": 0,
+      "discordant_trained_only": 0,
+      "three_sigma_threshold": 0.0,
+      "verdict": "NEGATIVE"
+    },
+    "2": {
+      "report": "seed-2.json",
+      "report_sha256": "b7d852644f1d5cbd0b0a254b35c37ed78f3cf31b3a47ea5c6dc750007823f5b9",
+      "timing": "timing-seed-2.txt",
+      "timing_sha256": "a811f5608466ec260e978af44f2af9ac79d5a7fe4a9f6e79a12fe80ae53fff17",
+      "gain_baseline_sha256": "070d66364112d4527d3043998f023f435ec73455b9a617aa94695403c62bd089",
+      "trained_artifact_sha256": "c5b52410915a3ca8708470194a32e661b96b6b0499438788fe2c398ab76ff85e",
+      "random_artifact_sha256": "9c4fc6635acae03a7f6adbe37c7a8244684b1abf489d70c0884f260a89a2eeb0",
+      "retained_artifact_root": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/gain-panel/deepseek-97/seed-2",
+      "accepted_updates": 8,
+      "wall_elapsed_ms": 19655.846317,
+      "time_elapsed_seconds": 19.66,
+      "user_cpu_seconds": 255.27,
+      "system_cpu_seconds": 0.91,
+      "effective_cores": 13.03,
+      "cpu_percent": 1302,
+      "peak_rss_kib": 267212,
+      "frozen": {
+        "top1": 243,
+        "target_distance": 2896327331
+      },
+      "trained": {
+        "top1": 243,
+        "target_distance": 2880172845
+      },
+      "random": {
+        "top1": 243,
+        "target_distance": 2895812280
+      },
+      "memory_off": {
+        "top1": 238,
+        "target_distance": 2898309913
+      },
+      "trained_memory_off": {
+        "top1": 238,
+        "target_distance": 2882155427
+      },
+      "distance_improvement_vs_frozen": 16154486,
+      "distance_improvement_vs_random": 15639435,
+      "paired_top1_delta_vs_frozen": 0,
+      "discordant_frozen_only": 0,
+      "discordant_trained_only": 0,
+      "three_sigma_threshold": 0.0,
+      "verdict": "NEGATIVE"
+    }
+  },
+  "parity_per_arm": {
+    "samples": 56,
+    "positions": 2487,
+    "query_coordinates": 636672,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 2487,
+    "token_mismatches": 0,
+    "kept_cells": 19896,
+    "kept_cell_mismatches": 0
+  },
+  "parity_per_accepted_step": {
+    "samples": 58,
+    "positions": 2596,
+    "query_coordinates": 664576,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 2596,
+    "token_mismatches": 0,
+    "kept_cells": 20768,
+    "kept_cell_mismatches": 0
+  },
+  "total": {
+    "wall_elapsed_seconds": 39.28,
+    "user_cpu_seconds": 508.38,
+    "system_cpu_seconds": 1.65,
+    "average_effective_cores": 12.99,
+    "peak_rss_kib": 267212
+  },
+  "verdict": {
+    "instrument": "pass on both seeds",
+    "training_activity": "pass on both seeds",
+    "dense_distance": "pass on both seeds",
+    "top1_nonfall": "pass on both seeds",
+    "three_sigma_ranking": "fail on both seeds",
+    "capability": "negative for this bounded one-code final-gain configuration",
+    "language_capability": "not tested"
+  }
+}

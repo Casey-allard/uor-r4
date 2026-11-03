@@ -66,3 +66,7 @@ path = "src/bin/cpu-discrete-corpus-driver.rs"
 [[bin]]
 name = "cpu-memory-panel-driver"
 path = "src/bin/cpu-memory-panel-driver.rs"
+
+[[bin]]
+name = "cpu-gain-panel-driver"
+path = "src/bin/cpu-gain-panel-driver.rs"

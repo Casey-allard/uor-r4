@@ -14,7 +14,7 @@ use uor_r4_integer::stack::{
     StackTurnMemory, MEMORY_PAD, MEMORY_WEIGHT_EXP, STACK_FBS_MEMORY_SCHEMA,
 };
 
-use crate::fbs::CpuMemoryTrace;
+use crate::fbs::CpuServedTrace;
 use crate::memory::move_point_with_weight;
 use crate::{
     audit_served_forward, invalid, CpuFbsForward, CpuFbsHead, CpuTrainError,
@@ -429,12 +429,13 @@ impl CpuMemoryTrajectory {
                     }
                     let (
                         step,
-                        CpuMemoryTrace {
+                        CpuServedTrace {
+                            norm_before_final_gain: _,
                             norm_before_memory,
                             memory,
                         },
                     ) = forward
-                        .step_with_memory_trace(tokens[index], CpuFbsHead::Writer)
+                        .step_with_trace(tokens[index], CpuFbsHead::Writer)
                         .map_err(|error| invalid(format!("memory trajectory forward: {error}")))?;
                     decisions.push(CachedDecision {
                         target: tokens[index + 1],
@@ -522,11 +523,18 @@ impl CpuMemoryTrajectory {
                         query
                             .iter()
                             .zip(target_row)
-                            .fold(0u64, |sum, (&query, &point)| {
-                                sum.saturating_add(u64::from(query.abs_diff(i32::from(point))))
-                            });
-                    sample_top1 += u64::from(token == decision.target);
-                    sample_distance = sample_distance.saturating_add(distance);
+                            .try_fold(0u64, |sum, (&query, &point)| {
+                                sum.checked_add(u64::from(query.abs_diff(i32::from(point))))
+                                    .ok_or_else(|| {
+                                        invalid("memory trajectory decision distance overflows")
+                                    })
+                            })?;
+                    sample_top1 = sample_top1
+                        .checked_add(u64::from(token == decision.target))
+                        .ok_or_else(|| invalid("memory trajectory top-1 count overflows"))?;
+                    sample_distance = sample_distance
+                        .checked_add(distance)
+                        .ok_or_else(|| invalid("memory trajectory distance sum overflows"))?;
                     sample_decisions = sample_decisions
                         .checked_add(1)
                         .ok_or_else(|| invalid("memory trajectory decision count overflows"))?;
@@ -546,7 +554,7 @@ impl CpuMemoryTrajectory {
     }
 }
 
-fn checked_sample_totals(
+pub(crate) fn checked_sample_totals(
     readings: impl IntoIterator<Item = (u64, u64, u64)>,
 ) -> Result<(u64, u64, u64)> {
     let mut top1_correct = 0u64;
@@ -592,7 +600,7 @@ fn validate_memory_weights(
     Ok(())
 }
 
-fn validate_samples(artifact: &[u8], samples: &[MemoryWeightSample]) -> Result<()> {
+pub(crate) fn validate_samples(artifact: &[u8], samples: &[MemoryWeightSample]) -> Result<()> {
     if samples.is_empty() {
         return Err(invalid("memory-weight training needs at least one sample"));
     }
@@ -699,15 +707,20 @@ fn evaluate_memory_sample(
                 .map_err(|error| invalid(format!("memory-weight forward: {error}")))?;
             let target = tokens[index + 1];
             let row = &table[target as usize * width..][..width];
-            let distance = step
-                .query_q12
-                .iter()
-                .zip(row)
-                .fold(0u64, |sum, (&query, &point)| {
-                    sum.saturating_add(u64::from(query.abs_diff(i32::from(point))))
-                });
-            top1_correct += u64::from(step.token == target);
-            target_distance_sum = target_distance_sum.saturating_add(distance);
+            let distance =
+                step.query_q12
+                    .iter()
+                    .zip(row)
+                    .try_fold(0u64, |sum, (&query, &point)| {
+                        sum.checked_add(u64::from(query.abs_diff(i32::from(point))))
+                            .ok_or_else(|| invalid("memory-weight decision distance overflows"))
+                    })?;
+            top1_correct = top1_correct
+                .checked_add(u64::from(step.token == target))
+                .ok_or_else(|| invalid("memory-weight top-1 count overflows"))?;
+            target_distance_sum = target_distance_sum
+                .checked_add(distance)
+                .ok_or_else(|| invalid("memory-weight distance sum overflows"))?;
             decisions = decisions
                 .checked_add(1)
                 .ok_or_else(|| invalid("memory-weight decision count overflows"))?;
@@ -1102,33 +1115,70 @@ pub fn audit_memory_weight_samples(
         .collect::<Result<Vec<_>>>()?;
     let mut total = MemoryWeightParityReading::default();
     for parity in parity {
-        total.samples += 1;
-        total.positions = total
-            .positions
-            .saturating_add(parity.positions_checked as u64);
-        total.query_coordinates = total
-            .query_coordinates
-            .saturating_add(parity.query_coordinates_compared);
-        total.query_coordinate_mismatches = total
-            .query_coordinate_mismatches
-            .saturating_add(parity.query_coordinate_mismatches);
-        total.token_decisions = total
-            .token_decisions
-            .saturating_add(parity.token_decisions_compared);
-        total.token_mismatches = total
-            .token_mismatches
-            .saturating_add(parity.token_mismatches);
-        total.kept_cells = total.kept_cells.saturating_add(parity.kept_cells_compared);
-        total.kept_cell_mismatches = total
-            .kept_cell_mismatches
-            .saturating_add(parity.kept_cell_mismatches);
         if parity.instrument_fault {
             return Err(invalid(
                 "memory-weight served audit reports a CPU/serving instrument fault",
             ));
         }
+        let parity = MemoryWeightParityReading {
+            samples: 1,
+            positions: u64::try_from(parity.positions_checked)
+                .map_err(|_| invalid("memory-weight parity position count exceeds u64"))?,
+            query_coordinates: parity.query_coordinates_compared,
+            query_coordinate_mismatches: parity.query_coordinate_mismatches,
+            token_decisions: parity.token_decisions_compared,
+            token_mismatches: parity.token_mismatches,
+            kept_cells: parity.kept_cells_compared,
+            kept_cell_mismatches: parity.kept_cell_mismatches,
+        };
+        checked_add_memory_weight_parity(&mut total, &parity)?;
     }
     Ok(total)
+}
+
+fn checked_add_memory_weight_parity(
+    total: &mut MemoryWeightParityReading,
+    parity: &MemoryWeightParityReading,
+) -> Result<()> {
+    fn add(current: &mut u64, increment: u64, field: &'static str) -> Result<()> {
+        *current = current
+            .checked_add(increment)
+            .ok_or_else(|| invalid(format!("memory-weight parity {field} count overflows")))?;
+        Ok(())
+    }
+
+    total.samples = total
+        .samples
+        .checked_add(parity.samples)
+        .ok_or_else(|| invalid("memory-weight parity samples count overflows"))?;
+    add(&mut total.positions, parity.positions, "positions")?;
+    add(
+        &mut total.query_coordinates,
+        parity.query_coordinates,
+        "query coordinates",
+    )?;
+    add(
+        &mut total.query_coordinate_mismatches,
+        parity.query_coordinate_mismatches,
+        "query coordinate mismatch",
+    )?;
+    add(
+        &mut total.token_decisions,
+        parity.token_decisions,
+        "token decisions",
+    )?;
+    add(
+        &mut total.token_mismatches,
+        parity.token_mismatches,
+        "token mismatch",
+    )?;
+    add(&mut total.kept_cells, parity.kept_cells, "kept cells")?;
+    add(
+        &mut total.kept_cell_mismatches,
+        parity.kept_cell_mismatches,
+        "kept cell mismatch",
+    )?;
+    Ok(())
 }
 
 pub fn replace_memory_weight_table(
@@ -1575,6 +1625,51 @@ mod tests {
             [(0, 0, u64::MAX), (0, 0, 1)],
         ] {
             let error = checked_sample_totals(readings).unwrap_err();
+            assert!(error.to_string().contains("overflows"));
+        }
+    }
+
+    #[test]
+    fn parity_aggregation_refuses_every_overflow_class() {
+        for field in 0..8 {
+            let mut total = MemoryWeightParityReading::default();
+            let mut parity = MemoryWeightParityReading::default();
+            match field {
+                0 => {
+                    total.samples = usize::MAX;
+                    parity.samples = 1;
+                }
+                1 => {
+                    total.positions = u64::MAX;
+                    parity.positions = 1;
+                }
+                2 => {
+                    total.query_coordinates = u64::MAX;
+                    parity.query_coordinates = 1;
+                }
+                3 => {
+                    total.query_coordinate_mismatches = u64::MAX;
+                    parity.query_coordinate_mismatches = 1;
+                }
+                4 => {
+                    total.token_decisions = u64::MAX;
+                    parity.token_decisions = 1;
+                }
+                5 => {
+                    total.token_mismatches = u64::MAX;
+                    parity.token_mismatches = 1;
+                }
+                6 => {
+                    total.kept_cells = u64::MAX;
+                    parity.kept_cells = 1;
+                }
+                7 => {
+                    total.kept_cell_mismatches = u64::MAX;
+                    parity.kept_cell_mismatches = 1;
+                }
+                _ => unreachable!(),
+            }
+            let error = checked_add_memory_weight_parity(&mut total, &parity).unwrap_err();
             assert!(error.to_string().contains("overflows"));
         }
     }

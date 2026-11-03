@@ -106,7 +106,7 @@ pub(crate) struct MemoryAnchors {
     pub(crate) reply: Vec<u32>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct MemoryMove {
     pub(crate) stored: Option<u32>,
     pub(crate) opening: bool,

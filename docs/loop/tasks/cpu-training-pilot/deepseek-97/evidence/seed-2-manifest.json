@@ -1,0 +1,37 @@
+{
+  "files": [
+    {
+      "blake3": "8a775e1592198e7f041e4e94f347b76af125f579b1d9af259a9c037a9d9537bb",
+      "bytes": 1442,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "0868c25bd16c104d7bfe234b57d973f3f26bac7c3a0c0550c0d33bd950db58eb",
+      "bytes": 2189376,
+      "path": "gain-baseline.uorlut"
+    },
+    {
+      "blake3": "bbc4e0f35104a420fd3eeb34423b1717c6e216ffe4a0888519955c138e6184cd",
+      "bytes": 2189376,
+      "path": "memory-baseline.uorlut"
+    },
+    {
+      "blake3": "5a8f87a8f319fc621c8a43b15b7bf6328b8c744254957985fcb5aefb69b9a61b",
+      "bytes": 2189376,
+      "path": "random.uorlut"
+    },
+    {
+      "blake3": "657982450830f5b0176e00f0b5a58c7cbd744845ccc46ed6d911cb33b1cefd6d",
+      "bytes": 26566,
+      "path": "report.json"
+    },
+    {
+      "blake3": "58f2b30d5a1817f1bea45c40d4146e3fcdd6a07e0c25e77bd10caea8947756bf",
+      "bytes": 2189376,
+      "path": "trained.uorlut"
+    }
+  ],
+  "root": "local/deepseek/gain-panel/deepseek-97/seed-2",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1793729613"
+}
