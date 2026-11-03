@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use serde_json::json;
-use uor_r4_cpu_train::{CpuWriterCore, Vector, VOCABULARY};
+use uor_r4_cpu_train::{CpuDiscreteTrunkReader, VOCABULARY};
 use uor_r4_discrete::corpus::{sha256, BosIdentity, CorpusSource, FilePin, PreparedCorpus, Split};
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
@@ -31,8 +31,7 @@ fn main() -> Result<(), String> {
     )?;
     authenticate_manifest(&root)?;
     authenticate_tokenizers(&root)?;
-    let table = discrete_table(&artifact)?;
-    let writer = CpuWriterCore::from_codebook(&table, 8).map_err(|error| error.to_string())?;
+    let cpu = CpuDiscreteTrunkReader::from_bytes(&artifact).map_err(|error| error.to_string())?;
     let model = IntegerDiscreteModel::from_bytes(&artifact)
         .map_err(|error| format!("public artifact: {error}"))?;
     let corpus = PreparedCorpus::load(
@@ -69,33 +68,35 @@ fn main() -> Result<(), String> {
             let evaluation = model
                 .evaluate_prefix(&prefix)
                 .map_err(|error| format!("model row {}: {error}", result.rows))?;
-            let query: Vector = evaluation
-                .read_vector
-                .as_slice()
-                .try_into()
-                .map_err(|_| format!("model row {} query width differs", result.rows))?;
-            let decision = writer.decide(&query);
-            let cpu_cells: Vec<u32> = decision.admitted[..decision.admitted_count]
-                .iter()
-                .map(|&cell| u32::from(cell))
-                .collect();
-            let reading = writer
-                .read_target(&query, target)
-                .map_err(|error| error.to_string())?;
+            let (decision, target_admitted, target_top1, target_top8) = cpu
+                .observe_target(&prefix, target)
+                .map_err(|error| format!("CPU row {}: {error}", result.rows))?;
+            let mut served_top8 = [u32::MAX; 8];
+            for (slot, &token) in evaluation.top8.iter().take(8).enumerate() {
+                served_top8[slot] = token;
+            }
             result.rows += 1;
-            result.cell_mismatches += u64::from(evaluation.admitted_cells != cpu_cells);
-            result.top8_mismatches += u64::from(evaluation.top8 != decision.top8);
-            result.token_mismatches += u64::from(evaluation.prediction != decision.top8[0]);
-            result.admitted += u64::from(reading.target_admitted);
-            result.top1 += u64::from(reading.target_top1);
-            result.top8 += u64::from(reading.target_top8);
-            for &value in &evaluation.read_vector {
+            result.query_coordinates_checked += decision.query.len() as u64;
+            result.query_mismatches += decision
+                .query
+                .iter()
+                .zip(&evaluation.read_vector)
+                .filter(|(left, right)| left != right)
+                .count() as u64;
+            result.cell_mismatches +=
+                u64::from(evaluation.admitted_cells != decision.admitted_cells);
+            result.top8_mismatches += u64::from(served_top8 != decision.top8);
+            result.token_mismatches += u64::from(evaluation.prediction != decision.token);
+            result.admitted += u64::from(target_admitted);
+            result.top1 += u64::from(target_top1);
+            result.top8 += u64::from(target_top8);
+            for &value in &decision.query {
                 result.checksum = result
                     .checksum
                     .rotate_left(7)
-                    .wrapping_add(value as i64 as u64);
+                    .wrapping_add(value as u32 as u64);
             }
-            for &token in &evaluation.top8 {
+            for &token in &decision.top8 {
                 result.checksum = result
                     .checksum
                     .rotate_left(7)
@@ -109,6 +110,7 @@ fn main() -> Result<(), String> {
         || result.admitted != EXPECTED_ADMITTED
         || result.top1 != EXPECTED_TOP1
         || result.top8 != EXPECTED_TOP8
+        || result.query_mismatches != 0
         || result.cell_mismatches != 0
         || result.top8_mismatches != 0
         || result.token_mismatches != 0
@@ -129,6 +131,8 @@ fn main() -> Result<(), String> {
             "threads": 1,
             "elapsed_ms": elapsed * 1_000.0,
             "rows_per_second": result.rows as f64 / elapsed,
+            "query_coordinates_checked": result.query_coordinates_checked,
+            "query_coordinate_mismatches": result.query_mismatches,
             "cell_mismatches": result.cell_mismatches,
             "top8_mismatches": result.top8_mismatches,
             "token_mismatches": result.token_mismatches,
@@ -145,6 +149,8 @@ fn main() -> Result<(), String> {
 #[derive(Debug, Default)]
 struct PanelResult {
     rows: u64,
+    query_coordinates_checked: u64,
+    query_mismatches: u64,
     cell_mismatches: u64,
     top8_mismatches: u64,
     token_mismatches: u64,
@@ -185,56 +191,6 @@ fn authenticate_tokenizers(root: &Path) -> Result<(), String> {
     read_hashed(&root.join("driver-tokenizer.json"), DRIVER_TOKENIZER_SHA256)?;
     read_hashed(&root.join("tokenizer-seed-1.json"), MODEL_TOKENIZER_SHA256)?;
     Ok(())
-}
-
-fn discrete_table(artifact: &[u8]) -> Result<Vec<i32>, String> {
-    if artifact.len() < 16 || &artifact[..8] != b"UORLUT01" {
-        return Err("artifact magic differs".to_owned());
-    }
-    let header_len = u64::from_le_bytes(artifact[8..16].try_into().unwrap());
-    let header_end = 16usize
-        .checked_add(usize::try_from(header_len).map_err(|_| "header length")?)
-        .filter(|&end| end <= artifact.len())
-        .ok_or_else(|| "header outside artifact".to_owned())?;
-    let data_start = header_end.div_ceil(64) * 64;
-    let header: serde_json::Value = serde_json::from_slice(&artifact[16..header_end])
-        .map_err(|error| format!("artifact header: {error}"))?;
-    let table = header["tables"]
-        .as_array()
-        .and_then(|tables| {
-            tables
-                .iter()
-                .find(|entry| entry["name"].as_str() == Some("discrete.table"))
-        })
-        .ok_or_else(|| "discrete.table is absent".to_owned())?;
-    if table["kind"].as_str() != Some("i32")
-        || table["len"].as_u64() != Some((VOCABULARY * 32) as u64)
-    {
-        return Err("discrete.table kind or length differs".to_owned());
-    }
-    let offset = usize::try_from(
-        table["span"]["offset"]
-            .as_u64()
-            .ok_or_else(|| "discrete.table offset missing".to_owned())?,
-    )
-    .map_err(|_| "discrete.table offset".to_owned())?;
-    let bytes = usize::try_from(
-        table["span"]["bytes"]
-            .as_u64()
-            .ok_or_else(|| "discrete.table byte length missing".to_owned())?,
-    )
-    .map_err(|_| "discrete.table byte length".to_owned())?;
-    if bytes != VOCABULARY * 32 * 4 {
-        return Err("discrete.table byte length differs".to_owned());
-    }
-    let start = data_start + offset;
-    let bytes = artifact
-        .get(start..start + bytes)
-        .ok_or_else(|| "discrete.table outside artifact".to_owned())?;
-    Ok(bytes
-        .chunks_exact(4)
-        .map(|value| i32::from_le_bytes(value.try_into().unwrap()))
-        .collect())
 }
 
 fn peak_rss_kib() -> u64 {

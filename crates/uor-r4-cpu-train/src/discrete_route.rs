@@ -1,10 +1,15 @@
-//! Independent CPU Route and Flock reads for four-table discrete artifacts.
+//! Independent CPU Route, Flock and Relation reads for four-table discrete
+//! artifacts, plus a read-only CPU path over the 19-table M1 trunk.
 
 use uor_r4_core::spiralcore_operator::{cl06_finite_composition_table, Cl06FiniteCompositionTable};
 use uor_r4_discrete::normalization_mechanism::{
-    identify_orbit_root, orbit_root_coords, NormFrameTable,
+    identify_orbit_root, orbit_root_coords, NormFrameTable, NormalizationMode,
 };
 use uor_r4_discrete::training::{family_cursors, BlockCursor, Cursor, SchedulePolicy};
+use uor_r4_discrete::trunk::{
+    build_cell_tokens, compute_recurrence_state, evaluate_joint_pointer_full_writer,
+    import_trunk_d11, RecurrenceMode, BLOCK_WIDTH, CELL_COUNT, READ_WIDTH, TRUNK_BLOCKS,
+};
 
 use crate::CpuTrainError;
 
@@ -33,6 +38,8 @@ const FLOCK_OPERATOR_KAPPA: &str =
 const FLOCK_COMPOSITION_KAPPA: &str =
     "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0";
 const RELATION_EDGE_TYPES: usize = 5;
+const DISCRETE_SCHEMA: &str = "uor-r4.lut-discrete/1";
+const DISCRETE_TRUNK_SCHEMA: &str = "uor-r4.lut-discrete-trunk/1";
 
 const BRANCH: [[u8; 3]; 16] = [
     [0, 14, 3],
@@ -80,9 +87,24 @@ struct RowPlan {
 
 impl CpuDiscreteRoute {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Self::from_bytes_with_trunk(bytes, false)
+    }
+
+    fn from_trunk_bytes(bytes: &[u8]) -> Result<Self> {
+        Self::from_bytes_with_trunk(bytes, true)
+    }
+
+    fn from_bytes_with_trunk(bytes: &[u8], trunk: bool) -> Result<Self> {
         let header = header(bytes)?;
-        if header["schema"].as_str() != Some("uor-r4.lut-discrete/1") {
-            return Err(invalid("Route CPU read requires uor-r4.lut-discrete/1"));
+        let expected_schema = if trunk {
+            DISCRETE_TRUNK_SCHEMA
+        } else {
+            DISCRETE_SCHEMA
+        };
+        if header["schema"].as_str() != Some(expected_schema) {
+            return Err(invalid(format!(
+                "Route CPU read requires {expected_schema}"
+            )));
         }
         let shape = &header["shape"];
         if shape["read_mode"].as_str() != Some("route")
@@ -114,8 +136,11 @@ impl CpuDiscreteRoute {
         let tables = header["tables"]
             .as_array()
             .ok_or_else(|| invalid("Route artifact tables differ"))?;
-        if tables.len() != 4 {
-            return Err(invalid("Route artifact requires four tables"));
+        let expected_tables = if trunk { 19 } else { 4 };
+        if tables.len() != expected_tables {
+            return Err(invalid(format!(
+                "Route artifact requires {expected_tables} tables"
+            )));
         }
         let table = section_i32(bytes, &header, "discrete.table", vocab * blocks * 8, "i32")?;
         let cells = section_u32(bytes, &header, "discrete.cells", vocab, "u32")?;
@@ -323,11 +348,24 @@ pub struct CpuDiscreteRelation(ActiveLeafModel);
 
 impl ActiveLeafModel {
     fn from_bytes(bytes: &[u8], kind: ActiveLeafKind) -> Result<Self> {
+        Self::from_bytes_with_trunk(bytes, kind, false)
+    }
+
+    fn from_trunk_bytes(bytes: &[u8], kind: ActiveLeafKind) -> Result<Self> {
+        Self::from_bytes_with_trunk(bytes, kind, true)
+    }
+
+    fn from_bytes_with_trunk(bytes: &[u8], kind: ActiveLeafKind, trunk: bool) -> Result<Self> {
         let label = kind.label();
         let header = header(bytes)?;
-        if header["schema"].as_str() != Some("uor-r4.lut-discrete/1") {
+        let expected_schema = if trunk {
+            DISCRETE_TRUNK_SCHEMA
+        } else {
+            DISCRETE_SCHEMA
+        };
+        if header["schema"].as_str() != Some(expected_schema) {
             return Err(invalid(format!(
-                "{label} CPU read requires uor-r4.lut-discrete/1"
+                "{label} CPU read requires {expected_schema}"
             )));
         }
         let shape = &header["shape"];
@@ -390,8 +428,11 @@ impl ActiveLeafModel {
         let tables = header["tables"]
             .as_array()
             .ok_or_else(|| invalid(format!("{label} artifact tables differ")))?;
-        if tables.len() != 4 {
-            return Err(invalid(format!("{label} artifact requires four tables")));
+        let expected_tables = if trunk { 19 } else { 4 };
+        if tables.len() != expected_tables {
+            return Err(invalid(format!(
+                "{label} artifact requires {expected_tables} tables"
+            )));
         }
         let table = section_i32(bytes, &header, "discrete.table", vocab * blocks * 8, "i32")?;
         let cells = section_u32(bytes, &header, "discrete.cells", vocab, "u32")?;
@@ -1701,6 +1742,268 @@ impl CpuDiscreteProposalScorer {
         match model {
             CpuDiscreteProposalModel::Route(route) => &route.token_blocks,
             CpuDiscreteProposalModel::Active(active) => &active.token_blocks,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CpuDiscreteTrunkDecision {
+    pub query: [i32; READ_WIDTH],
+    pub admitted_cells: Vec<u32>,
+    pub top8: [u32; 8],
+    pub token: u32,
+    pub read_code: u16,
+    pub recurrence_code: u16,
+    pub pointer_successor: Option<u16>,
+}
+
+/// Read-only independent CPU execution of a trained 19-table M1 trunk. The
+/// base read is the same CPU Route/Flock/Relation implementation used by the
+/// trainer; the recurrence, pointer selection, Hamilton rotation and
+/// post-rotation writer are the pure-integer implementations in
+/// `uor-r4-discrete::trunk`.
+#[derive(Clone)]
+pub struct CpuDiscreteTrunkReader {
+    model: CpuDiscreteProposalModel,
+    kept_cells: usize,
+    tables: uor_r4_discrete::trunk::TrunkTables,
+    step_table: uor_r4_discrete::position_mechanism::PositionStepTable,
+    norm_frames: NormFrameTable,
+    codebook_roots: Vec<[u8; TRUNK_BLOCKS]>,
+    codebook_coords: Vec<[i32; READ_WIDTH]>,
+    token_cells: Vec<u32>,
+    cell_tokens: [Vec<u16>; CELL_COUNT],
+}
+
+impl CpuDiscreteTrunkReader {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        let parsed = header(bytes)?;
+        if parsed["schema"].as_str() != Some(DISCRETE_TRUNK_SCHEMA)
+            || parsed["shape"]["blocks"].as_u64() != Some(TRUNK_BLOCKS as u64)
+            || parsed["matrices"]
+                .as_array()
+                .is_none_or(|matrices| !matrices.is_empty())
+        {
+            return Err(invalid(
+                "CPU trunk reader requires the 19-table four-block M1 schema",
+            ));
+        }
+        let kept_cells = usize::try_from(
+            parsed["shape"]["kept_cells"]
+                .as_u64()
+                .ok_or_else(|| invalid("CPU trunk kept_cells differs"))?,
+        )
+        .map_err(|_| invalid("CPU trunk kept_cells"))?;
+        if kept_cells != 8 {
+            return Err(invalid(
+                "CPU trunk reader requires the M1 writer's eight kept cells",
+            ));
+        }
+        let model = match parsed["shape"]["read_mode"].as_str() {
+            Some("route") => {
+                CpuDiscreteProposalModel::Route(CpuDiscreteRoute::from_trunk_bytes(bytes)?)
+            }
+            Some("flock") => CpuDiscreteProposalModel::Active(ActiveLeafModel::from_trunk_bytes(
+                bytes,
+                ActiveLeafKind::Flock,
+            )?),
+            Some("relation") => CpuDiscreteProposalModel::Active(
+                ActiveLeafModel::from_trunk_bytes(bytes, ActiveLeafKind::Relation)?,
+            ),
+            _ => return Err(invalid("CPU trunk read mode differs")),
+        };
+        let token_blocks = match &model {
+            CpuDiscreteProposalModel::Route(model) => &model.token_blocks,
+            CpuDiscreteProposalModel::Active(model) => &model.token_blocks,
+        };
+        let mut codebook_roots = Vec::with_capacity(token_blocks.len());
+        let mut codebook_coords = Vec::with_capacity(token_blocks.len());
+        let mut token_cells = Vec::with_capacity(token_blocks.len());
+        for (token, blocks) in token_blocks.iter().enumerate() {
+            let mut roots = [0u8; TRUNK_BLOCKS];
+            let mut coords = [0i32; READ_WIDTH];
+            for block in 0..TRUNK_BLOCKS {
+                roots[block] = root_id(&blocks[block])
+                    .and_then(|root| u8::try_from(root).ok())
+                    .ok_or_else(|| invalid(format!("CPU trunk token {token} is off orbit")))?;
+                coords[block * BLOCK_WIDTH..(block + 1) * BLOCK_WIDTH]
+                    .copy_from_slice(&blocks[block]);
+            }
+            token_cells.push(u16::from(roots[0]) * 16 + u16::from(roots[TRUNK_BLOCKS - 1]));
+            codebook_roots.push(roots);
+            codebook_coords.push(coords);
+        }
+        let cell_tokens = build_cell_tokens(&token_cells)
+            .map_err(|error| invalid(format!("CPU trunk writer cells: {error}")))?;
+        let (_, step_table, norm_frames, tables) = import_trunk_d11(bytes)
+            .map_err(|error| invalid(format!("CPU trunk tables: {error}")))?;
+        Ok(Self {
+            model,
+            kept_cells,
+            tables,
+            step_table,
+            norm_frames,
+            codebook_roots,
+            codebook_coords,
+            token_cells: token_cells.into_iter().map(u32::from).collect(),
+            cell_tokens,
+        })
+    }
+
+    pub fn decide(&self, prefix: &[u32]) -> Result<CpuDiscreteTrunkDecision> {
+        let read = self.read(&self.model, prefix)?;
+        let q_read: [i32; READ_WIDTH] = read
+            .as_slice()
+            .try_into()
+            .map_err(|_| invalid("CPU trunk base read width differs"))?;
+        let mut read_roots = [0u8; TRUNK_BLOCKS];
+        for (block, root) in read_roots.iter_mut().enumerate() {
+            let coords: [i32; BLOCK_WIDTH] = q_read[block * BLOCK_WIDTH..(block + 1) * BLOCK_WIDTH]
+                .try_into()
+                .map_err(|_| invalid("CPU trunk base read block width differs"))?;
+            *root = u8::try_from(
+                root_id(&coords).ok_or_else(|| invalid("CPU trunk base read left the orbit"))?,
+            )
+            .map_err(|_| invalid("CPU trunk base read root exceeds u8"))?;
+        }
+        let read_code = read_roots
+            .iter()
+            .enumerate()
+            .fold(0u16, |code, (block, root)| {
+                code | (u16::from(*root) << (block * 4))
+            });
+        let window = prefix
+            .iter()
+            .map(|token| {
+                u16::try_from(*token).map_err(|_| invalid("CPU trunk prefix token exceeds u16"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let (_, recurrence_code) = compute_recurrence_state(
+            &window,
+            &self.codebook_roots,
+            &self.step_table,
+            &self.norm_frames,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            0,
+        )
+        .map_err(|error| invalid(format!("CPU trunk recurrence: {error}")))?;
+        let (_, pointer_successor, query, _, top8, admitted) = evaluate_joint_pointer_full_writer(
+            &q_read,
+            &window,
+            read_code,
+            recurrence_code,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            &self.tables,
+            &self.codebook_roots,
+            &self.codebook_coords,
+            &self.cell_tokens,
+        )
+        .map_err(|error| invalid(format!("CPU trunk decision: {error}")))?;
+        let admitted_cells = admitted
+            .iter()
+            .take(self.kept_cells)
+            .filter(|&&cell| usize::from(cell) < CELL_COUNT)
+            .map(|&cell| u32::from(cell))
+            .collect::<Vec<_>>();
+        if admitted_cells.len() != self.kept_cells {
+            return Err(invalid("CPU trunk writer admitted fewer than eight cells"));
+        }
+        Ok(CpuDiscreteTrunkDecision {
+            query,
+            admitted_cells,
+            top8,
+            token: top8[0],
+            read_code,
+            recurrence_code,
+            pointer_successor,
+        })
+    }
+
+    pub fn observe_target(
+        &self,
+        prefix: &[u32],
+        target: u32,
+    ) -> Result<(CpuDiscreteTrunkDecision, bool, bool, bool)> {
+        let decision = self.decide(prefix)?;
+        let cell = self
+            .token_cells
+            .get(target as usize)
+            .ok_or_else(|| invalid("CPU trunk target token exceeds vocabulary"))?;
+        Ok((
+            decision.clone(),
+            decision.admitted_cells.contains(cell),
+            decision.token == target,
+            decision.top8.contains(&target),
+        ))
+    }
+
+    pub fn export_parity(
+        &self,
+        artifact: &[u8],
+        prefixes: &[Vec<u32>],
+    ) -> Result<CpuDiscretePanelExportReading> {
+        if prefixes.is_empty() {
+            return Err(invalid("CPU trunk export parity requires rows"));
+        }
+        let served = uor_r4_integer::discrete_d11::IntegerDiscreteModel::from_bytes(artifact)
+            .map_err(|error| invalid(format!("discrete serving artifact: {error}")))?;
+        let mut reading = CpuDiscretePanelExportReading {
+            rows: 0,
+            query_coordinates_checked: 0,
+            query_coordinate_mismatches: 0,
+            admitted_cell_mismatches: 0,
+            top8_mismatches: 0,
+            token_mismatches: 0,
+        };
+        for prefix in prefixes {
+            let cpu = self.decide(prefix)?;
+            let served = served
+                .evaluate_prefix(prefix)
+                .map_err(|error| invalid(format!("discrete serving row: {error}")))?;
+            reading.rows = reading
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| invalid("CPU trunk parity row count overflows"))?;
+            reading.query_coordinates_checked = reading
+                .query_coordinates_checked
+                .checked_add(READ_WIDTH as u64)
+                .ok_or_else(|| invalid("CPU trunk query count overflows"))?;
+            reading.query_coordinate_mismatches = reading
+                .query_coordinate_mismatches
+                .checked_add(
+                    cpu.query
+                        .iter()
+                        .zip(&served.read_vector)
+                        .filter(|(left, right)| left != right)
+                        .count() as u64,
+                )
+                .ok_or_else(|| invalid("CPU trunk query mismatch count overflows"))?;
+            reading.admitted_cell_mismatches = reading
+                .admitted_cell_mismatches
+                .checked_add(u64::from(cpu.admitted_cells != served.admitted_cells))
+                .ok_or_else(|| invalid("CPU trunk cell mismatch count overflows"))?;
+            let mut served_top8 = [u32::MAX; 8];
+            for (slot, &token) in served.top8.iter().take(8).enumerate() {
+                served_top8[slot] = token;
+            }
+            reading.top8_mismatches = reading
+                .top8_mismatches
+                .checked_add(u64::from(cpu.top8 != served_top8))
+                .ok_or_else(|| invalid("CPU trunk top-8 mismatch count overflows"))?;
+            reading.token_mismatches = reading
+                .token_mismatches
+                .checked_add(u64::from(cpu.token != served.prediction))
+                .ok_or_else(|| invalid("CPU trunk token mismatch count overflows"))?;
+        }
+        Ok(reading)
+    }
+
+    fn read(&self, model: &CpuDiscreteProposalModel, prefix: &[u32]) -> Result<Vec<i32>> {
+        match model {
+            CpuDiscreteProposalModel::Route(route) => route.read(prefix),
+            CpuDiscreteProposalModel::Active(active) => active.read(prefix),
         }
     }
 }
@@ -3746,8 +4049,140 @@ fn section_u32(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::VOCABULARY;
     use serde_json::{json, Value};
+    use uor_r4_discrete::metadata::BinderPlan;
+    use uor_r4_discrete::snapshot::Snapshot;
+    use uor_r4_discrete::trunk::{
+        build_trunk_norm_frames, build_trunk_step_table, export_trunk_d11, TrunkTables,
+        TrunkTrainRow, KEPT_CELLS_DEFAULT, TRUNK_BLOCKS,
+    };
+    use uor_r4_discrete::{
+        ObjectivePolicy, ReadInitialization, ReadSpec, Spec, SCHEMA as DISCRETE_SNAPSHOT_SCHEMA,
+    };
     use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
+
+    fn synthetic_trunk_artifact() -> Vec<u8> {
+        let mut table = Vec::with_capacity(VOCABULARY * READ_WIDTH);
+        for token in 0..VOCABULARY {
+            for block in 0..TRUNK_BLOCKS {
+                let root = ((token >> (block * 4)) & 15) as u8;
+                table.extend_from_slice(&orbit_root_coords(root).unwrap());
+            }
+        }
+        let spec = Spec {
+            vocabulary: VOCABULARY as u32,
+            blocks: TRUNK_BLOCKS as u32,
+            context: 6,
+            kept_cells: KEPT_CELLS_DEFAULT as u32,
+        };
+        let stages = BinderPlan::new(spec.context as usize).unwrap().stages() as u32;
+        let read_spec = ReadSpec::Relation { kept: 8, sweeps: 1 };
+        let gate_len = read_spec.gate_count(spec.blocks, stages).unwrap() as usize;
+        let snapshot = Snapshot {
+            schema: DISCRETE_SNAPSHOT_SCHEMA.to_owned(),
+            spec,
+            read_spec,
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+            read_initialization: ReadInitialization::ActiveLeafV1,
+            normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
+            address_metric: Default::default(),
+            seed: 90,
+            epoch: 420,
+            table,
+            routes: vec![u32::from(BFS[0]); (spec.blocks * stages) as usize],
+            gates: vec![0; gate_len],
+            operator_kappa: FLOCK_OPERATOR_KAPPA.to_owned(),
+            composition_kappa: FLOCK_COMPOSITION_KAPPA.to_owned(),
+            kernel_sha256: "11".repeat(32),
+            source_sha256: "22".repeat(32),
+            geometry_sha256: "33".repeat(32),
+        };
+        let steps = build_trunk_step_table(spec.blocks, 0).unwrap();
+        let norms = build_trunk_norm_frames(spec.blocks, 0).unwrap();
+        let rows = vec![
+            TrunkTrainRow {
+                read_code: 1,
+                rec_code: 2,
+                rec_shuf_code: 2,
+                rec_unit_code: 2,
+                query_token: 1,
+                target_token: 2,
+            },
+            TrunkTrainRow {
+                read_code: 3,
+                rec_code: 4,
+                rec_shuf_code: 4,
+                rec_unit_code: 4,
+                query_token: 2,
+                target_token: 3,
+            },
+        ];
+        export_trunk_d11(
+            &snapshot,
+            &steps,
+            &norms,
+            &TrunkTables::build(&rows).unwrap(),
+        )
+        .unwrap()
+    }
+
+    fn table_payload(artifact: &[u8], table_index: usize) -> (usize, usize) {
+        let header = header(artifact).unwrap();
+        let header_len = u64::from_le_bytes(artifact[8..16].try_into().unwrap()) as usize;
+        let data_start = (16 + header_len).div_ceil(64) * 64;
+        let table = &header["tables"][table_index];
+        (
+            data_start + table["span"]["offset"].as_u64().unwrap() as usize,
+            table["span"]["bytes"].as_u64().unwrap() as usize,
+        )
+    }
+
+    #[test]
+    fn cpu_trunk_matches_integer_serving_and_training_still_refuses_it() {
+        let artifact = synthetic_trunk_artifact();
+        let cpu = CpuDiscreteTrunkReader::from_bytes(&artifact).unwrap();
+        let oracle = IntegerDiscreteModel::from_bytes(&artifact).unwrap();
+        for prefix in [
+            &[1u32][..],
+            &[1, 1][..],
+            &[1, 2, 1][..],
+            &[1, 2, 1, 3, 1][..],
+        ] {
+            let decision = cpu.decide(prefix).unwrap();
+            let served = oracle.evaluate_prefix(prefix).unwrap();
+            let mut top8 = [u32::MAX; 8];
+            for (slot, &token) in served.top8.iter().take(8).enumerate() {
+                top8[slot] = token;
+            }
+            assert_eq!(decision.query, served.read_vector.as_slice());
+            assert_eq!(decision.admitted_cells, served.admitted_cells);
+            assert_eq!(decision.top8, top8);
+            assert_eq!(decision.token, served.prediction);
+        }
+        assert!(CpuDiscreteRelation::from_bytes(&artifact).is_err());
+        assert!(CpuDiscreteProposalScorer::from_bytes(&artifact).is_err());
+    }
+
+    #[test]
+    fn cpu_trunk_refuses_shape_table_and_recurrence_corruption() {
+        let artifact = synthetic_trunk_artifact();
+        for cut in [artifact.len() - 1, artifact.len() / 2, 15] {
+            assert!(CpuDiscreteTrunkReader::from_bytes(&artifact[..cut]).is_err());
+        }
+
+        let mut bad_step = artifact.clone();
+        let (step_start, _) = table_payload(&bad_step, 4);
+        bad_step[step_start..step_start + 4].copy_from_slice(&16u32.to_le_bytes());
+        assert!(CpuDiscreteTrunkReader::from_bytes(&bad_step).is_err());
+
+        let mut bad_query = artifact;
+        let (query_start, _) = table_payload(&bad_query, 14);
+        bad_query[query_start + 4..query_start + 8]
+            .copy_from_slice(&((VOCABULARY + 1) as u32).to_le_bytes());
+        assert!(CpuDiscreteTrunkReader::from_bytes(&bad_query).is_err());
+    }
 
     fn identity_route() -> CpuDiscreteRoute {
         let root = orbit_root_coords(0).unwrap();

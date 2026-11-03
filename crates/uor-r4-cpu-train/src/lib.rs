@@ -33,7 +33,7 @@ pub use discrete_route::{
     CpuDiscreteProposalChooser, CpuDiscreteProposalKind, CpuDiscreteProposalMode,
     CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuDiscreteProposalScoring,
     CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteSchedule, CpuDiscreteScoreError,
-    CPU_DISCRETE_CHECKPOINT_SCHEMA,
+    CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader, CPU_DISCRETE_CHECKPOINT_SCHEMA,
 };
 pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
