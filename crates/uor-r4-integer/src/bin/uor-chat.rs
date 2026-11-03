@@ -5,7 +5,7 @@
 //! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
 use sha2::{Digest, Sha256};
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, Read as IoRead, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use uor_r4_integer::bundle::{create_test_bundle_with_byte_vocab, Bundle};
@@ -15,7 +15,9 @@ use uor_r4_integer::generation::conversation::{
     TurnClosure,
 };
 use uor_r4_integer::generation::Stop;
+use uor_r4_integer::loopback::{serve_loopback, LoopbackConfig};
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
+use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
     is_dialogue_query, recall_from_dialogue, IntegerStackModel, SieveRecall, StackChat,
@@ -56,6 +58,14 @@ struct CliArgs {
     save_session: Option<PathBuf>,
     /// Path to read a `UR4SESS1` binary session snapshot before a `--stack` step batch.
     restore_session: Option<PathBuf>,
+    /// Loopback OpenAI service address (`127.0.0.1:<port>`), only with `--stack`.
+    serve: Option<String>,
+    /// Optional same-origin Studio root for the loopback service.
+    studio_root: Option<PathBuf>,
+    /// Optional additional exact browser Origin accepted by the loopback service.
+    origin: Option<String>,
+    /// Read the loopback API token once from standard input, for headless serving.
+    token_stdin: bool,
     system_prompt: Option<String>,
     /// One-turn explicit system-memory value for the stack chat path.
     memory: Option<String>,
@@ -184,6 +194,10 @@ impl Default for CliArgs {
             prompt_ids: None,
             save_session: None,
             restore_session: None,
+            serve: None,
+            studio_root: None,
+            origin: None,
+            token_stdin: false,
             system_prompt: None,
             memory: None,
             memory_sieve: false,
@@ -228,6 +242,11 @@ fn print_usage() {
     eprintln!(
         "      --restore-session <P>   restore UR4SESS1 session snapshot bytes before --prompt-ids"
     );
+    eprintln!("      --serve <ADDR>          serve OpenAI-compatible JSON/SSE on 127.0.0.1:<port>");
+    eprintln!("                              loads the same --stack artifact; no CLI subprocess");
+    eprintln!("      --studio-root <PATH>    serve this Studio on the same origin with ephemeral bootstrap");
+    eprintln!("      --origin <ORIGIN>       additionally accept this exact browser Origin (off by default)");
+    eprintln!("      --token-stdin           read the API token once from stdin (required without --studio-root)");
     eprintln!("  -s, --system <PROMPT>       Initial persistent system persona");
     eprintln!(
         "      --memory <VALUE>        Queue System: Memory: <VALUE>. for the next stack-chat turn"
@@ -277,6 +296,38 @@ fn parse_cli_args() -> CliArgs {
                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--bundle'");
                     process::exit(1);
                 }
+            }
+            "--serve" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.serve = Some(raw[idx].clone());
+                } else {
+                    eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--serve'");
+                    process::exit(1);
+                }
+            }
+            "--studio-root" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.studio_root = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--studio-root'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--origin" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.origin = Some(raw[idx].clone());
+                } else {
+                    eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--origin'");
+                    process::exit(1);
+                }
+            }
+            "--token-stdin" => {
+                args.token_stdin = true;
             }
             "-s" | "--system" => {
                 idx += 1;
@@ -542,6 +593,44 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.tokenizer_path.is_some() && args.stack_path.is_none() {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
+        process::exit(1);
+    }
+    if args.serve.is_some() && args.stack_path.is_none() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--serve' requires '--stack' and '--tokenizer'"
+        );
+        process::exit(1);
+    }
+    if args.serve.is_some()
+        && (args.say.is_some()
+            || args.prompt_ids.is_some()
+            || args.save_session.is_some()
+            || args.restore_session.is_some()
+            || args.memory.is_some()
+            || args.memory_sieve
+            || args.system_prompt.is_some())
+    {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--serve' is incompatible with one-shot, session, memory, and persona options");
+        process::exit(1);
+    }
+    if args.serve.is_some() && args.max_tokens != 128 {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--max-tokens' is a request setting, not a server setting; omit it with '--serve'");
+        process::exit(1);
+    }
+    if args.studio_root.is_some() && args.serve.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--studio-root' requires '--serve'");
+        process::exit(1);
+    }
+    if args.origin.is_some() && args.serve.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--origin' requires '--serve'");
+        process::exit(1);
+    }
+    if args.serve.is_some() && args.studio_root.is_none() && !args.token_stdin {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} headless '--serve' requires '--token-stdin' (or use '--studio-root' for in-memory bootstrap)");
+        process::exit(1);
+    }
+    if args.token_stdin && args.serve.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--token-stdin' requires '--serve'");
         process::exit(1);
     }
     if args.prompt_ids.is_some() && args.stack_path.is_none() && args.discrete_path.is_none() {
@@ -1334,6 +1423,51 @@ impl From<std::io::Error> for StackCliError {
     }
 }
 
+fn read_launch_token_stdin() -> std::result::Result<String, StackCliError> {
+    let mut bytes = Vec::new();
+    let mut terminated = false;
+    loop {
+        let mut chunk = [0u8; 32];
+        let read = io::stdin().read(&mut chunk)?;
+        if read == 0 {
+            break;
+        }
+        if bytes.len() + read > 257 && !chunk[..read].contains(&b'\n') {
+            return Err(StackCliError::Usage(
+                "--token-stdin requires 1-256 bytes followed by a newline".into(),
+            ));
+        }
+        bytes.extend_from_slice(&chunk[..read]);
+        if chunk[..read].contains(&b'\n') {
+            terminated = true;
+            break;
+        }
+        if bytes.len() > 257 {
+            return Err(StackCliError::Usage(
+                "--token-stdin requires 1-256 bytes followed by a newline".into(),
+            ));
+        }
+    }
+    if !terminated {
+        return Err(StackCliError::Usage(
+            "--token-stdin requires 1-256 bytes followed by a newline".into(),
+        ));
+    }
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|_| StackCliError::Usage("--token-stdin must be UTF-8".into()))?;
+    let token = text.trim_end_matches(&['\r', '\n'][..]);
+    if token.is_empty()
+        || token.len() > 256
+        || token.bytes().any(|byte| byte <= 0x20 || byte == 0x7f)
+    {
+        return Err(StackCliError::Usage(
+            "--token-stdin must be one nonempty token without whitespace or control characters"
+                .into(),
+        ));
+    }
+    Ok(token.to_owned())
+}
+
 /// The initial history of a stack conversation: BOS alone, or BOS and a system
 /// turn encoded by the literal-role protocol.
 fn stack_initial_history(
@@ -1485,7 +1619,7 @@ fn stack_stats(chat: &StackChat<'_>) {
     println!("{ANSI_MAGENTA_BOLD}+----------------------------------------------------------------------------+{ANSI_RESET}");
 }
 
-/// Serve a geometric-stack artifact: one `--say` turn, or a REPL.
+/// Serve a geometric-stack artifact: one `--say` turn, a REPL, or the loopback API.
 fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     let artifact = cli
         .stack_path
@@ -1509,6 +1643,28 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     model.set_threads(cli.threads)?;
     #[cfg(target_arch = "wasm32")]
     let _ = cli.threads;
+    if let Some(address) = cli.serve.as_deref() {
+        let (host, port) = address
+            .rsplit_once(':')
+            .ok_or_else(|| StackCliError::Usage("--serve expects 127.0.0.1:<port>".into()))?;
+        if host != "127.0.0.1" {
+            return Err(StackCliError::Usage("--serve binds only 127.0.0.1".into()));
+        }
+        let port = port
+            .parse::<u16>()
+            .map_err(|_| StackCliError::Usage("--serve port must be a u16".into()))?;
+        let serving = OpenAiServing::new(model, std::fs::read(tokenizer_path)?, cli.protocol)?;
+        let mut config = LoopbackConfig::new(serving)
+            .map_err(|error| StackCliError::Usage(error.to_string()))?;
+        config.host = host.to_owned();
+        config.port = port;
+        if cli.token_stdin {
+            config.token = read_launch_token_stdin()?;
+        }
+        config.studio_root = cli.studio_root.clone();
+        config.origin = cli.origin.clone();
+        return serve_loopback(config).map_err(|error| StackCliError::Usage(error.to_string()));
+    }
     let mut chat = StackChat::from_tokenizer_path(&model, tokenizer_path, cli.protocol)?;
     if cli.read_mode == ReadMode::NoRead {
         eprintln!(

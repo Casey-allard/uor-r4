@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 23 |
+| ready | 24 |
 | held | 11 |
 | decision | 1 |
 | done | 101 |
-| total | 136 |
+| total | 137 |
 
 ## Start here
 
@@ -98,7 +98,7 @@ These items are ready and open to anyone.
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
 | [Serve the chosen model as UORLUT01 through the uor-chat CLI](items/m4-export-uorlut01-cli.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [m4-lawful-likelihood-bpb](items/m4-lawful-likelihood-bpb.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m3-qualify-memory](items/m3-qualify-memory.md) | [#2859](https://github.com/UOR-Foundation/uor-r4/issues/2859) |
-| [Bring training as served back inside the 2x operational gate](items/served-rounding-cost.md) | ready | a lab | yes | none | not yet synced |
+| [Bring training as served back inside the 2x operational gate](items/served-rounding-cost.md) | ready | a lab | yes | none | [#3594](https://github.com/UOR-Foundation/uor-r4/issues/3594) |
 | [Write the D11 exporter for a D37 float trunk](items/d11-exporter-float-trunk.md) | done | a lab | yes | [float-training-module](items/float-training-module.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2820](https://github.com/UOR-Foundation/uor-r4/issues/2820) |
 | [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | done | anyone | no | none | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
 | [Build a lawful likelihood so bits per byte can be scored](items/m4-lawful-likelihood-bpb.md) | done | a lab | no | none | [#2861](https://github.com/UOR-Foundation/uor-r4/issues/2861) |
@@ -126,6 +126,7 @@ These items are ready and open to anyone.
 | [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
 | [Deliver the native-style Studio IDE harness and real connection workflows](items/studio-ide-harness.md) | ready | a lab | no | [studio-typed-shell-upgrade](items/studio-typed-shell-upgrade.md) | [#3569](https://github.com/UOR-Foundation/uor-r4/issues/3569) |
 | [Migrate the Studio to a typed lifecycle shell without changing its engine](items/studio-typed-shell-upgrade.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md) | [#3500](https://github.com/UOR-Foundation/uor-r4/issues/3500) |
+| [Serve the native uor-chat engine through a secure OpenAI-compatible loopback API](items/uor-chat-openai-loopback.md) | ready | a lab | no | none | [#3595](https://github.com/UOR-Foundation/uor-r4/issues/3595) |
 | [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | done | anyone | no | none | [#2868](https://github.com/UOR-Foundation/uor-r4/issues/2868) |
 | [Publish the fixed Studio with working WASM and selectable model sources](items/m7-studio-live-model-sources.md) | done | a lab | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m7-studio-self-host-page-assets](items/m7-studio-self-host-page-assets.md) | [#3440](https://github.com/UOR-Foundation/uor-r4/issues/3440) |
 | [Verify the Studio's offline claim, retire the demo CDNs, bundle tokenizer](items/m7-studio-self-host-page-assets.md) | done | anyone | no | none | [#3075](https://github.com/UOR-Foundation/uor-r4/issues/3075) |

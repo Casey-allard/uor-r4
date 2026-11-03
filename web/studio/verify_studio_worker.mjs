@@ -523,7 +523,7 @@ assert(indexHtml.includes('id="engineStatus"') && indexHtml.includes('id="modelS
     'index.html must carry the #engineStatus and #modelStatus chips');
 assert(indexHtml.includes("import { mountModelSources, ModelSources } from './assets/js/model_sources.js'"),
     'index.html must import the model-source module');
-assert(indexHtml.includes("import { configFromSources, streamChatCompletions } from './assets/js/studio_api.js'"),
+assert(indexHtml.includes("import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js'"),
     'index.html must import the API module');
 assert(indexHtml.includes('./assets/js/uor_model_worker.js'), 'index.html must start the wasm model worker');
 assert(indexHtml.includes("document.documentElement.dataset.studioReady = '1'") && indexHtml.includes("new CustomEvent('uor-studio-ready')"),

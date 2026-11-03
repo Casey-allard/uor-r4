@@ -315,6 +315,21 @@ impl<'m> StackChat<'m> {
         history: &[u32],
         max_new_tokens: usize,
     ) -> Result<StackReply, StackChatError> {
+        self.reply_history_with(history, max_new_tokens, |_, _| Ok(()))
+    }
+
+    /// The same greedy reply, with every generated ID and its tokenizer bytes
+    /// emitted after the ID enters history and before another model step. An
+    /// emission error aborts the loop and is returned unchanged.
+    pub fn reply_history_with<F>(
+        &mut self,
+        history: &[u32],
+        max_new_tokens: usize,
+        mut emit: F,
+    ) -> Result<StackReply, StackChatError>
+    where
+        F: FnMut(u32, &[u8]) -> Result<(), StackChatError>,
+    {
         if history.is_empty() {
             return Err(StackChatError::EmptyHistory);
         }
@@ -338,6 +353,8 @@ impl<'m> StackChat<'m> {
             let next = self.pick.ok_or(StackChatError::EmptyHistory)?;
             ids.push(next);
             self.history.push(next);
+            let token_bytes = self.tokenizer.decode_bytes(&[next]);
+            emit(next, &token_bytes)?;
             if next == self.protocol.eos_id {
                 stop = StackStop::Eos;
                 break;

@@ -225,6 +225,19 @@ a bounded name, time, location, age or predicate value. `/memory manual` disable
 clears both the fact log and any queued explicit value. Explicit memory overrides the sieve for one
 turn. Generated assistant text is never treated as fact data.
 
+### Native OpenAI loopback (3 November 2026)
+
+The same non-discrete `--stack` artifact can be served directly, without a CLI subprocess or the retired router:
+
+```sh
+uor-chat --stack model.lut --tokenizer tokenizer.json \
+  --serve 127.0.0.1:8000 --studio-root web/studio
+```
+
+The loopback service implements `GET /healthz`, `GET /v1/models`, `GET /v1/models/uor-chat`, `POST /v1/chat/completions`, `POST /v1/completions`, `POST /v1/responses`, and `GET /v1/capabilities`. Text messages and text parts work with multi-turn history, `max_tokens`, `max_completion_tokens` (and `max_output_tokens` for Responses), `stream`, `stream_options.include_usage`, `temperature: 0`, and one choice. JSON and SSE return exact prompt/completion/total token usage plus additive `uor` metrics: integer elapsed nanoseconds, first-token nanoseconds, completion IDs, and tokens-per-second in thousandths (null if the measured elapsed value is zero). EOS and short cycles map to `stop`; the token cap maps to `length`. Unsupported models, roles, fields, content parts, and OpenAI families receive explicit errors rather than placeholder success; `/v1/embeddings` and image input return 501 in this unit.
+
+Only `127.0.0.1` binds. Host and Origin are checked, bearer/`X-UOR-Studio-Token` authentication is required for `/v1` (except CORS preflight, which is validated by Host/Origin alone), headers are capped at 32 KiB and bodies at 1 MiB by default, and one generation runs at a time (a concurrent request receives 429 before any SSE bytes). Context overflow returns 413 before a stream starts; a second in-flight generation is refused. One completion ID/created timestamp and Responses event/item identity stay stable across a stream. The per-launch token is never printed or persisted. When `--studio-root` is present, the same-origin HTML receives an in-memory `window.__UOR_NATIVE_BOOTSTRAP__` for the next Studio unit; traversal and symlink paths are refused. Headless serving without that root requires `--token-stdin`, which reads 1-256 token bytes once without logging them; launching without either token channel fails immediately. `--origin` optionally adds one exact cross-origin value; cross-origin access is otherwise disabled. This is a local protocol/serving path, not production publication, M4/M7 qualification, or a useful-conversation claim.
+
 `--discrete <model.lut> --prompt-ids <CSV> [--max-tokens N]` serves a `uor-r4.lut-discrete/1`
 artifact directly through `discrete_d11::IntegerDiscreteModel`. Each step appends the evaluator's
 integer top-1 prediction; an initial prompt must fit the declared context, which then slides by one
