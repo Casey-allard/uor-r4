@@ -141,6 +141,15 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   included; decode-only speed is unread (noisy timing). (k2) is better at
   seed 1 and worse at seeds 2 and 3, so (b) stays the base and the slot key
   is the next copy-key unit. Neither export recalls Maya in conv-a.
+  [claude-267](../../loop/tasks/one-model-end-to-end/claude-267/REPORT.md)
+  measured the slot key on the data before building it, by an exact-match
+  count. It is right less often than copy key 2 on DEV and on p-w (2,136
+  against 3,506; 5,834 against 10,971), so it is not built. The counts suggest
+  why: a clause atom is a running minimum over the clause's prefix, while a
+  copy aligns on suffixes. A diagnostic outside the rule, copy key 2 backed off
+  to copy key 1, is right most often (4,388; 13,990). It is a key-quality
+  proxy, not a model result, and it makes the next copy-key unit a mixed pair
+  of copy heads, one on each key.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

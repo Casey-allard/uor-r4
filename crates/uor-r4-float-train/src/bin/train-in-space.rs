@@ -170,8 +170,21 @@
 //! must not exist; it receives `config.json`, `progress.jsonl`, `samples.md`, `samples.jsonl` and
 //! `models/step-*/`. `--inspect` instead reads every checkpoint a run saved and prints one JSON
 //! line each, after one line with the address roots' separation.
+//!
+//! `train-in-space --data-root DIR --copy-key-oracle TOKENS MASK`: measures copy keys on the data
+//! without training (claude-267). `TOKENS` and `MASK` are an unpinned UORT pair (`tokens.u16`,
+//! `response_mask.u8`) cut into DEV scoring's windows; TRAIN and `tokenizer.json` come from
+//! `--data-root`. At every copyable reply position (the next token appears earlier in its window)
+//! it takes the latest earlier position whose key equals the query exactly, under copy key 1
+//! (`k1`), copy key 2 (`k2`) and the slot key (`slot`: the token and its clause's rarest token,
+//! `flock_read_hamming::slot_atoms`), and counts how often that position's token is the next one.
+//! Two diagnostic rows follow, outside claude-267's rule: `atom2` keys on the token and its
+//! clause's two rarest tokens, unordered (`slot_atom_pairs`), and `win4` on the token and the
+//! rarest of the four tokens ending at it (`window_atoms`). A third, `k2>k1`, takes copy key 2's
+//! candidate where it has one and copy key 1's elsewhere. Needs no GPU; one header line, then one
+//! `copy-key-oracle` line per rule.
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use candle_core::Device;
 use uor_r4_float_train::flock_read_opening::OpeningAnchor;
@@ -187,6 +200,7 @@ use uor_r4_integer::fbs_snapshot::DecisionForce;
 
 fn main() -> Result<()> {
     let mut data_root = None;
+    let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
     let mut out = None;
     let mut inspect = None;
     let mut reach = None;
@@ -281,6 +295,14 @@ fn main() -> Result<()> {
         };
         match arg.as_str() {
             "--data-root" => data_root = Some(PathBuf::from(&value)),
+            "--copy-key-oracle" => {
+                let mask = args.next().ok_or_else(|| {
+                    FloatTrainError::Invalid(
+                        "--copy-key-oracle wants TOKENS and MASK paths".to_owned(),
+                    )
+                })?;
+                key_oracle = Some((PathBuf::from(&value), PathBuf::from(mask)));
+            }
             "--out" => out = Some(PathBuf::from(&value)),
             "--inspect" => inspect = Some(PathBuf::from(&value)),
             "--reach" => reach = Some(PathBuf::from(&value)),
@@ -571,10 +593,11 @@ fn main() -> Result<()> {
         served_grade_on,
         panel_prompts_on,
         integer_grade_on,
+        key_oracle.is_some(),
     ];
     if modes.iter().filter(|&&m| m).count() > 1 {
         return Err(FloatTrainError::Invalid(
-            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1 or --integer-grade 1"
+            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1, --integer-grade 1 or --copy-key-oracle"
                 .to_owned(),
         ));
     }
@@ -630,6 +653,7 @@ fn main() -> Result<()> {
             || integer_grade_on
             || config.reply_read_train.is_some()
             || !scopes.is_empty()
+            || key_oracle.is_some()
         {
             return Err(FloatTrainError::Invalid(
                 "--recall trains; it takes --out and no other mode".to_owned(),
@@ -640,6 +664,9 @@ fn main() -> Result<()> {
     }
     let data_root =
         data_root.ok_or_else(|| FloatTrainError::Invalid("--data-root is required".to_owned()))?;
+    if let Some((tokens, mask)) = &key_oracle {
+        return copy_key_oracle(&data_root, tokens, mask);
+    }
     if flock_end && score.is_none() && !grade_on {
         return Err(FloatTrainError::Invalid(
             "--flock-end applies to --score-rows and --grade 1 only".to_owned(),
@@ -959,6 +986,128 @@ fn main() -> Result<()> {
     }
     let out = out.ok_or_else(|| FloatTrainError::Invalid("--out is required".to_owned()))?;
     run_long(&data_root, &out, &config, &device)
+}
+
+/// `--copy-key-oracle` (claude-267): exact-match copy-key purity on an unpinned UORT pair, with
+/// slot ranks from the pinned TRAIN split and boundaries from the pinned tokenizer.
+fn copy_key_oracle(data_root: &Path, tokens_path: &Path, mask_path: &Path) -> Result<()> {
+    use sha2::{Digest, Sha256};
+    use uor_r4_float_train::flock_read_hamming::{
+        slot_atom_pairs, slot_atoms, slot_boundary_flags, slot_rank_table, window_atoms,
+    };
+    use uor_r4_float_train::hamilton_sheet as hs;
+    let tokenizer = std::fs::read(data_root.join("tokenizer.json"))?;
+    if hex::encode(Sha256::digest(&tokenizer)) != hs::PINNED_TOKENIZER_SHA256 {
+        return Err(FloatTrainError::Invalid(
+            "tokenizer.json differs from the pinned tokenizer".to_owned(),
+        ));
+    }
+    let mut boundary = slot_boundary_flags(&tokenizer)?;
+    if boundary.len() > hs::SHEET_VOCAB {
+        return Err(FloatTrainError::Invalid(format!(
+            "tokenizer.json names {} ids, past the sheet's vocabulary of {}",
+            boundary.len(),
+            hs::SHEET_VOCAB
+        )));
+    }
+    boundary.resize(hs::SHEET_VOCAB, true);
+    let (train, _) = hs::load_pinned_uort_split(
+        &data_root.join("mw-balp/train/tokens.u16"),
+        &data_root.join("mw-balp/train/response_mask.u8"),
+        hs::PINNED_TRAIN_TOKENS_SHA256,
+        hs::PINNED_TRAIN_MASK_SHA256,
+        hs::EXPECTED_TRAIN_TOKENS,
+        hs::EXPECTED_TRAIN_ELIGIBLE_TARGETS,
+        hs::SHEET_VOCAB,
+        hs::SHEET_BOS_ID,
+    )?;
+    let train: Vec<u16> = train.iter().map(|&t| t as u16).collect();
+    let table = slot_rank_table(&train, hs::SHEET_VOCAB, &boundary)?;
+    let (tokens, mask) = read_uort_pair(tokens_path, mask_path)?;
+    let (windows, _) =
+        hs::build_document_windows(&tokens, &mask, hs::SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let boundary_tokens = boundary.iter().filter(|&&b| b).count();
+    println!(
+        "copy-key-oracle windows={} boundary_tokens={boundary_tokens} vocab={}",
+        windows.len(),
+        hs::SHEET_VOCAB
+    );
+    // Per rule: copyable, with an exact candidate, right.
+    let mut counts = [[0usize; 3]; 6];
+    for w in &windows {
+        let (Some(&p_last), Some(&o0), Some(&p0)) = (
+            w.scored_corpus_positions.last(),
+            w.scored_offsets.first(),
+            w.scored_corpus_positions.first(),
+        ) else {
+            continue;
+        };
+        let x = &tokens[p0 - 1 - o0..=p_last];
+        let a = slot_atoms(x, &table);
+        let a2 = slot_atom_pairs(x, &table);
+        let w4 = window_atoms(x, &table, 4);
+        let k2 = |i: usize| (x[i], if i == 0 { x[i] } else { x[i - 1] });
+        for &t in &w.scored_offsets {
+            let next = x[t + 1];
+            if !x[..=t].contains(&next) {
+                continue;
+            }
+            let found = [
+                (1..t).rev().find(|&s| x[s - 1] == x[t]),
+                (1..t).rev().find(|&s| k2(s - 1) == k2(t)),
+                (1..t).rev().find(|&s| (x[s - 1], a[s - 1]) == (x[t], a[t])),
+                (1..t).rev().find(|&s| (x[s - 1], a2[s - 1]) == (x[t], a2[t])),
+                (1..t).rev().find(|&s| (x[s - 1], w4[s - 1]) == (x[t], w4[t])),
+            ];
+            let backoff = found[1].or(found[0]);
+            for (count, found) in counts.iter_mut().zip(found.into_iter().chain([backoff])) {
+                count[0] += 1;
+                if let Some(s) = found {
+                    count[1] += 1;
+                    if x[s] == next {
+                        count[2] += 1;
+                    }
+                }
+            }
+        }
+    }
+    let rules = ["k1", "k2", "slot", "atom2", "win4", "k2>k1"];
+    for (rule, [copyable, with_exact, right]) in rules.into_iter().zip(counts) {
+        let purity = if with_exact == 0 { 0.0 } else { right as f64 / with_exact as f64 };
+        println!(
+            "copy-key-oracle {rule} copyable={copyable} with_exact={with_exact} right={right} purity={purity:.4}"
+        );
+    }
+    Ok(())
+}
+
+/// An unpinned UORT pair for `--copy-key-oracle`, refused unless the header is UORT, the payload
+/// and mask lengths match its count, the first token is BOS and every token is in the vocabulary.
+fn read_uort_pair(tokens_path: &Path, mask_path: &Path) -> Result<(Vec<u32>, Vec<u8>)> {
+    use uor_r4_float_train::hamilton_sheet as hs;
+    let bytes = std::fs::read(tokens_path)?;
+    let mask = std::fs::read(mask_path)?;
+    let bad = |what: &str| {
+        FloatTrainError::Invalid(format!("--copy-key-oracle {}: {what}", tokens_path.display()))
+    };
+    if bytes.len() < hs::UORT_HEADER_BYTES || &bytes[..4] != b"UORT" {
+        return Err(bad("no 64-byte UORT header"));
+    }
+    let count = u64::from_le_bytes(bytes[8..16].try_into().expect("8 header bytes")) as usize;
+    let payload = &bytes[hs::UORT_HEADER_BYTES..];
+    if payload.len() != count * 2 || mask.len() != count {
+        return Err(bad("the payload or mask does not match the header count"));
+    }
+    let tokens: Vec<u32> = payload
+        .chunks_exact(2)
+        .map(|w| u32::from(u16::from_le_bytes([w[0], w[1]])))
+        .collect();
+    if tokens.first() != Some(&hs::SHEET_BOS_ID)
+        || tokens.iter().any(|&t| t as usize >= hs::SHEET_VOCAB)
+    {
+        return Err(bad("tokens out of range or no opening BOS"));
+    }
+    Ok((tokens, mask))
 }
 
 /// `--panel NAME=DIR` (claude-204): an extra UORT split for the census, counted unpinned.

@@ -485,6 +485,158 @@ fn pair_halves(first: &Tensor, second: &Tensor, heads: usize, head_width: usize)
     Ok(Tensor::cat(&parts, 1)?)
 }
 
+/// The bytes a byte-level BPE piece stands for: each character is one byte, the printable bytes
+/// as themselves and the other 68, in order, as `U+0100` upward. `None` if a character is neither.
+fn byte_level_bytes(piece: &str) -> Option<Vec<u8>> {
+    let printable = |b: u32| matches!(b, 33..=126 | 161..=172 | 174..=255);
+    piece
+        .chars()
+        .map(|c| match c as u32 {
+            b if printable(b) => Some(b as u8),
+            n @ 256..=323 => (0u8..=255)
+                .filter(|&b| !printable(u32::from(b)))
+                .nth((n - 256) as usize),
+            _ => None,
+        })
+        .collect()
+}
+
+/// claude-267: which ids of `tokenizer.json` end a slot clause. An id is a boundary if its text is
+/// empty (an unassigned id), contains `.`, `!`, `?`, `\n` or `\r`, or it is in `added_tokens`.
+/// Other control characters, tab included, are not. One flag per id up to the largest id named;
+/// a piece that is not byte-level is refused.
+pub fn slot_boundary_flags(tokenizer_json: &[u8]) -> Result<Vec<bool>> {
+    let json: serde_json::Value = serde_json::from_slice(tokenizer_json)
+        .map_err(|e| invalid(format!("tokenizer.json is not JSON: {e}")))?;
+    let vocab = json["model"]["vocab"]
+        .as_object()
+        .ok_or_else(|| invalid("tokenizer.json has no model.vocab"))?;
+    let added = json["added_tokens"].as_array().map(Vec::as_slice).unwrap_or(&[]);
+    let id = |v: &serde_json::Value| {
+        v.as_u64()
+            .map(|i| i as usize)
+            .ok_or_else(|| invalid("tokenizer.json names an id that is not a whole number"))
+    };
+    let mut pieces = Vec::with_capacity(vocab.len());
+    for (piece, v) in vocab {
+        let bytes = byte_level_bytes(piece)
+            .ok_or_else(|| invalid(format!("tokenizer.json piece {piece:?} is not byte-level")))?;
+        pieces.push((id(v)?, bytes));
+    }
+    let added_ids = added.iter().map(|t| id(&t["id"])).collect::<Result<Vec<_>>>()?;
+    let len = pieces
+        .iter()
+        .map(|(i, _)| i + 1)
+        .chain(added_ids.iter().map(|i| i + 1))
+        .max()
+        .unwrap_or(0);
+    let mut flags = vec![true; len];
+    for (i, bytes) in pieces {
+        flags[i] = bytes.is_empty() || bytes.iter().any(|b| b".!?\n\r".contains(b));
+    }
+    for i in added_ids {
+        flags[i] = true;
+    }
+    Ok(flags)
+}
+
+/// claude-267: each id's slot rank. Boundary ids get 0; every other id a rank from 1 upward by
+/// its count in `train`, rarest first, the lower id first on a tie. Refuses a `train` token
+/// outside `vocab` and a rank past `u16`.
+pub fn slot_rank_table(train: &[u16], vocab: usize, boundary: &[bool]) -> Result<Vec<u16>> {
+    if boundary.len() != vocab {
+        return Err(invalid(format!(
+            "slot ranks: {} boundary flags for a vocabulary of {vocab}",
+            boundary.len()
+        )));
+    }
+    let mut counts = vec![0u64; vocab];
+    for &t in train {
+        let t = usize::from(t);
+        if t >= vocab {
+            return Err(invalid(format!(
+                "slot ranks: TRAIN token {t} is outside the vocabulary of {vocab}"
+            )));
+        }
+        counts[t] += 1;
+    }
+    let mut order: Vec<usize> = (0..vocab).filter(|&t| !boundary[t]).collect();
+    if order.len() > usize::from(u16::MAX) {
+        return Err(invalid(format!("slot ranks: {} ranked ids overflow u16", order.len())));
+    }
+    order.sort_by_key(|&t| (counts[t], t));
+    let mut table = vec![0u16; vocab];
+    for (rank, &t) in order.iter().enumerate() {
+        table[t] = (rank + 1) as u16;
+    }
+    Ok(table)
+}
+
+/// claude-267: the slot atom `A(i)` at each position: the token of lowest nonzero rank among the
+/// clause's tokens up to and including `i`, where a clause starts after the last boundary token
+/// (rank 0, or an id past `table`). At a boundary token, `A(i)` is that token.
+pub fn slot_atoms(tokens: &[u32], table: &[u16]) -> Vec<u32> {
+    let mut best: Option<(u16, u32)> = None;
+    tokens
+        .iter()
+        .map(|&t| {
+            let rank = table.get(t as usize).copied().unwrap_or(0);
+            if rank == 0 {
+                best = None;
+                return t;
+            }
+            match best {
+                Some((r, atom)) if r <= rank => atom,
+                _ => {
+                    best = Some((rank, t));
+                    t
+                }
+            }
+        })
+        .collect()
+}
+
+/// claude-267, a copy-key oracle diagnostic: the clause's two distinct tokens of lowest nonzero
+/// rank up to and including `i`, as an unordered (smaller id first) pair. A clause's first token
+/// pairs with itself, and so does a boundary token, where the clause resets as in [`slot_atoms`].
+pub fn slot_atom_pairs(tokens: &[u32], table: &[u16]) -> Vec<(u32, u32)> {
+    let mut best: Vec<(u16, u32)> = Vec::with_capacity(3);
+    tokens
+        .iter()
+        .map(|&t| {
+            let rank = table.get(t as usize).copied().unwrap_or(0);
+            if rank == 0 {
+                best.clear();
+                return (t, t);
+            }
+            if best.iter().all(|&(_, b)| b != t) {
+                best.push((rank, t));
+                best.sort_unstable();
+                best.truncate(2);
+            }
+            let a = best[0].1;
+            let b = best.get(1).map_or(a, |&(_, b)| b);
+            (a.min(b), a.max(b))
+        })
+        .collect()
+}
+
+/// claude-267, a copy-key oracle diagnostic: the token of lowest nonzero rank among the `width`
+/// tokens ending at `i`, with no clause reset; `i`'s own token when all of them are boundaries.
+pub fn window_atoms(tokens: &[u32], table: &[u16], width: usize) -> Vec<u32> {
+    let rank = |t: u32| table.get(t as usize).copied().unwrap_or(0);
+    (0..tokens.len())
+        .map(|i| {
+            tokens[(i + 1).saturating_sub(width.max(1))..=i]
+                .iter()
+                .copied()
+                .filter(|&t| rank(t) != 0)
+                .min_by_key(|&t| rank(t))
+                .unwrap_or(tokens[i])
+        })
+        .collect()
+}
+
 /// The reads at every depth in [`HAMMING_DEPTHS`], in that order.
 #[derive(Clone)]
 pub struct HammingReads {
@@ -1210,6 +1362,65 @@ pub(crate) fn hamming_bits(a: &Tensor, b: &Tensor) -> Result<Tensor> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// claude-267: `.`, `\n` and added tokens end a clause, and so does an unassigned id; a tab
+    /// and plain text do not.
+    #[test]
+    fn slot_boundaries_are_sentence_ends_newlines_added_and_unassigned_ids() {
+        let json = r#"{"added_tokens":[{"id":0,"content":"<|bos|>"}],
+            "model":{"vocab":{"a":1,"Ċ":2,"b.":3,"ĉ":4,"?":5,"z":7,"!":8,"č":9}}}"#;
+        let flags = slot_boundary_flags(json.as_bytes()).unwrap();
+        assert_eq!(flags, [true, false, true, true, false, true, true, false, true, true]);
+    }
+
+    /// claude-267: the atom resets at a boundary token, which is its own atom.
+    #[test]
+    fn slot_atoms_reset_at_boundaries() {
+        // 0 is a boundary; 5, 7, 6 rank 1, 2, 3.
+        let table = [0, 0, 0, 0, 0, 1, 3, 2];
+        assert_eq!(slot_atoms(&[5, 6, 0, 6, 7], &table), [5, 5, 0, 6, 7]);
+    }
+
+    /// claude-267: ranks rise with TRAIN count, the lower id first on a tie, and an unseen id
+    /// ranks rarest; a TRAIN token outside the vocabulary is refused.
+    #[test]
+    fn slot_ranks_break_ties_by_token_id() {
+        let boundary = [true, false, false, false, false];
+        let table = slot_rank_table(&[1, 2, 2, 3, 3], 5, &boundary).unwrap();
+        assert_eq!(table, [0, 2, 3, 4, 1]);
+        assert!(slot_rank_table(&[5], 5, &boundary).is_err());
+    }
+
+    /// claude-267: "my friend's name is" and "my dog's name is" key on different atoms when
+    /// friend and dog are rarer than name.
+    #[test]
+    fn slot_atoms_tell_friend_from_dog() {
+        let (my, friend, dog, s, name, is) = (1u16, 2, 3, 4, 5, 6);
+        let mut train = vec![my; 10];
+        train.extend([s; 10]);
+        train.extend([is; 10]);
+        train.extend([name; 5]);
+        train.extend([friend, dog]);
+        let boundary = [true, false, false, false, false, false, false];
+        let table = slot_rank_table(&train, 7, &boundary).unwrap();
+        let ids = |v: [u16; 5]| v.map(u32::from);
+        let a = slot_atoms(&ids([my, friend, s, name, is]), &table);
+        let b = slot_atoms(&ids([my, dog, s, name, is]), &table);
+        assert_eq!((a[4], b[4]), (u32::from(friend), u32::from(dog)));
+    }
+
+    /// claude-267 diagnostics: the atom pair keeps the clause's two rarest distinct tokens,
+    /// smaller id first, and resets at a boundary; the window atom forgets what left its window.
+    #[test]
+    fn atom_pairs_and_window_atoms_follow_their_rules() {
+        // 0 is a boundary; 5, 7, 6 rank 1, 2, 3.
+        let table = [0, 0, 0, 0, 0, 1, 3, 2];
+        assert_eq!(
+            slot_atom_pairs(&[6, 6, 7, 5, 0, 6], &table),
+            [(6, 6), (6, 6), (6, 7), (5, 7), (0, 0), (6, 6)]
+        );
+        assert_eq!(window_atoms(&[5, 6, 6, 7, 0, 0], &table, 2), [5, 5, 6, 7, 7, 0]);
+    }
 
     /// claude-253: a forced code's head wider than its 64-bit code is refused, before any tensor
     /// op (so on the CPU), rather than shifted past 63.
