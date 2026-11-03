@@ -542,8 +542,12 @@ fn decision_grade_out(args: &[String]) -> Result<(), String> {
 /// which the control and the session agree, the float trace's query codes equal to each and to
 /// the snapped control, the integer trace's equal to its session, and each trace's
 /// inconsistent pairs.
+///
+/// This checker is defined for copy key 1: its per-token control and trace reconstruction assumes
+/// one token per copy code. A two-token key is refused by its header before any comparison.
 fn copy_codes(path: &str, float_trace: &str, integer_trace: &str, out: &str) -> Result<(), String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+    require_one_token_copy_codes(&bytes)?;
     IntegerStackModel::parse(&bytes).map_err(|e| format!("parse: {e}"))?;
     let served = served_copy_codes_uorlut01(&bytes)
         .map_err(|e| format!("the Hamming reads: {e}"))?
@@ -599,6 +603,52 @@ fn copy_codes(path: &str, float_trace: &str, integer_trace: &str, out: &str) -> 
         "{}",
         json!({ "out": out, "sha256": sha(&text), "reads": summary })
     );
+    Ok(())
+}
+
+/// The copy-key number in a `UORLUT01` header, defaulting to 1 when a one-token artifact leaves
+/// the optional field out. Only this header is read, so the guard also works with a two-token
+/// artifact before its newer record shape is known to this binary.
+fn artifact_copy_key(bytes: &[u8]) -> Result<usize, String> {
+    if bytes.len() < 16 || &bytes[..8] != b"UORLUT01" {
+        return Err("the artifact is not a UORLUT01 container".to_owned());
+    }
+    let len = u64::from_le_bytes(
+        bytes[8..16]
+            .try_into()
+            .map_err(|_| "the artifact header length is truncated")?,
+    );
+    let len = usize::try_from(len).map_err(|_| "the artifact header is too large")?;
+    let end = 16usize
+        .checked_add(len)
+        .filter(|&end| end <= bytes.len())
+        .ok_or("the artifact header is truncated")?;
+    let header: serde_json::Value =
+        serde_json::from_slice(&bytes[16..end]).map_err(|e| format!("the artifact header: {e}"))?;
+    let Some(hamming) = header.get("hamming") else {
+        return Ok(1);
+    };
+    let hamming = hamming
+        .as_object()
+        .ok_or("the artifact's Hamming record is not an object")?;
+    match hamming.get("copy_key") {
+        None => Ok(1),
+        Some(value) => value
+            .as_u64()
+            .and_then(|key| usize::try_from(key).ok())
+            .ok_or_else(|| "the artifact's Hamming copy key is not a non-negative integer".to_owned()),
+    }
+}
+
+/// Refuse `--copy-codes` on any artifact whose copy heads do not use the one-token key its
+/// per-token reconstruction expects.
+fn require_one_token_copy_codes(bytes: &[u8]) -> Result<(), String> {
+    let copy_key = artifact_copy_key(bytes)?;
+    if copy_key != 1 {
+        return Err(format!(
+            "--copy-codes audits the one-token copy key only; the artifact records copy_key {copy_key}"
+        ));
+    }
     Ok(())
 }
 
@@ -1855,6 +1905,40 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn artifact_header(header: serde_json::Value) -> Vec<u8> {
+        let header = serde_json::to_vec(&header).unwrap();
+        let mut bytes = b"UORLUT01".to_vec();
+        bytes.extend_from_slice(&(header.len() as u64).to_le_bytes());
+        bytes.extend_from_slice(&header);
+        bytes
+    }
+
+    #[test]
+    fn copy_codes_refuses_every_non_one_token_key_before_comparison() {
+        let one = artifact_header(json!({"hamming": {"heads": 4}}));
+        assert_eq!(artifact_copy_key(&one), Ok(1));
+        assert_eq!(require_one_token_copy_codes(&one), Ok(()));
+
+        for key in [0, 2, 3] {
+            let bytes = artifact_header(json!({"hamming": {"heads": 4, "copy_key": key}}));
+            assert_eq!(artifact_copy_key(&bytes), Ok(key));
+            let error = require_one_token_copy_codes(&bytes).expect_err("non-one key");
+            assert!(error.contains(&format!("copy_key {key}")), "{error}");
+            assert!(error.contains("one-token copy key only"), "{error}");
+        }
+
+        let absent = artifact_header(json!({"shape": {}}));
+        assert_eq!(artifact_copy_key(&absent), Ok(1));
+        assert_eq!(
+            artifact_copy_key(b"not a container"),
+            Err("the artifact is not a UORLUT01 container".to_owned())
+        );
+        let malformed = artifact_header(json!({"hamming": {"copy_key": "two"}}));
+        assert!(artifact_copy_key(&malformed)
+            .expect_err("a non-integer key")
+            .contains("not a non-negative integer"));
+    }
 
     /// A session that answers each token with the next id, or, once `flip`
     /// is set, a different reply on every run.
