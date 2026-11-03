@@ -160,6 +160,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/geometric-image-registration": {
+    "branch": "deepseek/geometric-image-registration",
+    "claimed_at": "2026-11-03T15:58:05-05:00",
+    "head": "42f228e5b",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/harness-registry-reconcile": {
     "branch": "deepseek/harness-registry-reconcile",
     "claimed_at": "2026-11-02T04:56:29-05:00",
