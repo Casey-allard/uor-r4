@@ -31,6 +31,18 @@ image content-part extension or browser Canvas input path. Text attachments and
 native OpenAI streaming are delivered, but ordinary native `image_url` correctly
 returns 501 and the composer currently refuses binary files.
 
+## Delivered child: integer decomposition primitive
+
+[deepseek-1](../../loop/tasks/geometric-image-input/deepseek-1/REPORT.md)
+delivered `crates/uor-r4-vision`: exact bounded RGBA validation, non-empty
+positioned patch coverage, Q12 mean RGB/luma/chroma/edges, two signed R4
+vectors, source-bound canonical bytes and ordered Rayon evaluation. On the
+256 by 256, 32 by 32-grid fixture, 16 workers were 2.81 times as fast as one
+over 10,000 decompositions with an identical canonical digest. This is component
+evidence only. The native endpoint, validated `uor_r4_image` context, browser
+Canvas flow and issue #3619 all remain open; no visual input runs into the model
+yet.
+
 ## Done when
 
 - `decompose_rgba(width, height, rgba, grid)` validates exact bounds and produces

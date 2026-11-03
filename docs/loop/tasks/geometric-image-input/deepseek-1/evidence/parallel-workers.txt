@@ -1,0 +1,21 @@
+workers=32
+repeats=10000
+patches=1024
+canonical_blake3=83764218d2dc897eb3f1ed4a99579f540382fdda60d421b36902607875e6d936
+elapsed_us=916559
+us_per_decomposition=91.656
+wall_s=0.91 cpu_percent=2569% peak_rss_kb=2476
+workers=16
+repeats=10000
+patches=1024
+canonical_blake3=83764218d2dc897eb3f1ed4a99579f540382fdda60d421b36902607875e6d936
+elapsed_us=712039
+us_per_decomposition=71.204
+wall_s=0.71 cpu_percent=1116% peak_rss_kb=2220
+workers=1
+repeats=10000
+patches=1024
+canonical_blake3=83764218d2dc897eb3f1ed4a99579f540382fdda60d421b36902607875e6d936
+elapsed_us=2003611
+us_per_decomposition=200.361
+wall_s=2.00 cpu_percent=100% peak_rss_kb=2540

@@ -70,6 +70,7 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `crates/uor-r4-source-interface/` | The source-interface crate |
 | `crates/uor-r4-tokenizer/` | The byte-level BPE tokenizer and trainer |
 | `crates/uor-r4-training/` | Training driver, grader and evaluation tooling |
+| `crates/uor-r4-vision/` | Deterministic integer RGBA-to-R4 patch decomposition |
 | `crates/uor-r4-wasm-router/` | The WASM router |
 | `crates/uor-r4-workbench/` | The workbench crate |
 | `data/` | Data fixtures and panels |

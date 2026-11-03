@@ -1,0 +1,17 @@
+fmt-claim-wording          GREEN
+fmt-harness                GREEN
+claim-wording              GREEN
+loop-gates-watch           GREEN
+loop-drive                 RED      exit 101
+loop-next-sources          UNKNOWN  not run after an earlier non-green result
+loop-next-wait             UNKNOWN  not run after an earlier non-green result
+loop-next-owner-direction  UNKNOWN  not run after an earlier non-green result
+git-hooks                  UNKNOWN  not run after an earlier non-green result
+loop-migrate               UNKNOWN  not run after an earlier non-green result
+loop-review-changes-blocks UNKNOWN  not run after an earlier non-green result
+
+loop-drive failure:
+the note posts: Io("cannot run /tmp/uor-loop-drive-note-gh-1446401/fake-gh: Text file busy (os error 26)")
+
+The immediate unmodified rerun was green; this is the known harness fake-gh
+ETXTBSY flake, not a product test failure.

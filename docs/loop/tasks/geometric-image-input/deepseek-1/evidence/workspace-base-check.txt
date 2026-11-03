@@ -1,0 +1,14 @@
+Command:
+CARGO_TARGET_DIR=/home/callard/projects/codex-playground/uor-r4/target \
+  cargo check --locked --manifest-path <origin-main-worktree>/Cargo.toml \
+  --workspace --all-targets
+
+Exit: 101 on exact origin/main ab8fc5b0c51d7b160e0520e738c85475ab662853.
+
+error: historical core numerical/benchmark features are excluded from native qualification
+ --> crates/uor-r4-core/src/native_support.rs:5:1
+
+The same command exits 101 on this branch. The feature conflict is pre-existing:
+uor-r4-workbench directly requests uor-r4-api's learned-reference feature, which
+selects the excluded uor-r4-core surface. This branch neither changes that path
+nor claims the workspace-wide command passed.
