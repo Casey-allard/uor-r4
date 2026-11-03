@@ -165,6 +165,12 @@ pub struct StackHamming {
         skip_serializing_if = "crate::fbs_snapshot::is_one_token"
     )]
     pub copy_key: usize,
+    /// Each copy head's own key when they differ (claude-268): one entry per copy head, each 1 or
+    /// 2, not all equal, with `copy_key` left at 1. Left out of the header when every head uses
+    /// `copy_key`, so a uniform artifact is byte for byte as before, and an engine without the
+    /// field refuses a mixed one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copy_keys: Option<Vec<usize>>,
 }
 
 impl StackHamming {
@@ -178,7 +184,14 @@ impl StackHamming {
             margin_exp: HAMMING_MARGIN_EXP,
             weight_exp: HAMMING_WEIGHT_EXP,
             copy_key: 1,
+            copy_keys: None,
         }
+    }
+
+    /// The key copy head `head` matches on: its own entry when the keys are mixed, else
+    /// `copy_key`.
+    pub fn head_copy_key(&self, head: usize) -> usize {
+        self.copy_keys.as_ref().map_or(self.copy_key, |keys| keys[head])
     }
 
     /// Refuse a record the stack `shape` cannot carry: a non-FBS stack; an odd head count, or one
@@ -205,7 +218,19 @@ impl StackHamming {
         if self.copy_key != 1 && self.copy_key != 2 {
             return Err(StackError::Shape("a Hamming copy key names 1 or 2 tokens"));
         }
-        if self.copy_key == 2 && !head_width.is_multiple_of(8) {
+        if let Some(keys) = &self.copy_keys {
+            if self.copy_key != 1
+                || keys.len() != heads / 2
+                || keys.iter().any(|&k| k != 1 && k != 2)
+                || keys.iter().all(|&k| k == keys[0])
+            {
+                return Err(StackError::Shape(
+                    "mixed Hamming copy keys name 1 or 2 tokens for each copy head, differ, and \
+                     leave copy_key at 1",
+                ));
+            }
+        }
+        if (0..heads / 2).any(|h| self.head_copy_key(h) == 2) && !head_width.is_multiple_of(8) {
             return Err(StackError::Shape(
                 "copy key 2 needs heads of whole 8-coordinate blocks, so each half is whole lanes",
             ));
@@ -1699,6 +1724,7 @@ pub fn export_fbs_trunk_uorlut01_with(
         Some(h) => {
             let mut record = StackHamming::new(h.heads, h.depths.clone());
             record.copy_key = h.copy_key;
+            record.copy_keys = h.copy_keys.clone();
             record.check(&shape)?;
             if h.reads.len() != h.depths.len() {
                 return Err(StackError::TableLength {

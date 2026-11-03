@@ -192,7 +192,7 @@ pub fn synthetic_hamming(width: usize, layers: usize, heads: usize, seed: u64) -
             }
         })
         .collect();
-    FbsHammingSnapshot { heads, depths, reads, copy_key: 1 }
+    FbsHammingSnapshot { heads, depths, reads, copy_key: 1, copy_keys: None }
 }
 /// A synthetic turn memory for a trunk of `vocab` and `width` (units 2-3 of
 /// `turn-memory-integer`): `count` opening keys of 1 to `k` ids and, with `reply`, reply keys

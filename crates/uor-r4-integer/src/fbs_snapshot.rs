@@ -405,6 +405,10 @@ pub struct FbsHammingSnapshot {
     /// `HammingReads::with_copy_key` trains.
     #[serde(default = "one_token", skip_serializing_if = "is_one_token")]
     pub copy_key: usize,
+    /// Each copy head's own key when they differ (claude-268), as the float read's
+    /// `HammingReads::with_copy_keys` trains; absent when every head uses `copy_key`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copy_keys: Option<Vec<usize>>,
 }
 
 /// The one-token copy key, a Hamming record's default (claude-261).

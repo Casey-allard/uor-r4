@@ -4217,6 +4217,62 @@ fn the_copy_key_is_recorded_only_when_two() {
     assert!(super::export_fbs_trunk_uorlut01(&snap).is_err(), "copy key 3 is refused");
 }
 
+/// claude-268: mixed copy keys in the snapshot and the artifact. Uniform keys leave `copy_keys`
+/// out of both; mixed keys are held by both, and the parsed record and the session carry them,
+/// while the public readers refuse them until their callers take a key per head (claude-269);
+/// the exporter, the loader and the session refuse a list that is the wrong length, names 3, is
+/// all equal, or comes with copy key 2.
+#[test]
+fn mixed_copy_keys_are_recorded_only_when_they_differ() {
+    use super::synthetic::synthetic_hamming;
+    let mut snap = synthetic_fbs_trunk(20261103);
+    let read = synthetic_hamming(snap.width, snap.layers.len(), 4, 268);
+    assert!(serde_json::to_value(&read).expect("json").get("copy_keys").is_none());
+    let keyed = |copy_key: usize, copy_keys: Option<Vec<usize>>| crate::fbs_snapshot::FbsHammingSnapshot {
+        copy_key,
+        copy_keys,
+        ..read.clone()
+    };
+    for copy_key in [1usize, 2] {
+        snap.hamming = Some(keyed(copy_key, None));
+        let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let _ = with_header(&bytes, |h| assert!(h["hamming"].get("copy_keys").is_none(), "copy key {copy_key}"));
+    }
+    for keys in [vec![2usize, 1], vec![1, 2]] {
+        snap.hamming = Some(keyed(1, Some(keys.clone())));
+        let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let container = super::format::Container::parse(&bytes).expect("parse");
+        let image = super::hamming::hamming_image(&container).expect("sections").expect("the reads");
+        assert_eq!(image.record.copy_keys.as_deref(), Some(&keys[..]));
+        // The public readers, whose callers take one key for every head, refuse it (claude-269
+        // lifts this).
+        let one_key = |e: Option<StackError>| e.is_some_and(|e| e.to_string().contains("one copy key for every head"));
+        assert!(one_key(super::read_hamming_uorlut01(&bytes).err()), "read_hamming refuses {keys:?}");
+        assert!(one_key(super::served_copy_codes_uorlut01(&bytes).err()), "served codes refuse {keys:?}");
+        let _ = with_header(&bytes, |h| {
+            assert_eq!(h["hamming"]["copy_keys"], serde_json::json!(keys), "keys {keys:?}");
+            assert!(h["hamming"].get("copy_key").is_none(), "copy_key stays at 1");
+        });
+        IntegerStackModel::parse(&bytes).expect("the session serves it");
+    }
+    snap.hamming = Some(keyed(1, Some(vec![2, 1])));
+    let good = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    for (copy_key, keys) in [(1, serde_json::json!([2])), (1, serde_json::json!([2, 3])), (1, serde_json::json!([2, 2])), (2, serde_json::json!([2, 1]))] {
+        let bad = with_header(&good, |h| {
+            h["hamming"]["copy_key"] = serde_json::json!(copy_key);
+            h["hamming"]["copy_keys"] = keys.clone();
+        });
+        let loader = super::read_hamming_uorlut01(&bad).err().map(|e| e.to_string());
+        assert!(loader.is_some_and(|e| e.contains("mixed Hamming copy keys")), "the loader refuses {copy_key} {keys}");
+        let session = IntegerStackModel::parse(&bad).err().map(|e| e.to_string());
+        assert!(session.is_some_and(|e| e.contains("mixed Hamming copy keys")), "the session refuses {copy_key} {keys}");
+    }
+    for (copy_key, keys) in [(1, vec![2usize, 2]), (1, vec![1]), (2, vec![2, 1])] {
+        snap.hamming = Some(keyed(copy_key, Some(keys.clone())));
+        assert!(super::export_fbs_trunk_uorlut01(&snap).is_err(), "the exporter refuses {copy_key} {keys:?}");
+    }
+}
+
 /// claude-188: the loader and the parser, not only the exporter, hold a `lut-stack/6` artifact
 /// to its schema and sections. Each edit of a valid export is refused by both
 /// `read_hamming_uorlut01` and `IntegerStackModel::parse`.
@@ -4315,6 +4371,20 @@ fn hamming_record_checks_name_their_reason() {
     paired.copy_key = 2;
     paired.check(&base).expect("the base's heads halve on whole lanes");
     assert!(reason(&wide(48), paired).contains("whole 8-coordinate blocks"));
+    // claude-268: mixed keys name 1 or 2 for each copy head, differ, and leave copy_key at 1; a
+    // key-2 head among them still needs whole-lane halves.
+    let mixed = |copy_key: usize, keys: Vec<usize>| {
+        let mut m = record(4, vec![1, layers]);
+        m.copy_key = copy_key;
+        m.copy_keys = Some(keys);
+        m
+    };
+    mixed(1, vec![2, 1]).check(&base).expect("mixed keys");
+    mixed(1, vec![1, 2]).check(&base).expect("mixed keys");
+    for (copy_key, keys) in [(1, vec![2]), (1, vec![2, 1, 1]), (1, vec![2, 3]), (1, vec![0, 1]), (1, vec![2, 2]), (1, vec![1, 1]), (2, vec![2, 1])] {
+        assert!(reason(&base, mixed(copy_key, keys.clone())).contains("mixed Hamming copy keys"), "{copy_key} {keys:?}");
+    }
+    assert!(reason(&wide(48), mixed(1, vec![1, 2])).contains("whole 8-coordinate blocks"));
     let dense = IntegerStackModel::parse(&artifact(5)).expect("parse").shape().clone();
     assert!(reason(&dense, record(2, vec![1, 2])).contains("SpiralCore/FBS"));
 }
@@ -4396,10 +4466,11 @@ fn reference_copy(
     let margins: Vec<f64> = read.margin[..copy].iter().map(|&m| f64::from(m) / 65536.0).collect();
     // claude-261: a code by coordinates, as the float read's `pair_halves` joins rotated points
     // before their signs: under copy key 2, the head's first half of coordinates is `near`'s and
-    // its second half `far`'s; under copy key 1, all of them are `near`'s.
+    // its second half `far`'s; under copy key 1, all of them are `near`'s. claude-268: by each
+    // head's own key.
     let code = |near: u32, far: u32, h: usize| -> u64 {
         (0..head_width).fold(0u64, |word, c| {
-            let from = if record.copy_key == 2 && c >= head_width / 2 { far } else { near };
+            let from = if record.head_copy_key(h) == 2 && c >= head_width / 2 { far } else { near };
             word | (codes[from as usize * copy + h] & (1u64 << c))
         })
     };
@@ -4452,11 +4523,17 @@ fn copy_heads_match_the_f64_reference() {
     let (vocab, width) = (256, 256);
     // Narrow margins, where only repeats count, and wide ones (33 to 41 bits, fractional), where
     // most candidates fall inside with fractional weights, testing the Q31 weights and means.
-    // claude-261: each case under the one-token key and under copy key 2.
+    // claude-261: each case under the one-token key and under copy key 2. claude-268: and under
+    // each mixed pair, one copy head on each key.
     let cases = [(189u64, false), (190, false), (191, false), (194, true), (195, true)];
-    for ((seed, wide), copy_key) in cases.into_iter().flat_map(|c| [(c, 1), (c, 2)]) {
+    let keys = [[1usize, 1], [2, 2], [2, 1], [1, 2]];
+    for ((seed, wide), copy_key) in cases.into_iter().flat_map(|c| keys.map(|k| (c, k))) {
         let (mut record, mut read, table) = copy_control(vocab, width, 4, seed);
-        record.copy_key = copy_key;
+        if copy_key[0] == copy_key[1] {
+            record.copy_key = copy_key[0];
+        } else {
+            record.copy_keys = Some(copy_key.to_vec());
+        }
         if wide {
             for (h, m) in read.margin.iter_mut().enumerate() {
                 *m = ((33 + 2 * h as i32) << 16) + 12_345 * (h as i32 + 1);
@@ -4475,7 +4552,7 @@ fn copy_heads_match_the_f64_reference() {
         for (t, (kept_sets, mean)) in rows.iter().enumerate() {
             let prefix = &tokens[..=t];
             for (h, kept) in kept_sets.iter().enumerate() {
-                assert_eq!(&heads.choose(h, prefix), kept, "seed {seed}, copy key {copy_key}, row {t}, head {h}");
+                assert_eq!(&heads.choose(h, prefix), kept, "seed {seed}, copy keys {copy_key:?}, row {t}, head {h}");
             }
             let got = heads.mean(prefix, &table);
             assert_eq!(got.is_some(), mean.is_some(), "seed {seed}, row {t}: found");
@@ -4561,6 +4638,21 @@ fn copy_key_two_tells_two_facts_after_the_same_token_apart() {
     let told = two.mean(&tokens, &table).expect("found");
     for (&m, &q) in told.iter().zip(row(q)) {
         assert_eq!(m, i128::from(q) << 31, "copy key 2 reads Q");
+    }
+    // claude-268: mixed keys. Each head reads as its own key's uniform record does, and the mean
+    // is the mean of the two: the key-2 head's Q and the key-1 head's P and Q, (3Q + P) / 4.
+    for keys in [[2usize, 1], [1, 2]] {
+        record.copy_key = 1;
+        record.copy_keys = Some(keys.to_vec());
+        let mixed = super::CopyHeads::new(&record, &read, &table, vocab, width);
+        for (h, &key) in keys.iter().enumerate() {
+            let alone = if key == 2 { &two } else { &one };
+            assert_eq!(mixed.choose(h, &tokens), alone.choose(h, &tokens), "keys {keys:?}, head {h}");
+        }
+        let both = mixed.mean(&tokens, &table).expect("found");
+        for (&m, (&p, &q)) in both.iter().zip(row(p).iter().zip(row(q))) {
+            assert_eq!(m, (3 * i128::from(q) + i128::from(p)) << 29, "keys {keys:?}");
+        }
     }
 }
 

@@ -32,6 +32,8 @@
 //!    half-distances, so only a repeat of both tokens is an exact match. A one-token key read
 //!    every position after an earlier " is" alike ("my friend is" and "my number is", claude-259's
 //!    trace). Where a window has fewer tokens before `s`, the second token is the first one's.
+//!    Each copy head may take its own key ([`HammingReads::with_copy_keys`], claude-268), so one
+//!    head can match one token back and another two.
 //! 2. **Codes.** Each coordinate's bit is 1 at or above 0, as [`pack_signs`] packs it. The forward
 //!    pass compares the ±1 codes, so the distance is exactly the Hamming distance
 //!    `popcount(q XOR k)` that serving computes. The backward pass treats the code as the identity
@@ -435,9 +437,10 @@ pub struct HammingRead {
     /// The type heads' position signal, when on ([`HammingReads::with_type_spin`]): the per-lane
     /// rotation that turns each token's point into its icosian step (claude-151).
     pub(crate) step_rotation: Option<Var>,
-    /// How many tokens before a position a copy head's key names: 1, or 2 for the ordered
-    /// two-token key ([`HammingReads::with_copy_key`], claude-261).
-    copy_key: usize,
+    /// How many tokens before a position each copy head's key names: 1, or 2 for the ordered
+    /// two-token key ([`HammingReads::with_copy_key`], claude-261), one entry per copy head
+    /// ([`HammingReads::with_copy_keys`], claude-268).
+    copy_keys: Vec<usize>,
 }
 
 /// Refuse a copy key the read cannot carry: one other than 1 or 2, or 2 on heads of `width /
@@ -457,6 +460,20 @@ fn check_copy_key(copy_key: usize, heads: usize, width: usize) -> Result<()> {
     Ok(())
 }
 
+/// Refuse per-head copy keys the read cannot carry (claude-268): a list that is not one key per
+/// copy head, or a key [`check_copy_key`] refuses.
+fn check_copy_keys(copy_keys: &[usize], heads: usize, width: usize) -> Result<()> {
+    if copy_keys.len() != heads / 2 {
+        return Err(invalid(format!(
+            "copy keys name one key per copy head: {} heads have {}, not {}",
+            heads,
+            heads / 2,
+            copy_keys.len()
+        )));
+    }
+    copy_keys.iter().try_for_each(|&k| check_copy_key(k, heads, width))
+}
+
 /// The token two before each of `ids`' rows, in windows of `time`: `x_{s−2}`, or, where a window
 /// has fewer tokens before `s`, the one before it, `x_{s−1}`, or at the window's first position
 /// its own (never a candidate). The integer session's `CopyHeads` keys by the same rule.
@@ -470,14 +487,19 @@ fn two_back(ids: &[u32], time: usize) -> Vec<u32> {
         .collect()
 }
 
-/// `first`, `(rows, width)`, with the second half of each of the first `heads` heads of
-/// `head_width` columns taken from `second`: copy key 2's codes, one token in each half.
-fn pair_halves(first: &Tensor, second: &Tensor, heads: usize, head_width: usize) -> Result<Tensor> {
-    let (half, width) = (head_width / 2, first.dim(1)?);
+/// `first`, `(rows, width)`, with the second half of each head `h < pair.len()` of `head_width`
+/// columns where `pair[h]` taken from `second`: copy key 2's codes, one token in each half; a head
+/// on copy key 1 stays `first`'s whole (claude-268).
+fn pair_halves(first: &Tensor, second: &Tensor, pair: &[bool], head_width: usize) -> Result<Tensor> {
+    let (half, width, heads) = (head_width / 2, first.dim(1)?, pair.len());
     let mut parts = Vec::with_capacity(2 * heads + 1);
-    for h in 0..heads {
-        parts.push(first.narrow(1, h * head_width, half)?);
-        parts.push(second.narrow(1, h * head_width + half, half)?);
+    for (h, &paired) in pair.iter().enumerate() {
+        if paired {
+            parts.push(first.narrow(1, h * head_width, half)?);
+            parts.push(second.narrow(1, h * head_width + half, half)?);
+        } else {
+            parts.push(first.narrow(1, h * head_width, head_width)?);
+        }
     }
     if heads * head_width < width {
         parts.push(first.narrow(1, heads * head_width, width - heads * head_width)?);
@@ -679,14 +701,40 @@ impl HammingReads {
     pub fn with_copy_key(mut self, copy_key: usize) -> Result<Self> {
         for read in &mut self.reads {
             check_copy_key(copy_key, read.heads, read.weight.dim(1)?)?;
-            read.copy_key = copy_key;
+            read.copy_keys = vec![copy_key; read.copy_heads()];
         }
         Ok(self)
     }
 
-    /// How many tokens before a position the copy heads' key names (1 or 2).
+    /// The same reads with copy head `h` keyed on `copy_keys[h]` tokens before a position, each
+    /// 1 or 2 (claude-268), one entry per copy head. Type heads are untouched.
+    pub fn with_copy_keys(mut self, copy_keys: &[usize]) -> Result<Self> {
+        for read in &mut self.reads {
+            check_copy_keys(copy_keys, read.heads, read.weight.dim(1)?)?;
+            read.copy_keys = copy_keys.to_vec();
+        }
+        Ok(self)
+    }
+
+    /// Each copy head's key (1 or 2), copy head 0 first.
+    pub fn copy_keys(&self) -> Vec<usize> {
+        self.reads.first().map_or_else(Vec::new, |r| r.copy_keys.clone())
+    }
+
+    /// The copy heads' keys when they differ (claude-268), else `None`.
+    pub fn mixed_copy_keys(&self) -> Option<Vec<usize>> {
+        let keys = self.copy_keys();
+        keys.iter().any(|&k| k != keys[0]).then_some(keys)
+    }
+
+    /// How many tokens before a position the copy heads' key names (1 or 2): the key every copy
+    /// head shares, or 1 when they differ, where [`Self::mixed_copy_keys`] names each (the
+    /// integer record's convention).
     pub fn copy_key(&self) -> usize {
-        self.reads.first().map_or(1, |r| r.copy_key)
+        match (self.mixed_copy_keys(), self.copy_keys().first()) {
+            (None, Some(&k)) => k,
+            _ => 1,
+        }
     }
 
     /// The read inside the stream after `depth` layers, if one runs there.
@@ -746,8 +794,12 @@ impl HammingReads {
         let heads = self.reads.first().map_or(0, |r| r.heads) as u32;
         let device = self.reads[0].weight.device();
         tensors.insert("heads".to_owned(), Tensor::new(&[heads], device)?);
-        // Only a two-token key is recorded, so a one-token read's file is byte for byte as before.
-        if self.copy_key() != 1 {
+        // Only a two-token key is recorded, so a one-token read's file is byte for byte as before;
+        // mixed keys are recorded as their list alone (claude-268).
+        if let Some(keys) = self.mixed_copy_keys() {
+            let keys: Vec<u32> = keys.iter().map(|&k| k as u32).collect();
+            tensors.insert("copy_keys".to_owned(), Tensor::new(keys.as_slice(), device)?);
+        } else if self.copy_key() != 1 {
             let copy_key = self.copy_key() as u32;
             tensors.insert("copy_key".to_owned(), Tensor::new(&[copy_key], device)?);
         }
@@ -795,10 +847,25 @@ impl HammingReads {
                     .get(&format!("d{depth}.step_rotation"))
                     .map(Var::from_tensor)
                     .transpose()?,
-                copy_key: 1,
+                copy_keys: Vec::new(),
             });
         }
-        Ok(Some(Self { reads }.with_copy_key(copy_key)?))
+        let reads = Self { reads }.with_copy_key(copy_key)?;
+        match tensors.get("copy_keys") {
+            None => Ok(Some(reads)),
+            Some(_) if tensors.contains_key("copy_key") => Err(invalid(
+                "the saved Hamming read records both a copy key and per-head copy keys",
+            )),
+            Some(tensor) => {
+                let keys: Vec<usize> = tensor.to_vec1::<u32>()?.into_iter().map(|k| k as usize).collect();
+                if keys.windows(2).all(|w| w[0] == w[1]) {
+                    return Err(invalid(
+                        "the saved Hamming read records per-head copy keys that are all the same; one key is saved as copy_key",
+                    ));
+                }
+                Ok(Some(reads.with_copy_keys(&keys)?))
+            }
+        }
     }
 }
 
@@ -843,7 +910,7 @@ impl HammingRead {
             margin: Var::from_tensor(&Tensor::from_vec(margins, heads, device)?)?,
             weight: Var::zeros((2, width), DType::F32, device)?,
             step_rotation: None,
-            copy_key: 1,
+            copy_keys: vec![1; heads / 2],
         })
     }
 
@@ -933,10 +1000,11 @@ impl HammingRead {
         let current = token_points(ids.to_vec())?;
         let previous = token_points(previous)?;
         // Copy key 2 (claude-261): the token two before each row, for the key's second half.
-        let before = match self.copy_key {
-            2 => Some(token_points(two_back(ids, time))?),
-            _ => None,
-        };
+        let pair: Vec<bool> = self.copy_keys.iter().map(|&k| k == 2).collect();
+        let before = pair
+            .contains(&true)
+            .then(|| token_points(two_back(ids, time)))
+            .transpose()?;
         let (query, key, value) = as_trained(|| {
             // Copy heads ask with the current token's point through the key's own rotation, so a
             // repeated token stays an exact match however that rotation learns; type heads ask
@@ -952,10 +1020,9 @@ impl HammingRead {
                 None => (copy_asks, key),
                 Some(before) => {
                     let before = Self::rotate(&self.key_rotation, before)?;
-                    let copy = self.copy_heads();
                     (
-                        pair_halves(&copy_asks, &key, copy, head_width)?,
-                        pair_halves(&key, &before, copy, head_width)?,
+                        pair_halves(&copy_asks, &key, &pair, head_width)?,
+                        pair_halves(&key, &before, &pair, head_width)?,
                     )
                 }
             };
@@ -1457,21 +1524,25 @@ mod tests {
     #[test]
     fn pair_halves_puts_the_first_token_in_each_copy_heads_low_half() {
         let device = Device::new_cuda(0).unwrap();
-        let (heads, head_width, width) = (2, 16, 40);
+        let (head_width, width) = (16, 40);
         let first = Tensor::full(1f32, (3, width), &device).unwrap();
         let second = Tensor::full(2f32, (3, width), &device).unwrap();
-        let paired = pair_halves(&first, &second, heads, head_width)
-            .unwrap()
-            .to_vec2::<f32>()
-            .unwrap();
-        let want: Vec<f32> = (0..width)
-            .map(|c| {
-                let high = c < heads * head_width && c % head_width >= head_width / 2;
-                if high { 2.0 } else { 1.0 }
-            })
-            .collect();
-        for row in paired {
-            assert_eq!(row, want);
+        // claude-268: a head on copy key 1 stays `first`'s whole, wherever it sits.
+        for pair in [[true, true], [true, false], [false, true]] {
+            let paired = pair_halves(&first, &second, &pair, head_width)
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+            let want: Vec<f32> = (0..width)
+                .map(|c| {
+                    let h = c / head_width;
+                    let high = h < pair.len() && pair[h] && c % head_width >= head_width / 2;
+                    if high { 2.0 } else { 1.0 }
+                })
+                .collect();
+            for row in paired {
+                assert_eq!(row, want, "{pair:?}");
+            }
         }
     }
 
@@ -1491,6 +1562,17 @@ mod tests {
         assert!(check_copy_key(2, 1, 64).is_err(), "one head has no copy head to key");
         assert!(check_copy_key(1, 4, 48).is_ok());
         assert!(check_copy_key(2, 4, 256).is_ok());
+        // claude-268: per-head keys, one per copy head; uniform lists are the scalar key.
+        let mixed = reads().with_copy_keys(&[2, 1]).unwrap();
+        assert_eq!((mixed.copy_keys(), mixed.mixed_copy_keys(), mixed.copy_key()), (vec![2, 1], Some(vec![2, 1]), 1));
+        let both = reads().with_copy_keys(&[2, 2]).unwrap();
+        assert_eq!((both.mixed_copy_keys(), both.copy_key()), (None, 2));
+        assert_eq!(reads().copy_keys(), vec![1, 1]);
+        for keys in [&[2usize][..], &[2, 1, 1], &[2, 3], &[0, 1]] {
+            assert!(reads().with_copy_keys(keys).is_err(), "{keys:?}");
+        }
+        assert!(check_copy_keys(&[1, 2], 4, 48).is_err(), "a key-2 head still needs whole-lane halves");
+        assert!(check_copy_keys(&[1, 1], 4, 48).is_ok());
     }
 
     /// claude-261: `hamming_read.safetensors` records the copy key only when it is 2, so a
@@ -1514,7 +1596,28 @@ mod tests {
             assert_eq!(tensors.contains_key("copy_key"), copy_key == 2);
             let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("saved reads");
             assert_eq!(loaded.copy_key(), copy_key);
+            assert!(!tensors.contains_key("copy_keys"), "uniform keys record no list");
         }
+        // claude-268: mixed keys record their list alone, and load back with it.
+        for keys in [[2usize, 1], [1, 2]] {
+            let dir = root.join(format!("mixed-{}{}", keys[0], keys[1]));
+            std::fs::create_dir_all(&dir)?;
+            HammingReads::new(4, 256, &Device::Cpu)?
+                .with_copy_keys(&keys)?
+                .save(&dir)?;
+            let tensors = candle_core::safetensors::load(dir.join(FILE), &Device::Cpu)?;
+            assert!(!tensors.contains_key("copy_key"), "{keys:?}");
+            assert_eq!(tensors["copy_keys"].to_vec1::<u32>()?, keys.map(|k| k as u32).to_vec());
+            let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("saved reads");
+            assert_eq!(loaded.copy_keys(), keys.to_vec());
+        }
+        // A saved list that names one key for every head is refused: that key is `copy_key`.
+        let dir = root.join("mixed-12");
+        let mut tensors = candle_core::safetensors::load(dir.join(FILE), &Device::Cpu)?;
+        tensors.insert("copy_keys".to_owned(), Tensor::new(&[2u32, 2], &Device::Cpu)?);
+        candle_core::safetensors::save(&tensors, dir.join(FILE))?;
+        let same = HammingReads::load(&dir, &Device::Cpu).err().map(|e| e.to_string());
+        assert!(same.is_some_and(|e| e.contains("all the same")), "an all-equal list is refused");
         std::fs::remove_dir_all(&root)?;
         Ok(())
     }
@@ -2273,10 +2376,10 @@ mod tests {
         let x0 = residual(1, ids.len(), 256, &device);
         let table = table(16, 256, &device);
         let points = table.to_vec2::<f32>().unwrap();
-        let added = |copy_key: usize| -> Vec<f32> {
+        let added = |copy_keys: &[usize]| -> Vec<f32> {
             let reads = HammingReads::new(4, 256, &device)
                 .unwrap()
-                .with_copy_key(copy_key)
+                .with_copy_keys(copy_keys)
                 .unwrap();
             let read = &reads.reads[0];
             let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
@@ -2301,7 +2404,9 @@ mod tests {
                 .unwrap();
             rows[ids.len() - 1].clone()
         };
-        let (one, two) = (added(1), added(2));
+        let (one, two) = (added(&[1, 1]), added(&[2, 2]));
+        // claude-268: mixed keys, the key-2 head's Q and the key-1 head's P and Q, (3Q + P) / 4.
+        let mixed = [added(&[2, 1]), added(&[1, 2])];
         let (p, q) = (&points[p as usize], &points[q as usize]);
         for col in 0..256 {
             let both = (p[col] + q[col]) / 2.0;
@@ -2316,6 +2421,10 @@ mod tests {
                 two[col],
                 q[col]
             );
+            let blend = (3.0 * q[col] + p[col]) / 4.0;
+            for m in &mixed {
+                assert!((m[col] - blend).abs() < 1e-5, "mixed keys, {col}: {} against {blend}", m[col]);
+            }
         }
     }
 

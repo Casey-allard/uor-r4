@@ -16,6 +16,8 @@
 //! `--hamming-copy-key 2` (needs `--hamming-read`) keys the read's copy heads on the two tokens
 //! before a position, in order, in place of one (`HammingReads::with_copy_key`, claude-261). The
 //! checkpoint's `hamming_read.safetensors` records it, so scoring and the export read it there.
+//! `--hamming-copy-keys K0,K1` gives each copy head its own key, 1 or 2, one per copy head
+//! (`HammingReads::with_copy_keys`, claude-268); the checkpoint records the list when they differ.
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
 //! `--batched-decode 1` lets `--score-rows` decode equal-length prompts together on the
@@ -268,6 +270,7 @@ fn main() -> Result<()> {
         width: uor_r4_float_train::hamilton_sheet::SHEET_WIDTH,
         type_spin: false,
         hamming_copy_key: 1,
+        hamming_copy_keys: None,
         samples: 6,
         reply_tokens: 48,
         profile: 0,
@@ -453,6 +456,14 @@ fn main() -> Result<()> {
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
             "--hamming-copy-key" => config.hamming_copy_key = number(&value)?,
+            "--hamming-copy-keys" => {
+                config.hamming_copy_keys = Some(
+                    value
+                        .split(',')
+                        .map(number)
+                        .collect::<Result<_>>()?,
+                )
+            }
             "--opening-read" => match number(&value)? {
                 k @ 1..=16 => opening_read = Some(k),
                 _ => {
