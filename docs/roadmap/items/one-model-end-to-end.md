@@ -87,6 +87,11 @@ unavailable because this artifact carries neither mechanism. See
 
 ## What is missing
 
+The D11 diagnostic/training scopes are now panic-safe on the host: a drop
+guard restores gate, snap and training-bridge state after a caught panic, so a
+failed diagnostic cannot contaminate the next forward on that thread. See
+[deepseek-15](../../loop/tasks/one-model-end-to-end/deepseek-15/REPORT.md).
+
 - **Served-surrogate training is repaired; it now passes the operational
   gate, near the ceiling.** Q16 residuals and dynamic i16 recurrence/MLP
   activations run in the real geometric hidden path under

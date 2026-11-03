@@ -575,6 +575,26 @@ thread_local! {
     static BRIDGE_ACTIVATION_I16: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
+struct ScopeRestore<F: FnOnce()> {
+    restore: Option<F>,
+}
+
+impl<F: FnOnce()> ScopeRestore<F> {
+    fn new(restore: F) -> Self {
+        Self {
+            restore: Some(restore),
+        }
+    }
+}
+
+impl<F: FnOnce()> Drop for ScopeRestore<F> {
+    fn drop(&mut self) {
+        if let Some(restore) = self.restore.take() {
+            restore();
+        }
+    }
+}
+
 /// The integer session's residual exponent (`RESIDUAL_EXP`, −16): its residual stream is on the
 /// 2^-16 grid.
 pub const Q16_SCALE: f32 = 65536.0;
@@ -2220,12 +2240,13 @@ pub fn with_gate_mode<T>(
         st.capture_telemetry = false;
         prior
     });
-    let out = f();
-    GATE_HOOK.with(|cell| {
-        let mut st = cell.borrow_mut();
-        (st.icosian_export_mode, st.capture_telemetry) = prior;
+    let _restore = ScopeRestore::new(move || {
+        GATE_HOOK.with(|cell| {
+            let mut st = cell.borrow_mut();
+            (st.icosian_export_mode, st.capture_telemetry) = prior;
+        });
     });
-    out
+    f()
 }
 
 /// Runs `f` with both Hamilton gates in the D11 export mode (Q12-rounded,
@@ -2248,17 +2269,18 @@ pub fn with_d11_export_gates<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
         st.capture_telemetry = false;
         prior
     });
-    let out = f();
-    GATE_HOOK.with(|cell| {
-        let mut st = cell.borrow_mut();
-        (
-            st.active_arm,
-            st.fwd_call_idx,
-            st.icosian_export_mode,
-            st.capture_telemetry,
-        ) = prior;
+    let _restore = ScopeRestore::new(move || {
+        GATE_HOOK.with(|cell| {
+            let mut st = cell.borrow_mut();
+            (
+                st.active_arm,
+                st.fwd_call_idx,
+                st.icosian_export_mode,
+                st.capture_telemetry,
+            ) = prior;
+        });
     });
-    out
+    f()
 }
 
 /// Runs `f` in the D11 mode, as the integer path serves the trunk (claude-125):
@@ -2327,18 +2349,19 @@ pub fn with_d11_snaps<T>(snaps: D11Snaps, f: impl FnOnce() -> Result<T>) -> Resu
         st.capture_telemetry = false;
         prior
     });
-    let out = f();
-    GATE_HOOK.with(|cell| {
-        let mut st = cell.borrow_mut();
-        (
-            st.active_arm,
-            st.fwd_call_idx,
-            st.icosian_export_mode,
-            st.snap_transition,
-            st.capture_telemetry,
-        ) = prior;
+    let _restore = ScopeRestore::new(move || {
+        GATE_HOOK.with(|cell| {
+            let mut st = cell.borrow_mut();
+            (
+                st.active_arm,
+                st.fwd_call_idx,
+                st.icosian_export_mode,
+                st.snap_transition,
+                st.capture_telemetry,
+            ) = prior;
+        });
     });
-    out
+    f()
 }
 
 /// Clear the gate hook's arm, which [`evaluate_dev_panel`] and [`with_gate_mode`] leave set, so a
@@ -2384,9 +2407,10 @@ pub fn with_d11_training_snaps<T>(
         st.step = step;
         prior
     });
-    let out = with_d11_snaps(snaps, f);
-    GATE_HOOK.with(|cell| cell.borrow_mut().bridge_d11 = prior);
-    out
+    let _restore = ScopeRestore::new(move || {
+        GATE_HOOK.with(|cell| cell.borrow_mut().bridge_d11 = prior);
+    });
+    with_d11_snaps(snaps, f)
 }
 
 /// Whether D11-mode training bridges the transition snap and the Q12 query on this thread.
@@ -3176,6 +3200,53 @@ mod tests {
         assert!(with_d11_training(1, 3, || -> Result<()> { Err(invalid("inside")) }).is_err());
         assert!(!is_bridging_d11() && !is_snapping_transition());
         Ok(())
+    }
+
+    #[test]
+    fn d11_scopes_restore_after_panic() {
+        GATE_HOOK.with(|cell| {
+            let mut hook = cell.borrow_mut();
+            hook.active_arm = Some(HamiltonArm::RandomGateNull);
+            hook.seed = 1;
+            hook.step = 3;
+            hook.fwd_call_idx = 0;
+            hook.icosian_export_mode = true;
+            hook.snap_transition = true;
+            hook.capture_telemetry = true;
+        });
+        let before = GATE_HOOK.with(|cell| cell.borrow().clone());
+
+        let gate = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = with_gate_mode(
+                HamiltonArm::RandomGateNull,
+                1,
+                3,
+                false,
+                || -> Result<()> { panic!("gate mode") },
+            );
+        }));
+        assert!(gate.is_err());
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), before));
+
+        let export = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = with_d11_export_gates(|| -> Result<()> { panic!("export gates") });
+        }));
+        assert!(export.is_err());
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), before));
+
+        let snaps = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = with_d11_snaps(SERVED_SNAPS, || -> Result<()> { panic!("d11 snaps") });
+        }));
+        assert!(snaps.is_err());
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), before));
+
+        let training = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = with_d11_training_snaps(1, 3, SERVED_SNAPS, || -> Result<()> {
+                panic!("d11 training")
+            });
+        }));
+        assert!(training.is_err());
+        GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), before));
     }
 
     #[test]
