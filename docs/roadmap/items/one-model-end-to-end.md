@@ -58,6 +58,16 @@ replace the served-training comparison above. Full transcripts and pins:
   inconclusive, with served above plain on the bar's evaluator top-1 (53 / 67
   against 40 / 43, band 24) and on DEV nearest (305 / 357 against 239 / 248). The step's 1.85× margin to the 2× ceiling and served-run
   openings are still open before a longer run.
+- **A model trained as served does not yet serve as trained.** [claude-263](../../loop/tasks/one-model-end-to-end/claude-263/REPORT.md)
+  exported claude-262's served step-256 checkpoints snapped and served them in
+  integers. Their first tokens differ from the model's own float first tokens
+  on 112 and 137 of DEV's 310 prompts, against I-3's bar of 8. claude-261's
+  2,048-step checkpoints, a different configuration, missed 295–305 before
+  the repair. The float side's turn memory
+  is not needed to explain the gap: float first tokens with and without
+  memory differ on 3 and 0 prompts. The integer memory path is unchecked.
+  The fault must be localized to one layer and repaired before the
+  full-length served run, whose sheet is FIT and whose pre-run review passed.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
