@@ -158,7 +158,9 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let split = corpus
         .split(config.evaluation_stride, config.max_evaluation)
         .map_err(|error| error.to_string())?;
+    let setup_elapsed = started.elapsed();
 
+    let baseline_started = Instant::now();
     let mut baseline_panel = CpuPanelEvaluator::from_artifact(
         &artifact,
         split.evaluation.clone(),
@@ -168,6 +170,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let baseline = baseline_panel
         .evaluate()
         .map_err(|error| error.to_string())?;
+    let baseline_elapsed = baseline_started.elapsed();
+    let trainer_setup_started = Instant::now();
     let (mut trainer, resume) = if let Some(checkpoint_path) = &config.resume_checkpoint {
         let (trainer, resume) = resume_checkpoint(
             checkpoint_path,
@@ -204,6 +208,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
 
     std::fs::create_dir_all(&config.checkpoint_dir)
         .map_err(|error| format!("checkpoint directory: {error}"))?;
+    let trainer_setup_elapsed = trainer_setup_started.elapsed();
     let mut step_elapsed = Duration::ZERO;
     let mut checkpoint_elapsed = Duration::ZERO;
     let mut accepted = 0usize;
@@ -213,6 +218,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let mut accepted_coordinate_moves = 0usize;
     let mut accepted_coordinate_histogram = vec![0usize; 65];
     let mut checkpoints = Vec::new();
+    let training_started = Instant::now();
     for completed in resumed_from_step + 1..=target_steps {
         let step_started = Instant::now();
         let step = trainer.train_step().map_err(|error| error.to_string())?;
@@ -261,7 +267,9 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             checkpoint_elapsed += checkpoint_started.elapsed();
         }
     }
+    let training_elapsed = training_started.elapsed();
 
+    let final_panel_started = Instant::now();
     let mut final_panel = CpuPanelEvaluator::from_artifact(
         trainer.artifact(),
         split.evaluation.clone(),
@@ -269,6 +277,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     )
     .map_err(|error| error.to_string())?;
     let final_reading = final_panel.evaluate().map_err(|error| error.to_string())?;
+    let final_panel_elapsed = final_panel_started.elapsed();
+    let gate_evaluation_started = Instant::now();
     let gate =
         panel_admission_gate(&baseline, &final_reading).map_err(|error| error.to_string())?;
     let mut gate = match gate {
@@ -298,7 +308,9 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     gate["interpretation"] = serde_json::json!(
         "gate admission is an acceptance constraint, not a capability gain; use the raw readings"
     );
+    let gate_evaluation_elapsed = gate_evaluation_started.elapsed();
 
+    let finalization_started = Instant::now();
     let final_checkpoint = trainer.checkpoint().map_err(|error| error.to_string())?;
     let final_checkpoint_path = config.checkpoint_dir.join("final.ckpt");
     let final_binding_path = write_checkpoint(
@@ -319,13 +331,33 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     if target_steps == 0 && final_artifact != artifact {
         return Err("zero-step run changed the source artifact".to_owned());
     }
+    let finalization_elapsed = finalization_started.elapsed();
     let final_artifact_path = config.checkpoint_dir.join("final.uorlut");
-    let (final_audit_path, final_audit, final_audit_sha256) =
-        write_verified_artifact(&final_artifact_path, &final_artifact, &audit_tokens)?;
+    let audit_started = Instant::now();
+    let prepared_audit = prepare_served_forward_audit(&final_artifact, &audit_tokens)?;
+    let audit_elapsed = audit_started.elapsed();
+    let publication_started = Instant::now();
+    let final_audit_path =
+        publish_verified_artifact(&final_artifact_path, &final_artifact, &prepared_audit.bytes)?;
+    let publication_elapsed = publication_started.elapsed();
+    let verification_started = Instant::now();
     let final_artifact_sha256 = uor_r4_discrete::corpus::sha256(&final_artifact);
     if !baseline.export.is_exact() || !final_reading.export.is_exact() {
         return Err("CPU/serving query, token or kept-cell export mismatch".to_owned());
     }
+    let verification_elapsed = verification_started.elapsed();
+    let wall_elapsed = started.elapsed();
+    let attributed_elapsed = setup_elapsed
+        + baseline_elapsed
+        + trainer_setup_elapsed
+        + training_elapsed
+        + final_panel_elapsed
+        + gate_evaluation_elapsed
+        + finalization_elapsed
+        + audit_elapsed
+        + publication_elapsed
+        + verification_elapsed;
+    let unattributed_elapsed = wall_elapsed.saturating_sub(attributed_elapsed);
     let step_seconds = step_elapsed.as_secs_f64();
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-masked-corpus-run/1",
@@ -358,6 +390,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             "evaluation_stride": split.evaluation_stride,
         },
         "run": {
+            "rayon_workers": rayon::current_num_threads(),
             "seed": config.seed,
             "rank_margin": config.rank_margin,
             "require_admission": config.require_admission,
@@ -393,7 +426,20 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             } else {
                 0.0
             },
-            "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
+            "stage_elapsed_ms": {
+                "setup": setup_elapsed.as_secs_f64() * 1_000.0,
+                "baseline_panel": baseline_elapsed.as_secs_f64() * 1_000.0,
+                "trainer_setup": trainer_setup_elapsed.as_secs_f64() * 1_000.0,
+                "training": training_elapsed.as_secs_f64() * 1_000.0,
+                "final_panel": final_panel_elapsed.as_secs_f64() * 1_000.0,
+                "gate_evaluation": gate_evaluation_elapsed.as_secs_f64() * 1_000.0,
+                "checkpoint_and_reload": finalization_elapsed.as_secs_f64() * 1_000.0,
+                "final_served_forward_audit": audit_elapsed.as_secs_f64() * 1_000.0,
+                "artifact_publish_and_reload": publication_elapsed.as_secs_f64() * 1_000.0,
+                "post_publish_verification": verification_elapsed.as_secs_f64() * 1_000.0,
+                "unattributed": unattributed_elapsed.as_secs_f64() * 1_000.0,
+            },
+            "wall_elapsed_ms": wall_elapsed.as_secs_f64() * 1_000.0,
             "peak_rss_kib": peak_rss_kib(),
         },
         "panel_baseline": panel_json(&baseline),
@@ -414,12 +460,12 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         },
         "served_forward_audit": {
             "path": final_audit_path,
-            "sha256": final_audit_sha256,
-            "positions_checked": final_audit.parity.positions_checked,
-            "query_coordinates_compared": final_audit.parity.query_coordinates_compared,
-            "token_decisions_compared": final_audit.parity.token_decisions_compared,
-            "kept_cells_compared": final_audit.parity.kept_cells_compared,
-            "decision_sha256": final_audit.parity.cpu_decision_sha256,
+            "sha256": prepared_audit.sha256,
+            "positions_checked": prepared_audit.report.parity.positions_checked,
+            "query_coordinates_compared": prepared_audit.report.parity.query_coordinates_compared,
+            "token_decisions_compared": prepared_audit.report.parity.token_decisions_compared,
+            "kept_cells_compared": prepared_audit.report.parity.kept_cells_compared,
+            "decision_sha256": prepared_audit.report.parity.cpu_decision_sha256,
         },
         "scope": "CPU development-research component run; not GPU qualification, language quality or complete-reply evidence",
     });
@@ -604,11 +650,16 @@ fn validate_served_forward_export(
     Ok(())
 }
 
-fn write_verified_artifact(
-    path: &Path,
+struct PreparedServedForwardAudit {
+    report: ServedForwardAuditReport,
+    bytes: Vec<u8>,
+    sha256: String,
+}
+
+fn prepare_served_forward_audit(
     artifact: &[u8],
     tokens: &UortTokenSlice,
-) -> Result<(PathBuf, ServedForwardAuditReport, String), String> {
+) -> Result<PreparedServedForwardAudit, String> {
     IntegerStackModel::parse(artifact)
         .map_err(|error| format!("final artifact does not parse: {error}"))?;
     let audit_config = ServedForwardAuditConfig {
@@ -625,6 +676,18 @@ fn write_verified_artifact(
     let audit_bytes = serde_json::to_vec_pretty(&audit)
         .map_err(|error| format!("final served-forward audit JSON: {error}"))?;
     let audit_sha256 = uor_r4_discrete::corpus::sha256(&audit_bytes);
+    Ok(PreparedServedForwardAudit {
+        report: audit,
+        bytes: audit_bytes,
+        sha256: audit_sha256,
+    })
+}
+
+fn publish_verified_artifact(
+    path: &Path,
+    artifact: &[u8],
+    audit_bytes: &[u8],
+) -> Result<PathBuf, String> {
     let audit_path = path.with_extension("audit.json");
     if path.exists() || audit_path.exists() {
         return Err("final artifact or audit receipt already exists".to_owned());
@@ -642,7 +705,7 @@ fn write_verified_artifact(
         let mut audit_file = std::fs::File::create(&audit_partial)
             .map_err(|error| format!("final audit {}: {error}", audit_partial.display()))?;
         audit_file
-            .write_all(&audit_bytes)
+            .write_all(audit_bytes)
             .and_then(|()| audit_file.sync_all())
             .map_err(|error| format!("final audit {}: {error}", audit_partial.display()))?;
         drop(audit_file);
@@ -657,7 +720,7 @@ fn write_verified_artifact(
         if reloaded != artifact || audit_reloaded != audit_bytes {
             return Err("final artifact or served-forward audit reload differs".to_owned());
         }
-        Ok((audit_path.clone(), audit, audit_sha256))
+        Ok(audit_path.clone())
     })();
     if published.is_err() {
         for failed in [&partial, &audit_partial, path, &audit_path] {
@@ -665,6 +728,17 @@ fn write_verified_artifact(
         }
     }
     published
+}
+
+#[cfg(test)]
+fn write_verified_artifact(
+    path: &Path,
+    artifact: &[u8],
+    tokens: &UortTokenSlice,
+) -> Result<(PathBuf, ServedForwardAuditReport, String), String> {
+    let prepared = prepare_served_forward_audit(artifact, tokens)?;
+    let audit_path = publish_verified_artifact(path, artifact, &prepared.bytes)?;
+    Ok((audit_path, prepared.report, prepared.sha256))
 }
 
 fn panel_json(reading: &uor_r4_cpu_train::PanelReading) -> serde_json::Value {
@@ -1033,9 +1107,48 @@ mod tests {
         let fixture = corpus_fixture("table-block");
         let mut base_config = config(&fixture, 8, "block", None);
         base_config.rank_margin.coordinates_per_step = 4;
-        let report = execute(&base_config).unwrap();
+        let expected_workers = 3;
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(expected_workers)
+            .build()
+            .unwrap();
+        let report = pool.install(|| execute(&base_config)).unwrap();
         let accepted = report["run"]["accepted_updates"].as_u64().unwrap();
         assert_eq!(report["run"]["rank_margin"]["coordinates_per_step"], 4);
+        assert_eq!(
+            report["run"]["rayon_workers"].as_u64().unwrap(),
+            expected_workers as u64
+        );
+        let stages = [
+            "setup",
+            "baseline_panel",
+            "trainer_setup",
+            "training",
+            "final_panel",
+            "gate_evaluation",
+            "checkpoint_and_reload",
+            "final_served_forward_audit",
+            "artifact_publish_and_reload",
+            "post_publish_verification",
+            "unattributed",
+        ];
+        assert_eq!(
+            report["run"]["stage_elapsed_ms"].as_object().unwrap().len(),
+            stages.len()
+        );
+        let mut attributed = 0.0;
+        for stage in stages {
+            let elapsed = report["run"]["stage_elapsed_ms"][stage].as_f64().unwrap();
+            assert!(
+                elapsed >= 0.0,
+                "missing non-negative {stage} timing: {report}"
+            );
+            attributed += elapsed;
+        }
+        assert!(
+            attributed <= report["run"]["wall_elapsed_ms"].as_f64().unwrap() + 0.001,
+            "stage timings overlap the wall interval: {report}"
+        );
         assert_eq!(
             report["run"]["accepted_coordinate_histogram"]
                 .as_array()

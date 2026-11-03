@@ -202,6 +202,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/parallel-public-budget": {
+    "branch": "deepseek/parallel-public-budget",
+    "claimed_at": "2026-11-03T15:02:22-05:00",
+    "head": "c040c7f73",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",

@@ -1,0 +1,29 @@
+	Command being timed: "bash -c
+  set -euo pipefail
+  env RAYON_NUM_THREADS=16 "$1" "$2" "$3" "$4" "$5" 1 16 2 1024 16 "$6" > "$7" 2> "$8" & p1=$!
+  env RAYON_NUM_THREADS=16 "$1" "$2" "$3" "$4" "$5" 1 16 2 1024 16 "$9" > "${10}" 2> "${11}" & p2=$!
+  wait "$p1"
+  wait "$p2"
+ _ /home/callard/projects/codex-playground/uor-r4/target/release/cpu-corpus-driver /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-worker-budget/deepseek-100/pair-concurrent-w16-seed1 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/pair-concurrent-w16-seed1.json /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/pair-concurrent-w16-seed1.stderr.txt /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-worker-budget/deepseek-100/pair-concurrent-w16-seed2 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/pair-concurrent-w16-seed2.json /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/pair-concurrent-w16-seed2.stderr.txt"
+	User time (seconds): 193.67
+	System time (seconds): 0.45
+	Percent of CPU this job got: 2867%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:06.77
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 86844
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 51988
+	Voluntary context switches: 462
+	Involuntary context switches: 33757
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 25616
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

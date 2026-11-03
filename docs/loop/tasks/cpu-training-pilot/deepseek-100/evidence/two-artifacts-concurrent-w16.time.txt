@@ -1,0 +1,29 @@
+	Command being timed: "bash -c
+  set -euo pipefail
+  env RAYON_NUM_THREADS=16 "$1" "$2" "$4" "$5" "$6" 1 16 2 1024 16 "$7" > "$8" 2> "${11}" & p1=$!
+  env RAYON_NUM_THREADS=16 "$1" "$3" "$4" "$5" "$6" 1 16 2 1024 16 "$9" > "${10}" 2> "${12}" & p2=$!
+  wait "$p1"
+  wait "$p2"
+ _ /home/callard/projects/codex-playground/uor-r4/target/release/cpu-corpus-driver /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-worker-budget/deepseek-101/two-artifacts-concurrent-w16-seed1 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/two-artifacts-concurrent-w16-seed1.json /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-worker-budget/deepseek-101/two-artifacts-concurrent-w16-seed2 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/two-artifacts-concurrent-w16-seed2.json /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/two-artifacts-concurrent-w16-seed1.stderr.txt /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/docs/loop/tasks/cpu-training-pilot/deepseek-100/evidence/two-artifacts-concurrent-w16-seed2.stderr.txt"
+	User time (seconds): 193.51
+	System time (seconds): 0.36
+	Percent of CPU this job got: 2937%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:06.60
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 89304
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 49986
+	Voluntary context switches: 415
+	Involuntary context switches: 31330
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 25616
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

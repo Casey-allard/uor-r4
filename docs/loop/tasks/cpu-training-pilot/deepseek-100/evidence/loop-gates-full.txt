@@ -1,0 +1,12 @@
+fmt-claim-wording      GREEN    exit 0        0.1s
+fmt-harness            GREEN    exit 0        0.5s
+claim-wording          GREEN    exit 0        1.0s
+loop-gates-watch       GREEN    exit 0        0.1s
+loop-drive             GREEN    exit 0        2.5s
+loop-next-sources      GREEN    exit 0        0.2s
+loop-next-wait         GREEN    exit 0        0.2s
+loop-next-owner-direction GREEN    exit 0        0.2s
+git-hooks              GREEN    exit 0        0.2s
+loop-migrate           GREEN    exit 0        1.5s
+loop-review-changes-blocks GREEN    exit 0        0.3s
+logs: /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-parallel-public-budget/local/deepseek/gates/1793736083-1145265
