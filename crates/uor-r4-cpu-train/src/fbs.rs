@@ -54,6 +54,12 @@ pub struct CpuFbsStep {
     pub query_q12: Vec<i32>,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct CpuMemoryTrace {
+    pub(crate) norm_before_memory: Vec<i64>,
+    pub(crate) memory: Option<MemoryMove>,
+}
+
 pub const CPU_FBS_SESSION_CHECKPOINT_SCHEMA: &str = "uor-r4.cpu-fbs-session-checkpoint/2";
 const CPU_FBS_SESSION_SUBSTRATE: &str = "cpu-development-research";
 const CPU_FBS_SESSION_QUALIFICATION: &str = "gpu-required";
@@ -514,6 +520,65 @@ impl CpuFbsForward {
     }
 
     pub fn step(&mut self, token: u32, head: CpuFbsHead) -> Result<CpuFbsStep> {
+        self.step_inner(token, head, false).map(|(step, _)| step)
+    }
+
+    pub(crate) fn step_with_memory_trace(
+        &mut self,
+        token: u32,
+        head: CpuFbsHead,
+    ) -> Result<(CpuFbsStep, CpuMemoryTrace)> {
+        let (step, trace) = self.step_inner(token, head, true)?;
+        let trace = trace.ok_or_else(|| invalid("CPU FBS memory trace is absent"))?;
+        Ok((step, trace))
+    }
+
+    pub(crate) fn query_from_norm(&self, norm: &[i64]) -> Result<Vec<i32>> {
+        if norm.len() != self.width {
+            return Err(invalid("CPU FBS traced normalization width differs"));
+        }
+        Ok(norm
+            .iter()
+            .map(|&value| to_exp_i32(value, NORM_FINE_EXP, Q12_EXP).clamp(-32768, 32767))
+            .collect())
+    }
+
+    pub(crate) fn writer_token_from_query(
+        &self,
+        query: &[i32],
+        opening_used_point: bool,
+    ) -> Result<u32> {
+        if query.len() != self.width {
+            return Err(invalid("CPU FBS traced query width differs"));
+        }
+        let mut token = writer(
+            query,
+            &self.writer_table,
+            self.vocab,
+            &self.roots_q12,
+            self.kept_cells,
+        )
+        .0;
+        if opening_used_point {
+            if let Some((name, _)) = self
+                .memory
+                .as_ref()
+                .and_then(|memory| memory.point_name(query))
+                .transpose()
+                .map_err(invalid)?
+            {
+                token = name;
+            }
+        }
+        Ok(token)
+    }
+
+    fn step_inner(
+        &mut self,
+        token: u32,
+        head: CpuFbsHead,
+        capture_memory_trace: bool,
+    ) -> Result<(CpuFbsStep, Option<CpuMemoryTrace>)> {
         if token as usize >= self.vocab {
             return Err(invalid(format!(
                 "token {token} is outside vocabulary {}",
@@ -596,6 +661,7 @@ impl CpuFbsForward {
                 &mut scratch[..d],
             );
         }
+        let norm_before_memory = capture_memory_trace.then(|| scratch[..d].to_vec());
         let memory_move: Option<MemoryMove> = match (&self.memory, self.reply_start) {
             (Some(memory), Some(reply_start)) => memory.apply(
                 &self.tokens,
@@ -639,11 +705,18 @@ impl CpuFbsForward {
             }
         }
         self.position += 1;
-        Ok(CpuFbsStep {
-            token,
-            kept_cells,
-            query_q12,
-        })
+        let trace = norm_before_memory.map(|norm_before_memory| CpuMemoryTrace {
+            norm_before_memory,
+            memory: memory_move,
+        });
+        Ok((
+            CpuFbsStep {
+                token,
+                kept_cells,
+                query_q12,
+            },
+            trace,
+        ))
     }
 }
 

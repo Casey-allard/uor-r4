@@ -234,11 +234,20 @@ impl CpuTurnMemory {
 }
 
 fn move_point(table: &Table, stored: u32, writer: &[i16], norm: &mut [i64]) {
+    move_point_with_weight(stored, writer, &table.weight, norm);
+}
+
+pub(crate) fn move_point_with_weight(
+    stored: u32,
+    writer: &[i16],
+    weight: &[i32],
+    norm: &mut [i64],
+) {
     let at = stored as usize * norm.len();
     let Some(row) = writer.get(at..at + norm.len()) else {
         return;
     };
-    for ((slot, &target), &weight) in norm.iter_mut().zip(row).zip(&table.weight) {
+    for ((slot, &target), &weight) in norm.iter_mut().zip(row).zip(weight) {
         let point = i64::from(target) << MEMORY_POINT_RAISE;
         let sum = (i128::from(*slot) << MEMORY_WEIGHT_DROP)
             + i128::from(weight) * i128::from(point - *slot);

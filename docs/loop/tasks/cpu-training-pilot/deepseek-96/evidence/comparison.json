@@ -1,0 +1,133 @@
+{
+  "schema": "uor-r4.cpu-memory-trace-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "sheet": "docs/harness/prep/cpu-training-pilot-memory-trace-2026-11-03.md",
+  "base_commit": "3b893ddc0ee29a43750632799aaae340540a0bbe",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cpus": 32,
+    "rayon_threads": 16,
+    "os": "Ubuntu 24.04.3 LTS",
+    "kernel": "Linux 7.0.0-42-generic x86_64"
+  },
+  "runtime": {
+    "binary_sha256": "b05f5078ce143266ab5f0dff490793a68183d431a50585ce97cda95ad47a7e70",
+    "binary_path": "local/deepseek/memory-trace-parallel-target/release/cpu-memory-panel-driver",
+    "build_command": "CARGO_TARGET_DIR=local/deepseek/memory-trace-parallel-target cargo build --package uor-r4-cpu-train --release --bin cpu-memory-panel-driver",
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)",
+    "source_blobs": {
+      "crates/uor-r4-cpu-train/src/memory_train.rs": "861c406a35264627b05a68f6319c5b2eb133f70f",
+      "crates/uor-r4-cpu-train/src/fbs.rs": "22aa6ad122305ed5efe5c8e73f1e676bce996b0d",
+      "crates/uor-r4-cpu-train/src/memory.rs": "ac8805893014152b3fed16b42aa4f947c7b8caa1",
+      "crates/uor-r4-cpu-train/src/bin/cpu-memory-panel-driver.rs": "6717b9e451cef0abf5f0dfe6358648a39b2750f5"
+    },
+    "search_mode": "cached_trajectory",
+    "parallelized_work": [
+      "teacher-forced trace construction across independent samples",
+      "parameter candidates across the Rayon pool",
+      "matched evaluation arms across independent samples",
+      "CPU/serving parity samples across the Rayon pool"
+    ],
+    "ordered_reduction": "integer readings are collected in sample order and summed serially to preserve saturation and candidate tie behavior"
+  },
+  "equivalence": {
+    "normalized_report_equal_seed_1": true,
+    "normalized_report_equal_seed_2": true,
+    "comparison_excludes": [
+      "wall_elapsed_ms",
+      "peak_rss_kib",
+      "training.search_mode"
+    ],
+    "accepted_step_receipts_equal": true,
+    "held_out_readings_equal": true,
+    "parity_readings_equal": true,
+    "trained_artifact_sha256_equal": true,
+    "reference_artifact_bytes_retained": false
+  },
+  "seeds": {
+    "1": {
+      "old_report": "../../deepseek-95/evidence/seed-1.json",
+      "old_report_sha256": "867003c31a218ebc4ef5eafd0d963112ca9b53b6c687e9150436d414de5fb69e",
+      "new_report": "seed-1.json",
+      "new_report_sha256": "06d4e79897ae0ff2738248faa2b9926d202d731921f74c6701d29e852688a86e",
+      "timing": "timing-seed-1.txt",
+      "timing_sha256": "219b53dded1c79d4ed0d935e2318f718272fc744c561c508556ca1e0d6165d82",
+      "trained_artifact_sha256": "3ad89c7b80df52f9e1e4d878c072982e9fb613b8453ded0dd50c3ee905e0ee44",
+      "accepted_updates": 8,
+      "old_full_forward_wall_ms": 415370.075503,
+      "new_cached_trace_wall_ms": 8773.545171,
+      "speedup": 47.3434703312363,
+      "old_full_forward_peak_rss_kib": 365048,
+      "new_cached_trace_peak_rss_kib": 272116,
+      "new_cpu_percent": 1385,
+      "frozen": {
+        "top1": 278,
+        "target_distance": 2821353534
+      },
+      "trained": {
+        "top1": 291,
+        "target_distance": 2820387931
+      },
+      "random": {
+        "top1": 278,
+        "target_distance": 2821404885
+      },
+      "memory_off": {
+        "top1": 278,
+        "target_distance": 2821353534
+      }
+    },
+    "2": {
+      "old_report": "../../deepseek-95/evidence/seed-2.json",
+      "old_report_sha256": "8a2c532ba70c9e063c7827b7429d9db1dff4b7caac0c5cc4b63d8df526df0317",
+      "new_report": "seed-2.json",
+      "new_report_sha256": "ef038aec8dbe6ae6656b2512e9246e8552aebf0c48a270e1a10c6b187375c963",
+      "timing": "timing-seed-2.txt",
+      "timing_sha256": "7c224e3cafc36d964586f02759f842125c3d8c483017ee9f23f23fa9cf5d5424",
+      "trained_artifact_sha256": "070d66364112d4527d3043998f023f435ec73455b9a617aa94695403c62bd089",
+      "accepted_updates": 8,
+      "old_full_forward_wall_ms": 414121.132075,
+      "new_cached_trace_wall_ms": 8397.245399,
+      "speedup": 49.31630700280789,
+      "old_full_forward_peak_rss_kib": 364360,
+      "new_cached_trace_peak_rss_kib": 265260,
+      "new_cpu_percent": 1431,
+      "frozen": {
+        "top1": 238,
+        "target_distance": 2898309913
+      },
+      "trained": {
+        "top1": 243,
+        "target_distance": 2896327331
+      },
+      "random": {
+        "top1": 238,
+        "target_distance": 2898001645
+      },
+      "memory_off": {
+        "top1": 238,
+        "target_distance": 2898309913
+      }
+    }
+  },
+  "parity_per_arm": {
+    "samples": 56,
+    "positions": 2487,
+    "query_coordinates": 636672,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 2487,
+    "token_mismatches": 0,
+    "kept_cells": 19896,
+    "kept_cell_mismatches": 0
+  },
+  "verdict": {
+    "instrument": "pass on both seeds",
+    "artifact_identity": "pass on both seeds",
+    "reading_identity": "pass on both seeds",
+    "speed_bar": "pass; both runs are over 40 times below the retained full-forward wall times",
+    "language_capability": "not tested"
+  }
+}

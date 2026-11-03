@@ -24,6 +24,7 @@ struct Config {
     reply_turn: usize,
     seed: u64,
     select_only: bool,
+    reference: bool,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
     expected_mask_sha256: String,
@@ -55,7 +56,7 @@ fn usage() -> String {
      --expected-artifact-sha256 HEX --expected-tokens-sha256 HEX \
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--steps N] [--keys N] [--per-key N] [--key-tokens N] \
-     [--reply-turn N] [--seed N] [--select-only]"
+     [--reply-turn N] [--seed N] [--select-only] [--reference]"
         .to_owned()
 }
 
@@ -79,6 +80,7 @@ fn parse_args() -> Result<Config, String> {
         reply_turn: 8,
         seed: 1,
         select_only: false,
+        reference: false,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
         expected_mask_sha256: String::new(),
@@ -87,6 +89,10 @@ fn parse_args() -> Result<Config, String> {
     while let Some(flag) = values.next() {
         if flag == "--select-only" {
             config.select_only = true;
+            continue;
+        }
+        if flag == "--reference" {
+            config.reference = true;
             continue;
         }
         let value = values
@@ -239,11 +245,19 @@ fn run() -> Result<serde_json::Value, String> {
         train_opening: true,
         train_reply: true,
     };
-    let mut trainer = CpuMemoryWeightTrainer::from_artifact(
-        &memory_artifact,
-        training_samples.clone(),
-        weight_config,
-    )
+    let mut trainer = if config.reference {
+        CpuMemoryWeightTrainer::from_artifact(
+            &memory_artifact,
+            training_samples.clone(),
+            weight_config,
+        )
+    } else {
+        CpuMemoryWeightTrainer::from_artifact_cached(
+            &memory_artifact,
+            training_samples.clone(),
+            weight_config,
+        )
+    }
     .map_err(|error| error.to_string())?;
     let train_before = trainer.reading().map_err(|error| error.to_string())?;
     let frozen = evaluate_memory_weight_samples(&memory_artifact, &evaluation_samples, true)
@@ -330,6 +344,11 @@ fn run() -> Result<serde_json::Value, String> {
         "training": {
             "seed": config.seed,
             "threads": rayon::current_num_threads(),
+            "search_mode": if config.reference {
+                "full_forward"
+            } else {
+                "cached_trajectory"
+            },
             "steps": config.steps,
             "accepted_updates": accepted.len(),
             "accepted": accepted,

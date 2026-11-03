@@ -181,6 +181,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/memory-trace-reuse": {
+    "branch": "deepseek/memory-trace-reuse",
+    "claimed_at": "2026-11-03T11:26:38-05:00",
+    "head": "3b893ddc0",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/oracle-corpus-support": {
     "branch": "deepseek/oracle-corpus-support",
     "claimed_at": "2026-11-02T22:00:48-05:00",

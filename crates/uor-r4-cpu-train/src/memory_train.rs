@@ -14,6 +14,8 @@ use uor_r4_integer::stack::{
     StackTurnMemory, MEMORY_PAD, MEMORY_WEIGHT_EXP, STACK_FBS_MEMORY_SCHEMA,
 };
 
+use crate::fbs::CpuMemoryTrace;
+use crate::memory::move_point_with_weight;
 use crate::{
     audit_served_forward, invalid, CpuFbsForward, CpuFbsHead, CpuTrainError,
     ServedForwardAuditConfig,
@@ -124,13 +126,27 @@ pub struct MemoryWeightStep {
     pub parity: Option<MemoryWeightParityReading>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct CpuMemoryWeightTrainer {
     initial_artifact: Vec<u8>,
     artifact: Vec<u8>,
     samples: Vec<MemoryWeightSample>,
     config: MemoryWeightConfig,
     steps: u64,
+    trajectory: Option<CpuMemoryTrajectory>,
+}
+
+impl std::fmt::Debug for CpuMemoryWeightTrainer {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CpuMemoryWeightTrainer")
+            .field("artifact_bytes", &self.artifact.len())
+            .field("samples", &self.samples.len())
+            .field("config", &self.config)
+            .field("steps", &self.steps)
+            .field("cached_trajectory", &self.trajectory.is_some())
+            .finish()
+    }
 }
 
 impl CpuMemoryWeightTrainer {
@@ -161,7 +177,18 @@ impl CpuMemoryWeightTrainer {
             samples,
             config,
             steps: 0,
+            trajectory: None,
         })
+    }
+
+    pub fn from_artifact_cached(
+        artifact: &[u8],
+        samples: Vec<MemoryWeightSample>,
+        config: MemoryWeightConfig,
+    ) -> Result<Self> {
+        let mut trainer = Self::from_artifact(artifact, samples, config)?;
+        trainer.trajectory = Some(CpuMemoryTrajectory::build(artifact, &trainer.samples)?);
+        Ok(trainer)
     }
 
     pub fn artifact(&self) -> &[u8] {
@@ -181,7 +208,18 @@ impl CpuMemoryWeightTrainer {
     }
 
     pub fn reading(&self) -> Result<MemoryWeightReading> {
-        evaluate(&self.artifact, &self.samples)
+        if let Some(trajectory) = &self.trajectory {
+            let memory = read_memory_uorlut01(&self.artifact)
+                .map_err(|error| invalid(error.to_string()))?
+                .ok_or_else(|| invalid("memory trajectory lost turn memory"))?;
+            trajectory.evaluate(
+                &self.artifact,
+                &memory.opening.weight,
+                memory.reply.as_ref().map(|reply| reply.weight.as_slice()),
+            )
+        } else {
+            evaluate(&self.artifact, &self.samples)
+        }
     }
 
     pub fn evaluate_samples(
@@ -198,6 +236,8 @@ impl CpuMemoryWeightTrainer {
         let memory = read_memory_uorlut01(&self.artifact)
             .map_err(|error| invalid(format!("memory-weight artifact: {error}")))?
             .ok_or_else(|| invalid("memory-weight training lost its turn memory"))?;
+        let opening_weights = memory.opening.weight.clone();
+        let reply_weights = memory.reply.as_ref().map(|reply| reply.weight.clone());
         let mut candidates = Vec::new();
         if self.config.train_opening {
             candidates.push((MemoryWeightTable::Opening, memory.opening.weight));
@@ -224,6 +264,8 @@ impl CpuMemoryWeightTrainer {
                         before_weight: original,
                         after_weight: proposed,
                         weights: weights.clone(),
+                        opening_weights: opening_weights.clone(),
+                        reply_weights: reply_weights.clone(),
                     });
                 }
             }
@@ -237,7 +279,24 @@ impl CpuMemoryWeightTrainer {
                     trial_weights[candidate.coordinate] = candidate.after_weight;
                     let artifact =
                         patch_memory_weight_table(&self.artifact, candidate.table, &trial_weights)?;
-                    let reading = evaluate(&artifact, &self.samples)?;
+                    let reading = match &self.trajectory {
+                        Some(trajectory) => {
+                            let mut opening = candidate.opening_weights.clone();
+                            let mut reply = candidate.reply_weights.clone();
+                            match candidate.table {
+                                MemoryWeightTable::Opening => {
+                                    opening[candidate.coordinate] = candidate.after_weight;
+                                }
+                                MemoryWeightTable::Reply => {
+                                    reply.as_mut().ok_or_else(|| {
+                                        invalid("memory candidate lost its reply table")
+                                    })?[candidate.coordinate] = candidate.after_weight;
+                                }
+                            }
+                            trajectory.evaluate(&artifact, &opening, reply.as_deref())?
+                        }
+                        None => evaluate(&artifact, &self.samples)?,
+                    };
                     if !strict_improvement(&reading, &before) {
                         continue;
                     }
@@ -321,6 +380,190 @@ struct WeightCandidateInput {
     before_weight: i32,
     after_weight: i32,
     weights: Vec<i32>,
+    opening_weights: Vec<i32>,
+    reply_weights: Option<Vec<i32>>,
+}
+
+#[derive(Clone)]
+struct CachedDecision {
+    target: u32,
+    norm_before_memory: Vec<i64>,
+    memory: Option<CachedMemoryMove>,
+    query_q12: Vec<i32>,
+    token: u32,
+}
+
+#[derive(Clone, Copy)]
+struct CachedMemoryMove {
+    opening: bool,
+    stored: Option<u32>,
+}
+
+#[derive(Clone)]
+struct CpuMemoryTrajectory {
+    forward: CpuFbsForward,
+    decisions: Vec<CachedDecision>,
+    sample_ranges: Vec<std::ops::Range<usize>>,
+    samples: usize,
+}
+
+impl CpuMemoryTrajectory {
+    fn build(artifact: &[u8], samples: &[MemoryWeightSample]) -> Result<Self> {
+        let forward = CpuFbsForward::from_artifact(artifact)
+            .map_err(|error| invalid(format!("memory trajectory forward: {error}")))?;
+        let sample_decisions = samples
+            .par_iter()
+            .map(|sample| {
+                let mut forward = CpuFbsForward::from_artifact(artifact)
+                    .map_err(|error| invalid(format!("memory trajectory forward: {error}")))?;
+                let tokens = sample
+                    .prompt
+                    .iter()
+                    .chain(&sample.reply)
+                    .copied()
+                    .collect::<Vec<_>>();
+                let mut decisions = Vec::with_capacity(tokens.len().saturating_sub(1));
+                for index in 0..tokens.len() - 1 {
+                    if index + 1 == sample.prompt.len() {
+                        forward.mark_reply_start();
+                    }
+                    let (
+                        step,
+                        CpuMemoryTrace {
+                            norm_before_memory,
+                            memory,
+                        },
+                    ) = forward
+                        .step_with_memory_trace(tokens[index], CpuFbsHead::Writer)
+                        .map_err(|error| invalid(format!("memory trajectory forward: {error}")))?;
+                    decisions.push(CachedDecision {
+                        target: tokens[index + 1],
+                        norm_before_memory,
+                        memory: memory.map(|memory| CachedMemoryMove {
+                            opening: memory.opening,
+                            stored: memory.stored,
+                        }),
+                        query_q12: step.query_q12,
+                        token: step.token,
+                    });
+                }
+                Ok(decisions)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut decisions = Vec::new();
+        let mut sample_ranges = Vec::with_capacity(sample_decisions.len());
+        for sample in sample_decisions {
+            let start = decisions.len();
+            decisions.extend(sample);
+            sample_ranges.push(start..decisions.len());
+        }
+        Ok(Self {
+            forward,
+            decisions,
+            sample_ranges,
+            samples: samples.len(),
+        })
+    }
+
+    fn evaluate(
+        &self,
+        artifact: &[u8],
+        opening_weights: &[i32],
+        reply_weights: Option<&[i32]>,
+    ) -> Result<MemoryWeightReading> {
+        let width = self.forward.width();
+        let vocab = self.forward.vocabulary();
+        let table = self.forward.token_table();
+        if opening_weights.len() != width || reply_weights.is_some_and(|w| w.len() != width) {
+            return Err(invalid("memory trajectory weight width differs"));
+        }
+        let sample_readings = self
+            .sample_ranges
+            .iter()
+            .map(|range| {
+                let mut sample_top1 = 0u64;
+                let mut sample_distance = 0u64;
+                let mut sample_decisions = 0u64;
+                for decision in &self.decisions[range.clone()] {
+                    if decision.target as usize >= vocab {
+                        return Err(invalid("memory trajectory target is outside vocabulary"));
+                    }
+                    let (query, token) = match decision.memory {
+                        Some(memory) if memory.stored.is_some() => {
+                            let weights = if memory.opening {
+                                opening_weights
+                            } else {
+                                reply_weights.ok_or_else(|| {
+                                    invalid("memory trajectory lost its reply weight table")
+                                })?
+                            };
+                            let mut norm = decision.norm_before_memory.clone();
+                            move_point_with_weight(
+                                memory.stored.unwrap(),
+                                table,
+                                weights,
+                                &mut norm,
+                            );
+                            let query = self.forward.query_from_norm(&norm).map_err(|error| {
+                                invalid(format!("memory trajectory query: {error}"))
+                            })?;
+                            let token = self
+                                .forward
+                                .writer_token_from_query(&query, false)
+                                .map_err(|error| {
+                                    invalid(format!("memory trajectory decision: {error}"))
+                                })?;
+                            (query, token)
+                        }
+                        _ => (decision.query_q12.clone(), decision.token),
+                    };
+                    let target_row = &table[decision.target as usize * width..][..width];
+                    let distance =
+                        query
+                            .iter()
+                            .zip(target_row)
+                            .fold(0u64, |sum, (&query, &point)| {
+                                sum.saturating_add(u64::from(query.abs_diff(i32::from(point))))
+                            });
+                    sample_top1 += u64::from(token == decision.target);
+                    sample_distance = sample_distance.saturating_add(distance);
+                    sample_decisions = sample_decisions
+                        .checked_add(1)
+                        .ok_or_else(|| invalid("memory trajectory decision count overflows"))?;
+                }
+                Ok((sample_top1, sample_distance, sample_decisions))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let (top1_correct, target_distance_sum, decisions) =
+            checked_sample_totals(sample_readings)?;
+        Ok(MemoryWeightReading {
+            artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
+            samples: self.samples,
+            decisions,
+            top1_correct,
+            target_distance_sum,
+        })
+    }
+}
+
+fn checked_sample_totals(
+    readings: impl IntoIterator<Item = (u64, u64, u64)>,
+) -> Result<(u64, u64, u64)> {
+    let mut top1_correct = 0u64;
+    let mut target_distance_sum = 0u64;
+    let mut decisions = 0u64;
+    for (sample_top1, sample_distance, sample_decisions) in readings {
+        top1_correct = top1_correct
+            .checked_add(sample_top1)
+            .ok_or_else(|| invalid("memory-weight top-1 count overflows"))?;
+        target_distance_sum = target_distance_sum
+            .checked_add(sample_distance)
+            .ok_or_else(|| invalid("memory-weight distance sum overflows"))?;
+        decisions = decisions
+            .checked_add(sample_decisions)
+            .ok_or_else(|| invalid("memory-weight decision count overflows"))?;
+    }
+    Ok((top1_correct, target_distance_sum, decisions))
 }
 
 fn strict_improvement(after: &MemoryWeightReading, before: &MemoryWeightReading) -> bool {
@@ -414,10 +657,31 @@ fn evaluate_with_memory(
     if table.len() != vocab.saturating_mul(width) {
         return Err(invalid("memory-weight writer table shape differs"));
     }
+    let readings = samples
+        .par_iter()
+        .map(|sample| evaluate_memory_sample(artifact, sample, memory_enabled, table, width))
+        .collect::<Result<Vec<_>>>()?;
+    let (top1_correct, target_distance_sum, decisions) = checked_sample_totals(readings)?;
+    Ok(MemoryWeightReading {
+        artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
+        samples: samples.len(),
+        decisions,
+        top1_correct,
+        target_distance_sum,
+    })
+}
+
+fn evaluate_memory_sample(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    memory_enabled: bool,
+    table: &[i16],
+    width: usize,
+) -> Result<(u64, u64, u64)> {
     let mut top1_correct = 0u64;
     let mut target_distance_sum = 0u64;
     let mut decisions = 0u64;
-    for sample in samples {
+    {
         let mut cpu = CpuFbsForward::from_artifact(artifact)
             .map_err(|error| invalid(format!("memory-weight CPU forward: {error}")))?;
         let tokens = sample
@@ -449,13 +713,7 @@ fn evaluate_with_memory(
                 .ok_or_else(|| invalid("memory-weight decision count overflows"))?;
         }
     }
-    Ok(MemoryWeightReading {
-        artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
-        samples: samples.len(),
-        decisions,
-        top1_correct,
-        target_distance_sum,
-    })
+    Ok((top1_correct, target_distance_sum, decisions))
 }
 
 /// Build opening and reply memory tables from teacher-forced prompt/reply
@@ -819,26 +1077,31 @@ pub fn audit_memory_weight_samples(
     samples: &[MemoryWeightSample],
     memory_enabled: bool,
 ) -> Result<MemoryWeightParityReading> {
+    let parity = samples
+        .par_iter()
+        .map(|sample| {
+            let tokens = sample
+                .prompt
+                .iter()
+                .chain(&sample.reply)
+                .copied()
+                .collect::<Vec<_>>();
+            audit_served_forward(
+                artifact,
+                &ServedForwardAuditConfig {
+                    tokens,
+                    token_source: None,
+                    expected_artifact_sha256: None,
+                    reply_start: memory_enabled.then_some(sample.prompt.len() - 1),
+                    measure_timing: false,
+                },
+            )
+            .map(|audit| audit.parity)
+            .map_err(|error| invalid(format!("memory-weight served audit: {error}")))
+        })
+        .collect::<Result<Vec<_>>>()?;
     let mut total = MemoryWeightParityReading::default();
-    for sample in samples {
-        let tokens = sample
-            .prompt
-            .iter()
-            .chain(&sample.reply)
-            .copied()
-            .collect::<Vec<_>>();
-        let audit = audit_served_forward(
-            artifact,
-            &ServedForwardAuditConfig {
-                tokens,
-                token_source: None,
-                expected_artifact_sha256: None,
-                reply_start: memory_enabled.then_some(sample.prompt.len() - 1),
-                measure_timing: false,
-            },
-        )
-        .map_err(|error| invalid(format!("memory-weight served audit: {error}")))?;
-        let parity = audit.parity;
+    for parity in parity {
         total.samples += 1;
         total.positions = total
             .positions
@@ -963,7 +1226,8 @@ mod tests {
     use super::*;
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
     use uor_r4_integer::stack::{
-        export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, MEMORY_PAD,
+        add_point_key_uorlut01, export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot,
+        FbsReplyTable, PointKeyImage, MEMORY_PAD,
     };
 
     const WIDTH: usize = 64;
@@ -1035,6 +1299,47 @@ mod tests {
             prompt: vec![10, 11, 12],
             reply: vec![42, 77, 99],
         }]
+    }
+
+    fn point_fixture() -> Vec<u8> {
+        let artifact = fixture(0.0, 1.0);
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let mut query = None;
+        for (index, token) in [30, 31, 32].into_iter().enumerate() {
+            if index + 1 == 3 {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).unwrap();
+            if index + 1 == 3 {
+                query = Some(step.query_q12);
+            }
+        }
+        add_point_key_uorlut01(
+            &artifact,
+            &PointKeyImage {
+                width: WIDTH,
+                points: query
+                    .expect("the prompt has a final query")
+                    .into_iter()
+                    .map(|value| i16::try_from(value).expect("the query is Q12-clamped"))
+                    .collect(),
+                targets: vec![40],
+            },
+        )
+        .unwrap()
+    }
+
+    fn hit_miss_point_samples() -> Vec<MemoryWeightSample> {
+        let mut edge_samples = samples();
+        edge_samples.push(MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, 77, 49],
+        });
+        edge_samples.push(MemoryWeightSample {
+            prompt: vec![30, 31, 32],
+            reply: vec![40],
+        });
+        edge_samples
     }
 
     fn assert_audit(artifact: &[u8]) {
@@ -1131,6 +1436,150 @@ mod tests {
     }
 
     #[test]
+    fn cached_trajectory_reproduces_full_forward_training_exactly() {
+        let artifact = fixture(0.0, 0.0);
+        let config = MemoryWeightConfig::default();
+        let mut full = CpuMemoryWeightTrainer::from_artifact(&artifact, samples(), config).unwrap();
+        let mut cached =
+            CpuMemoryWeightTrainer::from_artifact_cached(&artifact, samples(), config).unwrap();
+        for _ in 0..3 {
+            let expected = full.train_step().unwrap();
+            let actual = cached.train_step().unwrap();
+            assert_eq!(actual, expected);
+            assert_eq!(cached.reading().unwrap(), full.reading().unwrap());
+        }
+        assert_eq!(cached.artifact(), full.artifact());
+    }
+
+    #[test]
+    fn cached_trajectory_matches_single_table_and_saturation_edges() {
+        for (table, config, expect_accepted) in [
+            (
+                MemoryWeightTable::Opening,
+                MemoryWeightConfig {
+                    train_opening: true,
+                    train_reply: false,
+                    ..MemoryWeightConfig::default()
+                },
+                true,
+            ),
+            (
+                MemoryWeightTable::Reply,
+                MemoryWeightConfig {
+                    train_opening: false,
+                    train_reply: true,
+                    ..MemoryWeightConfig::default()
+                },
+                false,
+            ),
+            (
+                MemoryWeightTable::Opening,
+                MemoryWeightConfig {
+                    step_q24: 1 << 20,
+                    parameter_limit_q24: 1 << 20,
+                    train_opening: true,
+                    train_reply: false,
+                },
+                true,
+            ),
+        ] {
+            let artifact = fixture(0.0, 1.0);
+            let mut full =
+                CpuMemoryWeightTrainer::from_artifact(&artifact, samples(), config).unwrap();
+            let mut cached =
+                CpuMemoryWeightTrainer::from_artifact_cached(&artifact, samples(), config).unwrap();
+            let mut accepted = 0;
+            for _ in 0..2 {
+                let expected = full.train_step().unwrap();
+                let actual = cached.train_step().unwrap();
+                assert_eq!(actual, expected);
+                if let Some(selected) = actual.table {
+                    assert_eq!(selected, table);
+                }
+                if actual.updated {
+                    accepted += 1;
+                    if config.parameter_limit_q24 == 1 << 20 {
+                        assert_eq!(
+                            actual
+                                .after_weight_q24
+                                .expect("an accepted step has its new weight")
+                                .abs(),
+                            1 << 20
+                        );
+                    }
+                }
+            }
+            assert_eq!(accepted > 0, expect_accepted);
+            assert_eq!(cached.artifact(), full.artifact());
+        }
+    }
+
+    #[test]
+    fn cached_trajectory_matches_hit_miss_and_point_fallback() {
+        let artifact = point_fixture();
+        let mut point = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let mut token = None;
+        for (index, input) in [30, 31, 32].into_iter().enumerate() {
+            if index + 1 == 3 {
+                point.mark_reply_start();
+            }
+            token = Some(point.step(input, CpuFbsHead::Writer).unwrap().token);
+        }
+        assert_eq!(token, Some(40));
+
+        let config = MemoryWeightConfig::default();
+        let mut full =
+            CpuMemoryWeightTrainer::from_artifact(&artifact, hit_miss_point_samples(), config)
+                .unwrap();
+        let mut cached = CpuMemoryWeightTrainer::from_artifact_cached(
+            &artifact,
+            hit_miss_point_samples(),
+            config,
+        )
+        .unwrap();
+        for _ in 0..3 {
+            let expected = full.train_step().unwrap();
+            let actual = cached.train_step().unwrap();
+            assert_eq!(actual, expected);
+        }
+        assert_eq!(cached.artifact(), full.artifact());
+    }
+
+    #[test]
+    fn cached_parallel_constructions_are_byte_identical() {
+        let artifact = point_fixture();
+        let config = MemoryWeightConfig::default();
+        let mut first = CpuMemoryWeightTrainer::from_artifact_cached(
+            &artifact,
+            hit_miss_point_samples(),
+            config,
+        )
+        .unwrap();
+        let mut second = CpuMemoryWeightTrainer::from_artifact_cached(
+            &artifact,
+            hit_miss_point_samples(),
+            config,
+        )
+        .unwrap();
+        for _ in 0..3 {
+            assert_eq!(first.train_step().unwrap(), second.train_step().unwrap());
+        }
+        assert_eq!(first.artifact(), second.artifact());
+    }
+
+    #[test]
+    fn cached_sample_aggregation_refuses_every_overflow_class() {
+        for readings in [
+            [(u64::MAX, 0, 0), (1, 0, 0)],
+            [(0, u64::MAX, 0), (0, 1, 0)],
+            [(0, 0, u64::MAX), (0, 0, 1)],
+        ] {
+            let error = checked_sample_totals(readings).unwrap_err();
+            assert!(error.to_string().contains("overflows"));
+        }
+    }
+
+    #[test]
     fn a_weight_patch_changes_only_its_named_table() {
         let artifact = fixture(0.0, 0.0);
         let before = read_memory_uorlut01(&artifact).unwrap().unwrap();
@@ -1159,17 +1608,30 @@ mod tests {
     #[test]
     fn an_unseen_memory_key_is_a_byte_identical_noop() {
         let artifact = fixture(0.0, 0.0);
-        let unseen = vec![MemoryWeightSample {
-            prompt: vec![20, 21, 22],
-            reply: vec![50, 51, 52],
-        }];
-        let mut trainer =
-            CpuMemoryWeightTrainer::from_artifact(&artifact, unseen, MemoryWeightConfig::default())
-                .unwrap();
-        let step = trainer.train_step().unwrap();
-        assert!(!step.updated);
-        assert_eq!(trainer.artifact(), artifact);
-        assert!(step.parity.is_none());
+        for cached in [false, true] {
+            let unseen = vec![MemoryWeightSample {
+                prompt: vec![20, 21, 22],
+                reply: vec![50, 51, 52],
+            }];
+            let mut trainer = if cached {
+                CpuMemoryWeightTrainer::from_artifact_cached(
+                    &artifact,
+                    unseen,
+                    MemoryWeightConfig::default(),
+                )
+            } else {
+                CpuMemoryWeightTrainer::from_artifact(
+                    &artifact,
+                    unseen,
+                    MemoryWeightConfig::default(),
+                )
+            }
+            .unwrap();
+            let step = trainer.train_step().unwrap();
+            assert!(!step.updated);
+            assert_eq!(trainer.artifact(), artifact);
+            assert!(step.parity.is_none());
+        }
     }
 
     #[test]
