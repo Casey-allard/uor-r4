@@ -30,7 +30,8 @@
 #     --public-model-label L  label for that URL (default: Public model)
 #     --trained-manifest FILE stage one to four trained models from a JSON manifest
 #                             (scripts/stage-studio-site.sh --trained-manifest); each may be
-#                             bundled same-origin or listed remote-only by URL
+#                             bundled same-origin or listed remote-only by URL. Every trained
+#                             entry must include a passing served-forward audit receipt.
 #     --stage-dir DIR         copy the staged studio tree to DIR for inspection
 #     --keep-worktree         keep the throwaway publish worktree and print its path
 #   ENV:

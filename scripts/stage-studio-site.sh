@@ -21,15 +21,19 @@
 # --trained-manifest FILE names a JSON array of one to four trained model entries:
 #   [{ "id": "fbs-dual-c131-seed1", "label": "...", "file": "/path/seed-1.uorlut",
 #      "hf_url": "https://huggingface.co/<org>/<repo>/resolve/main/<file>.uorlut",
-#      "tokenizer": "/path/seed-1.tokenizer.json", "note": "..." }]
+#      "tokenizer": "/path/seed-1.tokenizer.json",
+#      "audit": "/path/final.audit.json", "audit_sha256": "<64 lowercase hex>",
+#      "note": "..." }]
 # Each entry is copied to <dest>/models/<id>.uorlut with <id>.tokenizer.json beside it, and TWO
 # published cards are written: the same-origin copy (url "./models/<id>.uorlut") and the Hugging
 # Face URL (cross-origin, user-initiated, CORS required). The tokenizer is validated against the
-# artifact (stack_sha256 + vocab) before anything is copied. Paths are local files; nothing is
-# fetched from the network.
+# artifact (stack_sha256 + vocab) and the served-forward audit receipt is validated against the
+# artifact before anything is copied. Remote-only entries must pin both artifact and receipt.
+# Paths are local files; nothing is fetched from the network.
 #
 # It reads nothing from the network and writes only under <dest-dir>.
 set -euo pipefail
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 usage() {
     echo "usage: $0 <studio-src> <dest-dir> [public_model_url] [public_model_label] [--trained-manifest FILE]" >&2
@@ -113,12 +117,14 @@ find "$dest" -maxdepth 1 -type f \( -name 'verify_*.mjs' -o -name '*.sh' \) -del
 rm -f "$dest/pkg/.gitignore"
 rm -f "$dest/models.json"
 
-node - "$dest" "$public_url" "$public_label" "$trained_manifest" <<'NODE'
+node - "$dest" "$public_url" "$public_label" "$trained_manifest" \
+    "$repo_root/scripts/validate_served_forward_receipt.py" <<'NODE'
 const { createHash } = require('node:crypto');
-const { readFileSync, writeFileSync, copyFileSync, mkdirSync } = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const { readFileSync, writeFileSync, copyFileSync, mkdirSync, unlinkSync } = require('node:fs');
 const { join } = require('node:path');
 
-const [dest, publicUrl, publicLabel, trainedManifestPath] = process.argv.slice(2);
+const [dest, publicUrl, publicLabel, trainedManifestPath, receiptGate] = process.argv.slice(2);
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
 const sha256File = (path) => sha256(readFileSync(path));
@@ -135,6 +141,31 @@ function readUorLutHeader(path) {
     throw new Error(path + ': invalid UORLUT01 header length');
   }
   return JSON.parse(bytes.subarray(16, 16 + jsonLen).toString('utf8'));
+}
+
+function requireServedForwardAudit(entry, id, artifactSha, artifactBytes, artifactPath) {
+  const receiptPath = typeof entry.audit === 'string' ? entry.audit.trim() : '';
+  const receiptSha = typeof entry.audit_sha256 === 'string' ? entry.audit_sha256.trim().toLowerCase() : '';
+  if (!receiptPath) throw new Error(id + ': audit receipt is required');
+  if (!/^[0-9a-f]{64}$/.test(receiptSha)) throw new Error(id + ': audit_sha256 must be 64 lowercase hex characters');
+  const args = [
+    receiptGate,
+    '--receipt', receiptPath,
+    '--expected-receipt-sha256', receiptSha,
+    '--expected-artifact-sha256', artifactSha,
+  ];
+  if (artifactPath) {
+    args.push('--artifact', artifactPath);
+  } else {
+    args.push('--artifact-sha256', artifactSha, '--artifact-bytes', String(artifactBytes));
+  }
+  try {
+    execFileSync(process.env.PYTHON || 'python3', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    const detail = error.stderr ? String(error.stderr).trim() : error.message;
+    throw new Error(id + ': served-forward audit receipt rejected: ' + detail);
+  }
+  return receiptSha;
 }
 
 const manifest = {
@@ -200,6 +231,7 @@ if (trainedManifestPath) {
       if (!Number.isInteger(size) || size <= 0) throw new Error(id + ': size_bytes is required for an HF-only entry');
       if (size > MAX_FILE_BYTES) throw new Error(id + ': artifact is over the 100 MB per-file limit');
       if (!hfTokenizerUrl) throw new Error(id + ': hf_tokenizer_url is required for an HF-only entry');
+      const auditSha = requireServedForwardAudit(entry, id, sha, size, null);
       const schema = typeof entry.schema === 'string' ? entry.schema : '';
       const note = typeof entry.note === 'string' && entry.note.trim() ? entry.note.trim() + ' ' : '';
       const remote = {
@@ -212,6 +244,7 @@ if (trainedManifestPath) {
         format: 'UORLUT01',
         sha256: sha,
         size_bytes: size,
+        served_forward_audit_sha256: auditSha,
         note: note + 'User-initiated cross-origin download from the host named on the card; the host must serve CORS headers.',
       };
       if (schema) remote.schema = schema;
@@ -237,12 +270,26 @@ if (trainedManifestPath) {
     if (!tokenizerArtifact || tokenizerArtifact.stack_sha256 !== artifactSha || tokenizerArtifact.vocab_size !== vocab) {
       throw new Error(id + ': tokenizer does not bind to the artifact (stack_sha256/vocab mismatch)');
     }
+    const auditSha = requireServedForwardAudit(
+      entry, id, artifactSha, artifactBytes.byteLength, entry.file,
+    );
     const artifactName = id + '.uorlut';
     const tokenizerName = id + '.tokenizer.json';
+    const auditName = id + '.uorlut.audit.json';
     const targetDir = subdir ? join(dest, 'models', subdir) : join(dest, 'models');
     mkdirSync(targetDir, { recursive: true });
-    copyFileSync(entry.file, join(targetDir, artifactName));
-    copyFileSync(entry.tokenizer, join(targetDir, tokenizerName));
+    const artifactOut = join(targetDir, artifactName);
+    const tokenizerOut = join(targetDir, tokenizerName);
+    const auditOut = join(targetDir, auditName);
+    copyFileSync(entry.file, artifactOut);
+    copyFileSync(entry.tokenizer, tokenizerOut);
+    copyFileSync(entry.audit, auditOut);
+    if (sha256File(artifactOut) !== artifactSha || sha256File(tokenizerOut) !== tokenizerSha || sha256File(auditOut) !== auditSha) {
+      for (const path of [artifactOut, tokenizerOut, auditOut]) {
+        try { unlinkSync(path); } catch (_) {}
+      }
+      throw new Error(id + ': a source changed while release files were being copied');
+    }
     const urlPrefix = './models/' + (subdir ? subdir + '/' : '');
     const note = typeof entry.note === 'string' && entry.note.trim() ? entry.note.trim() + ' ' : '';
     const shared = {
@@ -252,6 +299,7 @@ if (trainedManifestPath) {
       sha256: artifactSha,
       size_bytes: artifactBytes.byteLength,
       tokenizer_sha256: tokenizerSha,
+      served_forward_audit_sha256: auditSha,
     };
     manifest.models.push(Object.assign({}, shared, {
       id: id,
@@ -259,6 +307,7 @@ if (trainedManifestPath) {
       primary: primary,
       url: urlPrefix + artifactName,
       tokenizer_url: urlPrefix + tokenizerName,
+      audit_url: urlPrefix + auditName,
       note: note + 'Same-origin copy served by this Studio site; the browser fetches it only after an explicit Load click.',
     }));
     if (hfUrl) {

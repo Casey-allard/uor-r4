@@ -5,6 +5,8 @@ The manifest records only what this script reads or runs:
 - every bundle file with its size and SHA-256 digest (and a BLAKE3 digest when
   the optional `blake3` Python module is installed; otherwise no BLAKE3 field);
 - the model shape from `bundle.json`;
+- every UORLUT artifact with its adjacent served-forward audit receipt,
+  artifact binding and parity workload;
 - the native `uor-chat` binary and the WebAssembly helper module, each with the
   command, exit status and TAP lines of its instruction audit as actually run;
 - the full-path cost report, read from its `metrics` and `parity_gate`
@@ -53,6 +55,8 @@ DECLARED_CEILINGS = {
     "step_mean_ms": ("metrics.step_latency.mean_ms", 4.0),
     "step_p90_ms": ("metrics.step_latency.p90_ms", 4.0),
 }
+RECEIPT_VALIDATOR = os.path.join(REPO_ROOT, "scripts", "validate_served_forward_receipt.py")
+UORLUT_MAGIC = b"UORLUT01"
 
 
 class ManifestError(Exception):
@@ -100,6 +104,50 @@ def run_audit(script, arguments):
             for line in lines
             if line.startswith(("1..", "# ", "ok ", "not ok "))
         ],
+    }
+
+
+def served_forward_audit(artifact_path):
+    """Validate and describe the receipt beside one release UORLUT artifact."""
+    with open(artifact_path, "rb") as handle:
+        if handle.read(len(UORLUT_MAGIC)) != UORLUT_MAGIC:
+            return None
+    receipt_path = artifact_path + ".audit.json"
+    if not os.path.isfile(receipt_path):
+        raise ManifestError(
+            f"{artifact_path}: release UORLUT requires adjacent {os.path.basename(receipt_path)}"
+        )
+    result = subprocess.run(
+        [
+            sys.executable,
+            RECEIPT_VALIDATOR,
+            "--receipt",
+            receipt_path,
+            "--artifact",
+            artifact_path,
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise ManifestError(f"{artifact_path}: served-forward receipt rejected: {detail}")
+    with open(receipt_path, "r") as handle:
+        report = json.load(handle)
+    parity = report["parity"]
+    return {
+        "receipt_path": os.path.relpath(receipt_path, os.path.dirname(artifact_path)),
+        "receipt_sha256": sha256_file(receipt_path),
+        "positions": parity["positions_checked"],
+        "query_coordinates": parity["query_coordinates_compared"],
+        "token_decisions": parity["token_decisions_compared"],
+        "kept_cells": parity["kept_cells_compared"],
+        "query_coordinate_mismatches": parity["query_coordinate_mismatches"],
+        "token_mismatches": parity["token_mismatches"],
+        "kept_cell_mismatches": parity["kept_cell_mismatches"],
+        "cpu_decision_sha256": parity["cpu_decision_sha256"],
+        "serving_decision_sha256": parity["serving_decision_sha256"],
     }
 
 
@@ -200,6 +248,9 @@ def build_manifest(args):
             }
             if HAS_BLAKE3:
                 entry["blake3"] = blake3_file(full_path)
+            audit = served_forward_audit(full_path)
+            if audit is not None:
+                entry["served_forward_audit"] = audit
             bundle_files.append(entry)
 
     bundle_json = os.path.join(bundle_dir, "bundle.json")
