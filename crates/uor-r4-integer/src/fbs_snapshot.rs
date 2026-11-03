@@ -389,6 +389,21 @@ pub struct FbsHammingSnapshot {
     pub depths: Vec<usize>,
     /// One read per depth, in the same order.
     pub reads: Vec<FbsHammingRead>,
+    /// How many tokens before a position a copy head's key names (claude-261): 1, absent from a
+    /// one-token snapshot, or 2, the ordered two-token key the float read's
+    /// `HammingReads::with_copy_key` trains.
+    #[serde(default = "one_token", skip_serializing_if = "is_one_token")]
+    pub copy_key: usize,
+}
+
+/// The one-token copy key, a Hamming record's default (claude-261).
+pub(crate) fn one_token() -> usize {
+    1
+}
+
+/// Whether `copy_key` is the one-token key, which a record leaves out (claude-261).
+pub(crate) fn is_one_token(copy_key: &usize) -> bool {
+    *copy_key == 1
 }
 
 /// One Hamming read's learned parameters, as `hamming_read.safetensors` stores them under

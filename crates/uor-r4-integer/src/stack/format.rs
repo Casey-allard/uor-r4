@@ -157,10 +157,18 @@ pub struct StackHamming {
     pub rotation_exp: i32,
     pub margin_exp: i32,
     pub weight_exp: i32,
+    /// How many tokens before a position a copy head's key names (claude-261): 1, or 2 for the
+    /// ordered two-token key. Left out of the header at 1, so a one-token artifact is byte for
+    /// byte as before, and an engine without the field refuses a two-token one.
+    #[serde(
+        default = "crate::fbs_snapshot::one_token",
+        skip_serializing_if = "crate::fbs_snapshot::is_one_token"
+    )]
+    pub copy_key: usize,
 }
 
 impl StackHamming {
-    /// The record the exporter writes for `heads` and `depths`.
+    /// The record the exporter writes for `heads` and `depths`, with the one-token copy key.
     pub fn new(heads: usize, depths: Vec<usize>) -> Self {
         Self {
             heads,
@@ -169,12 +177,14 @@ impl StackHamming {
             rotation_exp: HAMMING_ROTATION_EXP,
             margin_exp: HAMMING_MARGIN_EXP,
             weight_exp: HAMMING_WEIGHT_EXP,
+            copy_key: 1,
         }
     }
 
     /// Refuse a record the stack `shape` cannot carry: a non-FBS stack; an odd head count, or one
     /// that does not split the width into whole 4-lane blocks of at most 64 coordinates (one
-    /// word); depths that are empty, out of order, or beyond the layers; no kept positions; or
+    /// word); a copy key other than 1 or 2, or 2 on heads whose halves are not whole 4-lane
+    /// blocks; depths that are empty, out of order, or beyond the layers; no kept positions; or
     /// exponents other than the ones this engine reads.
     pub fn check(&self, shape: &StackShape) -> Result<(), StackError> {
         if !shape.projection_fbs() {
@@ -190,6 +200,14 @@ impl StackHamming {
         if !head_width.is_multiple_of(4) || head_width > 64 {
             return Err(StackError::Shape(
                 "a Hamming head needs whole 4-lane blocks and at most 64 coordinates",
+            ));
+        }
+        if self.copy_key != 1 && self.copy_key != 2 {
+            return Err(StackError::Shape("a Hamming copy key names 1 or 2 tokens"));
+        }
+        if self.copy_key == 2 && !head_width.is_multiple_of(8) {
+            return Err(StackError::Shape(
+                "copy key 2 needs heads of whole 8-coordinate blocks, so each half is whole lanes",
             ));
         }
         let ordered = self.depths.windows(2).all(|w| w[0] < w[1]);
@@ -1679,7 +1697,8 @@ pub fn export_fbs_trunk_uorlut01_with(
     let hamming = match &snap.hamming {
         None => None,
         Some(h) => {
-            let record = StackHamming::new(h.heads, h.depths.clone());
+            let mut record = StackHamming::new(h.heads, h.depths.clone());
+            record.copy_key = h.copy_key;
             record.check(&shape)?;
             if h.reads.len() != h.depths.len() {
                 return Err(StackError::TableLength {

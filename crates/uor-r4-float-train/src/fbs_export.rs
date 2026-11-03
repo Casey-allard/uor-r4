@@ -431,6 +431,8 @@ pub fn fbs_hamming_snapshot(
         heads,
         depths: HAMMING_DEPTHS.to_vec(),
         reads: out,
+        // The copy heads' key (claude-261), absent from a one-token snapshot's JSON.
+        copy_key: reads.copy_key(),
     })
 }
 

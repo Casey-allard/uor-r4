@@ -84,7 +84,8 @@ pub(crate) fn hamming_image(artifact: &Container<'_>) -> Result<Option<HammingIm
 
 /// What the copy-code check (claude-237) takes from a stack artifact: its Hamming reads, its Q12
 /// writer table (`vocab` rows of `width`), and each read's copy-head codes as the session serves
-/// them ([`CopyHeads`]): entry `v`'s code for copy head `h` at `v * copy + h`.
+/// them ([`CopyHeads`]): entry `v`'s code for copy head `h` at `v * copy + h`. Under copy key 2
+/// (claude-261) these are the codes each query and key joins two of, by halves.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServedCopyCodes {
     pub image: HammingImage,
@@ -152,6 +153,10 @@ pub fn copy_weight_q31(margin_q16: i32, distance: u32) -> u64 {
 /// `stack_rotation` normalizes the unsnapped gates, applied by `stack_hamilton` on the left,
 /// as the float `hamilton_gate`. A bit is 1 at or above 0, 64 coordinates to a word in
 /// coordinate order, as the float `pack_signs`.
+///
+/// Under copy key 2 (claude-261), each code joins two vocabulary entries' codes: the query is
+/// `x_t`'s first half and `x_{t−1}`'s second, and the key `x_{s−1}`'s first half and `x_{s−2}`'s
+/// second, as the float read's `pair_halves` joins the rotated points before their signs.
 pub struct CopyHeads {
     copy: usize,
     kept: usize,
@@ -160,6 +165,8 @@ pub struct CopyHeads {
     codes: Vec<u64>,
     /// The copy heads' margins, in bits at Q16.
     margins: Vec<i32>,
+    /// Under copy key 2, the first half's bits, the low `head_width / 2`; `None` under copy key 1.
+    pair: Option<u64>,
 }
 
 impl CopyHeads {
@@ -173,6 +180,7 @@ impl CopyHeads {
             width,
             codes: vocab_codes(&units(&read.key_rotation), table, vocab, width, record.heads, 0..copy),
             margins: read.margin[..copy].to_vec(),
+            pair: (record.copy_key == 2).then(|| (1u64 << (width / record.heads / 2)) - 1),
         }
     }
 
@@ -181,27 +189,47 @@ impl CopyHeads {
         self.codes[token as usize * self.copy + h]
     }
 
+    /// Head `h`'s code of `near`, or under copy key 2 `near`'s first half joined to `far`'s second.
+    fn joined(&self, near: u32, far: u32, h: usize) -> u64 {
+        let code = self.code(near, h);
+        match self.pair {
+            None => code,
+            Some(first) => (code & first) | (self.code(far, h) & !first),
+        }
+    }
+
+    /// Copy head `h`'s query at row `t` of `tokens`: `x_t`'s code, joined under copy key 2 to
+    /// `x_{t−1}`'s (`x_0`'s own at row 0, as the float read's previous token there).
+    fn query_at(&self, tokens: &[u32], t: usize, h: usize) -> u64 {
+        self.joined(tokens[t], tokens[t.saturating_sub(1)], h)
+    }
+
+    /// Copy head `h`'s key at position `1 ≤ s` of `tokens`: `x_{s−1}`'s code, joined under copy
+    /// key 2 to `x_{s−2}`'s (`x_0`'s at `s = 1`, as the float read's `two_back`).
+    fn key_at(&self, tokens: &[u32], s: usize, h: usize) -> u64 {
+        self.joined(tokens[s - 1], tokens[s.saturating_sub(2)], h)
+    }
+
     /// Copy head `h`'s kept positions at the last row `t` of `tokens` (`x_0..=x_t`): the
     /// `min(kept, t − 1)` positions `1 ≤ s < t` nearest by `popcount(q XOR k_s)`, with their
     /// distances, in ascending distance and then ascending `s` (the design's tie rule; the
     /// float `choose_sorted` leaves the order of ties open). Position 0 has no previous token, and
     /// an empty `tokens` keeps nothing.
     pub fn choose(&self, h: usize, tokens: &[u32]) -> Vec<(usize, u32)> {
-        let Some(&last) = tokens.last() else {
+        let Some(t) = tokens.len().checked_sub(1) else {
             return Vec::new();
         };
-        nearest(self.code(last, h), tokens.len() - 1, self.kept, |s| self.code(tokens[s - 1], h))
+        nearest(self.query_at(tokens, t, h), t, self.kept, |s| self.key_at(tokens, s, h))
     }
 
     /// [`Self::choose`] with the codes `force` names in place of the computed ones (Q5's forced
     /// replay, claude-249): the row's query, and each candidate `s`'s key.
     fn choose_forced(&self, h: usize, tokens: &[u32], force: &HeadForce) -> Vec<(usize, u32)> {
-        let Some(&last) = tokens.last() else {
+        let Some(t) = tokens.len().checked_sub(1) else {
             return Vec::new();
         };
-        let t = tokens.len() - 1;
-        let query = force.query(t).unwrap_or_else(|| self.code(last, h));
-        nearest(query, t, self.kept, |s| force.key(s).unwrap_or_else(|| self.code(tokens[s - 1], h)))
+        let query = force.query(t).unwrap_or_else(|| self.query_at(tokens, t, h));
+        nearest(query, t, self.kept, |s| force.key(s).unwrap_or_else(|| self.key_at(tokens, s, h)))
     }
 
     /// The copy heads' mean at the last row of `tokens`, at [`COPY_MEAN_EXP`], or `None` when no
@@ -488,15 +516,16 @@ pub struct HammingStepRead {
 pub struct HammingStepHead {
     /// The query code at `t`.
     pub query: u64,
-    /// The key code at `t`, the code of `x_{t−1}`'s point; 0 at row 0, which names no candidate.
+    /// The key code at `t`, the code of `x_{t−1}`'s point (a copy head's under copy key 2 joins
+    /// `x_{t−2}`'s); 0 at row 0, which names no candidate.
     pub key: u64,
     /// The kept positions at `t`, in the order `nearest` keeps them.
     pub kept: Vec<u32>,
 }
 
 /// One head's forced codes in one window, by step (Q5's forced replay, claude-249): `query[t]`
-/// replaces row `t`'s query, and `key[s]` candidate `s`'s key at every later row, since a key is
-/// the code of `x_{s−1}`, decided once at step `s`.
+/// replaces row `t`'s query, and `key[s]` candidate `s`'s key at every later row, since a key
+/// names only tokens before `s` (`x_{s−1}`, and `x_{s−2}` under copy key 2), decided once at step `s`.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HeadForce {
     query: Vec<Option<u64>>,
@@ -698,7 +727,7 @@ impl ServedHamming {
     #[inline(never)]
     fn record(&self, i: usize, point: &[i64], tokens: &[u32], force: Option<&ReadForce>) -> HammingStepRead {
         let read = &self.reads[i];
-        let (Some(&last), t) = (tokens.last(), tokens.len().saturating_sub(1)) else {
+        let (Some(_), t) = (tokens.last(), tokens.len().saturating_sub(1)) else {
             return HammingStepRead { depth: read.depth, heads: Vec::new() };
         };
         let none = HeadForce::default();
@@ -706,8 +735,8 @@ impl ServedHamming {
         let kept = |chosen: Vec<(usize, u32)>| chosen.into_iter().map(|(s, _)| s as u32).collect();
         let mut heads: Vec<HammingStepHead> = (0..read.copy.copy)
             .map(|h| HammingStepHead {
-                query: forced(h).query(t).unwrap_or_else(|| read.copy.code(last, h)),
-                key: if t == 0 { 0 } else { forced(h).key(t).unwrap_or_else(|| read.copy.code(tokens[t - 1], h)) },
+                query: forced(h).query(t).unwrap_or_else(|| read.copy.query_at(tokens, t, h)),
+                key: if t == 0 { 0 } else { forced(h).key(t).unwrap_or_else(|| read.copy.key_at(tokens, t, h)) },
                 kept: kept(read.copy.choose_forced(h, tokens, forced(h))),
             })
             .collect();

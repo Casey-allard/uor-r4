@@ -131,6 +131,11 @@ pub struct LongConfig {
     /// The Hamming read's type heads compare positions through SpiralCore's path-dependent
     /// icosian transport (`HammingReads::with_type_spin`, claude-151); off by default.
     pub type_spin: bool,
+    /// How many tokens before a position the Hamming read's copy heads key on: 1, the default,
+    /// or 2, the ordered two-token key (`HammingReads::with_copy_key`, claude-261). Left out of
+    /// `config.json` at 1, so a one-token run writes the same file as before.
+    #[serde(skip_serializing_if = "is_one")]
+    pub hamming_copy_key: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -617,10 +622,14 @@ fn start_hamming(
     )>,
 > {
     if config.hamming_read == 0 {
+        if config.hamming_copy_key != 1 {
+            return Err(invalid("--hamming-copy-key keys the Hamming read's copy heads; turn the read on with --hamming-read"));
+        }
         return Ok(None);
     }
     let mut reads =
-        crate::flock_read_hamming::HammingReads::new(config.hamming_read, config.width, device)?;
+        crate::flock_read_hamming::HammingReads::new(config.hamming_read, config.width, device)?
+            .with_copy_key(config.hamming_copy_key)?;
     if config.type_spin {
         reads = reads.with_type_spin()?;
     }
@@ -802,6 +811,10 @@ fn start_memory(
 
 fn is_zero(n: &usize) -> bool {
     *n == 0
+}
+
+fn is_one(n: &usize) -> bool {
+    *n == 1
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -10948,6 +10961,7 @@ mod tests {
             register_select: None,
             width: hs::SHEET_WIDTH,
             type_spin: false,
+            hamming_copy_key: 1,
             fix_input_table: false,
             train_split: None,
             samples: 6,
@@ -10988,6 +11002,28 @@ mod tests {
             );
             assert!(json.contains(&keys), "{json}");
         }
+    }
+
+    #[test]
+    fn a_config_writes_the_copy_key_only_when_two() {
+        // claude-261: a one-token run writes the same `config.json` as before the key.
+        let one = String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
+        assert!(!one.contains("hamming_copy_key"), "{one}");
+        assert!(
+            one.contains("\"type_spin\": false,\n  \"fix_input_table\": false,"),
+            "{one}"
+        );
+        let two = LongConfig {
+            hamming_copy_key: 2,
+            ..config(0, None)
+        };
+        let two = String::from_utf8(serde_json::to_vec_pretty(&two).unwrap()).unwrap();
+        assert!(
+            two.contains(
+                "\"type_spin\": false,\n  \"hamming_copy_key\": 2,\n  \"fix_input_table\": false,"
+            ),
+            "{two}"
+        );
     }
 
     #[test]

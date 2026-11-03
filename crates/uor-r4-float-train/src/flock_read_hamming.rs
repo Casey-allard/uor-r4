@@ -24,6 +24,14 @@
 //!    points depends only on the steps of the tokens between them. Their sign codes also see the
 //!    frame the two share, so the Hamming distance follows those steps on average over it, not
 //!    exactly. The value is `x` rotated by a third quaternion.
+//!
+//!    With copy key 2 ([`HammingReads::with_copy_key`], claude-261), a copy head's key names the
+//!    two tokens before `s`, in order: the first half of each copy head's coordinates is the key
+//!    of `x_{s−1}`, the second half the key of `x_{s−2}`, through the same rotation. Its query
+//!    is `x_t`'s half and then `x_{t−1}`'s. The distance below is then the sum of the two tokens'
+//!    half-distances, so only a repeat of both tokens is an exact match. A one-token key read
+//!    every position after an earlier " is" alike ("my friend is" and "my number is", claude-259's
+//!    trace). Where a window has fewer tokens before `s`, the second token is the first one's.
 //! 2. **Codes.** Each coordinate's bit is 1 at or above 0, as [`pack_signs`] packs it. The forward
 //!    pass compares the ±1 codes, so the distance is exactly the Hamming distance
 //!    `popcount(q XOR k)` that serving computes. The backward pass treats the code as the identity
@@ -427,6 +435,54 @@ pub struct HammingRead {
     /// The type heads' position signal, when on ([`HammingReads::with_type_spin`]): the per-lane
     /// rotation that turns each token's point into its icosian step (claude-151).
     pub(crate) step_rotation: Option<Var>,
+    /// How many tokens before a position a copy head's key names: 1, or 2 for the ordered
+    /// two-token key ([`HammingReads::with_copy_key`], claude-261).
+    copy_key: usize,
+}
+
+/// Refuse a copy key the read cannot carry: one other than 1 or 2, or 2 on heads of `width /
+/// heads` coordinates whose halves do not fall on whole 4-lane blocks, as the rotations act.
+fn check_copy_key(copy_key: usize, heads: usize, width: usize) -> Result<()> {
+    if copy_key != 1 && copy_key != 2 {
+        return Err(invalid(format!(
+            "a copy key names 1 or 2 tokens, not {copy_key}"
+        )));
+    }
+    // claude-261 review: one head is a type head only, so copy key 2 would key nothing.
+    if copy_key == 2 && (heads < 2 || !(width / heads).is_multiple_of(8)) {
+        return Err(invalid(
+            "copy key 2 needs a copy head (2 heads or more) of whole 8-coordinate blocks, so each half is whole lanes",
+        ));
+    }
+    Ok(())
+}
+
+/// The token two before each of `ids`' rows, in windows of `time`: `x_{s−2}`, or, where a window
+/// has fewer tokens before `s`, the one before it, `x_{s−1}`, or at the window's first position
+/// its own (never a candidate). The integer session's `CopyHeads` keys by the same rule.
+fn two_back(ids: &[u32], time: usize) -> Vec<u32> {
+    (0..ids.len())
+        .map(|r| match r % time {
+            0 => ids[r],
+            1 => ids[r - 1],
+            _ => ids[r - 2],
+        })
+        .collect()
+}
+
+/// `first`, `(rows, width)`, with the second half of each of the first `heads` heads of
+/// `head_width` columns taken from `second`: copy key 2's codes, one token in each half.
+fn pair_halves(first: &Tensor, second: &Tensor, heads: usize, head_width: usize) -> Result<Tensor> {
+    let (half, width) = (head_width / 2, first.dim(1)?);
+    let mut parts = Vec::with_capacity(2 * heads + 1);
+    for h in 0..heads {
+        parts.push(first.narrow(1, h * head_width, half)?);
+        parts.push(second.narrow(1, h * head_width + half, half)?);
+    }
+    if heads * head_width < width {
+        parts.push(first.narrow(1, heads * head_width, width - heads * head_width)?);
+    }
+    Ok(Tensor::cat(&parts, 1)?)
 }
 
 /// The reads at every depth in [`HAMMING_DEPTHS`], in that order.
@@ -464,6 +520,21 @@ impl HammingReads {
             )?)?);
         }
         Ok(self)
+    }
+
+    /// The same reads with their copy heads keyed on `copy_key` tokens before a position: 1, the
+    /// default, or 2, the ordered two-token key (claude-261). Type heads are untouched.
+    pub fn with_copy_key(mut self, copy_key: usize) -> Result<Self> {
+        for read in &mut self.reads {
+            check_copy_key(copy_key, read.heads, read.weight.dim(1)?)?;
+            read.copy_key = copy_key;
+        }
+        Ok(self)
+    }
+
+    /// How many tokens before a position the copy heads' key names (1 or 2).
+    pub fn copy_key(&self) -> usize {
+        self.reads.first().map_or(1, |r| r.copy_key)
     }
 
     /// The read inside the stream after `depth` layers, if one runs there.
@@ -523,6 +594,11 @@ impl HammingReads {
         let heads = self.reads.first().map_or(0, |r| r.heads) as u32;
         let device = self.reads[0].weight.device();
         tensors.insert("heads".to_owned(), Tensor::new(&[heads], device)?);
+        // Only a two-token key is recorded, so a one-token read's file is byte for byte as before.
+        if self.copy_key() != 1 {
+            let copy_key = self.copy_key() as u32;
+            tensors.insert("copy_key".to_owned(), Tensor::new(&[copy_key], device)?);
+        }
         candle_core::safetensors::save(&tensors, directory.join(FILE))?;
         Ok(())
     }
@@ -544,6 +620,15 @@ impl HammingReads {
         let heads = *heads
             .first()
             .ok_or_else(|| invalid("the saved head count is empty"))? as usize;
+        // A read saved before claude-261, or with the one-token key, records none.
+        let copy_key = match tensors.get("copy_key") {
+            None => 1,
+            Some(tensor) => *tensor
+                .to_vec1::<u32>()?
+                .first()
+                .ok_or_else(|| invalid("the saved copy key is empty"))?
+                as usize,
+        };
         let mut reads = Vec::with_capacity(HAMMING_DEPTHS.len());
         for depth in HAMMING_DEPTHS {
             reads.push(HammingRead {
@@ -558,9 +643,10 @@ impl HammingReads {
                     .get(&format!("d{depth}.step_rotation"))
                     .map(Var::from_tensor)
                     .transpose()?,
+                copy_key: 1,
             });
         }
-        Ok(Some(Self { reads }))
+        Ok(Some(Self { reads }.with_copy_key(copy_key)?))
     }
 }
 
@@ -605,6 +691,7 @@ impl HammingRead {
             margin: Var::from_tensor(&Tensor::from_vec(margins, heads, device)?)?,
             weight: Var::zeros((2, width), DType::F32, device)?,
             step_rotation: None,
+            copy_key: 1,
         })
     }
 
@@ -693,6 +780,11 @@ impl HammingRead {
         };
         let current = token_points(ids.to_vec())?;
         let previous = token_points(previous)?;
+        // Copy key 2 (claude-261): the token two before each row, for the key's second half.
+        let before = match self.copy_key {
+            2 => Some(token_points(two_back(ids, time))?),
+            _ => None,
+        };
         let (query, key, value) = as_trained(|| {
             // Copy heads ask with the current token's point through the key's own rotation, so a
             // repeated token stays an exact match however that rotation learns; type heads ask
@@ -700,6 +792,21 @@ impl HammingRead {
             // cut after.
             let copy_asks = Self::rotate(&self.key_rotation, &current)?;
             let type_asks = Self::rotate(&self.query_rotation, &points)?;
+            let key = Self::rotate(&self.key_rotation, &previous)?;
+            // With copy key 2, a copy head asks with `x_t`'s half and then `x_{t−1}`'s, and its
+            // key is `x_{s−1}`'s half and then `x_{s−2}`'s, every half through the key's rotation,
+            // so a repeat of both tokens is still an exact match however it learns.
+            let (copy_asks, key) = match &before {
+                None => (copy_asks, key),
+                Some(before) => {
+                    let before = Self::rotate(&self.key_rotation, before)?;
+                    let copy = self.copy_heads();
+                    (
+                        pair_halves(&copy_asks, &key, copy, head_width)?,
+                        pair_halves(&key, &before, copy, head_width)?,
+                    )
+                }
+            };
             let query = Tensor::cat(
                 &[
                     &copy_asks.narrow(1, 0, copy_width)?,
@@ -707,7 +814,6 @@ impl HammingRead {
                 ],
                 1,
             )?;
-            let key = Self::rotate(&self.key_rotation, &previous)?;
             // The type heads' position signal, when on: each position's frame is the product of
             // its window's icosian steps so far, one per token; a type head's query at `t` and key
             // at `s` are each turned by their own frame's inverse, so their angle depends only on
@@ -1121,6 +1227,85 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("wider than its 64-bit code"), "{err}");
+    }
+
+    /// claude-261: the token two back stays inside each window: `x_{s−2}`, then `x_{s−1}` at a
+    /// window's second position, and the token itself at its first, as the integer `CopyHeads`.
+    #[test]
+    fn the_token_two_back_stays_inside_each_window() {
+        let ids = [10u32, 11, 12, 13, 20, 21, 22, 23];
+        assert_eq!(two_back(&ids, 4), vec![10, 10, 10, 11, 20, 20, 20, 21]);
+    }
+
+    /// claude-261: copy key 2 puts `first` (`x_t` in the query, `x_{s−1}` in the key) in each
+    /// copy head's low half and `second` in its high half, and leaves the columns past the copy
+    /// heads as `first`'s. The integer `CopyHeads::joined` packs the same way (bit `c` is
+    /// coordinate `c`), which `copy_heads_match_the_f64_reference` pins on that side. CPU tensor
+    /// compute is refused (D24/D29), so this runs on the GPU, at every pod's I-0.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn pair_halves_puts_the_first_token_in_each_copy_heads_low_half() {
+        let device = Device::new_cuda(0).unwrap();
+        let (heads, head_width, width) = (2, 16, 40);
+        let first = Tensor::full(1f32, (3, width), &device).unwrap();
+        let second = Tensor::full(2f32, (3, width), &device).unwrap();
+        let paired = pair_halves(&first, &second, heads, head_width)
+            .unwrap()
+            .to_vec2::<f32>()
+            .unwrap();
+        let want: Vec<f32> = (0..width)
+            .map(|c| {
+                let high = c < heads * head_width && c % head_width >= head_width / 2;
+                if high { 2.0 } else { 1.0 }
+            })
+            .collect();
+        for row in paired {
+            assert_eq!(row, want);
+        }
+    }
+
+    /// claude-261: a copy key names 1 or 2 tokens, and copy key 2 halves each head on whole
+    /// lanes; anything else is refused.
+    #[test]
+    fn a_copy_key_is_one_or_two_tokens_on_halves_of_whole_lanes() {
+        let reads = || HammingReads::new(4, 256, &Device::Cpu).unwrap();
+        assert_eq!(reads().copy_key(), 1);
+        assert_eq!(reads().with_copy_key(2).unwrap().copy_key(), 2);
+        for copy_key in [0, 3] {
+            let err = reads().with_copy_key(copy_key).err().expect("refused");
+            assert!(err.to_string().contains("1 or 2 tokens"), "{err}");
+        }
+        // Heads of 12 coordinates have halves of 6, which split a lane.
+        assert!(check_copy_key(2, 4, 48).is_err());
+        assert!(check_copy_key(2, 1, 64).is_err(), "one head has no copy head to key");
+        assert!(check_copy_key(1, 4, 48).is_ok());
+        assert!(check_copy_key(2, 4, 256).is_ok());
+    }
+
+    /// claude-261: `hamming_read.safetensors` records the copy key only when it is 2, so a
+    /// one-token read's file is as before, and a two-token read loads back with its key.
+    #[test]
+    fn the_copy_key_is_saved_only_when_two() -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "hamming-copy-key-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        for copy_key in [1, 2] {
+            let dir = root.join(copy_key.to_string());
+            std::fs::create_dir_all(&dir)?;
+            HammingReads::new(4, 256, &Device::Cpu)?
+                .with_copy_key(copy_key)?
+                .save(&dir)?;
+            let tensors = candle_core::safetensors::load(dir.join(FILE), &Device::Cpu)?;
+            assert_eq!(tensors.contains_key("copy_key"), copy_key == 2);
+            let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("saved reads");
+            assert_eq!(loaded.copy_key(), copy_key);
+        }
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
     }
 
     /// claude-235: the tie key orders candidates by bit distance and then by position, every key
@@ -1861,6 +2046,65 @@ mod tests {
         // Positions 0 and 1 have no candidate (1 ≤ s < t) and read nothing in any head.
         for r in [0usize, 1, 3, 4, 6, 7] {
             assert!(added[r].iter().all(|&v| v == 0.0), "row {r}");
+        }
+    }
+
+    /// claude-261: two facts after the same last token, as conv-a's " is" (claude-259's trace).
+    /// The window holds `B X P`, then `C X Q`, and asks at `C X`. Under one-bit margins only an
+    /// exact match counts: the one-token key ties both positions after an `X` and reads the mean
+    /// of `P` and `Q`; copy key 2 keeps only the position after `C X`, and reads `Q` alone.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn copy_key_two_tells_two_facts_after_the_same_token_apart() {
+        let device = Device::new_cuda(0).unwrap();
+        let (b, x, p, c, q) = (2u32, 3, 4, 5, 6);
+        let ids = [1u32, b, x, p, c, x, q, 7, c, x];
+        let x0 = residual(1, ids.len(), 256, &device);
+        let table = table(16, 256, &device);
+        let points = table.to_vec2::<f32>().unwrap();
+        let added = |copy_key: usize| -> Vec<f32> {
+            let reads = HammingReads::new(4, 256, &device)
+                .unwrap()
+                .with_copy_key(copy_key)
+                .unwrap();
+            let read = &reads.reads[0];
+            let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
+            read.weight
+                .set(&Tensor::from_vec(copy_only, (2, 256), &device).unwrap())
+                .unwrap();
+            read.margin
+                .set(&Tensor::new(&[1.0f32, 1.0, 32.0, 32.0], &device).unwrap())
+                .unwrap();
+            let turned = |q: [f32; 4]| Tensor::from_vec(q.repeat(64), (64, 4), &device).unwrap();
+            read.key_rotation
+                .set(&turned([0.6, 0.8, 0.0, 0.0]))
+                .unwrap();
+            let rows = read
+                .apply(&x0, &ids, &table)
+                .unwrap()
+                .sub(&x0)
+                .unwrap()
+                .reshape((ids.len(), 256))
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+            rows[ids.len() - 1].clone()
+        };
+        let (one, two) = (added(1), added(2));
+        let (p, q) = (&points[p as usize], &points[q as usize]);
+        for col in 0..256 {
+            let both = (p[col] + q[col]) / 2.0;
+            assert!(
+                (one[col] - both).abs() < 1e-5,
+                "copy key 1, {col}: {} against {both}",
+                one[col]
+            );
+            assert!(
+                (two[col] - q[col]).abs() < 1e-6,
+                "copy key 2, {col}: {} against {}",
+                two[col],
+                q[col]
+            );
         }
     }
 

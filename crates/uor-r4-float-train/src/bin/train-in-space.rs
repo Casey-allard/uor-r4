@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1]`
 //!
 //! `--train-as-served 1` trains through the graph the integer artifact serves
 //! (one-model-end-to-end, claude-258 and deepseek-4): the trunk's tables, Hamming reads and turn
@@ -12,6 +12,10 @@
 //!
 //! `--served-forward 0|1` overrides the saved run mode only for `--inspect`, `--decode-speed` and
 //! `--score-rows`, so different training modes can be scored through the same served graph.
+//!
+//! `--hamming-copy-key 2` (needs `--hamming-read`) keys the read's copy heads on the two tokens
+//! before a position, in order, in place of one (`HammingReads::with_copy_key`, claude-261). The
+//! checkpoint's `hamming_read.safetensors` records it, so scoring and the export read it there.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
@@ -244,6 +248,7 @@ fn main() -> Result<()> {
         register_select: None,
         width: uor_r4_float_train::hamilton_sheet::SHEET_WIDTH,
         type_spin: false,
+        hamming_copy_key: 1,
         samples: 6,
         reply_tokens: 48,
         profile: 0,
@@ -419,6 +424,7 @@ fn main() -> Result<()> {
             "--flock-read" => config.flock_read = number(&value)?,
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
+            "--hamming-copy-key" => config.hamming_copy_key = number(&value)?,
             "--opening-read" => match number(&value)? {
                 k @ 1..=16 => opening_read = Some(k),
                 _ => {
