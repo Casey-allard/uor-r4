@@ -1116,6 +1116,13 @@ pub struct CpuDiscreteProposalScoring {
     pub proposal: CpuDiscreteProposal,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CpuDiscreteBlockScoring {
+    pub records: Vec<CpuBvgkRecord>,
+    pub joint_loss: Option<u64>,
+    pub eligible_rows: usize,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CpuDiscretePanelReading {
@@ -1334,6 +1341,98 @@ impl CpuDiscreteProposalScorer {
             losses,
             eligible_rows: eligible.len(),
             proposal,
+        })
+    }
+
+    pub fn score_block(
+        &self,
+        kind: CpuDiscreteProposalKind,
+        indices: &[usize],
+        samples: &[CpuDiscreteProposalSample],
+        epoch: u64,
+    ) -> std::result::Result<CpuDiscreteBlockScoring, CpuDiscreteScoreError> {
+        if indices.is_empty() {
+            return Err(score_error(8, "proposal block contains no coordinates"));
+        }
+        let mut records = Vec::with_capacity(indices.len());
+        let mut eligible_rows = 0usize;
+        for &index in indices {
+            match self.score(kind, index, samples, epoch) {
+                Ok(scoring) => {
+                    eligible_rows = eligible_rows.max(scoring.eligible_rows);
+                    records.push(CpuBvgkRecord {
+                        kind,
+                        index,
+                        proposal: scoring.proposal,
+                        eligible: scoring.eligible_rows != 0,
+                        status: 0,
+                    });
+                }
+                Err(error) if error.status == 8 => {}
+                Err(error) => return Err(error),
+            }
+        }
+        if records.is_empty() {
+            return Ok(CpuDiscreteBlockScoring {
+                records,
+                joint_loss: None,
+                eligible_rows,
+            });
+        }
+        let mut model = self.model.clone();
+        for record in &records {
+            self.apply_virtual_move(&mut model, kind, record.index, record.proposal.lane)
+                .map_err(|error| score_error(4, error.to_string()))?;
+        }
+        let mut baseline_eligible = Vec::new();
+        for sample in samples {
+            let query = self
+                .read(&self.model, &sample.prefix)
+                .map_err(|error| score_error(2, error.to_string()))?;
+            let loss = writer_loss(
+                &query,
+                self.token_blocks(&self.model),
+                sample.target,
+                self.kept_cells,
+                self.objective,
+            )
+            .map_err(writer_score_error)?;
+            if loss.token_rivals != 0 {
+                baseline_eligible.push(sample);
+            }
+        }
+        if baseline_eligible.is_empty() {
+            return Ok(CpuDiscreteBlockScoring {
+                records,
+                joint_loss: None,
+                eligible_rows,
+            });
+        }
+        let mut joint_loss = 0u64;
+        for sample in baseline_eligible {
+            let query = self
+                .read(&model, &sample.prefix)
+                .map_err(|error| score_error(2, error.to_string()))?;
+            let loss = writer_loss(
+                &query,
+                self.token_blocks(&model),
+                sample.target,
+                self.kept_cells,
+                self.objective,
+            )
+            .map_err(writer_score_error)?;
+            if !accumulate_joint_loss(&mut joint_loss, loss)? {
+                return Ok(CpuDiscreteBlockScoring {
+                    records,
+                    joint_loss: None,
+                    eligible_rows,
+                });
+            }
+        }
+        Ok(CpuDiscreteBlockScoring {
+            records,
+            joint_loss: Some(joint_loss),
+            eligible_rows,
         })
     }
 
@@ -2686,6 +2785,17 @@ impl CpuDiscreteCheckpointDriver {
             .score(kind, index, samples, self.applier.epoch)
     }
 
+    pub fn score_block(
+        &self,
+        kind: CpuDiscreteProposalKind,
+        indices: &[usize],
+        samples: &[CpuDiscreteProposalSample],
+    ) -> std::result::Result<CpuDiscreteBlockScoring, CpuDiscreteScoreError> {
+        self.applier
+            .scorer
+            .score_block(kind, indices, samples, self.applier.epoch)
+    }
+
     pub fn cursor(&self) -> &Cursor {
         &self.cursor
     }
@@ -3144,6 +3254,19 @@ fn writer_loss(
             .ok_or_else(|| invalid("proposal rank loss overflows"))?,
     };
     Ok(CpuWriterLoss { loss, token_rivals })
+}
+
+fn accumulate_joint_loss(
+    total: &mut u64,
+    loss: CpuWriterLoss,
+) -> std::result::Result<bool, CpuDiscreteScoreError> {
+    if loss.token_rivals == 0 || loss.loss == u64::MAX {
+        return Ok(false);
+    }
+    *total = total
+        .checked_add(loss.loss)
+        .ok_or_else(|| score_error(9, "BVG-K joint loss sum overflows"))?;
+    Ok(true)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -4520,6 +4643,69 @@ mod tests {
             );
             assert_eq!(scoring.eligible_rows, 1);
         }
+    }
+
+    #[test]
+    fn block_scorer_returns_each_coordinate_and_an_exact_joint_loss() {
+        let roots = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]];
+        let artifact = serialized_flock_fixture(6, &roots, &[1, 0, 1, 0], 2);
+        let scorer = CpuDiscreteProposalScorer::from_bytes(&artifact).unwrap();
+        let before = scorer.model.token_blocks().to_vec();
+        let sample = CpuDiscreteProposalSample {
+            prefix: vec![0, 1, 2, 3, 4, 1],
+            target: 2,
+        };
+        let scoring = scorer
+            .score_block(
+                CpuDiscreteProposalKind::Table,
+                &[0, 1],
+                std::slice::from_ref(&sample),
+                1,
+            )
+            .unwrap();
+        assert_eq!(scoring.eligible_rows, 1);
+        assert_eq!(
+            scoring
+                .records
+                .iter()
+                .map(|record| record.index)
+                .collect::<Vec<_>>(),
+            vec![0, 1]
+        );
+        assert!(scoring.joint_loss.is_some());
+        assert_eq!(scorer.model.token_blocks(), before);
+    }
+
+    #[test]
+    fn joint_loss_rejects_a_row_that_loses_baseline_eligibility() {
+        let mut total = 7u64;
+        assert!(!accumulate_joint_loss(
+            &mut total,
+            CpuWriterLoss {
+                loss: 11,
+                token_rivals: 0,
+            }
+        )
+        .unwrap());
+        assert_eq!(total, 7);
+        assert!(!accumulate_joint_loss(
+            &mut total,
+            CpuWriterLoss {
+                loss: u64::MAX,
+                token_rivals: 1,
+            }
+        )
+        .unwrap());
+        assert_eq!(total, 7);
+        assert!(accumulate_joint_loss(
+            &mut total,
+            CpuWriterLoss {
+                loss: 5,
+                token_rivals: 1,
+            }
+        )
+        .unwrap());
+        assert_eq!(total, 12);
     }
 
     #[test]

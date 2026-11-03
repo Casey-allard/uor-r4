@@ -1,0 +1,140 @@
+{
+  "schema": "uor-r4.cpu-discrete-k1-k4-comparison/1",
+  "source_commit": "5b9e304d128000917cdb0ba3db1bc6d113aab740",
+  "driver_sha256": "27fc53895fc4cd81e96b446eb84c31909661e2e2eaedf6c8995260d43fe7810d",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "design_sha256_approved": "22e7228502ff90a83f17077d5ae4d703b7fe354daa25bb520d7e40def974e037",
+  "config": {
+    "steps": 256,
+    "batch_rows": 64,
+    "evaluation_stride": 2,
+    "evaluation_rows": 1024,
+    "checkpoint_every": 64,
+    "top1_threshold_rows": 19
+  },
+  "artifacts": {
+    "seed_1": "fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca",
+    "seed_2": "a75ea7f5907275fd4c1e853ee76135a7a2615ba8302aaadf362bfa7eb96ae12a"
+  },
+  "arms": [
+    {
+      "seed": 1,
+      "arm": "baseline",
+      "coordinates_per_step": 1,
+      "accepted_updates": 0,
+      "committed_moves": 0,
+      "top1": 38,
+      "top8": 108,
+      "admitted": 361,
+      "margin_delta": 0,
+      "rank_delta": 0,
+      "gate": "accept",
+      "process_exit": 0,
+      "artifact_sha256": "33b9d55f484a789f025ebf34a43f9bf864d05b67ebfaac084a4915262e3e37f8"
+    },
+    {
+      "seed": 1,
+      "arm": "control-k1",
+      "coordinates_per_step": 1,
+      "accepted_updates": 49,
+      "refused_updates": 207,
+      "committed_moves": 49,
+      "top1": 19,
+      "top8": 82,
+      "admitted": 248,
+      "margin_delta": 62048,
+      "rank_delta": 11736,
+      "gate": "reject_admission",
+      "process_exit": 0,
+      "artifact_sha256": "82a9a7766f7ed094852a882aea6b82cca477f16fcbfb20030e8f2a9bbc1f97bc"
+    },
+    {
+      "seed": 1,
+      "arm": "pivot-k4",
+      "coordinates_per_step": 4,
+      "accepted_updates": 46,
+      "refused_updates": 210,
+      "committed_moves": 71,
+      "accepted_block_move_histogram": {
+        "1": 32,
+        "2": 6,
+        "3": 5,
+        "4": 3
+      },
+      "top1": 13,
+      "top8": 63,
+      "admitted": 256,
+      "margin_delta": 39872,
+      "rank_delta": 11643,
+      "gate": "reject_admission",
+      "process_exit": 2,
+      "artifact_sha256": "11f6627694dff0427e73031bf6361895854816cec92acc96ab11568d947fb2e1"
+    },
+    {
+      "seed": 2,
+      "arm": "baseline",
+      "coordinates_per_step": 1,
+      "accepted_updates": 0,
+      "committed_moves": 0,
+      "top1": 38,
+      "top8": 108,
+      "admitted": 361,
+      "margin_delta": 0,
+      "rank_delta": 0,
+      "gate": "accept",
+      "process_exit": 0,
+      "artifact_sha256": "860cbdb4ab0a32d6158ca08b8f756b6e4e17a09813f1d4f67a3e0e905ab63b0e"
+    },
+    {
+      "seed": 2,
+      "arm": "control-k1",
+      "coordinates_per_step": 1,
+      "accepted_updates": 49,
+      "refused_updates": 207,
+      "committed_moves": 49,
+      "top1": 19,
+      "top8": 82,
+      "admitted": 248,
+      "margin_delta": 62048,
+      "rank_delta": 11736,
+      "gate": "reject_admission",
+      "process_exit": 0,
+      "artifact_sha256": "06d9dbb77806141318b38631f3ddb2be5ecf68f6d3deba77aad037660ba23d3b"
+    },
+    {
+      "seed": 2,
+      "arm": "pivot-k4",
+      "coordinates_per_step": 4,
+      "accepted_updates": 46,
+      "refused_updates": 210,
+      "committed_moves": 71,
+      "accepted_block_move_histogram": {
+        "1": 32,
+        "2": 6,
+        "3": 5,
+        "4": 3
+      },
+      "top1": 13,
+      "top8": 63,
+      "admitted": 256,
+      "margin_delta": 39872,
+      "rank_delta": 11643,
+      "gate": "reject_admission",
+      "process_exit": 2,
+      "artifact_sha256": "00c5aa52d2dc7d2573000bb5627787169db265ec2d0703d8914eb17e44c573a0"
+    }
+  ],
+  "instrument": {
+    "processes": 6,
+    "expected_exits": [0, 0, 2, 0, 0, 2],
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "total_wall_seconds": 460.985544701,
+    "peak_rss_kib": 20312
+  },
+  "verdict": "negative for the tested 256-block discrete K1/K4 corpus configurations",
+  "claim_limit": "Public internal-development component evidence only; not fresh-transfer, useful-chat, GPU-equivalence or GPU-replacement evidence."
+}

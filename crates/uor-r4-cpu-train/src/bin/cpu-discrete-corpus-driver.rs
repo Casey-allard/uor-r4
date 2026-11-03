@@ -17,7 +17,7 @@ use uor_r4_integer::discrete_d11::{DiscreteReadMode, IntegerDiscreteModel};
 const BINDING_SCHEMA: &str = "uor-r4.cpu-discrete-corpus-binding/1";
 const BATCH_ROWS: u32 = 64;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Config {
     artifact: PathBuf,
     tokens: PathBuf,
@@ -25,11 +25,13 @@ struct Config {
     manifest: PathBuf,
     seed: u64,
     steps: usize,
+    coordinates_per_step: u32,
     evaluation_stride: usize,
     max_evaluation: usize,
     checkpoint_every: usize,
     checkpoint_dir: PathBuf,
     resume: Option<PathBuf>,
+    require_admission: bool,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -42,6 +44,8 @@ struct CheckpointBinding {
     manifest_sha256: String,
     seed: u64,
     batch_rows: u32,
+    #[serde(default = "default_coordinates_per_step")]
+    coordinates_per_step: u32,
     evaluation_stride: usize,
     max_evaluation: usize,
     completed_steps: u64,
@@ -49,9 +53,19 @@ struct CheckpointBinding {
     artifact_sha256: String,
 }
 
+fn default_coordinates_per_step() -> u32 {
+    1
+}
+
 fn main() {
     match run() {
-        Ok(report) => println!("{report}"),
+        Ok((report, required_gate_failed)) => {
+            println!("{report}");
+            if required_gate_failed {
+                eprintln!("cpu-discrete-corpus-driver: required admission gate failed");
+                std::process::exit(2);
+            }
+        }
         Err(error) => {
             eprintln!("cpu-discrete-corpus-driver: {error}");
             std::process::exit(1);
@@ -59,10 +73,13 @@ fn main() {
     }
 }
 
-fn run() -> Result<String, String> {
+fn run() -> Result<(String, bool), String> {
     let config = parse_args()?;
     let report = execute(&config)?;
-    serde_json::to_string_pretty(&report).map_err(|error| error.to_string())
+    Ok((
+        serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?,
+        config.require_admission && report["panel_gate"]["decision"].as_str() != Some("accept"),
+    ))
 }
 
 fn execute(config: &Config) -> Result<serde_json::Value, String> {
@@ -122,7 +139,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     };
     let schedule = CpuDiscreteSchedule::new(
         schedule_policy,
-        1,
+        config.coordinates_per_step,
         BATCH_ROWS,
         u64::try_from(training.len()).map_err(|_| "training target count overflows".to_owned())?,
     )
@@ -153,7 +170,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             ));
         }
         if driver.schedule().batch_rows() != BATCH_ROWS
-            || driver.schedule().coordinate_block() != 1
+            || driver.schedule().coordinate_block() != config.coordinates_per_step
             || driver.schedule().policy() != schedule_policy
             || driver.schedule().eligible_targets()
                 != u64::try_from(training.len()).unwrap_or(u64::MAX)
@@ -209,16 +226,23 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let mut refused = 0u64;
     let mut context_tokens = 0u64;
     let mut target_visits = 0u64;
+    let mut batch_targets = 0u64;
+    let mut committed_moves = 0u64;
+    let mut accepted_block_histogram = vec![0u64; 65];
+    let mut accepted_block_move_histogram = vec![0u64; 65];
     let mut checkpoints = Vec::new();
     for step in completed + 1..=target_steps {
         let block = driver.next_block().map_err(|error| error.to_string())?;
-        if block.indices.len() != 1 {
-            return Err(format!(
-                "bounded driver currently requires coordinate block 1, found {}",
-                block.indices.len()
-            ));
+        if block.indices.is_empty() || block.indices.len() > config.coordinates_per_step as usize {
+            return Err("discrete proposal block length differs from the schedule".to_owned());
         }
         let batch = training_batch(&training, driver.cursor().next_target, BATCH_ROWS)?;
+        batch_targets = batch_targets
+            .checked_add(
+                u64::try_from(batch.len())
+                    .map_err(|_| "training batch row count overflows".to_owned())?,
+            )
+            .ok_or_else(|| "training batch row count overflows".to_owned())?;
         context_tokens = context_tokens
             .checked_add(
                 batch
@@ -229,7 +253,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             .ok_or_else(|| "context token count overflows".to_owned())?;
         let step_started = Instant::now();
         let scoring = driver
-            .score(block.kind, block.indices[0], &batch)
+            .score_block(block.kind, &block.indices, &batch)
             .map_err(|error| error.to_string())?;
         target_visits = target_visits
             .checked_add(
@@ -237,16 +261,38 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
                     .map_err(|_| "eligible row count overflows".to_owned())?,
             )
             .ok_or_else(|| "target visit count overflows".to_owned())?;
-        let receipt = driver
-            .applier_mut()
-            .apply(block.kind, block.indices[0], scoring.proposal)
-            .map_err(|error| error.to_string())?;
+        let (committed, moves) = if scoring.records.is_empty() {
+            (false, 0)
+        } else {
+            let decision = driver
+                .applier()
+                .decide_bvgk(block.kind, &scoring.records, scoring.joint_loss)
+                .map_err(|error| error.to_string())?;
+            if decision.commit.iter().any(|&commit| commit) {
+                let receipt = driver
+                    .applier_mut()
+                    .apply_bvgk(block.kind, &scoring.records, &decision)
+                    .map_err(|error| error.to_string())?;
+                (
+                    !receipt.committed.is_empty(),
+                    u64::try_from(receipt.committed.len())
+                        .map_err(|_| "committed move count overflows".to_owned())?,
+                )
+            } else {
+                (false, 0)
+            }
+        };
         driver
-            .advance_after_batch(receipt.applied, u64::from(receipt.applied))
+            .advance_after_batch(committed, moves)
             .map_err(|error| error.to_string())?;
         step_elapsed += step_started.elapsed();
-        if receipt.applied {
+        if committed {
             accepted += 1;
+            accepted_block_histogram[block.indices.len()] += 1;
+            accepted_block_move_histogram[moves as usize] += 1;
+            committed_moves = committed_moves
+                .checked_add(moves)
+                .ok_or_else(|| "committed move total overflows".to_owned())?;
         } else {
             refused += 1;
         }
@@ -291,15 +337,17 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             "trained artifact CPU/serving parity differs: {final_export:?}"
         ));
     }
-    if final_panel.target_admitted < baseline.target_admitted {
-        return Err(format!(
-            "training lost target admission: {} -> {}",
-            baseline.target_admitted, final_panel.target_admitted
-        ));
-    }
+    let admission_retained = final_panel.target_admitted >= baseline.target_admitted;
 
     let step_seconds = step_elapsed.as_secs_f64();
     let elapsed = started.elapsed().as_secs_f64();
+    let cumulative_committed_moves = driver
+        .cursor()
+        .block
+        .as_ref()
+        .map_or(driver.cursor().accepted_updates, |block| {
+            block.committed_moves
+        });
     Ok(json!({
         "schema": "uor-r4.cpu-discrete-corpus-driver/1",
         "substrate": "cpu-development-research",
@@ -321,7 +369,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         },
         "schedule": {
             "policy": schedule_policy,
-            "coordinate_block": 1,
+            "coordinate_block": config.coordinates_per_step,
             "batch_rows": BATCH_ROWS,
             "source_epoch": serving.shape().epoch,
         },
@@ -334,6 +382,11 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
                 - driver.cursor().accepted_updates,
             "accepted_updates_this_invocation": accepted,
             "refused_updates_this_invocation": refused,
+            "committed_moves": cumulative_committed_moves,
+            "committed_moves_this_invocation": committed_moves,
+            "accepted_block_size_histogram_this_invocation": accepted_block_histogram,
+            "accepted_block_move_histogram_this_invocation": accepted_block_move_histogram,
+            "batch_targets_this_invocation": batch_targets,
             "context_tokens_this_invocation": context_tokens,
             "target_visits_this_invocation": target_visits,
             "step_seconds_this_invocation": step_seconds,
@@ -341,6 +394,12 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             "target_visits_per_second_this_invocation": target_visits as f64 / step_seconds,
         },
         "panel": panel_json(&baseline, &final_panel),
+        "panel_gate": {
+            "decision": if admission_retained { "accept" } else { "reject_admission" },
+            "target_admitted": final_panel.target_admitted as i128 - baseline.target_admitted as i128,
+            "top1_correct": final_panel.top1_correct as i128 - baseline.top1_correct as i128,
+            "top8_correct": final_panel.top8_correct as i128 - baseline.top8_correct as i128,
+        },
         "export": {
             "baseline": baseline_export,
             "final": final_export,
@@ -433,6 +492,7 @@ fn write_checkpoint(
         manifest_sha256: manifest_sha256.to_owned(),
         seed: config.seed,
         batch_rows: BATCH_ROWS,
+        coordinates_per_step: config.coordinates_per_step,
         evaluation_stride: config.evaluation_stride,
         max_evaluation: config.max_evaluation,
         completed_steps: step,
@@ -478,6 +538,7 @@ fn validate_resume_binding(
         || binding.manifest_sha256 != manifest_sha256
         || binding.seed != config.seed
         || binding.batch_rows != BATCH_ROWS
+        || binding.coordinates_per_step != config.coordinates_per_step
         || binding.evaluation_stride != config.evaluation_stride
         || binding.max_evaluation != config.max_evaluation
         || binding.completed_steps != completed_steps
@@ -514,8 +575,37 @@ fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 
 fn parse_args() -> Result<Config, String> {
     let values = std::env::args().skip(1).collect::<Vec<_>>();
-    if !(10..=11).contains(&values.len()) {
-        return Err("usage: cpu-discrete-corpus-driver <artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]".to_owned());
+    parse_args_from(&values)
+}
+
+fn parse_args_from(values: &[String]) -> Result<Config, String> {
+    let mut positional = Vec::new();
+    let mut coordinates_per_step = 1u32;
+    let mut require_admission = false;
+    let mut at = 0usize;
+    while at < values.len() {
+        if values[at] == "--require-admission" {
+            require_admission = true;
+            at += 1;
+        } else if values[at] == "--coordinates-per-step" {
+            let value = values
+                .get(at + 1)
+                .ok_or_else(|| "--coordinates-per-step needs a value".to_owned())?;
+            coordinates_per_step = value
+                .parse::<u32>()
+                .ok()
+                .filter(|value| (1..=64).contains(value))
+                .ok_or_else(|| "--coordinates-per-step needs an integer in 1..=64".to_owned())?;
+            at += 2;
+        } else if values[at].starts_with("--") {
+            return Err(format!("unknown option {}", values[at]));
+        } else {
+            positional.push(values[at].clone());
+            at += 1;
+        }
+    }
+    if !(10..=11).contains(&positional.len()) {
+        return Err("usage: cpu-discrete-corpus-driver <artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint] [--coordinates-per-step N] [--require-admission]".to_owned());
     }
     let number = |name: &str, value: &str| -> Result<u64, String> {
         value
@@ -523,21 +613,23 @@ fn parse_args() -> Result<Config, String> {
             .map_err(|_| format!("{name}: expected a nonnegative integer"))
     };
     Ok(Config {
-        artifact: PathBuf::from(&values[0]),
-        tokens: PathBuf::from(&values[1]),
-        mask: PathBuf::from(&values[2]),
-        manifest: PathBuf::from(&values[3]),
-        seed: number("seed", &values[4])?,
-        steps: usize::try_from(number("steps", &values[5])?)
+        artifact: PathBuf::from(&positional[0]),
+        tokens: PathBuf::from(&positional[1]),
+        mask: PathBuf::from(&positional[2]),
+        manifest: PathBuf::from(&positional[3]),
+        seed: number("seed", &positional[4])?,
+        steps: usize::try_from(number("steps", &positional[5])?)
             .map_err(|_| "steps exceeds usize".to_owned())?,
-        evaluation_stride: usize::try_from(number("evaluation stride", &values[6])?)
+        coordinates_per_step,
+        evaluation_stride: usize::try_from(number("evaluation stride", &positional[6])?)
             .map_err(|_| "evaluation stride exceeds usize".to_owned())?,
-        max_evaluation: usize::try_from(number("max evaluation", &values[7])?)
+        max_evaluation: usize::try_from(number("max evaluation", &positional[7])?)
             .map_err(|_| "max evaluation exceeds usize".to_owned())?,
-        checkpoint_every: usize::try_from(number("checkpoint every", &values[8])?)
+        checkpoint_every: usize::try_from(number("checkpoint every", &positional[8])?)
             .map_err(|_| "checkpoint every exceeds usize".to_owned())?,
-        checkpoint_dir: PathBuf::from(&values[9]),
-        resume: values.get(10).map(PathBuf::from),
+        checkpoint_dir: PathBuf::from(&positional[9]),
+        resume: positional.get(10).map(PathBuf::from),
+        require_admission,
     })
 }
 
@@ -605,11 +697,13 @@ mod tests {
             manifest: PathBuf::new(),
             seed: 1,
             steps: 4,
+            coordinates_per_step: 1,
             evaluation_stride: 2,
             max_evaluation: 128,
             checkpoint_every: 2,
             checkpoint_dir: PathBuf::new(),
             resume: None,
+            require_admission: false,
         };
         let binding = CheckpointBinding {
             schema: BINDING_SCHEMA.into(),
@@ -619,6 +713,7 @@ mod tests {
             manifest_sha256: "33".repeat(32),
             seed: 1,
             batch_rows: BATCH_ROWS,
+            coordinates_per_step: 1,
             evaluation_stride: 2,
             max_evaluation: 128,
             completed_steps: 2,
@@ -653,6 +748,18 @@ mod tests {
         assert!(validate()
             .unwrap_err()
             .contains("binding differs from the requested run"));
+
+        let mut wrong_block = binding.clone();
+        wrong_block.coordinates_per_step = 4;
+        std::fs::write(
+            checkpoint_path.with_extension("binding.json"),
+            serde_json::to_vec(&wrong_block).unwrap(),
+        )
+        .unwrap();
+        assert!(validate()
+            .unwrap_err()
+            .contains("binding differs from the requested run"));
+
         std::fs::write(
             checkpoint_path.with_extension("binding.json"),
             serde_json::to_vec(&binding).unwrap(),
@@ -676,5 +783,36 @@ mod tests {
         assert!(write_new(&path, b"second").is_err());
         assert_eq!(std::fs::read(path).unwrap(), b"first");
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn coordinate_block_arguments_default_to_one_and_are_bounded() {
+        let base = [
+            "artifact", "tokens", "mask", "manifest", "1", "8", "2", "16", "2", "out",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+        assert_eq!(parse_args_from(&base).unwrap().coordinates_per_step, 1);
+
+        let mut four = base.clone();
+        four.extend(["--coordinates-per-step", "4", "--require-admission"].map(str::to_owned));
+        let parsed = parse_args_from(&four).unwrap();
+        assert_eq!(parsed.coordinates_per_step, 4);
+        assert!(parsed.require_admission);
+
+        for value in ["0", "65", "four"] {
+            let mut invalid = base.clone();
+            invalid.extend(["--coordinates-per-step".to_owned(), value.to_owned()]);
+            assert!(parse_args_from(&invalid)
+                .unwrap_err()
+                .contains("integer in 1..=64"));
+        }
+
+        let mut unknown = base;
+        unknown.push("--unknown".to_owned());
+        assert!(parse_args_from(&unknown)
+            .unwrap_err()
+            .contains("unknown option"));
     }
 }

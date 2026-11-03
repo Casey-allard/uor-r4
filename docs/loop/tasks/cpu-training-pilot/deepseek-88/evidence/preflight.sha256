@@ -1,0 +1,7 @@
+a16eb3840b75baf9b49d33082a2c0924b8edfba0958cc830289fd3fa7e81949d  docs/harness/prep/cpu-training-pilot-discrete-k1-k4-2026-11-03.md
+27fc53895fc4cd81e96b446eb84c31909661e2e2eaedf6c8995260d43fe7810d  target/discrete-k4-final-release/release/cpu-discrete-corpus-driver
+fc31bcc7a88250f3758d07a8b3d12480a5332acb5437b0c0f0e5c71ae88939ca  local/deepseek/public-discrete/t16-frozen-zero-seed1.lut
+a75ea7f5907275fd4c1e853ee76135a7a2615ba8302aaadf362bfa7eb96ae12a  local/deepseek/public-discrete/t16-frozen-zero-seed2.lut
+0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16
+a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8
+ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json

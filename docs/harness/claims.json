@@ -90,6 +90,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/discrete-k4-corpus": {
+    "branch": "deepseek/discrete-k4-corpus",
+    "claimed_at": "2026-11-03T02:37:13-05:00",
+    "head": "498e36574",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/fbs-wide-export": {
     "branch": "deepseek/fbs-wide-export",
     "claimed_at": "2026-11-02T17:45:05-05:00",

@@ -64,6 +64,16 @@ K4 therefore failed admission and ranking on seed 1 and did not exceed K1 on
 either seed. This closes the tested coordinate-breadth configuration, not the
 BVG-K mechanism generally.
 
+The next materially different CPU comparison used the exact discrete
+proposal/apply learner rather than rank margin. Baseline, K1 and K4 ran for 256
+blocks on both public four-table seeds. Baseline read 38/108/361
+top-1/top-8/admitted; K1 read 19/82/248 and K4 read 13/63/256. K4 committed 71
+moves across 46 blocks, including fourteen blocks that committed more than one
+coordinate, so the joint mechanism was exercised. Both trained settings lost
+admission and ranking, and K4 trailed K1. This is a preserved negative for the
+tested discrete K1/K4 budget, not a rejection of every proposal or credit
+assignment. See [deepseek-88](../../loop/tasks/cpu-training-pilot/deepseek-88/REPORT.md).
+
 ## What is missing
 
 The bounded public pilot supplies cost, exact-export, admission and ranking evidence, but it is not a fresh capability test. The full item still needs credentialed sealed complete-reply and fresh-phrasing grading and a configuration that clears a registered ranking or capability bar.
