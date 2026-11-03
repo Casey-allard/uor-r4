@@ -1,0 +1,151 @@
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:442:
+ /// rate score before its selection, and the integer artifact only clamps it.
+ pub fn run_rate_reading(run_config: &str) -> Result<bool> {
+     let config: serde_json::Value = serde_json::from_str(run_config)?;
+-    let flag = |name: &str| config.get(name).and_then(serde_json::Value::as_bool).unwrap_or(false);
++    let flag = |name: &str| {
++        config
++            .get(name)
++            .and_then(serde_json::Value::as_bool)
++            .unwrap_or(false)
++    };
+     for name in ["fold_scores", "reflect_floor"] {
+         if flag(name) {
+             return Err(invalid(format!(
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1251:
+     /// score.
+     #[test]
+     fn the_run_rate_reading_is_retain_rates_and_refuses_the_other_score_forms() {
+-        assert!(run_rate_reading(r#"{"retain_rates": true, "fold_scores": false, "reflect_floor": false}"#).unwrap());
+-        assert!(!run_rate_reading(r#"{"steps": 16384}"#).unwrap(), "absent, as before 27 Oct");
+-        assert!(run_rate_reading(r#"{"retain_rates": true, "fold_scores": true}"#).is_err(), "folded scores");
+-        assert!(run_rate_reading(r#"{"reflect_floor": true}"#).is_err(), "a reflected floor");
++        assert!(run_rate_reading(
++            r#"{"retain_rates": true, "fold_scores": false, "reflect_floor": false}"#
++        )
++        .unwrap());
++        assert!(
++            !run_rate_reading(r#"{"steps": 16384}"#).unwrap(),
++            "absent, as before 27 Oct"
++        );
++        assert!(
++            run_rate_reading(r#"{"retain_rates": true, "fold_scores": true}"#).is_err(),
++            "folded scores"
++        );
++        assert!(
++            run_rate_reading(r#"{"reflect_floor": true}"#).is_err(),
++            "a reflected floor"
++        );
+         assert!(run_rate_reading("not json").is_err());
+     }
+
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1319:
+         let scratch = Scratch::new("claude-198-memory");
+         let dir = &scratch.0;
+         let pad = uor_r4_integer::fbs_snapshot::MEMORY_PAD;
+-        let openings: HashMap<Vec<u32>, u32> =
+-            [(vec![9, 4], 6), (vec![3], 7), (vec![3, 4], 8)].into_iter().collect();
++        let openings: HashMap<Vec<u32>, u32> = [(vec![9, 4], 6), (vec![3], 7), (vec![3, 4], 8)]
++            .into_iter()
++            .collect();
+         let replies: HashMap<Vec<u32>, u32> = [
+             (vec![3, 4, pad, 1, pad, 6], 7),
+             (vec![pad, 2, pad, 9], 8),
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1931:
+         let before = fbs_hamming_snapshot(&reads, HAMMING_READOUT_DEPTH, width)?;
+         let after = fbs_hamming_snapshot(&loaded, HAMMING_READOUT_DEPTH, width)?;
+         assert_eq!(before, after);
+-        assert_eq!((after.heads, after.depths.as_slice()), (heads, &HAMMING_DEPTHS[..]));
++        assert_eq!(
++            (after.heads, after.depths.as_slice()),
++            (heads, &HAMMING_DEPTHS[..])
++        );
+         for (snap, read) in after.reads.iter().zip(&reads.reads) {
+             let values = |var: &Var| var.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+             assert_eq!(snap.query_rotation, values(&read.query_rotation));
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1940:
+             assert_eq!(snap.margin, values(&read.margin));
+             assert_eq!(snap.weight, values(&read.weight));
+             assert_eq!(
+-                (snap.query_rotation.len(), snap.margin.len(), snap.weight.len()),
++                (
++                    snap.query_rotation.len(),
++                    snap.margin.len(),
++                    snap.weight.len()
++                ),
+                 (width, heads, 2 * width)
+             );
+         }
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1954:
+             assert!(message.contains(reason), "{message}");
+         };
+         refused(&loaded, 4, width, "this trunk has 4 layers");
+-        refused(&loaded, HAMMING_READOUT_DEPTH, 64, "hamming_read.d2.query_rotation has shape");
++        refused(
++            &loaded,
++            HAMMING_READOUT_DEPTH,
++            64,
++            "hamming_read.d2.query_rotation has shape",
++        );
+         let spun = loaded.clone().with_type_spin()?;
+-        refused(&spun, HAMMING_READOUT_DEPTH, width, "the type spin (step_rotation)");
++        refused(
++            &spun,
++            HAMMING_READOUT_DEPTH,
++            width,
++            "the type spin (step_rotation)",
++        );
+         let mut margin = loaded.reads[0].margin.flatten_all()?.to_vec1::<f32>()?;
+         let kept = margin.clone();
+         margin[2] = 0.0;
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1963:
+         loaded.reads[0]
+             .margin
+             .set(&Tensor::from_vec(margin, heads, &device)?)?;
+-        refused(&loaded, HAMMING_READOUT_DEPTH, width, "hamming_read.d2.margin[2] = 0 is not positive");
++        refused(
++            &loaded,
++            HAMMING_READOUT_DEPTH,
++            width,
++            "hamming_read.d2.margin[2] = 0 is not positive",
++        );
+         loaded.reads[0]
+             .margin
+             .set(&Tensor::from_vec(kept, heads, &device)?)?;
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:1972:
+         loaded.reads[1]
+             .weight
+             .set(&Tensor::from_vec(weight, (2, width), &device)?)?;
+-        refused(&loaded, HAMMING_READOUT_DEPTH, width, "hamming_read.d6.weight[3]");
++        refused(
++            &loaded,
++            HAMMING_READOUT_DEPTH,
++            width,
++            "hamming_read.d6.weight[3]",
++        );
+         Ok(())
+     }
+
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:2040:
+         let message = check_readout_reads(&scratch.0, 1)
+             .expect_err("readouts beside a memory")
+             .to_string();
+-        assert!(message.contains("do not apply the turn memory"), "{message}");
++        assert!(
++            message.contains("do not apply the turn memory"),
++            "{message}"
++        );
+         // A reply table without its opening table is refused, not dropped.
+         let scratch = Scratch::new("claude-198-reads");
+         std::fs::create_dir_all(&scratch.0)?;
+Diff in /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train/src/fbs_export.rs:2050:
+         let message = check_checkpoint_reads(&scratch.0)
+             .expect_err("a reply table alone")
+             .to_string();
+-        assert!(message.contains("without turn_memory.safetensors"), "{message}");
++        assert!(
++            message.contains("without turn_memory.safetensors"),
++            "{message}"
++        );
+         Ok(())
+     }

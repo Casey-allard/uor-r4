@@ -11,14 +11,19 @@
 //!   tables as exported (claude-125).
 //!
 //! ```text
-//! fbs-snapshot [--dev DATA_ROOT] MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]]
-//! fbs-snapshot [--dev DATA_ROOT] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON
+//! fbs-snapshot [--dev DATA_ROOT] [--served-readout] MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]]
+//! fbs-snapshot [--dev DATA_ROOT] [--served-readout] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON
 //! ```
 //!
 //! `--dev DATA_ROOT` (claude-240) takes every readout, and the trace, on a sample of DEV in
 //! place of the fixed sequences: `DATA_ROOT/ft/dev`, loaded with its pins, cut into the
 //! trainer's windows of `SHEET_CONTEXT` and sampled every `PARITY_WINDOW_STRIDE`-th window, as
 //! claude-126 sampled it. The snapshot itself does not depend on it.
+//!
+//! `--served-readout` enters `with_served_surrogate_training` around exactly one D11 readout (or
+//! the Hamming trace's readout): unsnapped gates and transition, Q12 query, Q16 residual, dynamic
+//! i16 activations and Q16 projection outputs. The readout is marked `served_readout: true` so a
+//! snapped D11 readout cannot be mistaken for the contract the run trained on.
 //!
 //! The second form (claude-235) writes the D11 readout of a checkpoint with
 //! Hamming reads and what each read chose on its fixed sequences
@@ -84,8 +89,9 @@ use candle_core::Device;
 use sha2::{Digest, Sha256};
 use uor_r4_float_train::fbs_export::{
     check_checkpoint_reads, check_readout_reads, fbs_float_readout, fbs_float_readout_on,
-    fbs_hamming_snapshot, fbs_memory_snapshot, fbs_trunk_snapshot, round_hamming_as_exported,
-    round_tables_as_exported, run_rate_reading, write_rounded_copy, READOUT_SEQUENCES,
+    fbs_float_readout_served, fbs_float_readout_served_on, fbs_hamming_snapshot,
+    fbs_memory_snapshot, fbs_trunk_snapshot, round_hamming_as_exported, round_tables_as_exported,
+    run_rate_reading, write_rounded_copy, READOUT_SEQUENCES,
 };
 use uor_r4_float_train::flock_read_hamming::{
     set_hamming_reads, set_hamming_tie_rule, set_hamming_trace, take_hamming_trace, HammingReads,
@@ -221,7 +227,55 @@ fn readout_on(
     fbs_float_readout_on(model, mode, sample)
 }
 
-/// `[--dev DATA_ROOT] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON` (claude-235;
+/// The served-contract readout on the DEV sample when there is one, else on
+/// the fixed sequences.
+fn served_readout_on(model: &StackModel, dev: Option<&[Vec<u32>]>) -> Result<FbsFloatReadout> {
+    let Some(sample) = dev else {
+        return fbs_float_readout_served(model);
+    };
+    let context = model.config.context;
+    if context != SHEET_CONTEXT || sample.iter().any(|w| w.is_empty() || w.len() > context) {
+        return Err(FloatTrainError::Invalid(format!(
+            "the model's context is {context}, and DEV was cut at {SHEET_CONTEXT} into windows of 1 to {SHEET_CONTEXT}"
+        )));
+    }
+    fbs_float_readout_served_on(model, sample)
+}
+
+/// Consume the leading `--dev DATA_ROOT` and `--served-readout` flags in
+/// either order. Both are single-use.
+fn readout_options(args: &mut Vec<String>) -> Result<(Option<String>, bool)> {
+    let mut dev = None;
+    let mut served = false;
+    loop {
+        match args.first().map(String::as_str) {
+            Some("--dev") => {
+                if dev.is_some() {
+                    return Err(FloatTrainError::Invalid("--dev given twice".to_owned()));
+                }
+                args.remove(0);
+                let root = args
+                    .first()
+                    .ok_or_else(|| FloatTrainError::Invalid("--dev needs DATA_ROOT".to_owned()))?
+                    .clone();
+                args.remove(0);
+                dev = Some(root);
+            }
+            Some("--served-readout") => {
+                if served {
+                    return Err(FloatTrainError::Invalid(
+                        "--served-readout given twice".to_owned(),
+                    ));
+                }
+                args.remove(0);
+                served = true;
+            }
+            _ => return Ok((dev, served)),
+        }
+    }
+}
+
+/// `[--dev DATA_ROOT] [--served-readout] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON` (claude-235;
 /// the DEV sample, claude-240).
 fn hamming_trace(
     arm: &str,
@@ -229,6 +283,7 @@ fn hamming_trace(
     readout: &str,
     trace: &str,
     dev: Option<&[Vec<u32>]>,
+    served: bool,
 ) -> Result<()> {
     let (tie, rounded) = trace_arm(arm).ok_or_else(|| {
         FloatTrainError::Invalid(format!(
@@ -263,7 +318,11 @@ fn hamming_trace(
     set_hamming_tie_rule(tie);
     round_tables_as_exported(&model)?;
     set_hamming_trace(true);
-    let d11 = readout_on(&model, FbsReadoutMode::D11, dev)?;
+    let d11 = if served {
+        served_readout_on(&model, dev)?
+    } else {
+        readout_on(&model, FbsReadoutMode::D11, dev)?
+    };
     let windows = take_hamming_trace().unwrap_or_default();
     set_hamming_trace(false);
     // Only the sequences reach a read (a single token has no earlier position): each must be
@@ -484,7 +543,7 @@ fn inspect(ties: &str, data_root: &str, run: &str) -> Result<()> {
 
 fn usage() -> ! {
     eprintln!(
-        "usage: fbs-snapshot [--dev DATA_ROOT] MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]]\n       fbs-snapshot [--dev DATA_ROOT] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON\n       fbs-snapshot --rebind-fbs-backward MODEL_DIR OUT_MODEL_DIR\n       fbs-snapshot --inspect as-trained|tie-rule DATA_ROOT RUN_DIR\n       fbs-snapshot --round-as-exported MODEL_DIR OUT_MODEL_DIR"
+        "usage: fbs-snapshot [--dev DATA_ROOT] [--served-readout] MODEL_DIR OUT_JSON [READOUT_JSON [EXPORT_READOUT_JSON [D11_READOUT_JSON]]]\n       fbs-snapshot [--dev DATA_ROOT] [--served-readout] --hamming-trace ARM MODEL_DIR D11_READOUT_JSON TRACE_JSON\n       fbs-snapshot --rebind-fbs-backward MODEL_DIR OUT_MODEL_DIR\n       fbs-snapshot --inspect as-trained|tie-rule DATA_ROOT RUN_DIR\n       fbs-snapshot --round-as-exported MODEL_DIR OUT_MODEL_DIR"
     );
     std::process::exit(2);
 }
@@ -531,24 +590,21 @@ fn main() -> Result<()> {
         );
         return Ok(());
     }
-    let dev = if args.first().is_some_and(|flag| flag == "--dev") {
-        if args.len() < 2 {
-            usage();
-        }
-        let root = args.drain(..2).nth(1).unwrap_or_default();
-        Some(dev_sample(&root)?)
-    } else {
-        None
-    };
+    let (dev_root, served_readout) = readout_options(&mut args)?;
+    let dev = dev_root.as_deref().map(dev_sample).transpose()?;
     let dev = dev.as_deref();
     if args.first().is_some_and(|flag| flag == "--hamming-trace") {
         let [_, arm, model_dir, readout, trace] = args.as_slice() else {
             usage();
         };
-        return hamming_trace(arm, model_dir, readout, trace, dev);
+        return hamming_trace(arm, model_dir, readout, trace, dev, served_readout);
     }
     let (model_dir, out, readouts) = match args.as_slice() {
-        [model_dir, out, readouts @ ..] if readouts.len() <= 3 => (model_dir, out, readouts),
+        [model_dir, out, readouts @ ..]
+            if readouts.len() <= 3 && (!served_readout || readouts.len() == 1) =>
+        {
+            (model_dir, out, readouts)
+        }
         _ => usage(),
     };
     let dir = Path::new(model_dir);
@@ -581,15 +637,25 @@ fn main() -> Result<()> {
     // The readouts are the float model with its Hamming reads (claude-200): `StackModel::hidden`
     // applies the reads set on this thread, here on the trunk's GPU.
     set_hamming_reads(HammingReads::load(dir, &device)?);
-    for (path, mode) in readouts.iter().zip([
-        FbsReadoutMode::Plain,
-        FbsReadoutMode::Export,
-        FbsReadoutMode::D11,
-    ]) {
+    let modes: Vec<FbsReadoutMode> = if served_readout {
+        vec![FbsReadoutMode::D11]
+    } else {
+        vec![
+            FbsReadoutMode::Plain,
+            FbsReadoutMode::Export,
+            FbsReadoutMode::D11,
+        ]
+    };
+    for (path, mode) in readouts.iter().zip(modes) {
         if mode == FbsReadoutMode::D11 {
             round_tables_as_exported(&model)?;
         }
-        write(path, &serde_json::to_vec(&readout_on(&model, mode, dev)?)?)?;
+        let reading = if served_readout {
+            served_readout_on(&model, dev)?
+        } else {
+            readout_on(&model, mode, dev)?
+        };
+        write(path, &serde_json::to_vec(&reading)?)?;
     }
     Ok(())
 }
@@ -597,10 +663,44 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        forward_text, inspect_ties, output_place, pre_179_fingerprint, sample_windows,
-        scored_prefix, CausalWindow, ProjectionPlan, FORWARD_TEXT_SHA256, PARITY_WINDOW_STRIDE,
+        forward_text, inspect_ties, output_place, pre_179_fingerprint, readout_options,
+        sample_windows, scored_prefix, CausalWindow, ProjectionPlan, FORWARD_TEXT_SHA256,
+        PARITY_WINDOW_STRIDE,
     };
     use sha2::{Digest, Sha256};
+
+    #[test]
+    fn served_readout_options_accept_either_order_and_refuse_duplicates() {
+        let mut args = vec![
+            "--served-readout".to_owned(),
+            "--dev".to_owned(),
+            "DATA".to_owned(),
+            "MODEL".to_owned(),
+        ];
+        assert_eq!(
+            readout_options(&mut args).expect("served options"),
+            (Some("DATA".to_owned()), true)
+        );
+        assert_eq!(args, vec!["MODEL"]);
+
+        let mut duplicate_dev = vec![
+            "--dev".to_owned(),
+            "A".to_owned(),
+            "--dev".to_owned(),
+            "B".to_owned(),
+        ];
+        assert!(readout_options(&mut duplicate_dev)
+            .expect_err("duplicate dev")
+            .to_string()
+            .contains("twice"));
+
+        let mut duplicate_served =
+            vec!["--served-readout".to_owned(), "--served-readout".to_owned()];
+        assert!(readout_options(&mut duplicate_served)
+            .expect_err("duplicate served")
+            .to_string()
+            .contains("twice"));
+    }
 
     /// claude-240: the inspection reproduces a sealed one with the rule off, as the checkpoint
     /// trained; the rule is the other reading. No other name is taken.

@@ -1,0 +1,267 @@
+   Compiling uor-r4-float-train v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train)
+    Checking uor-r4-tokenizer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-tokenizer)
+    Checking uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-integer)
+    Checking uor-r4-source-interface v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-source-interface)
+warning: unused imports: `DType` and `D`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:42
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |                                          ^^^^^                                          ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `backend::BackendStorage`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:5
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::backend::BackendDevice`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/mod.rs:3:5
+  |
+3 | use crate::backend::BackendDevice;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `vs`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:19
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `layout`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:27
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `vs`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:19
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+
+warning: unused variable: `layout`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:27
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:19
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:27
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:40
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:48
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:19
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:31
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                               ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:44
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:52
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                                    ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:19
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:27
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:40
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:48
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: method `offsets_b` is never used
+   --> third_party/candle-core-0.9.2/src/layout.rs:224:19
+    |
+ 12 | impl Layout {
+    | ----------- method in this implementation
+...
+224 |     pub(crate) fn offsets_b(&self) -> Option<ContiguousOffsetsWithBroadcast> {
+    |                   ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `qzeros` is never used
+  --> third_party/candle-core-0.9.2/src/quantized/mod.rs:53:8
+   |
+52 | impl Device {
+   | ----------- method in this implementation
+53 |     fn qzeros(&self, elem_count: usize, dtype: GgmlDType) -> Result<QStorage> {
+   |        ^^^^^^
+
+warning: methods `quantize`, `quantize_imatrix`, `quantize_onto`, `quantize_imatrix_onto`, and `dequantize` are never used
+   --> third_party/candle-core-0.9.2/src/quantized/mod.rs:151:8
+    |
+ 77 | impl QStorage {
+    | ------------- methods in this implementation
+...
+151 |     fn quantize(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^
+...
+158 |     fn quantize_imatrix(
+    |        ^^^^^^^^^^^^^^^^
+...
+170 |     fn quantize_onto(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^^^^^^
+...
+177 |     fn quantize_imatrix_onto(
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+189 |     fn dequantize(&self, elem_count: usize) -> Result<Storage> {
+    |        ^^^^^^^^^^
+
+warning: `candle-core` (lib) generated 22 warnings (run `cargo clippy --fix --lib -p candle-core -- --no-deps -D warnings` to apply 17 suggestions)
+    Checking uor-r4-core v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-core)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates/uor-r4-float-train/src/flock_read_memory.rs:253:34
+    |
+253 |     pub fn reply_parts(&self) -> Result<Option<(Vec<(Vec<u32>, u32)>, Vec<f32>)>> {
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: the loop variable `j` is used to index `distance`
+   --> crates/uor-r4-float-train/src/flock_read_register.rs:360:22
+    |
+360 |             for j in 0..self.q {
+    |                      ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+360 -             for j in 0..self.q {
+360 +             for (j, <item>) in distance.iter().enumerate().take(self.q) {
+    |
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates/uor-r4-float-train/src/flock_read_register.rs:541:6
+    |
+541 | ) -> (Vec<u32>, Vec<f32>, Vec<u32>, Vec<f32>, Vec<f32>) {
+    |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+
+error: this function has too many arguments (11/7)
+    --> crates/uor-r4-float-train/src/in_space_long.rs:6611:1
+     |
+6611 | / pub fn decode_speed(
+6612 | |     data_root: &Path,
+6613 | |     checkpoint: &Path,
+6614 | |     retain_rates: bool,
+...    |
+6622 | |     served_forward: Option<bool>,
+6623 | | ) -> Result<Vec<DecodeSpeed>> {
+     | |_____________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+     = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: this function has too many arguments (9/7)
+    --> crates/uor-r4-float-train/src/in_space_long.rs:6667:1
+     |
+6667 | / pub fn inspect_run(
+6668 | |     data_root: &Path,
+6669 | |     run: &Path,
+6670 | |     retain_rates: bool,
+...    |
+6676 | |     served_forward: Option<bool>,
+6677 | | ) -> Result<Vec<Inspection>> {
+     | |____________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: could not compile `uor-r4-float-train` (lib) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> crates/uor-r4-float-train/src/spiralcore_fbs_sheet.rs:3821:42
+     |
+3821 |     fn tensors_of(model: &StackModel) -> Result<Vec<(String, Vec<usize>, Vec<f32>)>> {
+     |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+
+error: could not compile `uor-r4-float-train` (lib test) due to 6 previous errors

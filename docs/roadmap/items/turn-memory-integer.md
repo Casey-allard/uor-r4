@@ -92,6 +92,17 @@ Read:
 
 The integer session now serves the `/7` turn memory (units 2-3): `IntegerStackModel::parse` builds both tables; the session takes the caller's reply start (`mark_reply_start`), keys the opening and reply tables exactly as this item states, and applies the moves after the Hamming readout (whole sum rounded once, half away from zero; integer only). The wasm surface exposes `memoryInfo`/`markReplyStart`/`clearReplyStart`. Evidence: engine lib tests 372 passed (+4 new) with the test-side float-rule reference and six negative gates; wasm audit 7/7 with the move reached (mul 26/div 12, float 0); a memory session's restore/export/import is refused (the turn state is not saved yet). Units 4 (DEV parity against the sealed claude-194 checkpoints under a pre-registered sheet; also blocked until integer-hamming-read step 4 puts the Hamming read in the exporter) and 5 (cost) remain open, so the item stays ready. No trained `/7` artifact exists yet; the serving is verified on synthetic artifacts and the reference.
 
+## Served-contract readout (3 November 2026)
+
+`fbs-snapshot --served-readout` now produces one D11 readout under the
+complete served surrogate contract: unsnapped gates and transition, Q12 query,
+Q16 residual, dynamic i16 activations and Q16 projection outputs. It works
+with the fixed sequences, `--dev`, and `--hamming-trace`, and marks the JSON
+`served_readout: true`. Old readouts parse as false and serialize unchanged.
+The host float and integer suites pass. No GPU was available, so the first
+checkpoint readout remains to be run under its own pre-registered operator
+step. See [deepseek-3](../../loop/tasks/turn-memory-integer/deepseek-3/REPORT.md).
+
 ## Rules that apply
 
 - **Serving stays integer** (CHARTER §3.6, as amended by D80 and D81): no float or transcendental instruction. The hardware integer multiply and divide are allowed once [`integer-mul-div-serving`](integer-mul-div-serving.md)'s audits allow them; until then the move's products go through the tables. The lookup is a hash and a load.

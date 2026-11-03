@@ -1,0 +1,426 @@
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: unused imports: `DType` and `D`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:42
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |                                          ^^^^^                                          ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `backend::BackendStorage`
+ --> third_party/candle-core-0.9.2/src/quantized/mod.rs:2:5
+  |
+2 |     backend::BackendStorage, CpuStorage, DType, Device, Result, Shape, Storage, Tensor, D,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::backend::BackendDevice`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/mod.rs:3:5
+  |
+3 | use crate::backend::BackendDevice;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `vs`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:19
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `layout`
+ --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:7:27
+  |
+7 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+  |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `vs`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:19
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_vs`
+
+warning: unused variable: `layout`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:14:27
+   |
+14 |     fn map(&self, vs: &C, layout: &Layout) -> Result<C> {
+   |                           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_layout`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:19
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:27
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:40
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:22:48
+   |
+22 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:19
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:31
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                               ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:44
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:30:52
+   |
+30 |     fn map(&self, v1: &mut C, l1: &Layout, v2: &C, l2: &Layout) -> Result<()> {
+   |                                                    ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: unused variable: `v1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:19
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                   ^^ help: if this is intentional, prefix it with an underscore: `_v1`
+
+warning: unused variable: `l1`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:27
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                           ^^ help: if this is intentional, prefix it with an underscore: `_l1`
+
+warning: unused variable: `v2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:40
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                        ^^ help: if this is intentional, prefix it with an underscore: `_v2`
+
+warning: unused variable: `l2`
+  --> third_party/candle-core-0.9.2/src/cpu_backend/utils.rs:38:48
+   |
+38 |     fn map(&self, v1: &C, l1: &Layout, v2: &C, l2: &Layout) -> Result<C> {
+   |                                                ^^ help: if this is intentional, prefix it with an underscore: `_l2`
+
+warning: method `offsets_b` is never used
+   --> third_party/candle-core-0.9.2/src/layout.rs:224:19
+    |
+ 12 | impl Layout {
+    | ----------- method in this implementation
+...
+224 |     pub(crate) fn offsets_b(&self) -> Option<ContiguousOffsetsWithBroadcast> {
+    |                   ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `qzeros` is never used
+  --> third_party/candle-core-0.9.2/src/quantized/mod.rs:53:8
+   |
+52 | impl Device {
+   | ----------- method in this implementation
+53 |     fn qzeros(&self, elem_count: usize, dtype: GgmlDType) -> Result<QStorage> {
+   |        ^^^^^^
+
+warning: methods `quantize`, `quantize_imatrix`, `quantize_onto`, `quantize_imatrix_onto`, and `dequantize` are never used
+   --> third_party/candle-core-0.9.2/src/quantized/mod.rs:151:8
+    |
+ 77 | impl QStorage {
+    | ------------- methods in this implementation
+...
+151 |     fn quantize(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^
+...
+158 |     fn quantize_imatrix(
+    |        ^^^^^^^^^^^^^^^^
+...
+170 |     fn quantize_onto(&mut self, src: &Storage) -> Result<()> {
+    |        ^^^^^^^^^^^^^
+...
+177 |     fn quantize_imatrix_onto(
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+189 |     fn dequantize(&self, elem_count: usize) -> Result<Storage> {
+    |        ^^^^^^^^^^
+
+warning: `candle-core` (lib) generated 22 warnings (run `cargo fix --lib -p candle-core` to apply 17 suggestions)
+   Compiling uor-r4-float-train v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-served-readout/crates/uor-r4-float-train)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.09s
+     Running unittests src/lib.rs (local/deepseek/served-readout-target/debug/deps/uor_r4_float_train-2808ab5b26ef4ebc)
+
+running 218 tests
+test fbs_export::tests::d11_mode_snaps_the_transition_only_inside_its_closure ... ok
+test fbs_export::tests::copied_tables_refuse_non_finite_values ... ok
+test fbs_export::tests::coded_carrier_decode_refuses_what_is_not_a_signed_gather ... ok
+test fbs_export::tests::coded_carrier_decode_recovers_a_gather_exactly ... ok
+test fbs_export::tests::export_config_refuses_what_the_integer_session_cannot_serve ... ok
+test fbs_export::tests::served_readout_contract_sets_and_restores_every_flag ... ok
+test fbs_export::tests::the_hamming_exponents_are_the_integer_formats ... ok
+test flock_read_hamming::tests::a_candidate_is_earlier_and_before_the_cut ... ok
+test fbs_export::tests::the_run_rate_reading_is_retain_rates_and_refuses_the_other_score_forms ... ok
+test flock_read_hamming::tests::a_forced_code_wider_than_64_bits_is_refused ... ok
+test fbs_export::tests::rounding_the_turn_memory_holds_the_exported_weights ... ok
+test flock_read_hamming::tests::a_row_cut_limits_each_row_for_its_heads ... ok
+test flock_read_hamming::tests::a_head_trace_packs_the_codes_and_keeps_only_real_picks ... ok
+test flock_read_hamming::tests::candidates_include_the_immediate_predecessor_and_exclude_the_current_row ... ok
+test flock_read_hamming::tests::packed_sign_codes_pack_one_bit_per_coordinate_in_order ... ok
+test flock_read_hamming::tests::a_head_trace_with_coordinates_keeps_them_bit_for_bit ... ok
+test flock_read_hamming::tests::the_copy_code_icosians_are_the_trainers_own ... ok
+test flock_read_hamming::tests::the_read_scope_limits_only_its_heads ... ok
+test flock_read_hamming::tests::the_copy_code_control_is_the_trainers_own_bit_for_bit ... ok
+test fbs_export::tests::a_saved_memory_snapshots_as_it_loads ... ok
+test fbs_export::tests::a_checkpoint_read_the_export_does_not_carry_is_refused ... ok
+test flock_read_hamming::tests::the_readout_read_joins_the_windows_its_stream_read_opened ... ok
+test flock_read_hamming::tests::the_token_two_back_stays_inside_each_window ... ok
+test flock_read_memory::tests::a_memory_refuses_keys_it_cannot_hold ... ok
+test flock_read_hamming::tests::the_tie_key_orders_by_bits_then_position_and_is_exact ... ok
+test flock_read_memory::tests::a_reply_row_moves_only_when_named_and_its_key_is_held ... ok
+test flock_read_memory::tests::a_reply_table_refuses_keys_it_cannot_save ... ok
+test flock_read_hamming::tests::the_trace_starts_off_and_the_tie_rule_on ... ok
+test flock_read_memory::tests::the_memorys_key_shapes_are_the_integer_artifacts ... ok
+test flock_read_memory::tests::the_key_equals_the_probes_first_k_prompt_ids ... ok
+test flock_read_memory::tests::an_opening_row_keys_on_its_turns_first_ids_and_only_named_rows_hit ... ok
+test flock_read_memory::tests::each_rows_lookup_is_the_key_and_entry_the_move_reads ... ok
+test flock_read_opening::tests::the_turn_anchor_starts_after_the_last_bos_or_eos ... ok
+test flock_read_memory::tests::the_reply_table_keeps_each_keys_commonest_target_at_its_share ... ok
+test fbs_export::tests::rounding_the_hamming_reads_holds_the_exported_values ... ok
+test flock_read_opening::tests::the_slot_tables_count_and_mask_each_kept_slot ... ok
+test hamilton_sheet::tests::each_d11_snap_is_set_on_its_own_and_the_hook_restored ... ok
+test hamilton_sheet::tests::pure_i32_q12_oracle_scores_exact_l1_candidates ... ok
+test hamilton_sheet::tests::served_bridge_takes_the_unsnapped_d11_contract ... ok
+test flock_read_register::tests::register_picks_take_the_nearest_k_of_the_span_with_ties_to_the_earlier ... ok
+test fbs_export::tests::saved_hamming_reads_snapshot_as_they_load ... ok
+test in_space_long::tests::a_config_with_the_register_writes_its_three_keys_after_the_opening_reads ... ok
+test flock_read_opening::tests::the_opening_read_saves_and_loads ... ok
+test flock_read_memory::tests::a_saved_reply_table_loads_and_leaves_the_opening_file_as_it_was ... ok
+test flock_read_memory::tests::the_table_keeps_each_keys_commonest_opening_with_ties_to_the_smaller_id ... ok
+test flock_read_register::tests::register_spans_follow_the_turn_anchor ... ok
+test flock_read_opening::tests::a_saved_opening_read_out_of_range_is_refused ... ok
+test flock_read_register::tests::new_refuses_out_of_range_settings ... ok
+test hamilton_sheet::tests::d11_training_sets_and_restores_its_bridge ... ok
+test geometric_stack::tests::hamilton_gate_suppression_closed_form_and_backward_hazard_proof ... ok
+test in_space_long::tests::a_config_without_the_profile_writes_no_profile_key ... ok
+test in_space_long::tests::a_config_without_the_opening_read_writes_neither_of_its_keys ... ok
+test hamilton_sheet::tests::served_activation_quantizer_is_the_integer_step_at_product_exp ... ok
+test in_space_long::tests::a_config_without_the_register_writes_none_of_its_keys ... ok
+test in_space_long::tests::a_config_without_the_turn_memory_writes_neither_of_its_keys ... ok
+test in_space_long::tests::a_config_with_the_opening_read_writes_both_of_its_keys ... ok
+test hamilton_sheet::tests::served_surrogate_scalar_and_state_controls_are_exact ... ok
+test in_space_long::tests::a_checkpoint_with_a_register_sets_it_on_the_thread_until_the_guard_drops ... ok
+test in_space_long::tests::a_config_writes_the_copy_key_only_when_two ... ok
+test in_space_long::tests::a_copied_row_repeats_a_pair_the_prompt_holds_and_not_one_the_reply_made ... ok
+test in_space_long::tests::a_config_writes_dropout_and_arm_only_when_set ... ok
+test in_space_long::tests::a_config_writes_the_reply_table_key_only_when_on_and_refuses_it_without_the_memory ... ok
+test in_space_long::tests::a_draw_on_a_boundary_takes_the_next_rank ... ok
+test in_space_long::tests::a_float_trace_is_side_f_or_t ... ok
+test in_space_long::tests::a_grade_cell_needs_all_three_seeds_past_the_band ... ok
+test in_space_long::tests::a_panel_name_is_never_dev_fresh_v2_or_a_path ... ok
+test in_space_long::tests::a_profiled_run_refuses_a_window_it_cannot_hold_and_a_device_without_cuda ... ok
+test hamilton_sheet::tests::the_q16_control_sets_and_restores_its_flag ... ok
+test hamilton_sheet::tests::a_snap_override_forces_each_call_in_order_and_refuses_a_mismatch ... ok
+test in_space_long::tests::a_checkpoint_with_an_opening_read_sets_it_on_the_thread_until_the_guard_drops ... ok
+test in_space_long::tests::a_keyed_opening_fires_only_where_the_exact_key_misses_within_tau ... ok
+test hamilton_sheet::tests::document_window_partition_scores_every_eligible_target_once ... ok
+test in_space_long::tests::a_decode_window_is_limited_as_its_training_window ... ok
+test in_space_long::tests::a_named_split_loads_only_under_the_sha256s_it_names ... ok
+test in_space_long::tests::a_reply_opens_where_the_token_before_is_not_a_response_token ... ok
+test in_space_long::tests::a_seed_is_ahead_or_behind_only_beyond_the_band ... ok
+test in_space_long::tests::a_row_that_opens_and_copies_counts_in_both_kinds_and_not_the_rest ... ok
+test in_space_long::tests::an_older_sample_file_still_loads ... ok
+test in_space_long::tests::batched_decode_is_opt_in_and_falls_back_for_every_unsupported_case ... ok
+test in_space_long::tests::candidates_rank_by_score_then_smaller_id ... ok
+test in_space_long::tests::a_scored_file_is_never_replaced ... ok
+test in_space_long::tests::census_turns_split_at_bos_and_at_each_mask_change ... ok
+test in_space_long::tests::census_ngrams_stay_inside_their_run_and_exact_matches_are_whole_runs ... ok
+test flock_read_hamming::tests::a_copy_key_is_one_or_two_tokens_on_halves_of_whole_lanes ... ok
+test in_space_long::tests::census_decision_rows_are_the_unnamed_later_rows_and_unkeyed_openings ... ok
+test in_space_long::tests::every_reply_row_reads_only_before_its_reply ... ok
+test in_space_long::tests::exact_length_batches_cover_each_prompt_once_without_padding ... ok
+test in_space_long::tests::census_value_masks_keep_frequent_tokens_and_collapse_masks ... ok
+test in_space_long::tests::only_the_frozen_arm_keeps_the_routing_queries_out_of_the_optimizer ... ok
+test in_space_long::tests::exact_length_batches_split_a_wide_group_at_the_evaluation_budget ... ok
+test in_space_long::tests::openings_carry_the_prompt_their_window_shows_back_to_the_last_reply ... ok
+test in_space_long::tests::pairing_counts_discordant_rows_on_the_decision_rows_only ... ok
+test in_space_long::tests::generation_measures_count_against_trains_replies ... ok
+test flock_read_hamming::tests::the_copy_key_is_saved_only_when_two ... ok
+test in_space_long::tests::reply_offsets_name_the_rows_past_each_opening_with_the_probes_key ... ok
+test in_space_long::tests::an_unpinned_panel_split_is_checked_before_it_is_counted ... ok
+test in_space_long::tests::reply_rows_carry_the_turn_the_reply_so_far_and_their_kinds ... ok
+test in_space_long::tests::memory_dropout_drops_the_share_it_is_given ... ok
+test in_space_long::tests::reply_rows_land_on_the_rows_assemble_scores ... ok
+test in_space_long::tests::each_epoch_order_is_a_seeded_permutation ... ok
+test in_space_long::tests::row_picks_fold_into_the_nearest_reading ... ok
+test in_space_long::tests::recall_windows_are_seeded_and_fresh_per_index ... ok
+test in_space_long::tests::tail_keeps_the_last_characters_on_one_line ... ok
+test in_space_long::tests::the_add_on_and_transport_readings_follow_the_protocol ... ok
+test in_space_long::tests::the_band_floor_is_twice_the_root_rounded_up ... ok
+test in_space_long::tests::the_base_recipe_follows_the_protocols_order ... ok
+test in_space_long::tests::the_anchor_check_counts_openings_whose_turn_slots_are_the_first_8_key ... ok
+test in_space_long::tests::the_cell_rule_admits_within_the_margin ... ok
+test in_space_long::tests::the_bound_names_each_key_by_its_commonest_train_opening ... ok
+test in_space_long::tests::the_cell_rules_record_leaves_the_other_rules_files_alone ... ok
+test in_space_long::tests::the_cell_selection_and_outcome_follow_the_sheet ... ok
+test in_space_long::tests::the_cut_grade_matches_content_and_follows_the_sheet ... ok
+test in_space_long::tests::the_cycle_grade_counts_steps_and_matches_each_decision ... ok
+test in_space_long::tests::the_cycle_step_refuses_exactly_the_token_that_closes_a_repeated_4_gram ... ok
+test in_space_long::tests::the_decode_rule_band_is_exact ... ok
+test in_space_long::tests::the_cycle_step_is_read_on_the_prompts_it_changed ... ok
+test in_space_long::tests::the_empty_memory_control_refuses_a_run_with_no_memory ... ok
+test in_space_long::tests::the_float_names_are_the_seeds_own ... ok
+test in_space_long::tests::the_flock_rule_keeps_a_nearest_end_of_turn ... ok
+test in_space_long::tests::the_flock_rank_weights_are_the_integer_selectors_table ... ok
+test in_space_long::tests::the_grade_ships_what_the_table_says ... ok
+test in_space_long::tests::the_greedy_key_equals_the_corpus_key_at_the_same_row ... ok
+test in_space_long::tests::the_hadamard_rotations_signs_are_fixed_and_mixed ... ok
+test in_space_long::tests::scoring_refuses_another_arm_than_the_runs ... ok
+test in_space_long::tests::the_hit_rate_counts_a_reply_up_to_its_end_of_turn ... ok
+test in_space_long::tests::the_integer_parity_classes_are_the_items ... ok
+test in_space_long::tests::the_integer_reading_pairs_the_arms_and_refuses_an_instrument_fault ... ok
+test in_space_long::tests::the_hit_rate_keys_are_the_teacher_forced_reply_keys ... ok
+test in_space_long::tests::the_opening_bound_counts_where_a_key_fires_and_its_precision ... ok
+test in_space_long::tests::the_panel_prompts_are_the_scored_runs_own ... ok
+test in_space_long::tests::the_longest_suffix_control_reads_the_longest_match ... ok
+test in_space_long::tests::the_keyed_grade_predicts_each_keyed_reply_and_reads_the_table_in_order ... ok
+test in_space_long::tests::the_profile_window_alternates_after_the_warm_up ... ok
+test flock_read_register::tests::the_register_saves_loads_and_refuses_a_bad_file ... ok
+test in_space_long::tests::the_read_cut_is_where_the_prompt_ends_in_the_window ... ok
+test in_space_long::tests::the_profile_summary_takes_medians_sums_groups_and_reads_the_bar ... ok
+test in_space_long::tests::the_read_grade_counts_loops_and_follows_the_sheet ... ok
+test in_space_long::tests::the_key_grade_reads_the_sheets_table_in_order ... ok
+test in_space_long::tests::the_reference_reply_stops_at_a_gap ... ok
+test in_space_long::tests::the_served_key_serves_greedys_first_step_only ... ok
+test in_space_long::tests::the_strata_split_by_the_tables_control ... ok
+test in_space_long::tests::the_training_forward_selects_and_restores_the_served_bridges ... ok
+test in_space_long::tests::the_transport_arm_is_named_on_the_command_line ... ok
+test in_space_long::tests::the_reply_table_names_what_the_probe_counts ... ok
+test in_space_long::tests::the_served_parity_counts_disagreements_and_the_pooled_seeds_guard_row_4 ... ok
+test in_space_long::tests::the_verdict_needs_every_seed ... ok
+test in_space_long::tests::the_verdict_follows_the_protocol ... ok
+test in_space_long::tests::the_frozen_check_compares_routing_tensor_bytes ... ok
+test in_space_long::tests::the_opening_table_reads_back_as_saved_and_is_never_replaced ... ok
+test in_space_long::tests::training_as_served_refuses_what_the_export_does_not_carry ... ok
+test in_space_long::tests::the_reply_bound_falls_back_to_the_commonest_opening_only_for_openings ... ok
+test in_space_long::tests::the_reply_bound_keeps_each_keys_commonest_target_at_its_share ... ok
+test in_space_long::tests::the_hit_rate_stops_where_the_window_loses_the_prompt ... ok
+test secant_descent::tests::analytic_keep_secant_supplies_nonzero_slope_across_keep_plateau ... ok
+test secant_descent::tests::rademacher_rng_preserves_l2_norm_and_is_deterministic ... ok
+test secant_descent::tests::rate_index_from_lambda_bits_recovers_all_sixteen_entries ... ok
+test secant_descent::tests::uort_slice_loader_validates_header_and_builds_windows ... ok
+test spiralcore_fbs_arms::tests::arm_names_and_codes_follow_the_registered_sheet ... ok
+test spiralcore_fbs_sheet::tests::a_snap_class_reads_the_applied_roots ... ok
+test spiralcore_fbs_arms::tests::the_hook_is_per_thread_and_clears ... ok
+test in_space_long::tests::the_trained_cut_is_recorded_and_read_back ... ok
+test spiralcore_fbs_sheet::tests::a_zero_block_on_both_sides_is_never_a_would_flip ... ok
+test spiralcore_fbs_sheet::tests::a_training_receipt_gives_its_seed_s_float_loss_under_the_stage4b_band ... ok
+test spiralcore_fbs_sheet::tests::a_windows_first_flip_is_first_in_causal_order ... ok
+test spiralcore_fbs_sheet::tests::longer_training_adds_only_the_final_evaluation_point ... ok
+test spiralcore_fbs_sheet::tests::the_ablation_arms_run_unrounded_first_and_hold_each_part ... ok
+test spiralcore_fbs_sheet::tests::the_1024_receipt_identity_and_legacy_shape_are_exact ... ok
+test spiralcore_fbs_sheet::tests::the_artifact_is_read_at_each_scored_offset_in_panel_order ... ok
+test spiralcore_fbs_sheet::tests::synthetic_batches_score_next_tokens ... ok
+test spiralcore_fbs_sheet::tests::the_batch_preflight_serializes_every_field ... ok
+test spiralcore_fbs_sheet::tests::the_counterfactual_needs_both_the_paired_and_the_loss_band ... ok
+test in_space_long::tests::a_traced_window_records_the_five_kinds_in_rs_order ... ok
+test spiralcore_fbs_arms::tests::the_arm_module_declares_two_kernels_and_no_banned_function ... ok
+test spiralcore_fbs_sheet::tests::the_export_gap_bar_holds_the_loss_band_and_the_paired_threshold ... ok
+test spiralcore_fbs_sheet::tests::the_drift_readings_count_codes_columns_saturation_and_scale ... ok
+test spiralcore_fbs_sheet::tests::the_forced_outcome_takes_the_first_that_applies ... ok
+test spiralcore_fbs_sheet::tests::the_forced_calls_follow_the_panel_chunks_and_the_wrong_root_moves_one_site ... ok
+test spiralcore_fbs_sheet::tests::the_noise_threshold_follows_the_sheet ... ok
+test spiralcore_fbs_sheet::tests::the_panel_is_held_against_the_readout_on_every_scored_row ... ok
+test spiralcore_fbs_sheet::tests::the_longer_receipt_identity_is_exact ... ok
+test spiralcore_fbs_sheet::tests::the_peak_rss_parser_reads_vm_hwm ... ok
+test spiralcore_fbs_sheet::tests::the_projection_counts_each_eval_point_and_the_reload ... ok
+test spiralcore_fbs_sheet::tests::the_residual_loss_is_checked_when_a_training_receipt_is_supplied ... ok
+test spiralcore_fbs_sheet::tests::the_q12_drift_is_each_rows_largest_code_distance ... ok
+test spiralcore_fbs_sheet::tests::the_residual_rule_is_the_sheets ... ok
+test spiralcore_fbs_sheet::tests::the_schedule_is_the_sheets ... ok
+test spiralcore_fbs_sheet::tests::the_snap_split_asks_which_change_alone_brings_d_inside ... ok
+test spiralcore_fbs_sheet::tests::the_snap_trace_outcome_takes_the_first_that_applies ... ok
+test spiralcore_fbs_sheet::tests::the_snap_comparison_places_each_disagreement ... ok
+test spiralcore_fbs_sheet::tests::the_forced_summary_reads_the_faithful_models_envelope ... ok
+test spiralcore_fbs_sheet::tests::the_training_forwards_name_their_sheets ... ok
+test spiralcore_fbs_sheet::tests::the_fit_gate_counts_top1_in_the_active_arms_favour_only ... ok
+test in_space_long::tests::a_recall_query_names_the_value_after_its_keys_only_earlier_copy ... ok
+test spiralcore_fbs_sheet::tests::capacity_picks_two_paths_only_by_the_band_and_a_lone_fitting_arm_is_exported ... ok
+test spiralcore_fbs_sheet::tests::a_loss_win_needs_the_full_noise_band_and_a_strict_gap ... ok
+test spiralcore_fbs_sheet::tests::the_pins_are_the_sheets_and_still_match_the_sources ... ok
+test spiralcore_fbs_sheet::tests::the_export_gap_reads_the_loss_gap_and_the_paired_top1_gap ... ok
+test spiralcore_fbs_sheet::tests::the_fit_gate_needs_both_controls_on_both_seeds ... ok
+test spiralcore_fbs_sheet::tests::capacity_keeps_one_atom_unless_two_paths_win_by_the_band_on_both_seeds ... ok
+test in_space_long::tests::a_window_too_small_for_its_pairs_is_refused_and_far_distances_stay_uniform ... ok
+test in_space_long::tests::root_separation_reads_the_sixteen_roots ... ok
+test spiralcore_fbs::static_plan_tests::cpu_model_entry_is_refused_before_any_carrier_arithmetic ... ok
+test secant_descent::tests::extract_fbs_routes_tracks_root_boundary_crossings ... ok
+test fbs_export::tests::geometry_tables_match_the_integer_crate ... ok
+test hamilton_sheet::tests::icosian_closure_and_signed_h4_classifier_pass ... ok
+test native_vector_writer::contract_tests::binding_and_cpu_refusal ... ok
+test spiralcore_fbs::static_plan_tests::bfs_keeps_actual_edge_history_operator_and_inverse ... ok
+test fbs_export::tests::round_tables_as_exported_holds_the_exported_values ... ok
+test in_space_long::tests::the_flock_rank_draw_follows_the_harmonic_weights ... ok
+test spiralcore_fbs::static_plan_tests::retained_frontier_has_every_atom_once_without_padding ... ok
+test in_space_long::tests::training_without_the_switch_rounds_nothing ... ok
+test fbs_export::tests::a_copy_rounded_as_exported_holds_every_rounding_and_is_side_t ... ok
+test spiralcore_fbs_sheet::tests::the_width_builder_at_256_is_the_sheet_builder ... ok
+test spiralcore_fbs_sheet::tests::a_saved_trunk_loads_back_exactly ... ok
+test spiralcore_fbs_sheet::tests::the_width_builder_builds_512_and_its_hamming_reads_round_trip ... ok
+test in_space_long::tests::a_refused_rounding_leaves_every_value_as_it_was ... ok
+test spiralcore_fbs_sheet::tests::the_d11_loss_refuses_an_unrounded_trunk ... ok
+test in_space_long::tests::a_step_saved_as_served_is_one_its_export_leaves_unchanged ... ok
+
+test result: ok. 218 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+
+     Running unittests src/bin/fbs-snapshot.rs (local/deepseek/served-readout-target/debug/deps/fbs_snapshot-5148b7af180722bc)
+
+running 7 tests
+test tests::a_dev_window_is_cut_after_its_last_scored_position ... ok
+test tests::served_readout_options_accept_either_order_and_refuse_duplicates ... ok
+test tests::the_dev_sample_keeps_every_eighth_window_from_the_first ... ok
+test tests::the_inspection_as_trained_turns_the_tie_rule_off ... ok
+test tests::two_spellings_of_one_output_are_one_place ... ok
+test tests::the_forward_kernel_is_the_one_before_claude_179 ... ok
+test tests::claude_146s_fingerprints_are_this_builds_plans_with_the_kernel_before_claude_179 ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s

@@ -386,7 +386,7 @@ pub fn fbs_hamming_snapshot(
             "the Hamming readout read runs at depth {HAMMING_READOUT_DEPTH}, but this trunk has {layers} layers; the export serves it only on a trunk of {HAMMING_READOUT_DEPTH}"
         )));
     }
-    if reads.reads.len() != HAMMING_DEPTHS.len() || width == 0 || width % 4 != 0 {
+    if reads.reads.len() != HAMMING_DEPTHS.len() || width == 0 || !width.is_multiple_of(4) {
         return Err(invalid(format!(
             "a Hamming read needs one read per depth {HAMMING_DEPTHS:?} on a width of whole quaternions"
         )));
@@ -1110,6 +1110,40 @@ pub fn fbs_float_readout_on(
     Ok(FbsFloatReadout { mode, ..readout })
 }
 
+/// Run a diagnostic forward under the complete served surrogate contract:
+/// unsnapped gates and transition, Q12 query, Q16 residual, dynamic i16
+/// activations and Q16 projection outputs. Every flag is restored after
+/// success, error or panic by the underlying guard.
+pub fn with_served_readout_contract<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    crate::hamilton_sheet::with_served_surrogate_training(0, 0, f)
+}
+
+/// The served-contract D11 readout over chosen sequences. The caller must
+/// round the trunk's tables as exported first, exactly as for D11.
+pub fn fbs_float_readout_served_on(
+    model: &StackModel,
+    sequences: &[Vec<u32>],
+) -> Result<FbsFloatReadout> {
+    let mut readout = with_served_readout_contract(|| {
+        fbs_float_readout_on(model, FbsReadoutMode::D11, sequences)
+    })?;
+    readout.served_readout = true;
+    Ok(readout)
+}
+
+/// [`fbs_float_readout_served_on`] on the fixed readout sequences.
+pub fn fbs_float_readout_served(model: &StackModel) -> Result<FbsFloatReadout> {
+    let (vocab, time) = (model.config.vocab_size, model.config.context);
+    let sequences: Vec<Vec<u32>> = (0..READOUT_SEQUENCES)
+        .map(|s| {
+            (0..time)
+                .map(|t| ((s * 37 + t * 11 + 1) % vocab) as u32)
+                .collect()
+        })
+        .collect();
+    fbs_float_readout_served_on(model, &sequences)
+}
+
 /// The native writer's next token at every position of each of `sequences`,
 /// each read alone, as [`fbs_float_readout_on`] reads them but without the
 /// hidden vectors (claude-126: the D11 tokens of every DEV window, held
@@ -1198,6 +1232,7 @@ fn read_float_outputs(
         vocab,
         width,
         mode: FbsReadoutMode::Plain,
+        served_readout: false,
         positions,
         sequences: read,
     })
@@ -2209,6 +2244,33 @@ mod tests {
         assert!(!is_snapping_transition());
         let failed: Result<()> = with_d11_mode(|| Err(invalid("inside")));
         assert!(failed.is_err() && !is_snapping_transition());
+        Ok(())
+    }
+
+    #[test]
+    fn served_readout_contract_sets_and_restores_every_flag() -> Result<()> {
+        use crate::hamilton_sheet::{
+            is_bridging_activation_i16, is_bridging_d11, is_bridging_q16_residual,
+            is_rounding_residual_q16, is_snapping_transition,
+        };
+        let state = || {
+            (
+                is_rounding_residual_q16(),
+                is_bridging_q16_residual(),
+                is_bridging_activation_i16(),
+                is_bridging_d11(),
+                is_snapping_transition(),
+            )
+        };
+        let before = state();
+        assert_eq!(
+            with_served_readout_contract(|| Ok(state()))?,
+            (true, true, true, true, false)
+        );
+        assert_eq!(state(), before);
+        let failed: Result<()> = with_served_readout_contract(|| Err(invalid("inside")));
+        assert!(failed.is_err());
+        assert_eq!(state(), before);
         Ok(())
     }
 

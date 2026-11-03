@@ -209,6 +209,10 @@ pub struct FbsFloatReadout {
     pub width: usize,
     /// The mode the trunk was read in.
     pub mode: FbsReadoutMode,
+    /// Whether the D11 readout ran under the complete served surrogate
+    /// contract. Old and snapped readouts omit this field and read as false.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub served_readout: bool,
     /// One position per token, in token order.
     pub positions: Vec<FbsFloatPosition>,
     /// Token sequences read position by position.
@@ -250,6 +254,9 @@ impl FbsFloatReadout {
         if self.mode != mode {
             return Err(format!("the readout was read in mode {:?}", self.mode));
         }
+        if self.served_readout && mode != FbsReadoutMode::D11 {
+            return Err("a served readout must use D11 mode".to_owned());
+        }
         if self.positions.len() != vocab {
             return Err(format!(
                 "{} positions for a vocabulary of {vocab}",
@@ -266,6 +273,10 @@ impl FbsFloatReadout {
             None => Ok(()),
         }
     }
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 /// Offline SpiralCore/FBS trunk snapshot handed to `stack::export_fbs_trunk_uorlut01`.
@@ -2884,6 +2895,7 @@ mod tests {
             vocab: 3,
             width: 2,
             mode,
+            served_readout: false,
             positions: tokens
                 .iter()
                 .map(|&token| FbsFloatPosition {
@@ -2974,6 +2986,29 @@ mod tests {
                 Ok(()) => panic!("{what} must be refused"),
             }
         }
+    }
+
+    #[test]
+    fn served_readout_marker_is_backward_compatible_and_requires_d11() {
+        let mut readout: FbsFloatReadout = serde_json::from_str(
+            r#"{"vocab":1,"width":1,"mode":"plain","positions":[{"token":0,"next":0,"hidden":[0.0]}],"sequences":[{"tokens":[0],"next":[0],"hidden":[[0.0]]}]}"#,
+        )
+        .expect("legacy readout");
+        assert!(!readout.served_readout);
+        assert!(serde_json::to_value(&readout)
+            .expect("legacy json")
+            .get("served_readout")
+            .is_none());
+
+        readout.served_readout = true;
+        assert!(readout
+            .check(1, 1, 1, FbsReadoutMode::Plain)
+            .expect_err("plain served readout")
+            .contains("must use D11"));
+        assert_eq!(
+            serde_json::to_value(&readout).expect("served json")["served_readout"],
+            true
+        );
     }
 
     #[test]
