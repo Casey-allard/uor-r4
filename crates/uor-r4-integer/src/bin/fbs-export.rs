@@ -15,10 +15,11 @@
 //! With neither, the gates and the transition snap to the 120 icosians.
 //!
 //! `--run-config` reads the run's `config.json` for its readout (integer-nearest-readout,
-//! claude-231): a `cell` or `nearest` objective serves the whole table's nearest token
-//! (`head = "native_vector_nearest"`), for a snapshot taken before `fbs-snapshot` recorded it. It
-//! refuses a config whose `retain_rates` disagrees with the snapshot's, or whose objective reads
-//! the writer for a snapshot that reads nearest.
+//! claude-231) and served contract. A `cell` or `nearest` objective serves the whole table's
+//! nearest token (`head = "native_vector_nearest"`), for a snapshot taken before `fbs-snapshot`
+//! recorded it. A run with `train_as_served: true` requires both raw flags. It also refuses a
+//! config whose `retain_rates` disagrees with the snapshot's, or whose objective reads the writer
+//! for a snapshot that reads nearest.
 //!
 //! It parses the artifact back before writing it, never replaces or leaves a
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
@@ -45,6 +46,27 @@ use uor_r4_integer::stack::{
 };
 
 const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+
+fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
+    let value: serde_json::Value =
+        serde_json::from_str(config).map_err(|error| format!("the run config: {error}"))?;
+    let config = value
+        .as_object()
+        .ok_or_else(|| "the run config root is not an object".to_owned())?;
+    let trained_as_served = match config.get("train_as_served") {
+        None => false,
+        Some(serde_json::Value::Bool(value)) => *value,
+        Some(_) => return Err("the run config's train_as_served is not a bool".to_owned()),
+    };
+    if trained_as_served && (snaps.gates || snaps.transition) {
+        return Err(
+            "the run trained with --train-as-served 1 requires both --raw-gates and \
+             --raw-transition"
+                .to_owned(),
+        );
+    }
+    Ok(())
+}
 
 /// A `UORT` token file's ids: its 64-byte header, whose count must match, then little-endian u16s.
 fn uort_tokens(path: &str) -> Result<Vec<u32>, String> {
@@ -135,6 +157,7 @@ fn run() -> Result<(), String> {
     // `fbs-snapshot` recorded it. The config's rate reading must agree with the snapshot's.
     if let Some(config) = &run_config {
         let text = std::fs::read_to_string(config).map_err(|e| format!("{config}: {e}"))?;
+        check_run_export_contract(&text, snaps).map_err(|error| format!("{config}: {error}"))?;
         let nearest = run_readout_nearest(&text).map_err(|e| format!("{config}: {e}"))?;
         if snap.readout_nearest && !nearest {
             return Err(format!(
@@ -169,6 +192,83 @@ fn main() -> ExitCode {
         Err(e) => {
             eprintln!("fbs-export: {e}");
             ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn served_training_requires_both_raw_flags() {
+        let served = r#"{"steps": 8192, "train_as_served": true}"#;
+        for snaps in [
+            FbsExportSnaps::SNAPPED,
+            FbsExportSnaps {
+                gates: false,
+                transition: true,
+            },
+            FbsExportSnaps {
+                gates: true,
+                transition: false,
+            },
+        ] {
+            let error = check_run_export_contract(served, snaps).unwrap_err();
+            assert!(
+                error.contains("requires both --raw-gates and --raw-transition"),
+                "{error}"
+            );
+        }
+        assert!(check_run_export_contract(
+            served,
+            FbsExportSnaps {
+                gates: false,
+                transition: false,
+            }
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn legacy_and_false_contracts_keep_the_caller_choice() {
+        for config in [
+            r#"{"steps": 8192}"#,
+            r#"{"steps": 8192, "train_as_served": false}"#,
+        ] {
+            assert!(check_run_export_contract(config, FbsExportSnaps::SNAPPED).is_ok());
+            assert!(check_run_export_contract(
+                config,
+                FbsExportSnaps {
+                    gates: false,
+                    transition: false,
+                }
+            )
+            .is_ok());
+        }
+    }
+
+    #[test]
+    fn malformed_served_flags_fail_closed() {
+        for config in [
+            r#"[]"#,
+            r#""served""#,
+            r#"{"train_as_served": null}"#,
+            r#"{"train_as_served": 1}"#,
+            r#"{"train_as_served": "true"}"#,
+            r#"{"train_as_served": true"#,
+        ] {
+            assert!(
+                check_run_export_contract(
+                    config,
+                    FbsExportSnaps {
+                        gates: false,
+                        transition: false,
+                    }
+                )
+                .is_err(),
+                "{config}"
+            );
         }
     }
 }

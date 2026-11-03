@@ -1,0 +1,10 @@
+Diff in /home/callard/projects/codex-playground/uor-r4-export-contract-guard/crates/uor-r4-integer/src/bin/fbs-toks.rs:636:
+         Some(value) => value
+             .as_u64()
+             .and_then(|key| usize::try_from(key).ok())
+-            .ok_or_else(|| "the artifact's Hamming copy key is not a non-negative integer".to_owned()),
++            .ok_or_else(|| {
++                "the artifact's Hamming copy key is not a non-negative integer".to_owned()
++            }),
+     }
+ }

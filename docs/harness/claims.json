@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/export-contract-guard": {
+    "branch": "deepseek/export-contract-guard",
+    "claimed_at": "2026-11-03T13:42:31-05:00",
+    "head": "66c50fa19",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/fbs-wide-export": {
     "branch": "deepseek/fbs-wide-export",
     "claimed_at": "2026-11-02T17:45:05-05:00",

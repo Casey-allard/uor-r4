@@ -1,0 +1,10 @@
+   Compiling uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4-export-contract-guard/crates/uor-r4-integer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running unittests src/bin/fbs-export.rs (local/deepseek/export-contract-target/debug/deps/fbs_export-04c438812cad9556)
+
+running 3 tests
+test tests::legacy_and_false_contracts_keep_the_caller_choice ... ok
+test tests::malformed_served_flags_fail_closed ... ok
+test tests::served_training_requires_both_raw_flags ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
