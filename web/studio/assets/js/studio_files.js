@@ -341,13 +341,18 @@
                 fileButton.type = 'button';
                 fileButton.className = 'tree-button tree-file';
                 fileButton.title = entry.path;
-                fileButton.innerHTML = '<span class="tree-caret tree-caret-empty" aria-hidden="true"></span><span class="tree-icon" aria-hidden="true">·</span><span class="tree-name"></span><span class="tree-attach" role="button" aria-label="Attach as agent context" title="Attach as agent context">＋</span>';
+                fileButton.innerHTML = '<span class="tree-caret tree-caret-empty" aria-hidden="true"></span><span class="tree-icon" aria-hidden="true">·</span><span class="tree-name"></span>';
                 fileButton.querySelector('.tree-name').textContent = entry.name;
-                fileButton.addEventListener('click', function (event) {
-                    if (event.target && event.target.classList.contains('tree-attach')) { event.stopPropagation(); attachPath(entry.path); return; }
-                    openFile(entry.path);
-                });
+                fileButton.addEventListener('click', function () { openFile(entry.path); });
                 row.appendChild(fileButton);
+                var attach = document.createElement('button');
+                attach.type = 'button';
+                attach.className = 'tree-attach';
+                attach.setAttribute('aria-label', 'Attach ' + entry.path + ' as agent context');
+                attach.title = 'Attach ' + entry.path + ' as agent context';
+                attach.textContent = '＋';
+                attach.addEventListener('click', function (event) { event.stopPropagation(); attachPath(entry.path); });
+                row.appendChild(attach);
                 item.appendChild(row);
             }
             list.appendChild(item);

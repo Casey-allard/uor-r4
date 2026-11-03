@@ -99,7 +99,7 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -149,7 +149,7 @@ a:hover {
 }
 
 :focus-visible {
-    outline: 1px solid var(--border-focus);
+    outline: 2px solid var(--border-focus);
     outline-offset: 2px;
 }
 
@@ -201,9 +201,7 @@ svg {
     grid-template-rows: 46px minmax(0, 1fr) 26px;
     height: 100dvh;
     width: 100%;
-    background:
-        linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 100% 24px,
-        var(--bg);
+    background: var(--bg);
 }
 
 .shell-body {
@@ -497,7 +495,9 @@ svg {
     height: 28px;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 8px;
+    min-block-size: 24px;
+    min-inline-size: 24px;
     background: transparent;
     color: var(--text-muted);
     transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
@@ -544,7 +544,8 @@ html[data-theme="light"] .icon-moon { display: block; }
     align-items: center;
     justify-content: center;
     gap: 6px;
-    border-radius: 4px;
+    border-radius: 8px;
+    min-block-size: 24px;
     border: 1px solid transparent;
     font-size: 12px;
     font-weight: 550;
@@ -3352,6 +3353,14 @@ html[data-theme="light"] { --text-faint: #7a6753; }
 /* editor tabs target sizes */
 .editor-tab { min-height: 30px; }
 .editor-tab-close { width: 22px; height: 22px; }
+.editor-tab-close, .attachment-chip-remove, .msg-action, #btnCommandPaletteNav, .switch-track, .tree-attach { min-block-size: 24px; min-inline-size: 24px; }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tree-row:hover .tree-attach, .tree-row:focus-within .tree-attach, .tree-attach:focus-visible { opacity: 1; }
+@media (hover: none), (pointer: coarse) { .tree-attach { opacity: 1; } }
+.sr-only { position: absolute; clip-path: inset(50%); overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; white-space: nowrap; }
+#artifactDiagnostics > summary { min-block-size: 24px; min-inline-size: 24px; padding-block: 3px; }
+#artifactDiagnostics > summary:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+#modelFileInput:focus-visible + label { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 
 /* workspace merged view */
 body[data-view="workspace"] #workspaceView { display: flex; }
@@ -3696,7 +3705,7 @@ html[data-theme="light"] { --panel-shadow: 0 1px 2px rgba(61, 46, 30, 0.06), 0 1
 .session-main { padding: 8px; }
 .session-title { font-size: 12.5px; }
 
-.view-head { height: 60px; background: var(--bg-elevated); }
+.view-head { height: 60px; background: var(--surface-1); }
 .panel-title { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
 .view-subtitle { font-size: 12px; line-height: 1.45; }
 .inspector-scroll { padding: 10px; }
@@ -3751,12 +3760,12 @@ html[data-theme="light"] { --panel-shadow: 0 1px 2px rgba(61, 46, 30, 0.06), 0 1
 #editorText { background: var(--bg); line-height: 1.65; tab-size: 4; }
 .editor-statusbar { background: var(--bg-elevated); }
 
-.models-section { box-shadow: var(--panel-shadow); }
+.models-section { border-radius: 12px; overflow: clip; box-shadow: var(--panel-shadow); }
 .models-section-head { padding: 14px 16px; }
 .models-section-head h2 { font-size: 14px; }
 .models-section-desc { font-size: 12px; }
 .models-section-body { gap: 14px; padding: 12px 16px 16px; }
-.source-card { border-color: var(--border-strong); border-radius: 7px; }
+.source-card { border-color: var(--border-strong); border-radius: 10px; background: var(--surface-1); box-shadow: var(--panel-shadow); }
 .source-card:hover { border-color: var(--accent-line); }
 .guide-card { box-shadow: inset 0 1px var(--border); }
 .guide-card h3 { font-size: 14px; }

@@ -86,10 +86,13 @@
     var SECTIONS = {
         agent: { view: 'chat', label: 'Agent', purpose: 'Chat with the agent, manage sessions, attach context and run build tasks.' },
         workspace: { view: 'workspace', label: 'Workspace', purpose: 'Open a folder, edit files in tabs and save them back to disk.' },
-        models: { view: 'model', label: 'Models', purpose: 'Local engine, published M1 models and OpenAI-compatible API providers.' },
+        models: { view: 'model', label: 'Connections', purpose: 'UOR Chat, custom API providers, and artifact diagnostics.' },
         guide: { view: 'guide', label: 'Guide', purpose: 'Quick start, the build-this-studio workflow, shortcuts and honest limits.' }
     };
     function sectionForView(view) { return view === 'chat' ? 'agent' : (view === 'model' ? 'models' : (view === 'workspace' || view === 'editor' || view === 'files' ? 'workspace' : (SECTIONS[view] ? view : 'agent'))); }
+    function syncSectionNavigation(section) {
+        $all('.nav-item').forEach(function (item) { var active = item.getAttribute('data-section') === section; item.setAttribute('aria-current', active ? 'page' : 'false'); item.classList.toggle('is-active', active); });
+    }
     function activateSection(name, options) {
         var section = SECTIONS[name] ? name : 'agent';
         var meta = SECTIONS[section];
@@ -97,7 +100,7 @@
         if (setView) setView(meta.view);
         else { var button = document.getElementById('viewBtn' + meta.view.charAt(0).toUpperCase() + meta.view.slice(1)); if (button) button.click(); }
         document.body.setAttribute('data-section', section);
-        $all('.nav-item').forEach(function (item) { var active = item.getAttribute('data-section') === section; item.setAttribute('aria-current', active ? 'page' : 'false'); item.classList.toggle('is-active', active); });
+        syncSectionNavigation(section);
         var label = document.getElementById('activeSectionLabel');
         if (label) label.textContent = meta.label;
         var sessions = document.getElementById('sessionSection');
@@ -117,23 +120,41 @@
         if (scrim) scrim.hidden = !(expanded && mobile);
         var main = document.getElementById('mainColumn');
         if (main) main.inert = expanded && mobile;
+        if (expanded && mobile && !paletteOpen && !document.querySelector('.modal-backdrop:not([hidden])')) {
+            var sidebar = document.getElementById('navSidebar');
+            if (sidebar && !sidebar.contains(document.activeElement)) {
+                var firstDestination = sidebar.querySelector('button[data-section]');
+                if (firstDestination) firstDestination.focus();
+            }
+        }
     }
     function setChrome(name, value, persist) {
         if (!app) return;
+        var wasExpanded = app.getAttribute('data-nav') === 'expanded';
         app.setAttribute('data-' + name, value);
         var expanded = value === 'expanded';
-        var map = { nav: ['btnToggleNav', 'btnNavCollapse', 'btnMobileNav'], inspector: ['btnToggleInspector', 'btnToggleInspector2', 'btnToggleInspector3', 'btnToggleInspector4'] };
+        var map = { nav: ['btnToggleNav', 'btnNavCollapse', 'btnMobileNav'], inspector: ['btnToggleInspector', 'btnToggleInspector2', 'btnToggleInspector3', 'btnToggleInspector4', 'btnToggleInspectorTop'] };
         (map[name] || []).forEach(function (id) { var node = document.getElementById(id); if (node) node.setAttribute('aria-expanded', expanded ? 'true' : 'false'); });
         if (persist) { var patch = {}; patch[name] = value; writeUi(patch); }
-        if (name === 'nav') syncNavPresentation();
+        if (name === 'nav') {
+            syncNavPresentation();
+            var mobile = window.matchMedia('(max-width: 900px)').matches;
+            if (expanded && mobile && !wasExpanded) {
+                var firstDestination = document.querySelector('#navSidebar button[data-section]');
+                if (firstDestination) firstDestination.focus();
+            } else if (!expanded && mobile && wasExpanded) {
+                var trigger = document.getElementById('btnMobileNav');
+                if (trigger) trigger.focus();
+            }
+        }
     }
     function toggleChrome(name) { if (!app) return; var current = app.getAttribute('data-' + name) === 'collapsed' ? 'collapsed' : 'expanded'; setChrome(name, current === 'expanded' ? 'collapsed' : 'expanded', true); }
 
     /* models page grouping */
     var MODELS_SECTIONS = [
-        { key: 'local', title: 'Local engine (offline)', desc: 'Runs a UORLUT01 artifact in a Web Worker in this tab; prompts stay on this device.', match: /local wasm engine/i },
+        { key: 'local', title: 'UOR Chat — experimental', desc: 'Synthetic continuation through the existing local WASM worker; not a trained conversational model.', match: /local wasm engine/i },
         { key: 'trained', title: 'Published models', desc: 'Trained 19-table M1 trunk exports; next-token prediction only, not a chat assistant.', match: /trained m1/i },
-        { key: 'api', title: 'API providers (remote)', desc: 'Prompts are sent to the selected endpoint and leave this device.', match: /openai-compatible api/i },
+        { key: 'api', title: 'Custom API providers', desc: 'OpenAI-compatible endpoints. Selection does not prove reachability; prompts leave this device only when sent.', match: /openai-compatible api/i },
         { key: 'research', title: 'Research artifacts (experimental)', desc: 'Earlier exports kept for inspection; not generation-capable in this Studio.', match: /research|experimental/i }
     ];
     function regroupModels() {
@@ -149,7 +170,7 @@
             if (panel && providersHead) providersHead.insertAdjacentElement('afterend', sections);
             else if (panel) panel.appendChild(sections);
             mount.classList.add('visually-hidden');
-            MODELS_SECTIONS.forEach(function (def) {
+            MODELS_SECTIONS.filter(function (def) { return def.key === 'local' || def.key === 'api'; }).forEach(function (def) {
                 var section = document.createElement('section');
                 section.className = 'models-section';
                 section.setAttribute('data-kind', def.key);
@@ -167,47 +188,67 @@
                 section.appendChild(header); section.appendChild(body);
                 sections.appendChild(section);
             });
+            var diagnostics = document.createElement('details');
+            diagnostics.id = 'artifactDiagnostics';
+            diagnostics.className = 'models-section artifact-diagnostics';
+            var summary = document.createElement('summary');
+            summary.textContent = 'Artifact diagnostics';
+            var diagnosticsDesc = document.createElement('p');
+            diagnosticsDesc.className = 'models-section-desc';
+            diagnosticsDesc.textContent = 'Next-token prediction, local artifact tools, and research exports.';
+            diagnostics.appendChild(summary);
+            diagnostics.appendChild(diagnosticsDesc);
+            ['trained', 'research', 'local-artifacts'].forEach(function (key) {
+                var body = document.createElement('div');
+                body.className = 'models-section-body';
+                body.id = 'modelsSection-' + key;
+                diagnostics.appendChild(body);
+            });
+            sections.appendChild(diagnostics);
             var status = document.createElement('div');
             status.className = 'models-verify-row';
             status.id = 'modelsVerifyRow';
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
             sections.appendChild(status);
+            var verifyNote = document.createElement('div');
+            verifyNote.className = 'models-verify-note';
+            verifyNote.id = 'modelsVerifyNote';
+            sections.appendChild(verifyNote);
         }
         var freshGroups = mount.querySelectorAll('.source-group');
-        if (freshGroups.length) {
+        if (freshGroups.length > 1) {
             Array.prototype.slice.call(document.querySelectorAll('.models-section-body')).forEach(function (body) { body.textContent = ''; });
         }
         Array.prototype.slice.call(freshGroups).forEach(function (group) {
             var heading = group.querySelector('h3');
             var text = heading ? heading.textContent : '';
             var def = MODELS_SECTIONS.find(function (item) { return item.match.test(text); }) || MODELS_SECTIONS[0];
+            if (def.key === 'local') {
+                var bundledBody = document.getElementById('modelsSection-local');
+                var localArtifacts = document.getElementById('modelsSection-local-artifacts');
+                Array.prototype.slice.call(group.querySelectorAll(':scope > .source-card')).forEach(function (card) {
+                    var bundled = card.querySelector('[data-action="load-bundled"]');
+                    var body = bundled ? bundledBody : localArtifacts;
+                    if (body && card.parentElement !== body) body.appendChild(card);
+                    if (bundled) bundled.textContent = 'Connect UOR Chat';
+                });
+                return;
+            }
             var body = document.getElementById('modelsSection-' + def.key);
-            if (body && group.parentElement !== body) { var heading = group.querySelector('h3'); if (heading) heading.classList.add('source-group-heading'); body.appendChild(group); }
+            if (def.key === 'trained' && !group.querySelector('.models-note')) {
+                var note = document.createElement('p');
+                note.className = 'models-note';
+                note.textContent = "M1 seed 2 evidence is tracked on the roadmap item and ships when its release URL exists.";
+                group.appendChild(note);
+            }
+            if (body && group.parentElement !== body) {
+                if (heading) heading.classList.add('source-group-heading');
+                body.appendChild(group);
+            }
         });
-        var verify = document.getElementById('modelsVerifyRow');
+        var verify = document.getElementById('modelsVerifyNote');
         if (verify) verify.textContent = 'Downloads, sizes, hashes and tokenizer bindings are verified in this tab before the worker receives an artifact. Remote contact is always user-initiated.';
-        var trainedBody = document.getElementById('modelsSection-trained');
-        if (trainedBody && !trainedBody.querySelector('.models-note')) {
-            var note = document.createElement('p');
-            note.className = 'models-note';
-            note.textContent = "M1 seed 2 evidence is tracked on the roadmap item and ships when its release URL exists.";
-            trainedBody.appendChild(note);
-        }
-        var researchSection = document.querySelector('.models-section[data-kind="research"]');
-        var researchBody = document.getElementById('modelsSection-research');
-        if (researchSection && researchBody && !researchSection.querySelector('.models-collapse')) {
-            researchBody.hidden = true;
-            var toggle = document.createElement('button');
-            toggle.type = 'button';
-            toggle.className = 'models-collapse';
-            toggle.setAttribute('aria-expanded', 'false');
-            toggle.textContent = 'Show research artifacts';
-            toggle.addEventListener('click', function () {
-                researchBody.hidden = !researchBody.hidden;
-                toggle.setAttribute('aria-expanded', researchBody.hidden ? 'false' : 'true');
-                toggle.textContent = researchBody.hidden ? 'Show research artifacts' : 'Hide research artifacts';
-            });
-            researchSection.appendChild(toggle);
-        }
     }
     function watchModels() {
         var mount = document.getElementById('modelSourceMount');
@@ -232,7 +273,16 @@
         item.appendChild(button);
     }
     var sessionPopover = null;
-    function closeSessionPopover() { if (sessionPopover) { sessionPopover.remove(); sessionPopover = null; } }
+    var sessionMenuTrigger = null;
+    function closeSessionPopover(restoreFocus) {
+        if (sessionPopover) sessionPopover.remove();
+        sessionPopover = null;
+        if (sessionMenuTrigger) {
+            sessionMenuTrigger.setAttribute('aria-expanded', 'false');
+            if (restoreFocus !== false) sessionMenuTrigger.focus();
+            sessionMenuTrigger = null;
+        }
+    }
     function openSessionMenu(trigger, item) {
         closeSessionPopover();
         var id = item.getAttribute('data-id') || item.getAttribute('data-conversation-id') || '';
@@ -254,11 +304,11 @@
         sessionPopover.style.top = Math.round(rect.bottom + 4) + 'px';
         sessionPopover.style.left = Math.round(Math.min(rect.left, window.innerWidth - 190)) + 'px';
         window.setTimeout(function () {
-            document.addEventListener('click', function outside(event) { if (sessionPopover && !sessionPopover.contains(event.target)) { closeSessionPopover(); document.removeEventListener('click', outside); } });
+            document.addEventListener('click', function outside(event) { if (sessionPopover && !sessionPopover.contains(event.target)) { closeSessionPopover(false); document.removeEventListener('click', outside); } });
         }, 0);
     }
     function renameInline(item, id, title) {
-        var titleNode = item.querySelector('.conv-title');
+        var titleNode = item.querySelector('.conv-title, .session-title');
         if (!titleNode) return;
         var input = document.createElement('input');
         input.className = 'conv-rename';
@@ -340,8 +390,7 @@
             meta.textContent = (session.messageCount || 0) + ' msg' + (session.messageCount === 1 ? '' : 's') + ' · ' + relativeTime(session.updatedAt || session.createdAt);
             main.appendChild(title); main.appendChild(preview); main.appendChild(meta);
             main.addEventListener('click', function () { var fn = hook('selectSession'); if (fn) fn(session.id); window.setTimeout(renderSessionRows, 30); });
-            main.addEventListener('keydown', function (event) { if (event.key === 'F2') { event.preventDefault(); openSessionMenu(menuButton, row, session.id, session.title); renameInline(row, session.id, session.title); } });
-            var menuButton = document.createElement('button');
+                var menuButton = document.createElement('button');
             menuButton.type = 'button';
             menuButton.className = 'conv-menu';
             menuButton.setAttribute('aria-label', 'Session actions for ' + session.title);
@@ -353,29 +402,35 @@
         });
     }
     function openSessionMenu(trigger, rowOrItem, id, title) {
-        closeSessionPopover();
+        closeOtherModals(null, false);
+        sessionMenuTrigger = trigger;
+        trigger.setAttribute('aria-expanded', 'true');
         var sessionId = id || rowOrItem.getAttribute('data-id') || '';
         var sessionTitle = title || 'Untitled session';
         sessionPopover = document.createElement('div');
         sessionPopover.className = 'session-popover';
         sessionPopover.setAttribute('role', 'menu');
-        [['Rename', function () { renameInline(rowOrItem, sessionId, sessionTitle); }], ['Duplicate', function () { duplicateSession(sessionId); }], ['Export JSON', function () { exportSession(sessionId, sessionTitle); }], ['Delete', function () { confirmDeleteSession(sessionId); }]].forEach(function (pair) {
+        [['Rename', function () { renameInline(rowOrItem, sessionId, sessionTitle); }], ['Duplicate', function () { duplicateSession(sessionId); }], ['Export JSON', function () { exportSession(sessionId, sessionTitle); }], ['Delete', function () { confirmDeleteSession(sessionId, trigger); }]].forEach(function (pair) {
             var button = document.createElement('button');
             button.type = 'button'; button.className = 'session-popover-item'; button.setAttribute('role', 'menuitem'); button.textContent = pair[0];
             button.addEventListener('click', function () { closeSessionPopover(); pair[1](); });
             sessionPopover.appendChild(button);
         });
         document.body.appendChild(sessionPopover);
+        var firstItem = sessionPopover.querySelector('button');
+        if (firstItem) firstItem.focus();
         var rect = trigger.getBoundingClientRect();
         sessionPopover.style.top = Math.round(rect.bottom + 4) + 'px';
         sessionPopover.style.left = Math.round(Math.max(8, Math.min(rect.left, window.innerWidth - 200))) + 'px';
         window.setTimeout(function () {
-            document.addEventListener('click', function outside(event) { if (sessionPopover && !sessionPopover.contains(event.target)) { closeSessionPopover(); document.removeEventListener('click', outside); } });
+            document.addEventListener('click', function outside(event) { if (sessionPopover && !sessionPopover.contains(event.target)) { closeSessionPopover(false); document.removeEventListener('click', outside); } });
         }, 0);
     }
-    function confirmDeleteSession(id) {
+    function confirmDeleteSession(id, trigger) {
         var dialog = document.createElement('div');
         dialog.className = 'modal-backdrop';
+        dialog.dataset.dynamic = 'true';
+        dialog.hidden = true;
         dialog.setAttribute('role', 'dialog');
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-labelledby', 'confirmDeleteTitle');
@@ -400,16 +455,16 @@
         box.appendChild(head); box.appendChild(body); box.appendChild(footer);
         dialog.appendChild(box);
         document.body.appendChild(dialog);
-        function close() { dialog.remove(); }
-        cancel.addEventListener('click', close);
-        dialog.addEventListener('click', function (event) { if (event.target === dialog) close(); });
+        if (trigger) trigger.focus();
+        openModal(dialog);
+        cancel.addEventListener('click', function () { closeModal(dialog); });
+        dialog.addEventListener('click', function (event) { if (event.target === dialog) closeModal(dialog); });
         del.addEventListener('click', function () {
             var fn = hook('deleteSession'); if (fn) fn(id);
-            close();
+            closeModal(dialog);
             window.setTimeout(renderSessionRows, 40);
             toast('Session deleted.', 'success');
         });
-        del.focus();
     }
     function newSessionAction() { var fn = hook('newSession'); if (fn) fn(); activateSection('agent'); window.setTimeout(renderSessionRows, 40); }
     function renderSessionEnhancements() { renderSessionRows(); updateStatus(); }
@@ -477,18 +532,20 @@
     function openTemplates(anchor) {
         var menu = document.getElementById('templateMenu');
         if (!menu) return;
-        menu.hidden = !menu.hidden;
-        if (anchor) anchor.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
-        if (!menu.hidden) {
-            var close = function (event) { if (!menu.contains(event.target) && event.target !== anchor) { menu.hidden = true; if (anchor) anchor.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', close); } };
-            window.setTimeout(function () { document.addEventListener('click', close); }, 0);
-        }
+        if (!menu.hidden) { closeTemplateMenu(); return; }
+        closeOtherModals(null, false);
+        menu.hidden = false;
+        if (anchor) anchor.setAttribute('aria-expanded', 'true');
+        var first = menu.querySelector('button');
+        if (first) first.focus();
+        var close = function (event) { if (!menu.contains(event.target) && event.target !== anchor) { closeTemplateMenu(false); document.removeEventListener('click', close); } };
+        window.setTimeout(function () { document.addEventListener('click', close); }, 0);
     }
     function activeFileLabel() { var files = window.__studioFiles; var active = files && files.activeFile ? files.activeFile() : null; return active ? active.path : 'no file open'; }
     function templatePrompt(kind) {
         var base = 'Studio workspace context: ' + activeFileLabel() + '.\n\nScope: web/studio/** only. Do not modify the engine, WASM worker, model-source manager, API client, crates or verifiers. Browser-only, no external assets or URLs. Keep all existing ids, handlers, status markers and the boot contract intact; the four Studio verifiers must pass unchanged.\n\n';
         var map = {
-            ux: base + 'TASK — Studio UX improvement brief.\n\nProblem: <describe the UX problem and where it appears>.\nDesired outcome: <what a user should be able to do>.\nConstraints: four labeled destinations (Agent/Workspace/Models/Guide), one control per action, AA contrast, no horizontal overflow at 390px, no duplicate controls.\n\nSteps: read the relevant web/studio files, propose the smallest coherent change, implement it, then run node web/studio/verify_studio_page.mjs, verify_studio_page_load.mjs, verify_studio_worker.mjs and verify_desktop_client.mjs and report exact results.',
+            ux: base + 'TASK — Studio UX improvement brief.\n\nProblem: <describe the UX problem and where it appears>.\nDesired outcome: <what a user should be able to do>.\nConstraints: four labeled destinations (Agent/Workspace/Connections/Guide), one control per action, AA contrast, no horizontal overflow at 390px, no duplicate controls.\n\nSteps: read the relevant web/studio files, propose the smallest coherent change, implement it, then run node web/studio/verify_studio_page.mjs, verify_studio_page_load.mjs, verify_studio_worker.mjs and verify_desktop_client.mjs and report exact results.',
             api: base + 'TASK — API integration checklist (Claude owns API code; do not edit it here).\n\nIntegration: <endpoint + model + auth expectation>.\nDeliver: request/response contract sketch, error/failure modes, privacy line shown to users, test plan, and the exact Studio fields/events needed. Keep prompts local unless the user explicitly selects an API provider.',
             audit: base + 'TASK — Audit this file.\n\nReview for: broken contract ids, verifier weakening, duplicate controls, false keyboard hints, AA contrast failures, mobile overflow, external requests at load, and scope creep into engine/API files. Report findings with file:line and a concrete fix for each.',
             report: base + 'TASK — Write a milestone REPORT with negatives first.\n\nInclude: what was attempted and rejected, exact commands and outputs, contract preservation evidence, remaining limits, and links to screenshots. Do not claim capability beyond pre-alpha / M1 next-token prediction.',
@@ -500,8 +557,7 @@
     function useTemplate(kind) {
         var setText = hook('setComposerText');
         if (setText) setText(templatePrompt(kind));
-        var menu = document.getElementById('templateMenu');
-        if (menu) menu.hidden = true;
+        closeTemplateMenu();
         toast('Inserted a build-task template. Fill in the <placeholders>.', 'success');
     }
 
@@ -559,7 +615,7 @@
         var list = [
             cmd('NAVIGATION', 'Go to Agent', 'Chat, context and build tasks.', '⌘1', function () { activateSection('agent'); }),
             cmd('NAVIGATION', 'Go to Workspace', 'File tree, editor tabs, save.', '⌘2', function () { activateSection('workspace'); }),
-            cmd('NAVIGATION', 'Go to Models', 'Local engine, published models, API providers.', '⌘3', function () { activateSection('models'); }),
+            cmd('NAVIGATION', 'Go to Connections', 'UOR Chat, custom providers, artifact diagnostics.', '⌘3', function () { activateSection('models'); }),
             cmd('NAVIGATION', 'Go to Guide', 'Quick start, workflows, shortcuts, limits.', '⌘4', function () { activateSection('guide'); }),
 
             cmd('SESSIONS', 'New session', 'Start a clean agent thread.', '', newSessionAction),
@@ -583,7 +639,7 @@
             cmd('MODELS', 'Load synthetic demo', 'Exercise the local WASM serving path.', '', function () { activateSection('models'); var button = document.querySelector('[data-action="load-bundled"]'); if (button) button.click(); }),
             cmd('MODELS', 'Load M1 model (seed 1)', 'Top-8 next-token prediction from the 19-table trunk.', '', function () { activateSection('models'); var button = document.querySelector('[data-action="load-published"]'); if (button) button.click(); }),
             cmd('MODELS', 'Load local model file…', 'Choose a .lut / .bin stack artifact from this device.', '', function () { activateSection('models'); var button = document.querySelector('[data-role="model-file"], #modelFileInput'); if (button) button.click(); }),
-            cmd('MODELS', 'Load model from URL…', 'User-initiated download of a stack artifact.', '', function () { activateSection('models'); var input = document.getElementById('modelUrlInput'); if (input) input.focus(); }),
+            cmd('MODELS', 'Load model from URL…', 'User-initiated download of a stack artifact.', '', function () { promptUrl(); }),
             cmd('MODELS', 'Add API provider…', 'Configure an OpenAI-compatible endpoint.', '', function () { activateSection('models'); var button = document.querySelector('[data-action="add-api"]'); if (button) button.click(); }),
 
             cmd('BUILD', 'Studio UX improvement brief', 'Insert the UX brief template.', '', function () { activateSection('agent'); useTemplate('ux'); }),
@@ -623,16 +679,18 @@
     function openPalette() {
         var backdrop = document.getElementById('commandPalette');
         if (!backdrop || paletteOpen) return;
-        paletteOpen = true; lastFocus = document.activeElement; backdrop.hidden = false;
+        var returnFocus = overlayReturnFocus();
+        closeOtherModals(null, false);
+        paletteOpen = true; lastFocus = returnFocus; backdrop.hidden = false;
         var input = document.getElementById('paletteInput');
         if (input) { input.value = ''; input.focus(); }
         paletteIndex = 0; buildPalette('');
     }
-    function closePalette() {
+    function closePalette(restoreFocus) {
         var backdrop = document.getElementById('commandPalette');
         if (!backdrop || !paletteOpen) return;
         paletteOpen = false; backdrop.hidden = true;
-        if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+        if (restoreFocus !== false && lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
         lastFocus = null;
     }
     function filtered(query) {
@@ -690,17 +748,45 @@
     function modalFocusables(dialog) {
         return Array.prototype.slice.call(dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function (node) { return !node.disabled && node.getClientRects().length; });
     }
-    function openModal(dialog) {
-        if (!dialog) return;
-        modalReturnFocus = document.activeElement;
-        dialog.hidden = false;
-        window.setTimeout(function () { var first = modalFocusables(dialog)[0]; if (first) first.focus(); }, 20);
+    function closeTemplateMenu(restoreFocus) {
+        var menu = document.getElementById('templateMenu');
+        var wasOpen = menu && !menu.hidden;
+        if (menu) menu.hidden = true;
+        var anchor = document.getElementById('btnBuildTask');
+        if (anchor) {
+            anchor.setAttribute('aria-expanded', 'false');
+            if (restoreFocus !== false && wasOpen) anchor.focus();
+        }
     }
-    function closeModal(dialog) {
+    function closeOtherModals(except, restoreFocus) {
+        closeSessionPopover(restoreFocus);
+        closeTemplateMenu(restoreFocus);
+        $all('.modal-backdrop:not([hidden])').forEach(function (other) { if (other !== except) closeModal(other, restoreFocus); });
+    }
+    function overlayReturnFocus() {
+        if (document.querySelector('.modal-backdrop:not([hidden])')) return modalReturnFocus || document.activeElement;
+        if (paletteOpen) return lastFocus || document.activeElement;
+        if (sessionMenuTrigger) return sessionMenuTrigger;
+        var menu = document.getElementById('templateMenu');
+        if (menu && !menu.hidden) return document.getElementById('btnBuildTask') || document.activeElement;
+        return document.activeElement;
+    }
+    function openModal(dialog) {
+        if (!dialog || !dialog.hidden) return;
+        var returnFocus = overlayReturnFocus();
+        closeOtherModals(dialog, false);
+        closePalette(false);
+        modalReturnFocus = returnFocus;
+        dialog.hidden = false;
+        var first = modalFocusables(dialog)[0];
+        if (first) first.focus();
+    }
+    function closeModal(dialog, restoreFocus) {
         if (!dialog) return;
         dialog.hidden = true;
-        if (modalReturnFocus && modalReturnFocus.focus) modalReturnFocus.focus();
+        if (restoreFocus !== false && modalReturnFocus && modalReturnFocus.focus) modalReturnFocus.focus();
         modalReturnFocus = null;
+        if (dialog.dataset.dynamic === 'true') dialog.remove();
     }
     function trapModalTab(event, dialog) {
         var nodes = modalFocusables(dialog);
@@ -709,6 +795,17 @@
         var last = nodes[nodes.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+    function trapNavTab(event) {
+        var sidebar = document.getElementById('navSidebar');
+        if (!sidebar) return;
+        var nodes = modalFocusables(sidebar);
+        if (!nodes.length) return;
+        var first = nodes[0];
+        var last = nodes[nodes.length - 1];
+        var active = document.activeElement;
+        if (event.shiftKey && (active === first || !sidebar.contains(active))) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (active === last || !sidebar.contains(active))) { event.preventDefault(); first.focus(); }
     }
     function openSettings() { var dialog = document.getElementById('settingsDialog'); if (!dialog) return; openModal(dialog); updateSettingsInfo(); }
     function closeSettings() { closeModal(document.getElementById('settingsDialog')); }
@@ -887,6 +984,7 @@
         on('btnOpenFolderSettings', 'click', function () { var files = window.__studioFiles; if (files) files.openFolder(); });
         on('btnClearSessions', 'click', clearSessions);
         on('btnClearEditor', 'click', clearEditor);
+        document.addEventListener('uor-view-changed', function (event) { syncSectionNavigation(sectionForView(event.detail && event.detail.view)); });
         document.addEventListener('uor-files-changed', function () { updateStatus(); updateSettingsInfo(); });
         document.addEventListener('uor-workspace-changed', function () { updateStatus(); updateSettingsInfo(); });
         document.addEventListener('uor-model-source-changed', function () { window.setTimeout(updateStatus, 80); });
@@ -894,6 +992,9 @@
             var meta = event.metaKey || event.ctrlKey;
             var target = event.target;
             var typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+            var templateMenuState = document.getElementById('templateMenu');
+            var overlayActive = paletteOpen || sessionPopover || (templateMenuState && !templateMenuState.hidden) || document.querySelector('.modal-backdrop:not([hidden])');
+            if (overlayActive && meta && ['1', '2', '3', '4', 'b', 'B', 'i', 'I'].indexOf(event.key) >= 0) { event.preventDefault(); return; }
             if (meta && (event.key === 'k' || event.key === 'K')) { event.preventDefault(); if (paletteOpen) closePalette(); else openPalette(); return; }
             if (meta && event.key === ',') { event.preventDefault(); openSettings(); return; }
             if (meta && ['1', '2', '3', '4'].indexOf(event.key) >= 0 && !event.shiftKey && !event.altKey) { event.preventDefault(); activateSection({ '1': 'agent', '2': 'workspace', '3': 'models', '4': 'guide' }[event.key]); return; }
@@ -903,14 +1004,21 @@
             if (!typing && event.key === 'F2') {
                 var focused = document.activeElement;
                 var row = focused ? focused.closest('.session-row') : null;
-                if (row) { event.preventDefault(); var id = row.getAttribute('data-id'); var title = (row.querySelector('.session-title') || {}).textContent || 'Untitled session'; var menu = row.querySelector('.conv-menu'); renameInline(row, id, title); if (menu) menu.setAttribute('aria-expanded', 'false'); }
+                if (row) { event.preventDefault(); event.stopPropagation(); var id = row.getAttribute('data-id'); var title = (row.querySelector('.session-title') || {}).textContent || 'Untitled session'; var menu = row.querySelector('.conv-menu'); renameInline(row, id, title); if (menu) menu.setAttribute('aria-expanded', 'false'); }
                 return;
             }
             var openModalDialog = document.querySelector('.modal-backdrop:not([hidden])');
+            var openTemplateMenu = document.getElementById('templateMenu');
             if (event.key === 'Tab' && openModalDialog) { trapModalTab(event, openModalDialog); return; }
+            if (event.key === 'Tab' && paletteOpen) { trapModalTab(event, document.getElementById('commandPalette')); return; }
+            if (event.key === 'Tab' && sessionPopover) { trapModalTab(event, sessionPopover); return; }
+            if (event.key === 'Tab' && openTemplateMenu && !openTemplateMenu.hidden) { trapModalTab(event, openTemplateMenu); return; }
+            if (event.key === 'Tab' && app && app.getAttribute('data-nav') === 'expanded' && window.matchMedia('(max-width: 900px)').matches) { trapNavTab(event); return; }
+            if (event.key === 'Escape' && sessionPopover) { event.preventDefault(); event.stopPropagation(); closeSessionPopover(); return; }
             if (event.key === 'Escape') {
-                if (paletteOpen) { event.preventDefault(); event.stopPropagation(); closePalette(); return; }
+                if (openTemplateMenu && !openTemplateMenu.hidden) { event.preventDefault(); event.stopPropagation(); closeTemplateMenu(); return; }
                 if (openModalDialog) { event.preventDefault(); event.stopPropagation(); closeModal(openModalDialog); return; }
+                if (paletteOpen) { event.preventDefault(); event.stopPropagation(); closePalette(); return; }
                 if (app && app.getAttribute('data-nav') === 'expanded' && window.matchMedia('(max-width: 900px)').matches) {
                     event.preventDefault();
                     setChrome('nav', 'collapsed', true);
@@ -942,7 +1050,7 @@
                             { role: 'assistant', content: 'Findings: (1) the old segmented Chat/Model/Editor switch duplicated the nav; (2) status bar mixed legacy and new labels; (3) mobile pa item leaked a hidden footer. Fixes: single labeled nav, one coherent status bar, true mobile drawer.' }
                         ] },
                         { title: 'API provider wiring notes', updatedAt: now - 9 * 60000, messages: [
-                            { role: 'user', content: 'Sketch how the OpenAI-compatible provider fields should appear on Models.' },
+                            { role: 'user', content: 'Sketch how the OpenAI-compatible provider fields should appear on Connections.' },
                             { role: 'assistant', content: 'Remote providers section: Name, Base URL, Model, Key state + Use/Test/Edit/Remove; warning line: Local only until you select an API provider.' }
                         ] },
                         { title: 'M1 card copy review', updatedAt: now - 26 * 60000, messages: [
@@ -976,10 +1084,21 @@
         }
     }
 
+    function promptUrl() {
+        activateSection('models');
+        regroupModels();
+        var diagnostics = document.getElementById('artifactDiagnostics');
+        if (diagnostics) diagnostics.open = true;
+        var input = document.querySelector('#modelUrlInput');
+        if (input) { input.focus(); return true; }
+        return false;
+    }
+
     function initialChrome() {
         var wide = window.matchMedia('(min-width: 1181px)').matches;
+        var mobile = window.matchMedia('(max-width: 900px)').matches;
         var medium = window.matchMedia('(min-width: 901px)').matches;
-        setChrome('nav', chromeValue('nav', medium ? 'expanded' : 'collapsed'), false);
+        setChrome('nav', mobile ? 'collapsed' : chromeValue('nav', medium ? 'expanded' : 'collapsed'), false);
         var inspectorValue = wide ? chromeValue('inspector', 'expanded') : 'collapsed';
         setChrome('inspector', inspectorValue, false);
     }
@@ -1005,6 +1124,7 @@
         if (systemMedia && systemMedia.addEventListener) systemMedia.addEventListener('change', function () { if (settings.theme === 'system') applySettings(); });
         window.__studioUi = Object.assign(window.__studioUi || {}, {
             activateSection: activateSection,
+            promptUrl: promptUrl,
             openPalette: openPalette,
             closePalette: closePalette,
             openSettings: openSettings,

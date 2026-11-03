@@ -68,7 +68,7 @@ describe('live Agent source readiness', () => {
         const { hooks } = pageHooks();
         hooks.updateComposerState();
         expect(sendButton().disabled).toBe(true);
-        expect(sendButton().title).toContain('Models');
+        expect(sendButton().title).toContain('Connections');
         expect(hooks.sendFromComposer('hello')).toBe(false);
     });
 
@@ -139,6 +139,7 @@ describe('live Agent source readiness', () => {
         expect(container.textContent).toContain('Build with your files. Connect an agent when ready.');
         expect(container.textContent).toContain('No conversational model is configured');
         expect(container.textContent).toContain('Explore demo workspace');
+        expect(container.textContent).toContain('Open Connections');
         container.innerHTML = '';
         app.mode = 'api';
         app.apiConfig = { baseUrl: 'https://api.example.com/v1' };

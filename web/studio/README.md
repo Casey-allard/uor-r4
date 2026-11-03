@@ -33,8 +33,8 @@ The console shell above was superseded after owner feedback that it was "janky" 
 were "not organized or labeled very well". The page is now a workable AI studio:
 
 - **One labeled navigation sidebar** with exactly four destinations: **Agent** (chat, context and
-  build tasks; ⌘1), **Workspace** (file tree, editor tabs and save; ⌘2), **Models** (local engine,
-  published M1, remote API providers; ⌘3) and **Guide** (workflows, shortcuts, limits; ⌘4). A
+  build tasks; ⌘1), **Workspace** (file tree, editor tabs and save; ⌘2), **Connections** (UOR Chat,
+  custom API providers and artifact diagnostics; ⌘3) and **Guide** (workflows, shortcuts, limits; ⌘4). A
   permanent **Sessions** section lists title/preview/relative time with a `⋯` menu (Rename,
   Duplicate, Export JSON, Delete with an in-app confirm). Settings (⌘,) and Help (?) live in the
   sidebar footer. The old icon rail, segmented view switch and duplicate controls are gone; their
@@ -48,9 +48,8 @@ were "not organized or labeled very well". The page is now a workable AI studio:
   can be copied, inserted into the editor, saved as a file or retried; the composer states whether
   the active mode is local WASM (stays on device) or an OpenAI-compatible API (prompts leave the
   device). No API code lives here - the API integration remains another lab's work.
-- **Models** is four labeled sections: Local engine (offline), Published models (M1 seed 1 PRIMARY,
-  seed 2), API providers (remote add/use/test/edit/remove) and a collapsed Research (experimental)
-  section. **Settings** has Appearance (theme, reduce motion), Editor (font, tab size, wrap), Data
+- **Connections** presents UOR Chat — experimental, custom API providers, and a closed Artifact
+  diagnostics region for M1/research/local-file/URL tools. **Settings** has Appearance (theme, reduce motion), Editor (font, tab size, wrap), Data
   (sessions/draft storage and clearing) and About. **Guide** is the product documentation.
 - **Command palette** (⌘K, also `#command-palette`) has eight groups - Navigation, Sessions,
   Workspace, Agent, Models, Build, Interface, Help - with label, one-line description and only
@@ -64,6 +63,10 @@ were "not organized or labeled very well". The page is now a workable AI studio:
   the engine/worker/API client are unchanged, model-source changes are limited to tested provider/catalog/storage behavior, no external assets or requests are added,
   and the strict static checks pass with assertions intact. Real-browser/worker parity checks remain later work. The page remains offline-first: no
   external request at load; remote model/API contacts are user-initiated only.
+
+### Native IDE and simplified connections (2 November 2026)
+
+The source page uses a Mac-inspired application treatment: system typography, opaque panels, softer radii, compact controls with at least 24px targets, and a 2px keyboard-focus outline in dark and light themes. Connections presents **UOR Chat — experimental** as the primary local source through the existing synthetic WASM path, with **Custom API providers** beside it and M1/research/local-file/URL tools inside a closed **Artifact diagnostics** region. The original source buttons, listeners, `data-action` values, storage, readiness checks, and capability labels are preserved; configuration still does not prove reachability. These are source changes, not a production publish or trained-chat claim. Real remote MCP support is a separate protocol unit, and desktop stdio remains a later host bridge.
 
 ### IDE experience in the Studio source (2 November 2026)
 
