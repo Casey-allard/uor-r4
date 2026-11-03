@@ -108,6 +108,12 @@ pub struct CpuRankMarginTrainer {
     order: Vec<usize>,
 }
 
+#[derive(Clone)]
+pub(crate) struct CpuRankMarginEvaluator {
+    forward: CpuFbsForward,
+    config: RankMarginConfig,
+}
+
 impl CpuRankMarginTrainer {
     pub fn from_artifact(
         artifact: &[u8],
@@ -317,17 +323,14 @@ impl CpuRankMarginTrainer {
     }
 
     pub(crate) fn query_for(&mut self, sample: &RankMarginSample) -> Result<Vec<i32>> {
-        self.forward.reset();
-        let mut step = None;
-        for &token in &sample.input {
-            step = Some(
-                self.forward
-                    .step(token, CpuFbsHead::Writer)
-                    .map_err(|error| invalid(format!("rank-margin forward: {error}")))?,
-            );
+        query_for_forward(&mut self.forward, sample)
+    }
+
+    pub(crate) fn evaluator(&self) -> CpuRankMarginEvaluator {
+        CpuRankMarginEvaluator {
+            forward: self.forward.clone(),
+            config: self.config,
         }
-        step.map(|step| step.query_q12)
-            .ok_or_else(|| invalid("training sample input is empty"))
     }
 
     fn apply_query(
@@ -490,88 +493,122 @@ impl CpuRankMarginTrainer {
     }
 
     pub(crate) fn reading(&self, query: &[i32], target: u32) -> Result<RankMarginReading> {
-        if query.len() != self.forward.width() {
-            return Err(invalid("rank-margin query width differs from the table"));
-        }
-        if target as usize >= self.forward.vocabulary() {
-            return Err(invalid("rank-margin target is outside the vocabulary"));
-        }
-        let width = query.len();
-        let table = self.forward.token_table();
-        let vocab = self.forward.vocabulary();
-        let mut distances = Vec::with_capacity(vocab);
-        for token in 0..vocab {
-            let row = &table[token * width..][..width];
-            let distance = query.iter().zip(row).fold(0i64, |sum, (&value, &point)| {
-                sum.wrapping_add(i64::from(value.abs_diff(i32::from(point))))
-            });
-            distances.push(distance);
-        }
-        let target_distance = distances[target as usize];
-        let target_rank = 1 + distances
-            .iter()
-            .enumerate()
-            .filter(|&(token, &distance)| {
-                distance < target_distance
-                    || (distance == target_distance && token < target as usize)
-            })
-            .count();
-
-        let mut cells = Vec::with_capacity(CELL_COUNT);
-        for cell in 0..CELL_COUNT {
-            let first = ((query[..8]
-                .iter()
-                .zip(&self.forward.writer_roots()[cell / 16]))
-            .fold(0i64, |sum, (&value, &point)| {
-                sum.wrapping_add(i64::from(value.abs_diff(point)))
-            }))
-            .wrapping_neg();
-            let last = ((query[width - 8..]
-                .iter()
-                .zip(&self.forward.writer_roots()[cell % 16]))
-            .fold(0i64, |sum, (&value, &point)| {
-                sum.wrapping_add(i64::from(value.abs_diff(point)))
-            }))
-            .wrapping_neg();
-            cells.push((first.wrapping_add(last), cell));
-        }
-        cells.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
-        let admitted: Vec<u32> = cells
-            .iter()
-            .take(self.forward.kept_cell_count())
-            .map(|&(_, cell)| cell as u32)
-            .collect();
-        let target_cell = (target % CELL_COUNT as u32) as u16;
-        let target_admitted = admitted.contains(&u32::from(target_cell));
-
-        let mut ranked: Vec<(i64, u32)> = (0..vocab)
-            .filter(|&token| admitted.contains(&((token % CELL_COUNT) as u32)))
-            .map(|token| (distances[token], token as u32))
-            .collect();
-        ranked.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
-        let top8: Vec<u32> = ranked.iter().take(TOP_K).map(|&(_, token)| token).collect();
-        let top1 = top8
-            .first()
-            .copied()
-            .ok_or_else(|| invalid("writer admitted no token"))?;
-        let rival_distance = ranked
-            .iter()
-            .find(|&&(_, token)| token != target)
-            .map_or(target_distance, |&(distance, _)| distance);
-        let margin = i64::from(self.config.margin_q12)
-            .checked_mul(width as i64)
-            .ok_or_else(|| invalid("rank margin overflows i64"))?;
-        Ok(RankMarginReading {
-            target_distance,
-            target_rank,
-            margin_loss: (margin + target_distance - rival_distance).max(0),
-            top1,
-            top8,
-            target_admitted,
-            target_cell,
-            admitted_cells: admitted,
-        })
+        reading_from_forward(&self.forward, self.config, query, target)
     }
+}
+
+impl CpuRankMarginEvaluator {
+    pub(crate) fn config(&self) -> RankMarginConfig {
+        self.config
+    }
+
+    pub(crate) fn query_for(&mut self, sample: &RankMarginSample) -> Result<Vec<i32>> {
+        query_for_forward(&mut self.forward, sample)
+    }
+
+    pub(crate) fn reading(&self, query: &[i32], target: u32) -> Result<RankMarginReading> {
+        reading_from_forward(&self.forward, self.config, query, target)
+    }
+}
+
+fn query_for_forward(forward: &mut CpuFbsForward, sample: &RankMarginSample) -> Result<Vec<i32>> {
+    forward.reset();
+    let mut step = None;
+    for &token in &sample.input {
+        step = Some(
+            forward
+                .step(token, CpuFbsHead::Writer)
+                .map_err(|error| invalid(format!("rank-margin forward: {error}")))?,
+        );
+    }
+    step.map(|step| step.query_q12)
+        .ok_or_else(|| invalid("training sample input is empty"))
+}
+
+fn reading_from_forward(
+    forward: &CpuFbsForward,
+    config: RankMarginConfig,
+    query: &[i32],
+    target: u32,
+) -> Result<RankMarginReading> {
+    if query.len() != forward.width() {
+        return Err(invalid("rank-margin query width differs from the table"));
+    }
+    if target as usize >= forward.vocabulary() {
+        return Err(invalid("rank-margin target is outside the vocabulary"));
+    }
+    let width = query.len();
+    let table = forward.token_table();
+    let vocab = forward.vocabulary();
+    let mut distances = Vec::with_capacity(vocab);
+    for token in 0..vocab {
+        let row = &table[token * width..][..width];
+        let distance = query.iter().zip(row).fold(0i64, |sum, (&value, &point)| {
+            sum.wrapping_add(i64::from(value.abs_diff(i32::from(point))))
+        });
+        distances.push(distance);
+    }
+    let target_distance = distances[target as usize];
+    let target_rank = 1 + distances
+        .iter()
+        .enumerate()
+        .filter(|&(token, &distance)| {
+            distance < target_distance || (distance == target_distance && token < target as usize)
+        })
+        .count();
+
+    let mut cells = Vec::with_capacity(CELL_COUNT);
+    for cell in 0..CELL_COUNT {
+        let first = ((query[..8].iter().zip(&forward.writer_roots()[cell / 16]))
+            .fold(0i64, |sum, (&value, &point)| {
+                sum.wrapping_add(i64::from(value.abs_diff(point)))
+            }))
+        .wrapping_neg();
+        let last = ((query[width - 8..]
+            .iter()
+            .zip(&forward.writer_roots()[cell % 16]))
+        .fold(0i64, |sum, (&value, &point)| {
+            sum.wrapping_add(i64::from(value.abs_diff(point)))
+        }))
+        .wrapping_neg();
+        cells.push((first.wrapping_add(last), cell));
+    }
+    cells.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
+    let admitted: Vec<u32> = cells
+        .iter()
+        .take(forward.kept_cell_count())
+        .map(|&(_, cell)| cell as u32)
+        .collect();
+    let target_cell = (target % CELL_COUNT as u32) as u16;
+    let target_admitted = admitted.contains(&u32::from(target_cell));
+
+    let mut ranked: Vec<(i64, u32)> = (0..vocab)
+        .filter(|&token| admitted.contains(&((token % CELL_COUNT) as u32)))
+        .map(|token| (distances[token], token as u32))
+        .collect();
+    ranked.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    let top8: Vec<u32> = ranked.iter().take(TOP_K).map(|&(_, token)| token).collect();
+    let top1 = top8
+        .first()
+        .copied()
+        .ok_or_else(|| invalid("writer admitted no token"))?;
+    let rival_distance = ranked
+        .iter()
+        .find(|&&(_, token)| token != target)
+        .map_or(target_distance, |&(distance, _)| distance);
+    let margin = i64::from(config.margin_q12)
+        .checked_mul(width as i64)
+        .ok_or_else(|| invalid("rank margin overflows i64"))?;
+    Ok(RankMarginReading {
+        target_distance,
+        target_rank,
+        margin_loss: (margin + target_distance - rival_distance).max(0),
+        top1,
+        top8,
+        target_admitted,
+        target_cell,
+        admitted_cells: admitted,
+    })
 }
 
 pub(crate) fn validate_training_model(artifact: &[u8]) -> Result<()> {

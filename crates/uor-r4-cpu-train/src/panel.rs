@@ -1,10 +1,11 @@
 //! Panel-level rank-margin evaluation and exact CPU-versus-serving export checks.
 
+use rayon::prelude::*;
 use uor_r4_integer::stack::IntegerStackModel;
 
 use crate::train::{
-    sample_fingerprint, validate_training_model, CpuRankMarginTrainer, RankMarginConfig,
-    RankMarginSample,
+    sample_fingerprint, validate_training_model, CpuRankMarginEvaluator, CpuRankMarginTrainer,
+    RankMarginConfig, RankMarginSample,
 };
 use crate::CpuTrainError;
 
@@ -129,8 +130,21 @@ pub fn panel_admission_gate(
 pub struct CpuPanelEvaluator {
     artifact: Vec<u8>,
     model: IntegerStackModel,
-    evaluator: CpuRankMarginTrainer,
+    evaluator: CpuRankMarginEvaluator,
     samples: Vec<RankMarginSample>,
+}
+
+struct PanelRowReading {
+    target_admitted: usize,
+    top1_correct: usize,
+    top8_correct: usize,
+    margin_loss_sum: i64,
+    target_rank_sum: u64,
+    query_coordinates_checked: u64,
+    query_coordinate_mismatches: u64,
+    token_mismatches: u64,
+    kept_cells_checked: u64,
+    kept_cell_mismatches: u64,
 }
 
 impl CpuPanelEvaluator {
@@ -154,6 +168,7 @@ impl CpuPanelEvaluator {
             },
             0,
         )?;
+        let evaluator = evaluator.evaluator();
         Ok(Self {
             artifact: artifact.to_vec(),
             model,
@@ -171,6 +186,11 @@ impl CpuPanelEvaluator {
     }
 
     pub fn evaluate(&mut self) -> Result<PanelReading> {
+        let rows = self
+            .samples
+            .par_iter()
+            .map(|sample| self.evaluate_row(sample))
+            .collect::<Result<Vec<_>>>()?;
         let mut reading = PanelReading {
             artifact_digest: *blake3::hash(&self.artifact).as_bytes(),
             sample_fingerprint: sample_fingerprint(&self.samples),
@@ -189,33 +209,44 @@ impl CpuPanelEvaluator {
                 kept_cell_mismatches: 0,
             },
         };
-        for sample in &self.samples {
-            let cpu_query = self.evaluator.query_for(sample)?;
-            let cpu_reading = self.evaluator.reading(&cpu_query, sample.target)?;
-            let mut session = self.model.session();
-            let mut served = None;
-            for &token in &sample.input {
-                served = Some(
-                    session
-                        .step_native(token)
-                        .map_err(|error| invalid(format!("serving panel step: {error}")))?,
-                );
-            }
-            let served = served.ok_or_else(|| invalid("panel sample has no serving step"))?;
+        for row in rows {
+            reading.target_admitted += row.target_admitted;
+            reading.top1_correct += row.top1_correct;
+            reading.top8_correct += row.top8_correct;
+            reading.margin_loss_sum = reading.margin_loss_sum.saturating_add(row.margin_loss_sum);
+            reading.target_rank_sum = reading.target_rank_sum.saturating_add(row.target_rank_sum);
+            reading.export.query_coordinates_checked += row.query_coordinates_checked;
+            reading.export.query_coordinate_mismatches += row.query_coordinate_mismatches;
+            reading.export.token_mismatches += row.token_mismatches;
+            reading.export.kept_cells_checked += row.kept_cells_checked;
+            reading.export.kept_cell_mismatches += row.kept_cell_mismatches;
+        }
+        Ok(reading)
+    }
 
-            reading.target_admitted += usize::from(cpu_reading.target_admitted);
-            reading.top1_correct += usize::from(cpu_reading.top1 == sample.target);
-            reading.top8_correct += usize::from(cpu_reading.top8.contains(&sample.target));
-            reading.margin_loss_sum = reading
-                .margin_loss_sum
-                .saturating_add(cpu_reading.margin_loss);
-            reading.target_rank_sum = reading
-                .target_rank_sum
-                .saturating_add(u64::try_from(cpu_reading.target_rank).unwrap_or(u64::MAX));
+    fn evaluate_row(&self, sample: &RankMarginSample) -> Result<PanelRowReading> {
+        let mut evaluator = self.evaluator.clone();
+        let cpu_query = evaluator.query_for(sample)?;
+        let cpu_reading = evaluator.reading(&cpu_query, sample.target)?;
+        let mut session = self.model.session();
+        let mut served = None;
+        for &token in &sample.input {
+            served = Some(
+                session
+                    .step_native(token)
+                    .map_err(|error| invalid(format!("serving panel step: {error}")))?,
+            );
+        }
+        let served = served.ok_or_else(|| invalid("panel sample has no serving step"))?;
 
-            reading.export.query_coordinates_checked +=
-                u64::try_from(cpu_query.len()).unwrap_or(u64::MAX);
-            reading.export.query_coordinate_mismatches += u64::try_from(
+        Ok(PanelRowReading {
+            target_admitted: usize::from(cpu_reading.target_admitted),
+            top1_correct: usize::from(cpu_reading.top1 == sample.target),
+            top8_correct: usize::from(cpu_reading.top8.contains(&sample.target)),
+            margin_loss_sum: cpu_reading.margin_loss,
+            target_rank_sum: u64::try_from(cpu_reading.target_rank).unwrap_or(u64::MAX),
+            query_coordinates_checked: u64::try_from(cpu_query.len()).unwrap_or(u64::MAX),
+            query_coordinate_mismatches: u64::try_from(
                 cpu_query
                     .iter()
                     .zip(&served.query_q12)
@@ -223,11 +254,10 @@ impl CpuPanelEvaluator {
                     .count()
                     + cpu_query.len().abs_diff(served.query_q12.len()),
             )
-            .unwrap_or(u64::MAX);
-            reading.export.token_mismatches += u64::from(cpu_reading.top1 != served.token);
-            reading.export.kept_cells_checked +=
-                u64::try_from(cpu_reading.admitted_cells.len()).unwrap_or(u64::MAX);
-            reading.export.kept_cell_mismatches += u64::try_from(
+            .unwrap_or(u64::MAX),
+            token_mismatches: u64::from(cpu_reading.top1 != served.token),
+            kept_cells_checked: u64::try_from(cpu_reading.admitted_cells.len()).unwrap_or(u64::MAX),
+            kept_cell_mismatches: u64::try_from(
                 cpu_reading
                     .admitted_cells
                     .iter()
@@ -239,9 +269,8 @@ impl CpuPanelEvaluator {
                         .len()
                         .abs_diff(served.kept_cells.len()),
             )
-            .unwrap_or(u64::MAX);
-        }
-        Ok(reading)
+            .unwrap_or(u64::MAX),
+        })
     }
 }
 
@@ -350,6 +379,29 @@ mod tests {
         assert!(left.export.is_exact());
         assert_eq!(left.export.query_coordinates_checked, 8 * 64);
         assert_eq!(left.export.kept_cells_checked, 8 * 8);
+    }
+
+    #[test]
+    fn panel_reading_is_identical_across_bounded_worker_counts() {
+        let artifact = artifact();
+        let samples = samples();
+        let evaluate = |threads| {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                CpuPanelEvaluator::from_artifact(&artifact, samples.clone(), 1)
+                    .unwrap()
+                    .evaluate()
+                    .unwrap()
+            })
+        };
+
+        let expected = evaluate(1);
+        for threads in [2, 3, 5, 8, 16, 32] {
+            assert_eq!(evaluate(threads), expected, "{threads} workers");
+        }
     }
 
     #[test]

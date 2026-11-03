@@ -6,6 +6,7 @@
 //! the best member. Every proposal is patched into the artifact, parsed, and
 //! evaluated through the changed full forward.
 
+use rayon::prelude::*;
 use uor_r4_integer::stack::{IntegerStackModel, StackShape};
 
 use crate::train::{
@@ -19,6 +20,16 @@ const CHECKPOINT_VERSION: u32 = 2;
 const BVGK_MAX_COORDINATES: usize = 64;
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
+type CandidateScore = (
+    CounterfactualCandidate,
+    CpuRankMarginTrainer,
+    RankMarginReading,
+);
+
+struct CoordinateScore {
+    tried: usize,
+    best: Option<CandidateScore>,
+}
 
 fn invalid(message: impl Into<String>) -> CpuTrainError {
     CpuTrainError::Invalid(message.into())
@@ -209,46 +220,19 @@ impl CpuCounterfactualTrainer {
             self.coordinates()?
         };
         let coordinate_count = coordinates.len();
+        let scored = coordinates
+            .par_iter()
+            .map(|coordinate| self.score_coordinate(coordinate, &sample, &before))
+            .collect::<Vec<_>>();
         let mut tried = 0usize;
         let mut eligible = Vec::new();
-        for coordinate in coordinates {
-            let mut best: Option<(
-                CounterfactualCandidate,
-                CpuRankMarginTrainer,
-                RankMarginReading,
-            )> = None;
-            for candidate in coordinate.lanes(self.config.delta, &self.artifact)? {
-                tried += 1;
-                let patched = match patch_candidates(
-                    &self.artifact,
-                    std::slice::from_ref(&candidate),
-                    self.config,
-                ) {
-                    Ok(patched) => patched,
-                    Err(_) => continue,
-                };
-                let mut evaluator = match rank_evaluator(
-                    &patched,
-                    &self.samples,
-                    self.config.margin_q12,
-                    self.seed,
-                ) {
-                    Ok(evaluator) => evaluator,
-                    Err(_) => continue,
-                };
-                let after = evaluator.evaluate_sample(&sample)?;
-                if !candidate_improves(&after, &before) {
-                    continue;
-                }
-                let replace = best
-                    .as_ref()
-                    .is_none_or(|(_, _, current)| after.margin_loss < current.margin_loss);
-                if replace {
-                    best = Some((candidate, evaluator, after));
-                }
-            }
-            if let Some((candidate, evaluator, after)) = best {
-                eligible.push((candidate, evaluator, after));
+        for score in scored {
+            let score = score?;
+            tried = tried
+                .checked_add(score.tried)
+                .ok_or_else(|| invalid("counterfactual candidate count overflow"))?;
+            if let Some(best) = score.best {
+                eligible.push(best);
             }
         }
         let eligible_count = eligible.len();
@@ -268,6 +252,45 @@ impl CpuCounterfactualTrainer {
             before: before.clone(),
             after: accepted.map_or(before, |(_, reading)| reading),
         })
+    }
+
+    fn score_coordinate(
+        &self,
+        coordinate: &CandidateCoordinate,
+        sample: &RankMarginSample,
+        before: &RankMarginReading,
+    ) -> Result<CoordinateScore> {
+        let mut tried = 0usize;
+        let mut best: Option<CandidateScore> = None;
+        for candidate in coordinate.lanes(self.config.delta, &self.artifact)? {
+            tried = tried
+                .checked_add(1)
+                .ok_or_else(|| invalid("counterfactual coordinate lane count overflow"))?;
+            let patched = match patch_candidates(
+                &self.artifact,
+                std::slice::from_ref(&candidate),
+                self.config,
+            ) {
+                Ok(patched) => patched,
+                Err(_) => continue,
+            };
+            let mut evaluator =
+                match rank_evaluator(&patched, &self.samples, self.config.margin_q12, self.seed) {
+                    Ok(evaluator) => evaluator,
+                    Err(_) => continue,
+                };
+            let after = evaluator.evaluate_sample(sample)?;
+            if !candidate_improves(&after, before) {
+                continue;
+            }
+            let replace = best
+                .as_ref()
+                .is_none_or(|(_, _, current)| after.margin_loss < current.margin_loss);
+            if replace {
+                best = Some((candidate, evaluator, after));
+            }
+        }
+        Ok(CoordinateScore { tried, best })
     }
 
     #[allow(clippy::type_complexity)]
@@ -1242,6 +1265,41 @@ mod tests {
         assert!(left_steps
             .iter()
             .all(|step| step.coordinates <= 16 && step.tried <= 32));
+    }
+
+    #[test]
+    fn parallel_candidate_scoring_matches_across_worker_counts() {
+        let artifact = artifact();
+        let (fixture, accepted) =
+            fixture_step(CounterfactualGroup::Normalization, 16).expect("accepted fixture");
+        assert!(accepted.accepted.is_some());
+        let sample = fixture.samples[0].clone();
+        let run = |threads| {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                let mut trainer = trainer(
+                    &artifact,
+                    sample.clone(),
+                    CounterfactualGroup::Normalization,
+                    16,
+                    64,
+                );
+                let step = trainer.train_steps(1).unwrap().remove(0);
+                (
+                    step,
+                    trainer.artifact().to_vec(),
+                    trainer.checkpoint().unwrap(),
+                )
+            })
+        };
+
+        let expected = run(1);
+        for threads in [2, 3, 5, 8, 16, 32] {
+            assert_eq!(run(threads), expected, "{threads} workers");
+        }
     }
 
     #[test]

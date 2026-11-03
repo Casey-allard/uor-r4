@@ -8,7 +8,16 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `CpuRankMarginTrainer` is the first finite learning unit on that path. It applies a deterministic frozen-query Q12 subgradient coordinate step to the target and hardest admitted rival rows of the single tied token table, reparses the patched artifact immediately to refresh Hamming codes, reports exact admission/top-1/top-8/rank readings, and round-trips a versioned checkpoint. Routes, gates and normalization remain unchanged; this is not yet a complete end-to-end trainer.
 
-`CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop to normalization gains, convolution/gate biases, decay offsets and all six FBS route tables through bounded BVG-K coordinate blocks. `CpuPanelEvaluator` grades a finite panel and records target admission, top-1/top-8, rank margin and component-wise CPU-versus-serving query/token/kept-cell gaps. `panel_admission_gate` refuses checkpoint admission loss or any serving mismatch; these are component controls, not a language result.
+`CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop
+to normalization gains, convolution/gate biases, decay offsets and all six FBS
+route tables through bounded BVG-K coordinate blocks. Its independent
+candidate scores run in parallel and return to coordinate order before the one
+serial joint decision. `CpuPanelEvaluator` grades panel rows in parallel and
+combines their integer readings in source order, recording target admission,
+top-1/top-8, rank margin and component-wise CPU-versus-serving
+query/token/kept-cell gaps. `panel_admission_gate` refuses checkpoint admission
+loss or any serving mismatch; these are component controls, not a language
+result.
 
 `cpu-discrete-corpus-driver` connects the exact discrete proposal/apply/checkpoint path to a strict masked corpus. It starts from a four-table `uor-r4.lut-discrete/1` artifact at any recorded epoch, executes bounded K=1 vector/read coordinates with the GPU short-final-batch semantics, reports matched panel and CPU-versus-serving readings, writes hash-bound interval/final checkpoints, and reconstructs a reloadable four-table artifact from the trained state. Its target-rank sum is over tokens in admitted cells, not all vocabulary entries. It refuses the 19-table M1 trunk because the CPU scorer does not implement the extra trunk tables. This is a development screener, not GPU training qualification.
 
@@ -65,4 +74,8 @@ cargo run --release -p uor-r4-cpu-train --bin cpu-discrete-corpus-driver -- <fou
 
 The forward benchmark prints read-free, copy-only, copy-plus-type and full Hamming-plus-memory cases with hashes and process peak RSS. Its readings are component throughput, not training or language evidence.
 
-The rank-margin benchmark times one repeated synthetic sample through the Hamming-read forward, exact ranking, accepted table edit and artifact rebuild. The counterfactual and panel benchmarks cover coordinate evaluation and exact CPU/serving panel parity. Their rates are component ceilings, not corpus learning or language evidence.
+The rank-margin benchmark times one repeated synthetic sample through the
+Hamming-read forward, exact ranking, accepted table edit and artifact rebuild.
+The counterfactual and panel benchmarks compare 1, 8, 16 and 32 workers with
+stable checksums and exact CPU/serving panel parity. Their rates are component
+ceilings, not corpus learning or language evidence.

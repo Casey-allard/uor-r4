@@ -1,0 +1,522 @@
+warning: output filename collision at /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/local/deepseek/cpu-parallel-target/release/deps/libuor_r4_integer.rlib
+  |
+  = note: the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)` has the same output filename as the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/local/deepseek/cpu-parallel-target/release/deps/libuor_r4_integer.so
+  |
+  = note: the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)` has the same output filename as the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/local/deepseek/cpu-parallel-target/release/deps/libuor_r4_integer.so.dwp
+  |
+  = note: the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)` has the same output filename as the lib target `uor_r4_integer` in package `uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+   Compiling uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-integer)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: method `words` is never used
+   --> crates/uor-r4-discrete/src/lib.rs:213:19
+    |
+184 | impl ReadSpec {
+    | ------------- method in this implementation
+...
+213 |     pub(crate) fn words(self) -> [u32; 3] {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `manifest` and `max_batches` are never read
+   --> crates/uor-r4-discrete/src/controller.rs:130:5
+    |
+129 | pub struct ValidatedRelease {
+    |            ---------------- fields in this struct
+130 |     manifest: ReleaseManifest,
+    |     ^^^^^^^^
+131 |     manifest_sha256: String,
+132 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `lineage_sha256` and `max_batches` are never used
+   --> crates/uor-r4-discrete/src/controller.rs:135:19
+    |
+134 | impl ValidatedRelease {
+    | --------------------- methods in this implementation
+135 |     pub(crate) fn lineage_sha256(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+138 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:218:4
+    |
+218 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_metadata` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:232:4
+    |
+232 | fn validate_release_metadata(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_with_owner` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:250:4
+    |
+250 | fn validate_release_with_owner(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:347:4
+    |
+347 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_resume_metadata` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:355:4
+    |
+355 | fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_baseline_pair` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:379:4
+    |
+379 | fn validate_baseline_pair(
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:395:4
+    |
+395 | fn validate_initial_baseline(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:536:4
+    |
+536 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `validate_owner` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:199:4
+    |
+199 | fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &CompletionOwner) -> Result<()> {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `imports_pilot` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:224:4
+    |
+224 | fn imports_pilot(config: &DriverConfig) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: function `release` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:299:4
+    |
+299 | fn release(
+    |    ^^^^^^^
+
+warning: function `migrate_parent` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:341:4
+    |
+341 | fn migrate_parent(
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `CompletionCheckpoint` is never constructed
+   --> crates/uor-r4-discrete/src/completion.rs:364:8
+    |
+364 | struct CompletionCheckpoint {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `publish_state_json` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:421:4
+    |
+421 | fn publish_state_json<T: Serialize>(path: &Path, value: &T, replace_latest: bool) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:501:4
+    |
+501 | fn validate_evaluation(
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:525:4
+    |
+525 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: constant `REFERENCE_SHA256` is never used
+ --> crates/uor-r4-discrete/src/completion_baseline.rs:6:7
+  |
+6 | const REFERENCE_SHA256: &str = "b92da0bf1ccda1c9de56a33de41d4698dc214bd71c588a6938a87443b9aca0b9";
+  |       ^^^^^^^^^^^^^^^^
+
+warning: function `digest` is never used
+  --> crates/uor-r4-discrete/src/completion_baseline.rs:20:4
+   |
+20 | fn digest(v: &impl Serialize) -> Result<String> {
+   |    ^^^^^^
+
+warning: function `authenticate` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:148:15
+    |
+148 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: function `authenticate_with_reference` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:164:4
+    |
+164 | fn authenticate_with_reference(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `publish_or_verify` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:288:4
+    |
+288 | fn publish_or_verify(path: &Path, expected: &Value, completed: u64) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: field `snapshot` is never read
+   --> crates/uor-r4-discrete/src/q4_import.rs:125:5
+    |
+124 | pub struct ImportedQ4 {
+    |            ---------- field in this struct
+125 |     snapshot: Snapshot,
+    |     ^^^^^^^^
+    |
+    = note: `ImportedQ4` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+    --> crates/uor-r4-discrete/src/training.rs:2802:5
+     |
+2801 | pub struct CorpusUpdateAdmission {
+     |            --------------------- fields in this struct
+2802 |     lineage_sha256: String,
+     |     ^^^^^^^^^^^^^^
+2803 |     max_completed_batches: u64,
+     |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `zero_update_only` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2881:4
+     |
+2881 | fn zero_update_only(driver: &PreparedDriver) -> Result<()> {
+     |    ^^^^^^^^^^^^^^^^
+
+warning: associated function `guarded` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2894:8
+     |
+2890 | impl CorpusUpdateAdmission {
+     | -------------------------- associated function in this implementation
+...
+2894 |     fn guarded(driver: &PreparedDriver, max_completed_batches: u64) -> Result<Self> {
+     |        ^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2903:15
+     |
+2903 | pub(crate) fn issue_corpus_update_admission(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 30 warnings
+   Compiling uor-r4-core v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-core)
+   Compiling uor-r4-cpu-train v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-cpu-parallel-panel/crates/uor-r4-cpu-train)
+warning: `uor-r4-core` (lib) generated 4 warnings (4 duplicates)
+    Finished `release` profile [optimized] target(s) in 15.72s
+     Running unittests src/lib.rs (local/deepseek/cpu-parallel-target/release/deps/uor_r4_cpu_train-358040d471b98834)
+
+running 163 tests
+test corpus::tests::conversation_examples_recover_contiguous_assistant_responses ... ok
+test corpus::tests::causal_samples_stop_at_document_boundaries_and_context ... ok
+test corpus::tests::evaluation_cap_is_deterministic ... ok
+test corpus::tests::document_split_never_shares_targets_or_documents ... ok
+test corpus::tests::manifest_binds_exact_token_and_mask_content ... ok
+test corpus::tests::malformed_corpus_inputs_are_refused ... ok
+test counterfactual::tests::admission_loss_is_never_an_improving_candidate ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_process_helper ... ok
+test discrete_route::tests::flock_plan_retains_spans_across_an_unequal_frontier ... ok
+test counterfactual::tests::malformed_spans_and_grid_boundaries_are_refused ... ok
+test discrete_route::tests::identity_route_is_deterministic_across_context_lengths ... ok
+test discrete_route::tests::joint_loss_rejects_a_row_that_loses_baseline_eligibility ... ok
+test discrete_route::tests::malformed_artifacts_are_refused ... ok
+test counterfactual::tests::normalization_candidates_change_only_a_legal_grid_code ... ok
+test counterfactual::tests::route_frame_and_atom_moves_keep_legal_fields ... ok
+test discrete_route::tests::non_route_and_malformed_route_artifacts_are_refused ... ok
+test discrete_route::tests::gate_chooser_uses_strict_improvement_and_ignores_inactive_lanes ... ok
+test discrete_route::tests::proposal_lane_sentinel_and_checked_overflow_are_explicit ... ok
+test discrete_route::tests::cpu_discrete_interleaved_schedule_crosses_eight_batches_into_a_gate_read ... ok
+test discrete_route::tests::malformed_flock_artifacts_are_refused ... ok
+test discrete_route::tests::bvgk_joint_decision_and_batch_apply_are_exact ... ok
+test discrete_route::tests::release_flock_read_benchmark ... ignored, release benchmark
+test discrete_route::tests::release_proposal_chooser_benchmark ... ignored, release benchmark
+test discrete_route::tests::release_proposal_scoring_benchmark ... ignored, release benchmark
+test discrete_route::tests::release_relation_read_benchmark ... ignored, release benchmark
+test discrete_route::tests::cpu_discrete_checkpoint_refuses_carrier_schedule ... ok
+test discrete_route::tests::non_relation_and_malformed_relation_artifacts_are_refused ... ok
+test discrete_route::tests::block_scorer_returns_each_coordinate_and_an_exact_joint_loss ... ok
+test discrete_route::tests::serialized_flock_matches_integer_discrete_model ... ok
+test discrete_route::tests::cpu_discrete_k3_resume_continues_after_truncated_family_block ... ok
+test discrete_route::tests::flock_zero_gate_fallback_and_gate_trits_are_distinct ... ok
+test discrete_route::tests::cpu_discrete_no_commit_advances_only_schedule_cursor ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_restart_continues_identically ... ok
+test discrete_route::tests::serialized_nonzero_route_matches_integer_discrete_model ... ok
+test counterfactual::tests::admission_and_satisfied_margin_are_no_ops ... ok
+test fbs::tests::a_route_sign_fault_changes_the_query ... ok
+test fbs::tests::context_exhaustion_matches_serving ... ok
+test discrete_route::tests::serialized_multilevel_flock_matches_integer_discrete_model ... ok
+test discrete_route::tests::apply_status_order_and_noop_match_cuda ... ok
+test discrete_route::tests::cpu_trunk_refuses_shape_table_and_recurrence_corruption ... ok
+test fbs::tests::cpu_fbs_session_checkpoint_process_helper ... ok
+test discrete_route::tests::cpu_trunk_matches_integer_serving_and_training_still_refuses_it ... ok
+test discrete_route::tests::proposal_chooser_refuses_invalid_modes_and_inventory ... ok
+test fbs::tests::combined_copy_and_type_reads_match_serving ... ok
+test discrete_route::tests::each_relation_edge_kind_matches_host ... ok
+test discrete_route::tests::serialized_relation_matches_host_across_sweeps_and_levels ... ok
+test fbs::tests::copy_heads_at_both_hooks_match_serving ... ok
+test discrete_route::tests::route_and_table_ties_choose_the_lower_resulting_port ... ok
+test discrete_route::tests::proposal_scorer_refuses_all_ineligible_rows_and_invalid_requests ... ok
+test fbs::tests::copy_key_two_heads_match_serving_at_both_hooks ... ok
+test discrete_route::tests::exact_gate_route_and_table_applies_mutate_only_the_coordinate ... ok
+test fbs::tests::combined_hamming_and_memory_match_serving ... ok
+test discrete_route::tests::zero_relation_gates_equal_the_corresponding_flock_read ... ok
+test discrete_route::tests::proposal_writer_baseline_matches_host_for_both_objectives ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_survives_process_restart ... ok
+test fbs::tests::fractional_positive_and_negative_memory_weights_match_serving ... ok
+test discrete_route::tests::cpu_discrete_writeback_round_trips_serving_and_advances_epoch ... ok
+test fbs::tests::every_snapped_and_raw_gate_transition_combination_matches_serving ... ok
+test discrete_route::tests::sequential_apply_refreshes_route_and_table_tie_ports ... ok
+test fbs::tests::cpu_fbs_session_checkpoint_refuses_identity_shape_and_state_corruption ... ok
+test fbs::tests::cpu_fbs_session_survives_process_restart ... ok
+test fbs::tests::one_layer_nearest_matches_serving_forward ... ok
+test fbs::tests::pending_second_reply_round_trips_with_prior_anchors ... ok
+test fbs::tests::erased_copy_codes_change_the_complete_query ... ok
+test fbs::tests::memory_without_a_reply_signal_or_after_clear_adds_nothing ... ok
+test fbs::tests::point_fallback_counts_targets_then_breaks_ties_by_smaller_id ... ok
+test fbs::tests::point_fallback_names_the_missed_opening ... ok
+test fbs::tests::memory_keys_cross_windows_and_restart_after_eos ... ok
+test fbs::tests::opening_and_reply_memory_moves_match_serving ... ok
+test fbs::tests::retention_rate_artifacts_require_their_other_rate_tables ... ok
+test discrete_route::tests::proposal_virtual_moves_match_serialized_host_states ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_preserves_nonzero_source_epoch ... ok
+test discrete_route::tests::cpu_discrete_checkpoints_round_trip_every_read_mode ... ok
+test hamming::tests::candidates_include_the_immediate_predecessor_and_exclude_the_current_row ... ok
+test fbs::tests::raw_quaternions_compose_with_hamming_and_memory ... ok
+test fbs::tests::writer_head_matches_serving_forward ... ok
+test fbs::tests::six_layers_match_serving_forward ... ok
+test hamming::tests::copy_key_two_tells_two_facts_after_the_same_token_apart ... ok
+test fbs::tests::restored_hamming_and_memory_session_resets_like_a_fresh_stream ... ok
+test fbs::tests::the_trunk_view_does_not_weaken_fbs_image_refusal ... ok
+test fbs::tests::three_layer_nearest_matches_serving_forward ... ok
+test hamming::tests::stream_and_readout_round_the_complete_sum_half_away_from_zero ... ok
+test hamming::tests::the_payload_cache_is_bounded_at_four_gibibytes ... ok
+test memory::tests::malformed_memory_and_point_dimensions_are_refused ... ok
+test gain_train::tests::random_gain_control_moves_exactly_the_requested_count ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_continues_typed_mutations_and_interleaved_blocks ... ok
+test memory_train::tests::cached_sample_aggregation_refuses_every_overflow_class ... ok
+test memory_train::tests::parity_aggregation_refuses_every_overflow_class ... ok
+test gain_train::tests::final_gain_patch_changes_only_its_named_table ... ok
+test memory::tests::memory_moves_round_half_away_from_zero ... ok
+test fbs::tests::zero_weight_hamming_matches_the_read_free_trunk ... ok
+test fbs::tests::reset_starts_a_fresh_memory_stream ... ok
+test fbs::tests::type_heads_at_both_hooks_match_serving ... ok
+test memory_train::tests::a_weight_patch_changes_only_its_named_table ... ok
+test gain_train::tests::the_gain_trainer_refuses_a_hamming_readout ... ok
+test fbs::tests::stream_only_and_readout_only_reads_match_serving ... ok
+test corpus::tests::two_checkpoint_resumes_reproduce_the_complete_corpus_continuation ... ok
+test quant_shadow::tests::hamming_and_memory_snapshots_are_outside_this_unit ... ok
+test memory_train::tests::training_refuses_missing_memory_and_invalid_samples ... ok
+test panel::tests::empty_malformed_and_unsupported_panels_are_refused ... ok
+test served_forward::tests::contract_states_truncating_and_rounding_boundaries ... ok
+test served_forward::tests::copy_key_two_audit_matches_serving_exactly ... ok
+test discrete_route::tests::cpu_discrete_checkpoint_refuses_cursor_and_identity_corruption ... ok
+test served_forward::tests::deterministic_report_checks_all_decisions_and_accounts_cost ... ok
+test panel::tests::checkpoint_and_resume_produce_the_same_panel_reading ... ok
+test served_forward::tests::planted_parity_failure_is_an_instrument_fault ... ok
+test served_forward::tests::memory_accounting_is_an_opening_upper_bound_and_skips_missing_reply_tables ... ok
+test served_forward::tests::unsupported_retention_mode_is_refused ... ok
+test quant_shadow::tests::malformed_training_and_panel_samples_are_refused ... ok
+test served_forward::tests::malformed_artifact_and_bad_token_sequence_are_refused ... ok
+test tests::admission_is_distinct_and_reports_all_requested_cells ... ok
+test served_forward::tests::timed_report_uses_named_serving_stages_and_keeps_parity ... ok
+test tests::admission_cost_ties_choose_lower_cell_and_skip_empty_cells ... ok
+test tests::aggregate_readings_count_rank_and_admission_separately ... ok
+test tests::distance_sums_saturate_instead_of_overflowing ... ok
+test quant_shadow::tests::gate_separates_admission_export_and_float_only_gains ... ok
+test served_forward::tests::uort_slice_and_expected_artifact_identity_are_bound ... ok
+test quant_shadow::tests::no_change_step_is_deterministic_and_keeps_shadow_bytes ... ok
+test tests::matches_the_existing_host_writer_oracle ... ok
+test tests::target_reading_separates_admission_from_ranking ... ok
+test tests::exact_queries_return_their_token_and_admit_their_cell ... ok
+test tests::tied_distances_choose_the_lower_token_id ... ok
+test tests::the_cpu_crate_is_not_a_default_workspace_member ... ok
+test discrete_route::tests::bvgk_refusals_preserve_cuda_order_and_applier_state ... ok
+test train::tests::a_tied_memory_target_uses_the_smaller_token ... ok
+test tests::malformed_table_and_kept_counts_are_refused ... ok
+test served_forward::tests::hamming_copy_only_and_readout_modes_have_exact_costs ... ok
+test served_forward::tests::full_path_audit_covers_hamming_memory_point_key_and_native_head ... ok
+test train::tests::a_rank_margin_step_moves_target_and_rival_without_changing_cells ... ok
+test train::tests::a_satisfied_margin_leaves_the_artifact_and_clocks_unchanged ... ok
+test train::tests::admission_guard_refuses_an_unadmitted_target ... ok
+test train::tests::the_trainer_requires_the_native_cell_writer_head ... ok
+test panel::tests::panel_reading_is_identical_across_bounded_worker_counts ... ok
+test train::tests::rank_margin_k1_preserves_the_pre_bvgk_artifact_hash ... ok
+test train::tests::parameter_bounds_and_frozen_query_training_are_deterministic ... ok
+test train::tests::an_update_refreshes_hamming_codes_and_matches_the_served_artifact ... ok
+test train::tests::a_table_bvgk_block_commits_multiple_coordinates_or_changes_nothing ... ok
+test panel::tests::matched_gate_accepts_no_change_and_rejects_admission_or_export_loss ... ok
+test counterfactual::tests::full_forward_rejections_leave_every_artifact_unchanged ... ok
+test counterfactual::tests::a_patched_full_forward_candidate_that_loses_admission_is_rejected ... ok
+test train::tests::a_trained_writer_preserves_the_full_served_path_and_exact_audit ... ok
+test train::tests::checkpoint_resume_reproduces_bytes_and_next_readings ... ok
+test quant_shadow::tests::admission_loss_rolls_back_the_complete_trial_state ... ok
+test memory_train::tests::opening_weights_train_through_the_complete_served_path ... ok
+test memory_train::tests::independent_constructions_are_byte_identical ... ok
+test memory_train::tests::an_unseen_memory_key_is_a_byte_identical_noop ... ok
+test quant_shadow::tests::accepted_q12_update_tracks_shadow_and_re_exports_exactly ... ok
+test quant_shadow::tests::checkpoint_refuses_tamper_stale_lineage_and_trailing_bytes ... ok
+test panel::tests::finite_panel_matches_the_serving_integer_session_exactly ... ok
+test memory_train::tests::cached_parallel_constructions_are_byte_identical ... ok
+test counterfactual::tests::every_parameter_group_can_accept_a_coordinated_step ... ok
+test counterfactual::tests::coordinated_bvgk_steps_are_bounded_and_deterministic ... ok
+test memory_train::tests::reply_weights_train_through_the_complete_served_path ... ok
+test counterfactual::tests::parallel_candidate_scoring_matches_across_worker_counts ... ok
+test memory_train::tests::derived_memory_can_be_attached_and_trained ... ok
+test counterfactual::tests::checkpoint_and_malformed_candidate_controls_hold ... ok
+test memory_train::tests::cached_trajectory_reproduces_full_forward_training_exactly ... ok
+test gain_train::tests::cached_gain_replay_matches_point_fallback ... ok
+test gain_train::tests::cached_gain_replay_matches_the_full_forward ... ok
+test memory_train::tests::cached_trajectory_matches_hit_miss_and_point_fallback ... ok
+test memory_train::tests::cached_trajectory_matches_single_table_and_saturation_edges ... ok
+test train::tests::data_derived_records_train_and_audit_the_full_path ... ok
+test train::tests::full_path_record_controls_are_matched_and_exact ... ok
+
+test result: ok. 159 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 1.64s
+
+     Running unittests src/bin/cpu-corpus-driver.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_corpus_driver-98ce5a0544154d54)
+
+running 6 tests
+test tests::update_geometry_arguments_are_positive_and_backward_compatible ... ok
+test tests::final_artifact_write_refuses_non_uorlut_bytes ... ok
+test tests::audit_failure_and_tampered_report_are_refused ... ok
+test tests::final_artifact_write_is_byte_identical_and_reloadable ... ok
+test tests::a_table_block_run_reports_its_coordinate_invariants_and_fails_required_admission ... ok
+test tests::interval_checkpoint_resume_reproduces_the_uninterrupted_run ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/bin/cpu-counterfactual-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_counterfactual_bench-d6e5e8b07145cfe0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-counterfactual-corpus-driver.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_counterfactual_corpus_driver-32290afdf1ccdc65)
+
+running 1 test
+test tests::arms_parse_exactly_and_step_ownership_is_enforced ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-discrete-corpus-driver.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_discrete_corpus_driver-10913593132cc271)
+
+running 5 tests
+test tests::coordinate_block_arguments_default_to_one_and_are_bounded ... ok
+test tests::interval_checkpoint_step_is_read_from_its_name ... ok
+test tests::training_batch_takes_the_short_final_batch ... ok
+test tests::resume_binding_checks_the_step_name_and_sibling_artifact ... ok
+test tests::evidence_files_are_never_replaced ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-discrete-route-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_discrete_route_bench-3cc6352b54008e40)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-fbs-forward-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_fbs_forward_bench-d0cf7e4e4cb77aca)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-gain-panel-driver.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_gain_panel_driver-7d90ed01be76ae27)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-memory-panel-driver.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_memory_panel_driver-485cfbf4bdebabfd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-panel-export-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_panel_export_bench-a0e896033da30d3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-public-discrete-parity.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_public_discrete_parity-f2def25f4f59cc14)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-public-fbs-parity.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_public_fbs_parity-03d79f40172bf77d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-rank-margin-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_rank_margin_bench-b70aaab50387ae9e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-served-forward-audit.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_served_forward_audit-55268574d299aff2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/cpu-writer-bench.rs (local/deepseek/cpu-parallel-target/release/deps/cpu_writer_bench-b1436562fb877a74)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
