@@ -50,6 +50,16 @@ closes the earlier full-CPU-trunk query gap in the evidence instrument; it is
 not a training, complete-reply, fresh-phrasing or GPU-qualification result.
 See [deepseek-11](../../loop/tasks/one-model-end-to-end/deepseek-11/REPORT.md).
 
+The same instrument now supports bounded greedy complete-reply generation.
+On the public M1 panel, 51 of 58 prompts reached EOS within 16 new tokens;
+three reached the token limit and four had no remaining context. None matched
+its reference reply, only 11 distinct non-empty texts appeared across 58
+prompts, and four context-limit rows were empty. Two replies repeated a 4-gram.
+Generated 4-/8-gram novelty against the generated control was 57/411 and
+195/195. This is a useful complete-reply instrument and a public-model
+readiness negative, not a fresh-phrasing or chat verdict. See
+[deepseek-12](../../loop/tasks/one-model-end-to-end/deepseek-12/REPORT.md).
+
 ## What is missing
 
 - **Served-surrogate training is repaired; it now passes the operational

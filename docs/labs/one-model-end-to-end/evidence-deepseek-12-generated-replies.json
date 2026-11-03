@@ -1,0 +1,76 @@
+{
+  "schema": "uor-r4.m2-evidence.generated-summary/1",
+  "source_report_sha256": "538f4508a96d5fcbd7c96cc9d485198f5e60f751269cf81af46f0824d5560b68",
+  "artifact": {
+    "sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tables": 19,
+    "blocks": 4,
+    "context": 192,
+    "read_mode": "relation"
+  },
+  "tokenizer": {
+    "sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "vocabulary": 4096,
+    "eos_id": 1
+  },
+  "panel": {
+    "manifest_sha256": "ce489b38e91b2514f302560e65ac8bf7c337ca8a15b2aedba428e312bb003949",
+    "tokens_sha256": "add1f3954fc67e12822bdac395d7167bf6d6a0f074856efe2beec2c4ac81e442",
+    "mask_sha256": "da1ae9ee3bdc4fe1bf4a84a12ee9c1ac02ee51a419e3806cb77df430a44a3c01",
+    "response_targets": 616,
+    "prompt_runs": 58,
+    "reply_runs": 58
+  },
+  "train": {
+    "manifest_sha256": "980b91b33946457350151c1044b33eaeabb2034bb8137dcbc49b324f29c26672",
+    "tokens_sha256": "a7511c32fdf1532ef903e0f04e34a48664e4ba68cefde1414ab2e057198cdaf5",
+    "mask_sha256": "89144e366a9b9856a10376e983b4dc98c673fb6aa1bd6315f970f4bdfe57234f",
+    "reference_role": "generated_control"
+  },
+  "overall": {
+    "targets": 616,
+    "admitted": 365,
+    "top1": 293,
+    "top8": 306
+  },
+  "cpu_engine_parity": {
+    "rows": 616,
+    "query_coordinates_checked": 19712,
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "unavailable": null
+  },
+  "writer_parity": {
+    "rows": 616,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "query_source": "integer_serving_trunk_q12"
+  },
+  "generated_replies": {
+    "max_new_tokens": 16,
+    "replies": 58,
+    "complete": 51,
+    "exact_reference": 0,
+    "repeated_4gram_replies": 2,
+    "distinct_texts": 11,
+    "empty_text_replies": 4,
+    "replacement_character_replies": 1,
+    "eos_stops": 51,
+    "token_limit_stops": 3,
+    "context_limit_stops": 4,
+    "novelty": {
+      "new_4grams": 57,
+      "total_4grams": 411,
+      "new_8grams": 195,
+      "total_8grams": 195
+    }
+  },
+  "unavailable": {
+    "count_table_control": "no count-table arm is supplied to this evidence pass",
+    "memory_off_control": "no serving-session memory-off arm is supplied to this evidence pass",
+    "no_read_control": "no model read-ablation arm is supplied to this evidence pass"
+  }
+}

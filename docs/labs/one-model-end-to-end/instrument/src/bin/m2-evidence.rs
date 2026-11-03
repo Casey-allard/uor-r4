@@ -27,6 +27,7 @@ fn run() -> Result<(), String> {
         config.train.as_ref(),
         config.train_role,
         config.max_targets,
+        config.generate_new_tokens,
     )?;
     let mut text = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
     text.push(b'\n');
@@ -39,6 +40,7 @@ fn run() -> Result<(), String> {
             "overall": report.overall,
             "writer_parity": report.writer_parity,
             "cpu_engine_parity": report.cpu_engine_parity,
+            "generated_replies": report.generated_replies,
             "out": config.out,
             "sha256": report_sha256(&text),
         })
@@ -59,6 +61,7 @@ struct Config {
     train: Option<CorpusFiles>,
     train_role: Option<ReferenceRole>,
     max_targets: Option<usize>,
+    generate_new_tokens: Option<usize>,
     out: PathBuf,
 }
 
@@ -75,7 +78,7 @@ fn parse_args(values: impl IntoIterator<Item = String>) -> Result<Config, String
             return Err(format!("argument {key:?} is named twice"));
         }
     }
-    const ALLOWED: [&str; 11] = [
+    const ALLOWED: [&str; 12] = [
         "artifact",
         "tokenizer",
         "panel-tokens",
@@ -86,6 +89,7 @@ fn parse_args(values: impl IntoIterator<Item = String>) -> Result<Config, String
         "train-manifest",
         "train-role",
         "max-targets",
+        "generate-new-tokens",
         "out",
     ];
     if let Some(key) = args.keys().find(|key| !ALLOWED.contains(&key.as_str())) {
@@ -136,6 +140,14 @@ fn parse_args(values: impl IntoIterator<Item = String>) -> Result<Config, String
     if max_targets == Some(0) {
         return Err("max-targets= must be positive".to_owned());
     }
+    let generate_new_tokens = args
+        .get("generate-new-tokens")
+        .map(|value| value.parse::<usize>())
+        .transpose()
+        .map_err(|_| "generate-new-tokens= wants a positive whole number".to_owned())?;
+    if generate_new_tokens == Some(0) {
+        return Err("generate-new-tokens= must be positive".to_owned());
+    }
     Ok(Config {
         artifact: PathBuf::from(required("artifact")?),
         tokenizer: PathBuf::from(required("tokenizer")?),
@@ -143,6 +155,7 @@ fn parse_args(values: impl IntoIterator<Item = String>) -> Result<Config, String
         train,
         train_role,
         max_targets,
+        generate_new_tokens,
         out: PathBuf::from(required("out")?),
     })
 }
@@ -161,7 +174,8 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
 fn usage() -> String {
     "usage: m2-evidence artifact=FILE tokenizer=FILE panel-tokens=FILE panel-mask=FILE \
      panel-manifest=FILE [train-tokens=FILE train-mask=FILE train-manifest=FILE \
-     train-role=canonical_train|generated_control] [max-targets=N] out=NEW_JSON"
+     train-role=canonical_train|generated_control] [max-targets=N] \
+     [generate-new-tokens=N] out=NEW_JSON"
         .into()
 }
 
@@ -235,6 +249,10 @@ mod tests {
     fn zero_max_targets_and_existing_outputs_are_refused() {
         let zero = args(&["out=r.json", "max-targets=0"]);
         assert!(parse_args(zero).unwrap_err().contains("positive"));
+        let zero_generation = args(&["out=r.json", "generate-new-tokens=0"]);
+        assert!(parse_args(zero_generation)
+            .unwrap_err()
+            .contains("positive"));
 
         let path =
             std::env::temp_dir().join(format!("uor-m2-evidence-create-new-{}", std::process::id()));

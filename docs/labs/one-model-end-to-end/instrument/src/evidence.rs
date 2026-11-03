@@ -4,9 +4,9 @@
 //! `IntegerDiscreteModel` used by native serving. It reports next-token
 //! admission/top-1/top-8, checks the independent CPU writer on the serving
 //! query where its fixed width-four codebook applies, and stratifies panel rows
-//! by whole-run overlap with a supplied TRAIN or control split. It does not
-//! call generated text "complete" and does not infer generated-reply novelty
-//! when no generated-reply file is supplied.
+//! by whole-run overlap with a supplied TRAIN or control split. With
+//! `generate-new-tokens`, it also records bounded greedy replies and calls a
+//! reply complete only when it emits the tokenizer's added EOS token.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
@@ -223,6 +223,8 @@ pub struct TokenizerIdentity {
     pub path: String,
     pub sha256: String,
     pub vocabulary: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub eos_id: Option<u32>,
     pub digit_tokens: usize,
     pub mask_ks: Vec<usize>,
 }
@@ -257,6 +259,50 @@ impl TemplateShare {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GenerationStop {
+    Eos,
+    TokenLimit,
+    ContextLimit,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct GeneratedReply {
+    pub prompt: usize,
+    pub reply: usize,
+    pub ids: Vec<u32>,
+    pub text: String,
+    pub stop: GenerationStop,
+    pub exact_reference: bool,
+    pub repeated_4gram: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct GeneratedNgramNovelty {
+    pub new_4grams: u64,
+    pub total_4grams: u64,
+    pub new_8grams: u64,
+    pub total_8grams: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ReplyGeneration {
+    pub max_new_tokens: usize,
+    pub replies: u64,
+    pub complete: u64,
+    pub exact_reference: u64,
+    pub repeated_4gram_replies: u64,
+    pub distinct_texts: u64,
+    pub empty_text_replies: u64,
+    pub replacement_character_replies: u64,
+    pub eos_stops: u64,
+    pub token_limit_stops: u64,
+    pub context_limit_stops: u64,
+    pub novelty: Option<GeneratedNgramNovelty>,
+    pub rows: Vec<GeneratedReply>,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct TemplateOverlap {
     pub prompts: u64,
@@ -280,6 +326,7 @@ pub struct EvidenceReport {
     pub template_overlap: Option<TemplateOverlap>,
     pub writer_parity: WriterParity,
     pub cpu_engine_parity: CpuEngineParity,
+    pub generated_replies: Option<ReplyGeneration>,
     pub unavailable: BTreeMap<String, String>,
 }
 
@@ -319,10 +366,21 @@ struct Metadata {
     opening: bool,
 }
 
-#[derive(Clone, Debug)]
 struct TokenizerCensus {
     identity: TokenizerIdentity,
     digits: HashSet<u32>,
+    eos: Option<u32>,
+    decoder: ByteBpeTokenizer,
+}
+
+impl std::fmt::Debug for TokenizerCensus {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("TokenizerCensus")
+            .field("identity", &self.identity)
+            .field("digits", &self.digits)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -560,9 +618,8 @@ fn valid_sha256(value: &str) -> bool {
 
 fn read_tokenizer(path: &Path) -> Result<TokenizerCensus> {
     let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    if ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes).is_none() {
-        return Err("tokenizer JSON is not a supported byte-level BPE tokenizer".to_owned());
-    }
+    let decoder = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| "tokenizer JSON is not a supported byte-level BPE tokenizer".to_owned())?;
     let value: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|error| format!("tokenizer: {error}"))?;
     let vocab = value["model"]["vocab"]
@@ -576,15 +633,28 @@ fn read_tokenizer(path: &Path) -> Result<TokenizerCensus> {
         })
         .filter_map(|(_, id)| id.as_u64().and_then(|id| u32::try_from(id).ok()))
         .collect();
+    let eos = value["added_tokens"].as_array().and_then(|tokens| {
+        tokens.iter().find_map(|token| {
+            (token["content"].as_str() == Some("<|eos|>"))
+                .then(|| token["id"].as_u64().and_then(|id| u32::try_from(id).ok()))
+                .flatten()
+        })
+    });
+    if eos.is_some_and(|eos| eos == 0 || eos as usize >= decoder.vocab_size()) {
+        return Err("tokenizer added <|eos|> id is outside its vocabulary".to_owned());
+    }
     Ok(TokenizerCensus {
         identity: TokenizerIdentity {
             path: path.display().to_string(),
             sha256: sha256(&bytes),
             vocabulary: vocab.len(),
+            eos_id: eos,
             digit_tokens: digits.len(),
             mask_ks: CENSUS_MASK_KS.to_vec(),
         },
         digits,
+        eos,
+        decoder,
     })
 }
 
@@ -1112,6 +1182,118 @@ where
     Ok((overall, strata))
 }
 
+fn generate_replies<F>(
+    corpus: &Corpus,
+    train: Option<&Corpus>,
+    tokenizer: &TokenizerCensus,
+    context: usize,
+    max_new_tokens: usize,
+    mut predict: F,
+) -> Result<ReplyGeneration>
+where
+    F: FnMut(&[u32]) -> Result<u32>,
+{
+    if max_new_tokens == 0 {
+        return Err("generated-token limit must be positive".to_owned());
+    }
+    let eos = tokenizer
+        .eos
+        .ok_or_else(|| "generated replies require a tokenizer added <|eos|> token".to_owned())?;
+    let train_4 = train.map(|train| ngram_index(train, 4));
+    let train_8 = train.map(|train| ngram_index(train, 8));
+    let mut generated = ReplyGeneration {
+        max_new_tokens,
+        replies: 0,
+        complete: 0,
+        exact_reference: 0,
+        repeated_4gram_replies: 0,
+        distinct_texts: 0,
+        empty_text_replies: 0,
+        replacement_character_replies: 0,
+        eos_stops: 0,
+        token_limit_stops: 0,
+        context_limit_stops: 0,
+        novelty: train.map(|_| GeneratedNgramNovelty {
+            new_4grams: 0,
+            total_4grams: 0,
+            new_8grams: 0,
+            total_8grams: 0,
+        }),
+        rows: Vec::new(),
+    };
+    for reply in corpus.runs.iter().filter(|run| run.mask == 1) {
+        let prompt = prompt_run_before(corpus, reply.ordinal)
+            .ok_or_else(|| format!("reply run {} has no preceding prompt", reply.ordinal))?;
+        let document = &corpus.documents[reply.document];
+        let start = prompt.range.end.saturating_sub(context).max(document.start);
+        let base = &corpus.tokens[start..prompt.range.end];
+        let mut ids = Vec::with_capacity(max_new_tokens);
+        let stop = loop {
+            if ids.len() == max_new_tokens {
+                break GenerationStop::TokenLimit;
+            }
+            if base.len() + ids.len() >= context {
+                break GenerationStop::ContextLimit;
+            }
+            let mut prefix = base.to_vec();
+            prefix.extend_from_slice(&ids);
+            let token = predict(&prefix)?;
+            ids.push(token);
+            if token == eos {
+                break GenerationStop::Eos;
+            }
+        };
+        let content: Vec<u32> = ids.iter().copied().filter(|&id| id != eos).collect();
+        let reference: Vec<u32> = run_tokens(corpus, reply)
+            .iter()
+            .copied()
+            .filter(|&id| id != eos)
+            .collect();
+        let exact_reference = content == reference;
+        let mut seen = HashSet::new();
+        let repeated_4gram = ids.windows(4).any(|window| !seen.insert(window.to_vec()));
+        generated.replies += 1;
+        generated.complete += u64::from(stop == GenerationStop::Eos);
+        generated.exact_reference += u64::from(exact_reference);
+        generated.repeated_4gram_replies += u64::from(repeated_4gram);
+        match stop {
+            GenerationStop::Eos => generated.eos_stops += 1,
+            GenerationStop::TokenLimit => generated.token_limit_stops += 1,
+            GenerationStop::ContextLimit => generated.context_limit_stops += 1,
+        }
+        if let Some(novelty) = &mut generated.novelty {
+            for window in ids.windows(4) {
+                novelty.total_4grams += 1;
+                novelty.new_4grams += u64::from(!train_4.as_ref().unwrap().contains(window));
+            }
+            for window in ids.windows(8) {
+                novelty.total_8grams += 1;
+                novelty.new_8grams += u64::from(!train_8.as_ref().unwrap().contains(window));
+            }
+        }
+        let text = tokenizer.decoder.decode(&content);
+        generated.empty_text_replies += u64::from(text.is_empty());
+        generated.replacement_character_replies += u64::from(text.contains('\u{fffd}'));
+        generated.rows.push(GeneratedReply {
+            prompt: prompt.ordinal,
+            reply: reply.ordinal,
+            text,
+            ids,
+            stop,
+            exact_reference,
+            repeated_4gram,
+        });
+    }
+    generated.distinct_texts = generated
+        .rows
+        .iter()
+        .map(|reply| reply.text.as_str())
+        .filter(|text| !text.is_empty())
+        .collect::<HashSet<_>>()
+        .len() as u64;
+    Ok(generated)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn evaluate_model(
     artifact_bytes: &[u8],
@@ -1122,6 +1304,7 @@ fn evaluate_model(
     tokenizer: &TokenizerCensus,
     reference_role: Option<ReferenceRole>,
     max_targets: Option<usize>,
+    generate_new_tokens: Option<usize>,
 ) -> Result<EvidenceReport> {
     if max_targets == Some(0) {
         return Err("max-targets must be positive".to_owned());
@@ -1194,17 +1377,36 @@ fn evaluate_model(
             "independent CPU writer differs from integer serving: {writer_parity:?}"
         ));
     }
+    let generated_replies = generate_new_tokens
+        .map(|max_new_tokens| {
+            generate_replies(
+                corpus,
+                train,
+                tokenizer,
+                shape.context as usize,
+                max_new_tokens,
+                |prefix| {
+                    model
+                        .evaluate_prefix(prefix)
+                        .map(|evaluation| evaluation.prediction)
+                        .map_err(|error| format!("generated reply: {error}"))
+                },
+            )
+        })
+        .transpose()?;
 
     let mut unavailable = BTreeMap::new();
-    unavailable.insert(
-        "generated_complete_reply".to_owned(),
-        "requires a sealed/generated reply file; corpus rows are teacher-forced targets".to_owned(),
-    );
-    unavailable.insert(
-        "generated_reply_novelty".to_owned(),
-        "requires model-generated replies; the report measures reference and panel overlap only"
-            .to_owned(),
-    );
+    if generated_replies.is_none() {
+        unavailable.insert(
+            "generated_complete_reply".to_owned(),
+            "set `generate-new-tokens` to decode complete replies instead of using only teacher-forced rows"
+                .to_owned(),
+        );
+        unavailable.insert(
+            "generated_reply_novelty".to_owned(),
+            "set `generate-new-tokens` to generate replies for n-gram novelty".to_owned(),
+        );
+    }
     if let Some(reason) = &cpu_engine_parity.unavailable {
         unavailable.insert("independent_cpu_trunk_query".to_owned(), reason.clone());
     }
@@ -1237,6 +1439,7 @@ fn evaluate_model(
         template_overlap,
         writer_parity,
         cpu_engine_parity,
+        generated_replies,
         unavailable,
     })
 }
@@ -1252,12 +1455,16 @@ pub fn evaluate(
     train: Option<&CorpusFiles>,
     reference_role: Option<ReferenceRole>,
     max_targets: Option<usize>,
+    generate_new_tokens: Option<usize>,
 ) -> Result<EvidenceReport> {
     if train.is_some() != reference_role.is_some() {
         return Err("train inputs and train-role must be supplied together".to_owned());
     }
     if max_targets == Some(0) {
         return Err("max-targets must be positive".to_owned());
+    }
+    if generate_new_tokens == Some(0) {
+        return Err("generate-new-tokens must be positive".to_owned());
     }
     let artifact_bytes =
         fs::read(artifact_path).map_err(|e| format!("{}: {e}", artifact_path.display()))?;
@@ -1309,6 +1516,7 @@ pub fn evaluate(
         &tokenizer,
         reference_role,
         max_targets,
+        generate_new_tokens,
     )?;
     Ok(report)
 }
@@ -1448,9 +1656,22 @@ mod tests {
         (directory, files)
     }
 
-    fn written_tokenizer(name: &str) -> (TempDir, TokenizerCensus) {
+    fn written_tokenizer_with_eos(name: &str, eos_id: Option<u32>) -> (TempDir, TokenizerCensus) {
         let directory = TempDir::new(name);
         let path = directory.0.join("tokenizer.json");
+        let added_tokens = eos_id
+            .map(|id| {
+                serde_json::json!([{
+                    "id": id,
+                    "content": "<|eos|>",
+                    "single_word": false,
+                    "lstrip": false,
+                    "rstrip": false,
+                    "normalized": false,
+                    "special": true
+                }])
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
         let tokenizer = serde_json::json!({
             "model": {
                 "type": "BPE",
@@ -1464,11 +1685,16 @@ mod tests {
                 },
                 "merges": []
             },
+            "added_tokens": added_tokens,
             "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": true}
         });
         fs::write(&path, serde_json::to_vec(&tokenizer).unwrap()).unwrap();
         let census = read_tokenizer(&path).unwrap();
         (directory, census)
+    }
+
+    fn written_tokenizer(name: &str) -> (TempDir, TokenizerCensus) {
+        written_tokenizer_with_eos(name, Some(6))
     }
 
     fn corpus(tokens: &[u32], mask: &[u8]) -> Corpus {
@@ -1757,6 +1983,56 @@ mod tests {
     }
 
     #[test]
+    fn generated_replies_measure_completion_exact_match_loops_and_limits() {
+        let panel = corpus(
+            &[0, 10, 11, 2, 3, 4, 5, 2, 3, 4, 5, 6],
+            &[0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        );
+        let (_directory, tokenizer) = written_tokenizer("generated-replies");
+        let mut next = std::collections::VecDeque::from([2, 3, 4, 5, 2, 3, 4, 5, 6]);
+        let generation = generate_replies(&panel, Some(&panel), &tokenizer, 32, 16, |_| {
+            Ok(next.pop_front().unwrap())
+        })
+        .unwrap();
+        assert_eq!(generation.replies, 1);
+        assert_eq!(generation.complete, 1);
+        assert_eq!(generation.exact_reference, 1);
+        assert_eq!(generation.repeated_4gram_replies, 1);
+        assert_eq!(generation.distinct_texts, 1);
+        assert_eq!(generation.empty_text_replies, 0);
+        assert_eq!(generation.replacement_character_replies, 0);
+        let novelty = generation.novelty.unwrap();
+        assert_eq!(novelty.total_4grams, 6);
+        assert_eq!(novelty.new_4grams, 0);
+        assert_eq!(novelty.total_8grams, 2);
+        assert_eq!(novelty.new_8grams, 0);
+        assert_eq!(generation.rows[0].stop, GenerationStop::Eos);
+
+        let limited = generate_replies(&panel, None, &tokenizer, 32, 2, |_| Ok(2)).unwrap();
+        assert_eq!(limited.token_limit_stops, 1);
+        assert_eq!(limited.complete, 0);
+        assert_eq!(limited.distinct_texts, 1);
+        assert_eq!(limited.empty_text_replies, 0);
+        assert_eq!(limited.rows[0].ids, [2, 2]);
+
+        let context_bound = generate_replies(&panel, None, &tokenizer, 3, 2, |_| Ok(2)).unwrap();
+        assert_eq!(context_bound.context_limit_stops, 1);
+        assert_eq!(context_bound.distinct_texts, 0);
+        assert_eq!(context_bound.empty_text_replies, 1);
+        assert!(context_bound.rows[0].ids.is_empty());
+    }
+
+    #[test]
+    fn tokenizer_eos_is_required_only_for_generated_replies() {
+        let panel = corpus(&[0, 10, 11, 2, 3, 4, 5, 6], &[0, 0, 0, 1, 1, 1, 1, 1]);
+        let (_directory, tokenizer) = written_tokenizer_with_eos("tokenizer-without-eos", None);
+        assert_eq!(tokenizer.identity.eos_id, None);
+        assert!(generate_replies(&panel, None, &tokenizer, 32, 2, |_| Ok(2))
+            .unwrap_err()
+            .contains("require a tokenizer added <|eos|>"));
+    }
+
+    #[test]
     fn cpu_engine_parity_dispatches_four_table_trunk_and_unsupported_artifacts() {
         let target = Target {
             prefix: vec![0],
@@ -1825,6 +2101,7 @@ mod tests {
                 path: "t".to_owned(),
                 sha256: "22".repeat(32),
                 vocabulary: 4096,
+                eos_id: Some(1),
                 digit_tokens: 10,
                 mask_ks: CENSUS_MASK_KS.to_vec(),
             },
@@ -1853,6 +2130,7 @@ mod tests {
             template_overlap: None,
             writer_parity: WriterParity::from_serving_query(),
             cpu_engine_parity: CpuEngineParity::unavailable("fixture"),
+            generated_replies: None,
             unavailable: BTreeMap::new(),
         };
         assert_eq!(
