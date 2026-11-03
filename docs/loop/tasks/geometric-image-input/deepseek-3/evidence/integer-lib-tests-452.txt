@@ -1,0 +1,21 @@
+Exact merged-image-head integer receipt
+=======================================
+
+Source merge head:
+5a7a5a09b5c6d6ea703e9764e6850e1963a79479
+Main merged forward: 000b35c6b
+
+Command:
+
+$ CARGO_TARGET_DIR=target/reviewer-image-loopback cargo test --locked \
+    -p uor-r4-integer --features serving-wasm --lib
+
+Result:
+
+running 453 tests
+test result: ok. 452 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out;
+finished in 1.80s
+
+The historical 451-test receipt remains unchanged. The additional passing test
+comes from current main merged into this branch; no image-path source changed in
+the merge-only delta.

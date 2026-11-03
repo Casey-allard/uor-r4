@@ -1,0 +1,24 @@
+Merged-image-head loop gates
+============================
+
+At head 5d1855eda, the reviewer's first `uor-harness loop gates --full`
+attempt hit the known fake-`gh` `ETXTBSY` (`Text file busy`) flake in
+`loop_drive`; 27 of 28 tests reported passing. This is an instrument failure,
+not a product result.
+
+An immediate rerun passed all 11 gates:
+
+fmt-claim-wording          GREEN exit 0
+fmt-harness                GREEN exit 0
+claim-wording              GREEN exit 0
+loop-gates-watch           GREEN exit 0
+loop-drive                 GREEN exit 0
+loop-next-sources          GREEN exit 0
+loop-next-wait             GREEN exit 0
+loop-next-owner-direction  GREEN exit 0
+git-hooks                  GREEN exit 0
+loop-migrate               GREEN exit 0
+loop-review-changes-blocks GREEN exit 0
+
+The local gate log for the rerun is
+`local/deepseek/gates/1793748963-1807057`.

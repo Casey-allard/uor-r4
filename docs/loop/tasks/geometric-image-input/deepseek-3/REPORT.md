@@ -32,6 +32,10 @@ Lab: deepseek. Item:
   unhandled teardown exception from the unchanged `Inspector.tsx` after all 266
   tests had passed. An isolated immediate rerun exited 0. The transient output
   is retained in the evidence rather than reported as a clean first run.
+- The final reviewer's first full loop-gate attempt hit the known fake-`gh`
+  `ETXTBSY` flake in `loop_drive`; 27 of 28 gate tests reported passing. The
+  immediate rerun passed all 11 gates. Both attempts are retained in the
+  evidence.
 - Strict Clippy over `uor-r4-integer` still exits 101 on 51 pre-existing
   diagnostics. None names a changed file.
 
@@ -60,7 +64,9 @@ development context, while four images overflow it and return 413.
 
 - 17 focused Node image/API/composer tests passed.
 - 266 Studio tests passed across 31 files.
-- Native loopback: 14 passed. Integer library: 451 passed, 1 ignored.
+- Native loopback: 14 passed. Integer library at the merged image head: 452
+  passed, 1 ignored. The earlier 451-test receipt is retained; current `main`
+  added one passing test before the final merge-forward.
 - Vision crate: 9 tests passed in the default parallel build.
 - Real Chrome 157 against native `uor-chat`: exact metrics were
   **34 prompt / 6 completion / 40 total tokens**, 470.3 tok/s, TTFT 10.953 ms,
@@ -86,11 +92,17 @@ development context, while four images overflow it and return 413.
 
 - The evidence files under [evidence/](evidence/) retain the Node, Studio,
   native, WASM, page and browser outputs plus their SHA-256 manifest.
+- The merged-head integer rerun is retained in
+  [integer-lib-tests-452.txt](evidence/integer-lib-tests-452.txt): 452 passed,
+  1 ignored.
+- The merged-head gate flake and passing rerun are retained in
+  [loop-gates-merged-head.txt](evidence/loop-gates-merged-head.txt).
 - `rustfmt --check` on changed Rust files, `node --check` on changed JavaScript,
   and `git diff --check`: passed.
 - Strict Clippy on `uor-r4-vision`: passed. Integer Clippy has the 51
   pre-existing diagnostics reproduced on base and no changed-file diagnostic.
-- `uor-harness loop gates --full`: all 11 gates passed on the first attempt.
+- `uor-harness loop gates --full`: passed all 11 gates on the immediate rerun
+  after the retained `ETXTBSY` flake.
 
 ## Skills used
 
