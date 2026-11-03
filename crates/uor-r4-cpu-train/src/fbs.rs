@@ -1335,7 +1335,14 @@ mod tests {
         snaps: FbsExportSnaps,
     ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
         hamming_fixture_with_snaps_and_copy_key(
-            seed, layers, head, copy_scale, type_scale, depths, snaps, 1,
+            seed,
+            layers,
+            head,
+            copy_scale,
+            type_scale,
+            depths,
+            snaps,
+            &[1, 1],
         )
     }
 
@@ -1348,7 +1355,7 @@ mod tests {
         type_scale: f32,
         depths: &[usize],
         snaps: FbsExportSnaps,
-        copy_key: usize,
+        copy_keys: &[usize],
     ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
@@ -1378,7 +1385,12 @@ mod tests {
             .map(|(_, read)| read)
             .collect();
         hamming.depths = depths.to_vec();
-        hamming.copy_key = copy_key;
+        // One key for every copy head is `copy_key`; differing keys are `copy_keys` (claude-268).
+        if copy_keys.windows(2).all(|w| w[0] == w[1]) {
+            hamming.copy_key = copy_keys[0];
+        } else {
+            hamming.copy_keys = Some(copy_keys.to_vec());
+        }
         for read in &mut hamming.reads {
             let (copy, types) = read.weight.split_at_mut(snapshot.width);
             copy.iter_mut().for_each(|weight| *weight *= copy_scale);
@@ -1450,7 +1462,11 @@ mod tests {
         changed
     }
 
-    fn assert_hamming_parity_for_copy_key(seed: u64, copy_key: usize, head: CpuFbsHead) -> usize {
+    fn assert_hamming_parity_for_copy_key(
+        seed: u64,
+        copy_keys: &[usize],
+        head: CpuFbsHead,
+    ) -> usize {
         let (model, mut cpu, free) = hamming_fixture_with_snaps_and_copy_key(
             seed,
             3,
@@ -1459,7 +1475,7 @@ mod tests {
             0.0,
             &[1, 3],
             FbsExportSnaps::SNAPPED,
-            copy_key,
+            copy_keys,
         );
         let mut session = model.session();
         let mut free_session = free.session();
@@ -1470,15 +1486,15 @@ mod tests {
             let actual = cpu.step(token, head).unwrap();
             assert_eq!(
                 actual.query_q12, expected.query_q12,
-                "copy key {copy_key}, row {row}: complete query"
+                "copy keys {copy_keys:?}, row {row}: complete query"
             );
             assert_eq!(
                 actual.token, expected.token,
-                "copy key {copy_key}, row {row}: token"
+                "copy keys {copy_keys:?}, row {row}: token"
             );
             assert_eq!(
                 actual.kept_cells, expected.kept_cells,
-                "copy key {copy_key}, row {row}: kept cells"
+                "copy keys {copy_keys:?}, row {row}: kept cells"
             );
             changed += usize::from(actual.query_q12 != free_step.query_q12);
         }
@@ -1756,11 +1772,24 @@ mod tests {
 
     #[test]
     fn copy_key_two_heads_match_serving_at_both_hooks() {
-        let changed = assert_hamming_parity_for_copy_key(261, 2, CpuFbsHead::Writer);
+        let changed = assert_hamming_parity_for_copy_key(261, &[2, 2], CpuFbsHead::Writer);
         assert!(
             changed > 0,
             "the two-token copy reads must move the complete query"
         );
+    }
+
+    /// claude-269: a record with a copy key per head (`copy_keys`) reads each copy head by its own
+    /// key at both hooks, as the integer session does, with either head taking the two-token key.
+    #[test]
+    fn mixed_copy_key_heads_match_serving_at_both_hooks() {
+        for keys in [[2, 1], [1, 2]] {
+            let changed = assert_hamming_parity_for_copy_key(261, &keys, CpuFbsHead::Writer);
+            assert!(
+                changed > 0,
+                "{keys:?}: the copy reads must move the complete query"
+            );
+        }
     }
 
     #[test]

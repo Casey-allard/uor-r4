@@ -160,6 +160,11 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   record, so cpu-train and `fbs-toks` fail closed instead of reading it as
   copy key 1; the integer session serves it. Then the pair's GPU run, with
   its own sheet.
+  [claude-269](../../loop/tasks/one-model-end-to-end/claude-269/REPORT.md)
+  gave both a key per head: cpu-train's served-forward audit reads each copy
+  head by its own key and matches the integer session exactly on mixed
+  artifacts, and `fbs-toks --copy-codes`, which assumes copy key 1, refuses
+  one. The public readers no longer refuse a mixed record.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

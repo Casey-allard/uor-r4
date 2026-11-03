@@ -544,7 +544,8 @@ fn decision_grade_out(args: &[String]) -> Result<(), String> {
 /// inconsistent pairs.
 ///
 /// This checker is defined for copy key 1: its per-token control and trace reconstruction assumes
-/// one token per copy code. A two-token key is refused by its header before any comparison.
+/// one token per copy code. A two-token key, or a key per head, is refused by its header before
+/// any comparison.
 fn copy_codes(path: &str, float_trace: &str, integer_trace: &str, out: &str) -> Result<(), String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
     require_one_token_copy_codes(&bytes)?;
@@ -606,10 +607,12 @@ fn copy_codes(path: &str, float_trace: &str, integer_trace: &str, out: &str) -> 
     Ok(())
 }
 
-/// The copy-key number in a `UORLUT01` header, defaulting to 1 when a one-token artifact leaves
-/// the optional field out. Only this header is read, so the guard also works with a two-token
-/// artifact before its newer record shape is known to this binary.
-fn artifact_copy_key(bytes: &[u8]) -> Result<usize, String> {
+/// The Hamming record in a `UORLUT01` header, `None` when the artifact has none. Only this header
+/// is read, so the guards below also work with an artifact whose newer record shape is not yet
+/// known to this binary.
+fn artifact_hamming(
+    bytes: &[u8],
+) -> Result<Option<serde_json::Map<String, serde_json::Value>>, String> {
     if bytes.len() < 16 || &bytes[..8] != b"UORLUT01" {
         return Err("the artifact is not a UORLUT01 container".to_owned());
     }
@@ -626,23 +629,40 @@ fn artifact_copy_key(bytes: &[u8]) -> Result<usize, String> {
     let header: serde_json::Value =
         serde_json::from_slice(&bytes[16..end]).map_err(|e| format!("the artifact header: {e}"))?;
     let Some(hamming) = header.get("hamming") else {
-        return Ok(1);
+        return Ok(None);
     };
     let hamming = hamming
         .as_object()
         .ok_or("the artifact's Hamming record is not an object")?;
+    Ok(Some(hamming.clone()))
+}
+
+/// The copy-key number in a `UORLUT01` header, defaulting to 1 when a one-token artifact leaves
+/// the optional field out.
+fn artifact_copy_key(bytes: &[u8]) -> Result<usize, String> {
+    let Some(hamming) = artifact_hamming(bytes)? else {
+        return Ok(1);
+    };
     match hamming.get("copy_key") {
         None => Ok(1),
         Some(value) => value
             .as_u64()
             .and_then(|key| usize::try_from(key).ok())
-            .ok_or_else(|| "the artifact's Hamming copy key is not a non-negative integer".to_owned()),
+            .ok_or_else(|| {
+                "the artifact's Hamming copy key is not a non-negative integer".to_owned()
+            }),
     }
 }
 
-/// Refuse `--copy-codes` on any artifact whose copy heads do not use the one-token key its
-/// per-token reconstruction expects.
+/// Refuse `--copy-codes` on any artifact whose copy heads do not all use the one-token key its
+/// per-token reconstruction expects: a copy key other than 1, or a key per head (`copy_keys`,
+/// written only when the heads' keys differ, so one of them is two-token; claude-269).
 fn require_one_token_copy_codes(bytes: &[u8]) -> Result<(), String> {
+    if let Some(keys) = artifact_hamming(bytes)?.and_then(|h| h.get("copy_keys").cloned()) {
+        return Err(format!(
+            "--copy-codes audits the one-token copy key only; the artifact records copy_keys {keys}"
+        ));
+    }
     let copy_key = artifact_copy_key(bytes)?;
     if copy_key != 1 {
         return Err(format!(
@@ -1925,6 +1945,16 @@ mod tests {
             assert_eq!(artifact_copy_key(&bytes), Ok(key));
             let error = require_one_token_copy_codes(&bytes).expect_err("non-one key");
             assert!(error.contains(&format!("copy_key {key}")), "{error}");
+            assert!(error.contains("one-token copy key only"), "{error}");
+        }
+
+        // claude-269: a key per head leaves copy_key at 1 and is refused by its list.
+        for keys in [[2, 1], [1, 2]] {
+            let bytes = artifact_header(json!({"hamming": {"heads": 4, "copy_keys": keys}}));
+            assert_eq!(artifact_copy_key(&bytes), Ok(1));
+            let error = require_one_token_copy_codes(&bytes).expect_err("a key per head");
+            let list = format!("copy_keys [{},{}]", keys[0], keys[1]);
+            assert!(error.contains(&list), "{error}");
             assert!(error.contains("one-token copy key only"), "{error}");
         }
 

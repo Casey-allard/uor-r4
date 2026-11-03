@@ -27,7 +27,9 @@ struct CopyHeads {
     width: usize,
     codes: Vec<u64>,
     margins: Vec<i32>,
-    pair: Option<u64>,
+    /// One mask per copy head, as the integer `CopyHeads` builds it: the low-half mask of a
+    /// copy-key-2 head, `None` for a copy-key-1 head (claude-269).
+    pair: Vec<Option<u64>>,
 }
 
 impl CopyHeads {
@@ -52,13 +54,17 @@ impl CopyHeads {
                 0..copy,
             ),
             margins: read.margin[..copy].to_vec(),
-            pair: (record.copy_key == 2).then(|| (1u64 << (width / record.heads / 2)) - 1),
+            pair: (0..copy)
+                .map(|h| {
+                    (record.head_copy_key(h) == 2).then(|| (1u64 << (width / record.heads / 2)) - 1)
+                })
+                .collect(),
         }
     }
 
     fn joined(&self, near: u32, far: u32, head: usize) -> u64 {
         let code = self.codes[near as usize * self.copy + head];
-        match self.pair {
+        match self.pair[head] {
             None => code,
             Some(first) => (code & first) | (self.codes[far as usize * self.copy + head] & !first),
         }
@@ -589,13 +595,31 @@ mod tests {
             width: 64,
             codes: codes.clone(),
             margins: vec![4 << 16],
-            pair: None,
+            pair: vec![None],
         };
         let two = CopyHeads {
-            pair: Some(0xff),
+            pair: vec![Some(0xff)],
             ..one.clone()
         };
         assert_eq!(&one.choose(0, &tokens)[..2], &[(3, 0), (6, 0)]);
         assert_eq!(two.choose(0, &tokens)[0], (6, 0));
+        // claude-269: a mixed pair reads each copy head by its own key.
+        for pair in [vec![Some(0xff), None], vec![None, Some(0xff)]] {
+            let mixed = CopyHeads {
+                copy: 2,
+                codes: codes.iter().flat_map(|&c| [c, c]).collect(),
+                margins: vec![4 << 16; 2],
+                pair: pair.clone(),
+                ..one.clone()
+            };
+            for (h, key) in pair.iter().enumerate() {
+                let alone = if key.is_some() { &two } else { &one };
+                assert_eq!(
+                    mixed.choose(h, &tokens),
+                    alone.choose(0, &tokens),
+                    "{pair:?} head {h}"
+                );
+            }
+        }
     }
 }

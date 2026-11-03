@@ -294,6 +294,9 @@ pub struct HammingMechanismManifest {
     pub copy_heads: usize,
     pub type_heads: usize,
     pub copy_key: usize,
+    /// Each copy head's key when the keys differ (claude-268's mixed pair); left out otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copy_keys: Option<Vec<usize>>,
     pub kept_positions: usize,
     pub rotation_exp: i32,
     pub margin_exp: i32,
@@ -891,6 +894,7 @@ fn manifest_from_model(
             copy_heads,
             type_heads,
             copy_key: image.record.copy_key,
+            copy_keys: image.record.copy_keys.clone(),
             kept_positions: image.record.kept,
             rotation_exp: image.record.rotation_exp,
             margin_exp: image.record.margin_exp,
@@ -1464,6 +1468,15 @@ mod tests {
         typed_hamming: bool,
         copy_key: usize,
     ) -> Vec<u8> {
+        artifact_with_keys(readout_nearest, typed_hamming, copy_key, None)
+    }
+
+    fn artifact_with_keys(
+        readout_nearest: bool,
+        typed_hamming: bool,
+        copy_key: usize,
+        copy_keys: Option<Vec<usize>>,
+    ) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             701,
             FbsSynth {
@@ -1482,6 +1495,7 @@ mod tests {
         snapshot.readout_nearest = readout_nearest;
         let mut hamming = synthetic_hamming(snapshot.width, 3, 4, 702);
         hamming.copy_key = copy_key;
+        hamming.copy_keys = copy_keys;
         if !typed_hamming {
             for read in &mut hamming.reads {
                 read.weight[snapshot.width..].fill(0.0);
@@ -1961,6 +1975,38 @@ mod tests {
             report.parity.serving_decision_sha256
         );
         assert!(!report.parity.instrument_fault);
+        let manifest = serde_json::to_value(report.manifest.hamming.as_ref().unwrap()).unwrap();
+        assert!(
+            manifest.get("copy_keys").is_none(),
+            "a uniform key records no list"
+        );
+    }
+
+    /// claude-269: a mixed pair of copy heads (claude-268) is read by the audit head by head, as
+    /// the session serves it, and its manifest names each head's key.
+    #[test]
+    fn mixed_copy_keys_audit_matches_serving_exactly() {
+        for keys in [vec![2, 1], vec![1, 2]] {
+            let artifact = artifact_with_keys(true, true, 1, Some(keys.clone()));
+            let report = audit_served_forward(
+                &artifact,
+                &ServedForwardAuditConfig::new(vec![0, 7, 11, 42, 77, 99, 13, 17]),
+            )
+            .unwrap();
+            let hamming = report.manifest.hamming.as_ref().unwrap();
+            assert_eq!(
+                (hamming.copy_key, hamming.copy_keys.as_deref()),
+                (1, Some(&keys[..]))
+            );
+            assert_eq!(report.parity.query_coordinate_mismatches, 0, "{keys:?}");
+            assert_eq!(report.parity.token_mismatches, 0, "{keys:?}");
+            assert_eq!(report.parity.kept_cell_mismatches, 0, "{keys:?}");
+            assert_eq!(
+                report.parity.cpu_decision_sha256, report.parity.serving_decision_sha256,
+                "{keys:?}"
+            );
+            assert!(!report.parity.instrument_fault, "{keys:?}");
+        }
     }
 
     #[test]
