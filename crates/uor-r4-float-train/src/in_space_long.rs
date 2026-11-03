@@ -5430,6 +5430,298 @@ fn decode_reply_with_mode(
     })
 }
 
+/// The same prompts in rectangular batches of exactly equal prompt length.
+///
+/// A first scorer unit batches only whole-table nearest decoding with the full read, no forced
+/// opening and no served point key. Everything else keeps [`decode_reply_with_mode`]'s
+/// one-at-a-time path. Equal lengths avoid padding, which would change the recurrent state; each
+/// group is split by the evaluation's established row/token budget.
+fn exact_length_batches(prompts: &[Vec<u32>], reply_tokens: usize) -> Vec<Vec<usize>> {
+    let budget = hs::SHEET_EVAL_BATCH * SHEET_CONTEXT;
+    let mut by_length: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    for (index, prompt) in prompts.iter().enumerate() {
+        by_length.entry(prompt.len()).or_default().push(index);
+    }
+    let mut groups = Vec::new();
+    for indices in by_length.into_values() {
+        let width = prompts[indices[0]].len();
+        // A group is split by the widest window any member can reach, not only by its prompt.
+        let final_width = width
+            .saturating_add(reply_tokens)
+            .clamp(1, SHEET_CONTEXT);
+        let per_group = budget
+            .checked_div(final_width)
+            .map_or(indices.len(), |count| count.max(1));
+        for chunk in indices.chunks(per_group) {
+            groups.push(chunk.to_vec());
+        }
+    }
+    groups
+}
+
+/// Whether a decode may take the batched path. The caller supplies the two per-thread controls,
+/// so a forced opening or served key always keeps the serial path.
+fn can_batch_decode(
+    enabled: bool,
+    objective: PointObjective,
+    scope: ReadScope,
+    forced: bool,
+    served_key: bool,
+) -> bool {
+    enabled && objective.decodes_nearest() && scope == ReadScope::Full && !forced && !served_key
+}
+
+struct BatchReply {
+    index: usize,
+    ids: Vec<u32>,
+    tokens: Vec<u32>,
+    admitted: Vec<u8>,
+    stepped: Vec<u8>,
+    active: bool,
+}
+
+/// Decode `prompts` with [`decode_reply_with_mode`], batching only same-length, unscoped,
+/// unforced nearest decodes. Results stay in prompt order and Flock draws keep each prompt's
+/// original sample index.
+#[allow(clippy::too_many_arguments)]
+fn decode_replies_with_mode(
+    model: &StackModel,
+    objective: PointObjective,
+    prompts: &[Vec<u32>],
+    prompt_masks: &[Vec<u8>],
+    reply_tokens: usize,
+    seed: u64,
+    rule: DecodeRule,
+    eos: Option<u32>,
+    scope: ReadScope,
+    served_mode: bool,
+    batched_decode: bool,
+) -> Result<Vec<DecodedReply>> {
+    if prompts.len() != prompt_masks.len() {
+        return Err(invalid("the decode prompts and masks are not one per sample"));
+    }
+    let flock = rule != DecodeRule::Greedy;
+    if flock && !objective.decodes_nearest() {
+        return Err(invalid("the Flock rank rule decodes the nearest table tokens only"));
+    }
+    if scope != ReadScope::Full && !objective.decodes_nearest() {
+        return Err(invalid("a read scope decodes the nearest table tokens only"));
+    }
+    if flock && reply_tokens > FLOCK_MAX_REPLY {
+        return Err(invalid(format!(
+            "the Flock rank rule draws for replies of at most {FLOCK_MAX_REPLY} tokens"
+        )));
+    }
+    let can_batch = can_batch_decode(
+        batched_decode,
+        objective,
+        scope,
+        forced_opening().is_some(),
+        SERVED_KEY.with(|key| key.borrow().is_some()),
+    );
+    if !can_batch {
+        return prompts
+            .iter()
+            .zip(prompt_masks)
+            .enumerate()
+            .map(|(sample, (prompt, mask))| {
+                decode_reply_with_mode(
+                    model,
+                    objective,
+                    prompt,
+                    reply_tokens,
+                    seed,
+                    rule,
+                    sample,
+                    eos,
+                    scope,
+                    mask,
+                    served_mode,
+                )
+            })
+            .collect();
+    }
+
+    let table = table(model)?;
+    let memory = crate::flock_read_memory::turn_memory();
+    let mut replies: Vec<Option<DecodedReply>> = (0..prompts.len()).map(|_| None).collect();
+    for group in exact_length_batches(prompts, reply_tokens) {
+        let width = prompts[group[0]].len();
+        if width == 0 {
+            return Err(invalid("a batched decode needs a non-empty prompt"));
+        }
+        let batch = group.len();
+        let mut state: Vec<BatchReply> = group
+            .iter()
+            .map(|&index| BatchReply {
+                index,
+                ids: prompts[index].clone(),
+                tokens: Vec::with_capacity(reply_tokens),
+                admitted: Vec::new(),
+                stepped: Vec::new(),
+                active: true,
+            })
+            .collect();
+        with_eval_forward(served_mode, seed, 0, || {
+            for step in 0..reply_tokens {
+                if state.iter().all(|row| !row.active) {
+                    break;
+                }
+                let time = state[0].ids.len();
+                if state.iter().any(|row| row.ids.len() != time) {
+                    return Err(invalid("a batched decode lost its rectangular history"));
+                }
+                let window_len = time.min(SHEET_CONTEXT);
+                let start = time.saturating_sub(SHEET_CONTEXT);
+                let flat: Vec<u32> = state
+                    .iter()
+                    .flat_map(|row| row.ids[start..].iter().copied())
+                    .collect();
+
+                let mut openings = Vec::new();
+                let mut reply_rows = Vec::new();
+                for (b, row) in state.iter().enumerate() {
+                    if !row.active {
+                        continue;
+                    }
+                    let global_row = b * window_len + window_len - 1;
+                    if step == 0 && memory.is_some() {
+                        openings.push(global_row);
+                    } else if let Some(memory) = &memory {
+                        let cut = prompt_cut(width, start);
+                        if cut > 0 && memory.reply_len().is_some() {
+                            if let Some(key) =
+                                greedy_reply_key(&row.ids[start..], cut - 1, &row.tokens)
+                            {
+                                reply_rows.push((global_row, key));
+                            }
+                        }
+                    }
+                }
+                crate::flock_read_memory::set_memory_rows(
+                    (!openings.is_empty()).then_some(openings),
+                );
+                crate::flock_read_memory::set_reply_rows(
+                    (!reply_rows.is_empty()).then_some(reply_rows),
+                );
+                crate::flock_read_hamming::set_row_cut(None);
+                let hidden = crate::flock_read::points(model, &flat, batch, window_len);
+                crate::flock_read_memory::set_memory_rows(None);
+                crate::flock_read_memory::set_reply_rows(None);
+                crate::flock_read_hamming::set_row_cut(None);
+                let hidden = hidden?;
+                let last_rows: Vec<u32> = (0..batch)
+                    .map(|b| (b * window_len + window_len - 1) as u32)
+                    .collect();
+                let point = hidden.index_select(
+                    &Tensor::from_vec(last_rows, batch, model.device())?,
+                    0,
+                )?;
+                let point = if served_mode {
+                    hs::q12_query(&point)?
+                } else {
+                    point
+                };
+                let scores = nearest_scores(&point, &table)?;
+                let greedy = if rule == DecodeRule::Greedy {
+                    Some(scores.argmax(1)?.to_vec1::<u32>()?)
+                } else {
+                    None
+                };
+                let flock_rows = match rule {
+                    DecodeRule::Greedy => None,
+                    DecodeRule::FlockRank { k, .. }
+                    | DecodeRule::FlockCell { k, .. }
+                    | DecodeRule::CycleStep { k, .. } => {
+                        let k = k.clamp(1, FLOCK_DECODE_K).min(scores.dim(1)?);
+                        let top = scores
+                            .arg_sort_last_dim(false)?
+                            .narrow(1, 0, k)?
+                            .contiguous()?;
+                        let picked = scores.gather(&top, 1)?.to_vec2::<f32>()?;
+                        Some((top.to_vec2::<u32>()?, picked))
+                    }
+                };
+                for (b, row) in state.iter_mut().enumerate() {
+                    if !row.active {
+                        continue;
+                    }
+                    let token = match &flock_rows {
+                        None => greedy.as_ref().and_then(|tokens| tokens.get(b)).copied()
+                            .ok_or_else(|| invalid("the batched greedy readout returned no token"))?,
+                        Some((ids_k, picked)) => {
+                            let scored = rank_order(
+                                ids_k[b]
+                                    .iter()
+                                    .copied()
+                                    .zip(picked[b].iter().copied())
+                                    .collect(),
+                            );
+                            if let DecodeRule::CycleStep { n, .. } = rule {
+                                let ranked: Vec<u32> =
+                                    scored.iter().map(|&(id, _)| id).collect();
+                                let (token, mark) = cycle_step_pick(&row.tokens, &ranked, n)
+                                    .ok_or_else(|| {
+                                        invalid("the batched cycle step had no candidate")
+                                    })?;
+                                row.stepped.push(mark);
+                                token
+                            } else {
+                                let (drawn, keep_end) = match rule {
+                                    DecodeRule::FlockCell { margin_milli, .. } => {
+                                        let n = cell_admitted(&scored, margin_milli);
+                                        row.admitted.push(n as u8);
+                                        (n, true)
+                                    }
+                                    DecodeRule::FlockRank { keep_end, .. } => {
+                                        (scored.len(), keep_end)
+                                    }
+                                    DecodeRule::Greedy | DecodeRule::CycleStep { .. } => {
+                                        (1, false)
+                                    }
+                                };
+                                let ranked: Vec<u32> =
+                                    scored[..drawn].iter().map(|&(id, _)| id).collect();
+                                let index = (row.index as u64) * 64 + step as u64;
+                                let draw = flock_rank_draw(seed, index, ranked.len());
+                                flock_pick(&ranked, draw, keep_end, eos)
+                            }
+                        }
+                    };
+                    let stopped =
+                        token == hs::SHEET_BOS_ID || (flock && Some(token) == eos);
+                    if token != hs::SHEET_BOS_ID {
+                        row.tokens.push(token);
+                    }
+                    row.ids.push(token);
+                    row.active = !stopped;
+                }
+                // Every row advances one position, including terminated rows, so the next
+                // forward is rectangular. A terminated row's suffix is never read.
+                for row in state.iter_mut().filter(|row| !row.active) {
+                    if row.ids.len() == time {
+                        row.ids.push(hs::SHEET_BOS_ID);
+                    }
+                }
+            }
+            for row in state {
+                replies[row.index] = Some(DecodedReply {
+                    tokens: row.tokens,
+                    admitted: row.admitted,
+                    stepped: row.stepped,
+                    served: None,
+                });
+            }
+            Ok(())
+        })?;
+    }
+    replies
+        .into_iter()
+        .enumerate()
+        .map(|(index, reply)| reply.ok_or_else(|| invalid(format!("prompt {index} was not decoded"))))
+        .collect()
+}
+
 /// The reply-table keys a reply's later steps read, and how many the table names (protocol
 /// I-F): at each step `j ≥ 1`, the key [`greedy_reply_key`] forms from `reply[..j]` in the
 /// window the decoder would see, exactly as [`decode_reply`] forms it. For a generated reply
@@ -6088,6 +6380,8 @@ fn reference_reply(window: &CausalWindow, tokens: usize) -> Vec<u32> {
 ///     `samples-{split}-served-memory.json`, with the search's count and seconds.
 ///
 ///   Each records its reply-table hits under generation and under teacher forcing (I-F).
+///   With `batched_decode`, full-scope nearest arms decode prompts of equal length together; all
+///   other arms retain the one-at-a-time path.
 /// - **Keys.** With `keys`, every split's openings named by the trunk keys ([`OpeningKeys`],
 ///   claude-218), taken with the memory off before the decodes: `keys-{split}.json`. Their
 ///   TRAIN table is built from TRAIN; with `served_arm` it is saved to
@@ -6119,6 +6413,7 @@ pub fn score_rows(
     forces: Vec<(String, DecisionForce)>,
     device: &Device,
     served_forward: Option<bool>,
+    batched_decode: bool,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     if served_arm && !keys {
@@ -6385,31 +6680,43 @@ pub fn score_rows(
         for (at, split) in splits.iter().enumerate().filter(|(_, s)| s.samples) {
             let prompts = sample_windows(&split.windows, &split.mask, samples);
             for &(rule, scope) in rules {
-                let mut replies = Vec::with_capacity(prompts.len());
                 let started = std::time::Instant::now();
-                for (index, window) in prompts.iter().enumerate() {
-                    let off = window.scored_offsets[0];
-                    let prompt = &window.input_ids[..=off];
-                    // The prompt's own flags: an earlier reply in it is limited as in training.
-                    let flags = window_input_mask(std::slice::from_ref(window), &split.mask)?;
+                let prompt_ids: Vec<Vec<u32>> = prompts
+                    .iter()
+                    .map(|window| window.input_ids[..=window.scored_offsets[0]].to_vec())
+                    .collect();
+                // The prompt's own flags: an earlier reply in it is limited as in training.
+                let prompt_masks = prompts
+                    .iter()
+                    .map(|window| {
+                        let off = window.scored_offsets[0];
+                        let flags = window_input_mask(std::slice::from_ref(window), &split.mask)?;
+                        Ok(flags[..=off].to_vec())
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let decoded = decode_replies_with_mode(
+                    &model,
+                    PointObjective::Cell,
+                    &prompt_ids,
+                    &prompt_masks,
+                    reply_tokens,
+                    seed,
+                    rule,
+                    Some(eos),
+                    scope,
+                    trained_as_served,
+                    batched_decode,
+                )?;
+                let mut replies = Vec::with_capacity(prompts.len());
+                for (window, (prompt, decoded)) in
+                    prompts.iter().zip(prompt_ids.iter().zip(decoded))
+                {
                     let DecodedReply {
                         tokens: reply,
                         admitted,
                         stepped,
                         ..
-                    } = decode_reply_with_mode(
-                        &model,
-                        PointObjective::Cell,
-                        prompt,
-                        reply_tokens,
-                        seed,
-                        rule,
-                        index,
-                        Some(eos),
-                        scope,
-                        &flags[..=off],
-                        trained_as_served,
-                    )?;
+                    } = decoded;
                     let reference = reference_reply(window, reply_tokens);
                     let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), named);
                     let (reference_keys, reference_named) =
@@ -10154,6 +10461,89 @@ mod tests {
         assert_eq!(a, epoch_order(1_000, 1, 0));
         assert_ne!(a, epoch_order(1_000, 1, 1));
         assert_ne!(a, epoch_order(1_000, 2, 0));
+    }
+
+    #[test]
+    fn exact_length_batches_cover_each_prompt_once_without_padding() {
+        let prompts: Vec<Vec<u32>> = [17usize, 19, 17, 32, 18, 19, 17]
+            .into_iter()
+            .enumerate()
+            .map(|(seed, len)| (0..len).map(|i| (i + seed) as u32).collect())
+            .collect();
+        let groups = exact_length_batches(&prompts, 16);
+        let mut seen: Vec<usize> = groups.iter().flatten().copied().collect();
+        seen.sort_unstable();
+        assert_eq!(seen, (0..prompts.len()).collect::<Vec<_>>());
+        for group in &groups {
+            let width = prompts[group[0]].len();
+            assert!(group.iter().all(|&index| prompts[index].len() == width));
+            assert!(group.len() * width <= hs::SHEET_EVAL_BATCH * SHEET_CONTEXT);
+        }
+        assert_eq!(
+            groups,
+            exact_length_batches(&prompts, 16),
+            "the grouping is deterministic"
+        );
+    }
+
+    #[test]
+    fn exact_length_batches_split_a_wide_group_at_the_evaluation_budget() {
+        let prompts: Vec<Vec<u32>> = (0..40).map(|seed| vec![seed; SHEET_CONTEXT]).collect();
+        let groups = exact_length_batches(&prompts, 64);
+        assert!(groups.len() > 1);
+        assert!(groups.iter().all(|group| group.len() <= hs::SHEET_EVAL_BATCH));
+        let near_context: Vec<Vec<u32>> =
+            (0..40).map(|seed| vec![seed; SHEET_CONTEXT - 12]).collect();
+        let groups = exact_length_batches(&near_context, 64);
+        assert!(groups.iter().all(|group| {
+            group.len() * SHEET_CONTEXT <= hs::SHEET_EVAL_BATCH * SHEET_CONTEXT
+        }));
+    }
+
+    #[test]
+    fn batched_decode_is_opt_in_and_falls_back_for_every_unsupported_case() {
+        assert!(can_batch_decode(
+            true,
+            PointObjective::Cell,
+            ReadScope::Full,
+            false,
+            false
+        ));
+        assert!(!can_batch_decode(
+            false,
+            PointObjective::Cell,
+            ReadScope::Full,
+            false,
+            false
+        ));
+        assert!(!can_batch_decode(
+            true,
+            PointObjective::Sheet,
+            ReadScope::Full,
+            false,
+            false
+        ));
+        assert!(!can_batch_decode(
+            true,
+            PointObjective::Cell,
+            ReadScope::Copy,
+            false,
+            false
+        ));
+        assert!(!can_batch_decode(
+            true,
+            PointObjective::Cell,
+            ReadScope::Full,
+            true,
+            false
+        ));
+        assert!(!can_batch_decode(
+            true,
+            PointObjective::Cell,
+            ReadScope::Full,
+            false,
+            true
+        ));
     }
 
     #[test]
@@ -14015,6 +14405,175 @@ mod tests {
         }
         crate::flock_read_hamming::set_hamming_reads(None);
         assert!(decoded > 0, "every reply was empty, so the check held vacuously");
+    }
+
+    /// Exact-length batching keeps complete decode results equal to one-at-a-time decoding,
+    /// including the Flock draw's original sample index and early termination.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn exact_length_batches_match_one_at_a_time_decodes() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device)?;
+        crate::flock_read_hamming::set_hamming_reads(Some(
+            crate::flock_read_hamming::HammingReads::new(4, hs::SHEET_WIDTH, &device)?,
+        ));
+        let lengths = [17usize, 18, 18, 19, 32, 32];
+        let prompts: Vec<Vec<u32>> = lengths
+            .iter()
+            .enumerate()
+            .map(|(seed, &len)| {
+                std::iter::once(hs::SHEET_BOS_ID)
+                    .chain(
+                        (1..len)
+                            .map(|i| ((i * 37 + seed * 101) as u32) % hs::SHEET_VOCAB as u32),
+                    )
+                    .collect()
+            })
+            .collect();
+        let masks: Vec<Vec<u8>> = prompts.iter().map(|prompt| vec![0; prompt.len()]).collect();
+        let openings: std::collections::HashMap<Vec<u32>, u32> = prompts
+            .iter()
+            .enumerate()
+            .map(|(seed, prompt)| (prompt[1..3].to_vec(), 100 + seed as u32))
+            .collect();
+        crate::flock_read_memory::set_turn_memory(Some(
+            crate::flock_read_memory::TurnMemory::new(2, openings, hs::SHEET_WIDTH, &device)?
+                .with_reply(std::collections::HashMap::new())?,
+        ));
+        let rules = [
+            DecodeRule::Greedy,
+            DecodeRule::FlockRank { k: 1, keep_end: false },
+            DecodeRule::FlockRank { k: 16, keep_end: true },
+            DecodeRule::flock_cell(CELL_MARGIN_MILLI),
+            DecodeRule::CYCLE_STEP,
+        ];
+        let mut decoded = 0usize;
+        for rule in rules {
+            let serial: Vec<DecodedReply> = prompts
+                .iter()
+                .zip(&masks)
+                .enumerate()
+                .map(|(sample, (prompt, mask))| {
+                    decode_reply_with_mode(
+                        &model,
+                        PointObjective::Cell,
+                        prompt,
+                        16,
+                        17,
+                        rule,
+                        sample,
+                        None,
+                        ReadScope::Full,
+                        mask,
+                        false,
+                    )
+                })
+                .collect::<Result<_>>()?;
+            let batched = decode_replies_with_mode(
+                &model,
+                PointObjective::Cell,
+                &prompts,
+                &masks,
+                16,
+                17,
+                rule,
+                None,
+                ReadScope::Full,
+                false,
+                true,
+            )?;
+            assert_eq!(serial.len(), batched.len());
+            for (sample, (serial, batched)) in serial.iter().zip(&batched).enumerate() {
+                assert_eq!(serial.tokens, batched.tokens, "{rule:?}, sample {sample}");
+                assert_eq!(serial.admitted, batched.admitted, "{rule:?}, sample {sample}");
+                assert_eq!(serial.stepped, batched.stepped, "{rule:?}, sample {sample}");
+                assert_eq!(serial.served, batched.served, "{rule:?}, sample {sample}");
+                decoded += batched.tokens.len();
+            }
+        }
+        let firsts: Vec<u32> = prompts
+            .iter()
+            .zip(&masks)
+            .enumerate()
+            .map(|(sample, (prompt, mask))| {
+                decode_reply_with_mode(
+                    &model,
+                    PointObjective::Cell,
+                    prompt,
+                    1,
+                    17,
+                    DecodeRule::Greedy,
+                    sample,
+                    None,
+                    ReadScope::Full,
+                    mask,
+                    false,
+                )
+                .and_then(|reply| {
+                    reply.tokens.first().copied().ok_or_else(|| {
+                        invalid("an early-termination control decoded no first token")
+                    })
+                })
+            })
+            .collect::<Result<_>>()?;
+        let pair = (0..prompts.len())
+            .find_map(|first| {
+                (first + 1..prompts.len())
+                    .find(|&other| {
+                        prompts[other].len() == prompts[first].len()
+                            && firsts[other] != firsts[first]
+                    })
+                    .map(|other| (first, other))
+            })
+            .ok_or_else(|| invalid("no equal-length pair has different first tokens"))?;
+        let selected = vec![prompts[pair.0].clone(), prompts[pair.1].clone()];
+        let selected_masks = vec![masks[pair.0].clone(), masks[pair.1].clone()];
+        let early = DecodeRule::FlockRank { k: 1, keep_end: true };
+        let serial: Vec<DecodedReply> = selected
+            .iter()
+            .zip(&selected_masks)
+            .enumerate()
+            .map(|(sample, (prompt, mask))| {
+                decode_reply_with_mode(
+                    &model,
+                    PointObjective::Cell,
+                    prompt,
+                    16,
+                    17,
+                    early,
+                    sample,
+                    Some(firsts[pair.0]),
+                    ReadScope::Full,
+                    mask,
+                    false,
+                )
+            })
+            .collect::<Result<_>>()?;
+        let batched = decode_replies_with_mode(
+            &model,
+            PointObjective::Cell,
+            &selected,
+            &selected_masks,
+            16,
+            17,
+            early,
+            Some(firsts[pair.0]),
+            ReadScope::Full,
+            false,
+            true,
+        )?;
+        assert_eq!(serial[0].tokens, batched[0].tokens);
+        assert_eq!(serial[1].tokens, batched[1].tokens);
+        assert_eq!(serial[0].tokens.first(), Some(&firsts[pair.0]));
+        assert!(serial[0].tokens.len() < 16, "the first row must stop early");
+        assert!(
+            serial[1].tokens.len() > 1,
+            "the second row must continue after the first stops"
+        );
+        crate::flock_read_hamming::set_hamming_reads(None);
+        crate::flock_read_memory::set_turn_memory(None);
+        assert!(decoded > 0, "every reply was empty, so the parity check was vacuous");
+        Ok(())
     }
 
     #[cfg(feature = "cuda")]

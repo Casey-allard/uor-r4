@@ -16,6 +16,10 @@
 //! `--hamming-copy-key 2` (needs `--hamming-read`) keys the read's copy heads on the two tokens
 //! before a position, in order, in place of one (`HammingReads::with_copy_key`, claude-261). The
 //! checkpoint's `hamming_read.safetensors` records it, so scoring and the export read it there.
+//! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
+//!
+//! `--batched-decode 1` lets `--score-rows` decode equal-length prompts together on the
+//! full-scope nearest arms. It defaults to 0 while GPU parity is being qualified.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
@@ -215,6 +219,7 @@ fn main() -> Result<()> {
     let mut panel_prompts_on = false;
     let mut integer_grade_on = false;
     let mut served_forward = None;
+    let mut batched_decode = false;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -412,6 +417,7 @@ fn main() -> Result<()> {
             }
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--served-forward" => served_forward = Some(switch(&value)?),
+            "--batched-decode" => batched_decode = switch(&value)?,
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,
@@ -881,6 +887,7 @@ fn main() -> Result<()> {
             forces,
             &device,
             served_forward,
+            batched_decode,
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }

@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/batched-scorer": {
+    "branch": "deepseek/batched-scorer",
+    "claimed_at": "2026-11-02T22:48:16-05:00",
+    "head": "b6ebf7002",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/capacity-sheet-shape": {
     "branch": "deepseek/capacity-sheet-shape",
     "claimed_at": "2026-11-02T17:50:54-05:00",
