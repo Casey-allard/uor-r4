@@ -41,6 +41,7 @@ fn run() -> Result<(), String> {
             "writer_parity": report.writer_parity,
             "cpu_engine_parity": report.cpu_engine_parity,
             "generated_replies": report.generated_replies,
+            "count_table_control": report.count_table_control,
             "out": config.out,
             "sha256": report_sha256(&text),
         })

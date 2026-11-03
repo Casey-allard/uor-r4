@@ -71,6 +71,20 @@ public-model readiness negative under a genuinely new-template draw; it is not
 semantic-correctness, fresh-reply-wording or GPU evidence. See
 [deepseek-13](../../loop/tasks/one-model-end-to-end/deepseek-13/REPORT.md).
 
+The same instrument now has a count-table arm. It builds the corpus-wide most
+common successor and each previous token's most common successor from adjacent
+tokens inside the supplied reference documents, then runs the identical
+218-prompt, 16-token, context-limited and EOS-aware reply pass. On the public
+seed-1 M1 artifact and the seed-2201 generated control, the model completed 184
+replies with 22 distinct non-empty texts, seven repeated-4gram replies and five
+replacement-character replies; the count table completed 196 with four distinct
+texts and no repeated 4-gram or replacement-character reply. Neither matched an
+exact reference, and the two paths differed on 199 of 218 first tokens. The
+count table is therefore a matched naive control, while the public model's
+extra text forms are not evidence of correctness. Memory-off and no-read remain
+unavailable because this artifact carries neither mechanism. See
+[deepseek-14](../../loop/tasks/one-model-end-to-end/deepseek-14/REPORT.md).
+
 ## What is missing
 
 - **Served-surrogate training is repaired; it now passes the operational

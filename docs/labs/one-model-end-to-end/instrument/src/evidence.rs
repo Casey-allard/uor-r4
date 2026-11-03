@@ -303,6 +303,22 @@ pub struct ReplyGeneration {
     pub rows: Vec<GeneratedReply>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct ReplyPathComparison {
+    pub replies: u64,
+    pub first_token_differences: u64,
+    pub whole_reply_differences: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CountTableControl {
+    pub source_role: ReferenceRole,
+    pub transitions: u64,
+    pub previous_tokens: u64,
+    pub generation: ReplyGeneration,
+    pub model_comparison: ReplyPathComparison,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct TemplateOverlap {
     pub prompts: u64,
@@ -327,6 +343,7 @@ pub struct EvidenceReport {
     pub writer_parity: WriterParity,
     pub cpu_engine_parity: CpuEngineParity,
     pub generated_replies: Option<ReplyGeneration>,
+    pub count_table_control: Option<CountTableControl>,
     pub unavailable: BTreeMap<String, String>,
 }
 
@@ -389,6 +406,60 @@ struct TemplateIndex {
     keep: HashSet<u32>,
     prompts: RunIndex,
     replies: RunIndex,
+}
+
+#[derive(Clone, Debug)]
+struct CountTable {
+    successors: BTreeMap<u32, BTreeMap<u32, u64>>,
+    global_successors: BTreeMap<u32, u64>,
+    transitions: u64,
+}
+
+impl CountTable {
+    fn from_corpus(corpus: &Corpus) -> Result<Self> {
+        let mut successors = BTreeMap::<u32, BTreeMap<u32, u64>>::new();
+        let mut global_successors = BTreeMap::<u32, u64>::new();
+        let mut transitions = 0u64;
+        for document in &corpus.documents {
+            for pair in corpus.tokens[document.clone()].windows(2) {
+                *successors
+                    .entry(pair[0])
+                    .or_default()
+                    .entry(pair[1])
+                    .or_default() += 1;
+                *global_successors.entry(pair[1]).or_default() += 1;
+                transitions += 1;
+            }
+        }
+        if transitions == 0 {
+            return Err("the count table has no in-document transitions".to_owned());
+        }
+        Ok(Self {
+            successors,
+            global_successors,
+            transitions,
+        })
+    }
+
+    fn previous_tokens(&self) -> usize {
+        self.successors.len()
+    }
+
+    fn predict(&self, prefix: &[u32]) -> Result<u32> {
+        let previous = prefix
+            .last()
+            .copied()
+            .ok_or_else(|| "the count table needs a non-empty prefix".to_owned())?;
+        let best = |counts: &BTreeMap<u32, u64>| {
+            counts
+                .iter()
+                .min_by(|left, right| right.1.cmp(left.1).then_with(|| left.0.cmp(right.0)))
+                .map(|(&token, _)| token)
+        };
+        best(self.successors.get(&previous).unwrap_or(&BTreeMap::new()))
+            .or_else(|| best(&self.global_successors))
+            .ok_or_else(|| "the count table has no successor".to_owned())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1294,6 +1365,49 @@ where
     Ok(generated)
 }
 
+fn count_table_control(
+    corpus: &Corpus,
+    train: &Corpus,
+    tokenizer: &TokenizerCensus,
+    reference_role: ReferenceRole,
+    context: usize,
+    max_new_tokens: usize,
+    model: &ReplyGeneration,
+) -> Result<CountTableControl> {
+    let table = CountTable::from_corpus(train)?;
+    let generation = generate_replies(
+        corpus,
+        Some(train),
+        tokenizer,
+        context,
+        max_new_tokens,
+        |prefix| table.predict(prefix),
+    )?;
+    if generation.rows.len() != model.rows.len() {
+        return Err("count-table and model reply counts differ".to_owned());
+    }
+    let mut model_comparison = ReplyPathComparison {
+        replies: u64::try_from(generation.rows.len()).unwrap_or(u64::MAX),
+        first_token_differences: 0,
+        whole_reply_differences: 0,
+    };
+    for (control, model) in generation.rows.iter().zip(&model.rows) {
+        if control.prompt != model.prompt || control.reply != model.reply {
+            return Err("count-table and model reply identities differ".to_owned());
+        }
+        model_comparison.first_token_differences +=
+            u64::from(control.ids.first() != model.ids.first());
+        model_comparison.whole_reply_differences += u64::from(control.ids != model.ids);
+    }
+    Ok(CountTableControl {
+        source_role: reference_role,
+        transitions: table.transitions,
+        previous_tokens: u64::try_from(table.previous_tokens()).unwrap_or(u64::MAX),
+        generation,
+        model_comparison,
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn evaluate_model(
     artifact_bytes: &[u8],
@@ -1394,6 +1508,22 @@ fn evaluate_model(
             )
         })
         .transpose()?;
+    let count_table_control = generated_replies
+        .as_ref()
+        .and_then(|generated| {
+            train.zip(reference_role).map(|(train, role)| {
+                count_table_control(
+                    corpus,
+                    train,
+                    tokenizer,
+                    role,
+                    shape.context as usize,
+                    generated.max_new_tokens,
+                    generated,
+                )
+            })
+        })
+        .transpose()?;
 
     let mut unavailable = BTreeMap::new();
     if generated_replies.is_none() {
@@ -1410,10 +1540,16 @@ fn evaluate_model(
     if let Some(reason) = &cpu_engine_parity.unavailable {
         unavailable.insert("independent_cpu_trunk_query".to_owned(), reason.clone());
     }
-    unavailable.insert(
-        "count_table_control".to_owned(),
-        "no count-table arm is supplied to this evidence pass".to_owned(),
-    );
+    if count_table_control.is_none() {
+        unavailable.insert(
+            "count_table_control".to_owned(),
+            if generated_replies.is_none() {
+                "the count-table control uses the same generated-reply pass".to_owned()
+            } else {
+                "the count-table control needs a reference corpus and role".to_owned()
+            },
+        );
+    }
     unavailable.insert(
         "memory_off_control".to_owned(),
         "no serving-session memory-off arm is supplied to this evidence pass".to_owned(),
@@ -1440,6 +1576,7 @@ fn evaluate_model(
         writer_parity,
         cpu_engine_parity,
         generated_replies,
+        count_table_control,
         unavailable,
     })
 }
@@ -2023,6 +2160,58 @@ mod tests {
     }
 
     #[test]
+    fn count_table_stays_inside_documents_and_breaks_ties_by_smaller_token() {
+        // Crossing the document boundary would add 20 -> 0. Inside the
+        // documents, 20 -> 5/10 is a tie whose smaller token (5) must win,
+        // and 0 -> 10/20 breaks to 10.
+        let train = corpus(&[0, 10, 20, 5, 0, 20, 10, 7], &[0, 0, 0, 0, 0, 0, 0, 0]);
+        let table = CountTable::from_corpus(&train).unwrap();
+        assert_eq!(table.transitions, 6);
+        assert_eq!(table.previous_tokens(), 3);
+        assert_eq!(table.predict(&[20]).unwrap(), 5);
+        assert_eq!(table.predict(&[0]).unwrap(), 10);
+        // An unseen previous token falls back to the global successor count.
+        assert_eq!(table.predict(&[99]).unwrap(), 10);
+    }
+
+    #[test]
+    fn count_table_control_runs_the_same_bounded_reply_measurements() {
+        let panel = corpus(
+            &[0, 10, 11, 2, 3, 4, 5, 2, 3, 4, 5, 6],
+            &[0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        );
+        let train = corpus(&[0, 10, 2, 3, 4, 5, 6], &[0, 0, 1, 1, 1, 1, 1]);
+        let (_directory, tokenizer) = written_tokenizer("count-table-control");
+        let mut next = std::collections::VecDeque::from([2, 3, 4, 5, 2, 3, 4, 5, 6]);
+        let model = generate_replies(&panel, Some(&train), &tokenizer, 32, 16, |_| {
+            Ok(next.pop_front().unwrap())
+        })
+        .unwrap();
+        let control = count_table_control(
+            &panel,
+            &train,
+            &tokenizer,
+            ReferenceRole::GeneratedControl,
+            32,
+            16,
+            &model,
+        )
+        .unwrap();
+        assert_eq!(control.source_role, ReferenceRole::GeneratedControl);
+        assert_eq!(control.generation.replies, 1);
+        assert_eq!(control.generation.rows[0].stop, GenerationStop::Eos);
+        assert_eq!(control.generation.rows[0].ids, [2, 3, 4, 5, 6]);
+        assert_eq!(
+            control.model_comparison,
+            ReplyPathComparison {
+                replies: 1,
+                first_token_differences: 0,
+                whole_reply_differences: 1,
+            }
+        );
+    }
+
+    #[test]
     fn tokenizer_eos_is_required_only_for_generated_replies() {
         let panel = corpus(&[0, 10, 11, 2, 3, 4, 5, 6], &[0, 0, 0, 1, 1, 1, 1, 1]);
         let (_directory, tokenizer) = written_tokenizer_with_eos("tokenizer-without-eos", None);
@@ -2131,6 +2320,7 @@ mod tests {
             writer_parity: WriterParity::from_serving_query(),
             cpu_engine_parity: CpuEngineParity::unavailable("fixture"),
             generated_replies: None,
+            count_table_control: None,
             unavailable: BTreeMap::new(),
         };
         assert_eq!(
