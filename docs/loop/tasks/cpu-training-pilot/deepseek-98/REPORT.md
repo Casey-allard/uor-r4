@@ -21,7 +21,7 @@ Order: [ORDER.md](ORDER.md). Base:
   `CoordinateScore` records remove it without an allowance.
 - **Thirty-two workers are not universally faster.** The small panel gains
   slightly from SMT, while normalization, bias and decay candidate scoring are
-  fastest at 16 physical workers and regress at 32. Route has only a 0.9%
+  fastest at 16 physical workers and regress at 32. Route has only a 2.6%
   advantage at 32. The result supports bounded parallelism, not “more threads
   always means more speed.”
 - **This is synthetic component performance.** The fixture is width 64, one
