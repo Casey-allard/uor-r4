@@ -1,0 +1,111 @@
+{
+  "schema": "uor-r4.cpu-memory-heldout-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "sheet": "docs/harness/prep/cpu-training-pilot-memory-heldout-2026-11-03.md",
+  "selection": {
+    "key_count": 8,
+    "key_tokens": 8,
+    "training_documents": 50,
+    "evaluation_documents": 48,
+    "training_samples": 58,
+    "evaluation_samples": 56,
+    "openings": 8,
+    "reply_rows": 492
+  },
+  "runtime": {
+    "binary_sha256": "7cfc9759a831f4966dfda2f87078370f03f3aa8315d001def22da8025197e6d0",
+    "threads": 16,
+    "serial_probe": {
+      "cpu_percent": 99,
+      "wall_ms": 587820,
+      "completed": false,
+      "reason": "single-thread candidate sweep projected the two-seed eight-step run beyond the registered 30-minute stop"
+    },
+    "parallel_probe": {
+      "cpu_percent": 1220,
+      "wall_ms": 62307.378
+    }
+  },
+  "seeds": {
+    "1": {
+      "report": "seed-1.json",
+      "report_sha256": "867003c31a218ebc4ef5eafd0d963112ca9b53b6c687e9150436d414de5fb69e",
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "memory_artifact_sha256": "7d8971d4959a0ecb205e742f27e948242e0601f19cfcead37cede0efd0f4c3c4",
+      "trained_artifact_sha256": "3ad89c7b80df52f9e1e4d878c072982e9fb613b8453ded0dd50c3ee905e0ee44",
+      "random_artifact_sha256": "dd7aa84a30b4b5529acad0cebc777ffba08bdff00dbc1376e7aae0f1e3855e75",
+      "accepted_updates": 8,
+      "wall_ms": 415370.075503,
+      "peak_rss_kib": 365048,
+      "decisions": 2431,
+      "frozen": {
+        "top1": 278,
+        "target_distance": 2821353534
+      },
+      "trained": {
+        "top1": 291,
+        "target_distance": 2820387931
+      },
+      "random": {
+        "top1": 278,
+        "target_distance": 2821404885
+      },
+      "memory_off": {
+        "top1": 278,
+        "target_distance": 2821353534
+      },
+      "top1_delta_vs_frozen": 13,
+      "distance_delta_vs_frozen": -965603,
+      "three_sigma_top1_threshold": 48
+    },
+    "2": {
+      "report": "seed-2.json",
+      "report_sha256": "8a2c532ba70c9e063c7827b7429d9db1dff4b7caac0c5cc4b63d8df526df0317",
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "memory_artifact_sha256": "487b35963762376523f4a75b07ecfe609aad5c8532c8f6fc5ff441c636e9a892",
+      "trained_artifact_sha256": "070d66364112d4527d3043998f023f435ec73455b9a617aa94695403c62bd089",
+      "random_artifact_sha256": "e6789c95e3bdf32048147db8f97fe344a57af2c96050b9274a8a71ab399eecbe",
+      "accepted_updates": 8,
+      "wall_ms": 414121.132075,
+      "peak_rss_kib": 364360,
+      "decisions": 2431,
+      "frozen": {
+        "top1": 238,
+        "target_distance": 2898309913
+      },
+      "trained": {
+        "top1": 243,
+        "target_distance": 2896327331
+      },
+      "random": {
+        "top1": 238,
+        "target_distance": 2898001645
+      },
+      "memory_off": {
+        "top1": 238,
+        "target_distance": 2898309913
+      },
+      "top1_delta_vs_frozen": 5,
+      "distance_delta_vs_frozen": -1982582,
+      "three_sigma_top1_threshold": 44
+    }
+  },
+  "parity_per_arm": {
+    "samples": 56,
+    "positions": 2487,
+    "query_coordinates": 636672,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 2487,
+    "token_mismatches": 0,
+    "kept_cells": 19896,
+    "kept_cell_mismatches": 0
+  },
+  "verdict": {
+    "dense_heldout_gain": "positive on both seeds",
+    "top1_nonfall": "positive on both seeds",
+    "three_sigma_ranking_gain": "negative on both seeds",
+    "matched_random_control": "trained beat random distance and top-1 on both seeds",
+    "language_capability": "not tested"
+  }
+}

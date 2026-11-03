@@ -63,6 +63,17 @@ pub struct CpuCorpusSplit {
     pub evaluation_stride: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuConversationSample {
+    pub document_ordinal: usize,
+    /// Current turn after the last document or end-of-turn boundary, truncated
+    /// from the left only when the reply would otherwise exceed model context.
+    pub prompt: Vec<u32>,
+    /// One contiguous masked assistant response, including its end-of-turn token.
+    pub reply: Vec<u32>,
+}
+
 impl CpuMaskedCorpus {
     pub fn from_bytes(
         token_bytes: &[u8],
@@ -208,6 +219,63 @@ impl CpuMaskedCorpus {
             evaluation_documents,
             evaluation_stride,
         })
+    }
+
+    /// Recover teacher-forced prompt/reply examples from every contiguous
+    /// masked assistant response. The prompt starts after the latest BOS or
+    /// EOS boundary and is truncated from the left only when prompt plus reply
+    /// would exceed the model context.
+    pub fn conversation_examples(&self) -> Result<Vec<CpuConversationSample>> {
+        if self.bos != 0 {
+            return Err(invalid(
+                "conversation examples require BOS id 0 so EOS id 1 is unambiguous",
+            ));
+        }
+        let mut examples = Vec::new();
+        for (ordinal, document) in self.documents.iter().enumerate() {
+            let mut start = document.start;
+            while start < document.end {
+                while start < document.end && self.mask[start] == 0 {
+                    start += 1;
+                }
+                if start == document.end {
+                    break;
+                }
+                let mut end = start;
+                while end < document.end && self.mask[end] == 1 {
+                    end += 1;
+                }
+                let reply = self.tokens[start..end].to_vec();
+                if reply.len() >= self.context {
+                    start = end;
+                    continue;
+                }
+                let mut prompt_start = document.start;
+                for at in (document.start..start).rev() {
+                    if self.tokens[at] == self.bos || self.tokens[at] == 1 {
+                        prompt_start = at + 1;
+                        break;
+                    }
+                }
+                let prompt = &self.tokens[prompt_start..start];
+                if !prompt.is_empty() {
+                    let budget = self.context - reply.len();
+                    let prompt = &prompt[prompt.len().saturating_sub(budget)..];
+                    examples.push(CpuConversationSample {
+                        document_ordinal: ordinal,
+                        prompt: prompt.to_vec(),
+                        reply,
+                    });
+                }
+                start = end;
+            }
+        }
+        if examples.is_empty() {
+            return Err(invalid(
+                "corpus has no complete assistant response examples",
+            ));
+        }
+        Ok(examples)
     }
 
     fn document_samples(&self, document: &Range<usize>) -> Result<Vec<RankMarginSample>> {
@@ -356,6 +424,27 @@ mod tests {
             bytes.extend_from_slice(&token.to_le_bytes());
         }
         bytes
+    }
+
+    #[test]
+    fn conversation_examples_recover_contiguous_assistant_responses() {
+        let corpus = corpus();
+        let examples = corpus.conversation_examples().unwrap();
+        assert_eq!(examples.len(), 3);
+        assert_eq!(examples[0].document_ordinal, 0);
+        assert_eq!(examples[0].prompt, [10]);
+        assert_eq!(examples[0].reply, [11, 12]);
+        assert_eq!(examples[1].document_ordinal, 2);
+        assert_eq!(examples[1].prompt, [30]);
+        assert_eq!(examples[1].reply, [31, 32]);
+        assert_eq!(examples[2].document_ordinal, 3);
+        assert_eq!(examples[2].prompt, [40, 41]);
+        assert_eq!(examples[2].reply, [42]);
+        assert!(examples.iter().all(|sample| {
+            !sample.prompt.is_empty()
+                && !sample.reply.is_empty()
+                && sample.prompt.len() + sample.reply.len() <= corpus.context()
+        }));
     }
 
     #[test]

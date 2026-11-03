@@ -62,3 +62,7 @@ path = "src/bin/cpu-counterfactual-corpus-driver.rs"
 [[bin]]
 name = "cpu-discrete-corpus-driver"
 path = "src/bin/cpu-discrete-corpus-driver.rs"
+
+[[bin]]
+name = "cpu-memory-panel-driver"
+path = "src/bin/cpu-memory-panel-driver.rs"
