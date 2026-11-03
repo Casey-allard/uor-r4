@@ -1,0 +1,7 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+{
+  "verdict": "NATIVE IMAGE BROWSER FLOW PASSED",
+  "metrics": "6 tokens · 470.3 tok/s · TTFT 10.953 ms · 12.758 ms · 34/6/40 · stop",
+  "label": "R4 patch input - experimental; not visual understanding",
+  "memoryOnlyReload": true
+}

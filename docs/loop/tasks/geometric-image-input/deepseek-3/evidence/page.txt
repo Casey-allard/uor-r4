@@ -1,0 +1,13 @@
+{
+  "verdict": "PAGE-LOAD CHECKS PASSED",
+  "strictPages": [
+    "index.html"
+  ],
+  "clean": [
+    "geometric_prime_router_webapp.html",
+    "index.html"
+  ],
+  "legacyResidual": [],
+  "failures": [],
+  "note": "static scan; runtime page-load trap in verify_studio_page_load.mjs"
+}

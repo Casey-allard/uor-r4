@@ -188,6 +188,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/image-studio-canvas": {
+    "branch": "deepseek/image-studio-canvas",
+    "claimed_at": "2026-11-03T17:30:35-05:00",
+    "head": "55432f5f8",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/m1-evidence": {
     "branch": "deepseek/m1-evidence",
     "claimed_at": "2026-11-03T07:51:55-05:00",

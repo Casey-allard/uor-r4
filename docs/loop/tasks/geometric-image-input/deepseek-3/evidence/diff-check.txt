@@ -1,0 +1,2 @@
+docs/loop/tasks/geometric-image-input/deepseek-3/evidence/studio-tests.txt:13: new blank line at EOF.
+docs/loop/tasks/geometric-image-input/deepseek-3/evidence/typecheck.txt:4: new blank line at EOF.

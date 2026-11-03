@@ -1,0 +1,73 @@
+Fresh-context exact-head review repair
+======================================
+
+Finding 1: a raster filename could bypass an explicit non-raster MIME type.
+Fix: use an explicit raster MIME allowlist whenever MIME is present; use the
+extension allowlist only when MIME is absent. Conflicting MIME and extension
+cases now fail closed.
+
+Finding 2: an image-only user turn persisted empty content, so after reload the
+next native request included a blank historical message that the server rejects.
+The first repair also normalized the current turn and therefore incorrectly
+added a text part to a live image-only request. Final fix: reconstruct only
+historical empty user turns as the bounded text marker
+`[Image patch input]`; the final live image-only turn remains text-free.
+
+Commands and results
+--------------------
+
+$ node --test web/studio/assets/js/image_input.test.mjs web/studio/assets/js/studio_api_streaming.test.mjs
+# tests 14
+# pass 14
+# fail 0
+
+$ npm test -- --run
+Test Files  31 passed (31)
+Tests       266 passed (266)
+
+The first post-merge Studio run exited 1 on one unhandled teardown exception
+from the unchanged `src/components/Inspector.tsx` (`document is not defined`)
+after all 31 files and 266 tests reported passing. An isolated immediate rerun
+completed without that exception and exited 0. This is retained as an
+instrument flake, not hidden as a clean first run.
+
+$ npm run typecheck
+tsc --noEmit
+exit 0
+
+$ npm run build
+vite v8.3.5 building client environment for production...
+29 modules transformed.
+dist/studio-foundation.css  3.57 kB
+dist/studio-foundation.js 124.55 kB
+exit 0
+
+$ CARGO_TARGET_DIR=target/claude-image-placeholder node web/studio/assets/js/verify_studio_image_input.mjs
+{
+  "verdict": "NATIVE IMAGE BROWSER FLOW PASSED",
+  "metrics": "6 tokens · 534.9 tok/s · TTFT 9.472 ms · 11.217 ms · 31/6/37 · stop",
+  "label": "R4 patch input - experimental; not visual understanding",
+  "imageOnlySend": true,
+  "memoryOnlyReload": true,
+  "reloadedHistoryResend": true
+}
+
+The verifier wraps the page fetch transport and inspects the actual chat request
+bodies. It asserts that the live image-only message content is exactly one
+`uor_r4_image` part with no text part. After reload and reattachment, it asserts
+that the earlier empty turn becomes `[Image patch input]` and the final message
+is again exactly one `uor_r4_image` part.
+
+$ node web/studio/verify_studio_page.mjs
+PAGE-LOAD CHECKS PASSED
+
+$ node web/studio/verify_studio_page_load.mjs
+RUNTIME PAGE-LOAD TRAP PASSED
+external requests: []
+
+$ node web/studio/verify_studio_worker.mjs
+ALL STUDIO WORKER CHECKS PASSED
+remoteRequests: 0
+
+$ git diff --check
+exit 0

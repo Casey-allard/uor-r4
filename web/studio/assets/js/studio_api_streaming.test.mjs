@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { streamChatCompletions } from './studio_api.js';
+import { decomposeNativeImage, imageUrlPart, streamChatCompletions } from './studio_api.js';
 
 const config = { baseUrl: 'http://127.0.0.1:8765/v1', model: 'uor-chat', apiKey: 'secret', temperature: 0, ephemeral: true };
 const encoder = new TextEncoder();
@@ -109,4 +109,78 @@ test('malformed SSE data and in-band OpenAI errors fail instead of completing su
 test('a successful non-JSON response fails loudly instead of inventing a reply', async () => {
     globalThis.fetch = async () => new Response('plain text', { status: 200, headers: { 'content-type': 'text/plain' } });
     await assert.rejects(streamChatCompletions({ config, messages: [{ role: 'user', content: 'Hi' }] }), /non-JSON chat completion/);
+});
+
+test('native image decomposition returns the exact structured content part', async () => {
+    let request;
+    globalThis.fetch = async (url, init) => {
+        request = { url, init };
+        return new Response(new Uint8Array([0x52, 0x34]), {
+            status: 200,
+            headers: {
+                'content-type': 'application/octet-stream',
+                'x-uor-image-schema': 'uor-r4.image-decomposition/1',
+                'x-uor-source-blake3': 'ab'.repeat(32),
+                'x-uor-patch-count': '1',
+            },
+        });
+    };
+    const part = await decomposeNativeImage({
+        config,
+        image: { width: 1, height: 1, rgba: new Uint8Array([255, 0, 0, 255]) },
+        grid: { columns: 1, rows: 1 },
+    });
+    const url = new URL(request.url);
+    assert.equal(url.pathname, '/v1/images/decompose');
+    assert.deepEqual(Object.fromEntries(url.searchParams), { width: '1', height: '1', columns: '1', rows: '1' });
+    assert.equal(request.init.headers['Content-Type'], 'application/octet-stream');
+    assert.deepEqual(part, {
+        type: 'uor_r4_image',
+        schema: 'uor-r4.image-decomposition/1',
+        canonical_hex: '5234',
+        source_blake3: 'ab'.repeat(32),
+        width: 1,
+        height: 1,
+        grid: { columns: 1, rows: 1 },
+    });
+});
+
+test('structured content survives chat normalization and custom images use image_url', async () => {
+    globalThis.fetch = async (_url, init) => {
+        assert.deepEqual(JSON.parse(init.body).messages[0].content, [
+            { type: 'text', text: 'What is this?' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,AA==' } },
+        ]);
+        return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }], usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    const messages = [{
+        role: 'user',
+        content: [
+            { type: 'text', text: 'What is this?' },
+            imageUrlPart({ dataUrl: 'data:image/png;base64,AA==' }),
+        ],
+    }];
+    const result = await streamChatCompletions({ config, messages });
+    assert.equal(result.ok, true);
+});
+
+test('an image-only promised native part is sent without an empty text part', async () => {
+    const nativePart = {
+        type: 'uor_r4_image',
+        schema: 'uor-r4.image-decomposition/1',
+        canonical_hex: '5234',
+        source_blake3: 'ab'.repeat(32),
+        width: 1,
+        height: 1,
+        grid: { columns: 1, rows: 1 },
+    };
+    globalThis.fetch = async (_url, init) => {
+        assert.deepEqual(JSON.parse(init.body).messages, [{ role: 'user', content: [nativePart] }]);
+        return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }], usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    const result = await streamChatCompletions({
+        config,
+        messages: [{ role: 'user', content: Promise.resolve([nativePart]) }],
+    });
+    assert.equal(result.ok, true);
 });

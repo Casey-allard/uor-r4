@@ -1,0 +1,23 @@
+{
+  "verdict": "RUNTIME PAGE-LOAD TRAP PASSED",
+  "trapSelfTest": {
+    "plantedExternalDetected": true,
+    "channels": [
+      "inline",
+      "blob-worker",
+      "late"
+    ]
+  },
+  "pages": {
+    "index.html": {
+      "loaded": true,
+      "requests": 16,
+      "external": []
+    },
+    "geometric_prime_router_webapp.html": {
+      "loaded": true,
+      "requests": 2,
+      "external": []
+    }
+  }
+}

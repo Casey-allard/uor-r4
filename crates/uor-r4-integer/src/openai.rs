@@ -2,7 +2,6 @@ use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
@@ -987,39 +986,45 @@ fn json_u16(value: &Value, field: &str) -> Result<u16, OpenAiError> {
 }
 
 fn render_r4_context(image: &Decomposition) -> String {
-    let mut text = String::new();
-    writeln!(
-        text,
-        "[UOR-R4-IMAGE schema={IMAGE_CONTENT_SCHEMA} source={} size={}x{} grid={}x{} patches={}]",
-        image.source_hash_hex(),
+    let mut r4 = Vec::with_capacity(image.patches().len() * 16);
+    for patch in image.patches() {
+        for value in patch.r4_q12[0].into_iter().chain(patch.r4_q12[1]) {
+            r4.extend_from_slice(&value.to_be_bytes());
+        }
+    }
+    format!(
+        "R4IMG1/{}x{}/{}x{}/{}:{}",
         image.width(),
         image.height(),
         image.grid().columns(),
         image.grid().rows(),
-        image.patches().len()
+        image.patches().len(),
+        base64_encode(&r4)
     )
-    .expect("writing to String cannot fail");
-    for patch in image.patches() {
-        writeln!(
-            text,
-            "patch {} {} {} {} r4 {} {} {} {} {} {} {} {}",
-            patch.x0,
-            patch.y0,
-            patch.x1,
-            patch.y1,
-            patch.r4_q12[0][0],
-            patch.r4_q12[0][1],
-            patch.r4_q12[0][2],
-            patch.r4_q12[0][3],
-            patch.r4_q12[1][0],
-            patch.r4_q12[1][1],
-            patch.r4_q12[1][2],
-            patch.r4_q12[1][3]
-        )
-        .expect("writing to String cannot fail");
+}
+
+fn base64_encode(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let first = u32::from(chunk[0]);
+        let second = u32::from(*chunk.get(1).unwrap_or(&0));
+        let third = u32::from(*chunk.get(2).unwrap_or(&0));
+        let value = (first << 16) | (second << 8) | third;
+        encoded.push(ALPHABET[((value >> 18) & 0x3f) as usize] as char);
+        encoded.push(ALPHABET[((value >> 12) & 0x3f) as usize] as char);
+        encoded.push(if chunk.len() > 1 {
+            ALPHABET[((value >> 6) & 0x3f) as usize] as char
+        } else {
+            '='
+        });
+        encoded.push(if chunk.len() > 2 {
+            ALPHABET[(value & 0x3f) as usize] as char
+        } else {
+            '='
+        });
     }
-    text.push_str("[/UOR-R4-IMAGE]");
-    text
+    encoded
 }
 
 fn chat_error(error: StackChatError) -> OpenAiError {

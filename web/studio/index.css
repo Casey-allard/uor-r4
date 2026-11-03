@@ -3059,6 +3059,7 @@ body[data-view="model"] #modelView { display: flex; }
 .attachment-chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto; min-width: 0; }
 .attachment-chip { display: inline-flex; align-items: center; gap: 5px; max-width: 260px; padding: 2px 4px 2px 7px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface-1); font-family: 'Fira Code', 'SF Mono', ui-monospace, Menlo, monospace; font-size: 9.5px; color: var(--text-soft); }
 .attachment-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-chip-preview { width: 18px; height: 18px; border-radius: 3px; object-fit: cover; background: var(--surface-2); }
 .attachment-chip-meta { color: var(--text-faint); font-size: 8.5px; }
 .attachment-chip-remove { display: grid; place-items: center; width: 14px; height: 14px; border: none; border-radius: 50%; background: transparent; color: var(--text-faint); font-size: 11px; line-height: 1; }
 .attachment-chip-remove:hover { background: var(--surface-hover); color: var(--err); }

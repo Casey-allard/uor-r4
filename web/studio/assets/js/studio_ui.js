@@ -8,7 +8,10 @@
     var SETTINGS_KEY = 'uor.studio.settings.v1';
     var UI_KEY = 'uor.studio.ui.v2';
     var ATTACH_KEY = 'uor.studio.attachments.v1';
+    var IMAGE_RECALL_KEY = 'uor.studio.attachments.images.v1';
     var MAX_ATTACHMENT_TOTAL_BYTES = 4 * 1024 * 1024;
+    var MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
+    var MAX_IMAGES = 4;
     var THEME_KEY = 'uor.studio.theme';
 
     var app = document.getElementById('app');
@@ -479,19 +482,40 @@
     /* attachments */
     var attachments = readJson(ATTACH_KEY, []);
     if (!Array.isArray(attachments)) attachments = [];
-    function saveAttachments() { writeJson(ATTACH_KEY, attachments); }
+    attachments = attachments.filter(function (item) { return item && item.kind !== 'image'; });
+    writeJson(ATTACH_KEY, attachments);
+    var recalledImages = 0;
+    try { recalledImages = Number(window.sessionStorage.getItem(IMAGE_RECALL_KEY)) || 0; } catch (error) { recalledImages = 0; }
+    function rememberImageLifecycle() {
+        var count = attachments.filter(function (item) { return item.kind === 'image'; }).length;
+        try {
+            if (count) window.sessionStorage.setItem(IMAGE_RECALL_KEY, String(count));
+            else window.sessionStorage.removeItem(IMAGE_RECALL_KEY);
+        } catch (error) { /* session metadata is optional */ }
+    }
+    function saveAttachments() {
+        writeJson(ATTACH_KEY, attachments.filter(function (item) { return item.kind !== 'image'; }));
+        rememberImageLifecycle();
+    }
     function addAttachment(entry) {
-        if (!entry || !entry.content) { toast('No file content to attach.', 'info'); return; }
+        if (!entry || (entry.kind !== 'image' && !entry.content)) { toast('No file content to attach.', 'info'); return; }
         var name = String(entry.name || 'attachment.txt');
-        var content = String(entry.content);
+        var content = entry.content == null ? '' : String(entry.content);
         var size = Number.isFinite(entry.size) ? entry.size : new TextEncoder().encode(content).byteLength;
         var next = attachments.filter(function (item) { return item.name !== name; });
-        var total = next.reduce(function (sum, item) { return sum + (Number.isFinite(item.size) ? item.size : new TextEncoder().encode(String(item.content || '')).byteLength); }, size);
-        if (total > MAX_ATTACHMENT_TOTAL_BYTES) { toast('Attachments exceed the 4 MiB total limit; remove a file first.', 'error'); return; }
+        if (entry.kind === 'image') {
+            var imageCount = next.filter(function (item) { return item.kind === 'image'; }).length;
+            var imageTotal = next.filter(function (item) { return item.kind === 'image'; }).reduce(function (sum, item) { return sum + (Number(item.size) || 0); }, size);
+            if (imageCount >= MAX_IMAGES || imageTotal > MAX_IMAGE_TOTAL_BYTES) { toast('Images exceed the 4-file or 16 MiB total image limit.', 'error'); return; }
+            recalledImages = 0;
+        } else {
+            var total = next.filter(function (item) { return item.kind !== 'image'; }).reduce(function (sum, item) { return sum + (Number.isFinite(item.size) ? item.size : new TextEncoder().encode(String(item.content || '')).byteLength); }, size);
+            if (total > MAX_ATTACHMENT_TOTAL_BYTES) { toast('Attachments exceed the 4 MiB total limit; remove a file first.', 'error'); return; }
+        }
         attachments = next;
-        attachments.push({ name: name, kind: entry.kind || 'text', content: content, source: entry.source || 'file', size: size });
+        attachments.push(Object.assign({}, entry, { name: name, kind: entry.kind || 'text', content: content, source: entry.source || 'file', size: size }));
         saveAttachments(); renderAttachments();
-        toast('Attached ' + name + ' (' + Math.max(1, Math.round(String(entry.content).length / 1024)) + ' KB).', 'success');
+        toast('Attached ' + name + ' (' + Math.max(1, Math.round(size / 1024)) + ' KB).', 'success');
     }
     function renderAttachments() {
         var chips = document.getElementById('attachmentChips');
@@ -503,28 +527,40 @@
         if (chips) chips.textContent = '';
         if (inspector) inspector.textContent = '';
         if (bar) bar.hidden = attachments.length === 0;
+        var images = attachments.filter(function (item) { return item.kind === 'image'; });
         var totalChars = attachments.reduce(function (sum, item) { return sum + String(item.content || '').length; }, 0);
         var approxTokens = Math.max(0, Math.round(totalChars / 4));
         if (badge) badge.textContent = attachments.length + ' file' + (attachments.length === 1 ? '' : 's');
-        if (tokenHint) tokenHint.textContent = attachments.length ? '~' + approxTokens + ' tokens · prepended to API prompts only' : 'Attachments are prepended to API prompts only.';
+        if (tokenHint) tokenHint.textContent = attachments.length
+            ? (images.length ? images.length + ' image' + (images.length === 1 ? '' : 's') + ' memory-only · R4 context added on Send · ~' + approxTokens + ' text tokens' : '~' + approxTokens + ' tokens · prepended to API prompts only')
+            : 'Attachments are prepended to API prompts only.';
         if (inspector && !attachments.length) { var hint = document.createElement('li'); hint.className = 'hint'; hint.textContent = 'No context attached. Use Attach context in the composer.'; inspector.appendChild(hint); }
         var mode = hook('getMode') ? hook('getMode')() : 'wasm';
         var native = textOf('#chatSourceBadge') === 'Native uor-chat';
         if (note) {
-            note.hidden = attachments.length === 0;
-            note.textContent = attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + ' · ~' + approxTokens + ' tokens · ' + (native ? 'prepended to the next native prompt (stays on this device).' : (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.')) : '';
+            note.hidden = attachments.length === 0 && recalledImages === 0;
+            note.textContent = recalledImages
+                ? 'Image attachments are memory-only and were not restored. Reattach them.'
+                : (attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + (images.length ? ' · R4 patch input - experimental; not visual understanding' : '') + ' · ~' + approxTokens + ' text tokens · ' + (native ? 'prepended to the next native prompt (stays on this device).' : (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.')) : '');
         }
-        attachments.forEach(function (item, index) {
+        attachments.forEach(function (item) {
             var chip = document.createElement('span');
             chip.className = 'attachment-chip';
             chip.title = item.name;
+            if (item.kind === 'image' && item.dataUrl) {
+                var preview = document.createElement('img');
+                preview.className = 'attachment-chip-preview';
+                preview.src = item.dataUrl;
+                preview.alt = '';
+                chip.appendChild(preview);
+            }
             var name = document.createElement('span'); name.className = 'attachment-chip-name'; name.textContent = item.name;
-            var size = document.createElement('span'); size.className = 'attachment-chip-meta'; size.textContent = Math.max(1, Math.round(item.content.length / 1024)) + ' KB';
+            var size = document.createElement('span'); size.className = 'attachment-chip-meta'; size.textContent = (item.kind === 'image' ? item.width + '×' + item.height + ' · ' : '') + Math.max(1, Math.round((Number(item.size) || String(item.content || '').length) / 1024)) + ' KB';
             var remove = document.createElement('button'); remove.type = 'button'; remove.className = 'attachment-chip-remove'; remove.setAttribute('aria-label', 'Remove ' + item.name); remove.textContent = '×';
-            remove.addEventListener('click', function () { attachments.splice(index, 1); saveAttachments(); renderAttachments(); });
+            remove.addEventListener('click', function () { attachments = attachments.filter(function (candidate) { return candidate.name !== item.name; }); saveAttachments(); renderAttachments(); });
             chip.appendChild(name); chip.appendChild(size); chip.appendChild(remove);
             if (chips) chips.appendChild(chip);
-            if (inspector) { var row = document.createElement('li'); row.className = 'attachment-row'; row.textContent = item.name; inspector.appendChild(row); }
+            if (inspector) { var row = document.createElement('li'); row.className = 'attachment-row'; row.textContent = item.name + (item.kind === 'image' ? ' · R4 patch input - experimental; not visual understanding' : ''); inspector.appendChild(row); }
         });
         document.dispatchEvent(new CustomEvent('uor-attachments-changed', { detail: { count: attachments.length } }));
     }

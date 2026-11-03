@@ -1,0 +1,12 @@
+
+> uor-r4-studio-foundation@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-image-studio-canvas/web/studio
+
+
+ Test Files  31 passed (31)
+      Tests  266 passed (266)
+   Start at  17:54:56
+   Duration  1.39s (environment 82%, tests 10%, transform 5%, import 3%)

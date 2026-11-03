@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: mixed clipboard paste attaches the file and leaves its text native
+ok 1 - mixed clipboard paste attaches the file and leaves its text native
+  ---
+  duration_ms: 0.732741
+  type: 'test'
+  ...
+# Subtest: file-only paste remains prevented and attached without sending
+ok 2 - file-only paste remains prevented and attached without sending
+  ---
+  duration_ms: 0.149504
+  type: 'test'
+  ...
+# Subtest: text-only paste remains native without attachment or send callbacks
+ok 3 - text-only paste remains native without attachment or send callbacks
+  ---
+  duration_ms: 0.18975
+  type: 'test'
+  ...
+# Subtest: image dimensions preserve aspect ratio and never upscale
+ok 4 - image dimensions preserve aspect ratio and never upscale
+  ---
+  duration_ms: 0.69545
+  type: 'test'
+  ...
+# Subtest: image MIME and extensions are bounded to raster formats
+ok 5 - image MIME and extensions are bounded to raster formats
+  ---
+  duration_ms: 0.099589
+  type: 'test'
+  ...
+# Subtest: image reading retains memory-only RGBA and bounded preview metadata
+ok 6 - image reading retains memory-only RGBA and bounded preview metadata
+  ---
+  duration_ms: 0.249594
+  type: 'test'
+  ...
+# Subtest: image failures are loud and leave no partial attachment
+ok 7 - image failures are loud and leave no partial attachment
+  ---
+  duration_ms: 0.485893
+  type: 'test'
+  ...
+# Subtest: duplicate image replacement counts retained bytes correctly
+ok 8 - duplicate image replacement counts retained bytes correctly
+  ---
+  duration_ms: 0.145746
+  type: 'test'
+  ...
+# Subtest: split CRLF SSE events preserve text, final usage, native timing, and finish reason
+ok 9 - split CRLF SSE events preserve text, final usage, native timing, and finish reason
+  ---
+  duration_ms: 11.70448
+  type: 'test'
+  ...
+# Subtest: a non-stream JSON fallback returns exact usage and native timing
+ok 10 - a non-stream JSON fallback returns exact usage and native timing
+  ---
+  duration_ms: 0.648992
+  type: 'test'
+  ...
+# Subtest: mid-stream abort returns the partial text without raising a second error
+ok 11 - mid-stream abort returns the partial text without raising a second error
+  ---
+  duration_ms: 0.360213
+  type: 'test'
+  ...
+# Subtest: OpenAI error envelopes retain status and message
+ok 12 - OpenAI error envelopes retain status and message
+  ---
+  duration_ms: 0.485061
+  type: 'test'
+  ...
+# Subtest: malformed SSE data and in-band OpenAI errors fail instead of completing successfully
+ok 13 - malformed SSE data and in-band OpenAI errors fail instead of completing successfully
+  ---
+  duration_ms: 0.462408
+  type: 'test'
+  ...
+# Subtest: a successful non-JSON response fails loudly instead of inventing a reply
+ok 14 - a successful non-JSON response fails loudly instead of inventing a reply
+  ---
+  duration_ms: 0.236529
+  type: 'test'
+  ...
+# Subtest: native image decomposition returns the exact structured content part
+ok 15 - native image decomposition returns the exact structured content part
+  ---
+  duration_ms: 0.524466
+  type: 'test'
+  ...
+# Subtest: structured content survives chat normalization and custom images use image_url
+ok 16 - structured content survives chat normalization and custom images use image_url
+  ---
+  duration_ms: 0.522421
+  type: 'test'
+  ...
+# Subtest: an image-only promised native part is sent without an empty text part
+ok 17 - an image-only promised native part is sent without an empty text part
+  ---
+  duration_ms: 0.435517
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 44.850614

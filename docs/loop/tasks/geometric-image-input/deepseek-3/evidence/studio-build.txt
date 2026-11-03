@@ -1,0 +1,13 @@
+
+> uor-r4-studio-foundation@0.1.0 build
+> vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 29 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/studio-foundation.css    3.57 kB │ gzip:  1.14 kB
+dist/studio-foundation.js   124.55 kB │ gzip: 34.13 kB
+
+✓ built in 37ms

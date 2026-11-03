@@ -1,0 +1,608 @@
+    Checking uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-image-studio-canvas/crates/uor-r4-integer)
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/codec.rs:109:8
+    |
+109 |     if data.len() % HADAMARD_BLOCK != 0 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!data.len().is_multiple_of(HADAMARD_BLOCK)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+    = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/codec.rs:146:8
+    |
+146 |     if data.len() % HADAMARD_BLOCK != 0 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!data.len().is_multiple_of(HADAMARD_BLOCK)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: the loop variable `i` is used to index `activations`
+   --> crates/uor-r4-integer/src/codec.rs:356:22
+    |
+356 |             for i in start..end {
+    |                      ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+356 -             for i in start..end {
+356 +             for (i, <item>) in activations.iter().enumerate().take(end).skip(start) {
+    |
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/codec.rs:812:24
+    |
+812 |                     if linear_idx % 2 == 0 {
+    |                        ^^^^^^^^^^^^^^^^^^^ help: replace with: `linear_idx.is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/codec.rs:853:37
+    |
+853 |                     let nibble = if linear_idx % 2 == 0 {
+    |                                     ^^^^^^^^^^^^^^^^^^^ help: replace with: `linear_idx.is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: manual implementation of `.is_multiple_of()`
+    --> crates/uor-r4-integer/src/codec.rs:1190:20
+     |
+1190 |                 if linear_idx % 2 == 0 {
+     |                    ^^^^^^^^^^^^^^^^^^^ help: replace with: `linear_idx.is_multiple_of(2)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: doc list item without indentation
+    --> crates/uor-r4-integer/src/codec.rs:1278:5
+     |
+1278 | /// Total: 241 codewords (fits in 8 bits / 1 byte per 8 weights = 1.0 bit/weight).
+     |     ^
+     |
+     = help: if this is supposed to be its own paragraph, add a blank line
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#doc_lazy_continuation
+     = note: `-D clippy::doc-lazy-continuation` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::doc_lazy_continuation)]`
+help: indent this line
+     |
+1278 | ///   Total: 241 codewords (fits in 8 bits / 1 byte per 8 weights = 1.0 bit/weight).
+     |     ++
+
+error: the loop variable `b` is used to index `r`
+    --> crates/uor-r4-integer/src/codec.rs:1323:22
+     |
+1323 |             for b in 0..8 {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1323 -             for b in 0..8 {
+1323 +             for (b, <item>) in r.iter_mut().enumerate() {
+     |
+
+error: this `repeat().take()` can be written more concisely
+    --> crates/uor-r4-integer/src/codec.rs:1729:36
+     |
+1729 |                         out.extend(std::iter::repeat(0.0f32).take(group.len()));
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `repeat_n()` instead: `std::iter::repeat_n(0.0f32, group.len())`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_repeat_n
+     = note: `-D clippy::manual-repeat-n` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::manual_repeat_n)]`
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/discrete_d11.rs:405:12
+    |
+405 |         if words.len() % 3 != 0 {
+    |            ^^^^^^^^^^^^^^^^^^^^ help: replace with: `!words.len().is_multiple_of(3)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: variable appears on both sides of an assignment operation
+   --> crates/uor-r4-integer/src/discrete_d11.rs:701:9
+    |
+701 |         span += span + span;
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#misrefactored_assign_op
+    = note: `-D clippy::misrefactored-assign-op` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::misrefactored_assign_op)]`
+help: did you mean `span = span + span` or `span = span + span + span`? Consider replacing it with
+    |
+701 -         span += span + span;
+701 +         span += span;
+    |
+help: or
+    |
+701 -         span += span + span;
+701 +         span = span + span + span;
+    |
+
+error: the loop variable `r` is used to index `ROOTS`
+   --> crates/uor-r4-integer/src/discrete_d11.rs:740:14
+    |
+740 |     for r in 0..16 {
+    |              ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+740 -     for r in 0..16 {
+740 +     for (r, <item>) in ROOTS.iter().enumerate() {
+    |
+
+error: manual implementation of `.is_multiple_of()`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1034:20
+     |
+1034 |                 if (entry.span.offset as usize) % ALIGN != 0
+     |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!(entry.span.offset as usize).is_multiple_of(ALIGN)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: the loop variable `token` is used to index `cells`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1091:22
+     |
+1091 |         for token in 0..vocab {
+     |                      ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1091 -         for token in 0..vocab {
+1091 +         for (token, <item>) in cells.iter().enumerate().take(vocab) {
+     |
+
+error: the loop variable `block` is used to index `roots4`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1096:26
+     |
+1096 |             for block in 0..blocks {
+     |                          ^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1096 -             for block in 0..blocks {
+1096 +             for (block, <item>) in roots4.iter_mut().enumerate().take(blocks) {
+     |
+
+error: manual implementation of `.is_multiple_of()`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1157:20
+     |
+1157 |                 if (entry.span.offset as usize) % ALIGN != 0
+     |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!(entry.span.offset as usize).is_multiple_of(ALIGN)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: the loop variable `port` is used to index `BRANCH`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1341:29
+     |
+1341 |                 for port in 0..count {
+     |                             ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1341 -                 for port in 0..count {
+1341 +                 for (port, <item>) in BRANCH.iter().enumerate().take(count) {
+     |
+
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1387:10
+     |
+1387 |     ) -> Result<(Vec<[i32; 8]>, Option<Vec<i32>>)> {
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+     = note: `-D clippy::type-complexity` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: the loop variable `p` is used to index `prev`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1459:42
+     |
+1459 | ...                   for p in (i + 1)..nodes_count {
+     |                                ^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1459 -                                 for p in (i + 1)..nodes_count {
+1459 +                                 for (p, <item>) in prev.iter().enumerate().take(nodes_count).skip((i + 1)) {
+     |
+
+error: the loop variable `j` is used to index `prev`
+    --> crates/uor-r4-integer/src/discrete_d11.rs:1492:42
+     |
+1492 | ...                   for j in 0..i {
+     |                                ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1492 -                                 for j in 0..i {
+1492 +                                 for (j, <item>) in prev.iter().enumerate().take(i) {
+     |
+
+error: derefed type is same as origin
+   --> crates/uor-r4-integer/src/m6_exact_arithmetic.rs:590:26
+    |
+590 |         if let Some(m) = mem.as_deref_mut() {
+    |                          ^^^^^^^^^^^^^^^^^^ help: try: `mem`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+    = note: `-D clippy::needless-option-as-deref` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_option_as_deref)]`
+
+error: derefed type is same as origin
+   --> crates/uor-r4-integer/src/m6_exact_arithmetic.rs:651:26
+    |
+651 |         if let Some(m) = mem.as_deref_mut() {
+    |                          ^^^^^^^^^^^^^^^^^^ help: try: `mem`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+
+error: manual slice size calculation
+   --> crates/uor-r4-integer/src/geometric_attention.rs:299:16
+    |
+299 |             * (self.components.exp_q31.len() * size_of::<u32>()
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `std::mem::size_of_val(self.components.exp_q31)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_slice_size_calculation
+    = note: `-D clippy::manual-slice-size-calculation` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_slice_size_calculation)]`
+
+error: doc list item without indentation
+   --> crates/uor-r4-integer/src/geometric_context.rs:143:5
+    |
+143 | /// bytes), excluded from stored_bytes. Coefficient/artifact bytes are unchanged;
+    |     ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#doc_lazy_continuation
+help: indent this line
+    |
+143 | ///   bytes), excluded from stored_bytes. Coefficient/artifact bytes are unchanged;
+    |     ++
+
+error: doc list item without indentation
+   --> crates/uor-r4-integer/src/geometric_context.rs:144:5
+    |
+144 | /// allocator bookkeeping and alignment overhead are not included in this count.
+    |     ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#doc_lazy_continuation
+help: indent this line
+    |
+144 | ///   allocator bookkeeping and alignment overhead are not included in this count.
+    |     ++
+
+error: manual saturating arithmetic
+   --> crates/uor-r4-integer/src/geometric_occurrence_read.rs:913:25
+    |
+913 |         let mut total = query.len().checked_add(prefix.len()).unwrap_or(usize::MAX);
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `saturating_add`: `query.len().saturating_add(prefix.len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+    = note: `-D clippy::manual-saturating-arithmetic` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_saturating_arithmetic)]`
+
+error: manual saturating arithmetic
+   --> crates/uor-r4-integer/src/geometric_occurrence_read.rs:917:21
+    |
+917 |               total = total
+    |  _____________________^
+918 | |                 .checked_add(segment.tokens().len())
+919 | |                 .unwrap_or(usize::MAX);
+    | |______________________________________^ help: consider using `saturating_add`: `total.saturating_add(segment.tokens().len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+
+error: manual saturating arithmetic
+   --> crates/uor-r4-integer/src/geometric_occurrence_read.rs:927:25
+    |
+927 |                   count = count
+    |  _________________________^
+928 | |                     .checked_add(frame.token_ids.len())
+929 | |                     .unwrap_or(usize::MAX);
+    | |__________________________________________^ help: consider using `saturating_add`: `count.saturating_add(frame.token_ids.len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+
+error: large size difference between variants
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:282:1
+    |
+282 | /   pub enum BankSegmentTrace {
+283 | | /     Source {
+284 | | |         event: u64,
+285 | | |         record: u64,
+286 | | |         commit: u64,
+...   | |
+291 | | |         view: SourceEmissionView,
+292 | | |     },
+    | | |_____- the largest variant contains at least 240 bytes
+293 | | /     Context {
+294 | | |         event: u64,
+295 | | |         role: u32,
+296 | | |         token_ids: Vec<u32>,
+297 | | |     },
+    | | |_____- the second-largest variant contains at least 36 bytes
+298 | |   }
+    | |___^ the entire enum is at least 240 bytes
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#large_enum_variant
+    = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+    |
+291 -         view: SourceEmissionView,
+291 +         view: Box<SourceEmissionView>,
+    |
+
+error: this function has too many arguments (8/7)
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:417:5
+    |
+417 | /     pub fn read_bank_with_source_end_transport(
+418 | |         &self,
+419 | |         segments: &[SourceBankSegment<'_>],
+420 | |         query: &[u32],
+...   |
+425 | |         end: &NativeSourceEndTransport<'_>,
+426 | |     ) -> Result<SourceEndBankRealizerTrace> {
+    | |___________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: manual saturating arithmetic
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:500:29
+    |
+500 |         let mut projected = query.len().checked_add(prefix.len()).unwrap_or(usize::MAX);
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `saturating_add`: `query.len().saturating_add(prefix.len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+
+error: manual saturating arithmetic
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:506:25
+    |
+506 |             projected = projected.checked_add(n).unwrap_or(usize::MAX);
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `saturating_add`: `projected.saturating_add(n)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_saturating_arithmetic
+
+error: this function has too many arguments (8/7)
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:856:5
+    |
+856 | /     pub fn read_dependent(
+857 | |         &self,
+858 | |         frame: SelectedRecordFrame<'_>,
+859 | |         view: &SourceEmissionView,
+...   |
+864 | |         mode: FeedbackInputMode,
+865 | |     ) -> Result<DependentReadTrace> {
+    | |___________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (8/7)
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:883:5
+    |
+883 | /     pub fn read_dependent_action_traces(
+884 | |         &self,
+885 | |         frame: SelectedRecordFrame<'_>,
+886 | |         view: &SourceEmissionView,
+...   |
+891 | |         mode: FeedbackInputMode,
+892 | |     ) -> Result<NativeActionCounterfactualTrace> {
+    | |________________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (9/7)
+   --> crates/uor-r4-integer/src/geometric_source_realizer.rs:913:5
+    |
+913 | /     pub fn read_dependent_action_traces_for(
+914 | |         &self,
+915 | |         frame: SelectedRecordFrame<'_>,
+916 | |         view: &SourceEmissionView,
+...   |
+922 | |         requests: &[NativeLaneActionRequest],
+923 | |     ) -> Result<NativeActionCounterfactualTrace> {
+    | |________________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: this function has too many arguments (8/7)
+    --> crates/uor-r4-integer/src/geometric_source_realizer.rs:1594:5
+     |
+1594 | /     pub fn read_dependent_action_traces_for(
+1595 | |         &self,
+1596 | |         frame: SelectedRecordFrame<'_>,
+1597 | |         view: &SourceEmissionView,
+...    |
+1602 | |         requests: &[NativeLaneActionRequest],
+1603 | |     ) -> Result<NativeActionCounterfactualTrace> {
+     | |________________________________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/geometric_span.rs:100:36
+    |
+100 |         if flattened.is_empty() || flattened.len() % lanes != 0 {
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!flattened.len().is_multiple_of(lanes)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: `Vec<T>` is already on the heap, the boxing is unnecessary
+  --> crates/uor-r4-integer/src/geometric_turn_compiler.rs:55:12
+   |
+55 |     slots: Vec<Box<[i8; ROOT_COUNT]>>,
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Vec<[i8; ROOT_COUNT]>`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#vec_box
+   = note: `-D clippy::vec-box` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::vec_box)]`
+
+error: the loop variable `offset` is used to index `weights`
+   --> crates/uor-r4-integer/src/geometric_vocabulary_actions.rs:832:23
+    |
+832 |         for offset in 0..weights.len() {
+    |                       ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+832 -         for offset in 0..weights.len() {
+832 +         for (offset, <item>) in weights.iter_mut().enumerate() {
+    |
+
+error: useless use of `format!`
+   --> crates/uor-r4-integer/src/model.rs:427:18
+    |
+427 |                 &format!("576 elements").as_str(),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.to_string()`: `"576 elements".to_string()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#useless_format
+    = note: `-D clippy::useless-format` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_format)]`
+
+error: the loop variable `hi` is used to index `p1`
+    --> crates/uor-r4-integer/src/model.rs:1527:19
+     |
+1527 |         for hi in 0..16 {
+     |                   ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1527 -         for hi in 0..16 {
+1527 +         for (hi, <item>) in p1.iter().enumerate().take(16) {
+     |
+
+error: the loop variable `hi` is used to index `p1`
+    --> crates/uor-r4-integer/src/model.rs:1574:19
+     |
+1574 |         for hi in 0..16 {
+     |                   ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1574 -         for hi in 0..16 {
+1574 +         for (hi, <item>) in p1.iter().enumerate().take(16) {
+     |
+
+error: the loop variable `i` is used to index `arcosh`
+    --> crates/uor-r4-integer/src/model.rs:4255:18
+     |
+4255 |         for i in (i0 + 1)..i1 {
+     |                  ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+4255 -         for i in (i0 + 1)..i1 {
+4255 +         for (i, <item>) in arcosh.iter_mut().enumerate().take(i1).skip((i0 + 1)) {
+     |
+
+error: the loop variable `i` is used to index `arcosh`
+    --> crates/uor-r4-integer/src/model.rs:4261:18
+     |
+4261 |         for i in (i1 + 1)..=i2 {
+     |                  ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+4261 -         for i in (i1 + 1)..=i2 {
+4261 +         for (i, <item>) in arcosh.iter_mut().enumerate().take(i2 + 1).skip((i1 + 1)) {
+     |
+
+error: this manual char comparison can be written more succinctly
+   --> crates/uor-r4-integer/src/stack/dialogue_memory.rs:108:16
+    |
+108 |     text.split(|ch: char| matches!(ch, ',' | ';' | ':' | '.' | '!' | '?' | '(' | ')' | '\n'))
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using an array of `char`: `[',', ';', ':', '.', '!', '?', '(', ')', '\n']`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_pattern_char_comparison
+    = note: `-D clippy::manual-pattern-char-comparison` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_pattern_char_comparison)]`
+
+error: clamp-like pattern without using clamp function
+   --> crates/uor-r4-integer/src/stack/flock.rs:113:19
+    |
+113 |         let cap = capacity.max(129).min(MAX_FLOCK_CONTEXT);
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with clamp: `capacity.clamp(129, MAX_FLOCK_CONTEXT)`
+    |
+    = note: clamp will panic if max < min
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_clamp
+    = note: `-D clippy::manual-clamp` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_clamp)]`
+
+error: the loop variable `i` is used to index `RECIPROCAL_Q32`
+   --> crates/uor-r4-integer/src/stack/flock.rs:434:14
+    |
+434 |     for i in 0..count {
+    |              ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+434 -     for i in 0..count {
+434 +     for (i, <item>) in RECIPROCAL_Q32.iter().enumerate().take(count) {
+    |
+
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-integer/src/stack/format.rs:194:25
+    |
+194 |         if heads < 2 || heads % 2 != 0 || !shape.width.is_multiple_of(heads) {
+    |                         ^^^^^^^^^^^^^^ help: replace with: `!heads.is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+
+error: the loop variable `place` is only used to index `first_best`
+    --> crates/uor-r4-integer/src/stack/kernels.rs:1641:18
+     |
+1641 |     for place in 0..keep {
+     |                  ^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1641 -     for place in 0..keep {
+1641 +     for <item> in first_best.iter_mut().take(keep) {
+     |
+
+error: the loop variable `place` is only used to index `second_best`
+    --> crates/uor-r4-integer/src/stack/kernels.rs:1666:18
+     |
+1666 |     for place in 0..keep {
+     |                  ^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1666 -     for place in 0..keep {
+1666 +     for <item> in second_best.iter_mut().take(keep) {
+     |
+
+error: manual implementation of `Option::map`
+   --> crates/uor-r4-integer/src/stack/session.rs:736:22
+    |
+736 |           let memory = match memory_image(&artifact)? {
+    |  ______________________^
+737 | |             Some(image) => Some(Box::new(ServedTurnMemory::new(image))),
+738 | |             None => None,
+739 | |         };
+    | |_________^ help: try: `memory_image(&artifact)?.map(|image| Box::new(ServedTurnMemory::new(image)))`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_map
+    = note: `-D clippy::manual-map` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_map)]`
+
+error: could not compile `uor-r4-integer` (lib) due to 51 previous errors

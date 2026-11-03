@@ -131,8 +131,8 @@
                                         <button class="tool-btn" id="btnAttachContext" type="button" title="Attach the active file or a workspace file as agent context">
                                             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 3.5 5 8a2.1 2.1 0 0 0 3 3l4.5-4.5a3.2 3.2 0 0 0-4.5-4.5L3 6.5a4.3 4.3 0 0 0 6 6l4-4"/></svg>Attach context
                                         </button>
-                                        <button class="tool-btn" id="btnAttachFiles" type="button" title="Attach text or source files" aria-label="Attach text or source files">Attach files</button>
-                                        <input class="visually-hidden" id="chatFileInput" type="file" multiple aria-label="Choose text or source files" accept="text/*,.md,.markdown,.rs,.json,.html,.css,.js,.mjs,.ts,.tsx,.toml,.yml,.yaml,.py,.sh,.csv,.xml,.svg,.sql">
+                                        <button class="tool-btn" id="btnAttachFiles" type="button" title="Attach text, source, or image files" aria-label="Attach text, source, or image files">Attach files</button>
+                                        <input class="visually-hidden" id="chatFileInput" type="file" multiple aria-label="Choose text, source, or image files" accept="text/*,image/png,image/jpeg,image/webp,image/gif,image/bmp,image/avif,.md,.markdown,.rs,.json,.html,.css,.js,.mjs,.ts,.tsx,.toml,.yml,.yaml,.py,.sh,.csv,.xml,.svg,.sql">
                                         <button class="tool-btn" id="btnBuildTask" type="button" aria-haspopup="menu" aria-expanded="false" title="Insert a build-task prompt template">
                                             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Build task
                                         </button>
@@ -493,6 +493,8 @@
 
         import { mountModelSources, ModelSources } from './assets/js/model_sources.js';
         import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js';
+        import { decomposeNativeImage, imageUrlPart } from './assets/js/studio_api.js';
+        import { isImageFile, readImageFiles } from './assets/js/image_input.js';
         import { encodeTextWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
         import { createComposerInput, readTextFiles } from './assets/js/composer_input.js';
         import { createStreamMetrics } from './assets/js/stream_metrics.js';
@@ -1495,17 +1497,53 @@
         }
 
         function apiMessages(conversation) {
-            var messages = conversation.messages
-                .filter(function (message) { return message.role === 'user' || message.role === 'assistant'; })
-                .map(function (message) { return { role: message.role, content: message.content }; });
+            var visibleMessages = conversation.messages
+                .filter(function (message) { return message.role === 'user' || message.role === 'assistant'; });
+            var lastIndex = visibleMessages.length - 1;
+            var messages = visibleMessages
+                .map(function (message, index) {
+                    var content = message.content;
+                    // Image bytes are intentionally memory-only. Preserve a truthful,
+                    // non-empty history marker after reload instead of sending a blank
+                    // historical user turn that the native API rejects. The final turn
+                    // remains empty so a live image-only request has no text part.
+                    if (message.role === 'user' && content === '' && index !== lastIndex) content = '[Image patch input]';
+                    return { role: message.role, content: content };
+                });
             var attachments = window.__studioUi && typeof window.__studioUi.getAttachments === 'function'
                 ? window.__studioUi.getAttachments()
                 : [];
-            if (attachments.length) {
-                var context = attachments.map(function (item) {
+            var textAttachments = attachments.filter(function (item) { return item.kind !== 'image'; });
+            if (textAttachments.length) {
+                var context = textAttachments.map(function (item) {
                     return '--- ' + String(item.name || 'attachment.txt') + ' ---\n' + String(item.content || '');
                 }).join('\n\n');
                 messages.unshift({ role: 'user', content: 'Workspace context:\n' + context });
+            }
+            var images = attachments.filter(function (item) { return item.kind === 'image'; });
+            if (images.length) {
+                var last = messages[messages.length - 1];
+                if (!last || last.role !== 'user') {
+                    throw new Error('Image context requires a final user message.');
+                }
+                var text = typeof last.content === 'string' ? last.content : '';
+                var native = app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true;
+                last.content = (async function () {
+                    var parts = text ? [{ type: 'text', text: text }] : [];
+                    for (var image of images) {
+                        if (native) {
+                            parts.push(await decomposeNativeImage({
+                                config: app.apiConfig,
+                                image: image,
+                                grid: image.grid || { columns: 1, rows: 1 },
+                                signal: app.abortController ? app.abortController.signal : undefined,
+                            }));
+                        } else {
+                            parts.push(imageUrlPart(image));
+                        }
+                    }
+                    return parts;
+                }());
             }
             return messages;
         }
@@ -1615,7 +1653,16 @@
             }
             var input = $('#chatInput');
             var prompt = typeof providedPrompt === 'string' ? providedPrompt.trim() : (input ? input.value.trim() : '');
-            if (!prompt) {
+            var attachments = [];
+            try {
+                attachments = window.__studioUi && typeof window.__studioUi.getAttachments === 'function' ? window.__studioUi.getAttachments() : [];
+            } catch (error) {
+                toast(String(error && error.message || error), 'error');
+                return false;
+            }
+            var hasImages = attachments.some(function (item) { return item.kind === 'image'; });
+            if (!prompt && !(hasImages && app.mode === 'api')) {
+                if (hasImages) toast('Image-only Send requires a native or custom API provider.', 'warn');
                 if (input) input.focus();
                 return false;
             }
@@ -1672,7 +1719,7 @@
                 conversation.messages.push({ role: 'user', content: prompt, meta: null });
                 conversation.sourceKind = app.mode;
                 touchConversation(conversation);
-                appendMessageElement('user', prompt, null);
+                appendMessageElement('user', prompt || '[Image patch input]', null);
                 if (input) {
                     input.value = '';
                     autoGrowTextarea();
@@ -1684,7 +1731,8 @@
                 if (started === false) { rollbackStart(); return false; }
                 if (app.composerInput) app.composerInput.recordSubmitted(inputValue);
                 return app.activeGenerationId;
-            } catch (_error) {
+            } catch (error) {
+                toast(String(error && error.message || error), 'error');
                 rollbackStart();
                 return false;
             }
@@ -1983,10 +2031,18 @@
                     onSend: function () { sendFromComposer(); },
                     onFiles: function (files) {
                         var retained = window.__studioUi && typeof window.__studioUi.getAttachments === 'function' ? window.__studioUi.getAttachments() : [];
-                        readTextFiles(files, { existingAttachments: retained }).then(function (result) {
-                            result.errors.forEach(function (error) { toast(error, 'error'); });
-                            result.attachments.forEach(function (entry) {
-                                document.dispatchEvent(new CustomEvent('uor-attach-file', { detail: entry }));
+                        var textFiles = [];
+                        var imageFiles = [];
+                        Array.from(files || []).forEach(function (file) { (isImageFile(file) ? imageFiles : textFiles).push(file); });
+                        Promise.all([
+                            readTextFiles(textFiles, { existingAttachments: retained.filter(function (item) { return item.kind !== 'image'; }) }),
+                            readImageFiles(imageFiles, { existingAttachments: retained.filter(function (item) { return item.kind === 'image'; }) }),
+                        ]).then(function (results) {
+                            results.forEach(function (result) {
+                                result.errors.forEach(function (error) { toast(error, 'error'); });
+                                result.attachments.forEach(function (entry) {
+                                    document.dispatchEvent(new CustomEvent('uor-attach-file', { detail: entry }));
+                                });
                             });
                         }).catch(function (error) { toast(String(error && error.message || error), 'error'); });
                     },

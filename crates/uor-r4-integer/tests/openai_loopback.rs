@@ -806,6 +806,13 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
         "max_tokens": 1
     });
     let image_request = image_chat_request(part.clone(), 1);
+    let validated = serving_with_context(512)
+        .validate_request(GenerationFamily::Chat, &image_request)
+        .unwrap();
+    assert!(validated.messages[0].content.contains("R4IMG1/1x1/1x1/1:"));
+    assert!(!validated.messages[0]
+        .content
+        .contains(part["source_blake3"].as_str().unwrap()));
 
     let server = LoopbackServer::spawn(config_with_context(512)).unwrap();
     let (status, text) = post_json(server.port(), "/v1/chat/completions", text_request);
@@ -874,7 +881,16 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
     server.shutdown().unwrap();
 
     let small = LoopbackServer::spawn(config()).unwrap();
-    let (status, response) = post_json(small.port(), "/v1/chat/completions", image_request);
+    let (status, response) = post_json(small.port(), "/v1/chat/completions", image_request.clone());
+    assert_eq!(status, 200, "{response}");
+    let mut four_images = image_chat_request(part, 1);
+    four_images["messages"][0]["content"] = Value::Array(
+        [json!({"type": "text", "text": "Hi"})]
+            .into_iter()
+            .chain((0..4).map(|_| image_part(1, 1, Grid::new(1, 1), &rgba)))
+            .collect(),
+    );
+    let (status, response) = post_json(small.port(), "/v1/chat/completions", four_images);
     assert_eq!(status, 413, "{response}");
     assert_eq!(response["error"]["code"], "context_overflow");
     small.shutdown().unwrap();

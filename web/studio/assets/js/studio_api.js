@@ -109,6 +109,70 @@ function requestHeaders(config) {
     return headers;
 }
 
+function toHex(bytes) {
+    let value = '';
+    for (const byte of bytes) value += byte.toString(16).padStart(2, '0');
+    return value;
+}
+
+export function imageUrlPart(image) {
+    const dataUrl = String(image && image.dataUrl || '');
+    if (!/^data:image\/[a-z0-9.+-]+;base64,/i.test(dataUrl)) {
+        throw failure('A bounded image data URL is required.');
+    }
+    return { type: 'image_url', image_url: { url: dataUrl } };
+}
+
+export async function decomposeNativeImage({ config, image, grid, signal } = {}) {
+    const resolved = requireConfig(config);
+    const width = Number(image && image.width);
+    const height = Number(image && image.height);
+    const rgba = image && image.rgba;
+    const columns = Number(grid && grid.columns);
+    const rows = Number(grid && grid.rows);
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 256 || height > 256) {
+        throw failure('Native image dimensions must be within 1..256.');
+    }
+    if (!rgba || Number(rgba.length) !== width * height * 4) {
+        throw failure('Native image decomposition requires exact RGBA bytes.');
+    }
+    if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1 || columns > width || rows > height) {
+        throw failure('Native image grid must fit the image.');
+    }
+    const url = endpoint(resolved.baseUrl, '/images/decompose') +
+        '?width=' + width + '&height=' + height + '&columns=' + columns + '&rows=' + rows;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { ...requestHeaders(resolved), 'Content-Type': 'application/octet-stream' },
+        body: rgba,
+        signal,
+        cache: 'no-store',
+    });
+    if (!response.ok) {
+        const bodyText = await response.text();
+        throw describeHttpError(response, bodyText);
+    }
+    const schema = String(response.headers.get('x-uor-image-schema') || '');
+    const sourceBlake3 = String(response.headers.get('x-uor-source-blake3') || '');
+    const patchCount = Number(response.headers.get('x-uor-patch-count'));
+    if (schema !== 'uor-r4.image-decomposition/1' || !/^[0-9a-f]{64}$/.test(sourceBlake3) || patchCount !== columns * rows) {
+        throw failure('The native decomposition response has invalid identity headers.');
+    }
+    const canonical = new Uint8Array(await response.arrayBuffer());
+    if (!canonical.length || canonical.length > 52 + 32 * 32 * 40) {
+        throw failure('The native decomposition response is outside its canonical byte bound.');
+    }
+    return {
+        type: 'uor_r4_image',
+        schema,
+        canonical_hex: toHex(canonical),
+        source_blake3: sourceBlake3,
+        width,
+        height,
+        grid: { columns, rows },
+    };
+}
+
 function timeoutSignal(parentSignal, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(failure('The API request timed out.')), timeoutMs);
@@ -197,11 +261,16 @@ export async function testConnection(config) {
     }
 }
 
-function normaliseMessages(messages) {
+async function normaliseMessages(messages) {
     if (!Array.isArray(messages) || messages.length === 0) throw failure('At least one chat message is required.');
-    return messages
-        .filter((message) => message && typeof message.content === 'string' && message.content.length > 0)
-        .map((message) => ({ role: ['system', 'user', 'assistant'].includes(message.role) ? message.role : 'user', content: message.content }));
+    const normalized = [];
+    for (const message of messages) {
+        if (!message) continue;
+        const content = await message.content;
+        if (!((typeof content === 'string' && content.length > 0) || (Array.isArray(content) && content.length > 0))) continue;
+        normalized.push({ role: ['system', 'user', 'assistant'].includes(message.role) ? message.role : 'user', content });
+    }
+    return normalized;
 }
 
 /** Parse one SSE event block ("data: {...}") into an OpenAI streaming chunk. */
@@ -240,7 +309,7 @@ export async function streamChatCompletions({ config, messages, signal, onDelta,
     }
     const body = {
         model: resolved.model || 'default',
-        messages: normaliseMessages(messages),
+        messages: await normaliseMessages(messages),
         stream: true,
         stream_options: { include_usage: true },
         temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : resolved.temperature,
@@ -386,7 +455,7 @@ export async function completeChatCompletions({ config, messages, options = {} }
         headers: requestHeaders(resolved),
         body: JSON.stringify({
             model: resolved.model || 'default',
-            messages: normaliseMessages(messages),
+            messages: await normaliseMessages(messages),
             stream: false,
             temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : resolved.temperature,
             max_tokens: Number(options.maxTokens) > 0 ? Math.min(4096, Number(options.maxTokens)) : resolved.maxTokens,
@@ -404,6 +473,8 @@ const api = {
     configFromSources,
     listModels,
     testConnection,
+    decomposeNativeImage,
+    imageUrlPart,
     streamChatCompletions,
     completeChatCompletions,
 };
