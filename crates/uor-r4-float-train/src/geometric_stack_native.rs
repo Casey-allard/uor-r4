@@ -1130,11 +1130,16 @@ impl StackModel {
                 .spiralcore_fbs_plans
                 .get(&(input_width, output_width))
                 .ok_or_else(|| invalid("missing bound native projection"))?;
+            // Under the served surrogate each output is on the residual's 2^-16 grid, as the
+            // integer session's `stack_fbs_gather` holds it (claude-264).
+            let q16 = crate::hamilton_sheet::served_projection_q16;
             // A SpiralCore/FBS sheet arm (spiralcore-fbs-offline-float-sheet), when one is set.
             if let Some(arm) = crate::spiralcore_fbs_arms::fbs_arm() {
-                return crate::spiralcore_fbs_arms::project(plan, weight, input, arm);
+                return q16(crate::spiralcore_fbs_arms::project(
+                    plan, weight, input, arm,
+                )?);
             }
-            return plan.forward(weight, input);
+            return q16(plan.forward(weight, input)?);
         }
         if weight.dims() == [self.config.vocab_size, self.config.width]
             && self.native_vector_head.is_some()
@@ -2388,6 +2393,89 @@ mod tests {
                     "geometric rate/opening credit disconnected at fresh initialization: {name}"
                 );
             }
+        }
+        Ok(())
+    }
+    /// claude-264: under the served surrogate every FBS projection's output lies on the
+    /// residual's 2^-16 grid and is the unrounded output rounded half up, as the integer
+    /// session's `stack_fbs_gather` holds it; its gradient is the unrounded one
+    /// (straight-through). A plain forward, the Q16 control alone and D11 mode leave the output
+    /// unrounded, bit for bit.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn served_fbs_projections_round_to_the_residual_grid_on_cuda() -> Result<()> {
+        use crate::hamilton_sheet as hs;
+        use candle_core::Var;
+
+        let device = Device::new_cuda(0)?;
+        let mut config = StackConfig::transformer_control(42);
+        config.arch = StackArch::Geometric;
+        config.pattern = "rrrrrr".into();
+        config.width = 256;
+        config.heads = 4;
+        config.mlp_hidden = 384;
+        config.context = 384;
+        config.vocab_size = 4096;
+        config.rotation = true;
+        config.gate = Gate::Hamilton;
+        config.rec_gates = RecGates::Geometric;
+        let mut model = StackModel::new(config, &device)?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        model.set_native_vector_head(8)?;
+        let p = model.params()?;
+        let q16 = 65536.0f32;
+        for (name, in_width) in [
+            ("rec.in.weight", 256),
+            ("rec.gate.weight", 256),
+            ("rec.out.weight", 256),
+            ("mlp.gate.weight", 256),
+            ("mlp.up.weight", 256),
+            ("mlp.down.weight", 384),
+        ] {
+            let weight = p.layer(0, name)?;
+            // Off-grid carriers, with exact halves of 2^-16 on both signs first.
+            let mut values = vec![0.5 / q16, -0.5 / q16, 1.5 / q16, -1.5 / q16];
+            values.extend(
+                (values.len()..2 * in_width).map(|i| ((i * 7919) % 20001) as f32 / 1000.0 - 10.0),
+            );
+            let input = Var::from_vec(values, (2, in_width), &device)?;
+            let plain = model.linear(input.as_tensor(), weight)?;
+            let plain_values = plain.flatten_all()?.to_vec1::<f32>()?;
+            let control = hs::with_q16_residual(|| model.linear(input.as_tensor(), weight))?;
+            let d11 = hs::with_d11_mode(|| model.linear(input.as_tensor(), weight))?;
+            assert_eq!(
+                control.flatten_all()?.to_vec1::<f32>()?,
+                plain_values,
+                "{name}"
+            );
+            assert_eq!(d11.flatten_all()?.to_vec1::<f32>()?, plain_values, "{name}");
+
+            let served = hs::with_served_surrogate_training(1, 0, || {
+                model.linear(input.as_tensor(), weight)
+            })?;
+            let mut moved = 0usize;
+            for (s, v) in served
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .into_iter()
+                .zip(&plain_values)
+            {
+                assert_eq!(s, (v * q16 + 0.5).floor() / q16, "{name}: {v}");
+                assert_eq!((s * q16).fract(), 0.0, "{name}: {s} is off the grid");
+                moved += usize::from(s != *v);
+            }
+            assert!(moved > 0, "{name}: no output left the grid");
+
+            let plain_grad = plain.sum_all()?.backward()?;
+            let served_grad = served.sum_all()?.backward()?;
+            let read = |grads: &candle_core::backprop::GradStore| -> Result<Vec<f32>> {
+                Ok(grads
+                    .get(input.as_tensor())
+                    .ok_or_else(|| invalid(format!("{name}: no carrier gradient")))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?)
+            };
+            assert_eq!(read(&served_grad)?, read(&plain_grad)?, "{name}: gradient");
         }
         Ok(())
     }
