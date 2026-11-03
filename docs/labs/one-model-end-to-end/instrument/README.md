@@ -72,10 +72,11 @@ For a supported four-table `uor-r4.lut-discrete/1` artifact, `cpu_engine_parity`
 `CpuDiscreteProposalScorer` to recompute the query and checks query coordinates, admitted cells,
 top-8 and top-1 against integer serving.
 
-For the current 19-table M1 artifact, that full comparison is unavailable because `uor-r4-cpu-train`
-implements the four-table discrete read path, not the 15 additional M1 trunk tables. The report
-still independently reproduces the writer from each serving trunk Q12 query and records the full
-trunk check as unavailable rather than treating a second serving call as parity.
+For a supported 19-table `uor-r4.lut-discrete-trunk/1` artifact, it uses
+`CpuDiscreteTrunkReader` through the CPU Relation/Flock/Route read, recurrence, joint-pointer
+rotation and post-rotation writer. The report checks every complete Q12 query coordinate,
+admitted-cell vector, top-8 and token against integer serving. Other schemas remain explicitly
+`unavailable`; no unsupported artifact is treated as parity.
 
 ### Evidence still unavailable without more inputs
 

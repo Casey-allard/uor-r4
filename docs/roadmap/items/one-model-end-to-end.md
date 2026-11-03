@@ -42,6 +42,14 @@ ready for a useful-chat demonstration; it does not change this item's status or
 replace the served-training comparison above. Full transcripts and pins:
 [public-chat post-smoke baseline](../../labs/one-model-end-to-end/public-chat-post-smoke-2026-11-02/README.md).
 
+The CPU-only `m2-evidence` lane now executes the public trained 19-table M1
+artifact through the independent `CpuDiscreteTrunkReader`. On its existing
+616-target public panel it checked all 19,712 Q12 query coordinates and all
+complete admitted-cell, top-8 and token decisions with zero mismatches. This
+closes the earlier full-CPU-trunk query gap in the evidence instrument; it is
+not a training, complete-reply, fresh-phrasing or GPU-qualification result.
+See [deepseek-11](../../loop/tasks/one-model-end-to-end/deepseek-11/REPORT.md).
+
 ## What is missing
 
 - **Served-surrogate training is repaired; it now passes the operational

@@ -38,6 +38,7 @@ fn run() -> Result<(), String> {
             "measured_targets": report.measured_targets,
             "overall": report.overall,
             "writer_parity": report.writer_parity,
+            "cpu_engine_parity": report.cpu_engine_parity,
             "out": config.out,
             "sha256": report_sha256(&text),
         })

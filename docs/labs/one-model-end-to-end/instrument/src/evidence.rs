@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uor_r4_cpu_train::{
-    CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuWriterCore, ABSENT_CELL, READ_WIDTH,
-    VOCABULARY,
+    CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuDiscreteTrunkReader, CpuWriterCore,
+    ABSENT_CELL, READ_WIDTH, VOCABULARY,
 };
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 use uor_r4_tokenizer::ByteBpeTokenizer;
@@ -164,8 +164,8 @@ impl WriterParity {
             token_mismatches: 0,
             query_source: "integer_serving_trunk_q12".to_owned(),
             trunk_query_scope:
-                "serving trunk Q12 query; cpu_engine_parity records whether a fully independent \
-                 CPU query is available for this artifact family"
+                "writer-only from the serving trunk Q12 query; cpu_engine_parity independently \
+                 checks the complete supported CPU query"
                     .to_owned(),
         }
     }
@@ -1014,24 +1014,39 @@ fn observe_cpu_engine_parity(
     artifact_bytes: &[u8],
     targets: &[Target],
 ) -> Result<CpuEngineParity> {
-    if artifact.schema != "uor-r4.lut-discrete/1" || artifact.tables != 4 {
-        return Ok(CpuEngineParity::unavailable(format!(
-            "artifact schema {} with {} tables is outside the four-table CPU discrete read implementation",
-            artifact.schema, artifact.tables
-        )));
-    }
-    let samples = targets
-        .iter()
-        .map(|target| CpuDiscreteProposalSample {
-            prefix: target.prefix.clone(),
-            target: target.target,
-        })
-        .collect::<Vec<_>>();
-    let scorer = CpuDiscreteProposalScorer::from_bytes(artifact_bytes)
-        .map_err(|error| format!("independent CPU discrete engine: {error}"))?;
-    let reading = scorer
-        .export_parity(artifact_bytes, &samples)
-        .map_err(|error| format!("independent CPU discrete parity: {error}"))?;
+    let reading = match (artifact.schema.as_str(), artifact.tables) {
+        ("uor-r4.lut-discrete/1", 4) => {
+            let samples = targets
+                .iter()
+                .map(|target| CpuDiscreteProposalSample {
+                    prefix: target.prefix.clone(),
+                    target: target.target,
+                })
+                .collect::<Vec<_>>();
+            let scorer = CpuDiscreteProposalScorer::from_bytes(artifact_bytes)
+                .map_err(|error| format!("independent CPU discrete engine: {error}"))?;
+            scorer
+                .export_parity(artifact_bytes, &samples)
+                .map_err(|error| format!("independent CPU discrete parity: {error}"))?
+        }
+        ("uor-r4.lut-discrete-trunk/1", 19) => {
+            let prefixes = targets
+                .iter()
+                .map(|target| target.prefix.clone())
+                .collect::<Vec<_>>();
+            let reader = CpuDiscreteTrunkReader::from_bytes(artifact_bytes)
+                .map_err(|error| format!("independent CPU discrete trunk: {error}"))?;
+            reader
+                .export_parity(artifact_bytes, &prefixes)
+                .map_err(|error| format!("independent CPU discrete trunk parity: {error}"))?
+        }
+        _ => {
+            return Ok(CpuEngineParity::unavailable(format!(
+                "artifact schema {} with {} tables is outside the four-table and 19-table CPU discrete implementations",
+                artifact.schema, artifact.tables
+            )));
+        }
+    };
     let parity = CpuEngineParity::from_reading(reading);
     if !parity.is_exact() {
         return Err(format!(
@@ -1739,6 +1754,55 @@ mod tests {
         assert_eq!(parity.top8_mismatches, 1);
         assert_eq!(parity.token_mismatches, 1);
         assert!(!parity.is_exact());
+    }
+
+    #[test]
+    fn cpu_engine_parity_dispatches_four_table_trunk_and_unsupported_artifacts() {
+        let target = Target {
+            prefix: vec![0],
+            target: 1,
+            target_cell: 0,
+            metadata: Metadata::default(),
+        };
+        let identity = |schema: &str, tables: usize| ArtifactIdentity {
+            path: "fixture.d11".to_owned(),
+            sha256: "00".repeat(32),
+            model_sha256: "00".repeat(32),
+            schema: schema.to_owned(),
+            tables,
+            vocabulary: VOCABULARY as u32,
+            context: 192,
+            blocks: 4,
+            kept_cells: 8,
+            read_mode: "relation".to_owned(),
+        };
+
+        let four = identity("uor-r4.lut-discrete/1", 4);
+        assert!(observe_cpu_engine_parity(
+            &four,
+            b"not-an-artifact",
+            std::slice::from_ref(&target)
+        )
+        .unwrap_err()
+        .contains("independent CPU discrete engine"));
+
+        let trunk = identity("uor-r4.lut-discrete-trunk/1", 19);
+        assert!(observe_cpu_engine_parity(
+            &trunk,
+            b"not-an-artifact",
+            std::slice::from_ref(&target)
+        )
+        .unwrap_err()
+        .contains("independent CPU discrete trunk"));
+
+        let unsupported = identity("uor-r4.lut-discrete/2", 7);
+        let unavailable =
+            observe_cpu_engine_parity(&unsupported, b"not-an-artifact", &[target]).unwrap();
+        assert!(unavailable
+            .unavailable
+            .as_deref()
+            .unwrap()
+            .contains("four-table and 19-table"));
     }
 
     #[test]

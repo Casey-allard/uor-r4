@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/m1-evidence": {
+    "branch": "deepseek/m1-evidence",
+    "claimed_at": "2026-11-03T07:51:55-05:00",
+    "head": "8515a3916",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/m1-trunk-cpu": {
     "branch": "deepseek/m1-trunk-cpu",
     "claimed_at": "2026-11-03T03:51:26-05:00",

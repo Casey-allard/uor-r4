@@ -19,7 +19,7 @@ cargo run --release --bin m2-evidence -- \
   max-targets=1024 out=NEW_REPORT.json
 ```
 
-The report binds artifact and corpus manifests, tokenizer and content hashes; counts admission, top-1 and top-8; reports exact and value-masked prompt/reply overlap, reply 4-/8-gram novelty and a new-template stratum at K = 1,024; and marks missing controls or data as unavailable. It distinguishes `canonical_train` from `generated_control`; the role is required when a reference index is supplied. The current 19-table M1 smoke has exact writer parity from the serving Q12 query. Full two-sided CPU-trunk parity remains unavailable because the CPU research path does not implement the 15 additional M1 trunk tables. The first public artifact/panel smoke run is in the [deepseek-1 REPORT](../../loop/tasks/one-model-end-to-end/deepseek-1/REPORT.md).
+The report binds artifact and corpus manifests, tokenizer and content hashes; counts admission, top-1 and top-8; reports exact and value-masked prompt/reply overlap, reply 4-/8-gram novelty and a new-template stratum at K = 1,024; and marks missing controls or data as unavailable. It distinguishes `canonical_train` from `generated_control`; the role is required when a reference index is supplied. For the public 19-table M1 artifact, it now checks every complete CPU query, admitted-cell vector, top-8 and token against integer serving through `CpuDiscreteTrunkReader`; the separate writer check remains. The first public artifact/panel smoke is in the [deepseek-1 REPORT](../../loop/tasks/one-model-end-to-end/deepseek-1/REPORT.md), and the full-trunk rerun is in [deepseek-11](../../loop/tasks/one-model-end-to-end/deepseek-11/REPORT.md).
 
 ## The overturn check (claude-205)
 
