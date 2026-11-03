@@ -1,6 +1,8 @@
 # Served-surrogate training comparison
 
-**Status:** DRAFT until a fresh-context FIT review.
+**Status:** EXECUTED. Instrument door PASS; operational door FAIL; quality smoke
+inconclusive. The wiring is not ready for a longer run until the served-training
+slowdown is repaired.
 
 TEST FITNESS: FIT
 
@@ -89,19 +91,20 @@ For every run:
 - `fbs-snapshot --round-as-exported`: the set of saved files whose bytes change.
 
 The served-forward override is for evaluation only and must not change the
-training objective. Before inspection, create each separate evaluation run as:
+training objective. Before inspection, let `fbs-snapshot` create each separate
+evaluation run:
 
 ```text
-mkdir -p EVAL/models
-cp RUN/config.json EVAL/config.json
 fbs-snapshot --round-as-exported RUN/models/step-000256 EVAL/models/step-000256
 ```
 
-The copied run config preserves the source arm, seed, architecture, reads,
-rounding flags and arm setting; all later scoring flags are identical. The
-source and copy file hashes are recorded. This is required for the plain arm,
-whose unrounded files `evaluate_dev_panel_d11` correctly refuses. The served arm
-receives the same copy step to keep the evaluation path identical.
+`EVAL` must not exist before the command. `fbs-snapshot` creates the run folder
+and copies the source `config.json` itself; the copied config preserves the
+source arm, seed, architecture, reads, rounding flags and arm setting. All later
+scoring flags are identical, and the source and copy file hashes are recorded.
+This is required for the plain arm, whose unrounded files
+`evaluate_dev_panel_d11` correctly refuses. The served arm receives the same
+copy step to keep the evaluation path identical.
 
 ## Steps
 
@@ -135,6 +138,44 @@ The lease is renewed at least every 30 minutes. It is released and the pod is
 destroyed only after `/workspace` results are archived, uploaded, read back and
 checked against `SHA256SUMS`.
 
+## Run result
+
+Claude ran the four registered jobs on seed 1's pod at head
+`36ca53c81195969f9487747163cc13c50d145efa`, alone on the GPU. The sealed
+handoff is `results/claude/one-model-end-to-end-copy-key-2026-11-02/s1/s1.tar`,
+SHA-256 `738457b26af18e9176bd0e3ece76f0502d4505cdf0a3f249381fc0ccf574ad1d`.
+The local review could not download that private-store object because this
+workstation has no Hugging Face credential; the decision uses the sealed run
+summary Claude posted on #3407.
+
+| Seed | Mode | Train seconds | Top-1 / 14,287 | Nearest hits | Openings / 1,226 |
+|---:|---|---:|---:|---:|---:|
+| 1 | plain | 51 | 36 | 225 | 22 |
+| 1 | served | 355 | 11 | 23 | 1 |
+| 2 | plain | 52 | 61 | 229 | 15 |
+| 2 | served | 355 | 6 | 20 | 1 |
+
+- **Instrument PASS:** all four runs completed with finite losses and loaded
+  through the served evaluator. Both served checkpoints were byte-identical
+  after `--round-as-exported`; four of five files changed for each plain
+  checkpoint.
+- **Operational FAIL:** served/plain training time was 355/51 = 6.96× and
+  355/52 = 6.83×, above the registered 2× limit.
+- **Quality inconclusive:** served minus plain top-1 was −25 at seed 1 and −55
+  at seed 2. The two-seed spread is 30, so the required band is max(24, 30) =
+  30. Seed 2 is materially below but seed 1 is 5 rows inside the band; the
+  sheet requires both seeds before calling a material difference.
+- **Decode:** with `--served-forward 1`, 49.2–49.4, 40.8–41.1 and 28.6–28.8
+  tok/s at contexts 16, 64 and 192. This is decoding, not training throughput.
+- **Cause not yet measured:** the 49-pass `activation_quantize16` scale loop is
+  a likely cost source, but no profile isolates it. Do not report it as proven.
+
+**Instrument fault found by the run:** the first evaluation wrapper created
+`EVAL/config.json` before calling `fbs-snapshot`, so the command correctly
+refused all four outputs. The wrapper nevertheless wrote `DONE`. The rerun used
+the corrected command above under a fresh root. A future wrapper writes `DONE`
+only after every round command's exit status has been checked.
+
 ## Minimum test power
 
 Two seeds are the minimum for a mechanism comparison. The short run has 256
@@ -161,3 +202,8 @@ The review confirmed executable rounded evaluation copies for both training
 modes, explicit TRAIN/DEV/mask/tokenizer pins, no unsupported top-8 claim, a
 two-mode × two-seed scope, finite-loss and budget stop rules, and the
 engineering-only claim boundary.
+
+**Applied result:** instrument PASS; operational FAIL; quality INCONCLUSIVE.
+The served surrogate is wired and export-consistent, but its 6.8–7.0× training
+cost fails the readiness gate. The next unit is a focused quantizer-cost
+repair and matched rerun, not a longer language run.

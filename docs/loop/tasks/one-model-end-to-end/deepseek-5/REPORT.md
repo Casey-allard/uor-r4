@@ -80,3 +80,38 @@ switch so checkpoints from both modes can be scored through the same served
 forward, and it fixes the pre-registration so GPU runs are reproducible and
 bounded. The local code and tests pass, but the four GPU runs did not happen on
 this machine.
+
+## Post-run result, 3 November 2026
+
+Claude ran all four registered jobs on seed 1's pod at head
+`36ca53c81195969f9487747163cc13c50d145efa`, alone on the GPU, and sealed them
+at `results/claude/one-model-end-to-end-copy-key-2026-11-02/s1/s1.tar`
+(SHA-256 `738457b26af18e9176bd0e3ece76f0502d4505cdf0a3f249381fc0ccf574ad1d`).
+This host has no Hugging Face credential, so the decision uses Claude's sealed
+run summary on #3407 rather than a second local download.
+
+**Instrument door: PASS.** All four runs were finite and loaded through the
+served evaluator. Both served checkpoints were unchanged by export rounding;
+four of five files changed for each plain checkpoint.
+
+**Operational door: FAIL.** Served training took 355 seconds against 51
+seconds plain at seed 1 (6.96×) and 355 against 52 at seed 2 (6.83×), above the
+registered 2× ceiling.
+
+| Seed | Plain top-1 | Served top-1 | Served − plain | Nearest hits, plain → served | Openings, plain → served |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 36 | 11 | −25 | 225 → 23 | 22 → 1 |
+| 2 | 61 | 6 | −55 | 229 → 20 | 15 → 1 |
+
+**Quality: INCONCLUSIVE.** The two-seed spread is 30 rows, so the pre-registered
+band is max(24, 30) = 30. Seed 2 is materially below, but seed 1's 25-row gap is
+inside the band; the sheet requires both seeds.
+
+Decode through the served evaluator was 49.2–49.4, 40.8–41.1 and 28.6–28.8
+tok/s at contexts 16, 64 and 192. The observed served-training slowdown is not
+yet attributed: the 49-pass activation-scale loop is a hypothesis, not a
+measured cause.
+
+**Decision:** the wiring is not ready for a longer run. The next unit should
+cost-reduce the quantizer and rerun this comparison; quality is not reclassified
+from the smoke.

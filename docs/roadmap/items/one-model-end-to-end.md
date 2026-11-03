@@ -44,15 +44,16 @@ replace the served-training comparison above. Full transcripts and pins:
 
 ## What is missing
 
-- **Served-surrogate training is wired; GPU validation remains open.** Q16
-  residuals and dynamic i16 recurrence/MLP activations now run in the real
+- **Served-surrogate training is wired; its operational gate failed.** Q16
+  residuals and dynamic i16 recurrence/MLP activations run in the real
   geometric hidden path under `--train-as-served 1`, with D11 snaps, a Q12
-  scored query and D11 checkpoint evaluation. Training-only reply cuts are
-  refused because the artifact cannot carry them. The next unit must run the
-  matched four-arm comparison on CUDA; this host cannot execute the tensor
-  graph under D24/D29. A FIT-reviewed two-mode × two-seed comparison harness
-  and a scoring-only `--served-forward` override are ready; the four GPU runs
-  remain `NOT_RUN` while no CUDA device is available.
+  scored query and D11 checkpoint evaluation. The FIT-reviewed four-run
+  comparison completed: both served checkpoints survived export rounding
+  unchanged, but training took 6.83–6.96× plain against a 2× ceiling, and the
+  quality smoke was inconclusive. The wiring is not ready for a longer run.
+  The next unit is a focused quantizer-cost repair and matched rerun; the
+  49-pass activation-scale loop is a hypothesis, not a measured cause. See
+  [the decision report](../../loop/tasks/one-model-end-to-end/deepseek-5/REPORT.md).
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
