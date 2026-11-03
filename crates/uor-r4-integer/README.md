@@ -211,7 +211,8 @@ learned-model execution, spawned CLI exit-status test or chat-quality claim.
 the sealed recurrent bundle described above. `--stack <model.lut> --tokenizer <TOKENIZER.json>
 [--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
 stack artifact directly, through `stack::IntegerStackModel` under the literal-role protocol
-(`stack::StackChat`): the engine's integers and the float stack's stop rules, greedy `stack_argmax`
+(`stack::StackChat`; default version 2, the pinned corpus encoding; version 1 remains selectable for
+old artifacts): the engine's integers and the float stack's stop rules, greedy `stack_argmax`
 over `next_token_scores()` with pointer mixtures included, exact token history, and an over-context
 turn refused rather than truncated. The stack path is **greedy only** — a nonzero `--temperature` is
 refused because this engine has no integer categorical sampler. `--say` prints a JSON record.

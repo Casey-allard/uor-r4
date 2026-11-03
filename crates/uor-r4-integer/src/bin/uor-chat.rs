@@ -45,7 +45,7 @@ struct CliArgs {
     /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
     discrete_path: Option<PathBuf>,
     tokenizer_path: Option<PathBuf>,
-    /// Literal-role dialogue version for the stack artifact (default 1).
+    /// Literal-role dialogue version for the stack artifact (default 2).
     protocol: u8,
     threads: usize,
     /// One-shot turn: answer this message, print the record and exit.
@@ -178,7 +178,7 @@ impl Default for CliArgs {
             stack_path: None,
             discrete_path: None,
             tokenizer_path: None,
-            protocol: 1,
+            protocol: 2,
             threads: 1,
             say: None,
             prompt_ids: None,
@@ -214,7 +214,7 @@ fn print_usage() {
     eprintln!("                              raw-token serving through IntegerDiscreteModel");
     eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
     eprintln!(
-        "      --protocol <1|2>        literal-role dialogue version for --stack (default: 1)"
+        "      --protocol <1|2>        literal-role dialogue version for --stack (default: 2)"
     );
     eprintln!("      --threads <INT>         worker threads for --stack steps (default: 1)");
     eprintln!("      --say <TEXT>            answer one turn, print a JSON record and exit");
@@ -1039,6 +1039,11 @@ fn completed_stream_stop(
 mod tests {
     use super::*;
     use uor_r4_integer::session::{ChatSession, ChatTokenStream, StreamStopReason};
+
+    #[test]
+    fn stack_protocol_defaults_to_the_trained_corpus_encoding() {
+        assert_eq!(CliArgs::default().protocol, 2);
+    }
 
     #[test]
     fn dialogue_memory_commands_and_turn_lifecycle_are_exact() {

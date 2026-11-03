@@ -26,6 +26,12 @@ neither factual answer contained the supplied value and the positive and
 format is connected; automatic statement extraction and trained recall quality
 remain open. See [the report](../../loop/tasks/m4-export-uorlut01-cli/deepseek-1/REPORT.md).
 
+`uor-chat --stack` now defaults to protocol 2, the encoding used by the pinned
+training corpus. Protocol 1 remains selectable for old artifacts. This repairs
+the default-tokenization instrument found by claude-259; it does not turn the
+current public artifacts into a useful chat model. See
+[the report](../../loop/tasks/m4-export-uorlut01-cli/deepseek-3/REPORT.md).
+
 The exporter now applies the 256-wide per-attention-head limit only to
 attention stacks. All-recurrence FBS trunks at widths 512 and 1,024 export and
 serve in exact synthetic controls, matching the native writer's existing width
