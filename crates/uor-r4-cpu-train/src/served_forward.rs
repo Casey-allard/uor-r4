@@ -293,6 +293,7 @@ pub struct HammingMechanismManifest {
     pub heads: usize,
     pub copy_heads: usize,
     pub type_heads: usize,
+    pub copy_key: usize,
     pub kept_positions: usize,
     pub rotation_exp: i32,
     pub margin_exp: i32,
@@ -889,6 +890,7 @@ fn manifest_from_model(
             heads: image.record.heads,
             copy_heads,
             type_heads,
+            copy_key: image.record.copy_key,
             kept_positions: image.record.kept,
             rotation_exp: image.record.rotation_exp,
             margin_exp: image.record.margin_exp,
@@ -1454,6 +1456,14 @@ mod tests {
     };
 
     fn artifact_with(readout_nearest: bool, typed_hamming: bool) -> Vec<u8> {
+        artifact_with_copy_key(readout_nearest, typed_hamming, 1)
+    }
+
+    fn artifact_with_copy_key(
+        readout_nearest: bool,
+        typed_hamming: bool,
+        copy_key: usize,
+    ) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             701,
             FbsSynth {
@@ -1471,6 +1481,7 @@ mod tests {
         );
         snapshot.readout_nearest = readout_nearest;
         let mut hamming = synthetic_hamming(snapshot.width, 3, 4, 702);
+        hamming.copy_key = copy_key;
         if !typed_hamming {
             for read in &mut hamming.reads {
                 read.weight[snapshot.width..].fill(0.0);
@@ -1931,6 +1942,25 @@ mod tests {
             99,
             "the control without a point table cannot take the fallback"
         );
+    }
+
+    #[test]
+    fn copy_key_two_audit_matches_serving_exactly() {
+        let artifact = artifact_with_copy_key(true, true, 2);
+        let report = audit_served_forward(
+            &artifact,
+            &ServedForwardAuditConfig::new(vec![0, 7, 11, 42, 77, 99, 13, 17]),
+        )
+        .unwrap();
+        assert_eq!(report.manifest.hamming.as_ref().unwrap().copy_key, 2);
+        assert_eq!(report.parity.query_coordinate_mismatches, 0);
+        assert_eq!(report.parity.token_mismatches, 0);
+        assert_eq!(report.parity.kept_cell_mismatches, 0);
+        assert_eq!(
+            report.parity.cpu_decision_sha256,
+            report.parity.serving_decision_sha256
+        );
+        assert!(!report.parity.instrument_fault);
     }
 
     #[test]

@@ -1209,6 +1209,22 @@ mod tests {
         depths: &[usize],
         snaps: FbsExportSnaps,
     ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
+        hamming_fixture_with_snaps_and_copy_key(
+            seed, layers, head, copy_scale, type_scale, depths, snaps, 1,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn hamming_fixture_with_snaps_and_copy_key(
+        seed: u64,
+        layers: usize,
+        head: CpuFbsHead,
+        copy_scale: f32,
+        type_scale: f32,
+        depths: &[usize],
+        snaps: FbsExportSnaps,
+        copy_key: usize,
+    ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
             FbsSynth {
@@ -1237,6 +1253,7 @@ mod tests {
             .map(|(_, read)| read)
             .collect();
         hamming.depths = depths.to_vec();
+        hamming.copy_key = copy_key;
         for read in &mut hamming.reads {
             let (copy, types) = read.weight.split_at_mut(snapshot.width);
             copy.iter_mut().for_each(|weight| *weight *= copy_scale);
@@ -1302,6 +1319,41 @@ mod tests {
             assert_eq!(
                 actual.kept_cells, expected.kept_cells,
                 "row {row}: kept cells"
+            );
+            changed += usize::from(actual.query_q12 != free_step.query_q12);
+        }
+        changed
+    }
+
+    fn assert_hamming_parity_for_copy_key(seed: u64, copy_key: usize, head: CpuFbsHead) -> usize {
+        let (model, mut cpu, free) = hamming_fixture_with_snaps_and_copy_key(
+            seed,
+            3,
+            head,
+            1.0,
+            0.0,
+            &[1, 3],
+            FbsExportSnaps::SNAPPED,
+            copy_key,
+        );
+        let mut session = model.session();
+        let mut free_session = free.session();
+        let mut changed = 0;
+        for (row, token) in repeating_tokens().into_iter().enumerate() {
+            let expected = session.step_native(token).unwrap();
+            let free_step = free_session.step_native(token).unwrap();
+            let actual = cpu.step(token, head).unwrap();
+            assert_eq!(
+                actual.query_q12, expected.query_q12,
+                "copy key {copy_key}, row {row}: complete query"
+            );
+            assert_eq!(
+                actual.token, expected.token,
+                "copy key {copy_key}, row {row}: token"
+            );
+            assert_eq!(
+                actual.kept_cells, expected.kept_cells,
+                "copy key {copy_key}, row {row}: kept cells"
             );
             changed += usize::from(actual.query_q12 != free_step.query_q12);
         }
@@ -1575,6 +1627,15 @@ mod tests {
     fn copy_heads_at_both_hooks_match_serving() {
         let changed = assert_hamming_parity(41, &[1, 3], 1.0, 0.0, CpuFbsHead::Writer);
         assert!(changed > 0, "the copy reads must move the complete query");
+    }
+
+    #[test]
+    fn copy_key_two_heads_match_serving_at_both_hooks() {
+        let changed = assert_hamming_parity_for_copy_key(261, 2, CpuFbsHead::Writer);
+        assert!(
+            changed > 0,
+            "the two-token copy reads must move the complete query"
+        );
     }
 
     #[test]

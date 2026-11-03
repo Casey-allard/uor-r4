@@ -27,6 +27,7 @@ struct CopyHeads {
     width: usize,
     codes: Vec<u64>,
     margins: Vec<i32>,
+    pair: Option<u64>,
 }
 
 impl CopyHeads {
@@ -51,18 +52,39 @@ impl CopyHeads {
                 0..copy,
             ),
             margins: read.margin[..copy].to_vec(),
+            pair: (record.copy_key == 2).then(|| (1u64 << (width / record.heads / 2)) - 1),
         }
     }
 
+    fn joined(&self, near: u32, far: u32, head: usize) -> u64 {
+        let code = self.codes[near as usize * self.copy + head];
+        match self.pair {
+            None => code,
+            Some(first) => (code & first) | (self.codes[far as usize * self.copy + head] & !first),
+        }
+    }
+
+    fn query_at(&self, tokens: &[u32], position: usize, head: usize) -> u64 {
+        self.joined(tokens[position], tokens[position.saturating_sub(1)], head)
+    }
+
+    fn key_at(&self, tokens: &[u32], position: usize, head: usize) -> u64 {
+        self.joined(
+            tokens[position - 1],
+            tokens[position.saturating_sub(2)],
+            head,
+        )
+    }
+
     fn choose(&self, head: usize, tokens: &[u32]) -> Vec<(usize, u32)> {
-        let Some(&last) = tokens.last() else {
+        let Some(current) = tokens.len().checked_sub(1) else {
             return Vec::new();
         };
         nearest(
-            self.codes[last as usize * self.copy + head],
-            tokens.len() - 1,
+            self.query_at(tokens, current, head),
+            current,
             self.kept,
-            |position| self.codes[tokens[position - 1] as usize * self.copy + head],
+            |position| self.key_at(tokens, position, head),
         )
     }
 
@@ -549,5 +571,31 @@ mod tests {
         // 3 is the immediate predecessor, 0 has no predecessor, and 4 is the current row.
         let kept = nearest(0, 4, 16, |_| 0);
         assert_eq!(kept, vec![(1, 0), (2, 0), (3, 0)]);
+    }
+
+    #[test]
+    fn copy_key_two_tells_two_facts_after_the_same_token_apart() {
+        // B X P C X Q: asks at the final X whether the next fact follows (C, X) or (B, X).
+        // The one-token key ties both positions; the two-token key keeps (C, X) at distance 0.
+        let (b, x, c, p, q) = (1u32, 2, 3, 4, 5);
+        let tokens = [10, b, x, p, c, x, q, 70, c, x];
+        let mut codes = vec![u64::MAX; 71];
+        codes[x as usize] = 0;
+        codes[c as usize] = 1;
+        codes[b as usize] = 0xff << 8;
+        let one = CopyHeads {
+            copy: 1,
+            kept: 8,
+            width: 64,
+            codes: codes.clone(),
+            margins: vec![4 << 16],
+            pair: None,
+        };
+        let two = CopyHeads {
+            pair: Some(0xff),
+            ..one.clone()
+        };
+        assert_eq!(&one.choose(0, &tokens)[..2], &[(3, 0), (6, 0)]);
+        assert_eq!(two.choose(0, &tokens)[0], (6, 0));
     }
 }

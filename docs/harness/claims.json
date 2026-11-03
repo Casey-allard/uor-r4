@@ -41,6 +41,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/copy-key2-cpu": {
+    "branch": "deepseek/copy-key2-cpu",
+    "claimed_at": "2026-11-03T02:21:59-05:00",
+    "head": "1499c09ed",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/cpu-corpus-resume": {
     "branch": "deepseek/cpu-corpus-resume",
     "claimed_at": "2026-11-02T05:18:19-05:00",
