@@ -1,0 +1,75 @@
+{
+  "schema": "uor-r4.cpu-memory-weight-training/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "fixture": {
+    "width": 64,
+    "samples": 1,
+    "decisions": 5,
+    "prompt": [10, 11, 12],
+    "reply": [42, 77, 99],
+    "opening": {
+      "key": [10, 11, 12],
+      "value": 42
+    },
+    "reply_rows": [
+      {
+        "key": [10, 11, 12, 4294967295, 1, 4294967295, 42],
+        "value": 77
+      },
+      {
+        "key": [10, 11, 12, 4294967295, 2, 4294967295, 77],
+        "value": 99
+      }
+    ]
+  },
+  "config": {
+    "step_q24": 1048576,
+    "parameter_limit_q24": 16777216
+  },
+  "arms": {
+    "opening": {
+      "initial_sha256": "70a1ca720976d918471608a15c7cd0ebc9445c4b830b2c802ad9b2228bb5010e",
+      "final_sha256": "09bdeb123a785245d9751ffa09534ef91b7fe42e5488bb19242ca0576fa296ee",
+      "coordinate": 62,
+      "weight_before_q24": 0,
+      "weight_after_q24": 1048576,
+      "target_distance_before": 1129804,
+      "target_distance_after": 1128232,
+      "top1_before": 0,
+      "top1_after": 0,
+      "parity": {
+        "positions": 6,
+        "query_coordinates": 384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions": 6,
+        "token_mismatches": 0,
+        "kept_cells": 48,
+        "kept_cell_mismatches": 0
+      }
+    },
+    "reply": {
+      "initial_sha256": "da626c93a827977aa482ba985905ff950d44f0670819e685244bfd673c9d11b4",
+      "final_sha256": "ac5c799b5de4bdd184d2e4a49486f6d4804d2ebe459a5cab81a9dcaf95d7776f",
+      "coordinate": 47,
+      "weight_before_q24": 0,
+      "weight_after_q24": 1048576,
+      "target_distance_before": 1508891,
+      "target_distance_after": 1507118,
+      "top1_before": 0,
+      "top1_after": 0,
+      "parity": {
+        "positions": 6,
+        "query_coordinates": 384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions": 6,
+        "token_mismatches": 0,
+        "kept_cells": 48,
+        "kept_cell_mismatches": 0
+      }
+    }
+  },
+  "deterministic_reconstruction": true,
+  "unseen_key_noop": true,
+  "changed_bytes_for_selected_weight": 1
+}

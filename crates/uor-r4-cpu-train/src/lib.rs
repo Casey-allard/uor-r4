@@ -15,6 +15,7 @@ mod discrete_route;
 mod fbs;
 mod hamming;
 mod memory;
+mod memory_train;
 mod panel;
 mod quant_shadow;
 mod served_forward;
@@ -37,6 +38,10 @@ pub use discrete_route::{
 };
 pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
+};
+pub use memory_train::{
+    CpuMemoryWeightTrainer, MemoryWeightConfig, MemoryWeightParityReading, MemoryWeightReading,
+    MemoryWeightSample, MemoryWeightStep, MemoryWeightTable, CPU_MEMORY_WEIGHT_TRAINER_SCHEMA,
 };
 pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,

@@ -132,6 +132,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/full-path-memory-trainer": {
+    "branch": "deepseek/full-path-memory-trainer",
+    "claimed_at": "2026-11-03T10:10:44-05:00",
+    "head": "58470eb32",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/full-path-records": {
     "branch": "deepseek/full-path-records",
     "claimed_at": "2026-11-03T09:23:45-05:00",
