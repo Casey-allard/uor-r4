@@ -16,7 +16,7 @@ scope: [crates/uor-r4-cpu-train/**, Cargo.toml, Cargo.lock, docs/harness/prep/cp
 
 Component speed does not show whether CPU training can improve a model at useful scale. The workstation must be measured under a bounded, pre-registered pilot with the same evaluator as the GPU path.
 
-## Readiness as of 2 November 2026
+## Readiness as of 3 November 2026
 
 The bounded public internal-development pilot has executed and failed its registered ranking bar. The full item remains open because genuinely fresh complete-reply inputs and a configuration that clears a registered bar are still unavailable. Public 64→256 interval restart is now deterministic on both seeds.
 
@@ -25,7 +25,7 @@ The bounded public internal-development pilot has executed and failed its regist
 | Shared-vector forward and exact serving arithmetic | Supported for the recurrence-only/no-pointer FBS mode, including snapped and raw gate/transition combinations; synthetic and public trained-artifact CPU/serving parity controls pass. |
 | Exact served-forward contract and workload audit | Delivered for the same supported FBS mode. `cpu-served-forward-audit` binds the artifact, reports active mechanisms, compares every Q12 query/token/kept-cell decision, separates modelled work from measured CPU timing, and inventories float-only gradient treatments. Both public raw seeds pass a 64-position complete-decision control. A follow-up corrected the contract's Hamming-range narrative and added independent integer/CPU/float boundary tests; the kernels were already causal and correct. A composed synthetic control exercises Hamming stream/readout reads, opening miss with point-key fallback, two reply rows and the native head with exact parity. A trained-writer control now runs eight accepted CPU updates, preserves every non-writer byte and re-passesses the complete exact audit; its Hamming/memory/point records remain synthetic. The public artifacts still lack Hamming/memory records, so a genuinely trained full-path artifact remains unavailable. |
 | Candidate artifact gate | `scripts/audit_served_forward_gate.py` binds a `UORT` token slice and optional expected artifact hash, validates the complete deterministic audit, and atomically promotes only exact-passing artifacts. Public seed 1 passed on a 64-token corpus slice with zero decision mismatches. Candidate export scripts still need to adopt it. |
-| Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. The exact CPU corpus driver now binds configurable rank-margin/coordinate-step/limit settings into checkpoint identity. The two-seed 1/16/64-Q12 step comparison remained ranking-negative; larger steps moved the margin but not enough held-out predictions. See [deepseek-9](../../loop/tasks/cpu-training-pilot/deepseek-9/REPORT.md). |
+| Tied-table and lawful parameter-group trainer | Tied-token and BVG-K normalization/bias/decay/route groups delivered on finite fixtures. The exact CPU corpus driver binds rank-margin, coordinate-step, parameter-limit and coordinate-count settings into checkpoint identity. The two-seed 1/16/64-Q12 step comparison remained ranking-negative. The FIT-reviewed same-amplitude one-versus-four-coordinate pivot exercised 437/238 accepted four-coordinate blocks, reduced the margin objective on both seeds, and remained ranking-negative; seed 1 also lost admission and top-8. See [deepseek-9](../../loop/tasks/cpu-training-pilot/deepseek-9/REPORT.md) and [deepseek-82](../../loop/tasks/cpu-training-pilot/deepseek-82/REPORT.md). |
 | Counterfactual corpus comparison | A one-arm runner now applies the existing exact BVG-K counterfactual trainer to the public masked corpus and compares normalization, bias, decay and route groups with zero-update controls. On both seeds the fixed 128-step, four-coordinate, delta-one configurations had exact export but no replicated ranking gain: normalization lost admission on seed 1, decay accepted no update, bias stayed rank-neutral, and route sharply degraded the held-out panel. See [deepseek-11](../../loop/tasks/cpu-training-pilot/deepseek-11/REPORT.md). |
 | Matched admission and exact checkpoint export control | Panel evaluator and gate delivered on finite fixtures. |
 | Trained artifact plus internal query panel | Bound: public dual-c131 seeds 1 and 2 have exact CPU/serving parity; the strict corpus driver creates document-disjoint public development samples. |
@@ -54,6 +54,15 @@ against a 43-row bar. Seed 2 was unchanged through step-16, while step-64 lost
 3 top-1 rows for a 1-row top-8 gain. Exact CPU/serving export stayed perfect
 throughout. This is another bounded configuration negative and does not reject
 all rank-margin or CPU credit assignments.
+
+The same-amplitude BVG-K pivot then fixed every coordinate move at one Q12 unit
+and compared one coordinate with four. K4 executed 437 four-coordinate blocks
+on seed 1 and 238 on seed 2 with exact serving export. It reduced the held-out
+margin-loss sum on both seeds, but top-1 did not move. Seed 1 lost one top-8 row
+and one admitted target; seed 2 remained 224/285/292 top-1/top-8/admitted.
+K4 therefore failed admission and ranking on seed 1 and did not exceed K1 on
+either seed. This closes the tested coordinate-breadth configuration, not the
+BVG-K mechanism generally.
 
 ## What is missing
 

@@ -9,7 +9,8 @@ use uor_r4_integer::stack::IntegerStackModel;
 use crate::{CpuFbsForward, CpuFbsHead, CpuTrainError, CELL_COUNT, TOP_K, VOCABULARY};
 
 const MAGIC: &[u8; 16] = b"UOR-R4-CPU-TRAIN";
-const CHECKPOINT_VERSION: u32 = 1;
+const CHECKPOINT_VERSION: u32 = 2;
+const TABLE_BVGK_MAX_COORDINATES: usize = 64;
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
 
@@ -26,6 +27,8 @@ pub struct RankMarginConfig {
     pub step_q12: i16,
     /// Bidirectional absolute bound for a trained table entry.
     pub parameter_limit_q12: i16,
+    /// Distinct target/rival coordinates committed as one BVG-K table block.
+    pub coordinates_per_step: usize,
 }
 
 impl Default for RankMarginConfig {
@@ -34,6 +37,7 @@ impl Default for RankMarginConfig {
             margin_q12: 1,
             step_q12: 1,
             parameter_limit_q12: 8_192,
+            coordinates_per_step: 1,
         }
     }
 }
@@ -47,6 +51,11 @@ impl RankMarginConfig {
             return Err(invalid(
                 "rank-margin step and parameter limit must be positive",
             ));
+        }
+        if !(1..=TABLE_BVGK_MAX_COORDINATES).contains(&self.coordinates_per_step) {
+            return Err(invalid(format!(
+                "table BVG-K coordinate block must be in 1..={TABLE_BVGK_MAX_COORDINATES}"
+            )));
         }
         Ok(())
     }
@@ -78,6 +87,8 @@ pub struct RankMarginStep {
     pub target: u32,
     pub updated: bool,
     pub coordinate: Option<usize>,
+    /// Every coordinate in the committed or refused BVG-K block.
+    pub coordinates: Vec<usize>,
     pub rival: Option<u32>,
     pub before: RankMarginReading,
     pub after: RankMarginReading,
@@ -195,6 +206,11 @@ impl CpuRankMarginTrainer {
         out.extend_from_slice(&self.config.margin_q12.to_le_bytes());
         out.extend_from_slice(&self.config.step_q12.to_le_bytes());
         out.extend_from_slice(&self.config.parameter_limit_q12.to_le_bytes());
+        out.extend_from_slice(
+            &u32::try_from(self.config.coordinates_per_step)
+                .map_err(|_| invalid("table BVG-K coordinate block exceeds u32"))?
+                .to_le_bytes(),
+        );
         out.extend_from_slice(&0u32.to_le_bytes());
         out.extend_from_slice(&self.seed.to_le_bytes());
         out.extend_from_slice(&self.step.to_le_bytes());
@@ -219,13 +235,20 @@ impl CpuRankMarginTrainer {
         if input.take(MAGIC.len())? != MAGIC {
             return Err(invalid("rank-margin checkpoint magic differs"));
         }
-        if input.u32()? != CHECKPOINT_VERSION {
+        let version = input.u32()?;
+        if !(1..=CHECKPOINT_VERSION).contains(&version) {
             return Err(invalid("rank-margin checkpoint version differs"));
         }
         let config = RankMarginConfig {
             margin_q12: input.i32()?,
             step_q12: input.i16()?,
             parameter_limit_q12: input.i16()?,
+            coordinates_per_step: if version >= 2 {
+                usize::try_from(input.u32()?)
+                    .map_err(|_| invalid("rank-margin checkpoint coordinate block differs"))?
+            } else {
+                1
+            },
         };
         config.validate()?;
         if input.u32()? != 0 {
@@ -320,6 +343,7 @@ impl CpuRankMarginTrainer {
                 target,
                 updated: false,
                 coordinate: None,
+                coordinates: Vec::new(),
                 rival: None,
                 before: before.clone(),
                 after: before,
@@ -331,6 +355,7 @@ impl CpuRankMarginTrainer {
                 target,
                 updated: false,
                 coordinate: None,
+                coordinates: Vec::new(),
                 rival: Some(rival),
                 before: before.clone(),
                 after: before,
@@ -346,26 +371,68 @@ impl CpuRankMarginTrainer {
         if interior_start >= interior_end {
             return Err(invalid("table has no mutable interior coordinate"));
         }
-        let coordinate = (interior_start..interior_end)
-            .map(|coordinate| {
-                (
-                    i64::from(query[coordinate].abs_diff(i32::from(target_row[coordinate])))
-                        + i64::from(query[coordinate].abs_diff(i32::from(rival_row[coordinate]))),
-                    coordinate,
-                )
-            })
-            .max_by(|left, right| left.0.cmp(&right.0).then_with(|| right.1.cmp(&left.1)));
-        let Some((_, coordinate)) = coordinate else {
-            return Err(invalid("table has no mutable interior coordinate"));
+        let selected = if self.config.coordinates_per_step == 1 {
+            let coordinate = (interior_start..interior_end)
+                .map(|coordinate| {
+                    (
+                        i64::from(query[coordinate].abs_diff(i32::from(target_row[coordinate])))
+                            + i64::from(
+                                query[coordinate].abs_diff(i32::from(rival_row[coordinate])),
+                            ),
+                        coordinate,
+                    )
+                })
+                .max_by(|left, right| left.0.cmp(&right.0).then_with(|| right.1.cmp(&left.1)))
+                .map(|(_, coordinate)| coordinate);
+            let Some(coordinate) = coordinate else {
+                return Err(invalid("table has no mutable interior coordinate"));
+            };
+            if query[coordinate] == i32::from(target_row[coordinate])
+                && query[coordinate] == i32::from(rival_row[coordinate])
+            {
+                return Ok(RankMarginStep {
+                    sample: sample_index,
+                    target,
+                    updated: false,
+                    coordinate: Some(coordinate),
+                    coordinates: Vec::new(),
+                    rival: Some(rival),
+                    before: before.clone(),
+                    after: before,
+                });
+            }
+            vec![coordinate]
+        } else {
+            let mut coordinates = (interior_start..interior_end)
+                .map(|coordinate| {
+                    (
+                        i64::from(query[coordinate].abs_diff(i32::from(target_row[coordinate])))
+                            + i64::from(
+                                query[coordinate].abs_diff(i32::from(rival_row[coordinate])),
+                            ),
+                        coordinate,
+                    )
+                })
+                .filter(|&(_, coordinate)| {
+                    query[coordinate] != i32::from(target_row[coordinate])
+                        || query[coordinate] != i32::from(rival_row[coordinate])
+                })
+                .collect::<Vec<_>>();
+            coordinates
+                .sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
+            coordinates.truncate(self.config.coordinates_per_step);
+            coordinates
+                .iter()
+                .map(|&(_, coordinate)| coordinate)
+                .collect::<Vec<_>>()
         };
-        if query[coordinate] == i32::from(target_row[coordinate])
-            && query[coordinate] == i32::from(rival_row[coordinate])
-        {
+        if selected.is_empty() {
             return Ok(RankMarginStep {
                 sample: sample_index,
                 target,
                 updated: false,
-                coordinate: Some(coordinate),
+                coordinate: None,
+                coordinates: Vec::new(),
                 rival: Some(rival),
                 before: before.clone(),
                 after: before,
@@ -373,18 +440,20 @@ impl CpuRankMarginTrainer {
         }
 
         let mut proposed = table.to_vec();
-        proposed[target as usize * width + coordinate] = move_toward(
-            target_row[coordinate],
-            query[coordinate],
-            self.config.step_q12,
-            self.config.parameter_limit_q12,
-        );
-        proposed[rival as usize * width + coordinate] = move_away(
-            rival_row[coordinate],
-            query[coordinate],
-            self.config.step_q12,
-            self.config.parameter_limit_q12,
-        );
+        for &coordinate in &selected {
+            proposed[target as usize * width + coordinate] = move_toward(
+                target_row[coordinate],
+                query[coordinate],
+                self.config.step_q12,
+                self.config.parameter_limit_q12,
+            );
+            proposed[rival as usize * width + coordinate] = move_away(
+                rival_row[coordinate],
+                query[coordinate],
+                self.config.step_q12,
+                self.config.parameter_limit_q12,
+            );
+        }
         let patched = patch_writer_table(&self.artifact, &proposed)?;
         let forward = CpuFbsForward::from_artifact(&patched)
             .map_err(|error| invalid(format!("patched rank-margin artifact: {error}")))?;
@@ -412,7 +481,8 @@ impl CpuRankMarginTrainer {
             sample: sample_index,
             target,
             updated: accepted,
-            coordinate: Some(coordinate),
+            coordinate: selected.first().copied(),
+            coordinates: selected,
             rival: Some(rival),
             before,
             after,
@@ -770,6 +840,7 @@ mod tests {
             margin_q12: 1,
             step_q12: 1,
             parameter_limit_q12: 8_192,
+            coordinates_per_step: 1,
         };
         let mut probe = CpuRankMarginTrainer::from_artifact(
             &artifact,
@@ -886,6 +957,7 @@ mod tests {
         let step = trainer.train_steps(1).unwrap().remove(0);
         assert!(step.updated, "{step:?}");
         assert_eq!(step.rival, Some(rival));
+        assert_eq!(step.coordinates.len(), 1);
         let coordinate = step.coordinate.unwrap();
         assert!((8..width - 8).contains(&coordinate));
         assert!(step.after.margin_loss < step.before.margin_loss);
@@ -900,6 +972,111 @@ mod tests {
                 assert_eq!(before, after, "non-writer byte {index} changed");
             }
         }
+    }
+
+    #[test]
+    fn rank_margin_k1_preserves_the_pre_bvgk_artifact_hash() {
+        let (artifact, config, sample, query, rival) = training_case(false);
+        assert_eq!(config.coordinates_per_step, 1);
+        let mut trainer =
+            CpuRankMarginTrainer::from_artifact(&artifact, vec![sample.clone()], config, 7)
+                .unwrap();
+        let width = trainer.forward.width();
+        let table = trainer.forward.token_table();
+        let target_row = &table[sample.target as usize * width..][..width];
+        let rival_row = &table[rival as usize * width..][..width];
+        let coordinate = (8..width.saturating_sub(8))
+            .map(|coordinate| {
+                (
+                    i64::from(query[coordinate].abs_diff(i32::from(target_row[coordinate])))
+                        + i64::from(query[coordinate].abs_diff(i32::from(rival_row[coordinate]))),
+                    coordinate,
+                )
+            })
+            .max_by(|left, right| left.0.cmp(&right.0).then_with(|| right.1.cmp(&left.1)))
+            .map(|(_, coordinate)| coordinate)
+            .unwrap();
+        let mut legacy = table.to_vec();
+        legacy[sample.target as usize * width + coordinate] = move_toward(
+            target_row[coordinate],
+            query[coordinate],
+            config.step_q12,
+            config.parameter_limit_q12,
+        );
+        legacy[rival as usize * width + coordinate] = move_away(
+            rival_row[coordinate],
+            query[coordinate],
+            config.step_q12,
+            config.parameter_limit_q12,
+        );
+        let expected = patch_writer_table(&artifact, &legacy).unwrap();
+        assert!(trainer.train_steps(1).unwrap()[0].updated);
+        assert_eq!(trainer.artifact(), expected);
+        let actual = uor_r4_discrete::corpus::sha256(trainer.artifact());
+        assert_eq!(
+            actual,
+            "cddc9b4f646098e8b7140c73b6114963c2188b6d8d85701348a81c755b974816"
+        );
+    }
+
+    #[test]
+    fn a_table_bvgk_block_commits_multiple_coordinates_or_changes_nothing() {
+        let (artifact, mut config, _, _, _) = training_case(false);
+        config.coordinates_per_step = 4;
+        let refused = CpuRankMarginTrainer::from_artifact(&artifact, vec![], config, 7);
+        assert!(match refused {
+            Ok(_) => panic!("empty samples were accepted before the block ran"),
+            Err(error) => error.to_string().contains("at least one sample"),
+        });
+
+        let mut seed_probe = CpuRankMarginTrainer::from_artifact(
+            &artifact,
+            vec![RankMarginSample {
+                input: vec![0],
+                target: 0,
+            }],
+            config,
+            7,
+        )
+        .unwrap();
+        let samples = admitted_samples(&mut seed_probe, 16);
+        let checkpoint_samples = samples.clone();
+        let mut trainer =
+            CpuRankMarginTrainer::from_artifact(&artifact, samples, config, 7).unwrap();
+        let width = trainer.forward.width();
+        let steps = trainer.train_steps(16).unwrap();
+        for step in steps.iter().filter(|step| step.updated) {
+            let mut distinct = step.coordinates.clone();
+            distinct.sort_unstable();
+            distinct.dedup();
+            assert!(!step.coordinates.is_empty());
+            assert!(step.coordinates.len() <= 4);
+            assert_eq!(distinct.len(), step.coordinates.len());
+            assert!(step
+                .coordinates
+                .iter()
+                .all(|coordinate| (8..width.saturating_sub(8)).contains(coordinate)));
+        }
+        let block = steps
+            .iter()
+            .find(|step| step.updated && step.coordinates.len() > 1)
+            .expect("no accepted multi-coordinate table block");
+        assert!(block.coordinates.len() <= 4);
+        assert_eq!(block.coordinate, block.coordinates.first().copied());
+        assert!(block.after.margin_loss < block.before.margin_loss);
+        assert!(block.after.target_admitted);
+        IntegerStackModel::parse(trainer.artifact()).unwrap();
+        let span = writer_span(trainer.artifact());
+        for (index, (&before, &after)) in artifact.iter().zip(trainer.artifact()).enumerate() {
+            if index < span.start || index >= span.end {
+                assert_eq!(before, after, "non-writer byte {index} changed");
+            }
+        }
+        let resumed =
+            CpuRankMarginTrainer::resume(&trainer.checkpoint().unwrap(), checkpoint_samples)
+                .unwrap();
+        assert_eq!(resumed.config().coordinates_per_step, 4);
+        assert_eq!(resumed.artifact(), trainer.artifact());
     }
 
     #[test]
@@ -1074,15 +1251,21 @@ mod tests {
             resumed.checkpoint().unwrap()
         );
 
+        let mut legacy = checkpoint[..28].to_vec();
+        legacy[16..20].copy_from_slice(&1u32.to_le_bytes());
+        legacy.extend_from_slice(&checkpoint[32..]);
+        let legacy = CpuRankMarginTrainer::resume(&legacy, samples.clone()).unwrap();
+        assert_eq!(legacy.config().coordinates_per_step, 1);
+
         let mut short = checkpoint.clone();
         short.truncate(short.len() - 1);
         assert!(CpuRankMarginTrainer::resume(&short, samples.clone()).is_err());
         let mut oversized = checkpoint.clone();
-        oversized[96..100].copy_from_slice(&u32::MAX.to_le_bytes());
+        oversized[104..108].copy_from_slice(&u32::MAX.to_le_bytes());
         assert!(CpuRankMarginTrainer::resume(&oversized, samples.clone()).is_err());
         let mut duplicate = checkpoint.clone();
-        let first: [u8; 4] = duplicate[100..104].try_into().unwrap();
-        duplicate[104..108].copy_from_slice(&first);
+        let first: [u8; 4] = duplicate[108..112].try_into().unwrap();
+        duplicate[112..116].copy_from_slice(&first);
         assert!(CpuRankMarginTrainer::resume(&duplicate, samples.clone()).is_err());
         let mut other = samples;
         other[0].target = 0;

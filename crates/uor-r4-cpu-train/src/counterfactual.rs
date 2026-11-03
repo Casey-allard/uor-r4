@@ -599,6 +599,7 @@ fn rank_evaluator(
             margin_q12,
             step_q12: 1,
             parameter_limit_q12: 32_767,
+            coordinates_per_step: 1,
         },
         seed,
     )

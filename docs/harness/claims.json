@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/table-bvgk-pivot": {
+    "branch": "deepseek/table-bvgk-pivot",
+    "claimed_at": "2026-11-03T00:03:13-05:00",
+    "head": "de9cfc84a",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/trained-full-path-audit": {
     "branch": "deepseek/trained-full-path-audit",
     "claimed_at": "2026-11-02T16:56:17-05:00",

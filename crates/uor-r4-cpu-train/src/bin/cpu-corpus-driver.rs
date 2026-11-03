@@ -26,6 +26,8 @@ struct CheckpointBinding {
     step_q12: i16,
     #[serde(default = "default_parameter_limit_q12")]
     parameter_limit_q12: i16,
+    #[serde(default = "default_coordinates_per_step")]
+    coordinates_per_step: usize,
     evaluation_stride: usize,
     max_evaluation: usize,
     completed_steps: u64,
@@ -46,6 +48,7 @@ struct Config {
     checkpoint_every: usize,
     checkpoint_dir: PathBuf,
     resume_checkpoint: Option<PathBuf>,
+    require_admission: bool,
 }
 
 fn default_margin_q12() -> i32 {
@@ -60,9 +63,19 @@ fn default_parameter_limit_q12() -> i16 {
     RankMarginConfig::default().parameter_limit_q12
 }
 
+fn default_coordinates_per_step() -> usize {
+    RankMarginConfig::default().coordinates_per_step
+}
+
 fn main() {
     match run() {
-        Ok(report) => println!("{report}"),
+        Ok((report, required_gate_failed)) => {
+            println!("{report}");
+            if required_gate_failed {
+                eprintln!("cpu-corpus-driver: required admission gate failed");
+                std::process::exit(2);
+            }
+        }
         Err(error) => {
             eprintln!("cpu-corpus-driver: {error}");
             std::process::exit(1);
@@ -70,10 +83,38 @@ fn main() {
     }
 }
 
-fn run() -> Result<String, String> {
+fn run() -> Result<(String, bool), String> {
     let config = parse_args()?;
     let report = execute(&config)?;
-    serde_json::to_string_pretty(&report).map_err(|error| error.to_string())
+    Ok((
+        serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?,
+        required_gate_failed(&config, &report),
+    ))
+}
+
+fn required_gate_failed(config: &Config, report: &serde_json::Value) -> bool {
+    config.require_admission && report["panel_gate"]["decision"].as_str() != Some("accept")
+}
+
+fn accepted_coordinate_block(
+    coordinates: &[usize],
+    width: usize,
+    limit: usize,
+) -> Result<usize, String> {
+    if coordinates.is_empty() || coordinates.len() > limit {
+        return Err("an accepted table block has no legal coordinate count".to_owned());
+    }
+    let mut distinct = coordinates.to_vec();
+    distinct.sort_unstable();
+    distinct.dedup();
+    if distinct.len() != coordinates.len()
+        || coordinates
+            .iter()
+            .any(|&coordinate| !(8..width.saturating_sub(8)).contains(&coordinate))
+    {
+        return Err("an accepted table block has invalid coordinates".to_owned());
+    }
+    Ok(coordinates.len())
 }
 
 fn execute(config: &Config) -> Result<serde_json::Value, String> {
@@ -166,6 +207,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
     let mut refused = 0usize;
     let mut context_tokens = 0usize;
     let mut target_visits = 0usize;
+    let mut accepted_coordinate_moves = 0usize;
+    let mut accepted_coordinate_histogram = vec![0usize; 65];
     let mut checkpoints = Vec::new();
     for completed in resumed_from_step + 1..=target_steps {
         let step_started = Instant::now();
@@ -176,6 +219,15 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             .ok_or_else(|| "target visit count overflow".to_owned())?;
         if step.updated {
             accepted += 1;
+            let coordinate_count = accepted_coordinate_block(
+                &step.coordinates,
+                shape.width,
+                config.rank_margin.coordinates_per_step,
+            )?;
+            accepted_coordinate_moves = accepted_coordinate_moves
+                .checked_add(coordinate_count)
+                .ok_or_else(|| "accepted coordinate count overflow".to_owned())?;
+            accepted_coordinate_histogram[coordinate_count] += 1;
         } else {
             refused += 1;
         }
@@ -304,6 +356,7 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         "run": {
             "seed": config.seed,
             "rank_margin": config.rank_margin,
+            "require_admission": config.require_admission,
             "final_epoch": trainer.epoch(),
             "steps": target_steps,
             "resumed_from_step": resumed_from_step,
@@ -311,6 +364,8 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
             "accepted_updates": accepted,
             "refused_steps": refused,
             "target_visits": target_visits,
+            "accepted_coordinate_moves": accepted_coordinate_moves,
+            "accepted_coordinate_histogram": accepted_coordinate_histogram,
             "context_tokens": context_tokens,
             "step_elapsed_ms": step_elapsed.as_secs_f64() * 1_000.0,
             "mean_step_ms": if executed_steps > 0 {
@@ -381,6 +436,7 @@ fn checkpoint_binding(
         margin_q12: config.rank_margin.margin_q12,
         step_q12: config.rank_margin.step_q12,
         parameter_limit_q12: config.rank_margin.parameter_limit_q12,
+        coordinates_per_step: config.rank_margin.coordinates_per_step,
         evaluation_stride: config.evaluation_stride,
         max_evaluation: config.max_evaluation,
         completed_steps,
@@ -453,6 +509,7 @@ fn resume_checkpoint(
         || binding.margin_q12 != expected.margin_q12
         || binding.step_q12 != expected.step_q12
         || binding.parameter_limit_q12 != expected.parameter_limit_q12
+        || binding.coordinates_per_step != expected.coordinates_per_step
         || binding.evaluation_stride != expected.evaluation_stride
         || binding.max_evaluation != expected.max_evaluation
     {
@@ -536,10 +593,15 @@ fn parse_args() -> Result<Config, String> {
 fn parse_args_from(values: &[String]) -> Result<Config, String> {
     let mut positional = Vec::new();
     let mut rank_margin = RankMarginConfig::default();
+    let mut require_admission = false;
     let mut at = 0;
     while at < values.len() {
         match values[at].as_str() {
-            "--margin-q12" | "--step-q12" | "--parameter-limit-q12" => {
+            "--require-admission" => {
+                require_admission = true;
+                at += 1;
+            }
+            "--margin-q12" | "--step-q12" | "--parameter-limit-q12" | "--coordinates-per-step" => {
                 let flag = values[at].as_str();
                 let value = values
                     .get(at + 1)
@@ -568,6 +630,15 @@ fn parse_args_from(values: &[String]) -> Result<Config, String> {
                                 "--parameter-limit-q12 needs a positive integer".to_owned()
                             })?;
                     }
+                    "--coordinates-per-step" => {
+                        rank_margin.coordinates_per_step = value
+                            .parse::<usize>()
+                            .ok()
+                            .filter(|value| (1..=64).contains(value))
+                            .ok_or_else(|| {
+                                "--coordinates-per-step needs an integer in 1..=64".to_owned()
+                            })?;
+                    }
                     _ => unreachable!(),
                 }
                 at += 2;
@@ -586,7 +657,8 @@ fn parse_args_from(values: &[String]) -> Result<Config, String> {
             "usage: cpu-corpus-driver <artifact> <tokens.u16> <mask.u8> <manifest.json> \
              <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> \
              <checkpoint-dir> [resume-checkpoint] \
-             [--margin-q12 N] [--step-q12 N] [--parameter-limit-q12 N]"
+             [--margin-q12 N] [--step-q12 N] [--parameter-limit-q12 N] \
+             [--coordinates-per-step N] [--require-admission]"
                 .to_owned(),
         );
     }
@@ -615,6 +687,7 @@ fn parse_args_from(values: &[String]) -> Result<Config, String> {
         checkpoint_every,
         checkpoint_dir: Path::new(positional[9]).to_path_buf(),
         resume_checkpoint: positional.get(10).map(PathBuf::from),
+        require_admission,
     })
 }
 
@@ -741,6 +814,7 @@ mod tests {
             checkpoint_every: 2,
             checkpoint_dir: fixture.root.join(checkpoint_name),
             resume_checkpoint,
+            require_admission: false,
         }
     }
 
@@ -807,6 +881,11 @@ mod tests {
                 "corpus, seed or split",
             ),
             (
+                "coordinates_per_step",
+                serde_json::json!(4),
+                "corpus, seed or split",
+            ),
+            (
                 "evaluation_stride",
                 serde_json::json!(3),
                 "corpus, seed or split",
@@ -837,6 +916,59 @@ mod tests {
                 "tampered {field} was not refused as expected: {error}"
             );
         }
+        std::fs::remove_dir_all(fixture.root).unwrap();
+    }
+
+    #[test]
+    fn a_table_block_run_reports_its_coordinate_invariants_and_fails_required_admission() {
+        let fixture = corpus_fixture("table-block");
+        let mut base_config = config(&fixture, 8, "block", None);
+        base_config.rank_margin.coordinates_per_step = 4;
+        let report = execute(&base_config).unwrap();
+        let accepted = report["run"]["accepted_updates"].as_u64().unwrap();
+        assert_eq!(report["run"]["rank_margin"]["coordinates_per_step"], 4);
+        assert_eq!(
+            report["run"]["accepted_coordinate_histogram"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_u64().unwrap())
+                .sum::<u64>(),
+            accepted
+        );
+        assert!(
+            report["run"]["accepted_coordinate_moves"].as_u64().unwrap() >= accepted,
+            "{report}"
+        );
+        let checkpoint = PathBuf::from(
+            report["checkpoints"][1]["path"]
+                .as_str()
+                .expect("step-4 checkpoint path"),
+        );
+        let mut resumed_config = config(&fixture, 8, "resumed", Some(checkpoint));
+        resumed_config.rank_margin.coordinates_per_step = 4;
+        let resumed = execute(&resumed_config).unwrap();
+        assert_eq!(
+            resumed["final_artifact"]["sha256"],
+            report["final_artifact"]["sha256"]
+        );
+        assert_eq!(resumed["resume"]["verified"], true);
+        assert_eq!(resumed["resume"]["completed_steps"], 4);
+
+        assert_eq!(accepted_coordinate_block(&[8, 10, 12, 64], 80, 4), Ok(4));
+        assert!(accepted_coordinate_block(&[8, 8, 10, 12], 80, 4).is_err());
+        assert!(accepted_coordinate_block(&[7, 10, 12, 64], 80, 4).is_err());
+        assert!(accepted_coordinate_block(&[8, 10, 12, 64, 66], 80, 4).is_err());
+
+        base_config.require_admission = true;
+        let accepted_report = serde_json::json!({
+            "panel_gate": {"decision": "accept"}
+        });
+        let rejected_report = serde_json::json!({
+            "panel_gate": {"decision": "reject_admission"}
+        });
+        assert!(!required_gate_failed(&base_config, &accepted_report));
+        assert!(required_gate_failed(&base_config, &rejected_report));
         std::fs::remove_dir_all(fixture.root).unwrap();
     }
 
@@ -892,6 +1024,7 @@ mod tests {
     fn update_geometry_arguments_are_positive_and_backward_compatible() {
         let default = parse_args_from(&driver_args(&[])).unwrap();
         assert_eq!(default.rank_margin, RankMarginConfig::default());
+        assert!(!default.require_admission);
         let changed = parse_args_from(&driver_args(&[
             "--margin-q12",
             "2",
@@ -899,6 +1032,9 @@ mod tests {
             "16",
             "--parameter-limit-q12",
             "4096",
+            "--coordinates-per-step",
+            "4",
+            "--require-admission",
         ]))
         .unwrap();
         assert_eq!(
@@ -907,12 +1043,16 @@ mod tests {
                 margin_q12: 2,
                 step_q12: 16,
                 parameter_limit_q12: 4096,
+                coordinates_per_step: 4,
             }
         );
+        assert!(changed.require_admission);
         for bad in [
             vec!["--step-q12", "0"],
             vec!["--margin-q12", "-1"],
             vec!["--parameter-limit-q12", "32768"],
+            vec!["--coordinates-per-step", "0"],
+            vec!["--coordinates-per-step", "65"],
             vec!["--step-q12"],
             vec!["--unknown", "1"],
         ] {

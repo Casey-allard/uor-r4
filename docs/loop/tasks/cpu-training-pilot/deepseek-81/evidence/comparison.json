@@ -1,0 +1,37 @@
+{
+  "schema": "uor-r4.cpu-table-bvgk-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "seed": 1,
+  "registered_arms": ["baseline", "control-k1", "pivot-k4"],
+  "completed_arms": ["baseline", "control-k1"],
+  "stop": {
+    "reason": "control-k1 lost one admitted target",
+    "pivot_executed": false,
+    "second_seed_executed": false
+  },
+  "baseline": {
+    "top1": 278,
+    "top8": 384,
+    "admitted": 396,
+    "query_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "control_k1": {
+    "accepted_updates": 432,
+    "refused_steps": 3664,
+    "top1": 278,
+    "top8": 383,
+    "admitted": 395,
+    "query_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0,
+    "step_ms_mean": 15.938047962402342,
+    "wall_ms": 127504.24818099999,
+    "peak_rss_kib": 51952,
+    "artifact_sha256": "2f83d10d1db331e1f43d43c8ac3673f06c4642a923d1ceaeeea06816281ed930"
+  },
+  "verdict": "STOPPED_BEFORE_PIVOT_BY_REGISTERED_CONTROL_ADMISSION_GUARD",
+  "claim_limit": "No K4 ranking result; this is not a BVG-K mechanism negative."
+}
