@@ -1,0 +1,62 @@
+{
+  "schema": "uor-r4.cpu-full-path-controls/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "base_artifact_sha256": "bc83c038e56c36627672bac90c0a8572fe6ee9f2733913c2c507dccfd5195b35",
+  "arms": {
+    "full": {
+      "sha256": "bc83c038e56c36627672bac90c0a8572fe6ee9f2733913c2c507dccfd5195b35",
+      "hamming": true,
+      "memory": true,
+      "point_key": true
+    },
+    "memory_off": {
+      "sha256": "9b82d4d8dd492a52473ef7a15d12a3cbd9832bb769c581b9e240e64b7c987f7b",
+      "hamming": true,
+      "memory": false,
+      "point_key": false
+    },
+    "point_off": {
+      "sha256": "d85d4a27bfcc0ae445f0826e74517f18cac992c994cb182d51ed1baab8b66098",
+      "hamming": true,
+      "memory": true,
+      "point_key": false
+    },
+    "hamming_off": {
+      "sha256": "ab8ad83dfe6d4bad676c43430d1f71a96ecf4cfd23e354ec582a56fd8ebfa4cb",
+      "hamming": false,
+      "memory": true,
+      "point_key": true
+    },
+    "stripped": {
+      "sha256": "7c4c1400c6bb46ab7fea43b402db0a5db0d4f789d08282f8e691bdc5bbb885b5",
+      "hamming": false,
+      "memory": false,
+      "point_key": false
+    }
+  },
+  "audit_per_arm": {
+    "sequences": 2,
+    "query_coordinates": 704,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 11,
+    "token_mismatches": 0,
+    "kept_cells": 88,
+    "kept_cell_mismatches": 0,
+    "instrument_fault": false
+  },
+  "point_sequence_decision": {
+    "full": 40,
+    "memory_off": 1295,
+    "point_off": 1295,
+    "hamming_off": 40,
+    "stripped": 3936
+  },
+  "first_query_divergence": {
+    "memory_off_at_reply_sequence": 2,
+    "hamming_off_at_reply_sequence": 3,
+    "stripped_at_reply_sequence": 2,
+    "hamming_off_at_point_sequence": 2
+  },
+  "deterministic_reconstruction": true
+}

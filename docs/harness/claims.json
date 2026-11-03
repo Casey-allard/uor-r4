@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/full-path-controls": {
+    "branch": "deepseek/full-path-controls",
+    "claimed_at": "2026-11-03T09:43:17-05:00",
+    "head": "1fa3d1724",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/full-path-records": {
     "branch": "deepseek/full-path-records",
     "claimed_at": "2026-11-03T09:23:45-05:00",
