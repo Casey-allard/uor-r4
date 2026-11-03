@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/full-path-records": {
+    "branch": "deepseek/full-path-records",
+    "claimed_at": "2026-11-03T09:23:45-05:00",
+    "head": "d1d465eae",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/generated-replies": {
     "branch": "deepseek/generated-replies",
     "claimed_at": "2026-11-03T08:14:18-05:00",

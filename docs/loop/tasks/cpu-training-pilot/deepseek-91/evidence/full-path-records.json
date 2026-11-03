@@ -1,0 +1,72 @@
+{
+  "schema": "uor-r4.cpu-full-path-training-evidence/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "initial_trunk": {
+    "kind": "synthetic-fbs",
+    "layers": 2,
+    "width": 64,
+    "hamming_reads": 2,
+    "hamming_heads": 4,
+    "sha256": "1da4e4fc4116c7f250c2ad5ba2fa0f03d4af4c9180e6b888db1c485daa62c769"
+  },
+  "writer_training": {
+    "algorithm": "exact-rank-margin",
+    "accepted_steps": 8,
+    "sha256": "1dc319ce5c14183ae3c29afc3d0ff67309e2d2aef49aa33c02bb3dea986f18b9"
+  },
+  "hamming_training": {
+    "algorithm": "exact-served-score-margin-calibration",
+    "heads_considered": 8,
+    "margins_changed": 1,
+    "read_weights": "initial",
+    "sha256": "9b82d4d8dd492a52473ef7a15d12a3cbd9832bb769c581b9e240e64b7c987f7b"
+  },
+  "memory_training": {
+    "examples": 2,
+    "opening_rows": 1,
+    "reply_rows": 2,
+    "tied_opening_target": 19,
+    "tie_rule": "smaller-token-id",
+    "opening_table_sorted": true,
+    "reply_table_sorted": true,
+    "movement_weights": "fixed-at-one"
+  },
+  "point_training": {
+    "rows": 1,
+    "target": 40,
+    "query_source": "exact-final-opening-query",
+    "memory_key": "absent"
+  },
+  "final_artifact": {
+    "file": "local/deepseek/full-path-records/trained-full-path.uorlut",
+    "bytes": 536516,
+    "sha256": "bc83c038e56c36627672bac90c0a8572fe6ee9f2733913c2c507dccfd5195b35",
+    "schema_mechanisms": [
+      "hamming",
+      "turn-memory",
+      "point-key",
+      "native-writer"
+    ]
+  },
+  "served_audit": {
+    "sequences": 2,
+    "query_coordinates": 704,
+    "query_coordinate_mismatches": 0,
+    "token_decisions": 11,
+    "token_mismatches": 0,
+    "kept_cells": 88,
+    "kept_cell_mismatches": 0,
+    "instrument_fault": false
+  },
+  "mechanism_changes": {
+    "hamming_query_changed": true,
+    "opening_memory_query_changed": true,
+    "first_reply_memory_query_changed": true,
+    "second_reply_memory_query_changed": true,
+    "point_fallback_target": 40,
+    "no_point_decision": 1295
+  },
+  "deterministic_reconstruction": true,
+  "read_back_verified": true
+}
