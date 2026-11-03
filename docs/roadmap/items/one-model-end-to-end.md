@@ -130,6 +130,17 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   memory, the writer's Q12 query, the convolution, the embedding) come next,
   read per layer. The full-length served run's sheet is FIT and its pre-run
   review passed; it needs re-pinning to the unsnapped contract.
+  [claude-266](../../loop/tasks/one-model-end-to-end/claude-266/REPORT.md)
+  re-pinned it and ran it: (b) and (k2) trained as served for 8,192 steps at
+  three seeds on the unsnapped contract, exported raw, and served in integers
+  on the laptop. All six exports pass I-3: first tokens differ on 0–1 of 310
+  on DEV. Whole replies, reported only, differ on 26–29 per export, 26 of them
+  cut by the 192-token context, leaving 0–3 real divergences. So the
+  per-layer readout is not needed to pass I-3's bar; the residual divergences
+  are not localized, and Casey's conditional approval stands. Laptop serve 717–796 tok/s, prefill
+  included; decode-only speed is unread (noisy timing). (k2) is better at
+  seed 1 and worse at seeds 2 and 3, so (b) stays the base and the slot key
+  is the next copy-key unit. Neither export recalls Maya in conv-a.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
