@@ -114,8 +114,17 @@ unavailable because this artifact carries neither mechanism. See
   integer session does. The misses fell only to 100 and 131. Some matches broke
   as well as others being made. That fits other unmatched roundings,
   an inexact match of this one, or run-to-run variation in the scorer, and the
-  unit does not separate them. The remaining sites must be matched before the
-  full-length served run, whose sheet is FIT and whose pre-run review passed.
+  unit does not separate them.
+  [claude-265](../../loop/tasks/one-model-end-to-end/claude-265/REPORT.md)
+  trained and served without the icosian snap: the gates pass through and
+  the transition is unit-normalized, in training and in the raw export alike.
+  Retrained at two seeds, the misses fell to 32 and 14 of 310, and the float
+  scorer gave identical output twice on one host. So the snap was the main
+  part of the gap, and the rest is a real, smaller one; whole replies still
+  differ on 287 and 240. The remaining sites (the Hamming reads, the turn
+  memory, the writer's Q12 query, the convolution, the embedding) come next,
+  read per layer. The full-length served run's sheet is FIT and its pre-run
+  review passed; it needs re-pinning to the unsnapped contract.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

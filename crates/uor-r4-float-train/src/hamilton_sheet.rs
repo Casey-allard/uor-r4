@@ -759,9 +759,10 @@ pub(crate) fn served_projection_q16(x: Tensor) -> Result<Tensor> {
     }
 }
 
-/// Enable the served graph's discrete training boundaries together: D11 snaps and Q12 query,
-/// Q16 residual quantization and dynamic i16 activation quantization. `train-in-space` uses it
-/// around the real training forward and served checkpoint evaluation.
+/// Enable the served graph's discrete training boundaries together: the D11 contract the run is
+/// served on, [`SERVED_SNAPS`], with its Q12 query bridge, Q16 residual quantization and dynamic
+/// i16 activation quantization. `train-in-space` uses it around the real training forward and
+/// served checkpoint evaluation.
 pub fn with_served_surrogate_training<T>(
     seed: u64,
     step: usize,
@@ -790,8 +791,21 @@ pub fn with_served_surrogate_training<T>(
         activation: BRIDGE_ACTIVATION_I16.with(|value| value.replace(true)),
         hook,
     };
-    with_d11_training(seed, step, f)
+    with_d11_training_snaps(seed, step, SERVED_SNAPS, f)
 }
+
+/// The D11 contract a run trained as served trains on and is served on (claude-265): the
+/// unsnapped one (`fbs-export --raw-gates --raw-transition`: `raw_gates` and `raw_transition` in
+/// the artifact's shape and no `transport_snap`, schema `uor-r4.lut-stack/5` before the Hamming
+/// reads and the turn memory raise it). Both Hamilton
+/// gates and the recurrence transition are exact unit quaternions, never snapped to the 120
+/// icosians. R6 found that the snap carries the D11 forward's gap from float (claude-180), and
+/// that the unsnapped contract closes it (claude-182). Exact implementations with the same snaps
+/// still split at a snap's near-ties, at 33 of 2,048 positions (claude-181).
+pub const SERVED_SNAPS: D11Snaps = D11Snaps {
+    gates: false,
+    transition: false,
+};
 
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
 pub(crate) fn record_cuda_error_check_ok() {
@@ -1805,7 +1819,8 @@ pub fn evaluate_dev_panel(
 /// and the writer table at Q12, on a trunk whose tables are rounded as
 /// exported (`fbs_export::round_tables_as_exported`; an unrounded trunk is
 /// refused). It computes what the exported artifact computes, so its score
-/// stands for the artifact's.
+/// stands for the artifact's. Under the served bridge [`with_d11_mode`] is the
+/// served contract, unsnapped ([`SERVED_SNAPS`], claude-265).
 pub fn evaluate_dev_panel_d11(
     model: &StackModel,
     dev_windows: &[CausalWindow],
@@ -2255,12 +2270,22 @@ pub fn with_d11_export_gates<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
 /// It restores the gate hook exactly as it was. With the trunk's tables
 /// rounded as exported (`fbs_export::round_tables_as_exported`), a forward in
 /// this mode computes what the exported artifact computes, in float.
+///
+/// Under [`with_served_surrogate_training`] the artifact is the served contract, unsnapped, so the
+/// mode is [`SERVED_SNAPS`] (claude-265). The served checkpoint's DEV panel
+/// ([`evaluate_dev_panel_d11`]) and loss (`spiralcore_fbs_sheet::panel_loss_d11`) then compute
+/// what the run trains and is exported as.
 pub fn with_d11_mode<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
-    with_d11_snaps(D11Snaps::ALL, f)
+    if BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()) {
+        with_d11_snaps(SERVED_SNAPS, f)
+    } else {
+        with_d11_snaps(D11Snaps::ALL, f)
+    }
 }
 
 /// Which of the D11 forward's two icosian snaps run (claude-180, the snap ablation). It is for
-/// evaluation forwards only; training keeps [`with_d11_mode`] and [`with_d11_training`].
+/// evaluation forwards and for the served graph's contract ([`SERVED_SNAPS`], claude-265); the
+/// D11 trainer keeps [`with_d11_mode`] and [`with_d11_training`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct D11Snaps {
     /// Both Hamilton gates snapped to the 120 icosians, as `Hamilton_IcosianHard` does. Off, the
@@ -2339,6 +2364,18 @@ pub(crate) fn is_snapping_transition() -> bool {
 /// as `with_d11_mode` does, and the bridge flag as it was. `seed` and `step` are set as
 /// `with_gate_mode` sets them.
 pub fn with_d11_training<T>(seed: u64, step: usize, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    with_d11_training_snaps(seed, step, D11Snaps::ALL, f)
+}
+
+/// [`with_d11_training`] with each snap chosen by `snaps` (claude-265): the training bridges on
+/// and the forward [`with_d11_snaps`]'s. With [`D11Snaps::ALL`] it is [`with_d11_training`]; the
+/// served graph runs it with [`SERVED_SNAPS`].
+pub fn with_d11_training_snaps<T>(
+    seed: u64,
+    step: usize,
+    snaps: D11Snaps,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<T> {
     let prior = GATE_HOOK.with(|cell| {
         let mut st = cell.borrow_mut();
         let prior = st.bridge_d11;
@@ -2347,7 +2384,7 @@ pub fn with_d11_training<T>(seed: u64, step: usize, f: impl FnOnce() -> Result<T
         st.step = step;
         prior
     });
-    let out = with_d11_mode(f);
+    let out = with_d11_snaps(snaps, f);
     GATE_HOOK.with(|cell| cell.borrow_mut().bridge_d11 = prior);
     out
 }
@@ -3269,6 +3306,51 @@ mod tests {
         assert!(!BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()));
         assert!(!BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()));
         GATE_HOOK.with(|cell| assert_eq!(*cell.borrow(), original_hook));
+        Ok(())
+    }
+
+    /// claude-265: the served bridge trains and evaluates on the unsnapped D11 contract
+    /// (`--raw-gates --raw-transition`). Inside it the gates pass through (`Hamilton_Active`), the transition is
+    /// not snapped and the Q12 query bridge is on, directly and through the D11 mode that the
+    /// served DEV panel and loss call. Outside it, the D11 mode and D11 training still snap both.
+    #[test]
+    fn served_bridge_takes_the_unsnapped_d11_contract() -> Result<()> {
+        let state = || -> Result<(Option<HamiltonArm>, bool, bool, bool)> {
+            Ok(GATE_HOOK.with(|cell| {
+                let st = cell.borrow();
+                (
+                    st.active_arm,
+                    st.icosian_export_mode,
+                    st.snap_transition,
+                    st.bridge_d11,
+                )
+            }))
+        };
+        let original = state()?;
+        let unsnapped = (Some(HamiltonArm::HamiltonActive), false, false, true);
+        assert_eq!(
+            with_served_surrogate_training(1, 0, state)?,
+            unsnapped,
+            "the served bridge"
+        );
+        assert_eq!(
+            with_served_surrogate_training(1, 0, || with_d11_mode(state))?,
+            unsnapped,
+            "the D11 mode under the served bridge"
+        );
+        assert_eq!(state()?, original);
+        let icosian = Some(HamiltonArm::HamiltonIcosianHard);
+        assert_eq!(
+            with_d11_training(1, 0, state)?,
+            (icosian, false, true, true),
+            "D11 training"
+        );
+        assert_eq!(
+            with_d11_mode(state)?,
+            (icosian, false, true, original.3),
+            "the D11 mode"
+        );
+        assert_eq!(state()?, original);
         Ok(())
     }
 

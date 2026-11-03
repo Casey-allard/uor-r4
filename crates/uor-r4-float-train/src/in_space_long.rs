@@ -14702,7 +14702,11 @@ mod tests {
             ]
         };
         assert_eq!(with_training_forward(false, 1, 3, || Ok(flags()))?, [false; 5]);
-        assert_eq!(with_training_forward(true, 1, 3, || Ok(flags()))?, [true; 5]);
+        // claude-265: the served contract is the unsnapped one, so the transition is not snapped.
+        assert_eq!(
+            with_training_forward(true, 1, 3, || Ok(flags()))?,
+            [true, true, true, true, false]
+        );
         assert_eq!(flags(), [false; 5]);
         Ok(())
     }
