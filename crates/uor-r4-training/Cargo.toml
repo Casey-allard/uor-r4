@@ -67,6 +67,14 @@ required-features = ["parquet-input"]
 name = "prepare-text-parquet"
 required-features = ["parquet-input"]
 
+[[bin]]
+name = "m-world-recall-corpus"
+path = "src/bin/m-world-recall-corpus.rs"
+
+[[bin]]
+name = "mix-chat-corpus"
+path = "src/bin/mix-chat-corpus.rs"
+
 [[example]]
 name = "geometric-stack"
 path = "examples/geometric-stack-native.rs"
