@@ -9,8 +9,8 @@
  *
  * The page makes no external/off-origin request at load: it reads only the same-origin
  * ./models.json catalog and its bundled assets (the static scan and runtime trap enforce
- * external []). API keys are never bundled and are
- * stored only in this browser's localStorage. The exported object is also available at
+ * external []). Ordinary API keys are never bundled and are
+ * stored only in this browser's localStorage; the native bootstrap's ephemeral launch token stays in memory instead. The exported object is also available at
  * window.UORModelSources for other Studio modules; every state change dispatches a
  * "uor-model-source-changed" CustomEvent on the document.
  */
@@ -144,6 +144,8 @@ function apiEntry(input) {
         baseUrl: String(input.baseUrl || '').trim(),
         model: String(input.model || '').trim(),
         apiKey: typeof input.apiKey === 'string' ? input.apiKey : '',
+        temperature: Number.isFinite(Number(input.temperature)) ? Number(input.temperature) : undefined,
+        ephemeral: input.ephemeral === true,
         createdAt: input.createdAt || Date.now(),
     };
 }
@@ -193,7 +195,12 @@ let editing = null; // { id: string|null, values: {...} }
 
 function persist() {
     try {
-        globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const activeEntry = state.active.kind === 'api' ? findApi(state.active.id) : null;
+        const persisted = Object.assign({}, state, {
+            api: state.api.filter((entry) => !entry.ephemeral),
+            active: activeEntry && activeEntry.ephemeral ? { kind: 'wasm', id: state.wasm.id || 'bundled-demo' } : state.active,
+        });
+        globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
         return true;
     } catch (_error) {
         setMessage('error', 'Could not persist model sources: browser storage is unavailable or full.');
@@ -244,7 +251,7 @@ function activeApi() {
 
 function publicConfig(entry) {
     if (!entry) return null;
-    return { id: entry.id, label: entry.label, preset: entry.preset, baseUrl: entry.baseUrl, model: entry.model, apiKey: entry.apiKey };
+    return { id: entry.id, label: entry.label, preset: entry.preset, baseUrl: entry.baseUrl, model: entry.model, apiKey: entry.apiKey, temperature: entry.temperature, ephemeral: entry.ephemeral };
 }
 
 function setActive(next) {
@@ -256,9 +263,10 @@ function setActive(next) {
     }
     if (next.kind === 'api') requireApiBaseUrl(findApi(next.id).baseUrl);
     const previous = clone(state.active);
+    const activeEntry = next.kind === 'api' ? findApi(next.id) : null;
     selectionEpoch += 1;
     state.active = { kind: next.kind, id: next.kind === 'api' ? next.id : (next.id || 'bundled-demo') };
-    if (!persist()) {
+    if (!persist() && !(activeEntry && activeEntry.ephemeral)) {
         state.active = previous;
         selectionEpoch -= 1;
         throw new Error(message.text);
@@ -650,12 +658,36 @@ const api = {
         return setActive(next);
     },
 
+    registerNativeBootstrap(input) {
+        if (!input || input.ephemeral !== true) throw new Error('The native bootstrap must be ephemeral.');
+        if (input.protocol !== 'openai') throw new Error('The native bootstrap must use the OpenAI protocol.');
+        if (Number(input.temperature) !== 0) throw new Error('The native bootstrap must use temperature zero.');
+        if (typeof input.token !== 'string' || !input.token) throw new Error('The native bootstrap token is missing.');
+        const baseUrl = new URL(String(input.baseUrl || ''), document.baseURI);
+        if (baseUrl.origin !== new URL(document.baseURI).origin) throw new Error('The native bootstrap must be same-origin.');
+        const id = 'native-loopback';
+        const existing = state.api.findIndex((entry) => entry.id === id);
+        if (existing >= 0) state.api.splice(existing, 1);
+        const entry = this.addApi({
+            id,
+            preset: 'local-uor',
+            label: 'UOR Chat — native loopback',
+            baseUrl: baseUrl.toString(),
+            model: String(input.model || 'uor-chat'),
+            apiKey: input.token,
+            temperature: 0,
+            ephemeral: true,
+        });
+        this.setActive({ kind: 'api', id });
+        return entry;
+    },
+
     addApi(input) {
         const entry = apiEntry(input || {});
         if (!entry.baseUrl) throw new Error('An API base URL is required.');
         requireApiBaseUrl(entry.baseUrl);
         state.api.push(entry);
-        if (!persist()) {
+        if (!persist() && !entry.ephemeral) {
             state.api.pop();
             throw new Error(message.text);
         }
@@ -841,7 +873,7 @@ function renderAll(container) {
 
     const remote = el('section', 'source-group');
     remote.appendChild(el('h3', null, 'OpenAI-compatible API'));
-    remote.appendChild(el('p', 'hint', 'Optional. When an API source is active, prompts are sent to that endpoint and leave this device. Keys are stored only in this browser and are never committed.'));
+    remote.appendChild(el('p', 'hint', 'Optional. Custom API sources send prompts to their configured endpoint; native loopback stays on this device. Ordinary keys are stored only in this browser and are never committed.'));
     for (const entry of state.api) remote.appendChild(apiCard(entry));
     if (state.api.length === 0) remote.appendChild(el('p', 'empty-note', 'No API endpoints configured.'));
     remote.appendChild(button('Add API endpoint', 'add-api', { className: 'btn-primary btn-small' }));

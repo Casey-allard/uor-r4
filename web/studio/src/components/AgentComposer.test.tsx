@@ -39,7 +39,7 @@ function ui() {
             getAttachments: vi.fn(() => attachments), addAttachment: vi.fn((entry: Attachment) => { attachments.push(entry); }),
             removeAttachment: vi.fn((name: string) => { const index = attachments.findIndex((item) => item.name === name); if (index >= 0) attachments.splice(index, 1); }),
             clearAttachments: vi.fn(() => { attachments.splice(0); }), templatePrompt: vi.fn((kind: string) => `Prompt for ${kind}`),
-            clearSessions: vi.fn(() => ({ cleared: 0, total: 0 })), clearEditor: vi.fn(),
+            clearSessions: vi.fn(() => ({ cleared: 0, total: 0 })), clearEditor: vi.fn(), updateStatus: vi.fn(),
         } satisfies StudioUiApi,
     };
 }

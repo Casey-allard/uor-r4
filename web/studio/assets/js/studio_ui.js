@@ -8,6 +8,7 @@
     var SETTINGS_KEY = 'uor.studio.settings.v1';
     var UI_KEY = 'uor.studio.ui.v2';
     var ATTACH_KEY = 'uor.studio.attachments.v1';
+    var MAX_ATTACHMENT_TOTAL_BYTES = 4 * 1024 * 1024;
     var THEME_KEY = 'uor.studio.theme';
 
     var app = document.getElementById('app');
@@ -154,7 +155,7 @@
     var MODELS_SECTIONS = [
         { key: 'local', title: 'UOR Chat — experimental', desc: 'Synthetic continuation through the existing local WASM worker; not a trained conversational model.', match: /local wasm engine/i },
         { key: 'trained', title: 'Published models', desc: 'Trained 19-table M1 trunk exports; next-token prediction only, not a chat assistant.', match: /trained m1/i },
-        { key: 'api', title: 'Custom API providers', desc: 'OpenAI-compatible endpoints. Selection does not prove reachability; prompts leave this device only when sent.', match: /openai-compatible api/i },
+        { key: 'api', title: 'Native & custom chat sources', desc: 'Native loopback stays on this device; custom OpenAI-compatible providers send prompts to the configured provider.', match: /openai-compatible api/i },
         { key: 'research', title: 'Research artifacts (experimental)', desc: 'Earlier exports kept for inspection; not generation-capable in this Studio.', match: /research|experimental/i }
     ];
     function regroupModels() {
@@ -482,8 +483,13 @@
     function addAttachment(entry) {
         if (!entry || !entry.content) { toast('No file content to attach.', 'info'); return; }
         var name = String(entry.name || 'attachment.txt');
-        attachments = attachments.filter(function (item) { return item.name !== name; });
-        attachments.push({ name: name, content: String(entry.content).slice(0, 120000), source: entry.source || 'file' });
+        var content = String(entry.content);
+        var size = Number.isFinite(entry.size) ? entry.size : new TextEncoder().encode(content).byteLength;
+        var next = attachments.filter(function (item) { return item.name !== name; });
+        var total = next.reduce(function (sum, item) { return sum + (Number.isFinite(item.size) ? item.size : new TextEncoder().encode(String(item.content || '')).byteLength); }, size);
+        if (total > MAX_ATTACHMENT_TOTAL_BYTES) { toast('Attachments exceed the 4 MiB total limit; remove a file first.', 'error'); return; }
+        attachments = next;
+        attachments.push({ name: name, kind: entry.kind || 'text', content: content, source: entry.source || 'file', size: size });
         saveAttachments(); renderAttachments();
         toast('Attached ' + name + ' (' + Math.max(1, Math.round(String(entry.content).length / 1024)) + ' KB).', 'success');
     }
@@ -503,9 +509,10 @@
         if (tokenHint) tokenHint.textContent = attachments.length ? '~' + approxTokens + ' tokens · prepended to API prompts only' : 'Attachments are prepended to API prompts only.';
         if (inspector && !attachments.length) { var hint = document.createElement('li'); hint.className = 'hint'; hint.textContent = 'No context attached. Use Attach context in the composer.'; inspector.appendChild(hint); }
         var mode = hook('getMode') ? hook('getMode')() : 'wasm';
+        var native = textOf('#chatSourceBadge') === 'Native uor-chat';
         if (note) {
             note.hidden = attachments.length === 0;
-            note.textContent = attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + ' · ~' + approxTokens + ' tokens · ' + (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.') : '';
+            note.textContent = attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + ' · ~' + approxTokens + ' tokens · ' + (native ? 'prepended to the next native prompt (stays on this device).' : (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.')) : '';
         }
         attachments.forEach(function (item, index) {
             var chip = document.createElement('span');
@@ -851,24 +858,27 @@
         var storage = textOf('#footerStorage').replace(/^Storage:\s*/i, '');
         var mode = hook('getMode') ? hook('getMode')() : 'wasm';
         var api = mode === 'api';
+        var native = privacy === 'Native loopback' || textOf('#chatSourceBadge') === 'Native uor-chat';
         var attachmentCount = hook('getAttachments') ? hook('getAttachments')().length : 0;
-        setText('#engineStatusText', 'local WASM · ' + engine);
-        var modelShort = /no model/i.test(model) ? 'none' : model.split(' · ')[0];
+        setText('#engineStatusText', native ? 'native uor-chat' : 'local WASM · ' + engine);
+        var modelShort = native ? 'native uor-chat' : (/no model/i.test(model) ? 'none' : model.split(' · ')[0]);
         if (modelShort.length > 42) modelShort = modelShort.slice(0, 41) + '…';
         setText('#modelStatusText', modelShort);
-        setText('#privacyStatusText', api ? 'API (leaves device)' : 'Local only');
+        setText('#privacyStatusText', native ? 'Native loopback' : (api ? 'API (leaves device)' : 'Local only'));
         setText('#footerStorage', String(storage || 'unknown').replace('MB used of ', ' MB / ').replace(/\s+/g, ' '));
         setText('#statusWorkspaceLabel', (window.__studioFiles && window.__studioFiles.workspaceName && window.__studioFiles.workspaceName()) ? window.__studioFiles.workspaceName() : 'uor-r4');
         setText('#statusContext', attachmentCount + ' file' + (attachmentCount === 1 ? '' : 's'));
-        setText('#composerModeNote', api ? 'API — prompts leave this device' : 'Local WASM — prompts stay on this device');
+        setText('#composerModeNote', native ? 'Native uor-chat — prompts stay on this device' : (api ? 'API — prompts leave this device' : 'Local WASM — prompts stay on this device'));
         var modeNote = document.getElementById('composerModeNote');
-        if (modeNote) modeNote.setAttribute('data-mode', api ? 'api' : 'local');
-        setText('#envEngine', engine);
-        setText('#envModel', /no model/i.test(model) ? 'none' : model);
-        setText('#envTokenizer', tokenizer || 'awaiting model');
-        setText('#ctxEngine', engine);
-        setText('#ctxTokenizer', tokenizer || 'awaiting model');
-        setText('#ctxPrivacy', api ? 'api (leaves device)' : 'local only');
+        if (modeNote) modeNote.setAttribute('data-mode', native ? 'native' : (api ? 'api' : 'local'));
+        setText('#envEngine', native ? 'native uor-chat' : engine);
+        setText('#envModel', native ? 'native uor-chat' : (/no model/i.test(model) ? 'none' : model));
+        setText('#envTokenizer', native ? 'native artifact tokenizer' : (tokenizer || 'awaiting model'));
+        setText('#ctxEngine', native ? 'native uor-chat' : engine);
+        setText('#ctxTokenizer', native ? 'native artifact tokenizer' : (tokenizer || 'awaiting model'));
+        setText('#ctxModelLabel', native ? 'Native uor-chat' : 'No model loaded');
+        setText('#ctxModelMeta', native ? 'Native loopback chat artifact · prompts stay on this device' : 'Load the synthetic demo or the M1 trunk in Connections.');
+        setText('#ctxPrivacy', native ? 'native loopback' : (api ? 'api (leaves device)' : 'local only'));
         setText('#ctxStorage', storage || 'unknown');
         var sessions = sessionList();
         var active = sessions.find(function (session) { return session.id === activeSessionId(); });
@@ -885,9 +895,6 @@
             var saveState = document.getElementById('editorSaveState');
             legacySaved.textContent = saveState && saveState.textContent ? saveState.textContent : (document.getElementById('editorUnsaved') ? document.getElementById('editorUnsaved').textContent : 'Saved locally');
         }
-        setText('#envEngine', engine);
-        setText('#envModel', /no model/i.test(model) ? 'none' : model);
-        setText('#envTokenizer', tokenizer || 'awaiting model');
         var sessionsCount = document.getElementById('settingsSessionCount');
         if (sessionsCount) sessionsCount.textContent = sessions.length + ' session' + (sessions.length === 1 ? '' : 's') + ' · ' + sessions.reduce(function (sum, session) { return sum + (session.messageCount || 0); }, 0) + ' messages';
         var draftCount = document.getElementById('settingsDraftCount');

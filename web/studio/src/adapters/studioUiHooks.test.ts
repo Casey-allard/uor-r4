@@ -38,6 +38,48 @@ describe('actual studio UI attachment hooks', () => {
     });
 });
 
+describe('actual studio UI attachment preservation', () => {
+    it('preserves long content and replaces/removes duplicates without silent truncation', () => {
+        const long = 'x'.repeat(120001);
+        ui.addAttachment({ name: 'long.txt', content: long, source: 'paste' });
+        expect(ui.getAttachments()).toHaveLength(1);
+        expect(ui.getAttachments()[0].content).toBe(long);
+        ui.addAttachment({ name: 'long.txt', content: 'replacement', source: 'paste' });
+        expect(ui.getAttachments()).toHaveLength(1);
+        expect(ui.getAttachments()[0].content).toBe('replacement');
+        ui.removeAttachment('long.txt');
+        expect(ui.getAttachments()).toEqual([]);
+    });
+});
+
+describe('actual studio UI native source labels', () => {
+    it('keeps native loopback privacy and attachment notes local', () => {
+        document.body.insertAdjacentHTML('beforeend', '<span id="privacyStatus">Native loopback</span><span id="chatSourceBadge">Native uor-chat</span><span id="privacyStatusText"></span><span id="composerModeNote"></span><span id="composerContextNote"></span><span id="ctxPrivacy"></span><span id="engineStatusText"></span><span id="envEngine"></span><span id="envModel">none</span><span id="envTokenizer">awaiting model</span><span id="ctxEngine"></span><span id="ctxTokenizer">awaiting model</span><span id="ctxModelLabel">No model loaded</span><span id="ctxModelMeta">Load the synthetic demo or the M1 trunk in Connections.</span><span id="modelStatusText"></span>');
+        ui.updateStatus();
+        expect(document.querySelector('#ctxPrivacy')!.textContent).not.toContain('leaves device');
+        expect(document.querySelector('#engineStatusText')!.textContent).not.toContain('local WASM');
+        expect(document.querySelector('#envEngine')!.textContent).toBe('native uor-chat');
+        expect(document.querySelector('#envModel')!.textContent).toBe('native uor-chat');
+        expect(document.querySelector('#envTokenizer')!.textContent).toBe('native artifact tokenizer');
+        expect(document.querySelector('#ctxEngine')!.textContent).toBe('native uor-chat');
+        expect(document.querySelector('#ctxTokenizer')!.textContent).toBe('native artifact tokenizer');
+        expect(document.querySelector('#ctxModelLabel')!.textContent).toBe('Native uor-chat');
+        expect(document.querySelector('#ctxModelMeta')!.textContent).toBe('Native loopback chat artifact · prompts stay on this device');
+        expect(document.querySelector('#modelStatusText')!.textContent).toBe('native uor-chat');
+        expect(document.querySelector('#privacyStatusText')!.textContent).toBe('Native loopback');
+        expect(document.querySelector('#composerModeNote')!.textContent).toBe('Native uor-chat — prompts stay on this device');
+        ui.addAttachment({ name: 'note.txt', content: 'text', source: 'file' });
+        expect(document.querySelector('#composerContextNote')!.textContent).toContain('stays on this device');
+        expect(document.querySelector('#composerContextNote')!.textContent).not.toContain('leaves device');
+        ui.clearAttachments();
+        document.querySelector('#privacyStatus')!.remove();
+        document.querySelector('#chatSourceBadge')!.remove();
+        document.querySelector('#privacyStatusText')!.remove();
+        document.querySelector('#composerModeNote')!.remove();
+        document.querySelector('#composerContextNote')!.remove();
+    });
+});
+
 describe('actual studio UI settings hooks', () => {
     it('clamps finite numeric values and applies the editor font size', () => {
         const changed = vi.fn();

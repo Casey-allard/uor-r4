@@ -39,7 +39,7 @@ describe('simplified Studio connections', () => {
         const api = document.querySelector<HTMLElement>('.models-section[data-kind="api"]')!;
         const diagnostics = document.querySelector<HTMLDetailsElement>('#artifactDiagnostics')!;
         expect(local.textContent).toContain('UOR Chat — experimental');
-        expect(api.textContent).toContain('Custom API providers');
+        expect(api.textContent).toContain('Native & custom chat sources');
         expect(api.contains(addApi)).toBe(true);
         expect(addApi.tagName).toBe('BUTTON');
         expect(diagnostics.open).toBe(false);

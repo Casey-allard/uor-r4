@@ -8,6 +8,8 @@ The web client is meant to be a language model that lives in a browser tab. You 
 
 **2 November 2026 native source follow-up:** the source now uses system typography, opaque surfaces, softer control/card radii, minimum 24px targets, and visible keyboard focus in both themes. Connections centers **UOR Chat — experimental** on the existing synthetic WASM path and **Custom API providers**, while M1 prediction, research exports, and local-file/URL tools remain available in a closed **Artifact diagnostics** region. Existing listeners, capabilities, readiness checks, and privacy boundaries are preserved. No trained-chat service, MCP connectivity, real API/disk trajectory, typed-library cutover, or new publication is claimed; remote MCP is a separate protocol unit and desktop stdio is a later host bridge.
 
+**3 November 2026 native conversational serving:** the merged native loopback service (#3606) and conversational composer now let the plain-JS source page send real `uor-chat` requests on this device, with Enter/Shift+Enter, IME-safe submission, ArrowUp/Down prompt history with draft restoration, long text pastes, text/source attachments, and exact native usage/TTFT/tokens-per-second metrics. The same-origin temperature-zero bootstrap token and provider ID stay in memory rather than localStorage or exported sessions. Two real browser turns, text-file upload, reload-safe sessions, context-overflow errors, and the embeddings 501 were exercised; this is local protocol/UX evidence, not useful conversation, production deployment, or visual understanding. R4 image decomposition remains a separate unit.
+
 **Initial Studio publish and interface history (superseded).** The initial 30 October publish at gh-pages `d8e67c66` established the clean responsive page, self-hosted integer wasm engine, local-file/URL/API model sources, `/1`–`/6` serving at the initial publish, with `/7` added by #3446, and discrete next-token prediction, followed by the public M1, Stage-T and FBS releases described above. DeepSeek's #3447 agent-console shell then superseded that interface before the current v2 below; the engine, worker and API layer remained intact.
 
 **Current v2 interface (#3448).** DeepSeek then rebuilt the Studio into a workable AI studio around one labeled navigation sidebar: Agent / Workspace / Connections / Guide plus a permanent Sessions section, a File System Access workspace with editor tabs and save, agent context attachments/build templates/message actions, organized connection sections, Settings and Guide views, an eight-group command palette and a labeled mobile drawer; the same engine/API layer and verifier contracts are preserved. See [#3440](https://github.com/UOR-Foundation/uor-r4/issues/3440) and [the item](../roadmap/items/m7-studio-live-model-sources.md).
@@ -69,7 +71,8 @@ but they are not a browser qualification of that model.
 
 ## Privacy and integrity
 
-- **Local WASM mode computes locally.** No prompt or reply needs a model server. An optional
+- **Local WASM mode computes locally.** No prompt or reply needs a model server. Native loopback
+  uses the `uor-chat` process on this device, with an ephemeral in-memory token. An optional
   user-configured OpenAI-compatible API instead sends prompts to the endpoint the user chooses.
 - **Page-load resources are self-hosted.** The static and headless-Chrome checks report zero external
   requests on both Studio pages. Loading the public M1 model from Hugging Face is a separate,

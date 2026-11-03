@@ -3,7 +3,7 @@ id: uor-chat-openai-loopback
 title: Serve the native uor-chat engine through a secure OpenAI-compatible loopback API
 milestone: M7
 area: serving
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

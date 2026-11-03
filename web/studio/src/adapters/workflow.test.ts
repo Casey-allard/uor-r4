@@ -26,7 +26,7 @@ function sessions(): SessionApi {
 function ui(): StudioUiApi {
     return {
         setView: vi.fn(), toast: vi.fn(), getSettings: vi.fn((): StudioSettings => ({ theme: 'dark', reduceMotion: false, fontSize: 13, tabSize: 4, wordWrap: false })),
-        updateSettings: vi.fn(), getAttachments: vi.fn(() => []), addAttachment: vi.fn(), removeAttachment: vi.fn(), clearAttachments: vi.fn(),
+        updateSettings: vi.fn(), updateStatus: vi.fn(), getAttachments: vi.fn(() => []), addAttachment: vi.fn(), removeAttachment: vi.fn(), clearAttachments: vi.fn(),
         templatePrompt: vi.fn((kind: string) => `template:${kind}`), clearSessions: vi.fn(() => ({ cleared: 0, total: 0 })), clearEditor: vi.fn(),
     };
 }

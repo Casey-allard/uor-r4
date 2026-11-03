@@ -131,6 +131,8 @@
                                         <button class="tool-btn" id="btnAttachContext" type="button" title="Attach the active file or a workspace file as agent context">
                                             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 3.5 5 8a2.1 2.1 0 0 0 3 3l4.5-4.5a3.2 3.2 0 0 0-4.5-4.5L3 6.5a4.3 4.3 0 0 0 6 6l4-4"/></svg>Attach context
                                         </button>
+                                        <button class="tool-btn" id="btnAttachFiles" type="button" title="Attach text or source files" aria-label="Attach text or source files">Attach files</button>
+                                        <input class="visually-hidden" id="chatFileInput" type="file" multiple aria-label="Choose text or source files" accept="text/*,.md,.markdown,.rs,.json,.html,.css,.js,.mjs,.ts,.tsx,.toml,.yml,.yaml,.py,.sh,.csv,.xml,.svg,.sql">
                                         <button class="tool-btn" id="btnBuildTask" type="button" aria-haspopup="menu" aria-expanded="false" title="Insert a build-task prompt template">
                                             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Build task
                                         </button>
@@ -492,6 +494,8 @@
         import { mountModelSources, ModelSources } from './assets/js/model_sources.js';
         import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js';
         import { encodeTextWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
+        import { createComposerInput, readTextFiles } from './assets/js/composer_input.js';
+        import { createStreamMetrics } from './assets/js/stream_metrics.js';
 
         var CONVERSATIONS_KEY = 'uor.studio.conversations.v1';
         var EDITOR_KEY = 'uor.studio.editor.v1';
@@ -535,6 +539,11 @@
             modelMeta: null,
             maxNewTokens: MAX_NEW_TOKENS,
             lastWorkerError: '',
+            composerInput: null,
+            apiCompletionIds: [],
+            apiStartedNs: null,
+            apiFirstTokenNs: null,
+            apiMetrics: null,
         };
 
         function $(selector, root) {
@@ -589,6 +598,8 @@
                     checkpoint: typeof conversation.checkpoint === 'string' ? conversation.checkpoint : null,
                     lastToken: typeof conversation.lastToken === 'number' ? conversation.lastToken : null,
                     sourceKind: conversation.sourceKind === 'api' ? 'api' : 'wasm',
+                    promptHistory: Array.isArray(conversation.promptHistory) ? conversation.promptHistory.filter(function (prompt) { return typeof prompt === 'string'; }) : [],
+                    draft: typeof conversation.draft === 'string' ? conversation.draft : '',
                 };
             });
             var storedActive = readJson('uor.studio.activeConversation.v1', null);
@@ -618,10 +629,13 @@
                 checkpoint: null,
                 lastToken: null,
                 sourceKind: app.mode,
+                promptHistory: [],
+                draft: '',
             };
             app.conversations.unshift(conversation);
             if (switchTo !== false) {
                 app.activeConversationId = conversation.id;
+                if (app.composerInput) app.composerInput.reset(conversation.draft);
                 if (app.mode === 'wasm' && app.caps && app.worker) {
                     app.worker.postMessage({ action: 'close_session', payload: { conversationId: conversation.id } });
                 }
@@ -682,6 +696,7 @@
             }
             if (!app.conversations.some(function (conversation) { return conversation.id === id; })) return false;
             app.activeConversationId = id;
+            if (app.composerInput) app.composerInput.reset(activeConversation().draft || '');
             persistConversations();
             renderConversationList();
             renderMessages();
@@ -772,7 +787,7 @@
             head.className = 'msg-head';
             var roleLabel = document.createElement('span');
             roleLabel.className = 'msg-role';
-            roleLabel.textContent = role === 'assistant' ? (app.mode === 'api' ? 'API' : 'Local model') : role;
+            roleLabel.textContent = role === 'assistant' ? (app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true ? 'Native uor-chat' : (app.mode === 'api' ? 'API' : 'Local model')) : role;
             head.appendChild(roleLabel);
             if (meta) {
                 var metaNode = document.createElement('span');
@@ -799,18 +814,23 @@
             mark.className = 'empty-mark';
             mark.textContent = '◈';
             mark.setAttribute('aria-hidden', 'true');
+            var native = app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true;
             var headline = document.createElement('h2');
             headline.className = 'empty-headline';
-            headline.textContent = app.mode === 'api' && ready
-                ? 'API configured — external baseline mode.'
-                : (ready ? 'Local synthetic continuation ready.' : 'Build with your files. Connect an agent when ready.');
+            headline.textContent = native && ready
+                ? 'Native uor-chat loopback ready.'
+                : (app.mode === 'api' && ready
+                    ? 'API configured — external baseline mode.'
+                    : (ready ? 'Local synthetic continuation ready.' : 'Build with your files. Connect an agent when ready.'));
             var copy = document.createElement('p');
             copy.className = 'empty-desc';
-            copy.textContent = app.mode === 'api' && ready
-                ? 'Prompts will be sent to the configured API provider when you send them and will leave this device. Configuration does not prove reachability; treat every reply as an external baseline, not a project result.'
-                : (ready
+            copy.textContent = native && ready
+                ? 'Prompts go to the native StackChat service on this device. This is protocol evidence, not a useful conversation.'
+                : (app.mode === 'api' && ready
+                    ? 'Prompts will be sent to the configured API provider when you send them and will leave this device. Configuration does not prove reachability; treat every reply as an external baseline, not a project result.'
+                    : (ready
                     ? 'A supported non-discrete stack is loaded. Its generated continuation is synthetic engine evidence, not a useful conversation.'
-                    : 'No conversational model is configured. Explore the demo workspace or open your own files, then configure a chat-capable source under Connections. M1 provides next-token prediction only.');
+                    : 'No conversational model is configured. Explore the demo workspace or open your own files, then configure a chat-capable source under Connections. M1 provides next-token prediction only.'));
             var steps = document.createElement('ol');
             steps.className = 'empty-steps';
             [
@@ -1093,13 +1113,16 @@
         }
 
         function updatePrivacyStatus() {
-            if (app.mode === 'api' || (app.generating && app.activeGenerationKind === 'api')) {
+            var native = app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true;
+            if (native) {
+                setChip('#privacyStatus', 'ok', 'Native loopback', 'Native uor-chat on this device: prompts and replies stay local.');
+            } else if (app.mode === 'api' || (app.generating && app.activeGenerationKind === 'api')) {
                 setChip('#privacyStatus', 'warn', 'API mode: prompts leave this device', 'Chat requests go to the configured OpenAI-compatible endpoint.');
             } else {
                 setChip('#privacyStatus', 'ok', 'Local only', 'Local WASM mode: prompts and replies stay in this tab.');
             }
             var badge = $('#chatSourceBadge');
-            if (badge) badge.textContent = app.mode === 'api' ? 'API' : 'Local WASM';
+            if (badge) badge.textContent = native ? 'Native uor-chat' : (app.mode === 'api' ? 'API' : 'Local WASM');
         }
 
         function chatReadiness() {
@@ -1338,6 +1361,10 @@
             app.activeGenerationKind = app.mode;
             app.generating = true;
             app.assistantBuffer = '';
+            app.apiCompletionIds = [];
+            app.apiStartedNs = Math.round(window.performance.now() * 1000000);
+            app.apiFirstTokenNs = null;
+            app.apiMetrics = createStreamMetrics();
             updateComposerState();
             var placeholder = appendMessageElement('assistant', '', 'streaming…');
             if (placeholder) {
@@ -1497,21 +1524,41 @@
                     onDelta: function (delta, meta) {
                         app.assistantBuffer += delta;
                         if (app.streamingBodyEl) app.streamingBodyEl.textContent = app.assistantBuffer;
-                        setMetrics('API stream · ' + app.assistantBuffer.length + ' chars');
+                        var tokenId = meta.uor && Number(meta.uor.token_id);
+                        if (Number.isFinite(tokenId)) app.apiCompletionIds.push(tokenId);
+                        var nowNs = Math.round(window.performance.now() * 1000000);
+                        if (app.apiFirstTokenNs === null) app.apiFirstTokenNs = Math.max(0, nowNs - app.apiStartedNs);
+                        app.apiMetrics.update({
+                            uor: app.apiCompletionIds.length ? { completion_ids: app.apiCompletionIds } : undefined,
+                            elapsedNs: Math.max(0, nowNs - app.apiStartedNs),
+                            firstTokenNs: app.apiFirstTokenNs,
+                            chars: app.assistantBuffer.length,
+                        });
+                        setMetrics(app.apiMetrics.text());
                         scrollChat(false);
                     },
                     onDone: function (result) {
                         if (!chatRequestMatches(apiRequestId, apiGenerationId)) return;
                         var text = app.assistantBuffer;
+                        var nowNs = Math.round(window.performance.now() * 1000000);
+                        app.apiMetrics.update({
+                            usage: result && result.usage,
+                            uor: result && result.uor,
+                            elapsedNs: Math.max(0, nowNs - app.apiStartedNs),
+                            firstTokenNs: app.apiFirstTokenNs,
+                            finishReason: result && result.stopped ? 'stopped' : result && result.finishReason,
+                            chars: text.length,
+                        });
+                        var finalMetrics = app.apiMetrics.text();
                         var placeholder = document.querySelector('#chatMessages .msg[data-streaming="true"]');
                         if (placeholder) {
                             placeholder.dataset.streaming = 'false';
                             var body = placeholder.querySelector('.msg-body');
                             if (body) body.textContent = text || (result && result.stopped ? '[stopped]' : '');
                             var metaNode = placeholder.querySelector('.msg-meta');
-                            if (metaNode) metaNode.textContent = result && result.stopped ? 'stopped' : 'API response';
+                            if (metaNode) metaNode.textContent = finalMetrics;
                         }
-                        conversation.messages.push({ role: 'assistant', content: text, meta: result && result.stopped ? 'stopped' : 'API response' });
+                        conversation.messages.push({ role: 'assistant', content: text, meta: finalMetrics });
                         conversation.sourceKind = 'api';
                         touchConversation(conversation);
                         app.generating = false;
@@ -1519,7 +1566,7 @@
                         app.abortController = null;
                         updatePrivacyStatus();
                         updateComposerState();
-                        setMetrics('API response · ' + text.length + ' chars');
+                        setMetrics(finalMetrics);
                         renderConversationList();
                         scrollChat(false);
                         clearChatRequest(apiRequestId);
@@ -1635,6 +1682,7 @@
                 var preparedMessages = app.mode === 'api' ? apiMessages(conversation) : null;
                 var started = app.mode === 'api' ? sendViaApi(prompt, conversation, preparedMessages) : sendViaWorker(prompt, conversation);
                 if (started === false) { rollbackStart(); return false; }
+                if (app.composerInput) app.composerInput.recordSubmitted(inputValue);
                 return app.activeGenerationId;
             } catch (_error) {
                 rollbackStart();
@@ -1686,7 +1734,11 @@
                 updateComposerState();
                 renderMessages();
                 setView('chat');
-                toast('API mode active. Prompts now go to ' + (detail.apiConfig.baseUrl || 'the configured endpoint') + '.', 'warn');
+                if (detail.apiConfig.id === 'native-loopback' && detail.apiConfig.ephemeral === true) {
+                    toast('Native uor-chat loopback active. Prompts stay on this device.', 'success');
+                } else {
+                    toast('API mode active. Prompts now go to ' + (detail.apiConfig.baseUrl || 'the configured endpoint') + '.', 'warn');
+                }
                 return;
             }
             if (detail.kind === 'state' && detail.apiConfig) {
@@ -1915,18 +1967,46 @@
             var input = $('#chatInput');
             var predict = $('#btnPredict');
             if (predict) predict.addEventListener('click', runPrediction);
-            if (send) send.addEventListener('click', sendFromComposer);
+            if (send) send.addEventListener('click', function () { sendFromComposer(); });
             if (stop) stop.addEventListener('click', stopGeneration);
+            var picker = $('#chatFileInput');
+            var attachButton = $('#btnAttachFiles');
+            if (attachButton && picker) attachButton.addEventListener('click', function () { picker.click(); });
             if (input) {
                 input.addEventListener('input', autoGrowTextarea);
                 input.addEventListener('keydown', function (event) {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        sendFromComposer();
-                    }
-                    if (event.key === 'Escape') {
-                        stopGeneration();
-                    }
+                    if (event.key === 'Escape') stopGeneration();
+                });
+                app.composerInput = createComposerInput({
+                    textarea: input,
+                    picker: picker,
+                    onSend: function () { sendFromComposer(); },
+                    onFiles: function (files) {
+                        var retained = window.__studioUi && typeof window.__studioUi.getAttachments === 'function' ? window.__studioUi.getAttachments() : [];
+                        readTextFiles(files, { existingAttachments: retained }).then(function (result) {
+                            result.errors.forEach(function (error) { toast(error, 'error'); });
+                            result.attachments.forEach(function (entry) {
+                                document.dispatchEvent(new CustomEvent('uor-attach-file', { detail: entry }));
+                            });
+                        }).catch(function (error) { toast(String(error && error.message || error), 'error'); });
+                    },
+                    getHistory: function () {
+                        var conversation = activeConversation();
+                        return conversation && Array.isArray(conversation.promptHistory) ? conversation.promptHistory : [];
+                    },
+                    onHistoryChange: function (history) {
+                        var conversation = activeConversation();
+                        if (!conversation) return;
+                        conversation.promptHistory = history;
+                        persistConversations();
+                    },
+                    onDraftChange: function (draft) {
+                        var conversation = activeConversation();
+                        if (!conversation) return;
+                        conversation.draft = draft;
+                        persistConversations();
+                    },
+                    initialDraft: activeConversation() ? activeConversation().draft || '' : '',
                 });
             }
             var list = $('#conversationList');
@@ -1969,6 +2049,7 @@
             bindHeader();
             bindComposer();
             bindEditor();
+            if (window.__UOR_NATIVE_BOOTSTRAP__) ModelSources.registerNativeBootstrap(window.__UOR_NATIVE_BOOTSTRAP__);
             mountModelSources($('#modelSourceMount'));
             var modelList = ModelSources.list();
             var active = modelList.active || { kind: 'wasm', id: 'bundled-demo' };

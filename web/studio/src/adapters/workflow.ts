@@ -75,6 +75,8 @@ export interface Attachment {
     name: string;
     content: string;
     source?: string;
+    kind?: string;
+    size?: number;
 }
 
 export interface StudioSettings {
@@ -90,6 +92,7 @@ export interface StudioUiApi {
     toast(text: string, tone?: string): void;
     getSettings(): StudioSettings;
     updateSettings(patch: Partial<StudioSettings>): void;
+    updateStatus(): void;
     getAttachments(): Attachment[];
     addAttachment(entry: Attachment): void;
     removeAttachment(name: string): void;

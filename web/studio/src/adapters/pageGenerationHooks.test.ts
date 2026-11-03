@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import source from '../../index.html?raw';
 // @ts-expect-error The existing JavaScript API has no declaration file.
 import { normalizeBaseUrl } from '../../assets/js/studio_api.js';
+// @ts-expect-error The metrics formatter has no declaration file.
+import { createStreamMetrics } from '../../assets/js/stream_metrics.js';
 import { LifecycleStore } from '../state/lifecycle.js';
 import { createGenerationAdapter } from './generation.js';
 
@@ -38,7 +40,8 @@ function pageHooks() {
     };
     interface CapturedApiRequest {
         messages?: Array<{ role: string; content: string }>;
-        onDone(result: { stopped?: boolean }): void;
+        onDelta(text: string, meta: { uor?: { token_id?: number } }): void;
+        onDone(result: { stopped?: boolean; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; uor?: { completion_ids: number[]; elapsed_ns: number; first_token_ns: number; tokens_per_second_milli: number; stop: string }; finishReason?: string }): void;
         onError(error: Error): void;
     }
     const conversation = { id: 'conversation', messages: [] as Array<Record<string, unknown>>, sourceKind: '' };
@@ -51,7 +54,7 @@ function pageHooks() {
         'app', 'document', 'window', 'toast', 'setMetrics', 'setEngineStatus', 'encodeTextWithArtifact', 'fillPredictorSha', '$',
         'activeConversation', 'appendMessageElement', 'touchConversation', 'updateComposerState', 'requestCheckpoint',
         'renderConversationList', 'scrollChat', 'formatTps', 'setView', 'makeId', 'streamChatCompletions', 'configFromSources', 'MAX_NEW_TOKENS',
-        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations', 'normalizeBaseUrl',
+        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations', 'normalizeBaseUrl', 'createStreamMetrics',
         `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
          ${section('function renderDiscretePrediction', 'function runPrediction')}
          ${section('function runPrediction', '/* ------------------------------------------------------------ status & toasts */')}
@@ -80,7 +83,7 @@ function pageHooks() {
             apiRequests.push(options);
         }), vi.fn(() => null), 32,
         () => conversation, vi.fn(),
-        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(), normalizeBaseUrl,
+        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(), normalizeBaseUrl, createStreamMetrics,
     ) as {
         runPrediction(prompt?: string): boolean;
         renderDiscretePrediction(message: unknown): void;
@@ -480,5 +483,53 @@ describe('actual page local fallback hook', () => {
         expect(document.querySelector<HTMLButtonElement>('#btnSend')!.disabled).toBe(false);
         document.removeEventListener('uor-model-source-changed', onModelSourceChanged);
         window.localStorage.clear();
+    });
+});
+
+describe('actual page native API metrics', () => {
+    it('uses final usage and native timing instead of character estimates', async () => {
+        const { app, hooks, conversation, apiRequests, setMetrics } = pageHooks();
+        app.mode = 'api';
+        app.apiConfig = { baseUrl: 'http://127.0.0.1:8765/v1' };
+        document.body.innerHTML = '<span id="privacyStatus"></span><span id="chatSourceBadge"></span><button id="btnSend"></button><button id="btnStop"></button>';
+        await hooks.sendViaApi('prompt', conversation);
+        expect(apiRequests).toHaveLength(1);
+        apiRequests[0].onDone({
+            stopped: false,
+            usage: { prompt_tokens: 12, completion_tokens: 3, total_tokens: 15 },
+            uor: { completion_ids: [340, 16, 1], elapsed_ns: 5000000, first_token_ns: 2000000, tokens_per_second_milli: 600000, stop: 'eos' },
+            finishReason: 'stop',
+        });
+        expect(setMetrics).toHaveBeenLastCalledWith('3 tokens · 600.0 tok/s · TTFT 2.000 ms · 5.000 ms · 12/3/15 · stop');
+    });
+
+    it('labels the native loopback as local instead of an external provider', () => {
+        const { app, hooks } = pageHooks();
+        document.body.innerHTML = '<span id="privacyStatus"></span><span id="chatSourceBadge"></span>';
+        hooks.onModelSourceChanged({
+            detail: {
+                kind: 'api',
+                id: 'native-loopback',
+                apiConfig: { id: 'native-loopback', ephemeral: true, baseUrl: 'http://127.0.0.1:8765/v1', model: 'uor-chat' },
+            },
+        });
+        expect(app.mode).toBe('api');
+        expect(document.querySelector('#privacyStatus')!.textContent).toContain('Native loopback');
+        expect(document.querySelector('#privacyStatus')!.textContent).not.toContain('leave this device');
+        expect(document.querySelector('#chatSourceBadge')!.textContent).toBe('Native uor-chat');
+    });
+
+    it('keeps non-native empty-ID streams character-only', async () => {
+        const { app, hooks, conversation, apiRequests, setMetrics } = pageHooks();
+        app.mode = 'api';
+        app.apiConfig = { baseUrl: 'https://api.example.com/v1' };
+        document.body.innerHTML = '<span id="privacyStatus"></span><span id="chatSourceBadge"></span><button id="btnSend"></button><button id="btnStop"></button>';
+        await hooks.sendViaApi('prompt', conversation);
+        apiRequests[0].onDelta('x', { uor: {} });
+        apiRequests[0].onDone({ stopped: false });
+        const rendered = setMetrics.mock.calls.at(-1)?.[0] as string;
+        expect(rendered).toContain('1 chars');
+        expect(rendered).toContain('usage unavailable');
+        expect(rendered).not.toContain('0 tokens');
     });
 });

@@ -46,8 +46,8 @@ were "not organized or labeled very well". The page is now a workable AI studio:
 - **Agent** takes context attachments (current editor file, workspace files, pasted text) as chips
   with sizes and a token hint; six Build task templates fill structured prompts; assistant messages
   can be copied, inserted into the editor, saved as a file or retried; the composer states whether
-  the active mode is local WASM (stays on device) or an OpenAI-compatible API (prompts leave the
-  device). No API code lives here - the API integration remains another lab's work.
+  the active mode is local WASM (stays on device), native loopback (stays on device), or a custom OpenAI-compatible API (prompts leave the
+  device). The native OpenAI-compatible service and plain-JS client are in this repository.
 - **Connections** presents UOR Chat — experimental, custom API providers, and a closed Artifact
   diagnostics region for M1/research/local-file/URL tools. **Settings** has Appearance (theme, reduce motion), Editor (font, tab size, wrap), Data
   (sessions/draft storage and clearing) and About. **Guide** is the product documentation.
@@ -71,6 +71,12 @@ The source page uses a Mac-inspired application treatment: system typography, op
 ### IDE experience in the Studio source (2 November 2026)
 
 The Studio source page now presents a coherent IDE-style welcome panel with source-specific states and quick actions. Users can explore a demo workspace before a serving model exists: open two tabs, edit buffers, and attach files as context. Demo replacement refuses dirty work, restored tabs are labeled demo, and no automatic dirty edit is fabricated. No-source, research-only, and discrete-M1 chat are disabled; positively synthetic non-discrete continuation and valid HTTP(S) API configuration remain available. Mobile navigation persists destination dismissal, closes through the labeled scrim or destination, and handles Escape after any open modal or palette. Desktop 1440×900 and iPhone 393×852 dark/light views and the demo/attachment workflow were exercised in the built-in browser; no model/API/disk trajectory is claimed.
+
+### Conversational native serving and composer (3 November 2026)
+
+The live plain-JS Studio now serves the native `uor-chat` engine through the merged loopback API (#3606). Enter sends, Shift+Enter adds a newline, and IME confirmation does not send. ArrowUp/Down recalls complete submitted prompts and restores the current draft, including multiline prompts. Long text pastes are not silently truncated. Text/source files can be attached by paste, drop, or the multiple-file picker with explicit size/binary errors; attachment context is included only after an explicit Send and is ignored in local WASM mode.
+
+The native same-origin source uses temperature zero and an ephemeral launch token. That token and its provider ID are not written to localStorage or exported sessions. Native JSON/SSE responses display live completion tokens and measured tok/s, then exact prompt/completion/total usage, TTFT, elapsed time, and finish reason; other providers show character-only or unavailable usage honestly. `uor-chat --stack … --tokenizer … --serve 127.0.0.1:8765 --studio-root web/studio` starts the local service. This is protocol and UX evidence, not useful conversation, production deployment, or visual understanding. R4 image decomposition is a separate follow-up; standard `image_url` and embeddings return 501.
 
 ### Typed workflow components (development library)
 

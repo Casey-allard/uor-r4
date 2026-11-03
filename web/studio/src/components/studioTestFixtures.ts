@@ -45,7 +45,7 @@ export function makeSessions(): SessionApi {
 
 export function makeUi(): StudioUiApi {
     return {
-        setView: vi.fn(), toast: vi.fn(), getSettings: vi.fn(() => ({ ...testSettings })), updateSettings: vi.fn(),
+        setView: vi.fn(), toast: vi.fn(), getSettings: vi.fn(() => ({ ...testSettings })), updateSettings: vi.fn(), updateStatus: vi.fn(),
         getAttachments: vi.fn(() => []), addAttachment: vi.fn(), removeAttachment: vi.fn(), clearAttachments: vi.fn(),
         templatePrompt: vi.fn((kind: string) => `Prompt for ${kind}`), clearSessions: vi.fn(() => ({ cleared: 0, total: 0 })), clearEditor: vi.fn(),
     };
