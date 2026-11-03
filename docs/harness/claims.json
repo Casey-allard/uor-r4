@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/served-rounding-item": {
+    "branch": "deepseek/served-rounding-item",
+    "claimed_at": "2026-11-02T23:38:15-05:00",
+    "head": "a9d0461e2",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/trained-full-path-audit": {
     "branch": "deepseek/trained-full-path-audit",
     "claimed_at": "2026-11-02T16:56:17-05:00",
