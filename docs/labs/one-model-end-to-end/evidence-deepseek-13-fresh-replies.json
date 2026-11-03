@@ -1,0 +1,128 @@
+{
+  "schema": "uor-r4.m2-evidence.generated-summary/1",
+  "source_report_sha256": "dede2591d9049160b3df5e54aa987df766152805b8a5e8a1d47f475eac185dc6",
+  "artifact": {
+    "sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tables": 19,
+    "blocks": 4,
+    "context": 192,
+    "read_mode": "relation"
+  },
+  "tokenizer": {
+    "sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "vocabulary": 4096,
+    "eos_id": 1
+  },
+  "panel": {
+    "name": "dev-dev-seed-2201",
+    "seed": 2201,
+    "conversations": 64,
+    "manifest_sha256": "73fd6f141b4f82dc61599452c6ccd9b2de55c9c1ef40a71149d38f3911051bdd",
+    "tokens_sha256": "73c2375664cf5546ae62fc0861c4f7fbf3b99607fb70e8eccf37ba7a1654ec9c",
+    "mask_sha256": "f038e75405f2a8c6f7f45cc7603e935b9991d855507a1c32cf0f766be5f945e6",
+    "tokens": 8050,
+    "response_targets": 2533,
+    "prompt_runs": 218,
+    "reply_runs": 218
+  },
+  "control": {
+    "name": "train-train-seed-2201",
+    "seed": 2201,
+    "conversations": 64,
+    "role": "generated_control",
+    "manifest_sha256": "aa723193aeb4f64a7f56872c0bb14465b8027cf392827743782c37d5b99ffe67",
+    "tokens_sha256": "648968ddbdbe5329dc3a063c34f3d950b56f56c66d1ae2f761269a9bf9847ddd",
+    "mask_sha256": "47bf864e0d751391ccaf210ef87ee75817665adf62e642906019b9fba0b25d07",
+    "tokens": 8531,
+    "response_targets": 2811,
+    "prompt_runs": 245,
+    "reply_runs": 245
+  },
+  "template_overlap": {
+    "prompt_templates_k256_seen": 0,
+    "prompt_templates_k1024_seen": 0,
+    "reply_templates_k256_seen": 116,
+    "reply_templates_k1024_seen": 104,
+    "new_prompt_templates_at_1024": true
+  },
+  "reply_overlap": {
+    "reference_replies": 218,
+    "reference_replies_seen_in_reference": 86,
+    "reference_prompts_seen_in_reference": 0,
+    "reference_prompts_keyed_in_reference": 1,
+    "reference_reply_new_4grams": 949,
+    "reference_reply_total_4grams": 1879,
+    "reference_reply_new_8grams": 648,
+    "reference_reply_total_8grams": 1073
+  },
+  "overall": {
+    "targets": 1024,
+    "admitted": 665,
+    "top1": 505,
+    "top8": 543
+  },
+  "cpu_engine_parity": {
+    "rows": 1024,
+    "query_coordinates_checked": 32768,
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "unavailable": null
+  },
+  "writer_parity": {
+    "rows": 1024,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0,
+    "query_source": "integer_serving_trunk_q12",
+    "trunk_query_scope": "writer-only from the serving trunk Q12 query; cpu_engine_parity independently checks the complete supported CPU query"
+  },
+  "generated_replies": {
+    "max_new_tokens": 16,
+    "replies": 218,
+    "complete": 184,
+    "exact_reference": 0,
+    "repeated_4gram_replies": 7,
+    "distinct_texts": 22,
+    "empty_text_replies": 19,
+    "replacement_character_replies": 5,
+    "eos_stops": 184,
+    "token_limit_stops": 12,
+    "context_limit_stops": 22,
+    "novelty": {
+      "new_4grams": 201,
+      "total_4grams": 1517,
+      "new_8grams": 721,
+      "total_8grams": 721
+    }
+  },
+  "deepseek_12_comparison": {
+    "old_replies": 58,
+    "old_completion_rate_parts_per_million": 879310,
+    "old_distinct_non_empty_texts": 11,
+    "old_repeated_4gram_replies": 2,
+    "old_novelty_4grams": {
+      "new": 57,
+      "total": 411
+    },
+    "fresh_replies": 218,
+    "fresh_completion_rate_parts_per_million": 844036,
+    "fresh_distinct_non_empty_texts": 22,
+    "fresh_repeated_4gram_replies": 7,
+    "fresh_novelty_4grams": {
+      "new": 201,
+      "total": 1517
+    }
+  },
+  "reproducibility": {
+    "panel_repeat_matches": true,
+    "decode_repeat_matches": true,
+    "template_report_sha256": "bc161c564d63c83cb3da5a0ca322fc82858b961c12d9db70f12947eabd8de621"
+  },
+  "unavailable": {
+    "count_table_control": "no count-table arm is supplied to this evidence pass",
+    "memory_off_control": "the public M1 artifact carries no serving-session turn memory to disable",
+    "no_read_control": "no no-read export of the public M1 relation trunk is supplied"
+  }
+}
