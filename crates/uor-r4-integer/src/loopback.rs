@@ -7,8 +7,9 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use crate::openai::{GenerationFamily, OpenAiError, OpenAiServing, Utf8Buffer};
+use crate::openai::{parse_json_value, GenerationFamily, OpenAiError, OpenAiServing, Utf8Buffer};
 use crate::{IntegerError, Result as IntegerResult};
+use uor_r4_vision::{decompose_rgba, Grid, VisionError, MAX_GRID};
 
 const HEADER_LIMIT: usize = 32_768;
 
@@ -413,7 +414,13 @@ fn route_api(
             response_started,
         );
     }
-    match (request.method.as_str(), request.target.as_str()) {
+    let (path, query) = request
+        .target
+        .split_once('?')
+        .map_or((request.target.as_str(), None), |(path, query)| {
+            (path, Some(query))
+        });
+    match (request.method.as_str(), path) {
         ("GET", "/v1/models") => write_json(
             stream,
             200,
@@ -462,10 +469,135 @@ fn route_api(
             GenerationFamily::Responses,
             response_started,
         ),
+        ("POST", "/v1/images/decompose") => decompose_image_api(
+            stream,
+            &request,
+            query.unwrap_or_default(),
+            config,
+            response_started,
+        ),
         _ => Err(
             OpenAiError::unsupported("this OpenAI endpoint family is not implemented")
                 .with_code("not_implemented"),
         ),
+    }
+}
+
+fn decompose_image_api(
+    stream: &mut TcpStream,
+    request: &Request,
+    query: &str,
+    config: &LoopbackConfig,
+    response_started: &mut bool,
+) -> Result<(), OpenAiError> {
+    if !request
+        .header("content-type")
+        .is_some_and(|value| value == "application/octet-stream")
+    {
+        return Err(OpenAiError::new(
+            400,
+            "Content-Type must be application/octet-stream",
+        ));
+    }
+    let (width, height, grid) = parse_image_query(query)?;
+    let image = decompose_rgba(width, height, &request.body, grid).map_err(image_error)?;
+    let canonical = image.canonical_bytes();
+    let headers = format!(
+        "X-UOR-Image-Schema: uor-r4.image-decomposition/1\r\nX-UOR-Source-Blake3: {}\r\nX-UOR-Image-Width: {}\r\nX-UOR-Image-Height: {}\r\nX-UOR-Grid-Columns: {}\r\nX-UOR-Grid-Rows: {}\r\nX-UOR-Patch-Count: {}\r\n",
+        image.source_hash_hex(),
+        image.width(),
+        image.height(),
+        image.grid().columns(),
+        image.grid().rows(),
+        image.patches().len()
+    );
+    write_response_with_headers(
+        stream,
+        200,
+        "application/octet-stream",
+        &canonical,
+        config,
+        response_started,
+        &headers,
+    )
+}
+
+fn parse_image_query(query: &str) -> Result<(u32, u32, Grid), OpenAiError> {
+    let mut width = None;
+    let mut height = None;
+    let mut columns = None;
+    let mut rows = None;
+    if query.is_empty() {
+        return Err(OpenAiError::new(
+            400,
+            "width, height, columns and rows query parameters are required",
+        ));
+    }
+    for pair in query.split('&') {
+        let (name, value) = pair
+            .split_once('=')
+            .ok_or_else(|| OpenAiError::new(400, "image query parameters must use name=value"))?;
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(OpenAiError::new(
+                400,
+                format!("image query parameter {name:?} must be a decimal integer"),
+            ));
+        }
+        let parsed = value.parse::<u32>().map_err(|_| {
+            OpenAiError::new(400, format!("image query parameter {name:?} is too large"))
+        })?;
+        let slot = match name {
+            "width" => &mut width,
+            "height" => &mut height,
+            "columns" => &mut columns,
+            "rows" => &mut rows,
+            _ => {
+                return Err(OpenAiError::new(
+                    400,
+                    format!("unsupported image query parameter {name:?}"),
+                ))
+            }
+        };
+        if slot.replace(parsed).is_some() {
+            return Err(OpenAiError::new(
+                400,
+                format!("image query parameter {name:?} is repeated"),
+            ));
+        }
+    }
+    let width = width.ok_or_else(|| OpenAiError::new(400, "width is required"))?;
+    let height = height.ok_or_else(|| OpenAiError::new(400, "height is required"))?;
+    let columns = bounded_grid_axis("columns", columns)?;
+    let rows = bounded_grid_axis("rows", rows)?;
+    Ok((width, height, Grid::new(columns, rows)))
+}
+
+fn bounded_grid_axis(field: &str, value: Option<u32>) -> Result<u16, OpenAiError> {
+    let value = value.ok_or_else(|| OpenAiError::new(400, format!("{field} is required")))?;
+    if value > u32::from(MAX_GRID) {
+        return Err(OpenAiError::new(
+            413,
+            format!("{field} exceeds the {MAX_GRID} image grid limit"),
+        )
+        .with_code("image_limit"));
+    }
+    u16::try_from(value).map_err(|_| OpenAiError::new(400, format!("{field} exceeds u16")))
+}
+
+fn image_error(error: VisionError) -> OpenAiError {
+    match error {
+        VisionError::DimensionOutOfRange { value: 0, .. } => {
+            OpenAiError::new(400, error.to_string())
+        }
+        VisionError::DimensionOutOfRange { .. }
+        | VisionError::GridOutOfRange { .. }
+        | VisionError::ArithmeticOverflow => {
+            OpenAiError::new(413, error.to_string()).with_code("image_limit")
+        }
+        VisionError::PixelBufferLength { .. }
+        | VisionError::EmptyGrid
+        | VisionError::GridLargerThanImage { .. }
+        | VisionError::InvalidCanonical(_) => OpenAiError::new(400, error.to_string()),
     }
 }
 
@@ -484,8 +616,7 @@ fn generate_api(
             "Content-Type must be application/json",
         ));
     }
-    let input: Value = serde_json::from_slice(&request.body)
-        .map_err(|error| OpenAiError::new(400, format!("malformed JSON: {error}")))?;
+    let input = parse_json_value(&request.body)?;
     let generation = config.serving.validate_request(family, &input)?;
     if generation.stream {
         stream_generation(stream, &generation, config, family, response_started)
@@ -642,6 +773,26 @@ pub(crate) fn write_response(
     config: &LoopbackConfig,
     response_started: &mut bool,
 ) -> Result<(), OpenAiError> {
+    write_response_with_headers(
+        stream,
+        status,
+        content_type,
+        body,
+        config,
+        response_started,
+        "",
+    )
+}
+
+fn write_response_with_headers(
+    stream: &mut TcpStream,
+    status: u16,
+    content_type: &str,
+    body: &[u8],
+    config: &LoopbackConfig,
+    response_started: &mut bool,
+    extra_headers: &str,
+) -> Result<(), OpenAiError> {
     let reason = match status {
         200 => "OK",
         204 => "No Content",
@@ -656,7 +807,7 @@ pub(crate) fn write_response(
         501 => "Not Implemented",
         _ => "Error",
     };
-    let headers = format!("HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n{}\r\n", body.len(), cors_headers(config));
+    let headers = format!("HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n{extra_headers}{}\r\n", body.len(), cors_headers(config));
     *response_started = true;
     stream
         .write_all(headers.as_bytes())
@@ -670,7 +821,7 @@ pub(crate) fn write_response(
 }
 
 fn cors_headers(config: &LoopbackConfig) -> String {
-    config.origin.as_ref().map(|origin| format!("Access-Control-Allow-Origin: {origin}\r\nAccess-Control-Allow-Headers: Authorization, Content-Type, X-UOR-Studio-Token\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\n")).unwrap_or_default()
+    config.origin.as_ref().map(|origin| format!("Access-Control-Allow-Origin: {origin}\r\nAccess-Control-Allow-Headers: Authorization, Content-Type, X-UOR-Studio-Token\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Expose-Headers: X-UOR-Image-Schema, X-UOR-Source-Blake3, X-UOR-Image-Width, X-UOR-Image-Height, X-UOR-Grid-Columns, X-UOR-Grid-Rows, X-UOR-Patch-Count\r\n")).unwrap_or_default()
 }
 
 fn serve_static(

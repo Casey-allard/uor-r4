@@ -75,6 +75,8 @@ pub enum VisionError {
     },
     /// A bounded size or fixed-point calculation overflowed.
     ArithmeticOverflow,
+    /// Canonical bytes do not form one internally consistent decomposition.
+    InvalidCanonical(String),
 }
 
 impl fmt::Display for VisionError {
@@ -103,6 +105,7 @@ impl fmt::Display for VisionError {
                 "grid {columns}x{rows} would create an empty patch in {width}x{height} source"
             ),
             Self::ArithmeticOverflow => f.write_str("decomposition arithmetic overflow"),
+            Self::InvalidCanonical(message) => write!(f, "invalid canonical image: {message}"),
         }
     }
 }
@@ -215,6 +218,159 @@ impl Decomposition {
     }
 }
 
+/// Parses and validates one exact canonical decomposition.
+///
+/// The source pixels are not present, so the returned digest is the bound
+/// header value. Every dimension, patch position, statistic and R4 field is
+/// checked for internal consistency and the encoding must be byte-exact.
+pub fn parse_canonical(bytes: &[u8]) -> Result<Decomposition, VisionError> {
+    if bytes.len() < 52 {
+        return Err(canonical_error("header is truncated"));
+    }
+    if bytes.get(..8) != Some(CANONICAL_MAGIC) {
+        return Err(canonical_error("magic or format version differs"));
+    }
+    let width = read_u16(bytes, 8);
+    let height = read_u16(bytes, 10);
+    let grid = Grid::new(read_u16(bytes, 12), read_u16(bytes, 14));
+    validate_dimension(Axis::Width, u32::from(width))
+        .map_err(|_| canonical_error("width is outside the accepted range"))?;
+    validate_dimension(Axis::Height, u32::from(height))
+        .map_err(|_| canonical_error("height is outside the accepted range"))?;
+    validate_grid(grid, u32::from(width), u32::from(height))
+        .map_err(|_| canonical_error("grid is outside the accepted range"))?;
+
+    let count = u32::from_be_bytes(
+        bytes[16..20]
+            .try_into()
+            .map_err(|_| canonical_error("patch count is truncated"))?,
+    );
+    let expected_count = u32::from(grid.columns)
+        .checked_mul(u32::from(grid.rows))
+        .ok_or(VisionError::ArithmeticOverflow)?;
+    if count != expected_count {
+        return Err(canonical_error("patch count differs from the grid"));
+    }
+    let count = usize::try_from(count).map_err(|_| VisionError::ArithmeticOverflow)?;
+    let expected_len = count
+        .checked_mul(40)
+        .and_then(|value| value.checked_add(52))
+        .ok_or(VisionError::ArithmeticOverflow)?;
+    if bytes.len() != expected_len {
+        return Err(canonical_error("byte length differs from the patch count"));
+    }
+    let mut source_hash = [0; 32];
+    source_hash.copy_from_slice(&bytes[20..52]);
+
+    let mut patches = Vec::with_capacity(count);
+    for index in 0..count {
+        let column = u16::try_from(index % usize::from(grid.columns))
+            .map_err(|_| VisionError::ArithmeticOverflow)?;
+        let row = u16::try_from(index / usize::from(grid.columns))
+            .map_err(|_| VisionError::ArithmeticOverflow)?;
+        let expected_bounds = [
+            partition(column, grid.columns, u32::from(width))? as u16,
+            partition(row, grid.rows, u32::from(height))? as u16,
+            partition(column + 1, grid.columns, u32::from(width))? as u16,
+            partition(row + 1, grid.rows, u32::from(height))? as u16,
+        ];
+        let at = 52 + index * 40;
+        let bounds = [
+            read_u16(bytes, at),
+            read_u16(bytes, at + 2),
+            read_u16(bytes, at + 4),
+            read_u16(bytes, at + 6),
+        ];
+        if bounds != expected_bounds {
+            return Err(canonical_error(
+                "patch bounds differ from the grid partition",
+            ));
+        }
+        let mean_rgb_q12 = [
+            read_u16(bytes, at + 8),
+            read_u16(bytes, at + 10),
+            read_u16(bytes, at + 12),
+        ];
+        let luma_q12 = read_u16(bytes, at + 14);
+        if mean_rgb_q12.iter().any(|value| *value > 4096) || luma_q12 > 4096 {
+            return Err(canonical_error("mean or luma exceeds Q12 unity"));
+        }
+        if weighted_luma_q12(mean_rgb_q12)? != luma_q12 {
+            return Err(canonical_error(
+                "luma differs from the canonical RGB weighting",
+            ));
+        }
+        let chroma_q12 = [read_i16(bytes, at + 16), read_i16(bytes, at + 18)];
+        let edges_q12 = [read_i16(bytes, at + 20), read_i16(bytes, at + 22)];
+        let expected_chroma = [
+            signed_i16(i32::from(mean_rgb_q12[0]) - i32::from(luma_q12))?,
+            signed_i16(i32::from(mean_rgb_q12[2]) - i32::from(luma_q12))?,
+        ];
+        if chroma_q12 != expected_chroma {
+            return Err(canonical_error(
+                "chroma axes differ from mean RGB minus luma",
+            ));
+        }
+        if chroma_q12
+            .into_iter()
+            .chain(edges_q12)
+            .any(|value| !(-4096..=4096).contains(&value))
+        {
+            return Err(canonical_error(
+                "chroma or edge is outside signed Q12 unity",
+            ));
+        }
+        let r4_q12 = [
+            [
+                read_i16(bytes, at + 24),
+                read_i16(bytes, at + 26),
+                read_i16(bytes, at + 28),
+                read_i16(bytes, at + 30),
+            ],
+            [
+                read_i16(bytes, at + 32),
+                read_i16(bytes, at + 34),
+                read_i16(bytes, at + 36),
+                read_i16(bytes, at + 38),
+            ],
+        ];
+        let expected_r4 = [
+            [
+                centered(mean_rgb_q12[0])?,
+                centered(mean_rgb_q12[1])?,
+                centered(mean_rgb_q12[2])?,
+                centered(luma_q12)?,
+            ],
+            [chroma_q12[0], chroma_q12[1], edges_q12[0], edges_q12[1]],
+        ];
+        if r4_q12 != expected_r4 {
+            return Err(canonical_error(
+                "R4 vectors disagree with the named patch statistics",
+            ));
+        }
+        patches.push(Patch {
+            column,
+            row,
+            x0: bounds[0],
+            y0: bounds[1],
+            x1: bounds[2],
+            y1: bounds[3],
+            mean_rgb_q12,
+            luma_q12,
+            chroma_q12,
+            edges_q12,
+            r4_q12,
+        });
+    }
+    Ok(Decomposition {
+        width,
+        height,
+        grid,
+        source_hash,
+        patches,
+    })
+}
+
 /// Computes the exact RGBA byte count, rejecting arithmetic overflow.
 pub fn rgba_byte_len(width: u32, height: u32) -> Result<usize, VisionError> {
     usize::try_from(width)
@@ -307,6 +463,18 @@ fn validate_grid(grid: Grid, width: u32, height: u32) -> Result<(), VisionError>
         });
     }
     Ok(())
+}
+
+fn canonical_error(message: impl Into<String>) -> VisionError {
+    VisionError::InvalidCanonical(message.into())
+}
+
+fn read_u16(bytes: &[u8], at: usize) -> u16 {
+    u16::from_be_bytes([bytes[at], bytes[at + 1]])
+}
+
+fn read_i16(bytes: &[u8], at: usize) -> i16 {
+    i16::from_be_bytes([bytes[at], bytes[at + 1]])
 }
 
 fn patch_for(

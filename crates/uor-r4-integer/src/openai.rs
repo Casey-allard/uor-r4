@@ -1,12 +1,20 @@
-use serde::{Deserialize, Serialize};
+use serde::de::{self, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
+use uor_r4_vision::{parse_canonical, Decomposition};
 
 use crate::stack::{
     stack_schema_for, IntegerStackModel, StackChat, StackChatError, StackReply, StackStop,
 };
+
+const IMAGE_CONTENT_SCHEMA: &str = "uor-r4.image-decomposition/1";
+const MAX_IMAGES_PER_REQUEST: usize = 4;
+const MAX_CANONICAL_BYTES: usize = 52 + 32 * 32 * 40;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GenerationFamily {
@@ -65,6 +73,107 @@ impl std::fmt::Display for OpenAiError {
     }
 }
 impl std::error::Error for OpenAiError {}
+
+struct UniqueJson(Value);
+
+impl<'de> Deserialize<'de> for UniqueJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(UniqueJsonVisitor)
+    }
+}
+
+struct UniqueJsonVisitor;
+
+impl<'de> Visitor<'de> for UniqueJsonVisitor {
+    type Value = UniqueJson;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a JSON value without duplicate object keys")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::Bool(value)))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::Number(value.into())))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::Number(value.into())))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        serde_json::Number::from_f64(value)
+            .map(Value::Number)
+            .map(UniqueJson)
+            .ok_or_else(|| E::custom("JSON number is not finite"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(UniqueJson(Value::String(value.to_owned())))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::String(value)))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::Null))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueJson(Value::Null))
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(value) = sequence.next_element::<UniqueJson>()? {
+            values.push(value.0);
+        }
+        Ok(UniqueJson(Value::Array(values)))
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut keys = BTreeSet::new();
+        let mut object = serde_json::Map::new();
+        while let Some(key) = map.next_key::<String>()? {
+            if !keys.insert(key.clone()) {
+                return Err(de::Error::custom(format!(
+                    "duplicate JSON object key {key:?}"
+                )));
+            }
+            let value = map.next_value::<UniqueJson>()?;
+            object.insert(key, value.0);
+        }
+        Ok(UniqueJson(Value::Object(object)))
+    }
+}
+
+pub(crate) fn parse_json_value(bytes: &[u8]) -> Result<Value, OpenAiError> {
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let value = UniqueJson::deserialize(&mut deserializer)
+        .map_err(|error| OpenAiError::new(400, format!("malformed JSON: {error}")))?;
+    deserializer
+        .end()
+        .map_err(|error| OpenAiError::new(400, format!("malformed JSON: {error}")))?;
+    Ok(value.0)
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Usage {
@@ -235,6 +344,7 @@ impl OpenAiServing {
             "decoding": "greedy",
             "inflight_limit": 1,
             "vision": false,
+            "image_input": {"native_content_part": "uor_r4_image", "decomposition": true, "visual_understanding": false},
             "body_limits": {"headers_bytes": 32_768, "default_body_bytes": 1_048_576},
             "routes": [
                 {"path": "/healthz", "methods": ["GET"], "streaming": false},
@@ -243,10 +353,11 @@ impl OpenAiServing {
                 {"path": "/v1/chat/completions", "methods": ["POST"], "streaming": true},
                 {"path": "/v1/completions", "methods": ["POST"], "streaming": true},
                 {"path": "/v1/responses", "methods": ["POST"], "streaming": true},
+                {"path": "/v1/images/decompose", "methods": ["POST"], "streaming": false},
                 {"path": "/v1/capabilities", "methods": ["GET"], "streaming": false}
             ],
-            "accepted": ["text strings", "text content parts", "max_tokens", "max_completion_tokens", "max_output_tokens (Responses)", "stream", "stream_options.include_usage", "temperature: 0", "n: 1"],
-            "unsupported_families": ["embeddings", "files", "uploads", "batches", "fine_tuning", "assistants", "threads", "moderations", "audio", "images", "realtime", "vector_stores"]
+            "accepted": ["text strings", "text content parts", "uor_r4_image content parts", "max_tokens", "max_completion_tokens", "max_output_tokens (Responses)", "stream", "stream_options.include_usage", "temperature: 0", "n: 1"],
+            "unsupported_families": ["embeddings", "files", "uploads", "batches", "fine_tuning", "assistants", "threads", "moderations", "audio", "image_url", "realtime", "vector_stores"]
         })
     }
 
@@ -393,6 +504,7 @@ impl OpenAiServing {
             );
         }
         let mut messages = Vec::with_capacity(inputs.len());
+        let mut image_count = 0usize;
         for input in inputs {
             if !matches!(input.role.as_str(), "system" | "user" | "assistant") {
                 return Err(
@@ -400,7 +512,7 @@ impl OpenAiServing {
                         .with_param("messages"),
                 );
             }
-            let content = text_content(&input.content)?;
+            let content = text_content(&input.content, &mut image_count)?;
             if input.role != "assistant" && content.trim().is_empty() {
                 return Err(
                     OpenAiError::new(400, "user and system content must not be blank")
@@ -705,7 +817,7 @@ struct InputMessage {
     content: Value,
 }
 
-fn text_content(value: &Value) -> Result<String, OpenAiError> {
+fn text_content(value: &Value, image_count: &mut usize) -> Result<String, OpenAiError> {
     match value {
         Value::String(text) if !text.is_empty() => Ok(text.clone()),
         Value::Array(parts) if !parts.is_empty() => {
@@ -713,7 +825,26 @@ fn text_content(value: &Value) -> Result<String, OpenAiError> {
             for part in parts {
                 let kind = part.get("type").and_then(Value::as_str).unwrap_or_default();
                 if matches!(kind, "image" | "image_url" | "input_image") {
-                    return Err(OpenAiError::unsupported("image content parts are not implemented; deterministic R4 image decomposition is a separate unit"));
+                    return Err(OpenAiError::unsupported(
+                        "ordinary image content parts are not implemented; use a validated uor_r4_image decomposition",
+                    ));
+                }
+                if kind == "uor_r4_image" {
+                    *image_count += 1;
+                    if *image_count > MAX_IMAGES_PER_REQUEST {
+                        return Err(OpenAiError::new(
+                            413,
+                            format!(
+                                "a request may carry at most {MAX_IMAGES_PER_REQUEST} uor_r4_image parts"
+                            ),
+                        )
+                        .with_code("image_limit"));
+                    }
+                    if !text.is_empty() && !text.ends_with('\n') {
+                        text.push('\n');
+                    }
+                    text.push_str(&r4_image_context(part)?);
+                    continue;
                 }
                 if !matches!(kind, "text" | "input_text") {
                     return Err(OpenAiError::unsupported(format!(
@@ -745,6 +876,150 @@ fn text_content(value: &Value) -> Result<String, OpenAiError> {
             "message content must be a nonempty string or text-part array",
         )),
     }
+}
+
+fn r4_image_context(part: &Value) -> Result<String, OpenAiError> {
+    let object = part
+        .as_object()
+        .ok_or_else(|| OpenAiError::new(400, "a uor_r4_image part must be an object"))?;
+    const FIELDS: [&str; 7] = [
+        "type",
+        "schema",
+        "canonical_hex",
+        "source_blake3",
+        "width",
+        "height",
+        "grid",
+    ];
+    if object.len() != FIELDS.len() || FIELDS.iter().any(|field| !object.contains_key(*field)) {
+        return Err(OpenAiError::new(
+            400,
+            "a uor_r4_image part must contain exactly type, schema, canonical_hex, source_blake3, width, height and grid",
+        ));
+    }
+    if object["schema"].as_str() != Some(IMAGE_CONTENT_SCHEMA) {
+        return Err(OpenAiError::new(
+            400,
+            format!("uor_r4_image schema must be {IMAGE_CONTENT_SCHEMA:?}"),
+        ));
+    }
+    let canonical_hex = object["canonical_hex"].as_str().ok_or_else(|| {
+        OpenAiError::new(
+            400,
+            "uor_r4_image canonical_hex must be a lowercase hex string",
+        )
+    })?;
+    if canonical_hex.len() > MAX_CANONICAL_BYTES * 2 {
+        return Err(
+            OpenAiError::new(413, "uor_r4_image canonical data exceeds the image limit")
+                .with_code("image_too_large"),
+        );
+    }
+    let canonical = hex::decode(canonical_hex)
+        .map_err(|_| OpenAiError::new(400, "uor_r4_image canonical_hex is not valid hex"))?;
+    if hex::encode(&canonical) != canonical_hex {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image canonical_hex must use lowercase canonical encoding",
+        ));
+    }
+    if canonical.len() > MAX_CANONICAL_BYTES {
+        return Err(
+            OpenAiError::new(413, "uor_r4_image canonical data exceeds the image limit")
+                .with_code("image_too_large"),
+        );
+    }
+    let image = parse_canonical(&canonical)
+        .map_err(|error| OpenAiError::new(400, format!("invalid uor_r4_image: {error}")))?;
+    if image.canonical_bytes() != canonical {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image bytes are not canonical",
+        ));
+    }
+    let source_blake3 = object["source_blake3"]
+        .as_str()
+        .ok_or_else(|| OpenAiError::new(400, "uor_r4_image source_blake3 must be a string"))?;
+    if source_blake3.len() != 64
+        || !source_blake3
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        || source_blake3 != image.source_hash_hex()
+    {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image source_blake3 differs from the canonical source digest",
+        ));
+    }
+    let width = json_u16(&object["width"], "width")?;
+    let height = json_u16(&object["height"], "height")?;
+    let grid = object["grid"]
+        .as_object()
+        .ok_or_else(|| OpenAiError::new(400, "uor_r4_image grid must be an object"))?;
+    if grid.len() != 2 || !grid.contains_key("columns") || !grid.contains_key("rows") {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image grid must contain only columns and rows",
+        ));
+    }
+    let columns = json_u16(&grid["columns"], "grid.columns")?;
+    let rows = json_u16(&grid["rows"], "grid.rows")?;
+    if width != image.width()
+        || height != image.height()
+        || columns != image.grid().columns()
+        || rows != image.grid().rows()
+    {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image dimensions or grid differ from the canonical bytes",
+        ));
+    }
+    Ok(render_r4_context(&image))
+}
+
+fn json_u16(value: &Value, field: &str) -> Result<u16, OpenAiError> {
+    value
+        .as_u64()
+        .and_then(|value| u16::try_from(value).ok())
+        .ok_or_else(|| {
+            OpenAiError::new(400, format!("uor_r4_image {field} must be a u16")).with_param(field)
+        })
+}
+
+fn render_r4_context(image: &Decomposition) -> String {
+    let mut text = String::new();
+    writeln!(
+        text,
+        "[UOR-R4-IMAGE schema={IMAGE_CONTENT_SCHEMA} source={} size={}x{} grid={}x{} patches={}]",
+        image.source_hash_hex(),
+        image.width(),
+        image.height(),
+        image.grid().columns(),
+        image.grid().rows(),
+        image.patches().len()
+    )
+    .expect("writing to String cannot fail");
+    for patch in image.patches() {
+        writeln!(
+            text,
+            "patch {} {} {} {} r4 {} {} {} {} {} {} {} {}",
+            patch.x0,
+            patch.y0,
+            patch.x1,
+            patch.y1,
+            patch.r4_q12[0][0],
+            patch.r4_q12[0][1],
+            patch.r4_q12[0][2],
+            patch.r4_q12[0][3],
+            patch.r4_q12[1][0],
+            patch.r4_q12[1][1],
+            patch.r4_q12[1][2],
+            patch.r4_q12[1][3]
+        )
+        .expect("writing to String cannot fail");
+    }
+    text.push_str("[/UOR-R4-IMAGE]");
+    text
 }
 
 fn chat_error(error: StackChatError) -> OpenAiError {

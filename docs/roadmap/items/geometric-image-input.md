@@ -26,10 +26,11 @@ source to `main`.
 
 ## What is missing
 
-There is no bounded RGBA-to-R4 primitive, native decomposition route, validated
-image content-part extension or browser Canvas input path. Text attachments and
-native OpenAI streaming are delivered, but ordinary native `image_url` correctly
-returns 501 and the composer currently refuses binary files.
+The bounded RGBA-to-R4 primitive, native decomposition route and validated
+image content-part extension are delivered. The browser Canvas input path is
+still missing. Text attachments and native OpenAI streaming are delivered,
+ordinary native `image_url` correctly returns 501, and the composer currently
+refuses binary files.
 
 ## Delivered child: integer decomposition primitive
 
@@ -39,9 +40,19 @@ positioned patch coverage, Q12 mean RGB/luma/chroma/edges, two signed R4
 vectors, source-bound canonical bytes and ordered Rayon evaluation. On the
 256 by 256, 32 by 32-grid fixture, 16 workers were 2.81 times as fast as one
 over 10,000 decompositions with an identical canonical digest. This is component
-evidence only. The native endpoint, validated `uor_r4_image` context, browser
-Canvas flow and issue #3619 all remain open; no visual input runs into the model
-yet.
+evidence only; the native endpoint and validated `uor_r4_image` context were
+delivered in the following child.
+
+## Delivered child: native image ingestion
+
+[deepseek-2](../../loop/tasks/geometric-image-input/deepseek-2/REPORT.md)
+delivered authenticated `POST /v1/images/decompose` over bounded
+`application/octet-stream` RGBA, exact canonical parsing and validation, and
+the native `uor_r4_image` content part. Its positioned signed Q12 R4 vectors
+enter the ordinary prompt and context preflight; the representation can
+therefore consume context or produce a truthful 413, but it is not a trained
+visual reader. Ordinary `image_url` and image generation/edit families remain
+501. The Studio Canvas and issue #3619 remain open.
 
 ## Done when
 

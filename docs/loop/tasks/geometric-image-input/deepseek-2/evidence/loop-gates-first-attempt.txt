@@ -1,0 +1,12 @@
+fmt-claim-wording          GREEN
+fmt-harness                GREEN
+claim-wording              GREEN
+loop-gates-watch           GREEN
+loop-drive                 RED      exit 101
+remaining gates            UNKNOWN  not run after an earlier non-green result
+
+loop-drive failure:
+the note posts: Io("cannot run /tmp/uor-loop-drive-note-gh-1531348/fake-gh: Text file busy (os error 26)")
+
+The immediate unmodified rerun was green; this is the known fake-gh ETXTBSY
+harness flake, not a product or request-path failure.

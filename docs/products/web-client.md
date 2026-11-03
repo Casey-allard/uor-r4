@@ -10,6 +10,13 @@ The web client is meant to be a language model that lives in a browser tab. You 
 
 **3 November 2026 native conversational serving:** the merged native loopback service (#3606) and conversational composer now let the plain-JS source page send real `uor-chat` requests on this device, with Enter/Shift+Enter, IME-safe submission, ArrowUp/Down prompt history with draft restoration, long text pastes, text/source attachments, and exact native usage/TTFT/tokens-per-second metrics. The same-origin temperature-zero bootstrap token and provider ID stay in memory rather than localStorage or exported sessions. Two real browser turns, text-file upload, reload-safe sessions, context-overflow errors, and the embeddings 501 were exercised; this is local protocol/UX evidence, not useful conversation, production deployment, or visual understanding. R4 image decomposition remains a separate unit.
 
+**3 November 2026 native R4 image ingestion:** the integer loopback now exposes
+bounded `POST /v1/images/decompose` and accepts authenticated `uor_r4_image`
+content parts with exact canonical and source-hash validation. The patch R4
+vectors enter the ordinary text context and preflight. This is experimental
+data plumbing, not a trained visual reader; ordinary `image_url`, image
+generation/edit families and the Studio Canvas input are not yet supported.
+
 **Initial Studio publish and interface history (superseded).** The initial 30 October publish at gh-pages `d8e67c66` established the clean responsive page, self-hosted integer wasm engine, local-file/URL/API model sources, `/1`–`/6` serving at the initial publish, with `/7` added by #3446, and discrete next-token prediction, followed by the public M1, Stage-T and FBS releases described above. DeepSeek's #3447 agent-console shell then superseded that interface before the current v2 below; the engine, worker and API layer remained intact.
 
 **Current v2 interface (#3448).** DeepSeek then rebuilt the Studio into a workable AI studio around one labeled navigation sidebar: Agent / Workspace / Connections / Guide plus a permanent Sessions section, a File System Access workspace with editor tabs and save, agent context attachments/build templates/message actions, organized connection sections, Settings and Guide views, an eight-group command palette and a labeled mobile drawer; the same engine/API layer and verifier contracts are preserved. See [#3440](https://github.com/UOR-Foundation/uor-r4/issues/3440) and [the item](../roadmap/items/m7-studio-live-model-sources.md).

@@ -2477,6 +2477,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "uor-r4-tokenizer",
+ "uor-r4-vision",
  "wasm-bindgen",
 ]
 

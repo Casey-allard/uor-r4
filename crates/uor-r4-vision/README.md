@@ -10,6 +10,12 @@ non-empty patches, computes Q12 mean RGB, Rec.601 luma, two signed chroma axes
 and mean horizontal/vertical luma edges, then emits canonical bytes bound to the
 source digest and patch geometry.
 
+`parse_canonical` verifies the exact byte length, magic, dimensions, grid,
+row-major bounds, statistic ranges, luma/chroma derivation and both redundant R4
+vectors before returning a decomposition. The canonical format is
+`R4IMG001`, big-endian, with a 52-byte header and 40 bytes per patch in
+row-major order.
+
 Independent patches run in parallel through Rayon by default. Indexed
 collection preserves row-major patch order, so worker count changes timing only:
 

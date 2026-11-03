@@ -1,4 +1,4 @@
-use uor_r4_vision::{decompose_rgba, Grid, VisionError};
+use uor_r4_vision::{decompose_rgba, parse_canonical, Grid, VisionError};
 
 const FIXTURE_RGBA: [u8; 16] = [
     255, 0, 0, 255, // red
@@ -223,4 +223,61 @@ fn every_pixel_belongs_to_exactly_one_positioned_patch() {
         out.source_hash_hex(),
         blake3::hash(&rgba).to_hex().to_string()
     );
+}
+
+#[test]
+fn canonical_bytes_parse_back_to_the_same_decomposition() {
+    let out = decompose_rgba(2, 2, &FIXTURE_RGBA, Grid::new(2, 2)).unwrap();
+    let parsed = parse_canonical(&out.canonical_bytes()).unwrap();
+    assert_eq!(parsed, out);
+    assert_eq!(parsed.canonical_bytes(), out.canonical_bytes());
+}
+
+#[test]
+fn canonical_parser_rejects_noncanonical_or_inconsistent_bytes() {
+    let out = decompose_rgba(2, 2, &FIXTURE_RGBA, Grid::new(2, 2)).unwrap();
+    let canonical = out.canonical_bytes();
+
+    let mut bad = canonical.clone();
+    bad[0] ^= 0xff;
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
+
+    let mut bad = canonical.clone();
+    bad.truncate(bad.len() - 1);
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
+
+    let mut bad = canonical.clone();
+    bad[16..20].copy_from_slice(&3u32.to_be_bytes());
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
+
+    let mut bad = canonical.clone();
+    bad[52..54].copy_from_slice(&1u16.to_be_bytes());
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
+
+    let mut bad = canonical.clone();
+    bad[52 + 8..52 + 10].copy_from_slice(&4097u16.to_be_bytes());
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
+
+    let mut bad = canonical;
+    let redundant_r4 = 52 + 26;
+    bad[redundant_r4..redundant_r4 + 2].copy_from_slice(&0i16.to_be_bytes());
+    assert!(matches!(
+        parse_canonical(&bad),
+        Err(VisionError::InvalidCanonical(_))
+    ));
 }

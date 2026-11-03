@@ -1,0 +1,7 @@
+integer_clippy_exit=101
+changed_scoped_diagnostics=none
+diagnostic_lines=52
+base_origin_main_exit=101
+base_origin_main_diagnostic_lines=52
+The same 52 pre-existing diagnostics occur on origin/main. None names
+openai.rs, loopback.rs or openai_loopback.rs.
