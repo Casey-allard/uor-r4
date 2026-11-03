@@ -82,6 +82,15 @@
             state.tabs = (parsed.tabs || []).filter(function (tab) { return tab && typeof tab.content === 'string'; }).map(function (tab) {
                 return { path: tab.path, name: baseName(tab.path), content: tab.content, dirty: Boolean(tab.dirty), mode: tab.mode || 'local', handle: null };
             });
+            if (state.tabs.length && state.tabs.every(function (tab) { return tab.mode === 'demo'; })) {
+                state.mode = 'demo';
+                state.rootName = 'uor-r4';
+                var samples = demoSamples();
+                state.tabs.forEach(function (tab) { samples[tab.path] = tab.content; });
+                buildDemoTree(samples);
+                updateWorkspaceUI();
+                renderTree();
+            }
             state.activePath = parsed.activePath || (state.tabs[0] ? state.tabs[0].path : null);
             renderTabs();
             if (state.activePath) loadTabIntoEditor(state.activePath, true);
@@ -207,11 +216,8 @@
         input.click();
     }
 
-    function demoWorkspace() {
-        try { window.localStorage.removeItem(TABS_KEY); } catch (error) { /* optional */ }
-        state.tabs = [];
-        state.activePath = null;
-        var samples = {
+    function demoSamples() {
+        return {
             'web/studio/index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <title>UOR-R4 Studio</title>\n    <link rel="stylesheet" href="./index.css">\n</head>\n<body>\n    <!-- sample workspace file loaded from the demo tree -->\n</body>\n</html>\n',
             'web/studio/index.css': '/* UOR-R4 Studio — warm graphite + ember */\n:root {\n    --bg: #0b0a09;\n    --accent: #e8894a;\n}\n.studio { color: var(--accent); }\n',
             'web/studio/assets/js/studio_ui.js': '// Interaction layer: theme, command palette, navigation, sessions.\nexport function init() {\n    console.log("studio ui");\n}\n',
@@ -219,9 +225,9 @@
             'crates/uor-r4-integer/src/lib.rs': '// Sample Rust module from the demo tree.\npub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n',
             'tools/README.md': '# Tools\n\nVerification scripts, tokenizer tools and build helpers.\n'
         };
-        state.rootHandle = null;
-        state.rootName = 'uor-r4';
-        state.mode = 'demo';
+    }
+
+    function buildDemoTree(samples) {
         state.files = {};
         var tree = {};
         Object.keys(samples).forEach(function (path) {
@@ -249,23 +255,28 @@
             return entries.concat((node.files || []).slice().sort(function (a, b) { return a.name.localeCompare(b.name); }));
         }
         state.tree = build(tree, '');
+    }
+
+    function demoWorkspace() {
+        if (state.tabs.some(function (tab) { return tab.dirty; })) {
+            toast('Save or close unsaved tabs before exploring the demo workspace.', 'warn');
+            return false;
+        }
+        try { window.localStorage.removeItem(TABS_KEY); } catch (error) { /* optional */ }
+        state.tabs = [];
+        state.activePath = null;
+        state.rootHandle = null;
+        state.rootName = 'uor-r4';
+        state.mode = 'demo';
+        buildDemoTree(demoSamples());
         updateWorkspaceUI();
         renderTree();
         openFile('web/studio/index.html').then(function () { return openFile('web/studio/index.css'); });
         window.setTimeout(function () { if (state.activePath) loadTabIntoEditor(state.activePath, true); }, 800);
         window.setTimeout(function () { if (state.activePath) loadTabIntoEditor(state.activePath, true); }, 1600);
-        window.setTimeout(function () {
-            if (state.tabs.length) {
-                state.tabs[0].dirty = true;
-                state.activePath = state.tabs[0].path;
-                loadTabIntoEditor(state.tabs[0].path, true);
-                renderTabs();
-                var badge = document.getElementById('editorSavedBadge');
-                if (badge) badge.textContent = 'Unsaved changes';
-            }
-        }, 1700);
         emit();
         toast('Loaded the demo workspace tree (screenshot/QA state).', 'info');
+        return true;
     }
 
     function renderTree() {
@@ -532,7 +543,7 @@
         var index = 1;
         var name = 'untitled.md';
         while (state.tabs.some(function (tab) { return tab.path === name; })) { index += 1; name = 'untitled-' + index + '.md'; }
-        state.tabs.push({ path: name, name: name, content: '', dirty: true, mode: state.mode === 'directory' ? 'directory' : 'local', handle: null });
+        state.tabs.push({ path: name, name: name, content: '', dirty: true, mode: state.mode === 'directory' ? 'directory' : (state.mode === 'demo' ? 'demo' : 'local'), handle: null });
         state.activePath = name;
         loadTabIntoEditor(name, false);
         renderTabs();
@@ -646,7 +657,7 @@
             existing.dirty = true;
             state.activePath = existing.path;
         } else {
-            state.tabs.push({ path: tabName, name: tabName, content: text, dirty: true, mode: state.mode === 'directory' ? 'directory' : 'local', handle: null });
+            state.tabs.push({ path: tabName, name: tabName, content: text, dirty: true, mode: state.mode === 'directory' ? 'directory' : (state.mode === 'demo' ? 'demo' : 'local'), handle: null });
             state.activePath = tabName;
         }
         loadTabIntoEditor(state.activePath, false);
@@ -678,12 +689,15 @@
         var ctxMeta = document.getElementById('ctxWorkspaceMeta');
         var badge = document.getElementById('filesAccessBadge');
         var label = state.rootName || 'No folder open';
-        if (name) name.textContent = label;
+        var displayLabel = label + (state.mode === 'demo' ? ' · demo' : '');
+        if (name) name.textContent = displayLabel;
         if (crumb) crumb.textContent = state.rootName || 'no folder';
         var topCrumb = document.getElementById('topWorkspaceName');
-        if (topCrumb) topCrumb.textContent = state.rootName ? state.rootName + ' / main' : 'uor-r4 / main';
-        if (folder) folder.textContent = state.rootName || 'no folder';
-        if (ctxLabel) ctxLabel.textContent = label;
+        if (topCrumb) topCrumb.textContent = state.rootName ? state.rootName + ' / main' + (state.mode === 'demo' ? ' · demo' : '') : 'uor-r4 / main';
+        if (folder) folder.textContent = displayLabel;
+        var statusWorkspace = document.getElementById('statusWorkspaceLabel');
+        if (statusWorkspace) statusWorkspace.textContent = displayLabel;
+        if (ctxLabel) ctxLabel.textContent = displayLabel;
         if (meta) meta.textContent = state.mode === 'directory' ? 'File System Access · read/write' : (state.mode === 'demo' ? 'demo tree · QA state' : (state.mode === 'imported' ? 'imported · read-only session' : 'browser workspace · open folder'));
         if (ctxMeta) ctxMeta.textContent = state.mode === 'directory' ? 'Read/write access to this folder in this tab.' : (state.mode === 'demo' ? 'Demo tree for screenshots; open a real folder for disk access.' : (state.mode === 'imported' ? 'Imported read-only copies; save downloads a copy.' : 'Open a folder in Files to enable editor tabs and save.'));
         if (badge) badge.textContent = state.mode === 'directory' ? 'File System Access · read/write' : (state.mode === 'demo' ? 'demo tree' : (state.mode === 'imported' ? 'imported · read-only' : 'browser workspace'));
@@ -793,7 +807,7 @@
             insertText: insertText,
             setActiveContent: setActiveContent,
             activeFile: activeFile,
-            workspaceName: function () { return state.rootName; },
+            workspaceName: function () { return state.rootName + (state.mode === 'demo' ? ' · demo' : ''); },
             mode: function () { return state.mode; },
             tabs: function () { return state.tabs.map(function (tab) { return { path: tab.path, dirty: tab.dirty, mode: tab.mode }; }); },
             treeSummary: function () { return summary(); }

@@ -98,6 +98,7 @@
                     </div>
                 </div>
             </aside>
+            <button class="nav-scrim" id="btnNavScrim" type="button" aria-label="Close navigation" hidden></button>
 
             <main class="main-column" id="mainColumn" tabindex="-1">
                 <section class="view chat-panel" id="chatPanel" data-view="chat" aria-label="Chat">
@@ -489,7 +490,7 @@
     <script type="module">
 
         import { mountModelSources, ModelSources } from './assets/js/model_sources.js';
-        import { configFromSources, streamChatCompletions } from './assets/js/studio_api.js';
+        import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js';
         import { encodeTextWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
 
         var CONVERSATIONS_KEY = 'uor.studio.conversations.v1';
@@ -792,26 +793,30 @@
             var empty = document.createElement('div');
             empty.className = 'chat-empty';
             empty.id = 'chatEmptyState';
+            var ready = chatReadiness();
+            empty.dataset.readiness = ready ? 'ready' : 'unavailable';
             var mark = document.createElement('div');
             mark.className = 'empty-mark';
-            mark.textContent = '\u25c8';
+            mark.textContent = '◈';
             mark.setAttribute('aria-hidden', 'true');
             var headline = document.createElement('h2');
             headline.className = 'empty-headline';
-            headline.textContent = app.mode === 'api' ? 'Agent ready — external baseline mode.' : 'A workable agent workspace for UOR-R4.';
+            headline.textContent = app.mode === 'api' && ready
+                ? 'API configured — external baseline mode.'
+                : (ready ? 'Local synthetic continuation ready.' : 'Build with your files. Connect an agent when ready.');
             var copy = document.createElement('p');
             copy.className = 'empty-desc';
-            copy.textContent = app.mode === 'api'
-                ? 'Prompts are sent to the configured API provider and leave this device. UOR-R4 is pre-alpha: treat every reply as an external baseline, not a project result.'
-                : 'Use this Studio to work on the repository files with an OpenAI-compatible agent. No external requests are made while the page loads, and nothing leaves this device until you choose an API provider.';
+            copy.textContent = app.mode === 'api' && ready
+                ? 'Prompts will be sent to the configured API provider when you send them and will leave this device. Configuration does not prove reachability; treat every reply as an external baseline, not a project result.'
+                : (ready
+                    ? 'A supported non-discrete stack is loaded. Its generated continuation is synthetic engine evidence, not a useful conversation.'
+                    : 'No conversational model is configured. Explore the demo workspace or open your own files, then configure a chat-capable source under Models. M1 provides next-token prediction only.');
             var steps = document.createElement('ol');
             steps.className = 'empty-steps';
             [
-                'In Models, load the synthetic demo or the M1 trunk, or add an API provider to talk to an agent.',
-                'In Workspace, open a local folder and click a file to open an editor tab.',
-                'Attach the active file (or several) as context in the composer.',
-                'Ask a question or pick a Build task template, then send it.',
-                'Insert useful replies into the editor and save them back to disk.'
+                'Choose a demo tree or open a local folder, then open files in editor tabs.',
+                'Attach the active file or pasted text as explicit agent context.',
+                'Configure an API provider for chat, or use M1 next-token prediction.'
             ].forEach(function (text) {
                 var item = document.createElement('li');
                 item.className = 'empty-step';
@@ -828,12 +833,21 @@
                 button.addEventListener('click', onClick);
                 quick.appendChild(button);
             }
-            quickButton('Open Models', function () { setView('model'); });
-            quickButton('Open Workspace', function () { setView('workspace'); });
-            quickButton('New session', function () { startNewChat(); });
+            function go(section, view) {
+                var ui = window.__studioUi;
+                if (ui && typeof ui.activateSection === 'function') ui.activateSection(section);
+                else setView(view);
+            }
+            quickButton('Open Models', function () { go('models', 'model'); });
+            quickButton('Open Workspace', function () { go('workspace', 'workspace'); });
+            quickButton('Explore demo workspace', function () {
+                if (!window.__studioFiles || typeof window.__studioFiles.openDemo !== 'function') return;
+                if (window.__studioFiles.openDemo() !== false) go('workspace', 'workspace');
+            });
+            quickButton('New session', function () { if (startNewChat() !== false) go('agent', 'chat'); });
             var note = document.createElement('p');
             note.className = 'empty-note';
-            note.textContent = 'Pre-alpha \u00b7 M1 complete \u00b7 1 of 8 milestones \u00b7 the M1 trunk serves next-token prediction only; a useful conversation is not established yet.';
+            note.textContent = 'Pre-alpha · M1 complete · 1 of 8 milestones · the M1 trunk serves next-token prediction only; a useful conversation is not established yet.';
             empty.appendChild(mark);
             empty.appendChild(headline);
             empty.appendChild(copy);
@@ -1088,6 +1102,14 @@
             if (badge) badge.textContent = app.mode === 'api' ? 'API' : 'Local WASM';
         }
 
+        function chatReadiness() {
+            if (app.mode === 'api') {
+                if (!app.apiConfig) return false;
+                try { return Boolean(normalizeBaseUrl(app.apiConfig.baseUrl)); } catch (_error) { return false; }
+            }
+            return Boolean(app.caps) && app.caps.synthetic === true && app.caps.engine_supported !== false && app.caps.can_generate !== false && !isDiscreteCapabilities(app.caps);
+        }
+
         function updateComposerState() {
             var send = $('#btnSend');
             var stop = $('#btnStop');
@@ -1095,9 +1117,9 @@
             send.hidden = app.generating;
             stop.hidden = !app.generating || Boolean(app.activePredictionRequestId);
             stop.disabled = Boolean(app.activePredictionRequestId);
-            var ready = app.mode === 'api' ? Boolean(app.apiConfig) : Boolean(app.caps);
+            var ready = chatReadiness();
             send.disabled = app.generating || !ready;
-            send.title = app.generating ? 'A reply is in progress.' : (ready ? 'Send the prompt.' : 'Load a model source first.');
+            send.title = app.generating ? 'A reply is in progress.' : (ready ? 'Send the prompt.' : 'Configure a chat-capable model or API provider under Models.');
         }
 
         /* ------------------------------------------------------------ metrics */
@@ -1550,13 +1572,8 @@
                 if (input) input.focus();
                 return false;
             }
-            if (app.mode === 'api' && !app.apiConfig) {
-                toast('Configure an OpenAI-compatible API endpoint under Model sources first.', 'warn');
-                setView('model');
-                return false;
-            }
-            if (app.mode === 'wasm' && (!app.worker || !app.caps)) {
-                toast('Load a local model first under Model sources.', 'warn');
+            if (!chatReadiness() || (app.mode === 'wasm' && !app.worker)) {
+                toast('Configure a chat-capable model or API provider under Models.', 'warn');
                 setView('model');
                 return false;
             }

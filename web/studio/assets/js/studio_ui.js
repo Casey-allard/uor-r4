@@ -103,11 +103,21 @@
         var sessions = document.getElementById('sessionSection');
         if (sessions) sessions.classList.remove('is-hidden');
         if (!options || !options.silent) {
-            if (window.matchMedia('(max-width: 900px)').matches) setChrome('nav', 'collapsed', false);
+            if (window.matchMedia('(max-width: 900px)').matches) setChrome('nav', 'collapsed', true);
             updateStatus();
         }
     }
     function chromeValue(name, fallback) { var stored = readUi()[name]; return stored === 'expanded' || stored === 'collapsed' ? stored : fallback; }
+    function syncNavPresentation() {
+        if (!app) return;
+        var expanded = app.getAttribute('data-nav') === 'expanded';
+        var mobile = window.matchMedia('(max-width: 900px)').matches;
+        document.documentElement.classList.toggle('nav-open', expanded && mobile);
+        var scrim = document.getElementById('btnNavScrim');
+        if (scrim) scrim.hidden = !(expanded && mobile);
+        var main = document.getElementById('mainColumn');
+        if (main) main.inert = expanded && mobile;
+    }
     function setChrome(name, value, persist) {
         if (!app) return;
         app.setAttribute('data-' + name, value);
@@ -115,7 +125,7 @@
         var map = { nav: ['btnToggleNav', 'btnNavCollapse', 'btnMobileNav'], inspector: ['btnToggleInspector', 'btnToggleInspector2', 'btnToggleInspector3', 'btnToggleInspector4'] };
         (map[name] || []).forEach(function (id) { var node = document.getElementById(id); if (node) node.setAttribute('aria-expanded', expanded ? 'true' : 'false'); });
         if (persist) { var patch = {}; patch[name] = value; writeUi(patch); }
-        if (name === 'nav') document.documentElement.classList.toggle('nav-open', expanded && window.matchMedia('(max-width: 900px)').matches);
+        if (name === 'nav') syncNavPresentation();
     }
     function toggleChrome(name) { if (!app) return; var current = app.getAttribute('data-' + name) === 'collapsed' ? 'collapsed' : 'expanded'; setChrome(name, current === 'expanded' ? 'collapsed' : 'expanded', true); }
 
@@ -804,6 +814,7 @@
         on('btnToggleNav', 'click', function () { toggleChrome('nav'); });
         on('btnNavCollapse', 'click', function () { toggleChrome('nav'); });
         on('btnMobileNav', 'click', function () { toggleChrome('nav'); });
+        on('btnNavScrim', 'click', function () { setChrome('nav', 'collapsed', true); });
         ['btnToggleInspector', 'btnToggleInspector2', 'btnToggleInspector3', 'btnToggleInspector4', 'btnInspectorCollapse'].forEach(function (id) { on(id, 'click', function () { toggleChrome('inspector'); }); });
         on('btnOpenModelSources', 'click', function () { activateSection('models'); });
         on('ctxOpenFiles', 'click', function () { activateSection('files'); });
@@ -899,12 +910,16 @@
             if (event.key === 'Tab' && openModalDialog) { trapModalTab(event, openModalDialog); return; }
             if (event.key === 'Escape') {
                 if (paletteOpen) { event.preventDefault(); event.stopPropagation(); closePalette(); return; }
-                var settingsDialog = document.getElementById('settingsDialog');
-                var help = document.getElementById('helpDialog');
-                if (settingsDialog && !settingsDialog.hidden) { event.preventDefault(); event.stopPropagation(); closeSettings(); return; }
-                if (help && !help.hidden) { event.preventDefault(); event.stopPropagation(); closeHelp(); }
+                if (openModalDialog) { event.preventDefault(); event.stopPropagation(); closeModal(openModalDialog); return; }
+                if (app && app.getAttribute('data-nav') === 'expanded' && window.matchMedia('(max-width: 900px)').matches) {
+                    event.preventDefault();
+                    setChrome('nav', 'collapsed', true);
+                    return;
+                }
             }
         }, true);
+        var navMedia = window.matchMedia('(max-width: 900px)');
+        if (navMedia && navMedia.addEventListener) navMedia.addEventListener('change', syncNavPresentation);
         window.addEventListener('pagehide', function () { if (clockTimer) window.clearInterval(clockTimer); });
         window.addEventListener('focus', updateStatus);
     }

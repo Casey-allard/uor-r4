@@ -65,6 +65,10 @@ were "not organized or labeled very well". The page is now a workable AI studio:
   and the strict static checks pass with assertions intact. Real-browser/worker parity checks remain later work. The page remains offline-first: no
   external request at load; remote model/API contacts are user-initiated only.
 
+### IDE experience in the Studio source (2 November 2026)
+
+The Studio source page now presents a coherent IDE-style welcome panel with source-specific states and quick actions. Users can explore a demo workspace before a serving model exists: open two tabs, edit buffers, and attach files as context. Demo replacement refuses dirty work, restored tabs are labeled demo, and no automatic dirty edit is fabricated. No-source, research-only, and discrete-M1 chat are disabled; positively synthetic non-discrete continuation and valid HTTP(S) API configuration remain available. Mobile navigation persists destination dismissal, closes through the labeled scrim or destination, and handles Escape after any open modal or palette. Desktop 1440×900 and iPhone 393×852 dark/light views and the demo/attachment workflow were exercised in the built-in browser; no model/API/disk trajectory is claimed.
+
 ### Typed workflow components (development library)
 
 The `src/` library now contains the lifecycle store and all eight approved core components:

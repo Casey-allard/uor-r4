@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import source from '../../index.html?raw';
+// @ts-expect-error The existing JavaScript API has no declaration file.
+import { normalizeBaseUrl } from '../../assets/js/studio_api.js';
 import { LifecycleStore } from '../state/lifecycle.js';
 import { createGenerationAdapter } from './generation.js';
 
@@ -14,7 +16,7 @@ function pageHooks() {
     const app = {
         worker: { postMessage: vi.fn() },
         workerState: 'ready',
-        caps: { schema: 'uor-r4.lut-discrete-trunk/1', shape: { vocab: 17, context: 64 } },
+        caps: { schema: 'uor-r4.lut-discrete-trunk/1', shape: { vocab: 17, context: 64 }, synthetic: false },
         tokenizerArtifact: { sentinel: true },
         generationSerial: 0,
         conversations: [] as Array<{ id: string; messages: Array<Record<string, unknown>>; sourceKind: string }>,
@@ -49,12 +51,13 @@ function pageHooks() {
         'app', 'document', 'window', 'toast', 'setMetrics', 'setEngineStatus', 'encodeTextWithArtifact', 'fillPredictorSha', '$',
         'activeConversation', 'appendMessageElement', 'touchConversation', 'updateComposerState', 'requestCheckpoint',
         'renderConversationList', 'scrollChat', 'formatTps', 'setView', 'makeId', 'streamChatCompletions', 'configFromSources', 'MAX_NEW_TOKENS',
-        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations',
+        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations', 'normalizeBaseUrl',
         `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
          ${section('function renderDiscretePrediction', 'function runPrediction')}
          ${section('function runPrediction', '/* ------------------------------------------------------------ status & toasts */')}
          ${section('function setChip', 'function toast')}
          ${section('function updatePrivacyStatus', 'function updateComposerState')}
+         ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
          ${section('function nextGenerationId', 'function generationTokenLimit')}
          ${section('function generationTokenLimit', '/* ------------------------------------------------------------ composer */')}
          ${section('function stopGeneration', 'function sendFromComposer')}
@@ -77,7 +80,7 @@ function pageHooks() {
             apiRequests.push(options);
         }), vi.fn(() => null), 32,
         () => conversation, vi.fn(),
-        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(),
+        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(), normalizeBaseUrl,
     ) as {
         runPrediction(prompt?: string): boolean;
         renderDiscretePrediction(message: unknown): void;
@@ -232,6 +235,7 @@ describe('actual page prediction hooks', () => {
         const { app, hooks, conversation, setMetrics } = pageHooks();
         app.conversations = [conversation];
         app.activeConversationId = conversation.id;
+        app.caps = { schema: 'uor-r4.lut-stack/1', shape: { vocab: 17, context: 64 }, synthetic: true };
         app.worker.postMessage = vi.fn(() => { throw new Error('clone failed'); });
         expect(hooks.sendFromComposer('chat')).toBe(false);
         expect(conversation.messages).toHaveLength(0);
@@ -424,13 +428,14 @@ describe('actual page local fallback hook', () => {
         };
         const updatePrivacyStatus = vi.fn();
         const factory = new Function(
-            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$',
-            `${section('function updateComposerState', '/* ------------------------------------------------------------ metrics */')}
+            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl',
+            `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
+             ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
              ${section('function abortApiForLocalSource', 'function onModelSourceChanged')}
          ${section('function onModelSourceChanged', 'function onApiConfigChanged')}
              return onModelSourceChanged;`,
         );
-        const onModelSourceChanged = factory(app, ModelSources, vi.fn(), updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector)) as (event: Event) => void;
+        const onModelSourceChanged = factory(app, ModelSources, vi.fn(), updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl) as (event: Event) => void;
         document.addEventListener('uor-model-source-changed', onModelSourceChanged);
         const provider = ModelSources.addApi({ label: 'Remove me', baseUrl: 'https://old.example.com/v1', model: 'old' });
         ModelSources.setActive({ kind: 'api', id: provider.id });
@@ -457,13 +462,14 @@ describe('actual page local fallback hook', () => {
         const updatePrivacyStatus = vi.fn();
         const setModelStatus = vi.fn();
         const factory = new Function(
-            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$',
-            `${section('function updateComposerState', '/* ------------------------------------------------------------ metrics */')}
+            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl',
+            `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
+             ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
              ${section('function abortApiForLocalSource', 'function onModelSourceChanged')}
          ${section('function onModelSourceChanged', 'function onApiConfigChanged')}
              return onModelSourceChanged;`,
         );
-        const onModelSourceChanged = factory(app, ModelSources, setModelStatus, updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector)) as (event: Event) => void;
+        const onModelSourceChanged = factory(app, ModelSources, setModelStatus, updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl) as (event: Event) => void;
         document.addEventListener('uor-model-source-changed', onModelSourceChanged);
         const provider = ModelSources.addApi({ label: 'Edit me', baseUrl: 'https://old.example.com/v1', model: 'old' });
         ModelSources.setActive({ kind: 'api', id: provider.id });
