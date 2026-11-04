@@ -1,0 +1,267 @@
+{
+  "schema": "uor-r4.cpu-stop-signature-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "scope": "fixed K=8 256-bit sign-signature stop candidate outside writer admission on the repeated-key public panel",
+  "source": {
+    "base_commit": "e3959b140905f294776ac6bae64cffa51af73498",
+    "implementation_commit": "6bd0edff0e7a32e8457e2630a952bd235a9c0523",
+    "fit_head": "c2fc34f19a61d9aab5a5853199965b27a1bcd523",
+    "run_head": "c885f0e23f32f37a7f9e1215da19b8a2bf0f802f",
+    "binary_sha256": "7b2904200638c194fb753c613d9caa6509e3c98b42e15d53224c93ebc8df24b9",
+    "binary_bytes": 2269896,
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "keys": 16,
+    "training_samples": 98,
+    "evaluation_samples": 103,
+    "training_relevant_decisions": 1218,
+    "evaluation_relevant_decisions": 1188,
+    "training_terminal": 98,
+    "training_nonterminal": 1120,
+    "evaluation_terminal": 103,
+    "evaluation_nonterminal": 1085,
+    "scope": "even documents train, odd documents evaluate; key families repeat by design"
+  },
+  "mechanism": {
+    "signature_bits": 256,
+    "prototypes_per_class": 8,
+    "decision": "BOS when nearest-nonterminal Hamming distance minus nearest-terminal Hamming distance is at least the training-fitted margin",
+    "admission": "candidate bypasses writer admission in the CPU evaluator; integer serving is unchanged"
+  },
+  "training": [
+    {
+      "seed": 1,
+      "true": {
+        "margin": 55,
+        "terminal_stops": 97,
+        "terminal_rows": 98,
+        "nonterminal_stops": 10,
+        "nonterminal_rows": 1120,
+        "nonterminal_stop_limit": 11,
+        "gate_sha256": "49b290540caa2999b8d7385a7d96b7134c1f62a718f01185f862d3e4b1cb2b7c"
+      },
+      "label_shuffled": {
+        "margin": 85,
+        "terminal_stops": 39,
+        "terminal_rows": 98,
+        "nonterminal_stops": 0,
+        "nonterminal_rows": 1120,
+        "gate_sha256": "d64213a733ef815df4a0f20ad064b290f16f087df847aa9526736db690845d67"
+      }
+    },
+    {
+      "seed": 2,
+      "true": {
+        "margin": 58,
+        "terminal_stops": 96,
+        "terminal_rows": 98,
+        "nonterminal_stops": 5,
+        "nonterminal_rows": 1120,
+        "nonterminal_stop_limit": 11,
+        "gate_sha256": "e4e5f536cb2834b7af231abeba08cd5c69a9f34c85e37529dd0ccb7199378408"
+      },
+      "label_shuffled": {
+        "margin": 46,
+        "terminal_stops": 26,
+        "terminal_rows": 98,
+        "nonterminal_stops": 2,
+        "nonterminal_rows": 1120,
+        "gate_sha256": "587cd201c679f5ef44312488fb9bac6d6bfe9535bd3c3be1d6940361318ee4a8"
+      }
+    }
+  ],
+  "evaluation": [
+    {
+      "seed": 1,
+      "no_gate": {
+        "terminal_stops": 0,
+        "nonterminal_stops": 0,
+        "writer_fallbacks": 1188,
+        "ungated_token_mismatches": 0
+      },
+      "true": {
+        "terminal_stops": 97,
+        "nonterminal_stops": 8,
+        "gated_stops": 105,
+        "writer_fallbacks": 1083,
+        "ungated_token_mismatches": 0
+      },
+      "label_shuffled": {
+        "terminal_stops": 0,
+        "nonterminal_stops": 34,
+        "gated_stops": 34,
+        "writer_fallbacks": 1154,
+        "ungated_token_mismatches": 0
+      },
+      "bar": {
+        "terminal_required": 26,
+        "nonterminal_limit": 10,
+        "vs_no_gate_gain": 97,
+        "vs_no_gate_threshold": 20,
+        "vs_shuffled_gain": 97,
+        "vs_shuffled_threshold": 20,
+        "passes": true
+      },
+      "free_generation": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "cap_stopped": 103,
+          "exact_reference": 0,
+          "opening_correct": 0,
+          "distinct_non_empty": 2,
+          "repeated_4gram": 24
+        },
+        "true_gate": {
+          "bos_complete": 103,
+          "premature_stop": 103,
+          "cap_stopped": 0,
+          "exact_reference": 0,
+          "opening_correct": 0,
+          "generated_tokens": 1449,
+          "distinct_non_empty": 2,
+          "repeated_4gram": 0,
+          "gated_decisions": 1552,
+          "fired": 103
+        },
+        "label_shuffled_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "cap_stopped": 103,
+          "exact_reference": 0,
+          "opening_correct": 0,
+          "generated_tokens": 1648,
+          "distinct_non_empty": 2,
+          "repeated_4gram": 24,
+          "gated_decisions": 1648,
+          "fired": 0
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "no_gate": {
+        "terminal_stops": 0,
+        "nonterminal_stops": 0,
+        "writer_fallbacks": 1188,
+        "ungated_token_mismatches": 0
+      },
+      "true": {
+        "terminal_stops": 97,
+        "nonterminal_stops": 8,
+        "gated_stops": 105,
+        "writer_fallbacks": 1083,
+        "ungated_token_mismatches": 0
+      },
+      "label_shuffled": {
+        "terminal_stops": 0,
+        "nonterminal_stops": 20,
+        "gated_stops": 20,
+        "writer_fallbacks": 1168,
+        "ungated_token_mismatches": 0
+      },
+      "bar": {
+        "terminal_required": 26,
+        "nonterminal_limit": 10,
+        "vs_no_gate_gain": 97,
+        "vs_no_gate_threshold": 20,
+        "vs_shuffled_gain": 97,
+        "vs_shuffled_threshold": 20,
+        "passes": true
+      },
+      "free_generation": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "cap_stopped": 103,
+          "exact_reference": 0,
+          "opening_correct": 4,
+          "distinct_non_empty": 2,
+          "repeated_4gram": 43
+        },
+        "true_gate": {
+          "bos_complete": 43,
+          "premature_stop": 43,
+          "cap_stopped": 60,
+          "exact_reference": 0,
+          "opening_correct": 4,
+          "generated_tokens": 1175,
+          "distinct_non_empty": 2,
+          "repeated_4gram": 0,
+          "gated_decisions": 1218,
+          "fired": 43
+        },
+        "label_shuffled_gate": {
+          "bos_complete": 103,
+          "premature_stop": 103,
+          "cap_stopped": 0,
+          "exact_reference": 0,
+          "opening_correct": 4,
+          "generated_tokens": 103,
+          "distinct_non_empty": 1,
+          "repeated_4gram": 0,
+          "gated_decisions": 206,
+          "fired": 103
+        }
+      }
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "ea26fb8cfbec827bb11dafe605a452f716fcb4c53520433c48945db43772abd4",
+    "report_sha256": "3ba48d527893f16a63c128ebb920080a41dfc85ae62c04d60b6f389e99ee8d0b",
+    "wall_elapsed_ms": 2299.264165,
+    "peak_rss_kib": 216112,
+    "artifacts_byte_identical": true
+  },
+  "reports": {
+    "seed_1_sha256": "1fc936de75936a2967b899f377f1f26a12280501dc719c398a5cd245bcc75946",
+    "seed_2_sha256": "30921de30723a3eba4c895d967c82c22e5cf841775973b9f6798bd51e82522fc"
+  },
+  "build": {
+    "jobs": 16,
+    "wall_seconds": 17,
+    "peak_rss_kib": 1210480,
+    "target_bytes": 260818555,
+    "receipt_sha256": "e472b82b88b4ea629a3e166c431abfb950e03ecc0f7e3b151325c4e31d69d2b9"
+  },
+  "resources": {
+    "measured_build_seconds": 17,
+    "measured_run_seconds": 6.865100524,
+    "measured_compute_seconds": 23.865100524,
+    "admitted_projection_seconds": 1800,
+    "previous_ledger_seconds": 34833.112387175,
+    "admitted_cumulative_projection_seconds": 36633.112387175,
+    "run_peak_rss_kib": 220148,
+    "retained_pipeline_bytes": 8280196,
+    "unmeasured_components": [
+      "preparation and review elapsed time",
+      "validation and delivery elapsed time"
+    ]
+  },
+  "process_history": {
+    "fit_1": "NOT_FIT: missing teacher-forced no-gate control, tautological token identity, incomplete tests and unbound gate hashes",
+    "fit_2": "FIT at c2fc34f19 after repairs",
+    "prerun": "GO at c885f0e23",
+    "repeat_definition": "timing/resource fields removed recursively; reports and all retained gate/baseline artifacts matched"
+  },
+  "result": {
+    "registered_bar": "pass",
+    "configuration_verdict": "positive on teacher-forced stop classification; negative on useful free termination",
+    "closed_scope": "fixed K=8 256-bit sign-signature prototypes and fitted margin on the repeated-key public panel",
+    "not_closed": "free-generation correctness, new phrasing, integer-session integration, GPU qualification or useful conversation"
+  }
+}

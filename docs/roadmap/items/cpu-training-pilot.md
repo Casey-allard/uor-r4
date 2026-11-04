@@ -223,6 +223,18 @@ schedule; it does not reject geometric termination or a direct serving-level
 BOS candidate. See
 [deepseek-131](../../loop/tasks/cpu-training-pilot/deepseek-131/REPORT.md).
 
+A different termination unit bypassed writer admission with a CPU-only
+two-class Hamming classifier over the complete 256-coordinate writer query.
+Eight observed prototypes per class and a training-fitted margin recognized
+held-out reference endings at 97/103 on both seeds with 8/1,085 false stops,
+and beat the no-gate and shuffled-label gates by 97 paired rows. Free
+generation did not transfer: seed 1 stopped all 103 replies prematurely and
+seed 2 stopped 43/103 prematurely, with no exact replies. This is promising
+evidence that the query separates reference terminal rows, but not a usable
+stop mechanism or serving change. It requires a generated-trajectory
+discriminator and later coordinated integer parity. See
+[deepseek-132](../../loop/tasks/cpu-training-pilot/deepseek-132/REPORT.md).
+
 The public 19-table M1 trunk is now additively trainable and writable on CPU,
 rather than read-only. One bounded run added 128 exact teacher-forced rows to
 the unigram and all 12 sparse sufficient-statistic tables, exported and

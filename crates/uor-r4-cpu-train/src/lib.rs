@@ -21,6 +21,7 @@ mod panel;
 mod quant_shadow;
 mod reply_eval;
 mod served_forward;
+mod stop_signature;
 mod train;
 
 pub use corpus::{
@@ -84,6 +85,13 @@ pub use served_forward::{
     GradientTreatment, ServedForwardAuditConfig, ServedForwardAuditError, ServedForwardAuditReport,
     ServedForwardManifest, ServedForwardParity, ServedForwardStageCost, ServedForwardTokenSource,
     SurrogateOperation, UortTokenSlice, CPU_SERVED_FORWARD_AUDIT_SCHEMA,
+};
+pub use stop_signature::{
+    derive_stop_signature_rows, evaluate_stop_signature_no_gate, evaluate_stop_signature_replies,
+    evaluate_stop_signature_rows, fit_stop_signature_gate, hamming_distance, pack_stop_signature,
+    shuffle_stop_signature_rows, StopSignature, StopSignatureDecision, StopSignatureEvaluation,
+    StopSignatureGate, StopSignatureReading, StopSignatureReplyReading, StopSignatureRow,
+    StopSignatureTraining, STOP_SIGNATURE_BITS, STOP_SIGNATURE_WORDS,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,

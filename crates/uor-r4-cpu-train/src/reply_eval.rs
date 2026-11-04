@@ -1320,7 +1320,7 @@ pub fn evaluate_memory_target_replies(
     })
 }
 
-fn evaluate_generated(
+pub(crate) fn evaluate_generated(
     artifact: &[u8],
     samples: &[MemoryWeightSample],
     cap: usize,

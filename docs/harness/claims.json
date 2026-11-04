@@ -328,6 +328,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/stop-signature": {
+    "branch": "deepseek/stop-signature",
+    "claimed_at": "2026-11-04T08:31:51-05:00",
+    "head": "e3959b140",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/table-bvgk-pivot": {
     "branch": "deepseek/table-bvgk-pivot",
     "claimed_at": "2026-11-03T00:03:13-05:00",
