@@ -789,7 +789,7 @@
             head.className = 'msg-head';
             var roleLabel = document.createElement('span');
             roleLabel.className = 'msg-role';
-            roleLabel.textContent = role === 'assistant' ? (app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true ? 'Native uor-chat' : (app.mode === 'api' ? 'API' : 'Local model')) : role;
+            roleLabel.textContent = role === 'assistant' ? (isNativeLoopback(app.apiConfig) ? 'Native uor-chat' : (app.mode === 'api' ? 'API' : 'Local model')) : role;
             head.appendChild(roleLabel);
             if (meta) {
                 var metaNode = document.createElement('span');
@@ -816,7 +816,7 @@
             mark.className = 'empty-mark';
             mark.textContent = '◈';
             mark.setAttribute('aria-hidden', 'true');
-            var native = app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true;
+            var native = isNativeLoopback(app.apiConfig);
             var headline = document.createElement('h2');
             headline.className = 'empty-headline';
             headline.textContent = native && ready
@@ -1115,7 +1115,7 @@
         }
 
         function updatePrivacyStatus() {
-            var native = app.apiConfig && app.apiConfig.id === 'native-loopback' && app.apiConfig.ephemeral === true;
+            var native = isNativeLoopback(app.apiConfig);
             if (native) {
                 setChip('#privacyStatus', 'ok', 'Native loopback', 'Native uor-chat on this device: prompts and replies stay local.');
             } else if (app.mode === 'api' || (app.generating && app.activeGenerationKind === 'api')) {
@@ -1496,6 +1496,10 @@
             return true;
         }
 
+        function isNativeLoopback(config) {
+            return Boolean(config && config.id === 'native-loopback' && config.ephemeral === true);
+        }
+
         function apiMessages(conversation) {
             var visibleMessages = conversation.messages
                 .filter(function (message) { return message.role === 'user' || message.role === 'assistant'; });
@@ -1513,6 +1517,9 @@
             var attachments = window.__studioUi && typeof window.__studioUi.getAttachments === 'function'
                 ? window.__studioUi.getAttachments()
                 : [];
+            var recalledImages = window.__studioUi && typeof window.__studioUi.getImageRecallCount === 'function'
+                ? window.__studioUi.getImageRecallCount()
+                : 0;
             var textAttachments = attachments.filter(function (item) { return item.kind !== 'image'; });
             if (textAttachments.length) {
                 var context = textAttachments.map(function (item) {
@@ -1531,6 +1538,7 @@
                 last.content = (async function () {
                     var parts = text ? [{ type: 'text', text: text }] : [];
                     for (var image of images) {
+                        if (app.abortController && app.abortController.signal.aborted) throw new DOMException('aborted', 'AbortError');
                         if (native) {
                             parts.push(await decomposeNativeImage({
                                 config: app.apiConfig,
@@ -1549,12 +1557,12 @@
         }
 
         async function sendViaApi(prompt, conversation, preparedMessages) {
-            var messages = preparedMessages || apiMessages(conversation);
             beginGeneration(conversation);
             var apiRequestId = app.activeChatRequestId;
             var apiGenerationId = app.chatGenerationId;
             app.abortController = new AbortController();
             try {
+                var messages = preparedMessages || apiMessages(conversation);
                 await streamChatCompletions({
                     config: app.apiConfig || configFromSources(),
                     messages: messages,
@@ -1621,7 +1629,50 @@
             }
         }
 
+        function finishApiStopped(requestId, generationId) {
+            if (!chatRequestMatches(requestId, generationId)) return false;
+            var conversation = activeConversation();
+            var text = app.assistantBuffer;
+            var nowNs = Math.round(window.performance.now() * 1000000);
+            app.apiMetrics.update({
+                elapsedNs: Math.max(0, nowNs - app.apiStartedNs),
+                firstTokenNs: app.apiFirstTokenNs,
+                finishReason: 'stopped',
+                chars: text.length,
+            });
+            var finalMetrics = app.apiMetrics.text();
+            var placeholder = document.querySelector('#chatMessages .msg[data-streaming="true"]');
+            if (placeholder) {
+                placeholder.dataset.streaming = 'false';
+                var body = placeholder.querySelector('.msg-body');
+                if (body) body.textContent = text || '[stopped]';
+                var metaNode = placeholder.querySelector('.msg-meta');
+                if (metaNode) metaNode.textContent = finalMetrics;
+            }
+            if (conversation) {
+                conversation.messages.push({ role: 'assistant', content: text, meta: finalMetrics });
+                conversation.sourceKind = 'api';
+                touchConversation(conversation);
+            }
+            app.generating = false;
+            app.streamingBodyEl = null;
+            app.abortController = null;
+            updatePrivacyStatus();
+            updateComposerState();
+            setMetrics(finalMetrics);
+            renderConversationList();
+            scrollChat(false);
+            clearChatRequest(requestId);
+            app.chatGenerationId = null;
+            document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'stopped', generationId: generationId } }));
+            return true;
+        }
+
         function finishApiWithError(error, requestId, generationId) {
+            if (error && error.name === 'AbortError') {
+                finishApiStopped(requestId, generationId);
+                return;
+            }
             var finished = finishGenerationWithError(error && error.message ? error.message : String(error), requestId, generationId);
             if (finished) app.abortController = null;
         }
@@ -1669,6 +1720,17 @@
             if (!chatReadiness() || (app.mode === 'wasm' && !app.worker)) {
                 toast('Configure a chat-capable model or API provider under Connections.', 'warn');
                 setView('model');
+                return false;
+            }
+            var attachedImages;
+            try {
+                attachedImages = window.__studioUi && typeof window.__studioUi.getAttachments === 'function' ? window.__studioUi.getAttachments().filter(function (item) { return item.kind === 'image'; }) : [];
+            } catch (error) {
+                toast(String(error && error.message || error), 'error');
+                return false;
+            }
+            if (app.mode === 'wasm' && attachedImages.length) {
+                toast('Local WASM does not accept image context; switch to native uor-chat or a custom provider.', 'warn');
                 return false;
             }
             var history = app.conversations.map(function (item) {
@@ -1726,7 +1788,7 @@
                 }
                 renderConversationList();
                 scrollChat(true);
-                var preparedMessages = app.mode === 'api' ? apiMessages(conversation) : null;
+                var preparedMessages = app.mode === 'api' && (!app.apiConfig || !isNativeLoopback(app.apiConfig)) ? apiMessages(conversation) : null;
                 var started = app.mode === 'api' ? sendViaApi(prompt, conversation, preparedMessages) : sendViaWorker(prompt, conversation);
                 if (started === false) { rollbackStart(); return false; }
                 if (app.composerInput) app.composerInput.recordSubmitted(inputValue);
@@ -1782,7 +1844,7 @@
                 updateComposerState();
                 renderMessages();
                 setView('chat');
-                if (detail.apiConfig.id === 'native-loopback' && detail.apiConfig.ephemeral === true) {
+                if (isNativeLoopback(detail.apiConfig)) {
                     toast('Native uor-chat loopback active. Prompts stay on this device.', 'success');
                 } else {
                     toast('API mode active. Prompts now go to ' + (detail.apiConfig.baseUrl || 'the configured endpoint') + '.', 'warn');

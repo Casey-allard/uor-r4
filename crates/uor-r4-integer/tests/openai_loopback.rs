@@ -370,7 +370,13 @@ fn request_bytes(
     stream.write_all(wire.as_bytes()).unwrap();
     stream.write_all(body).unwrap();
     let mut response = Vec::new();
-    stream.read_to_end(&mut response).unwrap();
+    stream.read_to_end(&mut response).unwrap_or_else(|error| {
+        panic!(
+            "{method} {target} ({} body bytes): {error}; response: {}",
+            body.len(),
+            String::from_utf8_lossy(&response)
+        )
+    });
     let split = response
         .windows(4)
         .position(|window| window == b"\r\n\r\n")
@@ -380,8 +386,9 @@ fn request_bytes(
     (status, head, response[split + 4..].to_vec())
 }
 
-fn image_part(width: u32, height: u32, grid: Grid, rgba: &[u8]) -> Value {
+fn image_part(serving: &OpenAiServing, width: u32, height: u32, grid: Grid, rgba: &[u8]) -> Value {
     let decomposition = decompose_rgba(width, height, rgba, grid).unwrap();
+    let decomposition_id = serving.issue_decomposition(decomposition.clone()).unwrap();
     json!({
         "type": "uor_r4_image",
         "schema": "uor-r4.image-decomposition/1",
@@ -389,7 +396,8 @@ fn image_part(width: u32, height: u32, grid: Grid, rgba: &[u8]) -> Value {
         "source_blake3": decomposition.source_hash_hex(),
         "width": width,
         "height": height,
-        "grid": {"columns": grid.columns(), "rows": grid.rows()}
+        "grid": {"columns": grid.columns(), "rows": grid.rows()},
+        "decomposition_id": decomposition_id
     })
 }
 
@@ -658,7 +666,9 @@ fn image_decompose_route_returns_exact_canonical_bytes_and_bounded_errors() {
     ];
     let expected = decompose_rgba(2, 2, &rgba, Grid::new(1, 1)).unwrap();
     let target = "/v1/images/decompose?width=2&height=2&columns=1&rows=1";
-    let server = LoopbackServer::spawn(config()).unwrap();
+    let mut route_config = config();
+    route_config.origin = Some("https://studio.test".into());
+    let server = LoopbackServer::spawn(route_config).unwrap();
 
     let (status, headers, body) = request_bytes(
         server.port(),
@@ -678,6 +688,10 @@ fn image_decompose_route_returns_exact_canonical_bytes_and_bounded_errors() {
         expected.source_hash_hex()
     )));
     assert!(headers.contains("X-UOR-Patch-Count: 1"));
+    assert!(headers.contains("X-UOR-Decomposition-Id: r4img-uor-"));
+    assert!(headers.contains(
+        "Access-Control-Expose-Headers: X-UOR-Image-Schema, X-UOR-Source-Blake3, X-UOR-Image-Width, X-UOR-Image-Height, X-UOR-Grid-Columns, X-UOR-Grid-Rows, X-UOR-Patch-Count, X-UOR-Decomposition-Id"
+    ));
 
     let (status, _, _) = request_bytes(
         server.port(),
@@ -782,6 +796,11 @@ fn image_decompose_route_returns_exact_canonical_bytes_and_bounded_errors() {
         "",
     );
     assert_eq!(status, 413, "{}", String::from_utf8_lossy(&response));
+    let error: Value = serde_json::from_slice(&response).unwrap();
+    assert_eq!(
+        error["error"]["message"],
+        "HTTP body exceeds the configured limit"
+    );
     bounded.shutdown().unwrap();
     let (status, _, _) = request_bytes(
         server.port(),
@@ -797,16 +816,41 @@ fn image_decompose_route_returns_exact_canonical_bytes_and_bounded_errors() {
 }
 
 #[test]
+fn oversized_declared_body_returns_bounded_json_error() {
+    let server = LoopbackServer::spawn(config()).unwrap();
+    let mut stream = TcpStream::connect(("127.0.0.1", server.port())).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .unwrap();
+    let started = std::time::Instant::now();
+    let wire = format!("POST /v1/images/decompose?width=1&height=1&columns=1&rows=1 HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nAuthorization: Bearer test-token\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", server.port(), usize::MAX);
+    stream.write_all(wire.as_bytes()).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    let (head, body) = response.split_once("\r\n\r\n").unwrap();
+    assert!(head.starts_with("HTTP/1.1 413 "), "{head}");
+    let error: Value = serde_json::from_str(body).unwrap();
+    assert_eq!(
+        error["error"]["message"],
+        "HTTP body exceeds the configured limit"
+    );
+    server.shutdown().unwrap();
+}
+
+#[test]
 fn native_r4_image_parts_validate_and_pass_context_preflight() {
     let rgba = [255, 0, 0, 255];
-    let part = image_part(1, 1, Grid::new(1, 1), &rgba);
+    let server_config = config_with_context(512);
+    let serving = server_config.serving.clone();
+    let part = image_part(&serving, 1, 1, Grid::new(1, 1), &rgba);
     let text_request = json!({
         "model": "uor-chat",
         "messages": [{"role": "user", "content": "Hi"}],
         "max_tokens": 1
     });
     let image_request = image_chat_request(part.clone(), 1);
-    let validated = serving_with_context(512)
+    let validated = serving
         .validate_request(GenerationFamily::Chat, &image_request)
         .unwrap();
     assert!(validated.messages[0].content.contains("R4IMG1/1x1/1x1/1:"));
@@ -814,7 +858,7 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
         .content
         .contains(part["source_blake3"].as_str().unwrap()));
 
-    let server = LoopbackServer::spawn(config_with_context(512)).unwrap();
+    let server = LoopbackServer::spawn(server_config).unwrap();
     let (status, text) = post_json(server.port(), "/v1/chat/completions", text_request);
     assert_eq!(status, 200, "{text}");
     let (status, image) = post_json(server.port(), "/v1/chat/completions", image_request.clone());
@@ -824,6 +868,30 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
             > text["usage"]["prompt_tokens"].as_u64().unwrap(),
         "the image R4 context must enter the encoded prompt"
     );
+
+    let compact_config = config_with_context(192);
+    let compact_part = image_part(&compact_config.serving, 1, 1, Grid::new(1, 1), &rgba);
+    let compact_request = image_chat_request(compact_part.clone(), 1);
+    let compact = compact_config
+        .serving
+        .validate_request(GenerationFamily::Chat, &compact_request)
+        .unwrap();
+    assert!(compact.messages[0].content.contains("R4IMG1/1x1/1x1/1:"));
+    assert!(!compact.messages[0]
+        .content
+        .contains(compact_part["source_blake3"].as_str().unwrap()));
+    let changed_part = image_part(
+        &compact_config.serving,
+        1,
+        1,
+        Grid::new(1, 1),
+        &[0, 255, 0, 255],
+    );
+    let changed = compact_config
+        .serving
+        .validate_request(GenerationFamily::Chat, &image_chat_request(changed_part, 1))
+        .unwrap();
+    assert_ne!(compact.messages[0].content, changed.messages[0].content);
 
     let mut malformed = Vec::new();
     let mut value = part.clone();
@@ -850,11 +918,22 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
     value["canonical_hex"] = json!(hex::encode(canonical));
     malformed.push(("canonical redundancy", value));
     let mut value = part.clone();
+    value["decomposition_id"] = json!("r4img-not-issued");
+    malformed.push(("unknown issued ID", value));
+    let mut value = part.clone();
+    let substituted = decompose_rgba(1, 1, &[0, 255, 0, 255], Grid::new(1, 1)).unwrap();
+    value["canonical_hex"] = json!(hex::encode(substituted.canonical_bytes()));
+    value["source_blake3"] = json!(substituted.source_hash_hex());
+    malformed.push(("valid substitution under an issued ID", value));
+    let mut value = part.clone();
     value["unexpected"] = json!(true);
     malformed.push(("extra field", value));
     let mut value = part.clone();
     value.as_object_mut().unwrap().remove("source_blake3");
     malformed.push(("missing field", value));
+    let mut value = part.clone();
+    value.as_object_mut().unwrap().remove("decomposition_id");
+    malformed.push(("missing issued ID", value));
     for (case, bad_part) in malformed {
         let (status, response) = post_json(
             server.port(),
@@ -862,6 +941,13 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
             image_chat_request(bad_part, 1),
         );
         assert_eq!(status, 400, "{case}: {response}");
+    }
+
+    for role in ["system", "assistant"] {
+        let mut request = image_chat_request(part.clone(), 1);
+        request["messages"][0]["role"] = json!(role);
+        let (status, response) = post_json(server.port(), "/v1/chat/completions", request);
+        assert_eq!(status, 400, "{role}: {response}");
     }
 
     let mut too_many = image_chat_request(part.clone(), 1);
@@ -878,16 +964,27 @@ fn native_r4_image_parts_validate_and_pass_context_preflight() {
     );
     let (status, response) = post_json(server.port(), "/v1/chat/completions", too_many);
     assert_eq!(status, 413, "{response}");
+
+    for _ in 0..64 {
+        serving
+            .issue_decomposition(decompose_rgba(1, 1, &rgba, Grid::new(1, 1)).unwrap())
+            .unwrap();
+    }
+    let (status, response) = post_json(server.port(), "/v1/chat/completions", image_request);
+    assert_eq!(status, 400, "expired issued ID: {response}");
     server.shutdown().unwrap();
 
-    let small = LoopbackServer::spawn(config()).unwrap();
-    let (status, response) = post_json(small.port(), "/v1/chat/completions", image_request.clone());
+    let small_config = config();
+    let small_part = image_part(&small_config.serving, 1, 1, Grid::new(1, 1), &rgba);
+    let small_request = image_chat_request(small_part.clone(), 1);
+    let small = LoopbackServer::spawn(small_config).unwrap();
+    let (status, response) = post_json(small.port(), "/v1/chat/completions", small_request);
     assert_eq!(status, 200, "{response}");
-    let mut four_images = image_chat_request(part, 1);
+    let mut four_images = image_chat_request(small_part.clone(), 1);
     four_images["messages"][0]["content"] = Value::Array(
         [json!({"type": "text", "text": "Hi"})]
             .into_iter()
-            .chain((0..4).map(|_| image_part(1, 1, Grid::new(1, 1), &rgba)))
+            .chain((0..4).map(|_| small_part.clone()))
             .collect(),
     );
     let (status, response) = post_json(small.port(), "/v1/chat/completions", four_images);
@@ -1163,16 +1260,13 @@ fn stop_mapping_text_parts_and_exact_prompt_counts() {
 fn http_busy_preflight_disconnect_and_header_bounds() {
     let mut config = config_with_long_generation();
     config.origin = Some("https://studio.test".into());
+    let serving = config.serving.clone();
     let server = LoopbackServer::spawn(config).unwrap();
     let body = json!({"model": "uor-chat", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 40, "stream": true, "stream_options": {"include_usage": true}}).to_string();
     let wire = |port: u16| {
         format!("POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nAuthorization: Bearer test-token\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len())
     };
-    let mut first = TcpStream::connect(("127.0.0.1", server.port())).unwrap();
-    first.write_all(wire(server.port()).as_bytes()).unwrap();
-    let mut role = [0u8; 1];
-    let read = first.read(&mut role).unwrap();
-    assert!(read > 0);
+    let permit = serving.try_start_generation().unwrap();
     let (status, _, second) = request(
         server.port(),
         "POST",
@@ -1183,19 +1277,29 @@ fn http_busy_preflight_disconnect_and_header_bounds() {
     );
     assert_eq!(
         status, 429,
-        "a second stream is rejected before any 200/SSE bytes: {second}"
+        "a held generation permit rejects a second stream before any 200/SSE bytes: {second}"
     );
-    let mut remainder = String::new();
-    first.read_to_string(&mut remainder).unwrap();
-    assert!(remainder.contains("data: [DONE]"));
-    assert!(!remainder.contains("HTTP/1.1 429"));
+    drop(permit);
+    let (status, _, stream) = request(
+        server.port(),
+        "POST",
+        "/v1/chat/completions",
+        &body,
+        "test-token",
+        "",
+    );
+    assert_eq!(status, 200, "{stream}");
+    assert!(stream.contains("data: [DONE]"));
+    let mut role = [0u8; 1];
 
     let mut disconnect = TcpStream::connect(("127.0.0.1", server.port())).unwrap();
     disconnect
         .write_all(wire(server.port()).as_bytes())
         .unwrap();
     disconnect.read(&mut role).unwrap();
-    disconnect.shutdown(std::net::Shutdown::Both).unwrap();
+    if let Err(error) = disconnect.shutdown(std::net::Shutdown::Both) {
+        assert_eq!(error.kind(), std::io::ErrorKind::NotConnected, "{error}");
+    }
     let generation_request = json!({"model": "uor-chat", "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 1});
     let mut next = post_json(
         server.port(),

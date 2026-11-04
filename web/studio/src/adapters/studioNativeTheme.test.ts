@@ -21,6 +21,34 @@ function declaration(style: HTMLStyleElement, selector: string): CSSStyleDeclara
     return rule.style;
 }
 
+function contrast(foreground: string, background: string): number {
+    const luminance = (hex: string) => {
+        const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255)
+            .map((value) => value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4));
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const [high, low] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+    return (high + 0.05) / (low + 0.05);
+}
+
+function cssColorToHex(color: string): string {
+    if (color.startsWith('var(')) color = getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1));
+    if (color.startsWith('#')) return color;
+    const scale = color.startsWith('color(srgb') ? 255 : 1;
+    const channels = color.match(/[\d.]+/g);
+    if (!channels) throw new Error(`Unrecognized CSS color: ${color}`);
+    channels.slice(0, 3).map(Number);
+    return '#' + channels.map((channel) => Math.round(Number(channel) * scale).toString(16).padStart(2, '0')).join('');
+}
+
+function effectiveBackground(element: HTMLElement): string {
+    for (let current: HTMLElement | null = element; current; current = current.parentElement) {
+        const color = getComputedStyle(current).backgroundColor;
+        if (color && color !== 'transparent' && color !== 'rgba(0, 0, 0, 0)' && color !== 'color(srgb 0 0 0 / 0)') return color;
+    }
+    return getComputedStyle(document.documentElement).getPropertyValue('--bg');
+}
+
 afterEach(() => {
     document.querySelectorAll('style').forEach((node) => node.remove());
     document.body.innerHTML = '';
@@ -98,5 +126,50 @@ describe('Mac-inspired Studio visual system', () => {
         const label = document.querySelector<HTMLLabelElement>('label[for="modelFileInput"]')!;
         expect(parseFloat(getComputedStyle(label).minBlockSize)).toBeGreaterThanOrEqual(24);
         expect(parseFloat(declaration(style, '#modelFileInput:focus-visible + label').outline)).toBeGreaterThanOrEqual(2);
+    });
+
+    it('uses refined graphite and system blue with AA text contrast', () => {
+        const style = installTheme('dark');
+        const tokens = declaration(style, 'html[data-theme="dark"]');
+        expect(tokens.getPropertyValue('--bg')).toBe('#000000');
+        expect(tokens.getPropertyValue('--surface-1')).toBe('#1c1c1e');
+        expect(tokens.getPropertyValue('--surface-2')).toBe('#2c2c2e');
+        expect(tokens.getPropertyValue('--accent-bright')).toBe('#64d2ff');
+        expect(tokens.getPropertyValue('--on-accent')).toBe('#ffffff');
+        for (const [foreground, background] of [
+            ['#f5f5f7', '#000000'],
+            ['#d1d1d6', '#2c2c2e'],
+            ['#a1a1a6', '#2c2c2e'],
+            ['#8e8e93', '#1c1c1e'],
+            ['#64d2ff', '#1c1c1e'],
+            ['#ffffff', '#006ee6'],
+        ]) {
+            expect(contrast(foreground, background), `${foreground} on ${background}`).toBeGreaterThanOrEqual(4.5);
+        }
+        document.querySelectorAll('style').forEach((node) => node.remove());
+        const light = declaration(installTheme('light'), 'html[data-theme="light"]');
+        expect(light.getPropertyValue('--surface-1')).toBe('#fffdf8');
+        expect(light.getPropertyValue('--accent')).toBe('#b2521c');
+    });
+
+    it('keeps shipped text accents at AA and previews at 32px', () => {
+        for (const theme of ['dark', 'light'] as const) {
+            installTheme(theme);
+            expect(getComputedStyle(document.documentElement).getPropertyValue('--accent-text')).toBe(theme === 'dark' ? '#64d2ff' : '#8f3f14');
+            document.body.innerHTML += '<article class="empty-card"><span class="empty-card-label">Empty</span></article><footer class="statusbar"><span class="status-brand">UOR</span></footer><div class="template-menu"><div class="template-menu-label">Templates</div></div><div class="palette-item" aria-selected="true"><span class="palette-item-desc">Description</span></div><img class="attachment-chip-preview" alt="">';
+            for (const [foreground, background] of [
+                ['.empty-card-label', '.empty-card'],
+                ['.status-brand', '.statusbar'],
+                ['.template-menu-label', '.template-menu'],
+                ['.palette-item-desc', '.palette-item[aria-selected="true"]'],
+            ]) {
+                const text = getComputedStyle(document.querySelector<HTMLElement>(foreground)!).color;
+                const surface = effectiveBackground(document.querySelector<HTMLElement>(background)!);
+                expect(contrast(cssColorToHex(text), cssColorToHex(surface)), `${foreground} on ${background}: ${text} / ${surface}`).toBeGreaterThanOrEqual(4.5);
+            }
+            const preview = document.querySelector<HTMLImageElement>('.attachment-chip-preview')!;
+            expect(getComputedStyle(preview).inlineSize).toBe('32px');
+            expect(getComputedStyle(preview).blockSize).toBe('32px');
+        }
     });
 });

@@ -36,7 +36,7 @@ function pageHooks() {
     const factory = new Function(
         'app', 'document', 'window', 'toast', 'setView', 'ensureConversation', 'touchConversation',
         'appendMessageElement', 'renderConversationList', 'scrollChat', 'sendViaWorker', 'sendViaApi',
-        'autoGrowTextarea', 'startNewChat', '$', 'normalizeBaseUrl', 'persistConversations', 'renderMessages', 'setMetrics',
+        'autoGrowTextarea', 'startNewChat', '$', 'normalizeBaseUrl', 'persistConversations', 'renderMessages', 'setMetrics', 'isNativeLoopback',
         `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
          ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
          ${section('function renderEmptyState', 'function listItem')}
@@ -46,7 +46,7 @@ function pageHooks() {
     );
     const hooks = factory(
         app, document, window, vi.fn(), setView, () => conversation, vi.fn(), vi.fn(() => null), vi.fn(), vi.fn(),
-        vi.fn(() => true), vi.fn(() => true), vi.fn(), vi.fn(() => true), (selector: string) => document.querySelector(selector), normalizeBaseUrl, vi.fn(), vi.fn(), vi.fn(),
+        vi.fn(() => true), vi.fn(() => true), vi.fn(), vi.fn(() => true), (selector: string) => document.querySelector(selector), normalizeBaseUrl, vi.fn(), vi.fn(), vi.fn(), (config: { id?: string; ephemeral?: boolean }) => Boolean(config && config.id === 'native-loopback' && config.ephemeral === true),
     ) as {
         updateComposerState(): void;
         renderEmptyState(container: HTMLElement): void;

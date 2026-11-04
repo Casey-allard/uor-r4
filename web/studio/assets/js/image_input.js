@@ -1,4 +1,6 @@
+export const IMAGE_LABEL = 'R4 patch input — experimental; not visual understanding';
 const MAX_IMAGE_DIMENSION = 256;
+const MAX_SOURCE_DIMENSION = 4096;
 const DEFAULT_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_IMAGE_BYTES = 16 * 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set([
@@ -60,7 +62,7 @@ async function loadImageElement(file) {
     }
 }
 
-async function decodeImageFile(file, options = {}) {
+export async function decodeImageFile(file, options = {}) {
     const maxDimension = positiveLimit(options.maxDimension, MAX_IMAGE_DIMENSION);
     let decoded;
     if (typeof createImageBitmap === 'function') {
@@ -69,7 +71,13 @@ async function decodeImageFile(file, options = {}) {
         decoded = await loadImageElement(file);
     }
     try {
-        const dimensions = downsampleDimensions(decoded.source.width, decoded.source.height, maxDimension);
+        const maxSourceDimension = positiveLimit(options.maxSourceDimension, MAX_SOURCE_DIMENSION);
+        const sourceWidth = Number(decoded.source.naturalWidth || decoded.source.width);
+        const sourceHeight = Number(decoded.source.naturalHeight || decoded.source.height);
+        if (sourceWidth > maxSourceDimension || sourceHeight > maxSourceDimension) {
+            throw new Error('Image source dimensions exceed the ' + maxSourceDimension + '-pixel per-side limit.');
+        }
+        const dimensions = downsampleDimensions(sourceWidth, sourceHeight, maxDimension);
         const canvas = document.createElement('canvas');
         canvas.width = dimensions.width;
         canvas.height = dimensions.height;
@@ -152,7 +160,7 @@ export async function readImageFiles(files, options = {}) {
             height,
             rgba: rgba instanceof Uint8Array ? rgba : new Uint8Array(rgba),
             dataUrl,
-            grid: { columns: Math.min(1, width), rows: Math.min(1, height) },
+            grid: { columns: Math.min(2, width), rows: Math.min(2, height) },
         });
         totalBytes = nextTotal;
         retained.set(name, size);

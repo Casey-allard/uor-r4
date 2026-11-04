@@ -64,6 +64,36 @@ test('a non-stream JSON fallback returns exact usage and native timing', async (
     assert.deepEqual(done.usage, payload.usage);
 });
 
+test('text and native image content parts survive request normalization unchanged', async () => {
+    const payload = { choices: [{ index: 0, message: { role: 'assistant', content: 'I.' }, finish_reason: 'stop' }] };
+    const messages = [{ role: 'user', content: [
+        { type: 'text', text: 'Hi' },
+        { type: 'uor_r4_image', schema: 'uor-r4.image-decomposition/1', canonical_hex: '5234494d4730303166697874757265', source_blake3: 'a'.repeat(64), width: 1, height: 1, grid: { columns: 1, rows: 1 }, decomposition_id: 'r4img-test' },
+    ] }];
+    let request;
+    globalThis.fetch = async (url, init) => {
+        request = init;
+        return new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    const result = await streamChatCompletions({ config, messages });
+    assert.equal(result.text, 'I.');
+    assert.deepEqual(JSON.parse(request.body).messages, messages);
+});
+
+test('custom image_url parts and provider errors remain verbatim', async () => {
+    const messages = [{ role: 'user', content: [
+        { type: 'text', text: 'Hi' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,preview' } },
+    ] }];
+    let request;
+    globalThis.fetch = async (url, init) => {
+        request = init;
+        return new Response(JSON.stringify({ error: { message: 'images are not supported by this provider' } }), { status: 501, headers: { 'content-type': 'application/json' } });
+    };
+    await assert.rejects(streamChatCompletions({ config, messages }), /501.*images are not supported by this provider/);
+    assert.deepEqual(JSON.parse(request.body).messages, messages);
+});
+
 test('mid-stream abort returns the partial text without raising a second error', async () => {
     const stream = new ReadableStream({
         pull(controller) {
@@ -115,13 +145,18 @@ test('native image decomposition returns the exact structured content part', asy
     let request;
     globalThis.fetch = async (url, init) => {
         request = { url, init };
-        return new Response(new Uint8Array([0x52, 0x34]), {
+        return new Response(new TextEncoder().encode('R4IMG001fixture'), {
             status: 200,
             headers: {
                 'content-type': 'application/octet-stream',
                 'x-uor-image-schema': 'uor-r4.image-decomposition/1',
                 'x-uor-source-blake3': 'ab'.repeat(32),
+                'x-uor-image-width': '1',
+                'x-uor-image-height': '1',
+                'x-uor-grid-columns': '1',
+                'x-uor-grid-rows': '1',
                 'x-uor-patch-count': '1',
+                'x-uor-decomposition-id': 'r4img-test',
             },
         });
     };
@@ -137,11 +172,12 @@ test('native image decomposition returns the exact structured content part', asy
     assert.deepEqual(part, {
         type: 'uor_r4_image',
         schema: 'uor-r4.image-decomposition/1',
-        canonical_hex: '5234',
+        canonical_hex: '5234494d4730303166697874757265',
         source_blake3: 'ab'.repeat(32),
         width: 1,
         height: 1,
         grid: { columns: 1, rows: 1 },
+        decomposition_id: 'r4img-test',
     });
 });
 

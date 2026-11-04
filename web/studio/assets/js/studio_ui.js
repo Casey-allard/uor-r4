@@ -526,7 +526,7 @@
         var tokenHint = document.getElementById('attachmentTokenHint');
         if (chips) chips.textContent = '';
         if (inspector) inspector.textContent = '';
-        if (bar) bar.hidden = attachments.length === 0;
+        if (bar) bar.hidden = attachments.length === 0 && recalledImages === 0;
         var images = attachments.filter(function (item) { return item.kind === 'image'; });
         var totalChars = attachments.reduce(function (sum, item) { return sum + String(item.content || '').length; }, 0);
         var approxTokens = Math.max(0, Math.round(totalChars / 4));
@@ -541,7 +541,7 @@
             note.hidden = attachments.length === 0 && recalledImages === 0;
             note.textContent = recalledImages
                 ? 'Image attachments are memory-only and were not restored. Reattach them.'
-                : (attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + (images.length ? ' · R4 patch input - experimental; not visual understanding' : '') + ' · ~' + approxTokens + ' text tokens · ' + (native ? 'prepended to the next native prompt (stays on this device).' : (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.')) : '');
+                : (attachments.length ? attachments.length + ' context file' + (attachments.length === 1 ? '' : 's') + (images.length ? ' · R4 patch input — experimental; not visual understanding' : '') + ' · ~' + approxTokens + ' text tokens · ' + (native ? 'prepended to the next native prompt (stays on this device).' : (mode === 'api' ? 'prepended to the next API prompt (leaves device).' : 'local WASM mode ignores context; switch to an API provider to use it.')) : '');
         }
         attachments.forEach(function (item) {
             var chip = document.createElement('span');
@@ -560,12 +560,12 @@
             remove.addEventListener('click', function () { attachments = attachments.filter(function (candidate) { return candidate.name !== item.name; }); saveAttachments(); renderAttachments(); });
             chip.appendChild(name); chip.appendChild(size); chip.appendChild(remove);
             if (chips) chips.appendChild(chip);
-            if (inspector) { var row = document.createElement('li'); row.className = 'attachment-row'; row.textContent = item.name + (item.kind === 'image' ? ' · R4 patch input - experimental; not visual understanding' : ''); inspector.appendChild(row); }
+            if (inspector) { var row = document.createElement('li'); row.className = 'attachment-row'; row.textContent = item.name + (item.kind === 'image' ? ' · R4 patch input — experimental; not visual understanding' : ''); inspector.appendChild(row); }
         });
         document.dispatchEvent(new CustomEvent('uor-attachments-changed', { detail: { count: attachments.length } }));
     }
     function removeAttachment(name) { attachments = attachments.filter(function (item) { return item.name !== name; }); saveAttachments(); renderAttachments(); }
-    function clearAttachments() { attachments = []; saveAttachments(); renderAttachments(); }
+    function clearAttachments() { attachments = []; recalledImages = 0; saveAttachments(); renderAttachments(); }
     function attachContext() {
         var files = window.__studioFiles;
         if (files && files.activeFile) { var active = files.activeFile(); if (active && active.content) { addAttachment({ name: active.path, content: active.content, source: 'editor' }); return; } }
@@ -1178,6 +1178,7 @@
             updateSettings: updateSettings,
             updateStatus: updateStatus,
             getAttachments: function () { return attachments.slice(); },
+            getImageRecallCount: function () { return recalledImages; },
             addAttachment: addAttachment,
             removeAttachment: removeAttachment,
             clearAttachments: clearAttachments,

@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const STUDIO_ROOT = resolve(__dirname, '..', '..');
 const WORKTREE = resolve(STUDIO_ROOT, '..', '..');
 const TOKEN = 'image-flow-token';
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGP8z8Dwn4GBgYGJAQoAHxcCAk+Uzr4AAAAASUVORK5CYII=', 'base64');
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
 
 function assert(value, message) {
     if (!value) throw new Error(message);
@@ -128,7 +128,7 @@ async function cdpConnect(wsUrl) {
 }
 
 async function launchChrome(profileDir) {
-    const candidates = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium'];
+    const candidates = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium'];
     const binary = candidates.find((candidate) => existsSync(candidate));
     assert(binary, 'no Chrome/Chromium found');
     const child = spawn(binary, [
@@ -198,17 +198,30 @@ async function main() {
         };
         await cdp.send('Page.navigate', { url: native.origin + '/index.html?max_new_tokens=1' }, session);
         await waitFor("document.readyState === 'complete'");
+        await waitFor("document.documentElement.dataset.studioReady === '1'", 25000);
         await waitFor("document.querySelector('#chatSourceBadge') && document.querySelector('#chatSourceBadge').textContent.includes('Native uor-chat')", 25000);
-        const pngHex = PNG.toString('hex');
-        const attachImage = `(() => {
-            const bytes = Uint8Array.from('${pngHex}'.match(/../g).map((x) => parseInt(x, 16)));
-            const file = new File([bytes], 'red.png', { type: 'image/png' });
-            const input = document.querySelector('#chatFileInput');
-            Object.defineProperty(input, 'files', { value: [file], configurable: true });
-            input.dispatchEvent(new Event('change', { bubbles: true }));
+        await waitFor("window.__studioUi && typeof window.__studioUi.addAttachment === 'function' && typeof window.__studioUi.getAttachments === 'function'", 25000);
+        const attachImage = async () => {
+            const pngPath = join(root, 'red.png');
+            await writeFile(pngPath, PNG);
+            const documentNode = await cdp.send('DOM.getDocument', {}, session);
+            const input = await cdp.send('DOM.querySelector', { nodeId: documentNode.root.nodeId, selector: '#chatFileInput' }, session);
+            const resolvedInput = await cdp.send('DOM.resolveNode', { nodeId: input.nodeId }, session);
+            const listeners = await cdp.send('DOMDebugger.getEventListeners', { objectId: resolvedInput.object.objectId }, session);
+            assert(listeners.listeners.some((listener) => listener.type === 'change'), 'file input change listener missing: ' + JSON.stringify(listeners));
+            await cdp.send('DOM.setFileInputFiles', { nodeId: input.nodeId, files: [pngPath] }, session);
+        };
+        await evaluate(`(() => {
+            window.__imageFlowAttachEvents = 0;
+            window.__imageFlowInputChanges = 0;
+            window.__imageFlowErrors = [];
+            document.addEventListener('uor-attach-file', () => { window.__imageFlowAttachEvents += 1; });
+            document.querySelector('#chatFileInput').addEventListener('change', () => { window.__imageFlowInputChanges += 1; });
+            window.addEventListener('error', (event) => { window.__imageFlowErrors.push(String(event.error && event.error.stack || event.message)); });
+            window.addEventListener('unhandledrejection', (event) => { window.__imageFlowErrors.push(String(event.reason && event.reason.stack || event.reason)); });
             return true;
-        })()`;
-        await evaluate(attachImage);
+        })()`);
+        await attachImage();
         try {
             await waitFor("document.querySelectorAll('.attachment-chip-preview').length === 1");
         } catch (error) {
@@ -217,15 +230,20 @@ async function main() {
                 const f=document.querySelector('#chatFileInput').files[0];
                 let read;
                 try { read=await m.readImageFiles([f]); } catch (error) { read={thrown:String(error&&error.message||error)}; }
-                return JSON.stringify({toasts:Array.from(document.querySelectorAll('.toast')).map(x=>x.textContent),files:document.querySelector('#chatFileInput').files.length,note:document.querySelector('#composerContextNote').textContent,read});
+                return JSON.stringify({toasts:Array.from(document.querySelectorAll('.toast')).map(x=>x.textContent),files:document.querySelector('#chatFileInput').files.length,note:document.querySelector('#composerContextNote').textContent,read,attachEvents:window.__imageFlowAttachEvents,inputChanges:window.__imageFlowInputChanges,errors:window.__imageFlowErrors,ui:Object.keys(window.__studioUi||{}),chips:document.querySelector('#attachmentChips')?.outerHTML});
             })()`);
             throw new Error(error.message + ' ' + detail);
         }
-        assert(await evaluate("document.querySelector('#composerContextNote').textContent.includes('R4 patch input - experimental; not visual understanding')"), 'experimental label missing');
+        assert(await evaluate("document.querySelector('#composerContextNote').textContent.includes('R4 patch input — experimental; not visual understanding')"), 'experimental label missing');
         assert(await evaluate("!document.querySelector('.msg[data-role=assistant]')"), 'file selection sent without explicit Send');
         await captureChatRequests();
         await evaluate("document.querySelector('#btnSend').click(); true");
-        await waitFor("document.querySelector('.msg[data-role=assistant] .msg-body') && document.querySelector('.msg[data-role=assistant] .msg-body').textContent.length > 0", 25000);
+        try {
+            await waitFor("document.querySelector('.msg[data-role=assistant] .msg-body') && document.querySelector('.msg[data-role=assistant] .msg-body').textContent.length > 0", 25000);
+        } catch (error) {
+            const detail = await evaluate("document.querySelector('#chatMessages').textContent");
+            throw new Error(error.message + ' ' + detail);
+        }
         assert(await evaluate(`(() => {
             const body = window.__imageFlowChatBodies[0];
             const content = body && body.messages && body.messages[body.messages.length - 1].content;
@@ -241,7 +259,7 @@ async function main() {
         await waitFor("document.querySelector('#chatSourceBadge').textContent.includes('Native uor-chat')", 25000);
         assert(await evaluate("document.querySelectorAll('.attachment-chip-preview').length === 0"), 'image attachment restored from storage');
         await captureChatRequests();
-        await evaluate(attachImage);
+        await attachImage();
         await waitFor("document.querySelectorAll('.attachment-chip-preview').length === 1");
         await evaluate("document.querySelector('#btnSend').click(); true");
         await waitFor("document.querySelectorAll('.msg[data-role=assistant]').length === 2", 25000);
@@ -258,7 +276,7 @@ async function main() {
         })()`);
         const reloadedState = JSON.parse(reloadedRequest);
         assert(reloadedState.valid, 'reloaded history did not preserve the image marker or sent a non-image-only final turn: ' + reloadedRequest);
-        await evaluate(attachImage);
+        await attachImage();
         await waitFor("document.querySelectorAll('.attachment-chip-preview').length === 1");
         await evaluate("document.querySelector('.attachment-chip-remove').click(); true");
         await waitFor("document.querySelectorAll('.attachment-chip-preview').length === 0");

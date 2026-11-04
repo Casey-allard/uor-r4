@@ -16,9 +16,11 @@ content parts with exact canonical and source-hash validation. The browser
 Studio accepts pasted, dropped and selected raster images, downsamples them to
 at most 256 by 256, previews/removes them and keeps the image data memory-only.
 Native Send adds R4 patch context only after the explicit action; custom
-providers receive ordinary `image_url`. This is experimental data plumbing,
-not a trained visual reader; native ordinary `image_url` and image
-generation/edit families still return 501.
+providers receive ordinary `image_url`. Native parts also carry a server-issued
+decomposition ID and must match one of at most 64 exact records, so altered or
+expired content is refused. This is experimental data plumbing, not a trained
+visual reader; native ordinary `image_url` and image generation/edit families
+still return 501.
 
 **Initial Studio publish and interface history (superseded).** The initial 30 October publish at gh-pages `d8e67c66` established the clean responsive page, self-hosted integer wasm engine, local-file/URL/API model sources, `/1`–`/6` serving at the initial publish, with `/7` added by #3446, and discrete next-token prediction, followed by the public M1, Stage-T and FBS releases described above. DeepSeek's #3447 agent-console shell then superseded that interface before the current v2 below; the engine, worker and API layer remained intact.
 

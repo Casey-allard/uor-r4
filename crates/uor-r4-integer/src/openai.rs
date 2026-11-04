@@ -1,8 +1,9 @@
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_vision::{parse_canonical, Decomposition};
@@ -14,6 +15,7 @@ use crate::stack::{
 const IMAGE_CONTENT_SCHEMA: &str = "uor-r4.image-decomposition/1";
 const MAX_IMAGES_PER_REQUEST: usize = 4;
 const MAX_CANONICAL_BYTES: usize = 52 + 32 * 32 * 40;
+const MAX_ISSUED_IMAGES: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GenerationFamily {
@@ -208,11 +210,18 @@ impl Drop for GenerationPermit<'_> {
     }
 }
 
+#[derive(Clone)]
+struct IssuedImage {
+    id: String,
+    decomposition: Decomposition,
+}
+
 pub struct OpenAiServing {
     model: IntegerStackModel,
     tokenizer_json: Vec<u8>,
     protocol_version: u8,
     busy: AtomicBool,
+    images: Mutex<VecDeque<IssuedImage>>,
 }
 
 #[derive(Clone, Debug)]
@@ -292,7 +301,24 @@ impl OpenAiServing {
             tokenizer_json,
             protocol_version,
             busy: AtomicBool::new(false),
+            images: Mutex::new(VecDeque::new()),
         })
+    }
+
+    pub fn issue_decomposition(&self, image: Decomposition) -> Result<String, OpenAiError> {
+        let id = request_id("r4img");
+        let mut images = self
+            .images
+            .lock()
+            .map_err(|_| OpenAiError::new(500, "image decomposition registry is unavailable"))?;
+        if images.len() == MAX_ISSUED_IMAGES {
+            images.pop_front();
+        }
+        images.push_back(IssuedImage {
+            id: id.clone(),
+            decomposition: image,
+        });
+        Ok(id)
     }
 
     pub fn model_id(&self) -> &'static str {
@@ -511,7 +537,7 @@ impl OpenAiServing {
                         .with_param("messages"),
                 );
             }
-            let content = text_content(&input.content, &mut image_count)?;
+            let content = text_content(self, &input.role, &input.content, &mut image_count)?;
             if input.role != "assistant" && content.trim().is_empty() {
                 return Err(
                     OpenAiError::new(400, "user and system content must not be blank")
@@ -816,7 +842,12 @@ struct InputMessage {
     content: Value,
 }
 
-fn text_content(value: &Value, image_count: &mut usize) -> Result<String, OpenAiError> {
+fn text_content(
+    serving: &OpenAiServing,
+    role: &str,
+    value: &Value,
+    image_count: &mut usize,
+) -> Result<String, OpenAiError> {
     match value {
         Value::String(text) if !text.is_empty() => Ok(text.clone()),
         Value::Array(parts) if !parts.is_empty() => {
@@ -829,6 +860,12 @@ fn text_content(value: &Value, image_count: &mut usize) -> Result<String, OpenAi
                     ));
                 }
                 if kind == "uor_r4_image" {
+                    if role != "user" {
+                        return Err(OpenAiError::new(
+                            400,
+                            "uor_r4_image content parts are accepted only in user turns",
+                        ));
+                    }
                     *image_count += 1;
                     if *image_count > MAX_IMAGES_PER_REQUEST {
                         return Err(OpenAiError::new(
@@ -842,7 +879,7 @@ fn text_content(value: &Value, image_count: &mut usize) -> Result<String, OpenAi
                     if !text.is_empty() && !text.ends_with('\n') {
                         text.push('\n');
                     }
-                    text.push_str(&r4_image_context(part)?);
+                    text.push_str(&r4_image_context(serving, part)?);
                     continue;
                 }
                 if !matches!(kind, "text" | "input_text") {
@@ -877,11 +914,11 @@ fn text_content(value: &Value, image_count: &mut usize) -> Result<String, OpenAi
     }
 }
 
-fn r4_image_context(part: &Value) -> Result<String, OpenAiError> {
+fn r4_image_context(serving: &OpenAiServing, part: &Value) -> Result<String, OpenAiError> {
     let object = part
         .as_object()
         .ok_or_else(|| OpenAiError::new(400, "a uor_r4_image part must be an object"))?;
-    const FIELDS: [&str; 7] = [
+    const FIELDS: [&str; 8] = [
         "type",
         "schema",
         "canonical_hex",
@@ -889,17 +926,27 @@ fn r4_image_context(part: &Value) -> Result<String, OpenAiError> {
         "width",
         "height",
         "grid",
+        "decomposition_id",
     ];
     if object.len() != FIELDS.len() || FIELDS.iter().any(|field| !object.contains_key(*field)) {
         return Err(OpenAiError::new(
             400,
-            "a uor_r4_image part must contain exactly type, schema, canonical_hex, source_blake3, width, height and grid",
+            "a uor_r4_image part must contain exactly type, schema, canonical_hex, source_blake3, width, height, grid and decomposition_id",
         ));
     }
     if object["schema"].as_str() != Some(IMAGE_CONTENT_SCHEMA) {
         return Err(OpenAiError::new(
             400,
             format!("uor_r4_image schema must be {IMAGE_CONTENT_SCHEMA:?}"),
+        ));
+    }
+    let decomposition_id = object["decomposition_id"]
+        .as_str()
+        .ok_or_else(|| OpenAiError::new(400, "uor_r4_image decomposition_id must be a string"))?;
+    if decomposition_id.is_empty() {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image decomposition_id must not be empty",
         ));
     }
     let canonical_hex = object["canonical_hex"].as_str().ok_or_else(|| {
@@ -973,7 +1020,33 @@ fn r4_image_context(part: &Value) -> Result<String, OpenAiError> {
             "uor_r4_image dimensions or grid differ from the canonical bytes",
         ));
     }
-    Ok(render_r4_context(&image))
+    let issued = {
+        let images = serving
+            .images
+            .lock()
+            .map_err(|_| OpenAiError::new(500, "image decomposition registry is unavailable"))?;
+        images
+            .iter()
+            .find(|issued| issued.id == decomposition_id)
+            .ok_or_else(|| {
+                OpenAiError::new(400, "uor_r4_image decomposition_id is unknown or expired")
+            })?
+            .decomposition
+            .clone()
+    };
+    if issued.canonical_bytes() != canonical
+        || issued.source_hash_hex() != source_blake3
+        || issued.width() != width
+        || issued.height() != height
+        || issued.grid().columns() != columns
+        || issued.grid().rows() != rows
+    {
+        return Err(OpenAiError::new(
+            400,
+            "uor_r4_image does not match the issued decomposition",
+        ));
+    }
+    Ok(render_r4_context(&issued))
 }
 
 fn json_u16(value: &Value, field: &str) -> Result<u16, OpenAiError> {

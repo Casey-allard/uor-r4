@@ -302,6 +302,23 @@ fn read_request(stream: &mut TcpStream, max_body: usize) -> Result<Request, Open
         None => 0,
     };
     if length > max_body {
+        let mut remaining = length.min(max_body.saturating_add(1));
+        let deadline = std::time::Instant::now() + Duration::from_millis(250);
+        let mut buffer = [0u8; 2048];
+        while remaining > 0 {
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                break;
+            }
+            let _ = reader
+                .get_ref()
+                .set_read_timeout(Some(deadline.saturating_duration_since(now)));
+            let chunk = remaining.min(buffer.len());
+            match reader.read(&mut buffer[..chunk]) {
+                Ok(0) | Err(_) => break,
+                Ok(read) => remaining -= read,
+            }
+        }
         return Err(OpenAiError::new(
             413,
             "HTTP body exceeds the configured limit",
@@ -501,15 +518,17 @@ fn decompose_image_api(
     }
     let (width, height, grid) = parse_image_query(query)?;
     let image = decompose_rgba(width, height, &request.body, grid).map_err(image_error)?;
+    let decomposition_id = config.serving.issue_decomposition(image.clone())?;
     let canonical = image.canonical_bytes();
     let headers = format!(
-        "X-UOR-Image-Schema: uor-r4.image-decomposition/1\r\nX-UOR-Source-Blake3: {}\r\nX-UOR-Image-Width: {}\r\nX-UOR-Image-Height: {}\r\nX-UOR-Grid-Columns: {}\r\nX-UOR-Grid-Rows: {}\r\nX-UOR-Patch-Count: {}\r\n",
+        "X-UOR-Image-Schema: uor-r4.image-decomposition/1\r\nX-UOR-Source-Blake3: {}\r\nX-UOR-Image-Width: {}\r\nX-UOR-Image-Height: {}\r\nX-UOR-Grid-Columns: {}\r\nX-UOR-Grid-Rows: {}\r\nX-UOR-Patch-Count: {}\r\nX-UOR-Decomposition-Id: {}\r\n",
         image.source_hash_hex(),
         image.width(),
         image.height(),
         image.grid().columns(),
         image.grid().rows(),
-        image.patches().len()
+        image.patches().len(),
+        decomposition_id
     );
     write_response_with_headers(
         stream,
@@ -821,7 +840,7 @@ fn write_response_with_headers(
 }
 
 fn cors_headers(config: &LoopbackConfig) -> String {
-    config.origin.as_ref().map(|origin| format!("Access-Control-Allow-Origin: {origin}\r\nAccess-Control-Allow-Headers: Authorization, Content-Type, X-UOR-Studio-Token\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Expose-Headers: X-UOR-Image-Schema, X-UOR-Source-Blake3, X-UOR-Image-Width, X-UOR-Image-Height, X-UOR-Grid-Columns, X-UOR-Grid-Rows, X-UOR-Patch-Count\r\n")).unwrap_or_default()
+    config.origin.as_ref().map(|origin| format!("Access-Control-Allow-Origin: {origin}\r\nAccess-Control-Allow-Headers: Authorization, Content-Type, X-UOR-Studio-Token\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Expose-Headers: X-UOR-Image-Schema, X-UOR-Source-Blake3, X-UOR-Image-Width, X-UOR-Image-Height, X-UOR-Grid-Columns, X-UOR-Grid-Rows, X-UOR-Patch-Count, X-UOR-Decomposition-Id\r\n")).unwrap_or_default()
 }
 
 fn serve_static(

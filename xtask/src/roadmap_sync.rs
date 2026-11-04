@@ -686,12 +686,24 @@ pub fn gather(gh: &dyn Gh, issues_json: &Issues) -> Result<Remote, String> {
 }
 
 /// Execute `p` in the documented order; returns id -> number for every item with an issue.
+#[cfg(test)]
 pub fn apply(
     gh: &dyn Gh,
     items: &[Item],
     remote: &Remote,
     p: &Plan,
     repo: &str,
+) -> Result<Issues, String> {
+    apply_scoped(gh, items, remote, p, repo, None)
+}
+
+pub fn apply_scoped(
+    gh: &dyn Gh,
+    items: &[Item],
+    remote: &Remote,
+    p: &Plan,
+    repo: &str,
+    only: Option<&str>,
 ) -> Result<Issues, String> {
     if !p.errors.is_empty() {
         return Err(format!(
@@ -738,6 +750,9 @@ pub fn apply(
         println!("  closed #{n} {id} (done)");
     }
     for item in items {
+        if only.is_some_and(|id| item.id != id) {
+            continue;
+        }
         let Some(&n) = numbers.get(&item.id) else {
             continue;
         };
@@ -1000,9 +1015,34 @@ impl Gh for GhCli {
     }
 }
 
+fn retain_only(items: &[Item], p: &mut Plan, only: Option<&str>) -> Result<(), String> {
+    if let Some(id) = only {
+        if !items.iter().any(|item| item.id == id) {
+            return Err(format!("roadmap sync: unknown item `{id}` for --only"));
+        }
+        p.creates.retain(|create| create.id == id);
+        p.updates.retain(|update| update.id == id);
+        p.closes.retain(|(item, _)| item == id);
+        let selected = items
+            .iter()
+            .find(|item| item.id == id)
+            .expect("selected item exists");
+        let labels = labels_for(selected);
+        p.labels.retain(|label| labels.contains(label));
+        if let Some(index) = milestone_index(&selected.milestone) {
+            let issue = MILESTONE_ISSUES[index - 1];
+            p.checklists.retain(|(number, _)| *number == issue);
+        } else {
+            p.checklists.clear();
+        }
+    }
+    Ok(())
+}
+
 pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
     let mut repo = DEFAULT_REPO.to_string();
     let mut do_apply = false;
+    let mut only = None;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -1013,9 +1053,12 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
                     .ok_or("--repo needs OWNER/NAME")?
                     .clone();
             }
+            "--only" => {
+                only = Some(it.next().ok_or("--only needs an item id")?.clone());
+            }
             other => {
                 return Err(format!(
-                    "roadmap sync: unknown argument `{other}`; usage: sync [--apply] [--repo OWNER/NAME]"
+                    "roadmap sync: unknown argument `{other}`; usage: sync [--apply] [--repo OWNER/NAME] [--only ID]"
                 ))
             }
         }
@@ -1027,7 +1070,8 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
     let issues = issues.unwrap_or_default();
     let gh = GhCli { repo: repo.clone() };
     let remote = gather(&gh, &issues)?;
-    let p = plan(&items, &remote, &issues, &repo);
+    let mut p = plan(&items, &remote, &issues, &repo);
+    retain_only(&items, &mut p, only.as_deref())?;
     print_plan(&p, &repo, do_apply);
     if !p.errors.is_empty() {
         return Err(format!(
@@ -1038,7 +1082,7 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
     if !do_apply {
         return Ok(());
     }
-    let numbers = apply(&gh, &items, &remote, &p, &repo)?;
+    let numbers = apply_scoped(&gh, &items, &remote, &p, &repo, only.as_deref())?;
     std::fs::write(&issues_path, issues_json(&numbers))
         .map_err(|e| format!("write {}: {e}", issues_path.display()))?;
     println!(
@@ -1507,6 +1551,33 @@ mod tests {
                 .state = "CLOSED".into();
             Ok(())
         }
+    }
+
+    #[test]
+    fn item_scope_keeps_one_and_rejects_unknown() {
+        let items = vec![
+            item("a", "M1", "ready", "", ""),
+            item("b", "M1", "ready", "", "a"),
+        ];
+        let mut p = plan(&items, &Remote::default(), &Issues::new(), R);
+        let checklists = p.checklists.clone();
+        retain_only(&items, &mut p, Some("a")).unwrap();
+        assert!(p.creates.iter().all(|create| create.id == "a"));
+        assert_eq!(p.checklists, checklists);
+        assert!(retain_only(&items, &mut p, Some("missing")).is_err());
+    }
+
+    #[test]
+    fn item_scope_filters_labels_and_checklists_to_selected_milestone() {
+        let mut selected = item("a", "M7", "done", "", "");
+        selected.area = "serving".into();
+        let items = vec![selected];
+        let mut p = plan(&items, &Remote::default(), &Issues::new(), R);
+        p.labels = vec!["area:serving".into(), "area:infra".into()];
+        p.checklists = vec![(2029, "M1".into()), (2035, "M7".into())];
+        retain_only(&items, &mut p, Some("a")).unwrap();
+        assert_eq!(p.labels, ["area:serving"]);
+        assert_eq!(p.checklists, [(2035, "M7".into())]);
     }
 
     #[test]

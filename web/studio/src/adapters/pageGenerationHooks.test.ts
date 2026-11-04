@@ -50,11 +50,14 @@ function pageHooks() {
     let synchronousApiError: string | null = null;
     let requestSequence = 0;
     const setMetrics = vi.fn();
+    const decomposeNativeImage = vi.fn(async ({ signal }: { signal: AbortSignal }) => new Promise<never>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+    }));
     const factory = new Function(
         'app', 'document', 'window', 'toast', 'setMetrics', 'setEngineStatus', 'encodeTextWithArtifact', 'fillPredictorSha', '$',
         'activeConversation', 'appendMessageElement', 'touchConversation', 'updateComposerState', 'requestCheckpoint',
         'renderConversationList', 'scrollChat', 'formatTps', 'setView', 'makeId', 'streamChatCompletions', 'configFromSources', 'MAX_NEW_TOKENS',
-        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations', 'normalizeBaseUrl', 'createStreamMetrics',
+        'ensureConversation', 'autoGrowTextarea', 'ModelSources', 'setModelStatus', 'renderMessages', 'persistConversations', 'normalizeBaseUrl', 'createStreamMetrics', 'decomposeNativeImage',
         `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
          ${section('function renderDiscretePrediction', 'function runPrediction')}
          ${section('function runPrediction', '/* ------------------------------------------------------------ status & toasts */')}
@@ -80,10 +83,11 @@ function pageHooks() {
                 options.onError(new Error(message));
                 return;
             }
+            for (const message of options.messages || []) await message.content;
             apiRequests.push(options);
         }), vi.fn(() => null), 32,
         () => conversation, vi.fn(),
-        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(), normalizeBaseUrl, createStreamMetrics,
+        { active: () => ({ kind: 'api', id: 'api-a' }), list: () => ({ wasm: {} }) }, vi.fn(), vi.fn(), vi.fn(), normalizeBaseUrl, createStreamMetrics, decomposeNativeImage,
     ) as {
         runPrediction(prompt?: string): boolean;
         renderDiscretePrediction(message: unknown): void;
@@ -96,7 +100,7 @@ function pageHooks() {
         finishLocalGeneration(message: { id?: string; fullText?: string; tokenCount?: number }): void;
         finishGenerationWithError(error: string, requestId?: string | number, generationId?: number | null): boolean | void;
     };
-    return { app, hooks, conversation, apiRequests, setMetrics, clearConversation: () => { currentConversation = null; }, failNextApi: (message: string) => { synchronousApiError = message; } };
+    return { app, hooks, conversation, apiRequests, setMetrics, decomposeNativeImage, clearConversation: () => { currentConversation = null; }, failNextApi: (message: string) => { synchronousApiError = message; } };
 }
 
 function events(type: string, listener: (event: CustomEvent) => void) {
@@ -338,6 +342,50 @@ describe('actual page prediction hooks', () => {
         }
     });
 
+    it('allows text-only sends with recalled metadata and cleans up completion', async () => {
+        const { app, hooks, conversation, apiRequests } = pageHooks();
+        app.mode = 'api';
+        app.apiConfig = { id: 'native-loopback', ephemeral: true, baseUrl: 'http://127.0.0.1:8765/v1' } as { baseUrl: string };
+        const legacy = window as unknown as { __studioUi?: { getAttachments(): Array<Record<string, unknown>>; getImageRecallCount?(): number } };
+        legacy.__studioUi = { getAttachments: () => [], getImageRecallCount: () => 1 };
+        conversation.messages.push({ role: 'user', content: 'Hi' });
+        try {
+            await hooks.sendViaApi('Hi', conversation);
+            expect(apiRequests).toHaveLength(1);
+            expect(conversation.messages.some((message) => message.role === 'error')).toBe(false);
+            apiRequests[0].onDone({ stopped: false });
+            expect(app.generating).toBe(false);
+            expect(app.activeChatRequestId).toBeNull();
+        } finally {
+            delete legacy.__studioUi;
+        }
+    });
+
+    it('aborts native image preparation and finishes as stopped', async () => {
+        const { app, hooks, conversation, decomposeNativeImage } = pageHooks();
+        app.mode = 'api';
+        app.apiConfig = { id: 'native-loopback', ephemeral: true, baseUrl: 'http://127.0.0.1:8765/v1' } as { baseUrl: string };
+        const legacy = window as unknown as { __studioUi?: { getAttachments(): Array<Record<string, unknown>> } };
+        legacy.__studioUi = { getAttachments: () => [{ name: 'pixel.png', kind: 'image', content: '', rgba: new Uint8Array(4), width: 1, height: 1, grid: { columns: 1, rows: 1 } }] };
+        conversation.messages.push({ role: 'user', content: 'Hi' });
+        const completed = vi.fn();
+        const dispose = events('uor-generation-finished', completed);
+        try {
+            const pending = hooks.sendViaApi('Hi', conversation);
+            hooks.stopGeneration();
+            await pending;
+            expect(decomposeNativeImage).toHaveBeenCalledOnce();
+            expect(decomposeNativeImage.mock.calls[0][0].signal.aborted).toBe(true);
+            expect(app.generating).toBe(false);
+            expect(completed).toHaveBeenCalledTimes(1);
+            expect(completed.mock.calls[0][0].detail).toMatchObject({ outcome: 'stopped' });
+            expect(conversation.messages.some((message) => message.role === 'error')).toBe(false);
+        } finally {
+            dispose();
+            delete legacy.__studioUi;
+        }
+    });
+
     it('does not offer or send cancellation for synchronous prediction', () => {
         const { app, hooks } = pageHooks();
         app.activeGenerationKind = 'api';
@@ -431,14 +479,14 @@ describe('actual page local fallback hook', () => {
         };
         const updatePrivacyStatus = vi.fn();
         const factory = new Function(
-            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl',
+            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl', 'isNativeLoopback',
             `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
              ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
              ${section('function abortApiForLocalSource', 'function onModelSourceChanged')}
          ${section('function onModelSourceChanged', 'function onApiConfigChanged')}
              return onModelSourceChanged;`,
         );
-        const onModelSourceChanged = factory(app, ModelSources, vi.fn(), updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl) as (event: Event) => void;
+        const onModelSourceChanged = factory(app, ModelSources, vi.fn(), updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl, (config: { id?: string; ephemeral?: boolean }) => Boolean(config && config.id === 'native-loopback' && config.ephemeral === true)) as (event: Event) => void;
         document.addEventListener('uor-model-source-changed', onModelSourceChanged);
         const provider = ModelSources.addApi({ label: 'Remove me', baseUrl: 'https://old.example.com/v1', model: 'old' });
         ModelSources.setActive({ kind: 'api', id: provider.id });
@@ -465,14 +513,14 @@ describe('actual page local fallback hook', () => {
         const updatePrivacyStatus = vi.fn();
         const setModelStatus = vi.fn();
         const factory = new Function(
-            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl',
+            'app', 'ModelSources', 'setModelStatus', 'updatePrivacyStatus', 'renderMessages', 'setView', 'toast', 'window', '$', 'normalizeBaseUrl', 'isNativeLoopback',
             `${section('function isDiscreteCapabilities', 'function setPredictorMode')}
              ${section('function chatReadiness', '/* ------------------------------------------------------------ metrics */')}
              ${section('function abortApiForLocalSource', 'function onModelSourceChanged')}
          ${section('function onModelSourceChanged', 'function onApiConfigChanged')}
              return onModelSourceChanged;`,
         );
-        const onModelSourceChanged = factory(app, ModelSources, setModelStatus, updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl) as (event: Event) => void;
+        const onModelSourceChanged = factory(app, ModelSources, setModelStatus, updatePrivacyStatus, vi.fn(), vi.fn(), vi.fn(), window, (selector: string) => document.querySelector(selector), normalizeBaseUrl, (config: { id?: string; ephemeral?: boolean }) => Boolean(config && config.id === 'native-loopback' && config.ephemeral === true)) as (event: Event) => void;
         document.addEventListener('uor-model-source-changed', onModelSourceChanged);
         const provider = ModelSources.addApi({ label: 'Edit me', baseUrl: 'https://old.example.com/v1', model: 'old' });
         ModelSources.setActive({ kind: 'api', id: provider.id });

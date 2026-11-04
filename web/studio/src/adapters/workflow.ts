@@ -77,6 +77,22 @@ export interface Attachment {
     source?: string;
     kind?: string;
     size?: number;
+    previewUrl?: string;
+    imageUrl?: string;
+    rgba?: Uint8Array | null;
+    width?: number;
+    height?: number;
+    grid?: number;
+    reattachRequired?: boolean;
+    decomposition?: {
+        schema: string;
+        canonical_hex: string;
+        source_blake3: string;
+        width: number;
+        height: number;
+        grid: { columns: number; rows: number };
+        decomposition_id: string;
+    } | null;
 }
 
 export interface StudioSettings {
@@ -94,6 +110,7 @@ export interface StudioUiApi {
     updateSettings(patch: Partial<StudioSettings>): void;
     updateStatus(): void;
     getAttachments(): Attachment[];
+    getImageRecallCount?(): number;
     addAttachment(entry: Attachment): void;
     removeAttachment(name: string): void;
     clearAttachments(): void;

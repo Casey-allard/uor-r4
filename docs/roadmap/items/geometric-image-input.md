@@ -9,7 +9,7 @@ needs_gpu: false
 depends_on: [studio-conversational-composer]
 done_class: host
 notebook: docs/research/notebook/m4-serving.md
-scope: [Cargo.toml, Cargo.lock, crates/uor-r4-vision/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/openai.rs, crates/uor-r4-integer/src/loopback.rs, crates/uor-r4-integer/tests/openai_loopback.rs, web/studio/index.html, web/studio/index.css, web/studio/assets/js/**, web/studio/src/**, docs/products/web-client.md, docs/research/notebook/m4-serving.md, docs/loop/tasks/geometric-image-input/**, docs/roadmap/items/geometric-image-input.md]
+scope: [Cargo.toml, Cargo.lock, src-tauri/Cargo.lock, xtask/src/main.rs, xtask/src/roadmap_sync.rs, crates/uor-r4-vision/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/openai.rs, crates/uor-r4-integer/src/loopback.rs, crates/uor-r4-integer/tests/openai_loopback.rs, web/studio/index.html, web/studio/index.css, web/studio/assets/js/**, web/studio/src/**, docs/products/web-client.md, docs/start/FILEMAP.md, docs/research/notebook/m4-serving.md, docs/loop/tasks/geometric-image-input/**, docs/roadmap/items/geometric-image-input.md]
 ---
 
 ## Why it matters
@@ -63,6 +63,10 @@ against native `uor-chat` produced exact `34/6/40` prompt/completion/total usage
 and displayed the required experimental label. This is input plumbing, not
 visual understanding.
 
+## Follow-up hardening: issued R4 records
+
+[kimi-1](../../loop/tasks/geometric-image-input/kimi-1/REPORT.md) binds native image parts to at most 64 server-issued decompositions. Exact eight-field parts require the issued ID, canonical bytes, source Blake3, dimensions and grid; unknown, expired, substituted and non-user parts are refused even with recomputed hashes. Compact base64 preserves every signed Q12 value without the earlier 206/192 context overflow. At `4780a06ba`, real dual-c131 image/text turns returned `I.`: 53/3/56 at 165.0 tok/s and 34/3/37 at 165.4 tok/s after reload; a true 2x2 image previously used 118/3/121. Reload preserves text-only sends and a working Clear path while image bytes remain absent. Native and WASM audits at `81d9ed6ca` pass 44/138 and 7/7 respectively. This remains transport evidence, not visual understanding.
+
 ## Done when
 
 - `decompose_rgba(width, height, rgba, grid)` validates exact bounds and produces
@@ -78,7 +82,7 @@ visual understanding.
   retain truthful 413 responses.
 - Browser Canvas decodes and downsamples images to at most 256 by 256.
   Paste/drop/picker provides previews, names/sizes, removal and the label
-  `R4 patch input - experimental; not visual understanding`. Native Send uses
+  `R4 patch input — experimental; not visual understanding`. Native Send uses
   only successful decompositions after explicit Send; custom providers may use
   ordinary `image_url`; image blobs are memory-only and reload asks for
   reattachment.

@@ -143,7 +143,7 @@ export async function decomposeNativeImage({ config, image, grid, signal } = {})
         '?width=' + width + '&height=' + height + '&columns=' + columns + '&rows=' + rows;
     const response = await fetch(url, {
         method: 'POST',
-        headers: { ...requestHeaders(resolved), 'Content-Type': 'application/octet-stream' },
+        headers: { ...requestHeaders(resolved), 'Content-Type': 'application/octet-stream', Accept: 'application/octet-stream' },
         body: rgba,
         signal,
         cache: 'no-store',
@@ -152,15 +152,35 @@ export async function decomposeNativeImage({ config, image, grid, signal } = {})
         const bodyText = await response.text();
         throw describeHttpError(response, bodyText);
     }
-    const schema = String(response.headers.get('x-uor-image-schema') || '');
-    const sourceBlake3 = String(response.headers.get('x-uor-source-blake3') || '');
-    const patchCount = Number(response.headers.get('x-uor-patch-count'));
-    if (schema !== 'uor-r4.image-decomposition/1' || !/^[0-9a-f]{64}$/.test(sourceBlake3) || patchCount !== columns * rows) {
-        throw failure('The native decomposition response has invalid identity headers.');
+    const header = (name) => {
+        const value = response.headers.get(name);
+        if (!value) throw failure('The native server returned an invalid decomposition response.');
+        return value;
+    };
+    const schema = header('x-uor-image-schema');
+    const sourceBlake3 = header('x-uor-source-blake3');
+    const decompositionId = header('x-uor-decomposition-id');
+    const responseWidth = Number(header('x-uor-image-width'));
+    const responseHeight = Number(header('x-uor-image-height'));
+    const responseColumns = Number(header('x-uor-grid-columns'));
+    const responseRows = Number(header('x-uor-grid-rows'));
+    const patchCount = Number(header('x-uor-patch-count'));
+    if (schema !== 'uor-r4.image-decomposition/1'
+        || !/^[0-9a-f]{64}$/.test(sourceBlake3)
+        || decompositionId.length > 128
+        || responseWidth !== width
+        || responseHeight !== height
+        || responseColumns !== columns
+        || responseRows !== rows
+        || patchCount !== columns * rows) {
+        throw failure('The native server returned an invalid decomposition response.');
     }
     const canonical = new Uint8Array(await response.arrayBuffer());
-    if (!canonical.length || canonical.length > 52 + 32 * 32 * 40) {
-        throw failure('The native decomposition response is outside its canonical byte bound.');
+    const magic = [82, 52, 73, 77, 71, 48, 48, 49];
+    if (canonical.length < magic.length
+        || canonical.length > 52 + 32 * 32 * 40
+        || magic.some((byte, index) => canonical[index] !== byte)) {
+        throw failure('The native server returned an invalid decomposition response.');
     }
     return {
         type: 'uor_r4_image',
@@ -170,6 +190,7 @@ export async function decomposeNativeImage({ config, image, grid, signal } = {})
         width,
         height,
         grid: { columns, rows },
+        decomposition_id: decompositionId,
     };
 }
 
