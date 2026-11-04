@@ -1381,6 +1381,19 @@ pub(crate) fn choose_sorted(
 /// once, as before.
 const DISTANCE_CHUNK_BYTES: usize = 1 << 28;
 
+/// candle 0.9.2 sizes every element-wise launch with `LaunchConfig::for_num_elems(n as u32)`
+/// (`cuda_backend/mod.rs`, `:1102` for the binary map), so a tensor of 2³² elements or more
+/// launches too few blocks, or none (claude-272). [`choose_sorted`] refuses to build one
+/// (claude-273).
+const LAUNCH_ELEMENTS: u64 = 1 << 32;
+
+/// Whether a tensor of `dims` has fewer than [`LAUNCH_ELEMENTS`] elements.
+fn launch_fits(dims: &[usize]) -> bool {
+    dims.iter()
+        .try_fold(1u64, |n, &d| n.checked_mul(d as u64))
+        .is_some_and(|n| n < LAUNCH_ELEMENTS)
+}
+
 /// How many query positions of each window one chunk takes under `bytes`: at least one, at most
 /// `time`.
 fn distance_chunk(batch: usize, time: usize, width: usize, bytes: usize) -> usize {
@@ -1445,6 +1458,12 @@ fn choose_sorted_in(
     let q = query.detach().reshape((batch, time, 1, width))?;
     let k = key.detach().reshape((batch, 1, time, width))?;
     let chunk = distance_chunk(batch, time, width, chunk_bytes);
+    if !launch_fits(&[rows, time]) || !launch_fits(&[batch, chunk, time, width]) {
+        return Err(invalid(format!(
+            "the read over {batch} windows of {time} positions builds a tensor of 2^32 elements \
+             or more, past candle's 32-bit launch size"
+        )));
+    }
     let distance = mean_l1_rows(&q, &k, batch, time, chunk)?;
     // Between ±1 codes the mean of `|q − k|` is `2h / width`, so `h` is that times `width / 2`,
     // rounded off the codes' last-bit noise.
@@ -1497,6 +1516,19 @@ pub(crate) fn hamming_bits(a: &Tensor, b: &Tensor) -> Result<Tensor> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// claude-273: a tensor fits candle's launch below 2³² elements and not at it. The read's
+    /// `(rows, time)` tensors at 2,048 × 16 are 2²⁶; at batch 1,024 they reach 2³². An overflowing
+    /// product never fits.
+    #[test]
+    fn a_launch_fits_below_two_to_the_thirty_two_elements() {
+        assert!(launch_fits(&[65_535, 65_537]), "2^32 − 1");
+        assert!(!launch_fits(&[65_536, 65_536]), "2^32");
+        assert!(!launch_fits(&[16, 2_048, 2_048, 64]), "claude-272's unchunked difference");
+        assert!(launch_fits(&[16 * 2_048, 2_048]), "2^26");
+        assert!(!launch_fits(&[1_024 * 2_048, 2_048]), "2^32 at batch 1,024");
+        assert!(!launch_fits(&[usize::MAX, 2]), "an overflowing product");
+    }
 
     /// claude-267: `.`, `\n` and added tokens end a clause, and so does an unassigned id; a tab
     /// and plain text do not.

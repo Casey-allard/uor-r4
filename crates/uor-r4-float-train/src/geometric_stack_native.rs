@@ -925,6 +925,19 @@ impl StackModel {
             native_starling: None,
         })
     }
+    /// Sets the window this model reads, `config.context`: the most positions one forward takes
+    /// (claude-273). No weight changes, and none may depend on it: a window outside the stack's
+    /// range, or one that would change any weight's shape, is refused.
+    pub fn set_context(&mut self, context: usize) -> Result<()> {
+        let mut config = self.config.clone();
+        config.context = context;
+        config.validate_native_config()?;
+        if config.shapes() != self.config.shapes() {
+            return Err(invalid("a weight of this model is sized by its window"));
+        }
+        self.config.context = context;
+        Ok(())
+    }
     pub fn quaternion_weights(&self) -> QuaternionWeights {
         self.quaternion_weights
     }

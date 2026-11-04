@@ -193,6 +193,15 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   2³² elements wrap candle's 32-bit launch size). No model was trained at a
   long window yet; Casey added that run as P2b, after the window becomes a
   setting.
+  [claude-273](../../loop/tasks/one-model-end-to-end/claude-273/REPORT.md)
+  made it one: `train-in-space --context N` (2 to 4,096, default 192) trains
+  at an N-token window, and at 192 the flag and no flag write the same run
+  `config.json`. DEV, scoring and decoding still use 192-token windows, and modes
+  other than training refuse another window. On one RTX 5090, a step of
+  claude-266's (b) recipe at 2,048 × 4 takes 0.60 s with a sampled peak of about 20 GB,
+  against 0.10 s at 192 × 4. This TRAIN's documents are short, so the
+  2,048 windows were mostly padding, and no learning is claimed. Scoring at a
+  window and the long corpus and panel move to P2b's sheet unit.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

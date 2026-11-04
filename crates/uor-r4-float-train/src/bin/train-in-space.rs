@@ -1,7 +1,12 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
+//!
+//! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
+//! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
+//! 192-token windows. 192, the default, writes the same `config.json` as before. `--grad-norms 1`
+//! reads TRAIN at the window too; every other mode scores 192-token windows and refuses another.
 //!
 //! `--train-as-served 1` trains through the graph the integer artifact serves
 //! (one-model-end-to-end, claude-258 and deepseek-4): the trunk's tables, Hamming reads and turn
@@ -292,6 +297,7 @@ fn main() -> Result<()> {
         fbs_arm: uor_r4_float_train::spiralcore_fbs_arms::FbsArm::OneAtomActive,
         reply_read_train: None,
         train_as_served: false,
+        context: uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -522,6 +528,9 @@ fn main() -> Result<()> {
                 })
             }
             "--width" => config.width = number(&value)?,
+            "--context" => {
+                config.context = uor_r4_float_train::in_space_long::training_context(number(&value)?)?
+            }
             "--type-spin" => config.type_spin = switch(&value)?,
             "--train-split" => split_dir = Some(PathBuf::from(&value)),
             "--train-sha256" => split_tokens = Some(value.clone()),
@@ -635,6 +644,7 @@ fn main() -> Result<()> {
         decode.is_some(),
         score.is_some(),
     )?;
+    context_applies(config.context, modes[7] && recall == 0, grad_norms)?;
     if overturn_on && fresh_v2.is_some() {
         return Err(FloatTrainError::Invalid(
             "--overturn reads Fresh V2 from the scored files; it takes no --fresh-v2".to_owned(),
@@ -1231,6 +1241,18 @@ fn served_forward_applies(
     Ok(())
 }
 
+/// `--context` sets the window training cuts TRAIN at and builds its model to read (claude-273),
+/// and `--grad-norms 1` reads TRAIN the same way. Every other mode, `--recall` and `--score-rows`
+/// among them, reads 192-token windows, so another window there would be ignored: it is refused.
+fn context_applies(context: usize, training: bool, grad_norms: bool) -> Result<()> {
+    if context != uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT && !(training || grad_norms) {
+        return Err(FloatTrainError::Invalid(
+            "--context applies to training with --out and to --grad-norms 1 only".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1285,5 +1307,15 @@ mod tests {
         assert!(served_forward_applies(Some(false), false, true, false).is_ok());
         assert!(served_forward_applies(Some(true), false, false, true).is_ok());
         assert!(served_forward_applies(Some(true), false, false, false).is_err());
+    }
+
+    #[test]
+    fn a_window_other_than_192_is_a_training_setting() {
+        let sheet = uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT;
+        assert!(context_applies(sheet, false, false).is_ok());
+        assert!(context_applies(2048, true, false).is_ok());
+        assert!(context_applies(2048, false, true).is_ok());
+        assert!(context_applies(2048, false, false).is_err());
+        assert!(context_applies(sheet + 1, false, false).is_err());
     }
 }

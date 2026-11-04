@@ -191,6 +191,12 @@ pub struct LongConfig {
     /// changes nothing. Left out of `config.json` when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub train_as_served: bool,
+    /// The training window (claude-273): TRAIN is cut into windows of this many tokens, and the
+    /// model is built to read this many positions ([`StackModel::set_context`]); 2 to 4,096.
+    /// DEV's evaluation keeps [`SHEET_CONTEXT`]'s windows. Left out of `config.json` at
+    /// [`SHEET_CONTEXT`], so a run at the default writes the same file as before.
+    #[serde(skip_serializing_if = "is_sheet_context")]
+    pub context: usize,
 }
 
 /// The float values one step rounded as served ([`LongConfig::train_as_served`], claude-258):
@@ -769,7 +775,7 @@ fn start_memory(
         None => load_train_split(data_root)?,
         Some(split) => load_named_split(split)?,
     };
-    let (windows, _) = hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+    let (windows, _) = hs::build_document_windows(&tokens, &mask, config.context, hs::SHEET_BOS_ID)?;
     let train = openings(&windows, &mask);
     let table = if config.turn_memory_empty {
         std::collections::HashMap::new()
@@ -832,6 +838,29 @@ fn is_zero(n: &usize) -> bool {
 
 fn is_one(n: &usize) -> bool {
     *n == 1
+}
+
+fn is_sheet_context(n: &usize) -> bool {
+    *n == SHEET_CONTEXT
+}
+
+/// `context` as a training window ([`LongConfig::context`], claude-273): 2 to 4,096 tokens, the
+/// stack's own range, or an error.
+pub fn training_context(context: usize) -> Result<usize> {
+    if (2..=4096).contains(&context) {
+        Ok(context)
+    } else {
+        Err(invalid(format!("--context wants 2 to 4096 tokens, not {context}")))
+    }
+}
+
+/// The trunk a run trains: [`build_fbs_model_at`] at `arm` and `config`'s seed and width, built
+/// to read `config.context` positions (claude-273). The window sizes no weight, so the trunk's
+/// weights are the ones it has at [`SHEET_CONTEXT`].
+fn build_long_model(arm: FbsArm, config: &LongConfig, device: &Device) -> Result<StackModel> {
+    let mut model = build_fbs_model_at(arm, config.seed, config.width, device)?;
+    model.set_context(training_context(config.context)?)?;
+    Ok(model)
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -1000,7 +1029,7 @@ fn trained_cut_on() -> bool {
 /// pads a short window. A window's corpus start is its first scored target, less one, less
 /// that row's offset.
 fn window_input_mask(windows: &[&CausalWindow], mask: &[u8]) -> Result<Vec<u8>> {
-    let mut flat = Vec::with_capacity(windows.len() * SHEET_CONTEXT);
+    let mut flat = Vec::with_capacity(windows.iter().map(|w| w.input_ids.len()).sum());
     for window in windows {
         let start = match (window.scored_corpus_positions.first(), window.scored_offsets.first()) {
             (Some(&p), Some(&o)) if p > o => p - 1 - o,
@@ -1039,31 +1068,47 @@ fn reply_row_limits(input_mask: &[u8], context: usize) -> Vec<usize> {
     limits
 }
 
-/// Over `windows` and their split's `mask`: the rows, the rows the trained cut limits, and the
-/// limited rows that read nothing in the limited heads, their reply having begun before the
-/// window (claude-216).
-fn cut_census(windows: &[CausalWindow], mask: &[u8]) -> Result<(usize, usize, usize)> {
+/// Over `windows` of `context` positions and their split's `mask`: the rows, the rows the
+/// trained cut limits, and the limited rows that read nothing in the limited heads, their reply
+/// having begun before the window (claude-216).
+fn cut_census(
+    windows: &[CausalWindow],
+    mask: &[u8],
+    context: usize,
+) -> Result<(usize, usize, usize)> {
     let refs: Vec<&CausalWindow> = windows.iter().collect();
-    let limits = reply_row_limits(&window_input_mask(&refs, mask)?, SHEET_CONTEXT);
-    let cut = limits.iter().filter(|&&l| l < SHEET_CONTEXT).count();
+    let limits = reply_row_limits(&window_input_mask(&refs, mask)?, context);
+    let cut = limits.iter().filter(|&&l| l < context).count();
     let none = limits.iter().filter(|&&l| l == 0).count();
     Ok((limits.len(), cut, none))
+}
+
+/// The window length of a forward of `batch` windows laid out flat in `ids_len` ids
+/// (claude-273): the windows are equal, so it is `ids_len / batch`, and a layout that does not
+/// divide is refused.
+fn window_time(ids_len: usize, batch: usize) -> Result<usize> {
+    if batch == 0 || ids_len == 0 || !ids_len.is_multiple_of(batch) {
+        return Err(invalid("a forward's ids are not batch windows of one length"));
+    }
+    Ok(ids_len / batch)
 }
 
 /// The trunk's points for `batch` windows of `ids`, with [`set_trained_cut`]'s scope applied to
 /// every reply row ([`reply_row_limits`], on the mask [`set_reply_mask`] gave this forward,
 /// which it takes), cleared before any error returns. Under a cut, a forward without its mask,
-/// or with one of another length, is refused.
+/// or with one of another length, is refused. The windows' length is `ids.len() / batch`
+/// ([`window_time`]).
 fn trained_points(model: &StackModel, ids: &[u32], batch: usize) -> Result<Tensor> {
     let mask = REPLY_MASK.with(|m| m.borrow_mut().take());
+    let time = window_time(ids.len(), batch)?;
     if let Some(scope) = TRAINED_CUT.with(|c| c.get()) {
         let mask = mask.ok_or_else(|| invalid("a trained cut's forward has no reply mask"))?;
         if mask.len() != ids.len() {
             return Err(invalid("a trained cut's reply mask is not its forward's length"));
         }
-        crate::flock_read_hamming::set_row_cut(Some((scope, reply_row_limits(&mask, SHEET_CONTEXT))));
+        crate::flock_read_hamming::set_row_cut(Some((scope, reply_row_limits(&mask, time))));
     }
-    let hidden = crate::flock_read::points(model, ids, batch, SHEET_CONTEXT);
+    let hidden = crate::flock_read::points(model, ids, batch, time);
     crate::flock_read_hamming::set_row_cut(None);
     hidden
 }
@@ -1993,14 +2038,17 @@ fn epoch_order(n: usize, seed: u64, epoch: u64) -> Vec<usize> {
     order
 }
 
-/// The flat ids, scored indices and targets of `windows`, as the sheet's batches lay them out.
+/// The flat ids, scored indices and targets of `windows`, as the sheet's batches lay them out:
+/// each scored index is its window's start in the flat ids plus its offset, so windows of any
+/// one length land at `b · length + offset` (claude-273; before, `b · SHEET_CONTEXT`).
 fn assemble(windows: &[&CausalWindow]) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
-    let mut ids = Vec::with_capacity(windows.len() * SHEET_CONTEXT);
+    let mut ids = Vec::with_capacity(windows.iter().map(|w| w.input_ids.len()).sum());
     let (mut scored, mut targets) = (Vec::new(), Vec::new());
-    for (b, window) in windows.iter().enumerate() {
+    for window in windows {
+        let start = ids.len();
         ids.extend_from_slice(&window.input_ids);
         for (&off, &target) in window.scored_offsets.iter().zip(&window.scored_targets) {
-            scored.push((b * SHEET_CONTEXT + off) as u32);
+            scored.push((start + off) as u32);
             targets.push(target);
         }
     }
@@ -9645,24 +9693,26 @@ fn load_named_split(split: &TrainSplit) -> Result<(Vec<u32>, Vec<u8>)> {
     Ok((tokens, mask))
 }
 
-/// TRAIN's windows with at least 4 scored targets, each context-long; at least `batch` of them;
-/// and TRAIN's response mask. TRAIN is the pinned split, or `split` when a run names one.
+/// TRAIN's windows of `context` tokens with at least 4 scored targets, each context-long; at
+/// least `batch` of them; and TRAIN's response mask. TRAIN is the pinned split, or `split` when
+/// a run names one.
 fn load_train(
     data_root: &Path,
     batch: usize,
     split: Option<&TrainSplit>,
+    context: usize,
 ) -> Result<(Vec<CausalWindow>, Vec<u8>)> {
     let (train_tokens, train_mask) = match split {
         None => load_train_split(data_root)?,
         Some(split) => load_named_split(split)?,
     };
     let (train_windows, _) =
-        hs::build_document_windows(&train_tokens, &train_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+        hs::build_document_windows(&train_tokens, &train_mask, context, hs::SHEET_BOS_ID)?;
     let usable: Vec<CausalWindow> = train_windows
         .into_iter()
         .filter(|w| w.scored_offsets.len() >= 4)
         .collect();
-    if usable.len() < batch || usable.iter().any(|w| w.input_ids.len() != SHEET_CONTEXT) {
+    if usable.len() < batch || usable.iter().any(|w| w.input_ids.len() != context) {
         return Err(invalid("TRAIN windows are too few or not context-long"));
     }
     Ok((usable, train_mask))
@@ -9683,14 +9733,15 @@ pub fn gradient_norms(
     config: &LongConfig,
     device: &Device,
 ) -> Result<Vec<GradientNorm>> {
-    let (usable, _) = load_train(data_root, config.batch, config.train_split.as_ref())?;
+    let (usable, _) =
+        load_train(data_root, config.batch, config.train_split.as_ref(), config.context)?;
     arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
     crate::geometric_stack::set_retention_rates(config.retain_rates);
     crate::geometric_stack::set_folded_scores(config.fold_scores);
     crate::geometric_stack::set_reflected_floor(config.reflect_floor);
     crate::geometric_stack::set_input_table_fixed(config.fix_input_table);
     let _guard = ArmGuard;
-    let model = build_fbs_model_at(FbsArm::OneAtomActive, config.seed, config.width, device)?;
+    let model = build_long_model(FbsArm::OneAtomActive, config, device)?;
     if config.flock_read > 0 {
         crate::flock_read::set_flock_read(Some(crate::flock_read::FlockRead::new(
             config.flock_read,
@@ -9743,7 +9794,7 @@ pub fn gradient_norms(
         .ok_or_else(|| invalid("the model has no shared vector table"))?;
     let output_side =
         hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
-            let hidden = crate::flock_read::points(&model, &ids, config.batch, SHEET_CONTEXT)?;
+            let hidden = crate::flock_read::points(&model, &ids, config.batch, config.context)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
             let query = hidden.index_select(&idx, 0)?.detach();
             Ok(query_loss(&model, config.objective, &query, &targets)?.backward()?)
@@ -9956,6 +10007,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     if config.steps == 0 || config.batch == 0 || config.eval_every == 0 {
         return Err(invalid("steps, batch and eval-every must be positive"));
     }
+    training_context(config.context)?;
     // A clock left on by a run that failed mid-step on this thread starts no stage of this one.
     stage_clock::reset();
     if config.profile > 0 {
@@ -10008,7 +10060,8 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
 
     let tokenizer = pinned_tokenizer(data_root)?;
 
-    let (usable, train_mask) = load_train(data_root, config.batch, config.train_split.as_ref())?;
+    let (usable, train_mask) =
+        load_train(data_root, config.batch, config.train_split.as_ref(), config.context)?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     let prompts = sample_windows(&dev_windows, &dev_mask, config.samples);
     println!(
@@ -10032,13 +10085,13 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     }
     set_trained_cut(config.reply_read_train);
     if config.reply_read_train.is_some() {
-        let (rows, cut, none) = cut_census(&usable, &train_mask)?;
+        let (rows, cut, none) = cut_census(&usable, &train_mask, config.context)?;
         println!(
             "[cut] TRAIN rows {rows}: {cut} reply rows read only before their reply, {none} of \
              them nothing (their reply began before the window)"
         );
     }
-    let model = build_fbs_model_at(config.fbs_arm, config.seed, config.width, device)?;
+    let model = build_long_model(config.fbs_arm, config, device)?;
     // The Flock read, when on: its own parameters and optimizer, applied by `points`.
     let flock = if config.flock_read > 0 {
         let read = crate::flock_read::FlockRead::new(config.flock_read, config.width, device)?;
@@ -10171,7 +10224,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             dev_token_margin: dev.token_margin,
             dev_address_margin: dev.address_margin,
             train_seconds,
-            train_context_tokens_per_second: (step * config.batch * SHEET_CONTEXT) as f64
+            train_context_tokens_per_second: (step * config.batch * config.context) as f64
                 / train_seconds.max(1e-9),
         };
         append_line(&progress, &serde_json::to_string(&point)?)?;
@@ -10291,7 +10344,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                 .flat_map(|(b, &i)| {
                     train_openings[i]
                         .iter()
-                        .map(move |&offset| b * SHEET_CONTEXT + offset)
+                        .map(move |&offset| b * config.context + offset)
                 })
                 .collect()
         }));
@@ -10305,14 +10358,14 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                 .flat_map(|(b, &i)| {
                     train_replies[i]
                         .iter()
-                        .map(move |(offset, key)| (b * SHEET_CONTEXT + offset, key.clone()))
+                        .map(move |(offset, key)| (b * config.context + offset, key.clone()))
                 })
                 .collect()
         }));
         cursor += config.batch;
         let (ids, scored, targets) = assemble(&windows);
-        // The memory's rows are `b · SHEET_CONTEXT + offset`, so every window must be whole.
-        if ids.len() != config.batch * SHEET_CONTEXT {
+        // The memory's rows are `b · config.context + offset`, so every window must be whole.
+        if ids.len() != config.batch * config.context {
             return Err(invalid("a training batch's windows are not context-long"));
         }
         // Under the cut (claude-216), every reply row of the batch reads only before its reply.
@@ -11382,10 +11435,77 @@ mod tests {
             fbs_arm: FbsArm::OneAtomActive,
             reply_read_train: None,
             train_as_served: false,
+            context: hs::SHEET_CONTEXT,
         }
     }
 
     use crate::flock_read_opening::OpeningAnchor;
+
+    /// claude-273: a run at the sheet's window writes no `context` key, so its `config.json` is
+    /// the file it wrote before the setting; any other window is written.
+    #[test]
+    fn a_config_writes_its_window_only_off_the_sheets() {
+        let sheet = String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
+        assert!(!sheet.contains("\"context\""), "{sheet}");
+        let long = LongConfig { context: 2_048, ..config(0, None) };
+        let long = String::from_utf8(serde_json::to_vec_pretty(&long).unwrap()).unwrap();
+        assert!(long.contains("\"context\": 2048"), "{long}");
+    }
+
+    /// claude-273: a training window is 2 to 4,096 tokens, the stack's own range.
+    #[test]
+    fn a_training_window_is_two_to_four_thousand_ninety_six_tokens() {
+        for good in [2, SHEET_CONTEXT, 2_048, 4_096] {
+            assert_eq!(training_context(good).unwrap(), good);
+        }
+        for bad in [0, 1, 4_097] {
+            assert!(training_context(bad).is_err(), "{bad}");
+        }
+    }
+
+    /// claude-273: a forward's window is its ids over its batch; a layout that does not divide
+    /// is refused.
+    #[test]
+    fn a_forward_window_is_its_ids_over_its_batch() {
+        assert_eq!(window_time(4 * 2_048, 4).unwrap(), 2_048);
+        assert_eq!(window_time(16 * SHEET_CONTEXT, 16).unwrap(), SHEET_CONTEXT);
+        assert!(window_time(4 * 2_048 + 1, 4).is_err());
+        assert!(window_time(0, 4).is_err());
+        assert!(window_time(8, 0).is_err());
+    }
+
+    /// claude-273: `assemble` lays each scored row at its window's start in the flat ids. At a
+    /// 2,048 window the rows are `b · 2,048 + offset`; at the sheet's they are the old
+    /// `b · 192 + offset`. Each row's input is the corpus token before its target.
+    #[test]
+    fn assembled_rows_follow_the_window() {
+        // Three documents, 300, 40 and 2,100 tokens after their BOS: at 192 they cut into 2, 1
+        // and 11 windows, at 2,048 into 1, 1 and 2.
+        let mut tokens = Vec::new();
+        for len in [300u32, 40, 2_100] {
+            tokens.push(hs::SHEET_BOS_ID);
+            tokens.extend((0..len).map(|i| 1 + i % 900));
+        }
+        let mask = vec![1u8; tokens.len()];
+        for (context, count) in [(SHEET_CONTEXT, 14), (2_048, 4)] {
+            let (windows, _) =
+                hs::build_document_windows(&tokens, &mask, context, hs::SHEET_BOS_ID).unwrap();
+            assert_eq!(windows.len(), count, "context {context}");
+            let refs: Vec<&CausalWindow> = windows.iter().collect();
+            let (ids, scored, targets) = assemble(&refs);
+            assert_eq!(ids.len(), windows.len() * context);
+            let expected: Vec<u32> = windows
+                .iter()
+                .enumerate()
+                .flat_map(|(b, w)| w.scored_offsets.iter().map(move |&o| (b * context + o) as u32))
+                .collect();
+            assert_eq!(scored, expected, "context {context}");
+            let positions = windows.iter().flat_map(|w| w.scored_corpus_positions.iter());
+            for ((&row, &target), &p) in scored.iter().zip(&targets).zip(positions) {
+                assert_eq!((ids[row as usize], target), (tokens[p - 1], tokens[p]));
+            }
+        }
+    }
 
     #[test]
     fn a_config_without_the_opening_read_writes_neither_of_its_keys() {
@@ -14376,7 +14496,7 @@ mod tests {
         assert!(limits[128..].iter().all(|&l| l == prompt_cut(prompt.len(), start)));
         // The census of the four windows: 101 + 132 + 60 + 72 reply rows, of which the 43 and
         // 13 carried in read nothing.
-        assert_eq!(cut_census(&windows, &mask).unwrap(), (4 * SHEET_CONTEXT, 365, 56));
+        assert_eq!(cut_census(&windows, &mask, SHEET_CONTEXT).unwrap(), (4 * SHEET_CONTEXT, 365, 56));
     }
 
     /// claude-216: a run that trains without the cut writes no `reply_read_train` key, so its
