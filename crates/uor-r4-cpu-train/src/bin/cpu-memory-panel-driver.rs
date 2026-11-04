@@ -4,11 +4,13 @@ use std::time::Instant;
 
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
-    evaluate_memory_weight_samples, replace_memory_weight_table, validate_corpus_manifest,
+    evaluate_memory_target_replies, evaluate_memory_weight_samples, evaluate_replies,
+    evaluate_replies_memory_off, memory_key_coverage, memory_target_shuffle_audit,
+    replace_memory_weight_table, shuffle_memory_targets, validate_corpus_manifest,
     CpuConversationSample, CpuMaskedCorpus, CpuMemoryWeightTrainer, MemoryWeightConfig,
-    MemoryWeightSample, MemoryWeightTable,
+    MemoryWeightSample, MemoryWeightTable, TimedReplyReading,
 };
-use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
+use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel, POINT_KEY_BOS};
 
 #[derive(Clone)]
 struct Config {
@@ -25,10 +27,12 @@ struct Config {
     seed: u64,
     select_only: bool,
     reference: bool,
+    reply_cap: usize,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
     expected_mask_sha256: String,
     expected_manifest_sha256: String,
+    expected_trained_sha256: Option<String>,
 }
 
 #[derive(Clone)]
@@ -55,8 +59,9 @@ fn usage() -> String {
     "usage: cpu-memory-panel-driver ARTIFACT TOKENS MASK MANIFEST OUT \
      --expected-artifact-sha256 HEX --expected-tokens-sha256 HEX \
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
+     [--expected-trained-sha256 HEX] \
      [--steps N] [--keys N] [--per-key N] [--key-tokens N] \
-     [--reply-turn N] [--seed N] [--select-only] [--reference]"
+     [--reply-turn N] [--reply-cap N] [--seed N] [--select-only] [--reference]"
         .to_owned()
 }
 
@@ -81,10 +86,12 @@ fn parse_args() -> Result<Config, String> {
         seed: 1,
         select_only: false,
         reference: false,
+        reply_cap: 0,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
         expected_mask_sha256: String::new(),
         expected_manifest_sha256: String::new(),
+        expected_trained_sha256: None,
     };
     while let Some(flag) = values.next() {
         if flag == "--select-only" {
@@ -104,11 +111,13 @@ fn parse_args() -> Result<Config, String> {
             "--per-key" => config.per_key = number(&value)?,
             "--key-tokens" => config.key_tokens = number(&value)?,
             "--reply-turn" => config.reply_turn = number(&value)?,
+            "--reply-cap" => config.reply_cap = number(&value)?,
             "--seed" => config.seed = number::<u64>(&value)?,
             "--expected-artifact-sha256" => config.expected_artifact_sha256 = hex(&value)?,
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
             "--expected-mask-sha256" => config.expected_mask_sha256 = hex(&value)?,
             "--expected-manifest-sha256" => config.expected_manifest_sha256 = hex(&value)?,
+            "--expected-trained-sha256" => config.expected_trained_sha256 = Some(hex(&value)?),
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
     }
@@ -127,6 +136,7 @@ fn parse_args() -> Result<Config, String> {
         || config.per_key == 0
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
+        || config.reply_cap > 64
     {
         return Err("training and group dimensions must be positive and bounded".to_owned());
     }
@@ -217,6 +227,18 @@ fn run() -> Result<serde_json::Value, String> {
             "per_key": config.per_key,
             "training_samples": training_samples.len(),
             "evaluation_samples": evaluation_samples.len(),
+            "evaluation_reference_shape": reference_shape(
+                &evaluation_samples,
+                config.reply_cap,
+                shape.context,
+            ),
+            "memory_key_coverage": memory_key_coverage(
+                &training_samples,
+                &evaluation_samples,
+                config.key_tokens,
+                shape.context,
+                config.reply_turn,
+            ).map_err(|error| error.to_string())?,
             "keys": groups.iter().map(|group| serde_json::json!({
                 "key": group.key,
                 "training": group.training.len(),
@@ -273,6 +295,16 @@ fn run() -> Result<serde_json::Value, String> {
     }
     let train_after = trainer.reading().map_err(|error| error.to_string())?;
     let trained_artifact = trainer.artifact().to_vec();
+    let trained_sha256 = uor_r4_discrete::corpus::sha256(&trained_artifact);
+    if config
+        .expected_trained_sha256
+        .as_ref()
+        .is_some_and(|expected| expected != &trained_sha256)
+    {
+        return Err(format!(
+            "trained artifact SHA-256 differs: got {trained_sha256}"
+        ));
+    }
     std::fs::write(config.out.join("trained.uorlut"), &trained_artifact)
         .map_err(|error| error.to_string())?;
     let random_artifact =
@@ -280,6 +312,47 @@ fn run() -> Result<serde_json::Value, String> {
             .map_err(|error| error.to_string())?;
     std::fs::write(config.out.join("random.uorlut"), &random_artifact)
         .map_err(|error| error.to_string())?;
+    let (shuffled_artifact, shuffle_audit) = if config.reply_cap == 0 {
+        (None, None)
+    } else {
+        let shuffled_memory =
+            shuffle_memory_targets(&memory, config.seed).map_err(|error| error.to_string())?;
+        let audit = memory_target_shuffle_audit(
+            &memory,
+            &shuffled_memory,
+            &evaluation_samples,
+            config.key_tokens,
+            shape.context,
+            config.reply_turn,
+        )
+        .map_err(|error| error.to_string())?;
+        if audit.opening_changed < audit.opening_exercised.div_ceil(2)
+            || audit.reply_changed < audit.reply_exercised.div_ceil(2)
+        {
+            return Err(format!(
+                "shuffled target control changed too few exercised mappings: {audit:?}"
+            ));
+        }
+        let mut shuffled = add_turn_memory_uorlut01(&artifact, &shuffled_memory)
+            .map_err(|error| error.to_string())?;
+        let trained_memory = read_memory_uorlut01(&trained_artifact)
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "trained artifact lost turn memory".to_owned())?;
+        shuffled = replace_memory_weight_table(
+            &shuffled,
+            MemoryWeightTable::Opening,
+            &trained_memory.opening.weight,
+        )
+        .map_err(|error| error.to_string())?;
+        if let Some(reply) = &trained_memory.reply {
+            shuffled =
+                replace_memory_weight_table(&shuffled, MemoryWeightTable::Reply, &reply.weight)
+                    .map_err(|error| error.to_string())?;
+        }
+        std::fs::write(config.out.join("target-shuffled.uorlut"), &shuffled)
+            .map_err(|error| error.to_string())?;
+        (Some(shuffled), Some(audit))
+    };
     let trained = evaluate_memory_weight_samples(&trained_artifact, &evaluation_samples, true)
         .map_err(|error| error.to_string())?;
     let random = evaluate_memory_weight_samples(&random_artifact, &evaluation_samples, true)
@@ -306,6 +379,76 @@ fn run() -> Result<serde_json::Value, String> {
             return Err(format!("{name} lost CPU/serving parity"));
         }
     }
+    let complete_replies = if config.reply_cap == 0 {
+        BTreeMap::new()
+    } else {
+        let mut complete_replies = [
+            ("frozen", memory_artifact.as_slice(), true),
+            ("trained", trained_artifact.as_slice(), true),
+            ("random", random_artifact.as_slice(), true),
+            ("memory_off", artifact.as_slice(), false),
+            ("trained_memory_off", trained_artifact.as_slice(), false),
+        ]
+        .into_iter()
+        .map(|(name, bytes, memory_enabled)| {
+            let reading = if memory_enabled {
+                evaluate_replies(bytes, &evaluation_samples, config.reply_cap)
+            } else {
+                evaluate_replies_memory_off(bytes, &evaluation_samples, config.reply_cap)
+            };
+            reading
+                .map_err(|error| error.to_string())
+                .map(|reading| (name, reading))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+        for (name, bytes) in [
+            ("target_frozen", memory_artifact.as_slice()),
+            ("target_trained", trained_artifact.as_slice()),
+            (
+                "target_shuffled",
+                shuffled_artifact.as_deref().ok_or_else(|| {
+                    "reply evaluation lost its shuffled target artifact".to_owned()
+                })?,
+            ),
+        ] {
+            complete_replies.insert(
+                name,
+                evaluate_memory_target_replies(bytes, &evaluation_samples, config.reply_cap)
+                    .map_err(|error| error.to_string())?,
+            );
+        }
+        complete_replies
+    };
+    let paired_reply_comparisons = if complete_replies.is_empty() {
+        BTreeMap::new()
+    } else {
+        let comparison = |candidate: &str, control: &str| -> Result<_, String> {
+            paired_reply_comparison(
+                complete_replies
+                    .get(candidate)
+                    .ok_or_else(|| format!("missing reply arm {candidate}"))?,
+                complete_replies
+                    .get(control)
+                    .ok_or_else(|| format!("missing reply arm {control}"))?,
+            )
+        };
+        [
+            ("trained_vs_frozen", "trained", "frozen"),
+            ("trained_vs_random", "trained", "random"),
+            ("trained_vs_memory_off", "trained", "memory_off"),
+            ("target_trained_vs_trained", "target_trained", "trained"),
+            (
+                "target_trained_vs_target_shuffled",
+                "target_trained",
+                "target_shuffled",
+            ),
+        ]
+        .into_iter()
+        .map(|(name, candidate, control)| {
+            comparison(candidate, control).map(|reading| (name, reading))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?
+    };
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-memory-panel-run/1",
         "substrate": "cpu-development-research",
@@ -363,6 +506,22 @@ fn run() -> Result<serde_json::Value, String> {
             "memory_off": memory_off,
             "trained_memory_off": trained_off,
         },
+        "complete_reply_artifacts": {
+            "frozen": uor_r4_discrete::corpus::sha256(&memory_artifact),
+            "trained": uor_r4_discrete::corpus::sha256(&trained_artifact),
+            "random": uor_r4_discrete::corpus::sha256(&random_artifact),
+            "memory_off": uor_r4_discrete::corpus::sha256(&artifact),
+            "trained_memory_off": uor_r4_discrete::corpus::sha256(&trained_artifact),
+            "target_frozen": uor_r4_discrete::corpus::sha256(&memory_artifact),
+            "target_trained": uor_r4_discrete::corpus::sha256(&trained_artifact),
+            "target_shuffled": shuffled_artifact
+                .as_deref()
+                .map(uor_r4_discrete::corpus::sha256),
+        },
+        "complete_replies": complete_replies,
+        "paired_reply_comparisons": paired_reply_comparisons,
+        "target_shuffle_audit": shuffle_audit,
+        "reply_cap": config.reply_cap,
         "parity": parity,
         "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
         "peak_rss_kib": peak_rss_kib(),
@@ -380,6 +539,46 @@ fn memory_sample(sample: &CpuConversationSample) -> MemoryWeightSample {
         prompt: sample.prompt.clone(),
         reply: sample.reply.clone(),
     }
+}
+
+fn reference_shape(
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    context: usize,
+) -> serde_json::Value {
+    let mut histogram = BTreeMap::<usize, usize>::new();
+    let mut token_total = 0usize;
+    let mut max = 0usize;
+    let mut within_cap = 0usize;
+    let mut within_cap_and_context = 0usize;
+    for sample in samples {
+        let length = sample
+            .reply
+            .strip_suffix(&[POINT_KEY_BOS])
+            .unwrap_or(&sample.reply)
+            .len();
+        *histogram.entry(length).or_default() += 1;
+        token_total += length;
+        max = max.max(length);
+        within_cap += usize::from(cap > 0 && length <= cap);
+        within_cap_and_context += usize::from(
+            cap > 0
+                && length <= cap
+                && sample
+                    .prompt
+                    .len()
+                    .checked_add(length)
+                    .is_some_and(|total| total <= context),
+        );
+    }
+    serde_json::json!({
+        "replies": samples.len(),
+        "token_total": token_total,
+        "max_tokens": max,
+        "within_reply_cap": within_cap,
+        "within_reply_cap_and_context": within_cap_and_context,
+        "length_histogram": histogram,
+    })
 }
 
 fn select_groups(examples: &[CpuConversationSample], config: &Config) -> Vec<KeyGroup> {
@@ -426,6 +625,86 @@ fn select_groups(examples: &[CpuConversationSample], config: &Config) -> Vec<Key
     });
     groups.truncate(config.key_count);
     groups
+}
+
+fn paired_reply_comparison(
+    candidate: &TimedReplyReading,
+    control: &TimedReplyReading,
+) -> Result<serde_json::Value, String> {
+    if candidate.rows.len() != control.rows.len() {
+        return Err("paired reply arms report different row counts".to_owned());
+    }
+    let (mut rows, mut candidate_exact, mut control_exact, mut b, mut c) =
+        (0u64, 0u64, 0u64, 0u64, 0u64);
+    for (left, right) in candidate.rows.iter().zip(&control.rows) {
+        if left.row != right.row {
+            return Err(format!(
+                "paired reply row identity differs: {} vs {}",
+                left.row, right.row
+            ));
+        }
+        if left.reachable != right.reachable {
+            return Err(format!(
+                "paired reply reachability differs at row {}",
+                left.row
+            ));
+        }
+        if !left.reachable {
+            continue;
+        }
+        rows = rows
+            .checked_add(1)
+            .ok_or_else(|| "paired reply row count overflows".to_owned())?;
+        candidate_exact = candidate_exact
+            .checked_add(u64::from(left.exact))
+            .ok_or_else(|| "paired candidate count overflows".to_owned())?;
+        control_exact = control_exact
+            .checked_add(u64::from(right.exact))
+            .ok_or_else(|| "paired control count overflows".to_owned())?;
+        b = b
+            .checked_add(u64::from(left.exact && !right.exact))
+            .ok_or_else(|| "paired candidate-only count overflows".to_owned())?;
+        c = c
+            .checked_add(u64::from(!left.exact && right.exact))
+            .ok_or_else(|| "paired control-only count overflows".to_owned())?;
+    }
+    let discordant = b
+        .checked_add(c)
+        .ok_or_else(|| "paired discordant count overflows".to_owned())?;
+    let threshold = 2u64.max(ceil_sqrt(
+        discordant
+            .checked_mul(4)
+            .ok_or_else(|| "paired margin input overflows".to_owned())?,
+    ));
+    let gain = i128::from(candidate_exact) - i128::from(control_exact);
+    let passes_margin = gain >= i128::from(threshold);
+    let passes_bos = candidate.reading.bos_complete >= control.reading.bos_complete;
+    Ok(serde_json::json!({
+        "rows": rows,
+        "candidate_exact": candidate_exact,
+        "control_exact": control_exact,
+        "candidate_only": b,
+        "control_only": c,
+        "discordant": discordant,
+        "gain": gain,
+        "threshold": threshold,
+        "candidate_bos": candidate.reading.bos_complete,
+        "control_bos": control.reading.bos_complete,
+        "passes_margin": passes_margin,
+        "passes_bos": passes_bos,
+        "passes": passes_margin && passes_bos,
+    }))
+}
+
+fn ceil_sqrt(value: u64) -> u64 {
+    let mut root = (value as f64).sqrt() as u64;
+    while u128::from(root) * u128::from(root) < u128::from(value) {
+        root += 1;
+    }
+    while root > 0 && u128::from(root - 1) * u128::from(root - 1) >= u128::from(value) {
+        root -= 1;
+    }
+    root
 }
 
 fn random_control(
@@ -476,4 +755,269 @@ fn peak_rss_kib() -> u64 {
             })
         })
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uor_r4_cpu_train::{ReplyReading, ReplyRowReading};
+    use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
+    use uor_r4_integer::stack::{
+        export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable,
+    };
+
+    fn bare_artifact() -> Vec<u8> {
+        let mut snapshot = synthetic_fbs_trunk_with(
+            931,
+            FbsSynth {
+                vocab: 4096,
+                d: 64,
+                mlp: 64,
+                layers: 1,
+                context: 16,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        );
+        snapshot.memory = None;
+        export_fbs_trunk_uorlut01(&snapshot).unwrap()
+    }
+
+    #[test]
+    fn reference_shape_normalizes_bos_and_counts_reachability() {
+        let samples = vec![
+            MemoryWeightSample {
+                prompt: vec![10, 11],
+                reply: vec![20, 21, 22, POINT_KEY_BOS],
+            },
+            MemoryWeightSample {
+                prompt: vec![10, 11],
+                reply: vec![30, 31, 32, 33, 34],
+            },
+        ];
+        let shape = reference_shape(&samples, 4, 6);
+        assert_eq!(shape["replies"], 2);
+        assert_eq!(shape["token_total"], 8);
+        assert_eq!(shape["max_tokens"], 5);
+        assert_eq!(shape["within_reply_cap"], 1);
+        assert_eq!(shape["within_reply_cap_and_context"], 1);
+        assert_eq!(shape["length_histogram"]["3"], 1);
+        assert_eq!(shape["length_histogram"]["5"], 1);
+    }
+
+    #[test]
+    fn paired_reply_margin_uses_asymmetric_disagreements_and_skips_unreachable() {
+        let rows = vec![
+            ReplyRowReading {
+                row: 0,
+                reachable: true,
+                exact: true,
+            },
+            ReplyRowReading {
+                row: 1,
+                reachable: true,
+                exact: false,
+            },
+            ReplyRowReading {
+                row: 2,
+                reachable: true,
+                exact: true,
+            },
+            ReplyRowReading {
+                row: 3,
+                reachable: false,
+                exact: false,
+            },
+            ReplyRowReading {
+                row: 4,
+                reachable: true,
+                exact: true,
+            },
+        ];
+        let control_rows = vec![
+            ReplyRowReading {
+                row: 0,
+                reachable: true,
+                exact: false,
+            },
+            ReplyRowReading {
+                row: 1,
+                reachable: true,
+                exact: true,
+            },
+            ReplyRowReading {
+                row: 2,
+                reachable: true,
+                exact: true,
+            },
+            ReplyRowReading {
+                row: 3,
+                reachable: false,
+                exact: true,
+            },
+            ReplyRowReading {
+                row: 4,
+                reachable: true,
+                exact: false,
+            },
+        ];
+        let reading = |rows: Vec<ReplyRowReading>, bos: u64| TimedReplyReading {
+            rows,
+            reading: ReplyReading {
+                replies: 5,
+                bos_complete: bos,
+                ..ReplyReading::default()
+            },
+            reply_sha256: String::new(),
+            wall_elapsed_us: 0,
+            generated_tokens_per_second: 0.0,
+        };
+        let comparison = paired_reply_comparison(&reading(rows, 2), &reading(control_rows, 1))
+            .expect("the paired reading is valid");
+        assert_eq!(comparison["rows"], 4);
+        assert_eq!(comparison["candidate_exact"], 3);
+        assert_eq!(comparison["control_exact"], 2);
+        assert_eq!(comparison["candidate_only"], 2);
+        assert_eq!(comparison["control_only"], 1);
+        assert_eq!(comparison["discordant"], 3);
+        assert_eq!(comparison["threshold"], 4);
+        assert_eq!(comparison["gain"], 1);
+        assert_eq!(comparison["passes_margin"], false);
+        assert_eq!(comparison["passes_bos"], true);
+        assert_eq!(comparison["passes"], false);
+    }
+
+    #[test]
+    fn shuffled_target_control_changes_values_but_not_keys() {
+        let memory = FbsMemorySnapshot {
+            k: 3,
+            key_window: 16,
+            opening: vec![
+                FbsMemoryEntry {
+                    key: vec![10, 11, 12],
+                    value: 1,
+                },
+                FbsMemoryEntry {
+                    key: vec![10, 11, 13],
+                    value: 2,
+                },
+                FbsMemoryEntry {
+                    key: vec![10, 11, 14],
+                    value: 3,
+                },
+                FbsMemoryEntry {
+                    key: vec![10, 11, 15],
+                    value: 4,
+                },
+            ],
+            opening_weight: vec![0.0; 64],
+            reply: Some(FbsReplyTable {
+                turn: 3,
+                entries: vec![
+                    FbsMemoryEntry {
+                        key: vec![10, 11, 12, u32::MAX, 1, u32::MAX, 20],
+                        value: 5,
+                    },
+                    FbsMemoryEntry {
+                        key: vec![10, 11, 12, u32::MAX, 2, u32::MAX, 21],
+                        value: 6,
+                    },
+                    FbsMemoryEntry {
+                        key: vec![10, 11, 12, u32::MAX, 3, u32::MAX, 22],
+                        value: 7,
+                    },
+                    FbsMemoryEntry {
+                        key: vec![10, 11, 12, u32::MAX, 4, u32::MAX, 23],
+                        value: 8,
+                    },
+                ],
+                weight: vec![0.0; 64],
+            }),
+        };
+        let shuffled = shuffle_memory_targets(&memory, 17).unwrap();
+        let keys = |table: &FbsMemorySnapshot| {
+            table
+                .opening
+                .iter()
+                .map(|entry| entry.key.clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(keys(&shuffled), keys(&memory));
+        let mut before = memory
+            .opening
+            .iter()
+            .map(|entry| entry.value)
+            .collect::<Vec<_>>();
+        let mut after = shuffled
+            .opening
+            .iter()
+            .map(|entry| entry.value)
+            .collect::<Vec<_>>();
+        before.sort_unstable();
+        after.sort_unstable();
+        assert_eq!(before, after);
+        assert_ne!(shuffled.opening, memory.opening);
+        assert_ne!(
+            shuffled.reply.as_ref().unwrap().entries,
+            memory.reply.as_ref().unwrap().entries
+        );
+
+        let artifact = bare_artifact();
+        let opening_weight = (0..64)
+            .map(|coordinate| (coordinate - 32) << 12)
+            .collect::<Vec<_>>();
+        let reply_weight = (0..64)
+            .map(|coordinate| (31 - coordinate) << 12)
+            .collect::<Vec<_>>();
+        let mut original = add_turn_memory_uorlut01(&artifact, &memory).unwrap();
+        original =
+            replace_memory_weight_table(&original, MemoryWeightTable::Opening, &opening_weight)
+                .unwrap();
+        original = replace_memory_weight_table(&original, MemoryWeightTable::Reply, &reply_weight)
+            .unwrap();
+        let mut control = add_turn_memory_uorlut01(&artifact, &shuffled).unwrap();
+        control =
+            replace_memory_weight_table(&control, MemoryWeightTable::Opening, &opening_weight)
+                .unwrap();
+        control =
+            replace_memory_weight_table(&control, MemoryWeightTable::Reply, &reply_weight).unwrap();
+        let original = read_memory_uorlut01(&original).unwrap().unwrap();
+        let control = read_memory_uorlut01(&control).unwrap().unwrap();
+        assert_eq!(original.record, control.record);
+        assert_eq!(original.opening.keys, control.opening.keys);
+        assert_eq!(original.opening.weight, control.opening.weight);
+        assert_ne!(original.opening.values, control.opening.values);
+        assert_eq!(original.opening.weight, opening_weight);
+        assert_eq!(
+            original.reply.as_ref().unwrap().keys,
+            control.reply.as_ref().unwrap().keys
+        );
+        assert_eq!(
+            original.reply.as_ref().unwrap().weight,
+            control.reply.as_ref().unwrap().weight
+        );
+        assert_ne!(
+            original.reply.as_ref().unwrap().values,
+            control.reply.as_ref().unwrap().values
+        );
+        assert_eq!(original.reply.as_ref().unwrap().weight, reply_weight);
+        let audit = memory_target_shuffle_audit(
+            &memory,
+            &shuffled,
+            &[MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![20, 21, 22],
+            }],
+            3,
+            16,
+            3,
+        )
+        .unwrap();
+        assert_eq!(audit.opening_exercised, 1);
+        assert_eq!(audit.opening_changed, 1);
+        assert_eq!(audit.reply_exercised, 2);
+    }
 }

@@ -19,6 +19,7 @@ mod memory;
 mod memory_train;
 mod panel;
 mod quant_shadow;
+mod reply_eval;
 mod served_forward;
 mod train;
 
@@ -49,9 +50,10 @@ pub use gain_train::{
 };
 pub use memory_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
-    evaluate_memory_weight_samples, replace_memory_weight_table, CpuMemoryWeightTrainer,
-    MemoryWeightConfig, MemoryWeightParityReading, MemoryWeightReading, MemoryWeightSample,
-    MemoryWeightStep, MemoryWeightTable, CPU_MEMORY_WEIGHT_TRAINER_SCHEMA,
+    evaluate_memory_weight_samples, memory_key_coverage, memory_target_shuffle_audit,
+    replace_memory_weight_table, shuffle_memory_targets, CpuMemoryWeightTrainer, MemoryKeyCoverage,
+    MemoryTargetShuffleAudit, MemoryWeightConfig, MemoryWeightParityReading, MemoryWeightReading,
+    MemoryWeightSample, MemoryWeightStep, MemoryWeightTable, CPU_MEMORY_WEIGHT_TRAINER_SCHEMA,
 };
 pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,
@@ -61,6 +63,10 @@ pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,
     CpuQuantizationPanelReading, CpuQuantizationShadow, CpuQuantizationStep, QuantizationGate,
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
+};
+pub use reply_eval::{
+    evaluate_memory_target_replies, evaluate_replies, evaluate_replies_memory_off, generate_reply,
+    generate_reply_memory_off, GeneratedReply, ReplyReading, ReplyRowReading, TimedReplyReading,
 };
 pub use served_forward::{
     audit_served_forward, exact_fbs_contract, read_uort_token_slice, ExactFbsContract,

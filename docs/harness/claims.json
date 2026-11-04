@@ -216,6 +216,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/memory-replies": {
+    "branch": "deepseek/memory-replies",
+    "claimed_at": "2026-11-03T21:20:52-05:00",
+    "head": "5707380fe",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/memory-trace-reuse": {
     "branch": "deepseek/memory-trace-reuse",
     "claimed_at": "2026-11-03T11:26:38-05:00",

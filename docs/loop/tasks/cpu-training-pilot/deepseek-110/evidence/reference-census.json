@@ -1,0 +1,61 @@
+{
+  "schema": "uor-r4.cpu-memory-panel-reference-census/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "model_compute": "not-run",
+  "inputs": {
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "keys": 16,
+    "per_key": 16,
+    "key_tokens": 8,
+    "reply_turn": 8,
+    "training_samples": 102,
+    "evaluation_samples": 114
+  },
+  "reference_shape": {
+    "replies": 114,
+    "token_total": 1326,
+    "max_tokens": 36,
+    "reply_cap": 16,
+    "context": 192,
+    "within_reply_cap": 104,
+    "within_reply_cap_and_context": 104,
+    "length_histogram": {
+      "5": 18,
+      "6": 12,
+      "7": 2,
+      "8": 7,
+      "9": 8,
+      "10": 8,
+      "11": 14,
+      "12": 16,
+      "13": 1,
+      "14": 5,
+      "15": 9,
+      "16": 4,
+      "26": 1,
+      "27": 2,
+      "33": 6,
+      "36": 1
+    }
+  },
+  "memory_key_coverage": {
+    "opening_training_keys": 16,
+    "opening_ambiguous_training_keys": 14,
+    "opening_evaluation_decisions": 114,
+    "opening_hits": 114,
+    "opening_correct": 50,
+    "reply_training_keys": 724,
+    "reply_ambiguous_training_keys": 44,
+    "reply_training_decisions": 1192,
+    "reply_ambiguous_training_decisions": 133,
+    "reply_evaluation_decisions": 1212,
+    "reply_hits": 795,
+    "reply_correct": 717
+  }
+}

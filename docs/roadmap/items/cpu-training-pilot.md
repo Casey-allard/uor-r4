@@ -127,6 +127,18 @@ registered three-sigma thresholds of 64 and 60. This is a stronger
 repeated-key mechanism result and a ranking-signal negative. See
 [deepseek-109](../../loop/tasks/cpu-training-pilot/deepseek-109/REPORT.md).
 
+The expanded artifacts were then replayed through complete greedy replies,
+together with a direct exact-memory target arm and a non-vacuous shuffled-target
+control. Both seeds and a fresh seed-1 repeat hit the 16-token cap on every one
+of the 114 prompts in every arm: zero exact-reference and zero BOS-complete
+replies. Trained opening correctness moved from 0 to 14 on seed 1 but stayed at
+4/4 on seed 2. Direct targets reached 50/114 openings on both seeds but did not
+complete or terminate a reply; target-frozen and target-trained outputs were
+identical. This closes the fixed memory-weight/target-arbitration complete-reply
+configuration and moves the next work to continuation and termination rather
+than more coordinate steps.
+See [deepseek-110](../../loop/tasks/cpu-training-pilot/deepseek-110/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

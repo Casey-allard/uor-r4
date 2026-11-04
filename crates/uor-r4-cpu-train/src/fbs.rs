@@ -337,6 +337,13 @@ impl CpuFbsForward {
         self.memory_anchors = MemoryAnchors::default();
     }
 
+    /// Disable the artifact's turn-memory and point-key reads while retaining
+    /// its trunk tables and artifact identity.
+    pub fn disable_memory(&mut self) {
+        self.memory = None;
+        self.clear_reply_start();
+    }
+
     /// Start a new stream with the same loaded tables.
     pub fn reset(&mut self) {
         self.position = 0;
