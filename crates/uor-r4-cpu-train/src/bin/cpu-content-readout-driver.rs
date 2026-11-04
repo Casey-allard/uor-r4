@@ -4,10 +4,10 @@ use std::time::Instant;
 
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, content_mapping_sha256, content_target_mapping,
-    derive_content_readout, derive_turn_memory, evaluate_content_readout, shuffle_content_targets,
-    validate_corpus_manifest, ContentPromptReading, ContentReadout, ContentSignatureMode,
-    CpuConversationSample, CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES,
-    CONTENT_MIN_TRAINING_ROWS,
+    derive_content_readout, derive_content_stop_readout, derive_turn_memory,
+    evaluate_content_readout, shuffle_content_targets, validate_corpus_manifest,
+    ContentPromptReading, ContentReadout, ContentSignatureMode, CpuConversationSample,
+    CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
 };
 use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
 
@@ -234,14 +234,25 @@ fn run() -> Result<serde_json::Value, String> {
         ContentSignatureMode::Code,
     )
     .map_err(|error| error.to_string())?;
+    let code_stop_training =
+        derive_content_stop_readout(&memory_artifact, &training_samples, config.reply_cap, true)
+            .map_err(|error| error.to_string())?;
     let sign_shuffled = shuffle_content_targets(&sign_training.readout, config.seed)
         .map_err(|error| error.to_string())?;
     let code_shuffled = shuffle_content_targets(&code_training.readout, config.seed)
         .map_err(|error| error.to_string())?;
+    let code_stop_shuffled = shuffle_content_targets(&code_stop_training.readout, config.seed)
+        .map_err(|error| error.to_string())?;
     let sign_changes = mapping_changes(&sign_training.readout, &sign_shuffled)?;
     let code_changes = mapping_changes(&code_training.readout, &code_shuffled)?;
+    let code_stop_changes = mapping_changes(&code_stop_training.readout, &code_stop_shuffled)?;
     let sign_mapping = mapping_json(&sign_training.readout, &sign_shuffled, sign_changes)?;
     let code_mapping = mapping_json(&code_training.readout, &code_shuffled, code_changes)?;
+    let code_stop_mapping = mapping_json(
+        &code_stop_training.readout,
+        &code_stop_shuffled,
+        code_stop_changes,
+    )?;
     if config.select_only {
         return Ok(serde_json::json!({
             "schema": "uor-r4.cpu-content-readout-selection/2",
@@ -258,6 +269,11 @@ fn run() -> Result<serde_json::Value, String> {
                     "training": code_training,
                     "shuffled_readout_sha256": readout_sha(&code_shuffled)?,
                     "mapping": code_mapping,
+                },
+                "code_stop": {
+                    "training": code_stop_training,
+                    "shuffled_readout_sha256": readout_sha(&code_stop_shuffled)?,
+                    "mapping": code_stop_mapping,
                 },
             },
         }));
@@ -308,6 +324,24 @@ fn run() -> Result<serde_json::Value, String> {
         Some(&code_shuffled),
     )
     .map_err(|error| error.to_string())?;
+    let (code_stop_arm, code_stop_prompts) = evaluate_content_readout(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Code,
+        Some(&code_stop_training.readout),
+    )
+    .map_err(|error| error.to_string())?;
+    let (code_stop_shuffled_arm, code_stop_shuffled_prompts) = evaluate_content_readout(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Code,
+        Some(&code_stop_shuffled),
+    )
+    .map_err(|error| error.to_string())?;
     let sign_vs_writer_top1 = paired(&sign_prompts, &writer_prompts, |row| row.top1)?;
     let sign_vs_shuffled_top1 = paired(&sign_prompts, &sign_shuffled_prompts, |row| row.top1)?;
     let code_vs_writer_top1 = paired(&code_prompts, &writer_prompts, |row| row.top1)?;
@@ -328,6 +362,43 @@ fn run() -> Result<serde_json::Value, String> {
     let code_vs_sign_depth = paired(&code_prompts, &sign_prompts, |row| {
         row.matched_prefix_depth as u64
     })?;
+    let code_stop_vs_code_top1 = paired(&code_stop_prompts, &code_prompts, |row| row.top1)?;
+    let code_stop_vs_code_depth = paired(&code_stop_prompts, &code_prompts, |row| {
+        row.matched_prefix_depth as u64
+    })?;
+    let code_stop_vs_code_bos = paired(&code_stop_prompts, &code_prompts, |row| {
+        u64::from(row.stop == "bos")
+    })?;
+    let code_stop_vs_shuffled_bos =
+        paired(&code_stop_prompts, &code_stop_shuffled_prompts, |row| {
+            u64::from(row.stop == "bos")
+        })?;
+    let bos_within_reference = code_stop_prompts
+        .iter()
+        .filter(|row| row.stop == "bos" && row.generated_tokens <= row.reference_tokens)
+        .count() as u64;
+    let bos_shorter = code_stop_prompts
+        .iter()
+        .filter(|row| row.stop == "bos" && row.generated_tokens < row.reference_tokens)
+        .count() as u64;
+    let bos_longer = code_stop_prompts
+        .iter()
+        .filter(|row| row.stop == "bos" && row.generated_tokens > row.reference_tokens)
+        .count() as u64;
+    let code_stop_non_inferior = non_inferior(
+        code_stop_vs_code_top1["candidate_sum"]
+            .as_u64()
+            .ok_or_else(|| "code-stop top-1 sum differs".to_owned())?,
+        code_stop_vs_code_top1["control_sum"]
+            .as_u64()
+            .ok_or_else(|| "code top-1 sum differs".to_owned())?,
+        code_stop_vs_code_depth["candidate_sum"]
+            .as_u64()
+            .ok_or_else(|| "code-stop depth sum differs".to_owned())?,
+        code_stop_vs_code_depth["control_sum"]
+            .as_u64()
+            .ok_or_else(|| "code depth sum differs".to_owned())?,
+    );
     let code_non_inferior = code_vs_sign_top1["candidate_sum"].as_u64()
         >= code_vs_sign_top1["control_sum"].as_u64()
         && code_vs_sign_depth["candidate_sum"].as_u64()
@@ -336,6 +407,7 @@ fn run() -> Result<serde_json::Value, String> {
             || code_vs_sign_depth["candidate_sum"] != code_vs_sign_depth["control_sum"]);
     let sign_structural = mode_structural_pass(&sign_training, &sign_mapping);
     let code_structural = mode_structural_pass(&code_training, &code_mapping);
+    let code_stop_structural = mode_structural_pass(&code_stop_training, &code_stop_mapping);
     let code_exposure = code_arm.readout_decisions > 0 && code_arm.writer_fallbacks > 0;
     let bar = serde_json::json!({
         "sign": {
@@ -360,15 +432,34 @@ fn run() -> Result<serde_json::Value, String> {
             "loo_above_sign": code_training.leave_one_out_top1
                 > sign_training.leave_one_out_top1,
         },
+        "code_stop": {
+            "structural_pass": code_stop_structural,
+            "exact_reference": code_stop_arm.exact_reference,
+            "bos_complete": code_stop_arm.bos_stopped,
+            "bos_within_reference": bos_within_reference,
+            "bos_shorter": bos_shorter,
+            "bos_longer": bos_longer,
+            "non_inferior_to_code": code_stop_non_inferior,
+            "vs_code_top1": code_stop_vs_code_top1,
+            "vs_code_depth": code_stop_vs_code_depth,
+            "vs_code_bos": code_stop_vs_code_bos,
+            "vs_shuffled_bos": code_stop_vs_shuffled_bos,
+        },
         "passes": sign_structural
             && code_structural
+            && code_stop_structural
             && code_exposure
             && code_non_inferior
+            && code_stop_non_inferior
             && code_training.leave_one_out_top1 > sign_training.leave_one_out_top1
             && code_vs_writer_top1["passes"].as_bool() == Some(true)
             && code_vs_shuffled_top1["passes"].as_bool() == Some(true)
             && code_vs_writer_depth["passes"].as_bool() == Some(true)
-            && code_vs_shuffled_depth["passes"].as_bool() == Some(true),
+            && code_vs_shuffled_depth["passes"].as_bool() == Some(true)
+            && code_stop_vs_code_bos["passes"].as_bool() == Some(true)
+            && code_stop_vs_shuffled_bos["passes"].as_bool() == Some(true)
+            && code_stop_arm.exact_reference >= 8
+            && bos_within_reference >= 8,
     });
     let sign_mapping_sha256 = mapping_json(&sign_training.readout, &sign_shuffled, sign_changes)?;
     let code_mapping_sha256 = mapping_json(&code_training.readout, &code_shuffled, code_changes)?;
@@ -392,6 +483,16 @@ fn run() -> Result<serde_json::Value, String> {
         serde_json::to_vec_pretty(&code_shuffled).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("code-stop-readout.json"),
+        serde_json::to_vec_pretty(&code_stop_training).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("code-stop-shuffled-readout.json"),
+        serde_json::to_vec_pretty(&code_stop_shuffled).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-content-readout-run/2",
         "substrate": "cpu-development-research",
@@ -411,10 +512,12 @@ fn run() -> Result<serde_json::Value, String> {
         "training": {
             "sign": sign_training,
             "code": code_training,
+            "code_stop": code_stop_training,
         },
         "mapping": {
             "sign": sign_mapping_sha256,
             "code": code_mapping_sha256,
+            "code_stop": code_stop_mapping,
         },
         "arms": {
             "writer": { "reading": writer, "prompts": writer_prompts },
@@ -422,6 +525,11 @@ fn run() -> Result<serde_json::Value, String> {
             "sign_shuffled": { "reading": sign_shuffled_arm, "prompts": sign_shuffled_prompts },
             "code": { "reading": code_arm, "prompts": code_prompts },
             "code_shuffled": { "reading": code_shuffled_arm, "prompts": code_shuffled_prompts },
+            "code_stop": { "reading": code_stop_arm, "prompts": code_stop_prompts },
+            "code_stop_shuffled": {
+                "reading": code_stop_shuffled_arm,
+                "prompts": code_stop_shuffled_prompts
+            },
         },
         "bar": bar,
         "rayon_workers": rayon::current_num_threads(),
@@ -475,6 +583,15 @@ fn mapping_json(
         "true_sha256": true_sha256,
         "shuffled_sha256": shuffled_sha256,
     }))
+}
+
+fn non_inferior(
+    candidate_top1: u64,
+    control_top1: u64,
+    candidate_depth: u64,
+    control_depth: u64,
+) -> bool {
+    candidate_top1 >= control_top1 && candidate_depth >= control_depth
 }
 
 fn paired(
@@ -607,4 +724,18 @@ fn peak_rss_kib() -> u64 {
             })
         })
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_non_inferiority_uses_both_ordered_metrics() {
+        assert!(non_inferior(73, 73, 64, 64));
+        assert!(non_inferior(74, 73, 64, 64));
+        assert!(non_inferior(73, 73, 65, 64));
+        assert!(!non_inferior(72, 73, 65, 64));
+        assert!(!non_inferior(74, 73, 63, 64));
+    }
 }

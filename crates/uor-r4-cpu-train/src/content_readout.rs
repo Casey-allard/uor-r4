@@ -45,6 +45,8 @@ pub struct ContentExample {
 pub struct ContentReadout {
     pub mode: ContentSignatureMode,
     pub signature_bits: usize,
+    #[serde(default)]
+    pub includes_reference_end: bool,
     pub rows: Vec<ContentExample>,
     pub max_distance: u32,
 }
@@ -91,6 +93,8 @@ pub struct ContentPromptReading {
     pub observed_decisions: u64,
     pub exact_reference: bool,
     pub stop: String,
+    pub generated_tokens: u64,
+    pub reference_tokens: u64,
 }
 
 pub fn pack_content_signature(
@@ -133,25 +137,59 @@ pub fn derive_content_readout(
     memory_enabled: bool,
     mode: ContentSignatureMode,
 ) -> Result<ContentReadoutTraining> {
+    derive_content_readout_with_endpoint(artifact, samples, cap, memory_enabled, mode, false)
+}
+
+pub fn derive_content_stop_readout(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+) -> Result<ContentReadoutTraining> {
+    derive_content_readout_with_endpoint(
+        artifact,
+        samples,
+        cap,
+        memory_enabled,
+        ContentSignatureMode::Code,
+        true,
+    )
+}
+
+fn derive_content_readout_with_endpoint(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    mode: ContentSignatureMode,
+    include_reference_end: bool,
+) -> Result<ContentReadoutTraining> {
     if samples.is_empty() {
         return Err(invalid("content readout needs training samples"));
     }
     let rows = samples
         .par_iter()
         .map(|sample| {
-            generate_with_readout(artifact, sample, cap, memory_enabled, mode, None).map(
-                |(decisions, _)| {
-                    decisions
-                        .into_iter()
-                        .filter_map(|decision| {
-                            decision.reference_target.map(|target| ContentExample {
-                                signature: decision.signature,
-                                target,
-                            })
-                        })
-                        .collect::<Vec<_>>()
-                },
+            generate_with_readout(
+                artifact,
+                sample,
+                cap,
+                memory_enabled,
+                mode,
+                include_reference_end,
+                None,
             )
+            .map(|(decisions, _)| {
+                decisions
+                    .into_iter()
+                    .filter_map(|decision| {
+                        decision.reference_target.map(|target| ContentExample {
+                            signature: decision.signature,
+                            target,
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
         })
         .collect::<Result<Vec<_>>>()?
         .into_iter()
@@ -168,13 +206,14 @@ pub fn derive_content_readout(
     if target_values < CONTENT_MIN_TARGET_VALUES {
         return Err(invalid("content readout target diversity is too small"));
     }
-    fit_content_readout(rows, target_values, mode)
+    fit_content_readout(rows, target_values, mode, include_reference_end)
 }
 
 fn fit_content_readout(
     rows: Vec<ContentExample>,
     target_values: usize,
     mode: ContentSignatureMode,
+    includes_reference_end: bool,
 ) -> Result<ContentReadoutTraining> {
     if rows.is_empty() {
         return Err(invalid("content readout fitting needs rows"));
@@ -231,6 +270,7 @@ fn fit_content_readout(
         readout: ContentReadout {
             mode,
             signature_bits: mode.bits(),
+            includes_reference_end,
             rows,
             max_distance,
         },
@@ -264,6 +304,7 @@ pub fn shuffle_content_targets(readout: &ContentReadout, seed: u64) -> Result<Co
     let shuffled = ContentReadout {
         mode: readout.mode,
         signature_bits: readout.signature_bits,
+        includes_reference_end: readout.includes_reference_end,
         rows: readout
             .rows
             .iter()
@@ -337,7 +378,7 @@ pub fn evaluate_content_readout(
         .par_iter()
         .enumerate()
         .map(|(sample_index, sample)| {
-            generate_with_readout(artifact, sample, cap, memory_enabled, mode, readout)
+            generate_with_readout(artifact, sample, cap, memory_enabled, mode, false, readout)
                 .map(|(decisions, reply)| (sample_index, sample, decisions, reply))
         })
         .collect::<Result<Vec<_>>>()?;
@@ -393,6 +434,8 @@ pub fn evaluate_content_readout(
             observed_decisions: observed,
             exact_reference: exact,
             stop: reply.stop.to_owned(),
+            generated_tokens: reply.tokens.len() as u64,
+            reference_tokens: reference.len() as u64,
         });
     }
     reading.distinct_non_empty = distinct.len() as u64;
@@ -420,6 +463,7 @@ fn generate_with_readout(
     cap: usize,
     memory_enabled: bool,
     mode: ContentSignatureMode,
+    include_reference_end: bool,
     readout: Option<&ContentReadout>,
 ) -> Result<(Vec<Decision>, Generated)> {
     if cap == 0 || cap > 64 || sample.prompt.is_empty() {
@@ -458,7 +502,10 @@ fn generate_with_readout(
             offset,
             chosen,
             signature,
-            reference_target: reference.get(offset).copied(),
+            reference_target: reference
+                .get(offset)
+                .copied()
+                .or_else(|| (include_reference_end && offset == reference.len()).then_some(0)),
             nearest_distance,
             ambiguous_nearest,
             used_readout,
@@ -497,6 +544,9 @@ fn validate_content_readout(readout: &ContentReadout) -> Result<()> {
     }
     if readout.max_distance as usize > readout.signature_bits {
         return Err(invalid("content readout threshold exceeds the signature"));
+    }
+    if readout.includes_reference_end && !readout.rows.iter().any(|row| row.target == 0) {
+        return Err(invalid("content stop readout has no BOS row"));
     }
     Ok(())
 }
@@ -665,12 +715,12 @@ mod tests {
             .map(|index| row(0, index as u32))
             .collect::<Vec<_>>();
         rows.extend((100..110).map(|index| row(index, index as u32)));
-        let training = fit_content_readout(rows, 2, ContentSignatureMode::Sign).unwrap();
+        let training = fit_content_readout(rows, 2, ContentSignatureMode::Sign, false).unwrap();
         assert_eq!(training.covered_rows, 90);
         assert_eq!(training.rows, 100);
         assert_eq!(training.readout.max_distance, 0);
         assert!(training.covered_rows * 10 >= training.rows * 9);
-        assert!(fit_content_readout(Vec::new(), 0, ContentSignatureMode::Sign).is_err());
+        assert!(fit_content_readout(Vec::new(), 0, ContentSignatureMode::Sign, false).is_err());
         let mut code_rows = (0..90)
             .map(|index| ContentExample {
                 signature: vec![0; CONTENT_CODE_SIGNATURE_BITS / 64],
@@ -681,10 +731,12 @@ mod tests {
             signature: vec![u64::MAX; CONTENT_CODE_SIGNATURE_BITS / 64],
             target: 100,
         }));
-        let code = fit_content_readout(code_rows, 91, ContentSignatureMode::Code).unwrap();
+        let code = fit_content_readout(code_rows, 91, ContentSignatureMode::Code, false).unwrap();
         assert_eq!(code.readout.mode, ContentSignatureMode::Code);
         assert_eq!(code.readout.signature_bits, CONTENT_CODE_SIGNATURE_BITS);
-        assert!(fit_content_readout(vec![row(0, 1)], 1, ContentSignatureMode::Code).is_err());
+        assert!(
+            fit_content_readout(vec![row(0, 1)], 1, ContentSignatureMode::Code, false).is_err()
+        );
     }
 
     #[test]
@@ -692,6 +744,7 @@ mod tests {
         let readout = ContentReadout {
             mode: ContentSignatureMode::Sign,
             signature_bits: CONTENT_SIGNATURE_BITS,
+            includes_reference_end: false,
             rows: vec![row(0, 1), row(1, 2), row(2, 3)],
             max_distance: 0,
         };
@@ -722,6 +775,7 @@ mod tests {
             &ContentReadout {
                 mode: ContentSignatureMode::Sign,
                 signature_bits: CONTENT_SIGNATURE_BITS,
+                includes_reference_end: false,
                 rows: vec![row(0, 1)],
                 max_distance: 0,
             },
@@ -731,6 +785,7 @@ mod tests {
         let repeated = ContentReadout {
             mode: ContentSignatureMode::Sign,
             signature_bits: CONTENT_SIGNATURE_BITS,
+            includes_reference_end: false,
             rows: vec![row(0, 9), row(0, 7), row(0, 9), row(0, 7)],
             max_distance: 0,
         };
@@ -742,6 +797,7 @@ mod tests {
         let readout = ContentReadout {
             mode: ContentSignatureMode::Sign,
             signature_bits: CONTENT_SIGNATURE_BITS,
+            includes_reference_end: false,
             rows: vec![row(0, 7)],
             max_distance: 0,
         };
@@ -757,6 +813,7 @@ mod tests {
             &ContentReadout {
                 mode: ContentSignatureMode::Sign,
                 signature_bits: CONTENT_SIGNATURE_BITS,
+                includes_reference_end: false,
                 rows: Vec::new(),
                 max_distance: 0,
             },
@@ -772,10 +829,11 @@ mod tests {
         let samples = vec![sample()];
         for mode in [ContentSignatureMode::Sign, ContentSignatureMode::Code] {
             let (writer, _) =
-                generate_with_readout(&artifact, &samples[0], 4, false, mode, None).unwrap();
+                generate_with_readout(&artifact, &samples[0], 4, false, mode, false, None).unwrap();
             let readout = ContentReadout {
                 mode,
                 signature_bits: mode.bits(),
+                includes_reference_end: false,
                 rows: vec![ContentExample {
                     signature: writer[0].signature.clone(),
                     target: writer[0]
@@ -784,12 +842,26 @@ mod tests {
                 }],
                 max_distance: 0,
             };
-            let (first_decisions, first_reply) =
-                generate_with_readout(&artifact, &samples[0], 4, false, mode, Some(&readout))
-                    .unwrap();
-            let (second_decisions, second_reply) =
-                generate_with_readout(&artifact, &samples[0], 4, false, mode, Some(&readout))
-                    .unwrap();
+            let (first_decisions, first_reply) = generate_with_readout(
+                &artifact,
+                &samples[0],
+                4,
+                false,
+                mode,
+                false,
+                Some(&readout),
+            )
+            .unwrap();
+            let (second_decisions, second_reply) = generate_with_readout(
+                &artifact,
+                &samples[0],
+                4,
+                false,
+                mode,
+                false,
+                Some(&readout),
+            )
+            .unwrap();
             assert_eq!(first_decisions[0].offset, 0);
             assert_eq!(
                 first_decisions[0].chosen,
@@ -820,5 +892,51 @@ mod tests {
             };
             assert_eq!(evaluate(1), evaluate(32), "{mode:?}");
         }
+    }
+
+    #[test]
+    fn reference_end_rows_add_bos_and_stop_the_reply() {
+        let artifact = artifact();
+        let sample = sample();
+        let (writer, _) = generate_with_readout(
+            &artifact,
+            &sample,
+            4,
+            false,
+            ContentSignatureMode::Code,
+            true,
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            writer
+                .iter()
+                .map(|decision| decision.reference_target)
+                .collect::<Vec<_>>(),
+            vec![Some(42), Some(77), Some(0), None]
+        );
+        let readout = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: true,
+            rows: vec![ContentExample {
+                signature: writer[2].signature.clone(),
+                target: 0,
+            }],
+            max_distance: 0,
+        };
+        let (decisions, reply) = generate_with_readout(
+            &artifact,
+            &sample,
+            4,
+            false,
+            ContentSignatureMode::Code,
+            false,
+            Some(&readout),
+        )
+        .unwrap();
+        assert_eq!(reply.stop, "bos");
+        assert_eq!(decisions.last().unwrap().chosen, 0);
+        assert_eq!(decisions.len(), 3);
     }
 }

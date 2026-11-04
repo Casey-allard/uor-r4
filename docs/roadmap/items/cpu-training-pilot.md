@@ -276,6 +276,17 @@ hit the cap with zero exact or BOS-complete outputs, so the code is a stronger
 serving-contract candidate but not completion or chat evidence. See
 [deepseek-137](../../loop/tasks/cpu-training-pilot/deepseek-137/REPORT.md).
 
+The next readout variant added BOS only for generated training states at the
+normalized reference endpoint. The augmented table raised leave-one-out hits
+from 300 to 325 and 284 to 315, but selected BOS on none of the held-out
+replies. Seed 1 also lost content, 73→60 top-1 and 64→46 depth; seed 2 was
+unchanged at 58/39. Every true stop arm still hit the 16-token cap, while the
+shuffled endpoint controls stopped 2 and 27 replies prematurely. This closes
+shared content-table endpoint rows. A separate two-class generated-state stop
+gate is the next termination direction; the positive content code remains
+intact. See
+[deepseek-138](../../loop/tasks/cpu-training-pilot/deepseek-138/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
