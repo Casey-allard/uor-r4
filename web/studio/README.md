@@ -7,9 +7,15 @@ integer serving engine (`crates/uor-r4-integer`, `--features serving-wasm`) runn
 Worker. It is served from the project's documentation site at **`/studio/`**
 (<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `233b97fb9`; `454bb30fc` was the previous publish.
 
+### Conversation-first Studio and native runner (4 November 2026)
+
+The source now opens into one quiet dark conversation column instead of the former panel-heavy IDE. First run automatically loads the bundled synthetic demo; the empty state offers working offline-demo, model-choice and native-setup actions. Connections, Workspace, sessions and diagnostics remain available outside the main chat flow. System typography, rounded message bubbles, a floating composer, mobile-safe 16px input text and compact phone controls are covered by browser inspection at 1440×900 and 390×852 plus focused regressions. Enter/Shift+Enter, IME-safe submission, ArrowUp/Down history, long pastes, attachments, image decomposition and exact metrics retain their existing paths.
+
+Static GitHub Pages still cannot host an API, and HTTPS Pages must not call insecure HTTP loopback. The new [studio-native-runner-v0.1.0 prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) supplies a hash-pinned Apple silicon `uor-chat`, a runtime-only Studio archive, `native-runner.sh` and `SHA256SUMS`. The runner serves the same UI and authenticated native API together on `127.0.0.1:8000`, with an in-memory launch token and no public tunnel or token output. Fresh public downloads and an empty-cache launch passed. A real native short-prompt stream returned 16 completion tokens with exact `19/16/35` usage, measured tok/s and TTFT; a longer prompt correctly returned HTTP 413 at 69 of 64 context positions without truncation. These are synthetic protocol results, not useful conversation, visual understanding, M7/M8 completion or production readiness. The live-Pages publish is recorded separately after it exists.
+
 ### First console redesign (superseded by v2)
 
-*Current interface: the workable v2 Workspace/Agent design below; this subsection preserves the first console as history.*
+*Historical interface: the workable v2 Workspace/Agent design below; the conversation-first section above is the current source.*
 
 An agent-console shell: command bar (wordmark, workspace breadcrumb, project chip, command search,
 view switch, theme/new), icon rail, collapsible sessions sidebar with a runtime environment card, a

@@ -854,6 +854,13 @@ function renderAll(container) {
         container.appendChild(trained);
     }
 
+    const nativeGuide = el('section', 'source-group native-runner-guide');
+    nativeGuide.id = 'nativeRunnerGuide';
+    nativeGuide.tabIndex = -1;
+    const nativeTemplate = document.getElementById('nativeRunnerGuidanceTemplate');
+    if (nativeTemplate) nativeGuide.appendChild(nativeTemplate.content.cloneNode(true));
+    container.appendChild(nativeGuide);
+
     const local = el('section', 'source-group');
     local.appendChild(el('h3', null, 'Local WASM engine'));
     local.appendChild(el('p', 'hint', 'Runs in a Web Worker inside this tab. Prompts and replies stay on this device. The bundled demo is a synthetic stack, not a chat model.'));

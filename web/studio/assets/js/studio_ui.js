@@ -220,6 +220,10 @@
             verifyNote.id = 'modelsVerifyNote';
             sections.appendChild(verifyNote);
         }
+        var nativeGuide = mount.querySelector('#nativeRunnerGuide');
+        if (nativeGuide && nativeGuide.parentElement !== sections) {
+            sections.insertBefore(nativeGuide, sections.firstChild);
+        }
         var freshGroups = mount.querySelectorAll('.source-group');
         if (freshGroups.length > 1) {
             Array.prototype.slice.call(document.querySelectorAll('.models-section-body')).forEach(function (body) { body.textContent = ''; });

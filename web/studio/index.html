@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark light">
-    <meta name="description" content="UOR-R4 Studio: an offline-first agent console for the geometric language model project.">
-    <title>UOR-R4 Studio — agent console</title>
+    <meta name="description" content="UOR-R4 Studio: an offline-first conversation interface for the geometric language model project.">
+    <title>UOR-R4 Studio — local chat</title>
     <link rel="stylesheet" href="./assets/css/uor_offline_fonts.css">
     <link rel="stylesheet" href="./index.css">
     <script>
@@ -88,7 +88,6 @@
                     <div class="nav-version"><span>Studio v2 · offline</span><button class="nav-command-hint" id="btnCommandPaletteNav" type="button"><kbd class="kbd">⌘K</kbd> Commands</button></div>
                     <div class="visually-hidden">
                         <button data-compat="btnNewChat2" type="button">New chat compat</button>
-                        <button id="btnOpenModelSources" type="button">Model sources compat</button>
                         <button data-compat="btnToggleInspector" type="button">Context compat</button>
                         <button data-compat="btnToggleInspector2" type="button">Context compat 2</button>
                         <button id="btnToggleInspector3" type="button">Context compat 3</button>
@@ -104,11 +103,12 @@
                 <section class="view chat-panel" id="chatPanel" data-view="chat" aria-label="Chat">
                     <header class="view-head">
                         <div class="view-head-text">
-                            <h1 class="panel-title" id="chatViewTitle">Agent</h1>
-                            <p class="view-subtitle">Chat with your agent, keep sessions, attach context and run build tasks.</p>
+                            <h1 class="panel-title" id="chatViewTitle">UOR-R4</h1>
+                            <p class="view-subtitle">A conversation interface for the geometric engine</p>
                         </div>
                         <div class="view-head-actions">
                             <span class="badge" id="chatSourceBadge">Local WASM</span>
+                            <button class="ghost-btn" id="btnOpenModelSources" type="button">Connections</button>
                             <button class="ghost-btn" id="btnNewChat2" type="button">New chat</button>
                             <button class="icon-btn icon-btn-sm inspector-toggle" id="btnToggleInspector" type="button" aria-label="Toggle context inspector" aria-expanded="true" title="Toggle context inspector"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3H3v10h7M6 3v10M12 6l2 2-2 2"/></svg></button>
                         </div>
@@ -211,6 +211,16 @@
                                 </div>
                                 <span class="badge">on-device first</span>
                             </div>
+                            <template id="nativeRunnerGuidanceTemplate">
+                                <h3>Native local Studio</h3>
+                                <p class="hint">GitHub Pages cannot host an API. Try the offline demo for instant browser-only streaming, or use the runner-served local Studio for the authenticated native engine.</p>
+                                <p class="hint">The runner serves this interface and its API together on <code>127.0.0.1:8000</code>, so no plugin or cross-origin permission is needed. Do not point the HTTPS Pages site at insecure HTTP loopback: CORS alone does not make an HTTP loopback safe.</p>
+                                <ol class="native-runner-steps">
+                                    <li>Download <code>native-runner.sh</code> from the <a href="https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0" target="_blank" rel="noopener noreferrer">native runner prerelease</a>.</li>
+                                    <li>Run <code>bash native-runner.sh</code> on macOS with Apple silicon. The script verifies the pinned binary and synthetic demo artifacts before starting.</li>
+                                    <li>Open the local address printed by the runner. The per-launch token stays in memory and is never printed.</li>
+                                </ol>
+                            </template>
                             <div id="modelSourceMount"></div>
                         </aside>
                     </div>
@@ -812,45 +822,32 @@
             empty.id = 'chatEmptyState';
             var ready = chatReadiness();
             empty.dataset.readiness = ready ? 'ready' : 'unavailable';
-            var mark = document.createElement('div');
-            mark.className = 'empty-mark';
-            mark.textContent = '◈';
-            mark.setAttribute('aria-hidden', 'true');
             var native = isNativeLoopback(app.apiConfig);
             var headline = document.createElement('h2');
             headline.className = 'empty-headline';
-            headline.textContent = native && ready
+            headline.textContent = 'Chat with UOR-R4';
+            var status = document.createElement('p');
+            status.className = 'empty-status';
+            status.textContent = native && ready
                 ? 'Native uor-chat loopback ready.'
                 : (app.mode === 'api' && ready
                     ? 'API configured — external baseline mode.'
-                    : (ready ? 'Local synthetic continuation ready.' : 'Build with your files. Connect an agent when ready.'));
+                    : (ready ? 'Synthetic demo · local only' : 'No conversational model is configured'));
             var copy = document.createElement('p');
             copy.className = 'empty-desc';
             copy.textContent = native && ready
-                ? 'Prompts go to the native StackChat service on this device. This is protocol evidence, not a useful conversation.'
+                ? 'Prompts go to the native service on this device. Output is synthetic protocol evidence, not useful conversation.'
                 : (app.mode === 'api' && ready
-                    ? 'Prompts will be sent to the configured API provider when you send them and will leave this device. Configuration does not prove reachability; treat every reply as an external baseline, not a project result.'
+                    ? 'Prompts will be sent to the configured provider and will leave this device. Configuration does not prove reachability.'
                     : (ready
-                    ? 'A supported non-discrete stack is loaded. Its generated continuation is synthetic engine evidence, not a useful conversation.'
-                    : 'No conversational model is configured. Explore the demo workspace or open your own files, then configure a chat-capable source under Connections. M1 provides next-token prediction only.'));
-            var steps = document.createElement('ol');
-            steps.className = 'empty-steps';
-            [
-                'Choose a demo tree or open a local folder, then open files in editor tabs.',
-                'Attach the active file or pasted text as explicit agent context.',
-                'Configure an API provider for chat, or use M1 next-token prediction.'
-            ].forEach(function (text) {
-                var item = document.createElement('li');
-                item.className = 'empty-step';
-                item.textContent = text;
-                steps.appendChild(item);
-            });
+                        ? 'The bundled integer engine runs here in your browser. Its output is synthetic protocol evidence, not useful conversation.'
+                        : 'Start with the offline demo, choose a local model, or set up the native runner. No API key is needed for the demo.'));
             var quick = document.createElement('div');
             quick.className = 'empty-quick';
-            function quickButton(label, onClick) {
+            function quickButton(label, onClick, primary) {
                 var button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'empty-quick-btn';
+                button.className = 'empty-quick-btn' + (primary ? ' empty-quick-primary' : '');
                 button.textContent = label;
                 button.addEventListener('click', onClick);
                 quick.appendChild(button);
@@ -860,20 +857,32 @@
                 if (ui && typeof ui.activateSection === 'function') ui.activateSection(section);
                 else setView(view);
             }
-            quickButton('Open Connections', function () { go('models', 'model'); });
-            quickButton('Open Workspace', function () { go('workspace', 'workspace'); });
-            quickButton('Explore demo workspace', function () {
-                if (!window.__studioFiles || typeof window.__studioFiles.openDemo !== 'function') return;
-                if (window.__studioFiles.openDemo() !== false) go('workspace', 'workspace');
+            quickButton('Try offline demo', function () {
+                var sources = window.UORModelSources;
+                var loading = sources && typeof sources.loadBundled === 'function'
+                    ? sources.loadBundled()
+                    : (typeof ModelSources !== 'undefined' ? ModelSources.loadBundled() : null);
+                if (loading && typeof loading.catch === 'function') {
+                    loading.catch(function (error) { toast(String(error && error.message || error), 'error'); });
+                }
+            }, true);
+            quickButton('Choose a model', function () { go('models', 'model'); });
+            quickButton('Native setup', function () {
+                go('models', 'model');
+                window.setTimeout(function () {
+                    var guide = $('#nativeRunnerGuide');
+                    if (guide) {
+                        guide.scrollIntoView({ block: 'start' });
+                        guide.focus();
+                    }
+                }, 0);
             });
-            quickButton('New session', function () { if (startNewChat() !== false) go('agent', 'chat'); });
             var note = document.createElement('p');
             note.className = 'empty-note';
-            note.textContent = 'Pre-alpha · M1 complete · 1 of 8 milestones · the M1 trunk serves next-token prediction only; a useful conversation is not established yet.';
-            empty.appendChild(mark);
+            note.textContent = 'Pre-alpha · synthetic output only · no useful conversation or visual understanding is established.';
             empty.appendChild(headline);
+            empty.appendChild(status);
             empty.appendChild(copy);
-            empty.appendChild(steps);
             empty.appendChild(quick);
             empty.appendChild(note);
             container.appendChild(empty);
@@ -929,7 +938,7 @@
             if (pane) pane.hidden = !on;
             if (scroll) scroll.hidden = on;
             if (composer) composer.hidden = on;
-            if (title) title.textContent = on ? 'Next-token predictor' : 'Agent';
+            if (title) title.textContent = on ? 'Next-token predictor' : 'UOR-R4';
             if (badge) badge.textContent = on ? 'M1 language base' : (app.mode === 'api' ? 'API' : 'Local WASM');
             document.documentElement.dataset.predictorMode = on ? 'true' : 'false';
             if (on) {
@@ -2180,6 +2189,11 @@
             renderConversationList();
             renderMessages();
             startWorker();
+            if (active.kind === 'wasm' && active.id === 'bundled-demo' && !app.caps) {
+                ModelSources.loadBundled({ operationId: 1, sourceId: 'bundled-demo' }).catch(function (error) {
+                    toast('The offline demo could not load: ' + String(error && error.message || error), 'error');
+                });
+            }
             updateComposerState();
             setView('chat', { focus: false });
             document.addEventListener('uor-model-source-changed', onModelSourceChanged);

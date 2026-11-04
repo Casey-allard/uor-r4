@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { decomposeNativeImage, imageUrlPart, streamChatCompletions } from './studio_api.js';
+import { decomposeNativeImage, imageUrlPart, streamChatCompletions, testConnection } from './studio_api.js';
 
 const config = { baseUrl: 'http://127.0.0.1:8765/v1', model: 'uor-chat', apiKey: 'secret', temperature: 0, ephemeral: true };
 const encoder = new TextEncoder();
@@ -219,4 +219,40 @@ test('an image-only promised native part is sent without an empty text part', as
         messages: [{ role: 'user', content: Promise.resolve([nativePart]) }],
     });
     assert.equal(result.ok, true);
+});
+
+function setLocation(url) {
+    Object.defineProperty(globalThis, 'location', { value: new URL(url), configurable: true, writable: true });
+}
+
+test('a missing native runner gets an actionable connection error', async () => {
+    setLocation('http://127.0.0.1:8765');
+    globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    const result = await testConnection(config);
+    assert.equal(result.ok, false);
+    assert.match(result.detail, /Native runner is unreachable.*native-runner\.sh.*runner-served local Studio/);
+});
+
+test('HTTPS Pages refuse insecure HTTP loopback with native setup guidance', async () => {
+    setLocation('https://uor-foundation.github.io/uor-r4/studio/');
+    globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    await assert.rejects(
+        streamChatCompletions({ config, messages: [{ role: 'user', content: 'Hi' }] }),
+        /HTTPS Pages cannot call insecure HTTP loopback.*runner-served local Studio/,
+    );
+    setLocation('http://127.0.0.1:8765');
+});
+
+test('authentication failures keep the HTTP status and provider detail', async () => {
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'bad key' } }), { status: 401, headers: { 'content-type': 'application/json' } });
+    const result = await testConnection(config);
+    assert.equal(result.ok, false);
+    assert.match(result.detail, /API authentication failed.*401.*bad key/);
+});
+
+test('unsupported endpoint families keep the HTTP status and provider detail', async () => {
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'not implemented' } }), { status: 501, headers: { 'content-type': 'application/json' } });
+    const result = await testConnection(config);
+    assert.equal(result.ok, false);
+    assert.match(result.detail, /API endpoint is unsupported.*501.*not implemented/);
 });

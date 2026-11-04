@@ -96,7 +96,7 @@ describe('live Agent source readiness', () => {
         expect(hooks.sendFromComposer('hello')).toBe(false);
         const container = document.querySelector<HTMLElement>('#chatMessages')!;
         hooks.renderEmptyState(container);
-        expect(container.textContent).toContain('No conversational model is configured');
+        expect(container.textContent).toContain('Chat with UOR-R4');
         expect(container.textContent).not.toContain('Local synthetic continuation ready');
     });
 
@@ -125,8 +125,7 @@ describe('live Agent source readiness', () => {
         app.mode = 'api';
         const container = document.querySelector<HTMLElement>('#chatMessages')!;
         hooks.renderEmptyState(container);
-        expect(container.textContent).toContain('Build with your files. Connect an agent when ready.');
-        expect(container.textContent).toContain('No conversational model is configured');
+        expect(container.textContent).toContain('Chat with UOR-R4');
         expect(container.textContent).not.toContain('API configured');
         hooks.updateComposerState();
         expect(sendButton().disabled).toBe(true);
@@ -136,10 +135,12 @@ describe('live Agent source readiness', () => {
         const { app, hooks } = pageHooks();
         const container = document.querySelector<HTMLElement>('#chatMessages')!;
         hooks.renderEmptyState(container);
-        expect(container.textContent).toContain('Build with your files. Connect an agent when ready.');
-        expect(container.textContent).toContain('No conversational model is configured');
-        expect(container.textContent).toContain('Explore demo workspace');
-        expect(container.textContent).toContain('Open Connections');
+        expect(container.textContent).toContain('Chat with UOR-R4');
+        expect(container.textContent).not.toContain('Build with your files');
+        expect(container.textContent).toContain('Try offline demo');
+        expect(container.textContent).toContain('Choose a model');
+        expect(container.textContent).toContain('Native setup');
+        expect(container.querySelector('.empty-steps')).toBeNull();
         container.innerHTML = '';
         app.mode = 'api';
         app.apiConfig = { baseUrl: 'https://api.example.com/v1' };
@@ -152,25 +153,21 @@ describe('live Agent source readiness', () => {
         app.mode = 'wasm';
         app.caps = { schema: 'uor-r4.lut-stack/7', synthetic: true };
         hooks.renderEmptyState(container);
-        expect(container.textContent).toContain('Local synthetic continuation ready.');
+        expect(container.textContent).toContain('Chat with UOR-R4');
+        expect(container.textContent).toContain('Synthetic demo · local only');
         expect(container.textContent).not.toContain('No conversational model is configured');
     });
 
-    it('activates the Workspace section from the Agent demo quick action', () => {
-        const openDemo = vi.fn(() => true);
-        const activateSection = vi.fn();
-        const legacy = window as unknown as { __studioFiles?: { openDemo(): boolean }; __studioUi?: { activateSection(section: string): void } };
-        legacy.__studioFiles = { openDemo };
-        legacy.__studioUi = { activateSection };
-        const { hooks, setView } = pageHooks();
+    it('loads the bundled demo from the offline quick action', async () => {
+        const loadBundled = vi.fn(async () => ({}));
+        const legacy = window as unknown as { UORModelSources?: { loadBundled(): Promise<Record<string, never>> } };
+        legacy.UORModelSources = { loadBundled };
+        const { hooks } = pageHooks();
         const container = document.querySelector<HTMLElement>('#chatMessages')!;
         hooks.renderEmptyState(container);
-        const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((node) => node.textContent === 'Explore demo workspace')!;
+        const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((node) => node.textContent === 'Try offline demo')!;
         button.click();
-        expect(openDemo).toHaveBeenCalledOnce();
-        expect(activateSection).toHaveBeenCalledWith('workspace');
-        expect(setView).not.toHaveBeenCalled();
-        delete legacy.__studioFiles;
-        delete legacy.__studioUi;
+        expect(loadBundled).toHaveBeenCalledOnce();
+        delete legacy.UORModelSources;
     });
 });

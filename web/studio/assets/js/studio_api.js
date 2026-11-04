@@ -141,13 +141,13 @@ export async function decomposeNativeImage({ config, image, grid, signal } = {})
     }
     const url = endpoint(resolved.baseUrl, '/images/decompose') +
         '?width=' + width + '&height=' + height + '&columns=' + columns + '&rows=' + rows;
-    const response = await fetch(url, {
+    const response = await fetchWithConnectionGuidance(url, {
         method: 'POST',
         headers: { ...requestHeaders(resolved), 'Content-Type': 'application/octet-stream', Accept: 'application/octet-stream' },
         body: rgba,
         signal,
         cache: 'no-store',
-    });
+    }, resolved);
     if (!response.ok) {
         const bodyText = await response.text();
         throw describeHttpError(response, bodyText);
@@ -228,9 +228,35 @@ function describeHttpError(response, bodyText) {
     } catch (_error) {
         /* keep raw text excerpt */
     }
-    return failure('API request failed with HTTP ' + response.status + (detail ? ': ' + detail : '.'), {
-        status: response.status,
-    });
+    const suffix = detail ? ': ' + detail : '.';
+    if (response.status === 401 || response.status === 403) {
+        return failure('API authentication failed with HTTP ' + response.status + suffix, { status: response.status });
+    }
+    if (response.status === 404 || response.status === 405 || response.status === 501) {
+        return failure('API endpoint is unsupported with HTTP ' + response.status + suffix, { status: response.status });
+    }
+    return failure('API request failed with HTTP ' + response.status + suffix, { status: response.status });
+}
+
+function describeConnectionError(error, config) {
+    if (error && error.name === 'AbortError') return error;
+    const url = new URL(config.baseUrl);
+    const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+    if (loopback && globalThis.location && globalThis.location.protocol === 'https:') {
+        return failure('HTTPS Pages cannot call insecure HTTP loopback. Open the runner-served local Studio at http://127.0.0.1:8000/ instead; CORS alone does not make this safe.');
+    }
+    if (loopback) {
+        return failure('Native runner is unreachable. Start native-runner.sh, then open the runner-served local Studio at http://127.0.0.1:8000/.');
+    }
+    return failure('API endpoint is unreachable or blocked. Check the endpoint URL, server, and CORS policy: ' + String(error && error.message || error));
+}
+
+async function fetchWithConnectionGuidance(url, init, config) {
+    try {
+        return await fetch(url, init);
+    } catch (error) {
+        throw describeConnectionError(error, config);
+    }
 }
 
 /** GET {base}/models. Returns the model ids when the endpoint exposes them. */
@@ -239,12 +265,12 @@ export async function listModels(config, options = {}) {
     const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : DEFAULT_TIMEOUT_MS;
     const { signal, dispose } = timeoutSignal(options.signal, timeoutMs);
     try {
-        const response = await fetch(endpoint(resolved.baseUrl, '/models'), {
+        const response = await fetchWithConnectionGuidance(endpoint(resolved.baseUrl, '/models'), {
             method: 'GET',
             headers: requestHeaders(resolved),
             signal,
             cache: 'no-store',
-        });
+        }, resolved);
         const bodyText = await response.text();
         if (!response.ok) throw describeHttpError(response, bodyText);
         let models = [];
@@ -381,12 +407,12 @@ export async function streamChatCompletions({ config, messages, signal, onDelta,
     };
     let response;
     try {
-        response = await fetch(endpoint(resolved.baseUrl, '/chat/completions'), {
+        response = await fetchWithConnectionGuidance(endpoint(resolved.baseUrl, '/chat/completions'), {
             method: 'POST',
             headers: requestHeaders(resolved),
             signal,
             body: JSON.stringify(body),
-        });
+        }, resolved);
     } catch (error) {
         if (error && error.name === 'AbortError') return complete(true);
         reportError(error);
@@ -471,7 +497,7 @@ export async function streamChatCompletions({ config, messages, signal, onDelta,
 /** Non-streaming completion (used by diagnostics; chat uses the streaming path). */
 export async function completeChatCompletions({ config, messages, options = {} } = {}) {
     const resolved = requireConfig(config);
-    const response = await fetch(endpoint(resolved.baseUrl, '/chat/completions'), {
+    const response = await fetchWithConnectionGuidance(endpoint(resolved.baseUrl, '/chat/completions'), {
         method: 'POST',
         headers: requestHeaders(resolved),
         body: JSON.stringify({
@@ -481,7 +507,7 @@ export async function completeChatCompletions({ config, messages, options = {} }
             temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : resolved.temperature,
             max_tokens: Number(options.maxTokens) > 0 ? Math.min(4096, Number(options.maxTokens)) : resolved.maxTokens,
         }),
-    });
+    }, resolved);
     const bodyText = await response.text();
     if (!response.ok) throw describeHttpError(response, bodyText);
     const parsed = JSON.parse(bodyText);
