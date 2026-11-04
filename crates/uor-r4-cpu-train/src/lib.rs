@@ -66,9 +66,11 @@ pub use quant_shadow::{
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
 };
 pub use reply_eval::{
-    evaluate_memory_target_replies, evaluate_replies, evaluate_replies_memory_off,
-    evaluate_termination_diagnostics, generate_reply, generate_reply_memory_off, GeneratedReply,
-    ReplyReading, ReplyRowReading, TerminationClass, TerminationReading, TerminationStepReading,
+    derive_termination_point_gates, evaluate_memory_target_replies, evaluate_replies,
+    evaluate_replies_memory_off, evaluate_termination_diagnostics,
+    evaluate_termination_gate_replies, generate_reply, generate_reply_memory_off,
+    normalized_reference, GeneratedReply, ReplyReading, ReplyRowReading, TerminationClass,
+    TerminationGateTraining, TerminationPointGate, TerminationReading, TerminationStepReading,
     TimedReplyReading, TimedTerminationReading,
 };
 pub use served_forward::{

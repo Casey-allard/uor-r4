@@ -13,6 +13,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/bos-admission": {
+    "branch": "deepseek/bos-admission",
+    "claimed_at": "2026-11-04T00:28:14-05:00",
+    "head": "ed5f0d6b2",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/capacity-sheet-shape": {
     "branch": "deepseek/capacity-sheet-shape",
     "claimed_at": "2026-11-02T17:50:54-05:00",

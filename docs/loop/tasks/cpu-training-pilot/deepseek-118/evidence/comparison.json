@@ -1,0 +1,170 @@
+{
+  "schema": "uor-r4.cpu-termination-gate-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "8af603b074bed0dc1f0485f0512fb91d3837fd99",
+    "run_head": "c3047975cf0325ca52062e2bf810a66b1001611d",
+    "binary_sha256": "43b19c9696d8d894b9972a74e5b027b1460cae47e68845f439a257101d72e3e3",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "refused_attempt": {
+    "order": "deepseek-114",
+    "seed": 1,
+    "error": "termination gate training reply must end in BOS",
+    "classification": "instrument",
+    "reason": "Corpus replies end in EOS id 1; decoder stops use BOS id 0.",
+    "gate_result_produced": false,
+    "partial_roots": "local/deepseek/termination-gate/deepseek-114/refused-seed-1-eos-boundary"
+  },
+  "selection": {
+    "keys": 16,
+    "training_samples": 102,
+    "evaluation_samples": 114,
+    "reference_tokens_after_eos_normalization": 1212,
+    "maximum_reference_tokens": 35,
+    "reachable_references": 104
+  },
+  "served_parity_per_seed": {
+    "samples": 114,
+    "positions": 4333,
+    "query_coordinates": 1109248,
+    "token_decisions": 4333,
+    "kept_cells": 34664,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "trained_artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4",
+      "accepted_updates": 32,
+      "gate": {
+        "terminal_points_before_collision": 102,
+        "removed_collision_points": 0,
+        "retained_terminal_points": 102,
+        "random_nonterminal_points": 102,
+        "max_terminal_neighbor_distance": 1066378,
+        "nearest_nonterminal_distance": 98314,
+        "radius": 98313,
+        "trained_gate_sha256": "cdc33f7afbfb76a2ead5dfbc1ff3c8dae481150427397cc8e71b7dfc30de587e",
+        "random_gate_sha256": "23e12e40699a7f383b9213066a59535e3d4c958f56b8dc4fbc35a35d90b9759c"
+      },
+      "arms": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "ea95ef96a4adad3b3964912591ae0b9b9dfecf484aaae85cad9cb4dcbc769eec"
+        },
+        "trained_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "ea95ef96a4adad3b3964912591ae0b9b9dfecf484aaae85cad9cb4dcbc769eec"
+        },
+        "random_gate": {
+          "bos_complete": 114,
+          "premature_stop": 114,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 0,
+          "generated_tokens": 0,
+          "digest": "0855afbc0bb376a8c2627e7ad0d81c7a6271ca0de6931b75e50f83aa9b8a499d"
+        }
+      },
+      "trained_vs_no_gate_non_premature_bos_strictly_higher": false,
+      "trained_vs_random_non_premature_bos_strictly_higher": false,
+      "trained_vs_no_gate_passes": false,
+      "trained_vs_random_passes": false,
+      "wall_elapsed_ms": 41088.532889,
+      "peak_rss_kib": 389892,
+      "raw_report_sha256": "49b09e26fc9166707b9c4aa40849e1a383876cad33b4215c2378b89a90bef4a8"
+    },
+    {
+      "seed": 2,
+      "trained_artifact_sha256": "10f91f7309c3ed36e3ce76878b2c75c07bae0102b3933571ccbd8f3b40b350e6",
+      "accepted_updates": 32,
+      "gate": {
+        "terminal_points_before_collision": 102,
+        "removed_collision_points": 0,
+        "retained_terminal_points": 102,
+        "random_nonterminal_points": 102,
+        "max_terminal_neighbor_distance": 1166080,
+        "nearest_nonterminal_distance": 220731,
+        "radius": 220730,
+        "trained_gate_sha256": "7ef71015d2439dfffbfd5d296b42e5192d8f2eadab8f2f846f2c4f96a84fc500",
+        "random_gate_sha256": "97c523ef92bc713e4812db6070bccb0a3b666ea49f4aeac4af6b87463e71ca17"
+      },
+      "arms": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c"
+        },
+        "trained_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c"
+        },
+        "random_gate": {
+          "bos_complete": 114,
+          "premature_stop": 114,
+          "exact_reference": 0,
+          "reachable_exact_reference": 0,
+          "cap_stopped": 0,
+          "generated_tokens": 0,
+          "digest": "0855afbc0bb376a8c2627e7ad0d81c7a6271ca0de6931b75e50f83aa9b8a499d"
+        }
+      },
+      "trained_vs_no_gate_non_premature_bos_strictly_higher": false,
+      "trained_vs_random_non_premature_bos_strictly_higher": false,
+      "trained_vs_no_gate_passes": false,
+      "trained_vs_random_passes": false,
+      "wall_elapsed_ms": 40902.550988,
+      "peak_rss_kib": 391248,
+      "raw_report_sha256": "6eb4b59fd1a923a941f8ff7fccd3acc86987a826d8ee96683957d6c161c9a21a"
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "4fb05455ce88ab4ff009de793729f2df6fc6b545e3347c0e1f5a650bef934de4",
+    "raw_report_sha256": "f1423c238cdb9e1c3f694c134b6c7a1b59a9f13f924c803393d6e409a71cff35",
+    "trained_artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4",
+    "no_gate_digest": "ea95ef96a4adad3b3964912591ae0b9b9dfecf484aaae85cad9cb4dcbc769eec",
+    "wall_elapsed_ms": 40700.290853,
+    "peak_rss_kib": 388808
+  },
+  "verdict": {
+    "trained_gate": "negative",
+    "random_control": "fired at the first decision on every reply",
+    "candidate_passes": false,
+    "scope": "fixed 16-key / 102-training / 114-evaluation, 32-update, 16-token complete-reply configuration"
+  }
+}

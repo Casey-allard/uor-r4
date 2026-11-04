@@ -13,6 +13,7 @@ use crate::memory_train::memory_reply_key;
 use crate::{invalid, CpuFbsForward, CpuFbsHead, CpuTrainError, MemoryWeightSample};
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
+const CORPUS_EOS: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -23,6 +24,7 @@ pub struct ReplyReading {
     pub context_stopped: u64,
     pub exact_reference: u64,
     pub reference_reachable: u64,
+    pub premature_stop: u64,
     pub opening_correct: u64,
     pub non_empty: u64,
     pub distinct_non_empty: u64,
@@ -92,6 +94,25 @@ pub struct TerminationReading {
     pub bos_distance_sum: u64,
     pub chosen_distance_sum: u64,
     pub classification: Option<TerminationClass>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationPointGate {
+    pub width: usize,
+    pub points: Vec<Vec<i16>>,
+    pub radius: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationGateTraining {
+    pub trained: TerminationPointGate,
+    pub random: TerminationPointGate,
+    pub terminal_points_before_collision: usize,
+    pub removed_collision_points: usize,
+    pub max_terminal_neighbor_distance: u64,
+    pub nearest_nonterminal_distance: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -403,6 +424,264 @@ fn summarize_termination(steps: &[TerminationStepReading]) -> Result<Termination
     Ok(reading)
 }
 
+/// Derive a geometric termination-point gate from training examples and a
+/// matched random nonterminal-point control.
+///
+/// Training replies end in corpus EOS. The query immediately before that EOS is
+/// retained as the terminal point and an accepted match names the shared
+/// decoder BOS stop sentinel. Terminal points that exactly equal a nonterminal
+/// training query are removed as ambiguous. The radius is bounded by the
+/// farthest terminal point's nearest terminal neighbour and one unit below the
+/// nearest nonterminal training query.
+pub fn derive_termination_point_gates(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    memory_enabled: bool,
+    random_seed: u64,
+) -> Result<TerminationGateTraining> {
+    if samples.is_empty() {
+        return Err(invalid("termination gate needs training samples"));
+    }
+    let model = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination gate artifact: {error}")))?;
+    let width = model.width();
+    let mut terminal = Vec::<Vec<i32>>::new();
+    let mut nonterminal = Vec::<Vec<i32>>::new();
+    for sample in samples {
+        if sample.prompt.is_empty()
+            || sample.reply.len() < 2
+            || sample.reply.last() != Some(&CORPUS_EOS)
+        {
+            return Err(invalid(
+                "termination gate training reply must end in corpus EOS",
+            ));
+        }
+        let sequence = sample
+            .prompt
+            .iter()
+            .chain(sample.reply[..sample.reply.len() - 1].iter())
+            .copied()
+            .collect::<Vec<_>>();
+        let mut forward = CpuFbsForward::from_artifact(artifact)
+            .map_err(|error| invalid(format!("termination gate forward: {error}")))?;
+        if !memory_enabled {
+            forward.disable_memory();
+        }
+        for (index, token) in sequence.iter().copied().enumerate() {
+            if index + 1 == sample.prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward
+                .step(token, CpuFbsHead::Writer)
+                .map_err(|error| invalid(format!("termination gate training step: {error}")))?;
+            if index + 1 >= sample.prompt.len() {
+                if index + 1 == sequence.len() {
+                    terminal.push(step.query_q12);
+                } else {
+                    nonterminal.push(step.query_q12);
+                }
+            }
+        }
+    }
+    let (terminal, removed_collision_points) =
+        remove_nonterminal_collisions(terminal, &nonterminal);
+    let terminal_points_before_collision = terminal.len() + removed_collision_points;
+    let (radius, max_terminal_neighbor_distance, nearest_nonterminal_distance) =
+        termination_gate_radius(&terminal, &nonterminal);
+    let trained = TerminationPointGate {
+        width,
+        points: terminal
+            .iter()
+            .map(|query| gate_point(query, width))
+            .collect::<Result<Vec<_>>>()?,
+        radius,
+    };
+    let mut state = random_seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+    let random = TerminationPointGate {
+        width,
+        points: (0..trained.points.len())
+            .map(|_| {
+                if nonterminal.is_empty() {
+                    Ok(vec![0; width])
+                } else {
+                    state ^= state >> 12;
+                    state ^= state << 25;
+                    state ^= state >> 27;
+                    let draw = state.wrapping_mul(0x2545_F491_4F6C_DD1D);
+                    let row = usize::try_from(draw % nonterminal.len() as u64)
+                        .map_err(|_| invalid("termination control row exceeds usize"))?;
+                    gate_point(&nonterminal[row], width)
+                }
+            })
+            .collect::<Result<Vec<_>>>()?,
+        radius,
+    };
+    Ok(TerminationGateTraining {
+        trained,
+        random,
+        terminal_points_before_collision,
+        removed_collision_points,
+        max_terminal_neighbor_distance,
+        nearest_nonterminal_distance,
+    })
+}
+
+fn remove_nonterminal_collisions(
+    mut terminal: Vec<Vec<i32>>,
+    nonterminal: &[Vec<i32>],
+) -> (Vec<Vec<i32>>, usize) {
+    let before = terminal.len();
+    terminal.retain(|query| !nonterminal.contains(query));
+    let removed = before - terminal.len();
+    (terminal, removed)
+}
+
+fn termination_gate_radius(
+    terminal: &[Vec<i32>],
+    nonterminal: &[Vec<i32>],
+) -> (u64, u64, Option<u64>) {
+    let max_terminal_neighbor_distance = terminal
+        .iter()
+        .enumerate()
+        .map(|(index, query)| {
+            terminal
+                .iter()
+                .enumerate()
+                .filter(|(other, _)| *other != index)
+                .map(|(_, other)| point_l1(query, other))
+                .min()
+                .unwrap_or(0)
+        })
+        .max()
+        .unwrap_or(0);
+    let nearest_nonterminal_distance = nonterminal
+        .iter()
+        .flat_map(|query| terminal.iter().map(move |point| point_l1(query, point)))
+        .min();
+    let radius = max_terminal_neighbor_distance.min(
+        nearest_nonterminal_distance
+            .unwrap_or(u64::MAX)
+            .saturating_sub(1),
+    );
+    (
+        radius,
+        max_terminal_neighbor_distance,
+        nearest_nonterminal_distance,
+    )
+}
+
+fn gate_point(query: &[i32], width: usize) -> Result<Vec<i16>> {
+    if query.len() != width {
+        return Err(invalid(
+            "termination gate query width differs from the model",
+        ));
+    }
+    query
+        .iter()
+        .map(|&value| {
+            i16::try_from(value)
+                .map_err(|_| invalid("termination gate query coordinate exceeds i16"))
+        })
+        .collect()
+}
+
+pub fn evaluate_termination_gate_replies(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationPointGate,
+) -> Result<TimedReplyReading> {
+    evaluate_generated(artifact, samples, cap, |prompt, cap| {
+        generate_termination_gate_reply(artifact, prompt, cap, memory_enabled, gate)
+    })
+}
+
+fn generate_termination_gate_reply(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationPointGate,
+) -> Result<GeneratedReply> {
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination gate forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    if cap == 0 || cap > 64 || prompt.is_empty() || prompt.len() > context {
+        return Err(invalid(
+            "termination gate prompt, cap or artifact context is invalid",
+        ));
+    }
+    let mut next = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination gate prompt step: {error}")))?;
+        if index + 1 == prompt.len() {
+            next = Some(gate_name_or_writer(gate, &step)?);
+        }
+    }
+    let mut next = next.ok_or_else(|| invalid("termination gate prompt is empty"))?;
+    let mut tokens = Vec::with_capacity(cap);
+    loop {
+        let stop = reply_stop(next, tokens.len(), prompt.len(), cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok(GeneratedReply {
+                tokens,
+                stop: match stop {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                },
+            });
+        }
+        let step = forward
+            .step(next, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination gate generated step: {error}")))?;
+        next = gate_name_or_writer(gate, &step)?;
+    }
+}
+
+fn gate_name_or_writer(gate: &TerminationPointGate, step: &crate::CpuFbsStep) -> Result<u32> {
+    if step.query_q12.len() != gate.width || gate.points.iter().any(|row| row.len() != gate.width) {
+        return Err(invalid(
+            "termination gate width differs from the served query",
+        ));
+    }
+    let nearest = gate
+        .points
+        .iter()
+        .map(|point| {
+            step.query_q12
+                .iter()
+                .zip(point)
+                .fold(0u64, |sum, (&query, &point)| {
+                    sum.saturating_add(u64::from(query.abs_diff(i32::from(point))))
+                })
+        })
+        .min();
+    Ok(if nearest.is_some_and(|distance| distance <= gate.radius) {
+        POINT_KEY_BOS
+    } else {
+        step.token
+    })
+}
+
+fn point_l1(left: &[i32], right: &[i32]) -> u64 {
+    left.iter().zip(right).fold(0u64, |sum, (&left, &right)| {
+        sum.saturating_add(u64::from(left.abs_diff(right)))
+    })
+}
+
 /// Generate complete replies with a direct exact-memory target override.
 ///
 /// A hit on the opening key names the first reply token. After each generated
@@ -570,6 +849,10 @@ fn summarize_replies(rows: Vec<(GeneratedReply, Vec<u32>, bool)>) -> Result<Repl
         )?;
         reading.reference_reachable =
             add_count(reading.reference_reachable, u64::from(reference_reachable))?;
+        reading.premature_stop = add_count(
+            reading.premature_stop,
+            u64::from(generated.stop == "bos" && generated.tokens != reference),
+        )?;
         reading.opening_correct = add_count(
             reading.opening_correct,
             u64::from(matches!(
@@ -646,9 +929,13 @@ fn reply_sequence_sha256(rows: &[(GeneratedReply, Vec<u32>, bool)]) -> String {
     uor_r4_discrete::corpus::sha256(&bytes)
 }
 
-fn normalized_reference(reference: &[u32]) -> &[u32] {
+/// Remove one decoder stop marker from a complete-reply reference. Corpus
+/// references use EOS id 1; retaining BOS removal keeps synthetic and older
+/// callers compatible.
+pub fn normalized_reference(reference: &[u32]) -> &[u32] {
     reference
-        .strip_suffix(&[POINT_KEY_BOS])
+        .strip_suffix(&[CORPUS_EOS])
+        .or_else(|| reference.strip_suffix(&[POINT_KEY_BOS]))
         .unwrap_or(reference)
 }
 
@@ -672,7 +959,7 @@ fn add_count(left: u64, right: u64) -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{add_turn_memory_uorlut01, derive_turn_memory};
+    use crate::{add_turn_memory_uorlut01, derive_turn_memory, CpuFbsStep};
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
     use uor_r4_integer::stack::{
         add_point_key_uorlut01, export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot,
@@ -750,7 +1037,7 @@ mod tests {
                     tokens: vec![9, 8],
                     stop: "context",
                 },
-                vec![1],
+                vec![5],
                 false,
             ),
         ];
@@ -789,6 +1076,7 @@ mod tests {
         let first = reply_sequence_sha256(&rows);
         assert_eq!(first, reply_sequence_sha256(&rows));
         assert_eq!(normalized_reference(&rows[0].1), &[4, 5]);
+        assert_eq!(normalized_reference(&[4, 5, CORPUS_EOS]), &[4, 5]);
 
         let mut changed_token = rows.clone();
         changed_token[0].0.tokens[1] = 6;
@@ -797,6 +1085,182 @@ mod tests {
         let mut changed_stop = rows;
         changed_stop[0].0.stop = "cap";
         assert_ne!(first, reply_sequence_sha256(&changed_stop));
+    }
+
+    #[test]
+    fn termination_gate_derivation_uses_reply_endpoints_and_removes_collisions() {
+        let artifact = artifact();
+        let samples = vec![
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, CORPUS_EOS],
+            },
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, 77, CORPUS_EOS],
+            },
+        ];
+        let training = derive_termination_point_gates(&artifact, &samples, true, 1).unwrap();
+        assert_eq!(training.terminal_points_before_collision, 2);
+        assert_eq!(training.removed_collision_points, 1);
+        assert_eq!(training.trained.points.len(), 1);
+        assert_eq!(training.random.points.len(), 1);
+        assert_eq!(training.trained.width, 64);
+
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let mut nonterminal = Vec::new();
+        let mut terminal = None;
+        for (index, token) in [10, 11, 12, 42, 77].into_iter().enumerate() {
+            if index + 1 == 3 {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).unwrap();
+            if index + 1 >= 3 {
+                if index + 1 == 5 {
+                    terminal = Some(step.query_q12);
+                } else {
+                    nonterminal.push(step.query_q12);
+                }
+            }
+        }
+        let terminal = terminal.unwrap();
+        assert_eq!(
+            training.trained.points[0],
+            terminal
+                .iter()
+                .map(|&value| i16::try_from(value).unwrap())
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            training.random.points.iter().all(|point| {
+                nonterminal.iter().any(|query| {
+                    query
+                        .iter()
+                        .map(|&value| i16::try_from(value).unwrap())
+                        .collect::<Vec<_>>()
+                        == *point
+                })
+            }),
+            "random={:?} nonterminal={nonterminal:?}",
+            training.random.points
+        );
+        assert_ne!(training.trained, training.random);
+        let bad = [MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, POINT_KEY_BOS],
+        }];
+        assert!(derive_termination_point_gates(&artifact, &bad, true, 1).is_err());
+    }
+
+    #[test]
+    fn termination_radius_is_bounded_by_terminal_neighbors_and_nonterminals() {
+        let terminal = vec![vec![10, 0], vec![20, 0]];
+        let nonterminal = vec![vec![15, 0], vec![100, 0]];
+        assert_eq!(
+            termination_gate_radius(&terminal, &nonterminal),
+            (4, 10, Some(5))
+        );
+
+        let one_terminal = vec![vec![10, 0]];
+        assert_eq!(
+            termination_gate_radius(&one_terminal, &nonterminal),
+            (0, 0, Some(5))
+        );
+        assert_eq!(termination_gate_radius(&terminal, &[]), (10, 10, None));
+    }
+
+    #[test]
+    fn termination_gate_names_bos_only_inside_the_radius() {
+        let gate = TerminationPointGate {
+            width: 4,
+            points: vec![vec![10, 20, 30, 40]],
+            radius: 1,
+        };
+        let exact = CpuFbsStep {
+            token: 7,
+            kept_cells: vec![1],
+            query_q12: vec![10, 20, 30, 40],
+        };
+        assert_eq!(gate_name_or_writer(&gate, &exact).unwrap(), POINT_KEY_BOS);
+
+        let adjacent = CpuFbsStep {
+            query_q12: vec![11, 20, 30, 40],
+            ..exact.clone()
+        };
+        assert_eq!(
+            gate_name_or_writer(&gate, &adjacent).unwrap(),
+            POINT_KEY_BOS
+        );
+
+        let outside = CpuFbsStep {
+            query_q12: vec![12, 20, 30, 40],
+            ..exact
+        };
+        assert_eq!(gate_name_or_writer(&gate, &outside).unwrap(), 7);
+    }
+
+    #[test]
+    fn nonempty_termination_gate_stops_the_real_reply_loop_at_bos() {
+        let artifact = artifact();
+        let prompt = [10, 11, 12];
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let mut query = None;
+        for (index, token) in prompt.into_iter().enumerate() {
+            if index + 1 == prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).unwrap();
+            if index + 1 == prompt.len() {
+                query = Some(step.query_q12);
+            }
+        }
+        let gate = TerminationPointGate {
+            width: 64,
+            points: vec![query
+                .unwrap()
+                .into_iter()
+                .map(|value| i16::try_from(value).unwrap())
+                .collect()],
+            radius: 0,
+        };
+        let reply = generate_termination_gate_reply(&artifact, &prompt, 4, true, &gate).unwrap();
+        assert_eq!(reply.stop, "bos");
+        assert!(reply.tokens.is_empty());
+    }
+
+    #[test]
+    fn empty_termination_gate_preserves_the_no_gate_reply_digest() {
+        let artifact = artifact();
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, 77, 99],
+        }];
+        let gate = TerminationPointGate {
+            width: 64,
+            points: Vec::new(),
+            radius: 0,
+        };
+        let no_gate = evaluate_replies(&artifact, &samples, 4).unwrap();
+        let empty_gate =
+            evaluate_termination_gate_replies(&artifact, &samples, 4, true, &gate).unwrap();
+        assert_eq!(no_gate.reply_sha256, empty_gate.reply_sha256);
+        assert_eq!(no_gate.reading, empty_gate.reading);
+    }
+
+    #[test]
+    fn premature_stop_counts_nonmatching_bos_replies_separately() {
+        let reading = summarize_replies(vec![(
+            GeneratedReply {
+                tokens: vec![4, 5],
+                stop: "bos",
+            },
+            vec![4, 6, POINT_KEY_BOS],
+            true,
+        )])
+        .unwrap();
+        assert_eq!(reading.bos_complete, 1);
+        assert_eq!(reading.exact_reference, 0);
+        assert_eq!(reading.premature_stop, 1);
     }
 
     #[test]

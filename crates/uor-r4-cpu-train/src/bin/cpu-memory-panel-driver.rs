@@ -3,14 +3,15 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use uor_r4_cpu_train::{
-    add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
-    evaluate_memory_target_replies, evaluate_memory_weight_samples, evaluate_replies,
-    evaluate_replies_memory_off, evaluate_termination_diagnostics, memory_key_coverage,
-    memory_target_shuffle_audit, replace_memory_weight_table, shuffle_memory_targets,
+    add_turn_memory_uorlut01, audit_memory_weight_samples, derive_termination_point_gates,
+    derive_turn_memory, evaluate_memory_target_replies, evaluate_memory_weight_samples,
+    evaluate_replies, evaluate_replies_memory_off, evaluate_termination_diagnostics,
+    evaluate_termination_gate_replies, memory_key_coverage, memory_target_shuffle_audit,
+    normalized_reference, replace_memory_weight_table, shuffle_memory_targets,
     validate_corpus_manifest, CpuConversationSample, CpuMaskedCorpus, CpuMemoryWeightTrainer,
     MemoryWeightConfig, MemoryWeightSample, MemoryWeightTable, TimedReplyReading,
 };
-use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel, POINT_KEY_BOS};
+use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
 
 #[derive(Clone)]
 struct Config {
@@ -29,11 +30,13 @@ struct Config {
     reference: bool,
     reply_cap: usize,
     termination_diagnostic: bool,
+    termination_gate: bool,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
     expected_mask_sha256: String,
     expected_manifest_sha256: String,
     expected_trained_sha256: Option<String>,
+    expected_no_gate_reply_sha256: Option<String>,
 }
 
 #[derive(Clone)]
@@ -60,10 +63,10 @@ fn usage() -> String {
     "usage: cpu-memory-panel-driver ARTIFACT TOKENS MASK MANIFEST OUT \
      --expected-artifact-sha256 HEX --expected-tokens-sha256 HEX \
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
-     [--expected-trained-sha256 HEX] \
+     [--expected-trained-sha256 HEX] [--expected-no-gate-reply-sha256 HEX] \
      [--steps N] [--keys N] [--per-key N] [--key-tokens N] \
      [--reply-turn N] [--reply-cap N] [--seed N] [--select-only] [--reference] \
-     [--termination-diagnostic]"
+     [--termination-diagnostic] [--termination-gate]"
         .to_owned()
 }
 
@@ -90,11 +93,13 @@ fn parse_args() -> Result<Config, String> {
         reference: false,
         reply_cap: 0,
         termination_diagnostic: false,
+        termination_gate: false,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
         expected_mask_sha256: String::new(),
         expected_manifest_sha256: String::new(),
         expected_trained_sha256: None,
+        expected_no_gate_reply_sha256: None,
     };
     while let Some(flag) = values.next() {
         if flag == "--select-only" {
@@ -107,6 +112,10 @@ fn parse_args() -> Result<Config, String> {
         }
         if flag == "--termination-diagnostic" {
             config.termination_diagnostic = true;
+            continue;
+        }
+        if flag == "--termination-gate" {
+            config.termination_gate = true;
             continue;
         }
         let value = values
@@ -125,6 +134,9 @@ fn parse_args() -> Result<Config, String> {
             "--expected-mask-sha256" => config.expected_mask_sha256 = hex(&value)?,
             "--expected-manifest-sha256" => config.expected_manifest_sha256 = hex(&value)?,
             "--expected-trained-sha256" => config.expected_trained_sha256 = Some(hex(&value)?),
+            "--expected-no-gate-reply-sha256" => {
+                config.expected_no_gate_reply_sha256 = Some(hex(&value)?);
+            }
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
     }
@@ -144,7 +156,8 @@ fn parse_args() -> Result<Config, String> {
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
         || config.reply_cap > 64
-        || (config.termination_diagnostic && config.reply_cap == 0)
+        || ((config.termination_diagnostic || config.termination_gate) && config.reply_cap == 0)
+        || (config.termination_gate != config.expected_no_gate_reply_sha256.is_some())
     {
         return Err("training and group dimensions must be positive and bounded".to_owned());
     }
@@ -479,8 +492,60 @@ fn run() -> Result<serde_json::Value, String> {
         })
         .collect::<Result<BTreeMap<_, _>, _>>()?
     };
+    let termination_gate = if !config.termination_gate {
+        serde_json::Value::Null
+    } else {
+        let derivation =
+            derive_termination_point_gates(&trained_artifact, &training_samples, true, config.seed)
+                .map_err(|error| error.to_string())?;
+        let no_gate = complete_replies
+            .get("trained")
+            .ok_or_else(|| "termination gate lost the trained no-gate arm".to_owned())?;
+        let expected_no_gate = config
+            .expected_no_gate_reply_sha256
+            .as_ref()
+            .ok_or_else(|| "termination gate lost its no-gate reply pin".to_owned())?;
+        if &no_gate.reply_sha256 != expected_no_gate {
+            return Err(format!(
+                "no-gate reply SHA-256 differs: got {}",
+                no_gate.reply_sha256
+            ));
+        }
+        let trained_gate = evaluate_termination_gate_replies(
+            &trained_artifact,
+            &evaluation_samples,
+            config.reply_cap,
+            true,
+            &derivation.trained,
+        )
+        .map_err(|error| error.to_string())?;
+        let random_gate = evaluate_termination_gate_replies(
+            &trained_artifact,
+            &evaluation_samples,
+            config.reply_cap,
+            true,
+            &derivation.random,
+        )
+        .map_err(|error| error.to_string())?;
+        let trained_vs_no_gate = termination_gate_comparison(&trained_gate, no_gate)?;
+        let trained_vs_random = termination_gate_comparison(&trained_gate, &random_gate)?;
+        serde_json::json!({
+            "random_seed": config.seed,
+            "artifact_sha256": trained_sha256,
+            "derivation": derivation,
+            "trained_gate_sha256": termination_gate_sha256(&derivation.trained)?,
+            "random_gate_sha256": termination_gate_sha256(&derivation.random)?,
+            "no_gate": no_gate,
+            "trained_gate": trained_gate,
+            "random_gate": random_gate,
+            "paired": {
+                "trained_vs_no_gate": trained_vs_no_gate,
+                "trained_vs_random": trained_vs_random,
+            },
+        })
+    };
     let report = serde_json::json!({
-        "schema": "uor-r4.cpu-memory-panel-run/1",
+        "schema": "uor-r4.cpu-memory-panel-run/2",
         "substrate": "cpu-development-research",
         "qualification": "gpu-required",
         "inputs": {
@@ -551,6 +616,7 @@ fn run() -> Result<serde_json::Value, String> {
         "complete_replies": complete_replies,
         "paired_reply_comparisons": paired_reply_comparisons,
         "termination_diagnostics": termination_diagnostics,
+        "termination_gate": termination_gate,
         "target_shuffle_audit": shuffle_audit,
         "reply_cap": config.reply_cap,
         "parity": parity,
@@ -583,11 +649,7 @@ fn reference_shape(
     let mut within_cap = 0usize;
     let mut within_cap_and_context = 0usize;
     for sample in samples {
-        let length = sample
-            .reply
-            .strip_suffix(&[POINT_KEY_BOS])
-            .unwrap_or(&sample.reply)
-            .len();
+        let length = normalized_reference(&sample.reply).len();
         *histogram.entry(length).or_default() += 1;
         token_total += length;
         max = max.max(length);
@@ -727,6 +789,49 @@ fn paired_reply_comparison(
     }))
 }
 
+fn termination_gate_comparison(
+    candidate: &TimedReplyReading,
+    control: &TimedReplyReading,
+) -> Result<serde_json::Value, String> {
+    let paired = paired_reply_comparison(candidate, control)?;
+    let candidate_bos = candidate.reading.bos_complete;
+    let control_bos = control.reading.bos_complete;
+    let candidate_non_premature_bos = candidate
+        .reading
+        .bos_complete
+        .checked_sub(candidate.reading.premature_stop)
+        .ok_or_else(|| "candidate premature stops exceed BOS completions".to_owned())?;
+    let control_non_premature_bos = control
+        .reading
+        .bos_complete
+        .checked_sub(control.reading.premature_stop)
+        .ok_or_else(|| "control premature stops exceed BOS completions".to_owned())?;
+    let non_premature_bos_strictly_higher = candidate_non_premature_bos > control_non_premature_bos;
+    let exact_not_lower = candidate.reading.exact_reference >= control.reading.exact_reference;
+    Ok(serde_json::json!({
+        "paired_exact": paired,
+        "candidate_bos": candidate_bos,
+        "control_bos": control_bos,
+        "candidate_non_premature_bos": candidate_non_premature_bos,
+        "control_non_premature_bos": control_non_premature_bos,
+        "candidate_exact": candidate.reading.exact_reference,
+        "control_exact": control.reading.exact_reference,
+        "candidate_premature_stop": candidate.reading.premature_stop,
+        "control_premature_stop": control.reading.premature_stop,
+        "non_premature_bos_strictly_higher": non_premature_bos_strictly_higher,
+        "exact_not_lower": exact_not_lower,
+        "passes": non_premature_bos_strictly_higher && exact_not_lower,
+    }))
+}
+
+fn termination_gate_sha256(
+    gate: &uor_r4_cpu_train::TerminationPointGate,
+) -> Result<String, String> {
+    serde_json::to_vec(gate)
+        .map(|bytes| uor_r4_discrete::corpus::sha256(&bytes))
+        .map_err(|error| error.to_string())
+}
+
 fn ceil_sqrt(value: u64) -> u64 {
     let mut root = (value as f64).sqrt() as u64;
     while u128::from(root) * u128::from(root) < u128::from(value) {
@@ -794,7 +899,7 @@ mod tests {
     use uor_r4_cpu_train::{ReplyReading, ReplyRowReading};
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
     use uor_r4_integer::stack::{
-        export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable,
+        export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, POINT_KEY_BOS,
     };
 
     fn bare_artifact() -> Vec<u8> {
@@ -837,6 +942,20 @@ mod tests {
         assert_eq!(shape["within_reply_cap_and_context"], 1);
         assert_eq!(shape["length_histogram"]["3"], 1);
         assert_eq!(shape["length_histogram"]["5"], 1);
+    }
+
+    #[test]
+    fn reference_shape_normalizes_corpus_eos() {
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![10, 11],
+            reply: vec![20, 21, 22, 1],
+        }];
+        let shape = reference_shape(&samples, 3, 5);
+        assert_eq!(shape["token_total"], 3);
+        assert_eq!(shape["max_tokens"], 3);
+        assert_eq!(shape["within_reply_cap"], 1);
+        assert_eq!(shape["within_reply_cap_and_context"], 1);
+        assert_eq!(shape["length_histogram"]["3"], 1);
     }
 
     #[test]
@@ -919,6 +1038,52 @@ mod tests {
         assert_eq!(comparison["passes_margin"], false);
         assert_eq!(comparison["passes_bos"], true);
         assert_eq!(comparison["passes"], false);
+    }
+
+    #[test]
+    fn termination_gate_requires_strict_bos_gain_without_exact_loss() {
+        let rows = vec![ReplyRowReading {
+            row: 0,
+            reachable: true,
+            exact: true,
+        }];
+        let reading = |bos: u64| TimedReplyReading {
+            rows: rows.clone(),
+            reading: ReplyReading {
+                replies: 1,
+                bos_complete: bos,
+                exact_reference: 1,
+                premature_stop: 0,
+                ..ReplyReading::default()
+            },
+            reply_sha256: String::new(),
+            wall_elapsed_us: 0,
+            generated_tokens_per_second: 0.0,
+        };
+        let wins = termination_gate_comparison(&reading(1), &reading(0)).unwrap();
+        assert_eq!(wins["passes"], true);
+        assert_eq!(wins["non_premature_bos_strictly_higher"], true);
+        assert_eq!(wins["exact_not_lower"], true);
+
+        let tie = termination_gate_comparison(&reading(1), &reading(1)).unwrap();
+        assert_eq!(tie["passes"], false);
+        assert_eq!(tie["non_premature_bos_strictly_higher"], false);
+
+        let premature = TimedReplyReading {
+            rows: rows.clone(),
+            reading: ReplyReading {
+                replies: 1,
+                bos_complete: 1,
+                premature_stop: 1,
+                ..ReplyReading::default()
+            },
+            reply_sha256: String::new(),
+            wall_elapsed_us: 0,
+            generated_tokens_per_second: 0.0,
+        };
+        let all_premature = termination_gate_comparison(&premature, &reading(0)).unwrap();
+        assert_eq!(all_premature["candidate_non_premature_bos"], 0);
+        assert_eq!(all_premature["passes"], false);
     }
 
     #[test]

@@ -149,6 +149,18 @@ admission, followed by a BOS movement objective for the minority of admitted
 but distant steps. See
 [deepseek-111](../../loop/tasks/cpu-training-pilot/deepseek-111/REPORT.md).
 
+A direct training-derived termination-point gate then tested whether a local
+L1 radius could replace cell admission. On both public seeds it retained 102
+EOS terminal queries, derived radii of 98,313 and 220,730, and removed no
+exact collisions. The trained radius never fired: every evaluation reply
+remained byte-identical to no-gate and hit the 16-token cap. An equal-size
+random nonterminal gate fired at the first decision on all 114 replies on both
+seeds, but every stop was premature and no reference became exact. This closes
+the fixed single-radius point-gate configuration, not geometric termination;
+the next attempt must change the representation or compare terminal against
+nonterminal density. See
+[deepseek-118](../../loop/tasks/cpu-training-pilot/deepseek-118/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.
