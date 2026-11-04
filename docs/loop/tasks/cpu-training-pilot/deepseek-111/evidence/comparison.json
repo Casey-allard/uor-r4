@@ -1,0 +1,164 @@
+{
+  "schema": "uor-r4.cpu-reply-termination-diagnostic/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "commit": "555a20b9ee5f4e2ad813ad3ec7367ee4f30428a5",
+    "binary_sha256": "9f7b061565e9568325a4cc5a0ee12596feb98680357737a28dd394505a7a9c45",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "selection": {
+    "keys": 16,
+    "training_samples": 102,
+    "evaluation_samples": 114,
+    "generated_cap": 16
+  },
+  "served_parity_per_arm": {
+    "samples": 114,
+    "positions": 4333,
+    "query_coordinates": 1109248,
+    "token_decisions": 4333,
+    "kept_cells": 34664,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "trained_artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4",
+      "accepted_updates": 32,
+      "arms": {
+        "frozen": {
+          "reply_sha256": "61e90d0e08997f9300b84718a951c2119bfe1b52d5da2f4575a4876f9aa51d49",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 52,
+          "never_admitted": 1772,
+          "admitted_not_top1": 52,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 89,
+          "classification": "mixed"
+        },
+        "trained": {
+          "reply_sha256": "ea95ef96a4adad3b3964912591ae0b9b9dfecf484aaae85cad9cb4dcbc769eec",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 107,
+          "never_admitted": 1717,
+          "admitted_not_top1": 107,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 47,
+          "classification": "mixed"
+        },
+        "memory_off": {
+          "reply_sha256": "61e90d0e08997f9300b84718a951c2119bfe1b52d5da2f4575a4876f9aa51d49",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 52,
+          "never_admitted": 1772,
+          "admitted_not_top1": 52,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 89,
+          "classification": "mixed"
+        },
+        "trained_memory_off": {
+          "reply_sha256": "61e90d0e08997f9300b84718a951c2119bfe1b52d5da2f4575a4876f9aa51d49",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 52,
+          "never_admitted": 1772,
+          "admitted_not_top1": 52,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 89,
+          "classification": "mixed"
+        }
+      },
+      "wall_elapsed_ms": 40861.63,
+      "peak_rss_kib": 390468
+    },
+    {
+      "seed": 2,
+      "trained_artifact_sha256": "10f91f7309c3ed36e3ce76878b2c75c07bae0102b3933571ccbd8f3b40b350e6",
+      "accepted_updates": 32,
+      "arms": {
+        "frozen": {
+          "reply_sha256": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 114,
+          "never_admitted": 1710,
+          "admitted_not_top1": 114,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 87,
+          "classification": "mixed"
+        },
+        "trained": {
+          "reply_sha256": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 114,
+          "never_admitted": 1710,
+          "admitted_not_top1": 114,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 87,
+          "classification": "mixed"
+        },
+        "memory_off": {
+          "reply_sha256": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 114,
+          "never_admitted": 1710,
+          "admitted_not_top1": 114,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 87,
+          "classification": "mixed"
+        },
+        "trained_memory_off": {
+          "reply_sha256": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c",
+          "decisions": 1824,
+          "chosen_bos": 0,
+          "bos_admitted": 114,
+          "never_admitted": 1710,
+          "admitted_not_top1": 114,
+          "top1_suppressed": 0,
+          "bos_top8": 0,
+          "bos_top1": 0,
+          "min_bos_rank": 87,
+          "classification": "mixed"
+        }
+      },
+      "wall_elapsed_ms": 40038.97,
+      "peak_rss_kib": 394128
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "wall_elapsed_ms": 39794.24,
+    "peak_rss_kib": 388692
+  },
+  "verdict": {
+    "classification": "mixed",
+    "dominant": "never_admitted",
+    "decoder_suppression": 0,
+    "scope": "two public seeds, four query-movement arms, 114 repeated-key prompts, 16 generated decisions each"
+  }
+}

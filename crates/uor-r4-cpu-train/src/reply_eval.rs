@@ -49,6 +49,60 @@ pub struct ReplyRowReading {
     pub exact: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationStepReading {
+    pub row: usize,
+    pub generated_step: usize,
+    pub generated_token: u32,
+    pub writer_token: u32,
+    pub bos_admitted: bool,
+    pub bos_rank: Option<usize>,
+    pub bos_top8: bool,
+    pub candidate_count: usize,
+    pub bos_distance: i64,
+    pub chosen_distance: i64,
+    pub bos_minus_chosen_distance: i64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TerminationClass {
+    NoDecisions,
+    AllChosenBos,
+    NeverAdmitted,
+    AdmittedNotTop1,
+    Top1Suppressed,
+    Mixed,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationReading {
+    pub rows: u64,
+    pub decisions: u64,
+    pub chosen_bos: u64,
+    pub bos_admitted: u64,
+    pub bos_top8: u64,
+    pub bos_top1: u64,
+    pub never_admitted: u64,
+    pub admitted_not_top1: u64,
+    pub top1_suppressed: u64,
+    pub min_bos_rank: Option<usize>,
+    pub bos_distance_sum: u64,
+    pub chosen_distance_sum: u64,
+    pub classification: Option<TerminationClass>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TimedTerminationReading {
+    pub reading: TerminationReading,
+    pub steps: Vec<TerminationStepReading>,
+    pub reply_sha256: String,
+    pub wall_elapsed_us: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeneratedReply {
     pub tokens: Vec<u32>,
@@ -139,6 +193,214 @@ pub fn evaluate_replies_memory_off(
     evaluate_generated(artifact, samples, cap, |prompt, cap| {
         generate_reply_memory_off(artifact, prompt, cap)
     })
+}
+
+/// Record BOS treatment by the writer at every generated decision while
+/// reproducing the same bounded greedy reply sequence.
+pub fn evaluate_termination_diagnostics(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+) -> Result<TimedTerminationReading> {
+    if samples.is_empty() || cap == 0 || cap > 64 {
+        return Err(invalid("termination diagnostic inputs differ"));
+    }
+    let started = std::time::Instant::now();
+    let rows = samples
+        .par_iter()
+        .enumerate()
+        .map(|(row, sample)| {
+            let (generated, steps) = generate_reply_with_diagnostics(
+                artifact,
+                &sample.prompt,
+                cap,
+                memory_enabled,
+                row,
+            )?;
+            let reference = normalized_reference(&sample.reply).to_vec();
+            let context = CpuFbsForward::from_artifact(artifact)
+                .map_err(|error| invalid(format!("termination context: {error}")))?
+                .context_length();
+            let reachable = reference_reachable(sample.prompt.len(), reference.len(), cap, context);
+            Ok((generated, reference, reachable, steps))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let reply_sha256 = reply_sequence_sha256(
+        &rows
+            .iter()
+            .map(|(reply, reference, reachable, _)| (reply.clone(), reference.clone(), *reachable))
+            .collect::<Vec<_>>(),
+    );
+    let steps = rows
+        .into_iter()
+        .flat_map(|(_, _, _, steps)| steps)
+        .collect::<Vec<_>>();
+    let reading = summarize_termination(&steps)?;
+    Ok(TimedTerminationReading {
+        reading,
+        steps,
+        reply_sha256,
+        wall_elapsed_us: started.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+    })
+}
+
+fn generate_reply_with_diagnostics(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    memory_enabled: bool,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<TerminationStepReading>)> {
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    if prompt.is_empty() || prompt.len() > context {
+        return Err(invalid("termination prompt or context differs"));
+    }
+    let mut next = None;
+    let mut diagnosis = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination prompt step: {error}")))?;
+        if index + 1 == prompt.len() {
+            diagnosis = Some(
+                forward
+                    .writer_token_diagnostic(&step.query_q12, POINT_KEY_BOS)
+                    .map_err(|error| invalid(format!("termination writer diagnostic: {error}")))?,
+            );
+            next = Some(step.token);
+        }
+    }
+    let mut next = next.ok_or_else(|| invalid("termination prompt is empty"))?;
+    let mut tokens = Vec::with_capacity(cap);
+    let mut steps = Vec::with_capacity(cap);
+    loop {
+        let diagnostic = diagnosis
+            .take()
+            .ok_or_else(|| invalid("termination diagnostic lost its writer reading"))?;
+        steps.push(TerminationStepReading {
+            row,
+            generated_step: tokens.len(),
+            generated_token: next,
+            writer_token: diagnostic.chosen_token,
+            bos_admitted: diagnostic.admitted,
+            bos_rank: diagnostic.rank,
+            bos_top8: diagnostic.top8,
+            candidate_count: diagnostic.candidate_count,
+            bos_distance: diagnostic.target_distance,
+            chosen_distance: diagnostic.chosen_distance,
+            bos_minus_chosen_distance: diagnostic.target_minus_chosen_distance,
+        });
+        let stop = reply_stop(next, tokens.len(), prompt.len(), cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok((
+                GeneratedReply {
+                    tokens,
+                    stop: match stop {
+                        ReplyEnd::Bos => "bos",
+                        ReplyEnd::Length => "cap",
+                        ReplyEnd::Context => "context",
+                    },
+                },
+                steps,
+            ));
+        }
+        let step = forward
+            .step(next, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination generated step: {error}")))?;
+        diagnosis = Some(
+            forward
+                .writer_token_diagnostic(&step.query_q12, POINT_KEY_BOS)
+                .map_err(|error| invalid(format!("termination writer diagnostic: {error}")))?,
+        );
+        next = step.token;
+    }
+}
+
+fn summarize_termination(steps: &[TerminationStepReading]) -> Result<TerminationReading> {
+    let mut reading = TerminationReading {
+        rows: steps
+            .iter()
+            .map(|step| step.row)
+            .collect::<BTreeSet<_>>()
+            .len() as u64,
+        ..TerminationReading::default()
+    };
+    for step in steps {
+        reading.decisions = add_count(reading.decisions, 1)?;
+        reading.chosen_bos = add_count(reading.chosen_bos, u64::from(step.generated_token == 0))?;
+        reading.bos_admitted = add_count(reading.bos_admitted, u64::from(step.bos_admitted))?;
+        reading.bos_top8 = add_count(reading.bos_top8, u64::from(step.bos_top8))?;
+        reading.bos_top1 = add_count(reading.bos_top1, u64::from(step.bos_rank == Some(1)))?;
+        if let Some(rank) = step.bos_rank {
+            reading.min_bos_rank = Some(reading.min_bos_rank.map_or(rank, |old| old.min(rank)));
+        }
+        reading.bos_distance_sum = reading
+            .bos_distance_sum
+            .checked_add(
+                step.bos_distance
+                    .try_into()
+                    .map_err(|_| invalid("termination BOS distance is negative or too large"))?,
+            )
+            .ok_or_else(|| invalid("termination BOS distance sum overflows"))?;
+        reading.chosen_distance_sum = reading
+            .chosen_distance_sum
+            .checked_add(
+                step.chosen_distance
+                    .try_into()
+                    .map_err(|_| invalid("termination chosen distance is negative or too large"))?,
+            )
+            .ok_or_else(|| invalid("termination chosen distance sum overflows"))?;
+    }
+    reading.never_admitted = reading
+        .decisions
+        .checked_sub(reading.bos_admitted)
+        .ok_or_else(|| invalid("termination admitted count exceeds decisions"))?;
+    reading.admitted_not_top1 = reading
+        .bos_admitted
+        .checked_sub(reading.bos_top1)
+        .ok_or_else(|| invalid("termination top-1 count exceeds admitted"))?;
+    reading.top1_suppressed = reading
+        .bos_top1
+        .checked_sub(reading.chosen_bos)
+        .ok_or_else(|| invalid("termination chosen count exceeds top-1"))?;
+    reading.classification = Some(if reading.decisions == 0 {
+        TerminationClass::NoDecisions
+    } else if reading.never_admitted > 0
+        && reading.admitted_not_top1 == 0
+        && reading.top1_suppressed == 0
+        && reading.chosen_bos == 0
+    {
+        TerminationClass::NeverAdmitted
+    } else if reading.never_admitted == 0
+        && reading.admitted_not_top1 > 0
+        && reading.top1_suppressed == 0
+        && reading.chosen_bos == 0
+    {
+        TerminationClass::AdmittedNotTop1
+    } else if reading.never_admitted == 0
+        && reading.admitted_not_top1 == 0
+        && reading.top1_suppressed > 0
+        && reading.chosen_bos == 0
+    {
+        TerminationClass::Top1Suppressed
+    } else if reading.chosen_bos == reading.decisions {
+        TerminationClass::AllChosenBos
+    } else {
+        TerminationClass::Mixed
+    });
+    Ok(reading)
 }
 
 /// Generate complete replies with a direct exact-memory target override.
@@ -628,5 +890,111 @@ mod tests {
         )
         .unwrap();
         assert_eq!(evaluated.reading.exact_reference, 1);
+    }
+
+    #[test]
+    fn termination_diagnostics_preserve_reply_sequences_and_explain_bos() {
+        let artifact = artifact();
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, 77, 99],
+        }];
+        let ordinary = evaluate_replies(&artifact, &samples, 3).unwrap();
+        let diagnostic = evaluate_termination_diagnostics(&artifact, &samples, 3, true).unwrap();
+        assert_eq!(diagnostic.reply_sha256, ordinary.reply_sha256);
+        assert_eq!(diagnostic.reading.rows, 1);
+        assert!(!diagnostic.steps.is_empty());
+        for (index, step) in diagnostic.steps.iter().enumerate() {
+            assert_eq!(step.row, 0);
+            assert_eq!(step.generated_step, index);
+            assert!(step.bos_distance >= 0);
+            assert!(step.chosen_distance >= 0);
+            assert_eq!(
+                step.bos_minus_chosen_distance,
+                step.bos_distance - step.chosen_distance
+            );
+            assert_eq!(step.bos_admitted, step.bos_rank.is_some());
+            assert!(step
+                .bos_rank
+                .is_none_or(|rank| (1..=step.candidate_count).contains(&rank)));
+        }
+    }
+
+    #[test]
+    fn termination_classification_partitions_mixed_steps_exactly() {
+        let step =
+            |row, generated_step, bos_admitted, bos_rank, chosen_bos| TerminationStepReading {
+                row,
+                generated_step,
+                generated_token: chosen_bos,
+                writer_token: 0,
+                bos_admitted,
+                bos_rank,
+                bos_top8: bos_rank.is_some_and(|rank| rank <= 8),
+                candidate_count: 8,
+                bos_distance: 10,
+                chosen_distance: 9,
+                bos_minus_chosen_distance: 1,
+            };
+        let reading = summarize_termination(&[
+            step(0, 0, true, Some(1), 7),
+            step(0, 1, true, Some(2), 7),
+            step(1, 0, false, None, 7),
+            step(1, 1, false, None, 7),
+        ])
+        .unwrap();
+        assert_eq!(reading.decisions, 4);
+        assert_eq!(reading.bos_admitted, 2);
+        assert_eq!(reading.bos_top1, 1);
+        assert_eq!(reading.chosen_bos, 0);
+        assert_eq!(reading.never_admitted, 2);
+        assert_eq!(reading.admitted_not_top1, 1);
+        assert_eq!(reading.top1_suppressed, 1);
+        assert_eq!(reading.classification, Some(TerminationClass::Mixed));
+    }
+
+    #[test]
+    fn termination_classification_covers_every_terminal_branch() {
+        let step = |row, admitted, rank, generated| TerminationStepReading {
+            row,
+            generated_step: 0,
+            generated_token: generated,
+            writer_token: 0,
+            bos_admitted: admitted,
+            bos_rank: rank,
+            bos_top8: rank.is_some_and(|rank| rank <= 8),
+            candidate_count: 8,
+            bos_distance: 10,
+            chosen_distance: 9,
+            bos_minus_chosen_distance: 1,
+        };
+        assert_eq!(
+            summarize_termination(&[]).unwrap().classification,
+            Some(TerminationClass::NoDecisions)
+        );
+        assert_eq!(
+            summarize_termination(&[step(0, false, None, 7), step(1, false, None, 7)])
+                .unwrap()
+                .classification,
+            Some(TerminationClass::NeverAdmitted)
+        );
+        assert_eq!(
+            summarize_termination(&[step(0, true, Some(2), 7), step(1, true, Some(3), 7)])
+                .unwrap()
+                .classification,
+            Some(TerminationClass::AdmittedNotTop1)
+        );
+        assert_eq!(
+            summarize_termination(&[step(0, true, Some(1), 7), step(1, true, Some(1), 7)])
+                .unwrap()
+                .classification,
+            Some(TerminationClass::Top1Suppressed)
+        );
+        assert_eq!(
+            summarize_termination(&[step(0, true, Some(1), 0), step(1, true, Some(1), 0)])
+                .unwrap()
+                .classification,
+            Some(TerminationClass::AllChosenBos)
+        );
     }
 }

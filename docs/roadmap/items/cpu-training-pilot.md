@@ -139,6 +139,16 @@ configuration and moves the next work to continuation and termination rather
 than more coordinate steps.
 See [deepseek-110](../../loop/tasks/cpu-training-pilot/deepseek-110/REPORT.md).
 
+The next CPU diagnostic measured why BOS never terminated those replies. At
+1,824 decisions per arm, missing BOS-cell admission dominated: 1,772/1,824 for
+seed-1 frozen and 1,717 for trained, with 1,710/1,824 in every seed-2 arm.
+When admitted, BOS never reached top-8 or top-1; its best rank was 47-89.
+Chosen BOS and decoder suppression were zero everywhere. This rules out the
+stop contract as the active fault and prioritizes geometric termination-cell
+admission, followed by a BOS movement objective for the minority of admitted
+but distant steps. See
+[deepseek-111](../../loop/tasks/cpu-training-pilot/deepseek-111/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

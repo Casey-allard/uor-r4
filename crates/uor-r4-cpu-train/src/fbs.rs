@@ -54,6 +54,21 @@ pub struct CpuFbsStep {
     pub query_q12: Vec<i32>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WriterTokenDiagnostic {
+    pub target_token: u32,
+    pub target_cell: u32,
+    pub admitted: bool,
+    pub rank: Option<usize>,
+    pub top8: bool,
+    pub candidate_count: usize,
+    pub target_distance: i64,
+    pub chosen_token: u32,
+    pub chosen_distance: i64,
+    pub target_minus_chosen_distance: i64,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct CpuServedTrace {
     pub(crate) norm_before_final_gain: Vec<i64>,
@@ -585,6 +600,51 @@ impl CpuFbsForward {
         Ok(token)
     }
 
+    /// Explain the writer's treatment of `target_token` for a complete Q12 query.
+    /// Distances are positive L1 values; `rank` is one-based among writer
+    /// candidates whose cells were admitted. This read does not mutate state.
+    pub fn writer_token_diagnostic(
+        &self,
+        query: &[i32],
+        target_token: u32,
+    ) -> Result<WriterTokenDiagnostic> {
+        if query.len() != self.width || target_token as usize >= self.vocab {
+            return Err(invalid("writer diagnostic query or target differs"));
+        }
+        let cells = writer_cells(query, &self.roots_q12, self.kept_cells);
+        let target_cell = target_token & 0xff;
+        let admitted = cells.contains(&target_cell);
+        let mut candidates = writer_candidates(query, &self.writer_table, self.vocab, &cells);
+        candidates.sort_unstable_by(|left, right| {
+            right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
+        });
+        let (chosen_token, chosen_score) = *candidates
+            .first()
+            .ok_or_else(|| invalid("writer diagnostic found no candidates"))?;
+        let target_score = query
+            .iter()
+            .zip(&self.writer_table[target_token as usize * self.width..][..self.width])
+            .fold(0i64, |sum, (&left, &right)| {
+                sum.wrapping_add(i64::from(left.abs_diff(i32::from(right))))
+            })
+            .wrapping_neg();
+        let rank = candidates
+            .iter()
+            .position(|&(token, _)| token == target_token);
+        Ok(WriterTokenDiagnostic {
+            target_token,
+            target_cell,
+            admitted,
+            rank: rank.map(|index| index + 1),
+            top8: rank.is_some_and(|index| index < 8),
+            candidate_count: candidates.len(),
+            target_distance: -target_score,
+            chosen_token,
+            chosen_distance: -chosen_score,
+            target_minus_chosen_distance: chosen_score.wrapping_sub(target_score),
+        })
+    }
+
     pub(crate) fn replay_final_gain(
         &self,
         norm_before_final_gain: &[i64],
@@ -1009,6 +1069,21 @@ fn writer(
     roots: &[[i32; 8]; 16],
     kept_cells: usize,
 ) -> (u32, Vec<u32>) {
+    let kept = writer_cells(query, roots, kept_cells);
+    let best = writer_candidates(query, table, vocab, &kept)
+        .into_iter()
+        .reduce(|current, candidate| {
+            if candidate.1 > current.1 || (candidate.1 == current.1 && candidate.0 < current.0) {
+                candidate
+            } else {
+                current
+            }
+        })
+        .expect("writer always admits at least one cell");
+    (best.0, kept)
+}
+
+fn writer_cells(query: &[i32], roots: &[[i32; 8]; 16], kept_cells: usize) -> Vec<u32> {
     let width = query.len();
     let score = |left: &[i32], right: &[i32]| -> i64 {
         left.iter()
@@ -1034,8 +1109,13 @@ fn writer(
         *slot = best as u32;
         cells[best] = i64::MIN;
     }
-    let mut best = (u32::MAX, i64::MIN);
-    for &cell in &kept {
+    kept
+}
+
+fn writer_candidates(query: &[i32], table: &[i16], vocab: usize, kept: &[u32]) -> Vec<(u32, i64)> {
+    let width = query.len();
+    let mut candidates = Vec::new();
+    for &cell in kept {
         let mut token = cell as usize;
         while token < vocab {
             let row = &table[token * width..(token + 1) * width];
@@ -1046,13 +1126,11 @@ fn writer(
                     sum.wrapping_add(i64::from(left.abs_diff(i32::from(right))))
                 })
                 .wrapping_neg();
-            if candidate > best.1 || (candidate == best.1 && (token as u32) < best.0) {
-                best = (token as u32, candidate);
-            }
+            candidates.push((token as u32, candidate));
             token += 256;
         }
     }
-    (best.0, kept)
+    candidates
 }
 
 fn quantize16(values: &[i64], exp: i32, out: &mut [i16]) -> i32 {
@@ -1765,6 +1843,31 @@ mod tests {
     #[test]
     fn writer_head_matches_serving_forward() {
         assert_parity(13, 2, CpuFbsHead::Writer);
+    }
+
+    #[test]
+    fn writer_diagnostic_identifies_the_served_candidate_and_bos_status() {
+        let (_model, mut cpu) = fixture(13, 2, false);
+        let step = cpu.step(7, CpuFbsHead::Writer).unwrap();
+        let chosen = cpu
+            .writer_token_diagnostic(&step.query_q12, step.token)
+            .unwrap();
+        assert!(chosen.admitted);
+        assert_eq!(chosen.chosen_token, step.token);
+        assert_eq!(chosen.rank, Some(1));
+        assert_eq!(chosen.target_distance, chosen.chosen_distance);
+        assert_eq!(chosen.target_minus_chosen_distance, 0);
+        let bos = cpu.writer_token_diagnostic(&step.query_q12, 0).unwrap();
+        assert_eq!(bos.target_token, 0);
+        assert_eq!(bos.target_cell, 0);
+        assert_eq!(bos.admitted, bos.rank.is_some());
+        assert!(bos
+            .rank
+            .is_none_or(|rank| (1..=bos.candidate_count).contains(&rank)));
+        assert_eq!(
+            bos.target_minus_chosen_distance,
+            bos.target_distance - bos.chosen_distance
+        );
     }
 
     #[test]

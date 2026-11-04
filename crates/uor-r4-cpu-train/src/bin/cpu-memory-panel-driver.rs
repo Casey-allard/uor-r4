@@ -5,10 +5,10 @@ use std::time::Instant;
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
     evaluate_memory_target_replies, evaluate_memory_weight_samples, evaluate_replies,
-    evaluate_replies_memory_off, memory_key_coverage, memory_target_shuffle_audit,
-    replace_memory_weight_table, shuffle_memory_targets, validate_corpus_manifest,
-    CpuConversationSample, CpuMaskedCorpus, CpuMemoryWeightTrainer, MemoryWeightConfig,
-    MemoryWeightSample, MemoryWeightTable, TimedReplyReading,
+    evaluate_replies_memory_off, evaluate_termination_diagnostics, memory_key_coverage,
+    memory_target_shuffle_audit, replace_memory_weight_table, shuffle_memory_targets,
+    validate_corpus_manifest, CpuConversationSample, CpuMaskedCorpus, CpuMemoryWeightTrainer,
+    MemoryWeightConfig, MemoryWeightSample, MemoryWeightTable, TimedReplyReading,
 };
 use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel, POINT_KEY_BOS};
 
@@ -28,6 +28,7 @@ struct Config {
     select_only: bool,
     reference: bool,
     reply_cap: usize,
+    termination_diagnostic: bool,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
     expected_mask_sha256: String,
@@ -61,7 +62,8 @@ fn usage() -> String {
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--expected-trained-sha256 HEX] \
      [--steps N] [--keys N] [--per-key N] [--key-tokens N] \
-     [--reply-turn N] [--reply-cap N] [--seed N] [--select-only] [--reference]"
+     [--reply-turn N] [--reply-cap N] [--seed N] [--select-only] [--reference] \
+     [--termination-diagnostic]"
         .to_owned()
 }
 
@@ -87,6 +89,7 @@ fn parse_args() -> Result<Config, String> {
         select_only: false,
         reference: false,
         reply_cap: 0,
+        termination_diagnostic: false,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
         expected_mask_sha256: String::new(),
@@ -100,6 +103,10 @@ fn parse_args() -> Result<Config, String> {
         }
         if flag == "--reference" {
             config.reference = true;
+            continue;
+        }
+        if flag == "--termination-diagnostic" {
+            config.termination_diagnostic = true;
             continue;
         }
         let value = values
@@ -137,6 +144,7 @@ fn parse_args() -> Result<Config, String> {
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
         || config.reply_cap > 64
+        || (config.termination_diagnostic && config.reply_cap == 0)
     {
         return Err("training and group dimensions must be positive and bounded".to_owned());
     }
@@ -449,6 +457,28 @@ fn run() -> Result<serde_json::Value, String> {
         })
         .collect::<Result<BTreeMap<_, _>, _>>()?
     };
+    let termination_diagnostics = if !config.termination_diagnostic {
+        BTreeMap::new()
+    } else {
+        [
+            ("frozen", memory_artifact.as_slice(), true),
+            ("trained", trained_artifact.as_slice(), true),
+            ("memory_off", artifact.as_slice(), false),
+            ("trained_memory_off", trained_artifact.as_slice(), false),
+        ]
+        .into_iter()
+        .map(|(name, bytes, memory_enabled)| {
+            evaluate_termination_diagnostics(
+                bytes,
+                &evaluation_samples,
+                config.reply_cap,
+                memory_enabled,
+            )
+            .map(|reading| (name, reading))
+            .map_err(|error| error.to_string())
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?
+    };
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-memory-panel-run/1",
         "substrate": "cpu-development-research",
@@ -520,6 +550,7 @@ fn run() -> Result<serde_json::Value, String> {
         },
         "complete_replies": complete_replies,
         "paired_reply_comparisons": paired_reply_comparisons,
+        "termination_diagnostics": termination_diagnostics,
         "target_shuffle_audit": shuffle_audit,
         "reply_cap": config.reply_cap,
         "parity": parity,
