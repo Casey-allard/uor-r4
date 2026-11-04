@@ -1,0 +1,540 @@
+{
+  "claim": "CPU development-research transfer test; not GPU qualification or language capability",
+  "complete_replies": {
+    "arms": {},
+    "cap": 0
+  },
+  "full_teacher_forced": {
+    "point": {
+      "artifact_sha256": "ecd2c616a49e863a3c438f254094e4fbf596bb660e64d28135a0509a76b7ec56",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 171
+    },
+    "point_medoid": {
+      "artifact_sha256": "0fd49cf86b65f6655dc5fe290a5623b174384d756d7a48aab958eca5822e7e5e",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 169
+    },
+    "point_off": {
+      "artifact_sha256": "63c0c0c12ff2b16677ca84b99be705dee0d655ad9867893466fea87ab51f3d98",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 169
+    },
+    "point_prototypes": {
+      "artifact_sha256": "0f9a6a30d818c86f84d048d9bfef8345fa191ec041858d4bb06ea46fc978afed",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 169
+    },
+    "point_vote": {
+      "artifact_sha256": "0dd5a835652f16d87c63a80db5e1d619f56cbe83b73e00dc351f659ce7ee8fac",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 172
+    },
+    "random": {
+      "artifact_sha256": "85ed67858c57873de7afb7c3a60bbca5f3fef2bd827c080034390fde2c240569",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 169
+    },
+    "random_medoid": {
+      "artifact_sha256": "42795cc1fafa885ad172693fa358dabec10f6c501d9451dae7d49e28d01f9b85",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 169
+    },
+    "random_prototypes": {
+      "artifact_sha256": "0523319ecec506159ab5d18ff4e6c7deffefea9667dec723a70a928c7180709c",
+      "decisions": 2050,
+      "samples": 60,
+      "target_distance_sum": 2347212773,
+      "top1_correct": 172
+    }
+  },
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+  },
+  "medoid_comparison": {
+    "full_top1_not_lower": true,
+    "passes": false,
+    "point_off": {
+      "candidate_only": 0,
+      "candidate_top1": 0,
+      "control_only": 0,
+      "control_top1": 0,
+      "discordant": 0,
+      "gain": 0,
+      "passes": false,
+      "rows": 60,
+      "threshold": 2
+    },
+    "random_medoid": {
+      "candidate_only": 0,
+      "candidate_top1": 0,
+      "control_only": 0,
+      "control_top1": 0,
+      "discordant": 0,
+      "gain": 0,
+      "passes": false,
+      "rows": 60,
+      "threshold": 2
+    }
+  },
+  "memory": {
+    "artifact_sha256": "63c0c0c12ff2b16677ca84b99be705dee0d655ad9867893466fea87ab51f3d98",
+    "held_out_exact_key_hits": 0,
+    "k": 8,
+    "key_window": 192,
+    "opening_rows": 8,
+    "reply_rows": 504
+  },
+  "neighbor_three_sigma": {
+    "baseline_nearest": 2,
+    "decisions": 60,
+    "threshold": 5,
+    "vote_delta": 1
+  },
+  "neighbor_vote": {
+    "k": 8,
+    "reading": {
+      "decisions": 60,
+      "nearest_matches_served": 60,
+      "nearest_top1": 2,
+      "random_vote_top1": 2,
+      "vote_top1": 3,
+      "voted_matches_served": 60
+    }
+  },
+  "opening": {
+    "point": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 2
+    },
+    "point_medoid": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 0
+    },
+    "point_off": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 0
+    },
+    "point_prototypes": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 0
+    },
+    "point_vote": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 3
+    },
+    "random": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 0
+    },
+    "random_medoid": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 0
+    },
+    "random_prototypes": {
+      "decisions": 60,
+      "target_distance_sum": 64821741,
+      "top1_correct": 3
+    }
+  },
+  "parity": {
+    "point": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "point_medoid": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "point_off": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "point_prototypes": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "point_vote": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "random": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "random_medoid": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    },
+    "random_prototypes": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 16880,
+      "positions": 2110,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 540160,
+      "samples": 60,
+      "token_decisions": 2110,
+      "token_mismatches": 0
+    }
+  },
+  "peak_rss_kib": 307020,
+  "point": {
+    "artifact_sha256": "ecd2c616a49e863a3c438f254094e4fbf596bb660e64d28135a0509a76b7ec56",
+    "random_artifact_sha256": "85ed67858c57873de7afb7c3a60bbca5f3fef2bd827c080034390fde2c240569",
+    "random_seed": 1,
+    "rows": 48,
+    "voted_artifact_sha256": "0dd5a835652f16d87c63a80db5e1d619f56cbe83b73e00dc351f659ce7ee8fac",
+    "width": 256
+  },
+  "point_fallback_exposure": {
+    "point": 60,
+    "point_medoid": 60,
+    "point_prototypes": 60,
+    "point_vote": 60,
+    "random": 60,
+    "random_medoid": 60,
+    "random_prototypes": 60
+  },
+  "qualification": "gpu-required",
+  "schema": "uor-r4.cpu-point-transfer-run/1",
+  "selection": {
+    "evaluation_documents": 50,
+    "evaluation_keys": [
+      [
+        201,
+        55,
+        2728,
+        28,
+        1997,
+        351,
+        3,
+        201
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        1201,
+        351,
+        1203,
+        579
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        1044,
+        1788,
+        329,
+        435
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        273,
+        540,
+        519,
+        265
+      ],
+      [
+        55,
+        2728,
+        28,
+        1049,
+        612,
+        71,
+        299,
+        571
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        1143,
+        351,
+        1125,
+        311
+      ],
+      [
+        55,
+        2728,
+        28,
+        318,
+        2301,
+        3,
+        201,
+        35
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        2577,
+        664,
+        2295,
+        1139
+      ]
+    ],
+    "evaluation_samples": 60,
+    "key_tokens": 8,
+    "per_key": 8,
+    "training_documents": 54,
+    "training_keys": [
+      [
+        55,
+        2728,
+        28,
+        772,
+        529,
+        91,
+        2655,
+        1795
+      ],
+      [
+        55,
+        2728,
+        28,
+        1049,
+        970,
+        1171,
+        2655,
+        28
+      ],
+      [
+        55,
+        2728,
+        28,
+        2237,
+        2693,
+        2655,
+        601,
+        28
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        273,
+        540,
+        519,
+        579
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        340,
+        1003,
+        275,
+        69
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        439,
+        275,
+        351,
+        261
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        439,
+        969,
+        2461,
+        14
+      ],
+      [
+        201,
+        55,
+        2728,
+        28,
+        1049,
+        970,
+        1171,
+        14
+      ]
+    ],
+    "training_samples": 60
+  },
+  "substrate": "cpu-development-research",
+  "target_medoid": {
+    "artifact_sha256": "0fd49cf86b65f6655dc5fe290a5623b174384d756d7a48aab958eca5822e7e5e",
+    "random_artifact_sha256": "42795cc1fafa885ad172693fa358dabec10f6c501d9451dae7d49e28d01f9b85",
+    "rows": 18,
+    "source_rows": 48,
+    "targets": [
+      340,
+      1399,
+      2237,
+      363,
+      427,
+      1155,
+      1997,
+      1354,
+      617,
+      3821,
+      402,
+      317,
+      564,
+      2197,
+      345,
+      1032,
+      279,
+      4014
+    ],
+    "width": 256
+  },
+  "target_prototypes": {
+    "artifact_sha256": "0f9a6a30d818c86f84d048d9bfef8345fa191ec041858d4bb06ea46fc978afed",
+    "comparison": {
+      "full_top1_not_lower": false,
+      "passes": false,
+      "point_off": {
+        "candidate_only": 0,
+        "candidate_top1": 0,
+        "control_only": 0,
+        "control_top1": 0,
+        "discordant": 0,
+        "gain": 0,
+        "passes": false,
+        "rows": 60,
+        "threshold": 2
+      },
+      "random_prototypes": {
+        "candidate_only": 0,
+        "candidate_top1": 0,
+        "control_only": 3,
+        "control_top1": 3,
+        "discordant": 3,
+        "gain": -3,
+        "passes": false,
+        "rows": 60,
+        "threshold": 4
+      }
+    },
+    "k": 2,
+    "random_artifact_sha256": "0523319ecec506159ab5d18ff4e6c7deffefea9667dec723a70a928c7180709c",
+    "rows": 25,
+    "source_rows": 48,
+    "targets": [
+      340,
+      340,
+      1399,
+      1155,
+      1399,
+      2237,
+      2237,
+      1354,
+      363,
+      427,
+      1155,
+      363,
+      1997,
+      1354,
+      1997,
+      617,
+      3821,
+      402,
+      317,
+      564,
+      2197,
+      345,
+      1032,
+      279,
+      4014
+    ],
+    "width": 256
+  },
+  "threads": 32,
+  "three_sigma": {
+    "baseline_top1": 0,
+    "decisions": 60,
+    "point_delta": 2,
+    "random_delta": 0,
+    "threshold": 0
+  },
+  "wall_elapsed_ms": 1891.372853
+}

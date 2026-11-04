@@ -29,6 +29,7 @@ struct Config {
     reply_turn: usize,
     random_seed: u64,
     neighbor_vote: usize,
+    target_prototypes: usize,
     reply_cap: usize,
     select_only: bool,
     expected_artifact_sha256: String,
@@ -116,7 +117,7 @@ fn usage() -> String {
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--train-keys N] [--evaluation-keys N] [--per-key N] \
      [--key-tokens N] [--reply-turn N] [--random-seed N] \
-     [--neighbor-vote N] [--reply-cap N] [--select-only]"
+     [--neighbor-vote N] [--target-prototypes N] [--reply-cap N] [--select-only]"
         .to_owned()
 }
 
@@ -140,6 +141,7 @@ fn parse_args() -> Result<Config, String> {
         reply_turn: 8,
         random_seed: 1,
         neighbor_vote: 0,
+        target_prototypes: 0,
         reply_cap: 0,
         select_only: false,
         expected_artifact_sha256: String::new(),
@@ -163,6 +165,7 @@ fn parse_args() -> Result<Config, String> {
             "--reply-turn" => config.reply_turn = number(&value)?,
             "--random-seed" => config.random_seed = number(&value)?,
             "--neighbor-vote" => config.neighbor_vote = number(&value)?,
+            "--target-prototypes" => config.target_prototypes = number(&value)?,
             "--reply-cap" => config.reply_cap = number(&value)?,
             "--expected-artifact-sha256" => config.expected_artifact_sha256 = hex(&value)?,
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
@@ -186,6 +189,7 @@ fn parse_args() -> Result<Config, String> {
         || config.per_key == 0
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
+        || !(config.target_prototypes == 0 || (2..=16).contains(&config.target_prototypes))
         || config.reply_cap > 64
     {
         return Err("group dimensions must be positive and bounded".to_owned());
@@ -328,6 +332,23 @@ fn run() -> Result<serde_json::Value, String> {
     let medoid = derive_target_medoids(&point)?;
     let medoid_artifact =
         add_point_key_uorlut01(&memory_artifact, &medoid).map_err(|error| error.to_string())?;
+    let prototypes = if config.target_prototypes == 0 {
+        None
+    } else {
+        Some(derive_target_prototypes(&point, config.target_prototypes)?)
+    };
+    if let Some(prototypes) = &prototypes {
+        if prototypes.rows() >= point.rows()
+            || (prototypes.points == point.points && prototypes.targets == point.targets)
+        {
+            return Err("target prototypes do not reduce the raw point neighborhood".to_owned());
+        }
+    }
+    let prototype_artifact = prototypes
+        .as_ref()
+        .map(|image| add_point_key_uorlut01(&memory_artifact, image))
+        .transpose()
+        .map_err(|error| error.to_string())?;
     let voted_point = (config.neighbor_vote > 1).then(|| PointKeyImage {
         width: point.width,
         points: point.points.clone(),
@@ -355,6 +376,25 @@ fn run() -> Result<serde_json::Value, String> {
     };
     let random_medoid_artifact = add_point_key_uorlut01(&memory_artifact, &random_medoid)
         .map_err(|error| error.to_string())?;
+    let random_prototypes = prototypes
+        .as_ref()
+        .map(|prototypes| {
+            shuffled_targets(&prototypes.targets, config.random_seed ^ 0x5052_4F54_4F54).map(
+                |targets| PointKeyImage {
+                    width: prototypes.width,
+                    points: prototypes.points.clone(),
+                    targets,
+                    vote_k: 1,
+                },
+            )
+        })
+        .transpose()?;
+    let random_prototype_artifact = match &random_prototypes {
+        Some(image) => Some(
+            add_point_key_uorlut01(&memory_artifact, image).map_err(|error| error.to_string())?,
+        ),
+        None => None,
+    };
 
     std::fs::create_dir_all(&config.out).map_err(|error| error.to_string())?;
     let mut outputs = vec![
@@ -367,6 +407,12 @@ fn run() -> Result<serde_json::Value, String> {
             random_medoid_artifact.as_slice(),
         ),
     ];
+    if let Some(bytes) = &prototype_artifact {
+        outputs.push(("point-prototypes.uorlut", bytes.as_slice()));
+    }
+    if let Some(bytes) = &random_prototype_artifact {
+        outputs.push(("random-point-prototypes.uorlut", bytes.as_slice()));
+    }
     if let Some(bytes) = &voted_artifact {
         outputs.push(("point-vote.uorlut", bytes.as_slice()));
     }
@@ -381,6 +427,12 @@ fn run() -> Result<serde_json::Value, String> {
         ("point_medoid", medoid_artifact.as_slice()),
         ("random_medoid", random_medoid_artifact.as_slice()),
     ];
+    if let Some(bytes) = &prototype_artifact {
+        arms.push(("point_prototypes", bytes.as_slice()));
+    }
+    if let Some(bytes) = &random_prototype_artifact {
+        arms.push(("random_prototypes", bytes.as_slice()));
+    }
     if let Some(bytes) = &voted_artifact {
         arms.push(("point_vote", bytes.as_slice()));
     }
@@ -400,24 +452,22 @@ fn run() -> Result<serde_json::Value, String> {
             Ok((*name, reading))
         })
         .collect::<Result<BTreeMap<_, _>, String>>()?;
-    let opening_distances = opening
+    let baseline_outcomes = &opening_outcomes["point_off"];
+    if opening_outcomes
         .values()
-        .map(|reading| reading.target_distance_sum)
-        .collect::<BTreeSet<_>>();
-    if opening_distances.len() != 1 {
-        return Err("point fallback changed the opening query distance".to_owned());
+        .any(|outcomes| !opening_distances_equal(outcomes, baseline_outcomes))
+    {
+        return Err("point fallback changed an opening query distance".to_owned());
     }
     let point_fallback_exposure = arms
         .iter()
         .map(|(name, _)| *name)
         .filter(|name| *name != "point_off")
         .map(|name| {
-            let changed = opening_outcomes[name]
-                .iter()
-                .zip(&opening_outcomes["point_off"])
-                .filter(|(candidate, off)| candidate.token != off.token)
-                .count();
-            (name, changed)
+            (
+                name,
+                changed_openings(&opening_outcomes[name], &opening_outcomes["point_off"]),
+            )
         })
         .collect::<BTreeMap<_, _>>();
     if point_fallback_exposure
@@ -425,6 +475,23 @@ fn run() -> Result<serde_json::Value, String> {
         .any(|&changed| changed == 0)
     {
         return Err("a point-key arm never changed the served opening".to_owned());
+    }
+    if prototypes.is_some() {
+        if point_fallback_exposure["point_prototypes"] != evaluation_samples.len() {
+            return Err(
+                "the target-prototype arm did not change every held-out opening".to_owned(),
+            );
+        }
+        if changed_openings(
+            &opening_outcomes["random_prototypes"],
+            &opening_outcomes["point_prototypes"],
+        ) == 0
+        {
+            return Err(
+                "the shuffled-target prototype control named the treatment's opening every time"
+                    .to_owned(),
+            );
+        }
     }
     let neighbor = if config.neighbor_vote == 0 {
         None
@@ -511,6 +578,29 @@ fn run() -> Result<serde_json::Value, String> {
     )?;
     let medoid_full_not_lower = full["point_medoid"].top1_correct >= full["point_off"].top1_correct
         && full["point_medoid"].top1_correct >= full["random_medoid"].top1_correct;
+    let prototype_comparison = match (
+        opening_outcomes.get("point_prototypes"),
+        opening_outcomes.get("random_prototypes"),
+    ) {
+        (Some(prototypes), Some(random_prototypes)) => {
+            let vs_point_off =
+                paired_opening_comparison(prototypes, &opening_outcomes["point_off"])?;
+            let vs_random = paired_opening_comparison(prototypes, random_prototypes)?;
+            let full_top1_not_lower = full["point_prototypes"].top1_correct
+                >= full["point_off"].top1_correct
+                && full["point_prototypes"].top1_correct >= full["random_prototypes"].top1_correct;
+            Some(serde_json::json!({
+                "point_off": vs_point_off,
+                "random_prototypes": vs_random,
+                "full_top1_not_lower": full_top1_not_lower,
+                "passes": vs_point_off["passes"].as_bool() == Some(true)
+                    && vs_random["passes"].as_bool() == Some(true)
+                    && full_top1_not_lower,
+            }))
+        }
+        (None, None) => None,
+        _ => return Err("target-prototype arms were built incompletely".to_owned()),
+    };
     let report = serde_json::json!({
         "schema": SCHEMA,
         "substrate": "cpu-development-research",
@@ -561,6 +651,20 @@ fn run() -> Result<serde_json::Value, String> {
             "random_artifact_sha256": uor_r4_discrete::corpus::sha256(&random_medoid_artifact),
             "source_rows": point.rows(),
         },
+        "target_prototypes": {
+            "k": config.target_prototypes,
+            "rows": prototypes.as_ref().map(PointKeyImage::rows),
+            "targets": prototypes.as_ref().map(|image| image.targets.clone()),
+            "width": prototypes.as_ref().map(|image| image.width),
+            "artifact_sha256": prototype_artifact
+                .as_ref()
+                .map(|bytes| uor_r4_discrete::corpus::sha256(bytes)),
+            "random_artifact_sha256": random_prototype_artifact
+                .as_ref()
+                .map(|bytes| uor_r4_discrete::corpus::sha256(bytes)),
+            "source_rows": point.rows(),
+            "comparison": prototype_comparison,
+        },
         "medoid_comparison": {
             "point_off": medoid_vs_point_off,
             "random_medoid": medoid_vs_random,
@@ -591,7 +695,7 @@ fn run() -> Result<serde_json::Value, String> {
         "neighbor_three_sigma": neighbor_three_sigma,
         "threads": rayon::current_num_threads(),
         "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
-        "peak_rss_kib": peak_rss_kib(),
+        "peak_rss_kib": peak_rss_kib()?,
         "claim": "CPU development-research transfer test; not GPU qualification or language capability",
     });
     std::fs::write(
@@ -734,44 +838,61 @@ fn derive_point_table(
 }
 
 fn derive_target_medoids(point: &PointKeyImage) -> Result<PointKeyImage, String> {
-    if point.width == 0 || point.rows() == 0 || point.points.len() != point.rows() * point.width {
-        return Err("target medoids require a non-empty rectangular point table".to_owned());
+    derive_target_prototypes(point, 1)
+}
+
+fn derive_target_prototypes(point: &PointKeyImage, k: usize) -> Result<PointKeyImage, String> {
+    if point.width == 0
+        || point.rows() == 0
+        || point.points.len() != point.rows() * point.width
+        || k == 0
+    {
+        return Err(
+            "target prototypes require a non-empty rectangular point table and k > 0".to_owned(),
+        );
     }
     let mut by_target = BTreeMap::<u32, Vec<Vec<i16>>>::new();
     for (point, &target) in point.points.chunks_exact(point.width).zip(&point.targets) {
         by_target.entry(target).or_default().push(point.to_vec());
     }
     if by_target.len() < 2 {
-        return Err("target medoids require at least two targets".to_owned());
+        return Err("target prototypes require at least two targets".to_owned());
     }
-    let mut rows = Vec::with_capacity(by_target.len());
+    let mut rows = Vec::with_capacity(by_target.len() * k);
     for (target, mut members) in by_target {
         members.sort();
-        let mut best: Option<(u64, Vec<i16>)> = None;
-        for candidate in &members {
-            let total = members
-                .iter()
-                .try_fold(0u64, |total, member| {
-                    let distance = candidate.iter().zip(member).try_fold(
-                        0u64,
-                        |distance, (&left, &right)| {
-                            distance.checked_add(u64::from(left.abs_diff(right)))
-                        },
-                    )?;
-                    total.checked_add(distance)
-                })
-                .ok_or_else(|| "target-medoid distance overflows".to_owned())?;
-            if best.as_ref().is_none_or(|(best_total, best_point)| {
-                total < *best_total || (total == *best_total && candidate < best_point)
-            }) {
-                best = Some((total, candidate.clone()));
+        members.dedup();
+        let mut selected = vec![target_medoid(&members)?];
+        while selected.len() < k.min(members.len()) {
+            let mut best: Option<(u64, &Vec<i16>)> = None;
+            for candidate in &members {
+                if selected.contains(candidate) {
+                    continue;
+                }
+                let nearest = selected
+                    .iter()
+                    .map(|selected| point_distance(candidate, selected))
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| "target-prototype distance overflows".to_owned())?
+                    .into_iter()
+                    .min()
+                    .ok_or_else(|| "target prototypes have no selected point".to_owned())?;
+                if best.as_ref().is_none_or(|(best_distance, best_point)| {
+                    nearest > *best_distance
+                        || (nearest == *best_distance && candidate < best_point)
+                }) {
+                    best = Some((nearest, candidate));
+                }
             }
+            selected.push(
+                best.ok_or_else(|| "target-prototype residual group is empty".to_owned())?
+                    .1
+                    .clone(),
+            );
         }
-        rows.push((
-            best.ok_or_else(|| "a target medoid group is empty".to_owned())?
-                .1,
-            target,
-        ));
+        for point in selected {
+            rows.push((point, target));
+        }
     }
     rows.sort();
     Ok(PointKeyImage {
@@ -783,6 +904,36 @@ fn derive_target_medoids(point: &PointKeyImage) -> Result<PointKeyImage, String>
         targets: rows.into_iter().map(|(_, target)| target).collect(),
         vote_k: 1,
     })
+}
+
+fn target_medoid(members: &[Vec<i16>]) -> Result<Vec<i16>, String> {
+    let mut best: Option<(u64, &Vec<i16>)> = None;
+    for candidate in members {
+        let total = members.iter().try_fold(0u64, |total, member| {
+            let distance = point_distance(candidate, member)
+                .ok_or_else(|| "target-medoid distance overflows".to_owned())?;
+            total
+                .checked_add(distance)
+                .ok_or_else(|| "target-medoid distance overflows".to_owned())
+        })?;
+        if best.as_ref().is_none_or(|(best_total, best_point)| {
+            total < *best_total || (total == *best_total && candidate < best_point)
+        }) {
+            best = Some((total, candidate));
+        }
+    }
+    Ok(best
+        .ok_or_else(|| "a target-medoid group is empty".to_owned())?
+        .1
+        .clone())
+}
+
+fn point_distance(left: &[i16], right: &[i16]) -> Option<u64> {
+    left.iter()
+        .zip(right)
+        .try_fold(0u64, |distance, (&left, &right)| {
+            distance.checked_add(u64::from(left.abs_diff(right)))
+        })
 }
 
 fn shuffled_targets(targets: &[u32], seed: u64) -> Result<Vec<u32>, String> {
@@ -1171,6 +1322,22 @@ fn summarize_openings(outcomes: &[OpeningOutcome]) -> Result<OpeningReading, Str
     Ok(reading)
 }
 
+fn changed_openings(candidate: &[OpeningOutcome], control: &[OpeningOutcome]) -> usize {
+    candidate
+        .iter()
+        .zip(control)
+        .filter(|(candidate, control)| candidate.token != control.token)
+        .count()
+}
+
+fn opening_distances_equal(candidate: &[OpeningOutcome], baseline: &[OpeningOutcome]) -> bool {
+    candidate.len() == baseline.len()
+        && candidate
+            .iter()
+            .zip(baseline)
+            .all(|(candidate, baseline)| candidate.target_distance == baseline.target_distance)
+}
+
 fn evaluate_opening_outcomes(
     artifact: &[u8],
     samples: &[CpuConversationSample],
@@ -1223,17 +1390,25 @@ fn evaluate_opening_outcomes(
         .collect::<Result<Vec<_>, String>>()
 }
 
-fn peak_rss_kib() -> u64 {
-    std::fs::read_to_string("/proc/self/status")
-        .ok()
-        .and_then(|status| {
-            status.lines().find_map(|line| {
-                line.strip_prefix("VmHWM:")
-                    .and_then(|value| value.split_whitespace().next())
-                    .and_then(|value| value.parse().ok())
-            })
+fn peak_rss_kib() -> Result<u64, String> {
+    let status = std::fs::read_to_string("/proc/self/status")
+        .map_err(|error| format!("cannot measure peak RSS: {error}"))?;
+    parse_peak_rss_kib(&status)
+}
+
+fn parse_peak_rss_kib(status: &str) -> Result<u64, String> {
+    let peak = status
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("VmHWM:")
+                .and_then(|value| value.split_whitespace().next())
+                .and_then(|value| value.parse().ok())
         })
-        .unwrap_or(0)
+        .ok_or_else(|| "peak RSS measurement is unavailable".to_owned())?;
+    if peak == 0 {
+        return Err("peak RSS measurement is zero".to_owned());
+    }
+    Ok(peak)
 }
 
 #[cfg(test)]
@@ -1273,6 +1448,7 @@ mod tests {
             reply_turn: 8,
             random_seed: 1,
             neighbor_vote: 0,
+            target_prototypes: 0,
             reply_cap: 0,
             select_only: true,
             expected_artifact_sha256: String::new(),
@@ -1367,6 +1543,72 @@ mod tests {
     }
 
     #[test]
+    fn target_prototypes_keep_a_medoid_and_farthest_local_residual() {
+        let point = PointKeyImage {
+            width: 2,
+            points: vec![0, 0, 1, 0, 4, 0, 2, 0, 2, 2, 3, 0, 5, 0],
+            targets: vec![7, 7, 7, 8, 8, 9, 9],
+            vote_k: 1,
+        };
+        let prototypes = derive_target_prototypes(&point, 2).unwrap();
+        assert_eq!(prototypes.points, vec![1, 0, 2, 0, 2, 2, 3, 0, 4, 0, 5, 0]);
+        assert_eq!(prototypes.targets, vec![7, 8, 8, 9, 7, 9]);
+        assert!(prototypes.rows() < point.rows());
+        assert_eq!(prototypes, derive_target_prototypes(&point, 2).unwrap());
+        assert_eq!(
+            derive_target_prototypes(&point, 16).unwrap().rows(),
+            point.rows()
+        );
+    }
+
+    #[test]
+    fn target_prototypes_break_residual_ties_with_signed_lexicographic_points() {
+        let point = PointKeyImage {
+            width: 2,
+            // The target-7 medoid is (0, 0); four residual points are all at L1
+            // distance 2. Signed component-wise lexicographic order chooses
+            // (-2, 0), including across a negative coordinate.
+            points: vec![0, 0, 2, 0, -2, 0, 0, 2, 0, -2, 9, 9],
+            targets: vec![7, 7, 7, 7, 7, 8],
+            vote_k: 1,
+        };
+        let prototypes = derive_target_prototypes(&point, 2).unwrap();
+        assert_eq!(prototypes.points, vec![-2, 0, 0, 0, 9, 9]);
+        assert_eq!(prototypes.targets, vec![7, 7, 8]);
+    }
+
+    #[test]
+    fn target_prototypes_refuse_zero_malformed_and_one_target_tables() {
+        let malformed = PointKeyImage {
+            width: 2,
+            points: vec![1, 2, 3],
+            targets: vec![4, 5],
+            vote_k: 1,
+        };
+        assert!(derive_target_prototypes(&malformed, 2).is_err());
+        assert!(derive_target_prototypes(
+            &PointKeyImage {
+                width: 1,
+                points: vec![1, 2],
+                targets: vec![4, 5],
+                vote_k: 1,
+            },
+            0,
+        )
+        .is_err());
+        assert!(derive_target_prototypes(
+            &PointKeyImage {
+                width: 1,
+                points: vec![1, 2],
+                targets: vec![4, 4],
+                vote_k: 1,
+            },
+            2,
+        )
+        .is_err());
+    }
+
+    #[test]
     fn paired_opening_comparison_uses_the_registered_discordant_margin() {
         let outcome = |top1| OpeningOutcome {
             top1,
@@ -1398,6 +1640,39 @@ mod tests {
         assert_eq!(reading["control_only"], 0);
         assert_eq!(reading["threshold"], 4);
         assert_eq!(reading["passes"], true);
+    }
+
+    #[test]
+    fn opening_instruments_require_every_row_and_per_row_distance_equality() {
+        let mut baseline = (0..60)
+            .map(|index| OpeningOutcome {
+                top1: false,
+                target_distance: index,
+                token: 7,
+            })
+            .collect::<Vec<_>>();
+        let mut candidate = baseline.clone();
+        for row in &mut candidate {
+            row.token = 8;
+        }
+        assert_eq!(changed_openings(&candidate, &baseline), 60);
+        assert!(opening_distances_equal(&candidate, &baseline));
+
+        candidate[0].target_distance = 1;
+        baseline[1].target_distance = 2;
+        assert!(
+            candidate.iter().map(|row| row.target_distance).sum::<u64>()
+                == baseline.iter().map(|row| row.target_distance).sum::<u64>()
+        );
+        assert!(!opening_distances_equal(&candidate, &baseline));
+    }
+
+    #[test]
+    fn peak_rss_measurement_fails_closed() {
+        assert_eq!(parse_peak_rss_kib("VmHWM:\t1234 kB\n").unwrap(), 1234);
+        assert!(parse_peak_rss_kib("VmRSS:\t1234 kB\n").is_err());
+        assert!(parse_peak_rss_kib("VmHWM:\t0 kB\n").is_err());
+        assert!(parse_peak_rss_kib("VmHWM:\tnot-a-number kB\n").is_err());
     }
 
     #[test]
@@ -1603,6 +1878,16 @@ mod tests {
             prompt: vec![20, 21, 22, 23],
             reply: vec![second_target, 1],
         };
+        let third_training = CpuConversationSample {
+            document_ordinal: 4,
+            prompt: vec![40, 41, 42, 43],
+            reply: vec![target, 1],
+        };
+        let fourth_training = CpuConversationSample {
+            document_ordinal: 6,
+            prompt: vec![50, 51, 52, 53],
+            reply: vec![target, 1],
+        };
         let held_out = CpuConversationSample {
             document_ordinal: 1,
             prompt,
@@ -1610,7 +1895,7 @@ mod tests {
         };
         let point = derive_point_table(
             &memory_artifact,
-            &[training, second_training],
+            &[training, second_training, third_training, fourth_training],
             snapshot.width,
             snapshot.vocab,
         )
@@ -1647,6 +1932,61 @@ mod tests {
             opening_token(&random_artifact, &held_out.prompt),
             point_token
         );
+        let prototypes = derive_target_prototypes(&point, 2).unwrap();
+        assert!(prototypes.rows() < point.rows());
+        let prototype_artifact = add_point_key_uorlut01(&memory_artifact, &prototypes).unwrap();
+        let (prototype_query, prototype_token) =
+            opening_query_and_token(&prototype_artifact, &held_out.prompt).unwrap();
+        assert_eq!(
+            point_vote(&prototypes, &prototype_query, 1).unwrap(),
+            prototype_token
+        );
+        let (random_prototypes, random_prototype_artifact) = (2..100)
+            .find_map(|seed| {
+                let image = PointKeyImage {
+                    width: prototypes.width,
+                    points: prototypes.points.clone(),
+                    targets: shuffled_targets(&prototypes.targets, seed).ok()?,
+                    vote_k: 1,
+                };
+                let artifact = add_point_key_uorlut01(&memory_artifact, &image).ok()?;
+                (opening_token(&artifact, &held_out.prompt) != prototype_token)
+                    .then_some((image, artifact))
+            })
+            .unwrap();
+        assert_eq!(random_prototypes.points, prototypes.points);
+        let mut treatment_targets = prototypes.targets.clone();
+        let mut control_targets = random_prototypes.targets.clone();
+        treatment_targets.sort_unstable();
+        control_targets.sort_unstable();
+        assert_eq!(control_targets, treatment_targets);
+        let baseline_opening = evaluate_opening_outcomes(
+            &memory_artifact,
+            std::slice::from_ref(&held_out),
+            snapshot.width,
+        )
+        .unwrap();
+        for artifact in [
+            point_artifact.as_slice(),
+            medoid_artifact.as_slice(),
+            prototype_artifact.as_slice(),
+            random_prototype_artifact.as_slice(),
+        ] {
+            let opening = evaluate_opening_outcomes(
+                artifact,
+                std::slice::from_ref(&held_out),
+                snapshot.width,
+            )
+            .unwrap();
+            assert_eq!(
+                opening[0].target_distance,
+                baseline_opening[0].target_distance
+            );
+        }
+        let audit =
+            audit_memory_weight_samples(&prototype_artifact, &[memory_sample(&held_out)], true)
+                .unwrap();
+        assert!(audit.is_exact());
         let neighbors = evaluate_neighbor_vote(
             &memory_artifact,
             &point_artifact,

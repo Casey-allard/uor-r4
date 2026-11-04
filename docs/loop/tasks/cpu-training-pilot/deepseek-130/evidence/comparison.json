@@ -1,0 +1,206 @@
+{
+  "schema": "uor-r4.cpu-point-prototypes-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "scope": "fixed k=2 observed-medoid-plus-farthest-residual target prototypes on the unseen-key opening panel",
+  "source": {
+    "base_commit": "6f653f2b466b686538b48d2d1809042326324df5",
+    "implementation_commit": "34103fab4bcbfac97adfcc8c3fbecaa8318ba62f",
+    "fit_record_commit": "4cbdf2a60",
+    "run_head": "b6652aaa4783ac427bdadfba561cd8f299e338be",
+    "binary_sha256": "5f868792c4ec9e6e502170a242bde9ebea89a9f2335c9badacec8e405061812c",
+    "binary_builds_identical": true,
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "training_documents": 54,
+    "evaluation_documents": 50,
+    "training_keys": 8,
+    "evaluation_keys": 8,
+    "training_samples": 60,
+    "evaluation_samples": 60,
+    "per_key": 8,
+    "held_out_exact_key_hits": 0
+  },
+  "prototypes": {
+    "k": 2,
+    "source_rows": 48,
+    "rows_per_seed": 25,
+    "distinct_target_values_per_seed": 18,
+    "selection": "observed within-target L1 medoid, then the remaining observed point with maximum minimum L1 distance; signed lexicographic point tie-break",
+    "shuffle": "deterministic target permutation preserving the treatment point multiset and target-value multiset"
+  },
+  "parity_per_arm": {
+    "samples": 60,
+    "positions": 2110,
+    "query_coordinates": 540160,
+    "token_decisions": 2110,
+    "kept_cells": 16880,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0,
+    "arms": [
+      "point_off",
+      "point",
+      "random",
+      "point_vote",
+      "point_medoid",
+      "random_medoid",
+      "point_prototypes",
+      "random_prototypes"
+    ]
+  },
+  "runs": [
+    {
+      "seed": 1,
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "opening_top1": {
+        "point_off": 0,
+        "point": 2,
+        "random": 0,
+        "point_vote": 3,
+        "point_medoid": 0,
+        "random_medoid": 0,
+        "point_prototypes": 0,
+        "random_prototypes": 3
+      },
+      "opening_target_distance_sum": 64821741,
+      "full_teacher_forced_top1": {
+        "point_off": 169,
+        "point": 171,
+        "random": 169,
+        "point_vote": 172,
+        "point_medoid": 169,
+        "random_medoid": 169,
+        "point_prototypes": 169,
+        "random_prototypes": 172
+      },
+      "prototypes": {
+        "rows": 25,
+        "artifact_sha256": "0f9a6a30d818c86f84d048d9bfef8345fa191ec041858d4bb06ea46fc978afed",
+        "shuffled_artifact_sha256": "0523319ecec506159ab5d18ff4e6c7deffefea9667dec723a70a928c7180709c",
+        "vs_point_off": {
+          "gain": 0,
+          "threshold": 2,
+          "passes": false
+        },
+        "vs_shuffled": {
+          "gain": -3,
+          "threshold": 4,
+          "passes": false
+        },
+        "full_top1_not_lower": false,
+        "registered_pass": false
+      },
+      "point_fallback_exposure": 60,
+      "wall_elapsed_ms": 1883.939375,
+      "peak_rss_kib": 309096,
+      "report_sha256": "6b352aee8f6ad17c64ac5daebd306a5bf33e52fcdcb2758d3dec03d167ffd9e3"
+    },
+    {
+      "seed": 2,
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "opening_top1": {
+        "point_off": 0,
+        "point": 1,
+        "random": 3,
+        "point_vote": 3,
+        "point_medoid": 4,
+        "random_medoid": 3,
+        "point_prototypes": 3,
+        "random_prototypes": 0
+      },
+      "opening_target_distance_sum": 80445779,
+      "full_teacher_forced_top1": {
+        "point_off": 163,
+        "point": 164,
+        "random": 166,
+        "point_vote": 166,
+        "point_medoid": 167,
+        "random_medoid": 166,
+        "point_prototypes": 166,
+        "random_prototypes": 163
+      },
+      "prototypes": {
+        "rows": 25,
+        "artifact_sha256": "dc07b922573dab76df46991c4b90c29e94061678f90c59bcc5994280cfc075b2",
+        "shuffled_artifact_sha256": "3e83805c359f5d25aed755da735f570729e0e1ab03fffee035b881bf1b5a3b0c",
+        "vs_point_off": {
+          "gain": 3,
+          "threshold": 4,
+          "passes": false
+        },
+        "vs_shuffled": {
+          "gain": 3,
+          "threshold": 4,
+          "passes": false
+        },
+        "full_top1_not_lower": true,
+        "registered_pass": false
+      },
+      "point_fallback_exposure": 60,
+      "wall_elapsed_ms": 1905.480594,
+      "peak_rss_kib": 307028,
+      "report_sha256": "d6738d494a69e28c4b022e7c0a1691c3f2a8b96417623d67392b38670c0da18b"
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "binary_sha256": "5f868792c4ec9e6e502170a242bde9ebea89a9f2335c9badacec8e405061812c",
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "1cfb09489442b2c3888e8a13b845deb57c5dd5ab7c7076551982aee294b496a1",
+    "report_sha256": "5067ef4bd7cf057b676f5f6f3ac1fee422eacc9deb9e19b14b8fd614e28ce632",
+    "wall_elapsed_ms": 1891.372853,
+    "peak_rss_kib": 307020
+  },
+  "build": {
+    "jobs": 16,
+    "wall_seconds": 36,
+    "peak_rss_kib": 1210192,
+    "target_bytes": 519558068,
+    "binary_bytes": 3039024,
+    "builds_byte_identical": true,
+    "receipt_sha256": "4f3eb8ee2f7387f38b62ff49678f40bc388f05ad8c46495a4f0e134041ddf2a6"
+  },
+  "storage": {
+    "retained_pipeline_bytes": 52970997,
+    "retained_pipeline_limit_bytes": 67108864
+  },
+  "resources": {
+    "admitted_projection_seconds": 1320,
+    "previous_ledger_seconds": 34633,
+    "admitted_cumulative_projection_seconds": 35953,
+    "measured_build_seconds": 36,
+    "measured_evaluation_seconds": 5.680792822,
+    "measured_compute_seconds": 41.680792822,
+    "unmeasured_components": [
+      "preparation and review elapsed time",
+      "validation and delivery elapsed time"
+    ]
+  },
+  "review_history": {
+    "test_fitness": "FIT",
+    "fit_record_commit": "4cbdf2a60",
+    "first_prerun_review": "GO at 4cbdf2a60",
+    "first_launch": "refused harmlessly in preflight because JSON number 35953.0 was compared as the string 35953",
+    "repair": "typed jq predicate at b6652aaa4",
+    "second_prerun_review": "GO for b6652aaa4, confirmed after execution",
+    "process_risk": "The independent reviewer observed the builds start during its review, so exclusive pre-launch review freshness was not established. Exact source, input, binary and repeat gates passed; no run field was invalidated after inspection."
+  },
+  "result": {
+    "registered_bar": "fail",
+    "configuration_verdict": "negative",
+    "closed_scope": "fixed target-balanced k=2 observed-medoid-plus-farthest-residual construction on the 60/60 unseen-key panel",
+    "not_closed": "other target-local neighborhoods, point geometry, GPU qualification, complete replies or language capability"
+  }
+}

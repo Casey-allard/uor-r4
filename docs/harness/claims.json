@@ -272,6 +272,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/point-prototypes": {
+    "branch": "deepseek/point-prototypes",
+    "claimed_at": "2026-11-04T06:48:33-05:00",
+    "head": "6f653f2b4",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",
