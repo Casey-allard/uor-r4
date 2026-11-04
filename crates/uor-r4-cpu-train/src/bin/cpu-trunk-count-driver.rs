@@ -20,6 +20,29 @@ use uor_r4_discrete::trunk::{
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
 const SCHEMA: &str = "uor-r4.cpu-trunk-count-run/1";
+const REQUIRED_STAGES: [&str; 21] = [
+    "control_rows",
+    "corpus_split",
+    "decision_reduction",
+    "exact_evaluation",
+    "exact_hash_write",
+    "exact_update_export",
+    "exact_verify",
+    "input_read_hash",
+    "input_validate",
+    "no_update_evaluation",
+    "output_prepare",
+    "parity_reduction",
+    "reader_load",
+    "resource_measure",
+    "shuffled_evaluation",
+    "shuffled_hash_write",
+    "shuffled_reader_load",
+    "shuffled_update_export",
+    "shuffled_verify",
+    "table_verification",
+    "training_row_derivation",
+];
 
 #[derive(Clone)]
 struct Config {
@@ -73,6 +96,61 @@ struct DecisionOutcome {
 struct TableReading {
     total: u64,
     distinct_keys: usize,
+}
+
+#[derive(Debug)]
+struct StageClock {
+    last: Instant,
+    elapsed_ms: BTreeMap<&'static str, f64>,
+}
+
+impl StageClock {
+    fn new(started: Instant) -> Self {
+        Self {
+            last: started,
+            elapsed_ms: BTreeMap::new(),
+        }
+    }
+
+    fn lap(&mut self, name: &'static str) -> Result<(), String> {
+        let now = Instant::now();
+        if self.elapsed_ms.contains_key(name) {
+            return Err(format!("stage {name} was recorded twice"));
+        }
+        self.elapsed_ms
+            .insert(name, now.duration_since(self.last).as_secs_f64() * 1_000.0);
+        self.last = now;
+        Ok(())
+    }
+
+    fn attributed_ms(&self) -> f64 {
+        self.elapsed_ms.values().sum()
+    }
+
+    fn reading(&self, wall_elapsed_ms: f64) -> Result<serde_json::Value, String> {
+        if self.elapsed_ms.len() != REQUIRED_STAGES.len()
+            || REQUIRED_STAGES
+                .iter()
+                .any(|stage| !self.elapsed_ms.contains_key(stage))
+        {
+            return Err("stage set differs from the required profile".to_owned());
+        }
+        let attributed = self.attributed_ms();
+        if !attributed.is_finite()
+            || !wall_elapsed_ms.is_finite()
+            || attributed < 0.0
+            || attributed > wall_elapsed_ms + 0.001
+        {
+            return Err(format!(
+                "stage accounting differs: attributed={attributed}, wall={wall_elapsed_ms}"
+            ));
+        }
+        Ok(json!({
+            "elapsed_ms": self.elapsed_ms,
+            "attributed_ms": attributed,
+            "unattributed_ms": (wall_elapsed_ms - attributed).max(0.0),
+        }))
+    }
 }
 
 fn main() {
@@ -199,10 +277,12 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
         ));
     }
     let started = Instant::now();
+    let mut stages = StageClock::new(started);
     let artifact = read_hashed(&config.artifact, &config.expected_artifact_sha256)?;
     let tokens = read_hashed(&config.tokens, &config.expected_tokens_sha256)?;
     let mask = read_hashed(&config.mask, &config.expected_mask_sha256)?;
     let manifest = read_hashed(&config.manifest, &config.expected_manifest_sha256)?;
+    stages.lap("input_read_hash")?;
     let identity =
         validate_corpus_manifest(&manifest, &tokens, &mask).map_err(|error| error.to_string())?;
     let serving = IntegerDiscreteModel::from_bytes(&artifact).map_err(|error| error.to_string())?;
@@ -216,11 +296,13 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
         .validate_context(context)
         .map_err(|error| error.to_string())?;
     drop(serving);
+    stages.lap("input_validate")?;
     let corpus = CpuMaskedCorpus::from_bytes(&tokens, &mask, vocabulary, context, 0)
         .map_err(|error| error.to_string())?;
     let split = corpus
         .split(config.evaluation_stride, config.max_evaluation)
         .map_err(|error| error.to_string())?;
+    stages.lap("corpus_split")?;
     if split.training.len() < config.train_rows {
         return Err(format!(
             "training split has {} rows, fewer than requested {}",
@@ -243,6 +325,7 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
 
     let reader =
         CpuDiscreteTrunkReader::from_bytes(&artifact).map_err(|error| error.to_string())?;
+    stages.lap("reader_load")?;
     let training = split
         .training
         .get(..config.train_rows)
@@ -259,6 +342,7 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
                 .map_err(|error| error.to_string())
         })
         .collect::<Result<Vec<_>, _>>()?;
+    stages.lap("training_row_derivation")?;
     let shuffled_targets = shuffled_targets(
         &training
             .iter()
@@ -277,26 +361,33 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
+    stages.lap("control_rows")?;
     std::fs::create_dir_all(&config.out).map_err(|error| error.to_string())?;
+    stages.lap("output_prepare")?;
     let exact_artifact = reader
         .add_training_rows_consuming(&training)
         .map_err(|error| error.to_string())?;
+    stages.lap("exact_update_export")?;
     let exact_sha256 = uor_r4_discrete::corpus::sha256(&exact_artifact);
     let exact_bytes = exact_artifact.len();
     std::fs::write(config.out.join("exact.uorlut"), &exact_artifact)
         .map_err(|error| error.to_string())?;
     drop(exact_artifact);
+    stages.lap("exact_hash_write")?;
 
     let shuffled_reader =
         CpuDiscreteTrunkReader::from_bytes(&artifact).map_err(|error| error.to_string())?;
+    stages.lap("shuffled_reader_load")?;
     let shuffled_artifact = shuffled_reader
         .add_training_rows_consuming(&shuffled)
         .map_err(|error| error.to_string())?;
+    stages.lap("shuffled_update_export")?;
     let shuffled_sha256 = uor_r4_discrete::corpus::sha256(&shuffled_artifact);
     let shuffled_bytes = shuffled_artifact.len();
     std::fs::write(config.out.join("shuffled.uorlut"), &shuffled_artifact)
         .map_err(|error| error.to_string())?;
     drop(shuffled_artifact);
+    stages.lap("shuffled_hash_write")?;
     if exact_sha256 == shuffled_sha256 {
         return Err("exact and shuffled count training produced the same artifact".to_owned());
     }
@@ -313,6 +404,7 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
     let source_tables = table_reading(&artifact)?;
     let exact_tables = table_reading(&exact_artifact)?;
     drop(exact_artifact);
+    stages.lap("exact_verify")?;
     let shuffled_artifact =
         std::fs::read(config.out.join("shuffled.uorlut")).map_err(|error| error.to_string())?;
     if semantics(&shuffled_artifact)? != source_semantics {
@@ -323,6 +415,7 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
     }
     let shuffled_tables = table_reading(&shuffled_artifact)?;
     drop(shuffled_artifact);
+    stages.lap("shuffled_verify")?;
     for (name, source) in &source_tables {
         let exact = &exact_tables[name];
         if name == "unigram" {
@@ -336,16 +429,20 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
     if source_tables == exact_tables || source_tables == shuffled_tables {
         return Err("a count-training arm left every table unchanged".to_owned());
     }
+    stages.lap("table_verification")?;
 
     let no_update = evaluate(&artifact, &split.evaluation)?;
+    stages.lap("no_update_evaluation")?;
     let exact_artifact =
         std::fs::read(config.out.join("exact.uorlut")).map_err(|error| error.to_string())?;
     let exact = evaluate(&exact_artifact, &split.evaluation)?;
     drop(exact_artifact);
+    stages.lap("exact_evaluation")?;
     let shuffled_artifact =
         std::fs::read(config.out.join("shuffled.uorlut")).map_err(|error| error.to_string())?;
     let shuffled_reading = evaluate(&shuffled_artifact, &split.evaluation)?;
     drop(shuffled_artifact);
+    stages.lap("shuffled_evaluation")?;
     for (name, reading) in [
         ("no_update", &no_update),
         ("exact", &exact),
@@ -359,6 +456,14 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
             return Err(format!("{name} lost CPU/serving parity"));
         }
     }
+    stages.lap("parity_reduction")?;
+    let exact_vs_no_update_rows = changed_rows(&exact, &no_update)?;
+    let shuffled_vs_no_update_rows = changed_rows(&shuffled_reading, &no_update)?;
+    let exact_vs_shuffled_rows = changed_rows(&exact, &shuffled_reading)?;
+    stages.lap("decision_reduction")?;
+    let peak_rss_kib = peak_rss_kib()?;
+    stages.lap("resource_measure")?;
+    let wall_elapsed_ms = started.elapsed().as_secs_f64() * 1_000.0;
 
     let report = json!({
         "schema": SCHEMA,
@@ -398,13 +503,14 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
             "shuffled": reading_json(&shuffled_reading),
         },
         "changed_decisions": {
-            "exact_vs_no_update_rows": changed_rows(&exact, &no_update)?,
-            "shuffled_vs_no_update_rows": changed_rows(&shuffled_reading, &no_update)?,
-            "exact_vs_shuffled_rows": changed_rows(&exact, &shuffled_reading)?,
+            "exact_vs_no_update_rows": exact_vs_no_update_rows,
+            "shuffled_vs_no_update_rows": shuffled_vs_no_update_rows,
+            "exact_vs_shuffled_rows": exact_vs_shuffled_rows,
         },
+        "stages": stages.reading(wall_elapsed_ms)?,
         "threads": rayon::current_num_threads(),
-        "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
-        "peak_rss_kib": peak_rss_kib()?,
+        "wall_elapsed_ms": wall_elapsed_ms,
+        "peak_rss_kib": peak_rss_kib,
         "claim": "CPU development-research writeback test; not GPU qualification or language capability",
     });
     std::fs::write(
@@ -761,6 +867,44 @@ mod tests {
             top8_mismatches: 0,
             token_mismatches: 0,
         })
+    }
+
+    #[test]
+    fn stage_clock_requires_the_complete_profile() {
+        let started = Instant::now();
+        let mut clock = StageClock::new(started);
+        for stage in REQUIRED_STAGES {
+            clock.lap(stage).unwrap();
+        }
+        let wall_elapsed_ms = started.elapsed().as_secs_f64() * 1_000.0;
+        let reading = clock.reading(wall_elapsed_ms).unwrap();
+        let elapsed = reading["elapsed_ms"].as_object().unwrap();
+        assert_eq!(elapsed.len(), REQUIRED_STAGES.len());
+        assert!(elapsed.values().all(|value| {
+            value
+                .as_f64()
+                .is_some_and(|milliseconds| milliseconds.is_finite() && milliseconds >= 0.0)
+        }));
+        assert!(reading["attributed_ms"].as_f64().unwrap() <= wall_elapsed_ms + 0.001);
+        assert!(reading["unattributed_ms"].as_f64().unwrap() >= 0.0);
+        assert!(clock.lap(REQUIRED_STAGES[0]).is_err());
+
+        let mut missing = StageClock::new(Instant::now());
+        for stage in REQUIRED_STAGES.iter().take(REQUIRED_STAGES.len() - 1) {
+            missing.lap(stage).unwrap();
+        }
+        assert!(missing
+            .reading(started.elapsed().as_secs_f64() * 1_000.0)
+            .is_err());
+
+        let mut extra = StageClock::new(Instant::now());
+        for stage in REQUIRED_STAGES {
+            extra.lap(stage).unwrap();
+        }
+        extra.lap("extra").unwrap();
+        assert!(extra
+            .reading(started.elapsed().as_secs_f64() * 1_000.0)
+            .is_err());
     }
 
     #[test]

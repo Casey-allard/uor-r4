@@ -229,6 +229,18 @@ work; stage timing is required before naming the remaining bottleneck. This is
 a performance/instrument negative, not a model result. See
 [deepseek-126](../../loop/tasks/cpu-training-pilot/deepseek-126/REPORT.md).
 
+The count driver now reports and validates a complete 21-stage profile, failing
+closed on duplicate, missing or extra stages. Four mirrored runs at one and
+sixteen workers reproduced every deepseek-125/126 artifact and non-stage report
+field while accounting for all measured wall time. `exact_verify` was the
+largest stage at both worker counts, at **26.70%/28.27%**, and exact plus
+shuffled verification consumed **45.32%/48.05%** of wall time. Held-out
+evaluation consumed another **32.20%/32.02%**. The measured next target is to
+remove repeated full-trunk decoding from verification without weakening its
+independent full-table check. This is diagnostic evidence, not a speed or
+capability gain. See
+[deepseek-127](../../loop/tasks/cpu-training-pilot/deepseek-127/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

@@ -349,6 +349,13 @@
     "lab": "deepseek",
     "note": "parallel 19-table CPU count driver"
   },
+  "deepseek/trunk-stages": {
+    "branch": "deepseek/trunk-stages",
+    "claimed_at": "2026-11-04T05:02:08-05:00",
+    "head": "3441ba625",
+    "lab": "deepseek",
+    "note": "stage profile the 19-table CPU count driver"
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",
