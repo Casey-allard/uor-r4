@@ -28,6 +28,7 @@ struct Config {
     key_tokens: usize,
     reply_turn: usize,
     random_seed: u64,
+    neighbor_vote: usize,
     select_only: bool,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
@@ -48,6 +49,15 @@ struct OpeningReading {
     target_distance_sum: u64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
+struct NeighborReading {
+    decisions: u64,
+    nearest_top1: u64,
+    vote_top1: u64,
+    random_vote_top1: u64,
+    nearest_matches_served: u64,
+}
+
 fn main() {
     match run() {
         Ok(report) => println!(
@@ -66,7 +76,8 @@ fn usage() -> String {
      --expected-artifact-sha256 HEX --expected-tokens-sha256 HEX \
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--train-keys N] [--evaluation-keys N] [--per-key N] \
-     [--key-tokens N] [--reply-turn N] [--random-seed N] [--select-only]"
+     [--key-tokens N] [--reply-turn N] [--random-seed N] \
+     [--neighbor-vote N] [--select-only]"
         .to_owned()
 }
 
@@ -89,6 +100,7 @@ fn parse_args() -> Result<Config, String> {
         key_tokens: 8,
         reply_turn: 8,
         random_seed: 1,
+        neighbor_vote: 0,
         select_only: false,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
@@ -110,6 +122,7 @@ fn parse_args() -> Result<Config, String> {
             "--key-tokens" => config.key_tokens = number(&value)?,
             "--reply-turn" => config.reply_turn = number(&value)?,
             "--random-seed" => config.random_seed = number(&value)?,
+            "--neighbor-vote" => config.neighbor_vote = number(&value)?,
             "--expected-artifact-sha256" => config.expected_artifact_sha256 = hex(&value)?,
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
             "--expected-mask-sha256" => config.expected_mask_sha256 = hex(&value)?,
@@ -306,6 +319,27 @@ fn run() -> Result<serde_json::Value, String> {
     if opening_distances.len() != 1 {
         return Err("point fallback changed the opening query distance".to_owned());
     }
+    let neighbor = if config.neighbor_vote == 0 {
+        None
+    } else {
+        if config.neighbor_vote > point.rows() {
+            return Err("neighbor vote exceeds the point-table row count".to_owned());
+        }
+        Some(
+            evaluate_neighbor_vote(
+                &memory_artifact,
+                &point_artifact,
+                &point,
+                &random_point,
+                &evaluation_samples,
+                config.neighbor_vote,
+            )
+            .map_err(|error| error.to_string())?,
+        )
+    };
+    if neighbor.is_some_and(|reading| reading.nearest_matches_served != reading.decisions) {
+        return Err("nearest point extraction differs from the served point key".to_owned());
+    }
     let full = [
         ("point_off", &memory_artifact),
         ("point", &point_artifact),
@@ -340,6 +374,16 @@ fn run() -> Result<serde_json::Value, String> {
     let p = baseline_hits as f64 / n as f64;
     let sigma = 3.0 * (n as f64 * p * (1.0 - p)).sqrt();
     let threshold = sigma.ceil() as u64;
+    let neighbor_three_sigma = neighbor.map(|reading| {
+        let p = reading.nearest_top1 as f64 / reading.decisions as f64;
+        let threshold = (3.0 * (reading.decisions as f64 * p * (1.0 - p)).sqrt()).ceil() as u64;
+        serde_json::json!({
+            "baseline_nearest": reading.nearest_top1,
+            "decisions": reading.decisions,
+            "vote_delta": reading.vote_top1 as i64 - reading.nearest_top1 as i64,
+            "threshold": threshold,
+        })
+    });
     let report = serde_json::json!({
         "schema": SCHEMA,
         "substrate": "cpu-development-research",
@@ -379,6 +423,10 @@ fn run() -> Result<serde_json::Value, String> {
             "random_artifact_sha256": uor_r4_discrete::corpus::sha256(&random_artifact),
             "random_seed": config.random_seed,
         },
+        "neighbor_vote": {
+            "k": config.neighbor_vote,
+            "reading": neighbor,
+        },
         "opening": opening,
         "full_teacher_forced": full,
         "parity": parity,
@@ -389,6 +437,7 @@ fn run() -> Result<serde_json::Value, String> {
             "random_delta": opening["random"].top1_correct as i64 - baseline_hits as i64,
             "threshold": threshold,
         },
+        "neighbor_three_sigma": neighbor_three_sigma,
         "threads": rayon::current_num_threads(),
         "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
         "peak_rss_kib": peak_rss_kib(),
@@ -576,6 +625,96 @@ fn assert_held_out_exact_keys_miss(
     Ok(())
 }
 
+fn evaluate_neighbor_vote(
+    memory_artifact: &[u8],
+    point_artifact: &[u8],
+    point: &PointKeyImage,
+    random_point: &PointKeyImage,
+    samples: &[CpuConversationSample],
+    neighbors: usize,
+) -> Result<NeighborReading, String> {
+    let readings = samples
+        .par_iter()
+        .map(|sample| {
+            let (query, _) = opening_query_and_token(memory_artifact, &sample.prompt)?;
+            let (_, served) = opening_query_and_token(point_artifact, &sample.prompt)?;
+            let nearest = point_vote(point, &query, 1)?;
+            let vote = point_vote(point, &query, neighbors)?;
+            let random_vote = point_vote(random_point, &query, neighbors)?;
+            let target = *sample
+                .reply
+                .first()
+                .ok_or_else(|| "evaluation reply is empty".to_owned())?;
+            Ok((
+                u64::from(nearest == target),
+                u64::from(vote == target),
+                u64::from(random_vote == target),
+                u64::from(nearest == served),
+            ))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut reading = NeighborReading {
+        decisions: readings.len() as u64,
+        ..NeighborReading::default()
+    };
+    for (nearest, vote, random_vote, matches_served) in readings {
+        reading.nearest_top1 += nearest;
+        reading.vote_top1 += vote;
+        reading.random_vote_top1 += random_vote;
+        reading.nearest_matches_served += matches_served;
+    }
+    Ok(reading)
+}
+
+fn opening_query_and_token(artifact: &[u8], prompt: &[u32]) -> Result<(Vec<i32>, u32), String> {
+    let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|error| error.to_string())?;
+    let mut result = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| error.to_string())?;
+        if index + 1 == prompt.len() {
+            result = Some((step.query_q12, step.token));
+        }
+    }
+    result.ok_or_else(|| "evaluation prompt is empty".to_owned())
+}
+
+fn point_vote(image: &PointKeyImage, query: &[i32], neighbors: usize) -> Result<u32, String> {
+    if query.len() != image.width || image.rows() == 0 || neighbors == 0 || neighbors > image.rows()
+    {
+        return Err("invalid point-neighborhood query or size".to_owned());
+    }
+    let mut distances = image
+        .points
+        .chunks_exact(image.width)
+        .enumerate()
+        .map(|(row, point)| {
+            let distance = query
+                .iter()
+                .zip(point)
+                .try_fold(0u64, |sum, (&query, &point)| {
+                    sum.checked_add(u64::from(query.abs_diff(i32::from(point))))
+                        .ok_or_else(|| "point-neighborhood distance overflows".to_owned())
+                })?;
+            Ok((distance, row))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    distances.sort_unstable();
+    let mut counts = BTreeMap::<u32, usize>::new();
+    for &(_, row) in distances.iter().take(neighbors) {
+        *counts.entry(image.targets[row]).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .max_by(|left, right| left.1.cmp(&right.1).then_with(|| right.0.cmp(&left.0)))
+        .map(|(target, _)| target)
+        .ok_or_else(|| "point neighborhood names no target".to_owned())
+}
+
 fn evaluate_openings(
     artifact: &[u8],
     samples: &[CpuConversationSample],
@@ -685,6 +824,7 @@ mod tests {
             key_tokens: 8,
             reply_turn: 8,
             random_seed: 1,
+            neighbor_vote: 0,
             select_only: true,
             expected_artifact_sha256: String::new(),
             expected_tokens_sha256: String::new(),
@@ -733,6 +873,38 @@ mod tests {
         assert_ne!(targets, points.targets);
         assert_eq!(points.points.len(), points.rows() * points.width);
         assert!(shuffled_targets(&[7], 17).is_err());
+    }
+
+    #[test]
+    fn eight_row_vote_can_override_a_wrong_nearest_row() {
+        let points = PointKeyImage {
+            width: 1,
+            points: vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            targets: vec![9, 7, 7, 7, 7, 7, 7, 7, 8],
+        };
+        assert_eq!(point_vote(&points, &[0], 1).unwrap(), 9);
+        assert_eq!(point_vote(&points, &[0], 8).unwrap(), 7);
+    }
+
+    #[test]
+    fn point_vote_breaks_equal_counts_to_the_smaller_target() {
+        let points = PointKeyImage {
+            width: 1,
+            points: vec![1, 1, 2, 2],
+            targets: vec![9, 5, 7, 8],
+        };
+        assert_eq!(point_vote(&points, &[0], 2).unwrap(), 5);
+    }
+
+    #[test]
+    fn point_vote_refuses_an_empty_or_oversized_neighborhood() {
+        let points = PointKeyImage {
+            width: 1,
+            points: vec![1, 2],
+            targets: vec![3, 4],
+        };
+        assert!(point_vote(&points, &[0], 0).is_err());
+        assert!(point_vote(&points, &[0], 3).is_err());
     }
 
     fn opening_token(artifact: &[u8], prompt: &[u32]) -> u32 {
@@ -816,6 +988,17 @@ mod tests {
             opening_token(&random_artifact, &held_out.prompt),
             point_token
         );
+        let neighbors = evaluate_neighbor_vote(
+            &memory_artifact,
+            &point_artifact,
+            &point,
+            &random_point,
+            std::slice::from_ref(&held_out),
+            1,
+        )
+        .unwrap();
+        assert_eq!(neighbors.decisions, 1);
+        assert_eq!(neighbors.nearest_matches_served, 1);
         assert_held_out_exact_keys_miss(&memory_artifact, &[memory_sample(&held_out)]).unwrap();
         let hit = CpuConversationSample {
             document_ordinal: 1,

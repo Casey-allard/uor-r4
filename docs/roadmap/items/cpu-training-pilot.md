@@ -97,6 +97,12 @@ point table, Q24 query points and nearest-target rule as a bounded negative; it
 does not reject every point-key representation. See
 [deepseek-104](../../loop/tasks/cpu-training-pilot/deepseek-104/REPORT.md).
 
+An eight-row majority vote over the same point rows then beat point-off, the
+single nearest row and the eight-row shuffled-target vote on both seeds, at
+`3/60` versus `1–2/60`. The gain was below the separate three-sigma threshold,
+and the rule is not in the integer artifact or session yet. See
+[deepseek-105](../../loop/tasks/cpu-training-pilot/deepseek-105/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

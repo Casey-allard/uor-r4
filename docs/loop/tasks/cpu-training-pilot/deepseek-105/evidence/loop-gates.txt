@@ -1,0 +1,22 @@
+First attempt:
+
+loop-drive RED exit 101
+post_note_with_pipes_the_body_to_gh_issue_comment
+Io("cannot run .../fake-gh: Text file busy (os error 26)")
+27 passed; 1 failed
+
+Immediate rerun:
+
+fmt-claim-wording          GREEN
+fmt-harness                GREEN
+claim-wording              GREEN
+loop-gates-watch           GREEN
+loop-drive                 GREEN
+loop-next-sources          GREEN
+loop-next-wait             GREEN
+loop-next-owner-direction  GREEN
+git-hooks                  GREEN
+loop-migrate               GREEN
+loop-review-changes-blocks GREEN
+
+11 of 11 gates passed.

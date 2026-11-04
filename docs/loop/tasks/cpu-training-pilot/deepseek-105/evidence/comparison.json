@@ -1,0 +1,77 @@
+{
+  "schema": "uor-r4.cpu-point-neighborhood-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "verdict": "positive-primary-screen-subthreshold-ranking",
+  "k": 8,
+  "served": false,
+  "selection": {
+    "training_keys": 8,
+    "evaluation_keys": 8,
+    "key_overlap": 0,
+    "training_samples": 60,
+    "evaluation_samples": 60,
+    "point_rows": 48
+  },
+  "seed_1": {
+    "opening": {
+      "point_off_top1": 0,
+      "nearest_top1": 2,
+      "point_vote_top1": 3,
+      "random_vote_top1": 2
+    },
+    "nearest_matches_served": 60,
+    "decisions": 60,
+    "vote_minus_nearest": 1,
+    "three_sigma_threshold": 5,
+    "full_teacher_forced": {
+      "point_off_top1": 169,
+      "point_top1": 171,
+      "random_top1": 169,
+      "decisions": 2050
+    },
+    "parity": {
+      "samples": 60,
+      "positions": 2110,
+      "query_coordinates": 540160,
+      "token_decisions": 2110,
+      "kept_cells": 16880,
+      "mismatches": 0
+    },
+    "wall_elapsed_ms": 1075.01742,
+    "peak_rss_kib": 295288
+  },
+  "seed_2": {
+    "opening": {
+      "point_off_top1": 0,
+      "nearest_top1": 1,
+      "point_vote_top1": 3,
+      "random_vote_top1": 2
+    },
+    "nearest_matches_served": 60,
+    "decisions": 60,
+    "vote_minus_nearest": 2,
+    "three_sigma_threshold": 3,
+    "full_teacher_forced": {
+      "point_off_top1": 163,
+      "point_top1": 164,
+      "random_top1": 166,
+      "decisions": 2050
+    },
+    "parity": {
+      "samples": 60,
+      "positions": 2110,
+      "query_coordinates": 540160,
+      "token_decisions": 2110,
+      "kept_cells": 16880,
+      "mismatches": 0
+    },
+    "wall_elapsed_ms": 1061.784629,
+    "peak_rss_kib": 295808
+  },
+  "local_run_roots": [
+    "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-neighborhood/deepseek-105/seed-1",
+    "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-neighborhood/deepseek-105/seed-2"
+  ],
+  "next": "Implement an artifact-bound integer vote field and exact served audit in a separate unit; do not treat this offline screen as serving or language capability."
+}
