@@ -199,6 +199,23 @@ pub fn row_cut_set() -> bool {
     ROW_CUT.with(|c| c.borrow().is_some())
 }
 
+/// The read's instrument set on this thread that the decode cache's step cannot carry, if one is
+/// (claude-279): the decode cut and the row cut name the whole window's positions and rows, and
+/// the decision trace and forced codes name its rows.
+pub(crate) fn step_instrument() -> Option<&'static str> {
+    if CUT.with(|c| c.get()).is_some() {
+        Some("Hamming read's decode cut")
+    } else if row_cut_set() {
+        Some("Hamming read's row cut")
+    } else if TRACE.with(|t| t.borrow().is_some()) {
+        Some("Hamming read's decision trace")
+    } else if CODE_FORCE.with(|f| !f.borrow().is_empty()) {
+        Some("Hamming read's forced codes")
+    } else {
+        None
+    }
+}
+
 /// Whether the scope limits head `head`, the first `copy_heads` heads being copy heads.
 fn head_limited(scope: ReadScope, head: usize, copy_heads: usize) -> bool {
     match scope {
@@ -739,6 +756,55 @@ impl HammingReads {
         }
     }
 
+    /// The same reads with every parameter drawn from `seed`, for the step cache's gates
+    /// (claude-279): unit rotations (the type spin's too, when on), margins from 37% to 69% of a
+    /// head's bits, so heads both keep and drop candidates, and weights in [-0.5, 0.5].
+    #[cfg(test)]
+    pub(crate) fn randomized(self, seed: u64) -> Result<Self> {
+        fn draw(state: &mut u64) -> f32 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((*state >> 33) % 20_001) as f32 / 10_000.0 - 1.0
+        }
+        let mut state = seed;
+        for read in &self.reads {
+            let width = read.weight.dim(1)?;
+            let (lanes, head_bits) = (width / 4, (width / read.heads) as f32);
+            let device = read.weight.device().clone();
+            let mut rotations = vec![
+                &read.query_rotation,
+                &read.key_rotation,
+                &read.value_rotation,
+            ];
+            rotations.extend(read.step_rotation.as_ref());
+            for var in rotations {
+                let values: Vec<f32> = (0..lanes)
+                    .flat_map(|_| {
+                        let q = [
+                            draw(&mut state),
+                            draw(&mut state),
+                            draw(&mut state),
+                            draw(&mut state),
+                        ];
+                        let norm = q.iter().map(|v| v * v).sum::<f32>().sqrt().max(1e-3);
+                        q.map(|v| v / norm)
+                    })
+                    .collect();
+                var.set(&Tensor::from_vec(values, (lanes, 4), &device)?)?;
+            }
+            let margins: Vec<f32> = (0..read.heads)
+                .map(|_| head_bits * (0.53 + 0.16 * draw(&mut state)))
+                .collect();
+            read.margin
+                .set(&Tensor::from_vec(margins, read.heads, &device)?)?;
+            let weights: Vec<f32> = (0..2 * width).map(|_| 0.5 * draw(&mut state)).collect();
+            read.weight
+                .set(&Tensor::from_vec(weights, (2, width), &device)?)?;
+        }
+        Ok(self)
+    }
+
     /// The read inside the stream after `depth` layers, if one runs there.
     pub fn at_depth(&self, depth: usize) -> Option<&HammingRead> {
         if depth == HAMMING_READOUT_DEPTH {
@@ -958,7 +1024,31 @@ impl HammingRead {
     /// `ids`, with token points from the shared `table`: `x + w_c ⊙ c + w_y ⊙ y`. Returns the
     /// same shape.
     pub fn apply(&self, residual: &Tensor, ids: &[u32], table: &Tensor) -> Result<Tensor> {
-        self.read(residual, ids, table, false)
+        self.read(residual, ids, table, false, 0)
+    }
+
+    /// [`Self::apply`] at each window's last position only (claude-279, the decode cache's step):
+    /// `residual` `(batch, time, width)` holds every position so far and `ids` every row's whole
+    /// window. Returns that position's `(batch, 1, width)`, the row the whole window's read gives.
+    pub(crate) fn apply_last(
+        &self,
+        residual: &Tensor,
+        ids: &[u32],
+        table: &Tensor,
+    ) -> Result<Tensor> {
+        let time = residual.dim(1)?;
+        self.read(residual, ids, table, false, time.saturating_sub(1))
+    }
+
+    /// [`Self::apply_readout`] at each window's last position only, as [`Self::apply_last`].
+    pub(crate) fn apply_readout_last(
+        &self,
+        output: &Tensor,
+        ids: &[u32],
+        table: &Tensor,
+    ) -> Result<Tensor> {
+        let time = output.dim(1)?;
+        self.read(output, ids, table, true, time.saturating_sub(1))
     }
 
     /// The read applied to the final norm's output `(batch, time, width)`, the points the
@@ -967,20 +1057,30 @@ impl HammingRead {
     /// `n + w_y ⊙ y` where none did. At `w_c = 1` a found copy is decoded exactly. A nearest
     /// readout names the point a prediction is at, so a copy is a move, not an added term.
     pub fn apply_readout(&self, output: &Tensor, ids: &[u32], table: &Tensor) -> Result<Tensor> {
-        self.read(output, ids, table, true)
+        self.read(output, ids, table, true, 0)
     }
 
+    /// The read at the positions `from..time` of each window: every position (`from` 0), or the
+    /// decode cache's step at the last (claude-279). The keys, values and asks are computed over
+    /// the whole window either way, so a step's are the whole window's; only the asking rows go
+    /// on to the choice, and from there each row's arithmetic is its own.
     fn read(
         &self,
         residual: &Tensor,
         ids: &[u32],
         table: &Tensor,
         readout: bool,
+        from: usize,
     ) -> Result<Tensor> {
         let (batch, time, width) = residual.dims3()?;
         let rows = batch * time;
         if ids.len() != rows {
             return Err(invalid("the Hamming read needs whole windows"));
+        }
+        if from >= time.max(1) {
+            return Err(invalid(format!(
+                "the Hamming read asks from position {from} of a window of {time}"
+            )));
         }
         // A window of one token has no earlier position to read.
         if time < 2 {
@@ -1114,6 +1214,26 @@ impl HammingRead {
         if row_cut.as_ref().is_some_and(|(_, limits)| limits.len() != rows) {
             return Err(invalid("the read's row cut names a limit for every row"));
         }
+        // Each names rows or positions of the whole window; the decode cache's step refuses them
+        // first (`step_instrument`).
+        if from > 0 && (cut.is_some() || row_cut.is_some() || tracing || !forced.is_empty()) {
+            return Err(invalid(
+                "the read's step carries no decode cut, row cut, trace or forced code (an instrument fault)",
+            ));
+        }
+        // The positions that ask: all of them, or the step's last.
+        let asks = time - from;
+        let asking = batch * asks;
+        let ask_rows = |t: &Tensor| -> Result<Tensor> {
+            if from == 0 {
+                return Ok(t.clone());
+            }
+            Ok(t.reshape((batch, time, width))?
+                .narrow(1, from, asks)?
+                .contiguous()?
+                .reshape((asking, width))?)
+        };
+        let (query, asked) = (ask_rows(&query)?, ask_rows(&points)?);
         // What each kind of head brings back, at full width: a copy head the table's point of the
         // kept position's own token, the readout's own point for it (the 26 Sep head's tied
         // readout); a type head the kept position's rotated residual.
@@ -1122,13 +1242,13 @@ impl HammingRead {
             value.reshape((batch, time, width))?,
         ];
         let mut sums = [
-            Tensor::zeros((rows, width), DType::F32, device)?,
-            Tensor::zeros((rows, width), DType::F32, device)?,
+            Tensor::zeros((asking, width), DType::F32, device)?,
+            Tensor::zeros((asking, width), DType::F32, device)?,
         ];
         // How many heads of each kind found any candidate inside their margin, per row.
         let mut found = [
-            Tensor::zeros((rows, 1), DType::F32, device)?,
-            Tensor::zeros((rows, 1), DType::F32, device)?,
+            Tensor::zeros((asking, 1), DType::F32, device)?,
+            Tensor::zeros((asking, 1), DType::F32, device)?,
         ];
         // claude-235: with both off, the read computes as before them. Since claude-239 the tie
         // rule is on by default and the trace off.
@@ -1139,9 +1259,13 @@ impl HammingRead {
             let k = key.narrow(1, h * head_width, head_width)?.contiguous()?;
             // A window's first position has no previous token, so its key names nothing: the
             // candidates start at 1.
-            let limits = row_limits(cut, row_cut.as_ref(), h, self.copy_heads(), time, rows);
-            let (picks, real) =
-                choose_sorted(&q, &k, batch, time, HAMMING_KEPT, 1, &limits, tie)?;
+            let limits = row_limits(cut, row_cut.as_ref(), h, self.copy_heads(), time, asking);
+            // A whole window keeps the call it made before the step existed (claude-279).
+            let (picks, real) = if from == 0 {
+                choose_sorted(&q, &k, batch, time, HAMMING_KEPT, 1, &limits, tie)?
+            } else {
+                choose_sorted_from(&q, &k, batch, time, from, HAMMING_KEPT, 1, &limits, tie)?
+            };
             if tracing {
                 let head = |p: &Tensor| -> Result<Vec<Vec<f32>>> {
                     Ok(p.narrow(1, h * head_width, head_width)?.contiguous()?.to_vec2::<f32>()?)
@@ -1165,14 +1289,14 @@ impl HammingRead {
             // spreads over windows and coordinates instead of looping over every pick.
             let index = |columns: usize| -> Result<Tensor> {
                 Ok(picks
-                    .reshape((batch, time * kept, 1))?
-                    .broadcast_as((batch, time * kept, columns))?
+                    .reshape((batch, asks * kept, 1))?
+                    .broadcast_as((batch, asks * kept, columns))?
                     .contiguous()?)
             };
             let kept_keys = k
                 .reshape((batch, time, head_width))?
                 .gather(&index(head_width)?, 1)?
-                .reshape((rows, kept, head_width))?;
+                .reshape((asking, kept, head_width))?;
             let bits = hamming_bits(&q.unsqueeze(1)?, &kept_keys)?;
             // Each candidate weighs `max(0, m − d) / m`, between 0 and 1, so an exact match
             // (`d = 0`) counts in full. The head reports the mean over the candidates it reads,
@@ -1193,7 +1317,7 @@ impl HammingRead {
             let kind = usize::from(h >= self.copy_heads());
             let payload = sources[kind]
                 .gather(&index(width)?, 1)?
-                .reshape((rows, kept, width))?;
+                .reshape((asking, kept, width))?;
             sums[kind] = sums[kind].add(
                 &payload
                     .broadcast_mul(&weights.unsqueeze(2)?)?
@@ -1252,14 +1376,14 @@ impl HammingRead {
         let copied = if readout {
             // Only where a copy head found an earlier copy does the prediction move.
             let matched = found[0].gt(0.0)?.to_dtype(DType::F32)?;
-            means[0].sub(&points)?.broadcast_mul(&matched)?
+            means[0].sub(&asked)?.broadcast_mul(&matched)?
         } else {
             means[0].clone()
         };
         let added = copied
             .broadcast_mul(&copy_weight)?
             .add(&means[1].broadcast_mul(&type_weight)?)?;
-        Ok(points.add(&added)?.reshape((batch, time, width))?)
+        Ok(asked.add(&added)?.reshape((batch, asks, width))?)
     }
 }
 
@@ -1373,6 +1497,36 @@ pub(crate) fn choose_sorted(
     choose_sorted_in(query, key, batch, time, neighbours, first, limits, tie, DISTANCE_CHUNK_BYTES)
 }
 
+/// [`choose_sorted`] for the query positions `from..time` of each window only (claude-279): the
+/// decode cache's step asks at its window's last position alone. `query` holds those positions'
+/// rows, `(batch · (time − from), width)`; `key` and `limits` are as before, `limits` one per query
+/// row. Each query row's distances, mask and sort are the ones the whole window computes for it.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn choose_sorted_from(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    from: usize,
+    neighbours: usize,
+    first: usize,
+    limits: &[usize],
+    tie: bool,
+) -> Result<(Tensor, Tensor)> {
+    choose_sorted_asking(
+        query,
+        key,
+        batch,
+        time,
+        from,
+        neighbours,
+        first,
+        limits,
+        tie,
+        DISTANCE_CHUNK_BYTES,
+    )
+}
+
 /// The byte budget for one chunk of [`choose_sorted`]'s `(batch, chunk, time, width)` f32
 /// difference (claude-272): 256 MiB. The difference and its absolute value are alive together,
 /// so a chunk holds about twice this. A chunk takes at least one position, so past batch 512 at
@@ -1401,33 +1555,36 @@ fn distance_chunk(batch: usize, time: usize, width: usize, bytes: usize) -> usiz
     (bytes / per_position.max(1)).clamp(1, time.max(1))
 }
 
-/// The mean L1 between each position `t` of `q` `(batch, time, 1, width)` and every position of
-/// `k` `(batch, 1, time, width)`, as `(batch · time, time)`, `chunk` query positions at a time.
+/// The mean L1 between each query position of `q` `(batch, asks, 1, width)` and every position of
+/// `k` `(batch, 1, time, width)`, as `(batch · asks, time)`, `chunk` query positions at a time.
 /// Each distance is the same mean over the same coordinates whatever the chunk.
 fn mean_l1_rows(q: &Tensor, k: &Tensor, batch: usize, time: usize, chunk: usize) -> Result<Tensor> {
-    let mut parts = Vec::with_capacity(time.div_ceil(chunk));
+    let asks = q.dim(1)?;
+    let mut parts = Vec::with_capacity(asks.div_ceil(chunk));
     let mut at = 0;
-    while at < time {
-        let n = chunk.min(time - at);
+    while at < asks {
+        let n = chunk.min(asks - at);
         parts.push(q.narrow(1, at, n)?.broadcast_sub(k)?.abs()?.mean(3)?);
         at += n;
     }
-    Ok(Tensor::cat(&parts, 1)?.reshape((batch * time, time))?)
+    Ok(Tensor::cat(&parts, 1)?.reshape((batch * asks, time))?)
 }
 
 /// The read's candidate rule, `first ≤ s < t` and `s < limit`, at every position `s` for each of
-/// `rows` rows of windows of `time` positions, as a `(rows, time)` mask of 0 and 1. It is built
-/// on `device` from each row's position in its window and its limit (claude-272; before, a host
-/// loop over every entry).
+/// `rows` rows that ask at positions `from..time` of windows of `time` positions (`from` is 0 for
+/// whole windows), as a `(rows, time)` mask of 0 and 1. It is built on `device` from each row's
+/// position in its window and its limit (claude-272; before, a host loop over every entry).
 fn candidate_mask(
     rows: usize,
     time: usize,
+    from: usize,
     first: usize,
     limits: &[usize],
     device: &Device,
 ) -> Result<Tensor> {
     let s = Tensor::arange(0u32, time as u32, device)?.reshape((1, time))?;
-    let at: Vec<u32> = (0..rows).map(|r| (r % time) as u32).collect();
+    let asks = time - from;
+    let at: Vec<u32> = (0..rows).map(|r| (from + r % asks) as u32).collect();
     let at = Tensor::from_vec(at, (rows, 1), device)?;
     // `s` is below `time`, so a limit past it cuts nothing.
     let limit: Vec<u32> = limits.iter().map(|&l| l.min(time) as u32).collect();
@@ -1451,13 +1608,49 @@ fn choose_sorted_in(
     tie: bool,
     chunk_bytes: usize,
 ) -> Result<(Tensor, Tensor)> {
+    choose_sorted_asking(
+        query,
+        key,
+        batch,
+        time,
+        0,
+        neighbours,
+        first,
+        limits,
+        tie,
+        chunk_bytes,
+    )
+}
+
+/// [`choose_sorted_in`] for the query positions `from..time` of each window ([`choose_sorted_from`]).
+#[allow(clippy::too_many_arguments)]
+fn choose_sorted_asking(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    from: usize,
+    neighbours: usize,
+    first: usize,
+    limits: &[usize],
+    tie: bool,
+    chunk_bytes: usize,
+) -> Result<(Tensor, Tensor)> {
+    if from >= time {
+        return Err(invalid(format!(
+            "the read asks from position {from} of a window of {time}"
+        )));
+    }
     let device = query.device();
     let kept = neighbours.min(time.saturating_sub(1)).max(1);
     let width = query.dim(1)?;
-    let rows = batch * time;
-    let q = query.detach().reshape((batch, time, 1, width))?;
+    let asks = time - from;
+    let rows = batch * asks;
+    let q = query.detach().reshape((batch, asks, 1, width))?;
     let k = key.detach().reshape((batch, 1, time, width))?;
-    let chunk = distance_chunk(batch, time, width, chunk_bytes);
+    // At most `asks` positions per chunk: `distance_chunk` caps at `time`, so a whole window's
+    // chunk is unchanged.
+    let chunk = distance_chunk(batch, time, width, chunk_bytes).min(asks);
     if !launch_fits(&[rows, time]) || !launch_fits(&[batch, chunk, time, width]) {
         return Err(invalid(format!(
             "the read over {batch} windows of {time} positions builds a tensor of 2^32 elements \
@@ -1482,7 +1675,7 @@ fn choose_sorted_in(
     } else {
         distance
     };
-    let earlier = candidate_mask(rows, time, first, limits, device)?;
+    let earlier = candidate_mask(rows, time, from, first, limits, device)?;
     let far = Tensor::full(FAR, (rows, time), device)?;
     let masked = earlier.where_cond(&distance, &far)?.contiguous()?;
     let order = masked
@@ -2264,7 +2457,7 @@ mod tests {
         ];
         for first in [0, 1, 2] {
             for limits in &limit_sets {
-                let mask = candidate_mask(rows, time, first, limits, &device).unwrap();
+                let mask = candidate_mask(rows, time, 0, first, limits, &device).unwrap();
                 for (r, row) in mask.to_vec2::<u8>().unwrap().iter().enumerate() {
                     for (s, &m) in row.iter().enumerate() {
                         let rule = u8::from(is_candidate(s, r % time, first, limits[r]));

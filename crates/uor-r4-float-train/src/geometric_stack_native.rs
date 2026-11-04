@@ -539,6 +539,73 @@ fn quaternion_scan_step(held: &Tensor, transition: &Tensor, drive: &Tensor) -> R
     Ok(both.narrow(1, 1, 1)?)
 }
 
+/// How many Hamming reads a trunk of `layers` layers runs with the reads set on this thread: one
+/// inside the stream at each depth that has one, and the readout's (claude-279).
+fn hamming_read_sites(layers: usize) -> usize {
+    crate::flock_read_hamming::hamming_reads().map_or(0, |reads| {
+        (1..=layers)
+            .filter(|&d| reads.at_depth(d).is_some())
+            .count()
+            + usize::from(reads.readout().is_some())
+    })
+}
+
+/// One Hamming read in a trunk forward (claude-279). Without a carry, the whole window's read, as
+/// before. Under `Capture`, the same read, its input kept at every position. Under `Step`, the
+/// input at the step's position joins the kept ones, and the read asks at that position alone
+/// against the whole window ([`HammingRead::apply_last`]).
+fn hamming_read(
+    read: &crate::flock_read_hamming::HammingRead,
+    x: &Tensor,
+    ids: &[u32],
+    table: &Tensor,
+    readout: bool,
+    carry: Option<&mut TrunkCarry<'_>>,
+    slot: &mut usize,
+) -> Result<Tensor> {
+    let Some(carry) = carry else {
+        return if readout {
+            read.apply_readout(x, ids, table)
+        } else {
+            read.apply(x, ids, table)
+        };
+    };
+    let at = *slot;
+    *slot += 1;
+    match carry.mode {
+        CarryMode::Capture => {
+            if carry.reads.len() != at {
+                return Err(invalid("the prefill met the Hamming reads out of order"));
+            }
+            carry.reads.push(x.clone());
+            if readout {
+                read.apply_readout(x, ids, table)
+            } else {
+                read.apply(x, ids, table)
+            }
+        }
+        CarryMode::Step => {
+            let earlier = carry
+                .reads
+                .get(at)
+                .ok_or_else(|| invalid("the decode cache holds no input for this Hamming read"))?;
+            let all = Tensor::cat(&[earlier, x], 1)?;
+            if all.dim(0)? * all.dim(1)? != carry.window.len() {
+                return Err(invalid(
+                    "the decode cache's Hamming input and its window ids disagree in length",
+                ));
+            }
+            let out = if readout {
+                read.apply_readout_last(&all, carry.window, table)?
+            } else {
+                read.apply_last(&all, carry.window, table)?
+            };
+            carry.reads[at] = all;
+            Ok(out)
+        }
+    }
+}
+
 /// One layer's carry in a [`DecodeCache`]: what the recurrence reads from earlier positions.
 #[derive(Clone, Debug)]
 pub struct LayerCarry {
@@ -557,6 +624,9 @@ pub struct LayerCarry {
 /// the residuals and the MLP. The two that look back are the width-4 causal convolution and the
 /// quaternion scan. The cache carries what those two read, per layer, at f32, and
 /// [`StackModel::step_cached`] computes one position through the same ops, in the same order.
+/// The Hamming reads, when set, look back too: the cache keeps each read's input residual and
+/// each row's ids at every position, and a step runs the read's own code over them with its
+/// asks cut to the new position (claude-279).
 ///
 /// It is the float twin of the integer session's per-layer carry
 /// (`uor_r4_integer::stack::session::LayerState::Recurrence`: the scan state and the
@@ -573,6 +643,12 @@ pub struct DecodeCache {
     context: usize,
     /// One carry per layer, in layer order.
     pub(crate) layers: Vec<LayerCarry>,
+    /// Each Hamming read's input residual at every position seen, `(batch, position, width)` at
+    /// f32, the stream's read first and the readout's last (claude-279). A step's read asks at its
+    /// own position against them all, as the whole window's read does at that position.
+    pub(crate) reads: Vec<Tensor>,
+    /// Each row's ids at every position seen, for the Hamming reads' keys (claude-279).
+    window: Vec<Vec<u32>>,
 }
 
 impl DecodeCache {
@@ -613,8 +689,9 @@ pub enum CacheRefusal {
     Batch { cache: usize, ids: usize },
     /// An id outside the vocabulary.
     Vocabulary { id: u32 },
-    /// A read set on this thread that the step does not carry (the Hamming read's step is the
-    /// next unit's).
+    /// A read set on this thread that the step does not carry, a Hamming read instrument (its
+    /// decode cut, row cut, decision trace or forced codes, claude-279), or Hamming reads set or
+    /// cleared since the prefill.
     ReadHook(&'static str),
     /// A step row named as a turn-memory opening row. The opening reads the window's turn
     /// anchor; in a decode it is the prompt's last row, which the prefill computes.
@@ -666,6 +743,18 @@ enum CarryMode {
     Capture,
     /// One position after the carried ones, advancing each layer's carry.
     Step,
+}
+
+/// What a carried trunk forward reads and advances (claude-278, claude-279).
+struct TrunkCarry<'a> {
+    mode: CarryMode,
+    /// One per layer, in layer order.
+    layers: &'a mut Vec<LayerCarry>,
+    /// [`DecodeCache::reads`]: filled under `Capture`, each one position longer after a `Step`.
+    reads: &'a mut Vec<Tensor>,
+    /// Under `Step`, every row's whole window, this step's id last, row after row: the Hamming
+    /// reads' keys. Under `Capture` the forward's own ids are the window.
+    window: &'a [u32],
 }
 fn decayed(name: &str, rank: usize) -> bool {
     (name.ends_with(".weight") && rank == 2 && !name.ends_with("conv.weight"))
@@ -1357,10 +1446,22 @@ impl StackModel {
             )));
         }
         let mut layers = Vec::with_capacity(self.config.layers());
-        let hidden = self.trunk(ids, batch, time, Some((CarryMode::Capture, &mut layers)))?;
+        let mut reads = Vec::new();
+        let carry = TrunkCarry {
+            mode: CarryMode::Capture,
+            layers: &mut layers,
+            reads: &mut reads,
+            window: ids,
+        };
+        let hidden = self.trunk(ids, batch, time, Some(carry))?;
         if layers.len() != self.config.layers() {
             return Err(invalid(
                 "the prefill captured a carry for every layer but some",
+            ));
+        }
+        if reads.len() != hamming_read_sites(self.config.layers()) {
+            return Err(invalid(
+                "the prefill captured an input for every Hamming read but some",
             ));
         }
         let cache = DecodeCache {
@@ -1368,6 +1469,8 @@ impl StackModel {
             position: time,
             context: self.config.context,
             layers,
+            reads,
+            window: ids.chunks(time).map(<[u32]>::to_vec).collect(),
         };
         Ok((hidden, cache))
     }
@@ -1386,8 +1489,25 @@ impl StackModel {
             return Err(invalid("the decode cache was filled from another model"));
         }
         let mut layers = cache.layers.clone();
-        let hidden = self.trunk(ids, cache.batch, 1, Some((CarryMode::Step, &mut layers)))?;
+        let mut reads = cache.reads.clone();
+        let window: Vec<u32> = cache
+            .window
+            .iter()
+            .zip(ids)
+            .flat_map(|(row, &id)| row.iter().copied().chain(std::iter::once(id)))
+            .collect();
+        let carry = TrunkCarry {
+            mode: CarryMode::Step,
+            layers: &mut layers,
+            reads: &mut reads,
+            window: &window,
+        };
+        let hidden = self.trunk(ids, cache.batch, 1, Some(carry))?;
         cache.layers = layers;
+        cache.reads = reads;
+        for (row, &id) in cache.window.iter_mut().zip(ids) {
+            row.push(id);
+        }
         cache.position += 1;
         Ok(hidden)
     }
@@ -1427,6 +1547,11 @@ impl StackModel {
         if crate::flock_read_memory::memory_rows().is_some_and(|rows| !rows.is_empty()) {
             return Some(CacheRefusal::OpeningRow);
         }
+        if hamming_read_sites(self.config.layers()) != cache.reads.len() {
+            return Some(CacheRefusal::ReadHook(
+                "Hamming read, set or cleared since the prefill,",
+            ));
+        }
         self.carried_refusal(ids)
     }
     /// The refusals a prefill and a step share: the storage, the ids, and the reads and
@@ -1449,10 +1574,6 @@ impl StackModel {
                 crate::flock_read_content::content_read().is_some(),
             ),
             (
-                "Hamming read",
-                crate::flock_read_hamming::hamming_reads().is_some(),
-            ),
-            (
                 "opening read",
                 crate::flock_read_opening::opening_read().is_some(),
             ),
@@ -1464,6 +1585,12 @@ impl StackModel {
         if let Some((name, _)) = reads.iter().find(|(_, set)| *set) {
             return Some(CacheRefusal::ReadHook(name));
         }
+        // The Hamming reads are carried (claude-279), their instruments are not.
+        if crate::flock_read_hamming::hamming_reads().is_some() {
+            if let Some(name) = crate::flock_read_hamming::step_instrument() {
+                return Some(CacheRefusal::ReadHook(name));
+            }
+        }
         if RATE_TRACE.with(|t| t.borrow().is_some()) || RATE_FORCE.with(|f| !f.borrow().is_empty())
         {
             return Some(CacheRefusal::RateInstrument);
@@ -1474,7 +1601,12 @@ impl StackModel {
         if crate::hamilton_sheet::is_instrumenting_snaps() {
             return Some(CacheRefusal::SnapInstrument);
         }
-        if crate::spiralcore_fbs_arms::fbs_arm().is_some() {
+        // The scorer sets the one-atom arm on every pass (`score_rows`), and that arm projects
+        // through the same `plan.forward` as no arm (`spiralcore_fbs_arms::project`). The other
+        // arms run their own kernels.
+        if crate::spiralcore_fbs_arms::fbs_arm()
+            .is_some_and(|arm| arm != crate::spiralcore_fbs_arms::FbsArm::OneAtomActive)
+        {
             return Some(CacheRefusal::FbsArm);
         }
         None
@@ -1485,8 +1617,10 @@ impl StackModel {
         ids: &[u32],
         batch: usize,
         time: usize,
-        mut carry: Option<(CarryMode, &mut Vec<LayerCarry>)>,
+        mut carry: Option<TrunkCarry<'_>>,
     ) -> Result<Tensor> {
+        // The next Hamming read's place in the carry's `reads`.
+        let mut read_slot = 0;
         self.validate_native_learning_path()?;
         let p = self.params()?;
         // Under the Q16 control (claude-133), the residual stream is held on the integer
@@ -1498,7 +1632,7 @@ impl StackModel {
         // forward that failed between the stream and the readout.
         crate::flock_read_register::set_register_slots(None);
         for layer in 0..self.config.layers() {
-            let layer_carry = carry.as_mut().map(|(mode, layers)| (*mode, &mut **layers));
+            let layer_carry = carry.as_mut().map(|c| (c.mode, &mut *c.layers));
             x = q16(x.add(&self.composed_recurrence(&p, layer, &x, layer_carry)?)?)?;
             stage_clock::mark_with(|| format!("layer{layer}.recurrence"));
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
@@ -1527,7 +1661,16 @@ impl StackModel {
                         .ok_or_else(|| invalid("the model has no shared vector table"))?
                         .as_tensor()
                         .clone();
-                    x = q16(read.apply(&x, ids, &table)?)?;
+                    let read_carry = carry.as_mut();
+                    x = q16(hamming_read(
+                        read,
+                        &x,
+                        ids,
+                        &table,
+                        false,
+                        read_carry,
+                        &mut read_slot,
+                    )?)?;
                     stage_clock::mark_with(|| format!("layer{layer}.hamming_read"));
                 }
             }
@@ -1566,7 +1709,7 @@ impl StackModel {
                     .ok_or_else(|| invalid("the model has no shared vector table"))?
                     .as_tensor()
                     .clone();
-                x = read.apply_readout(&x, ids, &table)?;
+                x = hamming_read(read, &x, ids, &table, true, carry.as_mut(), &mut read_slot)?;
                 stage_clock::mark("readout.hamming");
             }
         }
@@ -3224,6 +3367,8 @@ mod decode_cache_tests {
             position: 15,
             context: 16,
             layers: vec![carry; model.config.layers()],
+            reads: Vec::new(),
+            window: vec![vec![0; 15]; 2],
         };
         assert_eq!(
             model.step_refusal(&cache, &[1]),
@@ -3234,6 +3379,75 @@ mod decode_cache_tests {
         let opening = model.step_refusal(&cache, &[1, 2]);
         crate::flock_read_memory::set_memory_rows(None);
         assert_eq!(opening, Some(CacheRefusal::OpeningRow));
+
+        // The Hamming reads are carried (claude-279); their instruments, and reads set after the
+        // prefill, are refused.
+        use crate::flock_read_hamming as hamming;
+        hamming::set_hamming_reads(Some(hamming::HammingReads::new(4, 256, &device)?));
+        assert_eq!(model.prefill_refusal(&ids(4), 1, 4), None);
+        assert_eq!(
+            model.step_refusal(&cache, &[1, 2]),
+            Some(CacheRefusal::ReadHook(
+                "Hamming read, set or cleared since the prefill,"
+            ))
+        );
+        let refused = |set: &dyn Fn(), clear: &dyn Fn()| {
+            set();
+            let refusal = model.prefill_refusal(&ids(4), 1, 4);
+            clear();
+            refusal
+        };
+        let instruments = [
+            refused(
+                &|| hamming::set_read_cut(Some((hamming::ReadScope::Copy, 2))),
+                &|| hamming::set_read_cut(None),
+            ),
+            refused(
+                &|| hamming::set_row_cut(Some((hamming::ReadScope::Copy, vec![2; 4]))),
+                &|| hamming::set_row_cut(None),
+            ),
+            refused(&|| hamming::set_hamming_trace(true), &|| {
+                hamming::set_hamming_trace(false)
+            }),
+            refused(
+                &|| {
+                    hamming::set_code_force(vec![hamming::ForcedRowCode {
+                        depth: 2,
+                        row: 0,
+                        head: 0,
+                        key: false,
+                        code: 0,
+                    }])
+                },
+                &|| hamming::set_code_force(Vec::new()),
+            ),
+        ];
+        hamming::set_hamming_reads(None);
+        assert_eq!(
+            instruments,
+            [
+                "Hamming read's decode cut",
+                "Hamming read's row cut",
+                "Hamming read's decision trace",
+                "Hamming read's forced codes",
+            ]
+            .map(|name| Some(CacheRefusal::ReadHook(name)))
+        );
+        assert_eq!(model.prefill_refusal(&ids(4), 1, 4), None);
+        // claude-279's first pod run: the scorer's one-atom arm refused every prefill. That arm
+        // is carried; the arms with kernels of their own are refused.
+        use crate::spiralcore_fbs_arms::{set_fbs_arm, FbsArm};
+        let arms = FbsArm::ALL.map(|arm| {
+            set_fbs_arm(Some(arm));
+            let refusal = (
+                model.prefill_refusal(&ids(4), 1, 4),
+                model.step_refusal(&cache, &[1, 2]),
+            );
+            set_fbs_arm(None);
+            refusal
+        });
+        let own = || (Some(CacheRefusal::FbsArm), Some(CacheRefusal::FbsArm));
+        assert_eq!(arms, [(None, None), own(), own(), own()]);
         cache.position = 16;
         assert_eq!(
             model.step_refusal(&cache, &[1, 2]),
@@ -3310,7 +3524,32 @@ mod decode_cache_tests {
             crate::flock_read_memory::set_reply_rows(None);
             let (stepped, full, (_, captured)) = (stepped?, full?, captured?);
             // The carries themselves (the first pod run, claude-278): a difference in a carried
-            // state can round away before the points, so the points alone can miss it.
+            // state can round away before the points, so the points alone can miss it. Both
+            // caches hold the same carries before they are zipped, so none goes uncompared.
+            let held = |c: &DecodeCache| {
+                let inputs: Vec<usize> = c.layers.iter().map(|l| l.inputs.len()).collect();
+                (c.layers.len(), inputs, c.reads.len())
+            };
+            assert_eq!(
+                held(&cache),
+                held(&captured),
+                "step {s}: the caches hold different carries"
+            );
+            assert_eq!(
+                cache.window, captured.window,
+                "step {s}: the caches hold different ids"
+            );
+            for (read, (mine, whole)) in cache.reads.iter().zip(&captured.reads).enumerate() {
+                if bits(mine)? != bits(whole)? {
+                    differing += 1;
+                    if first.is_none() {
+                        first = Some(format!(
+                            "step {s} (position {}), Hamming read {read}'s input residual",
+                            len - 1
+                        ));
+                    }
+                }
+            }
             for (layer, (mine, whole)) in cache.layers.iter().zip(&captured.layers).enumerate() {
                 let held = std::iter::once((&mine.held, &whole.held, "scan state"));
                 let inputs = mine.inputs.iter().zip(&whole.inputs);
@@ -3344,7 +3583,8 @@ mod decode_cache_tests {
         Ok((differing, first))
     }
 
-    /// Puts the process-wide retention reading and this thread's turn memory back on every exit.
+    /// Puts the process-wide retention reading and this thread's turn memory and Hamming reads
+    /// back on every exit.
     #[cfg(feature = "cuda")]
     struct Restore(bool);
     #[cfg(feature = "cuda")]
@@ -3353,15 +3593,25 @@ mod decode_cache_tests {
             set_retention_rates(self.0);
             crate::flock_read_memory::set_turn_memory(None);
             crate::flock_read_memory::set_reply_rows(None);
+            crate::flock_read_hamming::set_hamming_reads(None);
         }
     }
 
-    /// G1: the random six-layer trunk, plain and under the served surrogate contract, with and
-    /// without the retention reading, and with and without the turn memory's reply table, from
-    /// prompts of 4, 7 and 33 positions, 12 steps each, at batch 1 and 3: every step's points
-    /// equal the whole-window forward's at that position, and its carries a whole-window prefill's,
-    /// bit for bit. The retention reading is
-    /// process-wide, so the pod runs this file's CUDA tests on one thread.
+    /// P2b's two Hamming reads (`--hamming-read 4` at width 256: two copy and two type heads of
+    /// 64 coordinates, inside the stream after layer 2 and on the readout), every parameter
+    /// drawn from `seed`.
+    #[cfg(feature = "cuda")]
+    fn random_reads(device: &Device, seed: u64) -> Result<crate::flock_read_hamming::HammingReads> {
+        crate::flock_read_hamming::HammingReads::new(4, 256, device)?.randomized(seed)
+    }
+
+    /// G1: the random six-layer trunk, with and without P2b's two Hamming reads (random
+    /// rotations, margins and weights, claude-279), plain and under the served surrogate
+    /// contract, with and without the retention reading, and with and without the turn memory's
+    /// reply table, from prompts of 4, 7 and 33 positions, 12 steps each, at batch 1 and 3: every
+    /// step's points equal the whole-window forward's at that position, and its carries (the
+    /// reads' input residuals among them) a whole-window prefill's, bit for bit. The retention
+    /// reading is process-wide, so the pod runs this file's CUDA tests on one thread.
     #[cfg(feature = "cuda")]
     #[test]
     fn the_step_cache_matches_the_whole_window_bit_for_bit() -> Result<()> {
@@ -3369,9 +3619,15 @@ mod decode_cache_tests {
         let model = small_model(&device, 64)?;
         let width = model.config.width;
         let mut rng = Lcg(2780);
-        let rows: Vec<Vec<u32>> = (0..3)
+        let random: Vec<Vec<u32>> = (0..3)
             .map(|_| (0..45).map(|_| (rng.next() % 4096) as u32).collect())
             .collect();
+        // Under the reads, rows of 61 ids, so copy keys repeat and the copy heads find exact
+        // repeats as well as near ones.
+        let echoing: Vec<Vec<u32>> = (0..3)
+            .map(|_| (0..45).map(|_| (rng.next() % 61) as u32 * 67).collect())
+            .collect();
+        let hamming = random_reads(&device, 2790)?;
         let key: &[u32] = &[7, 9];
         let memory = crate::flock_read_memory::TurnMemory::new(2, HashMap::new(), width, &device)?
             .with_reply([(key.to_vec(), 11u32)].into_iter().collect())?;
@@ -3382,35 +3638,86 @@ mod decode_cache_tests {
         let none = |_: &mut DecodeCache| -> Result<()> { Ok(()) };
         let _restore = Restore(retention_rates());
         let (mut cases, mut report) = (0, Vec::new());
-        for retain in [false, true] {
-            set_retention_rates(retain);
-            for served in [false, true] {
-                for with_memory in [false, true] {
-                    crate::flock_read_memory::set_turn_memory(with_memory.then(|| memory.clone()));
-                    for prompt in [4, 7, 33] {
-                        for batch in [1, 3] {
-                            let reply = with_memory.then_some(key);
-                            let run =
-                                || compare_steps(&model, &rows[..batch], prompt, 12, reply, &none);
-                            let (differing, first) = if served {
-                                crate::hamilton_sheet::with_served_surrogate_training(0, 0, run)?
-                            } else {
-                                run()?
-                            };
-                            cases += 1;
-                            if differing > 0 {
-                                report.push(format!(
-                                    "retain {retain}, served {served}, memory {with_memory}, \
-                                     prompt {prompt}, batch {batch}: {differing} rows differ, \
-                                     first {first:?}"
-                                ));
+        for reads in [false, true] {
+            crate::flock_read_hamming::set_hamming_reads(reads.then(|| hamming.clone()));
+            let rows = if reads { &echoing } else { &random };
+            for retain in [false, true] {
+                set_retention_rates(retain);
+                for served in [false, true] {
+                    for with_memory in [false, true] {
+                        crate::flock_read_memory::set_turn_memory(
+                            with_memory.then(|| memory.clone()),
+                        );
+                        for prompt in [4, 7, 33] {
+                            for batch in [1, 3] {
+                                let reply = with_memory.then_some(key);
+                                let run = || {
+                                    compare_steps(&model, &rows[..batch], prompt, 12, reply, &none)
+                                };
+                                let (differing, first) = if served {
+                                    crate::hamilton_sheet::with_served_surrogate_training(
+                                        0, 0, run,
+                                    )?
+                                } else {
+                                    run()?
+                                };
+                                cases += 1;
+                                if differing > 0 {
+                                    report.push(format!(
+                                        "reads {reads}, retain {retain}, served {served}, \
+                                         memory {with_memory}, prompt {prompt}, batch {batch}: \
+                                         {differing} rows differ, first {first:?}"
+                                    ));
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        assert_eq!(cases, 48);
+        assert_eq!(cases, 96);
+        assert!(report.is_empty(), "{report:#?}");
+        Ok(())
+    }
+
+    /// G1b: the reads' other two shapes the step must carry (claude-279), whose look-back runs
+    /// over the whole window before the asks are cut: the copy heads' ordered two-token key, one
+    /// key for both copy heads and one per head (claude-261, claude-268), and the type heads'
+    /// position signal, whose frames multiply every step so far (claude-151). Prompts of 7 and
+    /// 33 positions at batch 3, 12 steps each, bit for bit as G1.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_step_cache_carries_the_two_token_key_and_the_type_spin() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 64)?;
+        let mut rng = Lcg(2783);
+        let rows: Vec<Vec<u32>> = (0..3)
+            .map(|_| (0..45).map(|_| (rng.next() % 61) as u32 * 67).collect())
+            .collect();
+        let none = |_: &mut DecodeCache| -> Result<()> { Ok(()) };
+        let _restore = Restore(retention_rates());
+        let (mut cases, mut report) = (0, Vec::new());
+        for keys in [&[2usize, 2][..], &[1, 2]] {
+            for spin in [false, true] {
+                let mut reads = crate::flock_read_hamming::HammingReads::new(4, 256, &device)?
+                    .with_copy_keys(keys)?;
+                if spin {
+                    reads = reads.with_type_spin()?;
+                }
+                crate::flock_read_hamming::set_hamming_reads(Some(reads.randomized(2791)?));
+                for prompt in [7, 33] {
+                    let (differing, first) = compare_steps(&model, &rows, prompt, 12, None, &none)?;
+                    cases += 1;
+                    if differing > 0 {
+                        report.push(format!(
+                            "copy keys {keys:?}, type spin {spin}, prompt {prompt}: \
+                             {differing} rows differ, first {first:?}"
+                        ));
+                    }
+                }
+            }
+        }
+        assert_eq!(cases, 8);
         assert!(report.is_empty(), "{report:#?}");
         Ok(())
     }
@@ -3441,7 +3748,9 @@ mod decode_cache_tests {
     }
 
     /// G3, the negatives: the compare that passes on a clean cache fails after one flipped bit in
-    /// a carried scan state, and after one zeroed convolution input.
+    /// a carried scan state, after one zeroed convolution input, and, under P2b's Hamming reads,
+    /// after one flipped bit in a carried read residual (claude-279). It also reports, ungated,
+    /// what the carry compare makes of the lowest-bit flip the first pod run's points missed.
     #[cfg(feature = "cuda")]
     #[test]
     fn a_flipped_state_bit_or_a_zeroed_input_row_fails_the_compare() -> Result<()> {
@@ -3472,6 +3781,38 @@ mod decode_cache_tests {
         assert!(flipped > 0, "a flipped bit in a carried state went unseen");
         let (zeroed, _) = compare_steps(&model, &rows, 7, 3, None, &zero)?;
         assert!(zeroed > 0, "a zeroed convolution input went unseen");
+        // claude-278's Still open: the lowest bit of component 0, which rounded away within three
+        // steps of the points on the first pod run, now under the carry compare. Not gated.
+        let lowest = |cache: &mut DecodeCache| -> Result<()> {
+            let held = cache.layers[0].held.clone();
+            let mut values = held.flatten_all()?.to_vec1::<f32>()?;
+            values[0] = f32::from_bits(values[0].to_bits() ^ 1);
+            cache.layers[0].held = Tensor::from_vec(values, held.dims(), held.device())?;
+            Ok(())
+        };
+        let (low, first) = compare_steps(&model, &rows, 7, 3, None, &lowest)?;
+        println!(
+            "[G3] the lowest bit of layer 0's scan state, component 0: {low} rows and carries \
+             differ, first {first:?}"
+        );
+        let _restore = Restore(retention_rates());
+        crate::flock_read_hamming::set_hamming_reads(Some(random_reads(&device, 2792)?));
+        assert_eq!(compare_steps(&model, &rows, 7, 3, None, &none)?.0, 0);
+        let flip_read = |cache: &mut DecodeCache| -> Result<()> {
+            let read = cache.reads[0].clone();
+            let mut values = read.flatten_all()?.to_vec1::<f32>()?;
+            let at = (0..values.len())
+                .max_by(|&a, &b| values[a].abs().total_cmp(&values[b].abs()))
+                .unwrap_or(0);
+            values[at] = f32::from_bits(values[at].to_bits() ^ (1 << 22));
+            cache.reads[0] = Tensor::from_vec(values, read.dims(), read.device())?;
+            Ok(())
+        };
+        let (flipped_read, _) = compare_steps(&model, &rows, 7, 3, None, &flip_read)?;
+        assert!(
+            flipped_read > 0,
+            "a flipped bit in a carried read residual went unseen"
+        );
         Ok(())
     }
 

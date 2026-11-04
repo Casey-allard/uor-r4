@@ -5669,6 +5669,42 @@ fn take_served_searches() -> (u64, u64) {
     SERVED_SEARCHES.with(|c| c.replace((0, 0)))
 }
 
+/// The batched decode's forwards (claude-279): the step cache's prefills, its steps, and the
+/// whole-window forwards that every other step re-runs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct DecodeForwards {
+    pub prefills: u64,
+    pub steps: u64,
+    pub whole: u64,
+}
+
+thread_local! {
+    /// Whether the batched decode uses the exact step cache on this thread (claude-279).
+    static DECODE_CACHE: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
+    static DECODE_FORWARDS: std::cell::Cell<DecodeForwards> =
+        const { std::cell::Cell::new(DecodeForwards { prefills: 0, steps: 0, whole: 0 }) };
+}
+
+/// Whether [`decode_replies_with_mode`]'s batched path steps with the exact step cache
+/// (`StackModel::step_cached`, claude-278) on this thread, where each step's window fits; on by
+/// default (claude-279). Off, every step re-runs the whole window, as before.
+pub fn set_decode_cache(on: bool) {
+    DECODE_CACHE.with(|c| c.set(on));
+}
+
+/// The batched decode's forwards on this thread since the last call, and a reset.
+pub fn take_decode_forwards() -> DecodeForwards {
+    DECODE_FORWARDS.with(|c| c.replace(DecodeForwards::default()))
+}
+
+fn count_forward(add: impl FnOnce(&mut DecodeForwards)) {
+    DECODE_FORWARDS.with(|c| {
+        let mut counts = c.get();
+        add(&mut counts);
+        c.set(counts);
+    });
+}
+
 /// The served point key's first token (claude-220) for the opening that ends `window`, from the
 /// opening row's own `point` (`(1, width)`, from the decode's forward). Where the turn memory's
 /// exact key misses the opening (the memory moves nothing there, so `point` is the trunk's), it
@@ -6050,6 +6086,12 @@ fn decode_replies_with_mode(
                 active: true,
             })
             .collect();
+        // The exact step cache (claude-279): the prompt's forward fills it, and each later step
+        // whose window fits computes its one position from it. The first step it refuses (the
+        // window would slide, or a read or instrument it does not carry) drops it, and every
+        // step after re-runs the whole window, as before.
+        let mut cache: Option<crate::geometric_stack::DecodeCache> = None;
+        let caching = DECODE_CACHE.with(|c| c.get());
         with_eval_forward(served_mode, seed, 0, || {
             for step in 0..reply_tokens {
                 if state.iter().all(|row| !row.active) {
@@ -6065,6 +6107,24 @@ fn decode_replies_with_mode(
                     .iter()
                     .flat_map(|row| row.ids[start..].iter().copied())
                     .collect();
+                // Each row's newest id, the one position a cached step computes.
+                let step_ids: Vec<u32> = state.iter().map(|row| row.ids[time - 1]).collect();
+                if cache
+                    .as_ref()
+                    .is_some_and(|c| model.step_refusal(c, &step_ids).is_some())
+                {
+                    cache = None;
+                }
+                let stepping = step > 0 && cache.is_some();
+                if cache.as_ref().is_some_and(|c| c.position() + 1 != time) {
+                    return Err(invalid("the decode cache fell out of step with its rows"));
+                }
+                // A prefill pays only where a later step can fit.
+                let prefilling = caching
+                    && step == 0
+                    && time < context
+                    && reply_tokens > 1
+                    && model.prefill_refusal(&flat, batch, window_len).is_none();
 
                 let mut openings = Vec::new();
                 let mut reply_rows = Vec::new();
@@ -6073,6 +6133,8 @@ fn decode_replies_with_mode(
                         continue;
                     }
                     let global_row = b * window_len + window_len - 1;
+                    // A step counts its rows as its own: row `b` (claude-278).
+                    let named_row = if stepping { b } else { global_row };
                     if step == 0 && memory.is_some() {
                         openings.push(global_row);
                     } else if let Some(memory) = &memory {
@@ -6081,7 +6143,7 @@ fn decode_replies_with_mode(
                             if let Some(key) =
                                 greedy_reply_key(&row.ids[start..], cut - 1, &row.tokens)
                             {
-                                reply_rows.push((global_row, key));
+                                reply_rows.push((named_row, key));
                             }
                         }
                     }
@@ -6093,18 +6155,36 @@ fn decode_replies_with_mode(
                     (!reply_rows.is_empty()).then_some(reply_rows),
                 );
                 crate::flock_read_hamming::set_row_cut(None);
-                let hidden = crate::flock_read::points(model, &flat, batch, window_len);
+                let forward =
+                    match cache.as_mut() {
+                        Some(filled) if stepping => model.step_cached(filled, &step_ids).map(Some),
+                        _ if prefilling => model.prefill_cached(&flat, batch, window_len).map(
+                            |(hidden, filled)| {
+                                cache = Some(filled);
+                                Some(hidden)
+                            },
+                        ),
+                        _ => crate::flock_read::points(model, &flat, batch, window_len).map(Some),
+                    };
                 crate::flock_read_memory::set_memory_rows(None);
                 crate::flock_read_memory::set_reply_rows(None);
                 crate::flock_read_hamming::set_row_cut(None);
-                let hidden = hidden?;
-                let last_rows: Vec<u32> = (0..batch)
-                    .map(|b| (b * window_len + window_len - 1) as u32)
-                    .collect();
-                let point = hidden.index_select(
-                    &Tensor::from_vec(last_rows, batch, model.device())?,
-                    0,
-                )?;
+                let hidden =
+                    forward?.ok_or_else(|| invalid("a decode forward returned nothing"))?;
+                count_forward(|counts| match (stepping, prefilling) {
+                    (true, _) => counts.steps += 1,
+                    (false, true) => counts.prefills += 1,
+                    (false, false) => counts.whole += 1,
+                });
+                let point = if stepping {
+                    // The step's points are already one row per batch row.
+                    hidden.contiguous()?
+                } else {
+                    let last_rows: Vec<u32> = (0..batch)
+                        .map(|b| (b * window_len + window_len - 1) as u32)
+                        .collect();
+                    hidden.index_select(&Tensor::from_vec(last_rows, batch, model.device())?, 0)?
+                };
                 let point = if served_mode {
                     hs::q12_query(&point)?
                 } else {
@@ -15315,6 +15395,127 @@ mod tests {
         crate::flock_read_hamming::set_hamming_reads(None);
         crate::flock_read_memory::set_turn_memory(None);
         assert!(decoded > 0, "every reply was empty, so the parity check was vacuous");
+        Ok(())
+    }
+
+    /// claude-279's decode switch: a random model with P2b's two Hamming reads (random
+    /// parameters) and the turn memory (openings, and a reply table the decodes hit) decodes the
+    /// same replies with the step cache on and off, at a 16-position window, plain and served.
+    /// The groups of 5, 9 and 12 prompt positions prefill, step, meet the slide and re-run the
+    /// whole window from there; the 3-position prompt (shorter than the convolution) and the
+    /// 20-position one (past the window) re-run it at every step.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_decode_cache_decodes_the_same_replies_through_a_window_slide() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let mut model = build_fbs_model(FbsArm::OneAtomActive, 1, &device)?;
+        model.set_context(16)?;
+        // The arm the scorer sets on every pass (`score_rows`); the guard clears it and the reads.
+        arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
+        let _guard = ArmGuard;
+        let width = hs::SHEET_WIDTH;
+        crate::flock_read_hamming::set_hamming_reads(Some(
+            crate::flock_read_hamming::HammingReads::new(4, width, &device)?.randomized(2793)?,
+        ));
+        let prompts: Vec<Vec<u32>> = [3usize, 5, 5, 9, 12, 20]
+            .iter()
+            .enumerate()
+            .map(|(seed, &len)| {
+                std::iter::once(hs::SHEET_BOS_ID)
+                    .chain(
+                        (1..len)
+                            .map(|i| ((i * 37 + seed * 101) as u32) % hs::SHEET_VOCAB as u32),
+                    )
+                    .collect()
+            })
+            .collect();
+        let masks: Vec<Vec<u8>> = prompts.iter().map(|prompt| vec![0; prompt.len()]).collect();
+        let openings: std::collections::HashMap<Vec<u32>, u32> = prompts
+            .iter()
+            .enumerate()
+            .map(|(seed, prompt)| (prompt[1..3].to_vec(), 100 + seed as u32))
+            .collect();
+        let remember = |replies: std::collections::HashMap<Vec<u32>, u32>| -> Result<()> {
+            let memory =
+                crate::flock_read_memory::TurnMemory::new(2, openings.clone(), width, &device)?
+                    .with_reply(replies)?;
+            memory.weight.set(&Tensor::full(0.25f32, width, &device)?)?;
+            if let Some(reply) = memory.reply.as_ref() {
+                reply.weight.set(&Tensor::full(0.5f32, width, &device)?)?;
+            }
+            crate::flock_read_memory::set_turn_memory(Some(memory));
+            Ok(())
+        };
+        let decode = |rule: DecodeRule, served: bool, cached: bool| {
+            set_decode_cache(cached);
+            let replies = decode_replies_with_mode(
+                &model,
+                PointObjective::Cell,
+                &prompts,
+                &masks,
+                14,
+                17,
+                rule,
+                None,
+                ReadScope::Full,
+                served,
+                true,
+            );
+            set_decode_cache(true);
+            (replies, take_decode_forwards())
+        };
+        // The reply table holds each row's key at its first reply step, read off a decode with an
+        // empty table, so the decodes below hit it there.
+        remember(std::collections::HashMap::new())?;
+        take_decode_forwards();
+        let (first, _) = decode(DecodeRule::Greedy, false, false);
+        let keys: std::collections::HashMap<Vec<u32>, u32> = prompts
+            .iter()
+            .zip(first?)
+            .filter_map(|(prompt, reply)| {
+                let token = *reply.tokens.first()?;
+                let ids: Vec<u32> = prompt.iter().copied().chain([token]).collect();
+                let start = ids.len().saturating_sub(16);
+                let cut = prompt_cut(prompt.len(), start);
+                (cut > 0).then(|| greedy_reply_key(&ids[start..], cut - 1, &[token]))?
+            })
+            .map(|key| (key, 7))
+            .collect();
+        assert!(!keys.is_empty(), "no reply key for the decodes to hit");
+        remember(keys)?;
+        let rules = [
+            DecodeRule::Greedy,
+            DecodeRule::FlockRank { k: 16, keep_end: true },
+            DecodeRule::flock_cell(CELL_MARGIN_MILLI),
+            DecodeRule::CYCLE_STEP,
+        ];
+        let (mut decoded, mut stepped, mut prefilled) = (0usize, 0u64, 0u64);
+        for rule in rules {
+            for served in [false, true] {
+                let (whole, off) = decode(rule, served, false);
+                let (cached, on) = decode(rule, served, true);
+                let (whole, cached) = (whole?, cached?);
+                let case = format!("{rule:?}, served {served}");
+                assert_eq!((off.prefills, off.steps), (0, 0), "{case}: the cache ran while off");
+                assert_eq!(
+                    on.prefills + on.steps + on.whole,
+                    off.whole,
+                    "{case}: one forward per decode step either way"
+                );
+                assert!(on.whole > 0 && on.whole < off.whole, "{case}: {on:?} against {off:?}");
+                for (sample, (whole, cached)) in whole.iter().zip(&cached).enumerate() {
+                    assert_eq!(whole.tokens, cached.tokens, "{case}, sample {sample}");
+                    assert_eq!(whole.admitted, cached.admitted, "{case}, sample {sample}");
+                    assert_eq!(whole.stepped, cached.stepped, "{case}, sample {sample}");
+                    decoded += cached.tokens.len();
+                }
+                (stepped, prefilled) = (stepped + on.steps, prefilled + on.prefills);
+            }
+        }
+        crate::flock_read_hamming::set_hamming_reads(None);
+        crate::flock_read_memory::set_turn_memory(None);
+        assert!(decoded > 0, "every reply was empty, so the parity check was vacuous");
+        assert!(stepped > 0 && prefilled > 0, "the cache never prefilled or stepped");
         Ok(())
     }
 

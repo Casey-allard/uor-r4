@@ -49,6 +49,12 @@
 //! decodes every prompt one at a time: the serial reference, which gave byte-identical files on
 //! an RTX 5090 at two arms and two seeds.
 //!
+//! `--score-rows` also accepts `[--decode-cache 0|1]`, default 1 (claude-279). The batched decode
+//! then fills the exact step cache from each group's prompt forward and computes one position per
+//! step from it while the window fits; from the first step that would slide the window, or that
+//! the cache refuses, it re-runs the whole window as before. `--decode-cache 0` re-runs the whole
+//! window at every step. Its forward counts go to stderr, so stdout stays comparable.
+//!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
 //! (`in_space_long::profile_window`; fbs-cost-profile, claude-157).
@@ -220,8 +226,9 @@ use uor_r4_float_train::flock_read_register::RegisterSelect;
 use uor_r4_float_train::in_space_long::{
     cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
     gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
-    run_long, run_recall, score_rows, scopes_ok, DecodeRule, LongConfig, PointObjective, ReadScope,
-    TrainSplit, DEFAULT_REGISTER_PICKS, MEMORY_DROPOUT_MAX,
+    run_long, run_recall, score_rows, scopes_ok, set_decode_cache, take_decode_forwards,
+    DecodeRule, LongConfig, PointObjective, ReadScope, TrainSplit, DEFAULT_REGISTER_PICKS,
+    MEMORY_DROPOUT_MAX,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_snapshot::DecisionForce;
@@ -271,6 +278,7 @@ fn main() -> Result<()> {
     let mut integer_grade_on = false;
     let mut served_forward = None;
     let mut batched_decode = None;
+    let mut decode_cache = true;
     let mut last_opening = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
@@ -490,6 +498,7 @@ fn main() -> Result<()> {
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
+            "--decode-cache" => decode_cache = switch(&value)?,
             "--sample-opening" => {
                 last_opening = Some(match value.as_str() {
                     "first" => false,
@@ -975,6 +984,8 @@ fn main() -> Result<()> {
     if let Some(checkpoint) = score {
         let out = out
             .ok_or_else(|| FloatTrainError::Invalid("--score-rows needs --out DIR".to_owned()))?;
+        set_decode_cache(decode_cache);
+        take_decode_forwards();
         for file in score_rows(
             &data_root,
             &checkpoint,
@@ -1010,6 +1021,13 @@ fn main() -> Result<()> {
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }
+        eprintln!(
+            "{}",
+            serde_json::json!({
+                "decode_cache": decode_cache,
+                "decode_forwards": take_decode_forwards(),
+            })
+        );
         return Ok(());
     }
     if let Some(checkpoint) = decode {

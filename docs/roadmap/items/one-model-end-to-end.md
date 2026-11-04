@@ -253,6 +253,15 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   and the CUDA suite passes. Nothing calls the step yet: unit 2 adds the
   Hamming read's step, switches the scorer's decode loops to it and measures
   tok/s.
+  [claude-279](../../loop/tasks/one-model-end-to-end/claude-279/REPORT.md)
+  switched scoring's batched decode to the cache, with `--decode-cache 1` the
+  default. On one RTX 5090, every scored file of P2b's seed-1 checkpoints is
+  byte-identical with the cache on and off, at 192 and at 2,048. At 2,048 the
+  queries files decode at 98.7 tok/s against 16.7, and a pass takes 441 s
+  against 2,380. The first pod run's cache never ran: the scorer's one-atom
+  FBS arm was refused. That arm projects as no arm does, and is now carried.
+  A cached step costs an estimated 8–9 ms for (L) at either window, which is the next cost to
+  cut.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
