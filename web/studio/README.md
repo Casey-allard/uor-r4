@@ -1,11 +1,11 @@
 # Studio (`web/studio`) — the browser client
 
-**Live:** https://uor-foundation.github.io/uor-r4/studio/ — the current gh-pages `454bb30fc` publish serves the M1-capable 626,889-byte wasm bundle (sha256 `d7bcaf40…`), and `models.json` lists both M1 seeds. Kimi verified the live bundle and manifest; Kimi did not publish them. The earlier `d8e67c66` publish had the pre-M1 495,334-byte `d971fe7d…` bundle (see the item's Resolution).
+**Live:** https://uor-foundation.github.io/uor-r4/studio/ — the current gh-pages `233b97fb9` publish serves the 700,628-byte wasm bundle (sha256 `b4ab83f1…`) and preserves the previous model catalog with both M1 seeds and both research FBS seeds. Kimi published after the owner's explicit request; Pages build `1339751024` and hosted file/browser checks passed. The earlier `454bb30fc` publish served the 626,889-byte `d7bcaf40…` bundle (see the item's Resolution).
 
 The Studio is the project's in-browser interface: editor, chat panel and model manager, with the
 integer serving engine (`crates/uor-r4-integer`, `--features serving-wasm`) running in a Web
 Worker. It is served from the project's documentation site at **`/studio/`**
-(<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `454bb30fc`; `d8e67c66` was the earlier pre-M1 publish.
+(<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `233b97fb9`; `454bb30fc` was the previous publish.
 
 ### First console redesign (superseded by v2)
 
