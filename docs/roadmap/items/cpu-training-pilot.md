@@ -118,6 +118,15 @@ closes the fixed greedy point-vote reply configuration and moves the next work
 to reply content and termination rather than another vote width. See
 [deepseek-108](../../loop/tasks/cpu-training-pilot/deepseek-108/REPORT.md).
 
+The memory-weight surrogate was then scaled from eight keys / 60 training / 56
+evaluation examples to 16 keys / 102 training / 114 evaluation examples with
+32 accepted Q24 movement updates. Trained top-1 rose `507→526` and `441→484`,
+beating frozen and equal-move random on both seeds, while target distance fell
+below both controls. The gains were `+19/+19` and `+43/+53`, still below the
+registered three-sigma thresholds of 64 and 60. This is a stronger
+repeated-key mechanism result and a ranking-signal negative. See
+[deepseek-109](../../loop/tasks/cpu-training-pilot/deepseek-109/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

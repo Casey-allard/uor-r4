@@ -1,0 +1,70 @@
+{
+  "schema": "uor-r4.cpu-memory-expanded-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source_commit": "9bd3c577316bbfdb467da8aa5a95486c868ed4c2",
+  "binary_sha256": "c3bc4164efd0c02b74455381ee8f5e37eb98cea52c35b18015a755725f9e6bae",
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "host": "AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads; Linux 7.0.0-42-generic x86_64",
+  "selection": {
+    "keys": 16,
+    "per_key_cap": 16,
+    "key_tokens": 8,
+    "reply_turn": 8,
+    "training_examples": 102,
+    "evaluation_examples": 114,
+    "training_documents": 82,
+    "evaluation_documents": 91
+  },
+  "training": {
+    "steps": 32,
+    "rayon_workers_per_seed": 32,
+    "search_mode": "cached_trajectory",
+    "seed": 1
+  },
+  "seed_1": {
+    "accepted_updates": 32,
+    "training_top1_before_after": [419, 450],
+    "training_distance_before_after": [4785844128, 4757344232],
+    "frozen_top1": 507,
+    "random_top1": 507,
+    "trained_top1": 526,
+    "frozen_distance": 4912575151,
+    "random_distance": 4911362319,
+    "trained_distance": 4896257709,
+    "top1_gain_vs_frozen": 19,
+    "top1_gain_vs_random": 19,
+    "three_sigma_threshold": 64,
+    "wall_elapsed_ms": 36145.926557,
+    "peak_rss_kib": 408256,
+    "artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4"
+  },
+  "seed_2": {
+    "accepted_updates": 32,
+    "training_top1_before_after": [359, 404],
+    "training_distance_before_after": [4985524617, 4954724242],
+    "frozen_top1": 441,
+    "random_top1": 431,
+    "trained_top1": 484,
+    "frozen_distance": 5075557655,
+    "random_distance": 5072947107,
+    "trained_distance": 5054667878,
+    "top1_gain_vs_frozen": 43,
+    "top1_gain_vs_random": 53,
+    "three_sigma_threshold_vs_frozen": 60,
+    "three_sigma_threshold_vs_random": 60,
+    "wall_elapsed_ms": 36124.363734,
+    "peak_rss_kib": 402636,
+    "artifact_sha256": "10f91f7309c3ed36e3ce76878b2c75c07bae0102b3933571ccbd8f3b40b350e6"
+  },
+  "parity": {
+    "positions": 4333,
+    "query_coordinates": 1109248,
+    "token_decisions": 4333,
+    "kept_cells": 34664,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "verdict": "Dense held-out improvement replicated; registered ranking signal negative."
+}
