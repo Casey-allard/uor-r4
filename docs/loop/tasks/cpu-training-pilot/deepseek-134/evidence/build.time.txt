@@ -1,0 +1,23 @@
+	Command being timed: "env CARGO_BUILD_JOBS=16 CARGO_TARGET_DIR=/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-admission-headroom/target/deepseek/admission-headroom-134 cargo build --locked --release -p uor-r4-cpu-train --bin cpu-admission-headroom-driver"
+	User time (seconds): 112.22
+	System time (seconds): 4.50
+	Percent of CPU this job got: 660%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:17.68
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1203564
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 283
+	Minor (reclaiming a frame) page faults: 3132510
+	Voluntary context switches: 18232
+	Involuntary context switches: 1876
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 863624
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

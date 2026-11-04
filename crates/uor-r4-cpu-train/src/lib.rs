@@ -82,9 +82,11 @@ pub use reply_eval::{
     TimedReplyReading, TimedTerminationReading,
 };
 pub use self_prefix::{
-    evaluate_self_prefix, evaluate_self_prefix_prompts, CpuSelfPrefixTrainer, SelfPrefixConfig,
-    SelfPrefixDecision, SelfPrefixEligibility, SelfPrefixMode, SelfPrefixPromptReading,
-    SelfPrefixReading, SelfPrefixTargets, SelfPrefixTrainStep, SELF_PREFIX_SCHEMA,
+    audit_self_prefix_generated, evaluate_self_prefix, evaluate_self_prefix_admission,
+    evaluate_self_prefix_prompts, patch_kept_cells, CellKReading, CpuSelfPrefixTrainer,
+    RandomCellReading, SelfPrefixAdmissionCensus, SelfPrefixConfig, SelfPrefixDecision,
+    SelfPrefixEligibility, SelfPrefixMode, SelfPrefixPromptReading, SelfPrefixReading,
+    SelfPrefixTargets, SelfPrefixTrainStep, SELF_PREFIX_SCHEMA,
 };
 pub use served_forward::{
     audit_served_forward, exact_fbs_contract, read_uort_token_slice, ExactFbsContract,

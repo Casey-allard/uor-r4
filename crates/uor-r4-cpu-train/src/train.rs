@@ -553,6 +553,62 @@ pub(crate) fn reading_from_forward(
     query: &[i32],
     target: u32,
 ) -> Result<RankMarginReading> {
+    reading_from_forward_at_kept(forward, config, query, target, forward.kept_cell_count())
+}
+
+pub(crate) fn reading_from_forward_at_kept(
+    forward: &CpuFbsForward,
+    config: RankMarginConfig,
+    query: &[i32],
+    target: u32,
+    kept_cells: usize,
+) -> Result<RankMarginReading> {
+    if query.len() != forward.width() {
+        return Err(invalid("rank-margin query width differs from the table"));
+    }
+    if target as usize >= forward.vocabulary() {
+        return Err(invalid("rank-margin target is outside the vocabulary"));
+    }
+    if !(1..=16).contains(&kept_cells) {
+        return Err(invalid("rank-margin kept-cell override is out of bounds"));
+    }
+    let admitted = forward
+        .writer_cell_order(query)
+        .map_err(|error| invalid(format!("rank-margin writer cells: {error}")))?
+        .into_iter()
+        .take(kept_cells)
+        .collect::<Vec<_>>();
+    reading_from_admitted_cells(forward, config, query, target, &admitted)
+}
+
+pub(crate) fn reading_from_forward_cells(
+    forward: &CpuFbsForward,
+    config: RankMarginConfig,
+    query: &[i32],
+    target: u32,
+    admitted: &[u32],
+) -> Result<RankMarginReading> {
+    if admitted.is_empty()
+        || admitted.len() > 16
+        || admitted.iter().any(|cell| *cell >= CELL_COUNT as u32)
+        || admitted
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+            != admitted.len()
+    {
+        return Err(invalid("rank-margin admitted-cell override differs"));
+    }
+    reading_from_admitted_cells(forward, config, query, target, admitted)
+}
+
+fn reading_from_admitted_cells(
+    forward: &CpuFbsForward,
+    config: RankMarginConfig,
+    query: &[i32],
+    target: u32,
+    admitted: &[u32],
+) -> Result<RankMarginReading> {
     if query.len() != forward.width() {
         return Err(invalid("rank-margin query width differs from the table"));
     }
@@ -579,28 +635,6 @@ pub(crate) fn reading_from_forward(
         })
         .count();
 
-    let mut cells = Vec::with_capacity(CELL_COUNT);
-    for cell in 0..CELL_COUNT {
-        let first = ((query[..8].iter().zip(&forward.writer_roots()[cell / 16]))
-            .fold(0i64, |sum, (&value, &point)| {
-                sum.wrapping_add(i64::from(value.abs_diff(point)))
-            }))
-        .wrapping_neg();
-        let last = ((query[width - 8..]
-            .iter()
-            .zip(&forward.writer_roots()[cell % 16]))
-        .fold(0i64, |sum, (&value, &point)| {
-            sum.wrapping_add(i64::from(value.abs_diff(point)))
-        }))
-        .wrapping_neg();
-        cells.push((first.wrapping_add(last), cell));
-    }
-    cells.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
-    let admitted: Vec<u32> = cells
-        .iter()
-        .take(forward.kept_cell_count())
-        .map(|&(_, cell)| cell as u32)
-        .collect();
     let target_cell = (target % CELL_COUNT as u32) as u16;
     let target_admitted = admitted.contains(&u32::from(target_cell));
 
@@ -629,7 +663,7 @@ pub(crate) fn reading_from_forward(
         top8,
         target_admitted,
         target_cell,
-        admitted_cells: admitted,
+        admitted_cells: admitted.to_vec(),
     })
 }
 

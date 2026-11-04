@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/admission-headroom": {
+    "branch": "deepseek/admission-headroom",
+    "claimed_at": "2026-11-04T15:20:00-05:00",
+    "head": "6ad57102a",
+    "lab": "deepseek",
+    "note": "generated-state cell-rank and K=8 versus K=16 admission headroom"
+  },
   "deepseek/batched-scorer": {
     "branch": "deepseek/batched-scorer",
     "claimed_at": "2026-11-02T22:48:16-05:00",

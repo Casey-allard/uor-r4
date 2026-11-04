@@ -329,6 +329,7 @@ impl CpuFbsForward {
         &self.writer_table
     }
 
+    #[cfg(test)]
     pub(crate) fn writer_roots(&self) -> &[[i32; 8]; 16] {
         &self.roots_q12
     }
@@ -346,6 +347,14 @@ impl CpuFbsForward {
             .copied()
             .and_then(|cell| u16::try_from(cell).ok())
             .ok_or_else(|| invalid("writer cell query admitted no cell"))
+    }
+
+    /// Rank every writer cell for a complete query. Ties choose the lower cell id.
+    pub fn writer_cell_order(&self, query: &[i32]) -> Result<Vec<u32>> {
+        if query.len() != self.width {
+            return Err(invalid("writer cell query width differs"));
+        }
+        Ok(writer_cells(query, &self.roots_q12, 256))
     }
 
     pub(crate) fn writer_query_orbit(&self, query: &[i32]) -> Result<(u16, [u64; 32])> {
@@ -1462,6 +1471,13 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn complete_cell_order_breaks_equal_scores_to_the_lower_cell_id() {
+        let roots = [[0i32; 8]; 16];
+        let order = writer_cells(&vec![0i32; 64], &roots, 256);
+        assert_eq!(order, (0..256).map(|cell| cell as u32).collect::<Vec<_>>());
     }
 
     fn assert_parity(seed: u64, layers: usize, head: CpuFbsHead) {

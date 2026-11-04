@@ -235,6 +235,16 @@ stop mechanism or serving change. It requires a generated-trajectory
 discriminator and later coordinated integer parity. See
 [deepseek-132](../../loop/tasks/cpu-training-pilot/deepseek-132/REPORT.md).
 
+The admission follow-up ranked every target cell across all 256 writer cells
+and ran independent K=8 and K=16 generated trajectories. K=16 preserved every
+table payload byte and exact CPU/integer parity, but seed 1 fell from 30 to 17
+positive-margin training rows and seed 2 rose only from 32 to 52, with 6 and
+17 same-cell pairs against a 64-pair readiness gate. Held-out admission added
+32 and 49 against 128; the equal-budget random-cell control was no weaker.
+This closes the existing 8→16 admission-budget configuration and makes direct
+generated-query/admission training the next mechanism. See
+[deepseek-134](../../loop/tasks/cpu-training-pilot/deepseek-134/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

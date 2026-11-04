@@ -10,10 +10,13 @@ use rayon::prelude::*;
 use uor_r4_integer::stack::{reply_stop, ReplyEnd};
 
 use crate::reply_eval::normalized_reference;
-use crate::train::{propose_writer_update, reading_from_forward, RankMarginConfig};
+use crate::train::{
+    propose_writer_update, reading_from_forward, reading_from_forward_at_kept,
+    reading_from_forward_cells, RankMarginConfig,
+};
 use crate::{
-    audit_memory_weight_samples, invalid, CpuFbsForward, CpuFbsHead, CpuTrainError,
-    MemoryWeightParityReading, MemoryWeightSample,
+    audit_memory_weight_samples, audit_served_forward, invalid, CpuFbsForward, CpuFbsHead,
+    CpuTrainError, MemoryWeightParityReading, MemoryWeightSample, ServedForwardAuditConfig,
 };
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
@@ -115,6 +118,40 @@ pub struct SelfPrefixTrainStep {
     pub before: SelfPrefixReading,
     pub after: SelfPrefixReading,
     pub parity: Option<MemoryWeightParityReading>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CellKReading {
+    pub kept_cells: usize,
+    pub target_admitted: u64,
+    pub positive_margin: u64,
+    pub writer_top1: u64,
+    pub positive_margin_cells: u64,
+    pub positive_margin_pairs: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RandomCellReading {
+    pub kept_cells: usize,
+    pub target_admitted: u64,
+    pub positive_margin: u64,
+    pub writer_top1: u64,
+    pub positive_margin_cells: u64,
+    pub positive_margin_pairs: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelfPrefixAdmissionCensus {
+    pub fixed_horizon_decisions: u64,
+    pub observed_decisions: u64,
+    pub missing_decisions: u64,
+    pub rank_histogram: BTreeMap<usize, u64>,
+    pub minimum_k_histogram: BTreeMap<usize, u64>,
+    pub readings: Vec<CellKReading>,
+    pub random_extra: RandomCellReading,
 }
 
 #[derive(Clone)]
@@ -354,6 +391,236 @@ pub fn evaluate_self_prefix_prompts(
     let scan = scan(artifact, samples, &config)?;
     let targets = mapped_targets(&scan, samples, config)?;
     prompt_readings(artifact, &scan, samples, &targets, config.reply_cap)
+}
+
+pub fn evaluate_self_prefix_admission(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    config: SelfPrefixConfig,
+) -> Result<SelfPrefixAdmissionCensus> {
+    let scan = scan(artifact, samples, &config)?;
+    let targets = mapped_targets(&scan, samples, config)?;
+    let forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("self-prefix census forward: {error}")))?;
+    const KS: [usize; 6] = [1, 2, 4, 8, 12, 16];
+    let mut readings = KS
+        .iter()
+        .map(|&kept_cells| CellKReading {
+            kept_cells,
+            target_admitted: 0,
+            positive_margin: 0,
+            writer_top1: 0,
+            positive_margin_cells: 0,
+            positive_margin_pairs: 0,
+        })
+        .collect::<Vec<_>>();
+    let mut random_extra = RandomCellReading {
+        kept_cells: 16,
+        target_admitted: 0,
+        positive_margin: 0,
+        writer_top1: 0,
+        positive_margin_cells: 0,
+        positive_margin_pairs: 0,
+    };
+    let mut rank_histogram = BTreeMap::new();
+    let mut minimum_k_histogram = BTreeMap::new();
+    let mut positive_cells = vec![BTreeMap::<u32, u64>::new(); KS.len()];
+    let mut random_positive_cells = BTreeMap::<u32, u64>::new();
+    let mut fixed_horizon_decisions = 0u64;
+    let mut observed_decisions = 0u64;
+    for (sample_index, (sample, scan)) in samples.iter().zip(&scan.samples).enumerate() {
+        let reference = normalized_reference(&sample.reply);
+        fixed_horizon_decisions = checked_add(
+            fixed_horizon_decisions,
+            reference.len().min(config.reply_cap) as u64,
+            "self-prefix census horizon",
+        )?;
+        for decision in &scan.decisions {
+            observed_decisions = checked_add(observed_decisions, 1, "self-prefix census observed")?;
+            let target = targets[&(sample_index, decision.reply_offset)];
+            let order = forward
+                .writer_cell_order(&decision.query_q12)
+                .map_err(|error| invalid(format!("self-prefix cell order: {error}")))?;
+            let target_cell = target % TARGET_CELLS;
+            let rank = order
+                .iter()
+                .position(|cell| *cell == target_cell)
+                .ok_or_else(|| invalid("self-prefix census lost the target cell"))?
+                + 1;
+            *rank_histogram.entry(rank).or_default() += 1;
+            *minimum_k_histogram
+                .entry(KS.iter().copied().find(|k| rank <= *k).unwrap_or(17))
+                .or_default() += 1;
+            for (slot, &kept_cells) in KS.iter().enumerate() {
+                let reading = reading_from_forward_at_kept(
+                    &forward,
+                    config.rank_margin,
+                    &decision.query_q12,
+                    target,
+                    kept_cells,
+                )?;
+                let row = &mut readings[slot];
+                row.target_admitted += u64::from(reading.target_admitted);
+                row.writer_top1 += u64::from(reading.top1 == target);
+                if reading.target_admitted && reading.margin_loss > 0 {
+                    row.positive_margin += 1;
+                    *positive_cells[slot].entry(target_cell).or_default() += 1;
+                }
+            }
+            let extra = random_extra_cells(&order, sample_index, decision.reply_offset);
+            let reading = reading_from_forward_cells(
+                &forward,
+                config.rank_margin,
+                &decision.query_q12,
+                target,
+                &extra,
+            )?;
+            random_extra.target_admitted += u64::from(reading.target_admitted);
+            random_extra.writer_top1 += u64::from(reading.top1 == target);
+            if reading.target_admitted && reading.margin_loss > 0 {
+                random_extra.positive_margin += 1;
+                *random_positive_cells.entry(target_cell).or_default() += 1;
+            }
+        }
+    }
+    for (row, cells) in readings.iter_mut().zip(&positive_cells) {
+        row.positive_margin_cells = cells.len() as u64;
+        row.positive_margin_pairs = cells.values().map(|count| count / 2).sum();
+    }
+    random_extra.positive_margin_cells = random_positive_cells.len() as u64;
+    random_extra.positive_margin_pairs =
+        random_positive_cells.values().map(|count| count / 2).sum();
+    Ok(SelfPrefixAdmissionCensus {
+        fixed_horizon_decisions,
+        observed_decisions,
+        missing_decisions: fixed_horizon_decisions.saturating_sub(observed_decisions),
+        rank_histogram,
+        minimum_k_histogram,
+        readings,
+        random_extra,
+    })
+}
+
+pub fn patch_kept_cells(artifact: &[u8], kept_cells: usize) -> Result<Vec<u8>> {
+    if !(1..=16).contains(&kept_cells) {
+        return Err(invalid("kept-cell patch must be in 1..=16"));
+    }
+    if artifact.len() < 16 || &artifact[..8] != b"UORLUT01" {
+        return Err(invalid("kept-cell artifact magic differs"));
+    }
+    let header_len = u64::from_le_bytes(
+        artifact[8..16]
+            .try_into()
+            .map_err(|_| invalid("kept-cell header length differs"))?,
+    );
+    let header_end = 16usize
+        .checked_add(
+            usize::try_from(header_len).map_err(|_| invalid("kept-cell header is too large"))?,
+        )
+        .filter(|&end| end <= artifact.len())
+        .ok_or_else(|| invalid("kept-cell header is outside the artifact"))?;
+    let old_data_start = header_end.div_ceil(64) * 64;
+    let mut header: serde_json::Value = serde_json::from_slice(&artifact[16..header_end])
+        .map_err(|error| invalid(format!("kept-cell header JSON: {error}")))?;
+    if header["shape"]["head"].as_str() != Some("native_vector") {
+        return Err(invalid("kept-cell patch requires the native vector head"));
+    }
+    header["shape"]["kept_cells"] = serde_json::json!(kept_cells);
+    let new_header = serde_json::to_vec(&header)
+        .map_err(|error| invalid(format!("kept-cell header: {error}")))?;
+    let new_len = u64::try_from(new_header.len())
+        .map_err(|_| invalid("kept-cell header length exceeds u64"))?;
+    let new_data_start = (16 + new_header.len()).div_ceil(64) * 64;
+    let mut out = Vec::with_capacity(new_data_start + artifact.len() - old_data_start);
+    out.extend_from_slice(b"UORLUT01");
+    out.extend_from_slice(&new_len.to_le_bytes());
+    out.extend_from_slice(&new_header);
+    out.resize(new_data_start, 0);
+    out.extend_from_slice(&artifact[old_data_start..]);
+    let model = uor_r4_integer::stack::IntegerStackModel::parse(&out)
+        .map_err(|error| invalid(format!("kept-cell artifact does not parse: {error}")))?;
+    if model.shape().kept_cells != Some(kept_cells) {
+        return Err(invalid("kept-cell artifact shape did not change"));
+    }
+    Ok(out)
+}
+
+pub fn audit_self_prefix_generated(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    config: SelfPrefixConfig,
+) -> Result<MemoryWeightParityReading> {
+    let scan = scan(artifact, samples, &config)?;
+    let parities = samples
+        .par_iter()
+        .zip(&scan.samples)
+        .map(|(sample, scan)| {
+            let tokens = sample
+                .prompt
+                .iter()
+                .chain(&scan.tokens)
+                .copied()
+                .collect::<Vec<_>>();
+            audit_served_forward(
+                artifact,
+                &ServedForwardAuditConfig {
+                    tokens,
+                    token_source: None,
+                    expected_artifact_sha256: None,
+                    reply_start: config
+                        .memory_enabled
+                        .then_some(sample.prompt.len().saturating_sub(1)),
+                    measure_timing: false,
+                },
+            )
+            .map(|audit| audit.parity)
+            .map_err(|error| invalid(format!("self-prefix generated audit: {error}")))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let mut total = MemoryWeightParityReading::default();
+    for parity in parities {
+        if parity.instrument_fault {
+            return Err(invalid(
+                "self-prefix generated audit reports an instrument fault",
+            ));
+        }
+        total.samples = total
+            .samples
+            .checked_add(1)
+            .ok_or_else(|| invalid("self-prefix audit samples overflow"))?;
+        total.positions = checked_add(
+            total.positions,
+            parity.positions_checked as u64,
+            "positions",
+        )?;
+        total.query_coordinates = checked_add(
+            total.query_coordinates,
+            parity.query_coordinates_compared,
+            "query coordinates",
+        )?;
+        total.query_coordinate_mismatches = checked_add(
+            total.query_coordinate_mismatches,
+            parity.query_coordinate_mismatches,
+            "query mismatches",
+        )?;
+        total.token_decisions = checked_add(
+            total.token_decisions,
+            parity.token_decisions_compared,
+            "token decisions",
+        )?;
+        total.token_mismatches = checked_add(
+            total.token_mismatches,
+            parity.token_mismatches,
+            "token mismatches",
+        )?;
+        total.kept_cells = checked_add(total.kept_cells, parity.kept_cells_compared, "kept cells")?;
+        total.kept_cell_mismatches = checked_add(
+            total.kept_cell_mismatches,
+            parity.kept_cell_mismatches,
+            "kept-cell mismatches",
+        )?;
+    }
+    Ok(total)
 }
 
 fn validate_config(config: SelfPrefixConfig) -> Result<()> {
@@ -791,6 +1058,24 @@ fn repeated_4gram(tokens: &[u32]) -> bool {
     tokens
         .windows(4)
         .any(|window| !seen.insert(window.to_vec()))
+}
+
+fn random_extra_cells(order: &[u32], sample: usize, offset: usize) -> Vec<u32> {
+    let mut suffix = order.get(8..).unwrap_or_default().to_vec();
+    let mut state = (sample as u64)
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add((offset as u64).wrapping_mul(0xD6E8_FEB8_6659_FD93))
+        ^ 0x94D0_49BB_1331_11EB;
+    for end in (1..suffix.len()).rev() {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        let draw = state.wrapping_mul(0x2545_F491_4F6C_DD1D);
+        suffix.swap(end, draw as usize % (end + 1));
+    }
+    let mut cells = order.iter().copied().take(8).collect::<Vec<_>>();
+    cells.extend(suffix.into_iter().take(8));
+    cells
 }
 
 fn checked_add(left: u64, right: u64, name: &str) -> Result<u64> {
@@ -1245,5 +1530,120 @@ mod tests {
             trainer.frozen_scan.samples[0].decisions,
             frozen.samples[0].decisions
         );
+    }
+
+    #[test]
+    fn kept_cell_patch_changes_only_the_shape_header_and_payload_stays_identical() {
+        let artifact = export_fbs_trunk_uorlut01(&snapshot()).unwrap();
+        let patched = patch_kept_cells(&artifact, 16).unwrap();
+        let before = IntegerStackModel::parse(&artifact).unwrap();
+        let after = IntegerStackModel::parse(&patched).unwrap();
+        assert_eq!(before.shape().kept_cells, Some(8));
+        assert_eq!(after.shape().kept_cells, Some(16));
+        assert_eq!(artifact_payload(&artifact), artifact_payload(&patched));
+        assert!(patch_kept_cells(&artifact, 0).is_err());
+        assert!(patch_kept_cells(&artifact, 17).is_err());
+    }
+
+    #[test]
+    fn kept_cell_budget_can_change_the_generated_trajectory() {
+        let artifact = export_fbs_trunk_uorlut01(&snapshot()).unwrap();
+        let k16 = patch_kept_cells(&artifact, 16).unwrap();
+        let config = config(SelfPrefixMode::DynamicGenerated, false);
+        let reply = vec![7, 8, 9, 1];
+        let mut differed = false;
+        'outer: for first in 2..256 {
+            for second in 2..256 {
+                let sample = MemoryWeightSample {
+                    prompt: vec![0, first, second],
+                    reply: reply.clone(),
+                };
+                let k8_scan = scan_sample(&artifact, 0, &sample, &config).unwrap();
+                let k16_scan = scan_sample(&k16, 0, &sample, &config).unwrap();
+                if k8_scan.tokens != k16_scan.tokens {
+                    differed = true;
+                    break 'outer;
+                }
+            }
+        }
+        assert!(
+            differed,
+            "K=8 and K=16 never changed a synthetic generated trajectory"
+        );
+    }
+
+    #[test]
+    fn cell_order_is_complete_unique_and_target_ranks_are_exact() {
+        let artifact = export_fbs_trunk_uorlut01(&snapshot()).unwrap();
+        let scanned = scan_sample(
+            &artifact,
+            0,
+            &sample(),
+            &config(SelfPrefixMode::DynamicGenerated, false),
+        )
+        .unwrap();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let order = forward
+            .writer_cell_order(&scanned.decisions[0].query_q12)
+            .unwrap();
+        assert_eq!(order.len(), 256);
+        assert_eq!(order.iter().copied().collect::<BTreeSet<_>>().len(), 256);
+        let target = scanned.decisions[0].reference_target % TARGET_CELLS;
+        let rank = order.iter().position(|cell| *cell == target).unwrap() + 1;
+        assert!((1..=256).contains(&rank));
+    }
+
+    #[test]
+    fn random_extra_cells_are_disjoint_from_the_top_eight() {
+        let order = (0..256u32).collect::<Vec<_>>();
+        let cells = random_extra_cells(&order, 3, 9);
+        assert_eq!(cells.len(), 16);
+        assert_eq!(cells.iter().copied().collect::<BTreeSet<_>>().len(), 16);
+        assert!(cells[..8].iter().all(|cell| order[..8].contains(cell)));
+        assert!(cells[8..].iter().all(|cell| !order[..8].contains(cell)));
+        assert_eq!(cells, random_extra_cells(&order, 3, 9));
+    }
+
+    #[test]
+    fn admission_census_reports_all_k_values_and_generated_parity() {
+        let artifact = artifact_with_memory();
+        let config = config(SelfPrefixMode::DynamicGenerated, true);
+        let samples = vec![sample()];
+        let census = evaluate_self_prefix_admission(&artifact, &samples, config).unwrap();
+        assert_eq!(
+            census
+                .readings
+                .iter()
+                .map(|reading| reading.kept_cells)
+                .collect::<Vec<_>>(),
+            vec![1, 2, 4, 8, 12, 16]
+        );
+        assert_eq!(
+            census.rank_histogram.values().sum::<u64>(),
+            census.observed_decisions
+        );
+        let patched = patch_kept_cells(&artifact, 16).unwrap();
+        let parity = audit_self_prefix_generated(&patched, &samples, config).unwrap();
+        assert!(parity.is_exact());
+        let scan = scan(&artifact, &samples, &config).unwrap();
+        let targets = mapped_targets(&scan, &samples, config).unwrap();
+        let query = &scan.samples[0].decisions[0].query_q12;
+        let target = targets[&(0, 0)];
+        let forward8 = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let forward16 = CpuFbsForward::from_artifact(&patched).unwrap();
+        let nested =
+            reading_from_forward_at_kept(&forward8, RankMarginConfig::default(), query, target, 16)
+                .unwrap();
+        let actual =
+            reading_from_forward(&forward16, RankMarginConfig::default(), query, target).unwrap();
+        assert_eq!(actual.admitted_cells, nested.admitted_cells);
+        assert_eq!(actual.top1, nested.top1);
+        assert_eq!(actual.target_admitted, nested.target_admitted);
+    }
+
+    fn artifact_payload(artifact: &[u8]) -> &[u8] {
+        let header_len = u64::from_le_bytes(artifact[8..16].try_into().unwrap()) as usize;
+        let data_start = (16 + header_len).div_ceil(64) * 64;
+        &artifact[data_start..]
     }
 }
