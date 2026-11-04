@@ -1,0 +1,95 @@
+{
+  "schema": "uor-r4.cpu-content-code-resource/1",
+  "status": "COMPLETE",
+  "experiment": "sign versus modulo-256 generated-content signature, public seeds 1-2 plus seed-1 repeat",
+  "started_utc": "2026-11-04T16:11:00Z",
+  "completed_utc": "2026-11-04T16:12:30Z",
+  "updated_utc": "2026-11-04T16:12:30Z",
+  "increment_seconds": 20.8,
+  "increment_hours": 0.005777777777777778,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 35312.777487699,
+  "lab_cumulative_projection_seconds": 20.8,
+  "cumulative_measured_seconds": 35312.777487699,
+  "lab_cumulative_measured_seconds": 20.8,
+  "previous_ledger": "cpu-training-pilot-content-readout-2026-11-04/resource-ledger.json",
+  "previous_ledger_seconds": 35291.977487699,
+  "admitted_increment_seconds": 1800,
+  "admitted_cumulative_projection_seconds": 40327.677487699,
+  "cost_kind": "local CPU measured compute accounting, not an invoice",
+  "rate_usd_per_hour": 0,
+  "approx_gpu_cost_usd": 0,
+  "preparation_review_projection_seconds": 600,
+  "build_projection_seconds": 300,
+  "controls_evaluation_projection_seconds": 600,
+  "checkpointing_projection_seconds": 0,
+  "delivery_projection_seconds": 300,
+  "retry_projection_seconds": 0,
+  "accounting": {
+    "basis": "measured release build plus three five-arm content runs",
+    "measured_components": [
+      "release build",
+      "seed 1 five-arm evaluation",
+      "seed 2 five-arm evaluation",
+      "seed 1 repeat"
+    ],
+    "unmeasured_components": [
+      "preparation and review elapsed time",
+      "validation and delivery elapsed time"
+    ],
+    "treatment": "unmeasured elapsed time is not imputed; the committed cumulative is a measured-compute lower bound"
+  },
+  "measured": {
+    "build_seconds": 19,
+    "run_seconds": 1.8,
+    "total_seconds": 20.8,
+    "build_peak_rss_kib": 1203536,
+    "run_peak_rss_kib": 220760,
+    "build_target_bytes": 264991309,
+    "binary_bytes": 2351472,
+    "binary_sha256": "c251688c95918bee5aac2bc721359b3dbd4471fb2870eee987d93a02efc02a17",
+    "retained_pipeline_bytes": 14418550
+  },
+  "threads": {
+    "build": 16,
+    "evaluation": 32
+  },
+  "ram_kib": {
+    "build_limit": 4194304,
+    "run_limit": 1048576,
+    "build_peak": 1203536,
+    "run_peak": 220760
+  },
+  "storage": {
+    "build_limit_bytes": 2147483648,
+    "retained_pipeline_limit_bytes": 100663296,
+    "build_target_bytes": 264991309,
+    "retained_pipeline_bytes": 14418550,
+    "post_run_floor_kib": 31588352,
+    "absolute_floor": "30 GiB plus 128 MiB"
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux 7.0.0-42-generic x86_64",
+    "rust": "1.97.1"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "cumulative total left null; never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-137/ORDER.md",
+    "sheet": "docs/harness/prep/cpu-training-pilot-content-code-2026-11-04.md",
+    "implementation_pin": "0ff468aae7cdc01d3e6b2f520a066534e1640da5",
+    "evidence_sums_sha256": "5fb1a10fd88b03421062fd6b622e1a1b1658c29903d9c66137c784ad44b78f41"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "retain run evidence and rebuildable targets until reviewed hygiene"
+  }
+}

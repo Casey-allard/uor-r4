@@ -266,6 +266,16 @@ sparse geometric content override and a serving-contract candidate, not useful
 chat. See
 [deepseek-136](../../loop/tasks/cpu-training-pilot/deepseek-136/REPORT.md).
 
+The follow-up compared the sign code with a 2,048-bit modulo-256 code over the
+same generated states. The code reduced ambiguous leave-one-out rows from 892
+to 277 and 879 to 262 and raised hits from 199 to 300 and 201 to 284. Generated
+top-1 rose from sign/writer 67/22 to 73 on seed 1 and from 42/7 to 58 on seed
+2; matching depth rose from 60 to 64 and 33 to 39. Every code-to-writer,
+code-to-shuffle and code-to-sign paired comparison passed. All replies still
+hit the cap with zero exact or BOS-complete outputs, so the code is a stronger
+serving-contract candidate but not completion or chat evidence. See
+[deepseek-137](../../loop/tasks/cpu-training-pilot/deepseek-137/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

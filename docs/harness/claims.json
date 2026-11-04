@@ -1,31 +1,17 @@
 {
-  "deepseek/audit-export-gate": {
-    "branch": "deepseek/audit-export-gate",
-    "claimed_at": "2026-11-03T01:55:46-05:00",
-    "head": "08213d45b",
-    "lab": "deepseek",
-    "note": ""
-  },
-  "deepseek/content-readout": {
-    "branch": "deepseek/content-readout",
-    "claimed_at": "2026-11-04T16:20:00-05:00",
-    "head": "d861d7fdb",
-    "lab": "deepseek",
-    "note": "generated-state full-query Hamming nearest-example content readout"
-  },
-  "deepseek/query-admission": {
-    "branch": "deepseek/query-admission",
-    "claimed_at": "2026-11-04T16:00:00-05:00",
-    "head": "e197f22c1",
-    "lab": "deepseek",
-    "note": "generated-query final-gain training toward K8 target-cell admission"
-  },
   "deepseek/admission-headroom": {
     "branch": "deepseek/admission-headroom",
     "claimed_at": "2026-11-04T15:20:00-05:00",
     "head": "6ad57102a",
     "lab": "deepseek",
     "note": "generated-state cell-rank and K=8 versus K=16 admission headroom"
+  },
+  "deepseek/audit-export-gate": {
+    "branch": "deepseek/audit-export-gate",
+    "claimed_at": "2026-11-03T01:55:46-05:00",
+    "head": "08213d45b",
+    "lab": "deepseek",
+    "note": ""
   },
   "deepseek/batched-scorer": {
     "branch": "deepseek/batched-scorer",
@@ -75,6 +61,20 @@
     "head": "7394c344d",
     "lab": "deepseek",
     "note": ""
+  },
+  "deepseek/content-code": {
+    "branch": "deepseek/content-code",
+    "claimed_at": "2026-11-04T11:02:37-05:00",
+    "head": "8cf088bd9",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/content-readout": {
+    "branch": "deepseek/content-readout",
+    "claimed_at": "2026-11-04T16:20:00-05:00",
+    "head": "d861d7fdb",
+    "lab": "deepseek",
+    "note": "generated-state full-query Hamming nearest-example content readout"
   },
   "deepseek/copy-codes-key2-guard": {
     "branch": "deepseek/copy-codes-key2-guard",
@@ -188,17 +188,17 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/generated-replies": {
-    "branch": "deepseek/generated-replies",
-    "claimed_at": "2026-11-03T08:14:18-05:00",
-    "head": "0084568bc",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/generated-prefix": {
     "branch": "deepseek/generated-prefix",
     "claimed_at": "2026-11-04T15:00:00-05:00",
     "head": "4a437d33d",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/generated-replies": {
+    "branch": "deepseek/generated-replies",
+    "claimed_at": "2026-11-03T08:14:18-05:00",
+    "head": "0084568bc",
     "lab": "deepseek",
     "note": ""
   },
@@ -320,6 +320,13 @@
     "head": "b44402e0c",
     "lab": "deepseek",
     "note": ""
+  },
+  "deepseek/query-admission": {
+    "branch": "deepseek/query-admission",
+    "claimed_at": "2026-11-04T16:00:00-05:00",
+    "head": "e197f22c1",
+    "lab": "deepseek",
+    "note": "generated-query final-gain training toward K8 target-cell admission"
   },
   "deepseek/reply-termination": {
     "branch": "deepseek/reply-termination",

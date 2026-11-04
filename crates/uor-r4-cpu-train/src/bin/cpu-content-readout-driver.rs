@@ -5,8 +5,9 @@ use std::time::Instant;
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, content_mapping_sha256, content_target_mapping,
     derive_content_readout, derive_turn_memory, evaluate_content_readout, shuffle_content_targets,
-    validate_corpus_manifest, ContentPromptReading, ContentReadout, CpuConversationSample,
-    CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
+    validate_corpus_manifest, ContentPromptReading, ContentReadout, ContentSignatureMode,
+    CpuConversationSample, CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES,
+    CONTENT_MIN_TRAINING_ROWS,
 };
 use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
 
@@ -217,37 +218,47 @@ fn run() -> Result<serde_json::Value, String> {
     .map_err(|error| error.to_string())?;
     let memory_artifact =
         add_turn_memory_uorlut01(&artifact, &memory).map_err(|error| error.to_string())?;
-    let training =
-        derive_content_readout(&memory_artifact, &training_samples, config.reply_cap, true)
-            .map_err(|error| error.to_string())?;
-    let shuffled = shuffle_content_targets(&training.readout, config.seed)
+    let sign_training = derive_content_readout(
+        &memory_artifact,
+        &training_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Sign,
+    )
+    .map_err(|error| error.to_string())?;
+    let code_training = derive_content_readout(
+        &memory_artifact,
+        &training_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Code,
+    )
+    .map_err(|error| error.to_string())?;
+    let sign_shuffled = shuffle_content_targets(&sign_training.readout, config.seed)
         .map_err(|error| error.to_string())?;
-    let true_mapping =
-        content_target_mapping(&training.readout).map_err(|error| error.to_string())?;
-    let shuffled_mapping = content_target_mapping(&shuffled).map_err(|error| error.to_string())?;
-    let changed_mapping_assignments = true_mapping
-        .iter()
-        .filter(|(signature, target)| shuffled_mapping.get(*signature) != Some(*target))
-        .count();
-    let true_mapping_sha256 =
-        content_mapping_sha256(&training.readout).map_err(|error| error.to_string())?;
-    let shuffled_mapping_sha256 =
-        content_mapping_sha256(&shuffled).map_err(|error| error.to_string())?;
+    let code_shuffled = shuffle_content_targets(&code_training.readout, config.seed)
+        .map_err(|error| error.to_string())?;
+    let sign_changes = mapping_changes(&sign_training.readout, &sign_shuffled)?;
+    let code_changes = mapping_changes(&code_training.readout, &code_shuffled)?;
+    let sign_mapping = mapping_json(&sign_training.readout, &sign_shuffled, sign_changes)?;
+    let code_mapping = mapping_json(&code_training.readout, &code_shuffled, code_changes)?;
     if config.select_only {
         return Ok(serde_json::json!({
-            "schema": "uor-r4.cpu-content-readout-selection/1",
+            "schema": "uor-r4.cpu-content-readout-selection/2",
             "substrate": "cpu-development-research",
             "qualification": "gpu-required",
             "selection": selection_json(&groups, &training_samples, &evaluation_samples),
-            "training": training,
-            "shuffled_readout_sha256": readout_sha(&shuffled)?,
-            "mapping": {
-                "signature_entries": true_mapping.len(),
-                "changed_assignments": changed_mapping_assignments,
-                "differs": changed_mapping_assignments > 0
-                    && true_mapping_sha256 != shuffled_mapping_sha256,
-                "true_sha256": true_mapping_sha256,
-                "shuffled_sha256": shuffled_mapping_sha256,
+            "modes": {
+                "sign": {
+                    "training": sign_training,
+                    "shuffled_readout_sha256": readout_sha(&sign_shuffled)?,
+                    "mapping": sign_mapping,
+                },
+                "code": {
+                    "training": code_training,
+                    "shuffled_readout_sha256": readout_sha(&code_shuffled)?,
+                    "mapping": code_mapping,
+                },
             },
         }));
     }
@@ -257,88 +268,135 @@ fn run() -> Result<serde_json::Value, String> {
         &evaluation_samples,
         config.reply_cap,
         true,
+        ContentSignatureMode::Sign,
         None,
     )
     .map_err(|error| error.to_string())?;
-    let (true_arm, true_prompts) = evaluate_content_readout(
+    let (sign_arm, sign_prompts) = evaluate_content_readout(
         &memory_artifact,
         &evaluation_samples,
         config.reply_cap,
         true,
-        Some(&training.readout),
+        ContentSignatureMode::Sign,
+        Some(&sign_training.readout),
     )
     .map_err(|error| error.to_string())?;
-    let (shuffled_arm, shuffled_prompts) = evaluate_content_readout(
+    let (sign_shuffled_arm, sign_shuffled_prompts) = evaluate_content_readout(
         &memory_artifact,
         &evaluation_samples,
         config.reply_cap,
         true,
-        Some(&shuffled),
+        ContentSignatureMode::Sign,
+        Some(&sign_shuffled),
     )
     .map_err(|error| error.to_string())?;
-    let true_readout_sha256 = readout_sha(&training.readout)?;
-    let shuffled_readout_sha256 = readout_sha(&shuffled)?;
-    let vs_writer_top1 = paired(&true_prompts, &writer_prompts, |row| row.top1)?;
-    let vs_shuffled_top1 = paired(&true_prompts, &shuffled_prompts, |row| row.top1)?;
-    let vs_writer_depth = paired(&true_prompts, &writer_prompts, |row| {
+    let (code_arm, code_prompts) = evaluate_content_readout(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Code,
+        Some(&code_training.readout),
+    )
+    .map_err(|error| error.to_string())?;
+    let (code_shuffled_arm, code_shuffled_prompts) = evaluate_content_readout(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        ContentSignatureMode::Code,
+        Some(&code_shuffled),
+    )
+    .map_err(|error| error.to_string())?;
+    let sign_vs_writer_top1 = paired(&sign_prompts, &writer_prompts, |row| row.top1)?;
+    let sign_vs_shuffled_top1 = paired(&sign_prompts, &sign_shuffled_prompts, |row| row.top1)?;
+    let code_vs_writer_top1 = paired(&code_prompts, &writer_prompts, |row| row.top1)?;
+    let code_vs_shuffled_top1 = paired(&code_prompts, &code_shuffled_prompts, |row| row.top1)?;
+    let code_vs_sign_top1 = paired(&code_prompts, &sign_prompts, |row| row.top1)?;
+    let sign_vs_writer_depth = paired(&sign_prompts, &writer_prompts, |row| {
         row.matched_prefix_depth as u64
     })?;
-    let vs_shuffled_depth = paired(&true_prompts, &shuffled_prompts, |row| {
+    let sign_vs_shuffled_depth = paired(&sign_prompts, &sign_shuffled_prompts, |row| {
         row.matched_prefix_depth as u64
     })?;
+    let code_vs_writer_depth = paired(&code_prompts, &writer_prompts, |row| {
+        row.matched_prefix_depth as u64
+    })?;
+    let code_vs_shuffled_depth = paired(&code_prompts, &code_shuffled_prompts, |row| {
+        row.matched_prefix_depth as u64
+    })?;
+    let code_vs_sign_depth = paired(&code_prompts, &sign_prompts, |row| {
+        row.matched_prefix_depth as u64
+    })?;
+    let code_non_inferior = code_vs_sign_top1["candidate_sum"].as_u64()
+        >= code_vs_sign_top1["control_sum"].as_u64()
+        && code_vs_sign_depth["candidate_sum"].as_u64()
+            >= code_vs_sign_depth["control_sum"].as_u64()
+        && (code_vs_sign_top1["candidate_sum"] != code_vs_sign_top1["control_sum"]
+            || code_vs_sign_depth["candidate_sum"] != code_vs_sign_depth["control_sum"]);
+    let sign_structural = mode_structural_pass(&sign_training, &sign_mapping);
+    let code_structural = mode_structural_pass(&code_training, &code_mapping);
+    let code_exposure = code_arm.readout_decisions > 0 && code_arm.writer_fallbacks > 0;
     let bar = serde_json::json!({
-        "rows": training.rows,
-        "rows_pass": training.rows >= CONTENT_MIN_TRAINING_ROWS as u64,
-        "target_values": training.target_values,
-        "target_diversity_pass": training.target_values >= CONTENT_MIN_TARGET_VALUES as u64,
-        "max_distance": training.readout.max_distance,
-        "covered_rows": training.covered_rows,
-        "coverage_pass": training.covered_rows * 10 >= training.rows * 9,
-        "leave_one_out_top1": training.leave_one_out_top1,
-        "leave_one_out_ambiguous": training.leave_one_out_ambiguous,
-        "readout_decisions": true_arm.readout_decisions,
-        "writer_fallbacks": true_arm.writer_fallbacks,
-        "ambiguous_readout_decisions": true_arm.ambiguous_readout_decisions,
-        "exposure_pass": true_arm.readout_decisions > 0 && true_arm.writer_fallbacks > 0,
-        "signature_entries": true_mapping.len(),
-        "changed_mapping_assignments": changed_mapping_assignments,
-        "shuffled_mapping_differs": changed_mapping_assignments > 0
-            && true_mapping_sha256 != shuffled_mapping_sha256,
-        "true_readout_sha256": true_readout_sha256,
-        "shuffled_readout_sha256": shuffled_readout_sha256,
-        "true_mapping_sha256": true_mapping_sha256,
-        "shuffled_mapping_sha256": shuffled_mapping_sha256,
-        "vs_writer_top1": vs_writer_top1,
-        "vs_shuffled_top1": vs_shuffled_top1,
-        "vs_writer_depth": vs_writer_depth,
-        "vs_shuffled_depth": vs_shuffled_depth,
-        "passes": training.rows >= CONTENT_MIN_TRAINING_ROWS as u64
-            && training.target_values >= CONTENT_MIN_TARGET_VALUES as u64
-            && training.covered_rows * 10 >= training.rows * 9
-            && true_arm.readout_decisions > 0
-            && true_arm.writer_fallbacks > 0
-            && changed_mapping_assignments > 0
-            && true_mapping_sha256 != shuffled_mapping_sha256
-            && vs_writer_top1["passes"].as_bool() == Some(true)
-            && vs_shuffled_top1["passes"].as_bool() == Some(true)
-            && vs_writer_depth["passes"].as_bool() == Some(true)
-            && vs_shuffled_depth["passes"].as_bool() == Some(true),
+        "sign": {
+            "structural_pass": sign_structural,
+            "vs_writer_top1": sign_vs_writer_top1,
+            "vs_shuffled_top1": sign_vs_shuffled_top1,
+            "vs_writer_depth": sign_vs_writer_depth,
+            "vs_shuffled_depth": sign_vs_shuffled_depth,
+        },
+        "code": {
+            "structural_pass": code_structural,
+            "exposure_pass": code_exposure,
+            "readout_decisions": code_arm.readout_decisions,
+            "writer_fallbacks": code_arm.writer_fallbacks,
+            "vs_writer_top1": code_vs_writer_top1,
+            "vs_shuffled_top1": code_vs_shuffled_top1,
+            "vs_writer_depth": code_vs_writer_depth,
+            "vs_shuffled_depth": code_vs_shuffled_depth,
+            "vs_sign_top1": code_vs_sign_top1,
+            "vs_sign_depth": code_vs_sign_depth,
+            "non_inferior_to_sign": code_non_inferior,
+            "loo_above_sign": code_training.leave_one_out_top1
+                > sign_training.leave_one_out_top1,
+        },
+        "passes": sign_structural
+            && code_structural
+            && code_exposure
+            && code_non_inferior
+            && code_training.leave_one_out_top1 > sign_training.leave_one_out_top1
+            && code_vs_writer_top1["passes"].as_bool() == Some(true)
+            && code_vs_shuffled_top1["passes"].as_bool() == Some(true)
+            && code_vs_writer_depth["passes"].as_bool() == Some(true)
+            && code_vs_shuffled_depth["passes"].as_bool() == Some(true),
     });
+    let sign_mapping_sha256 = mapping_json(&sign_training.readout, &sign_shuffled, sign_changes)?;
+    let code_mapping_sha256 = mapping_json(&code_training.readout, &code_shuffled, code_changes)?;
     std::fs::write(
-        config.out.join("true-readout.json"),
-        serde_json::to_vec_pretty(&training).map_err(|error| error.to_string())?,
+        config.out.join("sign-true-readout.json"),
+        serde_json::to_vec_pretty(&sign_training).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     std::fs::write(
-        config.out.join("shuffled-readout.json"),
-        serde_json::to_vec_pretty(&shuffled).map_err(|error| error.to_string())?,
+        config.out.join("sign-shuffled-readout.json"),
+        serde_json::to_vec_pretty(&sign_shuffled).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("code-true-readout.json"),
+        serde_json::to_vec_pretty(&code_training).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("code-shuffled-readout.json"),
+        serde_json::to_vec_pretty(&code_shuffled).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     let report = serde_json::json!({
-        "schema": "uor-r4.cpu-content-readout-run/1",
+        "schema": "uor-r4.cpu-content-readout-run/2",
         "substrate": "cpu-development-research",
         "qualification": "gpu-required",
-        "claim": "CPU Hamming nearest-example content readout; no serving or language claim",
+        "claim": "CPU sign and modulo-256 nearest-example content readout; no serving or language claim",
         "inputs": {
             "artifact": config.artifact,
             "artifact_sha256": config.expected_artifact_sha256,
@@ -350,14 +408,20 @@ fn run() -> Result<serde_json::Value, String> {
             "manifest_sha256": config.expected_manifest_sha256,
         },
         "selection": selection_json(&groups, &training_samples, &evaluation_samples),
-        "training": training,
-        "shuffled_readout_sha256": readout_sha(&shuffled)?,
-        "true_mapping_sha256": true_mapping_sha256,
-        "shuffled_mapping_sha256": shuffled_mapping_sha256,
+        "training": {
+            "sign": sign_training,
+            "code": code_training,
+        },
+        "mapping": {
+            "sign": sign_mapping_sha256,
+            "code": code_mapping_sha256,
+        },
         "arms": {
             "writer": { "reading": writer, "prompts": writer_prompts },
-            "true": { "reading": true_arm, "prompts": true_prompts },
-            "shuffled": { "reading": shuffled_arm, "prompts": shuffled_prompts },
+            "sign": { "reading": sign_arm, "prompts": sign_prompts },
+            "sign_shuffled": { "reading": sign_shuffled_arm, "prompts": sign_shuffled_prompts },
+            "code": { "reading": code_arm, "prompts": code_prompts },
+            "code_shuffled": { "reading": code_shuffled_arm, "prompts": code_shuffled_prompts },
         },
         "bar": bar,
         "rayon_workers": rayon::current_num_threads(),
@@ -370,6 +434,47 @@ fn run() -> Result<serde_json::Value, String> {
     )
     .map_err(|error| error.to_string())?;
     Ok(report)
+}
+
+fn mode_structural_pass(
+    training: &uor_r4_cpu_train::ContentReadoutTraining,
+    mapping: &serde_json::Value,
+) -> bool {
+    training.rows >= CONTENT_MIN_TRAINING_ROWS as u64
+        && training.target_values >= CONTENT_MIN_TARGET_VALUES as u64
+        && training.covered_rows * 10 >= training.rows * 9
+        && mapping["differs"].as_bool() == Some(true)
+}
+
+fn mapping_changes(
+    true_readout: &ContentReadout,
+    shuffled: &ContentReadout,
+) -> Result<usize, String> {
+    let true_mapping = content_target_mapping(true_readout).map_err(|error| error.to_string())?;
+    let shuffled_mapping = content_target_mapping(shuffled).map_err(|error| error.to_string())?;
+    Ok(true_mapping
+        .iter()
+        .filter(|(signature, target)| shuffled_mapping.get(*signature) != Some(*target))
+        .count())
+}
+
+fn mapping_json(
+    true_readout: &ContentReadout,
+    shuffled: &ContentReadout,
+    changed_assignments: usize,
+) -> Result<serde_json::Value, String> {
+    let true_mapping = content_target_mapping(true_readout).map_err(|error| error.to_string())?;
+    let true_sha256 = content_mapping_sha256(true_readout).map_err(|error| error.to_string())?;
+    let shuffled_sha256 = content_mapping_sha256(shuffled).map_err(|error| error.to_string())?;
+    Ok(serde_json::json!({
+        "mode": true_readout.mode,
+        "signature_bits": true_readout.signature_bits,
+        "signature_entries": true_mapping.len(),
+        "changed_assignments": changed_assignments,
+        "differs": changed_assignments > 0 && true_sha256 != shuffled_sha256,
+        "true_sha256": true_sha256,
+        "shuffled_sha256": shuffled_sha256,
+    }))
 }
 
 fn paired(
