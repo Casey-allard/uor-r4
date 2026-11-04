@@ -9,7 +9,7 @@ description = "Core R4 engine: geometric routing mathematics and integrated tran
 path = "src/native_support.rs"
 
 [dependencies]
-uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer", optional = true }
 uor-r4-tokenizer = { version = "0.1.0", path = "../uor-r4-tokenizer" }
 # Numerical source executors are preserved in place but excluded from this crate.
 uor-r4-source-interface = { version = "0.1.0", path = "../uor-r4-source-interface" }
@@ -22,6 +22,11 @@ libm = "0.2"
 memmap2 = "0.9"
 
 [features]
+default = ["integer-runtime"]
+# The complete transformed core. Disable this feature for build scripts that
+# need only the exact SpiralCore/prime-route metadata and must not compile the
+# integer runtime with a second feature set.
+integer-runtime = ["dep:uor-r4-integer"]
 # Explicit CPU floating-point research boundary; never enabled by default.
 learned-reference = []
 # Measurement-only surface for the #330 isolated dot-scan microbenchmark.

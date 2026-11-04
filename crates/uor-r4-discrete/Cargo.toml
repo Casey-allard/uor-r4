@@ -16,7 +16,7 @@ serde_json = "1.0"
 sha2 = "0.10.8"
 
 [build-dependencies]
-uor-r4-core = { path = "../uor-r4-core" }
+uor-r4-core = { path = "../uor-r4-core", default-features = false }
 
 [[bin]]
 name = "discrete-stack"

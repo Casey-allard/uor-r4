@@ -92,6 +92,12 @@ Local synthetic diagnostics on the Ryzen 9 9950X recorded:
 - exact BVG-K parameter candidates: 758.970 to 790.051 candidate evaluations/s on one thread on width 64; ordered parallel scoring reached 4,686 to 5,192 evaluations/s at 16 workers across normalization, bias, decay and route.
 - matched panel evaluator: 10,802.874 synthetic rows/s on one thread; ordered parallel evaluation reached 90,009.721 rows/s at 16 workers and 102,667.325 at 32, with the same checksum, zero CPU/serving query, token or kept-cell mismatches.
 - real public corpus driver: two reversed-order runs averaged 62.147 s at one worker, 8.479 s at eight, 4.635 s at 16 and 3.528 s at 32, a 17.62x wall reduction. Every worker count reproduced the same artifact, checkpoint, panel, audit and zero-mismatch reading; 32 workers used about 27-28 hardware threads on average and increased peak RSS from about 53 MiB to 125 MiB. Two concurrent 16-worker artifact runs took 6.60 s versus 7.06 s for two sequential 32-worker runs. Non-overlapping stages separated 34.7-35.6 ms of recurrent audit from 7-17 ms of publication/reload.
+- CPU build graph: the discrete build script now depends on a metadata-only
+  `uor-r4-core` configuration. Its path reaches the exact SpiralCore and
+  prime-route modules but not `uor-r4-integer`; normal core consumers keep the
+  full runtime by default. This removes the duplicate feature-set `cdylib`
+  collision that previously made CPU builds intermittently require a fresh
+  target directory.
 - pre-registered public CPU pilot: 59.654/62.827 target visits/s, 4,824.742/5,081.373 context-tokens/s, 16.763/15.917 ms mean update, 66.024/64.993 s wall and 52,060/51,956 KiB peak RSS on seeds 1/2.
 - public same-amplitude BVG-K K4 pivot: 62.968/68.153 target visits/s, 15.881/14.673 ms mean step, 127.108/121.640 s wall and 52,080/51,964 KiB peak RSS on seeds 1/2. These are component timings for a negative configuration, not evidence that CPU training is qualified.
 - registered public restart: the resumed 192-step tails ran at 4,790.191/5,029.959 context-tokens/s and produced the same final artifact and checkpoint bytes as the uninterrupted arms on seeds 1/2.

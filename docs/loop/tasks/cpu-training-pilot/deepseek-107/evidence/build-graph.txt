@@ -1,0 +1,46 @@
+Host: AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads, Linux.
+Base: 6d88bf103.
+
+$ cargo tree -p uor-r4-cpu-train -i uor-r4-integer --edges normal,build
+uor-r4-integer v0.1.0 (.../crates/uor-r4-integer)
+├── uor-r4-core v0.1.0 (.../crates/uor-r4-core)
+│   └── uor-r4-cpu-train v0.1.0 (.../crates/uor-r4-cpu-train)
+└── uor-r4-cpu-train v0.1.0 (.../crates/uor-r4-cpu-train)
+
+$ cargo tree -p uor-r4-cpu-train -i uor-r4-core --edges normal,build
+uor-r4-core v0.1.0 (.../crates/uor-r4-core)
+[build-dependencies]
+└── uor-r4-discrete v0.1.0 (.../crates/uor-r4-discrete)
+    └── uor-r4-cpu-train v0.1.0 (.../crates/uor-r4-cpu-train)
+
+uor-r4-core v0.1.0 (.../crates/uor-r4-core)
+└── uor-r4-cpu-train v0.1.0 (.../crates/uor-r4-cpu-train)
+
+Reading: the discrete build-dependency core node has no
+uor-r4-integer edge. The only integer crate node is reached through the normal
+runtime dependency or directly by cpu-train.
+
+$ CARGO_TARGET_DIR=target/deepseek/build-decoupling-cpu \
+    cargo check --locked -p uor-r4-cpu-train --all-targets
+Finished `dev` profile ...
+
+The same target directory was checked again after the feature rename. Both
+passes completed without Cargo's duplicate `libuor_r4_integer.rlib` or
+`libuor_r4_integer.so` output warning.
+
+$ CARGO_TARGET_DIR=target/deepseek/build-decoupling-tests \
+    cargo test --locked -p uor-r4-core --no-default-features --lib
+10 passed; 0 failed.
+
+$ CARGO_TARGET_DIR=target/deepseek/build-decoupling-core-tests \
+    cargo test --release --locked -p uor-r4-core --lib
+75 passed; 0 failed.
+
+$ CARGO_TARGET_DIR=target/deepseek/build-decoupling-cpu-test \
+    cargo test --release --locked -p uor-r4-cpu-train --lib
+163 passed; 0 failed; 4 ignored.
+
+$ CARGO_TARGET_DIR=target/deepseek/build-decoupling-clippy \
+    cargo clippy --release --locked -p uor-r4-cpu-train \
+      --all-targets --no-deps -- -D warnings
+Finished `release` profile ...

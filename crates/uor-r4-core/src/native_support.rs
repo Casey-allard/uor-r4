@@ -6,11 +6,14 @@ compile_error!(
     "historical core numerical/benchmark features are excluded from native qualification"
 );
 pub mod answer_oracle;
+#[cfg(feature = "integer-runtime")]
 #[path = "native_geometric/native_support.rs"]
 pub mod native_geometric;
 pub mod prime_route_attention;
+#[cfg(feature = "integer-runtime")]
 pub mod report_output;
 pub mod spiralcore_operator;
+#[cfg(feature = "integer-runtime")]
 #[path = "transformerless/native_mod.rs"]
 pub mod transformerless;
 pub mod zeta_zeros;
