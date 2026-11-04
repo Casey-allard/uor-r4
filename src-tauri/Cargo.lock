@@ -3688,9 +3688,8 @@ dependencies = [
 name = "uor-r4-vision"
 version = "0.1.0"
 dependencies = [
- "hex",
- "serde",
- "sha2",
+ "blake3",
+ "rayon",
 ]
 
 [[package]]
