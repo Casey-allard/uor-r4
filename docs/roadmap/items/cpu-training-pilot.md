@@ -254,6 +254,18 @@ Cross-cell permutation and equal-move random controls were not beaten. This
 closes the fixed final-gain schedule, not direct query geometry generally. See
 [deepseek-135](../../loop/tasks/cpu-training-pilot/deepseek-135/REPORT.md).
 
+The next pivot bypassed writer admission with an exact nearest-example readout
+over the complete generated 256-Q12 query. The true readout raised aligned
+top-1 to 67 and 42 against writer 22 and 7 and a behaviorally distinct
+shuffled control 4 and 18; matching-prefix depth rose to 60 and 33. Both seeds
+met the prompt-paired bars. The zero-distance threshold covered 99% of
+training rows, but leave-one-out target accuracy was only 199/894 and 201/894,
+and the readout fired on just 103 and 117 generated decisions. Every reply hit
+the 16-token cap with zero exact or BOS-complete results. This is a supported
+sparse geometric content override and a serving-contract candidate, not useful
+chat. See
+[deepseek-136](../../loop/tasks/cpu-training-pilot/deepseek-136/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

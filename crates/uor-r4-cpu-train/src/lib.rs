@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
+mod content_readout;
 mod corpus;
 mod counterfactual;
 mod discrete_route;
@@ -25,6 +26,13 @@ mod served_forward;
 mod stop_signature;
 mod train;
 
+pub use content_readout::{
+    content_hamming, content_mapping_sha256, content_target_mapping, derive_content_readout,
+    evaluate_content_readout, pack_content_signature, shuffle_content_targets, ContentExample,
+    ContentPromptReading, ContentReadout, ContentReadoutReading, ContentReadoutTraining,
+    ContentSignature, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS,
+    CONTENT_SIGNATURE_WORDS,
+};
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,
     CpuMaskedCorpus,
