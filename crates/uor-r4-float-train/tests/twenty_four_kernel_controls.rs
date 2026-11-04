@@ -1,7 +1,9 @@
-//! Finite CPU controls for all 24 kernels in the `uor-r4-float-train` extract (`#2823`).
+//! Finite CPU controls for the kernels of the `uor-r4-float-train` extract (`#2823`).
 //!
-//! Each test exercises one or a paired forward/backward kernel family from the 24-kernel extract
-//! (`22` in `src/cuda_stack.cu` + `2` in `src/spiralcore_fbs.cu`) at finite CPU control level.
+//! Each test exercises one or a paired forward/backward kernel family at finite CPU control
+//! level: every kernel of `src/cuda_stack.cu`, and the forward and backward of
+//! `src/spiralcore_fbs.cu`. That file's two fixed-order backward reductions (claude-179) and the
+//! sheet arms have no control here; the file's name keeps the count it was written with.
 
 use uor_r4_float_train::kernel_controls::{
     adam_update_cpu, hamilton_gate_bwd_cpu, hamilton_gate_fwd_cpu, margin_rank_grad_cpu,

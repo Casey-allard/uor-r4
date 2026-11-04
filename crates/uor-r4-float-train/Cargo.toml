@@ -2,7 +2,7 @@
 name = "uor-r4-float-train"
 version = "0.1.0"
 edition = "2021"
-description = "D37 scanned offline float training module carrying the 24-kernel geometric stack extract with zero dependency on uor-r4-training"
+description = "D37 scanned offline float training module carrying the geometric stack's kernel extract with zero dependency on uor-r4-training"
 
 [features]
 default = []

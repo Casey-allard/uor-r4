@@ -1,8 +1,10 @@
 //! Native CUDA forward and backward kernels for the geometric stack ops.
 //!
 //! The CUDA counterpart of [`crate::metal_stack_kernels`]: one CUDA C source
-//! compiled at runtime with NVRTC (no `nvcc` at build time), loaded once per
-//! device as a Candle custom module, and launched on the device's stream.
+//! compiled ahead of time with `nvcc` (`build.rs`; NVRTC is banned), loaded once
+//! per device as a Candle custom module, and launched on the device's stream.
+//! A launch names a kernel its module's generated list holds, or is refused
+//! ([`admit_launch`]).
 //! The kernels port the Metal kernels' math one-to-one, with three
 //! deliberate differences that bring them closer to the exact CPU reference:
 //!
@@ -19,8 +21,50 @@
 //! The source is compiled without `--use_fast_math`, so `expf`, `logf`,
 //! `tanhf`, division and `sqrtf` are the accurate CUDA functions.
 //!
-//! This module contains the crate's only `unsafe` code (kernel launches and a
-//! `DeviceRepr`-free argument list); it exists only with the `cuda` feature.
+//! Its `cuda` submodule, built only with the `cuda` feature, contains the
+//! crate's only `unsafe` code (kernel launches and a `DeviceRepr`-free argument
+//! list). The kernel-list check ([`admit_launch`]) sits outside it, so CPU
+//! builds compile it and CPU tests cover it.
+
+use crate::kernel_lists;
+
+/// The Candle custom-module name the f32 stack kernels are loaded under.
+const MODULE: &str = "uor_r4_geometric_stack";
+/// The Candle custom-module name the bf16 activation-storage kernels (the
+/// same source compiled with UOR_STORAGE_BF16) are loaded under.
+const MODULE_BF16: &str = "uor_r4_geometric_stack_bf16";
+/// The Candle custom-module name `geometric_stack_native_cuda.rs` loads the
+/// SpiralCore/FBS sheet arms' PTX under (`SPIRALCORE_FBS_ARMS_MODULE` there).
+const ARMS_MODULE: &str = "uor_r4_spiralcore_fbs_arms";
+
+/// The kernels of the PTX loaded under the Candle module name `module`: the
+/// list `build.rs` scanned from the sources that PTX compiles. `None` for a
+/// module the crate does not build.
+pub fn module_kernels(module: &str) -> Option<&'static [&'static str]> {
+    match module {
+        MODULE => Some(kernel_lists::CUDA_STACK_F32),
+        MODULE_BF16 => Some(kernel_lists::CUDA_STACK_BF16),
+        ARMS_MODULE => Some(kernel_lists::SPIRALCORE_FBS_ARMS_F32),
+        _ => None,
+    }
+}
+
+/// Admits a launch of `name` from `module` only when that module's PTX
+/// declares it, so a launched name is always one its own list holds.
+pub fn admit_launch(module: &str, name: &str) -> Result<(), String> {
+    let Some(kernels) = module_kernels(module) else {
+        return Err(format!(
+            "`{module}` is not a module this crate builds, so no kernel list admits `{name}`"
+        ));
+    };
+    if kernels.contains(&name) {
+        Ok(())
+    } else {
+        Err(format!(
+            "`{name}` is not a kernel of `{module}`: its generated list (build.rs) is {kernels:?}"
+        ))
+    }
+}
 
 #[cfg(feature = "cuda")]
 #[allow(unsafe_code)]
@@ -31,11 +75,7 @@ pub mod cuda {
     use cudarc::driver::{CudaSlice, CudaView, LaunchConfig, PushKernelArg};
     use half::bf16;
 
-    /// The Candle custom-module name the f32 stack kernels are loaded under.
-    const MODULE: &str = "uor_r4_geometric_stack";
-    /// The Candle custom-module name the bf16 activation-storage kernels (the
-    /// same source compiled with UOR_STORAGE_BF16) are loaded under.
-    const MODULE_BF16: &str = "uor_r4_geometric_stack_bf16";
+    use super::{MODULE, MODULE_BF16};
 
     /// Kernels D29 removed from every compiled module (13 October 2026): they
     /// carry normalised-exponential, squashing, exp/log normalisation or
@@ -360,6 +400,7 @@ pub mod cuda {
                  admitted for new runs"
             )));
         }
+        super::admit_launch(module, name).map_err(Error::Msg)?;
         let config = LaunchConfig {
             grid_dim: (
                 dim(groups.0, i32::MAX as usize, "grid x")?,
@@ -425,5 +466,87 @@ pub mod cuda {
     fn profiling() -> bool {
         static PROFILE: OnceLock<bool> = OnceLock::new();
         *PROFILE.get_or_init(|| std::env::var_os("UOR_CUDA_PROFILE").is_some())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn modules() -> [(&'static str, &'static [&'static str]); 3] {
+        [
+            (MODULE, kernel_lists::CUDA_STACK_F32),
+            (MODULE_BF16, kernel_lists::CUDA_STACK_BF16),
+            (ARMS_MODULE, kernel_lists::SPIRALCORE_FBS_ARMS_F32),
+        ]
+    }
+
+    #[test]
+    fn every_module_admits_its_own_kernels() {
+        for (module, kernels) in modules() {
+            assert!(!kernels.is_empty(), "{module} lists no kernel");
+            for name in kernels {
+                assert_eq!(admit_launch(module, name), Ok(()), "{module} {name}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_launch_outside_its_module_list_is_refused() {
+        // The arms kernels are not in the stack modules' PTX, and the stack's
+        // kernels are not in the arms module's.
+        for name in ["spiralcore_fbs_arm_fwd", "spiralcore_fbs_arm_bwd"] {
+            assert!(admit_launch(MODULE, name).is_err(), "{name}");
+            assert!(admit_launch(MODULE_BF16, name).is_err(), "{name}");
+        }
+        for name in ["adam_update", "rms_norm_fwd", "recurrence_scan_fwd"] {
+            assert!(admit_launch(ARMS_MODULE, name).is_err(), "{name}");
+        }
+        // Names D29 removed from every module, and a name no source declares.
+        for name in [
+            "cross_entropy_rows",
+            "swiglu_fwd",
+            "pointer_lift",
+            "fused_nothing",
+        ] {
+            for (module, _) in modules() {
+                assert!(admit_launch(module, name).is_err(), "{module} {name}");
+            }
+        }
+        // A module the crate does not build admits nothing.
+        assert!(admit_launch("uor_r4_unbuilt", "adam_update").is_err());
+    }
+
+    #[test]
+    fn the_arms_module_name_is_the_one_its_launches_use() {
+        let source = include_str!("geometric_stack_native_cuda.rs");
+        let declaration = format!("const SPIRALCORE_FBS_ARMS_MODULE: &str = {ARMS_MODULE:?};");
+        assert!(
+            source.contains(&declaration),
+            "geometric_stack_native_cuda.rs must load the arms PTX under {ARMS_MODULE:?}"
+        );
+        let arms = kernel_lists::SPIRALCORE_FBS_ARMS_F32;
+        for name in ["spiralcore_fbs_arm_fwd", "spiralcore_fbs_arm_bwd"] {
+            assert!(arms.contains(&name), "the arms list must hold {name}");
+        }
+    }
+
+    #[test]
+    fn dispatch_module_checks_the_list_before_it_loads() {
+        // `dispatch_module` is the crate's only PTX load; the refusal tests above cover
+        // `admit_launch`, and this pins that the load calls it first. The needles are split
+        // so this test's own text does not match them.
+        let source = include_str!("cuda_stack_kernels.rs");
+        let start = source
+            .find(concat!("fn dispatch", "_module("))
+            .expect("cuda_stack_kernels.rs defines dispatch_module");
+        let body = &source[start..];
+        let load = body
+            .find(concat!("get_or_load", "_custom_func("))
+            .expect("dispatch_module loads its PTX");
+        assert!(
+            body[..load].contains(concat!("super::admit", "_launch(module, name)")),
+            "dispatch_module must call admit_launch before it loads the kernel"
+        );
     }
 }
