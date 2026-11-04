@@ -239,7 +239,9 @@ fn head_limit(cut: Option<(ReadScope, usize)>, head: usize, copy_heads: usize, t
 }
 
 /// Whether position `s` is a candidate for position `t`: from `first`, earlier than `t`, and
-/// before `limit` ([`head_limit`]).
+/// before `limit` ([`head_limit`]). The rule [`candidate_mask`] builds on the device, kept as its
+/// reference (claude-272).
+#[cfg(test)]
 fn is_candidate(s: usize, t: usize, first: usize, limit: usize) -> bool {
     s >= first && s < t && s < limit
 }
@@ -1368,13 +1370,82 @@ pub(crate) fn choose_sorted(
     limits: &[usize],
     tie: bool,
 ) -> Result<(Tensor, Tensor)> {
+    choose_sorted_in(query, key, batch, time, neighbours, first, limits, tie, DISTANCE_CHUNK_BYTES)
+}
+
+/// The byte budget for one chunk of [`choose_sorted`]'s `(batch, chunk, time, width)` f32
+/// difference (claude-272): 256 MiB. The difference and its absolute value are alive together,
+/// so a chunk holds about twice this. A chunk takes at least one position, so past batch 512 at
+/// 2,048 × 64 one position alone exceeds it, and the `(batch · time, time)` distance, mask and
+/// sort are not chunked at all. When the whole difference fits, the read takes every row at
+/// once, as before.
+const DISTANCE_CHUNK_BYTES: usize = 1 << 28;
+
+/// How many query positions of each window one chunk takes under `bytes`: at least one, at most
+/// `time`.
+fn distance_chunk(batch: usize, time: usize, width: usize, bytes: usize) -> usize {
+    let per_position = batch * time * width * std::mem::size_of::<f32>();
+    (bytes / per_position.max(1)).clamp(1, time.max(1))
+}
+
+/// The mean L1 between each position `t` of `q` `(batch, time, 1, width)` and every position of
+/// `k` `(batch, 1, time, width)`, as `(batch · time, time)`, `chunk` query positions at a time.
+/// Each distance is the same mean over the same coordinates whatever the chunk.
+fn mean_l1_rows(q: &Tensor, k: &Tensor, batch: usize, time: usize, chunk: usize) -> Result<Tensor> {
+    let mut parts = Vec::with_capacity(time.div_ceil(chunk));
+    let mut at = 0;
+    while at < time {
+        let n = chunk.min(time - at);
+        parts.push(q.narrow(1, at, n)?.broadcast_sub(k)?.abs()?.mean(3)?);
+        at += n;
+    }
+    Ok(Tensor::cat(&parts, 1)?.reshape((batch * time, time))?)
+}
+
+/// The read's candidate rule, `first ≤ s < t` and `s < limit`, at every position `s` for each of
+/// `rows` rows of windows of `time` positions, as a `(rows, time)` mask of 0 and 1. It is built
+/// on `device` from each row's position in its window and its limit (claude-272; before, a host
+/// loop over every entry).
+fn candidate_mask(
+    rows: usize,
+    time: usize,
+    first: usize,
+    limits: &[usize],
+    device: &Device,
+) -> Result<Tensor> {
+    let s = Tensor::arange(0u32, time as u32, device)?.reshape((1, time))?;
+    let at: Vec<u32> = (0..rows).map(|r| (r % time) as u32).collect();
+    let at = Tensor::from_vec(at, (rows, 1), device)?;
+    // `s` is below `time`, so a limit past it cuts nothing.
+    let limit: Vec<u32> = limits.iter().map(|&l| l.min(time) as u32).collect();
+    let limit = Tensor::from_vec(limit, (rows, 1), device)?;
+    let from = Tensor::from_vec(vec![first.min(time) as u32], (1, 1), device)?;
+    Ok(s.broadcast_ge(&from)?
+        .broadcast_mul(&s.broadcast_lt(&at)?)?
+        .broadcast_mul(&s.broadcast_lt(&limit)?)?)
+}
+
+/// [`choose_sorted`], its distance taken in chunks of at most `chunk_bytes`.
+#[allow(clippy::too_many_arguments)]
+fn choose_sorted_in(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    neighbours: usize,
+    first: usize,
+    limits: &[usize],
+    tie: bool,
+    chunk_bytes: usize,
+) -> Result<(Tensor, Tensor)> {
     let device = query.device();
     let kept = neighbours.min(time.saturating_sub(1)).max(1);
     let width = query.dim(1)?;
     let rows = batch * time;
     let q = query.detach().reshape((batch, time, 1, width))?;
     let k = key.detach().reshape((batch, 1, time, width))?;
-    let distance = q.broadcast_sub(&k)?.abs()?.mean(3)?.reshape((rows, time))?;
+    let chunk = distance_chunk(batch, time, width, chunk_bytes);
+    let distance = mean_l1_rows(&q, &k, batch, time, chunk)?;
     // Between ±1 codes the mean of `|q − k|` is `2h / width`, so `h` is that times `width / 2`,
     // rounded off the codes' last-bit noise.
     let distance = if tie {
@@ -1392,10 +1463,7 @@ pub(crate) fn choose_sorted(
     } else {
         distance
     };
-    let earlier: Vec<u8> = (0..rows * time)
-        .map(|i| u8::from(is_candidate(i % time, (i / time) % time, first, limits[i / time])))
-        .collect();
-    let earlier = Tensor::from_vec(earlier, (rows, time), device)?;
+    let earlier = candidate_mask(rows, time, first, limits, device)?;
     let far = Tensor::full(FAR, (rows, time), device)?;
     let masked = earlier.where_cond(&distance, &far)?.contiguous()?;
     let order = masked
@@ -2072,6 +2140,212 @@ mod tests {
         let (row_picks, row_real) = choose_sorted(&points, &points, batch, time, 4, 1, &per_row, false).unwrap();
         for (r, picks) in rows(row_picks, row_real).iter().enumerate() {
             assert!(picks.iter().all(|&s| (s as usize) < per_row[r]), "row {r}: {picks:?}");
+        }
+    }
+
+    /// claude-272: the distance taken in chunks of any size is the whole read's distance, bit for
+    /// bit, and the one-chunk distance is the expression the read used before; so the picks
+    /// agree too, with the tie rule on and off, a cut, row limits, and either first position.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_read_in_chunks_chooses_as_the_whole_read() {
+        let device = Device::new_cuda(0).unwrap();
+        let (batch, time, width) = (2, 20, 8);
+        let values = |salt: usize| -> Vec<f32> {
+            (0..batch * time * width)
+                .map(|i| ((((i + salt) * 2_654_435_761) % 10_007) as f32) / 997.0)
+                .collect()
+        };
+        let signs = |v: Vec<f32>| -> Vec<f32> {
+            v.into_iter().map(|x| if x < 5.0 { -1.0 } else { 1.0 }).collect()
+        };
+        let bits = |t: &Tensor| -> Vec<u32> {
+            let flat = t.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+            flat.into_iter().map(f32::to_bits).collect()
+        };
+        let q4 = |v: &Tensor| v.reshape((batch, time, 1, width)).unwrap();
+        let k4 = |v: &Tensor| v.reshape((batch, 1, time, width)).unwrap();
+        let per_position = batch * time * width * std::mem::size_of::<f32>();
+        let limit_sets: [Vec<usize>; 3] = [
+            vec![time; batch * time],
+            vec![7; batch * time],
+            (0..batch * time).map(|r| 2 + r % 9).collect(),
+        ];
+        for tie in [false, true] {
+            let (query, key) = if tie {
+                (signs(values(0)), signs(values(3)))
+            } else {
+                (values(0), values(3))
+            };
+            let query = Tensor::from_vec(query, (batch * time, width), &device).unwrap();
+            let key = Tensor::from_vec(key, (batch * time, width), &device).unwrap();
+            let whole = q4(&query)
+                .broadcast_sub(&k4(&key))
+                .unwrap()
+                .abs()
+                .unwrap()
+                .mean(3)
+                .unwrap();
+            for chunk in [1, 7, time] {
+                assert_eq!(distance_chunk(batch, time, width, chunk * per_position), chunk);
+                let chunked = mean_l1_rows(&q4(&query), &k4(&key), batch, time, chunk).unwrap();
+                assert_eq!(bits(&chunked), bits(&whole), "chunk {chunk}");
+                for first in [0, 1] {
+                    for limits in &limit_sets {
+                        let bytes = chunk * per_position;
+                        let (picks, real) =
+                            choose_sorted_in(&query, &key, batch, time, 4, first, limits, tie, bytes)
+                                .unwrap();
+                        let (whole_picks, whole_real) =
+                            choose_sorted_in(&query, &key, batch, time, 4, first, limits, tie, usize::MAX)
+                                .unwrap();
+                        let case = format!("chunk {chunk}, first {first}, tie {tie}");
+                        assert_eq!(
+                            picks.to_vec2::<u32>().unwrap(),
+                            whole_picks.to_vec2::<u32>().unwrap(),
+                            "{case}"
+                        );
+                        assert_eq!(
+                            real.to_vec2::<u8>().unwrap(),
+                            whole_real.to_vec2::<u8>().unwrap(),
+                            "{case}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// claude-272: the device mask is `is_candidate` at every entry, for limits below, at and past
+    /// the window, and first positions 0 to 2.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_device_mask_is_the_candidate_rule() {
+        let device = Device::new_cuda(0).unwrap();
+        let (batch, time) = (3, 12);
+        let rows = batch * time;
+        let limit_sets: [Vec<usize>; 4] = [
+            vec![time; rows],
+            vec![5; rows],
+            (0..rows).map(|r| r % 14).collect(),
+            vec![usize::MAX; rows],
+        ];
+        for first in [0, 1, 2] {
+            for limits in &limit_sets {
+                let mask = candidate_mask(rows, time, first, limits, &device).unwrap();
+                for (r, row) in mask.to_vec2::<u8>().unwrap().iter().enumerate() {
+                    for (s, &m) in row.iter().enumerate() {
+                        let rule = u8::from(is_candidate(s, r % time, first, limits[r]));
+                        assert_eq!(m, rule, "row {r}, s {s}, first {first}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// claude-272, the GPU half: the read at windows of 192 to 2,048 positions, at the training
+    /// batch of 4 and the scoring batch of 16, a head's width of 64 and `HAMMING_KEPT` picks under
+    /// the tie rule. It times the chunked read, and the whole read where it fits, and checks that
+    /// they choose alike. Run on a pod with `--ignored --nocapture`: one line per case, with the
+    /// wall clock at its start and end for the memory samples beside it, and the peak bytes in use
+    /// in the device's memory pool, which candle allocates from, over each form's six runs.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "a GPU timing run, on a pod"]
+    fn the_read_at_long_windows() {
+        use cudarc::driver::sys;
+        let device = Device::new_cuda(0).unwrap();
+        let width = 64;
+        let now = || {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        };
+        let Device::Cuda(cuda) = &device else { unreachable!("a CUDA device") };
+        let mut pool: sys::CUmemoryPool = std::ptr::null_mut();
+        // SAFETY: the device handle is live, and the pool is written into a local.
+        let found = unsafe {
+            sys::cuDeviceGetDefaultMemPool(&mut pool, cuda.cuda_stream().context().cu_device())
+        };
+        assert_eq!(found, sys::CUresult::CUDA_SUCCESS);
+        // The pool's high mark of bytes in use since the last call, which it then sets back to 0.
+        let peak = || -> u64 {
+            let used = sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_USED_MEM_HIGH;
+            let (mut high, mut zero) = (0u64, 0u64);
+            // SAFETY: the pool is the device's own, and the attribute is one 64-bit value.
+            unsafe {
+                let got = sys::cuMemPoolGetAttribute(pool, used, (&mut high as *mut u64).cast());
+                assert_eq!(got, sys::CUresult::CUDA_SUCCESS);
+                let set = sys::cuMemPoolSetAttribute(pool, used, (&mut zero as *mut u64).cast());
+                assert_eq!(set, sys::CUresult::CUDA_SUCCESS);
+            }
+            high
+        };
+        type Choice = (Vec<u128>, Vec<Vec<u32>>, Vec<Vec<u8>>, u64);
+        for time in [192, 512, 1_024, 2_048] {
+            for batch in [4, 16] {
+                let rows = batch * time;
+                let code = |salt: usize| -> Tensor {
+                    let v: Vec<f32> = (0..rows * width)
+                        .map(|i| if ((i + salt) * 2_654_435_761) % 10_007 < 5_003 { -1.0 } else { 1.0 })
+                        .collect();
+                    Tensor::from_vec(v, (rows, width), &device).unwrap()
+                };
+                let (query, key) = (code(0), code(11));
+                let limits = vec![time; rows];
+                let run = |bytes: usize| -> std::result::Result<Choice, String> {
+                    device.synchronize().map_err(|e| e.to_string())?;
+                    peak();
+                    let mut micros = Vec::new();
+                    let mut last = None;
+                    for _ in 0..6 {
+                        let start = std::time::Instant::now();
+                        let out = choose_sorted_in(
+                            &query, &key, batch, time, HAMMING_KEPT, 1, &limits, true, bytes,
+                        )
+                        .map_err(|e| e.to_string())?;
+                        device.synchronize().map_err(|e| e.to_string())?;
+                        micros.push(start.elapsed().as_micros());
+                        last = Some(out);
+                    }
+                    // The first run warms up; the median of the other five is reported.
+                    micros.remove(0);
+                    micros.sort_unstable();
+                    let bytes_peak = peak();
+                    let (picks, real) = last.expect("six runs");
+                    let picks = picks.to_vec2::<u32>().unwrap();
+                    Ok((micros, picks, real.to_vec2::<u8>().unwrap(), bytes_peak))
+                };
+                let chunk = distance_chunk(batch, time, width, DISTANCE_CHUNK_BYTES);
+                let start = now();
+                let chunked = run(DISTANCE_CHUNK_BYTES).expect("the chunked read runs");
+                let middle = now();
+                let whole = run(usize::MAX);
+                let end = now();
+                let (whole_us, whole_peak, same) = match &whole {
+                    Ok(w) => (
+                        w.0[2].to_string(),
+                        w.3.to_string(),
+                        (w.1 == chunked.1 && w.2 == chunked.2).to_string(),
+                    ),
+                    Err(e) => {
+                        let fault = format!("\"does not fit: {}\"", e.replace('"', "'"));
+                        (fault, peak().to_string(), "null".into())
+                    }
+                };
+                println!(
+                    "{{\"time\":{time},\"batch\":{batch},\"chunk\":{chunk},\"chunked_us\":{},\
+                     \"chunked_all_us\":{:?},\"chunked_peak_bytes\":{},\"whole_us\":{whole_us},\
+                     \"whole_peak_bytes\":{whole_peak},\"same_picks\":{same},\
+                     \"ms_start\":{start},\"ms_whole\":{middle},\"ms_end\":{end}}}",
+                    chunked.0[2], chunked.0, chunked.3
+                );
+                if let Ok(w) = &whole {
+                    assert_eq!(w.1, chunked.1, "picks at time {time}, batch {batch}");
+                    assert_eq!(w.2, chunked.2, "real at time {time}, batch {batch}");
+                }
+            }
         }
     }
 

@@ -184,6 +184,15 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   drops claude-268's three `crates/uor-r4-cpu-train` paths, which made
   `loop claim` refuse this item and `cpu-training-pilot` while either had an
   open order; the unit that runs the mixed copy pair adds back what it needs.
+  [claude-272](../../loop/tasks/one-model-end-to-end/claude-272/REPORT.md)
+  made the Hamming read fit long windows: its distance is taken in chunks of
+  query positions under a 256 MiB budget, and its candidate mask is built on
+  the device, with picks byte-identical to the whole read. On one RTX 5090,
+  one head at 2,048 positions takes 30.6 ms and 0.57 GiB at batch 4, and
+  116.8 ms and 1.33 GiB at batch 16, where the whole read cannot run (its
+  2³² elements wrap candle's 32-bit launch size). No model was trained at a
+  long window yet; Casey added that run as P2b, after the window becomes a
+  setting.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
