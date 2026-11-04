@@ -1,0 +1,170 @@
+{
+  "schema": "uor-r4.cpu-trunk-parallel-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "e4bc08361c95b1b2c78a357c755c9c9812e42abe",
+    "prep_head": "f99d34f3ec0724bde862c59e8d636f4ea1dd3796",
+    "binary_sha256": "577195fb21f29b36ef2c49bc2b02af19d0eaa8a10a04d062abe8bb4005333b5e",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "public_trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "training_documents": 200,
+    "evaluation_documents": 193,
+    "training_targets": 7080,
+    "evaluation_targets": 512,
+    "selected_training_rows": 4096,
+    "evaluation_stride": 2,
+    "seed": 1
+  },
+  "protocol": {
+    "forward_worker_order": [1, 8, 16, 32],
+    "reverse_worker_order": [32, 16, 8, 1],
+    "fresh_output_roots": 8,
+    "wall_aggregation": "mean of the forward and reverse runs"
+  },
+  "artifacts": {
+    "exact_sha256": "db4a672d6af83c4c56b7fbccc9ebc2279cb13fb8719b47829db64c910f7d2bb2",
+    "shuffled_sha256": "19cbb1caa487473ac4344e1b3582060fbcb22b1e6066fa51540bcbc8977eabcd",
+    "exact_bytes": 86815864,
+    "shuffled_bytes": 87042864,
+    "all_runs_byte_identical": true
+  },
+  "tables": {
+    "source_total": 1049856,
+    "exact_total": 1053952,
+    "shuffled_total": 1053952,
+    "increment_per_table": 4096,
+    "table_families": 13,
+    "independent_full_content_check": true,
+    "semantic_sections_unchanged": true
+  },
+  "held_out": {
+    "rows": 512,
+    "q12_query_coordinates_per_arm": 16384,
+    "arms": {
+      "no_update": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      },
+      "exact": {
+        "admitted": 331,
+        "top1": 245,
+        "top8": 269,
+        "checksum": "351b70cab8d7cbc9"
+      },
+      "shuffled": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      }
+    },
+    "changed_decisions": {
+      "exact_vs_no_update_rows": 4,
+      "shuffled_vs_no_update_rows": 0,
+      "exact_vs_shuffled_rows": 4
+    },
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0
+  },
+  "timing": {
+    "wall_units": "ms",
+    "runs": [
+      {
+        "pass": "forward",
+        "workers": 1,
+        "wall_elapsed_ms": 10531.052594,
+        "peak_rss_kib": 1543092
+      },
+      {
+        "pass": "forward",
+        "workers": 8,
+        "wall_elapsed_ms": 9926.861525,
+        "peak_rss_kib": 1543804
+      },
+      {
+        "pass": "forward",
+        "workers": 16,
+        "wall_elapsed_ms": 9865.846859,
+        "peak_rss_kib": 1544648
+      },
+      {
+        "pass": "forward",
+        "workers": 32,
+        "wall_elapsed_ms": 10037.325949,
+        "peak_rss_kib": 1546892
+      },
+      {
+        "pass": "reverse",
+        "workers": 1,
+        "wall_elapsed_ms": 10669.713443,
+        "peak_rss_kib": 1543932
+      },
+      {
+        "pass": "reverse",
+        "workers": 8,
+        "wall_elapsed_ms": 10235.098178,
+        "peak_rss_kib": 1543672
+      },
+      {
+        "pass": "reverse",
+        "workers": 16,
+        "wall_elapsed_ms": 10036.972251,
+        "peak_rss_kib": 1544436
+      },
+      {
+        "pass": "reverse",
+        "workers": 32,
+        "wall_elapsed_ms": 10006.608804,
+        "peak_rss_kib": 1545644
+      }
+    ],
+    "mean_wall_elapsed_ms": {
+      "1": 10600.3830185,
+      "8": 10080.9798515,
+      "16": 9951.409555,
+      "32": 10021.9673765
+    },
+    "process_cpu_percent_range": [99, 108],
+    "user_time_seconds_range": [8.70, 9.11],
+    "system_time_seconds_range": [1.74, 1.98],
+    "speedup_vs_one_worker": {
+      "8": 1.0515230835346543,
+      "16": 1.0652142251721448,
+      "32": 1.0577147799698787
+    },
+    "bar": {
+      "minimum_speedup": 1.5,
+      "best_workers": 16,
+      "best_speedup": 1.0652142251721448,
+      "passed": false
+    },
+    "peak_rss_kib_range": [1543092, 1546892]
+  },
+  "equivalence": {
+    "normalized_report_sha256": "64e6e9b971ae0e90281aa485112db595e440eddeb29dbf99c9976a1fc467722f",
+    "all_normalized_reports_identical": true,
+    "all_artifact_pairs_byte_identical": true,
+    "every_run_passed_driver_checks": true
+  },
+  "storage_bytes": 1390916646,
+  "verdict": {
+    "parallel_count_driver": "negative-performance",
+    "success_measure": "mean wall speedup at least 1.5 times on workers 8, 16 or 32 with exact equivalence",
+    "scope": "fixed public seed-1 19-table trunk, first 4096 training rows, 512 document-disjoint DEV rows"
+  }
+}

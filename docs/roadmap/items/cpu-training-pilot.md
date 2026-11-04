@@ -218,6 +218,17 @@ one while the shuffled control changed nothing, so the registered comparison
 is negative. This closes the fixed 4,096-row additive dose, not other count
 schedules. See [deepseek-125](../../loop/tasks/cpu-training-pilot/deepseek-125/REPORT.md).
 
+The count driver now uses one explicit local Rayon pool for ordered training-row
+derivation and held-out CPU/integer evaluation. Eight fresh runs in mirrored
+worker order reproduced every deepseek-125 artifact, table, decision and
+checksum exactly while recording a strict positive peak RSS. The best mean
+speedup was **1.065x** at 16 workers, below the pre-registered 1.5x bar; 32
+workers was slightly slower. Flat wall time and roughly one-core process
+utilization suggest the two parallel loops are a small share of total driver
+work; stage timing is required before naming the remaining bottleneck. This is
+a performance/instrument negative, not a model result. See
+[deepseek-126](../../loop/tasks/cpu-training-pilot/deepseek-126/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

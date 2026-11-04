@@ -342,6 +342,13 @@
     "lab": "deepseek",
     "note": "4096-row exact-vs-shuffled 19-table CPU count training comparison"
   },
+  "deepseek/trunk-parallel": {
+    "branch": "deepseek/trunk-parallel",
+    "claimed_at": "2026-11-04T04:07:59-05:00",
+    "head": "a1c22df3e",
+    "lab": "deepseek",
+    "note": "parallel 19-table CPU count driver"
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",

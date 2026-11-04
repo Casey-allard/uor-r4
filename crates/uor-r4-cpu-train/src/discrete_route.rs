@@ -4417,6 +4417,89 @@ mod tests {
     }
 
     #[test]
+    fn cpu_trunk_parallel_rows_and_decisions_preserve_serial_results() {
+        use rayon::prelude::*;
+
+        let artifact = synthetic_trunk_artifact();
+        let reader = CpuDiscreteTrunkReader::from_bytes(&artifact).unwrap();
+        let served = IntegerDiscreteModel::from_bytes(&artifact).unwrap();
+        let prefixes = vec![
+            vec![1u32],
+            vec![1, 2],
+            vec![1, 2, 1],
+            vec![1, 2, 1, 3],
+            vec![2, 1, 2],
+            vec![3, 1, 2],
+        ];
+        let targets = [2u32, 1, 2, 3, 1, 2];
+        let expected_rows = prefixes
+            .iter()
+            .zip(targets)
+            .enumerate()
+            .map(|(index, (prefix, target))| {
+                reader
+                    .training_row(prefix, target, 17 + index as u64)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        let expected_artifact = reader
+            .clone()
+            .add_training_rows_consuming(&expected_rows)
+            .unwrap();
+        let expected_decisions = prefixes
+            .iter()
+            .map(|prefix| reader.decide(prefix).unwrap())
+            .collect::<Vec<_>>();
+
+        for workers in [1usize, 8, 16, 32] {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(workers)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                let rows = prefixes
+                    .par_iter()
+                    .zip(targets.par_iter())
+                    .enumerate()
+                    .map(|(index, (prefix, target))| {
+                        reader
+                            .training_row(prefix, *target, 17 + index as u64)
+                            .unwrap()
+                    })
+                    .collect::<Vec<_>>();
+                assert_eq!(rows, expected_rows, "{workers} workers");
+                assert_eq!(
+                    reader.clone().add_training_rows_consuming(&rows).unwrap(),
+                    expected_artifact,
+                    "{workers} workers"
+                );
+
+                let decisions = prefixes
+                    .par_iter()
+                    .map(|prefix| reader.decide(prefix).unwrap())
+                    .collect::<Vec<_>>();
+                assert_eq!(decisions, expected_decisions, "{workers} workers");
+                let parity = prefixes
+                    .par_iter()
+                    .map(|prefix| {
+                        let cpu = reader.decide(prefix).unwrap();
+                        let served = served.evaluate_prefix(prefix).unwrap();
+                        let mut top8 = [u32::MAX; 8];
+                        for (slot, &token) in served.top8.iter().take(8).enumerate() {
+                            top8[slot] = token;
+                        }
+                        assert_eq!(cpu.query, served.read_vector.as_slice());
+                        assert_eq!(cpu.admitted_cells, served.admitted_cells);
+                        assert_eq!(cpu.top8, top8);
+                        assert_eq!(cpu.token, served.prediction);
+                    })
+                    .collect::<Vec<_>>();
+                assert_eq!(parity.len(), prefixes.len(), "{workers} workers");
+            });
+        }
+    }
+
+    #[test]
     fn cpu_trunk_count_training_keeps_the_smaller_unigram_on_a_tie() {
         let mut tables = TrunkTables::build(&[TrunkTrainRow {
             read_code: 3,
