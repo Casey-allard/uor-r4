@@ -342,6 +342,13 @@
     "lab": "deepseek",
     "note": "4096-row exact-vs-shuffled 19-table CPU count training comparison"
   },
+  "deepseek/trunk-eval-reuse": {
+    "branch": "deepseek/trunk-eval-reuse",
+    "claimed_at": "2026-11-04T06:27:06-05:00",
+    "head": "c4b467657",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/trunk-parallel": {
     "branch": "deepseek/trunk-parallel",
     "claimed_at": "2026-11-04T04:07:59-05:00",
@@ -355,13 +362,6 @@
     "head": "3441ba625",
     "lab": "deepseek",
     "note": "stage profile the 19-table CPU count driver"
-  },
-  "deepseek/trunk-verify": {
-    "branch": "deepseek/trunk-verify",
-    "claimed_at": "2026-11-04T05:33:04-05:00",
-    "head": "e5b7c500c",
-    "lab": "deepseek",
-    "note": "remove duplicate trunk decoding from count verification"
   },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",

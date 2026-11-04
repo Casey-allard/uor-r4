@@ -300,7 +300,6 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
     identity
         .validate_context(context)
         .map_err(|error| error.to_string())?;
-    drop(serving);
     stages.lap("input_validate")?;
     let corpus = CpuMaskedCorpus::from_bytes(&tokens, &mask, vocabulary, context, 0)
         .map_err(|error| error.to_string())?;
@@ -348,6 +347,9 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
         })
         .collect::<Result<Vec<_>, _>>()?;
     stages.lap("training_row_derivation")?;
+    let no_update = evaluate_with_models(&reader, &serving, &split.evaluation)?;
+    stages.lap("no_update_evaluation")?;
+    drop(serving);
     let shuffled_targets = shuffled_targets(
         &training
             .iter()
@@ -452,8 +454,6 @@ fn run(config: Config) -> Result<serde_json::Value, String> {
     }
     stages.lap("table_verification")?;
 
-    let no_update = evaluate(&artifact, &split.evaluation)?;
-    stages.lap("no_update_evaluation")?;
     let exact_artifact =
         std::fs::read(config.out.join("exact.uorlut")).map_err(|error| error.to_string())?;
     let exact = evaluate(&exact_artifact, &split.evaluation)?;
@@ -744,6 +744,14 @@ fn sparse_tables(
 fn evaluate(artifact: &[u8], samples: &[RankMarginSample]) -> Result<DecisionReading, String> {
     let cpu = CpuDiscreteTrunkReader::from_bytes(artifact).map_err(|error| error.to_string())?;
     let served = IntegerDiscreteModel::from_bytes(artifact).map_err(|error| error.to_string())?;
+    evaluate_with_models(&cpu, &served, samples)
+}
+
+fn evaluate_with_models(
+    cpu: &CpuDiscreteTrunkReader,
+    served: &IntegerDiscreteModel,
+    samples: &[RankMarginSample],
+) -> Result<DecisionReading, String> {
     let outcomes = collect_decision_outcomes(samples, |sample| {
         let (decision, admitted, top1, top8) = cpu
             .observe_target(&sample.input, sample.target)
@@ -950,7 +958,7 @@ mod tests {
             vocabulary: 4096,
             blocks: 4,
             context: 1,
-            kept_cells: 1,
+            kept_cells: 8,
         };
         let read_spec = ReadSpec::Route;
         let stages = BinderPlan::new(spec.context as usize).unwrap().stages() as u32;
@@ -1076,6 +1084,30 @@ mod tests {
             "decoded count tables differ from the independent tally",
         )
         .is_err());
+    }
+
+    #[test]
+    fn preloaded_evaluation_matches_independent_reload() {
+        let artifact = synthetic_trunk(
+            1,
+            &[TrunkTrainRow {
+                read_code: 1,
+                rec_code: 2,
+                rec_shuf_code: 3,
+                rec_unit_code: 4,
+                query_token: 5,
+                target_token: 6,
+            }],
+        );
+        let samples = vec![RankMarginSample {
+            input: vec![5],
+            target: 6,
+        }];
+        let cpu = CpuDiscreteTrunkReader::from_bytes(&artifact).unwrap();
+        let served = IntegerDiscreteModel::from_bytes(&artifact).unwrap();
+        let preloaded = evaluate_with_models(&cpu, &served, &samples).unwrap();
+        let reloaded = evaluate(&artifact, &samples).unwrap();
+        assert_eq!(preloaded, reloaded);
     }
 
     #[test]
