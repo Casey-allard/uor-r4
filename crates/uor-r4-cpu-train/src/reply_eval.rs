@@ -115,6 +115,24 @@ pub struct TerminationGateTraining {
     pub nearest_nonterminal_distance: Option<u64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationCellGate {
+    pub width: usize,
+    pub cells: Vec<u16>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationCellTraining {
+    pub trained: TerminationCellGate,
+    pub random: TerminationCellGate,
+    pub terminal_cell_counts: BTreeMap<u16, u64>,
+    pub nonterminal_cell_counts: BTreeMap<u16, u64>,
+    pub excluded_ties: usize,
+    pub excluded_nonterminal_majority: usize,
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TimedTerminationReading {
@@ -595,6 +613,233 @@ pub fn evaluate_termination_gate_replies(
     evaluate_generated(artifact, samples, cap, |prompt, cap| {
         generate_termination_gate_reply(artifact, prompt, cap, memory_enabled, gate)
     })
+}
+
+/// Derive a writer-cell termination gate and an equal-size deterministic control
+/// from training examples only.
+pub fn derive_termination_cell_gates(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    memory_enabled: bool,
+    random_seed: u64,
+) -> Result<TerminationCellTraining> {
+    if samples.is_empty() {
+        return Err(invalid("termination cell gate needs training samples"));
+    }
+    let model = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination cell gate artifact: {error}")))?;
+    let width = model.width();
+    let mut terminal_cell_counts = BTreeMap::<u16, u64>::new();
+    let mut nonterminal_cell_counts = BTreeMap::<u16, u64>::new();
+    for sample in samples {
+        if sample.prompt.is_empty()
+            || sample.reply.len() < 2
+            || sample.reply.last() != Some(&CORPUS_EOS)
+        {
+            return Err(invalid(
+                "termination cell gate training reply must end in corpus EOS",
+            ));
+        }
+        let sequence = sample
+            .prompt
+            .iter()
+            .chain(sample.reply[..sample.reply.len() - 1].iter())
+            .copied()
+            .collect::<Vec<_>>();
+        let mut forward = CpuFbsForward::from_artifact(artifact)
+            .map_err(|error| invalid(format!("termination cell gate forward: {error}")))?;
+        if !memory_enabled {
+            forward.disable_memory();
+        }
+        for (index, token) in sequence.iter().copied().enumerate() {
+            if index + 1 == sample.prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).map_err(|error| {
+                invalid(format!("termination cell gate training step: {error}"))
+            })?;
+            if index + 1 >= sample.prompt.len() {
+                let cell = model
+                    .writer_query_cell(&step.query_q12)
+                    .map_err(|error| invalid(format!("termination cell gate cell: {error}")))?;
+                let counts = if index + 1 == sequence.len() {
+                    &mut terminal_cell_counts
+                } else {
+                    &mut nonterminal_cell_counts
+                };
+                let count = counts.entry(cell).or_default();
+                *count = count
+                    .checked_add(1)
+                    .ok_or_else(|| invalid("termination cell count overflow"))?;
+            }
+        }
+    }
+    let training = learn_termination_cells(
+        width,
+        terminal_cell_counts,
+        nonterminal_cell_counts,
+        random_seed,
+    )?;
+    Ok(training)
+}
+
+fn learn_termination_cells(
+    width: usize,
+    terminal_cell_counts: BTreeMap<u16, u64>,
+    nonterminal_cell_counts: BTreeMap<u16, u64>,
+    random_seed: u64,
+) -> Result<TerminationCellTraining> {
+    let mut cells = Vec::new();
+    let (mut excluded_ties, mut excluded_nonterminal_majority) = (0usize, 0usize);
+    for (&cell, &terminal) in &terminal_cell_counts {
+        let nonterminal = nonterminal_cell_counts.get(&cell).copied().unwrap_or(0);
+        if terminal > nonterminal {
+            cells.push(cell);
+        } else if terminal == nonterminal {
+            excluded_ties = excluded_ties
+                .checked_add(1)
+                .ok_or_else(|| invalid("termination excluded-cell count overflow"))?;
+        } else {
+            excluded_nonterminal_majority = excluded_nonterminal_majority
+                .checked_add(1)
+                .ok_or_else(|| invalid("termination excluded-cell count overflow"))?;
+        }
+    }
+    cells.sort_unstable();
+    cells.dedup();
+    let trained = TerminationCellGate {
+        width,
+        cells: cells.clone(),
+    };
+    let learned = cells.iter().copied().collect::<BTreeSet<_>>();
+    let mut pool = terminal_cell_counts
+        .keys()
+        .chain(nonterminal_cell_counts.keys())
+        .copied()
+        .filter(|cell| !learned.contains(cell))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if pool.len() < cells.len() {
+        return Err(invalid(
+            "termination shuffled control has fewer distinct unselected cells than the trained gate",
+        ));
+    }
+    let mut state = random_seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+    for end in (1..pool.len()).rev() {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        let draw = state.wrapping_mul(0x2545_F491_4F6C_DD1D);
+        pool.swap(
+            end,
+            usize::try_from(draw % (end as u64 + 1))
+                .map_err(|_| invalid("termination shuffled-control index exceeds usize"))?,
+        );
+    }
+    pool.truncate(cells.len());
+    pool.sort_unstable();
+    Ok(TerminationCellTraining {
+        trained,
+        random: TerminationCellGate { width, cells: pool },
+        terminal_cell_counts,
+        nonterminal_cell_counts,
+        excluded_ties,
+        excluded_nonterminal_majority,
+    })
+}
+
+pub fn evaluate_termination_cell_gate_replies(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationCellGate,
+) -> Result<TimedReplyReading> {
+    evaluate_generated(artifact, samples, cap, |prompt, cap| {
+        generate_termination_cell_gate_reply(artifact, prompt, cap, memory_enabled, gate)
+    })
+}
+
+fn generate_termination_cell_gate_reply(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationCellGate,
+) -> Result<GeneratedReply> {
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination cell gate forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    if cap == 0 || cap > 64 || prompt.is_empty() || prompt.len() > context {
+        return Err(invalid(
+            "termination cell gate prompt, cap or artifact context is invalid",
+        ));
+    }
+    let mut next = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination cell gate prompt step: {error}")))?;
+        if index + 1 == prompt.len() {
+            next = Some(cell_name_or_writer(&forward, gate, &step)?);
+        }
+    }
+    let mut next = next.ok_or_else(|| invalid("termination cell gate prompt is empty"))?;
+    let mut tokens = Vec::with_capacity(cap);
+    loop {
+        let stop = reply_stop(next, tokens.len(), prompt.len(), cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok(GeneratedReply {
+                tokens,
+                stop: match stop {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                },
+            });
+        }
+        let step = forward
+            .step(next, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination cell gate generated step: {error}")))?;
+        next = cell_name_or_writer(&forward, gate, &step)?;
+    }
+}
+
+fn cell_name_or_writer(
+    forward: &CpuFbsForward,
+    gate: &TerminationCellGate,
+    step: &crate::CpuFbsStep,
+) -> Result<u32> {
+    if step.query_q12.len() != gate.width {
+        return Err(invalid(
+            "termination cell gate width differs from the served query",
+        ));
+    }
+    Ok(
+        if gate
+            .cells
+            .binary_search(
+                &forward
+                    .writer_query_cell(&step.query_q12)
+                    .map_err(|error| invalid(format!("termination cell gate cell: {error}")))?,
+            )
+            .is_ok()
+        {
+            POINT_KEY_BOS
+        } else {
+            step.token
+        },
+    )
 }
 
 fn generate_termination_gate_reply(
@@ -1245,6 +1490,137 @@ mod tests {
             evaluate_termination_gate_replies(&artifact, &samples, 4, true, &gate).unwrap();
         assert_eq!(no_gate.reply_sha256, empty_gate.reply_sha256);
         assert_eq!(no_gate.reading, empty_gate.reading);
+    }
+
+    #[test]
+    fn writer_cell_uses_the_first_and_last_orbit_roots() {
+        let artifact = artifact();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let roots = forward.writer_roots();
+        let mut query = vec![0i32; 64];
+        query[..8].copy_from_slice(&roots[3]);
+        query[56..].copy_from_slice(&roots[7]);
+        assert_eq!(forward.writer_query_cell(&query).unwrap(), 55);
+    }
+
+    #[test]
+    fn termination_cells_require_strict_terminal_density_and_build_a_shuffled_control() {
+        let terminal = BTreeMap::from([(1, 3), (2, 2), (3, 4)]);
+        let nonterminal = BTreeMap::from([(1, 2), (2, 2), (3, 6), (4, 1)]);
+        let first = learn_termination_cells(64, terminal, nonterminal, 1).unwrap();
+        assert_eq!(first.trained.cells, [1]);
+        assert_eq!(first.excluded_ties, 1);
+        assert_eq!(first.excluded_nonterminal_majority, 1);
+        assert_eq!(first.random.cells.len(), 1);
+        assert!(!first.random.cells.contains(&1));
+        let second = learn_termination_cells(
+            64,
+            BTreeMap::from([(1, 3), (2, 2), (3, 4)]),
+            BTreeMap::from([(1, 2), (2, 2), (3, 6), (4, 1)]),
+            1,
+        )
+        .unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn termination_cell_gate_names_bos_only_inside_a_learned_cell() {
+        let artifact = artifact();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let roots = forward.writer_roots();
+        let mut query = vec![0i32; 64];
+        query[..8].copy_from_slice(&roots[3]);
+        query[56..].copy_from_slice(&roots[7]);
+        let cell = forward.writer_query_cell(&query).unwrap();
+        let gate = TerminationCellGate {
+            width: 64,
+            cells: vec![cell],
+        };
+        let inside = CpuFbsStep {
+            token: 7,
+            kept_cells: vec![1],
+            query_q12: query.clone(),
+        };
+        assert_eq!(
+            cell_name_or_writer(&forward, &gate, &inside).unwrap(),
+            POINT_KEY_BOS
+        );
+
+        query[..8].copy_from_slice(&roots[4]);
+        let outside = CpuFbsStep {
+            query_q12: query,
+            ..inside
+        };
+        assert_eq!(cell_name_or_writer(&forward, &gate, &outside).unwrap(), 7);
+    }
+
+    #[test]
+    fn nonempty_termination_cell_gate_stops_the_real_reply_loop_at_bos() {
+        let artifact = artifact();
+        let prompt = [10, 11, 12];
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let mut query = None;
+        for (index, token) in prompt.into_iter().enumerate() {
+            if index + 1 == prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).unwrap();
+            if index + 1 == prompt.len() {
+                query = Some(step.query_q12);
+            }
+        }
+        let gate = TerminationCellGate {
+            width: 64,
+            cells: vec![forward.writer_query_cell(&query.unwrap()).unwrap()],
+        };
+        let reply =
+            generate_termination_cell_gate_reply(&artifact, &prompt, 4, true, &gate).unwrap();
+        assert_eq!(reply.stop, "bos");
+        assert!(reply.tokens.is_empty());
+    }
+
+    #[test]
+    fn empty_termination_cell_gate_preserves_the_no_gate_reply_digest() {
+        let artifact = artifact();
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, 77, 99],
+        }];
+        let gate = TerminationCellGate {
+            width: 64,
+            cells: Vec::new(),
+        };
+        let no_gate = evaluate_replies(&artifact, &samples, 4).unwrap();
+        let empty_gate =
+            evaluate_termination_cell_gate_replies(&artifact, &samples, 4, true, &gate).unwrap();
+        assert_eq!(no_gate.reply_sha256, empty_gate.reply_sha256);
+        assert_eq!(no_gate.reading, empty_gate.reading);
+    }
+
+    #[test]
+    fn termination_cell_training_uses_only_eos_training_rows() {
+        let artifact = artifact();
+        let samples = vec![
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, CORPUS_EOS],
+            },
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, 77, CORPUS_EOS],
+            },
+        ];
+        let first = derive_termination_cell_gates(&artifact, &samples, true, 1).unwrap();
+        let second = derive_termination_cell_gates(&artifact, &samples, true, 1).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.trained.width, 64);
+        assert_eq!(first.trained.cells.len(), first.random.cells.len());
+        assert_eq!(first.terminal_cell_counts.values().sum::<u64>(), 2);
+        let bad = [MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, POINT_KEY_BOS],
+        }];
+        assert!(derive_termination_cell_gates(&artifact, &bad, true, 1).is_err());
     }
 
     #[test]
