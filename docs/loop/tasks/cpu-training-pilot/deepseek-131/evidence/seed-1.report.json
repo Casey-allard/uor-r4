@@ -1,0 +1,4306 @@
+{
+  "bar": {
+    "nonterminal_bos": 0,
+    "nonterminal_bos_limit": 36,
+    "nonterminal_bos_pass": true,
+    "nonterminal_content_pass": true,
+    "passes": false,
+    "terminal_bos_required": 26,
+    "terminal_bos_target": false,
+    "vs_random": {
+      "candidate_only": 0,
+      "candidate_top1": 0,
+      "control_only": 0,
+      "control_top1": 0,
+      "discordant": 0,
+      "gain": 0,
+      "passes": false,
+      "rows": 103,
+      "threshold": 2
+    },
+    "vs_shuffled": {
+      "candidate_only": 0,
+      "candidate_top1": 0,
+      "control_only": 0,
+      "control_top1": 0,
+      "discordant": 0,
+      "gain": 0,
+      "passes": false,
+      "rows": 103,
+      "threshold": 2
+    }
+  },
+  "claim": "direct final-gain BOS training on a bounded CPU development panel; not GPU qualification or language capability",
+  "complete_replies": {
+    "frozen": {
+      "generated_tokens_per_second": 25783.59965617069,
+      "reading": {
+        "bos_complete": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "distinct_non_empty": 2,
+        "exact_reference": 0,
+        "generated_tokens": 1648,
+        "non_empty": 103,
+        "opening_correct": 0,
+        "premature_stop": 0,
+        "reference_reachable": 95,
+        "reference_tokens": 1085,
+        "repeated_4gram": 24,
+        "replies": 103
+      },
+      "reply_sha256": "b0b8a5944c6647c73d7c161172502a521c142264bfe801370bf982a68a59ab42",
+      "rows": [
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 0
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 1
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 2
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 3
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 4
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 5
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 6
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 7
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 8
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 9
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 10
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 11
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 12
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 13
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 14
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 15
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 16
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 17
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 18
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 19
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 20
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 21
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 22
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 23
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 24
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 25
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 26
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 27
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 28
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 29
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 30
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 31
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 32
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 33
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 34
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 35
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 36
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 37
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 38
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 39
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 40
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 41
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 42
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 43
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 44
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 45
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 46
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 47
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 48
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 49
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 50
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 51
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 52
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 53
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 54
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 55
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 56
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 57
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 58
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 59
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 60
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 61
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 62
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 63
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 64
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 65
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 66
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 67
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 68
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 69
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 70
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 71
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 72
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 73
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 74
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 75
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 76
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 77
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 78
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 79
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 80
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 81
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 82
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 83
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 84
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 85
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 86
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 87
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 88
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 89
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 90
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 91
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 92
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 93
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 94
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 95
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 96
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 97
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 98
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 99
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 100
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 101
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 102
+        }
+      ],
+      "wall_elapsed_us": 63916
+    },
+    "label_shuffled": {
+      "generated_tokens_per_second": 25303.416833380565,
+      "reading": {
+        "bos_complete": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "distinct_non_empty": 2,
+        "exact_reference": 0,
+        "generated_tokens": 1648,
+        "non_empty": 103,
+        "opening_correct": 0,
+        "premature_stop": 0,
+        "reference_reachable": 95,
+        "reference_tokens": 1085,
+        "repeated_4gram": 24,
+        "replies": 103
+      },
+      "reply_sha256": "b0b8a5944c6647c73d7c161172502a521c142264bfe801370bf982a68a59ab42",
+      "rows": [
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 0
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 1
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 2
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 3
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 4
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 5
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 6
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 7
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 8
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 9
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 10
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 11
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 12
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 13
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 14
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 15
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 16
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 17
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 18
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 19
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 20
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 21
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 22
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 23
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 24
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 25
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 26
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 27
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 28
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 29
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 30
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 31
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 32
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 33
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 34
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 35
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 36
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 37
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 38
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 39
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 40
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 41
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 42
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 43
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 44
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 45
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 46
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 47
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 48
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 49
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 50
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 51
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 52
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 53
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 54
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 55
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 56
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 57
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 58
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 59
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 60
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 61
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 62
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 63
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 64
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 65
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 66
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 67
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 68
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 69
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 70
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 71
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 72
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 73
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 74
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 75
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 76
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 77
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 78
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 79
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 80
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 81
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 82
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 83
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 84
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 85
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 86
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 87
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 88
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 89
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 90
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 91
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 92
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 93
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 94
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 95
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 96
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 97
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 98
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 99
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 100
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 101
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 102
+        }
+      ],
+      "wall_elapsed_us": 65129
+    },
+    "random": {
+      "generated_tokens_per_second": 23607.79409029872,
+      "reading": {
+        "bos_complete": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "distinct_non_empty": 2,
+        "exact_reference": 0,
+        "generated_tokens": 1648,
+        "non_empty": 103,
+        "opening_correct": 0,
+        "premature_stop": 0,
+        "reference_reachable": 95,
+        "reference_tokens": 1085,
+        "repeated_4gram": 24,
+        "replies": 103
+      },
+      "reply_sha256": "b0b8a5944c6647c73d7c161172502a521c142264bfe801370bf982a68a59ab42",
+      "rows": [
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 0
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 1
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 2
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 3
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 4
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 5
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 6
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 7
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 8
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 9
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 10
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 11
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 12
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 13
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 14
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 15
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 16
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 17
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 18
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 19
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 20
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 21
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 22
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 23
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 24
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 25
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 26
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 27
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 28
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 29
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 30
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 31
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 32
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 33
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 34
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 35
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 36
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 37
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 38
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 39
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 40
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 41
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 42
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 43
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 44
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 45
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 46
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 47
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 48
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 49
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 50
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 51
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 52
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 53
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 54
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 55
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 56
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 57
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 58
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 59
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 60
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 61
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 62
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 63
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 64
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 65
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 66
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 67
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 68
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 69
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 70
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 71
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 72
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 73
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 74
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 75
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 76
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 77
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 78
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 79
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 80
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 81
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 82
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 83
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 84
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 85
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 86
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 87
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 88
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 89
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 90
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 91
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 92
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 93
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 94
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 95
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 96
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 97
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 98
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 99
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 100
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 101
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 102
+        }
+      ],
+      "wall_elapsed_us": 69807
+    },
+    "trained": {
+      "generated_tokens_per_second": 21792.500616054687,
+      "reading": {
+        "bos_complete": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "distinct_non_empty": 2,
+        "exact_reference": 0,
+        "generated_tokens": 1648,
+        "non_empty": 103,
+        "opening_correct": 0,
+        "premature_stop": 0,
+        "reference_reachable": 95,
+        "reference_tokens": 1085,
+        "repeated_4gram": 24,
+        "replies": 103
+      },
+      "reply_sha256": "b0b8a5944c6647c73d7c161172502a521c142264bfe801370bf982a68a59ab42",
+      "rows": [
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 0
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 1
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 2
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 3
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 4
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 5
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 6
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 7
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 8
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 9
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 10
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 11
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 12
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 13
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 14
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 15
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 16
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 17
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 18
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 19
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 20
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 21
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 22
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 23
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 24
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 25
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 26
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 27
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 28
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 29
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 30
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 31
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 32
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 33
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 34
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 35
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 36
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 37
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 38
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 39
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 40
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 41
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 42
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": false,
+          "row": 43
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 44
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 45
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 46
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 47
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 48
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 49
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 50
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 51
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 52
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 53
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 54
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 55
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 56
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 57
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 58
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 59
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 60
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 61
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 62
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 63
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 64
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 65
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 66
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 67
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 68
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 69
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 70
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 71
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 72
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 73
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 74
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 75
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 76
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 77
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 78
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 79
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 80
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 81
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 82
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 83
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 84
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 85
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 86
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 87
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 88
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 89
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 90
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 91
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 92
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 93
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 94
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 95
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 96
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 97
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 98
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 99
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 100
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 101
+        },
+        {
+          "exact": false,
+          "non_premature_bos": false,
+          "reachable": true,
+          "row": 102
+        }
+      ],
+      "wall_elapsed_us": 75622
+    }
+  },
+  "evaluation": {
+    "frozen": {
+      "reading": {
+        "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+        "decisions": 3765,
+        "nonterminal_bos_distance_sum": 4385433253,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 341,
+        "nonterminal_decisions": 3662,
+        "samples": 103,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 123149944,
+        "terminal_bos_rank_sum": 418017,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 97,
+        "terminal_decisions": 103
+      },
+      "terminal_rows": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "label_shuffled": {
+      "reading": {
+        "artifact_sha256": "78f6b183b2fc4d319f0b2d3855535dcc437e80181eaca3471aaf697e5080c8bf",
+        "decisions": 3765,
+        "nonterminal_bos_distance_sum": 4365001099,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 341,
+        "nonterminal_decisions": 3662,
+        "samples": 103,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 122899231,
+        "terminal_bos_rank_sum": 418017,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 97,
+        "terminal_decisions": 103
+      },
+      "terminal_rows": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "random": {
+      "reading": {
+        "artifact_sha256": "346df61e2b46e008e19357421d47b7b4f1a087d02b505544ff7f8b9021973842",
+        "decisions": 3765,
+        "nonterminal_bos_distance_sum": 4381145899,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 341,
+        "nonterminal_decisions": 3662,
+        "samples": 103,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 123104341,
+        "terminal_bos_rank_sum": 418017,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 97,
+        "terminal_decisions": 103
+      },
+      "terminal_rows": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "trained": {
+      "reading": {
+        "artifact_sha256": "c629a9d53ea4f92cb19bd4dd187011bcc092c3fed86c08a60314d18aacb25e56",
+        "decisions": 3765,
+        "nonterminal_bos_distance_sum": 4379631178,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 341,
+        "nonterminal_decisions": 3662,
+        "samples": 103,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 122624236,
+        "terminal_bos_rank_sum": 418017,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 97,
+        "terminal_decisions": 103
+      },
+      "terminal_rows": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+  },
+  "labels": {
+    "evaluation_nonterminal": 3662,
+    "evaluation_terminal": 103,
+    "shuffled_changed_terminal_rows": 196,
+    "shuffled_terminal": 98,
+    "training_nonterminal": 3871,
+    "training_terminal": 98
+  },
+  "memory": {
+    "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+    "k": 8,
+    "key_window": 192,
+    "opening_rows": 16,
+    "reply_rows": 677
+  },
+  "parity": {
+    "frozen": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 30944,
+      "positions": 3868,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 990208,
+      "samples": 103,
+      "token_decisions": 3868,
+      "token_mismatches": 0
+    },
+    "label_shuffled": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 30944,
+      "positions": 3868,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 990208,
+      "samples": 103,
+      "token_decisions": 3868,
+      "token_mismatches": 0
+    },
+    "random": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 30944,
+      "positions": 3868,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 990208,
+      "samples": 103,
+      "token_decisions": 3868,
+      "token_mismatches": 0
+    },
+    "trained": {
+      "kept_cell_mismatches": 0,
+      "kept_cells": 30944,
+      "positions": 3868,
+      "query_coordinate_mismatches": 0,
+      "query_coordinates": 990208,
+      "samples": 103,
+      "token_decisions": 3868,
+      "token_mismatches": 0
+    }
+  },
+  "peak_rss_kib": 341000,
+  "qualification": "gpu-required",
+  "reply_cap": 16,
+  "schema": "uor-r4.cpu-termination-gain-run/1",
+  "selection": {
+    "evaluation_decisions": 3765,
+    "evaluation_samples": 103,
+    "groups": 16,
+    "keys": [
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          439,
+          969,
+          2461,
+          14
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          439,
+          275,
+          351,
+          261
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          55,
+          2728,
+          28,
+          1049,
+          970,
+          1171,
+          2655,
+          28
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1044,
+          1788,
+          329,
+          435
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          340,
+          1003,
+          275,
+          69
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          55,
+          2728,
+          28,
+          772,
+          529,
+          91,
+          2655,
+          1795
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1049,
+          970,
+          1171,
+          14
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          273,
+          540,
+          519,
+          579
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          55,
+          2728,
+          28,
+          310,
+          75,
+          3,
+          201,
+          35
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          273,
+          540,
+          519,
+          265
+        ],
+        "training": 5
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1997,
+          85,
+          261,
+          648
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          55,
+          2728,
+          28,
+          935,
+          71,
+          612,
+          2655,
+          315
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          55,
+          2728,
+          28,
+          318,
+          91,
+          3,
+          201,
+          35
+        ],
+        "training": 5
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1997,
+          351,
+          3,
+          201
+        ],
+        "training": 4
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1044,
+          81,
+          435,
+          627
+        ],
+        "training": 4
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          301,
+          1417,
+          351,
+          2274
+        ],
+        "training": 4
+      }
+    ],
+    "training_decisions": 3969,
+    "training_samples": 98
+  },
+  "substrate": "cpu-development-research",
+  "training": {
+    "label_shuffled": {
+      "accepted_moves": 8,
+      "after": {
+        "artifact_sha256": "78f6b183b2fc4d319f0b2d3855535dcc437e80181eaca3471aaf697e5080c8bf",
+        "decisions": 3969,
+        "nonterminal_bos_distance_sum": 4555881473,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 406,
+        "nonterminal_decisions": 3871,
+        "samples": 98,
+        "terminal_bos_admitted": 32,
+        "terminal_bos_distance_sum": 115393236,
+        "terminal_bos_rank_sum": 273986,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 0,
+        "terminal_decisions": 98
+      },
+      "artifact_sha256": "78f6b183b2fc4d319f0b2d3855535dcc437e80181eaca3471aaf697e5080c8bf",
+      "before": {
+        "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+        "decisions": 3969,
+        "nonterminal_bos_distance_sum": 4576563824,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 405,
+        "nonterminal_decisions": 3871,
+        "samples": 98,
+        "terminal_bos_admitted": 0,
+        "terminal_bos_distance_sum": 116130202,
+        "terminal_bos_rank_sum": 401506,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 0,
+        "terminal_decisions": 98
+      },
+      "steps": [
+        {
+          "after": {
+            "artifact_sha256": "e16ff76c57d1e4a8805cd2f629b9a08348063b0fbe4ecbd17a6fea8fc8b2a8eb",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4576456452,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 116126740,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1014,
+          "before": {
+            "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4576563824,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 405,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 0,
+            "terminal_bos_distance_sum": 116130202,
+            "terminal_bos_rank_sum": 401506,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1015,
+          "coordinate": 4,
+          "index": 0,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "0292c333c3d846a548c3fec8317817b675248dc9313389671a65d1a882cd9bef",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4572912299,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115999198,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "e16ff76c57d1e4a8805cd2f629b9a08348063b0fbe4ecbd17a6fea8fc8b2a8eb",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4576456452,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 116126740,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 233,
+          "index": 1,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "1e7d95b7d5438a0ecaaaf58ff1c89a4e3ce773bbad898a16596fe5924031f202",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4570186162,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115897636,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "0292c333c3d846a548c3fec8317817b675248dc9313389671a65d1a882cd9bef",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4572912299,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115999198,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 94,
+          "index": 2,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "f1bf86290ed0dc1d4eb4f2ba01c34872225f6c79939c5797229934832af465d5",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4567408622,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115796074,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "1e7d95b7d5438a0ecaaaf58ff1c89a4e3ce773bbad898a16596fe5924031f202",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4570186162,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115897636,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 94,
+          "index": 3,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "2efe7c92cfb2f4b6c73aa108da6b9745b3e1672509764b0193b7f1579b493faa",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4564529676,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115694686,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "f1bf86290ed0dc1d4eb4f2ba01c34872225f6c79939c5797229934832af465d5",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4567408622,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115796074,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 198,
+          "index": 4,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "bbcdd0d75c807c7b3e78ac74b062f846b4ca8f30679d538deaee3c87063f9d2f",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4561540699,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115593298,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "2efe7c92cfb2f4b6c73aa108da6b9745b3e1672509764b0193b7f1579b493faa",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4564529676,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115694686,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 198,
+          "index": 5,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "dafb9325488345d35fdaa6f4fe6119b4add7387d9cd691ec0d807c0eb1d8e7b3",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4558756573,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115493300,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "bbcdd0d75c807c7b3e78ac74b062f846b4ca8f30679d538deaee3c87063f9d2f",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4561540699,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115593298,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 166,
+          "index": 6,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "78f6b183b2fc4d319f0b2d3855535dcc437e80181eaca3471aaf697e5080c8bf",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4555881473,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115393236,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "dafb9325488345d35fdaa6f4fe6119b4add7387d9cd691ec0d807c0eb1d8e7b3",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4558756573,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 406,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 32,
+            "terminal_bos_distance_sum": 115493300,
+            "terminal_bos_rank_sum": 273986,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 0,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 166,
+          "index": 7,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        }
+      ]
+    },
+    "random": {
+      "artifact_sha256": "346df61e2b46e008e19357421d47b7b4f1a087d02b505544ff7f8b9021973842",
+      "moves": [
+        {
+          "after_code": 1043,
+          "before_code": 1042,
+          "coordinate": 124
+        },
+        {
+          "after_code": 1031,
+          "before_code": 1032,
+          "coordinate": 27
+        },
+        {
+          "after_code": 1039,
+          "before_code": 1040,
+          "coordinate": 14
+        },
+        {
+          "after_code": 1040,
+          "before_code": 1039,
+          "coordinate": 197
+        },
+        {
+          "after_code": 1042,
+          "before_code": 1043,
+          "coordinate": 240
+        },
+        {
+          "after_code": 1041,
+          "before_code": 1042,
+          "coordinate": 127
+        },
+        {
+          "after_code": 1038,
+          "before_code": 1039,
+          "coordinate": 162
+        },
+        {
+          "after_code": 1037,
+          "before_code": 1036,
+          "coordinate": 201
+        }
+      ]
+    },
+    "seed": 1,
+    "steps": 8,
+    "threads": 32,
+    "true": {
+      "accepted_moves": 8,
+      "after": {
+        "artifact_sha256": "c629a9d53ea4f92cb19bd4dd187011bcc092c3fed86c08a60314d18aacb25e56",
+        "decisions": 3969,
+        "nonterminal_bos_distance_sum": 4570337090,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 315,
+        "nonterminal_decisions": 3871,
+        "samples": 98,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 115987630,
+        "terminal_bos_rank_sum": 397518,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 90,
+        "terminal_decisions": 98
+      },
+      "artifact_sha256": "c629a9d53ea4f92cb19bd4dd187011bcc092c3fed86c08a60314d18aacb25e56",
+      "before": {
+        "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+        "decisions": 3969,
+        "nonterminal_bos_distance_sum": 4576218696,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 315,
+        "nonterminal_decisions": 3871,
+        "samples": 98,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_distance_sum": 116475330,
+        "terminal_bos_rank_sum": 397518,
+        "terminal_bos_top1": 0,
+        "terminal_bos_top8": 0,
+        "terminal_content_top1": 90,
+        "terminal_decisions": 98
+      },
+      "steps": [
+        {
+          "after": {
+            "artifact_sha256": "27b00736bcf81c2cc6fb9068935e07b8767a12f11b879b1560f2c1067e6c9709",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575934637,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116408060,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4576218696,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116475330,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 224,
+          "index": 0,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "1b24151ba96d2972fc0cb935612e99bcd81ae2e51625263447932705799ffa1e",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575651179,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116340796,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "27b00736bcf81c2cc6fb9068935e07b8767a12f11b879b1560f2c1067e6c9709",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575934637,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116408060,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 224,
+          "index": 1,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "a14777d163721cb7cb8954b33bd1961aa05499838852269c7e3450d2ce03864d",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575138380,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116277050,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "1b24151ba96d2972fc0cb935612e99bcd81ae2e51625263447932705799ffa1e",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575651179,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116340796,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 137,
+          "index": 2,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "eee368b083cc377b9ab8a94e8e12c883c8835e4ee4d22f211d34067f4278188f",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4574494306,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116214992,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "a14777d163721cb7cb8954b33bd1961aa05499838852269c7e3450d2ce03864d",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4575138380,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116277050,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 216,
+          "index": 3,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "b6daa073bda8ef7b76adbd95440cc7f6e9aef0e5c7d87aaa7657beca706a2bb8",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4574191650,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116158051,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1042,
+          "before": {
+            "artifact_sha256": "eee368b083cc377b9ab8a94e8e12c883c8835e4ee4d22f211d34067f4278188f",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4574494306,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116214992,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1043,
+          "coordinate": 140,
+          "index": 4,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "0f5c11e4e1804abdc00de2d36d1b9fbc3a1f5ae12c3b7c45f6897286eea08d32",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4573889541,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116101103,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "b6daa073bda8ef7b76adbd95440cc7f6e9aef0e5c7d87aaa7657beca706a2bb8",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4574191650,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116158051,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 140,
+          "index": 5,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "48814ea849934e188bd53cc80bd3f57145b9180357ba93af68fe1ecbb847b9f8",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4573588579,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116044161,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1040,
+          "before": {
+            "artifact_sha256": "0f5c11e4e1804abdc00de2d36d1b9fbc3a1f5ae12c3b7c45f6897286eea08d32",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4573889541,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116101103,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1041,
+          "coordinate": 140,
+          "index": 6,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        },
+        {
+          "after": {
+            "artifact_sha256": "c629a9d53ea4f92cb19bd4dd187011bcc092c3fed86c08a60314d18aacb25e56",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4570337090,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 115987630,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "after_code": 1041,
+          "before": {
+            "artifact_sha256": "48814ea849934e188bd53cc80bd3f57145b9180357ba93af68fe1ecbb847b9f8",
+            "decisions": 3969,
+            "nonterminal_bos_distance_sum": 4573588579,
+            "nonterminal_bos_top1": 0,
+            "nonterminal_content_top1": 315,
+            "nonterminal_decisions": 3871,
+            "samples": 98,
+            "terminal_bos_admitted": 1,
+            "terminal_bos_distance_sum": 116044161,
+            "terminal_bos_rank_sum": 397518,
+            "terminal_bos_top1": 0,
+            "terminal_bos_top8": 0,
+            "terminal_content_top1": 90,
+            "terminal_decisions": 98
+          },
+          "before_code": 1042,
+          "coordinate": 193,
+          "index": 7,
+          "parity": {
+            "kept_cell_mismatches": 0,
+            "kept_cells": 32536,
+            "positions": 4067,
+            "query_coordinate_mismatches": 0,
+            "query_coordinates": 1041152,
+            "samples": 98,
+            "token_decisions": 4067,
+            "token_mismatches": 0
+          },
+          "updated": true
+        }
+      ]
+    }
+  },
+  "wall_elapsed_ms": 47199.526947000006
+}

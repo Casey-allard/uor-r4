@@ -1,0 +1,308 @@
+{
+  "schema": "uor-r4.cpu-termination-gain-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "scope": "fixed eight-move one-code final-gain BOS training on the repeated-key public panel",
+  "source": {
+    "base_commit": "7a77bce370b14688b222c76f94b46001132a1712",
+    "implementation_commit": "c5f9472acd5470547b2b88cc1096172539a4de2b",
+    "fit_head": "39ac7ccf3382c1538e71f3cf72798d3828e6bfea",
+    "run_head": "43ac62aa058716c51c0ce9844f064590ee32deb0",
+    "binary_sha256": "b20fc7e8b74f0bbabe6635259b01e7e418b352d8c9cec288c6b57c85d0fa7797",
+    "binary_bytes": 2811496,
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "keys": 16,
+    "training_samples": 98,
+    "evaluation_samples": 103,
+    "training_decisions": 3969,
+    "evaluation_decisions": 3765,
+    "training_terminal": 98,
+    "training_nonterminal": 3871,
+    "evaluation_terminal": 103,
+    "evaluation_nonterminal": 3662,
+    "shuffled_terminal": 98,
+    "shuffled_changed_terminal_rows": 196,
+    "scope": "even documents train, odd documents evaluate; key families repeat by design; no unseen-key claim"
+  },
+  "training": [
+    {
+      "seed": 1,
+      "true_accepted_moves": 8,
+      "shuffled_accepted_moves": 8,
+      "random_moves": 8,
+      "true_before": {
+        "terminal_bos_top1": 0,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_top8": 0,
+        "terminal_bos_rank_sum": 397518,
+        "terminal_bos_distance_sum": 116475330,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 315,
+        "nonterminal_bos_distance_sum": 4576218696
+      },
+      "true_after": {
+        "terminal_bos_top1": 0,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_top8": 0,
+        "terminal_bos_rank_sum": 397518,
+        "terminal_bos_distance_sum": 115987630,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 315,
+        "nonterminal_bos_distance_sum": 4570337090
+      }
+    },
+    {
+      "seed": 2,
+      "true_accepted_moves": 8,
+      "shuffled_accepted_moves": 8,
+      "random_moves": 8,
+      "true_before": {
+        "terminal_bos_top1": 0,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_top8": 0,
+        "terminal_bos_rank_sum": 397481,
+        "terminal_bos_distance_sum": 118425828,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 251,
+        "nonterminal_bos_distance_sum": 5003704478
+      },
+      "true_after": {
+        "terminal_bos_top1": 0,
+        "terminal_bos_admitted": 1,
+        "terminal_bos_top8": 0,
+        "terminal_bos_rank_sum": 397479,
+        "terminal_bos_distance_sum": 117946250,
+        "nonterminal_bos_top1": 0,
+        "nonterminal_content_top1": 253,
+        "nonterminal_bos_distance_sum": 4998753375
+      }
+    }
+  ],
+  "evaluation": [
+    {
+      "seed": 1,
+      "arms": {
+        "frozen": {
+          "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 1,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 418017,
+          "terminal_bos_distance_sum": 123149944,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 341
+        },
+        "trained": {
+          "artifact_sha256": "c629a9d53ea4f92cb19bd4dd187011bcc092c3fed86c08a60314d18aacb25e56",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 1,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 418017,
+          "terminal_bos_distance_sum": 122624236,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 341
+        },
+        "label_shuffled": {
+          "artifact_sha256": "78f6b183b2fc4d319f0b2d3855535dcc437e80181eaca3471aaf697e5080c8bf",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 1,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 418017,
+          "terminal_bos_distance_sum": 122899231,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 341
+        },
+        "random": {
+          "artifact_sha256": "346df61e2b46e008e19357421d47b7b4f1a087d02b505544ff7f8b9021973842",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 1,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 418017,
+          "terminal_bos_distance_sum": 123104341,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 341
+        }
+      },
+      "bar": {
+        "terminal_required": 26,
+        "terminal_top1": 0,
+        "vs_shuffled_gain": 0,
+        "vs_shuffled_threshold": 2,
+        "vs_random_gain": 0,
+        "vs_random_threshold": 2,
+        "nonterminal_bos": 0,
+        "nonterminal_bos_limit": 36,
+        "nonterminal_content_not_lower": true,
+        "passes": false
+      }
+    },
+    {
+      "seed": 2,
+      "arms": {
+        "frozen": {
+          "artifact_sha256": "2c071845d1cb97b50e4280fb37c8ab28f4ccb835331864a0bc49ed24eaf7e842",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 0,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 421991,
+          "terminal_bos_distance_sum": 124406100,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 288
+        },
+        "trained": {
+          "artifact_sha256": "fb1661aa229a17eef55549242eea95b5a5d7e4cd2e7714172eeab3305aa4e0f5",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 0,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 421991,
+          "terminal_bos_distance_sum": 123896520,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 286
+        },
+        "label_shuffled": {
+          "artifact_sha256": "b5778beb64244d073d21dde8e07bf063e98bc1a90ff88b9cd02bfd9d627937ee",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 0,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 421991,
+          "terminal_bos_distance_sum": 124195050,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 288
+        },
+        "random": {
+          "artifact_sha256": "1775e34c9a003d79aaa7261c93bbb5529b7f2a0c0f2356feaab29ed7fd753cf5",
+          "terminal_bos_top1": 0,
+          "terminal_bos_admitted": 0,
+          "terminal_bos_top8": 0,
+          "terminal_bos_rank_sum": 421991,
+          "terminal_bos_distance_sum": 124444625,
+          "nonterminal_bos_top1": 0,
+          "nonterminal_content_top1": 288
+        }
+      },
+      "bar": {
+        "terminal_required": 26,
+        "terminal_top1": 0,
+        "vs_shuffled_gain": 0,
+        "vs_shuffled_threshold": 2,
+        "vs_random_gain": 0,
+        "vs_random_threshold": 2,
+        "nonterminal_bos": 0,
+        "nonterminal_bos_limit": 36,
+        "nonterminal_content_not_lower": false,
+        "passes": false
+      }
+    }
+  ],
+  "free_generation": [
+    {
+      "seed": 1,
+      "all_arms": {
+        "bos_complete": 0,
+        "premature_stop": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "exact_reference": 0,
+        "opening_correct": 0,
+        "generated_tokens": 1648,
+        "repeated_4gram": 24
+      },
+      "distinct_non_empty_by_arm": {
+        "frozen": 2,
+        "trained": 2,
+        "label_shuffled": 2,
+        "random": 2
+      }
+    },
+    {
+      "seed": 2,
+      "common": {
+        "bos_complete": 0,
+        "premature_stop": 0,
+        "cap_stopped": 103,
+        "context_stopped": 0,
+        "exact_reference": 0,
+        "opening_correct": 4,
+        "generated_tokens": 1648,
+        "repeated_4gram": 43
+      },
+      "distinct_non_empty_by_arm": {
+        "frozen": 2,
+        "trained": 3,
+        "label_shuffled": 2,
+        "random": 2
+      }
+    }
+  ],
+  "parity": {
+    "samples_per_arm": 103,
+    "positions_per_arm": 3868,
+    "query_coordinates_per_arm": 990208,
+    "token_decisions_per_arm": 3868,
+    "kept_cells_per_arm": 30944,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "3dda35a2899ca1d8afdff6073a2ff24bd0989b0941f746ee92de3c811473b82b",
+    "report_sha256": "9039ca1fd369d3f546ffdf27c9f9117bd5ac287b32cb24d9a75d6fcc6a9971e8",
+    "wall_elapsed_ms": 46348.067359,
+    "peak_rss_kib": 346212,
+    "artifacts_byte_identical": true
+  },
+  "reports": {
+    "seed_1_sha256": "49756adb13739bf53c9be95530efc1323ca7dd37c78d1aecdf57e67829ba4d96",
+    "seed_2_sha256": "a28e2dbd7d19ebbedc91d2770090b40678448638b2ae49a12af6f10f205250af"
+  },
+  "build": {
+    "jobs": 16,
+    "wall_seconds": 18,
+    "peak_rss_kib": 1201512,
+    "target_bytes": 260319453,
+    "receipt_sha256": "8ea3c8fefee2dd6be51ac37b98485e9037128319c82b35fa5fef89f0b77f399e"
+  },
+  "resources": {
+    "measured_build_seconds": 18,
+    "measured_run_seconds": 140.431594353,
+    "measured_compute_seconds": 158.431594353,
+    "admitted_projection_seconds": 2100,
+    "previous_ledger_seconds": 34674.680792822,
+    "admitted_cumulative_projection_seconds": 36774.680792822,
+    "run_peak_rss_kib": 346212,
+    "retained_pipeline_bytes": 26784364,
+    "unmeasured_components": [
+      "preparation and review elapsed time",
+      "validation and delivery elapsed time"
+    ]
+  },
+  "process_history": {
+    "fit_1": "NOT_FIT: cached trajectory was rebuilt per candidate; launch limits were not enforced; controls were not fully fail-closed",
+    "fit_2": "FIT after those blockers were repaired",
+    "prerun_1": "NOT_GO: repeated-key scope and hardware/toolchain identity were not explicit in the recipe",
+    "prerun_2": "NOT_GO: final-token EOS was not enforced and one distance field was misnamed",
+    "fit_3": "FIT at 39ac7ccf3 after EOS and field repairs",
+    "prerun_final": "GO at 43ac62aa0",
+    "repeat_correction": "The first shell diff still included nested token-generation timing fields. Recursive non-timing normalization left all fields equal and all seed-1 artifacts byte-identical; no run data changed."
+  },
+  "result": {
+    "registered_bar": "fail",
+    "configuration_verdict": "negative",
+    "closed_scope": "eight one-code final-gain moves selected on 3,969 training decisions",
+    "not_closed": "other gain objectives, other coordinate schedules, serving-level stop candidates, GPU qualification, complete replies or useful conversation"
+  }
+}

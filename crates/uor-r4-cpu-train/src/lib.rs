@@ -46,8 +46,11 @@ pub use fbs::{
     CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
 };
 pub use gain_train::{
-    random_gain_control, read_gain, replace_final_gain, CpuServedGainTrainer, ServedGainConfig,
-    ServedGainMove, ServedGainStep, CPU_SERVED_GAIN_TRAINER_SCHEMA,
+    evaluate_termination_gain_samples, random_gain_control, read_gain, replace_final_gain,
+    shuffle_termination_gain_labels, termination_gain_labels, CpuServedGainTrainer,
+    CpuTerminationGainTrainer, ServedGainConfig, ServedGainMove, ServedGainStep,
+    TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading, TerminationGainStep,
+    CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
 };
 pub use memory_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
