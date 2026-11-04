@@ -1,3 +1,12 @@
+## 2026-11-04 — Conversation-first Studio and native runner published (kimi)
+
+Source PR [#3651](https://github.com/UOR-Foundation/uor-r4/pull/3651) merged as `a877ef9162d86908873c5edca0f1d0711bb6321a`; its tree `3c4c6470cd3426a56e02fc7299a39e3d7e4c6398` is identical to independently approved head `f1b752714`. Fresh detached `main` passed Studio, Node, runner and worker checks. `gh-pages` advanced by fast-forward `233b97fb9 → eb832431a0db59661c701d5b37168e9cfa3d3ae4`, tree `2d5fe037cffa8ad676e22a2bb1e6dac1149c32fa`; the Pages API reports **built** with `updated_at` `2026-11-04T07:26:52Z` and no build ID is claimed.
+
+The live [Studio](https://uor-foundation.github.io/uor-r4/studio/) opens a dark conversation interface and automatically loads the bundled synthetic demo. Hosted desktop generation completed 32 tokens, mobile layout was inspected at 390×852, Native setup showed the Pages/API guidance, and all five cards remained present. Hosted WASM is 700,756 bytes at SHA-256 `df368909167f21a3b004bff0d723591f9256118ec91292ec3fd59dd9b7a6a9a0`; `models.json` remains byte-identical at SHA-256 `96e296b74530e8488a6c525c59b4dfbd9f980f519ce39c1c338ed7a5cd12554a`. Development source, tests, package/build configuration, declarations and README paths return 404.
+
+The [native runner prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) serves the same runtime-only Studio and authenticated `uor-chat` API only on `127.0.0.1:8000`. Public checksums and an empty-cache launch pass; a native browser stream returned exact `19/16/35` usage. GitHub Pages remains a static client, not an API host. No public tunnel, insecure HTTPS-to-loopback path, useful conversation, visual understanding, M7/M8 completion or production readiness is claimed. Record: [kimi-5 REPORT](../loop/tasks/m7-studio-live-model-sources/kimi-5/REPORT.md).
+**Next:** remove merged worktrees and temporary build outputs while preserving evidence and at least 30 GiB free; non-blocking UI review residuals stay open.
+
 ## 2026-10-20 — SpiralCore warm-cache network side exploration (deepseek)
 
 Delivered a standalone warm-cache network prototype under
