@@ -210,6 +210,14 @@ The counts changed but the held-out decisions did not, so the writeback gap is
 closed while the need for a materially larger bounded dose remains. See
 [deepseek-124](../../loop/tasks/cpu-training-pilot/deepseek-124/REPORT.md).
 
+The next fixed dose raised additive count training from 128 to 4,096 rows on
+the same public artifact and 512-row document-disjoint panel. Every count table
+gained exactly 4,096 entries and writeback/parity remained exact. The exact
+update changed four held-out decisions, but admitted/top-1/top-8 each fell by
+one while the shuffled control changed nothing, so the registered comparison
+is negative. This closes the fixed 4,096-row additive dose, not other count
+schedules. See [deepseek-125](../../loop/tasks/cpu-training-pilot/deepseek-125/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

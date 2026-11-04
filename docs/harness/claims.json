@@ -335,12 +335,12 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/trunk-count-training": {
-    "branch": "deepseek/trunk-count-training",
-    "claimed_at": "2026-11-04T03:26:06-05:00",
-    "head": "2326bece3",
+  "deepseek/trunk-count-dose": {
+    "branch": "deepseek/trunk-count-dose",
+    "claimed_at": "2026-11-04T03:55:03-05:00",
+    "head": "09c4f4abb",
     "lab": "deepseek",
-    "note": "trainable 19-table CPU trunk additive count writeback and exact audit"
+    "note": "4096-row exact-vs-shuffled 19-table CPU count training comparison"
   },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",

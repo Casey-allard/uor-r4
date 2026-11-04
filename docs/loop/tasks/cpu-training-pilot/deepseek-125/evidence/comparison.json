@@ -1,0 +1,97 @@
+{
+  "schema": "uor-r4.cpu-trunk-count-dose-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "09c4f4abb5c864ec7ac11b98cbfb4e1059394081",
+    "run_head": "18d78e903",
+    "binary_sha256": "eee04141652007864d58e870104ee0923a0a51cd6146f5d27b9989698c30e521",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "public_trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "training_documents": 200,
+    "evaluation_documents": 193,
+    "training_targets": 7080,
+    "evaluation_targets": 512,
+    "selected_training_rows": 4096,
+    "evaluation_stride": 2,
+    "seed": 1
+  },
+  "artifacts": {
+    "no_update_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "exact_sha256": "db4a672d6af83c4c56b7fbccc9ebc2279cb13fb8719b47829db64c910f7d2bb2",
+    "shuffled_sha256": "19cbb1caa487473ac4344e1b3582060fbcb22b1e6066fa51540bcbc8977eabcd",
+    "exact_bytes": 86815864,
+    "shuffled_bytes": 87042864
+  },
+  "tables": {
+    "source_total": 1049856,
+    "exact_total": 1053952,
+    "shuffled_total": 1053952,
+    "increment_per_table": 4096,
+    "table_families": 13,
+    "independent_full_content_check": true,
+    "semantic_sections_unchanged": true
+  },
+  "held_out": {
+    "rows": 512,
+    "q12_query_coordinates_per_arm": 16384,
+    "arms": {
+      "no_update": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      },
+      "exact": {
+        "admitted": 331,
+        "top1": 245,
+        "top8": 269,
+        "checksum": "351b70cab8d7cbc9"
+      },
+      "shuffled": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      }
+    },
+    "changed_decisions": {
+      "exact_vs_no_update_rows": 4,
+      "shuffled_vs_no_update_rows": 0,
+      "exact_vs_shuffled_rows": 4
+    },
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0
+  },
+  "timing": {
+    "seed_1_wall_elapsed_ms": 9777.659174,
+    "seed_1_peak_rss_kib": 1543944,
+    "repeat_wall_elapsed_ms": 9711.154914,
+    "repeat_peak_rss_kib": 1541688,
+    "threads": 1
+  },
+  "repeat": {
+    "artifacts_byte_identical": true,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "64e6e9b971ae0e90281aa485112db595e440eddeb29dbf99c9976a1fc467722f",
+    "raw_report_sha256": "ee31c1e6fba0ffdac3b6d4272344637ee06d5ed9e47e23aebb799409d47dfbac"
+  },
+  "storage_bytes": 347729988,
+  "verdict": {
+    "exact_additive_count_dose": "negative",
+    "success_measure": "paired held-out top-1 over no update and shuffled targets with admitted/top-8 non-loss",
+    "scope": "first 4,096 fixed training rows on the public seed-1 19-table trunk and 512 document-disjoint public DEV rows"
+  }
+}
