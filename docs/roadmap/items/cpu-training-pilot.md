@@ -235,6 +235,18 @@ stop mechanism or serving change. It requires a generated-trajectory
 discriminator and later coordinated integer parity. See
 [deepseek-132](../../loop/tasks/cpu-training-pilot/deepseek-132/REPORT.md).
 
+The next writer unit tested training on the model's own generated prefixes
+instead of reference prefixes. Its exact scan fed self-generated tokens through
+FBS, Hamming and opening/reply memory, aligned live queries with reference
+content at the same offset, and prepared reference, static/dynamic and
+same-cell shuffled controls. The registered preflight stopped before any
+update: seed 1 found only 30 true / 33 shuffled eligible admitted decisions and
+seed 2 found 32 / 32, against 640; same-cell pairs were only 11-12 against 64.
+Prompt and cell coverage were otherwise ample. This is an insufficiency result,
+not a writer-training negative: the next content mechanism must expose far more
+admitted generated-state targets before ranking can be tested. See
+[deepseek-133](../../loop/tasks/cpu-training-pilot/deepseek-133/REPORT.md).
+
 The public 19-table M1 trunk is now additively trainable and writable on CPU,
 rather than read-only. One bounded run added 128 exact teacher-forced rows to
 the unigram and all 12 sparse sufficient-statistic tables, exported and

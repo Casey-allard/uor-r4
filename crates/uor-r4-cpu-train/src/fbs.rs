@@ -578,6 +578,21 @@ impl CpuFbsForward {
         self.hamming.is_none()
     }
 
+    #[cfg(test)]
+    pub(crate) fn has_memory(&self) -> bool {
+        self.memory.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reply_start(&self) -> Option<usize> {
+        self.reply_start
+    }
+
+    #[cfg(test)]
+    pub(crate) fn memory_anchors(&self) -> &MemoryAnchors {
+        &self.memory_anchors
+    }
+
     pub(crate) fn query_from_norm(&self, norm: &[i64]) -> Result<Vec<i32>> {
         if norm.len() != self.width {
             return Err(invalid("CPU FBS traced normalization width differs"));

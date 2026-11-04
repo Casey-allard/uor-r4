@@ -1,0 +1,274 @@
+{
+  "frozen_training": {
+    "bos_stopped": 0,
+    "cap_stopped": 98,
+    "context_stopped": 0,
+    "distinct_non_empty": 2,
+    "exact_reference": 0,
+    "first_divergence": {
+      "0": 95,
+      "1": 3
+    },
+    "fixed_horizon_decisions": 894,
+    "generated_tokens": 1568,
+    "generated_top1": 4,
+    "matched_prefix_depth_sum": 3,
+    "missing_decisions": 0,
+    "observed_decisions": 894,
+    "opening_correct": 3,
+    "repeated_4gram_replies": 36,
+    "samples": 98,
+    "target_admitted": 36,
+    "target_distance_sum": 1138397876,
+    "target_rank_sum": 502631,
+    "writer_top1": 4
+  },
+  "preflight": {
+    "eligible_decisions": 32,
+    "prompts": 25,
+    "same_cell_shuffle_pairs": 11,
+    "target_cells": 12
+  },
+  "qualification": "gpu-required",
+  "schema": "uor-r4.cpu-generated-prefix-selection/1",
+  "selection": {
+    "evaluation_content_decisions": 1085,
+    "evaluation_samples": 103,
+    "groups": 16,
+    "keys": [
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          439,
+          969,
+          2461,
+          14
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          439,
+          275,
+          351,
+          261
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          55,
+          2728,
+          28,
+          1049,
+          970,
+          1171,
+          2655,
+          28
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1044,
+          1788,
+          329,
+          435
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          340,
+          1003,
+          275,
+          69
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          55,
+          2728,
+          28,
+          772,
+          529,
+          91,
+          2655,
+          1795
+        ],
+        "training": 8
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1049,
+          970,
+          1171,
+          14
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          273,
+          540,
+          519,
+          579
+        ],
+        "training": 7
+      },
+      {
+        "evaluation": 6,
+        "key": [
+          55,
+          2728,
+          28,
+          310,
+          75,
+          3,
+          201,
+          35
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          273,
+          540,
+          519,
+          265
+        ],
+        "training": 5
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1997,
+          85,
+          261,
+          648
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          55,
+          2728,
+          28,
+          935,
+          71,
+          612,
+          2655,
+          315
+        ],
+        "training": 6
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          55,
+          2728,
+          28,
+          318,
+          91,
+          3,
+          201,
+          35
+        ],
+        "training": 5
+      },
+      {
+        "evaluation": 8,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1997,
+          351,
+          3,
+          201
+        ],
+        "training": 4
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          1044,
+          81,
+          435,
+          627
+        ],
+        "training": 4
+      },
+      {
+        "evaluation": 5,
+        "key": [
+          201,
+          55,
+          2728,
+          28,
+          301,
+          1417,
+          351,
+          2274
+        ],
+        "training": 4
+      }
+    ],
+    "training_content_decisions": 1120,
+    "training_samples": 98
+  },
+  "shuffled_preflight": {
+    "eligible_decisions": 32,
+    "prompts": 25,
+    "same_cell_shuffle_pairs": 12,
+    "target_cells": 11
+  },
+  "substrate": "cpu-development-research"
+}

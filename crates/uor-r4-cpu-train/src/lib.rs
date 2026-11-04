@@ -20,6 +20,7 @@ mod memory_train;
 mod panel;
 mod quant_shadow;
 mod reply_eval;
+mod self_prefix;
 mod served_forward;
 mod stop_signature;
 mod train;
@@ -79,6 +80,11 @@ pub use reply_eval::{
     TerminationOrbitCell, TerminationOrbitGate, TerminationOrbitReplyReading,
     TerminationOrbitTraining, TerminationPointGate, TerminationReading, TerminationStepReading,
     TimedReplyReading, TimedTerminationReading,
+};
+pub use self_prefix::{
+    evaluate_self_prefix, evaluate_self_prefix_prompts, CpuSelfPrefixTrainer, SelfPrefixConfig,
+    SelfPrefixDecision, SelfPrefixEligibility, SelfPrefixMode, SelfPrefixPromptReading,
+    SelfPrefixReading, SelfPrefixTargets, SelfPrefixTrainStep, SELF_PREFIX_SCHEMA,
 };
 pub use served_forward::{
     audit_served_forward, exact_fbs_contract, read_uort_token_slice, ExactFbsContract,
