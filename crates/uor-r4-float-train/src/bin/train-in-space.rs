@@ -12,6 +12,14 @@
 //! `--decision-trace` and `--decision-force` read 192-token windows and are refused at another
 //! N. Every other mode scores 192-token windows and refuses another.
 //!
+//! `--score-rows` and `--census` also accept `[--panel-queries NAME=FILE ...]` (claude-275): a
+//! chained `--panel NAME`'s `queries.json` from `heldout-panel chain=N`. `--score-rows` decodes
+//! each query whose reply fits the window, from the window ending at it, with the memory on and
+//! off, and writes `samples-NAME-queries-*.json` and the recall grade `recall-NAME-*.json`;
+//! `--census` counts the answers found in TRAIN's replies. `--census` also takes `--train-split
+//! DIR --train-sha256 HEX --train-mask-sha256 HEX`, and counts against that TRAIN. `--score-rows
+//! --context N` is refused from 193 to 1,536, where the row stride is untested.
+//!
 //! `--score-rows` also accepts `[--sample-opening first|last]` (claude-274): `first`, the
 //! default, decodes each sampled window from its first scored target, a reply opening; `last`
 //! from its last reply opening with at least 16 tokens of prompt, so a long window gives a long
@@ -239,6 +247,7 @@ fn main() -> Result<()> {
     let mut census_on = false;
     let mut fresh_v2 = None;
     let mut extra_panels: Vec<(String, PathBuf)> = Vec::new();
+    let mut panel_queries: Vec<(String, PathBuf)> = Vec::new();
     let mut traces: Vec<(String, Vec<usize>)> = Vec::new();
     let mut forces: Vec<(String, DecisionForce)> = Vec::new();
     let mut score = None;
@@ -431,6 +440,16 @@ fn main() -> Result<()> {
                     )));
                 }
                 extra_panels.push(panel);
+            }
+            "--panel-queries" => {
+                let queries = panel_arg(&value)?;
+                if panel_queries.iter().any(|(name, _)| *name == queries.0) {
+                    return Err(FloatTrainError::Invalid(format!(
+                        "--panel-queries {} is given twice",
+                        queries.0
+                    )));
+                }
+                panel_queries.push(queries);
             }
             "--recall" => recall = number(&value)?,
             "--objective" => {
@@ -670,6 +689,11 @@ fn main() -> Result<()> {
     if last_opening.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
             "--sample-opening applies to --score-rows only".to_owned(),
+        ));
+    }
+    if !panel_queries.is_empty() && score.is_none() && !census_on {
+        return Err(FloatTrainError::Invalid(
+            "--panel-queries applies to --score-rows and --census only".to_owned(),
         ));
     }
     if overturn_on && fresh_v2.is_some() {
@@ -921,7 +945,13 @@ fn main() -> Result<()> {
             .ok_or_else(|| FloatTrainError::Invalid("--census needs --fresh-v2 DIR".to_owned()))?;
         println!(
             "{}",
-            serde_json::to_string(&census(&data_root, &fresh_v2, &extra_panels)?)?
+            serde_json::to_string(&census(
+                &data_root,
+                &fresh_v2,
+                &extra_panels,
+                config.train_split.as_ref(),
+                &panel_queries,
+            )?)?
         );
         return Ok(());
     }
@@ -976,6 +1006,7 @@ fn main() -> Result<()> {
             batched_decode_or_default(batched_decode),
             config.context,
             last_opening.unwrap_or(false),
+            &panel_queries,
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }

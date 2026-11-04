@@ -212,6 +212,17 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   prompts of about 1,960 tokens, against 54–55 at about 180, and scoring's
   sampled peak was 5,356 MiB (5.2 GiB) at either window. The query panel, the long
   corpus and the sheet are claude-275's.
+  [claude-275](../../loop/tasks/one-model-end-to-end/claude-275/REPORT.md)
+  built them. The long held-out panel p-long holds 160 conversations at
+  `cell=dev,dev` with 609 recall queries, 500 asked 512 or more tokens after
+  their note. The long TRAIN holds 16,000 conversations of up to 2,048 tokens,
+  with p-long's user turns excluded. `--score-rows --panel-queries` decodes each
+  query from the window that ends at its reply, memory on and out, and grades
+  whether the reply states the note's value. A census against the long TRAIN
+  finds 0 of 319 word answers in its replies and 6 of 290 number answers, and
+  [P2b's sheet](../../harness/prep/one-model-end-to-end-long-context-2026-11-04.md)
+  pre-registers leaving those 6 out of its paired readings. The sheet is FIT. Its run, the
+  first model trained on long conversations, is the next unit.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

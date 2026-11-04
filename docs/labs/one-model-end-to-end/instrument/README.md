@@ -21,6 +21,20 @@ cargo run --release --offline --features panel-writer --bin heldout-panel -- ...
 `cell=dev,dev` holds prompt phrasing out. `cell=train,train` is a generated control. The writer emits
 `tokens.u16`, `response_mask.u8` and a hash-bound `manifest.json`.
 
+**Chained panels (claude-275).** `chain=N` (N at least 512) draws every conversation with
+`MWorld2::chained` in the cell, up to N tokens: episodes back to back, with notes stated early and
+asked for later. It meters them as `m-world-recall-corpus chain=` meters TRAIN's chained draw. Beside
+the split it writes `queries.json`, each query's reply position, length, answer and `Chain` record,
+and `user_turns.json`, the rows `m-world-recall-corpus exclude=` reads. Without `chain=` the output is
+unchanged. `check-queries` checks a chained panel's queries against its split:
+
+```sh
+heldout-panel check-queries split=PANEL tokenizer=TOKENIZER.json   # checked N queries, 0 failed
+```
+
+The test that writes a chained panel needs the pinned d36d3e87 tokenizer:
+`UOR_R4_PINNED_TOKENIZER=TOKENIZER.json cargo test --features panel-writer -- --include-ignored`.
+
 ## `m2-evidence`
 
 The input paths are explicit. `train-role` is required with a reference index and records whether it

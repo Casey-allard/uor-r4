@@ -4683,6 +4683,12 @@ pub struct Census {
     /// They are counted, not pinned.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub extra: Vec<(String, String, SplitSize)>,
+    /// The TRAIN counted against when it is not the pinned one (`--train-split`, claude-275).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_split: Option<TrainSplit>,
+    /// Each `--panel-queries` panel's answers against TRAIN's replies (claude-275).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub answers: Vec<AnswerOverlap>,
 }
 
 /// An unpinned UORT split (census `--panel`, claude-204): `DIR/tokens.u16` and
@@ -4771,10 +4777,33 @@ fn split_size(path: &Path, tokens: &[u32], mask: &[u8], turns: &Turns) -> Result
 
 /// The data census of claude-202's ORDER over TRAIN, DEV and the sealed Fresh V2 panel in
 /// `fresh_v2` (its `tokens.u16` and `response_mask.u8`, pinned), and over each `(name, dir)` of
-/// `extra`, unpinned (claude-204). Counts only; no model, no GPU.
-pub fn census(data_root: &Path, fresh_v2: &Path, extra: &[(String, PathBuf)]) -> Result<Census> {
+/// `extra`, unpinned (claude-204). Counts only; no model, no GPU. TRAIN is the pinned split, or
+/// `train` when named (`--train-split`, claude-275). For each `(name, file)` of `panel_queries`,
+/// a chained `extra` panel and its `queries.json`, it counts the answers found as words of
+/// TRAIN's replies ([`AnswerOverlap`]).
+pub fn census(
+    data_root: &Path,
+    fresh_v2: &Path,
+    extra: &[(String, PathBuf)],
+    train: Option<&TrainSplit>,
+    panel_queries: &[(String, PathBuf)],
+) -> Result<Census> {
     let bos = hs::SHEET_BOS_ID;
-    let (train_tokens, train_mask) = load_train_split(data_root)?;
+    for (name, _) in panel_queries {
+        if !extra.iter().any(|(panel, _)| panel == name) {
+            return Err(invalid(format!("--panel-queries {name} needs --panel {name}=DIR")));
+        }
+    }
+    let (train_tokens, train_mask, train_path) = match train {
+        None => {
+            let (tokens, mask) = load_train_split(data_root)?;
+            (tokens, mask, data_root.join("mw-balp/train/tokens.u16"))
+        }
+        Some(split) => {
+            let (tokens, mask) = load_named_split(split)?;
+            (tokens, mask, split.dir.join("tokens.u16"))
+        }
+    };
     let (dev_tokens, dev_mask) = hs::load_pinned_uort_split(
         &data_root.join("ft/dev/tokens.u16"),
         &data_root.join("ft/dev/response_mask.u8"),
@@ -4925,11 +4954,30 @@ pub fn census(data_root: &Path, fresh_v2: &Path, extra: &[(String, PathBuf)]) ->
         overlap("fresh_v2", &fresh_turns, &fresh_rows),
     ];
     let mut extra_sizes = Vec::with_capacity(extra.len());
+    let mut answers = Vec::new();
+    // TRAIN's reply words, read only when a queries panel needs them (claude-275).
+    let train_words: std::collections::HashSet<String> = if panel_queries.is_empty() {
+        std::collections::HashSet::new()
+    } else {
+        let tokenizer = pinned_tokenizer(data_root)?;
+        train_turns
+            .replies
+            .iter()
+            .flat_map(|reply| {
+                words_of(&tokenizer.decode(reply)).map(str::to_owned).collect::<Vec<_>>()
+            })
+            .collect()
+    };
     for (name, dir) in extra {
         let (tokens, mask, sha) = load_unpinned_uort(dir)?;
         let turns = split_turns(&tokens, &mask, bos);
         let rows = reply_rows(&windows(&tokens, &mask)?, &mask);
         panels.push(overlap(name, &turns, &rows));
+        if let Some((_, file)) = panel_queries.iter().find(|(panel, _)| panel == name) {
+            let queries = load_panel_queries(file, &sha, &sha256_bytes(&mask))?;
+            let values: Vec<String> = queries.into_iter().map(|q| q.answer).collect();
+            answers.push(answer_overlap(name, &values, &train_words));
+        }
         extra_sizes.push((
             name.clone(),
             sha,
@@ -4938,7 +4986,9 @@ pub fn census(data_root: &Path, fresh_v2: &Path, extra: &[(String, PathBuf)]) ->
     }
     Ok(Census {
         extra: extra_sizes,
-        train: split_size(&data_root.join("mw-balp/train/tokens.u16"), &train_tokens, &train_mask, &train_turns)?,
+        train_split: train.cloned(),
+        answers,
+        train: split_size(&train_path, &train_tokens, &train_mask, &train_turns)?,
         dev: split_size(&data_root.join("ft/dev/tokens.u16"), &dev_tokens, &dev_mask, &dev_turns)?,
         fresh_v2: split_size(&fresh_v2.join("tokens.u16"), &fresh_tokens, &fresh_mask, &fresh_turns)?,
         rows,
@@ -5025,6 +5075,296 @@ fn window_bound_flags(
         "--context {context}: {} read 192-token windows; score them at 192",
         named.join(", ")
     )))
+}
+
+/// The row stride (claude-275): from 193 to 1,536 positions several windows share one scoring
+/// forward ([`windows_per_forward`]), and [`row_picks`]' stride over them has no test there, so
+/// `--score-rows --context N` refuses that range by name. At 192, and from 1,537 up, it is
+/// tested: 16 windows of 192 a forward, or one window.
+fn row_stride_window(context: usize) -> Result<()> {
+    let per_forward = windows_per_forward(context);
+    if context > SHEET_CONTEXT && per_forward > 1 {
+        return Err(invalid(format!(
+            "--context {context}: {per_forward} windows share a scoring forward there, and the row stride over them has no test; score at 192, or past 1,536"
+        )));
+    }
+    Ok(())
+}
+
+/// One recall query of a chained panel, a row of `heldout-panel chain=N`'s `queries.json`
+/// (claude-275): where its document and its reply start, the reply's length (its mask run, end
+/// marker included), the note's value it must state, and how far back the note is.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ChainQuery {
+    pub document_start: usize,
+    pub reply_start: usize,
+    pub reply_tokens: usize,
+    pub answer: String,
+    pub chain: QueryChain,
+}
+
+/// The part of a query's `Chain` record the grade reads: tokens from the end of the note's user
+/// text to the start of the query's.
+#[derive(Clone, Debug, Deserialize)]
+pub struct QueryChain {
+    pub distance: usize,
+}
+
+/// `file`'s queries, refused unless it is a `uor-r4-chain-queries/v1` record of the split whose
+/// `tokens.u16` and `response_mask.u8` hash to `tokens_sha256` and `mask_sha256`.
+fn load_panel_queries(file: &Path, tokens_sha256: &str, mask_sha256: &str) -> Result<Vec<ChainQuery>> {
+    let record: serde_json::Value = serde_json::from_slice(&fs::read(file)?)?;
+    if record["schema"] != "uor-r4-chain-queries/v1" {
+        return Err(invalid(format!("{} is not a chain-queries record", file.display())));
+    }
+    for (key, want) in [("tokens_sha256", tokens_sha256), ("mask_sha256", mask_sha256)] {
+        if record[key].as_str() != Some(want) {
+            return Err(invalid(format!(
+                "{}: its {key} is not its panel's {want}",
+                file.display()
+            )));
+        }
+    }
+    let queries: Vec<ChainQuery> = serde_json::from_value(record["queries"].clone())?;
+    if queries.is_empty() {
+        return Err(invalid(format!("{} holds no query", file.display())));
+    }
+    Ok(queries)
+}
+
+/// The prompts a chained panel's queries decode from at a `context`-token window (claude-275).
+#[derive(Clone, Debug)]
+struct QueryPrompts {
+    /// Each decoded query's index and its window: the `context` positions ending at the reply's
+    /// last target, or from the document's BOS when it is nearer, scoring the reply alone. So its
+    /// prompt is the window's input through the reply's opening, as a served decode slides, and
+    /// its reference is the whole reply.
+    decoded: Vec<(usize, CausalWindow)>,
+    /// The queries whose reply is longer than the window: counted, not decoded.
+    past_window: Vec<usize>,
+}
+
+/// [`QueryPrompts`] for `queries` over a panel's `tokens` (BOS-opened documents) and response
+/// `mask`, at windows of `context` positions. Refused when a reply or an answer is empty, when a
+/// reply runs past the panel, when its document does not open with BOS before it in one
+/// document, and when no mask run of the reply's length opens at its first position: queries of
+/// another panel, or a writer fault.
+fn query_prompts(
+    tokens: &[u32],
+    mask: &[u8],
+    context: usize,
+    queries: &[ChainQuery],
+) -> Result<QueryPrompts> {
+    let bos = hs::SHEET_BOS_ID;
+    let mut prompts = QueryPrompts { decoded: Vec::new(), past_window: Vec::new() };
+    for (index, query) in queries.iter().enumerate() {
+        let (doc, start, len) = (query.document_start, query.reply_start, query.reply_tokens);
+        let end = start + len;
+        let fault = if len == 0 || query.answer.is_empty() {
+            Some("its reply or its answer is empty")
+        } else if end > tokens.len() || end > mask.len() {
+            Some("its reply runs past the panel")
+        } else if doc >= start || tokens[doc] != bos || tokens[doc + 1..end].contains(&bos) {
+            Some("its document does not open with BOS before its reply")
+        } else if mask[start - 1] != 0
+            || mask[start..end].iter().any(|&m| m != 1)
+            || mask.get(end).is_some_and(|&m| m == 1)
+        {
+            Some("no mask run of its reply's length opens at its reply")
+        } else {
+            None
+        };
+        if let Some(fault) = fault {
+            return Err(invalid(format!("query {index} at {start}: {fault}")));
+        }
+        if len > context {
+            prompts.past_window.push(index);
+            continue;
+        }
+        // Inputs `from..end - 1`: the reply's last target is read at offset `context - 1`.
+        let from = (end - 1).saturating_sub(context).max(doc);
+        prompts.decoded.push((
+            index,
+            CausalWindow {
+                doc_id: index,
+                input_ids: tokens[from..end - 1].to_vec(),
+                scored_offsets: (start - 1 - from..end - 1 - from).collect(),
+                scored_targets: tokens[start..end].to_vec(),
+                scored_corpus_positions: (start..end).collect(),
+            },
+        ));
+    }
+    Ok(prompts)
+}
+
+/// Whether `text` states `answer`: as a whole word, not inside a longer word or number.
+fn states_answer(text: &str, answer: &str) -> bool {
+    !answer.is_empty()
+        && text.match_indices(answer).any(|(at, _)| {
+            let before = text[..at].chars().next_back();
+            let after = text[at + answer.len()..].chars().next();
+            !before.is_some_and(char::is_alphanumeric) && !after.is_some_and(char::is_alphanumeric)
+        })
+}
+
+/// The distance bins' lower edges (claude-275): inside a 192-token window, out of it, and the
+/// far bins P2b's sheet reads.
+const RECALL_BIN_EDGES: [usize; 4] = [0, 192, 512, 1024];
+
+/// One distance bin's queries, or all of them (claude-275).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct RecallBin {
+    /// The bin's distances, `from` up to `to` (exclusive), or every distance past `from`.
+    pub from: usize,
+    pub to: Option<usize>,
+    pub queries: usize,
+    /// Decoded: the reply fits the window.
+    pub decoded: usize,
+    /// Decoded from the document's BOS: the whole conversation is in the prompt.
+    pub whole_document: usize,
+    /// Decoded, and the reference as decoded (`reply_tokens`, cut at its end marker) states the
+    /// answer: the grade can be met.
+    pub reference_states: usize,
+    /// Decoded, and the reply, cut at its end marker, states the answer.
+    pub stated: usize,
+}
+
+/// One query's outcome (claude-275), in `queries.json` order, so two windows' or two memory
+/// settings' outcomes pair query by query.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct QueryOutcome {
+    pub query: usize,
+    pub position: usize,
+    pub distance: usize,
+    pub decoded: bool,
+    pub whole_document: bool,
+    pub reference_states: bool,
+    pub stated: bool,
+}
+
+/// A chained panel's recall at one window and memory setting (claude-275):
+/// `recall-{panel}-{memory|no-memory}.json`.
+#[derive(Clone, Debug, Serialize)]
+pub struct QueryRecall {
+    pub split: String,
+    pub memory: bool,
+    pub context: usize,
+    pub reply_tokens: usize,
+    pub total: RecallBin,
+    pub bins: Vec<RecallBin>,
+    pub outcomes: Vec<QueryOutcome>,
+}
+
+/// The recall grade (claude-275): each query's outcome, from `texts`, the decoded queries'
+/// (reply, reference) texts each cut at its end marker, in `prompts.decoded`'s order. A query
+/// states its answer when its reply does as a whole word ([`states_answer`]). Refused when the
+/// texts do not match the decoded queries.
+fn recall_grade(
+    queries: &[ChainQuery],
+    prompts: &QueryPrompts,
+    texts: &[(String, String)],
+) -> Result<(RecallBin, Vec<RecallBin>, Vec<QueryOutcome>)> {
+    if texts.len() != prompts.decoded.len() {
+        return Err(invalid(format!(
+            "{} replies for {} decoded queries",
+            texts.len(),
+            prompts.decoded.len()
+        )));
+    }
+    let mut outcomes: Vec<QueryOutcome> = queries
+        .iter()
+        .enumerate()
+        .map(|(query, q)| QueryOutcome {
+            query,
+            position: q.reply_start,
+            distance: q.chain.distance,
+            decoded: false,
+            whole_document: false,
+            reference_states: false,
+            stated: false,
+        })
+        .collect();
+    for ((index, window), (reply, reference)) in prompts.decoded.iter().zip(texts) {
+        let (query, outcome) = (&queries[*index], &mut outcomes[*index]);
+        outcome.decoded = true;
+        outcome.whole_document = window.input_ids.first() == Some(&hs::SHEET_BOS_ID)
+            && window.scored_corpus_positions[0] - 1 - window.scored_offsets[0] == query.document_start;
+        outcome.reference_states = states_answer(reference, &query.answer);
+        outcome.stated = states_answer(reply, &query.answer);
+    }
+    let count = |from: usize, to: Option<usize>| {
+        let mut bin = RecallBin { from, to, ..RecallBin::default() };
+        for o in outcomes.iter().filter(|o| o.distance >= from && to.is_none_or(|t| o.distance < t)) {
+            bin.queries += 1;
+            bin.decoded += usize::from(o.decoded);
+            bin.whole_document += usize::from(o.whole_document);
+            bin.reference_states += usize::from(o.reference_states);
+            bin.stated += usize::from(o.stated);
+        }
+        bin
+    };
+    let bins = RECALL_BIN_EDGES
+        .iter()
+        .enumerate()
+        .map(|(i, &from)| count(from, RECALL_BIN_EDGES.get(i + 1).copied()))
+        .collect();
+    Ok((count(0, None), bins, outcomes))
+}
+
+/// A queries panel's answers against TRAIN's replies (claude-275): how many TRAIN states as
+/// words of a reply. An answer is a number (all digits) or a word; it is found when each of its
+/// alphanumeric pieces is a word of some TRAIN reply. A small number is expected in TRAIN by
+/// chance, so numbers and words are counted apart.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct AnswerOverlap {
+    pub panel: String,
+    pub answers: usize,
+    pub distinct: usize,
+    pub words: usize,
+    pub words_in_train: usize,
+    pub numbers: usize,
+    pub numbers_in_train: usize,
+    /// Up to 16 of the distinct answers found, in order.
+    pub found: Vec<String>,
+}
+
+/// The alphanumeric pieces of `text`.
+fn words_of(text: &str) -> impl Iterator<Item = &str> {
+    text.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty())
+}
+
+fn answer_overlap(
+    panel: &str,
+    answers: &[String],
+    train_words: &std::collections::HashSet<String>,
+) -> AnswerOverlap {
+    let distinct: std::collections::BTreeSet<&str> = answers.iter().map(String::as_str).collect();
+    let mut overlap = AnswerOverlap {
+        panel: panel.to_owned(),
+        answers: answers.len(),
+        distinct: distinct.len(),
+        words: 0,
+        words_in_train: 0,
+        numbers: 0,
+        numbers_in_train: 0,
+        found: Vec::new(),
+    };
+    for answer in answers {
+        let number = answer.chars().all(|c| c.is_ascii_digit());
+        let mut pieces = words_of(answer).peekable();
+        let found = pieces.peek().is_some() && pieces.all(|w| train_words.contains(w));
+        if number {
+            overlap.numbers += 1;
+            overlap.numbers_in_train += usize::from(found);
+        } else {
+            overlap.words += 1;
+            overlap.words_in_train += usize::from(found);
+        }
+        if found && overlap.found.len() < 16 && !overlap.found.contains(answer) {
+            overlap.found.push(answer.clone());
+        }
+    }
+    overlap
 }
 
 fn greedy_reply_with_mode(
@@ -6468,6 +6808,8 @@ struct ScoreSplit {
     /// The window it is cut at: [`SHEET_CONTEXT`] for DEV and Fresh V2, `--context`'s for a
     /// `--panel` (claude-274).
     context: usize,
+    /// A chained panel's `--panel-queries` and their prompts at `context` (claude-275).
+    queries: Option<(Vec<ChainQuery>, QueryPrompts)>,
 }
 
 /// Write `bytes` to a new file at `path`; an existing file is refused, never replaced.
@@ -6555,7 +6897,14 @@ fn reference_reply(window: &CausalWindow, tokens: usize) -> Vec<u32> {
 /// model's own window. Off [`SHEET_CONTEXT`], `keys`, `served_arm`, `keyed`, `traces` and
 /// `forces`, whose TRAIN table and trace read 192-token windows, are refused by name
 /// ([`window_bound_flags`]). With `last_opening`, each sample decodes from its window's
-/// last reply opening ([`last_openings`]) in place of its first.
+/// last reply opening ([`last_openings`]) in place of its first. From 193 to 1,536 positions
+/// the row stride is untested, and is refused ([`row_stride_window`], claude-275).
+///
+/// **The queries (claude-275).** For each `(name, file)` of `panel_queries`, a chained `--panel`
+/// and its `queries.json`, every query whose reply fits the window decodes greedy at full scope
+/// with the memory on and off, from the window ending at its reply ([`query_prompts`]):
+/// `samples-{name}-queries-{memory|no-memory}.json`. Each is graded by whether its reply states
+/// its note's value ([`recall_grade`]), binned by distance, in `recall-{name}-{label}.json`.
 #[allow(clippy::too_many_arguments)]
 pub fn score_rows(
     data_root: &Path,
@@ -6584,6 +6933,7 @@ pub fn score_rows(
     batched_decode: bool,
     context: usize,
     last_opening: bool,
+    panel_queries: &[(String, PathBuf)],
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     training_context(context)?;
@@ -6595,6 +6945,7 @@ pub fn score_rows(
         !traces.is_empty(),
         !forces.is_empty(),
     )?;
+    row_stride_window(context)?;
     if served_arm && !keys {
         return Err(invalid("--served-key reads the opening keys, so it needs --opening-keys 1"));
     }
@@ -6639,6 +6990,7 @@ pub fn score_rows(
         sha256: None,
         samples: true,
         context: SHEET_CONTEXT,
+        queries: None,
     }];
     if let Some(dir) = fresh_v2 {
         let (tokens, mask) = load_fresh_v2(dir)?;
@@ -6649,7 +7001,13 @@ pub fn score_rows(
             sha256: None,
             samples: false,
             context: SHEET_CONTEXT,
+            queries: None,
         });
+    }
+    for (name, _) in panel_queries {
+        if !panels.iter().any(|(panel, _)| panel == name) {
+            return Err(invalid(format!("--panel-queries {name} needs --panel {name}=DIR")));
+        }
     }
     for (name, dir) in panels {
         if !panel_name_ok(name) || splits.iter().any(|s| s.name == *name) {
@@ -6658,6 +7016,20 @@ pub fn score_rows(
             )));
         }
         let (tokens, mask, sha) = load_unpinned_uort(dir)?;
+        let queries = match panel_queries.iter().find(|(panel, _)| panel == name) {
+            Some((_, file)) => {
+                let queries = load_panel_queries(file, &sha, &sha256_bytes(&mask))?;
+                let prompts = query_prompts(&tokens, &mask, context, &queries)?;
+                println!(
+                    "[queries] {name}: {} queries, {} decoded at {context}, {} past the window",
+                    queries.len(),
+                    prompts.decoded.len(),
+                    prompts.past_window.len()
+                );
+                Some((queries, prompts))
+            }
+            None => None,
+        };
         splits.push(ScoreSplit {
             name: name.clone(),
             windows: windows_of(&tokens, &mask, context)?,
@@ -6665,6 +7037,7 @@ pub fn score_rows(
             sha256: Some(sha),
             samples: true,
             context,
+            queries,
         });
     }
     for (i, (name, _)) in traces.iter().enumerate() {
@@ -6874,7 +7247,11 @@ pub fn score_rows(
             } else {
                 sample_windows(&split.windows, &split.mask, samples)
             };
-            for &(rule, scope) in rules {
+            // Each prompt's reply under one rule and scope, the replies' tokens and the wall time.
+            let decode = |prompts: &[&CausalWindow],
+                          rule: DecodeRule,
+                          scope: ReadScope|
+             -> Result<(Vec<IdSample>, usize, f64)> {
                 let started = std::time::Instant::now();
                 let prompt_ids: Vec<Vec<u32>> = prompts
                     .iter()
@@ -6933,6 +7310,13 @@ pub fn score_rows(
                         served_distance: None,
                     });
                 }
+                // Every reply's tokens over the loop's wall time; the reference work in the loop
+                // is host-side and small beside the decode.
+                let decoded = replies.iter().map(|r| r.reply.len()).sum();
+                Ok((replies, decoded, started.elapsed().as_secs_f64()))
+            };
+            for &(rule, scope) in rules {
+                let (replies, decoded, seconds) = decode(&prompts, rule, scope)?;
                 let file = match (split.name.as_str(), rule) {
                     (name, DecodeRule::CycleStep { n, .. }) if scope != ReadScope::Full => {
                         format!("samples-{name}-{}-read-{}-{label}.json", step_name(n), scope.name())
@@ -6955,10 +7339,6 @@ pub fn score_rows(
                         format!("samples-{name}-flock-cell-{margin_milli}-{label}.json")
                     }
                 };
-                // Every reply's tokens over the loop's wall time; the reference work in the loop
-                // is host-side and small beside the decode.
-                let decoded = replies.iter().map(|r| r.reply.len()).sum();
-                let seconds = started.elapsed().as_secs_f64();
                 write_new(&out.join(&file), &serde_json::to_vec(&replies)?)?;
                 written.push(ScoredFile {
                     file,
@@ -6968,6 +7348,62 @@ pub fn score_rows(
                     panel_sha256: split.sha256.clone(),
                     tables: None,
                     decode: Some((decoded, seconds)),
+                    search: None,
+                    context: split.context,
+                });
+            }
+            // A chained panel's queries (claude-275), greedy at full scope with the memory on and
+            // off: each from a prompt ending at its opening, graded by whether the reply states
+            // its note's value.
+            if let Some((queries, query_windows)) = &split.queries {
+                let windows: Vec<&CausalWindow> = query_windows.decoded.iter().map(|(_, w)| w).collect();
+                let (replies, decoded, seconds) = decode(&windows, DecodeRule::Greedy, ReadScope::Full)?;
+                let texts: Vec<(String, String)> = replies
+                    .iter()
+                    .map(|r| {
+                        (
+                            tokenizer.decode(cut_at_eos(&r.reply, eos)),
+                            tokenizer.decode(cut_at_eos(&r.reference, eos)),
+                        )
+                    })
+                    .collect();
+                let (total, bins, outcomes) = recall_grade(queries, query_windows, &texts)?;
+                println!(
+                    "[recall] {} {label}: {} of {} decoded state the answer; {} references do; {} from the document's start",
+                    split.name, total.stated, total.decoded, total.reference_states, total.whole_document
+                );
+                let file = format!("samples-{}-queries-{label}.json", split.name);
+                write_new(&out.join(&file), &serde_json::to_vec(&replies)?)?;
+                written.push(ScoredFile {
+                    file,
+                    rows: replies.len(),
+                    nearest_hits: None,
+                    writer_hits: None,
+                    panel_sha256: split.sha256.clone(),
+                    tables: None,
+                    decode: Some((decoded, seconds)),
+                    search: None,
+                    context: split.context,
+                });
+                let recall = QueryRecall {
+                    split: split.name.clone(),
+                    memory: on,
+                    context: split.context,
+                    reply_tokens,
+                    total,
+                    bins,
+                    outcomes,
+                };
+                let file = format!("recall-{}-{label}.json", split.name);
+                write_new(&out.join(&file), &serde_json::to_vec(&recall)?)?;
+                written.push(ScoredFile {
+                    file,
+                    rows: queries.len(),
+                    nearest_hits: None,
+                    writer_hits: None,
+                    panel_sha256: split.sha256.clone(),
+                    tables: None,
+                    decode: None,
                     search: None,
                     context: split.context,
                 });
@@ -15743,5 +16179,197 @@ mod tests {
             assert!(refusal(set).contains("--train-as-served"));
         }
         assert!(!missing.exists());
+    }
+
+    /// claude-275: from 193 to 1,536 positions several windows share a scoring forward and the
+    /// row stride over them has no test, so `--score-rows --context N` refuses them by name; 192
+    /// and 1,537 up go ahead.
+    #[test]
+    fn the_row_stride_is_refused_where_windows_share_a_forward() {
+        for ok in [SHEET_CONTEXT, 1537, 2048, 4096] {
+            assert!(row_stride_window(ok).is_ok(), "{ok}");
+        }
+        for refused in [193, 384, 1024, 1536] {
+            let err = row_stride_window(refused).expect_err("refused").to_string();
+            assert!(err.contains(&format!("--context {refused}")), "{err}");
+        }
+    }
+
+    fn chain_query(document_start: usize, reply_start: usize, reply_tokens: usize, answer: &str, distance: usize) -> ChainQuery {
+        ChainQuery {
+            document_start,
+            reply_start,
+            reply_tokens,
+            answer: answer.to_owned(),
+            chain: QueryChain { distance },
+        }
+    }
+
+    /// claude-275: a query decodes from the `context` positions ending at its reply's last
+    /// target, or from its document's BOS when that is nearer, as a served decode slides: its
+    /// prompt ends at the reply's opening, its reference is the whole reply, its input flags read
+    /// the panel's mask. A reply longer than the window is counted past it, and a query that does
+    /// not sit on a reply of its length in one BOS-opened document is refused.
+    #[test]
+    fn a_query_decodes_from_the_window_that_ends_at_its_reply() {
+        // BOS, a 20-token prompt, a reply (3), a 5-token prompt, the query's reply (3); then a
+        // document with a 5-token prompt and a 2-token reply.
+        let mut tokens = vec![0u32];
+        tokens.extend(100..120);
+        tokens.extend([200, 201, 202]);
+        tokens.extend(300..305);
+        tokens.extend([400, 401, 402]);
+        tokens.extend([0, 500, 501, 502, 503, 504, 600, 601]);
+        let mask: Vec<u8> = tokens
+            .iter()
+            .map(|&t| u8::from((200..203).contains(&t) || (400..403).contains(&t) || t >= 600))
+            .collect();
+        let query = chain_query(0, 29, 3, "x", 10);
+        let whole = query_prompts(&tokens, &mask, 2048, std::slice::from_ref(&query)).unwrap();
+        assert!(whole.past_window.is_empty());
+        let (index, window) = &whole.decoded[0];
+        assert_eq!(*index, 0);
+        assert_eq!(window.input_ids, &tokens[..31]);
+        assert_eq!(window.scored_offsets, [28, 29, 30]);
+        assert_eq!(window.scored_corpus_positions, [29, 30, 31]);
+        assert_eq!(&window.input_ids[..=window.scored_offsets[0]], &tokens[..29]);
+        assert_eq!(reference_reply(window, 64), [400, 401, 402]);
+        assert_eq!(window_input_mask(&[window], &mask).unwrap(), {
+            let mut flags = mask[..31].to_vec();
+            flags[0] = 0;
+            flags
+        });
+        // At 8 positions the window ends at the reply and starts 6 tokens before its opening.
+        let cut = query_prompts(&tokens, &mask, 8, std::slice::from_ref(&query)).unwrap();
+        let (_, window) = &cut.decoded[0];
+        assert_eq!(window.input_ids, &tokens[23..31]);
+        assert_eq!(window.scored_offsets, [5, 6, 7]);
+        assert_eq!(&window.input_ids[..=5], &tokens[23..29]);
+        assert_eq!(window_input_mask(&[window], &mask).unwrap(), &mask[23..31]);
+        // A reply longer than the window is counted past it, not decoded.
+        let past = query_prompts(&tokens, &mask, 2, std::slice::from_ref(&query)).unwrap();
+        assert!(past.decoded.is_empty());
+        assert_eq!(past.past_window, [0]);
+        // The second document's reply, from its own BOS.
+        let second = query_prompts(&tokens, &mask, 2048, &[chain_query(32, 38, 2, "y", 3)]).unwrap();
+        assert_eq!(second.decoded[0].1.input_ids, &tokens[32..39]);
+        for bad in [
+            chain_query(0, 30, 2, "x", 10),
+            chain_query(0, 29, 2, "x", 10),
+            chain_query(0, 29, 4, "x", 10),
+            chain_query(1, 29, 3, "x", 10),
+            chain_query(0, 38, 2, "y", 3),
+            chain_query(0, 29, 3, "", 10),
+            chain_query(32, 38, 3, "y", 3),
+        ] {
+            assert!(
+                query_prompts(&tokens, &mask, 2048, std::slice::from_ref(&bad)).is_err(),
+                "{bad:?}"
+            );
+        }
+    }
+
+    /// claude-275: a reply states an answer only as a whole word, and the grade bins each query
+    /// by distance, counting the decoded, the references that state the answer, the replies that
+    /// do, and the prompts that start at the document's BOS.
+    #[test]
+    fn the_recall_grade_counts_whole_word_answers_by_distance() {
+        assert!(states_answer(" That's 5468.", "5468"));
+        assert!(states_answer("likperkmist", "likperkmist"));
+        assert!(!states_answer(" That's 15468.", "5468"));
+        assert!(!states_answer(" likperkmists", "likperkmist"));
+        assert!(!states_answer(" That's 5468.", ""));
+        let queries = [
+            chain_query(0, 10, 2, "97", 100),
+            chain_query(0, 20, 2, "97", 600),
+            chain_query(40, 50, 2, "staiduk", 1500),
+        ];
+        // The first query's window starts at its document's BOS; the second's does not.
+        let window = |from: usize, start: usize, bos: bool| CausalWindow {
+            doc_id: 0,
+            input_ids: std::iter::once(if bos { 0 } else { 7 }).chain(from + 1..start + 1).map(|t| t as u32).collect(),
+            scored_offsets: vec![start - 1 - from, start - from],
+            scored_targets: vec![1, 2],
+            scored_corpus_positions: vec![start, start + 1],
+        };
+        let prompts = QueryPrompts {
+            decoded: vec![(0, window(0, 10, true)), (1, window(5, 20, false))],
+            past_window: vec![2],
+        };
+        let texts = [
+            (" That's 97.".to_owned(), " That's 97.".to_owned()),
+            (" That's 1979.".to_owned(), " That's 97.".to_owned()),
+        ];
+        let (total, bins, outcomes) = recall_grade(&queries, &prompts, &texts).unwrap();
+        let bin = |from, to, queries, decoded, whole_document, reference_states, stated| RecallBin {
+            from,
+            to,
+            queries,
+            decoded,
+            whole_document,
+            reference_states,
+            stated,
+        };
+        assert_eq!(total, bin(0, None, 3, 2, 1, 2, 1));
+        assert_eq!(
+            bins,
+            [
+                bin(0, Some(192), 1, 1, 1, 1, 1),
+                bin(192, Some(512), 0, 0, 0, 0, 0),
+                bin(512, Some(1024), 1, 1, 0, 1, 0),
+                bin(1024, None, 1, 0, 0, 0, 0),
+            ]
+        );
+        assert_eq!(outcomes.iter().map(|o| o.stated).collect::<Vec<_>>(), [true, false, false]);
+        assert_eq!(outcomes[2].position, 50);
+        assert!(recall_grade(&queries, &prompts, &texts[..1]).is_err());
+    }
+
+    /// claude-275: the census counts a queries panel's answers found as words of TRAIN's replies,
+    /// numbers apart from words.
+    #[test]
+    fn the_answer_census_counts_numbers_and_words_apart() {
+        let train: std::collections::HashSet<String> =
+            ["That", "s", "97", "likperkmist"].into_iter().map(str::to_owned).collect();
+        let answers: Vec<String> = ["97", "likperkmist", "likperkmist", "zorb", "5468"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let overlap = answer_overlap("p-long", &answers, &train);
+        assert_eq!(
+            (overlap.answers, overlap.distinct, overlap.words, overlap.words_in_train),
+            (5, 4, 3, 2)
+        );
+        assert_eq!((overlap.numbers, overlap.numbers_in_train), (2, 1));
+        assert_eq!(overlap.found, ["97", "likperkmist"]);
+    }
+
+    /// claude-275: `--panel-queries` reads the panel writer's record, and refuses one of another
+    /// split or schema.
+    #[test]
+    fn panel_queries_are_read_only_for_their_own_split() {
+        let dir = std::env::temp_dir().join(format!("uor-r4-panel-queries-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("queries.json");
+        let record = |schema: &str| {
+            serde_json::json!({
+                "schema": schema,
+                "tokens_sha256": "aa",
+                "mask_sha256": "bb",
+                "queries": [{
+                    "conversation": 0, "turn": 7, "document_start": 0, "reply_start": 12,
+                    "reply_tokens": 3, "answer": "staiduk",
+                    "chain": {"notes": 2, "queried": 1, "episodes": 3, "episode": 1, "distance": 489, "tokens": 1900}
+                }]
+            })
+        };
+        fs::write(&file, serde_json::to_vec(&record("uor-r4-chain-queries/v1")).unwrap()).unwrap();
+        let queries = load_panel_queries(&file, "aa", "bb").unwrap();
+        assert_eq!((queries[0].reply_start, queries[0].chain.distance), (12, 489));
+        assert!(load_panel_queries(&file, "aa", "cc").is_err());
+        assert!(load_panel_queries(&file, "ab", "bb").is_err());
+        fs::write(&file, serde_json::to_vec(&record("uor-r4-chat-corpus/v1")).unwrap()).unwrap();
+        assert!(load_panel_queries(&file, "aa", "bb").is_err());
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

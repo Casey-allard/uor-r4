@@ -981,6 +981,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "uor-r4-tokenizer",
+ "uor-r4-vision",
  "wasm-bindgen",
 ]
 
@@ -1017,6 +1018,14 @@ dependencies = [
  "uor-r4-core",
  "uor-r4-integer",
  "uor-r4-tokenizer",
+]
+
+[[package]]
+name = "uor-r4-vision"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "rayon",
 ]
 
 [[package]]
