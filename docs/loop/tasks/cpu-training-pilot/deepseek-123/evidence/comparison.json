@@ -1,0 +1,147 @@
+{
+  "schema": "uor-r4.cpu-point-medoid-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "b17638480e1b2f264b511c0351639e669fb6bc46",
+    "run_head": "3a9a0f845",
+    "binary_sha256": "682269716e87552fc4b3adb64dcb396272cb091b95a436cabb356a3c45f5e23f",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "training_keys": 8,
+    "evaluation_keys": 8,
+    "training_samples": 60,
+    "evaluation_samples": 60,
+    "training_documents": 54,
+    "evaluation_documents": 50,
+    "key_overlap": 0,
+    "held_out_exact_memory_hits": 0
+  },
+  "training": {
+    "raw_point_rows": 48,
+    "target_medoid_rows": 18,
+    "point_width": 256,
+    "point_fallback_exposure_per_seed": 60,
+    "selection": "observed member minimizing exact L1 sum within each supervised target; lexical point and target ties"
+  },
+  "served_parity_per_seed": {
+    "samples": 60,
+    "positions": 2110,
+    "query_coordinates": 540160,
+    "token_decisions": 2110,
+    "kept_cells": 16880,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0,
+    "arms": 6
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "memory_artifact_sha256": "63c0c0c12ff2b16677ca84b99be705dee0d655ad9867893466fea87ab51f3d98",
+      "point_artifact_sha256": "ecd2c616a49e863a3c438f254094e4fbf596bb660e64d28135a0509a76b7ec56",
+      "point_vote_artifact_sha256": "0dd5a835652f16d87c63a80db5e1d619f56cbe83b73e00dc351f659ce7ee8fac",
+      "point_medoid_artifact_sha256": "0fd49cf86b65f6655dc5fe290a5623b174384d756d7a48aab958eca5822e7e5e",
+      "random_point_medoid_artifact_sha256": "42795cc1fafa885ad172693fa358dabec10f6c501d9451dae7d49e28d01f9b85",
+      "opening_top1": {
+        "point_off": 0,
+        "point": 2,
+        "point_vote": 3,
+        "point_medoid": 0,
+        "random_medoid": 0
+      },
+      "medoid_vs_point_off": {
+        "candidate_only": 0,
+        "control_only": 0,
+        "gain": 0,
+        "threshold": 2,
+        "passes": false
+      },
+      "medoid_vs_random": {
+        "candidate_only": 0,
+        "control_only": 0,
+        "gain": 0,
+        "threshold": 2,
+        "passes": false
+      },
+      "full_teacher_forced_top1": {
+        "point_off": 169,
+        "point": 171,
+        "point_vote": 172,
+        "point_medoid": 169,
+        "random_medoid": 169
+      },
+      "full_top1_not_lower": true,
+      "passes": false,
+      "wall_elapsed_ms": 1626.814373,
+      "peak_rss_kib": 302464,
+      "raw_report_sha256": "47333ea46ab18850737bfc228d349d9abceeb5ee12eed6445f712cdc1eae258d"
+    },
+    {
+      "seed": 2,
+      "memory_artifact_sha256": "e293b3c92910472975dab6ad8902787886f397c018adb42fe5980216775be100",
+      "point_artifact_sha256": "5f127f79ad3150a7814653ebb1bff1d7b4586a2ea7f26afb64b21fc60408cece",
+      "point_vote_artifact_sha256": "cd76559c86f4688792fa9eb709026a016cc8f86cfcbb67ab20338b07548beee6",
+      "point_medoid_artifact_sha256": "9a77db2e910a41d325b347b038d28c2041a78b551a84a53996573ced829add45",
+      "random_point_medoid_artifact_sha256": "f205fe7d43b558be70e3845af02c565341d5c424352ae8ffea96043f722acca2",
+      "opening_top1": {
+        "point_off": 0,
+        "point": 1,
+        "point_vote": 3,
+        "point_medoid": 4,
+        "random_medoid": 3
+      },
+      "medoid_vs_point_off": {
+        "candidate_only": 4,
+        "control_only": 0,
+        "gain": 4,
+        "threshold": 4,
+        "passes": true
+      },
+      "medoid_vs_random": {
+        "candidate_only": 1,
+        "control_only": 0,
+        "gain": 1,
+        "threshold": 2,
+        "passes": false
+      },
+      "full_teacher_forced_top1": {
+        "point_off": 163,
+        "point": 164,
+        "point_vote": 166,
+        "point_medoid": 167,
+        "random_medoid": 166
+      },
+      "full_top1_not_lower": true,
+      "passes": false,
+      "wall_elapsed_ms": 1634.889786,
+      "peak_rss_kib": 302552,
+      "raw_report_sha256": "e0dcb551f3e5039053dce5c09e68de9dec071b68ca2e1f3447b0a48d18c7c44f"
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "5d49a9dd45cbc89ca7039ea67c2b7d822e700199cf89432981b1f5ca225134a4",
+    "raw_report_sha256": "c1ee4f38bf134272cc69a815a5bdc83344172b7dcd4ea118542488e4dba55dd1",
+    "wall_elapsed_ms": 1666.661989,
+    "peak_rss_kib": 302780
+  },
+  "storage_bytes": 39739320,
+  "verdict": {
+    "point_medoid": "negative",
+    "success_measure": "paired unseen-key opening top-1 over point-off and shuffled medoid plus complete teacher-forced non-loss",
+    "scope": "fixed 8-key/8-key, 60-train/60-evaluation, 48-raw-row, 18-target-medoid configuration"
+  }
+}

@@ -191,6 +191,16 @@ within-cell representation or continuation-state invariant rather than a
 post-observation retune of this signature. See
 [deepseek-122](../../loop/tasks/cpu-training-pilot/deepseek-122/REPORT.md).
 
+A materially different point-training comparison then reduced each supervised
+opening target to an observed geometric medoid by exact within-target L1 sum.
+The medoid and a matched shuffled medoid ran against point-off, raw nearest and
+the served raw-row vote on the fixed unseen-key split. Seed 1 tied both primary
+controls at zero; seed 2's 4/60 opening result passed the point-off margin but
+beat its shuffled medoid by only one against a threshold of two. This closes
+the fixed 48-to-18 target-medoid construction, while leaving target-specific
+local neighborhoods open. See
+[deepseek-123](../../loop/tasks/cpu-training-pilot/deepseek-123/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

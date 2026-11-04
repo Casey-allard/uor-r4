@@ -1,11 +1,4 @@
 {
-  "deepseek/inner-cell-termination": {
-    "branch": "deepseek/inner-cell-termination",
-    "claimed_at": "2026-11-04T02:07:14-05:00",
-    "head": "cb457faa4",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/audit-export-gate": {
     "branch": "deepseek/audit-export-gate",
     "claimed_at": "2026-11-03T01:55:46-05:00",
@@ -17,20 +10,6 @@
     "branch": "deepseek/batched-scorer",
     "claimed_at": "2026-11-02T22:48:16-05:00",
     "head": "b6ebf7002",
-    "lab": "deepseek",
-    "note": ""
-  },
-  "deepseek/long-window-cpu": {
-    "branch": "deepseek/long-window-cpu",
-    "claimed_at": "2026-11-04T01:35:00-05:00",
-    "head": "b6561fe6e",
-    "lab": "deepseek",
-    "note": ""
-  },
-  "deepseek/termination-cell": {
-    "branch": "deepseek/termination-cell",
-    "claimed_at": "2026-11-04T01:20:00-05:00",
-    "head": "2833c451e",
     "lab": "deepseek",
     "note": ""
   },
@@ -223,6 +202,20 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/inner-cell-termination": {
+    "branch": "deepseek/inner-cell-termination",
+    "claimed_at": "2026-11-04T02:07:14-05:00",
+    "head": "cb457faa4",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/long-window-cpu": {
+    "branch": "deepseek/long-window-cpu",
+    "claimed_at": "2026-11-04T01:35:00-05:00",
+    "head": "b6561fe6e",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/m1-evidence": {
     "branch": "deepseek/m1-evidence",
     "claimed_at": "2026-11-03T07:51:55-05:00",
@@ -279,6 +272,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/point-medoid": {
+    "branch": "deepseek/point-medoid",
+    "claimed_at": "2026-11-04T03:05:37-05:00",
+    "head": "5b3b8f361",
+    "lab": "deepseek",
+    "note": "target-geometric point medoids training-through-serving comparison"
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",
@@ -325,6 +325,13 @@
     "branch": "deepseek/table-bvgk-pivot",
     "claimed_at": "2026-11-03T00:03:13-05:00",
     "head": "de9cfc84a",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/termination-cell": {
+    "branch": "deepseek/termination-cell",
+    "claimed_at": "2026-11-04T01:20:00-05:00",
+    "head": "2833c451e",
     "lab": "deepseek",
     "note": ""
   },
