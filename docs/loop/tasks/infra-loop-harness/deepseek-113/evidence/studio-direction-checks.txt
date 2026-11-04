@@ -1,0 +1,31 @@
+Studio owner-direction close verification
+========================================
+
+Focused composer/Studio API tests:
+27 passed, 0 failed.
+
+Full Studio component suite:
+31 files, 266 tests passed.
+
+TypeScript check:
+passed.
+
+Vite production build:
+29 modules transformed; passed.
+
+Static Studio page:
+PAGE-LOAD CHECKS PASSED.
+
+Runtime page-load/network trap:
+RUNTIME PAGE-LOAD TRAP PASSED; zero external runtime requests.
+
+WASM worker:
+ALL STUDIO WORKER CHECKS PASSED; remoteRequests=0.
+
+Native OpenAI loopback:
+14 passed, including exact usage/streaming,
+truthful unsupported-family errors, image decomposition,
+native R4 image validation, and bounded admission.
+
+The worktree initially had no local npm dependencies; `npm ci`
+installed the locked 144-package tree with zero vulnerabilities.
