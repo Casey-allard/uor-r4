@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/query-admission": {
+    "branch": "deepseek/query-admission",
+    "claimed_at": "2026-11-04T16:00:00-05:00",
+    "head": "e197f22c1",
+    "lab": "deepseek",
+    "note": "generated-query final-gain training toward K8 target-cell admission"
+  },
   "deepseek/admission-headroom": {
     "branch": "deepseek/admission-headroom",
     "claimed_at": "2026-11-04T15:20:00-05:00",

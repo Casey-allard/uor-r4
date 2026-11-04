@@ -245,6 +245,15 @@ This closes the existing 8→16 admission-budget configuration and makes direct
 generated-query/admission training the next mechanism. See
 [deepseek-134](../../loop/tasks/cpu-training-pilot/deepseek-134/REPORT.md).
 
+Direct final-gain admission training then moved the query on actual generated
+trajectories instead of relying on post-admission ranking. The fixed
+32-coordinate, ±32, 12-move objective accepted only one move on seed 1 and two
+on seed 2. Training eligibility reached 36 and 49 rows against 640; held-out
+admission fell 53→47 and rose 48→55; teacher-forced top-1 fell on both seeds.
+Cross-cell permutation and equal-move random controls were not beaten. This
+closes the fixed final-gain schedule, not direct query geometry generally. See
+[deepseek-135](../../loop/tasks/cpu-training-pilot/deepseek-135/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
