@@ -1,0 +1,27 @@
+{
+  "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/content-readout-serving/2026-11-04-attempt-4/seed-1/serving.uorlut",
+  "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+  "content_readout": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/content-readout-serving/2026-11-04-attempt-4/seed-1/content-readout-sidecar.json",
+  "content_readout_sha256": "e60a909e14a8fa2ab310a9a6255fa995920f51202471936661077c8f7ea290e7",
+  "context": 192,
+  "decoding": "greedy serve_step (dense: integer argmax; SpiralCore/FBS: native/point fallback, optionally overridden by an artifact-bound content-readout sidecar)",
+  "history_tokens": 12,
+  "memory": null,
+  "protocol": {
+    "bos_id": 0,
+    "eos_id": 1,
+    "schema": "uor-r4.literal-role-dialogue/2",
+    "tokenizer_cid": "blake3:29f4fa2b2511ee079f50b8323e163dbcddfaa90fb28ca0fe51034f72c647313f",
+    "unk_id": 2
+  },
+  "reply_ids": [
+    563
+  ],
+  "reply_text": "small",
+  "schema": "uor-r4.uor-chat-stack-reply/1",
+  "seconds": 0.002535995,
+  "stop": "max_new_tokens",
+  "tokenizer": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/tokenizer-seed-1.json",
+  "tokenizer_cid": "blake3:29f4fa2b2511ee079f50b8323e163dbcddfaa90fb28ca0fe51034f72c647313f",
+  "user": "hello"
+}

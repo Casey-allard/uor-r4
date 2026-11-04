@@ -209,13 +209,20 @@ learned-model execution, spawned CLI exit-status test or chat-quality claim.
 
 `uor-chat` serves three different containers, and they hold different models. `--bundle <PATH>` loads
 the sealed recurrent bundle described above. `--stack <model.lut> --tokenizer <TOKENIZER.json>
-[--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
+[--content-readout <SIDECAR>] [--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
 stack artifact directly, through `stack::IntegerStackModel` under the literal-role protocol
 (`stack::StackChat`; default version 2, the pinned corpus encoding; version 1 remains selectable for
 old artifacts): the engine's integers and the float stack's stop rules, greedy `stack_argmax`
 over `next_token_scores()` with pointer mixtures included, exact token history, and an over-context
 turn refused rather than truncated. The stack path is **greedy only** — a nonzero `--temperature` is
 refused because this engine has no integer categorical sampler. `--say` prints a JSON record.
+`--content-readout` attaches the positive modulo-256 nearest-example table from a separately hashed
+`uor-r4.stack-content-readout/1` sidecar. The sidecar must bind the exact artifact SHA-256; it
+overrides only `serve_step`'s native/point fallback when a training row is within its learned Hamming
+radius. Raw `step` and `step_native` remain unchanged. The one-shot, REPL, prompt-ID and OpenAI
+loopback paths all use the attached model. Session snapshots written with a readout use the
+`UR4SESS2` codec and bind its canonical hash; restore refuses a missing or different readout before
+changing state. Legacy `UR4SESS1` bytes remain unchanged when no readout is attached.
 `--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
 same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
 `/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement
@@ -234,7 +241,7 @@ uor-chat --stack model.lut --tokenizer tokenizer.json \
   --serve 127.0.0.1:8000 --studio-root web/studio
 ```
 
-The loopback service implements `GET /healthz`, `GET /v1/models`, `GET /v1/models/uor-chat`, `POST /v1/chat/completions`, `POST /v1/completions`, `POST /v1/responses`, and `GET /v1/capabilities`. Text messages and text parts work with multi-turn history, `max_tokens`, `max_completion_tokens` (and `max_output_tokens` for Responses), `stream`, `stream_options.include_usage`, `temperature: 0`, and one choice. JSON and SSE return exact prompt/completion/total token usage plus additive `uor` metrics: integer elapsed nanoseconds, first-token nanoseconds, completion IDs, and tokens-per-second in thousandths (null if the measured elapsed value is zero). EOS and short cycles map to `stop`; the token cap maps to `length`. Unsupported models, roles, fields, content parts, and OpenAI families receive explicit errors rather than placeholder success; `/v1/embeddings` and image input return 501 in this unit.
+The loopback service implements `GET /healthz`, `GET /v1/models`, `GET /v1/models/uor-chat`, `POST /v1/chat/completions`, `POST /v1/completions`, `POST /v1/responses`, and `GET /v1/capabilities`. Text messages and text parts work with multi-turn history, `max_tokens`, `max_completion_tokens` (and `max_output_tokens` for Responses), `stream`, `stream_options.include_usage`, `temperature: 0`, and one choice. JSON and SSE return exact prompt/completion/total token usage plus additive `uor` metrics: integer elapsed nanoseconds, first-token nanoseconds, completion IDs, and tokens-per-second in thousandths (null if the measured elapsed value is zero). When `--content-readout` is active, metadata and generation records also carry `content_readout` and `content_readout_sha256`, the sidecar path and raw sidecar SHA-256. EOS and short cycles map to `stop`; the token cap maps to `length`. Unsupported models, roles, fields, content parts, and OpenAI families receive explicit errors rather than placeholder success; `/v1/embeddings` and image input return 501 in this unit.
 
 Only `127.0.0.1` binds. Host and Origin are checked, bearer/`X-UOR-Studio-Token` authentication is required for `/v1` (except CORS preflight, which is validated by Host/Origin alone), headers are capped at 32 KiB and bodies at 1 MiB by default, and one generation runs at a time (a concurrent request receives 429 before any SSE bytes). Context overflow returns 413 before a stream starts; a second in-flight generation is refused. One completion ID/created timestamp and Responses event/item identity stay stable across a stream. The per-launch token is never printed or persisted. When `--studio-root` is present, the same-origin HTML receives an in-memory `window.__UOR_NATIVE_BOOTSTRAP__` for the next Studio unit; traversal and symlink paths are refused. Headless serving without that root requires `--token-stdin`, which reads 1-256 token bytes once without logging them; launching without either token channel fails immediately. `--origin` optionally adds one exact cross-origin value; cross-origin access is otherwise disabled. This is a local protocol/serving path, not production publication, M4/M7 qualification, or a useful-conversation claim.
 

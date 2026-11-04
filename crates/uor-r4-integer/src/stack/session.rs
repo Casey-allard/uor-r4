@@ -27,8 +27,11 @@
 
 use std::path::{Path, PathBuf};
 
+use sha2::{Digest, Sha256};
+
 use crate::bitcode::{BitCode, BITCODE_LANES};
 
+use super::content_readout::{ContentReadout, CONTENT_CODE_SIGNATURE_BITS};
 use super::flock::{
     flock_select_integer, rank_table_q31, FlockScratch, FlockSelect, MAX_FLOCK_CONTEXT,
 };
@@ -36,22 +39,21 @@ use super::format::{
     Container, Fixed, MatrixView, StackNumerics, StackPointer, StackShape, StackTransportSnap,
     StackTurnMemory,
 };
-use super::kernels::{
-    grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables, stack_argmax,
-    stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
-    stack_hamilton, stack_isqrt, stack_l2_distance, stack_lift, stack_lorentz_distance,
-    stack_mix_row, stack_mul_u128, stack_mul_u64, stack_pair_tables, stack_pointer_mixture,
-    stack_quantize16, stack_query_tables, stack_rms_norm, stack_rms_norm_fine, stack_sigmoid_q31,
-    stack_snap_rotation,
-    stack_snap_select, stack_square, to_exp_i32, PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP,
-    NORM_FINE_EXP, RESIDUAL_EXP,
-};
 use super::hamming::{hamming_image, HammingStepRead, ReadForce, ServedHamming};
-use crate::fbs_snapshot::{
-    DecisionForceWindow, DecisionHead, DecisionLayer, DecisionMemory, DecisionRead, DecisionStep,
+use super::kernels::{
+    grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
+    stack_argmax, stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv,
+    stack_gemv_pairs, stack_hamilton, stack_isqrt, stack_l2_distance, stack_lift,
+    stack_lorentz_distance, stack_mix_row, stack_mul_u128, stack_mul_u64, stack_pair_tables,
+    stack_pointer_mixture, stack_quantize16, stack_query_tables, stack_rms_norm,
+    stack_rms_norm_fine, stack_sigmoid_q31, stack_snap_rotation, stack_snap_select, stack_square,
+    to_exp_i32, PackedMatrix, ARCOSH_TABLE_LEN, NORM_FINE_EXP, PRODUCT_EXP, RESIDUAL_EXP,
 };
 use super::memory::{memory_image, MemoryAnchors, MemoryMove, ServedTurnMemory};
 use super::StackError;
+use crate::fbs_snapshot::{
+    DecisionForceWindow, DecisionHead, DecisionLayer, DecisionMemory, DecisionRead, DecisionStep,
+};
 
 /// Exponent of the recurrence state.
 const STATE_EXP: i32 = -32;
@@ -552,6 +554,11 @@ pub struct IntegerStackModel {
     /// `turn-memory-integer`); `None` on a stack without one, whose steps are the
     /// trunk's alone.
     memory: Option<Box<ServedTurnMemory>>,
+    /// An optional artifact-bound nearest-example content override used by
+    /// [`IntegerStackSession::serve_step`], never by the raw step paths.
+    content_readout: Option<Box<ContentReadout>>,
+    /// Canonical hash of `content_readout`, bound into session snapshots.
+    content_readout_sha256: Option<String>,
     exp_table: Vec<u32>,
     silu_table: Vec<i32>,
     gelu_table: Vec<i32>,
@@ -669,9 +676,9 @@ fn fbs_model(artifact: &Container, shape: &StackShape) -> Result<FbsModel, Stack
         roots_q12: std::array::from_fn(|r| {
             crate::discrete_d11::orbit_root_coords(r).map(|v| v << 12)
         }),
-        kept_cells: shape
-            .kept_cells
-            .ok_or(StackError::Shape("the native vector head declares no kept cells"))?,
+        kept_cells: shape.kept_cells.ok_or(StackError::Shape(
+            "the native vector head declares no kept cells",
+        ))?,
     })
 }
 
@@ -801,7 +808,11 @@ impl IntegerStackModel {
         };
         let mut layers = Vec::with_capacity(shape.layers());
         // An FBS shape has no dense maps: its layers are the route tables.
-        let dense_layers = if fbs.is_some() { "" } else { shape.pattern.as_str() };
+        let dense_layers = if fbs.is_some() {
+            ""
+        } else {
+            shape.pattern.as_str()
+        };
         for (l, kind) in dense_layers.bytes().enumerate() {
             let name = |part: &str| format!("l{l}.{part}");
             let mixer = if kind == b'r' {
@@ -929,8 +940,10 @@ impl IntegerStackModel {
         let activation_len = |step: i32, range: i32| (2usize << (range - step)) + 1;
         if (needs_exp && exp_table.len() < 2)
             || !steps_valid
-            || (needs_mlp_table && silu_table.len() != activation_len(n.silu_step_log2, n.silu_range_log2))
-            || (needs_rec_table && gelu_table.len() != activation_len(n.gelu_step_log2, n.gelu_range_log2))
+            || (needs_mlp_table
+                && silu_table.len() != activation_len(n.silu_step_log2, n.silu_range_log2))
+            || (needs_rec_table
+                && gelu_table.len() != activation_len(n.gelu_step_log2, n.gelu_range_log2))
             || !(1..=1i64 << 31).contains(&n.score_scale_q30)
         {
             return Err(StackError::Numerics(
@@ -974,6 +987,8 @@ impl IntegerStackModel {
             layers,
             fbs,
             memory,
+            content_readout: None,
+            content_readout_sha256: None,
             exp_table,
             silu_table,
             gelu_table,
@@ -1068,6 +1083,37 @@ impl IntegerStackModel {
         &self.sha256
     }
 
+    /// Attach a validated content-readout sidecar to an FBS model.
+    pub fn set_content_readout(&mut self, readout: ContentReadout) -> Result<(), StackError> {
+        if self.fbs.is_none() {
+            return Err(StackError::Shape(
+                "a content readout requires a SpiralCore/FBS model",
+            ));
+        }
+        let required_width = CONTENT_CODE_SIGNATURE_BITS / 8;
+        if self.shape.width != required_width {
+            return Err(StackError::ContentReadout(format!(
+                "content readout requires width {required_width}, model width is {}",
+                self.shape.width
+            )));
+        }
+        readout.validate(self.shape.vocab)?;
+        let bytes = serde_json::to_vec(&readout).map_err(|error| {
+            StackError::ContentReadout(format!("cannot hash attached readout: {error}"))
+        })?;
+        self.content_readout_sha256 = Some(hex::encode(Sha256::digest(bytes)));
+        self.content_readout = Some(Box::new(readout));
+        Ok(())
+    }
+
+    pub fn content_readout(&self) -> Option<&ContentReadout> {
+        self.content_readout.as_deref()
+    }
+
+    pub fn content_readout_sha256(&self) -> Option<&str> {
+        self.content_readout_sha256.as_deref()
+    }
+
     /// The same model with its Hamming reads dropped, for timing the session without them
     /// (claude-235: decode tokens/s with the read and without, on one artifact). Its steps are the
     /// read-free trunk's, so it serves nothing the artifact was exported for.
@@ -1099,7 +1145,11 @@ impl IntegerStackModel {
     /// (claude-224), or `None` without a table or such a row: the input to parity's rounding
     /// bound. It is off the step's path.
     pub fn point_key_distance(&self, query: &[i32], target: u32) -> Option<i64> {
-        self.memory.as_ref()?.point.as_ref()?.least_distance_to(query, target)
+        self.memory
+            .as_ref()?
+            .point
+            .as_ref()?
+            .least_distance_to(query, target)
     }
 
     /// The reference scan's name and least distance for `query` against the point table
@@ -1226,10 +1276,9 @@ impl IntegerStackModel {
                     // `conv_bias` (`i32`, 4 B each), `gate_bias` (`i32`, 4 B each),
                     // and `decay_rate` (`i16` grid code, 2 B each). Every recurrence
                     // scalar is read on each token step.
-                    let scalars = (r.taps.len()
-                        + r.conv_bias.len()
-                        + r.gate_bias.len()
-                        + r.rates.len()) as u64;
+                    let scalars =
+                        (r.taps.len() + r.conv_bias.len() + r.gate_bias.len() + r.rates.len())
+                            as u64;
                     let scalar_bytes = (r.taps.len() * std::mem::size_of::<i16>()
                         + r.conv_bias.len() * std::mem::size_of::<i32>()
                         + r.gate_bias.len() * std::mem::size_of::<i32>()
@@ -1321,11 +1370,11 @@ impl IntegerStackModel {
             + routing.total_4bit_weights
             + memory_lookup.total_4bit_weights
             + emission.total_4bit_weights;
-        let active_4bit_weight_and_scale_bytes_per_token =
-            ingestion.active_4bit_weight_and_scale_bytes_per_token
-                + routing.active_4bit_weight_and_scale_bytes_per_token
-                + memory_lookup.active_4bit_weight_and_scale_bytes_per_token
-                + emission.active_4bit_weight_and_scale_bytes_per_token;
+        let active_4bit_weight_and_scale_bytes_per_token = ingestion
+            .active_4bit_weight_and_scale_bytes_per_token
+            + routing.active_4bit_weight_and_scale_bytes_per_token
+            + memory_lookup.active_4bit_weight_and_scale_bytes_per_token
+            + emission.active_4bit_weight_and_scale_bytes_per_token;
         let total_4bit_weight_and_scale_bytes = ingestion.total_4bit_weight_and_scale_bytes
             + routing.total_4bit_weight_and_scale_bytes
             + memory_lookup.total_4bit_weight_and_scale_bytes
@@ -1469,8 +1518,28 @@ impl IntegerStackModel {
                 cells: vec![0; if self.fbs.is_some() { 256 } else { 0 }],
                 native_kept: vec![0; self.fbs.as_ref().map_or(0, |f| f.kept_cells)],
                 native_token: 0,
+                content_votes: vec![
+                    0;
+                    if self.content_readout.is_some() {
+                        s.vocab
+                    } else {
+                        0
+                    }
+                ],
+                content_vote_epochs: vec![
+                    0;
+                    if self.content_readout.is_some() {
+                        s.vocab
+                    } else {
+                        0
+                    }
+                ],
+                content_vote_epoch: 0,
                 point_tied: Vec::with_capacity(
-                    self.memory.as_ref().and_then(|m| m.point.as_ref()).map_or(0, |p| p.rows()),
+                    self.memory
+                        .as_ref()
+                        .and_then(|m| m.point.as_ref())
+                        .map_or(0, |p| p.rows()),
                 ),
             },
         }
@@ -1562,6 +1631,9 @@ pub struct SerializedStackSession {
     /// equals vocab when position > 0).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mixture: Vec<i32>,
+    /// Canonical content-readout attachment hash, when one was active.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_readout_sha256: Option<String>,
     /// Per-layer state snapshots.
     pub layers: Vec<SerializedStackLayerState>,
 }
@@ -1724,6 +1796,11 @@ struct Buffers {
     cells: Vec<i64>,
     native_kept: Vec<u32>,
     native_token: u32,
+    /// Reused per-target vote counts and epochs for the optional content
+    /// readout. Allocated with the session, never inside `serve_step`.
+    content_votes: Vec<u32>,
+    content_vote_epochs: Vec<u32>,
+    content_vote_epoch: u32,
     /// The point key's `(distance, row, target)` candidates, at the table's row count, so its
     /// search allocates nothing.
     point_tied: Vec<(i64, usize, u32)>,
@@ -1804,7 +1881,12 @@ impl BucketTrace {
     /// Lane `lane`'s entry, from its score `s_q16` and the entry `own` the score chooses: the
     /// forced entry where one is forced. Both the score and the entry used are recorded.
     fn decide(&mut self, lane: usize, s_q16: i32, own: usize) -> usize {
-        let used = self.forced.get(lane).copied().flatten().map_or(own, usize::from);
+        let used = self
+            .forced
+            .get(lane)
+            .copied()
+            .flatten()
+            .map_or(own, usize::from);
         self.score_q16.push(s_q16);
         self.entry.push(used as u8);
         used
@@ -1942,7 +2024,9 @@ impl IntegerStackSession<'_> {
     pub fn set_decision_trace(&mut self, force: &DecisionForceWindow) -> Result<(), StackError> {
         let model = self.model;
         let Some(fbs) = model.fbs.as_deref() else {
-            return Err(StackError::Shape("the decision trace reads a SpiralCore/FBS model"));
+            return Err(StackError::Shape(
+                "the decision trace reads a SpiralCore/FBS model",
+            ));
         };
         if !model.shape.rec_geometric() {
             return Err(StackError::Shape(
@@ -1956,18 +2040,27 @@ impl IntegerStackSession<'_> {
                 "the decision trace reads an unsnapped artifact: the snap is not a decision it records",
             ));
         }
-        if !model.shape.gate_hamilton() || !model.shape.head_nearest() || model.point_key_rows().is_some() {
+        if !model.shape.gate_hamilton()
+            || !model.shape.head_nearest()
+            || model.point_key_rows().is_some()
+        {
             return Err(StackError::Shape(
                 "the decision trace reads the Hamilton gate and the nearest head, with no point key",
             ));
         }
         if self.position != 0 {
-            return Err(StackError::Shape("the decision trace starts in a fresh session"));
+            return Err(StackError::Shape(
+                "the decision trace starts in a fresh session",
+            ));
         }
         let (layers, lanes, context) = (fbs.layers.len(), model.shape.lanes(), model.shape.context);
         let mut buckets = Vec::new();
         for bucket in &force.buckets {
-            if bucket.step >= context || bucket.layer >= layers || bucket.lane >= lanes || bucket.entry > 15 {
+            if bucket.step >= context
+                || bucket.layer >= layers
+                || bucket.lane >= lanes
+                || bucket.entry > 15
+            {
                 return Err(StackError::Shape(
                     "a forced bucket names a step, layer, lane or entry outside the model",
                 ));
@@ -1983,7 +2076,11 @@ impl IntegerStackSession<'_> {
         let reads = match &fbs.hamming {
             Some(hamming) => hamming.forcing(&force.codes, context)?,
             None if force.codes.is_empty() => Vec::new(),
-            None => return Err(StackError::Shape("a forced code names a read the model does not have")),
+            None => {
+                return Err(StackError::Shape(
+                    "a forced code names a read the model does not have",
+                ))
+            }
         };
         self.hamming_trace = None;
         self.decision = Some(Box::new(DecisionState {
@@ -2286,6 +2383,7 @@ impl IntegerStackSession<'_> {
             pointer_keys,
             pointer_lifts,
             mixture,
+            content_readout_sha256: self.model.content_readout_sha256.clone(),
             layers,
         }
     }
@@ -2308,7 +2406,10 @@ impl IntegerStackSession<'_> {
         // A read's type heads keep each position's payload, which a saved session does not carry
         // (claude-195): restoring would silently differ from continuing, so it is refused.
         let fbs = self.model.fbs.as_deref();
-        if fbs.and_then(|f| f.hamming.as_ref()).is_some_and(|h| h.has_type_heads()) {
+        if fbs
+            .and_then(|f| f.hamming.as_ref())
+            .is_some_and(|h| h.has_type_heads())
+        {
             return Err(StackError::Shape(
                 "a session of a Hamming read with type heads cannot be restored yet: its per-position payloads are not saved",
             ));
@@ -2330,6 +2431,11 @@ impl IntegerStackSession<'_> {
                 "session artifact SHA-256 mismatch: session has '{}', model has '{}'",
                 saved.artifact_sha256, self.model.sha256
             )));
+        }
+        if saved.content_readout_sha256 != self.model.content_readout_sha256 {
+            return Err(StackError::ContentReadout(
+                "session content-readout identity differs from the attached sidecar".to_owned(),
+            ));
         }
         let position = usize::try_from(saved.position).map_err(|_| StackError::SessionState)?;
         let cache_at = usize::try_from(saved.cache_at).map_err(|_| StackError::SessionState)?;
@@ -2745,6 +2851,17 @@ impl IntegerStackSession<'_> {
         })
     }
 
+    /// The native writer or point-key fallback selected by the latest FBS step,
+    /// before any serving content-readout override.
+    pub fn last_native_token(&self) -> Option<u32> {
+        self.model.fbs.as_ref().map(|_| self.b.native_token)
+    }
+
+    /// The final Q12 writer query produced by the latest FBS step.
+    pub fn last_query_q12(&self) -> Option<&[i32]> {
+        self.model.fbs.as_ref().map(|_| self.b.query_q12.as_slice())
+    }
+
     /// Feed one token and return the served greedy next token and its margin in Q16 units: what
     /// the browser's `wasm_step` serves (integer-nearest-readout, claude-231).
     /// - **A dense stack:** the integer argmax of its logits (first on ties), with top1 − top2.
@@ -2754,7 +2871,19 @@ impl IntegerStackSession<'_> {
     pub fn serve_step(&mut self, token: u32) -> Result<(u32, i32), StackError> {
         if self.model.fbs.is_some() {
             self.step(token)?;
-            return Ok((self.b.native_token, 0));
+            let mut next = self.b.native_token;
+            if let Some(readout) = self.model.content_readout.as_deref() {
+                next = readout
+                    .select_into(
+                        &self.b.query_q12,
+                        next,
+                        &mut self.b.content_votes,
+                        &mut self.b.content_vote_epochs,
+                        &mut self.b.content_vote_epoch,
+                    )?
+                    .token;
+            }
+            return Ok((next, 0));
         }
         let logits = self.step(token)?;
         let next = stack_argmax(logits) as u32;
@@ -2812,12 +2941,7 @@ impl IntegerStackSession<'_> {
             .layers
             .iter()
             .rposition(|l| matches!(l.mixer, Mixer::Read(_)));
-        for (idx, (layer, state)) in model
-            .layers
-            .iter()
-            .zip(self.states.iter_mut())
-            .enumerate()
-        {
+        for (idx, (layer, state)) in model.layers.iter().zip(self.states.iter_mut()).enumerate() {
             let t_layer = std::time::Instant::now();
             let norm_exp = stack_rms_norm(&b.x, n.rms_eps, &mut b.scratch[..d], &mut b.norm);
             stack_activation_tables(&b.norm, &mut b.tables[..d]);
@@ -2902,8 +3026,7 @@ impl IntegerStackSession<'_> {
                 if (tok as usize) < s.vocab {
                     let pw = i128::from(self.b.pointer_weights[j]);
                     let boost = shift_wide(mul_i128(pw, scale), 31) as i32;
-                    self.b.logits[tok as usize] =
-                        self.b.logits[tok as usize].saturating_add(boost);
+                    self.b.logits[tok as usize] = self.b.logits[tok as usize].saturating_add(boost);
                 }
             }
         }
@@ -3440,8 +3563,18 @@ fn stack_step_fbs(
         };
         stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
-        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_FINE_EXP, &mut b.branches);
-        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate_out);
+        stack_fbs_gather(
+            &layer.rec_in,
+            &b.scratch[..d],
+            NORM_FINE_EXP,
+            &mut b.branches,
+        );
+        stack_fbs_gather(
+            &layer.rec_gate,
+            &b.scratch[..d],
+            NORM_FINE_EXP,
+            &mut b.gate_out,
+        );
         if let Some(decision) = session.decision.as_deref() {
             b.bucket_trace = Some(decision.layer_trace(session.position, l));
         }
@@ -3463,12 +3596,25 @@ fn stack_step_fbs(
         }
         if let Some(hamming) = &fbs.hamming {
             let (trace, force) = match session.decision.as_deref_mut() {
-                Some(decision) => (Some(&mut decision.recorded), Some(decision.reads.as_slice())),
+                Some(decision) => (
+                    Some(&mut decision.recorded),
+                    Some(decision.reads.as_slice()),
+                ),
                 None => (session.hamming_trace.as_mut(), None),
             };
-            hamming.stream(l + 1, &session.tokens, &fbs.writer_table, &mut session.hamming_payloads, &mut b.x, trace, force);
+            hamming.stream(
+                l + 1,
+                &session.tokens,
+                &fbs.writer_table,
+                &mut session.hamming_payloads,
+                &mut b.x,
+                trace,
+                force,
+            );
         }
-        if let (Some(step), Some(decision), Some(buckets)) = (traced.as_mut(), session.decision.as_deref_mut(), buckets) {
+        if let (Some(step), Some(decision), Some(buckets)) =
+            (traced.as_mut(), session.decision.as_deref_mut(), buckets)
+        {
             step.layers.push(DecisionLayer {
                 score_q16: buckets.score_q16,
                 score_f32: Vec::new(),
@@ -3487,10 +3633,20 @@ fn stack_step_fbs(
     stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
     if let Some(hamming) = &fbs.hamming {
         let (trace, force) = match session.decision.as_deref_mut() {
-            Some(decision) => (Some(&mut decision.recorded), Some(decision.reads.as_slice())),
+            Some(decision) => (
+                Some(&mut decision.recorded),
+                Some(decision.reads.as_slice()),
+            ),
             None => (session.hamming_trace.as_mut(), None),
         };
-        hamming.readout(&session.tokens, &fbs.writer_table, &mut session.hamming_payloads, &mut b.scratch[..d], trace, force);
+        hamming.readout(
+            &session.tokens,
+            &fbs.writer_table,
+            &mut session.hamming_payloads,
+            &mut b.scratch[..d],
+            trace,
+            force,
+        );
     }
     if let (Some(step), Some(decision)) = (traced.as_mut(), session.decision.as_deref_mut()) {
         step.readout = decision.take_read();
@@ -3503,7 +3659,10 @@ fn stack_step_fbs(
             #[cfg(test)]
             {
                 session.memory.readout_before.clear();
-                session.memory.readout_before.extend_from_slice(&b.scratch[..d]);
+                session
+                    .memory
+                    .readout_before
+                    .extend_from_slice(&b.scratch[..d]);
             }
             let moved = memory.apply(
                 &session.tokens,
@@ -3516,7 +3675,9 @@ fn stack_step_fbs(
             // An opening the exact key missed moved nothing, so the query below is the trunk's
             // own point there: the point key's (claude-222).
             point_miss = memory.point.is_some()
-                && moved.as_ref().is_some_and(|m| m.opening && m.stored.is_none());
+                && moved
+                    .as_ref()
+                    .is_some_and(|m| m.opening && m.stored.is_none());
             if let Some(step) = traced.as_mut() {
                 step.memory = moved.as_ref().map(|m| DecisionMemory {
                     key: m.key.clone(),
@@ -3646,8 +3807,18 @@ fn stack_step_fbs_timed(
         stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
         stack_norm_gain(&mut b.scratch[..d], &layer.rec_gain);
         part(&mut since, ns);
-        stack_fbs_gather(&layer.rec_in, &b.scratch[..d], NORM_FINE_EXP, &mut b.branches);
-        stack_fbs_gather(&layer.rec_gate, &b.scratch[..d], NORM_FINE_EXP, &mut b.gate_out);
+        stack_fbs_gather(
+            &layer.rec_in,
+            &b.scratch[..d],
+            NORM_FINE_EXP,
+            &mut b.branches,
+        );
+        stack_fbs_gather(
+            &layer.rec_gate,
+            &b.scratch[..d],
+            NORM_FINE_EXP,
+            &mut b.gate_out,
+        );
         part(&mut since, ns);
         let act_exp = stack_recurrence_core(model, layer.tables(), state, history, b, false);
         part(&mut since, ns);
@@ -3672,14 +3843,29 @@ fn stack_step_fbs_timed(
         }
         // A Hamming read is timed inside the block it follows, so the stage list is unchanged.
         if let Some(hamming) = &fbs.hamming {
-            hamming.stream(l + 1, &session.tokens, &fbs.writer_table, &mut session.hamming_payloads, &mut b.x, session.hamming_trace.as_mut(), None);
+            hamming.stream(
+                l + 1,
+                &session.tokens,
+                &fbs.writer_table,
+                &mut session.hamming_payloads,
+                &mut b.x,
+                session.hamming_trace.as_mut(),
+                None,
+            );
         }
         lap(&mut since, ns);
     }
     stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
     stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
     if let Some(hamming) = &fbs.hamming {
-        hamming.readout(&session.tokens, &fbs.writer_table, &mut session.hamming_payloads, &mut b.scratch[..d], session.hamming_trace.as_mut(), None);
+        hamming.readout(
+            &session.tokens,
+            &fbs.writer_table,
+            &mut session.hamming_payloads,
+            &mut b.scratch[..d],
+            session.hamming_trace.as_mut(),
+            None,
+        );
     }
     // The turn memory's move (units 2-3), after the Hamming readout as in the float trunk: the
     // opening table at the reply's first step's row, the reply table each later row.
@@ -3689,7 +3875,10 @@ fn stack_step_fbs_timed(
             #[cfg(test)]
             {
                 session.memory.readout_before.clear();
-                session.memory.readout_before.extend_from_slice(&b.scratch[..d]);
+                session
+                    .memory
+                    .readout_before
+                    .extend_from_slice(&b.scratch[..d]);
             }
             let moved = memory.apply(
                 &session.tokens,
@@ -3702,7 +3891,9 @@ fn stack_step_fbs_timed(
             // An opening the exact key missed moved nothing, so the query below is the trunk's
             // own point there: the point key's (claude-222).
             point_miss = memory.point.is_some()
-                && moved.as_ref().is_some_and(|m| m.opening && m.stored.is_none());
+                && moved
+                    .as_ref()
+                    .is_some_and(|m| m.opening && m.stored.is_none());
             session.memory.last_move = moved;
         }
     }
@@ -3875,11 +4066,17 @@ fn stack_recurrence_core(
         *slot = c;
     }
     // Age the history by one position: the oldest row drops off the end.
-    history.copy_within(..history.len() - core::hint::black_box(d), core::hint::black_box(d));
+    history.copy_within(
+        ..history.len() - core::hint::black_box(d),
+        core::hint::black_box(d),
+    );
     history[..d].copy_from_slice(drive);
     let (decays, rotations) = b.gate_out.split_at(lanes);
     let (wide, rates, offsets) = (&b.wide[..d], t.rates, t.decay_offset);
-    let lanes_of = |first: usize, held: &mut [i64], trace: Option<&mut SnapTrace>, buckets: Option<&mut BucketTrace>| {
+    let lanes_of = |first: usize,
+                    held: &mut [i64],
+                    trace: Option<&mut SnapTrace>,
+                    buckets: Option<&mut BucketTrace>| {
         // `first` is a channel index (four per lane); without learned
         // rotations there are no rotation logits.
         let (lane, count, channels) = (first >> 2, held.len() >> 2, held.len());
@@ -3911,7 +4108,9 @@ fn stack_recurrence_core(
             );
             return;
         };
-        stack_lanes(model, held, pushed, decays, rates, offsets, rotations, trace, buckets)
+        stack_lanes(
+            model, held, pushed, decays, rates, offsets, rotations, trace, buckets,
+        )
     };
     let buckets = b.bucket_trace.as_mut();
     match &mut b.snap_trace {
@@ -4935,7 +5134,9 @@ mod fbs_stage_tests {
         for i in 0..context.min(48) {
             let token = ((i * 37 + 5) % vocab) as u32;
             let want = plain.step_native(token).expect("step");
-            let (got, nearest) = timed.measure_fbs_step_stages(token, &mut ns).expect("timed step");
+            let (got, nearest) = timed
+                .measure_fbs_step_stages(token, &mut ns)
+                .expect("timed step");
             assert_eq!(got, want, "position {i}");
             // The embedding, each layer's two blocks, the final norm, the writer, the bookkeeping,
             // the whole step and the nearest search.
@@ -4943,10 +5144,178 @@ mod fbs_stage_tests {
             // A sanity check only: the stages tile the step, so the step is at least their sum.
             let stages: u64 = ns[..ns.len() - 2].iter().sum();
             assert!(ns[ns.len() - 2] >= stages, "{ns:?}");
-            assert_eq!(nearest, brute_nearest(fbs, vocab, &got.query_q12), "position {i}");
+            assert_eq!(
+                nearest,
+                brute_nearest(fbs, vocab, &got.query_q12),
+                "position {i}"
+            );
         }
         assert_eq!(plain.save_state(), timed.save_state());
         assert_eq!(plain.tokens(), timed.tokens());
+    }
+
+    #[test]
+    fn content_readout_overrides_only_the_served_pick() {
+        let snap = super::super::synthetic::synthetic_fbs_trunk_with(
+            7,
+            super::super::synthetic::FbsSynth {
+                vocab: 256,
+                d: 256,
+                mlp: 256,
+                layers: 1,
+                context: 8,
+                kept: 2,
+                gain_lo: 0.75,
+                gain_span: 0.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        );
+        let bytes = super::super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let prompt = 1u32;
+        let probe = IntegerStackModel::parse(&bytes).expect("parse");
+        let vocab = probe.shape.vocab;
+        let query = probe
+            .session()
+            .step_native(prompt)
+            .expect("probe step")
+            .query_q12;
+        let native = probe
+            .session()
+            .step_native(prompt)
+            .expect("native step")
+            .token;
+        let target = (native + 1) % vocab as u32;
+        let readout = ContentReadout {
+            mode: super::super::ContentSignatureMode::Code,
+            signature_bits: super::super::CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: vec![super::super::ContentExample {
+                signature: ContentReadout::signature(&query).expect("signature"),
+                target,
+            }],
+            max_distance: 0,
+        };
+        let mut different_readout = readout.clone();
+        different_readout.rows[0].target = (target + 1) % vocab as u32;
+
+        let plain = IntegerStackModel::parse(&bytes).expect("parse");
+        let mut candidate = IntegerStackModel::parse(&bytes).expect("parse");
+        candidate
+            .set_content_readout(readout)
+            .expect("attach readout");
+        let mut different = IntegerStackModel::parse(&bytes).expect("parse");
+        different
+            .set_content_readout(different_readout)
+            .expect("attach different readout");
+
+        let mut plain_raw_step = plain.session();
+        let mut content_raw_step = candidate.session();
+        assert_eq!(
+            plain_raw_step.step(prompt).expect("plain step").to_vec(),
+            content_raw_step
+                .step(prompt)
+                .expect("content step")
+                .to_vec()
+        );
+        assert_eq!(
+            plain_raw_step.last_native_token(),
+            content_raw_step.last_native_token()
+        );
+        assert_eq!(
+            plain_raw_step.last_query_q12(),
+            content_raw_step.last_query_q12()
+        );
+
+        let mut plain_raw_native = plain.session();
+        let mut content_raw_native = candidate.session();
+        assert_eq!(
+            plain_raw_native
+                .step_native(prompt)
+                .expect("plain native step"),
+            content_raw_native
+                .step_native(prompt)
+                .expect("content native step")
+        );
+        let mut no_readout_serve = plain.session();
+        assert_eq!(
+            no_readout_serve
+                .serve_step(prompt)
+                .expect("no-readout served step"),
+            (native, 0)
+        );
+
+        let mut plain_session = plain.session();
+        let mut content_session = candidate.session();
+        let raw = plain_session.step_native(prompt).expect("raw step");
+        let (served, margin) = content_session.serve_step(prompt).expect("content step");
+
+        assert_eq!(served, target);
+        assert_eq!(margin, 0);
+        assert_eq!(content_session.last_native_token(), Some(raw.token));
+        assert_eq!(
+            content_session.last_query_q12(),
+            Some(raw.query_q12.as_slice())
+        );
+        assert_eq!(plain_session.tokens(), content_session.tokens());
+        let saved = content_session.save_state();
+        let plain_state = plain_session.save_state();
+        let mut content_state = saved.clone();
+        assert!(content_state.content_readout_sha256.take().is_some());
+        assert_eq!(plain_state, content_state);
+        drop(content_session);
+        let mut restored = candidate.session();
+        restored
+            .restore_state(&saved)
+            .expect("content session restores");
+        drop(plain_session);
+        let mut plain_restored = plain.session();
+        let plain_before = plain_restored.save_state();
+        assert!(plain_restored.restore_state(&saved).is_err());
+        assert_eq!(plain_restored.save_state(), plain_before);
+        drop(plain_restored);
+        let mut different_restored = different.session();
+        let different_before = different_restored.save_state();
+        assert!(different_restored.restore_state(&saved).is_err());
+        assert_eq!(different_restored.save_state(), different_before);
+    }
+
+    #[test]
+    fn content_readout_refuses_an_incompatible_fbs_width_before_attachment() {
+        let snap = super::super::synthetic::synthetic_fbs_trunk_with(
+            7,
+            super::super::synthetic::FbsSynth {
+                vocab: 256,
+                d: 64,
+                mlp: 64,
+                layers: 1,
+                context: 8,
+                kept: 2,
+                gain_lo: 0.75,
+                gain_span: 0.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        );
+        let bytes = super::super::export_fbs_trunk_uorlut01(&snap).expect("export");
+        let mut model = IntegerStackModel::parse(&bytes).expect("parse");
+        let readout = ContentReadout {
+            mode: super::super::ContentSignatureMode::Code,
+            signature_bits: super::super::CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: vec![super::super::ContentExample {
+                signature: vec![0; super::super::CONTENT_CODE_SIGNATURE_BITS / 64],
+                target: 1,
+            }],
+            max_distance: 0,
+        };
+
+        assert!(matches!(
+            model.set_content_readout(readout),
+            Err(StackError::ContentReadout(_))
+        ));
+        assert!(model.content_readout().is_none());
+        assert!(model.content_readout_sha256().is_none());
     }
 
     /// Every writer row's score to `q` (`-L1` at Q12), sorted by score descending then id
@@ -4984,14 +5353,23 @@ mod fbs_stage_tests {
         for i in 0..context {
             let token = ((i * 37 + 5) % vocab) as u32;
             let step = session.step_native(token).expect("step");
-            let top = model.whole_table_nearest_two(&step.query_q12).expect("top two");
-            assert_eq!(top, brute_top_two(fbs, vocab, &step.query_q12), "position {i}");
+            let top = model
+                .whole_table_nearest_two(&step.query_q12)
+                .expect("top two");
+            assert_eq!(
+                top,
+                brute_top_two(fbs, vocab, &step.query_q12),
+                "position {i}"
+            );
             assert_eq!(top[0].0, step.token, "position {i}");
             assert!(top[0].1 >= top[1].1 && top[0].0 != top[1].0, "position {i}");
             checked += 1;
         }
         assert!(checked >= 4, "{checked}");
-        assert!(model.whole_table_nearest_two(&[0]).is_err(), "a query of the wrong width");
+        assert!(
+            model.whole_table_nearest_two(&[0]).is_err(),
+            "a query of the wrong width"
+        );
     }
 
     #[test]
@@ -5003,9 +5381,19 @@ mod fbs_stage_tests {
         let bytes = super::super::export_fbs_trunk_uorlut01(&snap).expect("export");
         let model = IntegerStackModel::parse(&bytes).expect("parse");
         let fbs = model.fbs.as_ref().expect("an FBS model");
-        assert_eq!(fbs.writer_table[..d], fbs.writer_table[d..2 * d], "rows 0 and 1 are equal");
-        let query: Vec<i32> = fbs.writer_table[..d].iter().map(|&t| i32::from(t)).collect();
-        assert_eq!(model.whole_table_nearest_two(&query).expect("top two"), [(0, 0), (1, 0)]);
+        assert_eq!(
+            fbs.writer_table[..d],
+            fbs.writer_table[d..2 * d],
+            "rows 0 and 1 are equal"
+        );
+        let query: Vec<i32> = fbs.writer_table[..d]
+            .iter()
+            .map(|&t| i32::from(t))
+            .collect();
+        assert_eq!(
+            model.whole_table_nearest_two(&query).expect("top two"),
+            [(0, 0), (1, 0)]
+        );
     }
 
     #[test]
@@ -5020,14 +5408,20 @@ mod fbs_stage_tests {
         for i in 0..context.min(48) {
             let token = ((i * 37 + 5) % vocab) as u32;
             let want = plain.step_native(token).expect("step");
-            let (got, nearest) = timed.measure_fbs_step_parts(token, &mut ns).expect("timed step");
+            let (got, nearest) = timed
+                .measure_fbs_step_parts(token, &mut ns)
+                .expect("timed step");
             assert_eq!(got, want, "position {i}");
             // The embedding, each layer's nine parts, the final norm, the writer, the
             // bookkeeping, the whole step and the nearest search.
             assert_eq!(ns.len(), 9 * fbs.layers.len() + 6);
             let stages: u64 = ns[..ns.len() - 2].iter().sum();
             assert!(ns[ns.len() - 2] >= stages, "{ns:?}");
-            assert_eq!(nearest, brute_nearest(fbs, vocab, &got.query_q12), "position {i}");
+            assert_eq!(
+                nearest,
+                brute_nearest(fbs, vocab, &got.query_q12),
+                "position {i}"
+            );
         }
         assert_eq!(plain.save_state(), timed.save_state());
         assert_eq!(plain.tokens(), timed.tokens());

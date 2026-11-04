@@ -1,0 +1,23 @@
+
+running 18 tests
+test utf8_streaming_never_emits_partial_or_invalid_text ... ok
+test studio_bootstrap_cannot_close_inline_script ... ok
+test cli_token_stdin_supports_headless_loopback ... ok
+test cli_serve_exposes_the_loaded_content_readout_identity ... ok
+test sse_matches_json_and_supports_all_generation_families ... ok
+test loopback_content_readout_identity_requires_an_attached_table ... ok
+test studio_bootstrap_is_ephemeral_and_static_paths_are_bounded ... ok
+test truthful_validation_and_unsupported_family_errors ... ok
+test loopback_metadata_identifies_the_loaded_content_readout ... ok
+test cli_serve_loads_the_same_artifact_without_logging_the_token ... ok
+test models_health_and_json_generation_routes ... ok
+test image_decompose_route_returns_exact_canonical_bytes_and_bounded_errors ... ok
+test stop_mapping_text_parts_and_exact_prompt_counts ... ok
+test native_r4_image_parts_validate_and_pass_context_preflight ... ok
+test http_busy_preflight_disconnect_and_header_bounds ... ok
+test loopback_admission_busy_and_disconnect_are_explicit ... ok
+test oversized_declared_body_returns_bounded_json_error ... ok
+test sse_applies_v2_reply_text_to_leading_space ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+

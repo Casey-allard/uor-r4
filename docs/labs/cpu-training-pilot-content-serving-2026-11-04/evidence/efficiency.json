@@ -1,0 +1,13 @@
+{
+  "schema": "uor-r4.content-readout-serving-efficiency/1",
+  "generated_tokens_per_run": 32,
+  "repeats": 3,
+  "threads": 1,
+  "sidecar_rows_scanned_per_decision": 894,
+  "sidecar_signature_bytes_scanned_per_decision": 228864,
+  "vote_targets_scanned_per_decision": 4096,
+  "vote_scratch_bytes_resident": 32768,
+  "sidecar_median_generated_tokens_per_second": 4529.714431231362,
+  "no_readout_median_generated_tokens_per_second": 4796.190385976419,
+  "relative_sidecar_throughput": 0.944440079875852
+}

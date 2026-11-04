@@ -1,0 +1,34 @@
+{
+  "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/content-readout-serving/2026-11-04-attempt-1/seed-1/serving.uorlut",
+  "artifact_sha256": "ed06a88b6c2cfffda72d16d4387c60982f39d1d7fe7229a0ed38fcc2d47daffc",
+  "content_readout": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/content-readout-serving/2026-11-04-attempt-1/seed-1/content-readout-sidecar.json",
+  "content_readout_sha256": "e60a909e14a8fa2ab310a9a6255fa995920f51202471936661077c8f7ea290e7",
+  "context": 192,
+  "decoding": "greedy serve_step (dense: integer argmax; SpiralCore/FBS: native/point fallback, optionally overridden by an artifact-bound content-readout sidecar)",
+  "generated_ids": [
+    2564,
+    1,
+    1,
+    1
+  ],
+  "last_token": 1,
+  "position": 6,
+  "prompt_ids": [
+    0,
+    7,
+    11
+  ],
+  "protocol": {
+    "bos_id": 0,
+    "eos_id": 1,
+    "schema": "uor-r4.literal-role-dialogue/2",
+    "tokenizer_cid": "blake3:29f4fa2b2511ee079f50b8323e163dbcddfaa90fb28ca0fe51034f72c647313f",
+    "unk_id": 2
+  },
+  "schema": "uor-r4.uor-chat-stack-parity/1",
+  "session_bytes_len": 47300,
+  "session_sha256": "d517f55b933256f3bcfca85466565a1f3d0771a6e4ece64db6b7583591e809b9",
+  "tokenizer": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/tokenizer-seed-1.json",
+  "tokenizer_cid": "blake3:29f4fa2b2511ee079f50b8323e163dbcddfaa90fb28ca0fe51034f72c647313f",
+  "weights_per_token": 256
+}

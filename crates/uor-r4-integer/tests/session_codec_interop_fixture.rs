@@ -47,6 +47,7 @@ fn sample() -> SerializedStackSession {
         pointer_keys: vec![1, -2, 3],
         pointer_lifts: vec![u64::MAX, 0, 1 << 62],
         mixture: vec![9, -9],
+        content_readout_sha256: None,
         layers: vec![
             SerializedStackLayerState::Recurrence {
                 state: vec![i64::MIN, -1, 0, 1, i64::MAX],

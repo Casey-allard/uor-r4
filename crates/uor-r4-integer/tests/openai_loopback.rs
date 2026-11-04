@@ -1,9 +1,19 @@
 use serde_json::{json, Value};
+#[cfg(feature = "fbs-synthetic")]
+use sha2::{Digest, Sha256};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
+#[cfg(feature = "fbs-synthetic")]
+use std::path::PathBuf;
 use std::process::Command;
 use uor_r4_integer::loopback::{LoopbackConfig, LoopbackServer};
 use uor_r4_integer::openai::{GenerationFamily, OpenAiServing, Utf8Buffer};
+#[cfg(feature = "fbs-synthetic")]
+use uor_r4_integer::stack::{
+    export_fbs_trunk_uorlut01, synthetic::synthetic_fbs_trunk_with, synthetic::FbsSynth,
+    ContentExample, ContentReadout, ContentSignatureMode, CONTENT_CODE_SIGNATURE_BITS,
+    STACK_CONTENT_READOUT_SCHEMA,
+};
 use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackStop};
 use uor_r4_tokenizer::dialogue::Message;
 use uor_r4_vision::{decompose_rgba, Grid};
@@ -165,6 +175,10 @@ fn artifact_with_context(seed: u64, context: usize) -> Vec<u8> {
 }
 
 fn tokenizer_json() -> Vec<u8> {
+    tokenizer_json_with_vocab(40)
+}
+
+fn tokenizer_json_with_vocab(vocab_size: usize) -> Vec<u8> {
     let mut table = ['\0'; 256];
     let mut extra = 0u32;
     for byte in 0u32..256 {
@@ -182,7 +196,7 @@ fn tokenizer_json() -> Vec<u8> {
     bytes.sort_unstable();
     bytes.dedup();
     for byte in 0u8..=255 {
-        if bytes.len() == 37 {
+        if bytes.len() == vocab_size - 3 {
             break;
         }
         if !bytes.contains(&byte) {
@@ -190,7 +204,7 @@ fn tokenizer_json() -> Vec<u8> {
         }
     }
     bytes.sort_unstable();
-    bytes.truncate(37);
+    bytes.truncate(vocab_size - 3);
     let mut vocab = serde_json::Map::new();
     for (id, surface) in ["<|bos|>", "<|eos|>", "<|unk|>"].iter().enumerate() {
         vocab.insert((*surface).to_owned(), json!(id));
@@ -214,6 +228,64 @@ fn serving() -> OpenAiServing {
 fn serving_with_context(context: usize) -> OpenAiServing {
     let model = IntegerStackModel::parse(&artifact_with_context(5, context)).unwrap();
     OpenAiServing::new(model, tokenizer_json(), 2).unwrap()
+}
+
+#[cfg(feature = "fbs-synthetic")]
+fn content_readout_artifact() -> Vec<u8> {
+    export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+        7,
+        FbsSynth {
+            vocab: 256,
+            d: 256,
+            mlp: 32,
+            layers: 1,
+            context: 64,
+            kept: 2,
+            gain_lo: 0.75,
+            gain_span: 0.5,
+            table: 0.25,
+            decay_step: 0.0625,
+        },
+    ))
+    .unwrap()
+}
+
+#[cfg(feature = "fbs-synthetic")]
+fn serving_with_content_readout() -> (OpenAiServing, String, String, PathBuf) {
+    let artifact = content_readout_artifact();
+    let mut model = IntegerStackModel::parse(&artifact).unwrap();
+    let readout = ContentReadout {
+        mode: ContentSignatureMode::Code,
+        signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+        includes_reference_end: false,
+        rows: vec![ContentExample {
+            signature: vec![0; CONTENT_CODE_SIGNATURE_BITS / 64],
+            target: 5,
+        }],
+        max_distance: CONTENT_CODE_SIGNATURE_BITS as u32,
+    };
+    let sidecar = serde_json::to_vec(&json!({
+        "schema": STACK_CONTENT_READOUT_SCHEMA,
+        "artifact_sha256": model.artifact_sha256(),
+        "readout": readout,
+    }))
+    .unwrap();
+    let path = std::env::temp_dir().join(format!(
+        "uor-openai-content-readout-{}.json",
+        std::process::id()
+    ));
+    std::fs::write(&path, &sidecar).unwrap();
+    let loaded =
+        ContentReadout::from_sidecar(&sidecar, model.artifact_sha256(), model.shape().vocab)
+            .unwrap();
+    model.set_content_readout(loaded).unwrap();
+    let path_identity = path.to_str().unwrap().to_owned();
+    let sha256 = hex::encode(Sha256::digest(&sidecar));
+    let serving = OpenAiServing::new(model, tokenizer_json_with_vocab(256), 2)
+        .unwrap()
+        .with_content_readout_identity(path_identity.clone(), sha256.clone())
+        .unwrap();
+    (serving, path_identity, sha256, path)
 }
 
 fn config() -> LoopbackConfig {
@@ -526,6 +598,192 @@ fn models_health_and_json_generation_routes() {
     );
     assert_usage(&response);
     server.shutdown().unwrap();
+}
+
+#[test]
+#[cfg(feature = "fbs-synthetic")]
+fn loopback_metadata_identifies_the_loaded_content_readout() {
+    let (serving, path, sha256, sidecar_path) = serving_with_content_readout();
+    let mut config = LoopbackConfig::new(serving).unwrap();
+    config.port = 0;
+    config.token = "test-token".into();
+    let server = LoopbackServer::spawn(config).unwrap();
+    let assert_identity = |value: &Value| {
+        assert_eq!(value["content_readout"].as_str(), Some(path.as_str()));
+        assert_eq!(
+            value["content_readout_sha256"].as_str(),
+            Some(sha256.as_str())
+        );
+    };
+
+    let (_, _, health) = request(server.port(), "GET", "/healthz", "", "test-token", "");
+    assert_identity(&serde_json::from_str(&health).unwrap());
+    let (_, _, models) = request(server.port(), "GET", "/v1/models", "", "test-token", "");
+    let models: Value = serde_json::from_str(&models).unwrap();
+    assert_identity(&models["data"][0]);
+    let (_, _, model) = request(
+        server.port(),
+        "GET",
+        "/v1/models/uor-chat",
+        "",
+        "test-token",
+        "",
+    );
+    assert_identity(&serde_json::from_str(&model).unwrap());
+    let (_, _, capabilities) = request(
+        server.port(),
+        "GET",
+        "/v1/capabilities",
+        "",
+        "test-token",
+        "",
+    );
+    assert_identity(&serde_json::from_str(&capabilities).unwrap());
+
+    let (status, chat) = post_json(server.port(), "/v1/chat/completions", chat_request(false));
+    assert_eq!(status, 200);
+    assert_identity(&chat);
+    let (status, completion) = post_json(
+        server.port(),
+        "/v1/completions",
+        json!({"model": "uor-chat", "prompt": "Hi", "max_tokens": 2}),
+    );
+    assert_eq!(status, 200);
+    assert_identity(&completion);
+    let (status, response) = post_json(
+        server.port(),
+        "/v1/responses",
+        json!({"model": "uor-chat", "input": "Hi", "max_output_tokens": 2}),
+    );
+    assert_eq!(status, 200);
+    assert_identity(&response);
+
+    for (target, value) in [
+        ("/v1/chat/completions", chat_request(true)),
+        (
+            "/v1/completions",
+            json!({"model": "uor-chat", "prompt": "Hi", "max_tokens": 2, "stream": true, "stream_options": {"include_usage": true}}),
+        ),
+    ] {
+        let (status, _, stream) = request(
+            server.port(),
+            "POST",
+            target,
+            &value.to_string(),
+            "test-token",
+            "",
+        );
+        assert_eq!(status, 200);
+        let frames = sse_json(&stream);
+        assert_identity(&frames[frames.len() - 2]);
+        assert_identity(frames.last().unwrap());
+    }
+    let (status, _, stream) = request(
+        server.port(),
+        "POST",
+        "/v1/responses",
+        &json!({"model": "uor-chat", "input": "Hi", "max_output_tokens": 2, "stream": true})
+            .to_string(),
+        "test-token",
+        "",
+    );
+    assert_eq!(status, 200);
+    let frames = sse_json(&stream);
+    assert_identity(&frames.last().unwrap()["response"]);
+
+    server.shutdown().unwrap();
+    std::fs::remove_file(sidecar_path).unwrap();
+}
+
+#[test]
+#[cfg(feature = "fbs-synthetic")]
+fn cli_serve_exposes_the_loaded_content_readout_identity() {
+    let root = std::env::temp_dir().join(format!(
+        "uor-openai-content-readout-cli-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let artifact = content_readout_artifact();
+    let artifact_path = root.join("model.lut");
+    let tokenizer_path = root.join("tokenizer.json");
+    let sidecar_path = root.join("content-readout.json");
+    std::fs::write(&artifact_path, &artifact).unwrap();
+    std::fs::write(&tokenizer_path, tokenizer_json_with_vocab(256)).unwrap();
+    let model = IntegerStackModel::parse(&artifact).unwrap();
+    let sidecar = serde_json::to_vec(&json!({
+        "schema": STACK_CONTENT_READOUT_SCHEMA,
+        "artifact_sha256": model.artifact_sha256(),
+        "readout": {
+            "mode": "code",
+            "signature_bits": CONTENT_CODE_SIGNATURE_BITS,
+            "includes_reference_end": false,
+            "rows": [{
+                "signature": vec![0; CONTENT_CODE_SIGNATURE_BITS / 64],
+                "target": 5,
+            }],
+            "max_distance": CONTENT_CODE_SIGNATURE_BITS,
+        },
+    }))
+    .unwrap();
+    std::fs::write(&sidecar_path, &sidecar).unwrap();
+    let sidecar_sha256 = hex::encode(Sha256::digest(&sidecar));
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_uor-chat"))
+        .arg("--stack")
+        .arg(&artifact_path)
+        .arg("--tokenizer")
+        .arg(&tokenizer_path)
+        .arg("--content-readout")
+        .arg(&sidecar_path)
+        .arg("--serve")
+        .arg("127.0.0.1:0")
+        .arg("--token-stdin")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"test-token\n")
+        .unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+    let mut line = String::new();
+    stdout.read_line(&mut line).unwrap();
+    assert!(line.contains("OpenAI loopback listening"), "{line}");
+    let port = line
+        .split("127.0.0.1:")
+        .nth(1)
+        .and_then(|tail| {
+            tail.split(|character: char| !character.is_ascii_digit())
+                .next()
+        })
+        .and_then(|digits| digits.parse::<u16>().ok())
+        .unwrap();
+    let path = sidecar_path.to_str().unwrap();
+    let (status, _, health) = request(port, "GET", "/healthz", "", "test-token", "");
+    assert_eq!(status, 200);
+    let health: Value = serde_json::from_str(&health).unwrap();
+    assert_eq!(health["content_readout"], path);
+    assert_eq!(health["content_readout_sha256"], sidecar_sha256);
+    let (status, chat) = post_json(port, "/v1/chat/completions", chat_request(false));
+    assert_eq!(status, 200);
+    assert_eq!(chat["content_readout"], path);
+    assert_eq!(chat["content_readout_sha256"], sidecar_sha256);
+
+    child.kill().unwrap();
+    child.wait().unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn loopback_content_readout_identity_requires_an_attached_table() {
+    assert!(serving()
+        .with_content_readout_identity("fixtures/content-readout.json", "ab".repeat(32))
+        .is_err());
 }
 
 fn sse_json(body: &str) -> Vec<Value> {

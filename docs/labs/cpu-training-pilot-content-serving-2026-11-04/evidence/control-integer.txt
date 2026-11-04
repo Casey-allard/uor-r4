@@ -1,0 +1,14 @@
+
+running 9 tests
+test session_codec::tests::content_readout_identity_round_trips_in_version_2 ... ok
+test stack::content_readout::tests::beyond_the_radius_returns_the_native_fallback ... ok
+test stack::content_readout::tests::minimum_rows_use_commonest_target_then_smaller_token ... ok
+test stack::content_readout::tests::served_selection_reuses_scratch_and_ignores_stale_votes ... ok
+test stack::content_readout::tests::validation_refuses_unsafe_serving_tables ... ok
+test stack::content_readout::tests::sidecar_is_artifact_bound_and_strict ... ok
+test stack::session::fbs_stage_tests::content_readout_refuses_an_incompatible_fbs_width_before_attachment ... ok
+test stack::content_readout::tests::parser_refuses_every_remaining_registered_sidecar_fault ... ok
+test stack::session::fbs_stage_tests::content_readout_overrides_only_the_served_pick ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 455 filtered out; finished in 0.01s
+

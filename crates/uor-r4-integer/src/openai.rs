@@ -9,7 +9,8 @@ use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_vision::{parse_canonical, Decomposition};
 
 use crate::stack::{
-    stack_schema_for, IntegerStackModel, StackChat, StackChatError, StackReply, StackStop,
+    stack_schema_for, IntegerStackModel, StackChat, StackChatError, StackError, StackReply,
+    StackStop,
 };
 
 const IMAGE_CONTENT_SCHEMA: &str = "uor-r4.image-decomposition/1";
@@ -220,8 +221,15 @@ pub struct OpenAiServing {
     model: IntegerStackModel,
     tokenizer_json: Vec<u8>,
     protocol_version: u8,
+    content_readout_identity: Option<ContentReadoutIdentity>,
     busy: AtomicBool,
     images: Mutex<VecDeque<IssuedImage>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContentReadoutIdentity {
+    pub path: String,
+    pub sha256: String,
 }
 
 #[derive(Clone, Debug)]
@@ -300,9 +308,38 @@ impl OpenAiServing {
             model,
             tokenizer_json,
             protocol_version,
+            content_readout_identity: None,
             busy: AtomicBool::new(false),
             images: Mutex::new(VecDeque::new()),
         })
+    }
+
+    pub fn with_content_readout_identity(
+        mut self,
+        path: impl Into<String>,
+        sha256: impl Into<String>,
+    ) -> Result<Self, StackChatError> {
+        let (path, sha256) = (path.into(), sha256.into());
+        if self.model.content_readout_sha256().is_none() {
+            return Err(StackError::ContentReadout(
+                "loopback identity has no attached content readout".to_owned(),
+            )
+            .into());
+        }
+        if path.is_empty()
+            || sha256.len() != 64
+            || !sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(StackError::ContentReadout(
+                "loopback content-readout identity is not a path plus 64 lowercase hex digits"
+                    .to_owned(),
+            )
+            .into());
+        }
+        self.content_readout_identity = Some(ContentReadoutIdentity { path, sha256 });
+        Ok(self)
     }
 
     pub fn issue_decomposition(&self, image: Decomposition) -> Result<String, OpenAiError> {
@@ -349,11 +386,27 @@ impl OpenAiServing {
     }
 
     pub fn health_json(&self) -> Value {
-        json!({"ready": true, "model": self.model_id(), "artifact_sha256": self.model.artifact_sha256(), "inflight_limit": 1})
+        json!({
+            "ready": true,
+            "model": self.model_id(),
+            "artifact_sha256": self.model.artifact_sha256(),
+            "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "inflight_limit": 1
+        })
     }
 
     pub fn model_card(&self) -> Value {
-        json!({"id": self.model_id(), "object": "model", "created": unix_seconds(), "owned_by": "uor-r4", "artifact_sha256": self.model.artifact_sha256(), "artifact_schema": stack_schema_for(self.model.shape())})
+        json!({
+            "id": self.model_id(),
+            "object": "model",
+            "created": unix_seconds(),
+            "owned_by": "uor-r4",
+            "artifact_sha256": self.model.artifact_sha256(),
+            "artifact_schema": stack_schema_for(self.model.shape()),
+            "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+        })
     }
 
     pub fn models_json(&self) -> Value {
@@ -365,6 +418,8 @@ impl OpenAiServing {
             "model": self.model_id(),
             "artifact_sha256": self.model.artifact_sha256(),
             "artifact_schema": stack_schema_for(self.model.shape()),
+            "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
             "context": self.model.shape().context,
             "decoding": "greedy",
             "inflight_limit": 1,
@@ -703,12 +758,16 @@ impl OpenAiServing {
             GenerationFamily::Chat => json!({
                 "id": request_id("chatcmpl"), "object": "chat.completion", "created": created, "model": self.model_id(),
                 "choices": [{"index": 0, "message": {"role": "assistant", "content": outcome.reply.text}, "finish_reason": finish}],
-                "usage": usage, "uor": metrics
+                "usage": usage, "uor": metrics,
+                "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
             }),
             GenerationFamily::Completion => json!({
                 "id": request_id("cmpl"), "object": "text_completion", "created": created, "model": self.model_id(),
                 "choices": [{"index": 0, "text": outcome.reply.text, "finish_reason": finish}],
-                "usage": usage, "uor": metrics
+                "usage": usage, "uor": metrics,
+                "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
             }),
             GenerationFamily::Responses => {
                 self.responses_json_with_identity(outcome, &self.stream_identity(family))
@@ -737,7 +796,9 @@ impl OpenAiServing {
             "id": identity.id, "object": "response", "created_at": identity.created, "model": self.model_id(), "status": "completed",
             "output": [{"id": identity.item_id, "type": "message", "status": "completed", "role": "assistant", "content": [{"type": "output_text", "text": outcome.reply.text}]}],
             "usage": {"prompt_tokens": outcome.usage.prompt_tokens, "completion_tokens": outcome.usage.completion_tokens, "total_tokens": outcome.usage.total_tokens, "input_tokens": outcome.usage.prompt_tokens, "output_tokens": outcome.usage.completion_tokens},
-            "uor": outcome.uor
+            "uor": outcome.uor,
+            "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
         })
     }
 
@@ -785,10 +846,28 @@ impl OpenAiServing {
         let finish = finish_reason(outcome.reply.stop);
         match family {
             GenerationFamily::Chat => {
-                json!({"id": identity.id, "object": "chat.completion.chunk", "created": identity.created, "model": self.model_id(), "choices": [{"index": 0, "delta": {}, "finish_reason": finish}], "uor": {"stop": outcome.uor.stop}})
+                json!({
+                    "id": identity.id,
+                    "object": "chat.completion.chunk",
+                    "created": identity.created,
+                    "model": self.model_id(),
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": finish}],
+                    "uor": {"stop": outcome.uor.stop},
+                    "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                })
             }
             GenerationFamily::Completion => {
-                json!({"id": identity.id, "object": "text_completion", "created": identity.created, "model": self.model_id(), "choices": [{"index": 0, "text": "", "finish_reason": finish}], "uor": {"stop": outcome.uor.stop}})
+                json!({
+                    "id": identity.id,
+                    "object": "text_completion",
+                    "created": identity.created,
+                    "model": self.model_id(),
+                    "choices": [{"index": 0, "text": "", "finish_reason": finish}],
+                    "uor": {"stop": outcome.uor.stop},
+                    "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                })
             }
             GenerationFamily::Responses => {
                 json!({"type": "response.completed", "response": self.responses_json_with_identity(outcome, identity)})
@@ -807,7 +886,17 @@ impl OpenAiServing {
         } else {
             "text_completion"
         };
-        json!({"id": identity.id, "object": object, "created": identity.created, "model": self.model_id(), "choices": [], "usage": outcome.usage, "uor": outcome.uor})
+        json!({
+            "id": identity.id,
+            "object": object,
+            "created": identity.created,
+            "model": self.model_id(),
+            "choices": [],
+            "usage": outcome.usage,
+            "uor": outcome.uor,
+            "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+        })
     }
 }
 

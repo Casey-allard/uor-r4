@@ -1,0 +1,65 @@
+{
+  "schema": "uor-r4.cpu-content-serving-resource/1",
+  "status": "SUPERSEDED",
+  "experiment": "content-readout serving attempt 3, rejected after its control tests exceeded the registered build-target ceiling",
+  "started_utc": "2026-11-04T19:18:00Z",
+  "completed_utc": "2026-11-04T19:20:00Z",
+  "increment_seconds": 74.52,
+  "complete_projection_seconds": 2100,
+  "cumulative_measured_seconds": 35534.827487699,
+  "lab_cumulative_measured_seconds": 156.85,
+  "previous_ledger": "cpu-training-pilot-content-serving-2026-11-04/resource-ledger.json",
+  "previous_ledger_seconds": 35460.307487699,
+  "admitted_increment_seconds": 2100,
+  "admitted_cumulative_projection_seconds": 47827.677487699,
+  "cost_kind": "local CPU measured compute accounting, not an invoice",
+  "rate_usd_per_hour": 0,
+  "accounting": {
+    "basis": "one driver release build, one chat release build, two focused test builds/runs, three seed evaluations and one CLI prompt-ID smoke",
+    "measured_components": {
+      "driver_build_seconds": 18.92,
+      "chat_build_seconds": 11.95,
+      "integer_control_seconds": 19.61,
+      "loopback_control_seconds": 14.45,
+      "seed_1_run_seconds": 3.21,
+      "seed_2_run_seconds": 3.20,
+      "seed_1_repeat_seconds": 3.18
+    },
+    "unmeasured_components": [
+      "preparation and review elapsed time",
+      "CLI process wall time",
+      "validation and delivery elapsed time"
+    ],
+    "treatment": "unmeasured elapsed time is not imputed"
+  },
+  "ram_kib": {
+    "build_limit": 4194304,
+    "run_limit": 1048576,
+    "driver_build_peak": 1222044,
+    "chat_build_peak": 1193644,
+    "integer_control_peak": 2309360,
+    "loopback_control_peak": 1752308,
+    "run_peak": 228040
+  },
+  "storage": {
+    "driver_build_target_bytes": 266917268,
+    "chat_target_after_controls_bytes": 2246424310,
+    "registered_chat_target_limit_bytes": 2147483648,
+    "retained_pipeline_bytes": 49492007,
+    "result": "SUPERSEDED: the chat target exceeded its registered ceiling after controls"
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32
+  },
+  "sources": {
+    "implementation_pin": "8194823789244096e2db317bb45954d5a7eeaf8f",
+    "evidence": "docs/labs/cpu-training-pilot-content-serving-2026-11-04/evidence-attempt-3"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false
+  }
+}

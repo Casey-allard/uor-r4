@@ -55,6 +55,13 @@ the workspace's mixed-feature integer outputs may collide.
 
 `CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval checkpoints plus reloadable final checkpoint and `UORLUT01` artifacts, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. Each checkpoint carries a sidecar binding for the source artifact, corpus inputs, trainer seed, split controls and checkpoint bytes. An optional eleventh argument resumes from a bound interval checkpoint; the step argument remains the total target, so only the remaining steps execute. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
 
+`cpu-content-readout-driver` fits sign and modulo-256 nearest-example content
+readouts over generated trajectories. Besides the comparison arms, it emits
+`serving.uorlut` and an artifact-bound
+`content-readout-sidecar.json`, then checks every public evaluation reply
+decision-for-decision against `IntegerStackModel::serve_step` carrying that
+sidecar. Sidecar parity is a serving-integrity result, not a language result.
+
 ## Checks
 
 ```sh

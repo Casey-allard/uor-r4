@@ -1,0 +1,20 @@
+================================================================================
+  UOR-R4 Geometric Conversational Chatbot (uor-chat)
+  Zero Transformers | Zero Hardware MatMul | D11 integer stack engine
+================================================================================
+  Artifact          : /home/callard/projects/codex-playground/uor-r4/local/deepseek/content-readout-serving/2026-11-04-attempt-5/seed-1/serving.uorlut
+  Artifact SHA-256  : ed06a88b6c2cfffd...
+  Tokenizer         : /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/tokenizer-seed-1.json
+  Stack Shape       : vocab 4096 | width 256 | heads 1 | mlp 384 | pattern rrrrrr
+  Read / Transport  : dot | rotation true | pointer no
+  Context Capacity  : 192 tokens (artifact declaration)
+  Dialogue Protocol : uor-r4.literal-role-dialogue/2 (blake3:29f4fa2b2511ee079f50b8323e163dbcddfaa90fb28ca0fe51034f72c647313f)
+  Decoding          : greedy serve_step (dense: integer argmax; SpiralCore/FBS: native/point fallback, optionally overridden by an artifact-bound content-readout sidecar), no float sampling
+  Turn Memory       : opening 16 keys | reply 677 keys (reply start marked each turn)
+  Worker Threads    : 1
+  [notice] The sealed bundle contract fixes context at 256; this artifact declares 192.
+  Type /help for slash commands, /quit to exit.
+================================================================================
+[1;36mUser>[0m [1;32mAssistant>[0m small
+[1;35m[served][0m 1 id(s) | stop max_new_tokens | history 12 | 392.08 id/s
+[1;36mUser>[0m [1;33m[uor-chat][0m Session ended. Goodbye!

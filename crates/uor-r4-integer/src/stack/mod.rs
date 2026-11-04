@@ -52,6 +52,7 @@
 //! instructions.
 
 mod chat;
+mod content_readout;
 mod dialogue_memory;
 pub mod flock;
 mod format;
@@ -59,9 +60,9 @@ mod hamming;
 pub(crate) mod kernels;
 mod memory;
 mod point_key;
+mod session;
 #[cfg(feature = "serving-wasm")]
 pub mod simd;
-mod session;
 #[cfg(any(test, feature = "fbs-synthetic"))]
 pub mod synthetic;
 #[cfg(test)]
@@ -70,6 +71,10 @@ mod tests;
 use std::fmt;
 
 pub use chat::{StackChat, StackChatError, StackReply, StackStop, CHAT_CONTEXT, CYCLE_REPEATS};
+pub use content_readout::{
+    ContentExample, ContentReadout, ContentSelection, ContentSignature, ContentSignatureMode,
+    CONTENT_CODE_SIGNATURE_BITS, MAX_CONTENT_READOUT_BYTES, STACK_CONTENT_READOUT_SCHEMA,
+};
 pub use dialogue_memory::{
     is_query as is_dialogue_query, recall as recall_from_dialogue,
     recall_value as recall_value_from_dialogue, SieveRecall,
@@ -80,43 +85,45 @@ pub use flock::{
     FlockScan, FlockScratch, FlockSelect, FlockSlot, FLOCK_INTEGER_SELECTOR_VERSION,
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
-pub use format::{
-    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with, export_float_trunk_uorlut01, FbsExportSnaps, FbsQuatMode, FbsReferenceSnaps, FbsTieMargins,
-    stack_schema_for, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed, FloatTrunkLayer,
-    FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot, StackMemory,
-    StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap, GROUP, MAGIC,
-    MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA, STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA,
-    STACK_SCHEMA,
-};
-pub use format::{
-    FbsHammingRead, FbsHammingSnapshot, StackHamming, HAMMING_KEPT, HAMMING_MARGIN_EXP, HAMMING_ROTATION_EXP,
-    HAMMING_WEIGHT_EXP, STACK_FBS_HAMMING_SCHEMA,
-};
-pub use format::{
-    FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, StackTurnMemory, MEMORY_MAX_K, MEMORY_PAD, MEMORY_REPLY_KEY_LEN,
-    MEMORY_WEIGHT_EXP, STACK_FBS_MEMORY_SCHEMA,
-};
-pub use memory::{read_memory_uorlut01, MemoryImage, MemoryTableImage};
 pub use format::{add_point_key_uorlut01, StackPointKey, POINT_KEY_EXP, STACK_FBS_POINT_SCHEMA};
-pub use point_key::{
-    build_point_key, check_point_key_read_back, panel_reply, point_key_windows, reply_stop, PanelReply, PointKeyImage,
-    PointKeyWindow, ReplyEnd,
-    POINT_KEY_BOS, POINT_KEY_WINDOW,
+pub use format::{
+    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with,
+    export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps, FbsQuatMode, FbsReferenceSnaps,
+    FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed,
+    FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot,
+    StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap,
+    GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA, STACK_FBS_SCHEMA,
+    STACK_POINTER_SCHEMA, STACK_READ_SCHEMA, STACK_SCHEMA,
+};
+pub use format::{
+    FbsHammingRead, FbsHammingSnapshot, StackHamming, HAMMING_KEPT, HAMMING_MARGIN_EXP,
+    HAMMING_ROTATION_EXP, HAMMING_WEIGHT_EXP, STACK_FBS_HAMMING_SCHEMA,
+};
+pub use format::{
+    FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, StackTurnMemory, MEMORY_MAX_K, MEMORY_PAD,
+    MEMORY_REPLY_KEY_LEN, MEMORY_WEIGHT_EXP, STACK_FBS_MEMORY_SCHEMA,
 };
 pub use hamming::{
-    copy_weight_q31, hamming_trace_window, read_hamming_uorlut01, served_copy_codes_uorlut01, CopyHeads, HammingImage, HammingReadImage, HammingStepHead, HammingStepRead, ServedCopyCodes, TypeHeads,
-    COPY_MEAN_EXP,
+    copy_weight_q31, hamming_trace_window, read_hamming_uorlut01, served_copy_codes_uorlut01,
+    CopyHeads, HammingImage, HammingReadImage, HammingStepHead, HammingStepRead, ServedCopyCodes,
+    TypeHeads, COPY_MEAN_EXP,
 };
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
-pub use session::{
-    sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
-    validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text, FbsImage,
-    FbsLayerImage, FbsMapImage, IntegerStackModel, IntegerStackSession, NativeStep, ProtocolV3ValidationError, SerializedStackLayerState,
-    SerializedStackSession, SnapTraceEntry, StackParameterBreakdown, StackPhaseParameters,
-    StepPhaseTimingNs, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
+pub use memory::{read_memory_uorlut01, MemoryImage, MemoryTableImage};
+pub use point_key::{
+    build_point_key, check_point_key_read_back, panel_reply, point_key_windows, reply_stop,
+    PanelReply, PointKeyImage, PointKeyWindow, ReplyEnd, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use session::verify_step_objdump_zero_mul_zero_float;
+pub use session::{
+    sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
+    validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text, FbsImage,
+    FbsLayerImage, FbsMapImage, IntegerStackModel, IntegerStackSession, NativeStep,
+    ProtocolV3ValidationError, SerializedStackLayerState, SerializedStackSession, SnapTraceEntry,
+    StackParameterBreakdown, StackPhaseParameters, StepPhaseTimingNs, CONVOLUTION_WIDTH,
+    STACK_SESSION_SCHEMA,
+};
 
 /// SHA-256 of the 120 unit icosians of 2I (the transport snap's roots) as
 /// little-endian f32 bytes row by row, in `canonical_h4_roots` order. Equals
@@ -195,6 +202,8 @@ pub enum StackError {
     CopyScaleWithPointer,
     /// A thread count of zero, or a worker pool that could not be built.
     Threads(String),
+    /// A serving content-readout sidecar is malformed, foreign or unsafe.
+    ContentReadout(String),
 }
 
 impl fmt::Display for StackError {
@@ -269,6 +278,7 @@ impl fmt::Display for StackError {
                 "a model with a pointer-copy head refuses a positive copy scale"
             ),
             Self::Threads(reason) => write!(f, "stack engine threads: {reason}"),
+            Self::ContentReadout(reason) => write!(f, "stack content readout: {reason}"),
         }
     }
 }

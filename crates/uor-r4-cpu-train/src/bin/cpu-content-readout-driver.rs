@@ -7,11 +7,14 @@ use uor_r4_cpu_train::{
     content_target_mapping, derive_content_readout, derive_content_stop_readout,
     derive_content_stop_rows, derive_turn_memory, evaluate_content_readout,
     evaluate_content_stop_gate, fit_content_stop_gate, shuffle_content_stop_rows,
-    shuffle_content_targets, validate_corpus_manifest, ContentPromptReading, ContentReadout,
-    ContentSignatureMode, ContentStopGate, ContentStopRow, CpuConversationSample, CpuMaskedCorpus,
-    MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
+    shuffle_content_targets, validate_corpus_manifest, verify_content_readout_serving,
+    ContentPromptReading, ContentReadout, ContentSignatureMode, ContentStopGate, ContentStopRow,
+    CpuConversationSample, CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES,
+    CONTENT_MIN_TRAINING_ROWS,
 };
-use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
+use uor_r4_integer::stack::{
+    read_memory_uorlut01, IntegerStackModel, STACK_CONTENT_READOUT_SCHEMA,
+};
 
 #[derive(Clone)]
 struct Config {
@@ -309,6 +312,22 @@ fn run() -> Result<serde_json::Value, String> {
         }));
     }
     create_fresh_output(&config.out)?;
+    let serving_artifact_sha256 = uor_r4_discrete::corpus::sha256(&memory_artifact);
+    let serving_sidecar = serde_json::json!({
+        "schema": STACK_CONTENT_READOUT_SCHEMA,
+        "artifact_sha256": serving_artifact_sha256,
+        "readout": &code_training.readout,
+    });
+    let serving_sidecar_bytes =
+        serde_json::to_vec_pretty(&serving_sidecar).map_err(|error| error.to_string())?;
+    let serving_sidecar_sha256 = uor_r4_discrete::corpus::sha256(&serving_sidecar_bytes);
+    std::fs::write(config.out.join("serving.uorlut"), &memory_artifact)
+        .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("content-readout-sidecar.json"),
+        &serving_sidecar_bytes,
+    )
+    .map_err(|error| error.to_string())?;
     let (writer, writer_prompts) = evaluate_content_readout(
         &memory_artifact,
         &evaluation_samples,
@@ -388,6 +407,14 @@ fn run() -> Result<serde_json::Value, String> {
         true,
         &code_training.readout,
         &gate_shuffled_training.gate,
+    )
+    .map_err(|error| error.to_string())?;
+    let serving_parity = verify_content_readout_serving(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        &code_training.readout,
+        &serving_sidecar_bytes,
     )
     .map_err(|error| error.to_string())?;
     let sign_vs_writer_top1 = paired(&sign_prompts, &writer_prompts, |row| row.top1)?;
@@ -517,6 +544,24 @@ fn run() -> Result<serde_json::Value, String> {
             "vs_code_bos": code_stop_vs_code_bos,
             "vs_shuffled_bos": code_stop_vs_shuffled_bos,
         },
+        "serving": {
+            "artifact_sha256": serving_artifact_sha256,
+            "sidecar_sha256": serving_sidecar_sha256,
+            "rows": code_training.readout.rows.len(),
+            "target_values": code_training.target_values,
+            "max_distance": code_training.readout.max_distance,
+            "parity": serving_parity,
+            "passes": serving_parity.prompts == evaluation_samples.len() as u64
+                && serving_parity.decisions > 0
+                && serving_parity.readout_fires > 0
+                && serving_parity.token_mismatches == 0
+                && serving_parity.decision_mismatches == 0
+                && serving_parity.cpu_decision_sha256 == serving_parity.serving_decision_sha256
+                && code_training.rows >= CONTENT_MIN_TRAINING_ROWS as u64
+                && code_training.target_values >= CONTENT_MIN_TARGET_VALUES as u64
+                && code_training.readout.max_distance
+                    <= uor_r4_cpu_train::CONTENT_CODE_SIGNATURE_BITS as u32,
+        },
         "gate": {
             "training": gate_training,
             "shuffled_training": gate_shuffled_training,
@@ -608,7 +653,7 @@ fn run() -> Result<serde_json::Value, String> {
         "schema": "uor-r4.cpu-content-readout-run/2",
         "substrate": "cpu-development-research",
         "qualification": "gpu-required",
-        "claim": "CPU sign and modulo-256 nearest-example content readout; no serving or language claim",
+        "claim": "CPU sign and modulo-256 nearest-example content readout with exact integer-serving sidecar parity; no language claim",
         "inputs": {
             "artifact": config.artifact,
             "artifact_sha256": config.expected_artifact_sha256,
@@ -626,6 +671,13 @@ fn run() -> Result<serde_json::Value, String> {
             "code_stop": code_stop_training,
             "gate": gate_training,
             "gate_shuffled": gate_shuffled_training,
+        },
+        "serving": {
+            "artifact": "serving.uorlut",
+            "artifact_sha256": serving_artifact_sha256,
+            "sidecar": "content-readout-sidecar.json",
+            "sidecar_sha256": serving_sidecar_sha256,
+            "parity": serving_parity,
         },
         "mapping": {
             "sign": sign_mapping_sha256,

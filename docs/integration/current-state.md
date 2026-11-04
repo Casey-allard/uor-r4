@@ -1,3 +1,23 @@
+## 2026-11-04 — Content readout now drives exact integer serving (deepseek)
+
+The positive 2,048-bit modulo-256 content readout now travels as an
+artifact-bound `uor-r4.stack-content-readout/1` sidecar and overrides only
+`IntegerStackModel::serve_step`, after the normal native/point fallback. On two
+public seeds, all **1,648 / 1,648** generated decisions per seed matched the
+CPU trajectory in token, fallback, signature, distance and fired state with
+zero mismatches and equal decision digests. Exact review rejected attempt 4's
+per-decision allocations and missing raw-path/efficiency evidence. The
+deciding attempt-5 run at implementation pin `486932e24` uses session-owned
+vote scratch, directly tests the attached model's raw `step`/`step_native` and
+no-readout paths, and reaches a median **4,529.71 generated tokens/s** versus
+**4,796.19/s** without the sidecar, retaining **94.44%** on one thread. Session
+snapshots bind the canonical readout hash through `UR4SESS2`. The content arm remains
+**73/64** and **58/39** with no exact or completed replies, so this closes
+serving integration rather than the language goal. Record:
+[deepseek-140 REPORT](../loop/tasks/cpu-training-pilot/deepseek-140/REPORT.md).
+**Next:** pursue geometric termination and continuation, while Claude's P3
+decode-cache path supplies the faster end-to-end scorer.
+
 ## 2026-11-04 — Conversation-first Studio and native runner published (kimi)
 
 Source PR [#3651](https://github.com/UOR-Foundation/uor-r4/pull/3651) merged as `a877ef9162d86908873c5edca0f1d0711bb6321a`; its tree `3c4c6470cd3426a56e02fc7299a39e3d7e4c6398` is identical to independently approved head `f1b752714`. Fresh detached `main` passed Studio, Node, runner and worker checks. `gh-pages` advanced by fast-forward `233b97fb9 → eb832431a0db59661c701d5b37168e9cfa3d3ae4`, tree `2d5fe037cffa8ad676e22a2bb1e6dac1149c32fa`; the Pages API reports **built** with `updated_at` `2026-11-04T07:26:52Z` and no build ID is claimed.

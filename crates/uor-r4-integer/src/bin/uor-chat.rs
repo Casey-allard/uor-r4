@@ -20,13 +20,13 @@ use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
-    is_dialogue_query, recall_from_dialogue, IntegerStackModel, SieveRecall, StackChat,
-    StackChatError, StackError, StackReply,
+    is_dialogue_query, recall_from_dialogue, ContentReadout, IntegerStackModel, SieveRecall,
+    StackChat, StackChatError, StackError, StackReply,
 };
 
 /// How the stack path picks each token: `IntegerStackSession::serve_step`.
 const STACK_DECODING: &str =
-    "greedy serve_step (dense: integer argmax of the logits; SpiralCore/FBS: the native head's pick)";
+    "greedy serve_step (dense: integer argmax; SpiralCore/FBS: native/point fallback, optionally overridden by an artifact-bound content-readout sidecar)";
 use uor_r4_integer::{IntegerError, Result};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 
@@ -47,6 +47,8 @@ struct CliArgs {
     /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
     discrete_path: Option<PathBuf>,
     tokenizer_path: Option<PathBuf>,
+    /// Optional artifact-bound content readout for the `--stack` path.
+    content_readout_path: Option<PathBuf>,
     /// Literal-role dialogue version for the stack artifact (default 2).
     protocol: u8,
     threads: usize,
@@ -54,9 +56,9 @@ struct CliArgs {
     say: Option<String>,
     /// One-shot raw token-ID prompt (`--prompt-ids 0,7,19,31`) for `--stack` parity verification.
     prompt_ids: Option<Vec<u32>>,
-    /// Path to write a `UR4SESS1` binary session snapshot after a `--stack` step batch.
+    /// Path to write a `UR4SESS1` binary session snapshot (`UR4SESS2` with a content readout) after a `--stack` step batch.
     save_session: Option<PathBuf>,
-    /// Path to read a `UR4SESS1` binary session snapshot before a `--stack` step batch.
+    /// Path to read a `UR4SESS1` binary session snapshot (`UR4SESS2` with a content readout) before a `--stack` step batch.
     restore_session: Option<PathBuf>,
     /// Loopback OpenAI service address (`127.0.0.1:<port>`), only with `--stack`.
     serve: Option<String>,
@@ -188,6 +190,7 @@ impl Default for CliArgs {
             stack_path: None,
             discrete_path: None,
             tokenizer_path: None,
+            content_readout_path: None,
             protocol: 2,
             threads: 1,
             say: None,
@@ -227,6 +230,7 @@ fn print_usage() {
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
     eprintln!("                              raw-token serving through IntegerDiscreteModel");
     eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
+    eprintln!("      --content-readout <P>   artifact-bound content-readout sidecar for --stack");
     eprintln!(
         "      --protocol <1|2>        literal-role dialogue version for --stack (default: 2)"
     );
@@ -237,10 +241,10 @@ fn print_usage() {
     );
     eprintln!("                              print JSON and exit");
     eprintln!(
-        "      --save-session <PATH>   write UR4SESS1 session snapshot bytes after --prompt-ids"
+        "      --save-session <PATH>   write UR4SESS1/UR4SESS2 snapshot bytes after --prompt-ids"
     );
     eprintln!(
-        "      --restore-session <P>   restore UR4SESS1 session snapshot bytes before --prompt-ids"
+        "      --restore-session <P>   restore UR4SESS1/UR4SESS2 snapshot bytes before --prompt-ids"
     );
     eprintln!("      --serve <ADDR>          serve OpenAI-compatible JSON/SSE on 127.0.0.1:<port>");
     eprintln!("                              loads the same --stack artifact; no CLI subprocess");
@@ -377,6 +381,17 @@ fn parse_cli_args() -> CliArgs {
                 } else {
                     eprintln!(
                         "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--tokenizer'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--content-readout" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.content_readout_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--content-readout'"
                     );
                     process::exit(1);
                 }
@@ -593,6 +608,10 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.tokenizer_path.is_some() && args.stack_path.is_none() {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
+        process::exit(1);
+    }
+    if args.content_readout_path.is_some() && args.stack_path.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--content-readout' requires '--stack'");
         process::exit(1);
     }
     if args.serve.is_some() && args.stack_path.is_none() {
@@ -1643,6 +1662,18 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     model.set_threads(cli.threads)?;
     #[cfg(target_arch = "wasm32")]
     let _ = cli.threads;
+    let content_readout_identity = if let Some(path) = cli.content_readout_path.as_deref() {
+        let path_string = path
+            .to_str()
+            .ok_or_else(|| StackCliError::Usage("--content-readout path must be UTF-8".into()))?
+            .to_owned();
+        let (bytes, readout) =
+            ContentReadout::read_sidecar(path, model.artifact_sha256(), model.shape().vocab)?;
+        model.set_content_readout(readout)?;
+        Some((path_string, hex::encode(Sha256::digest(&bytes))))
+    } else {
+        None
+    };
     if let Some(address) = cli.serve.as_deref() {
         let (host, port) = address
             .rsplit_once(':')
@@ -1653,7 +1684,10 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         let port = port
             .parse::<u16>()
             .map_err(|_| StackCliError::Usage("--serve port must be a u16".into()))?;
-        let serving = OpenAiServing::new(model, std::fs::read(tokenizer_path)?, cli.protocol)?;
+        let mut serving = OpenAiServing::new(model, std::fs::read(tokenizer_path)?, cli.protocol)?;
+        if let Some((path, sha256)) = content_readout_identity {
+            serving = serving.with_content_readout_identity(path, sha256)?;
+        }
         let mut config = LoopbackConfig::new(serving)
             .map_err(|error| StackCliError::Usage(error.to_string()))?;
         config.host = host.to_owned();
@@ -1699,10 +1733,17 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             tok = next_prompt_tok;
         }
         let mut generated_ids = Vec::with_capacity(cli.max_tokens);
+        let generation_started = std::time::Instant::now();
         for _ in 0..cli.max_tokens {
             tok = session.serve_step(tok)?.0;
             generated_ids.push(tok);
         }
+        let generation_seconds = generation_started.elapsed().as_secs_f64();
+        let generated_tokens_per_second = if generation_seconds > 0.0 {
+            generated_ids.len() as f64 / generation_seconds
+        } else {
+            0.0
+        };
         let saved_bytes = uor_r4_integer::session_codec::encode(&session.save_state());
         let session_sha256 = hex::encode(Sha256::digest(&saved_bytes));
         if let Some(save_path) = cli.save_session.as_deref() {
@@ -1713,12 +1754,16 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "artifact": artifact,
             "artifact_sha256": model.artifact_sha256(),
             "tokenizer": tokenizer_path,
+            "content_readout": content_readout_identity.as_ref().map(|(path, _)| path),
+            "content_readout_sha256": content_readout_identity.as_ref().map(|(_, sha256)| sha256),
             "tokenizer_cid": chat.protocol().tokenizer_cid,
             "protocol": chat.protocol(),
             "context": chat.context(),
             "decoding": STACK_DECODING,
             "prompt_ids": prompt_ids,
             "generated_ids": generated_ids,
+            "generation_seconds": generation_seconds,
+            "generated_tokens_per_second": generated_tokens_per_second,
             "last_token": tok,
             "position": session.position(),
             "weights_per_token": model.weights_per_token(),
@@ -1749,6 +1794,8 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "artifact": artifact,
             "artifact_sha256": model.artifact_sha256(),
             "tokenizer": tokenizer_path,
+            "content_readout": content_readout_identity.as_ref().map(|(path, _)| path),
+            "content_readout_sha256": content_readout_identity.as_ref().map(|(_, sha256)| sha256),
             "tokenizer_cid": chat.protocol().tokenizer_cid,
             "protocol": chat.protocol(),
             "context": chat.context(),

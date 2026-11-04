@@ -3,7 +3,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use rayon::prelude::*;
-use uor_r4_integer::stack::{reply_stop, ReplyEnd, POINT_KEY_BOS};
+use uor_r4_integer::stack::{
+    reply_stop, ContentReadout as ServingContentReadout, IntegerStackModel, ReplyEnd, POINT_KEY_BOS,
+};
 
 use crate::reply_eval::normalized_reference;
 use crate::{invalid, CpuFbsForward, CpuFbsHead, CpuTrainError, MemoryWeightSample};
@@ -85,6 +87,22 @@ pub struct ContentReadoutReading {
     pub gate_fires: u64,
     pub ungated_token_mismatches: u64,
     pub first_divergence: BTreeMap<usize, u64>,
+}
+
+/// Decision-for-decision parity between this CPU readout path and the integer
+/// stack engine carrying the same artifact-bound sidecar.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentServingParity {
+    pub prompts: u64,
+    pub decisions: u64,
+    pub readout_fires: u64,
+    pub native_fallbacks: u64,
+    pub token_mismatches: u64,
+    pub decision_mismatches: u64,
+    pub first_mismatch: Option<String>,
+    pub cpu_decision_sha256: String,
+    pub serving_decision_sha256: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -462,6 +480,7 @@ struct Decision {
     offset: usize,
     chosen: u32,
     content_chosen: u32,
+    writer_chosen: u32,
     gate_fired: bool,
     signature: ContentSignature,
     reference_target: Option<u32>,
@@ -520,6 +539,7 @@ fn generate_with_readout(
             offset,
             chosen,
             content_chosen: chosen,
+            writer_chosen: current.token,
             gate_fired: false,
             signature,
             reference_target: reference
@@ -982,6 +1002,7 @@ fn generate_with_content_gate(
             offset,
             chosen,
             content_chosen,
+            writer_chosen: current.token,
             gate_fired,
             signature,
             reference_target: reference.get(offset).copied(),
@@ -1005,6 +1026,218 @@ fn generate_with_content_gate(
             .map_err(|error| invalid(format!("content stop generated step: {error}")))?;
     };
     Ok((decisions, Generated { tokens, stop }))
+}
+
+pub fn verify_content_readout_serving(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    readout: &ContentReadout,
+    sidecar: &[u8],
+) -> Result<ContentServingParity> {
+    validate_content_readout(readout)?;
+    if readout.mode != ContentSignatureMode::Code || readout.includes_reference_end {
+        return Err(invalid("serving parity needs the plain code readout"));
+    }
+    if samples.is_empty() {
+        return Err(invalid("serving parity needs samples"));
+    }
+    let mut model = IntegerStackModel::parse(artifact)
+        .map_err(|error| invalid(format!("serving parity model: {error}")))?;
+    let serving_readout =
+        ServingContentReadout::from_sidecar(sidecar, model.artifact_sha256(), model.shape().vocab)
+            .map_err(|error| invalid(format!("serving parity sidecar: {error}")))?;
+    model
+        .set_content_readout(serving_readout.clone())
+        .map_err(|error| invalid(format!("serving parity attach: {error}")))?;
+
+    #[derive(serde::Serialize)]
+    struct ParityRow {
+        sample: usize,
+        offset: usize,
+        chosen: u32,
+        content_chosen: u32,
+        signature: ContentSignature,
+        nearest_distance: Option<u32>,
+        used_readout: bool,
+        stop: String,
+        tokens: Vec<u32>,
+    }
+
+    let mut outcome = ContentServingParity {
+        prompts: samples.len() as u64,
+        ..ContentServingParity::default()
+    };
+    let mut cpu_rows = Vec::new();
+    let mut serving_rows = Vec::new();
+    for (sample_index, sample) in samples.iter().enumerate() {
+        let (cpu_decisions, cpu_generated) = generate_with_readout(
+            artifact,
+            sample,
+            cap,
+            true,
+            ContentSignatureMode::Code,
+            false,
+            Some(readout),
+        )?;
+        let mut session = model.session();
+        let mut current = None;
+        for (index, &token) in sample.prompt.iter().enumerate() {
+            if index + 1 == sample.prompt.len() {
+                session.mark_reply_start();
+            }
+            current = Some(
+                session
+                    .serve_step(token)
+                    .map_err(|error| invalid(format!("serving parity prompt: {error}")))?
+                    .0,
+            );
+        }
+        let mut current = current.ok_or_else(|| invalid("serving parity prompt is empty"))?;
+        let mut serving_decisions = Vec::new();
+        let mut serving_tokens = Vec::new();
+        let stop = loop {
+            let offset = serving_decisions.len();
+            let query = session
+                .last_query_q12()
+                .ok_or_else(|| invalid("serving parity lost the FBS query"))?;
+            let fallback = session
+                .last_native_token()
+                .ok_or_else(|| invalid("serving parity lost the native token"))?;
+            let selected = serving_readout
+                .select(query, fallback)
+                .map_err(|error| invalid(format!("serving parity select: {error}")))?;
+            if selected.token != current {
+                return Err(invalid("serving readout and serve_step disagree"));
+            }
+            let chosen = current;
+            serving_decisions.push(Decision {
+                offset,
+                chosen,
+                content_chosen: fallback,
+                writer_chosen: fallback,
+                gate_fired: false,
+                signature: pack_content_signature(query, ContentSignatureMode::Code)?,
+                reference_target: None,
+                nearest_distance: Some(selected.nearest_distance),
+                ambiguous_nearest: false,
+                used_readout: selected.readout_fired,
+            });
+            let end = reply_stop(
+                chosen,
+                offset,
+                sample.prompt.len(),
+                cap,
+                model.shape().context,
+            );
+            if end != Some(ReplyEnd::Bos) {
+                serving_tokens.push(chosen);
+            }
+            if let Some(end) = end {
+                break match end {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                }
+                .to_owned();
+            }
+            current = session
+                .serve_step(chosen)
+                .map_err(|error| invalid(format!("serving parity generated step: {error}")))?
+                .0;
+        };
+
+        if cpu_generated.tokens != serving_tokens {
+            outcome.token_mismatches += 1;
+            outcome.first_mismatch.get_or_insert_with(|| {
+                format!("sample {sample_index}: complete reply tokens differ")
+            });
+        }
+        if cpu_generated.stop != stop {
+            outcome.decision_mismatches += 1;
+            outcome.first_mismatch.get_or_insert_with(|| {
+                format!(
+                    "sample {sample_index}: stop {} differs from {stop}",
+                    cpu_generated.stop
+                )
+            });
+        }
+        let width = cpu_decisions.len().max(serving_decisions.len());
+        for index in 0..width {
+            let (Some(cpu), Some(served)) =
+                (cpu_decisions.get(index), serving_decisions.get(index))
+            else {
+                outcome.decision_mismatches += 1;
+                outcome.first_mismatch.get_or_insert_with(|| {
+                    format!("sample {sample_index}: decision count differs")
+                });
+                break;
+            };
+            outcome.decisions += 1;
+            outcome.readout_fires += u64::from(served.used_readout);
+            outcome.native_fallbacks += u64::from(!served.used_readout);
+            if cpu.chosen != served.chosen
+                || cpu.writer_chosen != served.content_chosen
+                || cpu.signature != served.signature
+                || cpu.nearest_distance != served.nearest_distance
+                || cpu.used_readout != served.used_readout
+            {
+                outcome.decision_mismatches += 1;
+                outcome.first_mismatch.get_or_insert_with(|| {
+                    format!(
+                        "sample {sample_index}: decision {index} differs \
+                         (cpu chosen/fallback/distance/used {}/{}/{:?}/{}, \
+                         serving {}/{}/{:?}/{})",
+                        cpu.chosen,
+                        cpu.writer_chosen,
+                        cpu.nearest_distance,
+                        cpu.used_readout,
+                        served.chosen,
+                        served.content_chosen,
+                        served.nearest_distance,
+                        served.used_readout
+                    )
+                });
+            }
+            cpu_rows.push(ParityRow {
+                sample: sample_index,
+                offset: cpu.offset,
+                chosen: cpu.chosen,
+                content_chosen: cpu.writer_chosen,
+                signature: cpu.signature.clone(),
+                nearest_distance: cpu.nearest_distance,
+                used_readout: cpu.used_readout,
+                stop: cpu_generated.stop.to_owned(),
+                tokens: cpu_generated.tokens.clone(),
+            });
+            serving_rows.push(ParityRow {
+                sample: sample_index,
+                offset: served.offset,
+                chosen: served.chosen,
+                content_chosen: served.content_chosen,
+                signature: served.signature.clone(),
+                nearest_distance: served.nearest_distance,
+                used_readout: served.used_readout,
+                stop: stop.clone(),
+                tokens: serving_tokens.clone(),
+            });
+        }
+    }
+    outcome.cpu_decision_sha256 = uor_r4_discrete::corpus::sha256(
+        &serde_json::to_vec(&cpu_rows)
+            .map_err(|error| invalid(format!("CPU serving-parity rows: {error}")))?,
+    );
+    outcome.serving_decision_sha256 = uor_r4_discrete::corpus::sha256(
+        &serde_json::to_vec(&serving_rows)
+            .map_err(|error| invalid(format!("serving-parity rows: {error}")))?,
+    );
+    if outcome.cpu_decision_sha256 != outcome.serving_decision_sha256 {
+        outcome.decision_mismatches = outcome.decision_mismatches.max(1);
+        outcome
+            .first_mismatch
+            .get_or_insert_with(|| "decision digest differs".to_owned());
+    }
+    Ok(outcome)
 }
 
 fn has_repeated_4gram(tokens: &[u32]) -> bool {
@@ -1500,5 +1733,37 @@ mod tests {
         assert_eq!(reading.bos_stopped, 1);
         assert_eq!(prompts[0].stop, "bos");
         assert_eq!(evaluate(1), evaluate(32));
+    }
+
+    #[test]
+    fn serving_sidecar_reproduces_the_cpu_content_decisions() {
+        let artifact = artifact();
+        let readout = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: vec![ContentExample {
+                signature: vec![0; CONTENT_CODE_SIGNATURE_BITS / 64],
+                target: 5,
+            }],
+            max_distance: CONTENT_CODE_SIGNATURE_BITS as u32,
+        };
+        let artifact_sha256 = uor_r4_discrete::corpus::sha256(&artifact);
+        let sidecar = serde_json::to_vec(&serde_json::json!({
+            "schema": "uor-r4.stack-content-readout/1",
+            "artifact_sha256": artifact_sha256,
+            "readout": &readout,
+        }))
+        .unwrap();
+
+        let parity =
+            verify_content_readout_serving(&artifact, &[sample()], 4, &readout, &sidecar).unwrap();
+        assert_eq!(parity.prompts, 1);
+        assert!(parity.decisions > 0);
+        assert_eq!(parity.readout_fires, parity.decisions);
+        assert_eq!(parity.token_mismatches, 0);
+        assert_eq!(parity.decision_mismatches, 0, "{parity:?}");
+        assert_eq!(parity.first_mismatch, None);
+        assert_eq!(parity.cpu_decision_sha256, parity.serving_decision_sha256);
     }
 }
