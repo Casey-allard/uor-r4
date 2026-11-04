@@ -11,8 +11,15 @@
 //!   [world=v2|v2c] [conversations=5600] [seed=1] \
 //!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] \
 //!   [other_share=0.25] [closed_share=0.20] [recall=off|oracle] \
-//!   [recall_at=reply|query] [context=384] [protocol=1|2] [exclude=PANEL.json]
+//!   [recall_at=reply|query] [context=384] [protocol=1|2] [exclude=PANEL.json] \
+//!   [chain=0]
 //! ```
+//!
+//! `chain=TOKENS` (at least twice the episode context) writes long chained
+//! conversations of at most that many tokens under the chosen protocol
+//! (`MWorld2::chained`) instead of single episodes. It needs `context=` of at
+//! least the budget and `recall=off`, and the manifest gains a `chain`
+//! census. The default `chain=0` writes today's corpus, byte for byte.
 //!
 //! `out/train/` is a `uor-r4-chat-corpus/v1` split. It can be passed directly
 //! to `train-in-space` with its token and mask SHA-256 values, or composed with
@@ -29,8 +36,8 @@ use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::milestone_world::{normalized, Split};
 use uor_r4_training::milestone_world_v2::{
-    oracle_recall, recall_line, takes_recall, Conversation2, MWorld2, Meter, Mix, Turn2, Variant,
-    CONTEXT, REVISION,
+    oracle_recall, recall_line, takes_recall, Cell, ChainRedraws, Conversation2, MWorld2, Meter,
+    Mix, Turn2, Variant, CHAIN_QUERIES, CONTEXT, REVISION,
 };
 
 type Result<T> = std::result::Result<T, String>;
@@ -55,6 +62,7 @@ const ALLOWED: &[&str] = &[
     "context",
     "protocol",
     "exclude",
+    "chain",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -82,6 +90,8 @@ struct Options {
     context: usize,
     protocol: u8,
     exclude: Option<PathBuf>,
+    /// The chained conversations' token budget; 0 writes single episodes.
+    chain: usize,
 }
 
 impl Options {
@@ -148,6 +158,19 @@ impl Options {
         if context < CONTEXT {
             return Err(format!("context= must be at least {CONTEXT}"));
         }
+        let chain = usize::try_from(number("chain", "0")?)
+            .map_err(|_| "chain= does not fit this machine".to_owned())?;
+        if chain != 0 {
+            if chain < 2 * CONTEXT {
+                return Err(format!("chain= must be 0 or at least {}", 2 * CONTEXT));
+            }
+            if context < chain {
+                return Err(format!("context= must be at least chain= ({chain})"));
+            }
+            if recall != Recall::Off {
+                return Err("chain= needs recall=off".to_owned());
+            }
+        }
         let conversations = usize::try_from(number("conversations", "5600")?)
             .map_err(|_| "conversations= does not fit this machine".to_owned())?;
         if conversations == 0 {
@@ -177,6 +200,7 @@ impl Options {
             context,
             protocol: protocol as u8,
             exclude: optional("exclude").map(PathBuf::from),
+            chain,
         })
     }
 }
@@ -271,6 +295,78 @@ fn lines_for(conversation: &Conversation2, recall: Recall) -> (Vec<Option<String
     (lines, values, none)
 }
 
+/// What a chained corpus holds: its documents' lengths and episodes, its
+/// notes and queries, how far back each query asks, and how often a user
+/// turn repeats an earlier one of the same document.
+#[derive(Default)]
+struct ChainCensus {
+    tokens: Vec<usize>,
+    episodes: Vec<usize>,
+    notes: usize,
+    distances: Vec<usize>,
+    user_turns: usize,
+    repeated_user_turns: usize,
+    metered_mismatches: usize,
+}
+
+impl ChainCensus {
+    fn add(&mut self, conversation: &Conversation2, encoded: usize) {
+        self.tokens.push(encoded);
+        self.metered_mismatches += usize::from(encoded != conversation.tokens);
+        self.notes += conversation
+            .turns
+            .iter()
+            .filter(|t| t.intent == "chain_note")
+            .count();
+        let chains: Vec<_> = conversation
+            .turns
+            .iter()
+            .filter_map(|t| t.tag.chain.as_ref())
+            .collect();
+        self.episodes.extend(chains.first().map(|c| c.episodes));
+        self.distances.extend(chains.iter().map(|c| c.distance));
+        let mut seen = BTreeSet::new();
+        for turn in &conversation.turns {
+            self.user_turns += 1;
+            self.repeated_user_turns += usize::from(!seen.insert(normalized(&turn.user)));
+        }
+    }
+
+    fn record(&self, budget: usize, redraws: ChainRedraws) -> Value {
+        let spread = |values: &[usize]| {
+            json!({
+                "min": values.iter().min(),
+                "max": values.iter().max(),
+                "total": values.iter().sum::<usize>(),
+            })
+        };
+        let past = |floor: usize| self.distances.iter().filter(|&&d| d > floor).count();
+        let mut histogram: BTreeMap<String, usize> = BTreeMap::new();
+        for &distance in &self.distances {
+            *histogram
+                .entry(format!("{:05}", distance / 256 * 256))
+                .or_default() += 1;
+        }
+        json!({
+            "budget": budget,
+            "documents": self.tokens.len(),
+            "document_tokens": spread(&self.tokens),
+            "episodes": spread(&self.episodes),
+            "notes": self.notes,
+            "queries": self.distances.len(),
+            "queries_max_per_document": CHAIN_QUERIES,
+            "query_distance": spread(&self.distances),
+            "query_distance_past": {"192": past(192), "512": past(512), "1024": past(1_024)},
+            "query_distance_by_256": histogram,
+            "user_turns": self.user_turns,
+            "repeated_user_turns": self.repeated_user_turns,
+            "metered_mismatches": self.metered_mismatches,
+            "redraws": redraws,
+            "rule": "MWorld2::chained: episodes back to back, a note before the first and before about one in three of the rest, then queries for up to four notes; distances in the generator's meter of the chosen protocol",
+        })
+    }
+}
+
 fn generate(options: &Options) -> Result<Receipt> {
     let (tokenizer, tokenizer_sha256) = load_tokenizer(&options.tokenizer)?;
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, options.protocol)
@@ -282,6 +378,9 @@ fn generate(options: &Options) -> Result<Receipt> {
     let mut world = MWorld2::new(&count, options.mix)
         .map_err(|e| e.to_string())?
         .with_variant(options.world);
+    if options.chain != 0 && options.protocol == 2 {
+        world = world.with_spaced_meter();
+    }
     let mut rng = uor_r4_training::milestone_world::Rng::new(options.seed);
     let (excluded, excluded_sha256) = match &options.exclude {
         Some(path) => {
@@ -308,10 +407,22 @@ fn generate(options: &Options) -> Result<Receipt> {
         Meter::spaced(&count)
     };
 
+    let mut census = ChainCensus::default();
+    let mut redraws = ChainRedraws::default();
+
     for index in 0..options.conversations {
-        let conversation = world
-            .conversation_excluding(&mut rng, Split::Train, &excluded, &mut rejected)
-            .map_err(|e| e.to_string())?;
+        let conversation = if options.chain == 0 {
+            world.conversation_excluding(&mut rng, Split::Train, &excluded, &mut rejected)
+        } else {
+            world.chained(
+                &mut rng,
+                Cell::same(Split::Train),
+                options.chain,
+                &excluded,
+                &mut redraws,
+            )
+        }
+        .map_err(|e| e.to_string())?;
         let (lines, values, none) = lines_for(&conversation, options.recall);
         recall_lines += lines.iter().flatten().count();
         recall_value_lines += values;
@@ -339,6 +450,9 @@ fn generate(options: &Options) -> Result<Receipt> {
         let response = encoded.response_mask.iter().filter(|&&m| m == 1).count();
         response_mask.extend(&encoded.response_mask);
         longest = longest.max(encoded.tokens.len());
+        if options.chain != 0 {
+            census.add(&conversation, encoded.tokens.len());
+        }
         let kind = by_kind
             .entry(format!("{:?}", conversation.kind))
             .or_default();
@@ -355,6 +469,11 @@ fn generate(options: &Options) -> Result<Receipt> {
             );
         }
     }
+
+    // A chained corpus counts its excluded episodes with its other redraws. An
+    // excluded note or query drops its whole draw, so it counts under the
+    // census's `redraws.dropped`, not here.
+    rejected += redraws.excluded;
 
     if options.recall == Recall::Oracle && recall_value_lines == 0 {
         return Err("recall=oracle emitted no value-bearing memory lines".to_owned());
@@ -404,7 +523,7 @@ fn generate(options: &Options) -> Result<Receipt> {
             "rejected_draws": rejected,
         })
     });
-    let manifest = json!({
+    let mut manifest = json!({
         "schema": "uor-r4-chat-corpus/v1",
         "mask_schema": MASK_SCHEMA,
         "split": "train",
@@ -469,6 +588,10 @@ fn generate(options: &Options) -> Result<Receipt> {
             }
         }
     });
+    // Only a chained corpus has the key, so a default manifest is unchanged.
+    if options.chain != 0 {
+        manifest["composition"]["m_world"]["chain"] = census.record(options.chain, redraws);
+    }
     let manifest_path = train.join("manifest.json");
     fs::write(
         &manifest_path,
@@ -638,6 +761,7 @@ mod tests {
             context: 384,
             protocol: 2,
             exclude: None,
+            chain: 0,
         }
     }
 
@@ -654,6 +778,7 @@ mod tests {
             context: 384,
             protocol: 2,
             exclude: None,
+            chain: 0,
         }
     }
 
@@ -934,5 +1059,82 @@ mod tests {
             "unknown=1".to_owned(),
         ])
         .is_err());
+    }
+
+    #[test]
+    fn chain_is_off_by_default_and_checked_when_on() {
+        let parse = |extra: &[&str]| {
+            let mut arguments = vec!["out=test".to_owned(), "tokenizer=tokenizer.json".to_owned()];
+            arguments.extend(extra.iter().map(|a| (*a).to_owned()));
+            Options::parse(&arguments)
+        };
+        assert_eq!(parse(&[]).expect("minimal arguments").chain, 0);
+        assert_eq!(
+            parse(&["chain=2048", "context=2048"])
+                .expect("a chained corpus")
+                .chain,
+            2_048
+        );
+        // Twice the episode context is the least budget.
+        assert_eq!(
+            parse(&["chain=512", "context=512"])
+                .expect("the least chained budget")
+                .chain,
+            512
+        );
+        // Under twice the episode context, past the context, and with memory lines.
+        assert!(parse(&["chain=511", "context=2048"]).is_err());
+        assert!(parse(&["chain=2048"]).is_err());
+        assert!(parse(&["chain=2048", "context=2048", "recall=oracle"]).is_err());
+    }
+
+    #[test]
+    fn the_default_corpus_records_no_chain() {
+        let root = clean("no-chain");
+        generate(&options(&root, Recall::Off)).expect("a corpus");
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(root.join("train").join("manifest.json")).unwrap())
+                .unwrap();
+        assert!(manifest["composition"]["m_world"].get("chain").is_none());
+        assert!(manifest["composition"]["m_world"]["episodes_per_kind"]
+            .get("Chain")
+            .is_none());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn chained_corpora_stay_within_their_budget_under_either_protocol() {
+        for protocol in [1u8, 2] {
+            let root = clean(&format!("chain-p{protocol}"));
+            // The byte tokenizer fits no MQAR episode: options()'s mix has none.
+            let mut chained = options(&root, Recall::Off);
+            chained.conversations = 6;
+            chained.chain = 1_024;
+            chained.context = 1_024;
+            chained.protocol = protocol;
+            let receipt = generate(&chained).expect("a chained corpus");
+            assert!(
+                receipt.longest <= 1_024 && receipt.longest > CONTEXT,
+                "{receipt:?}"
+            );
+            let manifest: Value = serde_json::from_slice(
+                &fs::read(root.join("train").join("manifest.json")).unwrap(),
+            )
+            .unwrap();
+            let m_world = &manifest["composition"]["m_world"];
+            let record = &m_world["chain"];
+            assert_eq!(record["budget"], 1_024);
+            assert_eq!(record["documents"], 6);
+            assert_eq!(record["metered_mismatches"], 0, "{record}");
+            assert!(record["queries"].as_u64().unwrap() >= 6, "{record}");
+            assert_eq!(record["document_tokens"]["max"], receipt.longest);
+            assert_eq!(m_world["episodes_per_kind"]["Chain"]["episodes"], 6);
+            let again = clean(&format!("chain-p{protocol}-again"));
+            chained.out = again.clone();
+            assert_eq!(generate(&chained).expect("the same corpus"), receipt);
+            assert_eq!(read(&root), read(&again), "byte deterministic");
+            let _ = fs::remove_dir_all(root);
+            let _ = fs::remove_dir_all(again);
+        }
     }
 }

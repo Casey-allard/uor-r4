@@ -99,6 +99,9 @@ pub const CONTEXT: usize = 256;
 pub const DISTANCES: [usize; 3] = [16, 64, 200];
 pub const PAIR_COUNTS: [usize; 3] = [2, 4, 8];
 
+/// The most queries a chained conversation ends with ([`MWorld2::chained`]).
+pub const CHAIN_QUERIES: usize = 4;
+
 /// How far past D an achieved MQAR distance may fall and still count as D.
 pub fn tolerance(distance: usize) -> usize {
     (distance / 8).max(8)
@@ -1108,7 +1111,8 @@ static COPY: Phrasings = Phrasings {
 // ---------------------------------------------------------------------------
 // Episodes.
 
-/// The milestone category (v1's three) plus the two retrieval categories.
+/// The milestone category (v1's three) plus the two retrieval categories, and
+/// the query of a chained conversation ([`MWorld2::chained`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Category2 {
     Responsive,
@@ -1116,6 +1120,7 @@ pub enum Category2 {
     Instruction,
     Mqar,
     Copy,
+    Chain,
 }
 
 impl From<Category> for Category2 {
@@ -1128,13 +1133,15 @@ impl From<Category> for Category2 {
     }
 }
 
-/// What kind of conversation an episode is.
+/// What kind of conversation an episode is. `Chain` is a long conversation of
+/// episodes ([`MWorld2::chained`]); the mix never draws it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Kind {
     Mqar,
     Copy,
     Relation,
     Other,
+    Chain,
 }
 
 /// An MQAR item's design and measurement.
@@ -1153,6 +1160,44 @@ pub struct Mqar {
     /// Which pair (0-based) the query asks for.
     pub queried: usize,
     /// The whole episode's tokens.
+    pub tokens: usize,
+}
+
+/// The episodes [`MWorld2::chained`] drew and did not use, by the first reason
+/// that applied, and the finished draws it dropped.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChainRedraws {
+    /// A turn equals an excluded turn.
+    pub excluded: usize,
+    /// A turn says goodbye.
+    pub farewell: usize,
+    /// It states, or abstains on, a relation an earlier episode stated.
+    pub contradicting: usize,
+    /// It mentions a note's key or value.
+    pub mentioning: usize,
+    /// It does not fit what is left of the budget (up to eight per draw: the
+    /// chain ends at the eighth).
+    pub too_long: usize,
+    /// A finished draw dropped: fewer than two episodes, no note, a clash, an
+    /// excluded note or query, or a reply failing its checks.
+    pub dropped: usize,
+}
+
+/// A chained conversation's query ([`MWorld2::chained`]): which note it asks
+/// for and how far back that note is.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Chain {
+    /// Notes the conversation states, and which (0-based, in reading order)
+    /// the query asks for.
+    pub notes: usize,
+    pub queried: usize,
+    /// Episodes chained, and which (0-based) the queried note comes before.
+    pub episodes: usize,
+    pub episode: usize,
+    /// Tokens from the end of the note's user text to the start of the
+    /// query's user text, as [`Meter::distance`] counts them.
+    pub distance: usize,
+    /// The whole document's tokens.
     pub tokens: usize,
 }
 
@@ -1177,6 +1222,10 @@ pub struct Tag {
     /// the generator's recorded value spans. Closed values are not recorded.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub values: Vec<String>,
+    /// A chained conversation's query; absent everywhere else, so an
+    /// episode's record is unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chain: Option<Chain>,
 }
 
 /// One user turn, the reply the world trains on, and the v2 oracle's checks.
@@ -1345,6 +1394,39 @@ fn ack_checks() -> Vec<Check2> {
     vec![Check2::V1(Check::AnyOf(strings(ACK_WORDS)))]
 }
 
+/// The relations an episode states (asserts or updates) and the ones it
+/// abstains on, read from its turns' intents.
+fn relation_facts(turns: &[Turn2]) -> (Vec<&'static str>, Vec<&'static str>) {
+    let (mut states, mut abstains) = (Vec::new(), Vec::new());
+    for turn in turns {
+        for rel in relations() {
+            match turn
+                .intent
+                .strip_prefix(rel.name)
+                .and_then(|rest| rest.strip_prefix('_'))
+            {
+                Some("assert" | "update") => states.push(rel.name),
+                Some("absent") => abstains.push(rel.name),
+                _ => {}
+            }
+        }
+    }
+    (states, abstains)
+}
+
+/// Fisher-Yates over `items`.
+fn shuffle<T>(rng: &mut Rng, items: &mut [T]) {
+    for i in 0..items.len() {
+        let j = i + rng.below(items.len() - i);
+        items.swap(i, j);
+    }
+}
+
+/// Whether `phrase` is a run of words of `turn`'s user text or reply.
+fn mentions(turn: &Turn2, phrase: &str) -> bool {
+    contains_phrase(&words(&turn.user), phrase) || contains_phrase(&words(&turn.reply), phrase)
+}
+
 /// The M-world v2 generator. Carries the MQAR cell counter, so a stream of
 /// episodes cycles through every (D, N) cell evenly.
 pub struct MWorld2<'a> {
@@ -1377,6 +1459,15 @@ impl<'a> MWorld2<'a> {
 
     pub fn variant(&self) -> Variant {
         self.variant
+    }
+
+    /// The same generator metering version 2's layout ([`Meter::spaced`]),
+    /// as `literal_roles_v2` encodes a document, so a chained conversation's
+    /// budget is its length under that protocol. Its episodes are capped
+    /// under the same meter; the default writer never calls this.
+    pub fn with_spaced_meter(mut self) -> Self {
+        self.meter = Meter::spaced(self.meter.count);
+        self
     }
 
     pub fn meter(&self) -> &Meter<'a> {
@@ -1443,6 +1534,275 @@ impl<'a> MWorld2<'a> {
         Err(invalid(
             "the exclusion list rejects every M-world v2 conversation",
         ))
+    }
+
+    /// One long conversation of at most `budget` tokens: ordinary episodes of
+    /// `cell` back to back, a note before the first episode and before about
+    /// one in three of the others, then queries for up to [`CHAIN_QUERIES`]
+    /// of the notes, in a random order, the first note always among them. A
+    /// note states one fresh key and value in an MQAR lead template; its query
+    /// asks for the key in an MQAR query template, and the reply states the
+    /// value and none of the other notes' values.
+    ///
+    /// Every episode keeps its own shape and its [`CONTEXT`] cap. An episode
+    /// is redrawn, and counted in `redraws` under the first reason that
+    /// applies, when a turn equals an `excluded` turn (as
+    /// [`Self::conversation_excluding`] compares them), when it says goodbye,
+    /// when it states or abstains on a relation an earlier episode stated (so
+    /// no reference reply contradicts the conversation), and when it mentions
+    /// a note's key or value. A note's key and value appear in no turn but the
+    /// note and its query, so each answer is unambiguous.
+    pub fn chained(
+        &mut self,
+        rng: &mut Rng,
+        cell: Cell,
+        budget: usize,
+        excluded: &BTreeSet<String>,
+        redraws: &mut ChainRedraws,
+    ) -> Result<Conversation2> {
+        if budget < 2 * CONTEXT {
+            return Err(invalid(format!(
+                "a chained conversation needs a budget of at least {} tokens",
+                2 * CONTEXT
+            )));
+        }
+        for _ in 0..16 {
+            if let Some(conversation) = self.try_chained(rng, cell, budget, excluded, redraws)? {
+                return Ok(conversation);
+            }
+            redraws.dropped += 1;
+        }
+        Err(invalid("no chained conversation fits the budget"))
+    }
+
+    fn try_chained(
+        &mut self,
+        rng: &mut Rng,
+        cell: Cell,
+        budget: usize,
+        excluded: &BTreeSet<String>,
+        redraws: &mut ChainRedraws,
+    ) -> Result<Option<Conversation2>> {
+        // Each piece is an episode, its note (key, value) first when it has one.
+        let mut pieces: Vec<(Option<(String, String)>, Vec<Turn2>)> = Vec::new();
+        let mut stated: BTreeSet<&'static str> = BTreeSet::new();
+        let mut tokens = 1;
+        let (mut misses, mut draws) = (0, 0);
+        while misses < 8 {
+            draws += 1;
+            // Past the draw cap the chain ends where it is, as if out of room.
+            if draws > 4_096 {
+                break;
+            }
+            let episode = self.conversation_in(rng, cell)?.turns;
+            let notes: Vec<&(String, String)> =
+                pieces.iter().filter_map(|p| p.0.as_ref()).collect();
+            let (states, abstains) = relation_facts(&episode);
+            let reason = if episode
+                .iter()
+                .any(|t| excluded.contains(&crate::milestone_world::normalized(&t.user)))
+            {
+                Some(&mut redraws.excluded)
+            } else if episode.iter().any(|t| t.intent == "farewell") {
+                Some(&mut redraws.farewell)
+            } else if states.iter().chain(&abstains).any(|r| stated.contains(r)) {
+                Some(&mut redraws.contradicting)
+            } else if episode
+                .iter()
+                .any(|t| notes.iter().any(|(k, v)| mentions(t, k) || mentions(t, v)))
+            {
+                Some(&mut redraws.mentioning)
+            } else {
+                None
+            };
+            if let Some(count) = reason {
+                *count += 1;
+                continue;
+            }
+            let note = if pieces.is_empty() || rng.below(3) == 0 {
+                let before: Vec<&Turn2> = pieces.iter().flat_map(|p| &p.1).collect();
+                self.chain_note(rng, cell, &notes, &before, &episode)?
+            } else {
+                None
+            };
+            // The first episode always opens with a note.
+            if pieces.is_empty() && note.is_none() {
+                return Ok(None);
+            }
+            let mut turns = note.as_ref().map(|n| vec![n.1.clone()]).unwrap_or_default();
+            turns.extend(episode);
+            let start = pieces.iter().map(|p| p.1.len()).sum::<usize>();
+            let cost: usize = turns
+                .iter()
+                .enumerate()
+                .map(|(i, t)| self.meter.exchange(start + i, &t.user, &t.reply))
+                .sum();
+            if tokens + cost > budget {
+                misses += 1;
+                redraws.too_long += 1;
+                continue;
+            }
+            tokens += cost;
+            stated.extend(states);
+            pieces.push((note.map(|n| n.0), turns));
+        }
+        // The queries; while the document passes the budget, the last episode
+        // (and its note) goes.
+        loop {
+            let notes: Vec<(String, String)> = pieces.iter().filter_map(|p| p.0.clone()).collect();
+            if pieces.len() < 2 || notes.is_empty() {
+                return Ok(None);
+            }
+            let mut asked: Vec<usize> = (1..notes.len()).collect();
+            shuffle(rng, &mut asked);
+            asked.truncate(CHAIN_QUERIES - 1);
+            asked.push(0);
+            shuffle(rng, &mut asked);
+            let mut turns: Vec<Turn2> = pieces.iter().flat_map(|p| p.1.clone()).collect();
+            let queries: Vec<(usize, usize)> = asked
+                .iter()
+                .map(|&q| {
+                    turns.push(self.chain_query(rng, cell, &notes, q));
+                    (q, turns.len() - 1)
+                })
+                .collect();
+            let tokens = self.meter.document(&turns);
+            if tokens > budget {
+                pieces.pop();
+                continue;
+            }
+            // Where each note's turn is, and which episode it opens.
+            let mut opens = Vec::new();
+            let mut at = 0;
+            for (episode, piece) in pieces.iter().enumerate() {
+                if piece.0.is_some() {
+                    opens.push((at, episode));
+                }
+                at += piece.1.len();
+            }
+            if turns
+                .iter()
+                .any(|t| excluded.contains(&crate::milestone_world::normalized(&t.user)))
+            {
+                return Ok(None);
+            }
+            // Each note's key and value: in its own turn and its query, nowhere else.
+            for (n, (key, value)) in notes.iter().enumerate() {
+                let query = queries.iter().find(|(q, _)| *q == n).map(|(_, i)| *i);
+                let clash = [key, value].iter().any(|s| {
+                    turns
+                        .iter()
+                        .enumerate()
+                        .any(|(i, t)| i != opens[n].0 && Some(i) != query && mentions(t, s))
+                });
+                if clash {
+                    return Ok(None);
+                }
+            }
+            for (q, index) in queries {
+                let (note, episode) = opens[q];
+                turns[index].tag.chain = Some(Chain {
+                    notes: notes.len(),
+                    queried: q,
+                    episodes: pieces.len(),
+                    episode,
+                    distance: self.meter.distance(&turns[note..=index]),
+                    tokens,
+                });
+            }
+            let sound = turns.iter().all(|t| judge_v2(&t.checks, &t.user, &t.reply));
+            return Ok(sound.then_some(Conversation2 {
+                kind: Kind::Chain,
+                turns,
+                tokens,
+            }));
+        }
+    }
+
+    /// A note before `episode`: one fresh key and value in an MQAR lead
+    /// template, neither of them in `notes`, `before` or `episode`. `None`
+    /// when 32 draws find no such pair.
+    fn chain_note(
+        &self,
+        rng: &mut Rng,
+        cell: Cell,
+        notes: &[&(String, String)],
+        before: &[&Turn2],
+        episode: &[Turn2],
+    ) -> Result<Option<((String, String), Turn2)>> {
+        for _ in 0..32 {
+            let key = word(rng, cell.value, 2, 3)?;
+            let value = if rng.below(2) == 0 {
+                word(rng, cell.value, 2, 3)?
+            } else {
+                digits(rng, cell.value)?
+            };
+            let taken = |s: &str| {
+                notes
+                    .iter()
+                    .any(|(k, v)| k.eq_ignore_ascii_case(s) || v.eq_ignore_ascii_case(s))
+                    || before.iter().any(|t| mentions(t, s))
+                    || episode.iter().any(|t| mentions(t, s))
+            };
+            if key == value || taken(&key) || taken(&value) {
+                continue;
+            }
+            let lead = MQAR_LEAD.pick(rng, cell.phrasing);
+            let turn = Turn2 {
+                intent: "chain_note".into(),
+                category: Category2::Responsive,
+                user: articles(&fill(lead, &[("p", &format!("{key} is {value}"))])),
+                reply: articles(pick(rng, MQAR_ACKS)),
+                checks: ack_checks(),
+                tag: Tag {
+                    template: Some(lead.to_owned()),
+                    values: vec![value.clone()],
+                    ..Tag::default()
+                },
+            };
+            return Ok(Some(((key, value), turn)));
+        }
+        Ok(None)
+    }
+
+    /// The query for note `queried` of `notes`, as an MQAR query asks: its
+    /// value, and none of the other notes' values.
+    fn chain_query(
+        &self,
+        rng: &mut Rng,
+        cell: Cell,
+        notes: &[(String, String)],
+        queried: usize,
+    ) -> Turn2 {
+        let (key, value) = &notes[queried];
+        let template = MQAR_QUERY.pick(rng, cell.phrasing);
+        let mut query = fill(template, &[("k", key)]);
+        capitalize(&mut query);
+        let reply = self.variant.mqar_replies()[rng.below(MQAR_REPLIES.len())];
+        let mut answer = fill(reply, &[("k", key), ("v", value)]);
+        capitalize(&mut answer);
+        let others: Vec<String> = notes
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != queried)
+            .map(|(_, (_, v))| v.to_lowercase())
+            .collect();
+        Turn2 {
+            intent: "chain_query".into(),
+            category: Category2::Chain,
+            user: articles(&query),
+            reply: articles(&answer),
+            checks: vec![
+                Check2::V1(Check::AnyOf(vec![value.to_lowercase()])),
+                Check2::V1(Check::NoneOf(others)),
+            ],
+            tag: Tag {
+                pool: Some(Pool::Open),
+                template: Some(template.to_owned()),
+                answer: Some(value.clone()),
+                ..Tag::default()
+            },
+        }
     }
 
     /// The MQAR episode of the next (D, N) cell: N pairs asserted in one turn
@@ -1658,6 +2018,7 @@ impl<'a> MWorld2<'a> {
                 template: Some(query_template.to_owned()),
                 answer: Some(value.clone()),
                 values: Vec::new(),
+                chain: None,
             };
         }
         Ok(Some(turns))
@@ -4778,5 +5139,282 @@ mod tests {
             first_letter.pick_with(&mut rng, Split::Train, Some(&none)),
             "What letter does {x} start with?"
         );
+    }
+}
+
+/// The chained conversations' tests, and the default stream they must leave
+/// alone. The module above is compiled out (`#[cfg(any())]`, antigravity-40),
+/// so these run on their own.
+#[cfg(test)]
+mod chain_tests {
+    use super::*;
+
+    /// About one token per three characters, as in the module above.
+    fn toy(text: &str) -> usize {
+        text.chars().count().div_ceil(3)
+    }
+
+    fn world() -> MWorld2<'static> {
+        MWorld2::new(&toy, Mix::default()).expect("a valid mix")
+    }
+
+    /// The module above's `V2_DIGEST` and `STREAM_DIGEST`, under the same
+    /// recipe: for each of the four cells, 150 episodes of the default mix
+    /// (seed 2101) and 150 relation-only episodes (seed 2102), toy meter.
+    const V2_DIGEST: &str = "04ad3bb0bf68d4213d90b41ffb886711ffa4c98043e5ac15f58719d7ce68ae4f";
+    const STREAM_DIGEST: &str = "0167c1a06d0df94b6e7ee8662298099190b94ab5186bdcba81842b1466dc70ea";
+
+    #[test]
+    fn chains_leave_the_tables_and_the_default_stream_unchanged() {
+        assert_eq!(MWorld2::digest(), V2_DIGEST);
+        let relation_only = || {
+            let mix = Mix {
+                mqar: 0.0,
+                copy: 0.0,
+                relation: 1.0,
+                other: 0.0,
+                closed: CLOSED_SHARE,
+            };
+            MWorld2::new(&toy, mix).expect("a valid mix")
+        };
+        let mut hasher = Sha256::new();
+        for cell in Cell::ALL {
+            for (mut generator, seed) in [(world(), 2_101u64), (relation_only(), 2_102)] {
+                let mut rng = Rng::new(seed);
+                for _ in 0..150 {
+                    let conversation = generator
+                        .conversation_in(&mut rng, cell)
+                        .expect("an episode");
+                    hasher.update(serde_json::to_vec(&conversation).expect("serializable"));
+                    hasher.update([0u8]);
+                }
+            }
+        }
+        assert_eq!(hex::encode(hasher.finalize()), STREAM_DIGEST);
+    }
+
+    /// `count` chained conversations of `budget` tokens from seed 7301, the
+    /// cells in turn.
+    fn chains(count: usize, budget: usize) -> Vec<Conversation2> {
+        chains_and_redraws(count, budget).0
+    }
+
+    /// [`chains`], with the redraws they took.
+    fn chains_and_redraws(count: usize, budget: usize) -> (Vec<Conversation2>, ChainRedraws) {
+        let mut world = world();
+        let mut rng = Rng::new(7_301);
+        let mut redraws = ChainRedraws::default();
+        let conversations = (0..count)
+            .map(|i| {
+                world
+                    .chained(
+                        &mut rng,
+                        Cell::ALL[i % 4],
+                        budget,
+                        &BTreeSet::new(),
+                        &mut redraws,
+                    )
+                    .expect("a chained conversation")
+            })
+            .collect();
+        (conversations, redraws)
+    }
+
+    /// Each note of a chained conversation, in reading order: its turn's
+    /// index, its key and its value, read back from the note's text.
+    fn chain_notes(conversation: &Conversation2) -> Vec<(usize, String, String)> {
+        conversation
+            .turns
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| t.intent == "chain_note")
+            .map(|(i, t)| {
+                let value = t.tag.values[0].clone();
+                let words = words(&t.user);
+                let at = words
+                    .iter()
+                    .position(|w| *w == value.to_lowercase())
+                    .expect("the note states its value");
+                assert_eq!(words[at - 1], "is");
+                (i, words[at - 2].clone(), value)
+            })
+            .collect()
+    }
+
+    /// The SHA-256 of the JSON of `chains(32, 2_048)` under the toy meter,
+    /// from the first build that compiled this test (claude-271).
+    const CHAIN_DIGEST: &str = "51875e572ceded49a894caa064a1b5ea553cfa2f601d7784e374c481fb4ca9f5";
+
+    #[test]
+    fn the_chained_stream_is_pinned() {
+        let digest = |chains: Vec<Conversation2>| {
+            let mut hasher = Sha256::new();
+            for conversation in chains {
+                hasher.update(serde_json::to_vec(&conversation).expect("serializable"));
+                hasher.update([0u8]);
+            }
+            hex::encode(hasher.finalize())
+        };
+        let first = digest(chains(32, 2_048));
+        assert_eq!(first, digest(chains(32, 2_048)), "a function of the seed");
+        assert_eq!(
+            first, CHAIN_DIGEST,
+            "the chained stream moved: a generator or a table changed"
+        );
+    }
+
+    #[test]
+    fn chained_conversations_fit_their_budget_and_measure_their_queries() {
+        let w = world();
+        let meter = w.meter();
+        for conversation in chains(32, 2_048) {
+            assert_eq!(conversation.kind, Kind::Chain);
+            assert_eq!(conversation.tokens, meter.document(&conversation.turns));
+            assert!(conversation.tokens <= 2_048, "{}", conversation.tokens);
+            assert!(conversation.tokens > CONTEXT, "{}", conversation.tokens);
+            for turn in &conversation.turns {
+                assert!(judge_v2(&turn.checks, &turn.user, &turn.reply), "{turn:?}");
+            }
+            let notes = chain_notes(&conversation);
+            let queries: Vec<(usize, &Turn2)> = conversation
+                .turns
+                .iter()
+                .enumerate()
+                .filter(|(_, t)| t.intent == "chain_query")
+                .collect();
+            assert_eq!(queries.len(), notes.len().min(CHAIN_QUERIES));
+            let first = conversation.turns.len() - queries.len();
+            assert_eq!(queries[0].0, first, "the queries end the conversation");
+            let mut asked = BTreeSet::new();
+            for (index, query) in queries {
+                let chain = query.tag.chain.as_ref().expect("a chain tag");
+                assert!(asked.insert(chain.queried), "each note is asked once");
+                let (note, key, value) = &notes[chain.queried];
+                assert_eq!(chain.notes, notes.len());
+                assert_eq!(chain.tokens, conversation.tokens);
+                assert_eq!(
+                    chain.distance,
+                    meter.distance(&conversation.turns[*note..=index])
+                );
+                assert_eq!(query.category, Category2::Chain);
+                assert_eq!(query.tag.answer.as_deref(), Some(value.as_str()));
+                assert!(query.tag.mqar.is_none());
+                assert!(contains_phrase(&words(&query.user), key), "{query:?}");
+                assert!(contains_phrase(&words(&query.reply), value), "{query:?}");
+                if chain.queried == 0 {
+                    assert_eq!(chain.episode, 0, "the first note opens the conversation");
+                }
+            }
+            assert!(asked.contains(&0), "the first note is always asked");
+        }
+    }
+
+    #[test]
+    fn a_chained_note_is_stated_and_asked_nowhere_else() {
+        let (conversations, redraws) = chains_and_redraws(160, 2_048);
+        // The episode redraw shows by its count, and `chain_note`'s check by
+        // the draws dropped without it. The final clash check is a backstop
+        // the two leave nothing to catch on this stream.
+        assert!(
+            redraws.mentioning > 0,
+            "no episode was redrawn for naming a note"
+        );
+        assert_eq!(redraws.dropped, 0, "a finished draw clashed: {redraws:?}");
+        for conversation in conversations {
+            for (n, (note, key, value)) in chain_notes(&conversation).iter().enumerate() {
+                let query = conversation
+                    .turns
+                    .iter()
+                    .position(|t| t.tag.chain.as_ref().is_some_and(|c| c.queried == n));
+                for (i, turn) in conversation.turns.iter().enumerate() {
+                    if i == *note || Some(i) == query {
+                        continue;
+                    }
+                    for said in [key, value] {
+                        assert!(
+                            !contains_phrase(&words(&turn.user), said)
+                                && !contains_phrase(&words(&turn.reply), said),
+                            "note {n} ({key} is {value}) is also in turn {i}: {turn:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_chained_conversation_never_contradicts_itself() {
+        for conversation in chains(64, 2_048) {
+            let (mut asserted, mut stated) = (BTreeSet::new(), BTreeSet::new());
+            for turn in &conversation.turns {
+                assert_ne!(turn.intent, "farewell", "no goodbye inside a conversation");
+                for rel in relations() {
+                    let act = turn
+                        .intent
+                        .strip_prefix(rel.name)
+                        .and_then(|rest| rest.strip_prefix('_'));
+                    if act == Some("absent") {
+                        assert!(
+                            !stated.contains(rel.name),
+                            "abstains on {} after it",
+                            rel.name
+                        );
+                    }
+                    if act == Some("assert") {
+                        assert!(asserted.insert(rel.name), "{} asserted twice", rel.name);
+                    }
+                    if matches!(act, Some("assert" | "update")) {
+                        stated.insert(rel.name);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn chained_draws_skip_excluded_turns_and_count_them() {
+        use crate::milestone_world::normalized;
+        let mut world = world();
+        let mut rng = Rng::new(7_302);
+        let excluded: BTreeSet<String> = (0..60)
+            .flat_map(|_| {
+                world
+                    .conversation(&mut rng, Split::Train)
+                    .expect("an episode")
+                    .turns
+            })
+            .map(|t| normalized(&t.user))
+            .collect();
+        let mut redraws = ChainRedraws::default();
+        for _ in 0..16 {
+            let conversation = world
+                .chained(
+                    &mut rng,
+                    Cell::same(Split::Train),
+                    2_048,
+                    &excluded,
+                    &mut redraws,
+                )
+                .expect("a chained conversation");
+            assert!(conversation
+                .turns
+                .iter()
+                .all(|t| !excluded.contains(&normalized(&t.user))));
+        }
+        assert!(redraws.excluded > 0, "the exclusion list rejected no draw");
+    }
+
+    #[test]
+    fn a_chain_needs_room_for_two_episodes() {
+        let mut redraws = ChainRedraws::default();
+        let mut rng = Rng::new(1);
+        let short = world().chained(
+            &mut rng,
+            Cell::same(Split::Train),
+            2 * CONTEXT - 1,
+            &BTreeSet::new(),
+            &mut redraws,
+        );
+        assert!(short.is_err());
     }
 }

@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [turn-memory-reply]
 notebook: docs/research/notebook/float-training.md
-scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs, crates/uor-r4-float-train/src/fbs_export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-training/src/bin/m-world-recall-corpus.rs, crates/uor-r4-training/src/bin/mix-chat-corpus.rs, crates/uor-r4-training/Cargo.toml, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-cpu-train/src/hamming.rs, crates/uor-r4-cpu-train/src/served_forward.rs, crates/uor-r4-cpu-train/src/fbs.rs, crates/uor-r4-training/src/milestone_world_v2.rs]
+scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs, crates/uor-r4-float-train/src/fbs_export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-training/src/bin/m-world-recall-corpus.rs, crates/uor-r4-training/src/bin/mix-chat-corpus.rs, crates/uor-r4-training/Cargo.toml, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-training/src/milestone_world_v2.rs]
 ---
 
 ## Why it matters
@@ -173,6 +173,17 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   tok/s (about 6×). `--batched-decode 0` keeps the serial reference. This
   item's scope gains the corpus generator `milestone_world_v2.rs`, for the
   long-conversation corpus.
+  [claude-271](../../loop/tasks/one-model-end-to-end/claude-271/REPORT.md)
+  added chained conversations to the M-world v2 generator: `MWorld2::chained`
+  writes ordinary episodes back to back up to a token budget, with notes
+  stated early and asked for at the end, and the corpus writer's
+  `chain=TOKENS` writes them. Its census of 2,000 conversations at 2,048
+  tokens: 1,728–2,048 tokens each, and 7,537 queries 34–2,010 tokens from
+  their notes, 95.8% of them past training's 192-token window, which today's
+  trainer cannot use. Default outputs are byte-identical. This item's scope
+  drops claude-268's three `crates/uor-r4-cpu-train` paths, which made
+  `loop claim` refuse this item and `cpu-training-pilot` while either had an
+  open order; the unit that runs the mixed copy pair adds back what it needs.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
