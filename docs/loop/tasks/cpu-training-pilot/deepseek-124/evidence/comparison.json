@@ -1,0 +1,119 @@
+{
+  "schema": "uor-r4.cpu-trunk-count-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "1ca202ef217918d4c8444499ebaabc3a91e1878a",
+    "run_head": "a4f137d0d",
+    "binary_sha256": "eee04141652007864d58e870104ee0923a0a51cd6146f5d27b9989698c30e521",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "public_trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "resource_stops": [
+    {
+      "attempt": 1,
+      "source_commit": "b70ae7de6c2a6fe0946ca14fffe0a63bb62525d2",
+      "peak_rss_kib": 3063024,
+      "cap_kib": 2097152,
+      "accepted": false
+    },
+    {
+      "attempt": 2,
+      "source_commit": "d5108222aef6882007aba31eeadc95796b9c8aca",
+      "peak_rss_kib": 2297824,
+      "cap_kib": 2097152,
+      "accepted": false
+    }
+  ],
+  "selection": {
+    "training_documents": 200,
+    "evaluation_documents": 193,
+    "training_targets": 7080,
+    "evaluation_targets": 512,
+    "selected_training_rows": 128,
+    "evaluation_stride": 2,
+    "seed": 1
+  },
+  "artifacts": {
+    "no_update_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "exact_sha256": "015a621a726764848e18e2bd0ee1a1376cf0bc17d8d7fd3cf72f9911175835d9",
+    "shuffled_sha256": "ad0bf76383e3961c08aeaa9bebb2726129530f861ac89e2d0b53d070b434872a",
+    "exact_bytes": 86545604,
+    "shuffled_bytes": 86552056
+  },
+  "tables": {
+    "unigram_total": {
+      "source": 1049856,
+      "exact": 1049984,
+      "shuffled": 1049984
+    },
+    "sparse_tables": 12,
+    "every_sparse_total": {
+      "source": 1049856,
+      "exact": 1049984,
+      "shuffled": 1049984
+    },
+    "independent_full_content_check": true,
+    "semantic_sections_unchanged": true
+  },
+  "held_out": {
+    "rows": 512,
+    "q12_query_coordinates_per_arm": 16384,
+    "arms": {
+      "no_update": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      },
+      "exact": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      },
+      "shuffled": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      }
+    },
+    "changed_decisions": {
+      "exact_vs_no_update_rows": 0,
+      "shuffled_vs_no_update_rows": 0,
+      "exact_vs_shuffled_rows": 0
+    },
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0
+  },
+  "timing": {
+    "seed_1_wall_elapsed_ms": 9873.322847,
+    "seed_1_peak_rss_kib": 1537652,
+    "repeat_wall_elapsed_ms": 10079.437103,
+    "repeat_peak_rss_kib": 1538376,
+    "threads": 1
+  },
+  "repeat": {
+    "artifacts_byte_identical": true,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "6dbaac2b9c7a6ac4f122dc05e271ef290399cec9c8a31c0ba66787f2ac56eee4",
+    "raw_report_sha256": "310f244d9da8b98fe0fe8db9532030d699ed7e7f2c862b2c149db315f6754628"
+  },
+  "storage_bytes": 346207857,
+  "verdict": {
+    "writeback": "positive",
+    "held_out_decision_effect": "none",
+    "scope": "128 additive count rows on the public seed-1 19-table trunk with 512 document-disjoint evaluation rows"
+  }
+}

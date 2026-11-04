@@ -201,6 +201,15 @@ the fixed 48-to-18 target-medoid construction, while leaving target-specific
 local neighborhoods open. See
 [deepseek-123](../../loop/tasks/cpu-training-pilot/deepseek-123/REPORT.md).
 
+The public 19-table M1 trunk is now additively trainable and writable on CPU,
+rather than read-only. One bounded run added 128 exact teacher-forced rows to
+the unigram and all 12 sparse sufficient-statistic tables, exported and
+re-imported all 19 tables, independently reconstructed every decoded count, and
+preserved exact CPU/integer parity for 512 document-disjoint evaluation rows.
+The counts changed but the held-out decisions did not, so the writeback gap is
+closed while the need for a materially larger bounded dose remains. See
+[deepseek-124](../../loop/tasks/cpu-training-pilot/deepseek-124/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

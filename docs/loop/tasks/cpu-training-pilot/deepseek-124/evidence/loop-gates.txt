@@ -1,0 +1,18 @@
+Attempt 1: local/deepseek/gates/1793781813-666469
+RED loop-drive exit 101
+loop_drive::post_note_with_pipes_the_body_to_gh_issue_comment failed:
+Io("cannot run .../fake-gh: Text file busy (os error 26)")
+27 of 28 loop-drive tests passed; later gates were not run.
+
+Attempt 2: local/deepseek/gates/1793781830-667193
+fmt-claim-wording GREEN
+fmt-harness GREEN
+claim-wording GREEN
+loop-gates-watch GREEN
+loop-drive GREEN
+loop-next-sources GREEN
+loop-next-wait GREEN
+loop-next-owner-direction GREEN
+git-hooks GREEN
+loop-migrate GREEN
+loop-review-changes-blocks GREEN

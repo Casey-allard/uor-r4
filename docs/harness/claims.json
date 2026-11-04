@@ -272,13 +272,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/point-medoid": {
-    "branch": "deepseek/point-medoid",
-    "claimed_at": "2026-11-04T03:05:37-05:00",
-    "head": "5b3b8f361",
-    "lab": "deepseek",
-    "note": "target-geometric point medoids training-through-serving comparison"
-  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",
@@ -341,6 +334,13 @@
     "head": "e6aad12b6",
     "lab": "deepseek",
     "note": ""
+  },
+  "deepseek/trunk-count-training": {
+    "branch": "deepseek/trunk-count-training",
+    "claimed_at": "2026-11-04T03:26:06-05:00",
+    "head": "2326bece3",
+    "lab": "deepseek",
+    "note": "trainable 19-table CPU trunk additive count writeback and exact audit"
   },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",

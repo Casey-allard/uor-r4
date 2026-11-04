@@ -5,13 +5,16 @@ use uor_r4_core::spiralcore_operator::{cl06_finite_composition_table, Cl06Finite
 use uor_r4_discrete::normalization_mechanism::{
     identify_orbit_root, orbit_root_coords, NormFrameTable, NormalizationMode,
 };
+use uor_r4_discrete::snapshot::Snapshot;
 use uor_r4_discrete::training::{family_cursors, BlockCursor, Cursor, SchedulePolicy};
 use uor_r4_discrete::trunk::{
     build_cell_tokens, compute_recurrence_state, evaluate_joint_pointer_full_writer,
-    import_trunk_d11, RecurrenceMode, BLOCK_WIDTH, CELL_COUNT, READ_WIDTH, TRUNK_BLOCKS,
+    export_trunk_d11, import_trunk_d11, pack_u32_key, RecurrenceMode, SparseCountTable,
+    TrunkTables, TrunkTrainRow, BLOCK_WIDTH, CELL_COUNT, READ_WIDTH, TRUNK_BLOCKS,
 };
+use uor_r4_discrete::w2_capacity::decode_read_vector;
 
-use crate::CpuTrainError;
+use crate::{CpuTrainError, VOCABULARY};
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
 
@@ -1765,6 +1768,7 @@ pub struct CpuDiscreteTrunkDecision {
 #[derive(Clone)]
 pub struct CpuDiscreteTrunkReader {
     model: CpuDiscreteProposalModel,
+    snapshot: Snapshot,
     kept_cells: usize,
     tables: uor_r4_discrete::trunk::TrunkTables,
     step_table: uor_r4_discrete::position_mechanism::PositionStepTable,
@@ -1835,10 +1839,11 @@ impl CpuDiscreteTrunkReader {
         }
         let cell_tokens = build_cell_tokens(&token_cells)
             .map_err(|error| invalid(format!("CPU trunk writer cells: {error}")))?;
-        let (_, step_table, norm_frames, tables) = import_trunk_d11(bytes)
+        let (snapshot, step_table, norm_frames, tables) = import_trunk_d11(bytes)
             .map_err(|error| invalid(format!("CPU trunk tables: {error}")))?;
         Ok(Self {
             model,
+            snapshot,
             kept_cells,
             tables,
             step_table,
@@ -1939,6 +1944,123 @@ impl CpuDiscreteTrunkReader {
         ))
     }
 
+    pub fn training_row(
+        &self,
+        prefix: &[u32],
+        target: u32,
+        row_seed: u64,
+    ) -> Result<TrunkTrainRow> {
+        if target as usize >= self.codebook_roots.len() {
+            return Err(invalid("CPU trunk target token exceeds vocabulary"));
+        }
+        if prefix.is_empty()
+            || prefix.len()
+                > usize::try_from(self.snapshot.spec.context)
+                    .map_err(|_| invalid("CPU trunk context exceeds usize"))?
+        {
+            return Err(invalid("CPU trunk training prefix is outside context"));
+        }
+        let read = self.read(&self.model, prefix)?;
+        let q_read: [i32; READ_WIDTH] = read
+            .as_slice()
+            .try_into()
+            .map_err(|_| invalid("CPU trunk training read width differs"))?;
+        let read_code = decode_read_vector(&q_read)
+            .map_err(|error| invalid(format!("CPU trunk training read code: {error}")))?;
+        let window = prefix
+            .iter()
+            .map(|token| {
+                u16::try_from(*token).map_err(|_| invalid("CPU trunk prefix token exceeds u16"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let query_token = *window
+            .last()
+            .ok_or_else(|| invalid("CPU trunk training prefix is empty"))?;
+        let target_token =
+            u16::try_from(target).map_err(|_| invalid("CPU trunk target exceeds u16"))?;
+        let (_, rec_code) = compute_recurrence_state(
+            &window,
+            &self.codebook_roots,
+            &self.step_table,
+            &self.norm_frames,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            row_seed,
+        )
+        .map_err(|error| invalid(format!("CPU trunk training recurrence: {error}")))?;
+        let (_, rec_shuf_code) = compute_recurrence_state(
+            &window,
+            &self.codebook_roots,
+            &self.step_table,
+            &self.norm_frames,
+            RecurrenceMode::ShuffledOrderControlV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            row_seed,
+        )
+        .map_err(|error| invalid(format!("CPU trunk shuffled training recurrence: {error}")))?;
+        let (_, rec_unit_code) = compute_recurrence_state(
+            &window,
+            &self.codebook_roots,
+            &self.step_table,
+            &self.norm_frames,
+            RecurrenceMode::ActiveHolonomyV1,
+            NormalizationMode::UnitSnapControlV1,
+            row_seed,
+        )
+        .map_err(|error| invalid(format!("CPU trunk unit training recurrence: {error}")))?;
+        Ok(TrunkTrainRow {
+            read_code,
+            rec_code,
+            rec_shuf_code,
+            rec_unit_code,
+            query_token,
+            target_token,
+        })
+    }
+
+    pub fn add_training_rows(&self, rows: &[TrunkTrainRow]) -> Result<Vec<u8>> {
+        if rows.is_empty() {
+            return Err(invalid("CPU trunk count training requires rows"));
+        }
+        let mut tables = self.tables.clone();
+        for row in rows {
+            add_trunk_count_row(&mut tables, row)?;
+        }
+        let artifact =
+            export_trunk_d11(&self.snapshot, &self.step_table, &self.norm_frames, &tables)
+                .map_err(|error| invalid(format!("CPU trunk count export: {error}")))?;
+        let (snapshot, step_table, norm_frames, decoded) = import_trunk_d11(&artifact)
+            .map_err(|error| invalid(format!("CPU trunk count re-import: {error}")))?;
+        let snapshot_equal = serde_json::to_vec(&snapshot)
+            .map_err(|error| invalid(format!("CPU trunk snapshot encoding: {error}")))?
+            == serde_json::to_vec(&self.snapshot)
+                .map_err(|error| invalid(format!("CPU trunk source encoding: {error}")))?;
+        if !snapshot_equal
+            || step_table != self.step_table
+            || norm_frames != self.norm_frames
+            || decoded != tables
+        {
+            return Err(invalid("CPU trunk count artifact round-trip differs"));
+        }
+        Ok(artifact)
+    }
+
+    pub fn add_training_rows_consuming(mut self, rows: &[TrunkTrainRow]) -> Result<Vec<u8>> {
+        if rows.is_empty() {
+            return Err(invalid("CPU trunk count training requires rows"));
+        }
+        for row in rows {
+            add_trunk_count_row(&mut self.tables, row)?;
+        }
+        export_trunk_d11(
+            &self.snapshot,
+            &self.step_table,
+            &self.norm_frames,
+            &self.tables,
+        )
+        .map_err(|error| invalid(format!("CPU trunk count export: {error}")))
+    }
+
     pub fn export_parity(
         &self,
         artifact: &[u8],
@@ -2006,6 +2128,92 @@ impl CpuDiscreteTrunkReader {
             CpuDiscreteProposalModel::Active(active) => active.read(prefix),
         }
     }
+}
+
+fn add_trunk_count_row(tables: &mut TrunkTables, row: &TrunkTrainRow) -> Result<()> {
+    let target = usize::from(row.target_token);
+    let query = u32::from(row.query_token);
+    if target >= tables.unigram_counts.len() || target >= VOCABULARY || query >= VOCABULARY as u32 {
+        return Err(invalid("CPU trunk count row token exceeds vocabulary"));
+    }
+    tables.unigram_counts[target] = tables.unigram_counts[target]
+        .checked_add(1)
+        .ok_or_else(|| invalid("CPU trunk unigram count overflows"))?;
+    add_sparse_count(
+        &mut tables.read_table,
+        u32::from(row.read_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.rec_table,
+        u32::from(row.rec_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.read_rec_table,
+        pack_u32_key(row.read_code, row.rec_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.rec_shuf_table,
+        u32::from(row.rec_shuf_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.read_rec_shuf_table,
+        pack_u32_key(row.read_code, row.rec_shuf_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.rec_unit_table,
+        u32::from(row.rec_unit_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.read_rec_unit_table,
+        pack_u32_key(row.read_code, row.rec_unit_code),
+        row.target_token,
+    )?;
+    add_sparse_count(&mut tables.query_table, query, row.target_token)?;
+    add_sparse_count(
+        &mut tables.query_read_table,
+        pack_u32_key(row.query_token, row.read_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.query_rec_table,
+        pack_u32_key(row.query_token, row.rec_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.query_rec_shuf_table,
+        pack_u32_key(row.query_token, row.rec_shuf_code),
+        row.target_token,
+    )?;
+    add_sparse_count(
+        &mut tables.query_rec_unit_table,
+        pack_u32_key(row.query_token, row.rec_unit_code),
+        row.target_token,
+    )?;
+    let mut best_token = 0u16;
+    let mut best_count = 0u32;
+    for (token, &count) in tables.unigram_counts.iter().enumerate() {
+        if count > best_count {
+            best_count = count;
+            best_token =
+                u16::try_from(token).map_err(|_| invalid("CPU trunk unigram token exceeds u16"))?;
+        }
+    }
+    tables.unigram_best_global = best_token;
+    Ok(())
+}
+
+fn add_sparse_count(table: &mut SparseCountTable, key: u32, token: u16) -> Result<()> {
+    if table.get(key, token) == u32::MAX || table.total() == u64::MAX {
+        return Err(invalid("CPU trunk sparse count overflows"));
+    }
+    table.add(key, token);
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -4163,6 +4371,78 @@ mod tests {
         }
         assert!(CpuDiscreteRelation::from_bytes(&artifact).is_err());
         assert!(CpuDiscreteProposalScorer::from_bytes(&artifact).is_err());
+    }
+
+    #[test]
+    fn cpu_trunk_derives_training_rows_and_round_trips_all_count_tables() {
+        let artifact = synthetic_trunk_artifact();
+        let cpu = CpuDiscreteTrunkReader::from_bytes(&artifact).unwrap();
+        let prefix = [1u32, 2, 1];
+        let decision = cpu.decide(&prefix).unwrap();
+        let row = cpu.training_row(&prefix, 2, 17).unwrap();
+        assert_eq!(row.read_code, decision.read_code);
+        assert_eq!(row.rec_code, decision.recurrence_code);
+        assert_eq!(row.query_token, 1);
+        assert_eq!(row.target_token, 2);
+        assert!(cpu.training_row(&prefix, VOCABULARY as u32, 17).is_err());
+
+        let (_, _, _, before) = import_trunk_d11(&artifact).unwrap();
+        let updated = cpu.add_training_rows(&[row]).unwrap();
+        let (snapshot, steps, norms, after) = import_trunk_d11(&updated).unwrap();
+        let (source_snapshot, source_steps, source_norms, _) = import_trunk_d11(&artifact).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&snapshot).unwrap(),
+            serde_json::to_vec(&source_snapshot).unwrap()
+        );
+        assert_eq!(steps, source_steps);
+        assert_eq!(norms, source_norms);
+        assert_eq!(after.unigram_counts[2], before.unigram_counts[2] + 1);
+        for (before, after) in [
+            (&before.read_table, &after.read_table),
+            (&before.rec_table, &after.rec_table),
+            (&before.read_rec_table, &after.read_rec_table),
+            (&before.rec_shuf_table, &after.rec_shuf_table),
+            (&before.read_rec_shuf_table, &after.read_rec_shuf_table),
+            (&before.rec_unit_table, &after.rec_unit_table),
+            (&before.read_rec_unit_table, &after.read_rec_unit_table),
+            (&before.query_table, &after.query_table),
+            (&before.query_read_table, &after.query_read_table),
+            (&before.query_rec_table, &after.query_rec_table),
+            (&before.query_rec_shuf_table, &after.query_rec_shuf_table),
+            (&before.query_rec_unit_table, &after.query_rec_unit_table),
+        ] {
+            assert_eq!(after.total(), before.total() + 1);
+        }
+        assert_eq!(cpu.add_training_rows(&[row]).unwrap(), updated);
+    }
+
+    #[test]
+    fn cpu_trunk_count_training_keeps_the_smaller_unigram_on_a_tie() {
+        let mut tables = TrunkTables::build(&[TrunkTrainRow {
+            read_code: 3,
+            rec_code: 4,
+            rec_shuf_code: 5,
+            rec_unit_code: 6,
+            query_token: 7,
+            target_token: 8,
+        }])
+        .unwrap();
+        assert_eq!(tables.unigram_best_global, 8);
+        add_trunk_count_row(
+            &mut tables,
+            &TrunkTrainRow {
+                read_code: 9,
+                rec_code: 10,
+                rec_shuf_code: 11,
+                rec_unit_code: 12,
+                query_token: 13,
+                target_token: 7,
+            },
+        )
+        .unwrap();
+        assert_eq!(tables.unigram_counts[7], 1);
+        assert_eq!(tables.unigram_counts[8], 1);
+        assert_eq!(tables.unigram_best_global, 7);
     }
 
     #[test]
