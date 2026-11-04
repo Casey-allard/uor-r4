@@ -1,0 +1,161 @@
+{
+  "schema": "uor-r4.cpu-point-vote-replies/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "cap": 16,
+  "threads_per_seed": 16,
+  "schedule": "two seeds concurrently",
+  "exact_reference_rule": "remove exactly one trailing BOS from the stored reference; compare remaining ids",
+  "seed_1": {
+    "wall_elapsed_ms": 1616.212219,
+    "opening_top1": {
+      "point_off": 0,
+      "nearest": 2,
+      "vote": 3,
+      "random_vote": 2
+    },
+    "complete_reply": {
+      "point_off": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 0,
+        "distinct_non_empty": 2,
+        "repeated_4gram": 22,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 47282,
+        "generated_tokens_per_second": 20303.42323964086,
+        "reply_sha256": "ea9a314d3aed13030caba7228d5d8495ae74fbe637f633879ca54acf57c18eeb"
+      },
+      "nearest": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 2,
+        "distinct_non_empty": 10,
+        "repeated_4gram": 55,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 47154,
+        "generated_tokens_per_second": 20358.42577878878,
+        "reply_sha256": "b4fff629ec7e83ed924583f2151d14e833c102544523898555d38a8f2d8f38e4"
+      },
+      "vote": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 3,
+        "distinct_non_empty": 4,
+        "repeated_4gram": 57,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 47822,
+        "generated_tokens_per_second": 20074.2630633476,
+        "reply_sha256": "7bf63e474d4ffa857a699ed7445154a0c74a35037a6b82b726487f64952d1ea9"
+      },
+      "random_vote": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 0,
+        "distinct_non_empty": 11,
+        "repeated_4gram": 46,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 47477,
+        "generated_tokens_per_second": 20220.258432595492,
+        "reply_sha256": "7e2e32b47ded9379d262ac0623f8ea12142bd3428a4dd2df86eb282f1fccb134"
+      }
+    }
+  },
+  "seed_2": {
+    "wall_elapsed_ms": 1549.973093,
+    "opening_top1": {
+      "point_off": 0,
+      "nearest": 1,
+      "vote": 3,
+      "random_vote": 3
+    },
+    "complete_reply": {
+      "point_off": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 0,
+        "distinct_non_empty": 2,
+        "repeated_4gram": 40,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 45924,
+        "generated_tokens_per_second": 20903.854355007763,
+        "reply_sha256": "11f8e912ec4f9130c5696505d5e9dd8c0afd9349dd1ced8ef883f0b71344d878"
+      },
+      "nearest": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 1,
+        "distinct_non_empty": 12,
+        "repeated_4gram": 37,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 46290,
+        "generated_tokens_per_second": 20738.6085685493,
+        "reply_sha256": "faa0386baa7eaca8a24acd5df1d200b257a9db3bcade7a9fd2d2d7c64cbd467e"
+      },
+      "vote": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 3,
+        "distinct_non_empty": 5,
+        "repeated_4gram": 22,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 47551,
+        "generated_tokens_per_second": 20188.833308142854,
+        "reply_sha256": "69e4fd0eeec338d96ca8ab41860e2849959895a9231db7401c79a083ec989d7b"
+      },
+      "random_vote": {
+        "exact_reference": 0,
+        "bos_complete": 0,
+        "cap_stopped": 60,
+        "context_stopped": 0,
+        "opening_correct": 3,
+        "distinct_non_empty": 8,
+        "repeated_4gram": 6,
+        "reference_reachable": 51,
+        "generated_tokens": 960,
+        "wall_elapsed_us": 49993,
+        "generated_tokens_per_second": 19202.56853556732,
+        "reply_sha256": "6767a039608bae70da4bd3b3ad347c71b899221cd47dbb20930f770a939ee5c3"
+      }
+    }
+  },
+  "parity": {
+    "arms": 4,
+    "seeds": 2,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "seed_1_repeat": {
+    "run_separately_after_the_two_seed_cost_run": true,
+    "readings_match": true,
+    "reply_sha256": {
+      "point_off": "ea9a314d3aed13030caba7228d5d8495ae74fbe637f633879ca54acf57c18eeb",
+      "nearest": "b4fff629ec7e83ed924583f2151d14e833c102544523898555d38a8f2d8f38e4",
+      "vote": "7bf63e474d4ffa857a699ed7445154a0c74a35037a6b82b726487f64952d1ea9",
+      "random_vote": "7e2e32b47ded9379d262ac0623f8ea12142bd3428a4dd2df86eb282f1fccb134"
+    }
+  },
+  "verdict": "No correctness propagation. The vote improves opening correctness on the fixed screen but produces no exact-reference or BOS-complete reply on either seed."
+}

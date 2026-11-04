@@ -109,6 +109,15 @@ is not a language result. See
 [deepseek-105](../../loop/tasks/cpu-training-pilot/deepseek-105/REPORT.md) and
 [deepseek-106](../../loop/tasks/cpu-training-pilot/deepseek-106/REPORT.md).
 
+A subsequent FIT free-generation screen tested whether the vote propagates
+beyond the opening. On both public seeds the vote reached `3/60` correct
+openings, but every arm produced zero exact-reference and zero BOS-complete
+replies; all 60 prompts per arm hit the 16-token cap. Seed 1's vote also
+produced fewer distinct replies and more repeated 4-grams than nearest. This
+closes the fixed greedy point-vote reply configuration and moves the next work
+to reply content and termination rather than another vote width. See
+[deepseek-108](../../loop/tasks/cpu-training-pilot/deepseek-108/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

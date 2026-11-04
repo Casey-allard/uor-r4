@@ -9,8 +9,8 @@ use uor_r4_cpu_train::{
     CpuFbsHead, CpuMaskedCorpus, MemoryWeightSample,
 };
 use uor_r4_integer::stack::{
-    add_point_key_uorlut01, build_point_key, read_memory_uorlut01, IntegerStackModel,
-    PointKeyImage, PointKeyWindow,
+    add_point_key_uorlut01, build_point_key, read_memory_uorlut01, reply_stop, IntegerStackModel,
+    PointKeyImage, PointKeyWindow, ReplyEnd, POINT_KEY_BOS,
 };
 
 const SCHEMA: &str = "uor-r4.cpu-point-transfer-run/1";
@@ -29,6 +29,7 @@ struct Config {
     reply_turn: usize,
     random_seed: u64,
     neighbor_vote: usize,
+    reply_cap: usize,
     select_only: bool,
     expected_artifact_sha256: String,
     expected_tokens_sha256: String,
@@ -59,6 +60,36 @@ struct NeighborReading {
     voted_matches_served: u64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
+struct ReplyReading {
+    replies: u64,
+    bos_complete: u64,
+    cap_stopped: u64,
+    context_stopped: u64,
+    exact_reference: u64,
+    reference_reachable: u64,
+    opening_correct: u64,
+    non_empty: u64,
+    distinct_non_empty: u64,
+    repeated_4gram: u64,
+    generated_tokens: u64,
+    reference_tokens: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+struct TimedReplyReading {
+    reading: ReplyReading,
+    reply_sha256: String,
+    wall_elapsed_us: u64,
+    generated_tokens_per_second: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct GeneratedReply {
+    tokens: Vec<u32>,
+    stop: &'static str,
+}
+
 fn main() {
     match run() {
         Ok(report) => println!(
@@ -78,7 +109,7 @@ fn usage() -> String {
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--train-keys N] [--evaluation-keys N] [--per-key N] \
      [--key-tokens N] [--reply-turn N] [--random-seed N] \
-     [--neighbor-vote N] [--select-only]"
+     [--neighbor-vote N] [--reply-cap N] [--select-only]"
         .to_owned()
 }
 
@@ -102,6 +133,7 @@ fn parse_args() -> Result<Config, String> {
         reply_turn: 8,
         random_seed: 1,
         neighbor_vote: 0,
+        reply_cap: 0,
         select_only: false,
         expected_artifact_sha256: String::new(),
         expected_tokens_sha256: String::new(),
@@ -124,6 +156,7 @@ fn parse_args() -> Result<Config, String> {
             "--reply-turn" => config.reply_turn = number(&value)?,
             "--random-seed" => config.random_seed = number(&value)?,
             "--neighbor-vote" => config.neighbor_vote = number(&value)?,
+            "--reply-cap" => config.reply_cap = number(&value)?,
             "--expected-artifact-sha256" => config.expected_artifact_sha256 = hex(&value)?,
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
             "--expected-mask-sha256" => config.expected_mask_sha256 = hex(&value)?,
@@ -146,6 +179,7 @@ fn parse_args() -> Result<Config, String> {
         || config.per_key == 0
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
+        || config.reply_cap > 64
     {
         return Err("group dimensions must be positive and bounded".to_owned());
     }
@@ -366,6 +400,18 @@ fn run() -> Result<serde_json::Value, String> {
     }) {
         return Err("point extraction differs from the served point key".to_owned());
     }
+    let complete_replies = if config.reply_cap == 0 {
+        BTreeMap::new()
+    } else {
+        arms.iter()
+            .copied()
+            .map(|(name, bytes)| {
+                evaluate_replies(bytes, &evaluation_samples, config.reply_cap, shape.context)
+                    .map(|reading| (name, reading))
+                    .map_err(|error| error.to_string())
+            })
+            .collect::<Result<BTreeMap<_, _>, String>>()?
+    };
     let full = arms
         .iter()
         .copied()
@@ -449,6 +495,10 @@ fn run() -> Result<serde_json::Value, String> {
         "neighbor_vote": {
             "k": config.neighbor_vote,
             "reading": neighbor,
+        },
+        "complete_replies": {
+            "cap": config.reply_cap,
+            "arms": complete_replies,
         },
         "opening": opening,
         "full_teacher_forced": full,
@@ -707,6 +757,189 @@ fn evaluate_neighbor_vote(
     Ok(reading)
 }
 
+fn evaluate_replies(
+    artifact: &[u8],
+    samples: &[CpuConversationSample],
+    cap: usize,
+    context: usize,
+) -> Result<TimedReplyReading, String> {
+    let started = Instant::now();
+    let rows = samples
+        .par_iter()
+        .map(|sample| {
+            let generated = generate_reply(artifact, &sample.prompt, cap, context)?;
+            let reference = normalized_reference(&sample.reply).to_vec();
+            let reachable = reference_reachable(sample.prompt.len(), reference.len(), cap, context);
+            Ok((generated, reference, reachable))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let reply_sha256 = reply_sequence_sha256(&rows);
+    let reading = summarize_replies(rows)?;
+    let elapsed = started.elapsed();
+    Ok(TimedReplyReading {
+        reading,
+        reply_sha256,
+        wall_elapsed_us: elapsed.as_micros().try_into().unwrap_or(u64::MAX),
+        generated_tokens_per_second: reading.generated_tokens as f64
+            / elapsed.as_secs_f64().max(1e-12),
+    })
+}
+
+fn summarize_replies(rows: Vec<(GeneratedReply, Vec<u32>, bool)>) -> Result<ReplyReading, String> {
+    let mut reading = ReplyReading {
+        replies: rows.len() as u64,
+        ..ReplyReading::default()
+    };
+    let mut distinct = BTreeSet::new();
+    for (generated, reference, reference_reachable) in rows {
+        let reference = normalized_reference(&reference);
+        match generated.stop {
+            "bos" => reading.bos_complete = add_count(reading.bos_complete, 1)?,
+            "cap" => reading.cap_stopped = add_count(reading.cap_stopped, 1)?,
+            "context" => reading.context_stopped = add_count(reading.context_stopped, 1)?,
+            other => return Err(format!("unknown reply stop {other}")),
+        }
+        reading.exact_reference = add_count(
+            reading.exact_reference,
+            u64::from(generated.tokens == reference),
+        )?;
+        reading.reference_reachable =
+            add_count(reading.reference_reachable, u64::from(reference_reachable))?;
+        reading.opening_correct = add_count(
+            reading.opening_correct,
+            u64::from(matches!(
+                (generated.tokens.first(), reference.first()),
+                (Some(generated), Some(reference)) if generated == reference
+            )),
+        )?;
+        let non_empty = !generated.tokens.is_empty();
+        reading.non_empty = add_count(reading.non_empty, u64::from(non_empty))?;
+        if non_empty {
+            distinct.insert(generated.tokens.clone());
+        }
+        reading.repeated_4gram = add_count(
+            reading.repeated_4gram,
+            u64::from(has_repeated_4gram(&generated.tokens)),
+        )?;
+        reading.generated_tokens =
+            add_count(reading.generated_tokens, generated.tokens.len() as u64)?;
+        reading.reference_tokens = add_count(reading.reference_tokens, reference.len() as u64)?;
+    }
+    reading.distinct_non_empty = distinct.len() as u64;
+    Ok(reading)
+}
+
+fn generate_reply(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    context: usize,
+) -> Result<GeneratedReply, String> {
+    if cap == 0 || prompt.is_empty() || prompt.len() > context {
+        return Err("invalid bounded reply prompt, cap or context".to_owned());
+    }
+    let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|error| error.to_string())?;
+    let mut first = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| error.to_string())?;
+        if index + 1 == prompt.len() {
+            first = Some(step.token);
+        }
+    }
+    bounded_reply(
+        first.ok_or_else(|| "evaluation prompt is empty".to_owned())?,
+        prompt.len(),
+        cap,
+        context,
+        |token| {
+            forward
+                .step(token, CpuFbsHead::Writer)
+                .map(|step| step.token)
+                .map_err(|error| error.to_string())
+        },
+    )
+}
+
+fn bounded_reply(
+    first: u32,
+    prompt_len: usize,
+    cap: usize,
+    context: usize,
+    mut step: impl FnMut(u32) -> Result<u32, String>,
+) -> Result<GeneratedReply, String> {
+    let mut tokens = Vec::with_capacity(cap);
+    let mut next = first;
+    loop {
+        let stop = reply_stop(next, tokens.len(), prompt_len, cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok(GeneratedReply {
+                tokens,
+                stop: match stop {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                },
+            });
+        }
+        next = step(next)?;
+    }
+}
+
+fn has_repeated_4gram(tokens: &[u32]) -> bool {
+    let mut seen = BTreeSet::new();
+    tokens.windows(4).any(|window| !seen.insert(window))
+}
+
+fn reply_sequence_sha256(rows: &[(GeneratedReply, Vec<u32>, bool)]) -> String {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&(rows.len() as u64).to_le_bytes());
+    for (reply, _, _) in rows {
+        let stop = match reply.stop {
+            "bos" => 0u8,
+            "cap" => 1,
+            "context" => 2,
+            _ => 3,
+        };
+        bytes.push(stop);
+        bytes.extend_from_slice(&(reply.tokens.len() as u64).to_le_bytes());
+        for token in &reply.tokens {
+            bytes.extend_from_slice(&token.to_le_bytes());
+        }
+    }
+    uor_r4_discrete::corpus::sha256(&bytes)
+}
+
+fn normalized_reference(reference: &[u32]) -> &[u32] {
+    reference
+        .strip_suffix(&[POINT_KEY_BOS])
+        .unwrap_or(reference)
+}
+
+fn reference_reachable(
+    prompt_len: usize,
+    reference_len: usize,
+    cap: usize,
+    context: usize,
+) -> bool {
+    reference_len <= cap
+        && prompt_len
+            .checked_add(reference_len)
+            .is_some_and(|length| length <= context)
+}
+
+fn add_count(left: u64, right: u64) -> Result<u64, String> {
+    left.checked_add(right)
+        .ok_or_else(|| "complete-reply counter overflow".to_owned())
+}
+
 fn opening_query_and_token(artifact: &[u8], prompt: &[u32]) -> Result<(Vec<i32>, u32), String> {
     let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|error| error.to_string())?;
     let mut result = None;
@@ -866,6 +1099,7 @@ mod tests {
             reply_turn: 8,
             random_seed: 1,
             neighbor_vote: 0,
+            reply_cap: 0,
             select_only: true,
             expected_artifact_sha256: String::new(),
             expected_tokens_sha256: String::new(),
@@ -950,6 +1184,119 @@ mod tests {
         };
         assert!(point_vote(&points, &[0], 0).is_err());
         assert!(point_vote(&points, &[0], 3).is_err());
+    }
+
+    #[test]
+    fn bounded_reply_feeds_only_generated_tokens_and_stops_at_bos() {
+        let mut fed = Vec::new();
+        let reply = bounded_reply(5, 3, 8, 20, |token| {
+            fed.push(token);
+            Ok(if fed.len() == 2 {
+                POINT_KEY_BOS
+            } else {
+                token + 1
+            })
+        })
+        .unwrap();
+        assert_eq!(reply.tokens, vec![5, 6]);
+        assert_eq!(reply.stop, "bos");
+        assert_eq!(fed, vec![5, 6], "the prompt is not fed twice");
+    }
+
+    #[test]
+    fn bounded_reply_stops_at_its_cap_or_context_deterministically() {
+        let capped = bounded_reply(5, 3, 3, 20, |token| Ok(token + 1)).unwrap();
+        assert_eq!((capped.tokens, capped.stop), (vec![5, 6, 7], "cap"));
+        let context = bounded_reply(5, 15, 8, 17, |token| Ok(token + 1)).unwrap();
+        assert_eq!((context.tokens, context.stop), (vec![5, 6], "context"));
+    }
+
+    #[test]
+    fn reply_summary_counts_exact_opening_distinct_and_repeated_replies() {
+        let rows = vec![
+            (
+                GeneratedReply {
+                    tokens: vec![5, 6, 7, 8, 5, 6, 7, 8],
+                    stop: "bos",
+                },
+                vec![5, 6, 7, 8, 5, 6, 7, 8, POINT_KEY_BOS],
+                true,
+            ),
+            (
+                GeneratedReply {
+                    tokens: vec![5, 9],
+                    stop: "bos",
+                },
+                vec![5, 6, POINT_KEY_BOS],
+                true,
+            ),
+            (
+                GeneratedReply {
+                    tokens: vec![5],
+                    stop: "cap",
+                },
+                vec![3, 6, POINT_KEY_BOS],
+                false,
+            ),
+        ];
+        let reading = summarize_replies(rows).unwrap();
+        assert_eq!(reading.replies, 3);
+        assert_eq!(reading.bos_complete, 2);
+        assert_eq!(reading.cap_stopped, 1);
+        assert_eq!(reading.exact_reference, 1);
+        assert_eq!(reading.reference_reachable, 2);
+        assert_eq!(reading.opening_correct, 2);
+        assert_eq!(reading.non_empty, 3);
+        assert_eq!(reading.distinct_non_empty, 3);
+        assert_eq!(reading.repeated_4gram, 1);
+        assert_eq!(reading.generated_tokens, 11);
+        assert_eq!(reading.reference_tokens, 12);
+    }
+
+    #[test]
+    fn reference_reachability_and_stop_normalization_have_exact_boundaries() {
+        assert!(reference_reachable(10, 6, 6, 16), "exactly cap and context");
+        assert!(!reference_reachable(10, 7, 6, 20), "cap plus one");
+        assert!(!reference_reachable(10, 7, 8, 16), "context plus one");
+        assert_eq!(normalized_reference(&[5, 6, POINT_KEY_BOS]), &[5, 6]);
+        assert_eq!(
+            normalized_reference(&[5, POINT_KEY_BOS, POINT_KEY_BOS]),
+            &[5, POINT_KEY_BOS],
+            "exactly one stop token is removed"
+        );
+        let empty = summarize_replies(vec![(
+            GeneratedReply {
+                tokens: Vec::new(),
+                stop: "bos",
+            },
+            vec![POINT_KEY_BOS],
+            true,
+        )])
+        .unwrap();
+        assert_eq!(empty.exact_reference, 1);
+        assert_eq!(empty.opening_correct, 0, "two absent openings do not match");
+        assert_eq!(empty.non_empty, 0);
+        assert!(add_count(u64::MAX, 1).is_err(), "counter overflow");
+    }
+
+    #[test]
+    fn reply_sequence_digest_tracks_tokens_and_stop_markers() {
+        let rows = vec![(
+            GeneratedReply {
+                tokens: vec![5, 6, 7],
+                stop: "bos",
+            },
+            vec![5, 6, 7],
+            true,
+        )];
+        let first = reply_sequence_sha256(&rows);
+        assert_eq!(first, reply_sequence_sha256(&rows));
+        let mut changed_token = rows.clone();
+        changed_token[0].0.tokens[1] = 8;
+        assert_ne!(first, reply_sequence_sha256(&changed_token));
+        let mut changed_stop = rows;
+        changed_stop[0].0.stop = "cap";
+        assert_ne!(first, reply_sequence_sha256(&changed_stop));
     }
 
     fn opening_token(artifact: &[u8], prompt: &[u32]) -> u32 {
