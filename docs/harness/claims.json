@@ -356,6 +356,13 @@
     "lab": "deepseek",
     "note": "stage profile the 19-table CPU count driver"
   },
+  "deepseek/trunk-verify": {
+    "branch": "deepseek/trunk-verify",
+    "claimed_at": "2026-11-04T05:33:04-05:00",
+    "head": "e5b7c500c",
+    "lab": "deepseek",
+    "note": "remove duplicate trunk decoding from count verification"
+  },
   "kimi/docs-current-status": {
     "branch": "kimi/docs-current-status",
     "claimed_at": "2026-10-30T13:16:33-04:00",

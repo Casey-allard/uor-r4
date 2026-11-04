@@ -1,0 +1,231 @@
+{
+  "schema": "uor-r4.cpu-trunk-verification-consolidation/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "be0edd4682409398ebf2e7f86b4b44ec987f8edf",
+    "fit_head": "ba0ca6559502739fed48261403f727e63399b83d",
+    "run_head": "de2bd3471",
+    "baseline_binary_sha256": "e4dac42e783958a082ebfe0b3cf63ec4f54ea149d73a19764114878559c14ada",
+    "optimized_binary_sha256": "e32f99e8494ec51d26d523861ae4511ade3a73a5a03dbc29bd557105d3680dd4",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "public_trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "training_documents": 200,
+    "evaluation_documents": 193,
+    "training_targets": 7080,
+    "evaluation_targets": 512,
+    "selected_training_rows": 4096,
+    "evaluation_stride": 2,
+    "max_evaluation": 512,
+    "seed": 1
+  },
+  "protocol": {
+    "fresh_output_roots": 8,
+    "forward_run_order": [
+      "baseline-workers-1",
+      "optimized-workers-1",
+      "baseline-workers-16",
+      "optimized-workers-16"
+    ],
+    "reverse_run_order": [
+      "optimized-workers-16",
+      "baseline-workers-16",
+      "optimized-workers-1",
+      "baseline-workers-1"
+    ],
+    "aggregation": "mean of the forward and reverse runs at each binary and worker count",
+    "verification_imports_before": 10,
+    "verification_imports_after": 4
+  },
+  "artifacts": {
+    "no_update_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "exact_sha256": "db4a672d6af83c4c56b7fbccc9ebc2279cb13fb8719b47829db64c910f7d2bb2",
+    "shuffled_sha256": "19cbb1caa487473ac4344e1b3582060fbcb22b1e6066fa51540bcbc8977eabcd",
+    "exact_bytes": 86815864,
+    "shuffled_bytes": 87042864,
+    "all_runs_byte_identical": true
+  },
+  "tables": {
+    "source_total": 1049856,
+    "exact_total": 1053952,
+    "shuffled_total": 1053952,
+    "table_families": 13,
+    "independent_full_content_check": true,
+    "semantic_sections_unchanged": true
+  },
+  "held_out": {
+    "rows": 512,
+    "q12_query_coordinates_per_arm": 16384,
+    "arms": {
+      "no_update": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      },
+      "exact": {
+        "admitted": 331,
+        "top1": 245,
+        "top8": 269,
+        "checksum": "351b70cab8d7cbc9"
+      },
+      "shuffled": {
+        "admitted": 332,
+        "top1": 246,
+        "top8": 270,
+        "checksum": "c707e1bebfe590b0"
+      }
+    },
+    "changed_decisions": {
+      "exact_vs_no_update_rows": 4,
+      "shuffled_vs_no_update_rows": 0,
+      "exact_vs_shuffled_rows": 4
+    },
+    "query_coordinate_mismatches": 0,
+    "admitted_cell_mismatches": 0,
+    "top8_mismatches": 0,
+    "token_mismatches": 0
+  },
+  "equivalence": {
+    "normalized_report_sha256": "64e6e9b971ae0e90281aa485112db595e440eddeb29dbf99c9976a1fc467722f",
+    "all_normalized_reports_identical": true,
+    "all_artifact_pairs_byte_identical": true,
+    "all_stage_accounting_valid": true,
+    "required_stages": 21,
+    "peak_rss_limit_kib": 2097152,
+    "timeout_seconds": 600
+  },
+  "runs": [
+    {
+      "pass": "forward",
+      "binary": "baseline",
+      "workers": 1,
+      "wall_elapsed_ms": 9828.063634,
+      "peak_rss_kib": 1543152,
+      "exact_verify_ms": 2646.3790080000003,
+      "shuffled_verify_ms": 1851.718667,
+      "verification_ms": 4498.097675000001
+    },
+    {
+      "pass": "forward",
+      "binary": "optimized",
+      "workers": 1,
+      "wall_elapsed_ms": 7999.775403000001,
+      "peak_rss_kib": 1545092,
+      "exact_verify_ms": 1142.0617280000001,
+      "shuffled_verify_ms": 1137.6238,
+      "verification_ms": 2279.685528
+    },
+    {
+      "pass": "forward",
+      "binary": "baseline",
+      "workers": 16,
+      "wall_elapsed_ms": 9573.584676999999,
+      "peak_rss_kib": 1544992,
+      "exact_verify_ms": 2681.1187480000003,
+      "shuffled_verify_ms": 1874.393898,
+      "verification_ms": 4555.512646
+    },
+    {
+      "pass": "forward",
+      "binary": "optimized",
+      "workers": 16,
+      "wall_elapsed_ms": 7468.02374,
+      "peak_rss_kib": 1545452,
+      "exact_verify_ms": 1149.585204,
+      "shuffled_verify_ms": 1125.844888,
+      "verification_ms": 2275.430092
+    },
+    {
+      "pass": "reverse",
+      "binary": "optimized",
+      "workers": 16,
+      "wall_elapsed_ms": 7453.20813,
+      "peak_rss_kib": 1545672,
+      "exact_verify_ms": 1125.434481,
+      "shuffled_verify_ms": 1121.854365,
+      "verification_ms": 2247.288846
+    },
+    {
+      "pass": "reverse",
+      "binary": "baseline",
+      "workers": 16,
+      "wall_elapsed_ms": 9624.869888,
+      "peak_rss_kib": 1544932,
+      "exact_verify_ms": 2695.21653,
+      "shuffled_verify_ms": 1878.546775,
+      "verification_ms": 4573.763305
+    },
+    {
+      "pass": "reverse",
+      "binary": "optimized",
+      "workers": 1,
+      "wall_elapsed_ms": 7906.66305,
+      "peak_rss_kib": 1545528,
+      "exact_verify_ms": 1124.7896449999998,
+      "shuffled_verify_ms": 1119.028869,
+      "verification_ms": 2243.8185139999996
+    },
+    {
+      "pass": "reverse",
+      "binary": "baseline",
+      "workers": 1,
+      "wall_elapsed_ms": 9997.601128999999,
+      "peak_rss_kib": 1544092,
+      "exact_verify_ms": 2668.180026,
+      "shuffled_verify_ms": 1869.972943,
+      "verification_ms": 4538.152969
+    }
+  ],
+  "performance": {
+    "1": {
+      "baseline_wall_mean_ms": 9912.832382,
+      "optimized_wall_mean_ms": 7953.219227,
+      "wall_ratio": 0.8023155159309298,
+      "wall_reduction_pct": 19.768448406907023,
+      "wall_speedup": 1.2463924480379718,
+      "baseline_exact_verify_mean_ms": 2657.279517,
+      "optimized_exact_verify_mean_ms": 1133.4256865,
+      "baseline_shuffled_verify_mean_ms": 1860.845805,
+      "optimized_shuffled_verify_mean_ms": 1128.3263345,
+      "baseline_verification_mean_ms": 4518.125322,
+      "optimized_verification_mean_ms": 2261.752021,
+      "verification_ratio": 0.5005952380264674,
+      "verification_reduction_pct": 49.940476197353256,
+      "verification_speedup": 1.9976218789902433
+    },
+    "16": {
+      "baseline_wall_mean_ms": 9599.227283,
+      "optimized_wall_mean_ms": 7460.615936,
+      "wall_ratio": 0.7772100519592005,
+      "wall_reduction_pct": 22.278994804079954,
+      "wall_speedup": 1.2866534567832568,
+      "baseline_exact_verify_mean_ms": 2688.167639,
+      "optimized_exact_verify_mean_ms": 1137.5098425,
+      "baseline_shuffled_verify_mean_ms": 1876.4703365,
+      "optimized_shuffled_verify_mean_ms": 1123.8496265,
+      "baseline_verification_mean_ms": 4564.637976,
+      "optimized_verification_mean_ms": 2261.359469,
+      "verification_ratio": 0.4954082845424989,
+      "verification_reduction_pct": 50.4591715457501,
+      "verification_speedup": 2.0185370959702116
+    }
+  },
+  "storage_bytes": 1390924424,
+  "result": {
+    "wall_bar": "pass",
+    "verification_bar": "pass",
+    "identity_and_resource_gates": "pass",
+    "scope": "fixed public 19-table CPU count workload on the named workstation"
+  }
+}
