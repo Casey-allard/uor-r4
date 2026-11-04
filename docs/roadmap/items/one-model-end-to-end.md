@@ -235,6 +235,16 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   query decodes at 15.2 tok/s at 2,048 against 466–470 at 192. The Bar's
   classification, instrument or mechanism, is past P2b's bound and parked
   behind P3; it comes before P4.
+  [claude-277](../../loop/tasks/one-model-end-to-end/claude-277/REPORT.md)
+  re-scored P2b's seed-1 checkpoints on one RTX 5090, one pass at a time and
+  side by side, for about $2.45. Running passes side by side never changed a
+  scored byte, but saved no clear time at 192: the sheet's Bar reads
+  Inconclusive, at a 1.118× mean speedup, and two serial repeats on the same
+  pod differ by 31%. So the passes stay serial, and P5's pod repeats one A and
+  one B pair, as the Bar's Inconclusive rule says. Two 2,048 passes at once
+  took 2.39 times one pass on P2b's pod, so those stay one at a time. Decode is
+  99% of a 2,048 pass. By a lab decision on #2028, P3's next unit is an exact
+  decode cache, which replaces P3(b) and P3(c).
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
