@@ -1,0 +1,214 @@
+{
+  "schema": "uor-r4.cpu-orbit-termination-comparison/1",
+  "status": "valid",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "source": {
+    "source_commit": "d143e8bafc9376cd755072a784d4adfe5b8b72ab",
+    "run_head": "baa512e522f0eadda230bdb9f43314f275461430",
+    "binary_sha256": "188c224fb9a7c091ebd152d8c383fefdf43237f538bdb5adef1c7de8f443f474",
+    "rust": "1.97.1",
+    "host": "AMD Ryzen 9 9950X, 16 cores / 32 threads",
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "selection": {
+    "keys": 16,
+    "training_documents": 82,
+    "evaluation_documents": 91,
+    "training_samples": 102,
+    "evaluation_samples": 114,
+    "reference_tokens": 1212,
+    "reachable_references": 104
+  },
+  "signature": {
+    "roots": 16,
+    "coordinates_per_block": 8,
+    "blocks": 2,
+    "signature_length": 32,
+    "distance": "exact-q12-l1",
+    "selection": "strictly-closer-to-terminal-than-nonterminal-within-cell"
+  },
+  "served_parity_per_seed": {
+    "samples": 114,
+    "positions": 4333,
+    "query_coordinates": 1109248,
+    "token_decisions": 4333,
+    "kept_cells": 34664,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "trained_artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4",
+      "accepted_updates": 32,
+      "derivation": {
+        "terminal_points": 102,
+        "nonterminal_points": 131,
+        "cells_with_both_classes": 7,
+        "skipped_terminal_only_cells": 0,
+        "skipped_nonterminal_only_cells": 131,
+        "control_changed_cells": 7,
+        "control_changed_points": 34,
+        "trained_gate_sha256": "2f31ce081fe66b67ab47662dcdc85540c80b36e0d240fa36763d0d2454bf24b8",
+        "shuffled_gate_sha256": "d1344d50854d94c7527a8ac33b85f62b13ffe297269f061c2ace431ba7815440"
+      },
+      "arms": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "ea95ef96a4adad3b3964912591ae0b9b9dfecf484aaae85cad9cb4dcbc769eec"
+        },
+        "orbit_gate": {
+          "bos_complete": 114,
+          "premature_stop": 114,
+          "exact_reference": 0,
+          "cap_stopped": 0,
+          "generated_tokens": 1046,
+          "gated_decisions": 244,
+          "ungated_decisions": 916,
+          "digest": "531447c318adab63358c56ac849e6b1fc33138a6ebc7a020e91e72b97aad144e"
+        },
+        "shuffled_orbit_gate": {
+          "bos_complete": 114,
+          "premature_stop": 114,
+          "exact_reference": 0,
+          "cap_stopped": 0,
+          "generated_tokens": 1098,
+          "gated_decisions": 258,
+          "ungated_decisions": 954,
+          "digest": "2a07da63c5da45b1f896d96f57d4bafc0cfb31443b5b936e31d1a299d123b493"
+        }
+      },
+      "paired": {
+        "orbit_vs_no_gate": {
+          "candidate_bos": 114,
+          "control_bos": 0,
+          "candidate_premature_stop": 114,
+          "control_premature_stop": 0,
+          "candidate_non_premature_bos": 0,
+          "control_non_premature_bos": 0,
+          "non_premature_bos_gain": 0,
+          "threshold": 2,
+          "exact_not_lower": true,
+          "passes": false
+        },
+        "orbit_vs_shuffled": {
+          "candidate_bos": 114,
+          "control_bos": 114,
+          "candidate_premature_stop": 114,
+          "control_premature_stop": 114,
+          "candidate_non_premature_bos": 0,
+          "control_non_premature_bos": 0,
+          "non_premature_bos_gain": 0,
+          "threshold": 2,
+          "exact_not_lower": true,
+          "passes": false
+        }
+      },
+      "wall_elapsed_ms": 41488.482769,
+      "peak_rss_kib": 390312,
+      "raw_report_sha256": "9beabdc25054b733d52a469a13e6997985d72df7707c6c759c50a9b70bc6dd68"
+    },
+    {
+      "seed": 2,
+      "trained_artifact_sha256": "10f91f7309c3ed36e3ce76878b2c75c07bae0102b3933571ccbd8f3b40b350e6",
+      "accepted_updates": 32,
+      "derivation": {
+        "terminal_points": 101,
+        "nonterminal_points": 41,
+        "cells_with_both_classes": 6,
+        "skipped_terminal_only_cells": 1,
+        "skipped_nonterminal_only_cells": 183,
+        "control_changed_cells": 6,
+        "control_changed_points": 32,
+        "trained_gate_sha256": "2b03164c3de6940cea598b76439226e5083342ee71ab8b66210c64415ff85182",
+        "shuffled_gate_sha256": "02dfc2f4f54031bd6277465d7a24c9b06d370c33235c813cdc6ed1a9625b6eef"
+      },
+      "arms": {
+        "no_gate": {
+          "bos_complete": 0,
+          "premature_stop": 0,
+          "exact_reference": 0,
+          "cap_stopped": 114,
+          "generated_tokens": 1824,
+          "digest": "09920e95529cec1e4c87975d25cd9225a339c30e11a78853262fa918ed2d767c"
+        },
+        "orbit_gate": {
+          "bos_complete": 114,
+          "premature_stop": 114,
+          "exact_reference": 0,
+          "cap_stopped": 0,
+          "generated_tokens": 1164,
+          "gated_decisions": 114,
+          "ungated_decisions": 1164,
+          "digest": "4e91cad678c6eeefeae8fde4b25db750b94d66a15b807e0878db9ec6a28bab30"
+        },
+        "shuffled_orbit_gate": {
+          "bos_complete": 48,
+          "premature_stop": 48,
+          "exact_reference": 0,
+          "cap_stopped": 66,
+          "generated_tokens": 1296,
+          "gated_decisions": 114,
+          "ungated_decisions": 1230,
+          "digest": "7dc6474f3f8c1467cb7da8ee0b5787fa648914f94eac0dd3e390a6f7d50b834c"
+        }
+      },
+      "paired": {
+        "orbit_vs_no_gate": {
+          "candidate_bos": 114,
+          "control_bos": 0,
+          "candidate_premature_stop": 114,
+          "control_premature_stop": 0,
+          "candidate_non_premature_bos": 0,
+          "control_non_premature_bos": 0,
+          "non_premature_bos_gain": 0,
+          "threshold": 2,
+          "exact_not_lower": true,
+          "passes": false
+        },
+        "orbit_vs_shuffled": {
+          "candidate_bos": 114,
+          "control_bos": 48,
+          "candidate_premature_stop": 114,
+          "control_premature_stop": 48,
+          "candidate_non_premature_bos": 0,
+          "control_non_premature_bos": 0,
+          "non_premature_bos_gain": 0,
+          "threshold": 2,
+          "exact_not_lower": true,
+          "passes": false
+        }
+      },
+      "wall_elapsed_ms": 42112.384572,
+      "peak_rss_kib": 405672,
+      "raw_report_sha256": "3136a84f25a3a8577ee775a206997b0459c8a0bc757ad09516423070a638b5de"
+    }
+  ],
+  "repeat": {
+    "seed": 1,
+    "notiming_report_equal": true,
+    "normalized_report_sha256": "1b398bcad5a0c2dc422306a89ff7cb33d1467b5eef73186237ccbb803078076d",
+    "raw_report_sha256": "818752560c71d57df630bbff7f2cd61bd345fe3d38a44ac419e11eb542ed044b",
+    "trained_artifact_sha256": "c856ce21cf46a4be5a0cc02e033d9c7d0cd674bc4ab96a1185a1b9ccf3b88de4",
+    "wall_elapsed_ms": 42177.025084,
+    "peak_rss_kib": 388752
+  },
+  "verdict": {
+    "orbit_gate": "negative",
+    "success_measure": "non_premature_bos_completion",
+    "scope": "fixed cell-relative 32-value orbit-phase signature under the 16-key / 102-training / 114-evaluation, 32-update, 16-token configuration"
+  }
+}

@@ -348,6 +348,13 @@ impl CpuFbsForward {
             .ok_or_else(|| invalid("writer cell query admitted no cell"))
     }
 
+    pub(crate) fn writer_query_orbit(&self, query: &[i32]) -> Result<(u16, [u64; 32])> {
+        if query.len() != self.width {
+            return Err(invalid("writer orbit query width differs"));
+        }
+        Ok(writer_orbits(query, &self.roots_q12))
+    }
+
     pub(crate) fn context_length(&self) -> usize {
         self.context
     }
@@ -1095,19 +1102,13 @@ fn writer(
 }
 
 fn writer_cells(query: &[i32], roots: &[[i32; 8]; 16], kept_cells: usize) -> Vec<u32> {
-    let width = query.len();
-    let score = |left: &[i32], right: &[i32]| -> i64 {
-        left.iter()
-            .zip(right)
-            .fold(0i64, |sum, (&left, &right)| {
-                sum.wrapping_add(i64::from(left.abs_diff(right)))
-            })
-            .wrapping_neg()
-    };
+    let (_, phase) = writer_orbits(query, roots);
+    let first = &phase[..16];
+    let last = &phase[16..];
     let mut cells = [0i64; 256];
     for cell in 0..256 {
-        cells[cell] = score(&query[..8], &roots[cell / 16])
-            .wrapping_add(score(&query[width - 8..], &roots[cell % 16]));
+        cells[cell] =
+            -i64::try_from(first[cell / 16].wrapping_add(last[cell % 16])).unwrap_or(i64::MAX);
     }
     let mut kept = vec![0u32; kept_cells];
     for slot in &mut kept {
@@ -1121,6 +1122,40 @@ fn writer_cells(query: &[i32], roots: &[[i32; 8]; 16], kept_cells: usize) -> Vec
         cells[best] = i64::MIN;
     }
     kept
+}
+
+fn writer_orbits(query: &[i32], roots: &[[i32; 8]; 16]) -> (u16, [u64; 32]) {
+    let width = query.len();
+    let distances = |block: &[i32]| -> [u64; 16] {
+        roots.map(|root| {
+            block.iter().zip(root).fold(0u64, |sum, (&left, right)| {
+                sum.wrapping_add(u64::from(left.abs_diff(right)))
+            })
+        })
+    };
+    let first = distances(&query[..8]);
+    let last = distances(&query[width - 8..]);
+    let winner = |costs: &[u64; 16]| -> usize {
+        let mut best = 0;
+        for (index, &cost) in costs.iter().enumerate().skip(1) {
+            if cost < costs[best] {
+                best = index;
+            }
+        }
+        best
+    };
+    let (first_winner, last_winner) = (winner(&first), winner(&last));
+    let mut phase = [0u64; 32];
+    let first_floor = first[first_winner];
+    let last_floor = last[last_winner];
+    for root in 0..16 {
+        phase[root] = first[root] - first_floor;
+        phase[16 + root] = last[root] - last_floor;
+    }
+    (
+        u16::try_from(first_winner * 16 + last_winner).expect("a cell is in 0..256"),
+        phase,
+    )
 }
 
 fn writer_candidates(query: &[i32], table: &[i16], vocab: usize, kept: &[u32]) -> Vec<(u32, i64)> {

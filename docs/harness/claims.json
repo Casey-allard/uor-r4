@@ -1,4 +1,11 @@
 {
+  "deepseek/inner-cell-termination": {
+    "branch": "deepseek/inner-cell-termination",
+    "claimed_at": "2026-11-04T02:07:14-05:00",
+    "head": "cb457faa4",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/audit-export-gate": {
     "branch": "deepseek/audit-export-gate",
     "claimed_at": "2026-11-03T01:55:46-05:00",

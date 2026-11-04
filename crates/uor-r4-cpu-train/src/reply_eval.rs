@@ -5,6 +5,7 @@
 //! useful-chat measurement.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use rayon::prelude::*;
 use uor_r4_integer::stack::{read_memory_uorlut01, reply_stop, ReplyEnd, POINT_KEY_BOS};
@@ -49,6 +50,7 @@ pub struct ReplyRowReading {
     pub row: usize,
     pub reachable: bool,
     pub exact: bool,
+    pub non_premature_bos: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -131,6 +133,42 @@ pub struct TerminationCellTraining {
     pub nonterminal_cell_counts: BTreeMap<u16, u64>,
     pub excluded_ties: usize,
     pub excluded_nonterminal_majority: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationOrbitCell {
+    pub terminal: Vec<Vec<u64>>,
+    pub nonterminal: Vec<Vec<u64>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationOrbitGate {
+    pub signature_len: usize,
+    pub cells: BTreeMap<u16, TerminationOrbitCell>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationOrbitTraining {
+    pub trained: TerminationOrbitGate,
+    pub random: TerminationOrbitGate,
+    pub cells_with_both_classes: usize,
+    pub terminal_points: usize,
+    pub nonterminal_points: usize,
+    pub skipped_terminal_only_cells: usize,
+    pub skipped_nonterminal_only_cells: usize,
+    pub control_changed_points: usize,
+    pub control_changed_cells: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminationOrbitReplyReading {
+    pub reading: TimedReplyReading,
+    pub gated_decisions: u64,
+    pub ungated_decisions: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -842,6 +880,343 @@ fn cell_name_or_writer(
     )
 }
 
+/// Derive a cell-relative orbit-phase termination gate and a deterministic
+/// within-cell label permutation control from training examples only.
+pub fn derive_termination_orbit_gates(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    memory_enabled: bool,
+    random_seed: u64,
+) -> Result<TerminationOrbitTraining> {
+    if samples.is_empty() {
+        return Err(invalid("termination orbit gate needs training samples"));
+    }
+    let model = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination orbit gate artifact: {error}")))?;
+    let mut rows = BTreeMap::<u16, (Vec<Vec<u64>>, Vec<Vec<u64>>)>::new();
+    for sample in samples {
+        if sample.prompt.is_empty()
+            || sample.reply.len() < 2
+            || sample.reply.last() != Some(&CORPUS_EOS)
+        {
+            return Err(invalid(
+                "termination orbit gate training reply must end in corpus EOS",
+            ));
+        }
+        let sequence = sample
+            .prompt
+            .iter()
+            .chain(sample.reply[..sample.reply.len() - 1].iter())
+            .copied()
+            .collect::<Vec<_>>();
+        let mut forward = CpuFbsForward::from_artifact(artifact)
+            .map_err(|error| invalid(format!("termination orbit gate forward: {error}")))?;
+        if !memory_enabled {
+            forward.disable_memory();
+        }
+        for (index, token) in sequence.iter().copied().enumerate() {
+            if index + 1 == sample.prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, CpuFbsHead::Writer).map_err(|error| {
+                invalid(format!("termination orbit gate training step: {error}"))
+            })?;
+            if index + 1 >= sample.prompt.len() {
+                let (cell, phase) = model
+                    .writer_query_orbit(&step.query_q12)
+                    .map_err(|error| invalid(format!("termination orbit gate cell: {error}")))?;
+                let entry = rows.entry(cell).or_default();
+                if index + 1 == sequence.len() {
+                    entry.0.push(phase.to_vec());
+                } else {
+                    entry.1.push(phase.to_vec());
+                }
+            }
+        }
+    }
+
+    let mut trained = BTreeMap::new();
+    let mut random = BTreeMap::new();
+    let (mut skipped_terminal_only_cells, mut skipped_nonterminal_only_cells) = (0usize, 0usize);
+    let (
+        mut terminal_points,
+        mut nonterminal_points,
+        mut control_changed_points,
+        mut control_changed_cells,
+    ) = (0usize, 0usize, 0usize, 0usize);
+    for (cell, (terminal, nonterminal)) in rows {
+        if terminal.is_empty() {
+            skipped_nonterminal_only_cells += 1;
+            continue;
+        }
+        if nonterminal.is_empty() {
+            skipped_terminal_only_cells += 1;
+            continue;
+        }
+        terminal_points = terminal_points
+            .checked_add(terminal.len())
+            .ok_or_else(|| invalid("termination orbit terminal count overflow"))?;
+        nonterminal_points = nonterminal_points
+            .checked_add(nonterminal.len())
+            .ok_or_else(|| invalid("termination orbit nonterminal count overflow"))?;
+
+        let trained_cell = TerminationOrbitCell {
+            terminal: terminal.clone(),
+            nonterminal: nonterminal.clone(),
+        };
+        let (random_cell, changed_points, changed_class) = permute_termination_orbit_cell(
+            &trained_cell,
+            random_seed.wrapping_add(u64::from(cell)),
+        )?;
+        control_changed_points = control_changed_points
+            .checked_add(changed_points)
+            .ok_or_else(|| invalid("termination orbit changed-point count overflow"))?;
+        if changed_class {
+            control_changed_cells = control_changed_cells
+                .checked_add(1)
+                .ok_or_else(|| invalid("termination orbit changed-cell count overflow"))?;
+        }
+        trained.insert(cell, trained_cell);
+        random.insert(cell, random_cell);
+    }
+    if trained.is_empty() {
+        return Err(invalid(
+            "termination orbit gate found no writer cell with both classes",
+        ));
+    }
+    let signature_len = 32;
+    let trained = TerminationOrbitGate {
+        signature_len,
+        cells: trained,
+    };
+    let random = TerminationOrbitGate {
+        signature_len,
+        cells: random,
+    };
+    Ok(TerminationOrbitTraining {
+        cells_with_both_classes: trained.cells.len(),
+        trained,
+        random,
+        terminal_points,
+        nonterminal_points,
+        skipped_terminal_only_cells,
+        skipped_nonterminal_only_cells,
+        control_changed_points,
+        control_changed_cells,
+    })
+}
+
+fn permute_termination_orbit_cell(
+    cell: &TerminationOrbitCell,
+    seed: u64,
+) -> Result<(TerminationOrbitCell, usize, bool)> {
+    let mut points = cell
+        .terminal
+        .iter()
+        .chain(&cell.nonterminal)
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut labels = std::iter::repeat_n(true, cell.terminal.len())
+        .chain(std::iter::repeat_n(false, cell.nonterminal.len()))
+        .collect::<Vec<_>>();
+    if !labels.contains(&true) || !labels.contains(&false) {
+        return Err(invalid(
+            "termination orbit control needs both classes in a gated cell",
+        ));
+    }
+    let original = labels.clone();
+    let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+    for end in (1..labels.len()).rev() {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        let draw = state.wrapping_mul(0x2545_F491_4F6C_DD1D);
+        labels.swap(
+            end,
+            usize::try_from(draw % (end as u64 + 1))
+                .map_err(|_| invalid("termination orbit control index exceeds usize"))?,
+        );
+    }
+    if labels == original {
+        labels.rotate_left(1);
+    }
+    let terminal_set = |labels: &[bool]| {
+        let mut terminal = points
+            .iter()
+            .zip(labels)
+            .filter_map(|(point, &terminal)| terminal.then_some(point.clone()))
+            .collect::<Vec<_>>();
+        terminal.sort_unstable();
+        terminal
+    };
+    let original_terminal = terminal_set(&original);
+    let permuted_terminal = terminal_set(&labels);
+    if permuted_terminal == original_terminal {
+        let switch = (0..points.len()).find_map(|left| {
+            (0..points.len()).find_map(|right| {
+                (labels[left] && !labels[right] && points[left] != points[right])
+                    .then_some((left, right))
+            })
+        });
+        if let Some((left, right)) = switch {
+            labels.swap(left, right);
+        }
+    }
+    let changed_points = original
+        .iter()
+        .zip(&labels)
+        .filter(|(before, after)| before != after)
+        .count();
+    let (terminal, nonterminal): (Vec<_>, Vec<_>) = points.drain(..).zip(labels).fold(
+        (Vec::new(), Vec::new()),
+        |mut groups, (point, terminal)| {
+            if terminal {
+                groups.0.push(point);
+            } else {
+                groups.1.push(point);
+            }
+            groups
+        },
+    );
+    let mut control_terminal = terminal.clone();
+    control_terminal.sort_unstable();
+    let changed_class = original_terminal != control_terminal;
+    Ok((
+        TerminationOrbitCell {
+            terminal,
+            nonterminal,
+        },
+        changed_points,
+        changed_class,
+    ))
+}
+
+pub fn evaluate_termination_orbit_gate_replies(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationOrbitGate,
+) -> Result<TerminationOrbitReplyReading> {
+    let gated = AtomicU64::new(0);
+    let ungated = AtomicU64::new(0);
+    let reading = evaluate_generated(artifact, samples, cap, |prompt, cap| {
+        generate_termination_orbit_gate_reply(
+            artifact,
+            prompt,
+            cap,
+            memory_enabled,
+            gate,
+            &gated,
+            &ungated,
+        )
+    })?;
+    Ok(TerminationOrbitReplyReading {
+        reading,
+        gated_decisions: gated.load(Ordering::Relaxed),
+        ungated_decisions: ungated.load(Ordering::Relaxed),
+    })
+}
+
+fn generate_termination_orbit_gate_reply(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    memory_enabled: bool,
+    gate: &TerminationOrbitGate,
+    gated: &AtomicU64,
+    ungated: &AtomicU64,
+) -> Result<GeneratedReply> {
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("termination orbit gate forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    if cap == 0 || cap > 64 || prompt.is_empty() || prompt.len() > context {
+        return Err(invalid(
+            "termination orbit gate prompt, cap or artifact context is invalid",
+        ));
+    }
+    let mut next = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination orbit gate prompt step: {error}")))?;
+        if index + 1 == prompt.len() {
+            next = Some(orbit_name_or_writer(&forward, gate, &step, gated, ungated)?);
+        }
+    }
+    let mut next = next.ok_or_else(|| invalid("termination orbit gate prompt is empty"))?;
+    let mut tokens = Vec::with_capacity(cap);
+    loop {
+        let stop = reply_stop(next, tokens.len(), prompt.len(), cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok(GeneratedReply {
+                tokens,
+                stop: match stop {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                },
+            });
+        }
+        let step = forward
+            .step(next, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("termination orbit gate generated step: {error}")))?;
+        next = orbit_name_or_writer(&forward, gate, &step, gated, ungated)?;
+    }
+}
+
+fn orbit_name_or_writer(
+    forward: &CpuFbsForward,
+    gate: &TerminationOrbitGate,
+    step: &crate::CpuFbsStep,
+    gated: &AtomicU64,
+    ungated: &AtomicU64,
+) -> Result<u32> {
+    let (cell, phase) = forward
+        .writer_query_orbit(&step.query_q12)
+        .map_err(|error| invalid(format!("termination orbit gate cell: {error}")))?;
+    let Some(rows) = gate.cells.get(&cell) else {
+        ungated.fetch_add(1, Ordering::Relaxed);
+        return Ok(step.token);
+    };
+    gated.fetch_add(1, Ordering::Relaxed);
+    if phase.len() != gate.signature_len
+        || rows
+            .terminal
+            .iter()
+            .chain(&rows.nonterminal)
+            .any(|point| point.len() != gate.signature_len)
+    {
+        return Err(invalid(
+            "termination orbit gate signature width differs from the served query",
+        ));
+    }
+    let nearest = |points: &[Vec<u64>]| {
+        points
+            .iter()
+            .map(|point| {
+                phase.iter().zip(point).fold(0u64, |sum, (&query, &point)| {
+                    sum.saturating_add(query.abs_diff(point))
+                })
+            })
+            .min()
+    };
+    Ok(if nearest(&rows.terminal) < nearest(&rows.nonterminal) {
+        POINT_KEY_BOS
+    } else {
+        step.token
+    })
+}
+
 fn generate_termination_gate_reply(
     artifact: &[u8],
     prompt: &[u32],
@@ -972,10 +1347,14 @@ fn evaluate_generated(
     let row_readings = rows
         .iter()
         .enumerate()
-        .map(|(row, (generated, reference, reachable))| ReplyRowReading {
-            row,
-            reachable: *reachable,
-            exact: generated.tokens == normalized_reference(reference),
+        .map(|(row, (generated, reference, reachable))| {
+            let exact = generated.tokens == normalized_reference(reference);
+            ReplyRowReading {
+                row,
+                reachable: *reachable,
+                exact,
+                non_premature_bos: generated.stop == "bos" && exact,
+            }
         })
         .collect::<Vec<_>>();
     let reply_sha256 = reply_sequence_sha256(&rows);
@@ -1504,6 +1883,160 @@ mod tests {
     }
 
     #[test]
+    fn writer_orbit_signature_is_cell_relative_and_matches_the_cell() {
+        let artifact = artifact();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let roots = forward.writer_roots();
+        let mut query = vec![0i32; 64];
+        query[..8].copy_from_slice(&roots[3]);
+        query[56..].copy_from_slice(&roots[7]);
+        let (cell, phase) = forward.writer_query_orbit(&query).unwrap();
+        assert_eq!(cell, forward.writer_query_cell(&query).unwrap());
+        assert_eq!(cell, 55);
+        assert_eq!(phase.len(), 32);
+        assert_eq!(phase[3], 0);
+        assert_eq!(phase[16 + 7], 0);
+    }
+
+    #[test]
+    fn termination_orbit_gate_requires_a_strictly_closer_terminal() {
+        let artifact = artifact();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        let roots = forward.writer_roots();
+        let mut query = vec![0i32; 64];
+        query[..8].copy_from_slice(&roots[3]);
+        query[56..].copy_from_slice(&roots[7]);
+        let (cell, phase) = forward.writer_query_orbit(&query).unwrap();
+        let step = CpuFbsStep {
+            token: 7,
+            kept_cells: vec![1],
+            query_q12: query,
+        };
+        let tied = TerminationOrbitGate {
+            signature_len: 32,
+            cells: BTreeMap::from([(
+                cell,
+                TerminationOrbitCell {
+                    terminal: vec![phase.to_vec()],
+                    nonterminal: vec![phase.to_vec()],
+                },
+            )]),
+        };
+        let gated = AtomicU64::new(0);
+        let ungated = AtomicU64::new(0);
+        assert_eq!(
+            orbit_name_or_writer(&forward, &tied, &step, &gated, &ungated).unwrap(),
+            7
+        );
+        assert_eq!(gated.load(Ordering::Relaxed), 1);
+        assert_eq!(ungated.load(Ordering::Relaxed), 0);
+
+        let separated = TerminationOrbitGate {
+            signature_len: 32,
+            cells: BTreeMap::from([(
+                cell,
+                TerminationOrbitCell {
+                    terminal: vec![phase.to_vec()],
+                    nonterminal: vec![phase.iter().map(|value| value + 1).collect()],
+                },
+            )]),
+        };
+        assert_eq!(
+            orbit_name_or_writer(&forward, &separated, &step, &gated, &ungated).unwrap(),
+            POINT_KEY_BOS
+        );
+        assert_eq!(gated.load(Ordering::Relaxed), 2);
+
+        let malformed = TerminationOrbitGate {
+            signature_len: 31,
+            cells: BTreeMap::from([(
+                cell,
+                TerminationOrbitCell {
+                    terminal: vec![phase.to_vec()],
+                    nonterminal: vec![phase.iter().map(|value| value + 1).collect()],
+                },
+            )]),
+        };
+        assert!(orbit_name_or_writer(
+            &forward,
+            &malformed,
+            &step,
+            &AtomicU64::new(0),
+            &AtomicU64::new(0)
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn termination_orbit_training_is_deterministic_and_preserves_control_counts() {
+        let artifact = artifact();
+        let samples = vec![
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, CORPUS_EOS],
+            },
+            MemoryWeightSample {
+                prompt: vec![10, 11, 12],
+                reply: vec![42, 77, CORPUS_EOS],
+            },
+        ];
+        let first = derive_termination_orbit_gates(&artifact, &samples, true, 2).unwrap();
+        let second = derive_termination_orbit_gates(&artifact, &samples, true, 2).unwrap();
+        assert_eq!(first, second);
+        assert!(first.cells_with_both_classes > 0);
+        assert!(first.control_changed_points > 0);
+        for (cell, trained) in &first.trained.cells {
+            let random = first.random.cells.get(cell).unwrap();
+            assert_eq!(trained.terminal.len(), random.terminal.len());
+            assert_eq!(trained.nonterminal.len(), random.nonterminal.len());
+            let mut trained_all = trained
+                .terminal
+                .iter()
+                .chain(&trained.nonterminal)
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut random_all = random
+                .terminal
+                .iter()
+                .chain(&random.nonterminal)
+                .cloned()
+                .collect::<Vec<_>>();
+            trained_all.sort_unstable();
+            random_all.sort_unstable();
+            assert_eq!(trained_all, random_all);
+        }
+    }
+
+    #[test]
+    fn termination_orbit_control_changes_effective_class_membership() {
+        let cell = TerminationOrbitCell {
+            terminal: vec![vec![1], vec![1]],
+            nonterminal: vec![vec![1], vec![2]],
+        };
+        let (control, changed_points, changed_class) =
+            permute_termination_orbit_cell(&cell, 1).unwrap();
+        assert!(changed_points > 0);
+        assert!(changed_class);
+        assert_eq!(control.terminal.len(), cell.terminal.len());
+        assert_eq!(control.nonterminal.len(), cell.nonterminal.len());
+        let mut before = cell
+            .terminal
+            .iter()
+            .chain(&cell.nonterminal)
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut after = control
+            .terminal
+            .iter()
+            .chain(&control.nonterminal)
+            .cloned()
+            .collect::<Vec<_>>();
+        before.sort_unstable();
+        after.sort_unstable();
+        assert_eq!(before, after);
+    }
+
+    #[test]
     fn termination_cells_require_strict_terminal_density_and_build_a_shuffled_control() {
         let terminal = BTreeMap::from([(1, 3), (2, 2), (3, 4)]);
         let nonterminal = BTreeMap::from([(1, 2), (2, 2), (3, 6), (4, 1)]);
@@ -1595,6 +2128,26 @@ mod tests {
             evaluate_termination_cell_gate_replies(&artifact, &samples, 4, true, &gate).unwrap();
         assert_eq!(no_gate.reply_sha256, empty_gate.reply_sha256);
         assert_eq!(no_gate.reading, empty_gate.reading);
+    }
+
+    #[test]
+    fn empty_termination_orbit_gate_preserves_the_no_gate_reply_digest() {
+        let artifact = artifact();
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![42, 77, 99],
+        }];
+        let gate = TerminationOrbitGate {
+            signature_len: 32,
+            cells: BTreeMap::new(),
+        };
+        let no_gate = evaluate_replies(&artifact, &samples, 4).unwrap();
+        let empty_gate =
+            evaluate_termination_orbit_gate_replies(&artifact, &samples, 4, true, &gate).unwrap();
+        assert_eq!(no_gate.reply_sha256, empty_gate.reading.reply_sha256);
+        assert_eq!(no_gate.reading, empty_gate.reading.reading);
+        assert_eq!(empty_gate.gated_decisions, 0);
+        assert!(empty_gate.ungated_decisions > 0);
     }
 
     #[test]

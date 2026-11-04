@@ -181,6 +181,16 @@ prepares the existing `cpu-served-forward-audit` check for Claude's first
 trained long-context export; it is not a long-context capability result. See
 [deepseek-121](../../loop/tasks/cpu-training-pilot/deepseek-121/REPORT.md).
 
+A cell-relative orbit-phase gate then tested whether terminal and continuation
+rows sharing a writer cell separate by their position among the 16 orbit roots.
+The 32-value signature was reached on both seeds, but every learned stop was
+premature and both paired comparisons failed; the duplicate-safe label control
+also made only premature stops. This closes the fixed two-block nearest-class
+orbit-phase configuration. The next termination attempt needs a different
+within-cell representation or continuation-state invariant rather than a
+post-observation retune of this signature. See
+[deepseek-122](../../loop/tasks/cpu-training-pilot/deepseek-122/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

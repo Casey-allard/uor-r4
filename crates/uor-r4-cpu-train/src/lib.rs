@@ -66,13 +66,15 @@ pub use quant_shadow::{
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
 };
 pub use reply_eval::{
-    derive_termination_cell_gates, derive_termination_point_gates, evaluate_memory_target_replies,
-    evaluate_replies, evaluate_replies_memory_off, evaluate_termination_cell_gate_replies,
-    evaluate_termination_diagnostics, evaluate_termination_gate_replies, generate_reply,
+    derive_termination_cell_gates, derive_termination_orbit_gates, derive_termination_point_gates,
+    evaluate_memory_target_replies, evaluate_replies, evaluate_replies_memory_off,
+    evaluate_termination_cell_gate_replies, evaluate_termination_diagnostics,
+    evaluate_termination_gate_replies, evaluate_termination_orbit_gate_replies, generate_reply,
     generate_reply_memory_off, normalized_reference, GeneratedReply, ReplyReading, ReplyRowReading,
     TerminationCellGate, TerminationCellTraining, TerminationClass, TerminationGateTraining,
-    TerminationPointGate, TerminationReading, TerminationStepReading, TimedReplyReading,
-    TimedTerminationReading,
+    TerminationOrbitCell, TerminationOrbitGate, TerminationOrbitReplyReading,
+    TerminationOrbitTraining, TerminationPointGate, TerminationReading, TerminationStepReading,
+    TimedReplyReading, TimedTerminationReading,
 };
 pub use served_forward::{
     audit_served_forward, exact_fbs_contract, read_uort_token_slice, ExactFbsContract,
