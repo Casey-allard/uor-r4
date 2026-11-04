@@ -1,0 +1,75 @@
+{
+  "schema": "uor-r4.cpu-point-transfer-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "verdict": "negative-mixed-configuration",
+  "point_producer": "production build_point_key; no reply-start signal or memory move during training-point derivation",
+  "selection": {
+    "training_keys": 8,
+    "evaluation_keys": 8,
+    "key_overlap": 0,
+    "training_samples": 60,
+    "evaluation_samples": 60,
+    "training_documents": 54,
+    "evaluation_documents": 50
+  },
+  "seed_1": {
+    "opening": {
+      "point_off": {"top1": 0, "decisions": 60, "target_distance_sum": 64821741},
+      "point": {"top1": 2, "decisions": 60, "target_distance_sum": 64821741},
+      "random": {"top1": 0, "decisions": 60, "target_distance_sum": 64821741}
+    },
+    "full_teacher_forced": {
+      "point_off": {"top1": 169, "decisions": 2050, "target_distance_sum": 2347212773},
+      "point": {"top1": 171, "decisions": 2050, "target_distance_sum": 2347212773},
+      "random": {"top1": 169, "decisions": 2050, "target_distance_sum": 2347212773}
+    },
+    "parity": {
+      "point_off": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0},
+      "point": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0},
+      "random": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0}
+    },
+    "point_rows": 48,
+    "memory_artifact_sha256": "63c0c0c12ff2b16677ca84b99be705dee0d655ad9867893466fea87ab51f3d98",
+    "point_artifact_sha256": "ecd2c616a49e863a3c438f254094e4fbf596bb660e64d28135a0509a76b7ec56",
+    "random_artifact_sha256": "85ed67858c57873de7afb7c3a60bbca5f3fef2bd827c080034390fde2c240569",
+    "wall_elapsed_ms": 1049.029428,
+    "peak_rss_kib": 295904
+  },
+  "seed_2": {
+    "opening": {
+      "point_off": {"top1": 0, "decisions": 60, "target_distance_sum": 80445779},
+      "point": {"top1": 1, "decisions": 60, "target_distance_sum": 80445779},
+      "random": {"top1": 3, "decisions": 60, "target_distance_sum": 80445779}
+    },
+    "full_teacher_forced": {
+      "point_off": {"top1": 163, "decisions": 2050, "target_distance_sum": 2542446415},
+      "point": {"top1": 164, "decisions": 2050, "target_distance_sum": 2542446415},
+      "random": {"top1": 166, "decisions": 2050, "target_distance_sum": 2542446415}
+    },
+    "parity": {
+      "point_off": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0},
+      "point": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0},
+      "random": {"samples": 60, "positions": 2110, "query_coordinates": 540160, "token_decisions": 2110, "kept_cells": 16880, "mismatches": 0}
+    },
+    "point_rows": 48,
+    "memory_artifact_sha256": "e293b3c92910472975dab6ad8902787886f397c018adb42fe5980216775be100",
+    "point_artifact_sha256": "5f127f79ad3150a7814653ebb1bff1d7b4586a2ea7f26afb64b21fc60408cece",
+    "random_artifact_sha256": "48b4e621707cc6e251c31770463c007f97b6dfbecf9c7c78d135fcfbf8fb52ff",
+    "wall_elapsed_ms": 1043.543219,
+    "peak_rss_kib": 295728
+  },
+  "local_run_roots": [
+    "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-transfer/deepseek-104/seed-1",
+    "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-transfer/deepseek-104/seed-2"
+  ],
+  "invalid_first_runs": {
+    "reason": "custom training-point helper marked reply start before capture; exact-head review invalidated these runs as production-point evidence",
+    "roots": [
+      "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-transfer/deepseek-104/seed-1-invalid-reply-start",
+      "/home/callard/projects/codex-playground/uor-r4/local/deepseek/point-transfer/deepseek-104/seed-2-invalid-reply-start"
+    ],
+    "corrected_rerun_readings_identical": true
+  },
+  "reading": "Point improves point-off on both seeds, but shuffled targets beat it on seed 2, so the pre-registered strict-above-both bar fails. Distance is identical across arms, confirming that the point key changes only the served token."
+}
