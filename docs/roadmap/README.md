@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 23 |
+| ready | 24 |
 | held | 11 |
 | decision | 1 |
 | done | 104 |
-| total | 139 |
+| total | 140 |
 
 ## Start here
 
@@ -146,6 +146,7 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Run and grade the bounded CPU training pilot](items/cpu-training-pilot.md) | ready | a lab | no | [cpu-discrete-training-path](items/cpu-discrete-training-path.md), [cpu-shared-vector-train](items/cpu-shared-vector-train.md), [cpu-quantization-exact-memory](items/cpu-quantization-exact-memory.md), [cpu-whole-path-exact-updates](items/cpu-whole-path-exact-updates.md) | [#3506](https://github.com/UOR-Foundation/uor-r4/issues/3506) |
 | [Bring every status page, picture and tracker up to 31 Oct 2026](items/docs-status-refresh.md) | ready | a lab | no | none | [#3380](https://github.com/UOR-Foundation/uor-r4/issues/3380) |
+| [One kernel list for the float crate, and fused kernels for the served quantizers](items/float-kernel-fusion.md) | ready | a lab | yes | none | [#3678](https://github.com/UOR-Foundation/uor-r4/issues/3678) |
 | [Serve prompts and conversations past the 192-token window](items/integer-long-context.md) | ready | a lab | yes | [integer-hamming-read](items/integer-hamming-read.md) | [#3471](https://github.com/UOR-Foundation/uor-r4/issues/3471) |
 | [Score one model end to end on prompts it has not seen, with tokens per second](items/one-model-end-to-end.md) | ready | a lab | yes | [turn-memory-reply](items/turn-memory-reply.md) | [#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407) |
 | [Serve the point key's opening in the integer artifact on the laptop](items/point-key-integer.md) | ready | a lab | no | [one-model-end-to-end](items/one-model-end-to-end.md), [turn-memory-integer](items/turn-memory-integer.md), [integer-retention-rates](items/integer-retention-rates.md), [integer-nearest-readout](items/integer-nearest-readout.md) | [#3450](https://github.com/UOR-Foundation/uor-r4/issues/3450) |
