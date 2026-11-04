@@ -433,6 +433,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/trajectory-readout": {
+    "branch": "deepseek/trajectory-readout",
+    "claimed_at": "2026-11-04T17:11:57-05:00",
+    "head": "d5d173073",
+    "lab": "deepseek",
+    "note": "CPU trajectory-context content readout with matched-target controls"
+  },
   "deepseek/trunk-count-dose": {
     "branch": "deepseek/trunk-count-dose",
     "claimed_at": "2026-11-04T03:55:03-05:00",

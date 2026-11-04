@@ -14,6 +14,7 @@ type Result<T> = std::result::Result<T, CpuTrainError>;
 
 pub const CONTENT_SIGNATURE_BITS: usize = 256;
 pub const CONTENT_CODE_SIGNATURE_BITS: usize = CONTENT_SIGNATURE_BITS * 8;
+pub const CONTENT_TRAJECTORY_SIGNATURE_BITS: usize = CONTENT_CODE_SIGNATURE_BITS * 2;
 pub const CONTENT_MIN_TRAINING_ROWS: usize = 640;
 pub const CONTENT_MIN_TARGET_VALUES: usize = 16;
 pub type ContentSignature = Vec<u64>;
@@ -24,6 +25,7 @@ pub enum ContentSignatureMode {
     #[default]
     Sign,
     Code,
+    Trajectory,
 }
 
 impl ContentSignatureMode {
@@ -31,6 +33,7 @@ impl ContentSignatureMode {
         match self {
             Self::Sign => CONTENT_SIGNATURE_BITS,
             Self::Code => CONTENT_CODE_SIGNATURE_BITS,
+            Self::Trajectory => CONTENT_TRAJECTORY_SIGNATURE_BITS,
         }
     }
 }
@@ -69,6 +72,7 @@ pub struct ContentReadoutTraining {
 pub struct ContentReadoutReading {
     pub prompts: u64,
     pub decisions: u64,
+    pub generated_decisions: u64,
     pub readout_decisions: u64,
     pub writer_fallbacks: u64,
     pub top1: u64,
@@ -142,7 +146,38 @@ pub fn pack_content_signature(
                 signature[bit / 64] |= u64::from(value as u8) << (bit % 64);
             }
         }
+        ContentSignatureMode::Trajectory => {
+            return Err(invalid(
+                "trajectory signature needs the previous generated state",
+            ));
+        }
     }
+    Ok(signature)
+}
+
+pub fn pack_content_trajectory_signature(
+    query: &[i32],
+    previous: Option<&[u64]>,
+) -> Result<ContentSignature> {
+    let current = pack_content_signature(query, ContentSignatureMode::Code)?;
+    pack_content_trajectory_from_code(&current, previous)
+}
+
+fn pack_content_trajectory_from_code(
+    current: &[u64],
+    previous: Option<&[u64]>,
+) -> Result<ContentSignature> {
+    if previous.is_some_and(|previous| previous.len() != current.len()) {
+        return Err(invalid("content trajectory previous width differs"));
+    }
+    let mut signature = Vec::with_capacity(CONTENT_TRAJECTORY_SIGNATURE_BITS / 64);
+    signature.extend_from_slice(current);
+    signature.extend(
+        current
+            .iter()
+            .enumerate()
+            .map(|(index, word)| previous.map_or(0, |previous| word ^ previous[index])),
+    );
     Ok(signature)
 }
 
@@ -446,6 +481,7 @@ fn evaluate_generated(
             _ => return Err(invalid("content readout stop differs")),
         }
         reading.generated_tokens += reply.tokens.len() as u64;
+        reading.generated_decisions += decisions.len() as u64;
         if !reply.tokens.is_empty() {
             distinct.insert(reply.tokens.clone());
         }
@@ -536,9 +572,19 @@ fn generate_with_readout(
     let mut current = current.ok_or_else(|| invalid("content readout prompt is empty"))?;
     let mut decisions = Vec::new();
     let mut tokens = Vec::new();
+    let mut previous_signature = None;
     let stop = loop {
         let offset = decisions.len();
-        let signature = pack_content_signature(&current.query_q12, mode)?;
+        let code_signature =
+            pack_content_signature(&current.query_q12, ContentSignatureMode::Code)?;
+        let signature = match mode {
+            ContentSignatureMode::Trajectory => {
+                pack_content_trajectory_from_code(&code_signature, previous_signature.as_deref())?
+            }
+            ContentSignatureMode::Code => code_signature.clone(),
+            ContentSignatureMode::Sign => pack_content_signature(&current.query_q12, mode)?,
+        };
+        previous_signature = Some(code_signature);
         let (chosen, nearest_distance, ambiguous_nearest, used_readout) = match readout {
             Some(readout) => select_content_target(readout, &signature, current.token)?,
             None => (current.token, None, false, false),
@@ -2190,6 +2236,36 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_packing_places_current_code_then_transition() {
+        let query = (0..CONTENT_SIGNATURE_BITS)
+            .map(|index| index as i32 - 128)
+            .collect::<Vec<_>>();
+        let previous_query = query
+            .iter()
+            .map(|value| value.wrapping_mul(3).wrapping_add(7))
+            .collect::<Vec<_>>();
+        let current = pack_content_signature(&query, ContentSignatureMode::Code).unwrap();
+        let previous = pack_content_signature(&previous_query, ContentSignatureMode::Code).unwrap();
+        let trajectory = pack_content_trajectory_signature(&query, Some(&previous)).unwrap();
+        assert_eq!(trajectory.len(), CONTENT_TRAJECTORY_SIGNATURE_BITS / 64);
+        assert_eq!(&trajectory[..current.len()], current.as_slice());
+        assert_eq!(
+            &trajectory[current.len()..],
+            current
+                .iter()
+                .zip(&previous)
+                .map(|(current, previous)| current ^ previous)
+                .collect::<Vec<_>>()
+                .as_slice()
+        );
+        let first = pack_content_trajectory_signature(&query, None).unwrap();
+        assert_eq!(&first[..current.len()], current.as_slice());
+        assert!(first[current.len()..].iter().all(|word| *word == 0));
+        assert!(pack_content_trajectory_signature(&query, Some(&previous[1..])).is_err());
+        assert!(pack_content_signature(&query, ContentSignatureMode::Trajectory).is_err());
+    }
+
+    #[test]
     fn nearest_target_counts_only_minimum_distance_and_breaks_ties_by_token() {
         let rows = vec![row(0, 9), row(0, 7), row(1, 3), row(1, 3)];
         let nearest = nearest_target(&rows, rows.len(), &signature(0))
@@ -2322,7 +2398,11 @@ mod tests {
     fn generated_rows_align_to_offsets_and_free_replies_are_deterministic() {
         let artifact = artifact();
         let samples = vec![sample()];
-        for mode in [ContentSignatureMode::Sign, ContentSignatureMode::Code] {
+        for mode in [
+            ContentSignatureMode::Sign,
+            ContentSignatureMode::Code,
+            ContentSignatureMode::Trajectory,
+        ] {
             let (writer, _) =
                 generate_with_readout(&artifact, &samples[0], 4, false, mode, false, None).unwrap();
             let readout = ContentReadout {
@@ -2387,6 +2467,40 @@ mod tests {
             };
             assert_eq!(evaluate(1), evaluate(32), "{mode:?}");
         }
+    }
+
+    #[test]
+    fn capped_generation_counts_decisions_past_the_reference_horizon() {
+        let sample = sample();
+        let (reading, prompts) = evaluate_generated(std::slice::from_ref(&sample), 4, |_| {
+            let decisions = (0..4)
+                .map(|offset| Decision {
+                    offset,
+                    chosen: 7 + offset as u32,
+                    content_chosen: 7 + offset as u32,
+                    writer_chosen: 7 + offset as u32,
+                    gate_fired: false,
+                    signature: signature(offset),
+                    reference_target: (offset < 2).then_some(42),
+                    nearest_distance: Some(1),
+                    ambiguous_nearest: false,
+                    used_readout: true,
+                })
+                .collect();
+            Ok((
+                decisions,
+                Generated {
+                    tokens: vec![7, 8, 9, 10],
+                    stop: "cap",
+                },
+            ))
+        })
+        .unwrap();
+        assert_eq!(prompts[0].stop, "cap");
+        assert_eq!(reading.decisions, 2);
+        assert_eq!(reading.generated_decisions, 4);
+        assert_eq!(reading.readout_decisions, 4);
+        assert_eq!(reading.writer_fallbacks, 0);
     }
 
     #[test]

@@ -1,3 +1,25 @@
+## 2026-11-04 — First-order trajectory content readout closed at preflight (deepseek)
+
+The positive 2,048-bit content code was augmented with the generated-state
+transition, `current || current XOR previous`, for a 4,096-bit trajectory
+readout. The transition reduced leave-one-out ambiguity from **277 to 254**
+rows and coverage stayed within one row, but exact top-1 fell from **300 to
+297**. The target control changed 632/633 effective assignments. The
+registered preflight stopped before seed 2, public generation or the repeat.
+This closes the fixed current-plus-XOR concatenation, not trajectory content
+modeling generally. Record:
+[deepseek-144](../loop/tasks/cpu-training-pilot/deepseek-144/REPORT.md).
+Fresh exact-head review found that the first implementation's full-generation
+fallback check counted reference-aligned decisions while the readout counters
+covered every generated decision. [deepseek-145](../loop/tasks/cpu-training-pilot/deepseek-145/REPORT.md)
+adds an explicit total-generated-decision count and a capped-horizon
+regression, then reproduces the original preflight report and structured
+failure byte-for-byte from the corrected source. The same 300-versus-297
+result remains the registered stop.
+**Next:** test higher-order or learned transition geometry only if it preserves
+the code readout’s exact top-1 floor; separately pursue a nonterminal-aware
+continuation objective.
+
 ## 2026-11-04 — Two bounded geometric termination negatives (deepseek)
 
 The class-balanced generated-state density gate closed first: seed 1 recalled
