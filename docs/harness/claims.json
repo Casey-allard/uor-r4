@@ -349,6 +349,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/scope-content-serving": {
+    "branch": "deepseek/scope-content-serving",
+    "claimed_at": "2026-11-04T14:15:47-05:00",
+    "head": "67422a3b4",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/served-audit-release": {
     "branch": "deepseek/served-audit-release",
     "claimed_at": "2026-11-03T10:27:44-05:00",
