@@ -6,7 +6,17 @@
 //! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
 //! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
 //! 192-token windows. 192, the default, writes the same `config.json` as before. `--grad-norms 1`
-//! reads TRAIN at the window too; every other mode scores 192-token windows and refuses another.
+//! reads TRAIN at the window too. `--score-rows` cuts each `--panel` at N, at most the
+//! checkpoint's own window, while DEV and Fresh V2 keep 192, and every decode slides over the
+//! checkpoint's own window (claude-274); `--opening-keys`, `--served-key`, `--keyed-decode`,
+//! `--decision-trace` and `--decision-force` read 192-token windows and are refused at another
+//! N. Every other mode scores 192-token windows and refuses another.
+//!
+//! `--score-rows` also accepts `[--sample-opening first|last]` (claude-274): `first`, the
+//! default, decodes each sampled window from its first scored target, a reply opening; `last`
+//! from its last reply opening with at least 16 tokens of prompt, so a long window gives a long
+//! prompt. A `last` reference is the reply's part inside the window, so a reply that runs past
+//! the window's end is cut there: 7 of 16 on claude-274's chained panel at 192, none at 2,048.
 //!
 //! `--train-as-served 1` trains through the graph the integer artifact serves
 //! (one-model-end-to-end, claude-258 and deepseek-4): the trunk's tables, Hamming reads and turn
@@ -252,6 +262,7 @@ fn main() -> Result<()> {
     let mut integer_grade_on = false;
     let mut served_forward = None;
     let mut batched_decode = None;
+    let mut last_opening = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -460,6 +471,17 @@ fn main() -> Result<()> {
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
+            "--sample-opening" => {
+                last_opening = Some(match value.as_str() {
+                    "first" => false,
+                    "last" => true,
+                    other => {
+                        return Err(FloatTrainError::Invalid(format!(
+                            "--sample-opening wants first or last, not {other}"
+                        )))
+                    }
+                })
+            }
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,
@@ -644,7 +666,12 @@ fn main() -> Result<()> {
         decode.is_some(),
         score.is_some(),
     )?;
-    context_applies(config.context, modes[7] && recall == 0, grad_norms)?;
+    context_applies(config.context, modes[7] && recall == 0, grad_norms, score.is_some())?;
+    if last_opening.is_some() && score.is_none() {
+        return Err(FloatTrainError::Invalid(
+            "--sample-opening applies to --score-rows only".to_owned(),
+        ));
+    }
     if overturn_on && fresh_v2.is_some() {
         return Err(FloatTrainError::Invalid(
             "--overturn reads Fresh V2 from the scored files; it takes no --fresh-v2".to_owned(),
@@ -947,6 +974,8 @@ fn main() -> Result<()> {
             &device,
             served_forward,
             batched_decode_or_default(batched_decode),
+            config.context,
+            last_opening.unwrap_or(false),
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }
@@ -1242,12 +1271,16 @@ fn served_forward_applies(
 }
 
 /// `--context` sets the window training cuts TRAIN at and builds its model to read (claude-273),
-/// and `--grad-norms 1` reads TRAIN the same way. Every other mode, `--recall` and `--score-rows`
-/// among them, reads 192-token windows, so another window there would be ignored: it is refused.
-fn context_applies(context: usize, training: bool, grad_norms: bool) -> Result<()> {
-    if context != uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT && !(training || grad_norms) {
+/// `--grad-norms 1` reads TRAIN the same way, and `--score-rows` cuts its panels at it
+/// (claude-274). Every other mode, `--recall` among them, reads 192-token windows, so another
+/// window there would be ignored: it is refused.
+fn context_applies(context: usize, training: bool, grad_norms: bool, scoring: bool) -> Result<()> {
+    if context != uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT
+        && !(training || grad_norms || scoring)
+    {
         return Err(FloatTrainError::Invalid(
-            "--context applies to training with --out and to --grad-norms 1 only".to_owned(),
+            "--context applies to training with --out, --grad-norms 1 and --score-rows only"
+                .to_owned(),
         ));
     }
     Ok(())
@@ -1310,12 +1343,13 @@ mod tests {
     }
 
     #[test]
-    fn a_window_other_than_192_is_a_training_setting() {
+    fn a_window_other_than_192_trains_or_scores() {
         let sheet = uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT;
-        assert!(context_applies(sheet, false, false).is_ok());
-        assert!(context_applies(2048, true, false).is_ok());
-        assert!(context_applies(2048, false, true).is_ok());
-        assert!(context_applies(2048, false, false).is_err());
-        assert!(context_applies(sheet + 1, false, false).is_err());
+        assert!(context_applies(sheet, false, false, false).is_ok());
+        assert!(context_applies(2048, true, false, false).is_ok());
+        assert!(context_applies(2048, false, true, false).is_ok());
+        assert!(context_applies(2048, false, false, true).is_ok(), "claude-274: scoring at a window");
+        assert!(context_applies(2048, false, false, false).is_err());
+        assert!(context_applies(sheet + 1, false, false, false).is_err());
     }
 }

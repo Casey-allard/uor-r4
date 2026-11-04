@@ -202,6 +202,16 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   against 0.10 s at 192 × 4. This TRAIN's documents are short, so the
   2,048 windows were mostly padding, and no learning is claimed. Scoring at a
   window and the long corpus and panel move to P2b's sheet unit.
+  [claude-274](../../loop/tasks/one-model-end-to-end/claude-274/REPORT.md)
+  added scoring at a window: `--score-rows --context N` cuts each panel at
+  N, and every decode slides over the model's own window, while DEV and
+  Fresh V2 stay at 192. `--sample-opening last` decodes from a window's last
+  reply opening. On one RTX 5090, the base and head binaries scored a 192
+  checkpoint to byte-identical files. A 2,048 checkpoint's batched and serial
+  decodes at 2,048 were identical too. Its decode ran 10.5–12.6 tok/s at
+  prompts of about 1,960 tokens, against 54–55 at about 180, and scoring's
+  sampled peak was 5,356 MiB (5.2 GiB) at either window. The query panel, the long
+  corpus and the sheet are claude-275's.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;

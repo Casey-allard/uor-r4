@@ -1305,6 +1305,14 @@ fn fold_picks(picks: &[RowPick]) -> (NearestReading, WriterReading) {
     (reading, written)
 }
 
+/// How many windows of `window` positions one scoring forward holds (claude-274): at most the
+/// evaluation's established positions, `SHEET_EVAL_BATCH` windows of [`SHEET_CONTEXT`]. A loaded
+/// checkpoint's weights are variables, so a forward keeps its intermediates until its picks are
+/// read, and its memory grows with its positions. So 16 windows at 192, and one at 2,048.
+fn windows_per_forward(window: usize) -> usize {
+    (hs::SHEET_EVAL_BATCH * SHEET_CONTEXT / window.max(1)).clamp(1, hs::SHEET_EVAL_BATCH)
+}
+
 /// Every scored row of `dev` decoded by `model`, in panel order: the nearest token and the
 /// writer's pick from the same points, with the turn memory named at the rows training names
 /// (its openings, and its reply table's later rows). `on_query` sees each batch's query rows
@@ -1323,9 +1331,10 @@ fn row_picks(
 ) -> Result<Vec<RowPick>> {
     let table = table(model)?;
     let writer = model.native_vector_writer()?;
+    let per_forward = dev.first().map_or(hs::SHEET_EVAL_BATCH, |w| windows_per_forward(w.input_ids.len()));
     let forward = || {
         let mut out = Vec::new();
-        for chunk in dev.chunks(hs::SHEET_EVAL_BATCH) {
+        for chunk in dev.chunks(per_forward) {
             let windows: Vec<&CausalWindow> = chunk.iter().collect();
             let (ids, scored, targets) = assemble(&windows);
             if scored.is_empty() {
@@ -1361,16 +1370,14 @@ fn row_picks(
                         .collect(),
                 ));
                 // Its reply table (claude-193) moves the later reply rows, as training names them, at
-                // `assemble`'s row for each: the window's index times the context, plus the offset.
+                // `assemble`'s row for each, at this forward's own window (claude-274).
                 if crate::flock_read_memory::turn_memory().is_some_and(|m| m.reply_len().is_some())
                 {
-                    crate::flock_read_memory::set_reply_rows(Some(
-                        reply_rows(chunk, mask)
-                            .iter()
-                            .filter(|row| !row.opening)
-                            .map(|row| (row.window * SHEET_CONTEXT + row.offset, reply_key(row)))
-                            .collect(),
-                    ));
+                    crate::flock_read_memory::set_reply_rows(Some(reply_table_rows(
+                        chunk,
+                        mask,
+                        window_time(ids.len(), windows.len())?,
+                    )));
                 }
             }
             if trained_cut_on() {
@@ -4195,6 +4202,17 @@ fn reply_key(row: &ReplyRow) -> Vec<u32> {
     ReplyKey::TurnPosition(1).of(row)
 }
 
+/// The reply table's rows in one forward of `windows`, each `time` positions long: every row
+/// past its reply's opening, with its [`reply_key`], at [`assemble`]'s row for it, the window's
+/// index times `time` plus the offset (claude-274; before, the index times [`SHEET_CONTEXT`]).
+fn reply_table_rows(windows: &[CausalWindow], mask: &[u8], time: usize) -> Vec<(usize, Vec<u32>)> {
+    reply_rows(windows, mask)
+        .iter()
+        .filter(|row| !row.opening)
+        .map(|row| (row.window * time + row.offset, reply_key(row)))
+        .collect()
+}
+
 /// For each of `windows`, its rows past their reply's opening, each as its input offset and its
 /// [`reply_key`]: the rows the reply table is named at (claude-193).
 /// Each window's rows past their openings, as [`reply_offsets`] gives them.
@@ -4951,6 +4969,64 @@ fn sample_windows<'a>(
     eligible.into_iter().step_by(stride).take(samples).collect()
 }
 
+/// [`sample_windows`]' pick from each window's last reply opening (`--sample-opening last`,
+/// claude-274): every window with a scored target that opens a reply at least 16 tokens in is
+/// cut to a clone whose scored lists start at the last such target, and `samples` of those are
+/// taken as [`sample_windows`] takes them. So each prompt is its window's input through that
+/// opening, and its reference, corpus position and input flags follow it. In a chained
+/// conversation that is the latest turn in the window, with the earlier turns before it. Its
+/// reference is the scored targets left in the window, so a reply that runs past the window's
+/// end is cut there: 7 of 16 on claude-274's chained panel at 192, none at 2,048.
+fn last_openings(windows: &[CausalWindow], mask: &[u8], samples: usize) -> Vec<CausalWindow> {
+    let cut: Vec<CausalWindow> = windows
+        .iter()
+        .filter_map(|w| {
+            let at = w
+                .scored_offsets
+                .iter()
+                .zip(&w.scored_corpus_positions)
+                .rposition(|(&off, &p)| off >= 16 && opens_reply(mask, p))?;
+            Some(CausalWindow {
+                doc_id: w.doc_id,
+                input_ids: w.input_ids.clone(),
+                scored_offsets: w.scored_offsets[at..].to_vec(),
+                scored_targets: w.scored_targets[at..].to_vec(),
+                scored_corpus_positions: w.scored_corpus_positions[at..].to_vec(),
+            })
+        })
+        .collect();
+    sample_windows(&cut, mask, samples).into_iter().cloned().collect()
+}
+
+/// The scoring flags whose TRAIN table or trace read 192-token windows (claude-274): at any other
+/// `context`, each one asked for is refused by name, before the checkpoint loads.
+fn window_bound_flags(
+    context: usize,
+    keys: bool,
+    served: bool,
+    keyed: bool,
+    traces: bool,
+    forces: bool,
+) -> Result<()> {
+    let named: Vec<&str> = [
+        (keys, "--opening-keys"),
+        (served, "--served-key"),
+        (keyed, "--keyed-decode"),
+        (traces, "--decision-trace"),
+        (forces, "--decision-force"),
+    ]
+    .into_iter()
+    .filter_map(|(on, name)| on.then_some(name))
+    .collect();
+    if context == SHEET_CONTEXT || named.is_empty() {
+        return Ok(());
+    }
+    Err(invalid(format!(
+        "--context {context}: {} read 192-token windows; score them at 192",
+        named.join(", ")
+    )))
+}
+
 fn greedy_reply_with_mode(
     model: &StackModel,
     objective: PointObjective,
@@ -5193,7 +5269,8 @@ fn rank_order(mut candidates: Vec<(u32, f32)>) -> Vec<(u32, f32)> {
 
 /// Where a prompt of `prompt_len` tokens ends in a decode window that starts at sequence
 /// position `start` (claude-215): window positions below it are the prompt's. The window holds
-/// the last [`SHEET_CONTEXT`] tokens, so once the reply has pushed `start` past the prompt's
+/// the last of the model's own window of tokens (claude-274; before, the last
+/// [`SHEET_CONTEXT`]), so once the reply has pushed `start` past the prompt's
 /// start the cut moves down with it, and once the prompt has scrolled out it is 0.
 fn prompt_cut(prompt_len: usize, start: usize) -> usize {
     prompt_len.saturating_sub(start)
@@ -5350,6 +5427,8 @@ fn decode_reply_with_mode(
         )));
     }
     let table = table(model)?;
+    // The decode slides over the model's own window (claude-274; before, always the sheet's).
+    let context = model.config.context;
     with_eval_forward(served_mode, seed, 0, || {
         let mut ids = prompt.to_vec();
         let mut reply = Vec::with_capacity(reply_tokens);
@@ -5372,7 +5451,7 @@ fn decode_reply_with_mode(
                 }
                 continue;
             }
-            let window = &ids[ids.len().saturating_sub(SHEET_CONTEXT)..];
+            let window = &ids[ids.len().saturating_sub(context)..];
             let token = if objective.decodes_nearest() {
                 // The reply's first step is its opening row, the one the turn memory moves.
                 if reply.is_empty()
@@ -5383,7 +5462,7 @@ fn decode_reply_with_mode(
                 }
                 // A later step reads the reply table (claude-193), keyed by the turn at the prompt's
                 // last token, the reply's length and its last id.
-                let start = ids.len().saturating_sub(SHEET_CONTEXT);
+                let start = ids.len().saturating_sub(context);
                 let cut = prompt_cut(prompt.len(), start);
                 if !reply.is_empty()
                     && cut > 0
@@ -5500,8 +5579,10 @@ fn decode_reply_with_mode(
 /// A first scorer unit batches only whole-table nearest decoding with the full read, no forced
 /// opening and no served point key. Everything else keeps [`decode_reply_with_mode`]'s
 /// one-at-a-time path. Equal lengths avoid padding, which would change the recurrent state; each
-/// group is split by the evaluation's established row/token budget.
-fn exact_length_batches(prompts: &[Vec<u32>], reply_tokens: usize) -> Vec<Vec<usize>> {
+/// group is split by the evaluation's established row/token budget, `SHEET_EVAL_BATCH` windows
+/// of [`SHEET_CONTEXT`], at the widest window a member reaches, which the model's own `context`
+/// caps (claude-274). The budget stays in positions because a forward's memory grows with them.
+fn exact_length_batches(prompts: &[Vec<u32>], reply_tokens: usize, context: usize) -> Vec<Vec<usize>> {
     let budget = hs::SHEET_EVAL_BATCH * SHEET_CONTEXT;
     let mut by_length: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for (index, prompt) in prompts.iter().enumerate() {
@@ -5513,7 +5594,7 @@ fn exact_length_batches(prompts: &[Vec<u32>], reply_tokens: usize) -> Vec<Vec<us
         // A group is split by the widest window any member can reach, not only by its prompt.
         let final_width = width
             .saturating_add(reply_tokens)
-            .clamp(1, SHEET_CONTEXT);
+            .clamp(1, context);
         let per_group = budget
             .checked_div(final_width)
             .map_or(indices.len(), |count| count.max(1));
@@ -5610,7 +5691,9 @@ fn decode_replies_with_mode(
     let table = table(model)?;
     let memory = crate::flock_read_memory::turn_memory();
     let mut replies: Vec<Option<DecodedReply>> = (0..prompts.len()).map(|_| None).collect();
-    for group in exact_length_batches(prompts, reply_tokens) {
+    // The model's own window, as the serial decode slides over it (claude-274).
+    let context = model.config.context;
+    for group in exact_length_batches(prompts, reply_tokens, context) {
         let width = prompts[group[0]].len();
         if width == 0 {
             return Err(invalid("a batched decode needs a non-empty prompt"));
@@ -5636,8 +5719,8 @@ fn decode_replies_with_mode(
                 if state.iter().any(|row| row.ids.len() != time) {
                     return Err(invalid("a batched decode lost its rectangular history"));
                 }
-                let window_len = time.min(SHEET_CONTEXT);
-                let start = time.saturating_sub(SHEET_CONTEXT);
+                let window_len = time.min(context);
+                let start = time.saturating_sub(context);
                 let flat: Vec<u32> = state
                     .iter()
                     .flat_map(|row| row.ids[start..].iter().copied())
@@ -5791,13 +5874,19 @@ fn decode_replies_with_mode(
 /// I-F): at each step `j ≥ 1`, the key [`greedy_reply_key`] forms from `reply[..j]` in the
 /// window the decoder would see, exactly as [`decode_reply`] forms it. For a generated reply
 /// this is the table hit rate under generation; for the true reply after the same prompt it is
-/// the same rate under teacher forcing. `named` asks the reply table.
-fn reply_key_hits(prompt: &[u32], reply: &[u32], named: impl Fn(&[u32]) -> bool) -> (usize, usize) {
+/// the same rate under teacher forcing. `named` asks the reply table. `context` is the window
+/// the decoder slides over, the model's own (claude-274).
+fn reply_key_hits(
+    prompt: &[u32],
+    reply: &[u32],
+    context: usize,
+    named: impl Fn(&[u32]) -> bool,
+) -> (usize, usize) {
     let (mut keys, mut hits) = (0, 0);
     for j in 1..reply.len() {
         let mut ids = prompt.to_vec();
         ids.extend_from_slice(&reply[..j]);
-        let start = ids.len().saturating_sub(SHEET_CONTEXT);
+        let start = ids.len().saturating_sub(context);
         if prompt.len() <= start {
             continue;
         }
@@ -6343,6 +6432,10 @@ pub struct ScoredFile {
     /// their wall seconds, inside `decode`'s.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub search: Option<(u64, f64)>,
+    /// The window the file's split was cut at (claude-274): a `--panel`'s is `--context`'s. Left
+    /// out at [`SHEET_CONTEXT`], so a 192-token file's line is as before.
+    #[serde(skip_serializing_if = "is_sheet_context")]
+    pub context: usize,
 }
 
 /// The rows the tables control (T) names, and its hits among them, at the openings and at the
@@ -6372,6 +6465,9 @@ struct ScoreSplit {
     sha256: Option<String>,
     /// Whether its prompts are sampled: DEV and every `--panel`, never Fresh V2.
     samples: bool,
+    /// The window it is cut at: [`SHEET_CONTEXT`] for DEV and Fresh V2, `--context`'s for a
+    /// `--panel` (claude-274).
+    context: usize,
 }
 
 /// Write `bytes` to a new file at `path`; an existing file is refused, never replaced.
@@ -6453,6 +6549,13 @@ fn reference_reply(window: &CausalWindow, tokens: usize) -> Vec<u32> {
 ///   `out/opening-table.safetensors`, read back to the same bits, and the copy read back is served.
 ///
 /// `checkpoint` is a `step-N` directory; the flags and `arm` must match its run's.
+///
+/// **The window (claude-274).** Every `panels` split is cut into `context`-token windows, at most
+/// the checkpoint's own; DEV and Fresh V2 keep [`SHEET_CONTEXT`]'s. Every decode slides over the
+/// model's own window. Off [`SHEET_CONTEXT`], `keys`, `served_arm`, `keyed`, `traces` and
+/// `forces`, whose TRAIN table and trace read 192-token windows, are refused by name
+/// ([`window_bound_flags`]). With `last_opening`, each sample decodes from its window's
+/// last reply opening ([`last_openings`]) in place of its first.
 #[allow(clippy::too_many_arguments)]
 pub fn score_rows(
     data_root: &Path,
@@ -6479,8 +6582,19 @@ pub fn score_rows(
     device: &Device,
     served_forward: Option<bool>,
     batched_decode: bool,
+    context: usize,
+    last_opening: bool,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
+    training_context(context)?;
+    window_bound_flags(
+        context,
+        keys,
+        served_arm,
+        !keyed.is_empty(),
+        !traces.is_empty(),
+        !forces.is_empty(),
+    )?;
     if served_arm && !keys {
         return Err(invalid("--served-key reads the opening keys, so it needs --opening-keys 1"));
     }
@@ -6514,8 +6628,8 @@ pub fn score_rows(
     let eos = tokenizer
         .token_id("<|eos|>")
         .ok_or_else(|| invalid("the pinned tokenizer has no <|eos|>"))?;
-    let windows_of = |tokens: &[u32], mask: &[u8]| -> Result<Vec<CausalWindow>> {
-        Ok(hs::build_document_windows(tokens, mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?.0)
+    let windows_of = |tokens: &[u32], mask: &[u8], window: usize| -> Result<Vec<CausalWindow>> {
+        Ok(hs::build_document_windows(tokens, mask, window, hs::SHEET_BOS_ID)?.0)
     };
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     let mut splits = vec![ScoreSplit {
@@ -6524,15 +6638,17 @@ pub fn score_rows(
         mask: dev_mask,
         sha256: None,
         samples: true,
+        context: SHEET_CONTEXT,
     }];
     if let Some(dir) = fresh_v2 {
         let (tokens, mask) = load_fresh_v2(dir)?;
         splits.push(ScoreSplit {
             name: "fresh-v2".to_owned(),
-            windows: windows_of(&tokens, &mask)?,
+            windows: windows_of(&tokens, &mask, SHEET_CONTEXT)?,
             mask,
             sha256: None,
             samples: false,
+            context: SHEET_CONTEXT,
         });
     }
     for (name, dir) in panels {
@@ -6544,10 +6660,11 @@ pub fn score_rows(
         let (tokens, mask, sha) = load_unpinned_uort(dir)?;
         splits.push(ScoreSplit {
             name: name.clone(),
-            windows: windows_of(&tokens, &mask)?,
+            windows: windows_of(&tokens, &mask, context)?,
             mask,
             sha256: Some(sha),
             samples: true,
+            context,
         });
     }
     for (i, (name, _)) in traces.iter().enumerate() {
@@ -6564,6 +6681,12 @@ pub fn score_rows(
     crate::geometric_stack::set_reflected_floor(reflect_floor);
     let _guard = ArmGuard;
     let model = StackModel::load(checkpoint, device)?;
+    if context > model.config.context {
+        return Err(invalid(format!(
+            "--context {context} is past the checkpoint's own {}-token window",
+            model.config.context
+        )));
+    }
     load_reads(checkpoint, device)?;
     let unserved = unserved_reads();
     if !traces.is_empty() && !unserved.is_empty() {
@@ -6629,7 +6752,7 @@ pub fn score_rows(
         // The served table (claude-220), built from TRAIN; with `served_arm` it is saved to `out`
         // and read back, which must give the same bits, and the copy read back is the one served.
         let (train_tokens, train_mask) = load_train_split(data_root)?;
-        let train_windows = windows_of(&train_tokens, &train_mask)?;
+        let train_windows = windows_of(&train_tokens, &train_mask, SHEET_CONTEXT)?;
         let (built, targets, _) = opening_points(
             &model,
             &train_windows,
@@ -6727,6 +6850,7 @@ pub fn score_rows(
                 tables: None,
                 decode: None,
                 search: None,
+                context: split.context,
             });
         }
         // Greedy with the memory on and off; the Flock rules, and greedy under each read scope
@@ -6743,7 +6867,13 @@ pub fn score_rows(
         let active = crate::flock_read_memory::turn_memory();
         let named = |key: &[u32]| active.as_ref().is_some_and(|m| m.reply_stored(key).is_some());
         for (at, split) in splits.iter().enumerate().filter(|(_, s)| s.samples) {
-            let prompts = sample_windows(&split.windows, &split.mask, samples);
+            let last;
+            let prompts: Vec<&CausalWindow> = if last_opening {
+                last = last_openings(&split.windows, &split.mask, samples);
+                last.iter().collect()
+            } else {
+                sample_windows(&split.windows, &split.mask, samples)
+            };
             for &(rule, scope) in rules {
                 let started = std::time::Instant::now();
                 let prompt_ids: Vec<Vec<u32>> = prompts
@@ -6783,9 +6913,9 @@ pub fn score_rows(
                         ..
                     } = decoded;
                     let reference = reference_reply(window, reply_tokens);
-                    let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), named);
+                    let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), model.config.context, named);
                     let (reference_keys, reference_named) =
-                        reply_key_hits(prompt, cut_at_eos(&reference, eos), named);
+                        reply_key_hits(prompt, cut_at_eos(&reference, eos), model.config.context, named);
                     replies.push(IdSample {
                         position: window.scored_corpus_positions[0],
                         prompt: prompt.to_vec(),
@@ -6839,6 +6969,7 @@ pub fn score_rows(
                     tables: None,
                     decode: Some((decoded, seconds)),
                     search: None,
+                    context: split.context,
                 });
             }
             // Greedy with each reply's first token given, where `openings` gives one (the arms
@@ -6877,9 +7008,9 @@ pub fn score_rows(
                         (false, _) => (opening.filter(|_| record), None),
                     };
                     let reply = decoded.tokens;
-                    let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), named);
+                    let (reply_keys, reply_named) = reply_key_hits(prompt, cut_at_eos(&reply, eos), model.config.context, named);
                     let (reference_keys, reference_named) =
-                        reply_key_hits(prompt, cut_at_eos(&reference, eos), named);
+                        reply_key_hits(prompt, cut_at_eos(&reference, eos), model.config.context, named);
                     replies.push(IdSample {
                         position: window.scored_corpus_positions[0],
                         prompt: prompt.to_vec(),
@@ -6936,6 +7067,7 @@ pub fn score_rows(
                     tables: None,
                     decode: Some((decoded, seconds)),
                     search: serve.then_some((searches, micros as f64 / 1e6)),
+                    context: split.context,
                 });
             }
         }
@@ -6954,6 +7086,7 @@ pub fn score_rows(
             tables: None,
             decode: None,
             search: None,
+            context: split.context,
         });
     }
     if let Some(rows) = table_rows {
@@ -6966,6 +7099,7 @@ pub fn score_rows(
             tables: None,
             decode: None,
             search: None,
+            context: SHEET_CONTEXT,
         });
     }
     Ok(written)
@@ -7199,6 +7333,7 @@ pub fn controls(
                 tables: (label == "T").then_some(named),
                 decode: None,
                 search: None,
+                context: SHEET_CONTEXT,
             });
         }
     }
@@ -10540,7 +10675,7 @@ mod tests {
             .enumerate()
             .map(|(seed, len)| (0..len).map(|i| (i + seed) as u32).collect())
             .collect();
-        let groups = exact_length_batches(&prompts, 16);
+        let groups = exact_length_batches(&prompts, 16, SHEET_CONTEXT);
         let mut seen: Vec<usize> = groups.iter().flatten().copied().collect();
         seen.sort_unstable();
         assert_eq!(seen, (0..prompts.len()).collect::<Vec<_>>());
@@ -10551,7 +10686,7 @@ mod tests {
         }
         assert_eq!(
             groups,
-            exact_length_batches(&prompts, 16),
+            exact_length_batches(&prompts, 16, SHEET_CONTEXT),
             "the grouping is deterministic"
         );
     }
@@ -10559,12 +10694,12 @@ mod tests {
     #[test]
     fn exact_length_batches_split_a_wide_group_at_the_evaluation_budget() {
         let prompts: Vec<Vec<u32>> = (0..40).map(|seed| vec![seed; SHEET_CONTEXT]).collect();
-        let groups = exact_length_batches(&prompts, 64);
+        let groups = exact_length_batches(&prompts, 64, SHEET_CONTEXT);
         assert!(groups.len() > 1);
         assert!(groups.iter().all(|group| group.len() <= hs::SHEET_EVAL_BATCH));
         let near_context: Vec<Vec<u32>> =
             (0..40).map(|seed| vec![seed; SHEET_CONTEXT - 12]).collect();
-        let groups = exact_length_batches(&near_context, 64);
+        let groups = exact_length_batches(&near_context, 64, SHEET_CONTEXT);
         assert!(groups.iter().all(|group| {
             group.len() * SHEET_CONTEXT <= hs::SHEET_EVAL_BATCH * SHEET_CONTEXT
         }));
@@ -15048,9 +15183,9 @@ mod tests {
         let prompt = &windows[0].input_ids[..=3];
         let reply = [11u32, 12, 30];
         let keys: std::collections::HashSet<Vec<u32>> = later.iter().map(|r| reply_key(r)).collect();
-        assert_eq!(reply_key_hits(prompt, &reply, |k| keys.contains(k)), (2, 2));
-        assert_eq!(reply_key_hits(prompt, &reply, |_| false), (2, 0));
-        assert_eq!(reply_key_hits(prompt, &reply[..1], |_| true), (0, 0), "an opening only");
+        assert_eq!(reply_key_hits(prompt, &reply, SHEET_CONTEXT, |k| keys.contains(k)), (2, 2));
+        assert_eq!(reply_key_hits(prompt, &reply, SHEET_CONTEXT, |_| false), (2, 0));
+        assert_eq!(reply_key_hits(prompt, &reply[..1], SHEET_CONTEXT, |_| true), (0, 0), "an opening only");
     }
 
     /// claude-208 (review): rank `i` takes exactly `W_i` draws: a draw equal to a running sum
@@ -15076,8 +15211,8 @@ mod tests {
         assert_eq!(cut_at_eos(&[5, 6, EOS, 7, 8], EOS), &[5, 6, EOS]);
         assert_eq!(cut_at_eos(&[5, 6], EOS), &[5, 6]);
         let prompt = [0u32, 10, 11, 12];
-        let all = reply_key_hits(&prompt, &[11, 12, EOS, 40, 41, 42], |_| true).0;
-        let cut = reply_key_hits(&prompt, cut_at_eos(&[11, 12, EOS, 40, 41, 42], EOS), |_| true).0;
+        let all = reply_key_hits(&prompt, &[11, 12, EOS, 40, 41, 42], SHEET_CONTEXT, |_| true).0;
+        let cut = reply_key_hits(&prompt, cut_at_eos(&[11, 12, EOS, 40, 41, 42], EOS), SHEET_CONTEXT, |_| true).0;
         assert_eq!((all, cut), (5, 2), "the 3 steps after the end of turn are not counted");
     }
 
@@ -15089,8 +15224,145 @@ mod tests {
         let reply: Vec<u32> = (100..400).collect();
         // Step j's window is the last SHEET_CONTEXT of prompt + reply[..j]; it holds the prompt's
         // last token while 10 + j − SHEET_CONTEXT < 10, that is for j < SHEET_CONTEXT.
-        let (keys, _) = reply_key_hits(&prompt, &reply, |_| true);
+        let (keys, _) = reply_key_hits(&prompt, &reply, SHEET_CONTEXT, |_| true);
         assert_eq!(keys, SHEET_CONTEXT - 1);
+    }
+
+    /// claude-274: the hit rate slides over the window the decoder sees, the model's own. At
+    /// 2,048 the window keeps the prompt through every step; at 8, shorter than the prompt, it
+    /// loses it after 7.
+    #[test]
+    fn the_hit_rate_reads_the_window_the_decoder_sees() {
+        let prompt: Vec<u32> = (10..20).collect();
+        let reply: Vec<u32> = (100..400).collect();
+        assert_eq!(reply_key_hits(&prompt, &reply, 2048, |_| true).0, reply.len() - 1);
+        assert_eq!(reply_key_hits(&prompt, &reply, 8, |_| true).0, 7);
+    }
+
+    /// claude-274: the reply table's rows sit at the forward's own row for them, the window's
+    /// index times its length plus the offset, so at 2,048 the second window's rows start at
+    /// 2,048 and not at 192.
+    #[test]
+    fn the_reply_table_rows_follow_the_forward_s_window() {
+        // Two documents, each BOS, a prompt (3), a reply (3): the later rows are offsets 4 and 5.
+        let tokens = [0u32, 10, 11, 12, 11, 12, 30, 0, 20, 21, 22, 21, 22, 40];
+        let mask = [0u8, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1];
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 2048, 0).unwrap();
+        assert_eq!(windows.len(), 2);
+        let rows: Vec<usize> = reply_table_rows(&windows, &mask, 2048).into_iter().map(|(r, _)| r).collect();
+        assert_eq!(rows, [4, 5, 2048 + 4, 2048 + 5]);
+        let keys: Vec<Vec<u32>> = reply_table_rows(&windows, &mask, 2048).into_iter().map(|(_, k)| k).collect();
+        let later: Vec<Vec<u32>> =
+            reply_rows(&windows, &mask).iter().filter(|r| !r.opening).map(reply_key).collect();
+        assert_eq!(keys, later, "each row keeps its own key");
+    }
+
+    /// claude-274: a scoring forward holds the positions of 16 windows of 192, so 16 windows at
+    /// 192 as before, and fewer at longer windows.
+    #[test]
+    fn a_scoring_forward_holds_sixteen_windows_of_192_positions() {
+        assert_eq!(windows_per_forward(SHEET_CONTEXT), hs::SHEET_EVAL_BATCH);
+        assert_eq!(windows_per_forward(96), hs::SHEET_EVAL_BATCH, "never more than 16");
+        assert_eq!(windows_per_forward(1024), 3);
+        assert_eq!(windows_per_forward(2048), 1);
+        assert_eq!(windows_per_forward(4096), 1, "never fewer than 1");
+    }
+
+    /// claude-274: the batched decode's budget stays `SHEET_EVAL_BATCH` windows of 192 positions,
+    /// and a group's reach is capped by the model's own window. At 192 a 1,000-token prompt group
+    /// reaches the 192 window, 16 a batch, as before; at 2,048 its 1,064-token reach takes 2.
+    #[test]
+    fn exact_length_batches_cap_the_reach_at_the_model_s_window() {
+        let prompts: Vec<Vec<u32>> = (0..40).map(|seed| vec![seed; 1000]).collect();
+        let sizes = |context| -> Vec<usize> {
+            exact_length_batches(&prompts, 64, context).iter().map(Vec::len).collect()
+        };
+        assert_eq!(sizes(SHEET_CONTEXT), [16, 16, 8]);
+        assert_eq!(sizes(2048), [2; 20]);
+    }
+
+    /// claude-274: `--sample-opening last` decodes from each window's last reply opening with at
+    /// least 16 tokens of prompt. Its prompt runs through the earlier turns, and its reference,
+    /// position and input flags follow that opening; a window with no such opening is left out.
+    #[test]
+    fn the_last_opening_starts_each_window_at_its_latest_reply() {
+        // BOS, a 20-token prompt, a reply (3), a 5-token prompt, a reply (3); then a document
+        // whose only opening is 5 tokens in.
+        let mut tokens = vec![0u32];
+        tokens.extend(100..120);
+        tokens.extend([200, 201, 202]);
+        tokens.extend(300..305);
+        tokens.extend([400, 401, 402]);
+        tokens.extend([0, 500, 501, 502, 503, 504, 600, 601]);
+        let mask: Vec<u8> = tokens
+            .iter()
+            .map(|&t| u8::from((200..203).contains(&t) || (400..403).contains(&t) || t >= 600))
+            .collect();
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 2048, 0).unwrap();
+        assert_eq!(windows.len(), 2);
+        let first = sample_windows(&windows, &mask, 4);
+        assert_eq!(first.len(), 1, "the second document's opening is 5 tokens in");
+        assert_eq!(first[0].scored_offsets[0], 20);
+        let last = last_openings(&windows, &mask, 4);
+        assert_eq!(last.len(), 1);
+        let cut = &last[0];
+        assert_eq!((cut.doc_id, &cut.input_ids), (windows[0].doc_id, &windows[0].input_ids));
+        assert_eq!(cut.scored_offsets, [28, 29, 30]);
+        assert_eq!(cut.scored_corpus_positions, [29, 30, 31]);
+        assert_eq!(&cut.input_ids[..=cut.scored_offsets[0]], &tokens[..29], "the prompt holds both turns");
+        assert_eq!(reference_reply(cut, 64), [400, 401, 402]);
+        assert_eq!(
+            window_input_mask(&[cut], &mask).unwrap(),
+            window_input_mask(&[&windows[0]], &mask).unwrap(),
+            "the input flags are the window's own"
+        );
+    }
+
+    /// claude-274: a scored file at 192 writes no `context`, so a 192 manifest is as before; at
+    /// another window it names it.
+    #[test]
+    fn a_scored_file_names_its_window_only_off_192() {
+        let file = |context| ScoredFile {
+            file: "rows-p-dev-on.json".to_owned(),
+            rows: 3,
+            nearest_hits: Some(1),
+            writer_hits: None,
+            panel_sha256: None,
+            tables: None,
+            decode: None,
+            search: None,
+            context,
+        };
+        assert_eq!(
+            serde_json::to_string(&file(SHEET_CONTEXT)).unwrap(),
+            r#"{"file":"rows-p-dev-on.json","rows":3,"nearest_hits":1}"#
+        );
+        assert!(serde_json::to_string(&file(2048)).unwrap().ends_with(r#","context":2048}"#));
+    }
+
+    /// claude-274: off 192, each flag that reads 192-token windows is refused by its own name; at
+    /// 192, or with none of them, scoring goes ahead.
+    #[test]
+    fn each_192_bound_flag_is_refused_by_name_off_192() {
+        assert!(window_bound_flags(SHEET_CONTEXT, true, true, true, true, true).is_ok());
+        assert!(window_bound_flags(2048, false, false, false, false, false).is_ok());
+        let names = [
+            "--opening-keys",
+            "--served-key",
+            "--keyed-decode",
+            "--decision-trace",
+            "--decision-force",
+        ];
+        for (i, name) in names.iter().enumerate() {
+            let on = |j: usize| i == j;
+            let err = window_bound_flags(2048, on(0), on(1), on(2), on(3), on(4))
+                .expect_err(name)
+                .to_string();
+            assert!(err.contains(name) && err.contains("--context 2048"), "{err}");
+            for other in names.iter().filter(|o| *o != name) {
+                assert!(!err.contains(other), "{err} names {other}");
+            }
+        }
     }
 
     /// claude-208 (review): a panel name is one file-name part, and never DEV or Fresh V2.
