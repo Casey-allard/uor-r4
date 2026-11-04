@@ -1,0 +1,286 @@
+   Compiling serde_core v1.0.228
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.24
+   Compiling zmij v1.0.23
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.150
+   Compiling libc v0.2.186
+   Compiling crossbeam-utils v0.8.22
+   Compiling typenum v1.20.1
+   Compiling libm v0.2.16
+   Compiling crossbeam-epoch v0.9.20
+    Checking cfg-if v1.0.4
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling cc v1.2.67
+   Compiling arrayref v0.3.9 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/third_party/arrayref)
+   Compiling arrayvec v0.7.8
+   Compiling crossbeam-deque v0.8.7
+   Compiling constant_time_eq v0.3.1
+   Compiling generic-array v0.14.7
+   Compiling rayon-core v1.13.0
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+    Checking either v1.16.0
+    Checking hex v0.4.3
+   Compiling syn v2.0.119
+    Checking rayon v1.12.0
+   Compiling blake3 v1.5.0
+   Compiling memmap2 v0.9.11
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+    Checking uor-addr v0.2.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/third_party/uor-addr-0.2.0)
+   Compiling serde_derive v1.0.228
+    Checking uor-r4-vision v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-vision)
+    Checking uor-r4-tokenizer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-tokenizer)
+    Checking safetensors v0.6.2
+    Checking uor-r4-source-interface v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-source-interface)
+    Checking uor-r4-integer v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-integer)
+   Compiling uor-r4-core v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-core)
+   Compiling uor-r4-discrete v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-discrete)
+warning: method `words` is never used
+   --> crates/uor-r4-discrete/src/lib.rs:213:19
+    |
+184 | impl ReadSpec {
+    | ------------- method in this implementation
+...
+213 |     pub(crate) fn words(self) -> [u32; 3] {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `manifest` and `max_batches` are never read
+   --> crates/uor-r4-discrete/src/controller.rs:130:5
+    |
+129 | pub struct ValidatedRelease {
+    |            ---------------- fields in this struct
+130 |     manifest: ReleaseManifest,
+    |     ^^^^^^^^
+131 |     manifest_sha256: String,
+132 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `lineage_sha256` and `max_batches` are never used
+   --> crates/uor-r4-discrete/src/controller.rs:135:19
+    |
+134 | impl ValidatedRelease {
+    | --------------------- methods in this implementation
+135 |     pub(crate) fn lineage_sha256(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+138 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:218:4
+    |
+218 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_metadata` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:232:4
+    |
+232 | fn validate_release_metadata(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_with_owner` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:250:4
+    |
+250 | fn validate_release_with_owner(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:347:4
+    |
+347 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_resume_metadata` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:355:4
+    |
+355 | fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_baseline_pair` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:379:4
+    |
+379 | fn validate_baseline_pair(
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:395:4
+    |
+395 | fn validate_initial_baseline(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:536:4
+    |
+536 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `validate_owner` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:199:4
+    |
+199 | fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &CompletionOwner) -> Result<()> {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `imports_pilot` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:224:4
+    |
+224 | fn imports_pilot(config: &DriverConfig) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: function `release` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:299:4
+    |
+299 | fn release(
+    |    ^^^^^^^
+
+warning: function `migrate_parent` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:341:4
+    |
+341 | fn migrate_parent(
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `CompletionCheckpoint` is never constructed
+   --> crates/uor-r4-discrete/src/completion.rs:364:8
+    |
+364 | struct CompletionCheckpoint {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `publish_state_json` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:421:4
+    |
+421 | fn publish_state_json<T: Serialize>(path: &Path, value: &T, replace_latest: bool) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:501:4
+    |
+501 | fn validate_evaluation(
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:525:4
+    |
+525 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: constant `REFERENCE_SHA256` is never used
+ --> crates/uor-r4-discrete/src/completion_baseline.rs:6:7
+  |
+6 | const REFERENCE_SHA256: &str = "b92da0bf1ccda1c9de56a33de41d4698dc214bd71c588a6938a87443b9aca0b9";
+  |       ^^^^^^^^^^^^^^^^
+
+warning: function `digest` is never used
+  --> crates/uor-r4-discrete/src/completion_baseline.rs:20:4
+   |
+20 | fn digest(v: &impl Serialize) -> Result<String> {
+   |    ^^^^^^
+
+warning: function `authenticate` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:148:15
+    |
+148 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: function `authenticate_with_reference` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:164:4
+    |
+164 | fn authenticate_with_reference(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `publish_or_verify` is never used
+   --> crates/uor-r4-discrete/src/completion_baseline.rs:288:4
+    |
+288 | fn publish_or_verify(path: &Path, expected: &Value, completed: u64) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: field `snapshot` is never read
+   --> crates/uor-r4-discrete/src/q4_import.rs:125:5
+    |
+124 | pub struct ImportedQ4 {
+    |            ---------- field in this struct
+125 |     snapshot: Snapshot,
+    |     ^^^^^^^^
+    |
+    = note: `ImportedQ4` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+    --> crates/uor-r4-discrete/src/training.rs:2802:5
+     |
+2801 | pub struct CorpusUpdateAdmission {
+     |            --------------------- fields in this struct
+2802 |     lineage_sha256: String,
+     |     ^^^^^^^^^^^^^^
+2803 |     max_completed_batches: u64,
+     |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `zero_update_only` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2881:4
+     |
+2881 | fn zero_update_only(driver: &PreparedDriver) -> Result<()> {
+     |    ^^^^^^^^^^^^^^^^
+
+warning: associated function `guarded` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2894:8
+     |
+2890 | impl CorpusUpdateAdmission {
+     | -------------------------- associated function in this implementation
+...
+2894 |     fn guarded(driver: &PreparedDriver, max_completed_batches: u64) -> Result<Self> {
+     |        ^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+    --> crates/uor-r4-discrete/src/training.rs:2903:15
+     |
+2903 | pub(crate) fn issue_corpus_update_admission(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 30 warnings
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+    Checking uor-r4-cpu-train v0.1.0 (/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-stop-density/crates/uor-r4-cpu-train)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.92s

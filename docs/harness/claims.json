@@ -391,6 +391,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/stop-density": {
+    "branch": "deepseek/stop-density",
+    "claimed_at": "2026-11-04T15:40:21-05:00",
+    "head": "ae8fce0b7",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/stop-signature": {
     "branch": "deepseek/stop-signature",
     "claimed_at": "2026-11-04T08:31:51-05:00",

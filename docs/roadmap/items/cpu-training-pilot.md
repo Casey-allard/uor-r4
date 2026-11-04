@@ -319,6 +319,18 @@ gap, not completion or useful chat: the content arm remains 73/64 and 58/39
 with no exact replies. See
 [deepseek-140](../../loop/tasks/cpu-training-pilot/deepseek-140/REPORT.md).
 
+The next full-row density gate retained all 1,568 generated training states
+and conditioned terminal/nonterminal neighbour comparisons on the generated
+reply offset. Deterministic leave-one-out fitting selected k=8 and a margin
+under the 1% nonterminal false-stop limit. Seed 1 recalled only 19/84 terminal
+rows against the registered 26/84 floor, with 9/1,484 false stops; its
+class-preserving shuffled control also recalled 19/84, with 11/1,484 false
+stops. The preflight therefore stopped the run before seed 2, free generation
+or the worker-count repeat. This closes the fixed full-row offset-conditioned
+K<=8 density representation and leaves the next termination attempt to a
+continuation objective or a different terminal-state representation. See
+[deepseek-142](../../loop/tasks/cpu-training-pilot/deepseek-142/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

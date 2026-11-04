@@ -116,6 +116,8 @@ pub struct ContentPromptReading {
     pub stop: String,
     pub generated_tokens: u64,
     pub reference_tokens: u64,
+    pub generated_ids: Vec<u32>,
+    pub decision_sha256: String,
 }
 
 pub fn pack_content_signature(
@@ -470,12 +472,18 @@ fn evaluate_generated(
             stop: reply.stop.to_owned(),
             generated_tokens: reply.tokens.len() as u64,
             reference_tokens: reference.len() as u64,
+            generated_ids: reply.tokens.clone(),
+            decision_sha256: uor_r4_discrete::corpus::sha256(
+                &serde_json::to_vec(&(&decisions, &reply.tokens, reply.stop))
+                    .map_err(|error| invalid(format!("content decision trace: {error}")))?,
+            ),
         });
     }
     reading.distinct_non_empty = distinct.len() as u64;
     Ok((reading, prompts))
 }
 
+#[derive(serde::Serialize)]
 struct Decision {
     offset: usize,
     chosen: u32,
@@ -659,6 +667,7 @@ pub struct ContentStopRow {
     pub signature: ContentSignature,
     pub terminal: bool,
     pub writer_token: u32,
+    pub offset: u16,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -679,6 +688,36 @@ pub struct ContentStopTraining {
     pub terminal_stops: u64,
     pub nonterminal_stops: u64,
     pub nonterminal_stop_limit: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopDensityPoint {
+    pub signature: ContentSignature,
+    pub offset: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopDensityGate {
+    pub signature_bits: usize,
+    pub terminal_rows: Vec<ContentStopDensityPoint>,
+    pub nonterminal_rows: Vec<ContentStopDensityPoint>,
+    pub neighbors: usize,
+    pub offset_radius: u16,
+    pub margin: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopDensityTraining {
+    pub gate: ContentStopDensityGate,
+    pub terminal_rows: u64,
+    pub nonterminal_rows: u64,
+    pub terminal_stops: u64,
+    pub nonterminal_stops: u64,
+    pub nonterminal_stop_limit: u64,
+    pub leave_one_out_neighbors: usize,
 }
 
 pub fn derive_content_stop_rows(
@@ -712,6 +751,7 @@ pub fn derive_content_stop_rows(
                         signature: decision.signature,
                         terminal: decision.offset == reference_len,
                         writer_token: decision.content_chosen,
+                        offset: decision.offset as u16,
                     })
                     .collect::<Vec<_>>()
             })
@@ -831,6 +871,122 @@ pub fn fit_content_stop_gate(
         terminal_stops,
         nonterminal_stops,
         nonterminal_stop_limit,
+    })
+}
+
+pub fn fit_content_stop_density_gate(
+    rows: &[ContentStopRow],
+    max_neighbors: usize,
+    offset_radius: u16,
+) -> Result<ContentStopDensityTraining> {
+    if max_neighbors == 0 || max_neighbors > 16 {
+        return Err(invalid("content stop density neighbors are out of bounds"));
+    }
+    let terminal = rows.iter().filter(|row| row.terminal).count();
+    let nonterminal = rows.len() - terminal;
+    if terminal == 0 || nonterminal == 0 {
+        return Err(invalid("content stop density fitting needs both classes"));
+    }
+    let nonterminal_stop_limit = nonterminal as u64 / 100;
+    let mut best: Option<(u64, u64, i64, usize)> = None;
+    for neighbors in [1usize, 2, 4, 8, 16] {
+        if neighbors > max_neighbors || neighbors > terminal || neighbors > nonterminal {
+            continue;
+        }
+        let deltas = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| {
+                content_stop_density_score(
+                    rows,
+                    Some(index),
+                    row.offset,
+                    &row.signature,
+                    neighbors,
+                    offset_radius,
+                )
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut thresholds = deltas.clone();
+        thresholds.sort_unstable();
+        thresholds.dedup();
+        for margin in thresholds {
+            let terminal_stops = rows
+                .iter()
+                .zip(&deltas)
+                .filter(|(row, delta)| row.terminal && **delta >= margin)
+                .count() as u64;
+            let nonterminal_stops = rows
+                .iter()
+                .zip(&deltas)
+                .filter(|(row, delta)| !row.terminal && **delta >= margin)
+                .count() as u64;
+            if terminal_stops == 0 || nonterminal_stops > nonterminal_stop_limit {
+                continue;
+            }
+            if best.is_none_or(
+                |(best_terminal, best_nonterminal, best_margin, best_neighbors)| {
+                    terminal_stops > best_terminal
+                        || (terminal_stops == best_terminal
+                            && (nonterminal_stops < best_nonterminal
+                                || (nonterminal_stops == best_nonterminal
+                                    && (margin > best_margin
+                                        || (margin == best_margin && neighbors < best_neighbors)))))
+                },
+            ) {
+                best = Some((terminal_stops, nonterminal_stops, margin, neighbors));
+            }
+        }
+    }
+    let (terminal_stops, nonterminal_stops, margin, neighbors) = best.ok_or_else(|| {
+        invalid("content stop density found no neighbor/margin under the false-stop limit")
+    })?;
+    let points = |terminal_class| {
+        let mut points = rows
+            .iter()
+            .filter(|row| row.terminal == terminal_class)
+            .map(|row| ContentStopDensityPoint {
+                signature: row.signature.clone(),
+                offset: row.offset,
+            })
+            .collect::<Vec<_>>();
+        points.sort_by(|left, right| {
+            left.offset
+                .cmp(&right.offset)
+                .then_with(|| left.signature.cmp(&right.signature))
+        });
+        points
+    };
+    Ok(ContentStopDensityTraining {
+        gate: ContentStopDensityGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            terminal_rows: points(true),
+            nonterminal_rows: points(false),
+            neighbors,
+            offset_radius,
+            margin,
+        },
+        terminal_rows: terminal as u64,
+        nonterminal_rows: nonterminal as u64,
+        terminal_stops,
+        nonterminal_stops,
+        nonterminal_stop_limit,
+        leave_one_out_neighbors: neighbors,
+    })
+}
+
+pub fn evaluate_content_stop_density_gate(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentStopDensityGate,
+) -> Result<(ContentReadoutReading, Vec<ContentPromptReading>)> {
+    validate_content_readout(readout)?;
+    validate_content_stop_density_gate(gate)?;
+    evaluate_generated(samples, cap, |sample| {
+        generate_with_content_density_gate(artifact, sample, cap, memory_enabled, readout, gate)
     })
 }
 
@@ -954,6 +1110,141 @@ pub fn content_stop_gate_fires(
     Ok(content_stop_fires(gate, signature))
 }
 
+fn validate_content_stop_density_gate(gate: &ContentStopDensityGate) -> Result<()> {
+    if gate.signature_bits != CONTENT_CODE_SIGNATURE_BITS
+        || gate.terminal_rows.is_empty()
+        || gate.nonterminal_rows.is_empty()
+        || gate.neighbors == 0
+        || gate.neighbors > 16
+    {
+        return Err(invalid("content stop density gate shape differs"));
+    }
+    if gate
+        .terminal_rows
+        .iter()
+        .chain(&gate.nonterminal_rows)
+        .any(|point| point.signature.len() != gate.signature_bits / 64)
+    {
+        return Err(invalid("content stop density point width differs"));
+    }
+    Ok(())
+}
+
+fn content_stop_density_distance_sum(
+    rows: &[ContentStopRow],
+    skip: Option<usize>,
+    terminal: bool,
+    signature: &ContentSignature,
+    offset: u16,
+    neighbors: usize,
+    offset_radius: u16,
+) -> u64 {
+    let eligible = |index: usize, row: &ContentStopRow| {
+        Some(index) != skip
+            && row.terminal == terminal
+            && row.offset.abs_diff(offset) <= offset_radius
+    };
+    let mut distances = rows
+        .iter()
+        .enumerate()
+        .filter(|(index, row)| eligible(*index, row))
+        .map(|(_, row)| content_hamming(signature, &row.signature))
+        .collect::<Vec<_>>();
+    let available = distances.len();
+    distances.sort_unstable();
+    let observed = distances
+        .into_iter()
+        .take(neighbors)
+        .map(u64::from)
+        .sum::<u64>();
+    let missing = neighbors.saturating_sub(available) as u64;
+    observed + missing * CONTENT_CODE_SIGNATURE_BITS as u64
+}
+
+fn content_stop_density_score(
+    rows: &[ContentStopRow],
+    skip: Option<usize>,
+    offset: u16,
+    signature: &ContentSignature,
+    neighbors: usize,
+    offset_radius: u16,
+) -> Result<i64> {
+    let terminal = content_stop_density_distance_sum(
+        rows,
+        skip,
+        true,
+        signature,
+        offset,
+        neighbors,
+        offset_radius,
+    );
+    let nonterminal = content_stop_density_distance_sum(
+        rows,
+        skip,
+        false,
+        signature,
+        offset,
+        neighbors,
+        offset_radius,
+    );
+    i64::try_from(nonterminal)
+        .ok()
+        .and_then(|nonterminal| {
+            i64::try_from(terminal)
+                .ok()
+                .map(|terminal| nonterminal - terminal)
+        })
+        .ok_or_else(|| invalid("content stop density sum is out of range"))
+}
+
+fn content_stop_density_fires(
+    gate: &ContentStopDensityGate,
+    signature: &ContentSignature,
+    offset: u16,
+) -> Result<bool> {
+    let terminal = gate
+        .terminal_rows
+        .iter()
+        .filter(|point| point.offset.abs_diff(offset) <= gate.offset_radius)
+        .map(|point| content_hamming(signature, &point.signature))
+        .collect::<Vec<_>>();
+    let nonterminal = gate
+        .nonterminal_rows
+        .iter()
+        .filter(|point| point.offset.abs_diff(offset) <= gate.offset_radius)
+        .map(|point| content_hamming(signature, &point.signature))
+        .collect::<Vec<_>>();
+    let nearest_sum = |mut distances: Vec<u32>| {
+        let missing = gate.neighbors.saturating_sub(distances.len()) as u64;
+        distances.sort_unstable();
+        let observed = distances
+            .into_iter()
+            .take(gate.neighbors)
+            .map(u64::from)
+            .sum::<u64>();
+        observed + missing * gate.signature_bits as u64
+    };
+    let terminal = nearest_sum(terminal);
+    let nonterminal = nearest_sum(nonterminal);
+    Ok(
+        i64::try_from(nonterminal).unwrap_or(i64::MAX)
+            - i64::try_from(terminal).unwrap_or(i64::MAX)
+            >= gate.margin,
+    )
+}
+
+pub fn content_stop_density_gate_fires(
+    gate: &ContentStopDensityGate,
+    signature: &ContentSignature,
+    offset: u16,
+) -> Result<bool> {
+    validate_content_stop_density_gate(gate)?;
+    if signature.len() != gate.signature_bits / 64 {
+        return Err(invalid("content stop density query width differs"));
+    }
+    content_stop_density_fires(gate, signature, offset)
+}
+
 fn generate_with_content_gate(
     artifact: &[u8],
     sample: &MemoryWeightSample,
@@ -1024,6 +1315,88 @@ fn generate_with_content_gate(
         current = forward
             .step(chosen, CpuFbsHead::Writer)
             .map_err(|error| invalid(format!("content stop generated step: {error}")))?;
+    };
+    Ok((decisions, Generated { tokens, stop }))
+}
+
+fn generate_with_content_density_gate(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentStopDensityGate,
+) -> Result<(Vec<Decision>, Generated)> {
+    if cap == 0 || cap > 64 || sample.prompt.is_empty() {
+        return Err(invalid(
+            "content stop density sample, prompt or cap differs",
+        ));
+    }
+    let reference = normalized_reference(&sample.reply);
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("content stop density forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    let mut current = None;
+    for (index, &token) in sample.prompt.iter().enumerate() {
+        if index + 1 == sample.prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content stop density prompt step: {error}")))?;
+        if index + 1 == sample.prompt.len() {
+            current = Some(step);
+        }
+    }
+    let mut current = current.ok_or_else(|| invalid("content stop density prompt is empty"))?;
+    let mut decisions = Vec::new();
+    let mut tokens = Vec::new();
+    let stop = loop {
+        let offset = decisions.len();
+        let signature = pack_content_signature(&current.query_q12, ContentSignatureMode::Code)?;
+        let (content_chosen, nearest_distance, ambiguous_nearest, used_readout) =
+            select_content_target(readout, &signature, current.token)?;
+        let gate_fired = content_stop_density_fires(
+            gate,
+            &signature,
+            offset.try_into().map_err(|_| {
+                invalid("content stop density offset exceeds the row representation")
+            })?,
+        )?;
+        let chosen = if gate_fired {
+            POINT_KEY_BOS
+        } else {
+            content_chosen
+        };
+        decisions.push(Decision {
+            offset,
+            chosen,
+            content_chosen,
+            writer_chosen: current.token,
+            gate_fired,
+            signature,
+            reference_target: reference.get(offset).copied(),
+            nearest_distance,
+            ambiguous_nearest,
+            used_readout,
+        });
+        let end = reply_stop(chosen, offset, sample.prompt.len(), cap, context);
+        if end != Some(ReplyEnd::Bos) {
+            tokens.push(chosen);
+        }
+        if let Some(end) = end {
+            break match end {
+                ReplyEnd::Bos => "bos",
+                ReplyEnd::Length => "cap",
+                ReplyEnd::Context => "context",
+            };
+        }
+        current = forward
+            .step(chosen, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content stop density generated step: {error}")))?;
     };
     Ok((decisions, Generated { tokens, stop }))
 }
@@ -1588,12 +1961,14 @@ mod tests {
                 signature: code_signature(index),
                 terminal: true,
                 writer_token: 7,
+                offset: index as u16,
             })
             .collect::<Vec<_>>();
         rows.extend((100..120).map(|index| ContentStopRow {
             signature: code_signature(index),
             terminal: false,
             writer_token: 8,
+            offset: index as u16,
         }));
         let training = fit_content_stop_gate(&rows, 4).unwrap();
         assert_eq!(
@@ -1633,6 +2008,73 @@ mod tests {
     }
 
     #[test]
+    fn content_stop_density_uses_all_rows_and_respects_generated_offset() {
+        let mut rows = (0..20)
+            .map(|index| ContentStopRow {
+                signature: code_signature(index % 2),
+                terminal: true,
+                writer_token: 7,
+                offset: 5,
+            })
+            .collect::<Vec<_>>();
+        rows.extend((100..120).map(|index| ContentStopRow {
+            signature: code_signature(100 + index % 2),
+            terminal: false,
+            writer_token: 8,
+            offset: 5,
+        }));
+        let training = fit_content_stop_density_gate(&rows, 8, 0).unwrap();
+        assert_eq!(training.terminal_rows, 20);
+        assert_eq!(training.nonterminal_rows, 20);
+        assert!(training.terminal_stops > 0);
+        assert_eq!(training.nonterminal_stops, 0);
+        assert_eq!(training.gate.terminal_rows.len(), 20);
+        assert_eq!(training.gate.nonterminal_rows.len(), 20);
+        assert!(content_stop_density_gate_fires(&training.gate, &code_signature(0), 5).unwrap());
+        assert!(!content_stop_density_gate_fires(&training.gate, &code_signature(103), 5).unwrap());
+        assert!(
+            !content_stop_density_gate_fires(&training.gate, &code_signature(0), 2)
+                .unwrap_or(false)
+        );
+        let mut reordered = rows.clone();
+        reordered.reverse();
+        assert_eq!(
+            fit_content_stop_density_gate(&reordered, 8, 0).unwrap(),
+            training
+        );
+        let shuffled = shuffle_content_stop_rows(&rows, 3).unwrap();
+        assert_eq!(
+            shuffled.iter().map(|row| row.offset).collect::<Vec<_>>(),
+            rows.iter().map(|row| row.offset).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            shuffled.iter().filter(|row| row.terminal).count(),
+            rows.iter().filter(|row| row.terminal).count()
+        );
+    }
+
+    #[test]
+    fn content_stop_density_round_trips_and_validates_width() {
+        let rows = (0..8)
+            .map(|index| ContentStopRow {
+                signature: code_signature(index),
+                terminal: index < 4,
+                writer_token: 7,
+                offset: index as u16,
+            })
+            .collect::<Vec<_>>();
+        let training = fit_content_stop_density_gate(&rows, 4, 2).unwrap();
+        let encoded = serde_json::to_vec(&training).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<ContentStopDensityTraining>(&encoded).unwrap(),
+            training
+        );
+        let mut malformed = training.gate;
+        malformed.terminal_rows[0].signature.pop();
+        assert!(content_stop_density_gate_fires(&malformed, &code_signature(0), 0).is_err());
+    }
+
+    #[test]
     fn content_stop_margin_uses_the_full_one_percent_false_stop_boundary() {
         let terminal_signature = vec![0u64; CONTENT_CODE_SIGNATURE_BITS / 64];
         let nonterminal_majority = code_signature_bits([100, 101]);
@@ -1642,17 +2084,20 @@ mod tests {
                 signature: terminal_signature.clone(),
                 terminal: true,
                 writer_token: 7,
+                offset: 4,
             })
             .collect::<Vec<_>>();
         rows.extend((0..99).map(|_| ContentStopRow {
             signature: nonterminal_majority.clone(),
             terminal: false,
             writer_token: 8,
+            offset: 0,
         }));
         rows.push(ContentStopRow {
             signature: boundary_outlier,
             terminal: false,
             writer_token: 8,
+            offset: 1,
         });
 
         let training = fit_content_stop_gate(&rows, 1).unwrap();
@@ -1670,12 +2115,14 @@ mod tests {
                 signature: shared.clone(),
                 terminal: true,
                 writer_token: 7,
+                offset: 4,
             })
             .collect::<Vec<_>>();
         rows.extend((0..100).map(|_| ContentStopRow {
             signature: shared.clone(),
             terminal: false,
             writer_token: 8,
+            offset: 0,
         }));
 
         assert!(fit_content_stop_gate(&rows, 8)
@@ -1733,6 +2180,72 @@ mod tests {
         assert_eq!(reading.bos_stopped, 1);
         assert_eq!(prompts[0].stop, "bos");
         assert_eq!(evaluate(1), evaluate(32));
+    }
+
+    #[test]
+    fn generated_density_gate_preserves_content_until_it_fires() {
+        let artifact = artifact();
+        let samples = vec![sample()];
+        let (writer, _) = generate_with_readout(
+            &artifact,
+            &samples[0],
+            4,
+            false,
+            ContentSignatureMode::Code,
+            false,
+            None,
+        )
+        .unwrap();
+        let content = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: writer
+                .iter()
+                .map(|decision| ContentExample {
+                    signature: decision.signature.clone(),
+                    target: decision.content_chosen,
+                })
+                .collect(),
+            max_distance: 0,
+        };
+        let gate = ContentStopDensityGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            terminal_rows: vec![ContentStopDensityPoint {
+                signature: writer[2].signature.clone(),
+                offset: 2,
+            }],
+            nonterminal_rows: vec![
+                ContentStopDensityPoint {
+                    signature: writer[0].signature.clone(),
+                    offset: 0,
+                },
+                ContentStopDensityPoint {
+                    signature: writer[1].signature.clone(),
+                    offset: 1,
+                },
+            ],
+            neighbors: 1,
+            offset_radius: 0,
+            margin: 1,
+        };
+        let evaluate = |threads| {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                evaluate_content_stop_density_gate(&artifact, &samples, 4, false, &content, &gate)
+                    .unwrap()
+            })
+        };
+        let (reading, prompts) = evaluate(1);
+        assert_eq!(evaluate(32), evaluate(1));
+        assert_eq!(reading.gate_fires, 1);
+        assert_eq!(reading.gated_decisions, 1);
+        assert_eq!(reading.ungated_token_mismatches, 0);
+        assert_eq!(reading.bos_stopped, 1);
+        assert_eq!(prompts[0].stop, "bos");
     }
 
     #[test]

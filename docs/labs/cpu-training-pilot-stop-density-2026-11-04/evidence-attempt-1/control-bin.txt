@@ -1,0 +1,10 @@
+
+running 6 tests
+test tests::density_terminal_pairing_uses_the_same_control_rule ... ok
+test tests::content_non_inferiority_uses_both_ordered_metrics ... ok
+test tests::bos_length_accounting_separates_exact_shorter_and_longer_stops ... ok
+test tests::paired_threshold_uses_control_only_disagreements ... ok
+test tests::terminal_pairing_threshold_uses_control_only_disagreements ... ok
+test tests::terminal_pairing_requires_the_two_sigma_disagreement ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
