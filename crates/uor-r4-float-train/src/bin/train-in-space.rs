@@ -20,8 +20,11 @@
 //! (`HammingReads::with_copy_keys`, claude-268); the checkpoint records the list when they differ.
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
-//! `--batched-decode 1` lets `--score-rows` decode equal-length prompts together on the
-//! full-scope nearest arms. It defaults to 0 while GPU parity is being qualified.
+//! `--score-rows` decodes equal-length prompts together on the full-scope nearest arms, except
+//! their forced-opening and served-key decodes, and everything else one prompt at a time
+//! (`BATCHED_DECODE_DEFAULT`, claude-270). `--batched-decode 0`
+//! decodes every prompt one at a time: the serial reference, which gave byte-identical files on
+//! an RTX 5090 at two arms and two seeds.
 //!
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
@@ -200,6 +203,14 @@ use uor_r4_float_train::in_space_long::{
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_snapshot::DecisionForce;
 
+/// Whether `--score-rows` batches equal-length prompts when `--batched-decode` is not given.
+const BATCHED_DECODE_DEFAULT: bool = true;
+
+/// The `--batched-decode` switch as given, or [`BATCHED_DECODE_DEFAULT`] when it is not.
+fn batched_decode_or_default(given: Option<bool>) -> bool {
+    given.unwrap_or(BATCHED_DECODE_DEFAULT)
+}
+
 fn main() -> Result<()> {
     let mut data_root = None;
     let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
@@ -235,7 +246,7 @@ fn main() -> Result<()> {
     let mut panel_prompts_on = false;
     let mut integer_grade_on = false;
     let mut served_forward = None;
-    let mut batched_decode = false;
+    let mut batched_decode = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -442,7 +453,7 @@ fn main() -> Result<()> {
             }
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--served-forward" => served_forward = Some(switch(&value)?),
-            "--batched-decode" => batched_decode = switch(&value)?,
+            "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--batch" => config.batch = number(&value)?,
             "--eval-every" => config.eval_every = number(&value)?,
             "--seed" => config.seed = number(&value)? as u64,
@@ -925,7 +936,7 @@ fn main() -> Result<()> {
             forces,
             &device,
             served_forward,
-            batched_decode,
+            batched_decode_or_default(batched_decode),
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }
@@ -1256,6 +1267,15 @@ mod tests {
         assert!(panel_arg("p-dev").is_err());
         assert!(panel_arg("=dir").is_err());
         assert!(panel_arg("name=").is_err());
+    }
+
+    #[test]
+    fn score_rows_decodes_batched_unless_told_otherwise() {
+        // claude-270: the batched path gave byte-identical files to the serial one on the GPU;
+        // `--batched-decode 0` keeps the serial reference.
+        assert!(batched_decode_or_default(None));
+        assert!(!batched_decode_or_default(Some(false)));
+        assert!(batched_decode_or_default(Some(true)));
     }
 
     #[test]

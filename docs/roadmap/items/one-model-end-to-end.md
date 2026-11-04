@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [turn-memory-reply]
 notebook: docs/research/notebook/float-training.md
-scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs, crates/uor-r4-float-train/src/fbs_export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-training/src/bin/m-world-recall-corpus.rs, crates/uor-r4-training/src/bin/mix-chat-corpus.rs, crates/uor-r4-training/Cargo.toml, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-cpu-train/src/hamming.rs, crates/uor-r4-cpu-train/src/served_forward.rs, crates/uor-r4-cpu-train/src/fbs.rs]
+scope: [docs/labs/one-model-end-to-end/**, docs/harness/prep/one-model-end-to-end*, docs/loop/tasks/one-model-end-to-end/**, docs/research/notebook/float-training.md, docs/roadmap/items/one-model-end-to-end.md, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-training/examples/m-world.rs, crates/uor-r4-float-train/src/fbs_export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-training/src/bin/m-world-recall-corpus.rs, crates/uor-r4-training/src/bin/mix-chat-corpus.rs, crates/uor-r4-training/Cargo.toml, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-cpu-train/src/hamming.rs, crates/uor-r4-cpu-train/src/served_forward.rs, crates/uor-r4-cpu-train/src/fbs.rs, crates/uor-r4-training/src/milestone_world_v2.rs]
 ---
 
 ## Why it matters
@@ -165,6 +165,14 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   head by its own key and matches the integer session exactly on mixed
   artifacts, and `fbs-toks --copy-codes`, which assumes copy key 1, refuses
   one. The public readers no longer refuse a mixed record.
+  [claude-270](../../loop/tasks/one-model-end-to-end/claude-270/REPORT.md)
+  made batched decode the scorer's default. First it reran claude-266's
+  scoring command on current code, serial and then batched, on (b) seed 1 and
+  (k2) seed 2. Every output file was byte-identical, and the serial files
+  matched claude-266's stored ones. The decode ran 42 → 242 and 42 → 256
+  tok/s (about 6×). `--batched-decode 0` keeps the serial reference. This
+  item's scope gains the corpus generator `milestone_world_v2.rs`, for the
+  long-conversation corpus.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
