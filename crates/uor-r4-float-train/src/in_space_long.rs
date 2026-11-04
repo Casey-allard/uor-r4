@@ -5326,6 +5326,9 @@ pub struct AnswerOverlap {
     pub numbers_in_train: usize,
     /// Up to 16 of the distinct answers found, in order.
     pub found: Vec<String>,
+    /// Every query whose answer is found, by its index in the panel's `queries.json`, in order
+    /// (claude-281): the queries a reading sets aside.
+    pub found_queries: Vec<usize>,
 }
 
 /// The alphanumeric pieces of `text`.
@@ -5348,8 +5351,9 @@ fn answer_overlap(
         numbers: 0,
         numbers_in_train: 0,
         found: Vec::new(),
+        found_queries: Vec::new(),
     };
-    for answer in answers {
+    for (query, answer) in answers.iter().enumerate() {
         let number = answer.chars().all(|c| c.is_ascii_digit());
         let mut pieces = words_of(answer).peekable();
         let found = pieces.peek().is_some() && pieces.all(|w| train_words.contains(w));
@@ -5359,6 +5363,9 @@ fn answer_overlap(
         } else {
             overlap.words += 1;
             overlap.words_in_train += usize::from(found);
+        }
+        if found {
+            overlap.found_queries.push(query);
         }
         if found && overlap.found.len() < 16 && !overlap.found.contains(answer) {
             overlap.found.push(answer.clone());
@@ -5670,19 +5677,24 @@ fn take_served_searches() -> (u64, u64) {
 }
 
 /// The batched decode's forwards (claude-279): the step cache's prefills, its steps, and the
-/// whole-window forwards that every other step re-runs.
+/// whole-window forwards that every other step re-runs. `first_refusal` names the kind of the
+/// first refusal ([`crate::geometric_stack::CacheRefusal::kind`]) that kept a group from
+/// prefilling or dropped its cache,
+/// a window slide included (claude-281).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct DecodeForwards {
     pub prefills: u64,
     pub steps: u64,
     pub whole: u64,
+    pub first_refusal: Option<&'static str>,
 }
 
 thread_local! {
     /// Whether the batched decode uses the exact step cache on this thread (claude-279).
     static DECODE_CACHE: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
-    static DECODE_FORWARDS: std::cell::Cell<DecodeForwards> =
-        const { std::cell::Cell::new(DecodeForwards { prefills: 0, steps: 0, whole: 0 }) };
+    static DECODE_FORWARDS: std::cell::Cell<DecodeForwards> = const {
+        std::cell::Cell::new(DecodeForwards { prefills: 0, steps: 0, whole: 0, first_refusal: None })
+    };
 }
 
 /// Whether [`decode_replies_with_mode`]'s batched path steps with the exact step cache
@@ -5695,6 +5707,13 @@ pub fn set_decode_cache(on: bool) {
 /// The batched decode's forwards on this thread since the last call, and a reset.
 pub fn take_decode_forwards() -> DecodeForwards {
     DECODE_FORWARDS.with(|c| c.replace(DecodeForwards::default()))
+}
+
+/// Record `refusal` as the pass's first, unless one is recorded already.
+fn note_refusal(refusal: &crate::geometric_stack::CacheRefusal) {
+    count_forward(|counts| {
+        counts.first_refusal.get_or_insert(refusal.kind());
+    });
 }
 
 fn count_forward(add: impl FnOnce(&mut DecodeForwards)) {
@@ -6109,10 +6128,14 @@ fn decode_replies_with_mode(
                     .collect();
                 // Each row's newest id, the one position a cached step computes.
                 let step_ids: Vec<u32> = state.iter().map(|row| row.ids[time - 1]).collect();
-                if cache
+                // The decode's forwards run without a row cut, so a cut left on the thread must
+                // not refuse the cache before it is cleared (claude-281).
+                crate::flock_read_hamming::set_row_cut(None);
+                if let Some(refusal) = cache
                     .as_ref()
-                    .is_some_and(|c| model.step_refusal(c, &step_ids).is_some())
+                    .and_then(|c| model.step_refusal(c, &step_ids))
                 {
+                    note_refusal(&refusal);
                     cache = None;
                 }
                 let stepping = step > 0 && cache.is_some();
@@ -6124,7 +6147,13 @@ fn decode_replies_with_mode(
                     && step == 0
                     && time < context
                     && reply_tokens > 1
-                    && model.prefill_refusal(&flat, batch, window_len).is_none();
+                    && match model.prefill_refusal(&flat, batch, window_len) {
+                        Some(refusal) => {
+                            note_refusal(&refusal);
+                            false
+                        }
+                        None => true,
+                    };
 
                 let mut openings = Vec::new();
                 let mut reply_rows = Vec::new();
@@ -6154,7 +6183,6 @@ fn decode_replies_with_mode(
                 crate::flock_read_memory::set_reply_rows(
                     (!reply_rows.is_empty()).then_some(reply_rows),
                 );
-                crate::flock_read_hamming::set_row_cut(None);
                 let forward =
                     match cache.as_mut() {
                         Some(filled) if stepping => model.step_cached(filled, &step_ids).map(Some),
@@ -15503,6 +15531,15 @@ mod tests {
                     "{case}: one forward per decode step either way"
                 );
                 assert!(on.whole > 0 && on.whole < off.whole, "{case}: {on:?} against {off:?}");
+                // claude-281: the 3-position prompt's prefill and the slides are refusals, named.
+                assert_eq!(
+                    off.first_refusal, None,
+                    "{case}: a refusal with the cache off"
+                );
+                assert!(
+                    matches!(on.first_refusal, Some("short prompt" | "window full")),
+                    "{case}: {on:?}"
+                );
                 for (sample, (whole, cached)) in whole.iter().zip(&cached).enumerate() {
                     assert_eq!(whole.tokens, cached.tokens, "{case}, sample {sample}");
                     assert_eq!(whole.admitted, cached.admitted, "{case}, sample {sample}");
@@ -15511,6 +15548,39 @@ mod tests {
                 }
                 (stepped, prefilled) = (stepped + on.steps, prefilled + on.prefills);
             }
+        }
+        // claude-281: a row cut left on the thread neither refuses the prefill nor changes a
+        // reply; the decode clears it before it asks. Every forward clears the cut after it, so
+        // the cut meets only the first group's first step: the 3-position prompt is left out, as
+        // its prefill is refused as a short prompt before the cut is asked about.
+        let decode_cut = || {
+            set_decode_cache(true);
+            let replies = decode_replies_with_mode(
+                &model,
+                PointObjective::Cell,
+                &prompts[1..],
+                &masks[1..],
+                14,
+                17,
+                DecodeRule::Greedy,
+                None,
+                ReadScope::Full,
+                false,
+                true,
+            );
+            (replies, take_decode_forwards())
+        };
+        let (uncut, clear) = decode_cut();
+        crate::flock_read_hamming::set_row_cut(Some((
+            crate::flock_read_hamming::ReadScope::Copy,
+            vec![2; 4],
+        )));
+        let (cut, left) = decode_cut();
+        assert!(!crate::flock_read_hamming::row_cut_set(), "the row cut outlived its decode");
+        assert_eq!(left, clear, "a row cut left on the thread changed the forwards");
+        assert!(left.prefills > 0, "a row cut left on the thread refused the prefill: {left:?}");
+        for (sample, (uncut, cut)) in uncut?.iter().zip(&cut?).enumerate() {
+            assert_eq!(uncut.tokens, cut.tokens, "row cut, sample {sample}");
         }
         crate::flock_read_hamming::set_hamming_reads(None);
         crate::flock_read_memory::set_turn_memory(None);
@@ -16543,6 +16613,19 @@ mod tests {
         );
         assert_eq!((overlap.numbers, overlap.numbers_in_train), (2, 1));
         assert_eq!(overlap.found, ["97", "likperkmist"]);
+        assert_eq!(overlap.found_queries, [0, 1, 2]);
+    }
+
+    /// claude-281: the census names every query it finds, past the 16 values `found` lists.
+    #[test]
+    fn the_answer_census_names_every_query_it_finds() {
+        let train: std::collections::HashSet<String> =
+            (0..40).map(|n| n.to_string()).collect();
+        let answers: Vec<String> = (0..30).map(|n| (n * 2).to_string()).collect();
+        let overlap = answer_overlap("q-tt", &answers, &train);
+        assert_eq!(overlap.numbers_in_train, 20);
+        assert_eq!(overlap.found.len(), 16);
+        assert_eq!(overlap.found_queries, (0..20).collect::<Vec<_>>());
     }
 
     /// claude-275: `--panel-queries` reads the panel writer's record, and refuses one of another

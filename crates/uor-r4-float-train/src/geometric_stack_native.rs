@@ -647,6 +647,9 @@ pub struct DecodeCache {
     /// f32, the stream's read first and the readout's last (claude-279). A step's read asks at its
     /// own position against them all, as the whole window's read does at that position.
     pub(crate) reads: Vec<Tensor>,
+    /// The Hamming reads the prefill read under, by [`crate::flock_read_hamming::hamming_reads_epoch`]
+    /// (claude-281): reads set since, even at as many sites, are refused.
+    reads_epoch: u64,
     /// Each row's ids at every position seen, for the Hamming reads' keys (claude-279).
     window: Vec<Vec<u32>>,
 }
@@ -732,6 +735,28 @@ impl std::fmt::Display for CacheRefusal {
             Self::GateTelemetry => write!(f, "gate telemetry capture is on"),
             Self::SnapInstrument => write!(f, "a D11 snap capture or replay is on"),
             Self::FbsArm => write!(f, "an FBS projection arm is set"),
+        }
+    }
+}
+
+impl CacheRefusal {
+    /// The refusal's kind, without its numbers: the read's or instrument's name for a
+    /// [`Self::ReadHook`] (claude-281, `DecodeForwards::first_refusal`).
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Bf16Storage => "bf16 storage",
+            Self::Shape { .. } => "shape",
+            Self::ShortPrompt { .. } => "short prompt",
+            Self::LongPrompt { .. } => "long prompt",
+            Self::WindowFull { .. } => "window full",
+            Self::Batch { .. } => "batch",
+            Self::Vocabulary { .. } => "vocabulary",
+            Self::ReadHook(name) => name,
+            Self::OpeningRow => "opening row",
+            Self::RateInstrument => "rate instrument",
+            Self::GateTelemetry => "gate telemetry",
+            Self::SnapInstrument => "snap instrument",
+            Self::FbsArm => "FBS arm",
         }
     }
 }
@@ -1470,6 +1495,7 @@ impl StackModel {
             context: self.config.context,
             layers,
             reads,
+            reads_epoch: crate::flock_read_hamming::hamming_reads_epoch(),
             window: ids.chunks(time).map(<[u32]>::to_vec).collect(),
         };
         Ok((hidden, cache))
@@ -1547,7 +1573,9 @@ impl StackModel {
         if crate::flock_read_memory::memory_rows().is_some_and(|rows| !rows.is_empty()) {
             return Some(CacheRefusal::OpeningRow);
         }
-        if hamming_read_sites(self.config.layers()) != cache.reads.len() {
+        if hamming_read_sites(self.config.layers()) != cache.reads.len()
+            || crate::flock_read_hamming::hamming_reads_epoch() != cache.reads_epoch
+        {
             return Some(CacheRefusal::ReadHook(
                 "Hamming read, set or cleared since the prefill,",
             ));
@@ -3368,6 +3396,7 @@ mod decode_cache_tests {
             context: 16,
             layers: vec![carry; model.config.layers()],
             reads: Vec::new(),
+            reads_epoch: crate::flock_read_hamming::hamming_reads_epoch(),
             window: vec![vec![0; 15]; 2],
         };
         assert_eq!(
@@ -3391,6 +3420,30 @@ mod decode_cache_tests {
                 "Hamming read, set or cleared since the prefill,"
             ))
         );
+        // claude-281: reads replaced since the prefill at as many sites are refused too. The
+        // cache holds an input for every site of the reads set now, but it was filled under the
+        // reads set before.
+        let sites = hamming_read_sites(model.config.layers());
+        assert!(
+            sites > 0,
+            "the reads set no site, so the identity check is vacuous"
+        );
+        let mut replaced = DecodeCache {
+            reads: vec![Tensor::zeros((2, 15, 256), DType::F32, &device)?; sites],
+            reads_epoch: hamming::hamming_reads_epoch(),
+            ..cache.clone()
+        };
+        assert_eq!(model.step_refusal(&replaced, &[1, 2]), None);
+        hamming::set_hamming_reads(Some(hamming::HammingReads::new(4, 256, &device)?));
+        assert_eq!(hamming_read_sites(model.config.layers()), sites);
+        assert_eq!(
+            model.step_refusal(&replaced, &[1, 2]),
+            Some(CacheRefusal::ReadHook(
+                "Hamming read, set or cleared since the prefill,"
+            ))
+        );
+        replaced.reads_epoch = hamming::hamming_reads_epoch();
+        assert_eq!(model.step_refusal(&replaced, &[1, 2]), None);
         let refused = |set: &dyn Fn(), clear: &dyn Fn()| {
             set();
             let refusal = model.prefill_refusal(&ids(4), 1, 4);
@@ -3421,8 +3474,21 @@ mod decode_cache_tests {
                 },
                 &|| hamming::set_code_force(Vec::new()),
             ),
+            refused(&|| hamming::set_hamming_tie_rule(false), &|| {
+                hamming::set_hamming_tie_rule(true)
+            }),
         ];
         hamming::set_hamming_reads(None);
+        // Reads set and cleared since the prefill leave as many sites as it saw, none, and are
+        // refused too (claude-281); a count of sites alone passes them.
+        assert_eq!(hamming_read_sites(model.config.layers()), cache.reads.len());
+        assert_eq!(
+            model.step_refusal(&cache, &[1, 2]),
+            Some(CacheRefusal::ReadHook(
+                "Hamming read, set or cleared since the prefill,"
+            ))
+        );
+        cache.reads_epoch = hamming::hamming_reads_epoch();
         assert_eq!(
             instruments,
             [
@@ -3430,6 +3496,7 @@ mod decode_cache_tests {
                 "Hamming read's row cut",
                 "Hamming read's decision trace",
                 "Hamming read's forced codes",
+                "Hamming read's open tie order (tie rule off)",
             ]
             .map(|name| Some(CacheRefusal::ReadHook(name)))
         );

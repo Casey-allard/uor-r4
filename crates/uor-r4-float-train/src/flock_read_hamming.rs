@@ -79,6 +79,9 @@ const FILE: &str = "hamming_read.safetensors";
 
 thread_local! {
     static ACTIVE: RefCell<Option<HammingReads>> = const { RefCell::new(None) };
+    /// How many times [`set_hamming_reads`] has run on this thread (claude-281): the decode
+    /// cache's prefill records it, and a step refuses reads set since.
+    static EPOCH: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     static CUT: std::cell::Cell<Option<(ReadScope, usize)>> = const { std::cell::Cell::new(None) };
     static ROW_CUT: RefCell<Option<(ReadScope, Vec<usize>)>> = const { RefCell::new(None) };
     static TIE: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
@@ -201,9 +204,13 @@ pub fn row_cut_set() -> bool {
 
 /// The read's instrument set on this thread that the decode cache's step cannot carry, if one is
 /// (claude-279): the decode cut and the row cut name the whole window's positions and rows, and
-/// the decision trace and forced codes name its rows.
+/// the decision trace and forced codes name its rows. With the tie rule off, a CUDA sort leaves
+/// the order of equal keys open, so a step's read could break a tie the whole window's does not
+/// (claude-281).
 pub(crate) fn step_instrument() -> Option<&'static str> {
-    if CUT.with(|c| c.get()).is_some() {
+    if !hamming_tie_rule() {
+        Some("Hamming read's open tie order (tie rule off)")
+    } else if CUT.with(|c| c.get()).is_some() {
         Some("Hamming read's decode cut")
     } else if row_cut_set() {
         Some("Hamming read's row cut")
@@ -266,6 +273,13 @@ fn is_candidate(s: usize, t: usize, first: usize, limit: usize) -> bool {
 /// Make `reads` the Hamming reads `StackModel::hidden` applies on this thread, or none.
 pub fn set_hamming_reads(reads: Option<HammingReads>) {
     ACTIVE.with(|cell| *cell.borrow_mut() = reads);
+    EPOCH.with(|e| e.set(e.get() + 1));
+}
+
+/// How many times [`set_hamming_reads`] has run on this thread: the identity of the reads set,
+/// which a count of read sites alone does not give (claude-281).
+pub(crate) fn hamming_reads_epoch() -> u64 {
+    EPOCH.with(|e| e.get())
 }
 
 /// The Hamming reads `StackModel::hidden` applies on this thread, if set.

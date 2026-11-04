@@ -262,6 +262,21 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   FBS arm was refused. That arm projects as no arm does, and is now carried.
   A cached step costs an estimated 8–9 ms for (L) at either window, which is the next cost to
   cut.
+  [claude-281](../../loop/tasks/one-model-end-to-end/claude-281/REPORT.md)
+  classified P2b's Negative on one RTX 5090, for about $0.61. It re-scored P2b's
+  sealed (L) at both seeds at 2,048, on p-long and three new panels: trained
+  phrasings with trained values (q-tt, the positive control), trained
+  phrasings with dev values, and dev phrasings with trained values. The model
+  states 0 of q-tt's 283 far word answers at both seeds, as it states 0 of
+  p-long's 306. So the Bar reads Mechanism: it does not recall a far note even
+  in its trained cell, on panels drawn as TRAIN was. That closes P2b's read
+  configuration (copy key 1, the earliest 16 matches averaged) at this recipe,
+  not the read. claude-267's oracle, not this test, chooses the next one; it
+  ranks P6's mixed pair `k2>k1` highest on DEV. The phrasing changes the reply's
+  form, not its value: on trained phrasings 386–427 of 610–617 replies open as
+  the trained answer does, against 139–173 on held-out phrasings, where about
+  80 a panel are acknowledgements. The unit also landed the decode cache's four
+  refusals.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
