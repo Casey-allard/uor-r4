@@ -523,6 +523,150 @@ pub fn quaternion_scan(transition: &Tensor, drive: &Tensor) -> Result<Tensor> {
         .contiguous()?
         .apply_op2(&drive.contiguous()?, QuaternionScan)?)
 }
+/// The scan's state one position after `held`, through the scan's own kernel (claude-278). The
+/// kernel runs two positions: from its zero start, a zero transition and `held` as the drive give
+/// `held` back, and the second position applies the scan's step, `T ⊗ held + D`, with this
+/// position's `transition` and `drive`. So the step runs the very instructions the whole-window
+/// scan runs at that position. The one difference: a component of `held` that is exactly −0
+/// enters as +0 (`+0 + −0 = +0`). That can change a bit only where every term of a component of
+/// the Hamilton product is zero and the drive component added to it is exactly −0.
+fn quaternion_scan_step(held: &Tensor, transition: &Tensor, drive: &Tensor) -> Result<Tensor> {
+    let zero = held.zeros_like()?;
+    let both = quaternion_scan(
+        &Tensor::cat(&[&zero, transition], 1)?,
+        &Tensor::cat(&[held, drive], 1)?,
+    )?;
+    Ok(both.narrow(1, 1, 1)?)
+}
+
+/// One layer's carry in a [`DecodeCache`]: what the recurrence reads from earlier positions.
+#[derive(Clone, Debug)]
+pub struct LayerCarry {
+    /// The convolution's inputs at the last `CONVOLUTION_WIDTH - 1` positions, oldest first, each
+    /// `(batch, 1, width)`: the rows the whole-window forward's shifted copies read.
+    pub(crate) inputs: Vec<Tensor>,
+    /// The scan's state at the last position, `(batch, 1, lanes, 4)`: the value the scan kernel
+    /// holds in registers and, under f32 storage, stores unrounded.
+    pub(crate) held: Tensor,
+}
+
+/// The trunk's exact step cache (claude-278, P3 cache unit 1). A decode step re-runs the whole
+/// window through [`StackModel::hidden`]. The trunk is causal, and every op in it but two works
+/// one row at a time with fixed thread blocks, so its result does not depend on how many rows a
+/// launch holds: the norms, the projections, the gates, the quantizers (each row's own maximum),
+/// the residuals and the MLP. The two that look back are the width-4 causal convolution and the
+/// quaternion scan. The cache carries what those two read, per layer, at f32, and
+/// [`StackModel::step_cached`] computes one position through the same ops, in the same order.
+///
+/// It is the float twin of the integer session's per-layer carry
+/// (`uor_r4_integer::stack::session::LayerState::Recurrence`: the scan state and the
+/// convolution's `[3][width]` history), so the served session can share its state format.
+///
+/// A cache holds the values of the model it was filled from: after the model's variables change
+/// it needs a new [`StackModel::prefill_cached`].
+#[derive(Clone, Debug)]
+pub struct DecodeCache {
+    batch: usize,
+    /// The positions seen: the prompt's, then one per step.
+    position: usize,
+    /// The model's window. A step past it would slide the window, which the cache cannot do.
+    context: usize,
+    /// One carry per layer, in layer order.
+    pub(crate) layers: Vec<LayerCarry>,
+}
+
+impl DecodeCache {
+    /// The rows the cache carries.
+    pub fn batch(&self) -> usize {
+        self.batch
+    }
+    /// The positions seen; the next step computes position `position()`.
+    pub fn position(&self) -> usize {
+        self.position
+    }
+    /// The window of the model the cache was filled from.
+    pub fn context(&self) -> usize {
+        self.context
+    }
+}
+
+/// Why the cache cannot fill or take a step (claude-278). The caller runs the whole-window
+/// forward instead, so a refusal never leaves a second path computing something else.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CacheRefusal {
+    /// bf16 activation storage rounds the scan's stored state, while the kernel's own carry
+    /// stays f32; the cache carries f32 only.
+    Bf16Storage,
+    /// No rows, or ids that are not `batch` windows of `time` positions.
+    Shape {
+        batch: usize,
+        time: usize,
+        ids: usize,
+    },
+    /// A prompt shorter than the convolution's width.
+    ShortPrompt { time: usize },
+    /// A prompt longer than the model's window.
+    LongPrompt { time: usize, context: usize },
+    /// A step that would pass the model's window, which then slides.
+    WindowFull { context: usize },
+    /// Step ids that are not one per row of the cache.
+    Batch { cache: usize, ids: usize },
+    /// An id outside the vocabulary.
+    Vocabulary { id: u32 },
+    /// A read set on this thread that the step does not carry (the Hamming read's step is the
+    /// next unit's).
+    ReadHook(&'static str),
+    /// A step row named as a turn-memory opening row. The opening reads the window's turn
+    /// anchor; in a decode it is the prompt's last row, which the prefill computes.
+    OpeningRow,
+    /// The rate instruments (claude-251, claude-253), which index rows of the whole window.
+    RateInstrument,
+    /// Gate telemetry capture, which runs extra projections per forward.
+    GateTelemetry,
+    /// A D11 snap capture or replay, which counts snaps in call order.
+    SnapInstrument,
+    /// An FBS projection arm (I-C), which no step gate covers.
+    FbsArm,
+}
+
+impl std::fmt::Display for CacheRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bf16Storage => write!(f, "bf16 storage rounds the scan state"),
+            Self::Shape { batch, time, ids } => {
+                write!(f, "{ids} ids are not {batch} windows of {time} positions")
+            }
+            Self::ShortPrompt { time } => write!(
+                f,
+                "a prompt of {time} positions is shorter than the convolution's {CONVOLUTION_WIDTH}"
+            ),
+            Self::LongPrompt { time, context } => write!(
+                f,
+                "a prompt of {time} positions is longer than the {context}-position window"
+            ),
+            Self::WindowFull { context } => {
+                write!(f, "the step would slide the {context}-position window")
+            }
+            Self::Batch { cache, ids } => write!(f, "{ids} ids for a cache of {cache} rows"),
+            Self::Vocabulary { id } => write!(f, "id {id} is outside the vocabulary"),
+            Self::ReadHook(name) => write!(f, "the {name} is set, and the step does not carry it"),
+            Self::OpeningRow => write!(f, "a step row is named as a turn-memory opening row"),
+            Self::RateInstrument => write!(f, "a rate trace or forced rate is set"),
+            Self::GateTelemetry => write!(f, "gate telemetry capture is on"),
+            Self::SnapInstrument => write!(f, "a D11 snap capture or replay is on"),
+            Self::FbsArm => write!(f, "an FBS projection arm is set"),
+        }
+    }
+}
+
+/// What a carried trunk forward does with the layers' carries (claude-278).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CarryMode {
+    /// The whole-window forward, unchanged, pushing each layer's carry in layer order.
+    Capture,
+    /// One position after the carried ones, advancing each layer's carry.
+    Step,
+}
 fn decayed(name: &str, rank: usize) -> bool {
     (name.ends_with(".weight") && rank == 2 && !name.ends_with("conv.weight"))
         || (name.ends_with(".quaternion") && rank == 3)
@@ -1196,6 +1340,153 @@ impl StackModel {
         self.linear(hidden, p.head()?)
     }
     pub fn hidden(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
+        self.trunk(ids, batch, time, None)
+    }
+    /// The whole-window forward over a prompt of `batch` rows of `time` positions, unchanged,
+    /// and a [`DecodeCache`] filled from that forward's own tensors (claude-278). Returns the
+    /// same `(batch * time, width)` points as [`Self::hidden`].
+    pub fn prefill_cached(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<(Tensor, DecodeCache)> {
+        if let Some(refusal) = self.prefill_refusal(ids, batch, time) {
+            return Err(invalid(format!(
+                "the decode cache refuses this prefill: {refusal}"
+            )));
+        }
+        let mut layers = Vec::with_capacity(self.config.layers());
+        let hidden = self.trunk(ids, batch, time, Some((CarryMode::Capture, &mut layers)))?;
+        if layers.len() != self.config.layers() {
+            return Err(invalid(
+                "the prefill captured a carry for every layer but some",
+            ));
+        }
+        let cache = DecodeCache {
+            batch,
+            position: time,
+            context: self.config.context,
+            layers,
+        };
+        Ok((hidden, cache))
+    }
+    /// One position per row after the cache's (claude-278): the points `(batch, width)` the
+    /// whole-window forward computes at position `cache.position()` of each row's window, through
+    /// the same ops in the same order, and the cache advanced by one. A refusal
+    /// ([`Self::step_refusal`]) or an error leaves the cache as it was. A turn-memory reply row
+    /// in a step is counted in the step's own rows: row `b` is batch row `b`, not `b * time + t`.
+    pub fn step_cached(&self, cache: &mut DecodeCache, ids: &[u32]) -> Result<Tensor> {
+        if let Some(refusal) = self.step_refusal(cache, ids) {
+            return Err(invalid(format!(
+                "the decode cache refuses this step: {refusal}"
+            )));
+        }
+        if cache.layers.len() != self.config.layers() {
+            return Err(invalid("the decode cache was filled from another model"));
+        }
+        let mut layers = cache.layers.clone();
+        let hidden = self.trunk(ids, cache.batch, 1, Some((CarryMode::Step, &mut layers)))?;
+        cache.layers = layers;
+        cache.position += 1;
+        Ok(hidden)
+    }
+    /// Why [`Self::prefill_cached`] refuses this prompt, if it does.
+    pub fn prefill_refusal(&self, ids: &[u32], batch: usize, time: usize) -> Option<CacheRefusal> {
+        if batch == 0 || time == 0 || batch.checked_mul(time) != Some(ids.len()) {
+            return Some(CacheRefusal::Shape {
+                batch,
+                time,
+                ids: ids.len(),
+            });
+        }
+        if time < CONVOLUTION_WIDTH {
+            return Some(CacheRefusal::ShortPrompt { time });
+        }
+        if time > self.config.context {
+            return Some(CacheRefusal::LongPrompt {
+                time,
+                context: self.config.context,
+            });
+        }
+        self.carried_refusal(ids)
+    }
+    /// Why [`Self::step_cached`] refuses this step, if it does.
+    pub fn step_refusal(&self, cache: &DecodeCache, ids: &[u32]) -> Option<CacheRefusal> {
+        if ids.len() != cache.batch {
+            return Some(CacheRefusal::Batch {
+                cache: cache.batch,
+                ids: ids.len(),
+            });
+        }
+        if cache.position + 1 > cache.context {
+            return Some(CacheRefusal::WindowFull {
+                context: cache.context,
+            });
+        }
+        if crate::flock_read_memory::memory_rows().is_some_and(|rows| !rows.is_empty()) {
+            return Some(CacheRefusal::OpeningRow);
+        }
+        self.carried_refusal(ids)
+    }
+    /// The refusals a prefill and a step share: the storage, the ids, and the reads and
+    /// instruments set on this thread. The turn memory is carried: its readout works one row at a
+    /// time on keys the caller names.
+    fn carried_refusal(&self, ids: &[u32]) -> Option<CacheRefusal> {
+        if self.precision.is_bf16() {
+            return Some(CacheRefusal::Bf16Storage);
+        }
+        if let Some(&id) = ids
+            .iter()
+            .find(|&&id| id as usize >= self.config.vocab_size)
+        {
+            return Some(CacheRefusal::Vocabulary { id });
+        }
+        let reads = [
+            ("Flock read", crate::flock_read::flock_read().is_some()),
+            (
+                "content read",
+                crate::flock_read_content::content_read().is_some(),
+            ),
+            (
+                "Hamming read",
+                crate::flock_read_hamming::hamming_reads().is_some(),
+            ),
+            (
+                "opening read",
+                crate::flock_read_opening::opening_read().is_some(),
+            ),
+            (
+                "prompt register",
+                crate::flock_read_register::prompt_register().is_some(),
+            ),
+        ];
+        if let Some((name, _)) = reads.iter().find(|(_, set)| *set) {
+            return Some(CacheRefusal::ReadHook(name));
+        }
+        if RATE_TRACE.with(|t| t.borrow().is_some()) || RATE_FORCE.with(|f| !f.borrow().is_empty())
+        {
+            return Some(CacheRefusal::RateInstrument);
+        }
+        if crate::hamilton_sheet::is_capturing_gate_telemetry() {
+            return Some(CacheRefusal::GateTelemetry);
+        }
+        if crate::hamilton_sheet::is_instrumenting_snaps() {
+            return Some(CacheRefusal::SnapInstrument);
+        }
+        if crate::spiralcore_fbs_arms::fbs_arm().is_some() {
+            return Some(CacheRefusal::FbsArm);
+        }
+        None
+    }
+    /// [`Self::hidden`]'s body, with the layers' carries when a cache fills or steps.
+    fn trunk(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        mut carry: Option<(CarryMode, &mut Vec<LayerCarry>)>,
+    ) -> Result<Tensor> {
         self.validate_native_learning_path()?;
         let p = self.params()?;
         // Under the Q16 control (claude-133), the residual stream is held on the integer
@@ -1207,7 +1498,8 @@ impl StackModel {
         // forward that failed between the stream and the readout.
         crate::flock_read_register::set_register_slots(None);
         for layer in 0..self.config.layers() {
-            x = q16(x.add(&self.composed_recurrence(&p, layer, &x)?)?)?;
+            let layer_carry = carry.as_mut().map(|(mode, layers)| (*mode, &mut **layers));
+            x = q16(x.add(&self.composed_recurrence(&p, layer, &x, layer_carry)?)?)?;
             stage_clock::mark_with(|| format!("layer{layer}.recurrence"));
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
             stage_clock::mark_with(|| format!("layer{layer}.mlp"));
@@ -1492,7 +1784,17 @@ impl StackModel {
             ))),
         }
     }
-    fn composed_recurrence(&self, p: &Params<'_>, layer: usize, x: &Tensor) -> Result<Tensor> {
+    /// The recurrence over a whole window, `(batch, time, width)`. Under a carry (claude-278),
+    /// [`CarryMode::Capture`] runs this same arithmetic and pushes the layer's [`LayerCarry`];
+    /// [`CarryMode::Step`] computes one position after the carried ones with the same ops, in the
+    /// same order, and advances the layer's carry.
+    fn composed_recurrence(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        x: &Tensor,
+        carry: Option<(CarryMode, &mut Vec<LayerCarry>)>,
+    ) -> Result<Tensor> {
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
@@ -1505,19 +1807,30 @@ impl StackModel {
             .layer(layer, "rec.conv.bias")?
             .broadcast_as((batch, time, width))?
             .contiguous()?;
-        for shift in 0..CONVOLUTION_WIDTH.min(time) {
-            let shifted = if shift == 0 {
-                input.clone()
-            } else {
-                Tensor::cat(
-                    &[
-                        &Tensor::zeros((batch, shift, width), DType::F32, &self.device)?,
-                        &input.narrow(1, 0, time - shift)?,
-                    ],
-                    1,
-                )?
-            };
-            convolved = convolved.add(&shifted.broadcast_mul(&weights.get(shift)?)?)?;
+        if let Some((CarryMode::Step, layers)) = carry.as_ref() {
+            // One position: the term at `shift` reads the input `shift` positions back, which the
+            // carry holds, added in the whole window's order.
+            let carried = &layers[layer];
+            convolved = convolved.add(&input.broadcast_mul(&weights.get(0)?)?)?;
+            for shift in 1..CONVOLUTION_WIDTH {
+                let earlier = &carried.inputs[CONVOLUTION_WIDTH - 1 - shift];
+                convolved = convolved.add(&earlier.broadcast_mul(&weights.get(shift)?)?)?;
+            }
+        } else {
+            for shift in 0..CONVOLUTION_WIDTH.min(time) {
+                let shifted = if shift == 0 {
+                    input.clone()
+                } else {
+                    Tensor::cat(
+                        &[
+                            &Tensor::zeros((batch, shift, width), DType::F32, &self.device)?,
+                            &input.narrow(1, 0, time - shift)?,
+                        ],
+                        1,
+                    )?
+                };
+                convolved = convolved.add(&shifted.broadcast_mul(&weights.get(shift)?)?)?;
+            }
         }
         let gates = self
             .linear(&u, p.layer(layer, "rec.gate.weight")?)?
@@ -1614,8 +1927,38 @@ impl StackModel {
         let drive = convolved
             .reshape((batch, time, lanes, 4))?
             .broadcast_mul(&keep)?;
-        let state = quaternion_scan(&transition.contiguous()?, &drive.contiguous()?)?
-            .reshape((batch, time, width))?;
+        let state = match carry {
+            Some((CarryMode::Step, layers)) => {
+                let carried = &mut layers[layer];
+                let state = quaternion_scan_step(
+                    &carried.held,
+                    &transition.contiguous()?,
+                    &drive.contiguous()?,
+                )?;
+                carried.held = state.detach().contiguous()?;
+                carried.inputs.remove(0);
+                carried.inputs.push(input.detach().contiguous()?);
+                state
+            }
+            capture => {
+                let state = quaternion_scan(&transition.contiguous()?, &drive.contiguous()?)?;
+                if let Some((CarryMode::Capture, layers)) = capture {
+                    if layers.len() != layer || time + 1 < CONVOLUTION_WIDTH {
+                        return Err(invalid(
+                            "a captured layer carry is out of layer order or its window too short",
+                        ));
+                    }
+                    layers.push(LayerCarry {
+                        inputs: (time + 1 - CONVOLUTION_WIDTH..time)
+                            .map(|t| Ok(input.narrow(1, t, 1)?.detach().contiguous()?))
+                            .collect::<Result<_>>()?,
+                        held: state.narrow(1, time - 1, 1)?.detach().contiguous()?,
+                    });
+                }
+                state
+            }
+        }
+        .reshape((batch, time, width))?;
         // The output gate. `RecGates::Geometric` rotates the recurrence output
         // by the gate's 4-lane quaternions ([`hamilton_gate`], OP1); the
         // historical mode keeps the tanh-GELU gate.
@@ -2742,5 +3085,417 @@ impl StackAdamW {
             }
         }
         Ok(optimizer)
+    }
+}
+
+/// claude-278: the decode cache's step against the whole-window forward.
+#[cfg(test)]
+mod decode_cache_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    struct Lcg(u64);
+    impl Lcg {
+        fn next(&mut self) -> u64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            self.0 >> 33
+        }
+        fn unit(&mut self) -> f32 {
+            (self.next() % 20_001) as f32 / 10_000.0 - 1.0
+        }
+    }
+
+    /// The six-layer, width-256 trunk the P2b recipe trains, from its random start.
+    fn small_model(device: &Device, context: usize) -> Result<StackModel> {
+        let mut config = StackConfig::transformer_control(278);
+        config.arch = StackArch::Geometric;
+        config.pattern = "rrrrrr".into();
+        config.width = 256;
+        config.heads = 4;
+        config.mlp_hidden = 384;
+        config.context = context;
+        config.vocab_size = 4096;
+        config.rotation = true;
+        config.gate = Gate::Hamilton;
+        config.rec_gates = RecGates::Geometric;
+        config.objective = Objective::MarginHinge { rivals: 1 };
+        let mut model = StackModel::new(config, device)?;
+        model.set_quaternion_weights(QuaternionWeights::SpiralcoreFbs)?;
+        model.set_native_vector_head(8)?;
+        Ok(model)
+    }
+
+    /// The scan's two-position step on the CPU twin (`kernel_controls::quaternion_scan_fwd_cpu`):
+    /// from a zero start, a zero transition and the carried state give the state back, and the
+    /// second position is the whole scan's next position, bit for bit. A carried −0 enters as +0,
+    /// the one exception [`quaternion_scan_step`] documents.
+    #[test]
+    fn the_two_position_scan_is_the_scans_next_position() {
+        use crate::kernel_controls::quaternion_scan_fwd_cpu;
+        let (batch, time, lanes) = (2, 9, 3);
+        let quad = lanes * 4;
+        let mut rng = Lcg(278);
+        let total = batch * time * quad;
+        let transition: Vec<f32> = (0..total).map(|_| rng.unit()).collect();
+        let drive: Vec<f32> = (0..total).map(|_| rng.unit()).collect();
+        let full = quaternion_scan_fwd_cpu(&transition, &drive, batch, time, lanes);
+        let at = |v: &[f32], b: usize, t: usize| {
+            v[(b * time + t) * quad..(b * time + t + 1) * quad].to_vec()
+        };
+        for t in 1..time {
+            let (mut two_t, mut two_d) = (Vec::new(), Vec::new());
+            for b in 0..batch {
+                two_t.extend(vec![0.0f32; quad]);
+                two_t.extend(at(&transition, b, t));
+                two_d.extend(at(&full, b, t - 1));
+                two_d.extend(at(&drive, b, t));
+            }
+            let both = quaternion_scan_fwd_cpu(&two_t, &two_d, batch, 2, lanes);
+            for b in 0..batch {
+                let step: Vec<u32> = both[(b * 2 + 1) * quad..(b * 2 + 2) * quad]
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect();
+                let whole: Vec<u32> = at(&full, b, t).iter().map(|v| v.to_bits()).collect();
+                assert_eq!(step, whole, "row {b}, position {t}");
+            }
+        }
+        let carried = [-0.0f32, 1.0, 2.0, 3.0];
+        let both = quaternion_scan_fwd_cpu(&[0.0; 8], &[carried, [0.0; 4]].concat(), 1, 2, 1);
+        assert_eq!(
+            both[0].to_bits(),
+            0.0f32.to_bits(),
+            "a carried -0 enters as +0"
+        );
+        assert_eq!(&both[1..4], &carried[1..4]);
+    }
+
+    /// Each refusal, before any forward runs: the prompt's shape and length, an id outside the
+    /// vocabulary, a rate instrument, bf16 storage, the step's rows, a turn-memory opening row,
+    /// and the window's end. A refused step leaves the cache as it was.
+    #[test]
+    fn the_cache_refuses_what_it_cannot_carry() -> Result<()> {
+        let device = Device::Cpu;
+        let mut model = small_model(&device, 16)?;
+        let ids = |n: u32| (0..n).collect::<Vec<u32>>();
+        assert_eq!(
+            model.prefill_refusal(&ids(7), 2, 4),
+            Some(CacheRefusal::Shape {
+                batch: 2,
+                time: 4,
+                ids: 7
+            })
+        );
+        assert_eq!(
+            model.prefill_refusal(&ids(3), 1, 3),
+            Some(CacheRefusal::ShortPrompt { time: 3 })
+        );
+        assert_eq!(
+            model.prefill_refusal(&ids(17), 1, 17),
+            Some(CacheRefusal::LongPrompt {
+                time: 17,
+                context: 16
+            })
+        );
+        assert_eq!(
+            model.prefill_refusal(&[1, 2, 3, 4096], 1, 4),
+            Some(CacheRefusal::Vocabulary { id: 4096 })
+        );
+        assert_eq!(model.prefill_refusal(&ids(4), 1, 4), None);
+        set_rate_force(vec![ForcedRate {
+            layer: 0,
+            row: 0,
+            lane: 0,
+            entry: 1,
+        }]);
+        let forced = model.prefill_refusal(&ids(4), 1, 4);
+        set_rate_force(Vec::new());
+        assert_eq!(forced, Some(CacheRefusal::RateInstrument));
+
+        let carry = LayerCarry {
+            inputs: vec![Tensor::zeros((2, 1, 256), DType::F32, &device)?; CONVOLUTION_WIDTH - 1],
+            held: Tensor::zeros((2, 1, 64, 4), DType::F32, &device)?,
+        };
+        let mut cache = DecodeCache {
+            batch: 2,
+            position: 15,
+            context: 16,
+            layers: vec![carry; model.config.layers()],
+        };
+        assert_eq!(
+            model.step_refusal(&cache, &[1]),
+            Some(CacheRefusal::Batch { cache: 2, ids: 1 })
+        );
+        assert_eq!(model.step_refusal(&cache, &[1, 2]), None);
+        crate::flock_read_memory::set_memory_rows(Some(vec![1]));
+        let opening = model.step_refusal(&cache, &[1, 2]);
+        crate::flock_read_memory::set_memory_rows(None);
+        assert_eq!(opening, Some(CacheRefusal::OpeningRow));
+        cache.position = 16;
+        assert_eq!(
+            model.step_refusal(&cache, &[1, 2]),
+            Some(CacheRefusal::WindowFull { context: 16 })
+        );
+        assert!(model.step_cached(&mut cache, &[1, 2]).is_err());
+        assert_eq!(
+            cache.position(),
+            16,
+            "a refused step leaves the cache as it was"
+        );
+        model.set_precision(Precision::Bf16);
+        assert_eq!(
+            model.prefill_refusal(&ids(4), 1, 4),
+            Some(CacheRefusal::Bf16Storage)
+        );
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    fn bits(t: &Tensor) -> Result<Vec<u32>> {
+        Ok(t.flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .map(|v| v.to_bits())
+            .collect())
+    }
+
+    /// The windows of `rows` cut at `len` positions, row after row.
+    #[cfg(feature = "cuda")]
+    fn windows(rows: &[Vec<u32>], len: usize) -> Vec<u32> {
+        rows.iter().flat_map(|r| r[..len].iter().copied()).collect()
+    }
+
+    /// Prefill `prompt` positions of `rows`, apply `perturb` to the cache, then take `steps`
+    /// steps, comparing the prefill with [`StackModel::hidden`] and each step's points with the
+    /// whole-window forward's last row of every window, as u32 bits, and every layer's carries
+    /// with the ones a prefill of that whole window captures. With `reply`, each step names every
+    /// row as a turn-memory reply row: row 0 under `reply`'s key, which the table holds, the
+    /// others under one it does not. Returns the rows and carries that differ and the first.
+    #[cfg(feature = "cuda")]
+    fn compare_steps(
+        model: &StackModel,
+        rows: &[Vec<u32>],
+        prompt: usize,
+        steps: usize,
+        reply: Option<&[u32]>,
+        perturb: &dyn Fn(&mut DecodeCache) -> Result<()>,
+    ) -> Result<(usize, Option<String>)> {
+        let batch = rows.len();
+        let (pre, mut cache) = model.prefill_cached(&windows(rows, prompt), batch, prompt)?;
+        let whole = model.hidden(&windows(rows, prompt), batch, prompt)?;
+        let (mut differing, mut first) = (0, None);
+        if bits(&pre)? != bits(&whole)? {
+            differing += 1;
+            first = Some(format!("the prefill of {prompt} positions"));
+        }
+        perturb(&mut cache)?;
+        let keyed = |row: &dyn Fn(usize) -> usize| {
+            reply.map(|key| {
+                (0..batch)
+                    .map(|b| (row(b), if b == 0 { key.to_vec() } else { vec![1, 2, 3] }))
+                    .collect::<Vec<_>>()
+            })
+        };
+        for s in 0..steps {
+            let len = prompt + s + 1;
+            let step_ids: Vec<u32> = rows.iter().map(|r| r[len - 1]).collect();
+            crate::flock_read_memory::set_reply_rows(keyed(&|b| b));
+            let stepped = model.step_cached(&mut cache, &step_ids);
+            crate::flock_read_memory::set_reply_rows(keyed(&|b| b * len + len - 1));
+            let full = model.hidden(&windows(rows, len), batch, len);
+            let captured = model.prefill_cached(&windows(rows, len), batch, len);
+            crate::flock_read_memory::set_reply_rows(None);
+            let (stepped, full, (_, captured)) = (stepped?, full?, captured?);
+            // The carries themselves (the first pod run, claude-278): a difference in a carried
+            // state can round away before the points, so the points alone can miss it.
+            for (layer, (mine, whole)) in cache.layers.iter().zip(&captured.layers).enumerate() {
+                let held = std::iter::once((&mine.held, &whole.held, "scan state"));
+                let inputs = mine.inputs.iter().zip(&whole.inputs);
+                for (a, w, part) in held.chain(inputs.map(|(a, w)| (a, w, "convolution input"))) {
+                    if bits(a)? != bits(w)? {
+                        differing += 1;
+                        if first.is_none() {
+                            first = Some(format!(
+                                "step {s} (position {}), layer {layer}'s {part}",
+                                len - 1
+                            ));
+                        }
+                    }
+                }
+            }
+            for b in 0..batch {
+                let step_row = bits(&stepped.narrow(0, b, 1)?)?;
+                let whole_row = bits(&full.narrow(0, b * len + len - 1, 1)?)?;
+                if step_row != whole_row {
+                    differing += 1;
+                    if first.is_none() {
+                        let at = step_row.iter().zip(&whole_row).position(|(a, w)| a != w);
+                        first = Some(format!(
+                            "step {s} (position {}), row {b}, coordinate {at:?}",
+                            len - 1
+                        ));
+                    }
+                }
+            }
+        }
+        Ok((differing, first))
+    }
+
+    /// Puts the process-wide retention reading and this thread's turn memory back on every exit.
+    #[cfg(feature = "cuda")]
+    struct Restore(bool);
+    #[cfg(feature = "cuda")]
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            set_retention_rates(self.0);
+            crate::flock_read_memory::set_turn_memory(None);
+            crate::flock_read_memory::set_reply_rows(None);
+        }
+    }
+
+    /// G1: the random six-layer trunk, plain and under the served surrogate contract, with and
+    /// without the retention reading, and with and without the turn memory's reply table, from
+    /// prompts of 4, 7 and 33 positions, 12 steps each, at batch 1 and 3: every step's points
+    /// equal the whole-window forward's at that position, and its carries a whole-window prefill's,
+    /// bit for bit. The retention reading is
+    /// process-wide, so the pod runs this file's CUDA tests on one thread.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_step_cache_matches_the_whole_window_bit_for_bit() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 64)?;
+        let width = model.config.width;
+        let mut rng = Lcg(2780);
+        let rows: Vec<Vec<u32>> = (0..3)
+            .map(|_| (0..45).map(|_| (rng.next() % 4096) as u32).collect())
+            .collect();
+        let key: &[u32] = &[7, 9];
+        let memory = crate::flock_read_memory::TurnMemory::new(2, HashMap::new(), width, &device)?
+            .with_reply([(key.to_vec(), 11u32)].into_iter().collect())?;
+        memory.weight.set(&Tensor::full(0.25f32, width, &device)?)?;
+        if let Some(reply) = memory.reply.as_ref() {
+            reply.weight.set(&Tensor::full(0.5f32, width, &device)?)?;
+        }
+        let none = |_: &mut DecodeCache| -> Result<()> { Ok(()) };
+        let _restore = Restore(retention_rates());
+        let (mut cases, mut report) = (0, Vec::new());
+        for retain in [false, true] {
+            set_retention_rates(retain);
+            for served in [false, true] {
+                for with_memory in [false, true] {
+                    crate::flock_read_memory::set_turn_memory(with_memory.then(|| memory.clone()));
+                    for prompt in [4, 7, 33] {
+                        for batch in [1, 3] {
+                            let reply = with_memory.then_some(key);
+                            let run =
+                                || compare_steps(&model, &rows[..batch], prompt, 12, reply, &none);
+                            let (differing, first) = if served {
+                                crate::hamilton_sheet::with_served_surrogate_training(0, 0, run)?
+                            } else {
+                                run()?
+                            };
+                            cases += 1;
+                            if differing > 0 {
+                                report.push(format!(
+                                    "retain {retain}, served {served}, memory {with_memory}, \
+                                     prompt {prompt}, batch {batch}: {differing} rows differ, \
+                                     first {first:?}"
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(cases, 48);
+        assert!(report.is_empty(), "{report:#?}");
+        Ok(())
+    }
+
+    /// G2: stepping up to exactly the window works, and matches the whole window's last row; the
+    /// next step is refused and leaves the cache as it was.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_step_cache_steps_to_the_window_and_refuses_the_slide() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 16)?;
+        let row: Vec<u32> = (0..16u32).map(|i| (i * 37 + 5) % 4096).collect();
+        let (_, mut cache) = model.prefill_cached(&row[..4], 1, 4)?;
+        let mut last = Tensor::zeros((1, 256), DType::F32, &device)?;
+        for &id in &row[4..] {
+            last = model.step_cached(&mut cache, &[id])?;
+        }
+        assert_eq!(cache.position(), 16);
+        let whole = model.hidden(&row, 1, 16)?;
+        assert_eq!(bits(&last)?, bits(&whole.narrow(0, 15, 1)?)?);
+        assert_eq!(
+            model.step_refusal(&cache, &[1]),
+            Some(CacheRefusal::WindowFull { context: 16 })
+        );
+        assert!(model.step_cached(&mut cache, &[1]).is_err());
+        assert_eq!(cache.position(), 16);
+        Ok(())
+    }
+
+    /// G3, the negatives: the compare that passes on a clean cache fails after one flipped bit in
+    /// a carried scan state, and after one zeroed convolution input.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_flipped_state_bit_or_a_zeroed_input_row_fails_the_compare() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 64)?;
+        let mut rng = Lcg(2781);
+        let rows: Vec<Vec<u32>> = vec![(0..20).map(|_| (rng.next() % 4096) as u32).collect()];
+        let none = |_: &mut DecodeCache| -> Result<()> { Ok(()) };
+        let flip = |cache: &mut DecodeCache| -> Result<()> {
+            let held = cache.layers[0].held.clone();
+            let mut values = held.flatten_all()?.to_vec1::<f32>()?;
+            // The largest component's top mantissa bit: on the first pod run a flip of the
+            // lowest bit of component 0 rounded away within three steps.
+            let at = (0..values.len())
+                .max_by(|&a, &b| values[a].abs().total_cmp(&values[b].abs()))
+                .unwrap_or(0);
+            values[at] = f32::from_bits(values[at].to_bits() ^ (1 << 22));
+            cache.layers[0].held = Tensor::from_vec(values, held.dims(), held.device())?;
+            Ok(())
+        };
+        let zero = |cache: &mut DecodeCache| -> Result<()> {
+            let newest = &mut cache.layers[0].inputs[CONVOLUTION_WIDTH - 2];
+            *newest = newest.zeros_like()?;
+            Ok(())
+        };
+        assert_eq!(compare_steps(&model, &rows, 7, 3, None, &none)?.0, 0);
+        let (flipped, _) = compare_steps(&model, &rows, 7, 3, None, &flip)?;
+        assert!(flipped > 0, "a flipped bit in a carried state went unseen");
+        let (zeroed, _) = compare_steps(&model, &rows, 7, 3, None, &zero)?;
+        assert!(zeroed > 0, "a zeroed convolution input went unseen");
+        Ok(())
+    }
+
+    /// The two-position step through the scan's own CUDA kernel equals the whole scan's next
+    /// position, bit for bit, on random transitions and drives.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_two_position_scan_kernel_is_the_whole_scans_next_position() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let (batch, time, lanes) = (3, 9, 5);
+        let mut rng = Lcg(2782);
+        let total = batch * time * lanes * 4;
+        let mut values = || (0..total).map(|_| rng.unit()).collect::<Vec<f32>>();
+        let transition = Tensor::from_vec(values(), (batch, time, lanes, 4), &device)?;
+        let drive = Tensor::from_vec(values(), (batch, time, lanes, 4), &device)?;
+        let whole = quaternion_scan(&transition, &drive)?;
+        for t in 1..time {
+            let step = quaternion_scan_step(
+                &whole.narrow(1, t - 1, 1)?.contiguous()?,
+                &transition.narrow(1, t, 1)?.contiguous()?,
+                &drive.narrow(1, t, 1)?.contiguous()?,
+            )?;
+            assert_eq!(bits(&step)?, bits(&whole.narrow(1, t, 1)?)?, "position {t}");
+        }
+        Ok(())
     }
 }

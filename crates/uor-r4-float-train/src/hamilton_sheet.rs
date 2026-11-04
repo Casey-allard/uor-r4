@@ -955,6 +955,13 @@ fn is_capturing_snaps() -> bool {
     SNAP_CAPTURE.with(|c| c.borrow().is_some())
 }
 
+/// Whether a snap capture ([`with_snap_capture`]) or a forced replay ([`with_snap_override`]) is
+/// active on this thread. Both count snaps in call order, so the decode cache refuses under them
+/// (claude-278).
+pub(crate) fn is_instrumenting_snaps() -> bool {
+    SNAP_CAPTURE.with(|c| c.borrow().is_some()) || SNAP_OVERRIDE.with(|c| c.borrow().is_some())
+}
+
 thread_local! {
     static SNAP_OVERRIDE: RefCell<Option<VecDeque<Vec<u8>>>> = const { RefCell::new(None) };
 }
