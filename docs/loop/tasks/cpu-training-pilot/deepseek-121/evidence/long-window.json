@@ -1,0 +1,45 @@
+{
+  "artifact_kind": "in-memory finite FBS fixture",
+  "context": 2048,
+  "width": 64,
+  "layers": 3,
+  "kept_cells": 8,
+  "audit": {
+    "positions": 2048,
+    "q12_query_coordinates": 131072,
+    "token_decisions": 2048,
+    "kept_cell_decisions": 16384,
+    "query_coordinate_mismatches": 0,
+    "token_mismatches": 0,
+    "kept_cell_mismatches": 0,
+    "instrument_fault": false,
+    "decision_hashes_equal": true
+  },
+  "mechanism_presence": {
+    "hamming_copy_keys": [2, 1],
+    "opening_memory_rows": 1,
+    "reply_memory_rows": 1,
+    "point_key_rows": 1,
+    "hamming_candidate_comparisons": 16752648,
+    "turn_memory_lookups": 2046,
+    "point_rows_on_opening_miss": 1
+  },
+  "long_range_copy": {
+    "row": 1024,
+    "retained_position": 100
+  },
+  "boundaries": {
+    "position_2048_accepted": true,
+    "position_2049_refused_as_context_exhaustion": true
+  },
+  "determinism": {
+    "second_audit_non_timing_equal": true
+  },
+  "timing": {
+    "command": "cargo test -q -p uor-r4-cpu-train --release long_window_full_path -- --nocapture",
+    "test_seconds": 1.53,
+    "process_elapsed_seconds": 1.61,
+    "peak_rss_kib": 52676,
+    "process_cpu_percent": 99
+  }
+}

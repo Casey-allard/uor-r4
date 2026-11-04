@@ -1457,8 +1457,8 @@ mod tests {
     use super::*;
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
     use uor_r4_integer::stack::{
-        add_point_key_uorlut01, export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot,
-        PointKeyImage, MEMORY_PAD,
+        add_point_key_uorlut01, export_fbs_trunk_uorlut01, hamming_trace_window, FbsMemoryEntry,
+        FbsMemorySnapshot, PointKeyImage, MEMORY_PAD,
     };
 
     fn artifact_with(readout_nearest: bool, typed_hamming: bool) -> Vec<u8> {
@@ -1595,6 +1595,86 @@ mod tests {
         } else {
             bytes
         }
+    }
+
+    fn long_window_fixture() -> (Vec<u8>, Vec<u32>) {
+        const CONTEXT: usize = 2_048;
+        let mut tokens = (0..CONTEXT)
+            .map(|index| ((index * 73 + 19) % 512) as u32)
+            .collect::<Vec<_>>();
+        tokens[..3].copy_from_slice(&[0, 42, 77]);
+        tokens[3] = 99;
+        tokens[4] = 7;
+        tokens[98] = 11;
+        tokens[99] = 7;
+        tokens[1_022] = 11;
+        tokens[1_023] = 11;
+        tokens[1_024] = 7;
+
+        let mut snapshot = synthetic_fbs_trunk_with(
+            813,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 96,
+                layers: 3,
+                context: CONTEXT,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        );
+        let mut hamming = synthetic_hamming(snapshot.width, 3, 4, 814);
+        hamming.copy_key = 1;
+        hamming.copy_keys = Some(vec![2, 1]);
+        snapshot.hamming = Some(hamming);
+        snapshot.memory = Some(FbsMemorySnapshot {
+            k: 4,
+            key_window: 192,
+            opening: vec![FbsMemoryEntry {
+                key: vec![500, 501, 502, 503],
+                value: 42,
+            }],
+            opening_weight: vec![1.0; snapshot.width],
+            reply: Some(uor_r4_integer::stack::FbsReplyTable {
+                turn: 8,
+                entries: vec![FbsMemoryEntry {
+                    key: vec![0, 42, 77, MEMORY_PAD, 5, MEMORY_PAD, 99],
+                    value: 7,
+                }],
+                weight: vec![1.0; snapshot.width],
+            }),
+        });
+        let without_point = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let mut query = CpuFbsForward::from_artifact(&without_point).unwrap();
+        let mut point = None;
+        for (index, &token) in tokens[..3].iter().enumerate() {
+            if index + 1 == 3 {
+                query.mark_reply_start();
+            }
+            let step = query.step(token, CpuFbsHead::Writer).unwrap();
+            if index + 1 == 3 {
+                point = Some(step.query_q12);
+            }
+        }
+        let point = point
+            .unwrap()
+            .into_iter()
+            .map(|value| i16::try_from(value).unwrap())
+            .collect::<Vec<_>>();
+        let artifact = add_point_key_uorlut01(
+            &without_point,
+            &PointKeyImage {
+                width: snapshot.width,
+                points: point,
+                targets: vec![99],
+                vote_k: 1,
+            },
+        )
+        .unwrap();
+        (artifact, tokens)
     }
 
     fn uort(tokens: &[u32], vocabulary: u32) -> Vec<u8> {
@@ -1971,6 +2051,101 @@ mod tests {
             served(&without_point)[2].token,
             99,
             "the control without a point table cannot take the fallback"
+        );
+    }
+
+    #[test]
+    fn long_window_full_path_matches_serving_and_reaches_early_hamming_copy() {
+        let (artifact, tokens) = long_window_fixture();
+        let config = ServedForwardAuditConfig {
+            tokens: tokens.clone(),
+            token_source: None,
+            expected_artifact_sha256: None,
+            reply_start: Some(3),
+            measure_timing: false,
+        };
+        let first = audit_served_forward(&artifact, &config).unwrap();
+        assert!(!first.parity.instrument_fault);
+        assert_eq!(first.parity.positions_checked, 2_048);
+        assert_eq!(first.parity.query_coordinates_compared, 2_048 * 64);
+        assert_eq!(first.parity.token_decisions_compared, 2_048);
+        assert_eq!(first.parity.kept_cells_compared, 2_048 * 8);
+        assert_eq!(first.parity.query_coordinate_mismatches, 0);
+        assert_eq!(first.parity.token_mismatches, 0);
+        assert_eq!(first.parity.kept_cell_mismatches, 0);
+        assert_eq!(
+            first.parity.cpu_decision_sha256,
+            first.parity.serving_decision_sha256
+        );
+        assert_eq!(first.manifest.shape.context, 2_048);
+        let hamming = first.manifest.hamming.as_ref().unwrap();
+        assert_eq!(hamming.copy_keys.as_deref(), Some(&[2, 1][..]));
+        let memory = first.manifest.memory.as_ref().unwrap();
+        assert_eq!(memory.reply_rows, 1);
+        assert_eq!(memory.point_key.as_ref().unwrap().rows, 1);
+        let cost = |name: &str| {
+            first
+                .modelled_sequence_cost
+                .iter()
+                .find(|stage| stage.stage == name)
+                .unwrap()
+        };
+        let turn_memory = cost("turn_memory");
+        let hamming_candidate_comparisons = first
+            .modelled_sequence_cost
+            .iter()
+            .map(|stage| stage.hamming_candidate_comparisons)
+            .sum::<u64>();
+        assert!(turn_memory.memory_key_lookups > 0);
+        assert!(turn_memory.point_table_rows_on_opening_miss > 0);
+        assert!(hamming_candidate_comparisons > 100_000);
+
+        let model = IntegerStackModel::parse(&artifact).unwrap();
+        let mut session = model.session();
+        session.set_hamming_trace(true);
+        for (index, &token) in tokens.iter().enumerate() {
+            if index + 1 == 3 {
+                session.mark_reply_start();
+            }
+            session.step_native(token).unwrap();
+        }
+        let trace_steps = session.take_hamming_trace().unwrap();
+        let window = hamming_trace_window(&tokens, &trace_steps).unwrap();
+        assert!(
+            window
+                .reads
+                .iter()
+                .flat_map(|read| &read.heads)
+                .any(|head| { head.kept.get(1_024).is_some_and(|kept| kept.contains(&100)) }),
+            "kept={:?}",
+            window
+                .reads
+                .iter()
+                .map(|read| read
+                    .heads
+                    .iter()
+                    .map(|head| &head.kept[1_024])
+                    .collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        );
+
+        let second = audit_served_forward(&artifact, &config).unwrap();
+        assert_eq!(first, second);
+        let mut over = config.tokens;
+        over.push(1);
+        let error =
+            audit_served_forward(&artifact, &ServedForwardAuditConfig::new(over)).unwrap_err();
+        assert!(error.to_string().contains("context is 2048"));
+        eprintln!(
+            "long_window context=2048 positions={} coordinates={} decisions={} kept_cells={} \
+             hamming_comparisons={} turn_memory_lookups={} point_rows_on_opening_miss={}",
+            first.parity.positions_checked,
+            first.parity.query_coordinates_compared,
+            first.parity.token_decisions_compared,
+            first.parity.kept_cells_compared,
+            hamming_candidate_comparisons,
+            turn_memory.memory_key_lookups,
+            turn_memory.point_table_rows_on_opening_miss,
         );
     }
 

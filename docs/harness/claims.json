@@ -13,6 +13,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/long-window-cpu": {
+    "branch": "deepseek/long-window-cpu",
+    "claimed_at": "2026-11-04T01:35:00-05:00",
+    "head": "b6561fe6e",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/termination-cell": {
     "branch": "deepseek/termination-cell",
     "claimed_at": "2026-11-04T01:20:00-05:00",
