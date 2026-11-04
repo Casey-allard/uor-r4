@@ -8,7 +8,9 @@ TEST FITNESS: FIT - fresh non-author adversarial review, round 1, of this sheet 
 - I-6, which could not fail as written, now checks that the passes pair query by query and that each ran at its own window;
 - R1 reports the under-192 bin at both windows, as a check on scoring at 192.
 
-PRE-RUN: not yet. The pre-run review happens in the run's unit, right before launch (§5.10; claude-275's ORDER, amended 4 Nov). The run's pin is this unit's merge commit, which does not exist until this unit merges.
+PRE-RUN: GO WITH FIXES, by a fresh non-author review in the run's unit, claude-276, right before launch ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407#issuecomment-6627609246)). Its fixes were in the laptop grade and were made before launch; no bar moved. The pin is claude-275's merge commit, `e1ad88afc5a7f43f5e7714d9ab70b8937aa6bdde`.
+
+OUTCOME: **Negative** at both seeds ([claude-276](../../loop/tasks/one-model-end-to-end/claude-276/REPORT.md)). R1's b + c is 0 at seed 1 and 1 at seed 2, under 10, overall and on the far bin; I-0 to I-6 hold. As the Bar says, this closes this configuration only, and its classification, instrument or mechanism, is the next unit on this line. That unit is past P2b's bound, so it is parked behind P3 and comes before P4 (claude-276's Next).
 
 **What this run measures.** Up to now every model on this line was trained and scored with a 192-token window ([claude-273](../../loop/tasks/one-model-end-to-end/claude-273/REPORT.md), [claude-274](../../loop/tasks/one-model-end-to-end/claude-274/REPORT.md)). A note stated more than 192 tokens before it is asked for is out of view. This run trains the one model at 2,048 on conversations that ask for notes up to about 2,000 tokens later. It then asks whether the reply states the note's value, with the window open and closed. The object is the float model, trained as served, scored by the float scorer. No integer export or served claim rests on this run.
 

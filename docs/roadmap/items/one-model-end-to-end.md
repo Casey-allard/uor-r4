@@ -223,6 +223,18 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   [P2b's sheet](../../harness/prep/one-model-end-to-end-long-context-2026-11-04.md)
   pre-registers leaving those 6 out of its paired readings. The sheet is FIT. Its run, the
   first model trained on long conversations, is the next unit.
+  [claude-276](../../loop/tasks/one-model-end-to-end/claude-276/REPORT.md)
+  ran it at two seeds on two RTX 5090s, for about $3.88. The model trained at
+  2,048 states a held-out note's value in 0 and 1 of 603 queries with the
+  window open, and in 0 with it shut at 192. It misses even on the 23 queries
+  whose note is fewer than 192 tokens back. R1 fails at both seeds, so the
+  sheet's Bar reads Negative. That closes the recipe at 8,192 steps of
+  2,048 × 4 on this TRAIN, not the window or the read. Most replies answer
+  another kind of turn, such as "Okay, I'll remember all of that." A training
+  position costs 1.93× as much at 2,048 (0.645 s a step at 2,048 × 4), and a
+  query decodes at 15.2 tok/s at 2,048 against 466–470 at 192. The Bar's
+  classification, instrument or mechanism, is past P2b's bound and parked
+  behind P3; it comes before P4.
 - **A census of the data:**
   - the TRAIN size correction: [claude-202's census](../../loop/tasks/one-model-end-to-end/claude-202/REPORT.md) measured 7,512,797 tokens and 2,425,925 eligible targets in the pinned TRAIN file. The older sheet's 26,214,400 / 10,975,281 figures for the same `tokens.u16` SHA match neither its header nor its payload and are not the corpus count;
   - a TRAIN reply index;
