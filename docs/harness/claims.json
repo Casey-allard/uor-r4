@@ -97,6 +97,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/continuation-horizon": {
+    "branch": "deepseek/continuation-horizon",
+    "claimed_at": "2026-11-04T16:35:38-05:00",
+    "head": "7dfd96644",
+    "lab": "deepseek",
+    "note": "CPU continuation-horizon termination research with horizon-permuted controls"
+  },
   "deepseek/copy-codes-key2-guard": {
     "branch": "deepseek/copy-codes-key2-guard",
     "claimed_at": "2026-11-02T23:04:45-05:00",

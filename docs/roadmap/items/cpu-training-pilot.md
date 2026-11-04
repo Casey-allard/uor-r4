@@ -331,6 +331,20 @@ K<=8 density representation and leaves the next termination attempt to a
 continuation objective or a different terminal-state representation. See
 [deepseek-142](../../loop/tasks/cpu-training-pilot/deepseek-142/REPORT.md).
 
+The following continuation-horizon unit changed the objective to signed
+remaining reference length rather than terminal membership. Exact-offset
+Hamming neighbours predicted a lower-median horizon, with k fitted by
+leave-one-out and a within-offset horizon permutation as control. Seed 1
+retained the exact 1,568-row split and recalled 40/84 endpoints, passing the
+26/84 training floor; true horizon error was 7,184 against 9,525 for the
+control. However, 66/1,484 nonterminal rows stopped against the 14-row 1%
+limit, so the registered preflight stopped the run before seed 2, free
+generation or the repeat. This closes the fixed exact-offset lower-median
+horizon configuration while preserving the signal that ordinal horizon
+prediction carries information. A later attempt needs a different trajectory
+representation or a nonterminal-aware continuation objective. See
+[deepseek-143](../../loop/tasks/cpu-training-pilot/deepseek-143/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

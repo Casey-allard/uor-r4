@@ -720,6 +720,54 @@ pub struct ContentStopDensityTraining {
     pub leave_one_out_neighbors: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentContinuationRow {
+    pub signature: ContentSignature,
+    pub remaining: i16,
+    pub writer_token: u32,
+    pub offset: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentContinuationPoint {
+    pub signature: ContentSignature,
+    pub remaining: i16,
+    pub offset: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentContinuationGate {
+    pub signature_bits: usize,
+    pub rows: Vec<ContentContinuationPoint>,
+    pub neighbors: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentContinuationCandidate {
+    pub neighbors: usize,
+    pub terminal_stops: u64,
+    pub nonterminal_stops: u64,
+    pub horizon_abs_error: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentContinuationTraining {
+    pub gate: ContentContinuationGate,
+    pub rows: u64,
+    pub terminal_rows: u64,
+    pub nonterminal_rows: u64,
+    pub terminal_stops: u64,
+    pub nonterminal_stops: u64,
+    pub nonterminal_stop_limit: u64,
+    pub horizon_abs_error: u64,
+    pub candidates: Vec<ContentContinuationCandidate>,
+}
+
 pub fn derive_content_stop_rows(
     artifact: &[u8],
     samples: &[MemoryWeightSample],
@@ -764,6 +812,335 @@ pub fn derive_content_stop_rows(
         return Err(invalid("content stop rows need both classes"));
     }
     Ok(rows)
+}
+
+pub fn derive_content_continuation_rows(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+) -> Result<Vec<ContentContinuationRow>> {
+    validate_content_readout(readout)?;
+    if readout.mode != ContentSignatureMode::Code || readout.includes_reference_end {
+        return Err(invalid(
+            "content continuation rows need a plain code readout",
+        ));
+    }
+    if samples.is_empty() {
+        return Err(invalid("content continuation rows need samples"));
+    }
+    let rows = samples
+        .par_iter()
+        .map(|sample| {
+            let reference_len = normalized_reference(&sample.reply).len();
+            generate_with_readout(
+                artifact,
+                sample,
+                cap,
+                memory_enabled,
+                ContentSignatureMode::Code,
+                false,
+                Some(readout),
+            )
+            .and_then(|(decisions, _)| {
+                decisions
+                    .into_iter()
+                    .map(|decision| {
+                        let remaining = i32::try_from(reference_len)
+                            .ok()
+                            .and_then(|length| {
+                                i32::try_from(decision.offset)
+                                    .ok()
+                                    .map(|offset| length - offset)
+                            })
+                            .and_then(|remaining| i16::try_from(remaining).ok())
+                            .ok_or_else(|| {
+                                invalid("content continuation horizon is out of range")
+                            })?;
+                        Ok(ContentContinuationRow {
+                            signature: decision.signature,
+                            remaining,
+                            writer_token: decision.content_chosen,
+                            offset: decision.offset as u16,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()
+            })
+        })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    if !rows.iter().any(|row| row.remaining == 0) || !rows.iter().any(|row| row.remaining != 0) {
+        return Err(invalid(
+            "content continuation rows need both horizon classes",
+        ));
+    }
+    Ok(rows)
+}
+
+pub fn shuffle_content_continuation_rows(
+    rows: &[ContentContinuationRow],
+    seed: u64,
+) -> Result<Vec<ContentContinuationRow>> {
+    if rows.is_empty() {
+        return Err(invalid("content continuation shuffle needs rows"));
+    }
+    let mut groups = BTreeMap::<u16, Vec<usize>>::new();
+    for (index, row) in rows.iter().enumerate() {
+        groups.entry(row.offset).or_default().push(index);
+    }
+    let mut shuffled = rows.to_vec();
+    for indices in groups.values_mut() {
+        if indices.len() < 2 {
+            continue;
+        }
+        indices.sort_by(|left, right| {
+            rows[*left]
+                .signature
+                .cmp(&rows[*right].signature)
+                .then_with(|| rows[*left].remaining.cmp(&rows[*right].remaining))
+        });
+        let values = indices
+            .iter()
+            .map(|index| rows[*index].remaining)
+            .collect::<Vec<_>>();
+        let shift = 1 + seed as usize % (values.len() - 1);
+        let rotated = values
+            .iter()
+            .cycle()
+            .skip(values.len() - shift % values.len())
+            .take(values.len())
+            .copied()
+            .collect::<Vec<_>>();
+        for (index, remaining) in indices.iter().zip(rotated) {
+            shuffled[*index].remaining = remaining;
+        }
+    }
+    if shuffled
+        .iter()
+        .zip(rows)
+        .all(|(left, right)| left.remaining == right.remaining)
+    {
+        return Err(invalid("content continuation shuffle is vacuous"));
+    }
+    Ok(shuffled)
+}
+
+pub fn fit_content_continuation_gate(
+    rows: &[ContentContinuationRow],
+    max_neighbors: usize,
+) -> Result<ContentContinuationTraining> {
+    if max_neighbors == 0 || max_neighbors > 16 {
+        return Err(invalid("content continuation neighbors are out of bounds"));
+    }
+    if rows.is_empty()
+        || !rows.iter().any(|row| row.remaining == 0)
+        || !rows.iter().any(|row| row.remaining != 0)
+    {
+        return Err(invalid(
+            "content continuation fitting needs both horizon classes",
+        ));
+    }
+    if rows
+        .iter()
+        .any(|row| row.signature.len() != CONTENT_CODE_SIGNATURE_BITS / 64)
+    {
+        return Err(invalid("content continuation signature width differs"));
+    }
+    let nonterminal_rows = rows.iter().filter(|row| row.remaining != 0).count() as u64;
+    let nonterminal_stop_limit = nonterminal_rows / 100;
+    let mut candidates = Vec::new();
+    for neighbors in [1usize, 2, 4, 8, 16] {
+        if neighbors > max_neighbors {
+            continue;
+        }
+        let predictions = rows
+            .par_iter()
+            .enumerate()
+            .map(|(index, row)| {
+                continuation_prediction(rows, Some(index), &row.signature, row.offset, neighbors)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let terminal_stops = rows
+            .iter()
+            .zip(&predictions)
+            .filter(|(row, prediction)| row.remaining == 0 && **prediction == Some(0))
+            .count() as u64;
+        let nonterminal_stops = rows
+            .iter()
+            .zip(&predictions)
+            .filter(|(row, prediction)| row.remaining != 0 && **prediction == Some(0))
+            .count() as u64;
+        let horizon_abs_error =
+            rows.iter()
+                .zip(&predictions)
+                .try_fold(0u64, |sum, (row, prediction)| {
+                    let error = prediction
+                        .map(|prediction| i32::from(prediction) - i32::from(row.remaining))
+                        .unwrap_or(i32::from(row.remaining))
+                        .unsigned_abs();
+                    sum.checked_add(u64::from(error))
+                        .ok_or_else(|| invalid("content continuation error sum overflows"))
+                })?;
+        candidates.push(ContentContinuationCandidate {
+            neighbors,
+            terminal_stops,
+            nonterminal_stops,
+            horizon_abs_error,
+        });
+    }
+    let best = candidates
+        .iter()
+        .max_by(|left, right| {
+            left.terminal_stops
+                .cmp(&right.terminal_stops)
+                .then_with(|| right.nonterminal_stops.cmp(&left.nonterminal_stops))
+                .then_with(|| right.horizon_abs_error.cmp(&left.horizon_abs_error))
+                .then_with(|| right.neighbors.cmp(&left.neighbors))
+        })
+        .cloned()
+        .ok_or_else(|| invalid("content continuation has no candidate"))?;
+    let mut points = rows
+        .iter()
+        .map(|row| ContentContinuationPoint {
+            signature: row.signature.clone(),
+            remaining: row.remaining,
+            offset: row.offset,
+        })
+        .collect::<Vec<_>>();
+    points.sort_by(|left, right| {
+        left.offset
+            .cmp(&right.offset)
+            .then_with(|| left.signature.cmp(&right.signature))
+            .then_with(|| left.remaining.cmp(&right.remaining))
+    });
+    Ok(ContentContinuationTraining {
+        gate: ContentContinuationGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            rows: points,
+            neighbors: best.neighbors,
+        },
+        rows: rows.len() as u64,
+        terminal_rows: rows.iter().filter(|row| row.remaining == 0).count() as u64,
+        nonterminal_rows,
+        terminal_stops: best.terminal_stops,
+        nonterminal_stops: best.nonterminal_stops,
+        nonterminal_stop_limit,
+        horizon_abs_error: best.horizon_abs_error,
+        candidates,
+    })
+}
+
+fn continuation_prediction(
+    rows: &[ContentContinuationRow],
+    skip: Option<usize>,
+    signature: &ContentSignature,
+    offset: u16,
+    neighbors: usize,
+) -> Result<Option<i16>> {
+    let mut candidates = rows
+        .iter()
+        .enumerate()
+        .filter(|(index, row)| Some(*index) != skip && row.offset == offset)
+        .map(|(_, row)| (content_hamming(signature, &row.signature), row))
+        .collect::<Vec<_>>();
+    if candidates.len() < neighbors {
+        return Ok(None);
+    }
+    candidates.sort_by(|(left_distance, left), (right_distance, right)| {
+        left_distance
+            .cmp(right_distance)
+            .then_with(|| left.signature.cmp(&right.signature))
+            .then_with(|| left.remaining.cmp(&right.remaining))
+    });
+    let mut horizons = candidates
+        .into_iter()
+        .take(neighbors)
+        .map(|(_, row)| row.remaining)
+        .collect::<Vec<_>>();
+    horizons.sort_unstable();
+    Ok(horizons.get((neighbors - 1) / 2).copied())
+}
+
+pub fn content_continuation_loo_prediction(
+    rows: &[ContentContinuationRow],
+    index: usize,
+    neighbors: usize,
+) -> Result<Option<i16>> {
+    let row = rows
+        .get(index)
+        .ok_or_else(|| invalid("content continuation query row is out of bounds"))?;
+    if neighbors == 0 || neighbors > 16 {
+        return Err(invalid("content continuation neighbors are out of bounds"));
+    }
+    if rows
+        .iter()
+        .any(|row| row.signature.len() != CONTENT_CODE_SIGNATURE_BITS / 64)
+    {
+        return Err(invalid("content continuation signature width differs"));
+    }
+    continuation_prediction(rows, Some(index), &row.signature, row.offset, neighbors)
+}
+
+pub fn content_continuation_gate_prediction(
+    gate: &ContentContinuationGate,
+    signature: &ContentSignature,
+    offset: u16,
+) -> Result<Option<i16>> {
+    validate_content_continuation_gate(gate)?;
+    if signature.len() != gate.signature_bits / 64 {
+        return Err(invalid("content continuation query width differs"));
+    }
+    let mut candidates = gate
+        .rows
+        .iter()
+        .filter(|row| row.offset == offset)
+        .map(|row| (content_hamming(signature, &row.signature), row))
+        .collect::<Vec<_>>();
+    if candidates.len() < gate.neighbors {
+        return Ok(None);
+    }
+    candidates.sort_by(|(left_distance, left), (right_distance, right)| {
+        left_distance
+            .cmp(right_distance)
+            .then_with(|| left.signature.cmp(&right.signature))
+            .then_with(|| left.remaining.cmp(&right.remaining))
+    });
+    let mut horizons = candidates
+        .into_iter()
+        .take(gate.neighbors)
+        .map(|(_, row)| row.remaining)
+        .collect::<Vec<_>>();
+    horizons.sort_unstable();
+    Ok(Some(horizons[(gate.neighbors - 1) / 2]))
+}
+
+pub fn content_continuation_gate_fires(
+    gate: &ContentContinuationGate,
+    signature: &ContentSignature,
+    offset: u16,
+) -> Result<bool> {
+    Ok(content_continuation_gate_prediction(gate, signature, offset)? == Some(0))
+}
+
+fn validate_content_continuation_gate(gate: &ContentContinuationGate) -> Result<()> {
+    if gate.signature_bits != CONTENT_CODE_SIGNATURE_BITS
+        || gate.rows.is_empty()
+        || gate.neighbors == 0
+        || gate.neighbors > 16
+    {
+        return Err(invalid("content continuation gate shape differs"));
+    }
+    if gate
+        .rows
+        .iter()
+        .any(|row| row.signature.len() != gate.signature_bits / 64)
+    {
+        return Err(invalid("content continuation point width differs"));
+    }
+    Ok(())
 }
 
 pub fn shuffle_content_stop_rows(
@@ -987,6 +1364,28 @@ pub fn evaluate_content_stop_density_gate(
     validate_content_stop_density_gate(gate)?;
     evaluate_generated(samples, cap, |sample| {
         generate_with_content_density_gate(artifact, sample, cap, memory_enabled, readout, gate)
+    })
+}
+
+pub fn evaluate_content_continuation_gate(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentContinuationGate,
+) -> Result<(ContentReadoutReading, Vec<ContentPromptReading>)> {
+    validate_content_readout(readout)?;
+    validate_content_continuation_gate(gate)?;
+    evaluate_generated(samples, cap, |sample| {
+        generate_with_content_continuation_gate(
+            artifact,
+            sample,
+            cap,
+            memory_enabled,
+            readout,
+            gate,
+        )
     })
 }
 
@@ -1397,6 +1796,88 @@ fn generate_with_content_density_gate(
         current = forward
             .step(chosen, CpuFbsHead::Writer)
             .map_err(|error| invalid(format!("content stop density generated step: {error}")))?;
+    };
+    Ok((decisions, Generated { tokens, stop }))
+}
+
+fn generate_with_content_continuation_gate(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentContinuationGate,
+) -> Result<(Vec<Decision>, Generated)> {
+    if cap == 0 || cap > 64 || sample.prompt.is_empty() {
+        return Err(invalid(
+            "content continuation sample, prompt or cap differs",
+        ));
+    }
+    let reference = normalized_reference(&sample.reply);
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("content continuation forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    let mut current = None;
+    for (index, &token) in sample.prompt.iter().enumerate() {
+        if index + 1 == sample.prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content continuation prompt step: {error}")))?;
+        if index + 1 == sample.prompt.len() {
+            current = Some(step);
+        }
+    }
+    let mut current = current.ok_or_else(|| invalid("content continuation prompt is empty"))?;
+    let mut decisions = Vec::new();
+    let mut tokens = Vec::new();
+    let stop = loop {
+        let offset = decisions.len();
+        let signature = pack_content_signature(&current.query_q12, ContentSignatureMode::Code)?;
+        let (content_chosen, nearest_distance, ambiguous_nearest, used_readout) =
+            select_content_target(readout, &signature, current.token)?;
+        let gate_fired = content_continuation_gate_fires(
+            gate,
+            &signature,
+            offset.try_into().map_err(|_| {
+                invalid("content continuation offset exceeds the row representation")
+            })?,
+        )?;
+        let chosen = if gate_fired {
+            POINT_KEY_BOS
+        } else {
+            content_chosen
+        };
+        decisions.push(Decision {
+            offset,
+            chosen,
+            content_chosen,
+            writer_chosen: current.token,
+            gate_fired,
+            signature,
+            reference_target: reference.get(offset).copied(),
+            nearest_distance,
+            ambiguous_nearest,
+            used_readout,
+        });
+        let end = reply_stop(chosen, offset, sample.prompt.len(), cap, context);
+        if end != Some(ReplyEnd::Bos) {
+            tokens.push(chosen);
+        }
+        if let Some(end) = end {
+            break match end {
+                ReplyEnd::Bos => "bos",
+                ReplyEnd::Length => "cap",
+                ReplyEnd::Context => "context",
+            };
+        }
+        current = forward
+            .step(chosen, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content continuation generated step: {error}")))?;
     };
     Ok((decisions, Generated { tokens, stop }))
 }
@@ -1955,6 +2436,92 @@ mod tests {
     }
 
     #[test]
+    fn continuation_gate_stops_at_zero_horizon_without_changing_ungated_content() {
+        let artifact = artifact();
+        let sample = sample();
+        let (writer, _) = generate_with_readout(
+            &artifact,
+            &sample,
+            4,
+            false,
+            ContentSignatureMode::Code,
+            false,
+            None,
+        )
+        .unwrap();
+        let readout = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: vec![ContentExample {
+                signature: writer[0].signature.clone(),
+                target: writer[0].reference_target.unwrap(),
+            }],
+            max_distance: 0,
+        };
+        let gate = ContentContinuationGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            rows: vec![ContentContinuationPoint {
+                signature: writer[1].signature.clone(),
+                remaining: 0,
+                offset: 1,
+            }],
+            neighbors: 1,
+        };
+        let (decisions, reply) =
+            generate_with_content_continuation_gate(&artifact, &sample, 4, false, &readout, &gate)
+                .unwrap();
+        assert_eq!(decisions.len(), 2);
+        assert!(!decisions[0].gate_fired);
+        assert_eq!(decisions[0].chosen, decisions[0].content_chosen);
+        assert!(decisions[1].gate_fired);
+        assert_eq!(decisions[1].chosen, POINT_KEY_BOS);
+        assert_eq!(reply.stop, "bos");
+        assert_eq!(
+            decisions
+                .iter()
+                .filter(|decision| !decision.gate_fired)
+                .map(|decision| (decision.chosen, decision.content_chosen))
+                .collect::<Vec<_>>(),
+            vec![(decisions[0].content_chosen, decisions[0].content_chosen)]
+        );
+    }
+
+    #[test]
+    fn continuation_horizons_are_reference_length_minus_generated_offset() {
+        let artifact = artifact();
+        let sample = sample();
+        let (writer, _) = generate_with_readout(
+            &artifact,
+            &sample,
+            4,
+            false,
+            ContentSignatureMode::Code,
+            false,
+            None,
+        )
+        .unwrap();
+        let readout = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: vec![ContentExample {
+                signature: writer[0].signature.clone(),
+                target: writer[0].reference_target.unwrap(),
+            }],
+            max_distance: 0,
+        };
+        let rows =
+            derive_content_continuation_rows(&artifact, &[sample], 4, false, &readout).unwrap();
+        assert_eq!(
+            rows.iter()
+                .map(|row| (row.offset, row.remaining))
+                .collect::<Vec<_>>(),
+            vec![(0, 2), (1, 1), (2, 0), (3, -1)]
+        );
+    }
+
+    #[test]
     fn content_stop_prototypes_fit_and_shuffle_labels() {
         let mut rows = (0..20)
             .map(|index| ContentStopRow {
@@ -2051,6 +2618,116 @@ mod tests {
             shuffled.iter().filter(|row| row.terminal).count(),
             rows.iter().filter(|row| row.terminal).count()
         );
+    }
+
+    fn continuation_row(signature: usize, remaining: i16, offset: u16) -> ContentContinuationRow {
+        ContentContinuationRow {
+            signature: code_signature(signature),
+            remaining,
+            writer_token: 7,
+            offset,
+        }
+    }
+
+    #[test]
+    fn continuation_fit_uses_exact_offsets_and_lower_median_horizon() {
+        let mut rows = (0..4)
+            .map(|index| continuation_row(index, if index == 0 { 0 } else { 2 }, 4))
+            .collect::<Vec<_>>();
+        rows.extend((0..4).map(|index| continuation_row(index, 1, 5)));
+        let training = fit_content_continuation_gate(&rows, 1).unwrap();
+        assert_eq!(training.gate.neighbors, 1);
+        assert_eq!(training.rows, 8);
+        assert_eq!(training.terminal_rows, 1);
+        assert!(content_continuation_gate_fires(&training.gate, &code_signature(0), 4).unwrap());
+        assert!(!content_continuation_gate_fires(&training.gate, &code_signature(0), 5).unwrap());
+
+        let tied = continuation_row(0, 3, 4);
+        let mut rows = vec![tied];
+        for remaining in [0, 1, 2] {
+            rows.push(continuation_row(0, remaining, 4));
+        }
+        let training = fit_content_continuation_gate(&rows, 4).unwrap();
+        let mut reordered = rows.clone();
+        reordered.reverse();
+        assert_eq!(
+            fit_content_continuation_gate(&reordered, 4).unwrap(),
+            training
+        );
+        let tie_gate = ContentContinuationGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            rows: [0, 0, 1, 2]
+                .into_iter()
+                .map(|remaining| ContentContinuationPoint {
+                    signature: code_signature(0),
+                    remaining,
+                    offset: 4,
+                })
+                .collect(),
+            neighbors: 4,
+        };
+        assert!(content_continuation_gate_fires(&tie_gate, &code_signature(0), 4).unwrap());
+    }
+
+    #[test]
+    fn continuation_shuffle_preserves_each_offset_horizon_multiset() {
+        let rows = vec![
+            continuation_row(0, 0, 4),
+            continuation_row(1, 1, 4),
+            continuation_row(2, 2, 4),
+            continuation_row(3, -1, 5),
+            continuation_row(4, 0, 5),
+            continuation_row(5, 1, 5),
+        ];
+        let shuffled = shuffle_content_continuation_rows(&rows, 3).unwrap();
+        assert_ne!(
+            shuffled.iter().map(|row| row.remaining).collect::<Vec<_>>(),
+            rows.iter().map(|row| row.remaining).collect::<Vec<_>>()
+        );
+        for offset in [4, 5] {
+            let mut before = rows
+                .iter()
+                .filter(|row| row.offset == offset)
+                .map(|row| row.remaining)
+                .collect::<Vec<_>>();
+            let mut after = shuffled
+                .iter()
+                .filter(|row| row.offset == offset)
+                .map(|row| row.remaining)
+                .collect::<Vec<_>>();
+            before.sort_unstable();
+            after.sort_unstable();
+            assert_eq!(before, after);
+        }
+        assert_eq!(
+            shuffle_content_continuation_rows(&rows, 3).unwrap(),
+            shuffled
+        );
+    }
+
+    #[test]
+    fn continuation_gate_round_trips_and_fires_only_on_zero() {
+        let rows = vec![
+            continuation_row(0, 0, 4),
+            continuation_row(1, 1, 4),
+            continuation_row(2, 2, 4),
+            continuation_row(3, 3, 4),
+        ];
+        let training = fit_content_continuation_gate(&rows, 1).unwrap();
+        let encoded = serde_json::to_vec(&training.gate).unwrap();
+        let decoded = serde_json::from_slice::<ContentContinuationGate>(&encoded).unwrap();
+        assert_eq!(decoded, training.gate);
+        assert!(content_continuation_gate_fires(&decoded, &code_signature(0), 4).unwrap());
+        assert!(!content_continuation_gate_fires(&decoded, &code_signature(1), 4).unwrap());
+        assert!(!content_continuation_gate_fires(&decoded, &code_signature(0), 5).unwrap());
+        let mut malformed_gate = training.gate.clone();
+        malformed_gate.rows[0].signature.pop();
+        assert!(
+            content_continuation_gate_prediction(&malformed_gate, &code_signature(0), 4).is_err()
+        );
+        let mut malformed_rows = rows;
+        malformed_rows[0].signature.pop();
+        assert!(fit_content_continuation_gate(&malformed_rows, 1).is_err());
     }
 
     #[test]

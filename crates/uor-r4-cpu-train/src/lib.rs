@@ -27,17 +27,21 @@ mod stop_signature;
 mod train;
 
 pub use content_readout::{
-    content_hamming, content_mapping_sha256, content_stop_density_gate_fires,
-    content_stop_gate_fires, content_target_mapping, derive_content_readout,
-    derive_content_stop_readout, derive_content_stop_rows, evaluate_content_readout,
-    evaluate_content_stop_density_gate, evaluate_content_stop_gate, fit_content_stop_density_gate,
-    fit_content_stop_gate, pack_content_signature, shuffle_content_stop_rows,
-    shuffle_content_targets, verify_content_readout_serving, ContentExample, ContentPromptReading,
-    ContentReadout, ContentReadoutReading, ContentReadoutTraining, ContentServingParity,
-    ContentSignature, ContentSignatureMode, ContentStopDensityGate, ContentStopDensityPoint,
-    ContentStopDensityTraining, ContentStopGate, ContentStopRow, ContentStopTraining,
-    CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
-    CONTENT_SIGNATURE_BITS,
+    content_continuation_gate_fires, content_continuation_gate_prediction,
+    content_continuation_loo_prediction, content_hamming, content_mapping_sha256,
+    content_stop_density_gate_fires, content_stop_gate_fires, content_target_mapping,
+    derive_content_continuation_rows, derive_content_readout, derive_content_stop_readout,
+    derive_content_stop_rows, evaluate_content_continuation_gate, evaluate_content_readout,
+    evaluate_content_stop_density_gate, evaluate_content_stop_gate, fit_content_continuation_gate,
+    fit_content_stop_density_gate, fit_content_stop_gate, pack_content_signature,
+    shuffle_content_continuation_rows, shuffle_content_stop_rows, shuffle_content_targets,
+    verify_content_readout_serving, ContentContinuationCandidate, ContentContinuationGate,
+    ContentContinuationPoint, ContentContinuationRow, ContentContinuationTraining, ContentExample,
+    ContentPromptReading, ContentReadout, ContentReadoutReading, ContentReadoutTraining,
+    ContentServingParity, ContentSignature, ContentSignatureMode, ContentStopDensityGate,
+    ContentStopDensityPoint, ContentStopDensityTraining, ContentStopGate, ContentStopRow,
+    ContentStopTraining, CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES,
+    CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS,
 };
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,
