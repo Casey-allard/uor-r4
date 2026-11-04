@@ -1,0 +1,83 @@
+{
+  "schema": "uor-r4.point-vote-serving-evidence/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "vote_k": 8,
+  "ordering": "exact (L1 distance, row index), then commonest target, ties to smaller token id",
+  "default_artifact_bytes_identical": true,
+  "scheduler": {
+    "host": "AMD Ryzen 9 9950X, 16 physical cores / 32 hardware threads",
+    "jobs": 2,
+    "workers_per_job": 16,
+    "invocation": "concurrent"
+  },
+  "seed_1": {
+    "threads": 16,
+    "wall_elapsed_ms": 1443.55622,
+    "default_artifacts": {
+      "memory_only_sha256": "63c0c0c12ff2b16677ca84b99be705dee0d655ad9867893466fea87ab51f3d98",
+      "point_sha256": "ecd2c616a49e863a3c438f254094e4fbf596bb660e64d28135a0509a76b7ec56",
+      "random_point_sha256": "85ed67858c57873de7afb7c3a60bbca5f3fef2bd827c080034390fde2c240569"
+    },
+    "voted_artifact_sha256": "0dd5a835652f16d87c63a80db5e1d619f56cbe83b73e00dc351f659ce7ee8fac",
+    "opening_top1": {
+      "point_off": 0,
+      "nearest": 2,
+      "vote": 3,
+      "random_vote": 2
+    },
+    "full_teacher_forced_top1": {
+      "point_off": 169,
+      "nearest": 171,
+      "vote": 172,
+      "random": 169
+    },
+    "nearest_matches_served": 60,
+    "vote_matches_served": 60,
+    "decisions": 60,
+    "parity": {
+      "positions": 2110,
+      "query_coordinates": 540160,
+      "token_decisions": 2110,
+      "kept_cells": 16880,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "seed_2": {
+    "threads": 16,
+    "wall_elapsed_ms": 1433.089525,
+    "default_artifacts": {
+      "memory_only_sha256": "e293b3c92910472975dab6ad8902787886f397c018adb42fe5980216775be100",
+      "point_sha256": "5f127f79ad3150a7814653ebb1bff1d7b4586a2ea7f26afb64b21fc60408cece",
+      "random_point_sha256": "48b4e621707cc6e251c31770463c007f97b6dfbecf9c7c78d135fcfbf8fb52ff"
+    },
+    "voted_artifact_sha256": "cd76559c86f4688792fa9eb709026a016cc8f86cfcbb67ab20338b07548beee6",
+    "opening_top1": {
+      "point_off": 0,
+      "nearest": 1,
+      "vote": 3,
+      "random_vote": 3
+    },
+    "full_teacher_forced_top1": {
+      "point_off": 163,
+      "nearest": 164,
+      "vote": 166,
+      "random": 166
+    },
+    "nearest_matches_served": 60,
+    "vote_matches_served": 60,
+    "decisions": 60,
+    "parity": {
+      "positions": 2110,
+      "query_coordinates": 540160,
+      "token_decisions": 2110,
+      "kept_cells": 16880,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "reading": "The artifact-bound rule serves the previously screened table exactly. It adds no capability claim: the opening gain remains small, seed 2's shuffled vote ties the learned vote, and the rule was not re-tuned."
+}

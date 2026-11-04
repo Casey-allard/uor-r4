@@ -1632,6 +1632,7 @@ mod tests {
                     width: snapshot.width,
                     points: vec![0; snapshot.width * targets.len()],
                     targets,
+                    vote_k: 1,
                 },
             )
             .unwrap();

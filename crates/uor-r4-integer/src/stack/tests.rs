@@ -5850,6 +5850,7 @@ fn synthetic_point_key(bytes: &[u8], rows: usize) -> super::PointKeyImage {
         width: shape.width,
         points,
         targets,
+        vote_k: 1,
     }
 }
 
@@ -5917,7 +5918,12 @@ fn the_point_key_names_a_missed_opening_and_leaves_the_rest() {
     let with_table = |bytes: &[u8], query: &[i32], named: u32| -> Vec<u8> {
         let mut points: Vec<i16> = query.iter().map(|&q| q as i16).collect();
         points.extend(query.iter().map(|&q| (q + 3000).clamp(-32768, 32767) as i16));
-        let image = super::PointKeyImage { width, points, targets: vec![named, named + 1] };
+        let image = super::PointKeyImage {
+            width,
+            points,
+            targets: vec![named, named + 1],
+            vote_k: 1,
+        };
         super::add_point_key_uorlut01(bytes, &image).expect("the /8 stack")
     };
     let at = reply_start - 1;
@@ -6036,6 +6042,10 @@ fn a_point_key_round_trips_through_the_lut_stack_8_record() {
     assert_eq!(&new[..old.len()], &old[..], "the /7 sections are unchanged");
     assert_eq!(new_header["schema"], json!(super::STACK_FBS_POINT_SCHEMA));
     assert_eq!(new_header["point"], json!({ "rows": 5, "width": image.width, "exp": super::POINT_KEY_EXP }));
+    assert!(
+        new_header["point"].get("vote_k").is_none(),
+        "the default one-row behavior is omitted so existing /8 bytes stay unchanged"
+    );
     assert_eq!(new_header["memory"], old_header["memory"]);
     IntegerStackModel::parse(&with).expect("served /8");
     assert!(super::add_point_key_uorlut01(&with, &image).is_err(), "a stack with a table already");
@@ -6045,6 +6055,7 @@ fn a_point_key_round_trips_through_the_lut_stack_8_record() {
         width: image.width - 1,
         points: vec![0; (image.width - 1) * 5],
         targets: image.targets.clone(),
+        vote_k: 1,
     };
     assert!(super::add_point_key_uorlut01(&bytes, &narrow).is_err(), "another width");
 }
@@ -6069,6 +6080,12 @@ fn the_lut_stack_8_schema_and_record_are_checked() {
     assert!(refused(with_header(&with, |h| h["point"]["rows"] = json!(4))), "rows the targets do not hold");
     assert!(refused(with_header(&with, |h| h["point"]["width"] = json!(3))), "another width");
     assert!(refused(with_header(&with, |h| h["point"]["exp"] = json!(-11))), "another exponent");
+    assert!(refused(with_header(&with, |h| h["point"]["vote_k"] = json!(0))), "a zero vote width");
+    assert!(refused(with_header(&with, |h| h["point"]["vote_k"] = json!(6))), "a vote width past the rows");
+    assert!(
+        refused(with_header(&with, |h| h["point"]["vote_k"] = json!("eight"))),
+        "a non-integer vote width"
+    );
     assert!(refused(with_header(&with, |h| h["point"]["extra"] = json!(1))), "an unknown field");
     let model = IntegerStackModel::parse(&with).expect("served /8");
     let mut session = model.session();
@@ -6078,6 +6095,85 @@ fn the_lut_stack_8_schema_and_record_are_checked() {
         Err(StackError::Shape(m)) => assert_eq!(m, "a session of a turn memory cannot be restored yet: its turn state is not saved"),
         other => panic!("expected the turn-memory restore refusal, got {other:?}"),
     }
+}
+
+/// deepseek-106: a voted point record round-trips, is named as the native session serves it, and
+/// remains optional so the default record serializes exactly as the original `/8` record.
+#[test]
+fn a_voted_point_key_round_trips_and_serves_in_the_native_session() {
+    let (tokens, reply_start) = turn_memory_script(8);
+    let bytes = point_key_test_stack(false);
+    let model7 = IntegerStackModel::parse(&bytes).expect("served /7");
+    let width = model7.shape().width;
+
+    let mut session = model7.session();
+    let mut query = None;
+    for (row, &token) in tokens[..reply_start].iter().enumerate() {
+        if row + 1 == reply_start {
+            session.mark_reply_start();
+        }
+        let step = session.step_native(token).expect("step");
+        if row + 1 == reply_start {
+            query = Some(step.query_q12);
+        }
+    }
+    let query = query.expect("the opening query");
+    let mut points = Vec::with_capacity(9 * width);
+    points.extend(query.iter().map(|&value| value as i16));
+    for distance in 1..=7 {
+        points.extend(
+            query
+                .iter()
+                .map(|&value| (value as i16).saturating_add(distance as i16)),
+        );
+    }
+    points.extend(query.iter().map(|&value| (value as i16).saturating_add(8)));
+    let image = super::PointKeyImage {
+        width,
+        points,
+        targets: vec![9, 7, 7, 7, 7, 7, 7, 7, 8],
+        vote_k: 8,
+    };
+    let voted = super::add_point_key_uorlut01(&bytes, &image).expect("the voted /8 stack");
+    let model8 = IntegerStackModel::parse(&voted).expect("served voted /8");
+    assert_eq!(model8.point_key_vote_k(), Some(8));
+    assert_eq!(
+        model8.point_key_reference(&query),
+        Some((7, 0)),
+        "the reference uses exact distance then row ordering"
+    );
+
+    let mut session = model8.session();
+    let mut opening = None;
+    for (row, &token) in tokens[..reply_start].iter().enumerate() {
+        if row + 1 == reply_start {
+            session.mark_reply_start();
+        }
+        opening = Some(session.step_native(token).expect("step"));
+    }
+    assert_eq!(opening.expect("the opening").token, 7);
+    assert_eq!(session.last_point_key(), Some((7, 0)));
+
+    let read = super::read_memory_uorlut01(&voted)
+        .expect("read")
+        .expect("a memory")
+        .point
+        .expect("the point key");
+    assert_eq!(read, image);
+    let (header, _) = header_and_data(&voted);
+    assert_eq!(header["point"]["vote_k"], json!(8));
+
+    let mut default = image.clone();
+    default.vote_k = 1;
+    let default_bytes = super::add_point_key_uorlut01(&bytes, &default).expect("default /8");
+    let (default_header, _) = header_and_data(&default_bytes);
+    assert!(default_header["point"].get("vote_k").is_none());
+    assert_eq!(
+        IntegerStackModel::parse(&default_bytes)
+            .expect("served default")
+            .point_key_vote_k(),
+        Some(1)
+    );
 }
 
 /// claude-224: a panel reply ends at BOS, unkept; at its length; or where prompt and reply fill

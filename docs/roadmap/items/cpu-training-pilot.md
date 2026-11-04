@@ -99,9 +99,14 @@ does not reject every point-key representation. See
 
 An eight-row majority vote over the same point rows then beat point-off, the
 single nearest row and the eight-row shuffled-target vote on both seeds, at
-`3/60` versus `1–2/60`. The gain was below the separate three-sigma threshold,
-and the rule is not in the integer artifact or session yet. See
-[deepseek-105](../../loop/tasks/cpu-training-pilot/deepseek-105/REPORT.md).
+`3/60` versus `1–2/60`. The gain was below the separate three-sigma threshold.
+The rule is now artifact-bound: `vote_k` defaults to the byte-compatible
+one-row behavior, and a synthetic plus two-seed public control proves exact
+native-session, CPU-oracle and served-forward parity at `vote_k = 8`. Seed 2's
+shuffled vote also reached `3/60`, so the mechanism remains subthreshold and
+is not a language result. See
+[deepseek-105](../../loop/tasks/cpu-training-pilot/deepseek-105/REPORT.md) and
+[deepseek-106](../../loop/tasks/cpu-training-pilot/deepseek-106/REPORT.md).
 
 ## Done when
 

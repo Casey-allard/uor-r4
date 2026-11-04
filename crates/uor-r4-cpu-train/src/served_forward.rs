@@ -99,7 +99,7 @@ pub fn exact_fbs_contract() -> ExactFbsContract {
             "Hamming candidates order by (distance, earlier position) and keep the first K".to_owned(),
             "whole-table nearest and kept-cell token scans choose the smaller token id on an exact score tie".to_owned(),
             "native writer cells choose the smaller cell id on an exact score tie".to_owned(),
-            "point-key targets choose the commonest target, then the smaller target id, on the least L1 distance".to_owned(),
+            "point-key targets choose the commonest target, then the smaller target id, over every exact least-distance tie or the first vote_k rows ordered by (L1 distance, row index)".to_owned(),
             "icosian transitions and gates choose the first root minimizing H4 distance, as the shared serving selector does".to_owned(),
         ],
         reads: vec![
@@ -115,7 +115,7 @@ pub fn exact_fbs_contract() -> ExactFbsContract {
             "a reply key is the retained turn ids when that prompt row is in the block, then MEMORY_PAD, reply length, MEMORY_PAD and the current token".to_owned(),
             "MEMORY_PAD is a key separator and trailing pads are not part of the exact key".to_owned(),
             "a hit moves the final normalized point toward the named writer row by the table's per-channel Q24 weight".to_owned(),
-            "an opening miss may scan the point table once; equal least distances are grouped by target and counted".to_owned(),
+            "an opening miss may scan the point table once; the default groups equal least distances by target, while vote_k chooses in exact (distance, row) order".to_owned(),
         ],
         readout: vec![
             "native vector: score 256 root-pair cells by Q12 L1, keep K with smaller-cell ties, then scan only those cells' writer rows with smaller-token ties".to_owned(),
@@ -325,6 +325,7 @@ pub struct PointKeyManifest {
     pub rows: usize,
     pub width: usize,
     pub point_exp: i32,
+    pub vote_k: usize,
     pub serialized_table_bytes: u64,
 }
 
@@ -922,6 +923,7 @@ fn manifest_from_model(
             rows: point.targets.len(),
             width: point.width,
             point_exp: -12,
+            vote_k: point.vote_k,
             serialized_table_bytes: bytes(point.points.len(), 2)
                 .saturating_add(bytes(point.targets.len(), 4)),
         });
@@ -1527,6 +1529,14 @@ mod tests {
     }
 
     fn full_path_artifact(point_table: bool, reply_table: bool) -> Vec<u8> {
+        full_path_artifact_with_vote(point_table, reply_table, 1)
+    }
+
+    fn full_path_artifact_with_vote(
+        point_table: bool,
+        reply_table: bool,
+        vote_k: usize,
+    ) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             705,
             FbsSynth {
@@ -1569,12 +1579,16 @@ mod tests {
         });
         let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
         if point_table {
+            let rows = vote_k.max(1);
             add_point_key_uorlut01(
                 &bytes,
                 &PointKeyImage {
                     width: snapshot.width,
-                    points: vec![0; snapshot.width],
-                    targets: vec![99],
+                    points: (0..rows * snapshot.width)
+                        .map(|index| (index % 101) as i16)
+                        .collect(),
+                    targets: vec![99; rows],
+                    vote_k,
                 },
             )
             .unwrap()
@@ -1825,6 +1839,7 @@ mod tests {
                 width: snapshot.width,
                 points: vec![0; snapshot.width * 2],
                 targets: vec![42, 42],
+                vote_k: 1,
             },
         )
         .unwrap();
@@ -1911,6 +1926,7 @@ mod tests {
         assert_eq!(memory.reply_rows, 2);
         assert_eq!(memory.reply_turn, Some(3));
         assert_eq!(memory.point_key.as_ref().unwrap().rows, 1);
+        assert_eq!(memory.point_key.as_ref().unwrap().vote_k, 1);
         assert!(plain.manifest.memory.as_ref().unwrap().point_key.is_none());
 
         let stage = |name: &str| {
@@ -1956,6 +1972,36 @@ mod tests {
             99,
             "the control without a point table cannot take the fallback"
         );
+    }
+
+    #[test]
+    fn full_path_audit_carries_and_exactly_serves_the_voted_point_width() {
+        let tokens = vec![0, 42, 77, 11, 22];
+        let artifact = full_path_artifact_with_vote(true, true, 8);
+        let config = ServedForwardAuditConfig {
+            tokens,
+            token_source: None,
+            expected_artifact_sha256: None,
+            reply_start: Some(3),
+            measure_timing: false,
+        };
+        let first = audit_served_forward(&artifact, &config).unwrap();
+        let second = audit_served_forward(&artifact, &config).unwrap();
+        assert_eq!(first, second);
+        assert!(!first.parity.instrument_fault);
+        assert_eq!(first.parity.query_coordinate_mismatches, 0);
+        assert_eq!(first.parity.token_mismatches, 0);
+        assert_eq!(first.parity.kept_cell_mismatches, 0);
+        let point = first
+            .manifest
+            .memory
+            .as_ref()
+            .unwrap()
+            .point_key
+            .as_ref()
+            .unwrap();
+        assert_eq!(point.rows, 8);
+        assert_eq!(point.vote_k, 8);
     }
 
     #[test]

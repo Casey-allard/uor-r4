@@ -1089,6 +1089,12 @@ impl IntegerStackModel {
         self.memory.as_ref()?.point.as_ref().map(|p| p.rows())
     }
 
+    /// The number of exactly ranked point rows voted over at a point-key miss. `None` without a
+    /// point table. Omitted artifact fields read as `1`.
+    pub fn point_key_vote_k(&self) -> Option<usize> {
+        self.memory.as_ref()?.point.as_ref().map(|p| p.vote_k())
+    }
+
     /// The least L1 distance at Q12 from `query` to a row of the point table naming `target`
     /// (claude-224), or `None` without a table or such a row: the input to parity's rounding
     /// bound. It is off the step's path.
@@ -1718,9 +1724,9 @@ struct Buffers {
     cells: Vec<i64>,
     native_kept: Vec<u32>,
     native_token: u32,
-    /// The point key's tied targets (claude-222), at the table's row count, so its search
-    /// allocates nothing.
-    point_tied: Vec<u32>,
+    /// The point key's `(distance, row, target)` candidates, at the table's row count, so its
+    /// search allocates nothing.
+    point_tied: Vec<(i64, usize, u32)>,
 }
 
 /// A session's turn-memory state (units 2-3 of `turn-memory-integer`): the caller's reply start

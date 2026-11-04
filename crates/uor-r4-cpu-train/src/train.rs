@@ -934,6 +934,7 @@ mod tests {
                 width: snapshot.width,
                 points: vec![0; snapshot.width],
                 targets: vec![99],
+                vote_k: 1,
             },
         )
         .unwrap()
@@ -1199,6 +1200,7 @@ mod tests {
                 width: snapshot.width,
                 points: point_values.clone(),
                 targets: vec![40],
+                vote_k: 1,
             },
         )
         .unwrap();
@@ -1210,6 +1212,7 @@ mod tests {
                 width: snapshot.width,
                 points: point_values.clone(),
                 targets: vec![40],
+                vote_k: 1,
             },
         )
         .unwrap();

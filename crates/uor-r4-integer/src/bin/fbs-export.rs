@@ -25,14 +25,16 @@
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
 //!
 //! ```text
-//! fbs-export --point-key ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH
+//! fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH
 //! ```
 //!
 //! adds the served point key (claude-222, `point-key-integer`) to a turn-memory
 //! `uor-r4.lut-stack/7` artifact, as `/8`. The table holds TRAIN's openings, from
 //! a `UORT` token file and its response mask, in the float sheet's 192-token
 //! windows. At each opening is the integer trunk's own Q12 query, read with the
-//! memory off, and its target. It also prints the table's rows.
+//! memory off, and its target. `--point-vote-k N` records a vote over the N rows
+//! with the least exact `(L1 distance, row)` order; omitting it preserves the
+//! original one-nearest-row output byte for byte. It also prints the table's rows.
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -45,7 +47,7 @@ use uor_r4_integer::stack::{
     IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
-const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
 
 fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
     let value: serde_json::Value =
@@ -93,7 +95,7 @@ fn uort_tokens(path: &str) -> Result<Vec<u32>, String> {
 }
 
 /// `--point-key`: the `/8` stack of a `/7` one, with TRAIN's point table.
-fn point_key(paths: &[String]) -> Result<(), String> {
+fn point_key(paths: &[String], vote_k: usize) -> Result<(), String> {
     let [artifact, tokens, mask, out] = paths else {
         return Err(USAGE.to_owned());
     };
@@ -103,7 +105,8 @@ fn point_key(paths: &[String]) -> Result<(), String> {
     let mask = std::fs::read(mask).map_err(|e| format!("{mask}: {e}"))?;
     let windows = point_key_windows(&tokens, &mask, POINT_KEY_WINDOW, POINT_KEY_BOS)
         .map_err(|e| format!("windows: {e}"))?;
-    let image = build_point_key(&model, &windows).map_err(|e| format!("the table: {e}"))?;
+    let mut image = build_point_key(&model, &windows).map_err(|e| format!("the table: {e}"))?;
+    image.vote_k = vote_k;
     let rows = image.rows();
     let with = add_point_key_uorlut01(&bytes, &image).map_err(|e| format!("the /8 stack: {e}"))?;
     IntegerStackModel::parse(&with).map_err(|e| format!("the /8 stack does not parse: {e}"))?;
@@ -111,7 +114,7 @@ fn point_key(paths: &[String]) -> Result<(), String> {
     check_point_key_read_back(&with, &image).map_err(|e| format!("the /8 stack: {e}"))?;
     write_new_file(Path::new(out), &with).map_err(|e| format!("{out}: {e}"))?;
     println!(
-        "{}  {out}  {rows} openings in {} windows",
+        "{}  {out}  {rows} openings in {} windows, vote_k={vote_k}",
         hex::encode(Sha256::digest(&with)),
         windows.len()
     );
@@ -121,7 +124,18 @@ fn point_key(paths: &[String]) -> Result<(), String> {
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--point-key") {
-        return point_key(&args[1..]);
+        let mut point_args = &args[1..];
+        let mut vote_k = 1usize;
+        if point_args.first().map(String::as_str) == Some("--point-vote-k") {
+            let value = point_args
+                .get(1)
+                .ok_or_else(|| format!("--point-vote-k needs a value: {USAGE}"))?;
+            vote_k = value
+                .parse()
+                .map_err(|_| format!("--point-vote-k needs a positive integer: {value}"))?;
+            point_args = &point_args[2..];
+        }
+        return point_key(point_args, vote_k);
     }
     let mut snaps = FbsExportSnaps::SNAPPED;
     let (mut paths, mut run_config) = (Vec::new(), None::<String>);

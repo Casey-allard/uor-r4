@@ -43,11 +43,15 @@ struct PointKey {
     width: usize,
     points: Vec<i16>,
     targets: Vec<u32>,
+    vote_k: usize,
 }
 
 impl PointKey {
     fn new(image: PointKeyImage) -> Result<Self, String> {
-        if image.width == 0 || image.points.len() != image.targets.len().saturating_mul(image.width)
+        if image.width == 0
+            || image.points.len() != image.targets.len().saturating_mul(image.width)
+            || image.vote_k == 0
+            || image.vote_k > image.targets.len()
         {
             return Err("point-key table dimensions are inconsistent".to_owned());
         }
@@ -55,6 +59,7 @@ impl PointKey {
             width: image.width,
             points: image.points,
             targets: image.targets,
+            vote_k: image.vote_k,
         })
     }
 
@@ -63,28 +68,35 @@ impl PointKey {
             return Err("point-key query width does not match its table".to_owned());
         }
         let mut least = i64::MAX;
-        let mut tied = Vec::new();
-        for (row, &target) in self.points.chunks_exact(self.width).zip(&self.targets) {
+        let mut considered = Vec::with_capacity(self.targets.len());
+        for (index, (row, &target)) in self
+            .points
+            .chunks_exact(self.width)
+            .zip(&self.targets)
+            .enumerate()
+        {
             let distance = query.iter().zip(row).fold(0i64, |sum, (&value, &point)| {
                 sum.wrapping_add(i64::from(value.abs_diff(i32::from(point))))
             });
-            if distance < least {
-                least = distance;
-                tied.clear();
-            }
-            if distance == least {
-                tied.push(target);
-            }
+            least = least.min(distance);
+            considered.push((distance, index, target));
         }
-        tied.sort_unstable();
+        if self.vote_k == 1 {
+            considered.retain(|(distance, _, _)| *distance == least);
+        } else {
+            let _ = considered.select_nth_unstable(self.vote_k - 1);
+            considered.truncate(self.vote_k);
+            considered.sort_unstable();
+        }
+        considered.sort_unstable_by_key(|(_, _, target)| *target);
         let mut named = u32::MAX;
         let mut count = 0usize;
         let mut at = 0usize;
-        while at < tied.len() {
-            let target = tied[at];
-            let run = tied[at..]
+        while at < considered.len() {
+            let target = considered[at].2;
+            let run = considered[at..]
                 .iter()
-                .take_while(|&&candidate| candidate == target)
+                .take_while(|(_, _, candidate)| *candidate == target)
                 .count();
             if run > count {
                 named = target;
@@ -303,7 +315,43 @@ mod tests {
             width: 2,
             points: vec![0],
             targets: vec![1],
+            vote_k: 1,
         })
         .is_err());
+        assert!(PointKey::new(PointKeyImage {
+            width: 1,
+            points: vec![0, 1],
+            targets: vec![3, 4],
+            vote_k: 0,
+        })
+        .is_err());
+        assert!(PointKey::new(PointKeyImage {
+            width: 1,
+            points: vec![0, 1],
+            targets: vec![3, 4],
+            vote_k: 3,
+        })
+        .is_err());
+    }
+
+    #[test]
+    fn voted_point_key_uses_exact_distance_row_order_and_smaller_target_ties() {
+        let key = PointKey::new(PointKeyImage {
+            width: 1,
+            points: vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            targets: vec![9, 7, 7, 7, 7, 7, 7, 7, 8],
+            vote_k: 8,
+        })
+        .unwrap();
+        assert_eq!(key.name(&[0]).unwrap(), (7, 1));
+
+        let tie = PointKey::new(PointKeyImage {
+            width: 1,
+            points: vec![1, 1, 2, 2],
+            targets: vec![9, 5, 7, 8],
+            vote_k: 2,
+        })
+        .unwrap();
+        assert_eq!(tie.name(&[0]).unwrap(), (5, 1));
     }
 }

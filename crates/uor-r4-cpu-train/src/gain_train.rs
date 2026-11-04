@@ -640,6 +640,7 @@ mod tests {
                     .map(|value| i16::try_from(value).expect("the query is Q12-clamped"))
                     .collect(),
                 targets: vec![40],
+                vote_k: 1,
             },
         )
         .unwrap();

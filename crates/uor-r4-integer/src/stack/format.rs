@@ -116,15 +116,19 @@ impl StackTurnMemory {
     }
 }
 
-/// The header record of a stack's served point key (claude-222): its rows, their width and the
-/// exponent the points are stored at, in sections `memory.point.points` (i16) and
-/// `memory.point.targets` (u32).
+/// The header record of a stack's served point key (claude-222): its rows, their width, the
+/// exponent the points are stored at and an optional exact-neighbour vote width, in sections
+/// `memory.point.points` (i16) and `memory.point.targets` (u32).
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct StackPointKey {
     pub rows: usize,
     pub width: usize,
     pub exp: i32,
+    /// Rows voted over after exact `(L1 distance, row)` ordering. Omitted for the
+    /// original one-nearest-row behavior so existing `/8` artifacts stay byte-identical.
+    #[serde(default = "one_point_vote", skip_serializing_if = "is_one_point_vote")]
+    pub vote_k: usize,
 }
 
 impl StackPointKey {
@@ -135,11 +139,26 @@ impl StackPointKey {
         if memory.is_none() {
             return Err(StackError::Shape("a point key needs the turn memory"));
         }
-        if self.rows == 0 || self.width != shape.width || self.exp != POINT_KEY_EXP {
-            return Err(StackError::Shape("the point key's rows, width or exponent is not this stack's"));
+        if self.rows == 0
+            || self.width != shape.width
+            || self.exp != POINT_KEY_EXP
+            || self.vote_k == 0
+            || self.vote_k > self.rows
+        {
+            return Err(StackError::Shape(
+                "the point key's rows, width, exponent or vote width is not this stack's",
+            ));
         }
         Ok(())
     }
+}
+
+const fn one_point_vote() -> usize {
+    1
+}
+
+const fn is_one_point_vote(vote_k: &usize) -> bool {
+    *vote_k == 1
 }
 
 /// The header record of a stack's Hamming reads (claude-188): their heads, depths and kept count,
