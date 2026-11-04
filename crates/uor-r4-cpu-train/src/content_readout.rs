@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use rayon::prelude::*;
-use uor_r4_integer::stack::{reply_stop, ReplyEnd};
+use uor_r4_integer::stack::{reply_stop, ReplyEnd, POINT_KEY_BOS};
 
 use crate::reply_eval::normalized_reference;
 use crate::{invalid, CpuFbsForward, CpuFbsHead, CpuTrainError, MemoryWeightSample};
@@ -81,6 +81,9 @@ pub struct ContentReadoutReading {
     pub repeated_4gram_replies: u64,
     pub nearest_distance_sum: u64,
     pub ambiguous_readout_decisions: u64,
+    pub gated_decisions: u64,
+    pub gate_fires: u64,
+    pub ungated_token_mismatches: u64,
     pub first_divergence: BTreeMap<usize, u64>,
 }
 
@@ -370,6 +373,16 @@ pub fn evaluate_content_readout(
             return Err(invalid("content readout evaluation mode differs"));
         }
     }
+    evaluate_generated(samples, cap, |sample| {
+        generate_with_readout(artifact, sample, cap, memory_enabled, mode, false, readout)
+    })
+}
+
+fn evaluate_generated(
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    generate: impl Fn(&MemoryWeightSample) -> Result<(Vec<Decision>, Generated)> + Sync,
+) -> Result<(ContentReadoutReading, Vec<ContentPromptReading>)> {
     let mut reading = ContentReadoutReading {
         prompts: samples.len() as u64,
         ..ContentReadoutReading::default()
@@ -378,8 +391,7 @@ pub fn evaluate_content_readout(
         .par_iter()
         .enumerate()
         .map(|(sample_index, sample)| {
-            generate_with_readout(artifact, sample, cap, memory_enabled, mode, false, readout)
-                .map(|(decisions, reply)| (sample_index, sample, decisions, reply))
+            generate(sample).map(|(decisions, reply)| (sample_index, sample, decisions, reply))
         })
         .collect::<Result<Vec<_>>>()?;
     let mut prompts = Vec::with_capacity(evaluations.len());
@@ -419,6 +431,10 @@ pub fn evaluate_content_readout(
         }
         reading.repeated_4gram_replies += u64::from(has_repeated_4gram(&reply.tokens));
         for decision in &decisions {
+            reading.gated_decisions += u64::from(decision.gate_fired);
+            reading.gate_fires += u64::from(decision.gate_fired);
+            reading.ungated_token_mismatches +=
+                u64::from(!decision.gate_fired && decision.chosen != decision.content_chosen);
             if let Some(distance) = decision.nearest_distance {
                 reading.nearest_distance_sum += u64::from(distance);
                 reading.readout_decisions += u64::from(decision.used_readout);
@@ -445,6 +461,8 @@ pub fn evaluate_content_readout(
 struct Decision {
     offset: usize,
     chosen: u32,
+    content_chosen: u32,
+    gate_fired: bool,
     signature: ContentSignature,
     reference_target: Option<u32>,
     nearest_distance: Option<u32>,
@@ -501,6 +519,8 @@ fn generate_with_readout(
         decisions.push(Decision {
             offset,
             chosen,
+            content_chosen: chosen,
+            gate_fired: false,
             signature,
             reference_target: reference
                 .get(offset)
@@ -613,6 +633,380 @@ fn nearest_target(
     }))
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopRow {
+    pub signature: ContentSignature,
+    pub terminal: bool,
+    pub writer_token: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopGate {
+    pub signature_bits: usize,
+    pub terminal_prototypes: Vec<ContentSignature>,
+    pub nonterminal_prototypes: Vec<ContentSignature>,
+    pub margin: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentStopTraining {
+    pub gate: ContentStopGate,
+    pub terminal_rows: u64,
+    pub nonterminal_rows: u64,
+    pub terminal_stops: u64,
+    pub nonterminal_stops: u64,
+    pub nonterminal_stop_limit: u64,
+}
+
+pub fn derive_content_stop_rows(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+) -> Result<Vec<ContentStopRow>> {
+    validate_content_readout(readout)?;
+    if readout.mode != ContentSignatureMode::Code || readout.includes_reference_end {
+        return Err(invalid("content stop rows need a plain code readout"));
+    }
+    let rows = samples
+        .par_iter()
+        .map(|sample| {
+            let reference_len = normalized_reference(&sample.reply).len();
+            generate_with_readout(
+                artifact,
+                sample,
+                cap,
+                memory_enabled,
+                ContentSignatureMode::Code,
+                false,
+                Some(readout),
+            )
+            .map(|(decisions, _)| {
+                decisions
+                    .into_iter()
+                    .map(|decision| ContentStopRow {
+                        signature: decision.signature,
+                        terminal: decision.offset == reference_len,
+                        writer_token: decision.content_chosen,
+                    })
+                    .collect::<Vec<_>>()
+            })
+        })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    if !rows.iter().any(|row| row.terminal) || !rows.iter().any(|row| !row.terminal) {
+        return Err(invalid("content stop rows need both classes"));
+    }
+    Ok(rows)
+}
+
+pub fn shuffle_content_stop_rows(
+    rows: &[ContentStopRow],
+    seed: u64,
+) -> Result<Vec<ContentStopRow>> {
+    if rows.is_empty() {
+        return Err(invalid("content stop shuffle needs rows"));
+    }
+    let terminal = rows
+        .iter()
+        .enumerate()
+        .filter_map(|(index, row)| row.terminal.then_some(index))
+        .collect::<Vec<_>>();
+    if terminal.is_empty() || terminal.len() == rows.len() {
+        return Err(invalid("content stop shuffle needs both classes"));
+    }
+    let shift = 1 + seed as usize % (rows.len() - 1);
+    let mut shuffled = rows.to_vec();
+    for row in &mut shuffled {
+        row.terminal = false;
+    }
+    for index in terminal {
+        shuffled[(index + shift) % rows.len()].terminal = true;
+    }
+    if shuffled
+        .iter()
+        .zip(rows)
+        .all(|(left, right)| left.terminal == right.terminal)
+    {
+        return Err(invalid("content stop label shuffle is vacuous"));
+    }
+    Ok(shuffled)
+}
+
+pub fn fit_content_stop_gate(
+    rows: &[ContentStopRow],
+    prototypes_per_class: usize,
+) -> Result<ContentStopTraining> {
+    if prototypes_per_class == 0 {
+        return Err(invalid("content stop prototypes must be positive"));
+    }
+    let terminal = rows.iter().filter(|row| row.terminal).collect::<Vec<_>>();
+    let nonterminal = rows.iter().filter(|row| !row.terminal).collect::<Vec<_>>();
+    if terminal.is_empty() || nonterminal.is_empty() {
+        return Err(invalid("content stop fitting needs both classes"));
+    }
+    let terminal_prototypes = choose_content_prototypes(
+        terminal.iter().map(|row| row.signature.clone()),
+        prototypes_per_class,
+    )?;
+    let nonterminal_prototypes = choose_content_prototypes(
+        nonterminal.iter().map(|row| row.signature.clone()),
+        prototypes_per_class,
+    )?;
+    let deltas = rows
+        .iter()
+        .map(|row| {
+            content_stop_score(
+                &row.signature,
+                &terminal_prototypes,
+                &nonterminal_prototypes,
+            )
+        })
+        .collect::<Vec<_>>();
+    let nonterminal_stop_limit = nonterminal.len() as u64 / 100;
+    let mut thresholds = deltas.clone();
+    thresholds.sort_unstable();
+    thresholds.dedup();
+    let mut best = None;
+    for margin in thresholds {
+        let terminal_stops = rows
+            .iter()
+            .zip(&deltas)
+            .filter(|(row, delta)| row.terminal && **delta >= margin)
+            .count() as u64;
+        let nonterminal_stops = rows
+            .iter()
+            .zip(&deltas)
+            .filter(|(row, delta)| !row.terminal && **delta >= margin)
+            .count() as u64;
+        if terminal_stops == 0 || nonterminal_stops > nonterminal_stop_limit {
+            continue;
+        }
+        if best.is_none_or(|(best_terminal, best_nonterminal, best_margin)| {
+            terminal_stops > best_terminal
+                || (terminal_stops == best_terminal
+                    && (nonterminal_stops < best_nonterminal
+                        || (nonterminal_stops == best_nonterminal && margin > best_margin)))
+        }) {
+            best = Some((terminal_stops, nonterminal_stops, margin));
+        }
+    }
+    let (terminal_stops, nonterminal_stops, margin) =
+        best.ok_or_else(|| invalid("content stop found no margin under the false-stop limit"))?;
+    Ok(ContentStopTraining {
+        gate: ContentStopGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            terminal_prototypes,
+            nonterminal_prototypes,
+            margin,
+        },
+        terminal_rows: terminal.len() as u64,
+        nonterminal_rows: nonterminal.len() as u64,
+        terminal_stops,
+        nonterminal_stops,
+        nonterminal_stop_limit,
+    })
+}
+
+pub fn evaluate_content_stop_gate(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentStopGate,
+) -> Result<(ContentReadoutReading, Vec<ContentPromptReading>)> {
+    validate_content_readout(readout)?;
+    validate_content_stop_gate(gate)?;
+    evaluate_generated(samples, cap, |sample| {
+        generate_with_content_gate(artifact, sample, cap, memory_enabled, readout, gate)
+    })
+}
+
+fn validate_content_stop_gate(gate: &ContentStopGate) -> Result<()> {
+    if gate.signature_bits != CONTENT_CODE_SIGNATURE_BITS
+        || gate.terminal_prototypes.is_empty()
+        || gate.nonterminal_prototypes.is_empty()
+    {
+        return Err(invalid("content stop gate shape differs"));
+    }
+    if gate
+        .terminal_prototypes
+        .iter()
+        .chain(&gate.nonterminal_prototypes)
+        .any(|signature| signature.len() != gate.signature_bits / 64)
+    {
+        return Err(invalid("content stop prototype width differs"));
+    }
+    Ok(())
+}
+
+fn choose_content_prototypes(
+    signatures: impl Iterator<Item = ContentSignature>,
+    count: usize,
+) -> Result<Vec<ContentSignature>> {
+    let mut signatures = signatures.collect::<Vec<_>>();
+    signatures.sort_unstable();
+    signatures.dedup();
+    if signatures.is_empty() {
+        return Err(invalid("content stop prototype class is empty"));
+    }
+    let mut selected = vec![content_stop_medoid(&signatures)?];
+    while selected.len() < count.min(signatures.len()) {
+        let mut best: Option<(u32, ContentSignature)> = None;
+        for candidate in &signatures {
+            if selected.contains(candidate) {
+                continue;
+            }
+            let nearest = selected
+                .iter()
+                .map(|point| content_hamming(candidate, point))
+                .min()
+                .ok_or_else(|| invalid("content stop prototype selection lost its class"))?;
+            if best.as_ref().is_none_or(|(distance, point)| {
+                nearest > *distance || (nearest == *distance && candidate < point)
+            }) {
+                best = Some((nearest, candidate.clone()));
+            }
+        }
+        let (_, point) =
+            best.ok_or_else(|| invalid("content stop prototype residual group is empty"))?;
+        selected.push(point);
+    }
+    Ok(selected)
+}
+
+fn content_stop_medoid(signatures: &[ContentSignature]) -> Result<ContentSignature> {
+    let mut best: Option<(u64, ContentSignature)> = None;
+    for candidate in signatures {
+        let total = signatures.iter().try_fold(0u64, |sum, signature| {
+            sum.checked_add(u64::from(content_hamming(candidate, signature)))
+                .ok_or_else(|| invalid("content stop medoid distance sum overflows"))
+        })?;
+        if best.as_ref().is_none_or(|(distance, point)| {
+            total < *distance || (total == *distance && candidate < point)
+        }) {
+            best = Some((total, candidate.clone()));
+        }
+    }
+    Ok(best
+        .ok_or_else(|| invalid("content stop medoid class is empty"))?
+        .1)
+}
+
+fn content_stop_score(
+    signature: &ContentSignature,
+    terminal: &[ContentSignature],
+    nonterminal: &[ContentSignature],
+) -> i64 {
+    let nearest = |points: &[ContentSignature]| {
+        points
+            .iter()
+            .map(|point| content_hamming(signature, point))
+            .min()
+            .unwrap_or(u32::MAX)
+    };
+    i64::from(nearest(nonterminal)) - i64::from(nearest(terminal))
+}
+
+fn content_stop_fires(gate: &ContentStopGate, signature: &ContentSignature) -> bool {
+    content_stop_score(
+        signature,
+        &gate.terminal_prototypes,
+        &gate.nonterminal_prototypes,
+    ) >= gate.margin
+}
+
+pub fn content_stop_gate_fires(
+    gate: &ContentStopGate,
+    signature: &ContentSignature,
+) -> Result<bool> {
+    validate_content_stop_gate(gate)?;
+    if signature.len() != gate.signature_bits / 64 {
+        return Err(invalid("content stop query width differs"));
+    }
+    Ok(content_stop_fires(gate, signature))
+}
+
+fn generate_with_content_gate(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    cap: usize,
+    memory_enabled: bool,
+    readout: &ContentReadout,
+    gate: &ContentStopGate,
+) -> Result<(Vec<Decision>, Generated)> {
+    if cap == 0 || cap > 64 || sample.prompt.is_empty() {
+        return Err(invalid("content stop sample, prompt or cap differs"));
+    }
+    let reference = normalized_reference(&sample.reply);
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("content stop forward: {error}")))?;
+    if !memory_enabled {
+        forward.disable_memory();
+    }
+    let context = forward.context_length();
+    let mut current = None;
+    for (index, &token) in sample.prompt.iter().enumerate() {
+        if index + 1 == sample.prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content stop prompt step: {error}")))?;
+        if index + 1 == sample.prompt.len() {
+            current = Some(step);
+        }
+    }
+    let mut current = current.ok_or_else(|| invalid("content stop prompt is empty"))?;
+    let mut decisions = Vec::new();
+    let mut tokens = Vec::new();
+    let stop = loop {
+        let offset = decisions.len();
+        let signature = pack_content_signature(&current.query_q12, ContentSignatureMode::Code)?;
+        let (content_chosen, nearest_distance, ambiguous_nearest, used_readout) =
+            select_content_target(readout, &signature, current.token)?;
+        let gate_fired = content_stop_fires(gate, &signature);
+        let chosen = if gate_fired {
+            POINT_KEY_BOS
+        } else {
+            content_chosen
+        };
+        decisions.push(Decision {
+            offset,
+            chosen,
+            content_chosen,
+            gate_fired,
+            signature,
+            reference_target: reference.get(offset).copied(),
+            nearest_distance,
+            ambiguous_nearest,
+            used_readout,
+        });
+        let end = reply_stop(chosen, offset, sample.prompt.len(), cap, context);
+        if end != Some(ReplyEnd::Bos) {
+            tokens.push(chosen);
+        }
+        if let Some(end) = end {
+            break match end {
+                ReplyEnd::Bos => "bos",
+                ReplyEnd::Length => "cap",
+                ReplyEnd::Context => "context",
+            };
+        }
+        current = forward
+            .step(chosen, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("content stop generated step: {error}")))?;
+    };
+    Ok((decisions, Generated { tokens, stop }))
+}
+
 fn has_repeated_4gram(tokens: &[u32]) -> bool {
     let mut seen = BTreeSet::new();
     tokens
@@ -629,6 +1023,20 @@ mod tests {
     fn signature(bit: usize) -> ContentSignature {
         let mut signature = vec![0u64; CONTENT_SIGNATURE_BITS / 64];
         signature[bit / 64] |= 1u64 << (bit % 64);
+        signature
+    }
+
+    fn code_signature(bit: usize) -> ContentSignature {
+        let mut signature = vec![0u64; CONTENT_CODE_SIGNATURE_BITS / 64];
+        signature[bit / 64] |= 1u64 << (bit % 64);
+        signature
+    }
+
+    fn code_signature_bits(bits: impl IntoIterator<Item = usize>) -> ContentSignature {
+        let mut signature = vec![0u64; CONTENT_CODE_SIGNATURE_BITS / 64];
+        for bit in bits {
+            signature[bit / 64] |= 1u64 << (bit % 64);
+        }
         signature
     }
 
@@ -938,5 +1346,159 @@ mod tests {
         assert_eq!(reply.stop, "bos");
         assert_eq!(decisions.last().unwrap().chosen, 0);
         assert_eq!(decisions.len(), 3);
+    }
+
+    #[test]
+    fn content_stop_prototypes_fit_and_shuffle_labels() {
+        let mut rows = (0..20)
+            .map(|index| ContentStopRow {
+                signature: code_signature(index),
+                terminal: true,
+                writer_token: 7,
+            })
+            .collect::<Vec<_>>();
+        rows.extend((100..120).map(|index| ContentStopRow {
+            signature: code_signature(index),
+            terminal: false,
+            writer_token: 8,
+        }));
+        let training = fit_content_stop_gate(&rows, 4).unwrap();
+        assert_eq!(
+            (training.terminal_rows, training.nonterminal_rows),
+            (20, 20)
+        );
+        assert!(training.terminal_stops > 0);
+        assert_eq!(training.nonterminal_stops, 0);
+        let shuffled = shuffle_content_stop_rows(&rows, 3).unwrap();
+        assert_eq!(
+            shuffled.iter().filter(|row| row.terminal).count(),
+            training.terminal_rows as usize
+        );
+        assert!(shuffled
+            .iter()
+            .zip(&rows)
+            .any(|(left, right)| left.terminal != right.terminal));
+    }
+
+    #[test]
+    fn content_stop_prototype_selection_is_deterministic_on_lexicographic_ties() {
+        let signatures = vec![
+            code_signature(2),
+            code_signature(0),
+            code_signature(1),
+            code_signature(0),
+        ];
+        let expected = vec![code_signature(0), code_signature(1)];
+        assert_eq!(
+            choose_content_prototypes(signatures.clone().into_iter(), 2).unwrap(),
+            expected
+        );
+        assert_eq!(
+            choose_content_prototypes(signatures.into_iter(), 2).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn content_stop_margin_uses_the_full_one_percent_false_stop_boundary() {
+        let terminal_signature = vec![0u64; CONTENT_CODE_SIGNATURE_BITS / 64];
+        let nonterminal_majority = code_signature_bits([100, 101]);
+        let boundary_outlier = code_signature_bits(0..10);
+        let mut rows = (0..100)
+            .map(|_| ContentStopRow {
+                signature: terminal_signature.clone(),
+                terminal: true,
+                writer_token: 7,
+            })
+            .collect::<Vec<_>>();
+        rows.extend((0..99).map(|_| ContentStopRow {
+            signature: nonterminal_majority.clone(),
+            terminal: false,
+            writer_token: 8,
+        }));
+        rows.push(ContentStopRow {
+            signature: boundary_outlier,
+            terminal: false,
+            writer_token: 8,
+        });
+
+        let training = fit_content_stop_gate(&rows, 1).unwrap();
+        assert_eq!(training.nonterminal_stop_limit, 1);
+        assert_eq!(training.terminal_stops, 100);
+        assert_eq!(training.nonterminal_stops, 1);
+        assert_eq!(training.gate.margin, 2);
+    }
+
+    #[test]
+    fn content_stop_margin_refuses_when_every_threshold_exceeds_false_stop_limit() {
+        let shared = vec![0u64; CONTENT_CODE_SIGNATURE_BITS / 64];
+        let mut rows = (0..20)
+            .map(|_| ContentStopRow {
+                signature: shared.clone(),
+                terminal: true,
+                writer_token: 7,
+            })
+            .collect::<Vec<_>>();
+        rows.extend((0..100).map(|_| ContentStopRow {
+            signature: shared.clone(),
+            terminal: false,
+            writer_token: 8,
+        }));
+
+        assert!(fit_content_stop_gate(&rows, 8)
+            .unwrap_err()
+            .to_string()
+            .contains("no margin under the false-stop limit"));
+    }
+
+    #[test]
+    fn generated_stop_gate_preserves_content_until_it_fires() {
+        let artifact = artifact();
+        let samples = vec![sample()];
+        let (writer, _) = generate_with_readout(
+            &artifact,
+            &samples[0],
+            4,
+            false,
+            ContentSignatureMode::Code,
+            false,
+            None,
+        )
+        .unwrap();
+        let content = ContentReadout {
+            mode: ContentSignatureMode::Code,
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            includes_reference_end: false,
+            rows: writer
+                .iter()
+                .map(|decision| ContentExample {
+                    signature: decision.signature.clone(),
+                    target: decision.content_chosen,
+                })
+                .collect(),
+            max_distance: 0,
+        };
+        let gate = ContentStopGate {
+            signature_bits: CONTENT_CODE_SIGNATURE_BITS,
+            terminal_prototypes: vec![writer[2].signature.clone()],
+            nonterminal_prototypes: vec![writer[0].signature.clone()],
+            margin: 1,
+        };
+        let evaluate = |threads| {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                evaluate_content_stop_gate(&artifact, &samples, 4, false, &content, &gate).unwrap()
+            })
+        };
+        let (reading, prompts) = evaluate(32);
+        assert_eq!(reading.gate_fires, 1);
+        assert_eq!(reading.gated_decisions, 1);
+        assert_eq!(reading.ungated_token_mismatches, 0);
+        assert_eq!(reading.bos_stopped, 1);
+        assert_eq!(prompts[0].stop, "bos");
+        assert_eq!(evaluate(1), evaluate(32));
     }
 }

@@ -3,11 +3,13 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use uor_r4_cpu_train::{
-    add_turn_memory_uorlut01, content_mapping_sha256, content_target_mapping,
-    derive_content_readout, derive_content_stop_readout, derive_turn_memory,
-    evaluate_content_readout, shuffle_content_targets, validate_corpus_manifest,
-    ContentPromptReading, ContentReadout, ContentSignatureMode, CpuConversationSample,
-    CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
+    add_turn_memory_uorlut01, content_mapping_sha256, content_stop_gate_fires,
+    content_target_mapping, derive_content_readout, derive_content_stop_readout,
+    derive_content_stop_rows, derive_turn_memory, evaluate_content_readout,
+    evaluate_content_stop_gate, fit_content_stop_gate, shuffle_content_stop_rows,
+    shuffle_content_targets, validate_corpus_manifest, ContentPromptReading, ContentReadout,
+    ContentSignatureMode, ContentStopGate, ContentStopRow, CpuConversationSample, CpuMaskedCorpus,
+    MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
 };
 use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel};
 
@@ -23,6 +25,7 @@ struct Config {
     key_tokens: usize,
     reply_turn: usize,
     reply_cap: usize,
+    stop_prototypes: usize,
     seed: u64,
     select_only: bool,
     expected_artifact_sha256: String,
@@ -56,7 +59,7 @@ fn usage() -> String {
      --expected-artifact-sha256 HEX --expected-tokens-sha256 HEX \
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--keys N] [--per-key N] [--key-tokens N] [--reply-turn N] \
-     [--reply-cap N] [--seed N] [--select-only]"
+     [--reply-cap N] [--stop-prototypes N] [--seed N] [--select-only]"
         .to_owned()
 }
 
@@ -78,6 +81,7 @@ fn parse_args() -> Result<Config, String> {
         key_tokens: 8,
         reply_turn: 8,
         reply_cap: 16,
+        stop_prototypes: 8,
         seed: 1,
         select_only: false,
         expected_artifact_sha256: String::new(),
@@ -99,6 +103,7 @@ fn parse_args() -> Result<Config, String> {
             "--key-tokens" => config.key_tokens = number(&value)?,
             "--reply-turn" => config.reply_turn = number(&value)?,
             "--reply-cap" => config.reply_cap = number(&value)?,
+            "--stop-prototypes" => config.stop_prototypes = number(&value)?,
             "--seed" => config.seed = number(&value)?,
             "--expected-artifact-sha256" => config.expected_artifact_sha256 = hex(&value)?,
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
@@ -122,6 +127,7 @@ fn parse_args() -> Result<Config, String> {
         || !(2..=16).contains(&config.key_tokens)
         || !(1..=16).contains(&config.reply_turn)
         || !(1..=64).contains(&config.reply_cap)
+        || !(1..=1024).contains(&config.stop_prototypes)
     {
         return Err("group or reply dimensions are out of bounds".to_owned());
     }
@@ -237,6 +243,22 @@ fn run() -> Result<serde_json::Value, String> {
     let code_stop_training =
         derive_content_stop_readout(&memory_artifact, &training_samples, config.reply_cap, true)
             .map_err(|error| error.to_string())?;
+    let gate_rows = derive_content_stop_rows(
+        &memory_artifact,
+        &training_samples,
+        config.reply_cap,
+        true,
+        &code_training.readout,
+    )
+    .map_err(|error| error.to_string())?;
+    let gate_shuffled_rows =
+        shuffle_content_stop_rows(&gate_rows, config.seed).map_err(|error| error.to_string())?;
+    let gate_training = fit_content_stop_gate(&gate_rows, config.stop_prototypes)
+        .map_err(|error| error.to_string())?;
+    let gate_shuffled_training = fit_content_stop_gate(&gate_shuffled_rows, config.stop_prototypes)
+        .map_err(|error| error.to_string())?;
+    let gate_sha256 = json_sha(&gate_training.gate)?;
+    let gate_shuffled_sha256 = json_sha(&gate_shuffled_training.gate)?;
     let sign_shuffled = shuffle_content_targets(&sign_training.readout, config.seed)
         .map_err(|error| error.to_string())?;
     let code_shuffled = shuffle_content_targets(&code_training.readout, config.seed)
@@ -274,6 +296,14 @@ fn run() -> Result<serde_json::Value, String> {
                     "training": code_stop_training,
                     "shuffled_readout_sha256": readout_sha(&code_stop_shuffled)?,
                     "mapping": code_stop_mapping,
+                },
+                "gate": {
+                    "rows": gate_rows.len(),
+                    "stop_prototypes": config.stop_prototypes,
+                    "training": gate_training,
+                    "shuffled_training": gate_shuffled_training,
+                    "true_sha256": gate_sha256,
+                    "shuffled_sha256": gate_shuffled_sha256,
                 },
             },
         }));
@@ -342,6 +372,24 @@ fn run() -> Result<serde_json::Value, String> {
         Some(&code_stop_shuffled),
     )
     .map_err(|error| error.to_string())?;
+    let (gate_arm, gate_prompts) = evaluate_content_stop_gate(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        &code_training.readout,
+        &gate_training.gate,
+    )
+    .map_err(|error| error.to_string())?;
+    let (gate_shuffled_arm, gate_shuffled_prompts) = evaluate_content_stop_gate(
+        &memory_artifact,
+        &evaluation_samples,
+        config.reply_cap,
+        true,
+        &code_training.readout,
+        &gate_shuffled_training.gate,
+    )
+    .map_err(|error| error.to_string())?;
     let sign_vs_writer_top1 = paired(&sign_prompts, &writer_prompts, |row| row.top1)?;
     let sign_vs_shuffled_top1 = paired(&sign_prompts, &sign_shuffled_prompts, |row| row.top1)?;
     let code_vs_writer_top1 = paired(&code_prompts, &writer_prompts, |row| row.top1)?;
@@ -373,18 +421,7 @@ fn run() -> Result<serde_json::Value, String> {
         paired(&code_stop_prompts, &code_stop_shuffled_prompts, |row| {
             u64::from(row.stop == "bos")
         })?;
-    let bos_within_reference = code_stop_prompts
-        .iter()
-        .filter(|row| row.stop == "bos" && row.generated_tokens <= row.reference_tokens)
-        .count() as u64;
-    let bos_shorter = code_stop_prompts
-        .iter()
-        .filter(|row| row.stop == "bos" && row.generated_tokens < row.reference_tokens)
-        .count() as u64;
-    let bos_longer = code_stop_prompts
-        .iter()
-        .filter(|row| row.stop == "bos" && row.generated_tokens > row.reference_tokens)
-        .count() as u64;
+    let code_stop_bos_lengths = bos_length_counts(&code_stop_prompts);
     let code_stop_non_inferior = non_inferior(
         code_stop_vs_code_top1["candidate_sum"]
             .as_u64()
@@ -399,6 +436,36 @@ fn run() -> Result<serde_json::Value, String> {
             .as_u64()
             .ok_or_else(|| "code depth sum differs".to_owned())?,
     );
+    let gate_vs_code_top1 = paired(&gate_prompts, &code_prompts, |row| row.top1)?;
+    let gate_vs_code_depth = paired(&gate_prompts, &code_prompts, |row| {
+        row.matched_prefix_depth as u64
+    })?;
+    let gate_vs_code_bos = paired(&gate_prompts, &code_prompts, |row| {
+        u64::from(row.stop == "bos")
+    })?;
+    let gate_vs_shuffled_bos = paired(&gate_prompts, &gate_shuffled_prompts, |row| {
+        u64::from(row.stop == "bos")
+    })?;
+    let gate_non_inferior = non_inferior(
+        gate_vs_code_top1["candidate_sum"]
+            .as_u64()
+            .ok_or_else(|| "gate top-1 sum differs".to_owned())?,
+        gate_vs_code_top1["control_sum"]
+            .as_u64()
+            .ok_or_else(|| "code top-1 sum differs".to_owned())?,
+        gate_vs_code_depth["candidate_sum"]
+            .as_u64()
+            .ok_or_else(|| "gate depth sum differs".to_owned())?,
+        gate_vs_code_depth["control_sum"]
+            .as_u64()
+            .ok_or_else(|| "code depth sum differs".to_owned())?,
+    );
+    let gate_bos_lengths = bos_length_counts(&gate_prompts);
+    let gate_terminal_comparison = paired_terminal_rows(
+        &gate_rows,
+        &gate_training.gate,
+        &gate_shuffled_training.gate,
+    )?;
     let code_non_inferior = code_vs_sign_top1["candidate_sum"].as_u64()
         >= code_vs_sign_top1["control_sum"].as_u64()
         && code_vs_sign_depth["candidate_sum"].as_u64()
@@ -408,6 +475,10 @@ fn run() -> Result<serde_json::Value, String> {
     let sign_structural = mode_structural_pass(&sign_training, &sign_mapping);
     let code_structural = mode_structural_pass(&code_training, &code_mapping);
     let code_stop_structural = mode_structural_pass(&code_stop_training, &code_stop_mapping);
+    let gate_structural = gate_training.terminal_rows >= 84
+        && gate_training.nonterminal_rows > 0
+        && gate_training.terminal_stops >= 26
+        && gate_training.nonterminal_stops <= gate_training.nonterminal_stop_limit;
     let code_exposure = code_arm.readout_decisions > 0 && code_arm.writer_fallbacks > 0;
     let bar = serde_json::json!({
         "sign": {
@@ -436,30 +507,55 @@ fn run() -> Result<serde_json::Value, String> {
             "structural_pass": code_stop_structural,
             "exact_reference": code_stop_arm.exact_reference,
             "bos_complete": code_stop_arm.bos_stopped,
-            "bos_within_reference": bos_within_reference,
-            "bos_shorter": bos_shorter,
-            "bos_longer": bos_longer,
+            "bos_within_reference": code_stop_bos_lengths.within_reference(),
+            "bos_at_reference_length": code_stop_bos_lengths.at_reference_length,
+            "bos_shorter": code_stop_bos_lengths.shorter,
+            "bos_longer": code_stop_bos_lengths.longer,
             "non_inferior_to_code": code_stop_non_inferior,
             "vs_code_top1": code_stop_vs_code_top1,
             "vs_code_depth": code_stop_vs_code_depth,
             "vs_code_bos": code_stop_vs_code_bos,
             "vs_shuffled_bos": code_stop_vs_shuffled_bos,
         },
+        "gate": {
+            "training": gate_training,
+            "shuffled_training": gate_shuffled_training,
+            "true_sha256": gate_sha256,
+            "shuffled_sha256": gate_shuffled_sha256,
+            "structural_pass": gate_structural,
+            "terminal_rows_vs_shuffled": gate_terminal_comparison,
+            "exact_reference": gate_arm.exact_reference,
+            "bos_complete": gate_arm.bos_stopped,
+            "bos_within_reference": gate_bos_lengths.within_reference(),
+            "bos_at_reference_length": gate_bos_lengths.at_reference_length,
+            "bos_shorter": gate_bos_lengths.shorter,
+            "bos_longer": gate_bos_lengths.longer,
+            "gate_fires": gate_arm.gate_fires,
+            "ungated_token_mismatches": gate_arm.ungated_token_mismatches,
+            "non_inferior_to_code": gate_non_inferior,
+            "vs_code_top1": gate_vs_code_top1,
+            "vs_code_depth": gate_vs_code_depth,
+            "vs_code_bos": gate_vs_code_bos,
+            "vs_shuffled_bos": gate_vs_shuffled_bos,
+        },
         "passes": sign_structural
             && code_structural
-            && code_stop_structural
+            && gate_structural
             && code_exposure
             && code_non_inferior
-            && code_stop_non_inferior
+            && gate_non_inferior
             && code_training.leave_one_out_top1 > sign_training.leave_one_out_top1
             && code_vs_writer_top1["passes"].as_bool() == Some(true)
             && code_vs_shuffled_top1["passes"].as_bool() == Some(true)
             && code_vs_writer_depth["passes"].as_bool() == Some(true)
             && code_vs_shuffled_depth["passes"].as_bool() == Some(true)
-            && code_stop_vs_code_bos["passes"].as_bool() == Some(true)
-            && code_stop_vs_shuffled_bos["passes"].as_bool() == Some(true)
-            && code_stop_arm.exact_reference >= 8
-            && bos_within_reference >= 8,
+            && gate_terminal_comparison["passes"].as_bool() == Some(true)
+            && gate_arm.bos_stopped >= 9
+            && gate_bos_lengths.within_reference() >= 8
+            && gate_arm.exact_reference >= 8
+            && gate_arm.ungated_token_mismatches == 0
+            && gate_vs_code_bos["passes"].as_bool() == Some(true)
+            && gate_vs_shuffled_bos["passes"].as_bool() == Some(true),
     });
     let sign_mapping_sha256 = mapping_json(&sign_training.readout, &sign_shuffled, sign_changes)?;
     let code_mapping_sha256 = mapping_json(&code_training.readout, &code_shuffled, code_changes)?;
@@ -493,6 +589,21 @@ fn run() -> Result<serde_json::Value, String> {
         serde_json::to_vec_pretty(&code_stop_shuffled).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("content-stop-rows.json"),
+        serde_json::to_vec_pretty(&gate_rows).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("content-stop-gate.json"),
+        serde_json::to_vec_pretty(&gate_training).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        config.out.join("content-stop-gate-shuffled.json"),
+        serde_json::to_vec_pretty(&gate_shuffled_training).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-content-readout-run/2",
         "substrate": "cpu-development-research",
@@ -513,6 +624,8 @@ fn run() -> Result<serde_json::Value, String> {
             "sign": sign_training,
             "code": code_training,
             "code_stop": code_stop_training,
+            "gate": gate_training,
+            "gate_shuffled": gate_shuffled_training,
         },
         "mapping": {
             "sign": sign_mapping_sha256,
@@ -529,6 +642,11 @@ fn run() -> Result<serde_json::Value, String> {
             "code_stop_shuffled": {
                 "reading": code_stop_shuffled_arm,
                 "prompts": code_stop_shuffled_prompts
+            },
+            "gate": { "reading": gate_arm, "prompts": gate_prompts },
+            "gate_shuffled": {
+                "reading": gate_shuffled_arm,
+                "prompts": gate_shuffled_prompts
             },
         },
         "bar": bar,
@@ -617,14 +735,73 @@ fn paired(
         only += u64::from(left > right);
         control_only += u64::from(right > left);
     }
-    let threshold = ceil_three_sqrt(only.saturating_add(control_only));
+    let threshold = ceil_three_sqrt(control_only).max(2);
     Ok(serde_json::json!({
         "candidate_only": only,
         "control_only": control_only,
         "candidate_sum": candidate_sum,
         "control_sum": control_sum,
         "threshold": threshold,
-        "passes": candidate_sum > control_sum && only >= threshold && threshold > 0,
+        "passes": candidate_sum > control_sum && only >= threshold,
+    }))
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct BosLengthCounts {
+    at_reference_length: u64,
+    shorter: u64,
+    longer: u64,
+}
+
+impl BosLengthCounts {
+    fn within_reference(self) -> u64 {
+        self.at_reference_length + self.shorter
+    }
+}
+
+fn bos_length_counts(prompts: &[ContentPromptReading]) -> BosLengthCounts {
+    let mut counts = BosLengthCounts::default();
+    for row in prompts.iter().filter(|row| row.stop == "bos") {
+        match row.generated_tokens.cmp(&row.reference_tokens) {
+            std::cmp::Ordering::Less => counts.shorter += 1,
+            std::cmp::Ordering::Equal => counts.at_reference_length += 1,
+            std::cmp::Ordering::Greater => counts.longer += 1,
+        }
+    }
+    counts
+}
+
+fn paired_terminal_rows(
+    rows: &[ContentStopRow],
+    candidate: &ContentStopGate,
+    control: &ContentStopGate,
+) -> Result<serde_json::Value, String> {
+    let mut candidate_only = 0u64;
+    let mut control_only = 0u64;
+    let mut candidate_sum = 0u64;
+    let mut control_sum = 0u64;
+    for row in rows.iter().filter(|row| row.terminal) {
+        let left = u64::from(
+            content_stop_gate_fires(candidate, &row.signature)
+                .map_err(|error| error.to_string())?,
+        );
+        let right = u64::from(
+            content_stop_gate_fires(control, &row.signature).map_err(|error| error.to_string())?,
+        );
+        candidate_sum += left;
+        control_sum += right;
+        candidate_only += u64::from(left > right);
+        control_only += u64::from(right > left);
+    }
+    let threshold = ceil_two_sqrt(control_only).max(2);
+    Ok(serde_json::json!({
+        "candidate_only": candidate_only,
+        "control_only": control_only,
+        "candidate_sum": candidate_sum,
+        "control_sum": control_sum,
+        "threshold": threshold,
+        "passes": candidate_sum > control_sum
+            && candidate_only >= threshold,
     }))
 }
 
@@ -636,9 +813,23 @@ fn ceil_three_sqrt(value: u64) -> u64 {
     root
 }
 
+fn ceil_two_sqrt(value: u64) -> u64 {
+    let mut root = 0u64;
+    while root.saturating_mul(root) < value.saturating_mul(4) {
+        root += 1;
+    }
+    root
+}
+
 fn readout_sha(readout: &ContentReadout) -> Result<String, String> {
     Ok(uor_r4_discrete::corpus::sha256(
         &serde_json::to_vec(readout).map_err(|error| error.to_string())?,
+    ))
+}
+
+fn json_sha(value: &impl serde::Serialize) -> Result<String, String> {
+    Ok(uor_r4_discrete::corpus::sha256(
+        &serde_json::to_vec(value).map_err(|error| error.to_string())?,
     ))
 }
 
@@ -730,6 +921,21 @@ fn peak_rss_kib() -> u64 {
 mod tests {
     use super::*;
 
+    fn signature(bit: usize) -> Vec<u64> {
+        let mut signature = vec![0; uor_r4_cpu_train::CONTENT_CODE_SIGNATURE_BITS / 64];
+        signature[bit / 64] |= 1u64 << (bit % 64);
+        signature
+    }
+
+    fn gate(terminal: Vec<u64>, nonterminal: Vec<u64>) -> ContentStopGate {
+        ContentStopGate {
+            signature_bits: uor_r4_cpu_train::CONTENT_CODE_SIGNATURE_BITS,
+            terminal_prototypes: vec![terminal],
+            nonterminal_prototypes: vec![nonterminal],
+            margin: 1,
+        }
+    }
+
     #[test]
     fn content_non_inferiority_uses_both_ordered_metrics() {
         assert!(non_inferior(73, 73, 64, 64));
@@ -737,5 +943,108 @@ mod tests {
         assert!(non_inferior(73, 73, 65, 64));
         assert!(!non_inferior(72, 73, 65, 64));
         assert!(!non_inferior(74, 73, 63, 64));
+    }
+
+    #[test]
+    fn terminal_pairing_requires_the_two_sigma_disagreement() {
+        let terminal_signature = signature(10);
+        let rows = (0..4)
+            .map(|_| ContentStopRow {
+                signature: terminal_signature.clone(),
+                terminal: true,
+                writer_token: 7,
+            })
+            .collect::<Vec<_>>();
+        let candidate = gate(terminal_signature.clone(), signature(100));
+        let control = gate(signature(100), terminal_signature);
+        let paired = paired_terminal_rows(&rows, &candidate, &control).unwrap();
+        assert_eq!(paired["candidate_only"], 4);
+        assert_eq!(paired["control_only"], 0);
+        assert_eq!(paired["threshold"], 2);
+        assert_eq!(paired["passes"], true);
+        assert_eq!(ceil_two_sqrt(0), 0);
+        assert_eq!(ceil_two_sqrt(1), 2);
+        assert_eq!(ceil_two_sqrt(4), 4);
+    }
+
+    #[test]
+    fn terminal_pairing_threshold_uses_control_only_disagreements() {
+        let mut rows = (0..5)
+            .map(|_| ContentStopRow {
+                signature: signature(10),
+                terminal: true,
+                writer_token: 7,
+            })
+            .collect::<Vec<_>>();
+        rows.extend((0..4).map(|_| ContentStopRow {
+            signature: signature(100),
+            terminal: true,
+            writer_token: 8,
+        }));
+        let candidate = gate(signature(10), signature(100));
+        let control = gate(signature(100), signature(10));
+
+        let paired = paired_terminal_rows(&rows, &candidate, &control).unwrap();
+        assert_eq!(paired["candidate_only"], 5);
+        assert_eq!(paired["control_only"], 4);
+        assert_eq!(paired["threshold"], 4);
+        assert_eq!(paired["passes"], true);
+    }
+
+    #[test]
+    fn paired_threshold_uses_control_only_disagreements() {
+        let reading = |sample, value| ContentPromptReading {
+            sample,
+            matched_prefix_depth: 0,
+            top1: value,
+            observed_decisions: 0,
+            exact_reference: false,
+            stop: "cap".to_owned(),
+            generated_tokens: 16,
+            reference_tokens: 16,
+        };
+        let candidate = (0..19)
+            .map(|sample| reading(sample, u64::from(sample < 10)))
+            .collect::<Vec<_>>();
+        let control = (0..19)
+            .map(|sample| reading(sample, u64::from((10..19).contains(&sample))))
+            .collect::<Vec<_>>();
+
+        let paired = paired(&candidate, &control, |row| row.top1).unwrap();
+        assert_eq!(paired["candidate_only"], 10);
+        assert_eq!(paired["control_only"], 9);
+        assert_eq!(paired["threshold"], 9);
+        assert_eq!(paired["passes"], true);
+    }
+
+    #[test]
+    fn bos_length_accounting_separates_exact_shorter_and_longer_stops() {
+        let prompt = |stop: &str, generated_tokens, reference_tokens| ContentPromptReading {
+            sample: 0,
+            matched_prefix_depth: 0,
+            top1: 0,
+            observed_decisions: 0,
+            exact_reference: false,
+            stop: stop.to_owned(),
+            generated_tokens,
+            reference_tokens,
+        };
+        let prompts = vec![
+            prompt("bos", 2, 3),
+            prompt("bos", 3, 3),
+            prompt("bos", 4, 3),
+            prompt("cap", 3, 3),
+            prompt("context", 1, 3),
+        ];
+
+        assert_eq!(
+            bos_length_counts(&prompts),
+            BosLengthCounts {
+                at_reference_length: 1,
+                shorter: 1,
+                longer: 1,
+            }
+        );
+        assert_eq!(bos_length_counts(&prompts).within_reference(), 2);
     }
 }

@@ -1,0 +1,6 @@
+249b296072c2d716019af487dbb0afaa38281e55  implementation-source-commit
+a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut
+da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut
+0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-tokens.u16
+a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-response-mask.u8
+ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab  /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-m1-parity/dev-manifest.json

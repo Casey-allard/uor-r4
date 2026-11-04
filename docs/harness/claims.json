@@ -83,6 +83,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/content-stop-gate": {
+    "branch": "deepseek/content-stop-gate",
+    "claimed_at": "2026-11-04T11:40:41-05:00",
+    "head": "202aa1e29",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/copy-codes-key2-guard": {
     "branch": "deepseek/copy-codes-key2-guard",
     "claimed_at": "2026-11-02T23:04:45-05:00",

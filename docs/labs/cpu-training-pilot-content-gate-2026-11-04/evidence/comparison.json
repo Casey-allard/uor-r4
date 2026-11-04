@@ -1,0 +1,248 @@
+{
+  "schema": "uor-r4.cpu-content-gate-comparison/1",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "both_seeds_pass": false,
+  "decision": "REJECT_FIXED_EIGHT_PROTOTYPE_CODE_SIGNATURE_STOP_GATE",
+  "implementation_pin": "249b296072c2d716019af487dbb0afaa38281e55",
+  "inputs": {
+    "seed_1_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "seed_2_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "manifest_sha256": "ab269c9818a713ef41f9aff0fdd8995386d5eb0ebaf8a98636f7766e99f83eab"
+  },
+  "binary": {
+    "sha256": "ce94a067984bd6fab5f40c889ab2b9f90fb1808ec80aa45476828aa463123394",
+    "bytes": 2500288
+  },
+  "build": {
+    "jobs": 16,
+    "wall_seconds": 19,
+    "time_measured_wall_seconds": 18.45,
+    "peak_rss_kib": 1209680,
+    "target_bytes": 265930318
+  },
+  "repeat": {
+    "seed_1_normalized_report_sha256": "e11680e9a4ac03a2a328d09c6a420efa633c7bb7d36c51b6118f943abdc8e930",
+    "normalized_report_matches": true,
+    "generated_json_files_match": true
+  },
+  "seeds": [
+    {
+      "seed_id": "public-dual-c131-seed-1",
+      "seed_argument": 1,
+      "selection": {
+        "training_samples": 98,
+        "evaluation_samples": 103,
+        "training_content_decisions": 1120,
+        "evaluation_content_decisions": 1085,
+        "groups": 16
+      },
+      "gate_training": {
+        "signature_bits": 2048,
+        "prototypes_per_class": 8,
+        "terminal_rows": 84,
+        "nonterminal_rows": 1484,
+        "nonterminal_stop_limit_at_one_percent": 14,
+        "true_margin": 982,
+        "true_terminal_stops": 8,
+        "true_nonterminal_stops": 9,
+        "shuffled_margin": 952,
+        "shuffled_terminal_stops": 11,
+        "shuffled_nonterminal_stops": 13,
+        "true_gate_sha256": "dd4ab8c63d3c56968f52046344019ee1c72f54ecd802f34f478cc13a1d4034da",
+        "shuffled_gate_sha256": "dce6bf93ccf6aaba71e5fd22bca0adab73d6db3ac830a6f058537eb13cf23915",
+        "terminal_recall_vs_shuffled": {
+          "candidate_only": 8,
+          "candidate_sum": 8,
+          "control_only": 3,
+          "control_sum": 3,
+          "threshold": 4,
+          "passes": true
+        }
+      },
+      "generation": {
+        "code": {
+          "bos_stopped": 0,
+          "exact_reference": 0,
+          "cap_stopped": 103,
+          "context_stopped": 0,
+          "top1": 73,
+          "matched_prefix_depth": 64,
+          "opening_correct": 33,
+          "distinct_non_empty": 25,
+          "repeated_4gram_replies": 69,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1545
+        },
+        "true_gate": {
+          "gate_fires": 10,
+          "bos_stopped": 10,
+          "bos_at_reference_length": 2,
+          "bos_shorter": 4,
+          "bos_longer": 4,
+          "bos_within_reference": 6,
+          "exact_reference": 0,
+          "cap_stopped": 93,
+          "context_stopped": 0,
+          "top1": 73,
+          "matched_prefix_depth": 64,
+          "opening_correct": 33,
+          "distinct_non_empty": 27,
+          "repeated_4gram_replies": 64,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1520
+        },
+        "shuffled_gate": {
+          "gate_fires": 9,
+          "bos_stopped": 9,
+          "bos_at_reference_length": 0,
+          "bos_shorter": 1,
+          "bos_longer": 8,
+          "bos_within_reference": 1,
+          "exact_reference": 0,
+          "cap_stopped": 94,
+          "context_stopped": 0,
+          "top1": 73,
+          "matched_prefix_depth": 64,
+          "opening_correct": 33,
+          "distinct_non_empty": 26,
+          "repeated_4gram_replies": 69,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1482
+        }
+      },
+      "bars": {
+        "training_recall_at_least_26_of_84": false,
+        "true_bos_at_least_9": true,
+        "true_within_reference_at_least_8": false,
+        "exact_bos_at_least_8": false,
+        "true_beats_code_bos": true,
+        "true_beats_shuffled_bos": true,
+        "true_bos_vs_shuffled_threshold": 9,
+        "true_top1_non_inferior_to_code": true,
+        "true_depth_non_inferior_to_code": true,
+        "ungated_tokens_match_code": true
+      },
+      "resources": {
+        "rayon_workers": 32,
+        "report_wall_elapsed_ms": 1097.3590660000002,
+        "time_measured_wall_seconds": 1.11,
+        "report_peak_rss_kib": 224180,
+        "time_peak_rss_kib": 224080
+      }
+    },
+    {
+      "seed_id": "public-dual-c131-seed-2",
+      "seed_argument": 1,
+      "selection": {
+        "training_samples": 98,
+        "evaluation_samples": 103,
+        "training_content_decisions": 1120,
+        "evaluation_content_decisions": 1085,
+        "groups": 16
+      },
+      "gate_training": {
+        "signature_bits": 2048,
+        "prototypes_per_class": 8,
+        "terminal_rows": 84,
+        "nonterminal_rows": 1484,
+        "nonterminal_stop_limit_at_one_percent": 14,
+        "true_margin": 975,
+        "true_terminal_stops": 9,
+        "true_nonterminal_stops": 11,
+        "shuffled_margin": 953,
+        "shuffled_terminal_stops": 9,
+        "shuffled_nonterminal_stops": 14,
+        "true_gate_sha256": "73962c2c80695d606fa7863556e7f5d0315b1ce71cf213921b84400beac5c19c",
+        "shuffled_gate_sha256": "49a884c5546827834f99d2afa5283f8585036c56267fdfb0ef1c4afdb3bfcd07",
+        "terminal_recall_vs_shuffled": {
+          "candidate_only": 9,
+          "candidate_sum": 9,
+          "control_only": 2,
+          "control_sum": 2,
+          "threshold": 3,
+          "passes": true
+        }
+      },
+      "generation": {
+        "code": {
+          "bos_stopped": 0,
+          "exact_reference": 0,
+          "cap_stopped": 103,
+          "context_stopped": 0,
+          "top1": 58,
+          "matched_prefix_depth": 39,
+          "opening_correct": 29,
+          "distinct_non_empty": 26,
+          "repeated_4gram_replies": 24,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1535
+        },
+        "true_gate": {
+          "gate_fires": 11,
+          "bos_stopped": 11,
+          "bos_at_reference_length": 4,
+          "bos_shorter": 5,
+          "bos_longer": 2,
+          "bos_within_reference": 9,
+          "exact_reference": 0,
+          "cap_stopped": 92,
+          "context_stopped": 0,
+          "top1": 58,
+          "matched_prefix_depth": 39,
+          "opening_correct": 29,
+          "distinct_non_empty": 28,
+          "repeated_4gram_replies": 15,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1530
+        },
+        "shuffled_gate": {
+          "gate_fires": 21,
+          "bos_stopped": 21,
+          "bos_at_reference_length": 0,
+          "bos_shorter": 1,
+          "bos_longer": 20,
+          "bos_within_reference": 1,
+          "exact_reference": 0,
+          "cap_stopped": 82,
+          "context_stopped": 0,
+          "top1": 58,
+          "matched_prefix_depth": 39,
+          "opening_correct": 29,
+          "distinct_non_empty": 29,
+          "repeated_4gram_replies": 19,
+          "ungated_token_mismatches": 0,
+          "writer_fallbacks": 1444
+        }
+      },
+      "bars": {
+        "training_recall_at_least_26_of_84": false,
+        "true_bos_at_least_9": true,
+        "true_within_reference_at_least_8": true,
+        "exact_bos_at_least_8": false,
+        "true_beats_code_bos": true,
+        "true_beats_shuffled_bos": false,
+        "true_bos_vs_shuffled_threshold": 14,
+        "true_top1_non_inferior_to_code": true,
+        "true_depth_non_inferior_to_code": true,
+        "ungated_tokens_match_code": true
+      },
+      "resources": {
+        "rayon_workers": 32,
+        "report_wall_elapsed_ms": 1061.617666,
+        "time_measured_wall_seconds": 1.07,
+        "report_peak_rss_kib": 223856,
+        "time_peak_rss_kib": 223536
+      }
+    }
+  ],
+  "repeat_resources": {
+    "rayon_workers": 32,
+    "report_wall_elapsed_ms": 1109.89054,
+    "time_measured_wall_seconds": 1.12,
+    "report_peak_rss_kib": 223904,
+    "time_peak_rss_kib": 223116
+  }
+}

@@ -27,10 +27,12 @@ mod stop_signature;
 mod train;
 
 pub use content_readout::{
-    content_hamming, content_mapping_sha256, content_target_mapping, derive_content_readout,
-    derive_content_stop_readout, evaluate_content_readout, pack_content_signature,
-    shuffle_content_targets, ContentExample, ContentPromptReading, ContentReadout,
-    ContentReadoutReading, ContentReadoutTraining, ContentSignature, ContentSignatureMode,
+    content_hamming, content_mapping_sha256, content_stop_gate_fires, content_target_mapping,
+    derive_content_readout, derive_content_stop_readout, derive_content_stop_rows,
+    evaluate_content_readout, evaluate_content_stop_gate, fit_content_stop_gate,
+    pack_content_signature, shuffle_content_stop_rows, shuffle_content_targets, ContentExample,
+    ContentPromptReading, ContentReadout, ContentReadoutReading, ContentReadoutTraining,
+    ContentSignature, ContentSignatureMode, ContentStopGate, ContentStopRow, ContentStopTraining,
     CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
     CONTENT_SIGNATURE_BITS,
 };
