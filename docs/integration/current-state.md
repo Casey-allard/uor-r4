@@ -1,3 +1,22 @@
+## 2026-11-05 — Continuation-sensitive copy lookahead rejects (deepseek)
+
+The copy selector made learned target identity part of candidate ranking by
+feeding each unique depth-1..4 candidate through a cloned exact forward and
+comparing the predicted next token with the historical continuation after the
+candidate's deepest source occurrence. The repaired target-shuffled control
+changed 167 and 278 decisions.
+
+On fresh seed 2765 with 481 reachable replies, continuation lookahead scored
+only **242 and 262/4,899** correct body positions against **511** for both
+no-lookahead learned and longest-32. It arbitrated 27,318 and 26,594 candidates
+but matched the historical continuation on only 231 and 209 of 30,784
+evaluated decisions. Every arm repeated deterministically and emitted zero
+exact, BOS-complete or premature-BOS replies. This closes the
+candidate-conditioned single-token learned lookahead configuration. Record:
+[deepseek-171](../loop/tasks/cpu-training-pilot/deepseek-171/REPORT.md).
+**Next:** retain longest-32 as the body selector and prioritize independent
+termination/completion; do not retune this scalar on seed 2765.
+
 ## 2026-11-05 — Distance-only model lookahead invalid for copy (deepseek)
 
 The copy selector rolled each unique depth-1..4 candidate through a cloned

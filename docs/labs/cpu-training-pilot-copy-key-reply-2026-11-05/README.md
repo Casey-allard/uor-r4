@@ -108,3 +108,27 @@ was not part of the score. The registered control gate therefore stopped as
 `INSTRUMENT_FAULT / CONTROL_INVALID`. See
 [deepseek-169](../../loop/tasks/cpu-training-pilot/deepseek-169/REPORT.md)
 and [`evidence/lookahead-2764/`](evidence/lookahead-2764/).
+
+## Continuation-sensitive copy lookahead
+
+Deepseek-171 made the next-token prediction part of candidate ranking. For
+each unique exact-copy candidate, it retained the deepest source occurrence,
+cloned the exact forward, fed the candidate, read the resulting learned target,
+and compared it with the token that historically followed that occurrence.
+Target shuffling then changed 167 and 278 decisions, so the repaired control
+was non-vacuous.
+
+The signal was too sparse to help. On fresh seed 2765 with 481 reachable
+replies, continuation lookahead scored **242 and 262/4,899** correct body
+positions against **511** for no-lookahead learned and longest-32. Only 231 and
+209 of 30,784 evaluated decisions matched the historical continuation. It
+changed about 4,500 decisions per seed and remained near 12.6k-12.9k generated
+tokens/s, versus 66k-68k for longest-32. Every arm repeated deterministically
+and emitted zero exact, BOS-complete or premature-BOS replies.
+
+This closes the candidate-conditioned single-token learned lookahead
+configuration. Longest-32 remains the stronger body selector; the active
+completion gap calls for an independent termination path rather than another
+scalar retune. See
+[deepseek-171](../../loop/tasks/cpu-training-pilot/deepseek-171/REPORT.md)
+and [`evidence/continuation-2765/`](evidence/continuation-2765/).

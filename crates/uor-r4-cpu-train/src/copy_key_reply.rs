@@ -524,6 +524,12 @@ fn summarize(
 }
 
 fn exact_suffix_matches(stream: &[u32]) -> [Option<u32>; COPY_KEY_REPLY_MAX_DEPTH] {
+    exact_suffix_candidates(stream).map(|candidate| candidate.map(|(token, _)| token))
+}
+
+pub(crate) fn exact_suffix_candidates(
+    stream: &[u32],
+) -> [Option<(u32, usize)>; COPY_KEY_REPLY_MAX_DEPTH] {
     let window_start = stream.len().saturating_sub(COPY_KEY_REPLY_WINDOW);
     let window = &stream[window_start..];
     let Some(current) = window.len().checked_sub(1) else {
@@ -537,7 +543,7 @@ fn exact_suffix_matches(stream: &[u32]) -> [Option<u32>; COPY_KEY_REPLY_MAX_DEPT
                     window[candidate.saturating_sub(back + 1)]
                         == window[current.saturating_sub(back)]
                 })
-                .then_some(window[candidate])
+                .then_some((window[candidate], window_start + candidate))
         });
     }
     matches
@@ -673,6 +679,14 @@ mod tests {
         let writer = copy_key_reply_decision(&stream, 77, CopyKeyReplyArm::Writer, 1, 0, 0);
         assert_eq!(writer.token, 77);
         assert_eq!(writer.depth, None);
+    }
+
+    #[test]
+    fn exact_suffix_candidates_report_absolute_source_positions() {
+        let stream = [9, 6, 7, 8, 5, 7, 6, 7];
+        let candidates = exact_suffix_candidates(&stream);
+        assert_eq!(candidates[0], Some((6, 6)));
+        assert_eq!(stream[candidates[0].unwrap().1 + 1], 7);
     }
 
     #[test]

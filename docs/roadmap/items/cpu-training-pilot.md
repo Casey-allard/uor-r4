@@ -486,6 +486,18 @@ distance-only candidate lookahead; the next attempt must score predicted token
 identity or multi-token continuation content with a new panel. See
 [deepseek-169](../../loop/tasks/cpu-training-pilot/deepseek-169/REPORT.md).
 
+Making lookahead continuation-sensitive repaired the control but not the
+content signal. The new score compared each candidate-conditioned prediction
+with the token that historically followed the candidate's retained source
+occurrence. On fresh seed 2765, target shuffling changed 167 and 278 decisions,
+yet continuation lookahead scored only **242 and 262/4,899** body positions
+against **511** for both no-lookahead learned and longest-32. It found a
+continuation match on only 231 and 209 of 30,784 evaluated decisions. This
+closes this single-token learned lookahead configuration. Longest exact copy
+remains the stronger content selector; the next completion work should target
+an independent termination path rather than retune this scalar. See
+[deepseek-171](../../loop/tasks/cpu-training-pilot/deepseek-171/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
