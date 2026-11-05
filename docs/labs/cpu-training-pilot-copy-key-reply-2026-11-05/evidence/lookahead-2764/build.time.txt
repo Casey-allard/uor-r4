@@ -1,0 +1,23 @@
+	Command being timed: "env CARGO_BUILD_JOBS=16 CARGO_TARGET_DIR=/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-copy-lookahead/target/deepseek/copy-lookahead cargo build --locked --release -p uor-r4-cpu-train --bin cpu-learned-copy-read"
+	User time (seconds): 148.63
+	System time (seconds): 6.48
+	Percent of CPU this job got: 582%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:26.61
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1164464
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 416
+	Minor (reclaiming a frame) page faults: 3221089
+	Voluntary context switches: 20077
+	Involuntary context switches: 2233
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 893352
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -189,10 +189,28 @@ fn evaluate_panel(
         seed,
     )
     .map_err(|error| error.to_string())?;
-    if !allow_underpowered && learned.reading.reference_reachable < 200 {
+    let lookahead = evaluate_learned_copy_replies(
+        artifact,
+        samples,
+        cap,
+        LearnedCopyArm::LookaheadRead32,
+        readouts.learned,
+        seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let lookahead_shuffled = evaluate_learned_copy_replies(
+        artifact,
+        samples,
+        cap,
+        LearnedCopyArm::ShuffledLookahead32,
+        readouts.shuffled,
+        seed,
+    )
+    .map_err(|error| error.to_string())?;
+    if !allow_underpowered && lookahead.reading.reference_reachable < 200 {
         return Err(format!(
             "learned read has {} reachable complete-reply examples",
-            learned.reading.reference_reachable
+            lookahead.reading.reference_reachable
         ));
     }
 
@@ -221,6 +239,14 @@ fn evaluate_panel(
             LearnedCopyArm::ShuffledRead32.name(),
             shuffled.rows.as_slice(),
         )))
+        .chain(std::iter::once((
+            LearnedCopyArm::LearnedRead32.name(),
+            learned.rows.as_slice(),
+        )))
+        .chain(std::iter::once((
+            LearnedCopyArm::ShuffledLookahead32.name(),
+            lookahead_shuffled.rows.as_slice(),
+        )))
     {
         let mut by_metric = BTreeMap::new();
         for metric in [
@@ -229,7 +255,7 @@ fn evaluate_panel(
             CopyKeyReplyMetric::OpeningCorrect,
             CopyKeyReplyMetric::CorrectBodyPositions,
         ] {
-            let comparison = compare_copy_key_reply_rows(&learned.rows, rows, metric)
+            let comparison = compare_copy_key_reply_rows(&lookahead.rows, rows, metric)
                 .map_err(|error| error.to_string())?;
             by_metric.insert(metric_name(metric).to_owned(), comparison);
         }
@@ -246,8 +272,16 @@ fn evaluate_panel(
         .get(CopyKeyReplyArm::RandomAvailableDepth.name())
         .ok_or_else(|| "random-depth-4 reading is missing".to_owned())?;
     let changes = serde_json::json!({
-        "learned_from_longest_32": learned_changes(&learned.steps, &longest.steps, &longest.rows),
-        "shuffled_from_learned": shuffled_changes(&shuffled.steps, &learned.steps, &learned.rows),
+        "lookahead_from_longest_32":
+            learned_changes(&lookahead.steps, &longest.steps, &longest.rows),
+        "lookahead_from_no_lookahead":
+            shuffled_changes(&lookahead.steps, &learned.steps, &learned.rows),
+        "shuffled_lookahead_from_lookahead":
+            shuffled_changes(&lookahead_shuffled.steps, &lookahead.steps, &lookahead.rows),
+        "no_lookahead_from_longest_32":
+            learned_changes(&learned.steps, &longest.steps, &longest.rows),
+        "shuffled_no_lookahead_from_no_lookahead":
+            shuffled_changes(&shuffled.steps, &learned.steps, &learned.rows),
         "random_32_from_longest_32": copy_changes(&longest.steps, &random.steps, &longest.rows),
         "random_4_from_longest_4": copy_changes(&longest_4.steps, &random_4.steps, &longest_4.rows),
     });
@@ -256,8 +290,10 @@ fn evaluate_panel(
         "examples": {
             "documents": documents,
             "evaluated": samples.len(),
-            "reachable": learned.reading.reference_reachable,
+            "reachable": lookahead.reading.reference_reachable,
         },
+        "lookahead": lookahead,
+        "lookahead_shuffled": lookahead_shuffled,
         "learned": learned,
         "shuffled": shuffled,
         "controls": controls,

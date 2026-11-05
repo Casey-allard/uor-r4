@@ -30,6 +30,8 @@ pub const LEARNED_COPY_MAX_TRAINING_ROWS: usize = 1024;
 pub enum LearnedCopyArm {
     LearnedRead32,
     ShuffledRead32,
+    LookaheadRead32,
+    ShuffledLookahead32,
 }
 
 impl LearnedCopyArm {
@@ -37,6 +39,8 @@ impl LearnedCopyArm {
         match self {
             Self::LearnedRead32 => "learned_read_32",
             Self::ShuffledRead32 => "shuffled_read_32",
+            Self::LookaheadRead32 => "lookahead_read_32",
+            Self::ShuffledLookahead32 => "shuffled_lookahead_32",
         }
     }
 }
@@ -56,6 +60,10 @@ pub struct LearnedCopyStep {
     pub readout_ambiguous: bool,
     pub readout_in_candidates: bool,
     pub learned_arbitrated: bool,
+    pub lookahead_target: Option<u32>,
+    pub lookahead_distance: Option<u32>,
+    pub lookahead_ambiguous: bool,
+    pub lookahead_evaluated: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +86,8 @@ pub struct LearnedCopyReading {
     pub learned_arbitrations: u64,
     pub learned_candidate_targets: u64,
     pub learned_distance_sum: u64,
+    pub lookahead_decisions: u64,
+    pub lookahead_distance_sum: u64,
     pub selected_depth_counts: [u64; COPY_KEY_REPLY_MAX_DEPTH],
 }
 
@@ -227,8 +237,15 @@ pub fn evaluate_learned_copy_replies(
             if sample.prompt.len() > context || reference.len() > cap {
                 return Err(invalid("learned-copy sample exceeds its context or cap"));
             }
-            let (generated, steps) =
-                generate_learned_copy_reply(artifact, &sample.prompt, cap, readout, seed, row)?;
+            let (generated, steps) = generate_learned_copy_reply(
+                artifact,
+                &sample.prompt,
+                cap,
+                arm,
+                readout,
+                seed,
+                row,
+            )?;
             let reachable = reference_reachable(sample.prompt.len(), reference.len(), cap, context);
             let opening_correct = matches!(
                 (generated.tokens.first(), reference.first()),
@@ -289,6 +306,7 @@ fn generate_learned_copy_reply(
     artifact: &[u8],
     prompt: &[u32],
     cap: usize,
+    arm: LearnedCopyArm,
     readout: &ContentReadout,
     seed: u64,
     row: usize,
@@ -310,7 +328,14 @@ fn generate_learned_copy_reply(
             row,
             tokens.len(),
         );
-        let decision = learned_decision(&base, &generator.1, readout)?;
+        let decision = match arm {
+            LearnedCopyArm::LearnedRead32 | LearnedCopyArm::ShuffledRead32 => {
+                learned_decision(&base, &generator.1, readout)?
+            }
+            LearnedCopyArm::LookaheadRead32 | LearnedCopyArm::ShuffledLookahead32 => {
+                lookahead_decision(&base, &forward, readout)?
+            }
+        };
         steps.push(LearnedCopyStep {
             row,
             generated_step: tokens.len(),
@@ -324,6 +349,10 @@ fn generate_learned_copy_reply(
             readout_ambiguous: decision.readout_ambiguous,
             readout_in_candidates: decision.readout_in_candidates,
             learned_arbitrated: decision.learned_arbitrated,
+            lookahead_target: decision.lookahead_target,
+            lookahead_distance: decision.lookahead_distance,
+            lookahead_ambiguous: decision.lookahead_ambiguous,
+            lookahead_evaluated: decision.lookahead_evaluated,
         });
         let stop = reply_stop(decision.token, tokens.len(), prompt.len(), cap, context);
         if stop != Some(ReplyEnd::Bos) {
@@ -359,6 +388,10 @@ struct LearnedDecision {
     readout_ambiguous: bool,
     readout_in_candidates: bool,
     learned_arbitrated: bool,
+    lookahead_target: Option<u32>,
+    lookahead_distance: Option<u32>,
+    lookahead_ambiguous: bool,
+    lookahead_evaluated: bool,
 }
 
 fn learned_decision(
@@ -381,6 +414,10 @@ fn learned_decision(
             readout_ambiguous: prediction.ambiguous,
             readout_in_candidates: true,
             learned_arbitrated: true,
+            lookahead_target: None,
+            lookahead_distance: None,
+            lookahead_ambiguous: false,
+            lookahead_evaluated: false,
         }
     } else {
         LearnedDecision {
@@ -391,7 +428,95 @@ fn learned_decision(
             readout_ambiguous: prediction.ambiguous,
             readout_in_candidates: predicted_depth.is_some(),
             learned_arbitrated: false,
+            lookahead_target: None,
+            lookahead_distance: None,
+            lookahead_ambiguous: false,
+            lookahead_evaluated: false,
         }
+    })
+}
+
+fn lookahead_decision(
+    base: &crate::CopyKeyReplyDecision,
+    forward: &CpuFbsForward,
+    readout: &ContentReadout,
+) -> Result<LearnedDecision> {
+    let mut candidates = BTreeSet::new();
+    for depth in 1..=COPY_KEY_REPLY_MAX_DEPTH.min(4) {
+        if let Some(token) = base.matches[depth - 1] {
+            candidates.insert(token);
+        }
+    }
+    let mut best = None;
+    for token in candidates {
+        let depth = (1..=COPY_KEY_REPLY_MAX_DEPTH.min(4))
+            .rev()
+            .find(|&depth| base.matches[depth - 1] == Some(token))
+            .ok_or_else(|| invalid("lookahead candidate depth differs"))?;
+        let mut next_forward = forward.clone();
+        let next = next_forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("lookahead candidate step: {error}")))?;
+        let signature = pack_content_signature(&next.query_q12, readout.mode)?;
+        let prediction = predict_content_target(readout, &signature)?;
+        let candidate = (
+            prediction.distance,
+            std::cmp::Reverse(depth),
+            token,
+            prediction.target,
+            prediction.ambiguous,
+            prediction.within_threshold,
+        );
+        if best.is_none_or(
+            |current: (u32, std::cmp::Reverse<usize>, u32, u32, bool, bool)| {
+                (candidate.0, candidate.1, candidate.2) < (current.0, current.1, current.2)
+            },
+        ) {
+            best = Some(candidate);
+        }
+    }
+    Ok(match best {
+        Some((distance, std::cmp::Reverse(depth), token, target, ambiguous, true)) => {
+            LearnedDecision {
+                token,
+                depth: Some(depth),
+                readout_target: target,
+                readout_distance: distance,
+                readout_ambiguous: ambiguous,
+                readout_in_candidates: false,
+                learned_arbitrated: true,
+                lookahead_target: Some(target),
+                lookahead_distance: Some(distance),
+                lookahead_ambiguous: ambiguous,
+                lookahead_evaluated: true,
+            }
+        }
+        Some((distance, _, _, target, ambiguous, false)) => LearnedDecision {
+            token: base.token,
+            depth: base.depth,
+            readout_target: target,
+            readout_distance: distance,
+            readout_ambiguous: ambiguous,
+            readout_in_candidates: false,
+            learned_arbitrated: false,
+            lookahead_target: Some(target),
+            lookahead_distance: Some(distance),
+            lookahead_ambiguous: ambiguous,
+            lookahead_evaluated: true,
+        },
+        None => LearnedDecision {
+            token: base.token,
+            depth: base.depth,
+            readout_target: 0,
+            readout_distance: 0,
+            readout_ambiguous: false,
+            readout_in_candidates: false,
+            learned_arbitrated: false,
+            lookahead_target: None,
+            lookahead_distance: None,
+            lookahead_ambiguous: false,
+            lookahead_evaluated: false,
+        },
     })
 }
 
@@ -451,6 +576,8 @@ fn summarize(
         learned_arbitrations: 0,
         learned_candidate_targets: 0,
         learned_distance_sum: 0,
+        lookahead_decisions: 0,
+        lookahead_distance_sum: 0,
         selected_depth_counts: [0; COPY_KEY_REPLY_MAX_DEPTH],
     };
     for row in rows {
@@ -470,6 +597,8 @@ fn summarize(
         reading.learned_arbitrations += u64::from(step.learned_arbitrated);
         reading.learned_candidate_targets += u64::from(step.readout_in_candidates);
         reading.learned_distance_sum += u64::from(step.readout_distance.unwrap_or_default());
+        reading.lookahead_decisions += u64::from(step.lookahead_evaluated);
+        reading.lookahead_distance_sum += u64::from(step.lookahead_distance.unwrap_or_default());
         if let Some(depth) = step.selected_depth {
             let slot = reading
                 .selected_depth_counts
@@ -521,6 +650,9 @@ fn decision_hash(steps: &[LearnedCopyStep]) -> String {
                 | (u8::from(step.readout_in_candidates) << 1)
                 | (u8::from(step.learned_arbitrated) << 2),
         );
+        bytes.extend_from_slice(&step.lookahead_target.unwrap_or_default().to_le_bytes());
+        bytes.extend_from_slice(&step.lookahead_distance.unwrap_or_default().to_le_bytes());
+        bytes.push(u8::from(step.lookahead_ambiguous) | (u8::from(step.lookahead_evaluated) << 1));
     }
     uor_r4_discrete::corpus::sha256(&bytes)
 }
@@ -657,6 +789,78 @@ mod tests {
     }
 
     #[test]
+    fn lookahead_ranks_candidate_conditioned_next_states() {
+        let artifact = artifact();
+        let (forward, stream, writer, _) =
+            start_reply(&artifact, &[3, 4, 5], 8, 16, "lookahead-test").unwrap();
+        let base =
+            copy_key_reply_decision(&stream, writer, CopyKeyReplyArm::Longest32To1, 163, 0, 0);
+        let mut matches = [None; COPY_KEY_REPLY_MAX_DEPTH];
+        matches[0] = Some(7);
+        matches[1] = Some(9);
+        let mut base = base;
+        base.token = 9;
+        base.depth = Some(2);
+        base.matches = matches;
+
+        let mut next = forward.clone();
+        let next_seven = next.step(7, CpuFbsHead::Writer).unwrap();
+        let readout = make_readout(vec![ContentExample {
+            signature: pack_content_signature(&next_seven.query_q12, ContentSignatureMode::Code)
+                .unwrap(),
+            target: 42,
+        }]);
+        let selected = lookahead_decision(&base, &forward, &readout).unwrap();
+        assert_eq!(selected.token, 7);
+        assert_eq!(selected.depth, Some(1));
+        assert!(selected.lookahead_evaluated);
+        assert_eq!(selected.lookahead_target, Some(42));
+        assert_eq!(selected.lookahead_distance, Some(0));
+    }
+
+    #[test]
+    fn lookahead_threshold_miss_and_missing_near_candidates_fall_back() {
+        let artifact = artifact();
+        let (forward, stream, writer, _) =
+            start_reply(&artifact, &[3, 4, 5], 8, 16, "lookahead-test").unwrap();
+        let mut base =
+            copy_key_reply_decision(&stream, writer, CopyKeyReplyArm::Longest32To1, 163, 0, 0);
+        base.matches = [None; COPY_KEY_REPLY_MAX_DEPTH];
+        base.token = 11;
+        base.depth = Some(5);
+        base.matches[4] = Some(11);
+        let readout = make_readout(vec![ContentExample {
+            signature: signature(0),
+            target: 42,
+        }]);
+        let selected = lookahead_decision(&base, &forward, &readout).unwrap();
+        assert_eq!(selected.token, 11);
+        assert_eq!(selected.depth, Some(5));
+        assert!(!selected.lookahead_evaluated);
+    }
+
+    #[test]
+    fn lookahead_with_no_candidates_preserves_writer_fallback() {
+        let artifact = artifact();
+        let (forward, _, _, _) =
+            start_reply(&artifact, &[3, 4, 5], 8, 16, "lookahead-test").unwrap();
+        let base = crate::CopyKeyReplyDecision {
+            token: 77,
+            depth: None,
+            matches: [None; COPY_KEY_REPLY_MAX_DEPTH],
+            sign_hamming: None,
+        };
+        let readout = make_readout(vec![ContentExample {
+            signature: signature(0),
+            target: 42,
+        }]);
+        let selected = lookahead_decision(&base, &forward, &readout).unwrap();
+        assert_eq!(selected.token, 77);
+        assert_eq!(selected.depth, None);
+        assert!(!selected.lookahead_evaluated);
+    }
+
+    #[test]
     fn training_rows_follow_longest_copy_and_align_reference_targets() {
         let artifact = artifact();
         let sample = MemoryWeightSample {
@@ -690,9 +894,13 @@ mod tests {
             readout_ambiguous: false,
             readout_in_candidates: true,
             learned_arbitrated: true,
+            lookahead_target: None,
+            lookahead_distance: None,
+            lookahead_ambiguous: false,
+            lookahead_evaluated: false,
         };
         let mut changed = step.clone();
-        changed.readout_distance = Some(8);
+        changed.lookahead_distance = Some(8);
         assert_ne!(
             decision_hash(std::slice::from_ref(&step)),
             decision_hash(std::slice::from_ref(&changed))

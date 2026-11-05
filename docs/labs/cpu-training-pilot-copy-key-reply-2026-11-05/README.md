@@ -94,3 +94,17 @@ row-level nearest-example representation; it is not evidence against all
 learned geometric attention. See
 [deepseek-167](../../loop/tasks/cpu-training-pilot/deepseek-167/REPORT.md)
 and [`evidence/learned-read-2763/`](evidence/learned-read-2763/).
+
+## Exact-copy model lookahead
+
+Deepseek-169 advanced every unique depth-1..4 candidate through a clone of the
+exact forward and ranked the resulting next-state modulo codes by learned
+readout distance. On fresh seed 2764 with 488 reachable replies, it scored
+only **194 and 191/4,799** body positions versus **393** for longest-32. It
+selected depth four on more than 25,000 of 31,232 decisions.
+
+Target-shuffled lookahead made zero different decisions because target identity
+was not part of the score. The registered control gate therefore stopped as
+`INSTRUMENT_FAULT / CONTROL_INVALID`. See
+[deepseek-169](../../loop/tasks/cpu-training-pilot/deepseek-169/REPORT.md)
+and [`evidence/lookahead-2764/`](evidence/lookahead-2764/).

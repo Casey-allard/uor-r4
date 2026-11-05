@@ -1,3 +1,17 @@
+## 2026-11-05 — Distance-only model lookahead invalid for copy (deepseek)
+
+The copy selector rolled each unique depth-1..4 candidate through a cloned
+exact `CpuFbsForward` and scored the resulting modulo-code state with the
+learned nearest-example read. On a fresh seed-2764 panel with 488 reachable
+replies, lookahead scored only **194 and 191/4,799** correct body positions
+versus **393** for longest-32. It arbitrated over 27,000 candidates and
+strongly preferred depth four, but lost body accuracy. Shuffling readout
+targets changed **zero** decisions because ranking used distance only, so the
+registered control failed closed as `INSTRUMENT_FAULT`. Record:
+[deepseek-169](../loop/tasks/cpu-training-pilot/deepseek-169/REPORT.md).
+**Next:** use predicted token identity or multi-token future content; do not
+retune this distance-only lookahead on seed 2764.
+
 ## 2026-11-05 — Learned query-code copy read rejects (deepseek)
 
 A learned modulo-256 code read was fitted on longest-32 train trajectories and

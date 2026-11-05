@@ -476,6 +476,16 @@ representation must model multi-token continuation or candidate-specific
 context rather than map one writer state to one token. See
 [deepseek-167](../../loop/tasks/cpu-training-pilot/deepseek-167/REPORT.md).
 
+One-step exact-state lookahead did not repair the copy signal. The selector
+rolled each depth-1..4 candidate through a cloned forward and used the next
+state's learned readout distance. On fresh seed 2764 it scored **194 and
+191/4,799** body positions versus **393** for longest-32 and strongly favored
+depth four. Shuffling the readout targets changed zero decisions because the
+score used distance only, so the registered control failed closed. This closes
+distance-only candidate lookahead; the next attempt must score predicted token
+identity or multi-token continuation content with a new panel. See
+[deepseek-169](../../loop/tasks/cpu-training-pilot/deepseek-169/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

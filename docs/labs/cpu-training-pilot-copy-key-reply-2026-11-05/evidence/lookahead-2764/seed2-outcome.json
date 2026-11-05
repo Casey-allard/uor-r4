@@ -1,0 +1,10 @@
+{
+  "lookahead_body_positions": 191,
+  "no_lookahead_body_positions": 360,
+  "longest_body_positions": 393,
+  "lookahead_arbitrations": 27181,
+  "compares": false,
+  "all_control_reachable": true,
+  "exact_reference": 0,
+  "bos_complete": 0
+}
