@@ -6,8 +6,8 @@ Order: [ORDER.md](ORDER.md). Base: `1f56a8e7b`.
 
 ## Status
 
-Complete as **INSUFFICIENT_TRAINING_DATA**. The candidate ranker is not
-evaluated and no capability conclusion follows.
+Complete and merged as **INSUFFICIENT_TRAINING_DATA**. The candidate ranker is
+not evaluated and no capability conclusion follows.
 
 ## Question
 
@@ -59,6 +59,10 @@ No serving, CUDA, float inference, termination or Claude-owned source changed.
 - raw local manifest SHA-256:
   `13f2a81e9027e57c7bf14c5fb598bf2217738e2ce43c6410891628d5fea499f1`;
 - sealed outcome: `INSUFFICIENT_TRAINING_DATA`.
+- reviewed head: `528b169cd948cf821417e940ef9d9aaa83f5cbae`;
+- protected merge: `cc1fb4d6b36dbfbe50a56a17311efc8906d90fd1`;
+- fresh-main CPU library: **313 passed**, 4 expected ignores;
+- fresh-main CPU binaries: **83 passed**.
 
 The fresh panel was generated only after FIT and GO. No reply evaluation ran.
 The one empty seed-1 report and its process record are retained as the
@@ -84,8 +88,9 @@ this unit's group floor or reuse seed 2766.
 
 ## Size
 
-The implementation adds one CPU module and extends the existing driver. No
-`.u16` corpus is committed.
+Against base `1f56a8e7b`, the merged result changes 24 paths
+(**+1,841 / -26 textual lines**) plus compact evidence. No `.u16` corpus is
+committed.
 
 ## Skills used
 
