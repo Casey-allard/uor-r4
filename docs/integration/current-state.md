@@ -1,3 +1,26 @@
+## 2026-11-05 — Global reply-suffix plurality rejects on fresh complete replies (deepseek)
+
+A discrete suffix-to-next-token table was trained from all TRAIN replies at
+depths 1-32, including decoder BOS as the terminal successor. Generation used
+the longest known generated-reply suffix's most frequent successor, with
+smaller-token ties, writer fallback and deepseek-191's true boundary.
+
+The fresh seed-2772 panel cleared the exact power floor with **14**
+oracle-complete bodies. The treatment nevertheless reached only **57** and
+**86** correct body positions on artifact seeds 1 and 2, against **514** for
+local `Longest32To1`, and made **14** and **227** premature stops against the
+registered maximum of four. Depth-one reached **48/89**, the matched successor
+shuffle **0/23**, and the writer **52/51**.
+
+The exact table, shuffle and controls were active and deterministic; this is a
+mechanism result, not an instrument failure. It closes the fixed global
+plurality plus full-history BOS table, not exact suffix memory, geometric
+continuation or useful chat. Record:
+[deepseek-193](../loop/tasks/cpu-training-pilot/deepseek-193/REPORT.md).
+**Next:** separate content continuation from stopping, require learned
+confidence/fresh-support before a global suffix displaces local copy, or train
+the table on a materially larger reply corpus.
+
 ## 2026-11-05 — Exact reply-boundary memory fires, but fresh completion power is insufficient (deepseek)
 
 A TRAIN-only table of exact 4-32-token reply suffixes was combined with the

@@ -31,6 +31,7 @@ mod reply_eval;
 mod self_prefix;
 mod served_forward;
 mod stop_signature;
+mod suffix_memory;
 mod train;
 
 pub use content_readout::{
@@ -180,6 +181,13 @@ pub use stop_signature::{
     shuffle_stop_signature_rows, stop_signature_fires, StopSignature, StopSignatureDecision,
     StopSignatureEvaluation, StopSignatureGate, StopSignatureReading, StopSignatureReplyReading,
     StopSignatureRow, StopSignatureTraining, STOP_SIGNATURE_BITS, STOP_SIGNATURE_WORDS,
+};
+pub use suffix_memory::{
+    compare_suffix_memory_rows, derive_suffix_memory, evaluate_suffix_memory_replies,
+    generate_suffix_memory_reply, shuffle_suffix_memory, suffix_decision_changes,
+    SuffixDecisionChanges, SuffixMemoryArm, SuffixMemoryCensus, SuffixMemoryPrediction,
+    SuffixMemoryReading, SuffixMemoryStep, SuffixMemoryTable, TimedSuffixMemoryReading,
+    SUFFIX_MEMORY_MAX_DEPTH,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,

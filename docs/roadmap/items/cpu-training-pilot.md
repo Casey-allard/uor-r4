@@ -618,6 +618,26 @@ and 3 replies with 346 correct body positions in every arm. The result is
 fresh body reconstruction left too few exact completions to assess. See
 [deepseek-191](../../loop/tasks/cpu-training-pilot/deepseek-191/REPORT.md).
 
+The next complete-reply screen trained a global discrete reply-suffix table
+from TRAIN panel 2711. Every suffix of length one through 32 counted its next
+reply token, with decoder BOS as the terminal target. At generation, the
+longest known generated suffix selected its most frequent successor, ties to
+the smaller token, with writer and true-boundary fallback. Fresh seed 2772
+cleared the completion-power floor with 14 oracle-exact bodies.
+
+The treatment still rejected decisively. Trained suffix-32 produced
+**57/86** correct body positions on artifact seeds 1 and 2, against **514/514**
+for local `Longest32To1`, and made **14/227** premature stops against the
+four-stop ceiling. Depth-one produced **48/89**, the successor-multiset shuffle
+**0/23**, and the writer **52/51**. The table changed 15,601 shuffled
+associations and thousands of reachable decisions, so both mechanism and
+control were active. The fixed global plurality construction displaced a
+strong local copy signal and stopped too early on fresh data. The result
+closes this table/objective, not suffix memory generally; content continuation
+and stopping should be separated, confidence/fresh-support should gate an
+override, and a materially larger reply corpus remains the scaling route. See
+[deepseek-193](../../loop/tasks/cpu-training-pilot/deepseek-193/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
