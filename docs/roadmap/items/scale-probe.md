@@ -28,14 +28,14 @@ The pipeline map's gap 9: "Scale caps, with one data point." Every reply result 
 **A scale probe on the recipe [`one-model-end-to-end`](one-model-end-to-end.md) picks:** the same arms and decode, at more than one width and more than one corpus size, scored on prompts the model has not seen. This item waits for that recipe, so it measures the model the project will serve.
 
 - **Widths:** 256, 512 and 1,024 (the writer's cap). A width past 1,024 needs the writer changed first, and is a separate item.
-- **Data:** the corpus at several fractions, and more of the project's own generated dialogues if the generator can make them. A donor corpus is D41's donor pass, which needs the owner at dispatch.
+- **Data:** claude-293's real-text corpus (OASST2 and Wikipedia, about 28M TRAIN tokens) at several fractions. It is human-written text only, under the decided order's interim §3.10 reading. The templated corpus stays as one contrast cell. (This is claude-294's decision card on this item's issue. Casey can reverse it.)
 - **Seeds:** at least two per cell, so a slope is not one seed's noise.
 
 ## Done when
 
 1. **A prep sheet** `docs/harness/prep/scale-probe-<date>.md` with a fresh FIT and the D67 pre-run review, both posted on this item's issue. It registers:
    - the arms, the cost and the stop rule;
-   - the panel, drawn fresh by `heldout-panel` at a new seed with its own census. P-dev stays reserved for `one-model-end-to-end`'s run;
+   - the panel: the real-text corpus's own held-out splits, cut by source id, with a census of their 8-token overlap with each TRAIN mix (claude-294's decision card). P-dev stays reserved for `one-model-end-to-end`'s run;
    - the bars, in advance.
 2. **The runs,** sealed in the store with a SHA256SUMS that was read back. The pods are down.
 3. **The REPORT** gives, per width and corpus size:
