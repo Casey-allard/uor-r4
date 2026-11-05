@@ -3,11 +3,12 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use uor_r4_cpu_train::{
-    compare_copy_key_reply_rows, content_mapping_sha256, derive_learned_copy_readout,
-    evaluate_copy_key_replies, evaluate_learned_copy_replies, shuffle_content_targets,
-    validate_corpus_manifest, CopyKeyReplyArm, CopyKeyReplyMetric, CopyKeyReplyRow,
-    CopyKeyReplyStep, CpuCorpusIdentity, CpuMaskedCorpus, LearnedCopyArm, LearnedCopyStep,
-    MemoryWeightSample,
+    compare_copy_key_reply_rows, content_mapping_sha256, derive_copy_candidate_rankers,
+    derive_learned_copy_readout, evaluate_copy_key_replies, evaluate_learned_copy_replies,
+    evaluate_ranked_copy_replies, shuffle_content_targets, validate_corpus_manifest,
+    CopyCandidateRanker, CopyKeyReplyArm, CopyKeyReplyMetric, CopyKeyReplyRow, CopyKeyReplyStep,
+    CpuCorpusIdentity, CpuMaskedCorpus, LearnedCopyArm, LearnedCopyStep, MemoryWeightSample,
+    RankedCopyStep,
 };
 
 fn main() {
@@ -20,6 +21,23 @@ fn main() {
 struct Readouts<'a> {
     learned: &'a uor_r4_cpu_train::ContentReadout,
     shuffled: &'a uor_r4_cpu_train::ContentReadout,
+}
+
+struct Rankers<'a> {
+    trained: &'a CopyCandidateRanker,
+    shuffled: &'a CopyCandidateRanker,
+    depth_only: &'a CopyCandidateRanker,
+}
+
+struct PanelRun<'a> {
+    artifact: &'a [u8],
+    samples: &'a [MemoryWeightSample],
+    cap: usize,
+    seed: u64,
+    readouts: Readouts<'a>,
+    rankers: Rankers<'a>,
+    documents: usize,
+    allow_underpowered: bool,
 }
 
 fn run() -> Result<(), String> {
@@ -82,31 +100,45 @@ fn run() -> Result<(), String> {
         content_mapping_sha256(&training.readout.readout).map_err(|error| error.to_string())?;
     let shuffled_mapping_sha256 =
         content_mapping_sha256(&shuffled).map_err(|error| error.to_string())?;
+    let ranker_started = Instant::now();
+    let ranker_training = derive_copy_candidate_rankers(&artifact_bytes, &train_samples, cap, seed)
+        .map_err(|error| error.to_string())?;
+    let ranker_elapsed_us = ranker_started.elapsed().as_micros() as u64;
 
-    let train_report = evaluate_panel(
-        &artifact_bytes,
-        &train_samples,
+    let train_report = evaluate_panel(PanelRun {
+        artifact: &artifact_bytes,
+        samples: &train_samples,
         cap,
         seed,
-        Readouts {
+        readouts: Readouts {
             learned: &training.readout.readout,
             shuffled: &shuffled,
         },
-        train_documents,
+        rankers: Rankers {
+            trained: &ranker_training.trained,
+            shuffled: &ranker_training.shuffled,
+            depth_only: &ranker_training.depth_only,
+        },
+        documents: train_documents,
         allow_underpowered,
-    )?;
-    let test_report = evaluate_panel(
-        &artifact_bytes,
-        &test_samples,
+    })?;
+    let test_report = evaluate_panel(PanelRun {
+        artifact: &artifact_bytes,
+        samples: &test_samples,
         cap,
         seed,
-        Readouts {
+        readouts: Readouts {
             learned: &training.readout.readout,
             shuffled: &shuffled,
         },
-        test_documents,
+        rankers: Rankers {
+            trained: &ranker_training.trained,
+            shuffled: &ranker_training.shuffled,
+            depth_only: &ranker_training.depth_only,
+        },
+        documents: test_documents,
         allow_underpowered,
-    )?;
+    })?;
     let artifact_sha256 = uor_r4_discrete::corpus::sha256(&artifact_bytes);
     let output = serde_json::json!({
         "schema": "uor-r4.cpu-learned-copy-read/1",
@@ -152,6 +184,22 @@ fn run() -> Result<(), String> {
             "shuffled_mapping_sha256": shuffled_mapping_sha256,
             "elapsed_us": training_elapsed_us,
         },
+        "candidate_ranker": {
+            "features": uor_r4_cpu_train::COPY_RANKER_FEATURE_NAMES,
+            "epochs": uor_r4_cpu_train::COPY_RANKER_EPOCHS,
+            "max_depth": uor_r4_cpu_train::COPY_RANKER_MAX_DEPTH,
+            "generated_rows": ranker_training.generated_rows,
+            "supervised_groups": ranker_training.supervised_groups,
+            "candidate_rows": ranker_training.candidate_rows,
+            "target_present_groups": ranker_training.target_present_groups,
+            "shuffled_target_changes": ranker_training.shuffled_target_changes,
+            "trained_weights": ranker_training.trained.weights,
+            "trained_weights_sha256": ranker_training.trained.weights_sha256(),
+            "shuffled_weights": ranker_training.shuffled.weights,
+            "shuffled_weights_sha256": ranker_training.shuffled.weights_sha256(),
+            "depth_only_weights": ranker_training.depth_only.weights,
+            "elapsed_us": ranker_elapsed_us,
+        },
         "train": train_report,
         "test": test_report,
     });
@@ -162,15 +210,17 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn evaluate_panel(
-    artifact: &[u8],
-    samples: &[MemoryWeightSample],
-    cap: usize,
-    seed: u64,
-    readouts: Readouts<'_>,
-    documents: usize,
-    allow_underpowered: bool,
-) -> Result<serde_json::Value, String> {
+fn evaluate_panel(run: PanelRun<'_>) -> Result<serde_json::Value, String> {
+    let PanelRun {
+        artifact,
+        samples,
+        cap,
+        seed,
+        readouts,
+        rankers,
+        documents,
+        allow_underpowered,
+    } = run;
     let learned = evaluate_learned_copy_replies(
         artifact,
         samples,
@@ -207,6 +257,19 @@ fn evaluate_panel(
         seed,
     )
     .map_err(|error| error.to_string())?;
+    let ranked = evaluate_ranked_copy_replies(artifact, samples, cap, rankers.trained)
+        .map_err(|error| error.to_string())?;
+    let ranked_shuffled = evaluate_ranked_copy_replies(artifact, samples, cap, rankers.shuffled)
+        .map_err(|error| error.to_string())?;
+    let ranked_depth_only =
+        evaluate_ranked_copy_replies(artifact, samples, cap, rankers.depth_only)
+            .map_err(|error| error.to_string())?;
+    if !allow_underpowered && ranked.reading.reference_reachable < 200 {
+        return Err(format!(
+            "ranked copy has {} reachable complete-reply examples",
+            ranked.reading.reference_reachable
+        ));
+    }
     if !allow_underpowered && lookahead.reading.reference_reachable < 200 {
         return Err(format!(
             "learned read has {} reachable complete-reply examples",
@@ -261,6 +324,34 @@ fn evaluate_panel(
         }
         comparisons.insert(name.to_owned(), by_metric);
     }
+    let mut ranker_comparisons = BTreeMap::new();
+    for (name, rows) in controls
+        .iter()
+        .map(|(name, reading)| (name.as_str(), reading.rows.as_slice()))
+        .chain(std::iter::once((
+            "shuffled_ranker",
+            ranked_shuffled.rows.as_slice(),
+        )))
+        .chain(std::iter::once((
+            "depth_only_ranker",
+            ranked_depth_only.rows.as_slice(),
+        )))
+        .chain(std::iter::once(("no_lookahead", learned.rows.as_slice())))
+        .chain(std::iter::once(("lookahead", lookahead.rows.as_slice())))
+    {
+        let mut by_metric = BTreeMap::new();
+        for metric in [
+            CopyKeyReplyMetric::ExactReference,
+            CopyKeyReplyMetric::NonPrematureBos,
+            CopyKeyReplyMetric::OpeningCorrect,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        ] {
+            let comparison = compare_copy_key_reply_rows(&ranked.rows, rows, metric)
+                .map_err(|error| error.to_string())?;
+            by_metric.insert(metric_name(metric).to_owned(), comparison);
+        }
+        ranker_comparisons.insert(name.to_owned(), by_metric);
+    }
 
     let random = controls
         .get(CopyKeyReplyArm::RandomAvailableDepth32.name())
@@ -284,6 +375,14 @@ fn evaluate_panel(
             shuffled_changes(&shuffled.steps, &learned.steps, &learned.rows),
         "random_32_from_longest_32": copy_changes(&longest.steps, &random.steps, &longest.rows),
         "random_4_from_longest_4": copy_changes(&longest_4.steps, &random_4.steps, &longest_4.rows),
+        "ranker_from_longest_32":
+            ranked_changes(&ranked.steps, &longest.steps, &longest.rows),
+        "ranker_from_no_lookahead":
+            ranked_learned_changes(&ranked.steps, &learned.steps, &learned.rows),
+        "ranker_from_shuffled_ranker":
+            ranked_vs_ranked_changes(&ranked.steps, &ranked_shuffled.steps, &ranked.rows),
+        "ranker_from_depth_only":
+            ranked_vs_ranked_changes(&ranked.steps, &ranked_depth_only.steps, &ranked.rows),
     });
 
     Ok(serde_json::json!({
@@ -294,10 +393,14 @@ fn evaluate_panel(
         },
         "lookahead": lookahead,
         "lookahead_shuffled": lookahead_shuffled,
+        "ranked": ranked,
+        "ranked_shuffled": ranked_shuffled,
+        "ranked_depth_only": ranked_depth_only,
         "learned": learned,
         "shuffled": shuffled,
         "controls": controls,
         "comparisons": comparisons,
+        "ranker_comparisons": ranker_comparisons,
         "changes": changes,
     }))
 }
@@ -377,6 +480,69 @@ fn shuffled_changes(
 fn copy_changes(
     left: &[CopyKeyReplyStep],
     right: &[CopyKeyReplyStep],
+    rows: &[CopyKeyReplyRow],
+) -> serde_json::Value {
+    let reachable = rows
+        .iter()
+        .filter(|row| row.reachable)
+        .map(|row| row.row)
+        .collect::<BTreeSet<_>>();
+    let left = left
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    let right = right
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    change_value(&reachable, &left, &right)
+}
+
+fn ranked_changes(
+    ranked: &[RankedCopyStep],
+    copy: &[CopyKeyReplyStep],
+    rows: &[CopyKeyReplyRow],
+) -> serde_json::Value {
+    let reachable = rows
+        .iter()
+        .filter(|row| row.reachable)
+        .map(|row| row.row)
+        .collect::<BTreeSet<_>>();
+    let ranked = ranked
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    let copy = copy
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    change_value(&reachable, &ranked, &copy)
+}
+
+fn ranked_learned_changes(
+    ranked: &[RankedCopyStep],
+    learned: &[LearnedCopyStep],
+    rows: &[CopyKeyReplyRow],
+) -> serde_json::Value {
+    let reachable = rows
+        .iter()
+        .filter(|row| row.reachable)
+        .map(|row| row.row)
+        .collect::<BTreeSet<_>>();
+    let ranked = ranked
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    let learned = learned
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    change_value(&reachable, &ranked, &learned)
+}
+
+fn ranked_vs_ranked_changes(
+    left: &[RankedCopyStep],
+    right: &[RankedCopyStep],
     rows: &[CopyKeyReplyRow],
 ) -> serde_json::Value {
     let reachable = rows

@@ -1,3 +1,20 @@
+## 2026-11-05 — Pairwise copy-candidate ranker stops on training supervision (deepseek)
+
+A new exact-copy ranker represented each candidate with depth, sign agreement,
+eight rotated-row agreements, recency, frequency and writer agreement and
+defined an eight-pass bounded integer pairwise perceptron. Shuffled-target and
+fixed depth-only arms were registered as controls.
+
+The fresh seed-2766 run did not reach evaluation. Longest-32-generated train
+panel 2711 supplied only **74** two-candidate groups where the reference token
+was present, below the pre-registered **640** floor. The command stopped before
+the perceptron fit, ranker selection, seed 2 or any reply reading. This is an
+insufficiency result
+for the longest-32 trajectory source, not a ranker-mechanism negative. Record:
+[deepseek-173](../loop/tasks/cpu-training-pilot/deepseek-173/REPORT.md).
+**Next:** generate materially more candidate-labelled states with a new seed
+and registration; do not lower the floor or retune on seed 2766.
+
 ## 2026-11-05 — Continuation-sensitive copy lookahead rejects (deepseek)
 
 The copy selector made learned target identity part of candidate ranking by

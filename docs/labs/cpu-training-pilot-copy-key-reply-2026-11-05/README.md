@@ -132,3 +132,20 @@ completion gap calls for an independent termination path rather than another
 scalar retune. See
 [deepseek-171](../../loop/tasks/cpu-training-pilot/deepseek-171/REPORT.md)
 and [`evidence/continuation-2765/`](evidence/continuation-2765/).
+
+## Pairwise exact-copy candidate ranker
+
+Deepseek-173 tested a different learning target: rank the currently available
+exact-copy candidates with one small integer model over depth, query/token sign
+agreement, eight rotated-row agreements, recency, frequency and writer
+agreement. The shuffled-target and fixed depth-only arms were registered as
+matched controls.
+
+The fit stopped at its first eligibility gate. Longest-32-generated train
+trajectories produced only **74** decisions where the reference token appeared
+among at least two unique candidates, against the registered **640** floor. No
+ranker was fitted into a report and no reply evaluation ran. This is an
+insufficiency result for this trajectory source, not a negative for candidate
+ranking with more supervised states. Seed 2766 is closed for this design. See
+[deepseek-173](../../loop/tasks/cpu-training-pilot/deepseek-173/REPORT.md)
+and [`evidence/copy-ranker-2766/`](evidence/copy-ranker-2766/).
