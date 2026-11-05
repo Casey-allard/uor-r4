@@ -168,6 +168,7 @@ pub mod lut_export;
 pub mod metal_stack_kernels;
 pub mod milestone_world;
 pub mod milestone_world_v2;
+pub mod real_text;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world_v2_probe;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.

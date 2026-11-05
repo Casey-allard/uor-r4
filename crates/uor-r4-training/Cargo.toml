@@ -68,6 +68,11 @@ name = "prepare-text-parquet"
 required-features = ["parquet-input"]
 
 [[bin]]
+name = "prepare-real-text"
+path = "src/bin/prepare-real-text.rs"
+required-features = ["parquet-input"]
+
+[[bin]]
 name = "m-world-recall-corpus"
 path = "src/bin/m-world-recall-corpus.rs"
 
