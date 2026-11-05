@@ -6,8 +6,8 @@ Order: [ORDER.md](ORDER.md). Base: `1f3b25cd6`.
 
 ## Status
 
-Complete as **INSUFFICIENT_TRAINING_DATA**. The candidate ranker remains
-untested and no capability conclusion follows.
+Complete and merged as **INSUFFICIENT_TRAINING_DATA**. The candidate ranker
+remains untested and no capability conclusion follows.
 
 ## Question
 
@@ -50,6 +50,11 @@ No serving, CUDA, float inference, termination or Claude-owned source changed.
 - raw local manifest SHA-256:
   `4e02d0dd8deecd5b6315566165a10ebc278eb7b360dbbfb420ef6a3434b6d27c`;
 - sealed outcome: `INSUFFICIENT_TRAINING_DATA`.
+- reviewed head: `b35b19c802430bfeeb9cba28908a4048f3174704`;
+- PR: #3723;
+- protected merge: `1b78a0652fa419c0200788e0ba82b15f480c9229`;
+- fresh-main CPU library: **315 passed**, 4 expected ignores;
+- fresh-main CPU binary test: **1 passed**.
 
 No reply evaluation ran. The empty seed-1 report and process record are retained
 as fail-closed stop evidence.
