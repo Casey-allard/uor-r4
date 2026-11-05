@@ -69,6 +69,39 @@ pub struct WriterTokenDiagnostic {
     pub target_minus_chosen_distance: i64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WriterPortMismatch {
+    pub token: u32,
+    pub cell: u32,
+    pub port: u8,
+    pub coordinate: usize,
+    pub expected: i32,
+    pub actual: i16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WriterPortAnchorAudit {
+    pub schema: String,
+    pub artifact_sha256: String,
+    pub vocab: usize,
+    pub width: usize,
+    pub tokens_checked: usize,
+    pub port_coordinates: u64,
+    pub distinct_cells: usize,
+    pub mismatch_count: u64,
+    pub mismatch_tokens: u64,
+    pub mismatch_rows: u64,
+    pub first_mismatches: Vec<WriterPortMismatch>,
+}
+
+impl WriterPortAnchorAudit {
+    pub fn passes(&self) -> bool {
+        self.mismatch_count == 0
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct CpuServedTrace {
     pub(crate) norm_before_final_gain: Vec<i64>,
@@ -255,6 +288,59 @@ impl CpuFbsForward {
         }
         forward.artifact_sha256 = Some(uor_r4_discrete::corpus::sha256(bytes));
         Ok(forward)
+    }
+
+    /// Verify that each token's two 8-coordinate writer ports hold its cell's
+    /// two SpiralCore roots exactly after artifact export and read-back.
+    pub fn audit_writer_port_anchors(bytes: &[u8]) -> Result<WriterPortAnchorAudit> {
+        let forward = Self::from_artifact(bytes)?;
+        if forward.width < 16 {
+            return Err(invalid("writer-anchor audit requires width at least 16"));
+        }
+        let mut mismatch_count = 0u64;
+        let mut mismatch_tokens = 0u64;
+        let mut first_mismatches = Vec::new();
+        for token in 0..forward.vocab {
+            let cell = token % 256;
+            let roots = [cell / 16, cell % 16];
+            let starts = [0usize, forward.width - 8];
+            let mut token_mismatched = false;
+            let row = &forward.writer_table[token * forward.width..(token + 1) * forward.width];
+            for (port, (start, root)) in starts.into_iter().zip(roots).enumerate() {
+                for coordinate in 0..8 {
+                    let expected = forward.roots_q12[root][coordinate];
+                    let actual = row[start + coordinate];
+                    if i32::from(actual) != expected {
+                        mismatch_count += 1;
+                        token_mismatched = true;
+                        if first_mismatches.len() < 32 {
+                            first_mismatches.push(WriterPortMismatch {
+                                token: token as u32,
+                                cell: cell as u32,
+                                port: port as u8,
+                                coordinate,
+                                expected,
+                                actual,
+                            });
+                        }
+                    }
+                }
+            }
+            mismatch_tokens += u64::from(token_mismatched);
+        }
+        Ok(WriterPortAnchorAudit {
+            schema: "uor-r4.cpu-writer-port-anchor-audit/1".to_owned(),
+            artifact_sha256: uor_r4_discrete::corpus::sha256(bytes),
+            vocab: forward.vocab,
+            width: forward.width,
+            tokens_checked: forward.vocab,
+            port_coordinates: forward.vocab as u64 * 16,
+            distinct_cells: forward.vocab.min(256),
+            mismatch_count,
+            mismatch_tokens,
+            mismatch_rows: mismatch_tokens,
+            first_mismatches,
+        })
     }
 
     fn from_image(
@@ -1475,8 +1561,21 @@ mod tests {
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
     use uor_r4_integer::stack::{
         add_point_key_uorlut01, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with,
-        FbsExportSnaps, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, IntegerStackModel,
-        PointKeyImage, MEMORY_PAD,
+        FbsExportSnaps, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, FbsTrunkSnapshot,
+        IntegerStackModel, PointKeyImage, MEMORY_PAD,
+    };
+
+    const ANCHOR_AUDIT_SYNTH: FbsSynth = FbsSynth {
+        vocab: 256,
+        d: 32,
+        mlp: 32,
+        layers: 1,
+        context: 8,
+        kept: 8,
+        gain_lo: 0.75,
+        gain_span: 1.5,
+        table: 0.5,
+        decay_step: 0.25,
     };
 
     fn fixture(seed: u64, layers: usize, nearest: bool) -> (IntegerStackModel, CpuFbsForward) {
@@ -1500,6 +1599,131 @@ mod tests {
         let model = IntegerStackModel::parse(&bytes).unwrap();
         let cpu = CpuFbsForward::from_model(&model).unwrap();
         (model, cpu)
+    }
+
+    fn anchored_artifact_with(
+        seed: u64,
+        edit: impl FnOnce(&mut FbsTrunkSnapshot, &[[i32; 8]; 16]),
+    ) -> (Vec<u8>, [[i32; 8]; 16]) {
+        let mut snapshot = synthetic_fbs_trunk_with(seed, ANCHOR_AUDIT_SYNTH);
+        let unanchored = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let roots = *CpuFbsForward::from_artifact(&unanchored)
+            .unwrap()
+            .writer_roots();
+        for token in 0..snapshot.vocab {
+            let cell = token % 256;
+            let row = &mut snapshot.embed[token * snapshot.width..(token + 1) * snapshot.width];
+            for (start, root) in [(0, cell / 16), (snapshot.width - 8, cell % 16)] {
+                for coordinate in 0..8 {
+                    row[start + coordinate] = roots[root][coordinate] as f32 / 4096.0;
+                }
+            }
+        }
+        edit(&mut snapshot, &roots);
+        (export_fbs_trunk_uorlut01(&snapshot).unwrap(), roots)
+    }
+
+    #[test]
+    fn writer_port_anchor_audit_accepts_exact_cell_roots() {
+        let (bytes, _) = anchored_artifact_with(181, |_, _| {});
+        let audit = CpuFbsForward::audit_writer_port_anchors(&bytes).unwrap();
+        assert!(audit.passes());
+        assert_eq!(audit.schema, "uor-r4.cpu-writer-port-anchor-audit/1");
+        assert_eq!(
+            audit.artifact_sha256,
+            uor_r4_discrete::corpus::sha256(&bytes)
+        );
+        assert_eq!(audit.vocab, 256);
+        assert_eq!(audit.width, 32);
+        assert_eq!(audit.tokens_checked, 256);
+        assert_eq!(audit.port_coordinates, 4096);
+        assert_eq!(audit.distinct_cells, 256);
+        assert_eq!(audit.mismatch_count, 0);
+        assert_eq!(audit.mismatch_tokens, 0);
+        assert_eq!(audit.mismatch_rows, 0);
+        assert!(audit.first_mismatches.is_empty());
+    }
+
+    #[test]
+    fn writer_port_anchor_audit_counts_one_moved_coordinate() {
+        let (bytes, roots) = anchored_artifact_with(182, |snapshot, roots| {
+            snapshot.embed[0] = (roots[0][0] as f32 + 1.0) / 4096.0;
+        });
+        let audit = CpuFbsForward::audit_writer_port_anchors(&bytes).unwrap();
+        assert!(!audit.passes());
+        assert_eq!(audit.mismatch_count, 1);
+        assert_eq!(audit.mismatch_tokens, 1);
+        assert_eq!(audit.mismatch_rows, 1);
+        assert_eq!(
+            audit.first_mismatches,
+            vec![WriterPortMismatch {
+                token: 0,
+                cell: 0,
+                port: 0,
+                coordinate: 0,
+                expected: roots[0][0],
+                actual: (roots[0][0] + 1) as i16,
+            }]
+        );
+    }
+
+    #[test]
+    fn writer_port_anchor_audit_counts_a_token_assigned_to_another_cell() {
+        let (bytes, roots) = anchored_artifact_with(183, |snapshot, roots| {
+            let width = snapshot.width;
+            snapshot.embed[..8].copy_from_slice(&roots[0].map(|value| value as f32 / 4096.0));
+            snapshot.embed[width - 8..width]
+                .copy_from_slice(&roots[2].map(|value| value as f32 / 4096.0));
+        });
+        let expected = (0..8)
+            .filter(|&coordinate| roots[1][coordinate] != roots[2][coordinate])
+            .count() as u64;
+        assert!(expected > 0);
+        let audit = CpuFbsForward::audit_writer_port_anchors(&bytes).unwrap();
+        assert!(!audit.passes());
+        assert_eq!(audit.mismatch_count, expected);
+        assert_eq!(audit.mismatch_tokens, 1);
+        assert_eq!(audit.mismatch_rows, 1);
+        assert!(audit
+            .first_mismatches
+            .iter()
+            .all(|mismatch| mismatch.token == 0 && mismatch.cell == 0 && mismatch.port == 1));
+    }
+
+    #[test]
+    fn writer_port_anchor_audit_rejects_malformed_and_short_artifacts() {
+        assert!(CpuFbsForward::audit_writer_port_anchors(b"not a UORLUT01 artifact").is_err());
+
+        let short = synthetic_fbs_trunk_with(
+            184,
+            FbsSynth {
+                d: 16,
+                ..ANCHOR_AUDIT_SYNTH
+            },
+        );
+        assert!(export_fbs_trunk_uorlut01(&short).is_err());
+
+        let (bytes, _) = anchored_artifact_with(185, |_, _| {});
+        let header = b"\"width\":32";
+        let at = bytes
+            .windows(header.len())
+            .position(|window| window == header)
+            .expect("width in the artifact header");
+        let mut short_header = bytes;
+        short_header[at + b"\"width\":".len()..at + header.len()].copy_from_slice(b"16");
+        assert!(CpuFbsForward::audit_writer_port_anchors(&short_header).is_err());
+    }
+
+    #[test]
+    fn writer_port_q12_export_preserves_boundary_values() {
+        let mut snapshot = synthetic_fbs_trunk_with(186, ANCHOR_AUDIT_SYNTH);
+        snapshot.embed[..8].copy_from_slice(&[-2.0, 0.0, 2.0, -2.0, 0.0, 2.0, -2.0, 0.0]);
+        let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let forward = CpuFbsForward::from_artifact(&bytes).unwrap();
+        assert_eq!(
+            &forward.token_table()[..8],
+            &[-8192, 0, 8192, -8192, 0, 8192, -8192, 0]
+        );
     }
 
     #[test]

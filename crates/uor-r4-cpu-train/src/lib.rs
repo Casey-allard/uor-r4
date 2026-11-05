@@ -91,8 +91,8 @@ pub use discrete_route::{
     CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader, CPU_DISCRETE_CHECKPOINT_SCHEMA,
 };
 pub use fbs::{
-    CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterTokenDiagnostic,
-    CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
+    CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterPortAnchorAudit,
+    WriterPortMismatch, WriterTokenDiagnostic, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
 };
 pub use gain_train::{
     evaluate_termination_gain_samples, random_gain_control, read_gain, replace_final_gain,

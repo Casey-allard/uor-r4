@@ -1,0 +1,49 @@
+{
+  "schema": "uor-r4.cpu-writer-port-anchor-audit-evidence/1",
+  "audit_schema": "uor-r4.cpu-writer-port-anchor-audit/1",
+  "date": "2026-11-05",
+  "command": "cpu-writer-anchor-audit --artifact PATH",
+  "expected_verdict": "REJECT",
+  "controls": [
+    {
+      "artifact": "public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "vocab": 4096,
+      "width": 256,
+      "tokens_checked": 4096,
+      "port_coordinates": 65536,
+      "distinct_cells": 256,
+      "mismatch_count": 65505,
+      "mismatch_tokens": 4096,
+      "mismatch_rows": 4096,
+      "first_mismatch": {
+        "token": 0,
+        "cell": 0,
+        "port": 0,
+        "coordinate": 0,
+        "expected": 8192,
+        "actual": -1746
+      }
+    },
+    {
+      "artifact": "public-fbs-dual/dual-c131-seed-2-raw_both.uorlut",
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "vocab": 4096,
+      "width": 256,
+      "tokens_checked": 4096,
+      "port_coordinates": 65536,
+      "distinct_cells": 256,
+      "mismatch_count": 65526,
+      "mismatch_tokens": 4096,
+      "mismatch_rows": 4096,
+      "first_mismatch": {
+        "token": 0,
+        "cell": 0,
+        "port": 0,
+        "coordinate": 0,
+        "expected": 8192,
+        "actual": -1863
+      }
+    }
+  ]
+}
