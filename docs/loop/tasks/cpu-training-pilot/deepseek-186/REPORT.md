@@ -33,6 +33,18 @@ not a trained-model or language result; hybrid tables remain in-memory only.
 - fresh-main scoped strict Clippy, formatting, diff, report, FIT/evidence,
   D23/D32 ratchets and claim wording: passed.
 
+## Delivery
+
+PR #3740 was reviewed at exact head
+`4ee7e12314b1908c11acc1cbc506d54a7ab601bf`. All required checks passed and
+the protected queue merged it as
+`63ce79e85ed5f97d2860f629bb7369036f8a0935`.
+
+Final detached `origin/main` at that merge passed the full CPU package
+(**351 library tests passed**, 4 expected ignores, all binary tests), scoped
+strict Clippy, formatting, diff, report/FIT evidence and absence of the
+original work claim.
+
 ## Checks run at the head
 
 - exact-head review before queue;

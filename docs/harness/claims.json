@@ -419,13 +419,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/table-anchor-isolation-release": {
-    "branch": "deepseek/table-anchor-isolation-release",
-    "claimed_at": "2026-11-05T11:29:56-05:00",
-    "head": "5e7d5c681",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/table-bvgk-pivot": {
     "branch": "deepseek/table-bvgk-pivot",
     "claimed_at": "2026-11-03T00:03:13-05:00",
