@@ -108,6 +108,13 @@ with `PUBLISHED-SHA256SUMS`.
   rustfmt, recipe `bash -n`, `git diff --check` and evidence manifests passed.
 - No float-training, integer-serving, CUDA or other Claude-owned source
   changed.
+- Exact-head review approved `0cba12e96` in
+  [#issuecomment-6648446089](https://github.com/UOR-Foundation/uor-r4/pull/3693#issuecomment-6648446089).
+  PR [#3693](https://github.com/UOR-Foundation/uor-r4/pull/3693) merged as
+  `292a572133774a228818e4eaf2dc0ac832ea26cd`.
+- Fresh merge-main verification passed **275** CPU library tests with 4
+  expected ignores, the router binary test, all published evidence manifests
+  and the recorded rejection fields.
 
 ## Size
 

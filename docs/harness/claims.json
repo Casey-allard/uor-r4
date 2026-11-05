@@ -111,13 +111,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/copy-key-router": {
-    "branch": "deepseek/copy-key-router",
-    "claimed_at": "2026-11-04T20:59:21-05:00",
-    "head": "1b501c2f1",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/copy-key2-cpu": {
     "branch": "deepseek/copy-key2-cpu",
     "claimed_at": "2026-11-03T02:21:59-05:00",
