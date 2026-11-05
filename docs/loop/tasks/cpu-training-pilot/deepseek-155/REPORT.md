@@ -93,6 +93,13 @@ Published evidence SHA-256:
   lengths.
 - Both artifact seeds and both panels agree on the termination-only outcome.
 - No serving, integer, CUDA, float-training or Claude-owned source changed.
+- Exact-head adversarial review approved `823d1cb7a` in
+  [#issuecomment-6649722844](https://github.com/UOR-Foundation/uor-r4/pull/3699#issuecomment-6649722844).
+  PR [#3699](https://github.com/UOR-Foundation/uor-r4/pull/3699) merged as
+  `d5246431b7c6311e9a3680bb0b9b33acb75dd280`.
+- Fresh merge-main verification passed **286** CPU library tests with 4
+  expected ignores, 74 binary tests, the oracle evidence seal and the recorded
+  11/13 result fields.
 
 ## Size
 
