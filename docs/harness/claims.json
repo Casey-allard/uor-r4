@@ -440,13 +440,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/trajectory-density": {
-    "branch": "deepseek/trajectory-density",
-    "claimed_at": "2026-11-04T19:12:05-05:00",
-    "head": "6c21d3133",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/trajectory-readout": {
     "branch": "deepseek/trajectory-readout",
     "claimed_at": "2026-11-04T17:11:57-05:00",
