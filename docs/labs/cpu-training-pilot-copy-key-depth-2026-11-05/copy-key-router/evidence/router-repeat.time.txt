@@ -1,0 +1,23 @@
+	Command being timed: "timeout 600s /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-copy-key-router/target/deepseek/copy-key-router-run/release/cpu-copy-key-router /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/response_mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/manifest.json /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/response_mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/manifest.json --context 192 --seed 151"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.01
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7836
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 936
+	Voluntary context switches: 4
+	Involuntary context switches: 4
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

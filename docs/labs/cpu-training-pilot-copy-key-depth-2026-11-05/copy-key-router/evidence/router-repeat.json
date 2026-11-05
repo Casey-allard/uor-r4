@@ -1,0 +1,373 @@
+{
+  "claim": "trained depth-and-age copy-key routing; no model or language claim",
+  "inputs": {
+    "test": {
+      "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/manifest.json",
+      "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/response_mask.u8",
+      "mask_sha256": "31063320c1caf02528e1b8fc95094f1fdc84087d4405b04867ab49faee76bc69",
+      "split": "dev",
+      "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+      "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/dev-dev-2602/tokens.u16",
+      "tokens_sha256": "05dcf3cf5f659b8e25f1eb0344e661b4401bba1fe20984a9c90ebcff4b68d326"
+    },
+    "train": {
+      "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/manifest.json",
+      "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/response_mask.u8",
+      "mask_sha256": "6d4441e2c21e4fabf5ab1b63a25d93b1116dc62edd40d2d12050dd3b5eae735f",
+      "split": "train",
+      "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+      "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-router/2026-11-05/panels/train-train-2601/tokens.u16",
+      "tokens_sha256": "db37524d130d372a163a9c2e4189770ef276cdfbc0a323386e92093f121067c1"
+    }
+  },
+  "qualification": "development-only",
+  "router": {
+    "age_bins": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      192
+    ],
+    "stats": [
+      {
+        "age_upper": 1,
+        "depth": 1,
+        "matches": 6,
+        "right": 0
+      },
+      {
+        "age_upper": 1,
+        "depth": 2,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 1,
+        "depth": 3,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 1,
+        "depth": 4,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 2,
+        "depth": 1,
+        "matches": 4,
+        "right": 1
+      },
+      {
+        "age_upper": 2,
+        "depth": 2,
+        "matches": 1,
+        "right": 0
+      },
+      {
+        "age_upper": 2,
+        "depth": 3,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 2,
+        "depth": 4,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 4,
+        "depth": 1,
+        "matches": 21,
+        "right": 2
+      },
+      {
+        "age_upper": 4,
+        "depth": 2,
+        "matches": 1,
+        "right": 0
+      },
+      {
+        "age_upper": 4,
+        "depth": 3,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 4,
+        "depth": 4,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 8,
+        "depth": 1,
+        "matches": 36,
+        "right": 9
+      },
+      {
+        "age_upper": 8,
+        "depth": 2,
+        "matches": 6,
+        "right": 1
+      },
+      {
+        "age_upper": 8,
+        "depth": 3,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 8,
+        "depth": 4,
+        "matches": 0,
+        "right": 0
+      },
+      {
+        "age_upper": 16,
+        "depth": 1,
+        "matches": 342,
+        "right": 156
+      },
+      {
+        "age_upper": 16,
+        "depth": 2,
+        "matches": 140,
+        "right": 96
+      },
+      {
+        "age_upper": 16,
+        "depth": 3,
+        "matches": 82,
+        "right": 55
+      },
+      {
+        "age_upper": 16,
+        "depth": 4,
+        "matches": 47,
+        "right": 31
+      },
+      {
+        "age_upper": 32,
+        "depth": 1,
+        "matches": 371,
+        "right": 273
+      },
+      {
+        "age_upper": 32,
+        "depth": 2,
+        "matches": 266,
+        "right": 202
+      },
+      {
+        "age_upper": 32,
+        "depth": 3,
+        "matches": 228,
+        "right": 176
+      },
+      {
+        "age_upper": 32,
+        "depth": 4,
+        "matches": 201,
+        "right": 151
+      },
+      {
+        "age_upper": 64,
+        "depth": 1,
+        "matches": 257,
+        "right": 204
+      },
+      {
+        "age_upper": 64,
+        "depth": 2,
+        "matches": 294,
+        "right": 269
+      },
+      {
+        "age_upper": 64,
+        "depth": 3,
+        "matches": 288,
+        "right": 269
+      },
+      {
+        "age_upper": 64,
+        "depth": 4,
+        "matches": 276,
+        "right": 258
+      },
+      {
+        "age_upper": 128,
+        "depth": 1,
+        "matches": 102,
+        "right": 74
+      },
+      {
+        "age_upper": 128,
+        "depth": 2,
+        "matches": 110,
+        "right": 87
+      },
+      {
+        "age_upper": 128,
+        "depth": 3,
+        "matches": 101,
+        "right": 81
+      },
+      {
+        "age_upper": 128,
+        "depth": 4,
+        "matches": 92,
+        "right": 74
+      },
+      {
+        "age_upper": 192,
+        "depth": 1,
+        "matches": 4,
+        "right": 0
+      },
+      {
+        "age_upper": 192,
+        "depth": 2,
+        "matches": 4,
+        "right": 1
+      },
+      {
+        "age_upper": 192,
+        "depth": 3,
+        "matches": 5,
+        "right": 3
+      },
+      {
+        "age_upper": 192,
+        "depth": 4,
+        "matches": 6,
+        "right": 4
+      }
+    ]
+  },
+  "schema": "uor-r4.cpu-copy-key-router/1",
+  "settings": {
+    "age_bins": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      192
+    ],
+    "context": 192,
+    "depth": 4,
+    "seed": 151
+  },
+  "substrate": "cpu-development-research",
+  "test": {
+    "copyable_positions": 1655,
+    "eligible_positions": 2704,
+    "k2_backoff_k1": {
+      "name": "k2_backoff_k1",
+      "positions_with_match": 1283,
+      "right": 912
+    },
+    "longest": {
+      "name": "longest_4_to_1",
+      "positions_with_match": 1283,
+      "right": 921
+    },
+    "random_changed_from_longest": 79,
+    "random_depth": {
+      "name": "random_available_depth",
+      "positions_with_match": 1283,
+      "right": 876
+    },
+    "router": {
+      "name": "trained_depth_age_router",
+      "positions_with_match": 1283,
+      "right": 913
+    },
+    "router_vs_k2_backoff": {
+      "candidate_only": 7,
+      "candidate_sum": 913,
+      "control_only": 6,
+      "control_sum": 912,
+      "passes": true,
+      "threshold": 5
+    },
+    "router_vs_longest": {
+      "candidate_only": 1,
+      "candidate_sum": 913,
+      "control_only": 9,
+      "control_sum": 921,
+      "passes": false,
+      "threshold": 6
+    },
+    "router_vs_random": {
+      "candidate_only": 52,
+      "candidate_sum": 913,
+      "control_only": 15,
+      "control_sum": 876,
+      "passes": true,
+      "threshold": 8
+    },
+    "windows": 74
+  },
+  "training": {
+    "copyable_positions": 1485,
+    "eligible_positions": 2487,
+    "k2_backoff_k1": {
+      "name": "k2_backoff_k1",
+      "positions_with_match": 1143,
+      "right": 817
+    },
+    "longest": {
+      "name": "longest_4_to_1",
+      "positions_with_match": 1143,
+      "right": 838
+    },
+    "random_changed_from_longest": 63,
+    "random_depth": {
+      "name": "random_available_depth",
+      "positions_with_match": 1143,
+      "right": 792
+    },
+    "router": {
+      "name": "trained_depth_age_router",
+      "positions_with_match": 1143,
+      "right": 832
+    },
+    "router_vs_k2_backoff": {
+      "candidate_only": 16,
+      "candidate_sum": 832,
+      "control_only": 1,
+      "control_sum": 817,
+      "passes": true,
+      "threshold": 2
+    },
+    "router_vs_longest": {
+      "candidate_only": 0,
+      "candidate_sum": 832,
+      "control_only": 6,
+      "control_sum": 838,
+      "passes": false,
+      "threshold": 5
+    },
+    "router_vs_random": {
+      "candidate_only": 47,
+      "candidate_sum": 832,
+      "control_only": 7,
+      "control_sum": 792,
+      "passes": true,
+      "threshold": 6
+    },
+    "windows": 73
+  }
+}

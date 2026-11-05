@@ -51,8 +51,9 @@ pub use content_readout::{
     CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS, CONTENT_TRAJECTORY_SIGNATURE_BITS,
 };
 pub use copy_key_depth::{
-    evaluate_copy_key_depth, CopyKeyComparison, CopyKeyDepthArm, CopyKeyDepthReading,
-    COPY_KEY_MAX_DEPTH,
+    evaluate_copy_key_depth, evaluate_copy_key_router, fit_copy_key_router, CopyKeyComparison,
+    CopyKeyDepthArm, CopyKeyDepthReading, CopyKeyRouteStat, CopyKeyRouter, CopyKeyRouterReading,
+    COPY_KEY_AGE_BINS, COPY_KEY_MAX_DEPTH,
 };
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,

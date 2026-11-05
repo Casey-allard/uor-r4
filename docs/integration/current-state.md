@@ -1,3 +1,16 @@
+## 2026-11-05 — Depth-age router loses to longest-first (deepseek)
+
+A 36-cell discrete router fitted on new `train,train` seed 2601 was tested on
+new `dev,dev` seed 2602 with suffix depth and candidate age. It was right on
+**913 / 1,655** copyable positions versus **921** for longest-first. It beat
+`k2>k1` at **913 / 912** and random depth at **913 / 876**, but the
+pre-registered bar required all three comparisons. The random control changed
+79 copyable decisions and the repeat was byte-identical. This rejects the
+fitted depth/age table, not longest-first or trained copy-read work. Record:
+[deepseek-151](../loop/tasks/cpu-training-pilot/deepseek-151/REPORT.md).
+**Next:** keep longest-first as the exact-copy candidate and change the routing
+feature or explicit backoff before another trained copy-read test.
+
 ## 2026-11-05 — Longer exact copy keys select a candidate read (deepseek)
 
 The CPU copy-key screen compared the latest exact suffix key at depths one

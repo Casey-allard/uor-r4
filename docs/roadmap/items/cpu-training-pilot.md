@@ -391,6 +391,16 @@ on each panel. This selects depths three and four for a trained-model test; it
 is not a model, language or serving result. See
 [deepseek-149](../../loop/tasks/cpu-training-pilot/deepseek-149/REPORT.md).
 
+A follow-up fitted a 36-cell empirical precision table over suffix depth and
+fixed candidate-age bins on new `train,train` seed 2601, then evaluated the
+unchanged table on new `dev,dev` seed 2602. The router was right on
+**913 / 1,655** copyable positions, eight below longest-first at **921**.
+Although it beat `k2>k1` by 913 to 912 and random depth by 913 to 876, all three
+pre-registered comparisons were required. Longest-first therefore remains the
+selected exact-copy candidate; the negative closes this fitted depth/age table,
+not learned copy reads generally. See
+[deepseek-151](../../loop/tasks/cpu-training-pilot/deepseek-151/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
