@@ -213,6 +213,108 @@ pub fn parse_panel(bytes: &[u8]) -> Result<Vec<PanelRequest>, RealTextError> {
     Ok(requests)
 }
 
+/// The role markers a prompt run holds, as `DialogueEncoder` writes them, each
+/// with whether it opens a user turn.
+const ROLE_MARKERS: [(&str, bool); 3] =
+    [("User:", true), ("System:", false), ("Assistant:", false)];
+
+/// The user turns of each document in a dialogue-protocol split, read back
+/// from the layout `DialogueEncoder::encode_document` writes: a document opens
+/// at `<|bos|>`, and each maximal run of mask-0 tokens (`<|bos|>` and
+/// `<|eos|>` left out) decodes to role segments. A segment opens on a marker
+/// (`User:`, `System:` or `Assistant:`) at the run's start, after at most one
+/// separating `\n`, or after any later `\n`. A user segment's content is its
+/// text after the marker, less the one space both protocols put there (the v1
+/// marker ends in it; v2 content starts with it).
+///
+/// Returns one list per document, in order; a document without a user turn
+/// gives an empty list. A content line that itself opens on a role marker is
+/// read as a new segment there, since the layout cannot tell the two apart.
+pub fn split_user_turns(
+    tokens: &[u32],
+    mask: &[u8],
+    tokenizer: &ByteBpeTokenizer,
+    protocol: &DialogueProtocol,
+) -> Result<Vec<Vec<String>>, RealTextError> {
+    if tokens.len() != mask.len() {
+        return Err(RealTextError::Defect(format!(
+            "{} tokens but {} mask bytes",
+            tokens.len(),
+            mask.len()
+        )));
+    }
+    if tokens.first() != Some(&protocol.bos_id) {
+        return Err(RealTextError::Defect(
+            "the split does not open on <|bos|>".into(),
+        ));
+    }
+    let flush = |run: &mut Vec<u32>, turns: &mut Vec<String>| -> Result<(), RealTextError> {
+        if run.is_empty() {
+            return Ok(());
+        }
+        let text = String::from_utf8(tokenizer.decode_bytes(run))
+            .map_err(|_| RealTextError::Defect("a prompt run is not UTF-8".into()))?;
+        turns.extend(prompt_user_turns(&text)?);
+        run.clear();
+        Ok(())
+    };
+    let mut documents: Vec<Vec<String>> = Vec::new();
+    let mut run: Vec<u32> = Vec::new();
+    for (&id, &m) in tokens.iter().zip(mask) {
+        if id == protocol.bos_id {
+            if let Some(turns) = documents.last_mut() {
+                flush(&mut run, turns)?;
+            }
+            documents.push(Vec::new());
+        } else if m != 0 {
+            let turns = documents.last_mut().expect("the split opens on <|bos|>");
+            flush(&mut run, turns)?;
+        } else if id == protocol.unk_id {
+            // Byte-level encoding never emits it: it comes only from the literal
+            // text `<|unk|>`, special text the builder drops (`DocDrop::SpecialText`).
+            return Err(RealTextError::Defect("an <|unk|> in a prompt run".into()));
+        } else if id != protocol.eos_id {
+            run.push(id);
+        }
+    }
+    let turns = documents.last_mut().expect("the split opens on <|bos|>");
+    flush(&mut run, turns)?;
+    Ok(documents)
+}
+
+/// The user turns of one decoded prompt run ([`split_user_turns`]).
+fn prompt_user_turns(text: &str) -> Result<Vec<String>, RealTextError> {
+    let text = text.strip_prefix('\n').unwrap_or(text);
+    let marker_at = |at: usize| {
+        ROLE_MARKERS
+            .iter()
+            .find(|(marker, _)| text[at..].starts_with(marker))
+            .copied()
+    };
+    let Some((marker, user)) = marker_at(0) else {
+        let head: String = text.chars().take(40).collect();
+        return Err(RealTextError::Defect(format!(
+            "a prompt run opens on no role marker: {head:?}"
+        )));
+    };
+    let mut starts = vec![(0, marker, user)];
+    for (newline, _) in text.match_indices('\n') {
+        if let Some((marker, user)) = marker_at(newline + 1) {
+            starts.push((newline + 1, marker, user));
+        }
+    }
+    let mut turns = Vec::new();
+    for (k, &(at, marker, user)) in starts.iter().enumerate() {
+        if user {
+            // The segment ends before the `\n` that opens the next one.
+            let end = starts.get(k + 1).map_or(text.len(), |next| next.0 - 1);
+            let body = &text[at + marker.len()..end];
+            turns.push(body.strip_prefix(' ').unwrap_or(body).to_owned());
+        }
+    }
+    Ok(turns)
+}
+
 fn window_key(window: &[String]) -> u64 {
     // `DefaultHasher::new()` uses fixed keys, so keys are stable within a run;
     // they are never persisted, and every hit is confirmed exactly.
@@ -1453,6 +1555,116 @@ mod tests {
                 .thread(&thread(&[("user", "Hi"), ("assistant", "  ")]))
                 .unwrap(),
             Built::Dropped(DocDrop::NoAssistantReply)
+        );
+    }
+
+    // ------------------------------------------------ user turns read back
+
+    /// Each conversation through `DialogueEncoder::encode_document` under
+    /// protocol `version`, joined into one split.
+    fn encoded_split(
+        tok: &ByteBpeTokenizer,
+        version: u8,
+        docs: &[&[(&str, &str)]],
+    ) -> (Vec<u32>, Vec<u8>, DialogueProtocol) {
+        let protocol = DialogueProtocol::literal_roles_version(tok, version).unwrap();
+        let encoder = protocol.bind(tok).unwrap();
+        let (mut tokens, mut mask) = (Vec::new(), Vec::new());
+        for doc in docs {
+            let messages: Vec<Message<'_>> = doc
+                .iter()
+                .map(|&(role, content)| Message { role, content })
+                .collect();
+            let encoded = encoder.encode_document(&messages);
+            tokens.extend(encoded.tokens);
+            mask.extend(encoded.response_mask);
+        }
+        (tokens, mask, protocol)
+    }
+
+    #[test]
+    fn user_turns_come_back_exactly_under_both_protocols() {
+        let tok = tokenizer(None);
+        let docs: [&[(&str, &str)]; 3] = [
+            &[
+                ("system", "Be brief."),
+                ("user", "Hi there"),
+                ("assistant", "Hello."),
+                ("user", "Two\nlines: User here"),
+                ("assistant", "Yes."),
+            ],
+            &[
+                ("user", "Ends on a user turn"),
+                ("assistant", "Reply"),
+                ("user", "Last words"),
+            ],
+            &[("assistant", "No user turn")],
+        ];
+        let expected = vec![
+            vec!["Hi there".to_owned(), "Two\nlines: User here".to_owned()],
+            vec!["Ends on a user turn".to_owned(), "Last words".to_owned()],
+            Vec::new(),
+        ];
+        for version in [1, 2] {
+            let (tokens, mask, protocol) = encoded_split(&tok, version, &docs);
+            let turns = split_user_turns(&tokens, &mask, &tok, &protocol).unwrap();
+            assert_eq!(turns, expected, "protocol {version}");
+        }
+    }
+
+    fn turns_defect(tokens: &[u32], mask: &[u8], tok: &ByteBpeTokenizer) -> String {
+        let protocol = DialogueProtocol::literal_roles_version(tok, 2).unwrap();
+        match split_user_turns(tokens, mask, tok, &protocol) {
+            Err(RealTextError::Defect(message)) => message,
+            other => panic!("not a defect: {other:?}"),
+        }
+    }
+
+    fn one_exchange(tok: &ByteBpeTokenizer) -> (Vec<u32>, Vec<u8>) {
+        let (tokens, mask, _) = encoded_split(tok, 2, &[&[("user", "Hi"), ("assistant", "Yo")]]);
+        (tokens, mask)
+    }
+
+    #[test]
+    fn user_turns_refuse_a_mask_of_another_length() {
+        let tok = tokenizer(None);
+        let (tokens, mask) = one_exchange(&tok);
+        assert_eq!(
+            turns_defect(&tokens, &mask[1..], &tok),
+            format!("{} tokens but {} mask bytes", tokens.len(), mask.len() - 1)
+        );
+    }
+
+    #[test]
+    fn user_turns_refuse_a_split_that_does_not_open_on_bos() {
+        let tok = tokenizer(None);
+        let (tokens, mask) = one_exchange(&tok);
+        assert_eq!(
+            turns_defect(&tokens[1..], &mask[1..], &tok),
+            "the split does not open on <|bos|>"
+        );
+    }
+
+    #[test]
+    fn user_turns_refuse_a_prompt_run_with_no_role_marker() {
+        let tok = tokenizer(None);
+        let plain: Vec<u32> = std::iter::once(0).chain(tok.encode("plain text")).collect();
+        assert_eq!(
+            turns_defect(&plain, &vec![0; plain.len()], &tok),
+            "a prompt run opens on no role marker: \"plain text\""
+        );
+    }
+
+    #[test]
+    fn user_turns_refuse_an_unk_in_a_prompt_run() {
+        let tok = tokenizer(None);
+        let (mut tokens, mask) = one_exchange(&tok);
+        // Index 2 is inside "User:", the opening prompt run.
+        assert_eq!(mask[2], 0);
+        tokens[2] = 2;
+        assert_eq!(
+            turns_defect(&tokens, &mask, &tok),
+            "an <|unk|> in a prompt run"
         );
     }
 }

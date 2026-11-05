@@ -3,7 +3,7 @@ id: real-text-corpus
 title: A human-written real-text corpus and held-out panel, for P5 on real text
 milestone: research
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

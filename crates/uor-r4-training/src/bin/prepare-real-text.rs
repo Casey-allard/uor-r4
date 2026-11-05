@@ -7,7 +7,13 @@
 //!   input=FILE[,FILE...] panel=PANEL.json[,PANEL.json...] \
 //!   source=STR revision=STR licence=STR attribution=STR heldout_per_mille=K \
 //!   [protocol=2] [vocab_size=N] [max_tokens=8192] [max_docs=N]
+//! prepare-real-text panel-turns split=DIR tokenizer=TOKENIZER.json name=NAME out=NEW_FILE
 //! ```
+//!
+//! - `panel-turns` reads a frozen panel's user turns back from its split
+//!   (`tokens.u16`, `response_mask.u8`) with [`real_text::split_user_turns`],
+//!   and writes them in the `{id, user_turns}` form `panel=` reads, with ids
+//!   `NAME:<document index>`. It checks the same tokenizer pin first.
 //!
 //! - `oasst` reads the `trees.jsonl` export, one tree per line, and keeps each
 //!   tree's best-ranked thread ([`real_text::walk_tree`]).
@@ -41,7 +47,7 @@ use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::{Field, Row};
 use rayon::prelude::*;
 use serde_json::{json, Value};
-use uor_r4_core::native_geometric::mmap_corpus::CorpusWriter;
+use uor_r4_core::native_geometric::mmap_corpus::{CorpusWriter, MmapCorpusReader};
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_tokenizer::ByteBpeTokenizer;
@@ -113,19 +119,19 @@ struct Config {
     max_docs: Option<usize>,
 }
 
-fn parse_args(args: &[String]) -> Result<Config> {
-    let (mode, rest) = args.split_first().ok_or("missing mode: oasst or wiki")?;
-    let mode = match mode.as_str() {
-        "oasst" => Mode::Oasst,
-        "wiki" => Mode::Wiki,
-        other => return Err(format!("unknown mode {other:?}: expected oasst or wiki")),
-    };
-    let mut values: BTreeMap<&str, &str> = BTreeMap::new();
-    for arg in rest {
+/// `key=value` arguments, each key one of `keys`, given once and non-empty,
+/// with every key of `required` present.
+fn key_values<'a>(
+    args: &'a [String],
+    keys: &[&'static str],
+    required: &[&'static str],
+) -> Result<BTreeMap<&'static str, &'a str>> {
+    let mut values = BTreeMap::new();
+    for arg in args {
         let (key, value) = arg
             .split_once('=')
             .ok_or_else(|| format!("{arg:?}: expected key=value"))?;
-        let key = KEYS
+        let key = keys
             .iter()
             .copied()
             .find(|k| *k == key)
@@ -137,11 +143,28 @@ fn parse_args(args: &[String]) -> Result<Config> {
             return Err(format!("{key}= given twice"));
         }
     }
-    for key in REQUIRED {
+    for key in required {
         if !values.contains_key(key) {
             return Err(format!("missing {key}="));
         }
     }
+    Ok(values)
+}
+
+fn parse_args(args: &[String]) -> Result<Config> {
+    let (mode, rest) = args
+        .split_first()
+        .ok_or("missing mode: oasst, wiki or panel-turns")?;
+    let mode = match mode.as_str() {
+        "oasst" => Mode::Oasst,
+        "wiki" => Mode::Wiki,
+        other => {
+            return Err(format!(
+                "unknown mode {other:?}: expected oasst, wiki or panel-turns"
+            ))
+        }
+    };
+    let values = key_values(rest, &KEYS, &REQUIRED)?;
     let number = |key: &str, default: u64| -> Result<u64> {
         values.get(key).map_or(Ok(default), |v| {
             v.parse().map_err(|_| format!("{key}= must be a number"))
@@ -483,11 +506,79 @@ fn every_label<const N: usize>(
     Value::Object(map)
 }
 
+const TURN_KEYS: [&str; 4] = ["split", "tokenizer", "name", "out"];
+
+/// `panel-turns`: a frozen panel's user turns, read back from its split by
+/// [`real_text::split_user_turns`] and written as the `{id, user_turns}` list
+/// `panel=` reads. The id is `NAME:<document index>`; a document with no user
+/// turn is skipped and counted. Returns the summary line `run` prints.
+fn panel_turns(args: &[String], pin: &str) -> Result<Value> {
+    let values = key_values(args, &TURN_KEYS, &TURN_KEYS)?;
+    let split = Path::new(values["split"]);
+    let out = Path::new(values["out"]);
+    let name = values["name"];
+    if out.exists() {
+        return Err(format!("{}: already exists", out.display()));
+    }
+    let tokenizer_path = Path::new(values["tokenizer"]);
+    let tokenizer_json =
+        fs::read(tokenizer_path).map_err(|e| format!("{}: {e}", tokenizer_path.display()))?;
+    real_text::check_tokenizer_sha(&tokenizer_json, pin).map_err(|e| e.to_string())?;
+    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
+        .ok_or("unreadable tokenizer.json")?;
+    // Only its special ids are read; both protocols share them.
+    let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
+    let tokens_path = split.join("tokens.u16");
+    let tokens: Vec<u32> = MmapCorpusReader::open(&tokens_path)
+        .map_err(|e| format!("{}: {e}", tokens_path.display()))?
+        .as_slice()
+        .iter()
+        .map(|&t| u32::from(t))
+        .collect();
+    let mask_path = split.join("response_mask.u8");
+    let mask = fs::read(&mask_path).map_err(|e| format!("{}: {e}", mask_path.display()))?;
+    let documents = real_text::split_user_turns(&tokens, &mask, &tokenizer, &protocol)
+        .map_err(|e| format!("{}: {e}", split.display()))?;
+    let rows: Vec<Value> = documents
+        .iter()
+        .enumerate()
+        .filter(|(_, turns)| !turns.is_empty())
+        .map(|(index, turns)| json!({"id": format!("{name}:{index}"), "user_turns": turns}))
+        .collect();
+    if rows.is_empty() {
+        return Err(format!(
+            "{}: no document holds a user turn",
+            split.display()
+        ));
+    }
+    // Hashed before `out` is created, so a failure here writes nothing.
+    let tokens_sha256 = uor_r4_training::sha256_file(&tokens_path).map_err(|e| e.to_string())?;
+    let mut file = File::options()
+        .write(true)
+        .create_new(true)
+        .open(out)
+        .map_err(|e| format!("{}: {e}", out.display()))?;
+    file.write_all(&serde_json::to_vec_pretty(&rows).map_err(|e| e.to_string())?)
+        .map_err(|e| format!("{}: {e}", out.display()))?;
+    Ok(json!({
+        "split": split.display().to_string(),
+        "tokens_sha256": tokens_sha256,
+        "documents": documents.len(),
+        "with_user_turns": rows.len(),
+        "without_user_turns": documents.len() - rows.len(),
+        "user_turns": documents.iter().map(Vec::len).sum::<usize>(),
+    }))
+}
+
 fn run(args: &[String]) -> Result<()> {
     run_with_pin(args, real_text::PINNED_TOKENIZER_SHA256)
 }
 
 fn run_with_pin(args: &[String], pin: &str) -> Result<()> {
+    if args.first().map(String::as_str) == Some("panel-turns") {
+        println!("{}", panel_turns(&args[1..], pin)?);
+        return Ok(());
+    }
     let config = parse_args(args)?;
     for path in config.inputs.iter().chain(&config.panels) {
         if !path.is_file() {
@@ -808,7 +899,6 @@ mod tests {
     use parquet::file::writer::SerializedFileWriter;
     use parquet::schema::parser::parse_message_type;
     use std::sync::Arc;
-    use uor_r4_core::native_geometric::mmap_corpus::MmapCorpusReader;
 
     const BOS: u16 = 0;
     const EOS: u16 = 1;
@@ -1393,6 +1483,136 @@ mod tests {
         assert!(
             error.contains("column title holds a value that is not a string"),
             "{error}"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn panel_turns_reads_back_the_user_turns_a_build_wrote() {
+        let dir = scratch("turns");
+        let answer = |id: &str, text: &str, replies| node(id, "assistant", text, Some(0), replies);
+        let second = node(
+            "b-u2",
+            "prompter",
+            "And a second question",
+            None,
+            vec![answer("b-a2", "Second answer", vec![])],
+        );
+        let lines = [
+            tree(
+                "t-one",
+                node(
+                    "a-u",
+                    "prompter",
+                    "Hello there",
+                    None,
+                    vec![answer("a-a", "Hi", vec![])],
+                ),
+            ),
+            tree(
+                "t-two",
+                node(
+                    "b-u",
+                    "prompter",
+                    "First question",
+                    None,
+                    vec![answer("b-a", "First answer", vec![second])],
+                ),
+            ),
+        ];
+        let input = dir.join("trees.jsonl");
+        fs::write(&input, lines.join("\n") + "\n").unwrap();
+        let panel = write_panel(
+            &dir,
+            &json!([{"id": "p", "user_turns": ["no words match"]}]),
+        );
+        run_with_pin(&args(&dir, "oasst", &input, &panel, 0), &pin(&dir)).unwrap();
+        let turn_args = |out: &Path| {
+            vec![
+                "panel-turns".to_owned(),
+                format!("split={}", dir.join("out").join("train").display()),
+                format!("tokenizer={}", dir.join("tokenizer.json").display()),
+                "name=t".to_owned(),
+                format!("out={}", out.display()),
+            ]
+        };
+        let turns = dir.join("turns.json");
+        run_with_pin(&turn_args(&turns), &pin(&dir)).unwrap();
+        let bytes = fs::read(&turns).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&bytes).unwrap(),
+            json!([
+                {"id": "t:0", "user_turns": ["Hello there"]},
+                {"id": "t:1", "user_turns": ["First question", "And a second question"]},
+            ])
+        );
+        // The written list is one `panel=` reads.
+        assert_eq!(real_text::parse_panel(&bytes).unwrap().len(), 2);
+        let error = run_with_pin(&turn_args(&turns), &pin(&dir)).unwrap_err();
+        assert!(error.ends_with("already exists"), "{error}");
+        let fresh = dir.join("fresh.json");
+        let error = run_with_pin(&turn_args(&fresh), &"0".repeat(64)).unwrap_err();
+        assert!(error.contains("is not the pinned"), "{error}");
+        assert!(!fresh.exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn panel_turns_skips_and_counts_a_document_with_no_user_turn() {
+        let dir = scratch("turns-skip");
+        // An article first (no prompt run), then two conversations, laid out
+        // as protocol 2 writes them: the prompt runs have mask 0.
+        let documents: [&[(&str, u8)]; 3] = [
+            &[("Just an article.", 1)],
+            &[("User: Hello there\nAssistant:", 0), (" Hi", 1)],
+            &[("User: First\nUser: Second\nAssistant:", 0), (" Both", 1)],
+        ];
+        let (mut tokens, mut mask) = (Vec::new(), Vec::new());
+        for document in documents {
+            tokens.push(BOS);
+            mask.push(0);
+            for &(text, m) in document {
+                let ids = bytes_of(text);
+                mask.resize(mask.len() + ids.len(), m);
+                tokens.extend(ids);
+            }
+            tokens.push(EOS);
+            mask.push(1);
+        }
+        let split = dir.join("split");
+        fs::create_dir(&split).unwrap();
+        let mut writer = CorpusWriter::create(split.join("tokens.u16"), 3 + 256).unwrap();
+        writer.write_tokens(&tokens).unwrap();
+        writer.finish().unwrap();
+        fs::write(split.join("response_mask.u8"), &mask).unwrap();
+        let turns = dir.join("turns.json");
+        let turn_args = [
+            "panel-turns".to_owned(),
+            format!("split={}", split.display()),
+            format!("tokenizer={}", dir.join("tokenizer.json").display()),
+            "name=t".to_owned(),
+            format!("out={}", turns.display()),
+        ];
+        let summary = panel_turns(&turn_args[1..], &pin(&dir)).unwrap();
+        // The ids keep each document's index in the split, skipped ones included.
+        assert_eq!(
+            serde_json::from_slice::<Value>(&fs::read(&turns).unwrap()).unwrap(),
+            json!([
+                {"id": "t:1", "user_turns": ["Hello there"]},
+                {"id": "t:2", "user_turns": ["First", "Second"]},
+            ])
+        );
+        let sha = uor_r4_training::sha256_file(&split.join("tokens.u16")).unwrap();
+        assert_eq!(
+            summary,
+            json!({
+                "split": split.display().to_string(),
+                "tokens_sha256": sha,
+                "documents": 3,
+                "with_user_turns": 2,
+                "without_user_turns": 1,
+                "user_turns": 3,
+            })
         );
         let _ = fs::remove_dir_all(&dir);
     }
