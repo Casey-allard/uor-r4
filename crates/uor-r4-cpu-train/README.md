@@ -55,6 +55,14 @@ the workspace's mixed-feature integer outputs may collide.
 
 `CpuMaskedCorpus` parses the canonical `UORT` token container and matching response mask, builds causal samples only from each target's document prefix, and assigns whole documents to deterministic training or evaluation sides. `cpu-corpus-driver` runs an explicit bounded step budget, writes interval checkpoints plus reloadable final checkpoint and `UORLUT01` artifacts, and reports exact admission/top-1/top-8/export readings alongside token and wall-clock throughput. Each checkpoint carries a sidecar binding for the source artifact, corpus inputs, trainer seed, split controls and checkpoint bytes. An optional eleventh argument resumes from a bound interval checkpoint; the step argument remains the total target, so only the remaining steps execute. The driver does not run automatically and does not treat open-ended panel text as a correctness result.
 
+`cpu-scale-serving-bench` is a synthetic preflight for the scale-probe widths
+256, 512 and 1,024. It exports whole-table-nearest read-free and full
+SpiralCore/FBS artifacts at representative contexts 16, 64 and 192, repeats the
+exact CPU and integer-serving decision comparison three times, and records
+artifact bytes, table bytes, decode throughput and peak RSS. This checks the
+output path before a GPU scale run; it is not training evidence or a statement
+that a width fits GPU memory.
+
 `cpu-content-readout-driver` fits sign and modulo-256 nearest-example content
 readouts over generated trajectories. Besides the comparison arms, it emits
 `serving.uorlut` and an artifact-bound

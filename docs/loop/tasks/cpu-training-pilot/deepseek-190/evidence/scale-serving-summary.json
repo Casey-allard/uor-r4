@@ -1,0 +1,630 @@
+{
+  "schema": "uor-r4.cpu-scale-serving-bench/1",
+  "substrate": "synthetic-integer-fixed-point",
+  "qualification": "cpu-development-preflight-only; gpu-required-for-model-qualification",
+  "claim_boundary": "exact export/load/CPU-serving parity and cost at registered widths and contexts; no training, corpus, quality or GPU-memory claim",
+  "widths": [
+    256,
+    512,
+    1024
+  ],
+  "contexts": [
+    16,
+    64,
+    192
+  ],
+  "arms": [
+    "projection",
+    "full"
+  ],
+  "vocab": 4096,
+  "mlp": 384,
+  "layers": 6,
+  "kept_cells": 8,
+  "readout_mode": "whole_table_nearest_l1",
+  "repeats": 3,
+  "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+  "logical_cpus": 32,
+  "cells": [
+    {
+      "width": 256,
+      "context": 16,
+      "arm": "projection",
+      "seed": 53815521,
+      "hamming_heads": null,
+      "artifact_sha256": "5e8777b646ea8e3a834ed36d796771ffbb5c8534b0cbc064c48fde3608531024",
+      "artifact_bytes": 2145088,
+      "serialized_table_payload_bytes": 2137792,
+      "decoded_resident_table_bytes": 2147296,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 4096,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "61c3053df89729145b1569d6f94f22f8a7f02b371dd54d8b9fcf01124869f687",
+        "serving_decision_sha256": "61c3053df89729145b1569d6f94f22f8a7f02b371dd54d8b9fcf01124869f687"
+      },
+      "repeat_decision_sha256s": [
+        "61c3053df89729145b1569d6f94f22f8a7f02b371dd54d8b9fcf01124869f687",
+        "61c3053df89729145b1569d6f94f22f8a7f02b371dd54d8b9fcf01124869f687",
+        "61c3053df89729145b1569d6f94f22f8a7f02b371dd54d8b9fcf01124869f687"
+      ],
+      "cpu_oracle_tokens_per_second": 3164.455569263801,
+      "serving_tokens_per_second": 1800.8133823844887,
+      "audit_elapsed_ms": 136.617213,
+      "peak_rss_kib": 18300
+    },
+    {
+      "width": 256,
+      "context": 16,
+      "arm": "full",
+      "seed": 53815521,
+      "hamming_heads": 4,
+      "artifact_sha256": "7085f39d7fbb0fd3fd977bd8f175c02e3dce71d0fec7b495c3645a6b411f3e4c",
+      "artifact_bytes": 2160576,
+      "serialized_table_payload_bytes": 2150480,
+      "decoded_resident_table_bytes": 2291056,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 4096,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "41fac8b0fbb20d38d0680f9f45139c45e6183c4fdfb044c2a3d52f1d0e9e3c9c",
+        "serving_decision_sha256": "41fac8b0fbb20d38d0680f9f45139c45e6183c4fdfb044c2a3d52f1d0e9e3c9c"
+      },
+      "repeat_decision_sha256s": [
+        "41fac8b0fbb20d38d0680f9f45139c45e6183c4fdfb044c2a3d52f1d0e9e3c9c",
+        "41fac8b0fbb20d38d0680f9f45139c45e6183c4fdfb044c2a3d52f1d0e9e3c9c",
+        "41fac8b0fbb20d38d0680f9f45139c45e6183c4fdfb044c2a3d52f1d0e9e3c9c"
+      ],
+      "cpu_oracle_tokens_per_second": 3080.968032453377,
+      "serving_tokens_per_second": 1763.406990475949,
+      "audit_elapsed_ms": 183.881203,
+      "peak_rss_kib": 21008
+    },
+    {
+      "width": 256,
+      "context": 64,
+      "arm": "projection",
+      "seed": 53815473,
+      "hamming_heads": null,
+      "artifact_sha256": "fd77197f0b40eec577eb4fac92e537ee6be3be7d5db60b03664bbb27d28d3297",
+      "artifact_bytes": 2145088,
+      "serialized_table_payload_bytes": 2137792,
+      "decoded_resident_table_bytes": 2147296,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 16384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "eeddf58311d09b2062752b713c4e8509aff9532f02a84b3dd44d861329934519",
+        "serving_decision_sha256": "eeddf58311d09b2062752b713c4e8509aff9532f02a84b3dd44d861329934519"
+      },
+      "repeat_decision_sha256s": [
+        "eeddf58311d09b2062752b713c4e8509aff9532f02a84b3dd44d861329934519",
+        "eeddf58311d09b2062752b713c4e8509aff9532f02a84b3dd44d861329934519",
+        "eeddf58311d09b2062752b713c4e8509aff9532f02a84b3dd44d861329934519"
+      ],
+      "cpu_oracle_tokens_per_second": 3214.562934461993,
+      "serving_tokens_per_second": 1791.002340056495,
+      "audit_elapsed_ms": 309.76036,
+      "peak_rss_kib": 21012
+    },
+    {
+      "width": 256,
+      "context": 64,
+      "arm": "full",
+      "seed": 53815473,
+      "hamming_heads": 4,
+      "artifact_sha256": "9c7ecbe5bf258dca5338b99e2bb9cd2163d91c333840c905742acc4523a96372",
+      "artifact_bytes": 2164608,
+      "serialized_table_payload_bytes": 2151632,
+      "decoded_resident_table_bytes": 2292208,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 16384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "8ed7fb639437c7c4cb4b56ab9aed936cb28877b0cdba526dca5b2bd4af09cf93",
+        "serving_decision_sha256": "8ed7fb639437c7c4cb4b56ab9aed936cb28877b0cdba526dca5b2bd4af09cf93"
+      },
+      "repeat_decision_sha256s": [
+        "8ed7fb639437c7c4cb4b56ab9aed936cb28877b0cdba526dca5b2bd4af09cf93",
+        "8ed7fb639437c7c4cb4b56ab9aed936cb28877b0cdba526dca5b2bd4af09cf93",
+        "8ed7fb639437c7c4cb4b56ab9aed936cb28877b0cdba526dca5b2bd4af09cf93"
+      ],
+      "cpu_oracle_tokens_per_second": 3130.6011468370316,
+      "serving_tokens_per_second": 1755.4622923545255,
+      "audit_elapsed_ms": 381.46892199999996,
+      "peak_rss_kib": 23472
+    },
+    {
+      "width": 256,
+      "context": 192,
+      "arm": "projection",
+      "seed": 53815345,
+      "hamming_heads": null,
+      "artifact_sha256": "2fce5f8ce63c49f5845a81f70a68146b74c0b3bcc6e65a0d5d8f87cb0aeae614",
+      "artifact_bytes": 2145088,
+      "serialized_table_payload_bytes": 2137792,
+      "decoded_resident_table_bytes": 2147296,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 49152,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "aa10e25b1e1e71eb7462a7528881a45fe366ccb5fd5267f36a0b9e408c49c41f",
+        "serving_decision_sha256": "aa10e25b1e1e71eb7462a7528881a45fe366ccb5fd5267f36a0b9e408c49c41f"
+      },
+      "repeat_decision_sha256s": [
+        "aa10e25b1e1e71eb7462a7528881a45fe366ccb5fd5267f36a0b9e408c49c41f",
+        "aa10e25b1e1e71eb7462a7528881a45fe366ccb5fd5267f36a0b9e408c49c41f",
+        "aa10e25b1e1e71eb7462a7528881a45fe366ccb5fd5267f36a0b9e408c49c41f"
+      ],
+      "cpu_oracle_tokens_per_second": 3226.0738818637956,
+      "serving_tokens_per_second": 1749.936418976777,
+      "audit_elapsed_ms": 828.5438330000001,
+      "peak_rss_kib": 23472
+    },
+    {
+      "width": 256,
+      "context": 192,
+      "arm": "full",
+      "seed": 53815345,
+      "hamming_heads": 4,
+      "artifact_sha256": "23cbda15477d402da9633ce9f2efc98b6e5d1fb2de1edbd8292bfceae334e111",
+      "artifact_bytes": 2175360,
+      "serialized_table_payload_bytes": 2154704,
+      "decoded_resident_table_bytes": 2295280,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 49152,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "521dac09ef3cc3b56d498682bd2cf5bc0a92540d8b9f8513d70124ff48442ee2",
+        "serving_decision_sha256": "521dac09ef3cc3b56d498682bd2cf5bc0a92540d8b9f8513d70124ff48442ee2"
+      },
+      "repeat_decision_sha256s": [
+        "521dac09ef3cc3b56d498682bd2cf5bc0a92540d8b9f8513d70124ff48442ee2",
+        "521dac09ef3cc3b56d498682bd2cf5bc0a92540d8b9f8513d70124ff48442ee2",
+        "521dac09ef3cc3b56d498682bd2cf5bc0a92540d8b9f8513d70124ff48442ee2"
+      ],
+      "cpu_oracle_tokens_per_second": 3071.2423122366017,
+      "serving_tokens_per_second": 1721.4004622014033,
+      "audit_elapsed_ms": 918.0074040000001,
+      "peak_rss_kib": 23472
+    },
+    {
+      "width": 512,
+      "context": 16,
+      "arm": "projection",
+      "seed": 87369953,
+      "hamming_heads": null,
+      "artifact_sha256": "7a8395b4f1973582030997716c67af700b87cef2a3976848058a5f87f024b4b1",
+      "artifact_bytes": 4280384,
+      "serialized_table_payload_bytes": 4273280,
+      "decoded_resident_table_bytes": 4288832,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 8192,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "6aae3abcf28b3658ea8b6f972172783d82bb53558f8f7f521a49b3e671a89f3d",
+        "serving_decision_sha256": "6aae3abcf28b3658ea8b6f972172783d82bb53558f8f7f521a49b3e671a89f3d"
+      },
+      "repeat_decision_sha256s": [
+        "6aae3abcf28b3658ea8b6f972172783d82bb53558f8f7f521a49b3e671a89f3d",
+        "6aae3abcf28b3658ea8b6f972172783d82bb53558f8f7f521a49b3e671a89f3d",
+        "6aae3abcf28b3658ea8b6f972172783d82bb53558f8f7f521a49b3e671a89f3d"
+      ],
+      "cpu_oracle_tokens_per_second": 1600.4033016320113,
+      "serving_tokens_per_second": 935.6111253986727,
+      "audit_elapsed_ms": 235.288216,
+      "peak_rss_kib": 47708
+    },
+    {
+      "width": 512,
+      "context": 16,
+      "arm": "full",
+      "seed": 87369953,
+      "hamming_heads": 8,
+      "artifact_sha256": "66fbc83419cc0ae9fc1e6e9174c399027b61d7642dd77accec76d4c00786d9d0",
+      "artifact_bytes": 4308224,
+      "serialized_table_payload_bytes": 4298288,
+      "decoded_resident_table_bytes": 4575984,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 8192,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "1b70186f0dd71b3e17d26827888ed4ca4226670dcb566f9edce45a144f52b416",
+        "serving_decision_sha256": "1b70186f0dd71b3e17d26827888ed4ca4226670dcb566f9edce45a144f52b416"
+      },
+      "repeat_decision_sha256s": [
+        "1b70186f0dd71b3e17d26827888ed4ca4226670dcb566f9edce45a144f52b416",
+        "1b70186f0dd71b3e17d26827888ed4ca4226670dcb566f9edce45a144f52b416",
+        "1b70186f0dd71b3e17d26827888ed4ca4226670dcb566f9edce45a144f52b416"
+      ],
+      "cpu_oracle_tokens_per_second": 1583.9923318931212,
+      "serving_tokens_per_second": 926.516204681559,
+      "audit_elapsed_ms": 365.79817799999995,
+      "peak_rss_kib": 47788
+    },
+    {
+      "width": 512,
+      "context": 64,
+      "arm": "projection",
+      "seed": 87369905,
+      "hamming_heads": null,
+      "artifact_sha256": "3e55d544d870483d31aa70452ef6ba5a445e541d2e8b4c3180ab615c69a4ae85",
+      "artifact_bytes": 4280384,
+      "serialized_table_payload_bytes": 4273280,
+      "decoded_resident_table_bytes": 4288832,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 32768,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "8b8a00d4413a5d7b7d65ddd9f0514446e7c53a8e26cc21d24096aefa34e68a28",
+        "serving_decision_sha256": "8b8a00d4413a5d7b7d65ddd9f0514446e7c53a8e26cc21d24096aefa34e68a28"
+      },
+      "repeat_decision_sha256s": [
+        "8b8a00d4413a5d7b7d65ddd9f0514446e7c53a8e26cc21d24096aefa34e68a28",
+        "8b8a00d4413a5d7b7d65ddd9f0514446e7c53a8e26cc21d24096aefa34e68a28",
+        "8b8a00d4413a5d7b7d65ddd9f0514446e7c53a8e26cc21d24096aefa34e68a28"
+      ],
+      "cpu_oracle_tokens_per_second": 1625.219877647861,
+      "serving_tokens_per_second": 939.745059205921,
+      "audit_elapsed_ms": 597.173176,
+      "peak_rss_kib": 47704
+    },
+    {
+      "width": 512,
+      "context": 64,
+      "arm": "full",
+      "seed": 87369905,
+      "hamming_heads": 8,
+      "artifact_sha256": "35e2fe2b9a522d2a2a00da3ee7297b4d07a9890b32cf67eb8bae7098259e4058",
+      "artifact_bytes": 4312256,
+      "serialized_table_payload_bytes": 4299440,
+      "decoded_resident_table_bytes": 4577136,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 32768,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "d3b44aa26f5c1176360704983214efce27196a6e350845c6ca4fd243a7fbe485",
+        "serving_decision_sha256": "d3b44aa26f5c1176360704983214efce27196a6e350845c6ca4fd243a7fbe485"
+      },
+      "repeat_decision_sha256s": [
+        "d3b44aa26f5c1176360704983214efce27196a6e350845c6ca4fd243a7fbe485",
+        "d3b44aa26f5c1176360704983214efce27196a6e350845c6ca4fd243a7fbe485",
+        "d3b44aa26f5c1176360704983214efce27196a6e350845c6ca4fd243a7fbe485"
+      ],
+      "cpu_oracle_tokens_per_second": 1557.7935694232772,
+      "serving_tokens_per_second": 916.8843479045453,
+      "audit_elapsed_ms": 743.520744,
+      "peak_rss_kib": 47744
+    },
+    {
+      "width": 512,
+      "context": 192,
+      "arm": "projection",
+      "seed": 87369777,
+      "hamming_heads": null,
+      "artifact_sha256": "6aea627186141c0b381d52fe19498db42b3bc0065f3201149950bd1733abd323",
+      "artifact_bytes": 4280384,
+      "serialized_table_payload_bytes": 4273280,
+      "decoded_resident_table_bytes": 4288832,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 98304,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "f5d12cc14812a4d19399478a8e0ce7cda58b761502f9f0d686d83af6515e3072",
+        "serving_decision_sha256": "f5d12cc14812a4d19399478a8e0ce7cda58b761502f9f0d686d83af6515e3072"
+      },
+      "repeat_decision_sha256s": [
+        "f5d12cc14812a4d19399478a8e0ce7cda58b761502f9f0d686d83af6515e3072",
+        "f5d12cc14812a4d19399478a8e0ce7cda58b761502f9f0d686d83af6515e3072",
+        "f5d12cc14812a4d19399478a8e0ce7cda58b761502f9f0d686d83af6515e3072"
+      ],
+      "cpu_oracle_tokens_per_second": 1621.1148452384562,
+      "serving_tokens_per_second": 937.7849666593268,
+      "audit_elapsed_ms": 1584.503165,
+      "peak_rss_kib": 47652
+    },
+    {
+      "width": 512,
+      "context": 192,
+      "arm": "full",
+      "seed": 87369777,
+      "hamming_heads": 8,
+      "artifact_sha256": "cfc455cbbc25dd9eee889c8fb527f4d2f49f0acd45adff408851abffa78d0821",
+      "artifact_bytes": 4323008,
+      "serialized_table_payload_bytes": 4302512,
+      "decoded_resident_table_bytes": 4580208,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 98304,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "4a84b5517033fa087112d2122b5209a67fb7e47e9456b17032b5fc1cb012f23a",
+        "serving_decision_sha256": "4a84b5517033fa087112d2122b5209a67fb7e47e9456b17032b5fc1cb012f23a"
+      },
+      "repeat_decision_sha256s": [
+        "4a84b5517033fa087112d2122b5209a67fb7e47e9456b17032b5fc1cb012f23a",
+        "4a84b5517033fa087112d2122b5209a67fb7e47e9456b17032b5fc1cb012f23a",
+        "4a84b5517033fa087112d2122b5209a67fb7e47e9456b17032b5fc1cb012f23a"
+      ],
+      "cpu_oracle_tokens_per_second": 1540.505448502997,
+      "serving_tokens_per_second": 910.4298099301376,
+      "audit_elapsed_ms": 1768.5966959999998,
+      "peak_rss_kib": 47776
+    },
+    {
+      "width": 1024,
+      "context": 16,
+      "arm": "projection",
+      "seed": 154478817,
+      "hamming_heads": null,
+      "artifact_sha256": "43f5e678f15f127bac2399123e3bd74bcebb48fafec0aa7e9118bd2afb6830c7",
+      "artifact_bytes": 8551488,
+      "serialized_table_payload_bytes": 8544256,
+      "decoded_resident_table_bytes": 8571904,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 16384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "574ed3213c0954ecf4418921e48ee95ce4d22f83d4b10e971c870d1134f66640",
+        "serving_decision_sha256": "574ed3213c0954ecf4418921e48ee95ce4d22f83d4b10e971c870d1134f66640"
+      },
+      "repeat_decision_sha256s": [
+        "574ed3213c0954ecf4418921e48ee95ce4d22f83d4b10e971c870d1134f66640",
+        "574ed3213c0954ecf4418921e48ee95ce4d22f83d4b10e971c870d1134f66640",
+        "574ed3213c0954ecf4418921e48ee95ce4d22f83d4b10e971c870d1134f66640"
+      ],
+      "cpu_oracle_tokens_per_second": 822.3399755960332,
+      "serving_tokens_per_second": 477.43954899150447,
+      "audit_elapsed_ms": 461.397313,
+      "peak_rss_kib": 76548
+    },
+    {
+      "width": 1024,
+      "context": 16,
+      "arm": "full",
+      "seed": 154478817,
+      "hamming_heads": 16,
+      "artifact_sha256": "da515ea7ffdca43084ca1dbaba2df77eff4895adbc0396b3c403eb6f182e344f",
+      "artifact_bytes": 8603840,
+      "serialized_table_payload_bytes": 8593904,
+      "decoded_resident_table_bytes": 9145840,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 16,
+        "query_coordinates_compared": 16384,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 16,
+        "token_mismatches": 0,
+        "kept_cells_compared": 128,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "280a231b8721577029d56e0fb739ca0162ff1d231a935c8e7b188e7816b1c81f",
+        "serving_decision_sha256": "280a231b8721577029d56e0fb739ca0162ff1d231a935c8e7b188e7816b1c81f"
+      },
+      "repeat_decision_sha256s": [
+        "280a231b8721577029d56e0fb739ca0162ff1d231a935c8e7b188e7816b1c81f",
+        "280a231b8721577029d56e0fb739ca0162ff1d231a935c8e7b188e7816b1c81f",
+        "280a231b8721577029d56e0fb739ca0162ff1d231a935c8e7b188e7816b1c81f"
+      ],
+      "cpu_oracle_tokens_per_second": 809.628261207937,
+      "serving_tokens_per_second": 475.62879538773245,
+      "audit_elapsed_ms": 724.585716,
+      "peak_rss_kib": 76700
+    },
+    {
+      "width": 1024,
+      "context": 64,
+      "arm": "projection",
+      "seed": 154478769,
+      "hamming_heads": null,
+      "artifact_sha256": "88e2efdc757e75e6c2bc6ba71853e0379affba215f07720a3e1745c3897c5cfe",
+      "artifact_bytes": 8551488,
+      "serialized_table_payload_bytes": 8544256,
+      "decoded_resident_table_bytes": 8571904,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 65536,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "519240a39c8c3941a0406ad9766b591009058a3b507afd64c5af7d2ab0105d0c",
+        "serving_decision_sha256": "519240a39c8c3941a0406ad9766b591009058a3b507afd64c5af7d2ab0105d0c"
+      },
+      "repeat_decision_sha256s": [
+        "519240a39c8c3941a0406ad9766b591009058a3b507afd64c5af7d2ab0105d0c",
+        "519240a39c8c3941a0406ad9766b591009058a3b507afd64c5af7d2ab0105d0c",
+        "519240a39c8c3941a0406ad9766b591009058a3b507afd64c5af7d2ab0105d0c"
+      ],
+      "cpu_oracle_tokens_per_second": 819.0125260671532,
+      "serving_tokens_per_second": 480.46969876929717,
+      "audit_elapsed_ms": 1176.862136,
+      "peak_rss_kib": 76548
+    },
+    {
+      "width": 1024,
+      "context": 64,
+      "arm": "full",
+      "seed": 154478769,
+      "hamming_heads": 16,
+      "artifact_sha256": "6c732c770085d2e3b259290ace1c5ae172cf4c37c52bdeeef55fa9d0d30b4a14",
+      "artifact_bytes": 8607872,
+      "serialized_table_payload_bytes": 8595056,
+      "decoded_resident_table_bytes": 9146992,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 64,
+        "query_coordinates_compared": 65536,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 64,
+        "token_mismatches": 0,
+        "kept_cells_compared": 512,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "c4a548f92e0750730a914740bb7a461208631b4a6de4a3071bf5a403886e03ea",
+        "serving_decision_sha256": "c4a548f92e0750730a914740bb7a461208631b4a6de4a3071bf5a403886e03ea"
+      },
+      "repeat_decision_sha256s": [
+        "c4a548f92e0750730a914740bb7a461208631b4a6de4a3071bf5a403886e03ea",
+        "c4a548f92e0750730a914740bb7a461208631b4a6de4a3071bf5a403886e03ea",
+        "c4a548f92e0750730a914740bb7a461208631b4a6de4a3071bf5a403886e03ea"
+      ],
+      "cpu_oracle_tokens_per_second": 801.171472927715,
+      "serving_tokens_per_second": 471.8015562551259,
+      "audit_elapsed_ms": 1452.1957539999999,
+      "peak_rss_kib": 76712
+    },
+    {
+      "width": 1024,
+      "context": 192,
+      "arm": "projection",
+      "seed": 154478641,
+      "hamming_heads": null,
+      "artifact_sha256": "c76a413872f8001ac3c6b20c5fa5bfc97bdaa6430df33168c70e208a400b8fe8",
+      "artifact_bytes": 8551488,
+      "serialized_table_payload_bytes": 8544256,
+      "decoded_resident_table_bytes": 8571904,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 196608,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "f5f09016082252ec9fa5bcfe80b1121a6fa897a5675dd226efb3f70475b0c677",
+        "serving_decision_sha256": "f5f09016082252ec9fa5bcfe80b1121a6fa897a5675dd226efb3f70475b0c677"
+      },
+      "repeat_decision_sha256s": [
+        "f5f09016082252ec9fa5bcfe80b1121a6fa897a5675dd226efb3f70475b0c677",
+        "f5f09016082252ec9fa5bcfe80b1121a6fa897a5675dd226efb3f70475b0c677",
+        "f5f09016082252ec9fa5bcfe80b1121a6fa897a5675dd226efb3f70475b0c677"
+      ],
+      "cpu_oracle_tokens_per_second": 819.6193758481486,
+      "serving_tokens_per_second": 479.9874027306154,
+      "audit_elapsed_ms": 3101.155256,
+      "peak_rss_kib": 76548
+    },
+    {
+      "width": 1024,
+      "context": 192,
+      "arm": "full",
+      "seed": 154478641,
+      "hamming_heads": 16,
+      "artifact_sha256": "c574587a4597807caae7b90d1457a28ac99b47e52a261f27b32849f572cde8e8",
+      "artifact_bytes": 8618688,
+      "serialized_table_payload_bytes": 8598128,
+      "decoded_resident_table_bytes": 9150064,
+      "repeats": 3,
+      "parity": {
+        "positions_checked": 192,
+        "query_coordinates_compared": 196608,
+        "query_coordinate_mismatches": 0,
+        "token_decisions_compared": 192,
+        "token_mismatches": 0,
+        "kept_cells_compared": 1536,
+        "kept_cell_mismatches": 0,
+        "cpu_decision_sha256": "519f040351c393dc75e9c7ad77268ae9e5e7bc5d9e063e3ff6fbd764c6d6d090",
+        "serving_decision_sha256": "519f040351c393dc75e9c7ad77268ae9e5e7bc5d9e063e3ff6fbd764c6d6d090"
+      },
+      "repeat_decision_sha256s": [
+        "519f040351c393dc75e9c7ad77268ae9e5e7bc5d9e063e3ff6fbd764c6d6d090",
+        "519f040351c393dc75e9c7ad77268ae9e5e7bc5d9e063e3ff6fbd764c6d6d090",
+        "519f040351c393dc75e9c7ad77268ae9e5e7bc5d9e063e3ff6fbd764c6d6d090"
+      ],
+      "cpu_oracle_tokens_per_second": 782.4497244061286,
+      "serving_tokens_per_second": 466.02495548102434,
+      "audit_elapsed_ms": 3464.502269,
+      "peak_rss_kib": 76744
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "truncated_artifact",
+      "refused": true,
+      "message": "artifact does not parse: stack artifact: header length 7039 does not fit 32 bytes"
+    },
+    {
+      "name": "token_outside_vocabulary",
+      "refused": true,
+      "message": "token 4096 is outside vocabulary 4096"
+    },
+    {
+      "name": "token_sequence_over_context",
+      "refused": true,
+      "message": "token sequence has 9 positions but the artifact context is 8"
+    },
+    {
+      "name": "width_above_writer_cap",
+      "refused": true,
+      "message": "width 2048, context 8, arm projection: stack artifact shape: the native vector head serves a vocabulary of 256 to 8192 and a width up to 1024"
+    }
+  ],
+  "elapsed_ms": 18475.813008,
+  "peak_rss_kib": 76388
+}

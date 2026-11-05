@@ -74,6 +74,18 @@ writer-row port mismatch. Future geometric addressing must preserve learned
 token identity while adding cell structure. See
 [deepseek-183](../loop/tasks/cpu-training-pilot/deepseek-183/REPORT.md).
 
+The exact output path now has a cross-width preflight for the three widths in
+Claude's scale probe. Run 2 used the current whole-table-nearest recipe.
+Synthetic projection and full Hamming-plus-memory artifacts at widths 256, 512
+and 1,024 and representative contexts 16, 64 and 192 all survived `UORLUT01`
+export/reload and matched integer serving on three complete repeats. The
+18-cell run covered 4,896 token decisions and 2,924,544 Q12 coordinates with
+zero mismatch. Artifact size scaled almost exactly linearly with width, while
+single-pass decode throughput approximately halved per width doubling. This is
+output-path and cost evidence only; it does not train a real-text model or show
+that a width fits GPU memory. See
+[deepseek-190](../loop/tasks/cpu-training-pilot/deepseek-190/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

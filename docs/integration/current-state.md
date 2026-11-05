@@ -1,3 +1,24 @@
+## 2026-11-05 — Scale-probe widths share one exact CPU serving path (deepseek)
+
+A synthetic `UORLUT01` preflight covered the same three scale-probe widths at
+three representative contexts. Run 2 used the current whole-table-nearest
+recipe. At widths 256, 512 and 1,024 and contexts 16, 64 and 192, both
+read-free and full Hamming-plus-memory artifacts exported, reloaded and matched
+`IntegerStackSession` on every one of three complete repeats.
+
+All 18 cells, 4,896 token decisions, 2,924,544 Q12 coordinates and 39,168 kept
+cells had zero query, token, kept-cell or decision-hash mismatch. Projection
+artifact bytes were 2,145,088, 4,280,384 and 8,551,488, almost exactly linear
+in width. Serving throughput fell from 1,750-1,801 to 936-940 and then 477-481
+tokens/s; full-path throughput fell from 1,721-1,763 to 910-927 and then
+466-476. The run took 18.476 s and peaked at 76,388 KiB.
+
+This removes output-path uncertainty before Claude's GPU scale run. It is not a
+quality, real-text training or GPU-memory result. Record:
+[deepseek-190](../loop/tasks/cpu-training-pilot/deepseek-190/REPORT.md).
+**Next:** feed Claude's trained width exports through the same audit and secure
+the real-text quality slope on GPU.
+
 ## 2026-11-05 — Raw query-port geometry preserves input but its cell control collapses (deepseek)
 
 The final-gain query-port objective was rerun from unmodified public artifacts,

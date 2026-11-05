@@ -24,6 +24,10 @@ name = "cpu-fbs-forward-bench"
 path = "src/bin/cpu-fbs-forward-bench.rs"
 
 [[bin]]
+name = "cpu-scale-serving-bench"
+path = "src/bin/cpu-scale-serving-bench.rs"
+
+[[bin]]
 name = "cpu-rank-margin-bench"
 path = "src/bin/cpu-rank-margin-bench.rs"
 
