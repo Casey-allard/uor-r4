@@ -141,6 +141,18 @@ Compact evidence:
 - both artifact repeats matched after timing removal;
 - the local output is sealed and its checksum manifest read back.
 
+## Delivery
+
+PR #3746 was reviewed at exact head
+`8c4ccca27d659c2804eed623d7f22e793b39eefd`. All required checks passed and
+the protected queue merged it as
+`2f3c6585568958fd3032c64acaddfc463ff8d6d0`.
+
+Fresh `origin/main` has identical content for all 17 changed files. The
+closed-book CPU package passed **359 tests**, 4 expected ignores, and all
+binary tests. Scoped strict Clippy, package formatting and all 11 loop gates
+also passed.
+
 ## Skills used
 
 No system-provided Codex skill applied. Repository pre-registration, FIT/GO,
@@ -154,8 +166,6 @@ D84 CPU research and loop-delivery procedures were used.
   reply because body reconstruction remains weak.
 - Any later positive stop mechanism needs artifact-bound serving integration
   and exact integer-session parity.
-- Exact-head delivery review, protected merge, fresh-main verification and
-  claim release remain.
 
 ## Plain summary
 
