@@ -332,6 +332,17 @@ fn score(
     i64::from(nearest(nonterminal)) - i64::from(nearest(terminal))
 }
 
+/// Report whether a validated gate fires on one complete 256-coordinate query.
+pub fn stop_signature_fires(gate: &StopSignatureGate, signature: &StopSignature) -> Result<bool> {
+    if gate.signature_bits != STOP_SIGNATURE_BITS
+        || gate.terminal_prototypes.is_empty()
+        || gate.nonterminal_prototypes.is_empty()
+    {
+        return Err(invalid("stop gate shape is empty or unsupported"));
+    }
+    Ok(gate_fires(gate, signature))
+}
+
 pub fn evaluate_stop_signature_rows(
     rows: &[StopSignatureRow],
     gate: &StopSignatureGate,

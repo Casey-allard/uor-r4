@@ -1,0 +1,145 @@
+{
+  "claim": "bounded generated-trajectory copy stop surrogate; no serving or language claim",
+  "dev": {
+    "bar": {
+      "false_stop_limit": 4,
+      "no_gate_exact": 0,
+      "oracle_floor": 7,
+      "passes": false,
+      "shuffled_exact": 0,
+      "true_exact": 0,
+      "true_premature": 3,
+      "true_vs_no_gate": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "passes": false,
+        "threshold": 2
+      },
+      "true_vs_shuffled": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "no_gate": {
+      "at_reference": 0,
+      "exact": 0,
+      "generated_tokens": 4614,
+      "no_fire": 449,
+      "premature": 0,
+      "replies": 449
+    },
+    "oracle_exact": 13,
+    "shuffled": {
+      "at_reference": 1,
+      "exact": 0,
+      "generated_tokens": 4325,
+      "no_fire": 421,
+      "premature": 27,
+      "replies": 449
+    },
+    "true": {
+      "at_reference": 0,
+      "exact": 0,
+      "generated_tokens": 4603,
+      "no_fire": 446,
+      "premature": 3,
+      "replies": 449
+    }
+  },
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "dev_manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/manifest.json",
+    "dev_mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/response_mask.u8",
+    "dev_report": "/dev/fd/62",
+    "dev_tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/tokens.u16",
+    "train_manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json",
+    "train_mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8",
+    "train_report": "/dev/fd/63",
+    "train_tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16"
+  },
+  "qualification": "development-only",
+  "schema": "uor-r4.cpu-copy-generated-stop/1",
+  "settings": {
+    "prototypes": 8,
+    "seed": 157,
+    "terminal_label": "generated_step == normalized reference length"
+  },
+  "substrate": "cpu-development-research",
+  "train": {
+    "bar": {
+      "false_stop_limit": 4,
+      "no_gate_exact": 0,
+      "oracle_floor": 6,
+      "passes": false,
+      "shuffled_exact": 0,
+      "true_exact": 0,
+      "true_premature": 34,
+      "true_vs_no_gate": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "passes": false,
+        "threshold": 2
+      },
+      "true_vs_shuffled": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "no_gate": {
+      "at_reference": 0,
+      "exact": 0,
+      "generated_tokens": 4661,
+      "no_fire": 453,
+      "premature": 0,
+      "replies": 453
+    },
+    "oracle_exact": 11,
+    "shuffled": {
+      "at_reference": 0,
+      "exact": 0,
+      "generated_tokens": 4229,
+      "no_fire": 407,
+      "premature": 46,
+      "replies": 453
+    },
+    "true": {
+      "at_reference": 7,
+      "exact": 0,
+      "generated_tokens": 4458,
+      "no_fire": 412,
+      "premature": 34,
+      "replies": 453
+    }
+  },
+  "training": {
+    "shuffled": {
+      "margin": 102,
+      "nonterminal_rows": 4661,
+      "nonterminal_stop_limit": 46,
+      "nonterminal_stops": 40,
+      "terminal_rows": 453,
+      "terminal_stops": 9
+    },
+    "true": {
+      "margin": 83,
+      "nonterminal_rows": 4661,
+      "nonterminal_stop_limit": 46,
+      "nonterminal_stops": 38,
+      "terminal_rows": 453,
+      "terminal_stops": 8
+    }
+  }
+}

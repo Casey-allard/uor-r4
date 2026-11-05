@@ -364,7 +364,7 @@ impl CpuFbsForward {
         Ok(writer_orbits(query, &self.roots_q12))
     }
 
-    pub(crate) fn context_length(&self) -> usize {
+    pub fn context_length(&self) -> usize {
         self.context
     }
 

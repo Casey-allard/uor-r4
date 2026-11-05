@@ -1,3 +1,19 @@
+## 2026-11-05 — Copy-trained prototype stop gate rejected (deepseek)
+
+The actual longest-first copy trajectories were replayed through the exact CPU
+FBS forward. Eight terminal and eight nonterminal 256-bit Hamming prototypes
+were fitted on train panel 2711 with reference length as the terminal label,
+then evaluated unchanged on dev panel 2712. The gates fit under the 46-row
+training false-stop cap but produced **0 exact replies on both artifact seeds
+and panels**. Train at-reference stops of 7/11 were all wrong bodies; dev
+at-reference stops of 0/8 were also non-exact. Premature stops were **34/31
+train** and **3/8 dev**, exceeding the 4-row reply limit on training and
+seed-2 dev. This rejects all-reference-length labeling for this prototype gate.
+Record: [deepseek-157](../loop/tasks/cpu-training-pilot/deepseek-157/REPORT.md).
+**Next:** train termination only over exact-body trajectories or use a
+copy-boundary continuation objective; improve terminal-token reconstruction
+before retrying this gate.
+
 ## 2026-11-05 — Perfect stopping would rescue a bounded copy subset (deepseek)
 
 The four sealed deepseek-153 traces were replayed without new model forwards,
