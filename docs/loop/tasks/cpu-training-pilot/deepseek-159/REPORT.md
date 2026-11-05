@@ -95,9 +95,15 @@ Fresh copy-report hashes:
 Local confirmation-run manifest SHA-256:
 `e936ec3bd7cbb7c42ee97ee6ce46b4ee933a3f7f558f12c72d1062f81bbdd595`.
 Published attempt-8 raw manifest SHA-256:
-`f35e2d3ed6a7bf36433d888b8c7e24e47475b7338bd3ab353b34dc96731e0c28`.
+`f7bef7aa2c61a82f4f382815b8722ea3edc6acc5f04b09246e2b80e4a7ebf2be`.
 Published evidence manifest SHA-256:
-`3e7beaf04b89b0930fb2a618ba995599c81eaa10861a08457102246ea54cd69c`.
+`a6634328d115b945ce6a8e14c9c7daaac256d9cbe7ab6cc7da7ac5aa76600ab0`.
+
+Post-merge note: fresh-main verification found the ignored attempt-8
+`tokens.u16` file named by the published panel manifest. Deepseek-161 removes
+the corpus payload from the public manifests, records its hash and original
+local-run seal in `LOCAL-RUN-SEAL.txt`, and verifies the manifest-only evidence.
+It does not alter this result or rerun the experiment.
 
 ## Checks run at the head
 

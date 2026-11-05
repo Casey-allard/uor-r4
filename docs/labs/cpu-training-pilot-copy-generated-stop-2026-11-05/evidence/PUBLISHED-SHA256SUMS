@@ -41,8 +41,8 @@ eaed822d7725366b7da3cc83601f316cb52ab494021d0d297ac2b7b9b169dcc5  ./attempt-7/se
 eaed822d7725366b7da3cc83601f316cb52ab494021d0d297ac2b7b9b169dcc5  ./attempt-7/seed2.json
 4236ddd011d520f1197f55c4cdcde41f0cedc5f3b0c579dd519b34170d9a0ce4  ./attempt-7/seed2.time.txt
 bc8a5ed35840238034116471bfc2e9f8fd58b53da8bad2735e8f33dc3f73f838  ./attempt-8/DRIVER.txt
-cbc77fc5cc563ee88a56234e43cefc3cbb35c40c03391c06f591ac95a87dfce9  ./attempt-8/LOCAL-RUN-SEAL.txt
-f35e2d3ed6a7bf36433d888b8c7e24e47475b7338bd3ab353b34dc96731e0c28  ./attempt-8/RAW-SHA256SUMS
+b8624c92ba19e4264b5f78ebb3475a1b3de95f18ed776e0cf7752e6a6e7f90a1  ./attempt-8/LOCAL-RUN-SEAL.txt
+f7bef7aa2c61a82f4f382815b8722ea3edc6acc5f04b09246e2b80e4a7ebf2be  ./attempt-8/RAW-SHA256SUMS
 683ba1f046dab4d5fdfb16e003beaf3b26402d36bc3795fe664332fa73e414a3  ./attempt-8/build.time.txt
 93520f7b1d37e6dea05fce7d42fa8293a07aff113f2a425e9a4991af7ad3194b  ./attempt-8/copy-seed1-dd.summary.json
 35bd7489c494384a5becca3acdf713e7dc0cee649dc572d056bf26e1708de1bb  ./attempt-8/copy-seed2-dd.summary.json
@@ -52,7 +52,6 @@ f35e2d3ed6a7bf36433d888b8c7e24e47475b7338bd3ab353b34dc96731e0c28  ./attempt-8/RA
 a782b311cc75d36c9787778992cd480e84600c497245e740419033faadd87a7b  ./attempt-8/panel.time.txt
 048d470dd078e26e08fbfd8c2b6bfde33a6a7f25bfea702cf32fb24afcf04d58  ./attempt-8/panels/dd-2722/manifest.json
 60602b66cf0c2debb1713e63019de43215fc3b2204a5792b79b1083f915a1e39  ./attempt-8/panels/dd-2722/response_mask.u8
-62166941a67bb3cb17f8614fe4efc2698c3b3377a7aa6af88bbde8f745981f15  ./attempt-8/panels/dd-2722/tokens.u16
 35dc7997abdd6776ae46d11bbe9379f3163648b40759fe675a4861cca40199e2  ./attempt-8/seed1-dd.json
 7db26fc36f9e76034ea703594684dc62751cd10bc5c54d748766ad2d3ea09fb4  ./attempt-8/seed1-dd.time.txt
 4ffc2dd9bd960cdbf7b489d463dee870ffad490d138c1dc55a6eb222a3bc146e  ./attempt-8/seed1-repeat.json

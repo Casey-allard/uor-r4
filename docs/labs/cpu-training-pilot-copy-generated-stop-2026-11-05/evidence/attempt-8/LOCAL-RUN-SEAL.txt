@@ -7,5 +7,11 @@ SHA256SUMS
 Original local run manifest SHA-256:
 e936ec3bd7cbb7c42ee97ee6ce46b4ee933a3f7f558f12c72d1062f81bbdd595
 
+Local panel token payload (not committed):
+panels/dd-2722/tokens.u16
+
+Local panel token SHA-256:
+62166941a67bb3cb17f8614fe4efc2698c3b3377a7aa6af88bbde8f745981f15
+
 Verify from the original run root with `sha256sum -c SHA256SUMS`. The manifest
 is not duplicated here because its file paths are rooted inside that run tree.
