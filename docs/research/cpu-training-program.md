@@ -113,6 +113,18 @@ overrides by learned confidence or fresh support, or train on a materially
 larger reply corpus. See
 [deepseek-193](../loop/tasks/cpu-training-pilot/deepseek-193/REPORT.md).
 
+The next suffix experiment removed BOS from the learned table and gave local
+exact copy strict priority. The global content fallback required two
+observations and a strict-majority successor and could run only where local copy
+had no candidate. On TRAIN, local copy had a candidate at every one of 25,202
+reachable generated decisions, so the treatment made zero fallback decisions
+and matched local behavior exactly. Content-only made 12,684 suffix decisions
+but reached only 43 body positions versus 409 for local. The run stopped before
+its fresh panel as **INSUFFICIENT_FALLBACK_COVERAGE**, not a mechanism negative.
+The next attempt must compare local and global suffix depth directly rather than
+waiting for local copy to disappear. See
+[deepseek-196](../loop/tasks/cpu-training-pilot/deepseek-196/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

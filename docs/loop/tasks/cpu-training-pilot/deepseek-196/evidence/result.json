@@ -1,0 +1,114 @@
+{
+  "schema": "uor-r4.cpu-confident-suffix-fallback-summary/1",
+  "outcome": "STOPPED_AT_PREFLIGHT_INSUFFICIENT_FALLBACK_COVERAGE",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "claim": "content-only suffix fallback with strict local-copy priority was not reachable on the TRAIN panel; no fresh panel was opened",
+  "inputs": {
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "artifact_seed_1_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd"
+  },
+  "preflight": {
+    "examples": 453,
+    "reachable": 453,
+    "content_table": {
+      "suffixes": 13777,
+      "transitions": 28640,
+      "bos_transitions": 0,
+      "ambiguous_suffixes": 705,
+      "shuffled_changed_targets": 13506
+    },
+    "changes": {
+      "treatment_from_local": 0,
+      "treatment_from_shuffled": 0,
+      "common_steps": 25280
+    },
+    "treatment_suffix_decisions": 0,
+    "required_suffix_decisions": 100,
+    "arms": {
+      "local_longest_32_boundary": {
+        "exact": 11,
+        "bos": 78,
+        "premature": 41,
+        "body": 409,
+        "local": 25202,
+        "suffix": 0,
+        "writer": 0
+      },
+      "local_then_content_32": {
+        "exact": 11,
+        "bos": 78,
+        "premature": 41,
+        "body": 409,
+        "local": 25202,
+        "suffix": 0,
+        "writer": 0
+      },
+      "local_then_content_depth_1": {
+        "exact": 11,
+        "bos": 78,
+        "premature": 41,
+        "body": 409,
+        "local": 25202,
+        "suffix": 0,
+        "writer": 0
+      },
+      "local_then_shuffled_content_32": {
+        "exact": 11,
+        "bos": 78,
+        "premature": 41,
+        "body": 409,
+        "local": 25202,
+        "suffix": 0,
+        "writer": 0
+      },
+      "content_32_only": {
+        "exact": 0,
+        "bos": 453,
+        "premature": 15,
+        "body": 43,
+        "local": 0,
+        "suffix": 12684,
+        "writer": 453
+      },
+      "writer_boundary": {
+        "exact": 0,
+        "bos": 0,
+        "premature": 0,
+        "body": 60,
+        "local": 0,
+        "suffix": 0,
+        "writer": 28992
+      },
+      "reference_length_oracle": {
+        "exact": 11,
+        "bos": 453,
+        "premature": 0,
+        "body": 409,
+        "local": 4661,
+        "suffix": 0,
+        "writer": 0
+      }
+    }
+  },
+  "fresh_panel": {
+    "seed": 2773,
+    "opened": false,
+    "artifacts_run": 0,
+    "repeats_run": 0
+  },
+  "resources": {
+    "build_wall_seconds": 0.48,
+    "build_peak_rss_kib": 207668,
+    "generator_build_wall_seconds": 10.11,
+    "generator_build_peak_rss_kib": 1293092,
+    "preflight_wall_seconds": 2.84,
+    "preflight_peak_rss_kib": 654344
+  },
+  "raw_evidence": {
+    "sha256sums_sha256": "e32e1a983b473d9f336c8714b6411584010ff37a44afdb98da3825be112e3d7d",
+    "preflight_sha256": "a9ecf7e276e03a4f69c78822ba615cd1d2c2baf6574c1b4ae1bce5db596dfb79"
+  }
+}

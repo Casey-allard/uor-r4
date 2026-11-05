@@ -419,6 +419,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/suffix-fallback": {
+    "branch": "deepseek/suffix-fallback",
+    "claimed_at": "2026-11-05T15:05:24-05:00",
+    "head": "ebbe084e9",
+    "lab": "deepseek",
+    "note": "content-only suffix confidence fallback preserving local longest copy with matched shuffle and depth controls"
+  },
   "deepseek/table-bvgk-pivot": {
     "branch": "deepseek/table-bvgk-pivot",
     "claimed_at": "2026-11-03T00:03:13-05:00",

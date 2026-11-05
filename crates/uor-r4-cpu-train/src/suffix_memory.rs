@@ -206,27 +206,73 @@ impl SuffixMemoryTable {
     ) -> Option<SuffixMemoryPrediction> {
         let maximum = generated_reply.len().min(maximum_depth);
         for depth in (1..=maximum).rev() {
-            let suffix = &generated_reply[generated_reply.len() - depth..];
-            let Some(successors) = self.entries.get(suffix) else {
-                continue;
-            };
-            let Some((token, successor_count)) = successors.prediction() else {
-                continue;
-            };
-            return Some(SuffixMemoryPrediction {
-                depth,
-                token,
-                observations: successors.observations(),
-                successor_count,
-                distinct_targets: successors.counts.len() as u64,
-            });
+            if let Some(prediction) = self.predict_at_depth(generated_reply, depth) {
+                return Some(prediction);
+            }
         }
         None
+    }
+
+    /// Back off to the longest suffix with enough observations and a strict
+    /// majority successor.
+    pub fn predict_confident(
+        &self,
+        generated_reply: &[u32],
+        maximum_depth: usize,
+        minimum_observations: u64,
+    ) -> Option<SuffixMemoryPrediction> {
+        if minimum_observations < 2 {
+            return None;
+        }
+        let maximum = generated_reply.len().min(maximum_depth);
+        for depth in (1..=maximum).rev() {
+            let Some(prediction) = self.predict_at_depth(generated_reply, depth) else {
+                continue;
+            };
+            if prediction.observations >= minimum_observations
+                && prediction.successor_count.saturating_mul(2) > prediction.observations
+            {
+                return Some(prediction);
+            }
+        }
+        None
+    }
+
+    fn predict_at_depth(
+        &self,
+        generated_reply: &[u32],
+        depth: usize,
+    ) -> Option<SuffixMemoryPrediction> {
+        if depth == 0 || depth > generated_reply.len() {
+            return None;
+        }
+        let suffix = &generated_reply[generated_reply.len() - depth..];
+        let successors = self.entries.get(suffix)?;
+        let (token, successor_count) = successors.prediction()?;
+        Some(SuffixMemoryPrediction {
+            depth,
+            token,
+            observations: successors.observations(),
+            successor_count,
+            distinct_targets: successors.counts.len() as u64,
+        })
     }
 }
 
 /// Derive a reply-only suffix continuation table from TRAIN samples.
 pub fn derive_suffix_memory(samples: &[MemoryWeightSample]) -> Result<SuffixMemoryTable> {
+    derive_suffix_memory_with_terminal(samples, true)
+}
+
+/// Derive the same table without decoder BOS as a target.
+pub fn derive_suffix_content_memory(samples: &[MemoryWeightSample]) -> Result<SuffixMemoryTable> {
+    derive_suffix_memory_with_terminal(samples, false)
+}
+
+fn derive_suffix_memory_with_terminal(
+    samples: &[MemoryWeightSample],
+    include_terminal: bool,
+) -> Result<SuffixMemoryTable> {
     if samples.is_empty() {
         return Err(invalid("suffix-memory derivation needs training samples"));
     }
@@ -238,9 +284,14 @@ pub fn derive_suffix_memory(samples: &[MemoryWeightSample]) -> Result<SuffixMemo
         }
         for end in 0..reply.len() {
             let target = if end + 1 < reply.len() {
-                reply[end + 1]
+                Some(reply[end + 1])
+            } else if include_terminal {
+                Some(POINT_KEY_BOS)
             } else {
-                POINT_KEY_BOS
+                None
+            };
+            let Some(target) = target else {
+                continue;
             };
             let maximum = (end + 1).min(SUFFIX_MEMORY_MAX_DEPTH);
             for depth in 1..=maximum {
@@ -873,6 +924,47 @@ mod tests {
             .unwrap();
         assert_eq!(hit.depth, 4);
         assert_eq!(hit.token, POINT_KEY_BOS);
+    }
+
+    #[test]
+    fn content_only_table_has_no_terminal_target() {
+        let table = derive_suffix_content_memory(&[sample(&[10, 20, 30, 40, 1])]).unwrap();
+        assert_eq!(
+            table.predict(&[10, 20, 30, 40], SUFFIX_MEMORY_MAX_DEPTH),
+            None
+        );
+        assert_eq!(table.census().bos_transitions, 0);
+        assert_eq!(
+            table.predict(&[20], SUFFIX_MEMORY_MAX_DEPTH).unwrap().token,
+            30
+        );
+    }
+
+    #[test]
+    fn confident_prediction_requires_support_and_strict_majority() {
+        let table = derive_suffix_content_memory(&[
+            sample(&[10, 20, 30, 40, 1]),
+            sample(&[50, 20, 30, 41, 1]),
+            sample(&[60, 20, 30, 41, 1]),
+        ])
+        .unwrap();
+        let hit = table
+            .predict_confident(&[20, 30], SUFFIX_MEMORY_MAX_DEPTH, 2)
+            .unwrap();
+        assert_eq!(hit.depth, 2);
+        assert_eq!(hit.token, 41);
+        assert_eq!(hit.observations, 3);
+        assert_eq!(hit.successor_count, 2);
+
+        let tied = derive_suffix_content_memory(&[
+            sample(&[10, 20, 30, 40, 1]),
+            sample(&[50, 20, 30, 41, 1]),
+        ])
+        .unwrap();
+        assert_eq!(
+            tied.predict_confident(&[20, 30], SUFFIX_MEMORY_MAX_DEPTH, 2),
+            None
+        );
     }
 
     #[test]

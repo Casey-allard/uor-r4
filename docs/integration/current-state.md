@@ -1,3 +1,22 @@
+## 2026-11-05 — Strict local priority makes content-suffix fallback unreachable (deepseek)
+
+The global suffix table was rebuilt without BOS targets and used only when
+local `Longest32To1` had no candidate. A global suffix also required at least
+two observations and a strict-majority successor. deepseek-191's true boundary
+remained the only stopping path.
+
+The TRAIN preflight found local exact copy at **25,202 / 25,202** reachable
+generated decisions. The treatment therefore made **0** confident suffix
+decisions against the registered minimum of 100 and was behaviorally identical
+to local on every aggregate. Content-only was active with **12,684** suffix
+decisions but reached only **43** body positions versus **409** for local.
+
+The run stopped before seed 2773 as
+**INSUFFICIENT_FALLBACK_COVERAGE**, not a mechanism negative. The next
+continuation design must let a deeper confident global suffix compete against
+shallow local matches instead of waiting for local copy to disappear. Record:
+[deepseek-196](../loop/tasks/cpu-training-pilot/deepseek-196/REPORT.md).
+
 ## 2026-11-05 — Global reply-suffix plurality rejects on fresh complete replies (deepseek)
 
 A discrete suffix-to-next-token table was trained from all TRAIN replies at

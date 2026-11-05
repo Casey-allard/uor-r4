@@ -36,6 +36,10 @@ name = "cpu-copy-suffix-memory"
 path = "src/bin/cpu-copy-suffix-memory.rs"
 
 [[bin]]
+name = "cpu-copy-suffix-fallback"
+path = "src/bin/cpu-copy-suffix-fallback.rs"
+
+[[bin]]
 name = "cpu-rank-margin-bench"
 path = "src/bin/cpu-rank-margin-bench.rs"
 

@@ -638,6 +638,19 @@ and stopping should be separated, confidence/fresh-support should gate an
 override, and a materially larger reply corpus remains the scaling route. See
 [deepseek-193](../../loop/tasks/cpu-training-pilot/deepseek-193/REPORT.md).
 
+The follow-up removed BOS from that global table and preserved local exact copy:
+a confident content suffix could act only when local `Longest32To1` had no
+candidate. On the TRAIN preflight, local copy had a candidate at every
+**25,202** reachable generated decisions. The treatment made zero fallback
+decisions against the required 100 and was behaviorally identical to local.
+Content-only was active with 12,684 suffix decisions but reached only **43**
+body positions versus **409** for local. The run stopped before its fresh panel
+as **INSUFFICIENT_FALLBACK_COVERAGE**, not a mechanism negative. The strict
+local-absent gate is structurally unreachable in this path. The next design
+must compare local and global suffix depth directly, allowing a deeper
+confident global continuation to arbitrate against a shallow local match. See
+[deepseek-196](../../loop/tasks/cpu-training-pilot/deepseek-196/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
