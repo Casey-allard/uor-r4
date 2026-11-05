@@ -107,7 +107,13 @@ Published evidence SHA-256:
   panel 2712.
 - No serving, integer runtime, CUDA, float-training or Claude-owned source
   changed.
-
+- Exact-head adversarial review approved `72ab72717` in
+  [#issuecomment-6650091979](https://github.com/UOR-Foundation/uor-r4/pull/3701#issuecomment-6650091979).
+  PR [#3701](https://github.com/UOR-Foundation/uor-r4/pull/3701) merged as
+  `663129a8336438755800c09f11d9bc3983ef2079`.
+- Fresh merge-main verification passed **286** CPU library tests with 4
+  expected ignores, 77 binary tests, the attempt-6 evidence seal and the
+  recorded zero-exact result fields.
 ## Size
 
 Against base `ed9b5b9aa`, this unit changes **5** code/API files
