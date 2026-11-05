@@ -130,6 +130,13 @@ Published evidence verifies with `PUBLISHED-SHA256SUMS`, SHA-256
   and **11** focused copy-reply tests passed; strict scoped Clippy, rustfmt,
   recipe `bash -n`, `git diff --check` and evidence manifests passed.
 - No float-training, integer-serving, CUDA or Claude-owned source changed.
+- Exact-head adversarial review approved `b042a43c8` in
+  [#issuecomment-6649400568](https://github.com/UOR-Foundation/uor-r4/pull/3697#issuecomment-6649400568).
+  PR [#3697](https://github.com/UOR-Foundation/uor-r4/pull/3697) merged as
+  `ab49404cf74e5fd57f1d05037af5392215db0eed`.
+- Fresh merge-main verification passed **286** CPU library tests with 4
+  expected ignores, all binary tests, both FIT records, the published evidence
+  seal and the recorded result fields.
 
 ## Size
 
