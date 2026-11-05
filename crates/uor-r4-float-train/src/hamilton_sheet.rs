@@ -573,6 +573,12 @@ thread_local! {
     /// Straight-through gradients for the Q16 residual and dynamic i16 activation quantization.
     static BRIDGE_Q16_RESIDUAL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static BRIDGE_ACTIVATION_I16: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// The quantizer timing switch's record while a timing run arms it ([`time_without_quantizers`],
+    /// float-kernel-fusion, claude-283); `None` otherwise.
+    static QUANTIZER_TIMING: RefCell<Option<QuantizerTiming>> = const { RefCell::new(None) };
+    /// The served forward running now under an armed switch: `Some(true)` when it skips both
+    /// quantizer chains, `Some(false)` when it keeps them, `None` when it is not counted.
+    static TIMING_SKIPS: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
 }
 
 struct ScopeRestore<F: FnOnce()> {
@@ -645,6 +651,9 @@ pub(crate) fn is_bridging_activation_i16() -> bool {
 /// `x` on the 2^-16 grid under [`with_q16_residual`]; `x` itself otherwise.
 pub(crate) fn q16_residual(x: Tensor) -> Result<Tensor> {
     if !is_rounding_residual_q16() {
+        return Ok(x);
+    }
+    if timing_skips(TimedChain::Residual, x.elem_count()) {
         return Ok(x);
     }
     let scaled = x.affine(f64::from(Q16_SCALE), 0.0)?;
@@ -721,6 +730,9 @@ fn activation_quantize16_ste_scalar(value: f32, scale: f64) -> (f32, f32) {
 /// activation inside the clamp and is zero where it saturates.
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
 pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
+    if timing_skips(TimedChain::Activation, x.elem_count()) {
+        return Ok(x.clone());
+    }
     // The row's integer magnitude, held apart from the gradient: the scale only selects the grid.
     let mut integer = x
         .abs()?
@@ -779,10 +791,182 @@ pub(crate) fn served_projection_q16(x: Tensor) -> Result<Tensor> {
     }
 }
 
+/// The two served quantizer chains the timing switch counts and skips.
+#[derive(Clone, Copy)]
+enum TimedChain {
+    /// [`activation_quantize16`], through [`served_activation_quantize16`].
+    Activation,
+    /// [`q16_residual`] with its rounding on: the trunk's residual and, through
+    /// [`served_projection_q16`], every FBS projection's output.
+    Residual,
+}
+
+/// One class of an armed timing run's served forwards: the training steps they ran for, and the
+/// calls each chain got on them, with the elements those calls held.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct ChainCounts {
+    pub steps: Vec<usize>,
+    pub activation_calls: u64,
+    pub activation_elements: u64,
+    pub residual_calls: u64,
+    pub residual_elements: u64,
+}
+
+/// What `train-in-space --time-without-quantizers 1` records (float-kernel-fusion, claude-283):
+/// the profile window's even pairs, which kept both quantizer chains, and its odd pairs, which
+/// skipped them. Timing only: a skipped forward trains at values no artifact serves.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct QuantizerTiming {
+    pub note: &'static str,
+    /// The profile window's pairs (`--profile K`).
+    pub profile: usize,
+    pub kept: ChainCounts,
+    pub skipped: ChainCounts,
+}
+
+impl QuantizerTiming {
+    fn new(profile: usize) -> Self {
+        Self {
+            note: "timing only: the skipped steps trained without the served quantizers, so this \
+                   run's losses and checkpoints are not results",
+            profile,
+            kept: ChainCounts::default(),
+            skipped: ChainCounts::default(),
+        }
+    }
+
+    /// The record's own check: each of the window's training steps ran one served forward, in its
+    /// pair's class and in order, and the kept forwards called both chains.
+    pub fn check(&self) -> Result<()> {
+        let pairs = |skip: bool| -> Vec<usize> {
+            (0..self.profile)
+                .filter(|pair| (pair % 2 == 1) == skip)
+                .flat_map(|pair| {
+                    let step = crate::in_space_long::PROFILE_WARMUP + 2 * pair;
+                    [step, step + 1]
+                })
+                .collect()
+        };
+        for (name, counts, skip) in [
+            ("kept", &self.kept, false),
+            ("skipped", &self.skipped, true),
+        ] {
+            if counts.steps != pairs(skip) {
+                return Err(invalid(format!(
+                    "the quantizer timing record's {name} steps are {:?}, not the window's {} pairs",
+                    counts.steps,
+                    if skip { "odd" } else { "even" }
+                )));
+            }
+        }
+        if self.kept.activation_calls == 0 || self.kept.residual_calls == 0 {
+            return Err(invalid(
+                "the quantizer timing record's kept forwards called a chain no time",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// The timing switch's rule (float-kernel-fusion, claude-283): whether the served forward that
+/// [`with_served_surrogate_training`] runs for `served_step` skips both quantizer chains, in a
+/// window of `profile` pairs. A training forward gets its training step plus one
+/// (`with_training_forward`, `in_space_long.rs`), and pair `j` is the training steps
+/// `PROFILE_WARMUP + 2j`, profiled, and the unprofiled one after it, as
+/// [`crate::in_space_long::profile_window`] has them. `Some(true)` in the window's odd pairs,
+/// `Some(false)` in its even pairs, `None` outside the window.
+pub fn quantizer_timing_skip(served_step: usize, profile: usize) -> Option<bool> {
+    let step = served_step.checked_sub(1)?;
+    crate::in_space_long::profile_window(step, profile)?;
+    Some((step - crate::in_space_long::PROFILE_WARMUP) / 2 % 2 == 1)
+}
+
+/// Runs `f` with the timing switch armed for a window of `profile` pairs, and returns the switch's
+/// record, unchecked ([`QuantizerTiming::check`]). It disarms on every exit and refuses a window
+/// under 2 pairs, which would skip nothing, and an arming inside another.
+pub fn time_without_quantizers<T>(
+    profile: usize,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<(T, QuantizerTiming)> {
+    struct Disarm;
+    impl Drop for Disarm {
+        fn drop(&mut self) {
+            QUANTIZER_TIMING.with(|timing| timing.borrow_mut().take());
+            TIMING_SKIPS.with(|skips| skips.set(None));
+        }
+    }
+    if profile < 2 {
+        return Err(invalid(
+            "the quantizer timing switch needs a window of 2 pairs or more",
+        ));
+    }
+    if QUANTIZER_TIMING.with(|timing| timing.borrow().is_some()) {
+        return Err(invalid("the quantizer timing switch is already armed"));
+    }
+    QUANTIZER_TIMING.with(|timing| *timing.borrow_mut() = Some(QuantizerTiming::new(profile)));
+    let _disarm = Disarm;
+    let value = f()?;
+    let timing = QUANTIZER_TIMING
+        .with(|timing| timing.borrow_mut().take())
+        .ok_or_else(|| invalid("the quantizer timing record was taken while armed"))?;
+    Ok((value, timing))
+}
+
+/// Counts one call of `chain` holding `elements` on the served forward running now, while the
+/// switch is armed, and says whether that forward skips it.
+fn timing_skips(chain: TimedChain, elements: usize) -> bool {
+    let Some(skips) = TIMING_SKIPS.with(|skips| skips.get()) else {
+        return false;
+    };
+    QUANTIZER_TIMING.with(|timing| {
+        if let Some(timing) = timing.borrow_mut().as_mut() {
+            let counts = if skips {
+                &mut timing.skipped
+            } else {
+                &mut timing.kept
+            };
+            let elements = elements as u64;
+            match chain {
+                TimedChain::Activation => {
+                    counts.activation_calls += 1;
+                    counts.activation_elements += elements;
+                }
+                TimedChain::Residual => {
+                    counts.residual_calls += 1;
+                    counts.residual_elements += elements;
+                }
+            }
+        }
+    });
+    skips
+}
+
+/// The class an armed switch gives the served forward for `served_step`, recording its training
+/// step; `None` when the switch is off or the step is outside the window. A forward run inside
+/// another keeps the outer one's class and is not recorded again.
+fn timing_class(served_step: usize) -> Option<bool> {
+    if let Some(outer) = TIMING_SKIPS.with(|skips| skips.get()) {
+        return Some(outer);
+    }
+    QUANTIZER_TIMING.with(|timing| {
+        let mut timing = timing.borrow_mut();
+        let timing = timing.as_mut()?;
+        let skips = quantizer_timing_skip(served_step, timing.profile)?;
+        let counts = if skips {
+            &mut timing.skipped
+        } else {
+            &mut timing.kept
+        };
+        counts.steps.push(served_step - 1);
+        Some(skips)
+    })
+}
+
 /// Enable the served graph's discrete training boundaries together: the D11 contract the run is
 /// served on, [`SERVED_SNAPS`], with its Q12 query bridge, Q16 residual quantization and dynamic
 /// i16 activation quantization. `train-in-space` uses it around the real training forward and
-/// served checkpoint evaluation.
+/// served checkpoint evaluation. Under an armed timing switch ([`time_without_quantizers`]) it
+/// also sets the forward's class.
 pub fn with_served_surrogate_training<T>(
     seed: u64,
     step: usize,
@@ -792,6 +976,7 @@ pub fn with_served_surrogate_training<T>(
         round: bool,
         q16: bool,
         activation: bool,
+        timing: Option<bool>,
         hook: GateHookState,
     }
     impl Drop for Restore {
@@ -799,16 +984,19 @@ pub fn with_served_surrogate_training<T>(
             ROUND_RESIDUAL_Q16.with(|value| value.set(self.round));
             BRIDGE_Q16_RESIDUAL.with(|value| value.set(self.q16));
             BRIDGE_ACTIVATION_I16.with(|value| value.set(self.activation));
+            TIMING_SKIPS.with(|value| value.set(self.timing));
             GATE_HOOK.with(|cell| {
                 *cell.borrow_mut() = self.hook.clone();
             });
         }
     }
     let hook = GATE_HOOK.with(|cell| cell.borrow().clone());
+    let class = timing_class(step);
     let _restore = Restore {
         round: ROUND_RESIDUAL_Q16.with(|value| value.replace(true)),
         q16: BRIDGE_Q16_RESIDUAL.with(|value| value.replace(true)),
         activation: BRIDGE_ACTIVATION_I16.with(|value| value.replace(true)),
+        timing: TIMING_SKIPS.with(|value| value.replace(class)),
         hook,
     };
     with_d11_training_snaps(seed, step, SERVED_SNAPS, f)
@@ -3991,5 +4179,204 @@ mod tests {
         assert_eq!(preds, vec![3, 5]);
         assert_eq!(top1, 2);
         assert_eq!(adm, 2);
+    }
+
+    /// float-kernel-fusion, claude-283: the timing switch skips the profile window's odd pairs and
+    /// nothing else. A training forward gets its training step plus one.
+    #[test]
+    fn the_quantizer_timing_switch_skips_the_window_s_odd_pairs_only() {
+        let warm = crate::in_space_long::PROFILE_WARMUP;
+        let rule: Vec<Option<bool>> = (0..warm + 9)
+            .map(|served| quantizer_timing_skip(served, 3))
+            .collect();
+        assert!(rule[..=warm].iter().all(Option::is_none), "{rule:?}");
+        assert_eq!(
+            rule[warm + 1..warm + 7],
+            [
+                Some(false),
+                Some(false),
+                Some(true),
+                Some(true),
+                Some(false),
+                Some(false)
+            ]
+        );
+        assert!(rule[warm + 7..].iter().all(Option::is_none), "{rule:?}");
+        assert!((0..64).all(|served| quantizer_timing_skip(served, 0).is_none()));
+    }
+
+    /// The timing tests' rows (an exact `.5`, `-0`, `0`, and a row past the quantizer's saturation,
+    /// whose in-range mask is 0 at its largest value) and residual (exact ties on both signs, a value
+    /// past `i32`, `-0` and a subnormal).
+    fn timing_inputs(device: &Device) -> Result<(Tensor, Tensor)> {
+        let rows = Tensor::new(
+            &[
+                [40_000.0f32, -12_001.0, 3.5, -0.0],
+                [70_001.0, 7.0, -3.0, 0.0],
+                [1e30, 1.0, -0.5, 0.25],
+            ],
+            device,
+        )?;
+        let tie = 0.5 / Q16_SCALE;
+        let residual = Tensor::new(&[tie, -tie, 1.5 * tie, 3e9, -0.0, 1e-41], device)?;
+        Ok((rows, residual))
+    }
+
+    fn timing_bits(t: &Tensor) -> Result<Vec<u32>> {
+        Ok(t.flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .map(|v| v.to_bits())
+            .collect())
+    }
+
+    /// Both served chains on `rows` and `residual` in the served forward for `served`.
+    fn timing_forward(served: usize, rows: &Tensor, residual: &Tensor) -> Result<(Tensor, Tensor)> {
+        with_served_surrogate_training(1, served, || {
+            Ok((
+                served_activation_quantize16(rows)?,
+                served_projection_q16(residual.clone())?,
+            ))
+        })
+    }
+
+    /// float-kernel-fusion, claude-283: a skipped forward's two chains return their input bit for
+    /// bit and count their calls. A skip computes nothing, so this runs on the laptop; the kept
+    /// forwards' values are the CUDA test below.
+    #[test]
+    fn a_skipped_forward_returns_both_chains_input_bit_for_bit() -> Result<()> {
+        let warm = crate::in_space_long::PROFILE_WARMUP;
+        let (rows, residual) = timing_inputs(&Device::Cpu)?;
+        let (outputs, timing) = time_without_quantizers(2, || {
+            [3, 4]
+                .map(|offset| timing_forward(warm + offset, &rows, &residual))
+                .into_iter()
+                .collect::<Result<Vec<_>>>()
+        })?;
+        for (a, r) in &outputs {
+            assert_eq!(timing_bits(a)?, timing_bits(&rows)?);
+            assert_eq!(timing_bits(r)?, timing_bits(&residual)?);
+        }
+        assert_eq!(
+            timing.skipped,
+            ChainCounts {
+                steps: vec![warm + 2, warm + 3],
+                activation_calls: 2,
+                activation_elements: 24,
+                residual_calls: 2,
+                residual_elements: 12,
+            }
+        );
+        assert_eq!(timing.kept, ChainCounts::default());
+        Ok(())
+    }
+
+    /// float-kernel-fusion, claude-283: under an armed switch, a kept forward quantizes bit for bit
+    /// as an unarmed one does, with the same straight-through gradient, and so does every forward
+    /// once disarmed; a skipped forward's gradient is the identity's.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_kept_forward_quantizes_as_an_unarmed_one_on_cuda() -> Result<()> {
+        use candle_core::Var;
+
+        let warm = crate::in_space_long::PROFILE_WARMUP;
+        let device = Device::new_cuda(0)?;
+        let (rows, residual) = timing_inputs(&device)?;
+        let rows = Var::from_tensor(&rows)?;
+        let gradient = |served: usize| -> Result<(Tensor, Tensor, Vec<u32>)> {
+            let (a, r) = timing_forward(served, rows.as_tensor(), &residual)?;
+            let grads = a.sum_all()?.backward()?;
+            let through = grads.get(rows.as_tensor()).expect("the rows' gradient");
+            Ok((a, r, timing_bits(through)?))
+        };
+        let (rows_q, residual_q, through_q) = gradient(warm + 3)?;
+        assert_ne!(
+            timing_bits(&rows_q)?,
+            timing_bits(rows.as_tensor())?,
+            "the rows quantize"
+        );
+        assert_ne!(
+            timing_bits(&residual_q)?,
+            timing_bits(&residual)?,
+            "the residual rounds"
+        );
+        let (outputs, timing) = time_without_quantizers(2, || {
+            (1..=4)
+                .map(|offset| gradient(warm + offset))
+                .collect::<Result<Vec<_>>>()
+        })?;
+        let ones = vec![1f32.to_bits(); rows.as_tensor().elem_count()];
+        for (offset, (a, r, through)) in (1..=4).zip(&outputs) {
+            if offset <= 2 {
+                assert_eq!(
+                    timing_bits(a)?,
+                    timing_bits(&rows_q)?,
+                    "kept rows, offset {offset}"
+                );
+                assert_eq!(timing_bits(r)?, timing_bits(&residual_q)?);
+                assert_eq!(through, &through_q);
+            } else {
+                assert_eq!(
+                    timing_bits(a)?,
+                    timing_bits(rows.as_tensor())?,
+                    "skipped, {offset}"
+                );
+                assert_eq!(timing_bits(r)?, timing_bits(&residual)?);
+                assert_eq!(through, &ones);
+            }
+        }
+        assert_ne!(through_q, ones, "the kept gradient is the in-range mask");
+        timing.check()?;
+        let (rows_after, residual_after, through_after) = gradient(warm + 3)?;
+        assert_eq!(
+            timing_bits(&rows_after)?,
+            timing_bits(&rows_q)?,
+            "disarmed, it quantizes"
+        );
+        assert_eq!(timing_bits(&residual_after)?, timing_bits(&residual_q)?);
+        assert_eq!(through_after, through_q);
+        Ok(())
+    }
+
+    /// float-kernel-fusion, claude-283: the record refuses a pair cut one step late, a step counted
+    /// twice (an evaluation forward inside the window would be) and kept forwards that never called
+    /// a chain.
+    #[test]
+    fn the_quantizer_timing_record_refuses_a_step_out_of_its_pair() {
+        let warm = crate::in_space_long::PROFILE_WARMUP;
+        let counts = |steps: Vec<usize>| ChainCounts {
+            steps,
+            activation_calls: 2,
+            activation_elements: 8,
+            residual_calls: 2,
+            residual_elements: 8,
+        };
+        let mut timing = QuantizerTiming::new(2);
+        timing.kept = counts(vec![warm, warm + 1]);
+        timing.skipped = counts(vec![warm + 2, warm + 3]);
+        assert!(timing.check().is_ok());
+        let mut late = timing.clone();
+        late.kept = counts(vec![warm + 1, warm + 2]);
+        late.skipped = counts(vec![warm + 3, warm + 4]);
+        assert!(late.check().is_err());
+        let mut twice = timing.clone();
+        twice.skipped = counts(vec![warm + 2, warm + 2, warm + 3]);
+        assert!(twice.check().is_err());
+        let mut idle = timing.clone();
+        idle.kept.residual_calls = 0;
+        assert!(idle.check().is_err());
+    }
+
+    /// float-kernel-fusion, claude-283: the switch refuses a window that would skip nothing and an
+    /// arming inside another, and disarms on that error.
+    #[test]
+    fn the_quantizer_timing_switch_refuses_a_short_window_and_a_second_arming() -> Result<()> {
+        assert!(time_without_quantizers(1, || Ok(())).is_err());
+        let nested =
+            time_without_quantizers(2, || time_without_quantizers(2, || Ok(())).map(|_| ()));
+        assert!(nested.is_err());
+        let ((), timing) = time_without_quantizers(2, || Ok(()))?;
+        assert!(timing.kept.steps.is_empty() && timing.skipped.steps.is_empty());
+        Ok(())
     }
 }

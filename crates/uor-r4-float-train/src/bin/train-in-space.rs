@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
 //!
 //! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
 //! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
@@ -58,6 +58,14 @@
 //! `--profile K` times each stage of K training steps on the GPU after 8 of warm-up, each against
 //! the unprofiled step after it, into `DIR/profile.jsonl` and `DIR/profile.json`
 //! (`in_space_long::profile_window`; fbs-cost-profile, claude-157).
+//!
+//! `--time-without-quantizers 1` (needs `--profile K`, K of 2 or more, and `--train-as-served 1`)
+//! is a timing run (float-kernel-fusion, claude-283): the window's odd pairs, each a profiled step
+//! and the unprofiled one after it, train with both served quantizer chains skipped, and its even
+//! pairs keep them, so the two classes' step times give the chains' share. `--steps` and
+//! `--eval-every` must each be above the window's end, `8 + 2K`, so that no evaluation forward is
+//! inside it. The switch's record, checked, goes to `DIR/quantizer-timing.json`. The run's losses
+//! and checkpoints are not results.
 //!
 //! `--turn-memory-dropout P` (thousandths, 0 to 1000; needs `--turn-memory`) drops the memory from
 //! that share of training windows, which then name no memory row (one-model-end-to-end protocol
@@ -287,6 +295,7 @@ fn main() -> Result<()> {
     let mut scored: Vec<(String, PathBuf)> = Vec::new();
     let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
+    let mut time_quantizers = false;
     let (mut opening_read, mut opening_anchor) = (None, None);
     let (mut prompt_register, mut register_picks, mut register_select) = (None, None, None);
     let mut config = LongConfig {
@@ -475,6 +484,7 @@ fn main() -> Result<()> {
             }
             "--steps" => config.steps = number(&value)?,
             "--profile" => config.profile = number(&value)?,
+            "--time-without-quantizers" => time_quantizers = switch(&value)?,
             "--turn-memory" => config.turn_memory = number(&value)?,
             "--turn-memory-empty" => config.turn_memory_empty = switch(&value)?,
             "--turn-memory-reply" => config.turn_memory_reply = switch(&value)?,
@@ -695,6 +705,14 @@ fn main() -> Result<()> {
         score.is_some(),
     )?;
     context_applies(config.context, modes[7] && recall == 0, grad_norms, score.is_some())?;
+    time_without_quantizers_applies(
+        time_quantizers,
+        modes[7] && recall == 0,
+        config.train_as_served,
+        config.profile,
+        config.steps,
+        config.eval_every,
+    )?;
     if last_opening.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
             "--sample-opening applies to --score-rows only".to_owned(),
@@ -1095,6 +1113,17 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let out = out.ok_or_else(|| FloatTrainError::Invalid("--out is required".to_owned()))?;
+    if time_quantizers {
+        let ((), timing) =
+            uor_r4_float_train::hamilton_sheet::time_without_quantizers(config.profile, || {
+                run_long(&data_root, &out, &config, &device)
+            })?;
+        std::fs::write(
+            out.join("quantizer-timing.json"),
+            serde_json::to_vec_pretty(&timing)?,
+        )?;
+        return timing.check();
+    }
     run_long(&data_root, &out, &config, &device)
 }
 
@@ -1335,6 +1364,48 @@ fn context_applies(context: usize, training: bool, grad_norms: bool, scoring: bo
     Ok(())
 }
 
+/// `--time-without-quantizers 1` (float-kernel-fusion, claude-283) times a training run trained as
+/// served over a profile window of 2 pairs or more. Training evaluates when a step's number reaches
+/// a multiple of `--eval-every` and at `--steps`, and an evaluation's served forward gets that
+/// number as a training forward does, so both must be past the window, or the switch would skip
+/// an evaluation's chains too.
+fn time_without_quantizers_applies(
+    on: bool,
+    training: bool,
+    served: bool,
+    profile: usize,
+    steps: usize,
+    eval_every: usize,
+) -> Result<()> {
+    if !on {
+        return Ok(());
+    }
+    if !training || !served {
+        return Err(FloatTrainError::Invalid(
+            "--time-without-quantizers applies to training with --out and --train-as-served 1 only"
+                .to_owned(),
+        ));
+    }
+    if profile < 2 {
+        return Err(FloatTrainError::Invalid(
+            "--time-without-quantizers needs --profile 2 or more: the window's odd pairs skip the \
+             quantizers and its even pairs keep them"
+                .to_owned(),
+        ));
+    }
+    let window_end = profile
+        .checked_mul(2)
+        .and_then(|w| w.checked_add(uor_r4_float_train::in_space_long::PROFILE_WARMUP))
+        .ok_or_else(|| FloatTrainError::Invalid(format!("--profile {profile} is too large")))?;
+    if steps <= window_end || eval_every <= window_end {
+        return Err(FloatTrainError::Invalid(format!(
+            "--time-without-quantizers needs --steps and --eval-every each above {window_end}, \
+             the window's end, so that no evaluation forward falls inside it"
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1400,5 +1471,21 @@ mod tests {
         assert!(context_applies(2048, false, false, true).is_ok(), "claude-274: scoring at a window");
         assert!(context_applies(2048, false, false, false).is_err());
         assert!(context_applies(sheet + 1, false, false, false).is_err());
+    }
+
+    #[test]
+    fn the_quantizer_timing_run_keeps_every_evaluation_out_of_its_window() {
+        // claude-283: `--profile 64` ends its window at step 8 + 128 = 136.
+        let timed = |training, served, profile, steps, eval_every| {
+            time_without_quantizers_applies(true, training, served, profile, steps, eval_every)
+        };
+        assert!(time_without_quantizers_applies(false, false, false, 0, 1, 1).is_ok());
+        assert!(timed(true, true, 64, 137, 137).is_ok());
+        assert!(timed(false, true, 64, 137, 137).is_err(), "not training");
+        assert!(timed(true, false, 64, 137, 137).is_err(), "not served");
+        assert!(timed(true, true, 1, 137, 137).is_err(), "one pair");
+        assert!(timed(true, true, 64, 136, 137).is_err(), "--steps");
+        assert!(timed(true, true, 64, 137, 136).is_err(), "--eval-every");
+        assert!(timed(true, true, usize::MAX, 137, 137).is_err());
     }
 }

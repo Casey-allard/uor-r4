@@ -28,7 +28,11 @@ Why these two kernels first:
 ## What is missing
 
 1. **One kernel list.** `KERNEL_ENTRY_POINTS` (`src/lib.rs:36`) and `EXPECTED_KERNELS` (`tests/no_training_crate_dep.rs:9`) are two hand copies of the same 26 names (22 in `cuda_stack.cu`, 4 in `spiralcore_fbs.cu`), and the test asserts the count 26 (`:103`). At run time, only the `HISTORICAL_KERNELS` deny list (defined at `src/cuda_stack_kernels.rs:46`, checked at `:356`) and the PTX load (`:376`) stand between a name and its launch. Nothing ties a launched name to the list.
-2. **A measured share.** No GPU profile has yet split a served training step by op chain.
+2. **A measured share.** Measured in [claude-283](../../loop/tasks/float-kernel-fusion/claude-283/REPORT.md), on one RTX 5090 at P2b's recipe with `--train-as-served 1`. Skipping both chains on alternate pairs of steps inside one run shortened a step by 7.5% at (S), 192 × 16 (noise 0.46%), and by 2.6% at (L), 2,048 × 4. The cancel rule did not fire, so done-whens 2 and 3 start.
+   - **Where the time is:** almost all in the forward, spread evenly over the 12 sublayers. The backward holds 1.9 ms at (L) and 1.0 ms at (S).
+   - **The calls:** a forward makes 12 `activation_quantize16` calls (about 49 tensor ops each) and 50 `q16_residual` calls (13 each), about 1,240 ops in all. Fused, that is 62.
+   - **A ceiling, not the gain:** the share is what removing the chains entirely saves. A fused kernel still makes one pass a call, and done-when 4 measures what it saves.
+   - **Before that measurement,** no GPU profile had split a served training step by op chain.
    - [served-rounding-cost](served-rounding-cost.md) (#3594, DeepSeek's item, M4) is the item for training as served's 6.83–6.96× slowdown against plain training.
    - Its host probe points at the export rounding instead: `grid_code` searches 2,032 grid candidates on the host for every rounded gain on every step, and nine matrices are copied to the host and back each step. Replacing the activation-scale loop saved about 2% of one CPU activation there.
    - That is a host probe, not a GPU profile, but it is the reason the fusion below waits on a measurement.
@@ -53,6 +57,7 @@ Why these two kernels first:
 ## Cancel if
 
 - The two chains' share of wall seconds per training step at P2b's recipe, with `--train-as-served 1`, is under 5%, with their launch counts reported alongside. Then done-when 1 lands alone, and the fusion is reported as not worth its pin.
+- **Checked in claude-283 (5 Nov): the rule did not fire.** The share is 7.5% at (S) and 2.6% at (L), so (S) is over the bar with margin.
 
 ## How to start
 
