@@ -86,6 +86,18 @@ output-path and cost evidence only; it does not train a real-text model or show
 that a width fits GPU memory. See
 [deepseek-190](../loop/tasks/cpu-training-pilot/deepseek-190/REPORT.md).
 
+Exact reply-boundary memory was then tested as a termination path for the
+`Longest32To1` body selector. TRAIN-only suffixes of 4-32 generated tokens
+could emit BOS only when no continuation was observed; a depth-preserving
+shuffle supplied the matched control. The TRAIN preflight exercised the
+mechanism, but the fresh seed-2723 panel contained only 7 oracle-complete
+bodies against a pre-registered minimum of 10. True and shuffled boundaries
+stopped 14 and 3 replies, with zero exact replies in either, while all arms had
+346 correct body positions. The result is **INSUFFICIENT_POWER**, not a
+mechanism rejection: termination acted, but body quality left too few valid
+completions to compare. See
+[deepseek-191](../loop/tasks/cpu-training-pilot/deepseek-191/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

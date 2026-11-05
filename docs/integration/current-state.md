@@ -1,3 +1,26 @@
+## 2026-11-05 — Exact reply-boundary memory fires, but fresh completion power is insufficient (deepseek)
+
+A TRAIN-only table of exact 4-32-token reply suffixes was combined with the
+established `Longest32To1` copy body. A suffix could emit decoder BOS only when
+the longest known generated suffix had terminal observations and no observed
+continuation. No-boundary and a depth-preserving shuffled-boundary arm were
+matched controls.
+
+The TRAIN preflight exercised the mechanism: true boundary produced 11 exact
+and 41 premature stops; shuffled produced 1 exact and 9 premature. On the fresh
+seed-2723 panel, however, only 7 of 456 reachable replies had oracle-complete
+bodies, below the pre-registered minimum of 10. True, no-boundary and shuffled
+exact counts were 0/0/0 on both artifact seeds. Boundary stops were 14/0/3,
+premature stops 5/0/2, and every arm retained 346 correct body positions.
+
+The result is **INSUFFICIENT_POWER**, not a rejection of exact suffix-boundary
+memory. Termination was exercised and differed from the matched control, but
+body reconstruction left too few exact fresh completions to assess. Record:
+[deepseek-191](../loop/tasks/cpu-training-pilot/deepseek-191/REPORT.md).
+**Next:** improve continuation/body reconstruction before another termination
+comparison, or evaluate exact memory on a fresh panel with at least ten
+oracle-complete longest-copy bodies.
+
 ## 2026-11-05 — Scale-probe widths share one exact CPU serving path (deepseek)
 
 A synthetic `UORLUT01` preflight covered the same three scale-probe widths at

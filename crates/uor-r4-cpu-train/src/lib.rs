@@ -26,6 +26,7 @@ mod memory;
 mod memory_train;
 mod panel;
 mod quant_shadow;
+mod reply_boundary;
 mod reply_eval;
 mod self_prefix;
 mod served_forward;
@@ -139,6 +140,13 @@ pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,
     CpuQuantizationPanelReading, CpuQuantizationShadow, CpuQuantizationStep, QuantizationGate,
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
+};
+pub use reply_boundary::{
+    boundary_stop_changes, compare_boundary_rows, derive_reply_boundary_memory,
+    evaluate_boundary_replies, generate_boundary_reply, shuffle_reply_boundary_memory,
+    ReplyBoundaryArm, ReplyBoundaryCensus, ReplyBoundaryComparison, ReplyBoundaryCounts,
+    ReplyBoundaryHit, ReplyBoundaryMemory, ReplyBoundaryReading, ReplyBoundaryStep,
+    TimedReplyBoundaryReading, REPLY_BOUNDARY_MAX_DEPTH, REPLY_BOUNDARY_MIN_DEPTH,
 };
 pub use reply_eval::{
     derive_termination_cell_gates, derive_termination_orbit_gates, derive_termination_point_gates,

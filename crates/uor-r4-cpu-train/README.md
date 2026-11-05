@@ -63,6 +63,13 @@ artifact bytes, table bytes, decode throughput and peak RSS. This checks the
 output path before a GPU scale run; it is not training evidence or a statement
 that a width fits GPU memory.
 
+`cpu-copy-boundary-reply` tests exact-memory reply termination. It derives
+terminal and nonterminal four-to-32-token suffixes from a training panel, lets
+only terminal-only generated suffixes emit decoder BOS, and keeps
+`Longest32To1` exact copy for body tokens. No-boundary, depth-matched shuffled
+boundary and reference-length-oracle arms separate stopping from body quality.
+This is CPU development research, not a serving or fresh-wording claim.
+
 `cpu-content-readout-driver` fits sign and modulo-256 nearest-example content
 readouts over generated trajectories. Besides the comparison arms, it emits
 `serving.uorlut` and an artifact-bound

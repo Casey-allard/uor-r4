@@ -1,0 +1,13 @@
+{
+  "schema": "uor-r4.cpu-copy-boundary-repeat/1",
+  "normalization": "jq -S walk(if type == \"object\" then del(.wall_elapsed_us, .generated_tokens_per_second) else . end)",
+  "seed1": {
+    "normalized_sha256": "7991e7684bb448cc49a66aef03f3a985c32fd28c20f39ad9d65df2fc44aa3e5a",
+    "equal": true
+  },
+  "seed2": {
+    "normalized_sha256": "9a811992d0bba60517ab1a685a4755fa4f4edfa7f7578ea4bf11159b9300472a",
+    "equal": true
+  },
+  "local_sha256sums_sha256": "7f447e78ad969edd23e4d1f807e0f2741e9eb5a04059b0d59e571ed75b7af4b9"
+}

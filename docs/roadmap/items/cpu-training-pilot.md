@@ -603,6 +603,21 @@ does not establish quality growth, real-text training or GPU-memory
 feasibility. See
 [deepseek-190](../../loop/tasks/cpu-training-pilot/deepseek-190/REPORT.md).
 
+The first exact reply-boundary experiment then tested termination as the next
+symbol of an observed reply continuation. A TRAIN-only suffix table admitted
+decoder BOS only when the longest known generated suffix had terminal
+observations and no continuation; no-boundary and depth-preserving shuffled
+controls ran beside the established `Longest32To1` body selector. The
+TRAIN-only preflight exercised the mechanism: true boundary produced 11 exact
+and 41 premature stops, while shuffled produced 1 exact and 9 premature. On the
+fresh seed-2723 panel the oracle completed only 7 of 456 reachable replies,
+below the registered 10-reply power floor. True/no-boundary/shuffled exact
+replies were 0/0/0 on both seeds, while true and shuffled boundary stopped 14
+and 3 replies with 346 correct body positions in every arm. The result is
+**INSUFFICIENT_POWER**, not a mechanism negative: stopping was exercised, but
+fresh body reconstruction left too few exact completions to assess. See
+[deepseek-191](../../loop/tasks/cpu-training-pilot/deepseek-191/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
