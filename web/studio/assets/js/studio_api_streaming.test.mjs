@@ -256,3 +256,24 @@ test('unsupported endpoint families keep the HTTP status and provider detail', a
     assert.equal(result.ok, false);
     assert.match(result.detail, /API endpoint is unsupported.*501.*not implemented/);
 });
+
+test('a registered desktop transport handles API requests without direct browser fetch', async () => {
+    assert.equal(typeof globalThis.UORStudioApiTransport?.register, 'function');
+    let directCalls = 0;
+    let desktopCalls = 0;
+    globalThis.fetch = async () => { directCalls += 1; throw new Error('direct fetch must not run'); };
+    globalThis.UORStudioApiTransport.register(async (url) => {
+        desktopCalls += 1;
+        assert.equal(new URL(url).pathname, '/v1/models');
+        return new Response(JSON.stringify({ data: [{ id: 'uor-chat' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    try {
+        const result = await testConnection(config);
+        assert.equal(result.ok, true);
+        assert.deepEqual(result.models, ['uor-chat']);
+        assert.equal(desktopCalls, 1);
+        assert.equal(directCalls, 0);
+    } finally {
+        globalThis.UORStudioApiTransport.register(null);
+    }
+});

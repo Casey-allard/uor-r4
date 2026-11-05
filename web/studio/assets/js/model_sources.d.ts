@@ -26,6 +26,8 @@ export interface ApiProvider {
     baseUrl: string;
     model: string;
     apiKey: string;
+    ephemeral?: boolean;
+    temperature?: number;
 }
 
 export interface ModelSourceList {
@@ -49,6 +51,7 @@ export interface ModelSourcesApi {
     loadLocalFile(file: File, operation?: LoadOperation): Promise<LoadResult>;
     loadBundled(operation?: LoadOperation): Promise<LoadResult>;
     testApi(id?: string): Promise<{ ok: boolean; detail?: string; models?: unknown[] }>;
+    mount?(container: HTMLElement): { render(): void; unmount(): void };
 }
 
 export const ModelSources: ModelSourcesApi;

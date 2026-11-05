@@ -22,6 +22,13 @@
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const STREAM_HEADER = 'text/event-stream';
+let registeredDesktopTransport = null;
+
+globalThis.UORStudioApiTransport = Object.freeze({
+    register(fetcher) {
+        registeredDesktopTransport = typeof fetcher === 'function' ? fetcher : null;
+    },
+});
 
 function failure(message, extra = {}) {
     const error = new Error(message);
@@ -253,7 +260,9 @@ function describeConnectionError(error, config) {
 
 async function fetchWithConnectionGuidance(url, init, config) {
     try {
-        return await fetch(url, init);
+        return registeredDesktopTransport
+            ? await registeredDesktopTransport(url, init)
+            : await fetch(url, init);
     } catch (error) {
         throw describeConnectionError(error, config);
     }

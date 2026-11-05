@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="UOR-R4 geometric diamond">
+  <rect width="512" height="512" rx="112" fill="#000000"/>
+  <path d="M256 72 424 256 256 440 88 256Z" fill="#0a84ff"/>
+  <path d="M256 152 360 256 256 360 152 256Z" fill="#000000"/>
+  <path d="M256 200 312 256 256 312 200 256Z" fill="#64d2ff"/>
+</svg>

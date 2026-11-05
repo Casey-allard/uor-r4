@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
+<title id="t">One model file, two clients</title>
+<desc id="d">One integer model artifact feeds two clients sharing the Studio interface. The browser client runs WebAssembly locally and offers optional user-configured OpenAI-compatible providers. The desktop client runs native Rust with a host-managed OpenAI-compatible uor-chat loopback sidecar, durable memory and user-approved MCP. No qualified trained product bundle or useful conversation is claimed.</desc>
+<style>
+svg { --bg:#0d1117; --panel:#161b22; --ink:#e6edf3; --muted:#8b949e; --line:#58a6ff; --accent:#79c0ff; }
+.bg { fill:var(--bg); } .card { fill:var(--panel); stroke:var(--line); stroke-width:1.5; }
+.title { fill:var(--ink); font:600 21px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.label { fill:var(--ink); font:600 15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.detail { fill:var(--muted); font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.arrow { stroke:var(--accent); stroke-width:2; fill:none; marker-end:url(#arr); }
+</style>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#79c0ff"/></marker></defs>
+<rect class="bg" width="960" height="440"/>
+<text class="title" x="40" y="42">One integer artifact, two local clients</text>
+<text class="detail" x="40" y="66">Shared Studio interface · synthetic verification only · no qualified product bundle</text>
+<rect class="card" x="350" y="94" width="260" height="100" rx="14"/>
+<text class="label" x="380" y="132">UORLUT01 model</text>
+<text class="detail" x="380" y="156">Integer tables + SHA-256 pin</text>
+<text class="detail" x="380" y="176">M1 complete · not a chat product</text>
+<rect class="card" x="48" y="244" width="360" height="142" rx="14"/>
+<text class="label" x="76" y="282">Browser · WebAssembly</text>
+<text class="detail" x="76" y="308">Local inference by default</text>
+<text class="detail" x="76" y="332">Optional custom OpenAI providers</text>
+<text class="detail" x="76" y="356">M1 next-token explorer, not chat</text>
+<rect class="card" x="552" y="244" width="360" height="142" rx="14"/>
+<text class="label" x="580" y="282">Desktop · native Rust</text>
+<text class="detail" x="580" y="308">Host-managed uor-chat sidecar</text>
+<text class="detail" x="580" y="332">Durable text + user-approved MCP</text>
+<text class="detail" x="580" y="356">Synthetic protocol verification</text>
+<path class="arrow" d="M390,194 L260,244"/>
+<path class="arrow" d="M570,194 L700,244"/>
+</svg>

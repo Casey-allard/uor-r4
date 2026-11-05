@@ -1,14 +1,14 @@
 # The three products
 
 UOR-R4 aims to ship one thing people can use: a small, fast language model that runs on your own
-laptop or in your browser, with local computation by default and no model server required. For the web Studio only, an optional user-configured OpenAI-compatible API sends prompts to the endpoint the user chooses; the desktop shell has no OpenAI-compatible API mode. The three products are the **model** in
+laptop or in your browser, with local computation by default and no model server required. For the web Studio only, an optional user-configured OpenAI-compatible API sends prompts to the endpoint the user chooses; the desktop app uses a host-managed OpenAI-compatible `uor-chat` sidecar on loopback and user-approved MCP rather than arbitrary custom providers. The three products are the **model** in
 one integer file, a **web client** that runs it in a browser tab, and a **desktop client** that runs
 it natively with durable memory. **None ships today.** M1 is complete (1 of 8), but no useful
 conversation, integrated qualified product or alpha release exists.
 
 Labels: **proof**, **measurement**, **hypothesis** ([`docs/formal_vocabulary.md`](../formal_vocabulary.md), [glossary](../start/glossary.md)).
 
-![One integer model file feeding a browser-based web client and a native desktop client. Local mode has no default model server. Only the web Studio offers an optional user-configured OpenAI-compatible API; the desktop shell has no OpenAI-compatible API mode.](../figures/products/product-family.svg)
+![One integer model file feeding a browser-based web client and a native desktop client. Local mode has no default model server. Only the web Studio offers an optional user-configured OpenAI-compatible API; the desktop app uses a host-managed OpenAI-compatible `uor-chat` sidecar on loopback and user-approved MCP rather than arbitrary custom providers.](./product-family.svg)
 
 *One model file is intended to feed two clients sharing one interface and local storage.*
 

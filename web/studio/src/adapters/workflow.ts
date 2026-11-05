@@ -5,12 +5,14 @@ export interface StudioFile {
     name: string;
     content: string;
     mode: string;
+    rootPath?: string;
 }
 
 export interface WorkspaceTab {
     path: string;
     dirty: boolean;
     mode: string;
+    rootPath?: string;
 }
 
 export interface WorkspaceSummary {
@@ -19,15 +21,16 @@ export interface WorkspaceSummary {
     fileCount: number;
     tabs: Array<Pick<WorkspaceTab, 'path' | 'dirty'>>;
     activePath: string | null;
+    activeRootPath?: string;
 }
 
 export interface WorkspaceApi {
     openFolder(): Promise<void>;
     importFiles(reason?: string): void;
     openDemo(): void;
-    openFile(path: string): Promise<void>;
+    openFile(path: string, rootPath?: string): Promise<void>;
     newFile(): void;
-    closeTab(path: string): void;
+    closeTab(path: string, rootPath?: string): void;
     closeAll(): void;
     saveActive(): Promise<boolean>;
     saveAsCopy(): boolean;

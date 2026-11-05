@@ -15,6 +15,7 @@
  * "uor-model-source-changed" CustomEvent on the document.
  */
 
+import { normalizeNativeApiUrl } from './desktop_origin.js';
 import { sha256Hex, validateTokenizerArtifact } from './uor_tokenizer_artifact.js';
 
 /**
@@ -575,6 +576,7 @@ async function fetchTokenizerArtifact(entry, stackSha256, vocabSize) {
 
 /** Load a published catalog entry: user-initiated download, hash/size check, tokenizer binding. */
 async function loadPublished(idOrEntry, operation) {
+    if (fullDesktopHost()) throw browserOnlyError();
     const currentOperation = beginOperation(operation);
     var entry = typeof idOrEntry === 'string'
         ? catalog.models.find(function (item) { return item.id === idOrEntry; })
@@ -663,8 +665,7 @@ const api = {
         if (input.protocol !== 'openai') throw new Error('The native bootstrap must use the OpenAI protocol.');
         if (Number(input.temperature) !== 0) throw new Error('The native bootstrap must use temperature zero.');
         if (typeof input.token !== 'string' || !input.token) throw new Error('The native bootstrap token is missing.');
-        const baseUrl = new URL(String(input.baseUrl || ''), document.baseURI);
-        if (baseUrl.origin !== new URL(document.baseURI).origin) throw new Error('The native bootstrap must be same-origin.');
+        const baseUrl = normalizeNativeApiUrl(input.baseUrl, document.baseURI);
         const id = 'native-loopback';
         const existing = state.api.findIndex((entry) => entry.id === id);
         if (existing >= 0) state.api.splice(existing, 1);
@@ -764,6 +765,7 @@ const api = {
     },
 
     async loadFromUrl(rawUrl, operation) {
+        if (fullDesktopHost()) throw browserOnlyError();
         const currentOperation = beginOperation(operation);
         const url = resolveModelUrl(rawUrl);
         setMessage('info', 'Downloading ' + (url.pathname.split('/').pop() || 'model') + ' from ' + url.host + '…');
@@ -807,6 +809,14 @@ const api = {
 };
 
 /* ------------------------------------------------------------------ rendering */
+
+function fullDesktopHost() {
+    return typeof globalThis.__TAURI__?.core?.invoke === 'function' && typeof globalThis.__TAURI__?.core?.Channel === 'function';
+}
+
+function browserOnlyError() {
+    return new Error('Custom providers and remote model URLs are available in the browser build.');
+}
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -883,7 +893,10 @@ function renderAll(container) {
     remote.appendChild(el('p', 'hint', 'Optional. Custom API sources send prompts to their configured endpoint; native loopback stays on this device. Ordinary keys are stored only in this browser and are never committed.'));
     for (const entry of state.api) remote.appendChild(apiCard(entry));
     if (state.api.length === 0) remote.appendChild(el('p', 'empty-note', 'No API endpoints configured.'));
-    remote.appendChild(button('Add API endpoint', 'add-api', { className: 'btn-primary btn-small' }));
+    const addApi = button('Add API endpoint', 'add-api', { className: 'btn-primary btn-small' });
+    addApi.disabled = fullDesktopHost();
+    if (addApi.disabled) addApi.title = 'Available in the browser build.';
+    remote.appendChild(addApi);
     if (editing) remote.appendChild(apiForm());
     container.appendChild(remote);
 
@@ -930,6 +943,8 @@ function publishedModelCard(entry) {
     card.appendChild(el('div', 'source-detail', 'Remote download starts only when you click Load.'));
     const actions = el('div', 'source-card-actions');
     const load = button('Load published model', 'load-published', { className: 'btn-secondary btn-small' });
+    load.disabled = fullDesktopHost();
+    if (load.disabled) load.title = 'Available in the browser build.';
     load.dataset.modelId = entry.id;
     actions.appendChild(load);
     card.appendChild(actions);
@@ -941,6 +956,13 @@ function localFileCard() {
     const activeLocal = state.active.kind === 'wasm' && state.wasm.kind === 'local-file';
     card.appendChild(cardHeader('Local file', activeLocal ? (state.wasm.fileName || 'Local stack file') : 'Local .lut / .bin stack file', 'Opens a UORLUT01 artifact from this device; nothing is uploaded.', activeLocal));
     const actions = el('div', 'source-card-actions');
+    if (fullDesktopHost()) {
+        const native = button('Choose model folder', 'native-model-folder', { className: 'btn-secondary btn-small' });
+        native.id = 'nativeModelFolderButton';
+        actions.appendChild(native);
+        card.appendChild(actions);
+        return card;
+    }
     const input = el('input');
     input.type = 'file';
     input.accept = '.lut,.bin,application/octet-stream';
@@ -967,8 +989,12 @@ function urlCard() {
     input.autocomplete = 'off';
     input.spellcheck = false;
     input.setAttribute('aria-label', 'Model file URL');
+    input.disabled = fullDesktopHost();
     row.appendChild(input);
-    row.appendChild(button('Load URL', 'load-url', { className: 'btn-secondary btn-small' }));
+    const load = button('Load URL', 'load-url', { className: 'btn-secondary btn-small' });
+    load.disabled = fullDesktopHost();
+    if (load.disabled) load.title = 'Available in the browser build.';
+    row.appendChild(load);
     card.appendChild(row);
     return card;
 }
@@ -983,6 +1009,14 @@ function apiCard(entry) {
     actions.appendChild(button('Test', 'api-test', { className: 'btn-secondary btn-small' }));
     actions.appendChild(button('Edit', 'api-edit', { className: 'btn-ghost btn-small' }));
     actions.appendChild(button('Remove', 'api-remove', { className: 'btn-ghost btn-small btn-danger', title: 'Remove this API endpoint' }));
+    if (fullDesktopHost() && entry.id !== 'native-loopback') {
+        for (const control of actions.children) {
+            if (control.dataset.action !== 'api-remove') {
+                control.disabled = true;
+                control.title = 'Available in the browser build.';
+            }
+        }
+    }
     card.appendChild(actions);
     card.dataset.apiId = entry.id;
     return card;
@@ -1077,7 +1111,15 @@ async function onClick(event) {
     if (!mounted || !target || !target.closest(MODEL_SCOPE_SELECTOR)) return;
     const action = target.dataset.action;
     try {
-        if (action === 'load-bundled') {
+        if (action === 'native-model-folder') {
+            const desktop = globalThis.UORDesktopActions;
+            if (!desktop?.available) throw new Error('Native model-folder selection is unavailable.');
+            const selected = await desktop.chooseModelFolder();
+            if (!selected) return;
+            const models = await desktop.listLocalModels(selected.path);
+            const names = models.map((model) => model.name).filter(Boolean);
+            setMessage('info', `${names.length} pinned model${names.length === 1 ? '' : 's'}: ${names.join(', ') || 'none found'}. This list does not switch the running sidecar weights.`);
+        } else if (action === 'load-bundled') {
             await loadBundled();
         } else if (action === 'load-published') {
             target.disabled = true;

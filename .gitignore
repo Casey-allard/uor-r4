@@ -2,6 +2,8 @@
 /pkg
 .DS_Store
 node_modules/
+/web/studio/node_modules
+/web/studio/pkg
 dist/
 manifold_cache_rust.json
 # Local demo probes and generated response captures.

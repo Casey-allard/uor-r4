@@ -69,12 +69,14 @@
                         <button class="icon-btn icon-btn-sm" id="btnNavCollapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
                     </div>
                 </div>
-                <nav class="nav-section" aria-label="Sections">
+                <nav class="nav-section harness-nav" aria-label="Sections">
                     <span class="nav-section-title">WORKSPACE</span>
-                    <button class="nav-item" id="navAgent" type="button" data-section="agent" aria-current="page"><span class="nav-item-icon" aria-hidden="true">◈</span><span class="nav-item-text"><span class="nav-item-label">Agent <kbd class="nav-kbd">⌘1</kbd></span><span class="nav-item-desc">Chat, context and build tasks</span></span></button>
-                    <button class="nav-item" id="navWorkspace" type="button" data-section="workspace"><span class="nav-item-icon" aria-hidden="true">▤</span><span class="nav-item-text"><span class="nav-item-label">Workspace <kbd class="nav-kbd">⌘2</kbd></span><span class="nav-item-desc">File tree, editor tabs, save</span></span></button>
-                    <button class="nav-item" id="navModels" type="button" data-section="models"><span class="nav-item-icon" aria-hidden="true">◇</span><span class="nav-item-text"><span class="nav-item-label">Connections <kbd class="nav-kbd">⌘3</kbd></span><span class="nav-item-desc">UOR Chat, custom providers, diagnostics</span></span></button>
-                    <button class="nav-item" id="navGuide" type="button" data-section="guide"><span class="nav-item-icon" aria-hidden="true">▸</span><span class="nav-item-text"><span class="nav-item-label">Guide <kbd class="nav-kbd">⌘4</kbd></span><span class="nav-item-desc">Workflows, shortcuts, limits</span></span></button>
+                    <button class="nav-item" id="navAgent" type="button" data-section="agent" aria-current="page"><span class="nav-item-icon" aria-hidden="true">◈</span><span class="nav-item-text"><span class="nav-item-label">Chat <kbd class="nav-kbd">⌘1</kbd></span><span class="nav-item-desc">Sessions, context and build tasks</span></span></button>
+                    <button class="nav-item" id="navWorkspace" type="button" data-section="workspace"><span class="nav-item-icon" aria-hidden="true">▤</span><span class="nav-item-text"><span class="nav-item-label">Files <kbd class="nav-kbd">⌘2</kbd></span><span class="nav-item-desc">Local folders and editor</span></span></button>
+                    <button class="nav-item" id="navChanges" type="button" data-section="changes"><span class="nav-item-icon" aria-hidden="true">±</span><span class="nav-item-text"><span class="nav-item-label">Changes <kbd class="nav-kbd">⌘4</kbd></span><span class="nav-item-desc">Git status and working-tree diff</span></span></button>
+                    <button class="nav-item" id="navTerminal" type="button" data-section="terminal"><span class="nav-item-icon" aria-hidden="true">›</span><span class="nav-item-text"><span class="nav-item-label">Terminal <kbd class="nav-kbd">⌘5</kbd></span><span class="nav-item-desc">Approved commands only</span></span></button>
+                    <button class="nav-item" id="navModels" type="button" data-section="models"><span class="nav-item-icon" aria-hidden="true">◇</span><span class="nav-item-text"><span class="nav-item-label">Connections <kbd class="nav-kbd">⌘3</kbd></span><span class="nav-item-desc">Models, MCP and API providers</span></span></button>
+                    <button class="nav-item" id="navSettings" type="button" data-action="open-settings"><span class="nav-item-icon" aria-hidden="true">⚙</span><span class="nav-item-text"><span class="nav-item-label">Settings <kbd class="nav-kbd">⌘,</kbd></span><span class="nav-item-desc">Appearance, data and About</span></span></button>
                 </nav>
                 <section class="nav-sessions" id="sessionSection" aria-label="Sessions">
                     <div class="nav-sessions-head"><span class="nav-section-title">SESSIONS</span><button class="new-session-btn" id="btnNewChat" type="button">New session</button></div>
@@ -100,6 +102,20 @@
             <button class="nav-scrim" id="btnNavScrim" type="button" aria-label="Close navigation" hidden></button>
 
             <main class="main-column" id="mainColumn" tabindex="-1">
+                <header class="session-toolbar" role="toolbar" aria-label="Session tools">
+                    <button class="session-tool" id="btnSessionNav" type="button" aria-label="Show sidebar" title="Show sidebar"><span class="session-tool-icon" aria-hidden="true">☰</span></button>
+                    <span class="session-history" role="group" aria-label="Section history">
+                        <button class="session-tool" id="btnSectionBack" type="button" aria-label="Back" title="Back" disabled><span class="session-tool-icon" aria-hidden="true">‹</span></button>
+                        <button class="session-tool" id="btnSectionForward" type="button" aria-label="Forward" title="Forward" disabled><span class="session-tool-icon" aria-hidden="true">›</span></button>
+                    </span>
+                    <label class="sr-only" for="sessionSwitcher">Switch session</label>
+                    <select id="sessionSwitcher" aria-label="Switch session" title="Switch session"></select>
+                    <button class="session-tool" id="btnSessionChanges" type="button" aria-label="Changes" title="Changes"><span class="session-tool-icon" aria-hidden="true">±</span></button>
+                    <button class="session-tool" id="btnSessionTerminal" type="button" aria-label="Terminal" title="Terminal"><span class="session-tool-icon" aria-hidden="true">›_</span></button>
+                    <button class="session-tool" id="btnSessionFiles" type="button" aria-label="Files" title="Files"><span class="session-tool-icon" aria-hidden="true">▱</span></button>
+                    <button class="session-tool" id="btnSessionNew" type="button" aria-label="New chat" title="New chat"><span class="session-tool-icon" aria-hidden="true">＋</span></button>
+                    <button class="session-tool" id="btnSessionOptions" type="button" aria-label="View options" title="View options"><span class="session-tool-icon" aria-hidden="true">⋯</span></button>
+                </header>
                 <section class="view chat-panel" id="chatPanel" data-view="chat" aria-label="Chat">
                     <header class="view-head">
                         <div class="view-head-text">
@@ -109,7 +125,6 @@
                         <div class="view-head-actions">
                             <span class="badge" id="chatSourceBadge">Local WASM</span>
                             <button class="ghost-btn" id="btnOpenModelSources" type="button">Connections</button>
-                            <button class="ghost-btn" id="btnNewChat2" type="button">New chat</button>
                             <button class="icon-btn icon-btn-sm inspector-toggle" id="btnToggleInspector" type="button" aria-label="Toggle context inspector" aria-expanded="true" title="Toggle context inspector"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3H3v10h7M6 3v10M12 6l2 2-2 2"/></svg></button>
                         </div>
                     </header>
@@ -136,7 +151,7 @@
                                         <button class="tool-btn" id="btnBuildTask" type="button" aria-haspopup="menu" aria-expanded="false" title="Insert a build-task prompt template">
                                             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Build task
                                         </button>
-                                        <div class="template-menu" id="templateMenu" role="menu" aria-label="Build task templates" hidden>
+                                        <div class="template-menu harness-menu" id="templateMenu" role="menu" aria-label="Build task templates" hidden>
                                             <div class="template-menu-label">BUILD TEMPLATES</div>
                                             <button class="template-item" type="button" role="menuitem" data-template="ux"><span class="template-title">Studio UX improvement brief</span><span class="template-desc">Plan and implement a focused Studio UX change.</span></button>
                                             <button class="template-item" type="button" role="menuitem" data-template="api"><span class="template-title">API integration checklist</span><span class="template-desc">Plan an OpenAI-compatible API integration (API lab owns the code).</span></button>
@@ -222,13 +237,14 @@
                                 </ol>
                             </template>
                             <div id="modelSourceMount"></div>
+                            <div id="mcpMount"></div>
                         </aside>
                     </div>
                 </section>
 
                 <section class="view workspace-view" id="workspaceView" data-view="workspace" aria-label="Workspace">
                     <header class="view-head">
-                        <div class="view-head-text"><h1 class="panel-title">Workspace</h1><p class="view-subtitle">Open a local folder, edit files in tabs, and save back to disk.</p></div>
+                        <div class="view-head-text"><h1 class="panel-title">Files</h1><p class="view-subtitle">Open a local folder, edit files in tabs, and save back to disk.</p></div>
                         <div class="view-head-actions">
                             <button class="ghost-btn" id="btnReloadTree" type="button">Reload tree</button>
                             <button class="ghost-btn" id="btnImportFiles" type="button">Import files…</button>
@@ -269,6 +285,60 @@
                     <input class="visually-hidden" id="editorFileInput" type="file" accept=".md,.txt,.rs,.json,.html,.css,.js,.toml,.yml,.yaml">
                 </section>
 
+                <section class="view changes-view" id="changesView" data-view="changes" aria-label="Changes">
+                    <header class="view-head">
+                        <div class="view-head-text">
+                            <h1 class="panel-title">Changes</h1>
+                            <p class="view-subtitle">Repository status and working-tree diff, inside your chosen project.</p>
+                        </div>
+                        <div class="view-head-actions">
+                            <button class="ghost-btn" id="btnRefreshChanges" type="button" disabled title="Native Git integration is wired in the desktop task">Refresh</button>
+                        </div>
+                    </header>
+                    <div class="harness-view-body">
+                        <section class="harness-card" aria-labelledby="repositoryStatusTitle">
+                            <h2 id="repositoryStatusTitle">Repository status</h2>
+                            <p id="gitStatusSummary">Open a project folder in Files to inspect its branch and working tree.</p>
+                        </section>
+                        <section class="harness-card harness-diff-card" aria-labelledby="workingTreeDiffTitle">
+                            <div class="harness-card-head">
+                                <h2 id="workingTreeDiffTitle">Working-tree diff</h2>
+                                <button class="ghost-btn" id="btnCopyDiff" type="button" disabled title="Native Git integration is wired in the desktop task">Copy diff</button>
+                            </div>
+                            <pre id="gitDiffOutput">No repository selected.</pre>
+                        </section>
+                    </div>
+                </section>
+
+                <section class="view terminal-view" id="terminalView" data-view="terminal" aria-label="Terminal">
+                    <header class="view-head">
+                        <div class="view-head-text">
+                            <h1 class="panel-title">Terminal</h1>
+                            <p class="view-subtitle">Run only explicitly approved commands inside a granted project folder.</p>
+                        </div>
+                    </header>
+                    <div class="harness-view-body">
+                        <section class="harness-card" aria-labelledby="terminalCommandTitle">
+                            <h2 id="terminalCommandTitle">Approved command</h2>
+                            <p id="terminalConsentState">Terminal is disabled. Native host confirmation is required before any command runs.</p>
+                            <div class="harness-form-grid">
+                                <label for="terminalCwd">Working directory</label>
+                                <input id="terminalCwd" type="text" placeholder="Choose a project folder in Files" autocomplete="off" spellcheck="false">
+                                <label for="terminalCommand">Command</label>
+                                <input id="terminalCommand" type="text" placeholder="For example: cargo test" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="harness-card-actions">
+                                <button class="ghost-btn" id="btnTerminalEnable" type="button" disabled title="Native host confirmation is wired in the desktop task">Enable terminal</button>
+                                <button class="primary-btn" id="btnRunTerminal" type="button" disabled title="Native host confirmation is wired in the desktop task">Run command</button>
+                            </div>
+                        </section>
+                        <section class="harness-card" aria-labelledby="terminalOutputTitle">
+                            <h2 id="terminalOutputTitle">Output</h2>
+                            <pre id="terminalOutput">No command has run.</pre>
+                        </section>
+                    </div>
+                </section>
+
                 <section class="view guide-view" id="guideView" data-view="guide" aria-label="Studio guide">
                     <header class="view-head">
                         <div class="view-head-text">
@@ -277,7 +347,7 @@
                         </div>
                         <div class="view-head-actions">
                             <span class="badge">read me first</span>
-                            <button class="ghost-btn" id="btnGuideAgent" type="button">Start in Agent →</button>
+                            <button class="ghost-btn" id="btnGuideAgent" type="button">Start in Chat →</button>
                         </div>
                     </header>
                     <div class="guide-body">
@@ -289,11 +359,11 @@
                         <div class="guide-grid">
                             <section class="guide-card">
                                 <span class="micro-label">01 · QUICK START</span>
-                                <h3>Open a workspace, then ask the agent</h3>
+                                <h3>Open Files and start chatting</h3>
                                 <ol class="guide-list">
-                                    <li>Open <button class="inline-link" data-guide-nav="workspace" type="button">Workspace</button> and choose <strong>Open folder…</strong> (File System Access API).</li>
+                                    <li>Open <button class="inline-link" data-guide-nav="workspace" type="button">Files</button> and choose <strong>Open folder…</strong> (File System Access API).</li>
                                     <li>Click a file to open an editor tab; save edits back to disk with <kbd class="kbd">⌘S</kbd>.</li>
-                                    <li>In <button class="inline-link" data-guide-nav="agent" type="button">Agent</button>, attach the active file as context and describe the task.</li>
+                                    <li>In <button class="inline-link" data-guide-nav="agent" type="button">Chat</button>, attach the active file as context and describe the task.</li>
                                     <li>Configure an API provider under <button class="inline-link" data-guide-nav="models" type="button">Connections</button> when a custom OpenAI-compatible endpoint is configured; until then the local engine serves next-token prediction only.</li>
                                 </ol>
                             </section>
@@ -333,7 +403,7 @@
                             <h3>Shortcuts</h3>
                             <dl class="guide-shortcut-grid">
                                 <div><dt><kbd class="kbd">⌘K</kbd></dt><dd>Command palette</dd></div>
-                                <div><dt><kbd class="kbd">⌘1–4</kbd></dt><dd>Agent / Workspace / Connections / Guide</dd></div>
+                                <div><dt><kbd class="kbd">⌘1–6</kbd></dt><dd>Chat / Workspace / Connections / Changes / Terminal / Guide</dd></div>
                                 <div><dt><kbd class="kbd">⌘B</kbd></dt><dd>Toggle navigation</dd></div>
                                 <div><dt><kbd class="kbd">⌘I</kbd></dt><dd>Toggle context panel</dd></div>
                                 <div><dt><kbd class="kbd">⌘S</kbd></dt><dd>Save active file</dd></div>
@@ -382,7 +452,7 @@
                     <details class="ctx-card ctx-details"><summary><span class="micro-label">SHORTCUTS</span></summary>
                         <ul class="shortcut-list">
                             <li><kbd class="kbd">⌘K</kbd><span>Command palette</span></li>
-                            <li><kbd class="kbd">⌘1–4</kbd><span>Agent / Workspace / Connections / Guide</span></li>
+                            <li><kbd class="kbd">⌘1–6</kbd><span>Chat / Workspace / Connections / Changes / Terminal / Guide</span></li>
                             <li><kbd class="kbd">⌘S</kbd><span>Save active file</span></li>
                             <li><kbd class="kbd">⇧⌘S</kbd><span>Save as a copy</span></li>
                             <li><kbd class="kbd">Esc</kbd><span>Close dialog / stop generation</span></li>
@@ -405,7 +475,7 @@
     </div>
 
     <div class="modal-backdrop" id="settingsDialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
-        <div class="modal">
+        <div class="modal harness-modal">
             <header class="modal-head"><div><span class="micro-label">STUDIO</span><h2 id="settingsTitle">Settings</h2><p class="modal-sub">Stored in this browser only. Nothing is uploaded.</p></div><button class="icon-btn" id="btnCloseSettings" type="button" aria-label="Close settings" title="Close">×</button></header>
             <div class="modal-body">
                 <section class="settings-section"><h3>Appearance</h3>
@@ -424,7 +494,7 @@
                     <div class="setting-row"><div><span class="setting-name">Storage used</span><span class="setting-desc" id="settingsStorage">unknown</span></div></div>
                 </section>
                 <section class="settings-section"><h3>About</h3>
-                    <div class="setting-row"><div><span class="setting-name">UOR-R4 Studio v2</span><span class="setting-desc">Offline-first browser workspace. Pre-alpha · M1 complete · 1 of 8 milestones. Engine: local WASM. Privacy: Local only until you select an API provider.</span></div><button class="inline-link" id="btnAboutGuide" type="button">Open guide</button></div>
+                    <div class="setting-row"><div><span class="setting-name">UOR-R4 Studio v2</span><span class="setting-desc">Offline-first shared workspace. Pre-alpha · M1 complete · 1 of 8 milestones. Engine: local WASM in the browser or the host-managed native sidecar in the desktop app. Privacy: Local only until you select an API provider or MCP server.</span></div><button class="inline-link" id="btnAboutGuide" type="button">Open guide</button></div>
                 </section>
             </div>
             <footer class="modal-footer"><span class="modal-footer-note">Auto-saved to this browser</span><button class="primary-btn primary-btn-sm" id="btnDoneSettings" type="button">Done</button></footer>
@@ -441,7 +511,7 @@
                 <table class="help-table">
                     <tbody>
                         <tr><td><kbd class="kbd">⌘K</kbd></td><td>Command palette</td></tr>
-                        <tr><td><kbd class="kbd">⌘1 ⌘2 ⌘3 ⌘4</kbd></td><td>Agent / Workspace / Connections / Guide</td></tr>
+                        <tr><td><kbd class="kbd">⌘1–6</kbd></td><td>Chat / Workspace / Connections / Changes / Terminal / Guide</td></tr>
                         <tr><td><kbd class="kbd">⌘B</kbd></td><td>Toggle navigation sidebar</td></tr>
                         <tr><td><kbd class="kbd">⌘I</kbd></td><td>Toggle context panel</td></tr>
                         <tr><td><kbd class="kbd">⌘S</kbd></td><td>Save active file</td></tr>
@@ -504,6 +574,7 @@
         import { mountModelSources, ModelSources } from './assets/js/model_sources.js';
         import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js';
         import { decomposeNativeImage, imageUrlPart } from './assets/js/studio_api.js';
+        import { registerDesktopOpenAI } from './assets/js/desktop_openai.js';
         import { isImageFile, readImageFiles } from './assets/js/image_input.js';
         import { encodeTextWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
         import { createComposerInput, readTextFiles } from './assets/js/composer_input.js';
@@ -904,7 +975,7 @@
         }
 
         function setView(view, options) {
-            if (view !== 'chat' && view !== 'model' && view !== 'workspace' && view !== 'editor' && view !== 'files' && view !== 'guide') return;
+            if (view !== 'chat' && view !== 'model' && view !== 'workspace' && view !== 'changes' && view !== 'terminal' && view !== 'editor' && view !== 'files' && view !== 'guide') return;
             if (view === 'editor' || view === 'files') view = 'workspace';
             document.body.dataset.view = view;
             ['Chat', 'Model', 'Editor'].forEach(function (name) {
@@ -1915,7 +1986,6 @@
             $('#btnOpenModelSources').addEventListener('click', function () { setView('model'); });
             $('#btnNewChatTop').addEventListener('click', function () { startNewChat(); });
             $('#btnNewChat').addEventListener('click', function () { startNewChat(); });
-            $('#btnNewChat2').addEventListener('click', function () { startNewChat(); });
         }
 
         function startNewChat() {
@@ -2166,6 +2236,14 @@
         function boot() {
             if (app.booted) return;
             app.booted = true;
+            var tauri = window.__TAURI__;
+            if (tauri && tauri.core && typeof tauri.core.invoke === 'function' && tauri.core && typeof tauri.core.Channel === 'function') {
+                try {
+                    registerDesktopOpenAI({ invoke: tauri.core.invoke.bind(tauri.core), Channel: tauri.core.Channel });
+                } catch (error) {
+                    toast('The native OpenAI transport could not start: ' + String(error && error.message || error), 'error');
+                }
+            }
             var requestedMaxTokens = Number(new URLSearchParams(window.location.search).get('max_new_tokens'));
             app.maxNewTokens = Number.isInteger(requestedMaxTokens) && requestedMaxTokens > 0
                 ? Math.min(MAX_NEW_TOKENS, requestedMaxTokens)
@@ -2398,7 +2476,9 @@
         }
     
     </script>
+    <script type="module" src="./assets/js/desktop_actions.js"></script>
     <script type="module" src="./assets/js/studio_files.js"></script>
-    <script type="module" src="./assets/js/studio_ui.js"></script>
+    <script type="module" src="./assets/js/mcp_client.js"></script>
+    <script type="module" src="./assets/js/studio_ui.js?v=20261104-session-toolbar"></script>
 </body>
 </html>

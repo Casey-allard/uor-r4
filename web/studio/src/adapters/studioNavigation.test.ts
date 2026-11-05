@@ -210,3 +210,33 @@ describe('actual mobile navigation dismissal', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
     });
 });
+
+
+describe('deep-linked initial section history', () => {
+    function addHistoryButtons() {
+        document.body.insertAdjacentHTML('beforeend', '<button id="btnSectionBack">Back</button><button id="btnSectionForward">Forward</button><button id="navChanges" data-section="changes">Changes</button><button id="navTerminal" data-section="terminal">Terminal</button>');
+    }
+
+    it.each(['changes', 'terminal'])('opens #view=%s as the initial section without Chat history', async (section) => {
+        addHistoryButtons();
+        window.location.hash = `#view=${section}`;
+        await import(studioUiModule);
+        document.dispatchEvent(new CustomEvent('uor-studio-ready'));
+        await vi.advanceTimersByTimeAsync(120);
+        expect(document.body.getAttribute('data-section')).toBe(section);
+        expect((document.getElementById('btnSectionBack') as HTMLButtonElement).disabled).toBe(true);
+        document.getElementById('navAgent')!.click();
+        (document.getElementById('btnSectionBack') as HTMLButtonElement).click();
+        expect(document.body.getAttribute('data-section')).toBe(section);
+    });
+
+    it('does not prepend Chat to an initial Files deep link', async () => {
+        addHistoryButtons();
+        window.location.hash = '#view=files';
+        await import(studioUiModule);
+        document.dispatchEvent(new CustomEvent('uor-studio-ready'));
+        await vi.advanceTimersByTimeAsync(120);
+        expect(document.body.getAttribute('data-section')).toBe('workspace');
+        expect((document.getElementById('btnSectionBack') as HTMLButtonElement).disabled).toBe(true);
+    });
+});

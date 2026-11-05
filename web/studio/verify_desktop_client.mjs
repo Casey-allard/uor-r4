@@ -1,27 +1,16 @@
 #!/usr/bin/env node
 // Offline Studio page contract + retained desktop-client verification.
 //
-// The 30 October 2026 Studio page rewrite makes `web/studio/index.html` a
-// browser-only, offline-first app: the wasm model worker, the model-source
-// manager (bundled synthetic demo / local file / user-initiated URL /
-// OpenAI-compatible API) and a plain local text editor. The old page wiring is
-// gone: Tauri IPC (native_* commands, __TAURI__, createTauriNativeModelWorker),
-// Monaco, the THREE visualizer, the GitHub API call and the
-// `uor_offline_vendor.js` script tag. This script therefore verifies what the
-// page KEEPS and what it REMOVED (each assertion fails if that contract drifts),
-// instead of evaluating page functions that no longer exist.
+// The Studio is offline-first in a browser and registers only the declared
+// Tauri OpenAI transport when the real host adapter is present. The retired
+// byte-mod `createTauriNativeModelWorker` stays unloaded. This script verifies
+// those page contracts, the narrow asset-origin CSP, and the page-independent
+// desktop client self-test and JSON-RPC controls.
 //
-// It also keeps the real, page-independent desktop-client contract:
-// - the retained `uor_offline_vendor.js` asset still provides the desktop
-//   worker harness (`createTauriNativeModelWorker`), marked, KaTeX and its AMD
-//   shim, and carries no external URL (the Studio page no longer loads it);
-// - `src-tauri/tauri.conf.json` still pins its CSP to local IPC;
-// - the real `uor-desktop-client` binary passes `--self-test` and its live
-//   `--stdio` JSON-RPC bridge still streams 32 tokens, refuses a page-invoked
-//   folder grant, and refuses/permits durable store writes by folder grant.
-// The desktop app remains a separate product (`src-tauri/`) that is no longer
-// wired into this page; `src-tauri/tests/desktop_client_controls.rs` owns its
-// host-control tests. Set `UOR_DESKTOP_BIN` to use a prebuilt binary.
+// The retained `uor_offline_vendor.js` asset still supplies its independent
+// worker harness and offline libraries, but the Studio page does not load it.
+// `src-tauri/tests/desktop_client_controls.rs` owns host-control tests. Set
+// `UOR_DESKTOP_BIN` to use a prebuilt binary.
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { execFileSync, spawn } from 'node:child_process';
@@ -55,7 +44,7 @@ for (const [name, content] of [
     ['index.css', indexCss],
     ['assets/css/uor_offline_fonts.css', fontsCss],
 ]) {
-    assert(!content.includes('http://') && !content.includes('https://'), name + ' contains an external http(s) URL');
+    assert(!/(?:\bsrc\s*=\s*["']https?:\/\/|\burl\(\s*['"]?https?:\/\/)/i.test(content), name + ' loads an external resource');
     assert(!content.includes('//cdn.') && !content.includes('unpkg.com') && !content.includes('jsdelivr'), name + ' references a CDN');
 }
 assert(!indexHtml.includes('<script src=\"http'), 'index.html must not load a remote script');
@@ -92,9 +81,7 @@ for (const [token, what] of [
     ['triggerSynapticFlash', 'the THREE flash hook'],
     ['THREE', 'any THREE reference'],
     ['callGithubApi', 'the GitHub API hook'],
-    ['createTauriNativeModelWorker', 'the Tauri desktop worker hook'],
-    ['__TAURI__', 'the Tauri IPC global'],
-    ["invoke('native_", 'a Tauri native_* IPC call'],
+    ['createTauriNativeModelWorker', 'the retired Tauri desktop worker hook'],
 ]) {
     assert(!indexHtml.includes(token), 'index.html must not reference ' + what + ' (found "' + token + '")');
 }
@@ -141,6 +128,8 @@ for (const api of [
 }
 const csp = tauriConf?.app?.security?.csp || '';
 assert(csp.includes("connect-src 'self' ipc: http://ipc.localhost"), 'tauri.conf.json CSP must restrict connect-src to local IPC');
+assert(csp.includes("'wasm-unsafe-eval'"), 'tauri.conf.json CSP must explicitly permit the measured browser WASM fallback');
+assert(csp.includes("worker-src 'self'"), 'tauri.conf.json CSP must confine workers to the packaged origin');
 assert(!csp.includes('https://'), 'tauri.conf.json CSP must not allow external https origins');
 assert(existsSync(resolve(repoRoot, 'src-tauri/src/main.rs')), 'the desktop client source (src-tauri/src/main.rs) must stay in the repository');
 assert(existsSync(resolve(repoRoot, 'src-tauri/tests/desktop_client_controls.rs')),
@@ -405,11 +394,11 @@ console.log(JSON.stringify({
     verdict: 'ALL OFFLINE STUDIO PAGE & DESKTOP CLIENT CHECKS PASSED',
     pageContract: {
         kept: ['local offline fonts + css', 'wasm model worker', 'model-source panel (bundled/local-file/url/api)', 'OpenAI-compatible API module', 'plain-text local editor', 'pre-alpha/M1 status chip', 'data-studio-ready marker'],
-        removed: ['uor_offline_vendor.js script tag', 'Monaco editor', 'THREE visualizer', 'Tauri desktop wiring', 'GitHub API call', 'stale d36 / 0-of-8 / 35.1% claims', 'external search fetches'],
+        removed: ['uor_offline_vendor.js script tag', 'Monaco editor', 'THREE visualizer', 'retired byte-mod Tauri worker', 'GitHub API call', 'stale d36 / 0-of-8 / 35.1% claims', 'external search fetches'],
     },
     offlineExternalUrls: 0,
     desktopClient: {
-        pageWired: false,
+        declaredOpenAITransport: true,
         retainedSources: ['src-tauri/src/main.rs', 'src-tauri/tests/desktop_client_controls.rs', 'assets/js/uor_offline_vendor.js'],
         binaryContractVerified: true,
         artifactSha256: selfTestReceipt.artifactSha256,

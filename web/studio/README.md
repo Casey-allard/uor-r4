@@ -38,9 +38,9 @@ contract, the status markers and the engine/worker/model-source/API layer are un
 The console shell above was superseded after owner feedback that it was "janky" with menus that
 were "not organized or labeled very well". The page is now a workable AI studio:
 
-- **One labeled navigation sidebar** with exactly four destinations: **Agent** (chat, context and
-  build tasks; ⌘1), **Workspace** (file tree, editor tabs and save; ⌘2), **Connections** (UOR Chat,
-  custom API providers and artifact diagnostics; ⌘3) and **Guide** (workflows, shortcuts, limits; ⌘4). A
+- **One labeled navigation sidebar** with six destinations: **Chat** (conversation and
+  build tasks; ⌘1), **Files** (file tree, editor tabs and save; ⌘2), **Changes** (bounded Git status/diff; ⌘4), **Terminal** (host-approved commands; ⌘5), **Connections** (UOR Chat,
+  MCP servers, custom API providers and artifact diagnostics; ⌘3) and **Settings** (appearance, data and About; ⌘,). Guide remains available for workflows, shortcuts and limits. A
   permanent **Sessions** section lists title/preview/relative time with a `⋯` menu (Rename,
   Duplicate, Export JSON, Delete with an in-app confirm). Settings (⌘,) and Help (?) live in the
   sidebar footer. The old icon rail, segmented view switch and duplicate controls are gone; their
@@ -60,7 +60,7 @@ were "not organized or labeled very well". The page is now a workable AI studio:
 - **Command palette** (⌘K, also `#command-palette`) has eight groups - Navigation, Sessions,
   Workspace, Agent, Models, Build, Interface, Help - with label, one-line description and only
   implemented shortcuts; the list scrolls with the footer pinned. The implemented shortcut map is:
-  ⌘K, ⌘, , ⌘1-4, ⌘B, ⌘I, ⌘S, ⇧⌘S, Enter/Shift+Enter, Esc and ?. QA deep links `#view=`,
+  ⌘K, ⌘, , ⌘1-6, ⌘B, ⌘I, ⌘S, ⇧⌘S, Enter/Shift+Enter, Esc and ?. QA deep links `#view=`,
   `?theme=` and `#command-palette` exist for screenshots/tests.
 - **Responsive:** at 390px the navigation is a labeled drawer, the inspector is hidden, the composer
   is sticky and the status bar is two labeled rows; measured `scrollWidth == innerWidth`.
@@ -72,7 +72,7 @@ were "not organized or labeled very well". The page is now a workable AI studio:
 
 ### Native IDE and simplified connections (2 November 2026)
 
-The source page uses a Mac-inspired application treatment: system typography, opaque panels, softer radii, compact controls with at least 24px targets, and a 2px keyboard-focus outline in dark and light themes. Dark mode uses neutral black/graphite layers with a measured system-blue accent; light-theme layout and controls are unchanged, with text-accent contrast corrected to `#8f3f14`. Connections presents **UOR Chat — experimental** as the primary local source through the existing synthetic WASM path, with **Custom API providers** beside it and M1/research/local-file/URL tools inside a closed **Artifact diagnostics** region. The original source buttons, listeners, `data-action` values, storage, readiness checks, and capability labels are preserved; configuration still does not prove reachability. These are source changes, not a production publish or trained-chat claim. Real remote MCP support is a separate protocol unit, and desktop stdio remains a later host bridge.
+The source page uses a Mac-inspired application treatment: system typography, opaque panels, softer radii, compact controls with at least 24px targets, and a 2px keyboard-focus outline in dark and light themes. Dark mode uses neutral black/graphite layers with a measured system-blue accent; light-theme layout and controls are unchanged, with text-accent contrast corrected to `#8f3f14`. Connections presents **UOR Chat — experimental** as the primary local source through the existing synthetic WASM path, with **Custom API providers** beside it and M1/research/local-file/URL tools inside a closed **Artifact diagnostics** region. The original source buttons, listeners, `data-action` values, storage, readiness checks, and capability labels are preserved; configuration still does not prove reachability. These are source changes, not a production publish or trained-chat claim. Remote Streamable HTTP MCP and native remote/stdio MCP are now implemented behind explicit Connect/Call actions and host confirmation; native GUI acceptance remains separate work.
 
 ### IDE experience in the Studio source (2 November 2026)
 

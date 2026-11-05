@@ -17,7 +17,7 @@ describe('conversation-first Studio theme', () => {
         expect(styles).toMatch(/body\[data-view="chat"\] #chatInput[^}]*font-size:\s*16px/s);
         expect(styles).toContain('body[data-view="chat"] .empty-quick-primary');
         expect(styles).toMatch(/body\[data-view="chat"\] \.view-head-actions \.ghost-btn,\s*body\[data-view="chat"\] \.view-head-actions \.badge\s*\{[^}]*display:\s*inline-flex\s*!important/s);
-        expect(styles).toMatch(/body\[data-view="chat"\] #btnOpenModelSources,\s*body\[data-view="chat"\] #btnNewChat2\s*\{\s*display:\s*inline-flex\s*!important/s);
+        expect(styles).toMatch(/body\[data-view="chat"\] #btnOpenModelSources\s*\{\s*display:\s*inline-flex\s*!important/s);
     });
 
     it('keeps the mobile header compact and uses system typography', () => {

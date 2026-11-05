@@ -1,29 +1,28 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "UOR-R4 Desktop Client",
+  "productName": "UOR Harness",
   "version": "0.1.0",
   "identifier": "org.uor.r4.desktop",
   "build": {
-    "frontendDist": "../web/studio"
+    "frontendDist": "./runtime/studio"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "title": "UOR-R4 Sovereign AI Developer Studio (Desktop)",
-        "width": 1440,
-        "height": 900,
-        "resizable": true,
-        "fullscreen": false
-      }
-    ],
+    "windows": [],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; worker-src 'self'",
       "capabilities": ["default"]
     }
   },
   "bundle": {
-    "active": false,
-    "targets": "all"
+    "active": true,
+    "targets": "app",
+    "externalBin": ["binaries/uor-chat"],
+    "resources": {
+      "runtime/studio/pkg/": "pkg/",
+      "runtime/studio/models.json": "models.json",
+      "runtime/studio/SHA256SUMS": "SHA256SUMS"
+    },
+    "icon": ["icons/icon.png", "icons/icon.icns"]
   }
 }

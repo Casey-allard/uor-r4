@@ -88,14 +88,40 @@
 
     /* navigation */
     var SECTIONS = {
-        agent: { view: 'chat', label: 'Agent', purpose: 'Chat with the agent, manage sessions, attach context and run build tasks.' },
-        workspace: { view: 'workspace', label: 'Workspace', purpose: 'Open a folder, edit files in tabs and save them back to disk.' },
-        models: { view: 'model', label: 'Connections', purpose: 'UOR Chat, custom API providers, and artifact diagnostics.' },
+        agent: { view: 'chat', label: 'Chat', purpose: 'Chat with the agent, manage sessions, attach context and run build tasks.' },
+        workspace: { view: 'workspace', label: 'Files', purpose: 'Open a folder, edit files in tabs and save them back to disk.' },
+        changes: { view: 'changes', label: 'Changes', purpose: 'Inspect repository status and the working-tree diff.' },
+        terminal: { view: 'terminal', label: 'Terminal', purpose: 'Run explicitly approved commands inside a granted folder.' },
+        models: { view: 'model', label: 'Connections', purpose: 'UOR Chat, MCP servers, custom API providers, and local models.' },
         guide: { view: 'guide', label: 'Guide', purpose: 'Quick start, the build-this-studio workflow, shortcuts and honest limits.' }
     };
     function sectionForView(view) { return view === 'chat' ? 'agent' : (view === 'model' ? 'models' : (view === 'workspace' || view === 'editor' || view === 'files' ? 'workspace' : (SECTIONS[view] ? view : 'agent'))); }
     function syncSectionNavigation(section) {
         $all('.nav-item').forEach(function (item) { var active = item.getAttribute('data-section') === section; item.setAttribute('aria-current', active ? 'page' : 'false'); item.classList.toggle('is-active', active); });
+    }
+    var sectionHistory = [];
+    var sectionHistoryIndex = -1;
+    function updateSectionHistoryButtons() {
+        var back = document.getElementById('btnSectionBack');
+        var forward = document.getElementById('btnSectionForward');
+        if (back) {
+            back.disabled = sectionHistoryIndex <= 0;
+            var backLabel = back.disabled ? 'Back' : 'Back to ' + SECTIONS[sectionHistory[sectionHistoryIndex - 1]].label;
+            back.title = backLabel;
+            back.setAttribute('aria-label', backLabel);
+        }
+        if (forward) {
+            forward.disabled = sectionHistoryIndex < 0 || sectionHistoryIndex >= sectionHistory.length - 1;
+            var forwardLabel = forward.disabled ? 'Forward' : 'Forward to ' + SECTIONS[sectionHistory[sectionHistoryIndex + 1]].label;
+            forward.title = forwardLabel;
+            forward.setAttribute('aria-label', forwardLabel);
+        }
+    }
+    function navigateSectionHistory(direction) {
+        var next = sectionHistoryIndex + direction;
+        if (next < 0 || next >= sectionHistory.length) return;
+        sectionHistoryIndex = next;
+        activateSection(sectionHistory[next], { fromHistory: true });
     }
     function activateSection(name, options) {
         var section = SECTIONS[name] ? name : 'agent';
@@ -109,6 +135,17 @@
         if (label) label.textContent = meta.label;
         var sessions = document.getElementById('sessionSection');
         if (sessions) sessions.classList.remove('is-hidden');
+        if (!options || !options.fromHistory) {
+            if (sectionHistoryIndex < 0) {
+                sectionHistory = [section];
+                sectionHistoryIndex = 0;
+            } else if (sectionHistory[sectionHistoryIndex] !== section) {
+                sectionHistory = sectionHistory.slice(0, sectionHistoryIndex + 1);
+                sectionHistory.push(section);
+                sectionHistoryIndex = sectionHistory.length - 1;
+            }
+        }
+        updateSectionHistoryButtons();
         if (!options || !options.silent) {
             if (window.matchMedia('(max-width: 900px)').matches) setChrome('nav', 'collapsed', true);
             updateStatus();
@@ -221,8 +258,10 @@
             sections.appendChild(verifyNote);
         }
         var nativeGuide = mount.querySelector('#nativeRunnerGuide');
-        if (nativeGuide && nativeGuide.parentElement !== sections) {
-            sections.insertBefore(nativeGuide, sections.firstChild);
+        if (nativeGuide) {
+            var previousGuide = sections.querySelector('#nativeRunnerGuide');
+            if (previousGuide && previousGuide !== nativeGuide) previousGuide.remove();
+            if (nativeGuide.parentElement !== sections) sections.insertBefore(nativeGuide, sections.firstChild);
         }
         var freshGroups = mount.querySelectorAll('.source-group');
         if (freshGroups.length > 1) {
@@ -269,6 +308,30 @@
     /* sessions */
     function sessionList() { var fn = hook('listSessions'); return fn ? fn() : []; }
     function activeSessionId() { var fn = hook('activeSessionId'); return fn ? fn() : null; }
+    function syncSessionSwitcher(sessions) {
+        var select = document.getElementById('sessionSwitcher');
+        if (!select) return;
+        var signature = sessions.map(function (session) { return session.id + ':' + session.title; }).join('|');
+        if (select.getAttribute('data-signature') !== signature) {
+            select.textContent = '';
+            if (!sessions.length) {
+                var empty = document.createElement('option');
+                empty.value = '';
+                empty.textContent = 'No sessions';
+                select.appendChild(empty);
+            } else {
+                sessions.forEach(function (session) {
+                    var option = document.createElement('option');
+                    option.value = session.id;
+                    option.textContent = session.title || 'Untitled session';
+                    select.appendChild(option);
+                });
+            }
+            select.setAttribute('data-signature', signature);
+        }
+        select.disabled = !sessions.length;
+        if (sessions.length) select.value = activeSessionId() || sessions[0].id;
+    }
     function sessionMenuButton(item) {
         if (item.querySelector('.conv-menu')) return;
         var button = document.createElement('button');
@@ -663,7 +726,9 @@
             cmd('NAVIGATION', 'Go to Agent', 'Chat, context and build tasks.', '⌘1', function () { activateSection('agent'); }),
             cmd('NAVIGATION', 'Go to Workspace', 'File tree, editor tabs, save.', '⌘2', function () { activateSection('workspace'); }),
             cmd('NAVIGATION', 'Go to Connections', 'UOR Chat, custom providers, artifact diagnostics.', '⌘3', function () { activateSection('models'); }),
-            cmd('NAVIGATION', 'Go to Guide', 'Quick start, workflows, shortcuts, limits.', '⌘4', function () { activateSection('guide'); }),
+            cmd('NAVIGATION', 'Go to Changes', 'Repository status and working-tree diff.', '⌘4', function () { activateSection('changes'); }),
+            cmd('NAVIGATION', 'Go to Terminal', 'Explicitly approved commands in a granted folder.', '⌘5', function () { activateSection('terminal'); }),
+            cmd('NAVIGATION', 'Go to Guide', 'Quick start, workflows, shortcuts, limits.', '⌘6', function () { activateSection('guide'); }),
 
             cmd('SESSIONS', 'New session', 'Start a clean agent thread.', '', newSessionAction),
             cmd('SESSIONS', 'Rename current session…', 'Give the active thread a clear title.', '', function () { var item = document.querySelector('#sessionRowsV2 .session-row.is-active'); if (item) { var menu = item.querySelector('.conv-menu'); if (menu) menu.click(); } else toast('No active session.', 'info'); }),
@@ -676,7 +741,7 @@
             cmd('WORKSPACE', 'New file…', 'Create an empty editor tab.', '', function () { var files = window.__studioFiles; if (files) files.newFile(); }),
             cmd('WORKSPACE', 'Save file', 'Write the active tab back to disk (or download).', '⌘S', function () { var files = window.__studioFiles; if (files) files.saveActive(); }),
             cmd('WORKSPACE', 'Save as…', 'Download a copy of the active file.', '⇧⌘S', function () { var files = window.__studioFiles; if (files) files.saveAsCopy(); }),
-            cmd('WORKSPACE', 'Close tab', 'Close the active editor tab.', '', function () { var files = window.__studioFiles; if (files) { var active = files.activeFile(); if (active) files.closeTab(active.path); } }),
+            cmd('WORKSPACE', 'Close tab', 'Close the active editor tab.', '', function () { var files = window.__studioFiles; if (files) { var active = files.activeFile(); if (active) files.closeTab(active.path, active.rootPath); } }),
 
             cmd('AGENT', 'Attach current file', 'Add the active editor file to context.', '', attachContext),
             cmd('AGENT', 'Attach selection', 'Attach the active file text as context.', '', attachContext),
@@ -715,7 +780,7 @@
         var files = window.__studioFiles;
         if (files && files.tabs) {
             files.tabs().slice(0, 8).forEach(function (tab) {
-                list.push(cmd('WORKSPACE', 'File: ' + tab.path, tab.dirty ? 'Open tab · unsaved' : 'Open tab', '', function () { if (files.openFile) files.openFile(tab.path); }));
+                list.push(cmd('WORKSPACE', 'File: ' + tab.path, tab.dirty ? 'Open tab · unsaved' : 'Open tab', '', function () { if (files.openFile) files.openFile(tab.path, tab.rootPath); }));
             });
         }
         var ORDER = ['NAVIGATION', 'SESSIONS', 'WORKSPACE', 'AGENT', 'MODELS', 'BUILD', 'INTERFACE', 'HELP'];
@@ -921,6 +986,7 @@
         setText('#ctxPrivacy', native ? 'native loopback' : (api ? 'api (leaves device)' : 'local only'));
         setText('#ctxStorage', storage || 'unknown');
         var sessions = sessionList();
+        syncSessionSwitcher(sessions);
         var active = sessions.find(function (session) { return session.id === activeSessionId(); });
         setText('#statusSession', sessions.length ? (active ? 'session: ' + active.title.slice(0, 34) : 'session: ' + sessions.length) : 'session: new');
         var files = window.__studioFiles;
@@ -951,9 +1017,25 @@
     function on(id, event, handler) { var node = document.getElementById(id); if (node) node.addEventListener(event, handler); }
 
     function wire() {
-        ['navAgent', 'navWorkspace', 'navModels', 'navGuide'].forEach(function (id) {
+        ['navAgent', 'navWorkspace', 'navChanges', 'navTerminal', 'navModels', 'navGuide'].forEach(function (id) {
             var name = id.replace('nav', '').toLowerCase();
             on(id, 'click', function () { activateSection(name); });
+        });
+        on('navSettings', 'click', openSettings);
+        on('btnSessionNav', 'click', function () { toggleChrome('nav'); });
+        on('btnSectionBack', 'click', function () { navigateSectionHistory(-1); });
+        on('btnSectionForward', 'click', function () { navigateSectionHistory(1); });
+        on('btnSessionChanges', 'click', function () { activateSection('changes'); });
+        on('btnSessionTerminal', 'click', function () { activateSection('terminal'); });
+        on('btnSessionFiles', 'click', function () { activateSection('workspace'); });
+        on('btnSessionNew', 'click', function () { closePalette(); newSessionAction(); });
+        on('btnSessionOptions', 'click', openPalette);
+        on('sessionSwitcher', 'change', function (event) {
+            var fn = hook('selectSession');
+            if (fn) fn(event.target.value);
+            activateSection('agent');
+            renderSessionRows();
+            updateStatus();
         });
         on('btnToggleNav', 'click', function () { toggleChrome('nav'); });
         on('btnNavCollapse', 'click', function () { toggleChrome('nav'); });
@@ -961,7 +1043,7 @@
         on('btnNavScrim', 'click', function () { setChrome('nav', 'collapsed', true); });
         ['btnToggleInspector', 'btnToggleInspector2', 'btnToggleInspector3', 'btnToggleInspector4', 'btnInspectorCollapse'].forEach(function (id) { on(id, 'click', function () { toggleChrome('inspector'); }); });
         on('btnOpenModelSources', 'click', function () { activateSection('models'); });
-        on('ctxOpenFiles', 'click', function () { activateSection('files'); });
+        on('ctxOpenFiles', 'click', function () { activateSection('workspace'); });
         on('btnGuideAgent', 'click', function () { activateSection('agent'); });
         $all('[data-guide-nav]').forEach(function (button) { button.addEventListener('click', function () { activateSection(button.getAttribute('data-guide-nav')); }); });
         ['btnTheme', 'railTheme'].forEach(function (id) { on(id, 'click', toggleTheme); });
@@ -1041,10 +1123,10 @@
             var typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
             var templateMenuState = document.getElementById('templateMenu');
             var overlayActive = paletteOpen || sessionPopover || (templateMenuState && !templateMenuState.hidden) || document.querySelector('.modal-backdrop:not([hidden])');
-            if (overlayActive && meta && ['1', '2', '3', '4', 'b', 'B', 'i', 'I'].indexOf(event.key) >= 0) { event.preventDefault(); return; }
+            if (overlayActive && meta && ['1', '2', '3', '4', '5', '6', 'b', 'B', 'i', 'I'].indexOf(event.key) >= 0) { event.preventDefault(); return; }
             if (meta && (event.key === 'k' || event.key === 'K')) { event.preventDefault(); if (paletteOpen) closePalette(); else openPalette(); return; }
             if (meta && event.key === ',') { event.preventDefault(); openSettings(); return; }
-            if (meta && ['1', '2', '3', '4'].indexOf(event.key) >= 0 && !event.shiftKey && !event.altKey) { event.preventDefault(); activateSection({ '1': 'agent', '2': 'workspace', '3': 'models', '4': 'guide' }[event.key]); return; }
+            if (meta && ['1', '2', '3', '4', '5', '6'].indexOf(event.key) >= 0 && !event.shiftKey && !event.altKey) { event.preventDefault(); activateSection({ '1': 'agent', '2': 'workspace', '3': 'models', '4': 'changes', '5': 'terminal', '6': 'guide' }[event.key]); return; }
             if (meta && (event.key === 'b' || event.key === 'B')) { event.preventDefault(); toggleChrome('nav'); return; }
             if (meta && (event.key === 'i' || event.key === 'I')) { event.preventDefault(); toggleChrome('inspector'); return; }
             if (!typing && !event.metaKey && !event.ctrlKey && event.key === '?') { event.preventDefault(); openHelp(); return; }
@@ -1077,6 +1159,11 @@
         if (navMedia && navMedia.addEventListener) navMedia.addEventListener('change', syncNavPresentation);
         window.addEventListener('pagehide', function () { if (clockTimer) window.clearInterval(clockTimer); });
         window.addEventListener('focus', updateStatus);
+    }
+
+    function hashViewSection() {
+        var match = (window.location.hash || '').match(/^#view=(agent|files|editor|models|guide|chat|model|changes|terminal)$/);
+        return match ? sectionForView(match[1]) : null;
     }
 
     function applyHash() {
@@ -1122,13 +1209,8 @@
             window.setTimeout(function () { activateSection('agent'); }, 120);
             return;
         }
-        var match = hash.match(/^#view=(agent|files|editor|models|guide|chat|model)$/);
-        if (match) {
-            var name = match[1];
-            if (name === 'chat') name = 'agent';
-            if (name === 'model') name = 'models';
-            window.setTimeout(function () { activateSection(name); }, 120);
-        }
+        var linkedSection = hashViewSection();
+        if (linkedSection) window.setTimeout(function () { activateSection(linkedSection); }, 120);
     }
 
     function promptUrl() {
@@ -1153,12 +1235,14 @@
     function boot() {
         if (ready) return;
         ready = true;
+        updateSectionHistoryButtons();
         initialChrome();
         applySettings();
         updateThemeButton();
         updateStatus();
         renderAttachments();
         wire();
+        activateSection(hashViewSection() || sectionForView(document.body.dataset.view || 'chat'), { silent: true });
         updateStatus();
         watchSessions();
         watchMessages();
