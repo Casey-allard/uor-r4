@@ -191,6 +191,11 @@ pub struct LongConfig {
     /// changes nothing. Left out of `config.json` when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub train_as_served: bool,
+    /// Anchored writer ports (claude-290): the shared table's two port blocks hold exactly the
+    /// roots of each token's own cell, set at build and after every main step, and their
+    /// gradient is masked before it ([`WriterAnchor`]). Left out of `config.json` when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub writer_anchor: bool,
     /// The training window (claude-273): TRAIN is cut into windows of this many tokens, and the
     /// model is built to read this many positions ([`StackModel::set_context`]); 2 to 4,096.
     /// DEV's evaluation keeps [`SHEET_CONTEXT`]'s windows. Left out of `config.json` at
@@ -879,6 +884,128 @@ fn table(model: &StackModel) -> Result<Tensor> {
     Ok(var.as_tensor().clone())
 }
 
+/// The two SpiralCore roots of `token`'s own writer cell (claude-290): the cell is the token
+/// modulo 256 and its ports are roots `(cell / 16, cell % 16)`, so cell = 16 * a + b.
+fn writer_anchor_cell_roots(token: u32) -> (usize, usize) {
+    let c = token as usize % crate::native_vector_writer::CELLS;
+    (c / 16, c % 16)
+}
+
+/// Refuses a table the anchored ports cannot hold (claude-290): under 16 columns, where the
+/// writer's two ports alias one block, and anything the writer itself refuses.
+fn writer_anchor_check(vocabulary: usize, width: usize) -> Result<()> {
+    if width < 16 {
+        return Err(invalid("anchored writer ports need two separate 8D blocks (width >= 16)"));
+    }
+    crate::native_vector_writer::WriterSpec {
+        vocabulary,
+        width,
+        kept_cells: crate::native_vector_writer::DEFAULT_KEPT_CELLS,
+    }
+    .validate()
+}
+
+/// The anchored ports' constants (claude-290), built on the host as the writer builds its roots:
+/// row-major (vocabulary, width) values holding each token's cell roots in columns 0..8 and
+/// width-8..width and 0 elsewhere, and the width-long keep mask, 0 on those 16 columns.
+fn writer_anchor_layout(vocabulary: usize, width: usize) -> Result<(Vec<f32>, Vec<f32>)> {
+    writer_anchor_check(vocabulary, width)?;
+    let roots = crate::spiralcore_fbs::ProjectionPlan::new(8, 8)?.geometry.roots;
+    let mut values = vec![0f32; vocabulary * width];
+    for (token, row) in values.chunks_mut(width).enumerate() {
+        let (a, b) = writer_anchor_cell_roots(token as u32);
+        for (v, r) in row[..8].iter_mut().zip(roots[a]) {
+            *v = f32::from(r);
+        }
+        for (v, r) in row[width - 8..].iter_mut().zip(roots[b]) {
+            *v = f32::from(r);
+        }
+    }
+    let keep = (0..width)
+        .map(|j| if j < 8 || j >= width - 8 { 0.0 } else { 1.0 })
+        .collect();
+    Ok((values, keep))
+}
+
+/// Anchored writer ports (claude-290): the shared table's two port blocks hold exactly the
+/// roots of each token's own cell, so a token's own vector addresses its cell at score 0. The
+/// other columns stay learned.
+struct WriterAnchor {
+    /// (vocabulary, width): the roots in the port blocks, 0 elsewhere.
+    values: Tensor,
+    /// (1, width): 0 on the 16 port columns, 1 on the learned ones.
+    keep: Tensor,
+}
+
+fn writer_anchor_table(model: &StackModel) -> Result<&candle_core::Var> {
+    let var = model
+        .variables()
+        .get("embedding.weight")
+        .ok_or_else(|| invalid("anchored writer ports need the shared vector table"))?;
+    Ok(var)
+}
+
+impl WriterAnchor {
+    fn new(model: &StackModel) -> Result<Self> {
+        let table = writer_anchor_table(model)?.as_tensor();
+        // Refuse before any model arithmetic, as the writer does.
+        if !table.device().is_cuda() {
+            return Err(invalid("anchored writer ports require CUDA; no host fallback"));
+        }
+        if table.dtype() != DType::F32 {
+            return Err(invalid("anchored writer ports need an F32 shared vector table"));
+        }
+        let (vocabulary, width) = table.dims2()?;
+        let (values, keep) = writer_anchor_layout(vocabulary, width)?;
+        Ok(Self {
+            values: Tensor::from_vec(values, (vocabulary, width), table.device())?,
+            keep: Tensor::from_vec(keep, (1, width), table.device())?,
+        })
+    }
+
+    /// Sets the table to `table * keep + values`: the port blocks back to their roots, the
+    /// learned columns as they are. Run after every main step, whose weight decay scales them.
+    fn project(&self, model: &StackModel) -> Result<()> {
+        let var = writer_anchor_table(model)?;
+        let anchored = var
+            .as_tensor()
+            .detach()
+            .broadcast_mul(&self.keep)?
+            .add(&self.values)?;
+        var.set(&anchored)?;
+        Ok(())
+    }
+
+    /// Zeroes the table's gradient on the port columns, so the clip norm and the Adam moments
+    /// are not spent on columns the projection overwrites.
+    fn mask(&self, model: &StackModel, grads: &mut candle_core::backprop::GradStore) -> Result<()> {
+        let table = writer_anchor_table(model)?.as_tensor();
+        if let Some(grad) = grads.remove(table) {
+            grads.insert(table, grad.broadcast_mul(&self.keep)?);
+        }
+        Ok(())
+    }
+}
+
+/// The main optimizer's step under anchored ports (claude-290), the one sequence both training
+/// loops run: mask the port gradient, `update`, then project the ports back to their roots.
+/// Without an anchor, `update` alone.
+fn anchored_update(
+    anchor: Option<&WriterAnchor>,
+    model: &StackModel,
+    grads: &mut candle_core::backprop::GradStore,
+    update: impl FnOnce(&candle_core::backprop::GradStore) -> Result<f64>,
+) -> Result<f64> {
+    if let Some(a) = anchor {
+        a.mask(model, grads)?;
+    }
+    let norm = update(grads)?;
+    if let Some(a) = anchor {
+        a.project(model)?;
+    }
+    Ok(norm)
+}
+
 /// `relu(margin + rival − target)`: `rival` is (rows, k), `target` is (rows, 1).
 fn hinge(rival: &Tensor, target: &Tensor, margin: f64) -> Result<Tensor> {
     Ok(rival.broadcast_sub(target)?.affine(1.0, margin)?.relu()?)
@@ -971,7 +1098,11 @@ fn rival_hinge(rival: &Tensor, target: &Tensor, cell: bool) -> Result<Tensor> {
 /// `SHEET_RIVALS` nearest wrong tokens. Their choice carries no gradient; their displacement and
 /// the target's do.
 fn nearest_loss(model: &StackModel, query: &Tensor, targets: &[u32], cell: bool) -> Result<Tensor> {
-    let table = table(model)?;
+    nearest_loss_on(&table(model)?, query, targets, cell)
+}
+
+/// [`nearest_loss`] against the shared vector table `table`.
+fn nearest_loss_on(table: &Tensor, query: &Tensor, targets: &[u32], cell: bool) -> Result<Tensor> {
     let (rows, width) = query.dims2()?;
     let device = query.device();
     let scores = nearest_scores(query, &table)?;
@@ -10671,6 +10802,13 @@ pub fn run_recall(
     crate::geometric_stack::set_input_table_fixed(config.fix_input_table);
     let _guard = ArmGuard;
     let model = build_fbs_model_at(FbsArm::OneAtomActive, config.seed, config.width, device)?;
+    let anchor = if config.writer_anchor {
+        let a = WriterAnchor::new(&model)?;
+        a.project(&model)?;
+        Some(a)
+    } else {
+        None
+    };
     let mut flock = if config.flock_read > 0 {
         let read = crate::flock_read::FlockRead::new(config.flock_read, config.width, device)?;
         crate::flock_read::set_flock_read(Some(read.clone()));
@@ -10766,7 +10904,7 @@ pub fn run_recall(
         let refs: Vec<&CausalWindow> = windows.iter().collect();
         let (ids, scored, targets) = assemble(&refs);
         let started = Instant::now();
-        let (value, grads) = hs::with_gate_mode(
+        let (value, mut grads) = hs::with_gate_mode(
             HamiltonArm::HamiltonActive,
             config.seed,
             step + 1,
@@ -10794,7 +10932,9 @@ pub fn run_recall(
             step as f64 / (config.steps - 1) as f64
         };
         let lr = config.lr + (config.lr_end - config.lr) * progress;
-        opt_main.update_filtered(&model, &grads, lr, |name| !name.ends_with("rec.decay"))?;
+        anchored_update(anchor.as_ref(), &model, &mut grads, |g| {
+            opt_main.update_filtered(&model, g, lr, |name| !name.ends_with("rec.decay"))
+        })?;
         if let Some((read, opt)) = flock.as_mut() {
             opt.step(read, &grads, lr)?;
         }
@@ -11314,6 +11454,13 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         );
     }
     let model = build_long_model(config.fbs_arm, config, device)?;
+    let anchor = if config.writer_anchor {
+        let a = WriterAnchor::new(&model)?;
+        a.project(&model)?;
+        Some(a)
+    } else {
+        None
+    };
     // The Flock read, when on: its own parameters and optimizer, applied by `points`.
     let flock = if config.flock_read > 0 {
         let read = crate::flock_read::FlockRead::new(config.flock_read, config.width, device)?;
@@ -11612,7 +11759,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         // The gate hook carries the real step: at step 0 its backward runs diagnostics with host
         // syncs, and a checkpoint's replies leave it at 0. Training as served adds the complete
         // quantization bridge and Q12 query used by the exported graph.
-        let (value, grads) = with_training_forward(
+        let (value, mut grads) = with_training_forward(
             config.train_as_served,
             config.seed,
             step,
@@ -11651,8 +11798,10 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             step as f64 / (config.steps - 1) as f64
         };
         let lr = config.lr + (config.lr_end - config.lr) * progress;
-        opt_main.update_filtered(&model, &grads, lr, |name| {
-            main_optimizer_updates(name, config.fbs_arm)
+        anchored_update(anchor.as_ref(), &model, &mut grads, |g| {
+            opt_main.update_filtered(&model, g, lr, |name| {
+                main_optimizer_updates(name, config.fbs_arm)
+            })
         })?;
         stage_clock::mark("optimizer.main");
         if let Some((read, opt)) = flock.as_mut() {
@@ -12657,6 +12806,7 @@ mod tests {
             fbs_arm: FbsArm::OneAtomActive,
             reply_read_train: None,
             train_as_served: false,
+            writer_anchor: false,
             context: hs::SHEET_CONTEXT,
         }
     }
@@ -12672,6 +12822,210 @@ mod tests {
         let long = LongConfig { context: 2_048, ..config(0, None) };
         let long = String::from_utf8(serde_json::to_vec_pretty(&long).unwrap()).unwrap();
         assert!(long.contains("\"context\": 2048"), "{long}");
+    }
+
+    /// claude-290: a token's anchored ports are its own cell's roots. Cell = 16 * a + b is the
+    /// order the writer's `address_scores` flattens its ports in (a.unsqueeze(2) +
+    /// b.unsqueeze(1), reshaped), so port A holds root a and port B root b.
+    #[test]
+    fn writer_anchor_layout_holds_each_cells_roots() {
+        let roots = crate::spiralcore_fbs::ProjectionPlan::new(8, 8).unwrap().geometry.roots;
+        for c in 0..256usize {
+            for k in 0..2 {
+                assert_eq!(writer_anchor_cell_roots((c + 256 * k) as u32), (c / 16, c % 16));
+            }
+        }
+        for width in [16, 256] {
+            let (values, keep) = writer_anchor_layout(512, width).unwrap();
+            assert_eq!(values.len(), 512 * width);
+            for (t, row) in values.chunks(width).enumerate() {
+                let (a, b) = writer_anchor_cell_roots(t as u32);
+                assert_eq!(row[..8], roots[a].map(f32::from), "token {t}");
+                assert_eq!(row[width - 8..], roots[b].map(f32::from), "token {t}");
+                assert!(row[8..width - 8].iter().all(|&v| v == 0.0), "token {t}");
+            }
+            let ports: Vec<usize> = (0..8).chain(width - 8..width).collect();
+            assert_eq!(keep.len(), width);
+            assert_eq!(keep.iter().filter(|&&v| v == 0.0).count(), 16);
+            for (j, &v) in keep.iter().enumerate() {
+                assert_eq!(v, if ports.contains(&j) { 0.0 } else { 1.0 }, "column {j}");
+            }
+        }
+    }
+
+    /// claude-290: width 8 is refused (its two ports alias one block), as is anything the
+    /// writer refuses: a width outside whole 8D blocks, a vocabulary under 256.
+    #[test]
+    fn writer_anchor_refuses_what_it_cannot_hold() {
+        assert!(writer_anchor_check(4096, 8).is_err());
+        assert!(writer_anchor_check(4096, 16).is_ok());
+        assert!(writer_anchor_check(4096, 12).is_err());
+        assert!(writer_anchor_check(255, 256).is_err());
+        assert!(writer_anchor_layout(4096, 8).is_err());
+    }
+
+    /// claude-290: a run without anchored ports writes no `writer_anchor` key, so its
+    /// `config.json` is as before; one with them records it.
+    #[test]
+    fn writer_anchor_config_json_only_when_on() {
+        let plain = serde_json::to_string(&config(0, None)).unwrap();
+        assert!(!plain.contains("writer_anchor"), "{plain}");
+        let on = LongConfig { writer_anchor: true, ..config(0, None) };
+        let on = String::from_utf8(serde_json::to_vec_pretty(&on).unwrap()).unwrap();
+        assert!(on.contains("\"writer_anchor\": true"), "{on}");
+    }
+
+    /// The sheet's model with its table anchored, and a whole-table nearest loss over four
+    /// rows that touches the table's target and rival rows (claude-290).
+    #[cfg(feature = "cuda")]
+    fn writer_anchor_case(
+        device: &Device,
+    ) -> (StackModel, WriterAnchor, candle_core::backprop::GradStore) {
+        let model = build_fbs_model_at(FbsArm::OneAtomActive, 1, hs::SHEET_WIDTH, device).unwrap();
+        let anchor = WriterAnchor::new(&model).unwrap();
+        anchor.project(&model).unwrap();
+        let query = Tensor::randn(0f32, 1.0, (4, hs::SHEET_WIDTH), device).unwrap();
+        let loss = nearest_loss_on(&table(&model).unwrap(), &query, &[1, 300, 777, 4000], true)
+            .unwrap();
+        let grads = loss.backward().unwrap();
+        (model, anchor, grads)
+    }
+
+    /// claude-290: after one real main step through [`anchored_update`], the port columns are
+    /// the roots bit for bit (weight decay alone would have scaled them), and a learned column
+    /// moved.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn writer_anchor_holds_the_roots_after_a_step() {
+        let device = Device::new_cuda(0).unwrap();
+        let (model, anchor, mut grads) = writer_anchor_case(&device);
+        let before = table(&model).unwrap().to_vec2::<f32>().unwrap();
+        let mut opt = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP).unwrap();
+        anchored_update(Some(&anchor), &model, &mut grads, |g| {
+            opt.update_filtered(&model, g, 1e-3, |name| name == "embedding.weight")
+        })
+        .unwrap();
+        let after = table(&model).unwrap().to_vec2::<f32>().unwrap();
+        let (values, _) = writer_anchor_layout(hs::SHEET_VOCAB, hs::SHEET_WIDTH).unwrap();
+        let w = hs::SHEET_WIDTH;
+        let mut moved = false;
+        for (t, (row, old)) in after.iter().zip(&before).enumerate() {
+            let want = &values[t * w..(t + 1) * w];
+            for j in (0..8).chain(w - 8..w) {
+                assert_eq!(row[j].to_bits(), want[j].to_bits(), "token {t} column {j}");
+            }
+            moved |= (8..w - 8).any(|j| row[j] != old[j]);
+        }
+        assert!(moved, "no learned column moved");
+    }
+
+    /// claude-290: the gradient the main update sees through [`anchored_update`] is exactly 0
+    /// on the 16 port columns and nonzero elsewhere.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn writer_anchor_masks_the_port_gradient() {
+        let device = Device::new_cuda(0).unwrap();
+        let (model, anchor, mut grads) = writer_anchor_case(&device);
+        let id = table(&model).unwrap();
+        let mut seen = None;
+        anchored_update(Some(&anchor), &model, &mut grads, |g| {
+            seen = g.get(&id).cloned();
+            Ok(0.0)
+        })
+        .unwrap();
+        let grad = seen.expect("the table has a gradient").to_vec2::<f32>().unwrap();
+        let w = hs::SHEET_WIDTH;
+        for (t, row) in grad.iter().enumerate() {
+            for j in (0..8).chain(w - 8..w) {
+                assert_eq!(row[j], 0.0, "token {t} column {j}");
+            }
+        }
+        assert!(grad.iter().any(|row| row[8..w - 8].iter().any(|&v| v != 0.0)));
+    }
+
+    /// An anchored (vocabulary, width) table on `device` (claude-290): the roots in the port
+    /// blocks, small random learned columns.
+    #[cfg(feature = "cuda")]
+    fn writer_anchor_table_at(vocabulary: usize, width: usize, device: &Device) -> Tensor {
+        let (values, keep) = writer_anchor_layout(vocabulary, width).unwrap();
+        let values = Tensor::from_vec(values, (vocabulary, width), device).unwrap();
+        let keep = Tensor::from_vec(keep, (1, width), device).unwrap();
+        Tensor::randn(0f32, 0.1, (vocabulary, width), device)
+            .unwrap()
+            .broadcast_mul(&keep)
+            .unwrap()
+            .add(&values)
+            .unwrap()
+    }
+
+    /// claude-290: on an anchored table a token's own vector admits its own cell first, at
+    /// address score exactly 0.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn writer_anchor_cell_first_with_score_zero() {
+        let device = Device::new_cuda(0).unwrap();
+        let table = writer_anchor_table_at(512, 256, &device);
+        let spec = crate::native_vector_writer::WriterSpec {
+            vocabulary: 512,
+            width: 256,
+            kept_cells: crate::native_vector_writer::DEFAULT_KEPT_CELLS,
+        };
+        let writer = crate::native_vector_writer::NativeVectorWriter::new(&table, spec).unwrap();
+        for t in [0u32, 37, 255, 256, 300, 511] {
+            let c = writer.candidates(&writer.encode(&[t]).unwrap()).unwrap();
+            let cell = (t % 256) as usize;
+            assert_eq!(c.cell_ids().to_vec2::<u32>().unwrap()[0][0], cell as u32, "token {t}");
+            assert_eq!(c.address_scores().to_vec2::<f32>().unwrap()[0][cell], 0.0, "token {t}");
+        }
+    }
+
+    /// claude-290: whole-table nearest's own objective trains the address. The query is the
+    /// target's anchored vector with its ports at the roots' centre, nudged by 0.01 of the
+    /// target's roots plus 0.001 off every kink of the L1 (the absolute value's gradient is +1
+    /// at 0). One token per cell puts the nearest rival in another cell, so its roots differ;
+    /// each port coordinate the gradient moves then moves toward the target's root.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn writer_anchor_informed_row_pulls_ports_to_the_target() {
+        let device = Device::new_cuda(0).unwrap();
+        let w = 256;
+        let table = writer_anchor_table_at(256, w, &device);
+        let ports = |x: &Tensor| -> Tensor {
+            Tensor::cat(&[x.narrow(1, 0, 8).unwrap(), x.narrow(1, w - 8, 8).unwrap()], 1).unwrap()
+        };
+        for t in [37u32, 200, 255] {
+            let target = table.narrow(0, t as usize, 1).unwrap();
+            let roots = ports(&target);
+            let mut nudge = vec![0f32; w];
+            let host = roots.to_vec2::<f32>().unwrap();
+            for (k, j) in (0..8).chain(w - 8..w).enumerate() {
+                nudge[j] = 0.01 * host[0][k] + 0.001;
+            }
+            let (_, keep) = writer_anchor_layout(256, w).unwrap();
+            let keep = Tensor::from_vec(keep, (1, w), &device).unwrap();
+            let start = target
+                .broadcast_mul(&keep)
+                .unwrap()
+                .add(&Tensor::from_vec(nudge, (1, w), &device).unwrap())
+                .unwrap();
+            let query = candle_core::Var::from_tensor(&start).unwrap();
+            let loss = nearest_loss_on(&table, query.as_tensor(), &[t], true).unwrap();
+            let grads = loss.backward().unwrap();
+            let grad = grads.get(query.as_tensor()).expect("the query has a gradient");
+            let port_grad = ports(grad).abs().unwrap().sum_all().unwrap();
+            assert!(port_grad.to_scalar::<f32>().unwrap() > 0.0, "token {t}");
+            // Coordinate by coordinate, a descent step never moves a port away from its root.
+            let g = ports(grad).to_vec2::<f32>().unwrap();
+            let q = ports(query.as_tensor()).to_vec2::<f32>().unwrap();
+            for k in 0..16 {
+                assert!(g[0][k] * (q[0][k] - host[0][k]) >= 0.0, "token {t} port coordinate {k}");
+            }
+            let step = query.as_tensor().sub(&grad.affine(1e-3, 0.0).unwrap()).unwrap();
+            let distance = |q: &Tensor| -> f32 {
+                ports(q).sub(&roots).unwrap().abs().unwrap().sum_all().unwrap().to_scalar().unwrap()
+            };
+            assert!(distance(&step) < distance(query.as_tensor()), "token {t}");
+        }
     }
 
     /// claude-273: a training window is 2 to 4,096 tokens, the stack's own range.

@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--served-forward 0|1] [--context N]`
 //!
 //! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
 //! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
@@ -40,6 +40,11 @@
 //! i16 activations and the Q12 scored query are active; the gradient moves the float values the
 //! rounded forward came from; and every checkpoint is scored and saved through that same served
 //! forward. It refuses reads or training-only cuts that the export does not carry.
+//!
+//! `--writer-anchor 1` anchors the writer's ports (claude-290): the shared table's first and last
+//! 8D blocks hold exactly the SpiralCore roots of each token's own cell, re-set after every main
+//! step with their gradient masked, while the other columns stay learned. 0, the default,
+//! writes the same `config.json` as before.
 //!
 //! `--served-forward 0|1` overrides the saved run mode only for `--inspect`, `--decode-speed` and
 //! `--score-rows`, so different training modes can be scored through the same served graph.
@@ -353,6 +358,7 @@ fn main() -> Result<()> {
         fbs_arm: uor_r4_float_train::spiralcore_fbs_arms::FbsArm::OneAtomActive,
         reply_read_train: None,
         train_as_served: false,
+        writer_anchor: false,
         context: uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT,
     };
     let mut args = env::args().skip(1);
@@ -526,6 +532,7 @@ fn main() -> Result<()> {
                 })?
             }
             "--train-as-served" => config.train_as_served = switch(&value)?,
+            "--writer-anchor" => config.writer_anchor = switch(&value)?,
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -713,6 +720,12 @@ fn main() -> Result<()> {
         return Err(FloatTrainError::Invalid(
             "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1, --integer-grade 1 or --copy-key-oracle"
                 .to_owned(),
+        ));
+    }
+    // Anchored ports are a training switch, for either training loop.
+    if config.writer_anchor && !modes[7] {
+        return Err(FloatTrainError::Invalid(
+            "--writer-anchor applies to training with --out only".to_owned(),
         ));
     }
     // Training as served is a training switch; no other mode would read it.

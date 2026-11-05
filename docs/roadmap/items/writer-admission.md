@@ -26,6 +26,15 @@ The decision is to serve whole-table nearest, because the writer failed at one s
   - The trunk learned anyway (nearest `6,909`). Seed 1's ports point at the target's roots instead (class L).
   - Both seeds start alike, and they split before step 2,048.
   - So done-when 2's change must be one the tie point cannot satisfy. A margin alone is not expected to leave it (an inference, untested). The REPORT's Still open, item 1, cautions that a symmetric pull toward the target's root may share the centre as its minimum while the port is uninformed.
+- **The change (done-when 2, [claude-290](../../loop/tasks/writer-admission/claude-290/REPORT.md)): anchored ports, `train-in-space --writer-anchor 1`, off by default.**
+  - The shared table's two port blocks hold exactly each token's own cell roots. They are set at model build and after every main step, with their gradient masked to 0, in both training loops. The other columns stay learned.
+  - A token's own vector then addresses its own cell first at score 0, so the recipe's own `cell` or `nearest` objective would train admission (argued from the code, untested in training).
+  - Four CUDA tests and three host tests pass on a pod, and both negative gates fail as required. No run beyond a 32-step smoke has used it, and no training result exists.
+  - **What done-when 3's sheet must carry:**
+    - the query ports' mean |x| before step 2,048, with a stop rule, since the centre stays a fixed point in expectation for an uninformed trunk and the anchor fixes only the table side;
+    - what the anchor costs nearest, since the table is also the input embedding and a cell's 16 tokens share their port code;
+    - claude-289's `admission` reading, run again, with that REPORT's instrument limits (its Still open, item 5).
+  - **Held in reserve:** excluding the port-producing weights from decay (over claude-150's schedule decay alone scales them about 1.9×, against the ports' 40× fall), and a kept count chosen by the margin.
 - **Main refuses checkpoints saved before `bcf2f57f7`** (29 Oct): their projection fingerprint pins `spiralcore_fbs.cu`, whose backward changed. A reading of claude-150's checkpoints is built on `074d54b2`, as claude-289's evidence branch was.
 - **The writer** ([`native_vector_writer.rs`](../../../crates/uor-r4-float-train/src/native_vector_writer.rs), `address_scores`) keeps 8 of 256 cells. A cell is a pair of roots: the query's first and last 8 coordinates are each scored against 16 SpiralCore roots, by mean absolute distance. A token outside the kept cells cannot be decoded.
   This is the float-train crate's copy, the one `train-in-space` builds against (`crates/uor-r4-float-train/src/lib.rs`). `crates/uor-r4-training` holds another copy, which is not in scope.
