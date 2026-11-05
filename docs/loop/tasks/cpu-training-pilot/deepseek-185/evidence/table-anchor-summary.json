@@ -1,0 +1,220 @@
+{
+  "schema": "uor-r4.cpu-table-anchor-isolation-summary/1",
+  "implementation": {
+    "base": "1c5209f8e",
+    "implementation_pin": "40542adf069f1fe5b5d97a0df136eac4b6d35188",
+    "run_implementation_pin": "1f02345e69abc4c6fcc7bf906b63f900df6ab025",
+    "serial_repair_implementation_pin": "9ed48a92c0ec177027f3881fb57dc7dc07e33ab3",
+    "fit_and_go_head": "a5e472c363f848be7ff4b5b462a6b5391478afeb",
+    "run_driver_sha256": "ab39c515f15856245d5681dc2230f1fa184a959224739d0933dcf10a7ec58e84",
+    "serial_repair_driver_sha256": "4623d93c0a1e099b5fc942b079f0e0ce2482300749250ff5817bb9bf06815bcc",
+    "parallel_driver_sha256": "e195e52ec20cac06287410fbe15bdd2d269b5ca4f37f0a4edb6616229ce850c6",
+    "substrate": "cpu-development-research",
+    "qualification": "gpu-required",
+    "threads": 16,
+    "final_execution_parallel": true
+  },
+  "outcome": "COMPLETE",
+  "scope": "Two-seed four-arm table substitution on a previously exposed public DEV panel; diagnostic attribution only, with hybrid tables not representable in UORLUT01.",
+  "seeds": [
+    {
+      "seed": 1,
+      "raw_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "anchored_artifact_sha256": "88c6d1e3a40db3d23a72a0435060147306e98bf9b7ad46d7c42e4099e1ad5a03",
+      "status": "COMPLETE",
+      "samples": 616,
+      "wall_elapsed_ms": 35282.569907000005,
+      "peak_rss_kib": 47980,
+      "report_sha256": "f2e9c4d564cde616f83f2dc4298a0f2528fbbadfdae8d9eb5f002547a7132dae",
+      "sealed_manifest_sha256": "4a8d091716bcdfbe921510f826e893eeea6a696839b9676f697fade8818cc53c",
+      "serial_review_repair_verification": {
+        "report_sha256": "ebac250681bb6b9282b90d0ca23970ea29d71af76b9d7de7647beaced7a24ae7",
+        "sealed_manifest_sha256": "0a4f31a4b52d68322ebf23216796909f23fca62ec71f505a34e45f2ce59513cf",
+        "wall_elapsed_ms": 35448.965957,
+        "peak_rss_kib": 47680,
+        "arms_identical": true
+      },
+      "parallel_verification": {
+        "report_sha256": "e07796f218fc792e4283eede9253f189f0cf3d4b7ca0bb916d8b10336e3b386e",
+        "sealed_manifest_sha256": "be9ba9f50fdd430aa9f614ea47eaf7f052e2e934f8180dfb0cfe40a46ce27b0d",
+        "wall_elapsed_ms": 2597.57667,
+        "peak_rss_kib": 115880,
+        "threads": 16,
+        "arms_identical": true
+      },
+      "raw_serving_parity_exact": true,
+      "arms": {
+        "raw_raw": {
+          "admitted": 245,
+          "top1": 181,
+          "top8": 236,
+          "port_distance": 29882444,
+          "port_abs": 18468626,
+          "query_changed_rows": 0,
+          "token_changed_rows": 0,
+          "kept_cell_changed_rows": 0
+        },
+        "input_anchored": {
+          "admitted": 120,
+          "top1": 55,
+          "top8": 89,
+          "port_distance": 25493709,
+          "port_abs": 11135015,
+          "query_changed_rows": 616,
+          "token_changed_rows": 555,
+          "kept_cell_changed_rows": 616
+        },
+        "writer_anchored": {
+          "admitted": 245,
+          "top1": 195,
+          "top8": 233,
+          "port_distance": 29882444,
+          "port_abs": 18468626,
+          "query_changed_rows": 0,
+          "token_changed_rows": 68,
+          "kept_cell_changed_rows": 0
+        },
+        "combined": {
+          "admitted": 120,
+          "top1": 55,
+          "top8": 86,
+          "port_distance": 25493709,
+          "port_abs": 11135015,
+          "query_changed_rows": 616,
+          "token_changed_rows": 553,
+          "kept_cell_changed_rows": 616
+        }
+      },
+      "delta_vs_raw": {
+        "input_only": {
+          "admitted": -125,
+          "top1": -126,
+          "top8": -147,
+          "port_distance": -4388735,
+          "port_abs": -7333611
+        },
+        "writer_only": {
+          "admitted": 0,
+          "top1": 14,
+          "top8": -3,
+          "port_distance": 0,
+          "port_abs": 0
+        },
+        "combined": {
+          "admitted": -125,
+          "top1": -126,
+          "top8": -150,
+          "port_distance": -4388735,
+          "port_abs": -7333611
+        }
+      },
+      "interaction_residual": {
+        "admitted": 0,
+        "top1": -14,
+        "top8": 0,
+        "port_distance": 0,
+        "port_abs": 0
+      }
+    },
+    {
+      "seed": 2,
+      "raw_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "anchored_artifact_sha256": "275fcde2c67153d6ea0140da067e3151616d0bbd6ed3e40439e6a69618fb3930",
+      "status": "COMPLETE",
+      "samples": 616,
+      "wall_elapsed_ms": 35008.178393999995,
+      "peak_rss_kib": 47872,
+      "report_sha256": "926ea98e32500b9cdfc0391069512f8434a8822e1b4e27a0fb19deb4912a01c1",
+      "sealed_manifest_sha256": "9543e6438ff484d3c7bea20277f24d9f1a7bcb10ec41402978b38fc813c7f5fb",
+      "serial_review_repair_verification": {
+        "report_sha256": "fc7c6759cfbdb54517340b1b6d370a2e7d0244b70f0e49db0afb47c05e71e5e1",
+        "sealed_manifest_sha256": "a57a2de44ca5c206382311094e54099dbd24bebbe7c995da85f5e08901257953",
+        "wall_elapsed_ms": 35225.96711,
+        "peak_rss_kib": 47912,
+        "arms_identical": true
+      },
+      "parallel_verification": {
+        "report_sha256": "ea9ceb1b8877cad28897aad7f63941d6fa6d96a09adada39ca1bf07cc561f831",
+        "sealed_manifest_sha256": "85646368911491c0e5edcea7ccb41c16a6dbc3a5eb4f66a76b6f264aab7b4e33",
+        "wall_elapsed_ms": 2592.9811950000003,
+        "peak_rss_kib": 115980,
+        "threads": 16,
+        "arms_identical": true
+      },
+      "raw_serving_parity_exact": true,
+      "arms": {
+        "raw_raw": {
+          "admitted": 171,
+          "top1": 136,
+          "top8": 164,
+          "port_distance": 23870298,
+          "port_abs": 7915390,
+          "query_changed_rows": 0,
+          "token_changed_rows": 0,
+          "kept_cell_changed_rows": 0
+        },
+        "input_anchored": {
+          "admitted": 29,
+          "top1": 9,
+          "top8": 20,
+          "port_distance": 27634674,
+          "port_abs": 9934158,
+          "query_changed_rows": 616,
+          "token_changed_rows": 604,
+          "kept_cell_changed_rows": 616
+        },
+        "writer_anchored": {
+          "admitted": 171,
+          "top1": 137,
+          "top8": 162,
+          "port_distance": 23870298,
+          "port_abs": 7915390,
+          "query_changed_rows": 0,
+          "token_changed_rows": 31,
+          "kept_cell_changed_rows": 0
+        },
+        "combined": {
+          "admitted": 29,
+          "top1": 10,
+          "top8": 20,
+          "port_distance": 27634674,
+          "port_abs": 9934158,
+          "query_changed_rows": 616,
+          "token_changed_rows": 604,
+          "kept_cell_changed_rows": 616
+        }
+      },
+      "delta_vs_raw": {
+        "input_only": {
+          "admitted": -142,
+          "top1": -127,
+          "top8": -144,
+          "port_distance": 3764376,
+          "port_abs": 2018768
+        },
+        "writer_only": {
+          "admitted": 0,
+          "top1": 1,
+          "top8": -2,
+          "port_distance": 0,
+          "port_abs": 0
+        },
+        "combined": {
+          "admitted": -142,
+          "top1": -126,
+          "top8": -144,
+          "port_distance": 3764376,
+          "port_abs": 2018768
+        }
+      },
+      "interaction_residual": {
+        "admitted": 0,
+        "top1": 0,
+        "top8": 2,
+        "port_distance": 0,
+        "port_abs": 0
+      }
+    }
+  ],
+  "finding": "The anchored recurrent-input table reproduces nearly all of the combined decoding loss on both seeds. Anchoring only writer scoring rows preserves raw admission and port distance, moves few tokens, changes top-1 by +14/+1 and top-8 by -3/-2 across seeds 1/2. The next representation must preserve learned input identity while separating writer address rows."
+}

@@ -212,6 +212,7 @@ pub struct CpuFbsForward {
     layers: Vec<Layer>,
     final_gain: Vec<i16>,
     writer_table: Vec<i16>,
+    input_table: Option<Vec<i16>>,
     roots_q12: [[i32; 8]; 16],
     kept_cells: usize,
     context: usize,
@@ -388,6 +389,7 @@ impl CpuFbsForward {
             layers,
             final_gain: image.final_gain.to_vec(),
             writer_table: image.writer_table.to_vec(),
+            input_table: None,
             roots_q12: *image.roots_q12,
             kept_cells: image.kept_cells,
             context,
@@ -413,6 +415,37 @@ impl CpuFbsForward {
 
     pub(crate) fn token_table(&self) -> &[i16] {
         &self.writer_table
+    }
+
+    /// The shared token table used by this artifact.
+    pub fn shared_table(&self) -> &[i16] {
+        &self.writer_table
+    }
+
+    /// Construct an unsaved CPU diagnostic forward with distinct input and
+    /// writer tables. The exported `UORLUT01` format stores one shared table,
+    /// so hybrid arms are not serving-representable.
+    pub fn from_artifact_with_tables(
+        bytes: &[u8],
+        input_table: &[i16],
+        writer_table: &[i16],
+    ) -> Result<Self> {
+        let mut forward = Self::from_artifact(bytes)?;
+        if forward.hamming.is_some() || forward.memory.is_some() {
+            return Err(invalid(
+                "hybrid table diagnostics require a read-free, memory-free artifact",
+            ));
+        }
+        let expected = forward
+            .vocab
+            .checked_mul(forward.width)
+            .ok_or_else(|| invalid("hybrid table shape overflows"))?;
+        if input_table.len() != expected || writer_table.len() != expected {
+            return Err(invalid("hybrid input or writer table shape differs"));
+        }
+        forward.input_table = Some(input_table.to_vec());
+        forward.writer_table = writer_table.to_vec();
+        Ok(forward)
     }
 
     #[cfg(test)]
@@ -886,7 +919,8 @@ impl CpuFbsForward {
         self.tokens.push(token);
         let d = self.width;
         let row = token as usize * d;
-        let mut x: Vec<i32> = self.writer_table[row..row + d]
+        let input_table = self.input_table.as_deref().unwrap_or(&self.writer_table);
+        let mut x: Vec<i32> = input_table[row..row + d]
             .iter()
             .map(|&value| to_exp_i32(i64::from(value), Q12_EXP, RESIDUAL_EXP))
             .collect();
@@ -1724,6 +1758,203 @@ mod tests {
             &forward.token_table()[..8],
             &[-8192, 0, 8192, -8192, 0, 8192, -8192, 0]
         );
+    }
+
+    fn anchored_table(forward: &CpuFbsForward) -> Vec<i16> {
+        let width = forward.width();
+        let mut table = forward.shared_table().to_vec();
+        for token in 0..forward.vocabulary() {
+            let cell = token % 256;
+            let row = &mut table[token * width..(token + 1) * width];
+            for (start, root) in [(0, cell / 16), (width - 8, cell % 16)] {
+                for coordinate in 0..8 {
+                    row[start + coordinate] = forward.writer_roots()[root][coordinate] as i16;
+                }
+            }
+        }
+        table
+    }
+
+    fn table_diagnostic_steps(mut forward: CpuFbsForward) -> Vec<(Vec<i32>, u32, Vec<u32>)> {
+        [3, 5, 8, 13, 21, 34]
+            .into_iter()
+            .map(|token| {
+                let step = forward.step(token, CpuFbsHead::Writer).unwrap();
+                (step.query_q12, step.token, step.kept_cells)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn hybrid_table_diagnostic_is_a_no_op_with_identical_tables() {
+        let bytes = export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+            187,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 64,
+                layers: 2,
+                context: 16,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        ))
+        .unwrap();
+        let baseline = CpuFbsForward::from_artifact(&bytes).unwrap();
+        let table = baseline.shared_table().to_vec();
+        let hybrid = CpuFbsForward::from_artifact_with_tables(&bytes, &table, &table).unwrap();
+        assert_eq!(
+            table_diagnostic_steps(baseline),
+            table_diagnostic_steps(hybrid)
+        );
+    }
+
+    #[test]
+    fn writer_only_anchor_preserves_the_raw_input_queries() {
+        let bytes = export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+            188,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 64,
+                layers: 2,
+                context: 16,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        ))
+        .unwrap();
+        let baseline = CpuFbsForward::from_artifact(&bytes).unwrap();
+        let raw_table = baseline.shared_table().to_vec();
+        let anchored = anchored_table(&baseline);
+        let writer_only =
+            CpuFbsForward::from_artifact_with_tables(&bytes, &raw_table, &anchored).unwrap();
+        let expected = table_diagnostic_steps(baseline);
+        let actual = table_diagnostic_steps(writer_only);
+        assert_eq!(
+            expected.iter().map(|row| &row.0).collect::<Vec<_>>(),
+            actual.iter().map(|row| &row.0).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn input_and_combined_table_diagnostics_are_explicit() {
+        let bytes = export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+            189,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 64,
+                layers: 2,
+                context: 16,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        ))
+        .unwrap();
+        let baseline = CpuFbsForward::from_artifact(&bytes).unwrap();
+        let raw_table = baseline.shared_table().to_vec();
+        let anchored = anchored_table(&baseline);
+        let input_only =
+            CpuFbsForward::from_artifact_with_tables(&bytes, &anchored, &raw_table).unwrap();
+        let combined =
+            CpuFbsForward::from_artifact_with_tables(&bytes, &anchored, &anchored).unwrap();
+        let expected = table_diagnostic_steps(baseline);
+        let input_actual = table_diagnostic_steps(input_only);
+        assert_ne!(
+            expected.iter().map(|row| &row.0).collect::<Vec<_>>(),
+            input_actual.iter().map(|row| &row.0).collect::<Vec<_>>()
+        );
+
+        let anchored_artifact = crate::anchor_writer_ports(&bytes).unwrap();
+        let anchored_forward = CpuFbsForward::from_artifact(&anchored_artifact).unwrap();
+        assert_eq!(
+            table_diagnostic_steps(combined),
+            table_diagnostic_steps(anchored_forward)
+        );
+    }
+
+    #[test]
+    fn hybrid_table_diagnostic_fails_closed() {
+        let bytes = export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+            190,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 64,
+                layers: 1,
+                context: 8,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        ))
+        .unwrap();
+        let table = CpuFbsForward::from_artifact(&bytes)
+            .unwrap()
+            .shared_table()
+            .to_vec();
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &bytes,
+            &table[..table.len() - 1],
+            &table
+        )
+        .is_err());
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &bytes,
+            &table,
+            &table[..table.len() - 1]
+        )
+        .is_err());
+
+        let memory = memory_artifact_with(191, CpuFbsHead::Writer, false, true, 0.5, None);
+        let memory_table = CpuFbsForward::from_artifact(&memory)
+            .unwrap()
+            .shared_table()
+            .to_vec();
+        assert!(
+            CpuFbsForward::from_artifact_with_tables(&memory, &memory_table, &memory_table)
+                .is_err()
+        );
+
+        let mut hamming_snapshot = synthetic_fbs_trunk_with(
+            192,
+            FbsSynth {
+                vocab: 512,
+                d: 64,
+                mlp: 96,
+                layers: 2,
+                context: 24,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.5,
+                decay_step: 0.25,
+            },
+        );
+        hamming_snapshot.hamming = Some(synthetic_hamming(64, 2, 4, 192));
+        let hamming_bytes = export_fbs_trunk_uorlut01(&hamming_snapshot).unwrap();
+        let hamming_table = CpuFbsForward::from_artifact(&hamming_bytes)
+            .unwrap()
+            .shared_table()
+            .to_vec();
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &hamming_bytes,
+            &hamming_table,
+            &hamming_table
+        )
+        .is_err());
     }
 
     #[test]

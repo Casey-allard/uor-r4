@@ -1,3 +1,28 @@
+## 2026-11-05 — Table-anchor decoding loss is an input-code effect, not writer-row mismatch (deepseek)
+
+A four-arm CPU diagnostic kept the FBS trunk and targets fixed while replacing
+the recurrent input table and the writer-scoring table independently. On seed
+1, raw/input-only/writer-only/combined admitted-top-1-top-8 was
+245/181/236, 120/55/89, 245/195/233 and 120/55/86. On seed 2 it was
+171/136/164, 29/9/20, 171/137/162 and 29/10/20.
+
+Input-only reproduced combined admission exactly on both seeds and combined
+top-1 exactly on seed 1. Writer-only preserved raw admission, kept cells and
+port distance exactly, moving top-1 by +14/+1 and top-8 by -3/-2 over the two
+seeds. Initial serial discovery runs took about 35 seconds. Exact review then
+tightened the driver to the registered 616 rows and parallelized ordered row
+evaluation; final 16-worker verification took 2.598/2.593 seconds and
+reproduced every arm with zero raw CPU/serving mismatches.
+
+This attributes deepseek-183's decoding collapse to overwriting the learned
+recurrent input code, not to direct writer-row mismatch. The hybrid tables are
+in-memory diagnostics and cannot be represented by the current one-table
+artifact. Record:
+[deepseek-185](../loop/tasks/cpu-training-pilot/deepseek-185/REPORT.md).
+**Next:** design separate writer-address rows, or train root-addressed writer
+rows under an explicit input-code preservation objective, then retest through
+export and serving.
+
 ## 2026-11-05 — Query-port root training rejects; table anchoring has a large shared input/writer cost (deepseek)
 
 A new CPU trainer moved only the 16 final-gain codes that scale the writer

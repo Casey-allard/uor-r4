@@ -563,6 +563,18 @@ must decouple writer addressing from the learned input code or train both with
 an identity-preservation objective. See
 [deepseek-183](../../loop/tasks/cpu-training-pilot/deepseek-183/REPORT.md).
 
+The four-arm table-anchor isolation then separated that cost. On seed 1,
+raw/input-only/writer-only/combined admitted/top-1/top-8 was
+245/181/236, 120/55/89, 245/195/233 and 120/55/86. On seed 2 it was
+171/136/164, 29/9/20, 171/137/162 and 29/10/20. Input-only reproduced combined
+admission on both seeds and combined top-1 on seed 1; writer-only preserved
+raw admission, kept cells and port distance exactly. The loss is therefore an
+input-code effect, not direct writer-row mismatch. Root-addressed writer
+scoring remains viable only if its address rows are separated from the learned
+input rows or trained with input-code preservation. The hybrid table pairs are
+not representable in the current one-table artifact and make no serving claim.
+See [deepseek-185](../../loop/tasks/cpu-training-pilot/deepseek-185/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
