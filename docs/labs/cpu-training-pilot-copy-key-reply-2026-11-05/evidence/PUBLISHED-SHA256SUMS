@@ -57,6 +57,17 @@ c17ec8daaa480101735884a29232312f30fee4dc244ec57b76a278ad9733f68a  ./copy-ranker-
 6f17a112019d61076d155bd14691f918fcf1c359b892209c53f9ae1d24a7c4e3  ./copy-ranker-2766/panel.stdout.json
 f0d226d120832481aff553c2c33f6a122e9ffca342390b20273afb1b6a8c5c4b  ./copy-ranker-2766/panel.time.txt
 cebd7a3fb5071c10d94071a9fa2a069fd0ae74f7ce37578f3a5a2ad5bead2578  ./copy-ranker-2766/seed1.time.txt
+1cd4e15f4dd9ba68a1c55fb496e889b58a4cb9dd21e3e461fc57a08221b6e53a  ./copy-ranker-reference-2767/DRIVER.txt
+a7b541f1915b37b0424b5de87ba9e93775e0a313f20b1ec49006dd9148c4a860  ./copy-ranker-reference-2767/LOCAL-RUN-SEAL.txt
+4e02d0dd8deecd5b6315566165a10ebc278eb7b360dbbfb420ef6a3434b6d27c  ./copy-ranker-reference-2767/RAW-SHA256SUMS
+a17ffc0c1afe2b95a2271046072dab1ef1f34304319863d4f2a024befd679eab  ./copy-ranker-reference-2767/build.time.txt
+5053008cc648994019b4618d8c2b7faf19840dee3539c99a06751d33bb7500b6  ./copy-ranker-reference-2767/generator-build.time.txt
+426efed4332a943c8afcf5a9e79c32f4273e1c298be700e0d013d64939b720c5  ./copy-ranker-reference-2767/insufficiency.txt
+1a942bc7215d3a66cd01955bf66dc14ce6c79741ae3de2960e93724095965269  ./copy-ranker-reference-2767/manifest.json
+c17ec8daaa480101735884a29232312f30fee4dc244ec57b76a278ad9733f68a  ./copy-ranker-reference-2767/outcome.txt
+965298dae2fa42c2cea7bb3aa9386258c8b31ec269170520e94cca618c2a9cbf  ./copy-ranker-reference-2767/panel.stdout.json
+2fd5e44d43f9c4c9db9d572105811948645e93e9152510a73a717bc4b2c1de44  ./copy-ranker-reference-2767/panel.time.txt
+6802fd629c357002e246ffd764bce3dd77c5cf133e2042b0ffa4a6769584aa0a  ./copy-ranker-reference-2767/seed1.time.txt
 d5c564f1e8c5e835d6a1764a1794dea1e1bbfd412a0df93cf2409a6f0ed649c1  ./depth32-2752/DRIVER.txt
 6125803a67d65cb05427ea69f68bca3eef0206627a8fbf1d72765b65b0f43810  ./depth32-2752/LOCAL-RUN-SEAL.txt
 f1114cd15dd8ca6e7750b161f26cde49af5caeac7a47b5fd66f98ff18d5c04f8  ./depth32-2752/RAW-SHA256SUMS

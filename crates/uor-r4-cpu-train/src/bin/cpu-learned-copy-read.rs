@@ -7,8 +7,8 @@ use uor_r4_cpu_train::{
     derive_learned_copy_readout, evaluate_copy_key_replies, evaluate_learned_copy_replies,
     evaluate_ranked_copy_replies, shuffle_content_targets, validate_corpus_manifest,
     CopyCandidateRanker, CopyKeyReplyArm, CopyKeyReplyMetric, CopyKeyReplyRow, CopyKeyReplyStep,
-    CpuCorpusIdentity, CpuMaskedCorpus, LearnedCopyArm, LearnedCopyStep, MemoryWeightSample,
-    RankedCopyStep,
+    CopyRankerTrajectory, CpuCorpusIdentity, CpuMaskedCorpus, LearnedCopyArm, LearnedCopyStep,
+    MemoryWeightSample, RankedCopyStep,
 };
 
 fn main() {
@@ -51,6 +51,7 @@ fn run() -> Result<(), String> {
     let artifact = PathBuf::from(values.next().ok_or_else(usage)?);
     let mut cap = 64usize;
     let mut seed = 153u64;
+    let mut ranker_trajectory = CopyRankerTrajectory::Longest32;
     let mut allow_underpowered = false;
     while let Some(flag) = values.next() {
         if flag == "--allow-underpowered" {
@@ -70,6 +71,17 @@ fn run() -> Result<(), String> {
                 seed = value
                     .parse()
                     .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--ranker-trajectory" => {
+                ranker_trajectory = match value.as_str() {
+                    "longest32" => CopyRankerTrajectory::Longest32,
+                    "reference" => CopyRankerTrajectory::ReferencePrefix,
+                    _ => {
+                        return Err(format!(
+                            "--ranker-trajectory expects longest32 or reference: {value}"
+                        ))
+                    }
+                };
             }
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
@@ -101,8 +113,14 @@ fn run() -> Result<(), String> {
     let shuffled_mapping_sha256 =
         content_mapping_sha256(&shuffled).map_err(|error| error.to_string())?;
     let ranker_started = Instant::now();
-    let ranker_training = derive_copy_candidate_rankers(&artifact_bytes, &train_samples, cap, seed)
-        .map_err(|error| error.to_string())?;
+    let ranker_training = derive_copy_candidate_rankers(
+        &artifact_bytes,
+        &train_samples,
+        cap,
+        seed,
+        ranker_trajectory,
+    )
+    .map_err(|error| error.to_string())?;
     let ranker_elapsed_us = ranker_started.elapsed().as_micros() as u64;
 
     let train_report = evaluate_panel(PanelRun {
@@ -185,6 +203,7 @@ fn run() -> Result<(), String> {
             "elapsed_us": training_elapsed_us,
         },
         "candidate_ranker": {
+            "trajectory": ranker_training.trajectory.name(),
             "features": uor_r4_cpu_train::COPY_RANKER_FEATURE_NAMES,
             "epochs": uor_r4_cpu_train::COPY_RANKER_EPOCHS,
             "max_depth": uor_r4_cpu_train::COPY_RANKER_MAX_DEPTH,
@@ -607,6 +626,7 @@ fn read(path: &Path) -> Result<Vec<u8>, String> {
 fn usage() -> String {
     "usage: cpu-learned-copy-read TRAIN_TOKENS TRAIN_MASK TRAIN_MANIFEST \
      TEST_TOKENS TEST_MASK TEST_MANIFEST ARTIFACT [--cap N] [--seed N] \
+     [--ranker-trajectory longest32|reference] \
      [--allow-underpowered]"
         .to_owned()
 }
@@ -628,6 +648,7 @@ mod tests {
             "ARTIFACT",
             "--cap",
             "--seed",
+            "--ranker-trajectory",
         ] {
             assert!(usage.contains(word), "{usage}");
         }

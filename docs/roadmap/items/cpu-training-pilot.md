@@ -511,6 +511,16 @@ for pairwise candidate ranking. The next attempt must create materially more
 candidate-labelled states, with a new seed and registration. See
 [deepseek-173](../../loop/tasks/cpu-training-pilot/deepseek-173/REPORT.md).
 
+Teacher-forced reference prefixes then tested whether generated-trajectory drift
+caused that supervision shortage. It raised the candidate-group count only from
+**74 to 85**, against the registered **640** floor, and stopped before
+perceptron fitting or reply evaluation. This identifies the exact-copy
+depth-1..8 candidate definition itself as the bottleneck, not longest-generated
+drift. Generated inference remained unchanged. A later ranker must broaden the
+candidate construction or use a denser objective, with a new seed and
+registration. See
+[deepseek-175](../../loop/tasks/cpu-training-pilot/deepseek-175/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

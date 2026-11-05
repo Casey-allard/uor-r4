@@ -37,6 +37,22 @@ pub const COPY_RANKER_FEATURE_NAMES: [&str; COPY_RANKER_FEATURES] = [
     "writer_match",
 ];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CopyRankerTrajectory {
+    Longest32,
+    ReferencePrefix,
+}
+
+impl CopyRankerTrajectory {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Longest32 => "longest_32",
+            Self::ReferencePrefix => "reference_prefix",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CopyCandidateRanker {
@@ -97,6 +113,7 @@ struct CandidateGroup {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CopyCandidateRankTraining {
+    pub trajectory: CopyRankerTrajectory,
     pub trained: CopyCandidateRanker,
     pub shuffled: CopyCandidateRanker,
     pub depth_only: CopyCandidateRanker,
@@ -157,6 +174,7 @@ pub fn derive_copy_candidate_rankers(
     samples: &[MemoryWeightSample],
     cap: usize,
     seed: u64,
+    trajectory: CopyRankerTrajectory,
 ) -> Result<CopyCandidateRankTraining> {
     if samples.is_empty() || cap == 0 || cap > 64 {
         return Err(invalid("copy-candidate ranker training inputs differ"));
@@ -167,7 +185,9 @@ pub fn derive_copy_candidate_rankers(
     let mut groups = samples
         .par_iter()
         .enumerate()
-        .map(|(row, sample)| training_groups_for_sample(artifact, sample, cap, context, row))
+        .map(|(row, sample)| {
+            training_groups_for_sample(artifact, sample, cap, context, row, trajectory)
+        })
         .collect::<Result<Vec<_>>>()?
         .into_iter()
         .flatten()
@@ -195,6 +215,7 @@ pub fn derive_copy_candidate_rankers(
         return Err(invalid("copy-candidate target shuffle is vacuous"));
     }
     Ok(CopyCandidateRankTraining {
+        trajectory,
         trained,
         shuffled,
         depth_only: CopyCandidateRanker::depth_only(),
@@ -299,6 +320,24 @@ fn training_groups_for_sample(
     cap: usize,
     context: usize,
     row: usize,
+    trajectory: CopyRankerTrajectory,
+) -> Result<Vec<CandidateGroup>> {
+    match trajectory {
+        CopyRankerTrajectory::Longest32 => {
+            longest_training_groups_for_sample(artifact, sample, cap, context, row)
+        }
+        CopyRankerTrajectory::ReferencePrefix => {
+            reference_training_groups_for_sample(artifact, sample, cap, context, row)
+        }
+    }
+}
+
+fn longest_training_groups_for_sample(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    cap: usize,
+    context: usize,
+    row: usize,
 ) -> Result<Vec<CandidateGroup>> {
     let reference = normalized_reference(&sample.reply).to_vec();
     if sample.prompt.is_empty() || sample.prompt.len() > context || reference.len() > cap {
@@ -341,6 +380,48 @@ fn training_groups_for_sample(
         let step = forward
             .step(base.token, CpuFbsHead::Writer)
             .map_err(|error| invalid(format!("copy-candidate ranker training step: {error}")))?;
+        generator = (step.token, step.query_q12);
+        generated += 1;
+    }
+    Ok(groups)
+}
+
+fn reference_training_groups_for_sample(
+    artifact: &[u8],
+    sample: &MemoryWeightSample,
+    cap: usize,
+    context: usize,
+    row: usize,
+) -> Result<Vec<CandidateGroup>> {
+    let reference = normalized_reference(&sample.reply).to_vec();
+    if sample.prompt.is_empty() || sample.prompt.len() > context || reference.len() > cap {
+        return Err(invalid(
+            "copy-candidate reference training sample exceeds its context or cap",
+        ));
+    }
+    let (mut forward, mut stream, writer, query) =
+        start_reply(artifact, &sample.prompt, cap, context, "reference training")?;
+    let mut generator = (writer, query);
+    let mut generated = 0usize;
+    let mut groups = Vec::new();
+    while generated < reference.len()
+        && generated < cap
+        && sample.prompt.len().saturating_add(generated) < context
+    {
+        let target = reference[generated];
+        let candidates = ranked_candidates(&forward, &generator.1, &stream, generator.0)?;
+        if candidates.len() >= 2 && candidates.iter().any(|candidate| candidate.token == target) {
+            groups.push(CandidateGroup {
+                row,
+                generated_step: generated,
+                target,
+                candidates,
+            });
+        }
+        stream.push(target);
+        let step = forward
+            .step(target, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("copy-candidate reference training step: {error}")))?;
         generator = (step.token, step.query_q12);
         generated += 1;
     }
@@ -811,6 +892,39 @@ mod tests {
             .steps
             .iter()
             .all(|step| step.candidate_count > 0 || step.selected_token == step.writer_token));
+    }
+
+    #[test]
+    fn reference_prefix_training_is_deterministic_and_never_read_by_inference() {
+        let artifact = artifact();
+        let sample = MemoryWeightSample {
+            prompt: vec![3, 4, 5, 4, 5, 4],
+            reply: vec![5, 4, 5, 4, 6, 7],
+        };
+        let first = reference_training_groups_for_sample(&artifact, &sample, 8, 32, 11).unwrap();
+        let repeat = reference_training_groups_for_sample(&artifact, &sample, 8, 32, 11).unwrap();
+        assert_eq!(first, repeat);
+        assert!(first
+            .iter()
+            .all(|group| group.row == 11 && group.generated_step < sample.reply.len()));
+
+        let ranker = CopyCandidateRanker::depth_only();
+        let generated =
+            evaluate_ranked_copy_replies(&artifact, std::slice::from_ref(&sample), 8, &ranker)
+                .unwrap();
+        assert!(generated
+            .steps
+            .iter()
+            .all(|step| { step.used_copy || step.selected_token == step.longest_token }));
+    }
+
+    #[test]
+    fn trajectory_names_are_stable() {
+        assert_eq!(CopyRankerTrajectory::Longest32.name(), "longest_32");
+        assert_eq!(
+            CopyRankerTrajectory::ReferencePrefix.name(),
+            "reference_prefix"
+        );
     }
 
     #[test]

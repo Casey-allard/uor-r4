@@ -149,3 +149,16 @@ insufficiency result for this trajectory source, not a negative for candidate
 ranking with more supervised states. Seed 2766 is closed for this design. See
 [deepseek-173](../../loop/tasks/cpu-training-pilot/deepseek-173/REPORT.md)
 and [`evidence/copy-ranker-2766/`](evidence/copy-ranker-2766/).
+
+## Reference-prefix candidate supervision
+
+Deepseek-175 retried the same ranker with teacher-forced reference prefixes to
+separate generated-trajectory drift from candidate availability. The change
+raised supervised groups only from **74 to 85**, still below the registered
+**640** floor. The run stopped before perceptron fitting or reply evaluation.
+
+This makes the exact-copy depth-1..8 candidate definition, rather than
+longest-generated drift, the measured supervision bottleneck. Seed 2767 is
+closed for this construction. See
+[deepseek-175](../../loop/tasks/cpu-training-pilot/deepseek-175/REPORT.md)
+and [`evidence/copy-ranker-reference-2767/`](evidence/copy-ranker-reference-2767/).

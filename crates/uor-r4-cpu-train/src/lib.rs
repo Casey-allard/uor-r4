@@ -55,9 +55,9 @@ pub use content_readout::{
 };
 pub use copy_candidate_rank::{
     compare_ranked_copy_rows, derive_copy_candidate_rankers, evaluate_ranked_copy_replies,
-    CopyCandidateRankTraining, CopyCandidateRanker, RankedCopyReading, RankedCopyStep,
-    TimedRankedCopyReading, COPY_RANKER_EPOCHS, COPY_RANKER_FEATURES, COPY_RANKER_FEATURE_NAMES,
-    COPY_RANKER_MAX_DEPTH, COPY_RANKER_MIN_GROUPS,
+    CopyCandidateRankTraining, CopyCandidateRanker, CopyRankerTrajectory, RankedCopyReading,
+    RankedCopyStep, TimedRankedCopyReading, COPY_RANKER_EPOCHS, COPY_RANKER_FEATURES,
+    COPY_RANKER_FEATURE_NAMES, COPY_RANKER_MAX_DEPTH, COPY_RANKER_MIN_GROUPS,
 };
 pub use copy_key_depth::{
     evaluate_copy_key_depth, evaluate_copy_key_router, fit_copy_key_router, CopyKeyComparison,

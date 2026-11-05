@@ -1,3 +1,18 @@
+## 2026-11-05 — Reference-prefix ranker confirms candidate supervision shortage (deepseek)
+
+Replacing longest-32-generated training trajectories with teacher-forced
+reference prefixes raised supervised pairwise decisions only from **74 to 85**,
+against the registered **640** floor. The run stopped before perceptron fitting,
+seed 2 or reply evaluation.
+
+Generated inference remained separate from reference supervision and unchanged.
+This rules out generated-trajectory drift as the main bottleneck: the exact-copy
+depth-1..8 candidate definition itself supplies too few groups containing the
+reference next token. Record:
+[deepseek-175](../loop/tasks/cpu-training-pilot/deepseek-175/REPORT.md).
+**Next:** broaden the candidate construction or use a denser objective under a
+new seed and registration; do not lower this floor or reuse seed 2767.
+
 ## 2026-11-05 — Pairwise copy-candidate ranker stops on training supervision (deepseek)
 
 A new exact-copy ranker represented each candidate with depth, sign agreement,

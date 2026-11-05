@@ -1,0 +1,7 @@
+Reference-prefix supervised candidate groups: 85
+Required candidate groups: 640
+Prior longest-32 supervised candidate groups: 74
+Failed seed: 1
+Reason: CPU driver stopped during ranker eligibility checking, before the perceptron fit or model evaluation.
+Observed driver stderr:
+cpu-learned-copy-read: copy-candidate ranker has 85 supervised groups, fewer than 640
