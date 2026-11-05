@@ -73,6 +73,8 @@ No serving, CUDA, float-training, exporter or Claude-owned source changed.
   mismatches over **157,696** coordinates, **616** decisions and **4,928**
   kept cells per seed;
 - in-process artifact and step replay reproduced exactly on both seeds.
+- PR #3736 reviewed head `56057171e`, protected merge
+  `60fb4b0bd8a08c93896fb209775117c9dc16fb20`.
 
 Compact evidence:
 [query-port-summary.json](evidence/query-port-summary.json).
@@ -87,6 +89,11 @@ Compact evidence:
 - both registered 16-worker runs;
 - sealed report and manifest verification from the driver;
 - exact parity over every arm and both artifact seeds.
+- exact-head review, all required CI checks and the protected merge queue;
+- fresh-main CPU library **347 passed**, 4 expected ignores;
+- fresh-main CPU binaries **104 passed**;
+- fresh-main strict Clippy, report/evidence, rustfmt and `git diff --check`;
+- fresh-main `loop gates --full`: **11 / 11 green**.
 
 ## Size
 
