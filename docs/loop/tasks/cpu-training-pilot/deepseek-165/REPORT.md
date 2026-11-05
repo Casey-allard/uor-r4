@@ -6,7 +6,7 @@ Order: [ORDER.md](ORDER.md). Base: `7018b09cd`.
 
 ## Status
 
-Complete. The registered geometric copy hypothesis is **REJECT**.
+Complete and merged. The registered geometric copy hypothesis is **REJECT**.
 
 ## Question
 
@@ -62,6 +62,10 @@ vector-table row was non-vacuous but substantially worse than depth-first copy.
   BOS stops;
 - fresh-process repeats were byte-identical after timing fields;
 - fresh throughput was about **60.4k-60.9k** generated tokens/s at 32 workers.
+- reviewed head: `50f22f86962078d8b2a310f07f3c6ee23ff074fc`;
+- protected merge: `38ab1357832be444bba248b729e4aa7b46dac7a0`;
+- fresh-main CPU library: **295 passed**, 4 expected ignores;
+- fresh-main CPU binaries: **82 passed**.
 
 The geometric arm passed only the fixed-depth-1 and writer comparisons on
 fresh dev. It failed longest-32, longest-4, `k2>k1` and random-32 on both
@@ -83,15 +87,15 @@ outcome is **REJECT**.
 
 ## What remains
 
-Complete exact-head review, protected merge, fresh-main verification and claim
-release. The next geometric-copy unit must learn or derive the candidate
-ranking from context rather than use raw writer-row sign proximity. Exact-copy
-selection, learned termination and terminal-token reconstruction remain open.
+No delivery work remains for this bounded experiment. The next geometric-copy
+unit must learn or derive the candidate ranking from context rather than use
+raw writer-row sign proximity. Exact-copy selection, learned termination and
+terminal-token reconstruction remain open.
 
 ## Size
 
-Final source, tests, preparation, compact evidence and program records are
-measured against base `7018b09cd` at delivery.
+Against base `7018b09cd`, the merged result changes 43 paths (**+1,337 / -8
+textual lines**) plus gzipped evidence blobs. No `.u16` corpus is committed.
 
 ## Skills used
 

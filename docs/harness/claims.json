@@ -111,13 +111,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/copy-geometric": {
-    "branch": "deepseek/copy-geometric",
-    "claimed_at": "2026-11-05T02:08:16-05:00",
-    "head": "7018b09cd",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/copy-key2-cpu": {
     "branch": "deepseek/copy-key2-cpu",
     "claimed_at": "2026-11-03T02:21:59-05:00",
