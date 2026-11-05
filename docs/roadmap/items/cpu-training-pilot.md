@@ -363,6 +363,15 @@ structured failure byte-for-byte from the corrected source. The same 300
 versus 297 top-1 result still stops before generation. See
 [deepseek-145](../../loop/tasks/cpu-training-pilot/deepseek-145/REPORT.md).
 
+The next termination unit formed a phase-aligned transition by rotating the
+current modulo-256 code by the previous code's popcount phase and XORing the
+previous code. The existing offset-conditioned density rule retained all 1,568
+rows but recalled only 14/84 endpoints against the 26/84 floor; false stops
+were 7/1,484. Its non-vacuous shuffled control changed 48 firing decisions but
+recalled 16/84. The preflight stopped before generation. This closes the fixed
+phase-alignment/density configuration, not transition geometry generally. See
+[deepseek-146](../../loop/tasks/cpu-training-pilot/deepseek-146/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

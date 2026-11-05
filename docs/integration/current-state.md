@@ -20,6 +20,15 @@ result remains the registered stop.
 the code readout’s exact top-1 floor; separately pursue a nonterminal-aware
 continuation objective.
 
+The subsequent termination probe used a phase-aligned first-order transition:
+the current modulo-256 code rotated by the previous code's popcount phase and
+XORed with the previous code. Under the existing density rule it recalled
+**14/84** endpoints against 26/84, with **7/1,484** false stops. The
+non-vacuous shuffled control changed 48 firing decisions and recalled 16/84,
+so the preflight stopped before generation. This closes the fixed
+phase-alignment/density combination, not all transition geometry. Record:
+[deepseek-146](../loop/tasks/cpu-training-pilot/deepseek-146/REPORT.md).
+
 ## 2026-11-04 — Two bounded geometric termination negatives (deepseek)
 
 The class-balanced generated-state density gate closed first: seed 1 recalled
