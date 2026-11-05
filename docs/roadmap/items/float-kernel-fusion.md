@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: []
 notebook: docs/research/notebook/float-training.md
-scope: [crates/uor-r4-float-train/build.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/src/cuda_stack.cu, crates/uor-r4-float-train/src/cuda_stack_kernels.rs, crates/uor-r4-float-train/src/fused_quantize*.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/tests/no_training_crate_dep.rs, crates/uor-r4-float-train/tests/twenty_four_kernel_controls.rs, crates/uor-r4-float-train/tests/fused_*.rs, crates/uor-r4-float-train/Cargo.toml, docs/harness/prep/float-kernel-fusion*, docs/loop/tasks/float-kernel-fusion/**, docs/research/notebook/float-training.md, docs/roadmap/items/float-kernel-fusion.md]
+scope: [crates/uor-r4-float-train/build.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/src/cuda_stack.cu, crates/uor-r4-float-train/src/cuda_stack_kernels.rs, crates/uor-r4-float-train/src/fused_quantize*.rs, crates/uor-r4-float-train/src/fused_quantize*.cu, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/tests/no_training_crate_dep.rs, crates/uor-r4-float-train/tests/twenty_four_kernel_controls.rs, crates/uor-r4-float-train/tests/fused_*.rs, crates/uor-r4-float-train/Cargo.toml, docs/harness/prep/float-kernel-fusion*, docs/loop/tasks/float-kernel-fusion/**, docs/research/notebook/float-training.md, docs/roadmap/items/float-kernel-fusion.md]
 ---
 
 ## Why it matters
@@ -65,6 +65,7 @@ Why these two kernels first:
 - The list's two copies: `src/lib.rs:3-4, :33-36` and `tests/no_training_crate_dep.rs:9, :81-108`. `build.rs` names the three PTX modules at `:26-54` and builds them with nvcc at `:76-95`. The scan must run before the early return at `:68-70`, so CPU builds get the list too.
 - The chains and their CPU twins: `hamilton_sheet.rs:646-780` (`q16_residual_ste_scalar :675`, `activation_scale_scalar :691`, `activation_quantize16_ste_scalar :705`). Kernels load at `cuda_stack_kernels.rs:376`; the PTX is embedded at `:85-86`.
 - Stale "24" text to correct on the way: `tests/twenty_four_kernel_controls.rs:1-5` and the crate's `Cargo.toml` description.
+- **Where the kernels go** (claude-284's cancel probe). `cuda_stack.cu`'s SHA-256 is pinned as earlier sheets' source identity (`spiralcore_fbs_sheet.rs:54`, tested at `:4156`), so the fused kernels get their own source, `src/fused_quantize.cu`, built by `build.rs` as their own PTX module, as the SpiralCore arms were. The one-step gate needs the served model parts and the step's loss, which only `in_space_long.rs`'s `tests` module reaches; the unit changes no line outside it.
 - **Where it runs.** Kernel development may use Casey's local RTX 4090 (Linux) once it is up. The gates that count, done-when 2 to 4, run on an RTX 5090 pod. That is Casey's call 1 of 4 Nov (#2028 6638209391): qualification stays on 5090 pods until the 4090 bring-up's step 4 shows the cards agree. A 4090 needs its own PTX target (it cannot load `compute_120`).
 
 ## Rules that apply
