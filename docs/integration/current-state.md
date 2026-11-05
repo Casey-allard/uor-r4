@@ -1,3 +1,22 @@
+## 2026-11-05 — Geometric candidate union doubles seed-1 supervision but misses seed-2 floor (deepseek)
+
+Adding the writer's top 128 non-BOS geometric candidates to exact-copy history
+raised artifact seed 1 from 85 exact-copy supervised groups to **2,442** groups
+with 332 target tokens, above the registered 2,048-group floor. Artifact seed 2
+stopped at **1,847** groups, so the registered two-seed run is
+**INSUFFICIENT_TRAINING_DATA** and seed 2768 is closed for this construction.
+
+The run used eight bounded integer features, reference-free generated
+inference, deepest exact-copy sources, writer-rank retention, all four controls
+and reply/decision replay hashes. Seed 1 is diagnostic only: its ranker scored
+265 body positions versus 601 for longest-32, 61 for writer and 46 for
+fixed geometry-only. The shell's mismatched regex printed `INSTRUMENT_FAULT`;
+the preserved 1,847-group error was reclassified under the registered stop
+rule without rerun or retune. Record:
+[deepseek-177](../loop/tasks/cpu-training-pilot/deepseek-177/REPORT.md).
+**Next:** broaden supervision or derive a denser objective that clears both
+artifacts under a new seed; keep longest-32 as the current body selector.
+
 ## 2026-11-05 — Reference-prefix ranker confirms candidate supervision shortage (deepseek)
 
 Replacing longest-32-generated training trajectories with teacher-forced

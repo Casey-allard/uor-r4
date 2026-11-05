@@ -166,3 +166,14 @@ ba9f4156e92685367fff531f189180b802f662e0d126e9d90c95a1447fbea248  ./learned-read
 2970242d36313f3e38f496544c8988f650a9ea76b70a1318aab13c8377aadb24  ./lookahead-2764/seed2-repeat.time.txt
 7a0460971500e68bc9d1e34dbb97bd87ca13179f3109f38e15f650afb962e29f  ./lookahead-2764/seed2.json.gz
 cfcd75efb761e73439ed740230a33eece5aae88d6593891bc58a98c52444d0a0  ./lookahead-2764/seed2.time.txt
+57b4063407ca85c63fb2989de119ce949a81ed561e454cd7a9dec9a91e1f22e1  ./geometric-candidate-union-2768/CLASSIFICATION.txt
+d0dce24ba0df3d2f053d39cd7882466367d8a805b8e1f9b2fffdb223ec6e1c30  ./geometric-candidate-union-2768/DRIVER.txt
+7d4ca1e4408959203570067b03561025cb1c49287dd04f112e9d81468e33771c  ./geometric-candidate-union-2768/LOCAL-RUN-SEAL.txt
+ba4e2f238cbd113417bd818e64181e9d1ff71261c60277a50b48721d195d3b08  ./geometric-candidate-union-2768/RAW-SHA256SUMS
+9830a1e603c1de6593ccf3796552e72cf0e74d7514625cb12181ab2c9c5aad2d  ./geometric-candidate-union-2768/manifest.json
+2e908564841d27d28a49ff28af6020ff181e21926d6384c5f393ad2c89750c22  ./geometric-candidate-union-2768/outcome.raw.txt
+ac1ded8c63b4b1cf93f3d7c674e6900c745952db97da13908a64772ee3bb4f20  ./geometric-candidate-union-2768/panel.stdout.json
+9bab5e2b4148066e1781b6a4eb964f6cc91ea13a842ad488d17a743a602e8dab  ./geometric-candidate-union-2768/seed1.json
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./geometric-candidate-union-2768/seed1.stderr
+ea34bab674d76798b7aa1815ff169c947aa81d2307539a8a2d042cf9e1227e19  ./geometric-candidate-union-2768/seed2.stderr
+b44a066141250930b4e16ac2b052012d730d3722d921e0d4b21e7a5ecd501973  ./geometric-candidate-union-2768/seed2.time.txt

@@ -230,6 +230,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/geometric-candidate-union": {
+    "branch": "deepseek/geometric-candidate-union",
+    "claimed_at": "2026-11-05T07:25:50-05:00",
+    "head": "68e4736df",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/geometric-image-registration": {
     "branch": "deepseek/geometric-image-registration",
     "claimed_at": "2026-11-03T15:58:05-05:00",

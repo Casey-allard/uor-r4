@@ -1,0 +1,18 @@
+Classification: INSUFFICIENT_TRAINING_DATA
+Raw automation outcome: INSTRUMENT_FAULT
+
+The registered stop rule classifies fewer than 2,048 supervised candidate
+groups as INSUFFICIENT_TRAINING_DATA. Artifact seed 2 stopped during training
+eligibility with 1,847 supervised groups. Its preserved stderr is:
+
+cpu-learned-copy-read: geometric candidate ranker has 1847 supervised groups, fewer than 2048
+
+The shell classifier expected the substring "fewer than 2048 supervised
+groups", which does not occur in that error word order, so it emitted the raw
+INSTRUMENT_FAULT label. The raw outcome is preserved unmodified in
+outcome.raw.txt. This correction applies the registered stop rule to the
+preserved instrument output; it does not rerun or retune seed 2768.
+
+Artifact seed 1 passed the group and target floors with 2,442 supervised groups
+and 332 target tokens. Because artifact seed 2 stopped before its report, the
+registered two-seed bar was not evaluated and no fresh-process repeat ran.

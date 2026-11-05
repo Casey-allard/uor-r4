@@ -1,0 +1,16 @@
+Registered driver settings:
+cap=64
+driver seed=163
+ranker trajectory=reference
+ranker candidates=geometric-union
+threads=32
+
+Artifact seed 1:
+fresh FBS artifact seed 1
+
+Artifact seed 2:
+fresh FBS artifact seed 2
+
+The exact command block is in
+docs/harness/prep/cpu-training-pilot-geometric-candidate-union-2026-11-05.md
+under Steps.

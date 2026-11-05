@@ -3,12 +3,13 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use uor_r4_cpu_train::{
-    compare_copy_key_reply_rows, content_mapping_sha256, derive_copy_candidate_rankers,
-    derive_learned_copy_readout, evaluate_copy_key_replies, evaluate_learned_copy_replies,
+    compare_copy_key_reply_rows, compare_geometric_candidate_rows, content_mapping_sha256,
+    derive_copy_candidate_rankers, derive_geometric_candidate_rankers, derive_learned_copy_readout,
+    evaluate_copy_key_replies, evaluate_geometric_candidate_replies, evaluate_learned_copy_replies,
     evaluate_ranked_copy_replies, shuffle_content_targets, validate_corpus_manifest,
     CopyCandidateRanker, CopyKeyReplyArm, CopyKeyReplyMetric, CopyKeyReplyRow, CopyKeyReplyStep,
-    CopyRankerTrajectory, CpuCorpusIdentity, CpuMaskedCorpus, LearnedCopyArm, LearnedCopyStep,
-    MemoryWeightSample, RankedCopyStep,
+    CopyRankerTrajectory, CpuCorpusIdentity, CpuMaskedCorpus, GeometricCandidateArm,
+    GeometricCandidateStep, LearnedCopyArm, LearnedCopyStep, MemoryWeightSample, RankedCopyStep,
 };
 
 fn main() {
@@ -40,6 +41,12 @@ struct PanelRun<'a> {
     allow_underpowered: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RankerCandidates {
+    ExactCopy,
+    GeometricUnion,
+}
+
 fn run() -> Result<(), String> {
     let mut values = std::env::args().skip(1);
     let train_tokens = PathBuf::from(values.next().ok_or_else(usage)?);
@@ -52,6 +59,7 @@ fn run() -> Result<(), String> {
     let mut cap = 64usize;
     let mut seed = 153u64;
     let mut ranker_trajectory = CopyRankerTrajectory::Longest32;
+    let mut ranker_candidates = RankerCandidates::ExactCopy;
     let mut allow_underpowered = false;
     while let Some(flag) = values.next() {
         if flag == "--allow-underpowered" {
@@ -83,6 +91,17 @@ fn run() -> Result<(), String> {
                     }
                 };
             }
+            "--ranker-candidates" => {
+                ranker_candidates = match value.as_str() {
+                    "exact-copy" => RankerCandidates::ExactCopy,
+                    "geometric-union" => RankerCandidates::GeometricUnion,
+                    _ => {
+                        return Err(format!(
+                            "--ranker-candidates expects exact-copy or geometric-union: {value}"
+                        ))
+                    }
+                };
+            }
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
     }
@@ -100,6 +119,31 @@ fn run() -> Result<(), String> {
         || train_identity.bos != test_identity.bos
     {
         return Err("learned-copy train and test corpora differ".to_owned());
+    }
+    if ranker_candidates == RankerCandidates::GeometricUnion {
+        if ranker_trajectory != CopyRankerTrajectory::ReferencePrefix {
+            return Err(
+                "geometric-union candidate ranking requires --ranker-trajectory reference"
+                    .to_owned(),
+            );
+        }
+        return run_geometric_candidate_union(GeometricCandidateInputs {
+            artifact: &artifact_bytes,
+            train_samples: &train_samples,
+            test_samples: &test_samples,
+            train_identity: &train_identity,
+            test_identity: &test_identity,
+            train_tokens: &train_tokens,
+            train_mask: &train_mask,
+            train_manifest: &train_manifest,
+            test_tokens: &test_tokens,
+            test_mask: &test_mask,
+            test_manifest: &test_manifest,
+            artifact_path: &artifact,
+            cap,
+            seed,
+            allow_underpowered,
+        });
     }
 
     let training_started = Instant::now();
@@ -227,6 +271,298 @@ fn run() -> Result<(), String> {
         serde_json::to_string_pretty(&output).map_err(|error| error.to_string())?
     );
     Ok(())
+}
+
+struct GeometricCandidateInputs<'a> {
+    artifact: &'a [u8],
+    train_samples: &'a [MemoryWeightSample],
+    test_samples: &'a [MemoryWeightSample],
+    train_identity: &'a CpuCorpusIdentity,
+    test_identity: &'a CpuCorpusIdentity,
+    train_tokens: &'a Path,
+    train_mask: &'a Path,
+    train_manifest: &'a Path,
+    test_tokens: &'a Path,
+    test_mask: &'a Path,
+    test_manifest: &'a Path,
+    artifact_path: &'a Path,
+    cap: usize,
+    seed: u64,
+    allow_underpowered: bool,
+}
+
+fn run_geometric_candidate_union(inputs: GeometricCandidateInputs<'_>) -> Result<(), String> {
+    let training_started = Instant::now();
+    let training = derive_geometric_candidate_rankers(
+        inputs.artifact,
+        inputs.train_samples,
+        inputs.cap,
+        inputs.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let training_elapsed_us = training_started.elapsed().as_micros() as u64;
+    let test_started = Instant::now();
+    let trained = evaluate_geometric_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        GeometricCandidateArm::Trained,
+        &training.trained,
+    )
+    .map_err(|error| error.to_string())?;
+    let shuffled = evaluate_geometric_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        GeometricCandidateArm::Shuffled,
+        &training.shuffled,
+    )
+    .map_err(|error| error.to_string())?;
+    let geometry_only = evaluate_geometric_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        GeometricCandidateArm::GeometryOnly,
+        &training.geometry_only,
+    )
+    .map_err(|error| error.to_string())?;
+    let longest = evaluate_copy_key_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        CopyKeyReplyArm::Longest32To1,
+        inputs.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let writer = evaluate_copy_key_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        CopyKeyReplyArm::Writer,
+        inputs.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let test_elapsed_us = test_started.elapsed().as_micros() as u64;
+    if !inputs.allow_underpowered
+        && [
+            trained.reading.reference_reachable,
+            shuffled.reading.reference_reachable,
+            geometry_only.reading.reference_reachable,
+            longest.reading.reference_reachable,
+            writer.reading.reference_reachable,
+        ]
+        .into_iter()
+        .any(|reachable| reachable < 200)
+    {
+        return Err("geometric candidate control has fewer than 200 reachable replies".to_owned());
+    }
+    let comparisons = serde_json::json!({
+        "geometry_only": compare_geometric_candidate_rows(
+            &trained.rows,
+            &geometry_only.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "shuffled": compare_geometric_candidate_rows(
+            &trained.rows,
+            &shuffled.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "longest_32": compare_copy_key_reply_rows(
+            &trained.rows,
+            &longest.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "writer": compare_copy_key_reply_rows(
+            &trained.rows,
+            &writer.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+    });
+    let changes = serde_json::json!({
+        "geometry_only": geometric_candidate_changes(
+            &trained.rows,
+            &trained.steps,
+            &geometry_only.steps,
+        ),
+        "shuffled": geometric_candidate_changes(
+            &trained.rows,
+            &trained.steps,
+            &shuffled.steps,
+        ),
+        "longest_32": copy_control_changes(&trained.rows, &trained.steps, &longest.steps),
+        "writer": copy_control_changes(&trained.rows, &trained.steps, &writer.steps),
+    });
+    let artifact_sha256 = uor_r4_discrete::corpus::sha256(inputs.artifact);
+    let output = serde_json::json!({
+        "schema": "uor-r4.cpu-geometric-candidate-ranker/1",
+        "substrate": "cpu-development-research",
+        "qualification": "development-only",
+        "claim": "bounded next-token candidate arbitration; no language or serving claim",
+        "inputs": {
+            "artifact": inputs.artifact_path.display().to_string(),
+            "artifact_sha256": artifact_sha256,
+            "train_tokens": inputs.train_tokens.display().to_string(),
+            "train_mask": inputs.train_mask.display().to_string(),
+            "train_manifest": inputs.train_manifest.display().to_string(),
+            "train_tokens_sha256": inputs.train_identity.tokens_sha256,
+            "train_mask_sha256": inputs.train_identity.mask_sha256,
+            "train_manifest_sha256": uor_r4_discrete::corpus::sha256(&read(inputs.train_manifest)?),
+            "train_split": inputs.train_identity.split,
+            "test_tokens": inputs.test_tokens.display().to_string(),
+            "test_mask": inputs.test_mask.display().to_string(),
+            "test_manifest": inputs.test_manifest.display().to_string(),
+            "test_tokens_sha256": inputs.test_identity.tokens_sha256,
+            "test_mask_sha256": inputs.test_identity.mask_sha256,
+            "test_manifest_sha256": uor_r4_discrete::corpus::sha256(&read(inputs.test_manifest)?),
+            "test_split": inputs.test_identity.split,
+            "tokenizer_sha256": inputs.test_identity.tokenizer_sha256,
+        },
+        "settings": {
+            "cap": inputs.cap,
+            "seed": inputs.seed,
+            "candidate_set": training.candidate_set,
+            "maximum_copy_depth": training.exact_depth,
+            "signature_mode": "sign_hamming_and_geometry",
+        },
+        "training": {
+            "trajectory": training.trajectory,
+            "supervised_groups": training.supervised_groups,
+            "target_present_groups": training.target_present_groups,
+            "target_values": training.target_values,
+            "generated_rows": training.generated_rows,
+            "candidate_rows": training.candidate_rows,
+            "shuffled_target_changes": training.shuffled_target_changes,
+            "elapsed_us": training_elapsed_us,
+        },
+        "candidate_ranker": {
+            "features": uor_r4_cpu_train::GEOMETRIC_CANDIDATE_FEATURE_NAMES,
+            "epochs": uor_r4_cpu_train::GEOMETRIC_CANDIDATE_EPOCHS,
+            "writer_candidates": uor_r4_cpu_train::GEOMETRIC_CANDIDATE_TOP_WRITER,
+            "exact_depth": uor_r4_cpu_train::COPY_KEY_REPLY_MAX_DEPTH,
+            "trained_weights": training.trained.weights,
+            "trained_weights_sha256": training.trained.weights_sha256(),
+            "shuffled_weights": training.shuffled.weights,
+            "shuffled_weights_sha256": training.shuffled.weights_sha256(),
+            "depth_only_weights": training.depth_only.weights,
+            "depth_only_weights_sha256": training.depth_only.weights_sha256(),
+            "geometry_only_weights": training.geometry_only.weights,
+        },
+        "test": {
+            "trained": trained.reading,
+            "shuffled": shuffled.reading,
+            "geometry_only": geometry_only.reading,
+            "longest_32": longest.reading,
+            "writer": writer.reading,
+            "comparisons": comparisons,
+            "changes": changes,
+            "signatures": {
+                "trained": {
+                    "reply_sha256": trained.reply_sha256,
+                    "decision_sha256": trained.decision_sha256,
+                },
+                "shuffled": {
+                    "reply_sha256": shuffled.reply_sha256,
+                    "decision_sha256": shuffled.decision_sha256,
+                },
+                "geometry_only": {
+                    "reply_sha256": geometry_only.reply_sha256,
+                    "decision_sha256": geometry_only.decision_sha256,
+                },
+                "longest_32": {
+                    "reply_sha256": longest.reply_sha256,
+                    "decision_sha256": longest.decision_sha256,
+                },
+                "writer": {
+                    "reply_sha256": writer.reply_sha256,
+                    "decision_sha256": writer.decision_sha256,
+                },
+            },
+            "elapsed_us": test_elapsed_us,
+        },
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output).map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+fn geometric_candidate_changes(
+    rows: &[CopyKeyReplyRow],
+    candidate: &[GeometricCandidateStep],
+    control: &[GeometricCandidateStep],
+) -> serde_json::Value {
+    let reachable = reachable_rows(rows);
+    let candidate = candidate
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    let control = control
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    changed_tokens(&reachable, &candidate, &control)
+}
+
+fn copy_control_changes(
+    rows: &[CopyKeyReplyRow],
+    candidate: &[GeometricCandidateStep],
+    control: &[CopyKeyReplyStep],
+) -> serde_json::Value {
+    let reachable = reachable_rows(rows);
+    let candidate = candidate
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    let control = control
+        .iter()
+        .map(|step| ((step.row, step.generated_step), step.selected_token))
+        .collect::<BTreeMap<_, _>>();
+    changed_tokens(&reachable, &candidate, &control)
+}
+
+fn reachable_rows(rows: &[CopyKeyReplyRow]) -> BTreeSet<usize> {
+    rows.iter()
+        .filter(|row| row.reachable)
+        .map(|row| row.row)
+        .collect()
+}
+
+fn changed_tokens(
+    reachable: &BTreeSet<usize>,
+    candidate: &BTreeMap<(usize, usize), u32>,
+    control: &BTreeMap<(usize, usize), u32>,
+) -> serde_json::Value {
+    let changed = candidate
+        .iter()
+        .filter_map(|(&(row, step), &token)| {
+            if !reachable.contains(&row) {
+                return None;
+            }
+            control
+                .get(&(row, step))
+                .filter(|&&control| control != token)
+                .map(|_| (row, step))
+        })
+        .collect::<Vec<_>>();
+    let changed_rows = changed
+        .iter()
+        .map(|(row, _)| *row)
+        .collect::<BTreeSet<_>>()
+        .len();
+    serde_json::json!({
+        "changed_steps": changed.len(),
+        "changed_rows": changed_rows,
+        "first_changed_step": changed.first().map(|(row, step)| serde_json::json!({
+            "row": row,
+            "generated_step": step,
+        })),
+        "non_vacuous": !changed.is_empty(),
+    })
 }
 
 fn evaluate_panel(run: PanelRun<'_>) -> Result<serde_json::Value, String> {
@@ -627,6 +963,7 @@ fn usage() -> String {
     "usage: cpu-learned-copy-read TRAIN_TOKENS TRAIN_MASK TRAIN_MANIFEST \
      TEST_TOKENS TEST_MASK TEST_MANIFEST ARTIFACT [--cap N] [--seed N] \
      [--ranker-trajectory longest32|reference] \
+     [--ranker-candidates exact-copy|geometric-union] \
      [--allow-underpowered]"
         .to_owned()
 }
@@ -649,6 +986,7 @@ mod tests {
             "--cap",
             "--seed",
             "--ranker-trajectory",
+            "--ranker-candidates",
         ] {
             assert!(usage.contains(word), "{usage}");
         }

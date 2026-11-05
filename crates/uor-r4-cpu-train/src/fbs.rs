@@ -697,6 +697,31 @@ impl CpuFbsForward {
         Ok(sign_hamming_q12(query, row))
     }
 
+    /// Return the writer's geometric candidates in decreasing score order.
+    ///
+    /// The writer admits a bounded set of cells, then scores every vocabulary
+    /// token in those cells by integer L1 distance. This read exposes only that
+    /// existing ordering; it does not broaden the writer itself.
+    pub(crate) fn writer_candidate_order(
+        &self,
+        query: &[i32],
+        limit: usize,
+    ) -> Result<Vec<(u32, i64)>> {
+        if query.len() != self.width {
+            return Err(invalid("writer candidate query width differs"));
+        }
+        if limit == 0 {
+            return Err(invalid("writer candidate limit is zero"));
+        }
+        let cells = writer_cells(query, &self.roots_q12, self.kept_cells);
+        let mut candidates = writer_candidates(query, &self.writer_table, self.vocab, &cells);
+        candidates.sort_unstable_by(|left, right| {
+            right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
+        });
+        candidates.truncate(limit);
+        Ok(candidates)
+    }
+
     pub(crate) fn replay_final_gain(
         &self,
         norm_before_final_gain: &[i64],

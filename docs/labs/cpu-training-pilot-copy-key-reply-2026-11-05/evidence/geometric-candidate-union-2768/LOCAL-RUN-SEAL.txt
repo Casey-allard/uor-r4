@@ -1,0 +1,14 @@
+Raw local root:
+/home/callard/projects/codex-playground/uor-r4/local/deepseek/geometric-candidate-union/2026-11-05
+
+Raw SHA256SUMS:
+ba4e2f238cbd113417bd818e64181e9d1ff71261c60277a50b48721d195d3b08
+
+The raw root verifies with `sha256sum -c SHA256SUMS --quiet`. The raw
+outcome.txt remains INSTRUMENT_FAULT. CLASSIFICATION.txt records the
+post-run application of the registered INSUFFICIENT_TRAINING_DATA stop rule
+without changing the sealed evidence.
+
+Fresh panel: seed 2768, dev,dev, 128 conversations.
+Raw seed-1 report: sha256 9bab5e2b4148066e1781b6a4eb964f6cc91ea13a842ad488d17a743a602e8dab
+Raw seed-2 stderr: sha256 ea34bab674d76798b7aa1815ff169c947aa81d2307539a8a2d042cf9e1227e19

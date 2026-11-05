@@ -521,6 +521,18 @@ candidate construction or use a denser objective, with a new seed and
 registration. See
 [deepseek-175](../../loop/tasks/cpu-training-pilot/deepseek-175/REPORT.md).
 
+The next ranker broadened the exact-copy candidate set with the writer's top
+128 non-BOS geometric candidates and a writer fallback, while retaining exact
+depths through 32. On artifact seed 1 this produced **2,442** supervised groups
+and 332 target tokens, a large increase over exact copy alone. Artifact seed 2
+stopped at **1,847** groups against the fixed 2,048 floor, so the registered
+two-seed comparison was not evaluated and the run is
+**INSUFFICIENT_TRAINING_DATA**. Seed 1's diagnostic ranker also lost to
+longest-32. The broader union is therefore promising for supervision but not
+yet robust or strong enough; the next unit must clear both artifacts under a
+new seed without lowering the floor. See
+[deepseek-177](../../loop/tasks/cpu-training-pilot/deepseek-177/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

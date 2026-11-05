@@ -18,6 +18,7 @@ mod counterfactual;
 mod discrete_route;
 mod fbs;
 mod gain_train;
+mod geometric_candidate_rank;
 mod hamming;
 mod learned_copy_reply;
 mod memory;
@@ -98,6 +99,14 @@ pub use gain_train::{
     CpuTerminationGainTrainer, ServedGainConfig, ServedGainMove, ServedGainStep,
     TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading, TerminationGainStep,
     CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
+};
+pub use geometric_candidate_rank::{
+    compare_geometric_candidate_rows, derive_geometric_candidate_rankers,
+    evaluate_geometric_candidate_replies, GeometricCandidateArm, GeometricCandidateRanker,
+    GeometricCandidateReading, GeometricCandidateStep, GeometricCandidateTraining,
+    TimedGeometricCandidateReading, GEOMETRIC_CANDIDATE_EPOCHS, GEOMETRIC_CANDIDATE_FEATURES,
+    GEOMETRIC_CANDIDATE_FEATURE_NAMES, GEOMETRIC_CANDIDATE_MIN_GROUPS,
+    GEOMETRIC_CANDIDATE_MIN_TARGETS, GEOMETRIC_CANDIDATE_TOP_WRITER,
 };
 pub use learned_copy_reply::{
     derive_learned_copy_readout, evaluate_learned_copy_replies, LearnedCopyArm, LearnedCopyReading,
