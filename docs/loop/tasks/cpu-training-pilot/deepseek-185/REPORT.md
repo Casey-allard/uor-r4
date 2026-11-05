@@ -107,6 +107,18 @@ The workspace/dependency Clippy form without `--no-deps` is red on pre-existing
 Rust 1.97 lints in `uor-r4-integer` and `uor-r4-discrete`; those files were not
 changed.
 
+## Delivery
+
+PR #3739 was reviewed at exact head
+`c5e26e8286701d9a48d9b2a6f3764d2239f57ba0` after merging current
+`origin/main`. All required checks passed and the protected queue merged it as
+`5e7d5c681534be2ba41a050aadf642488d8f1543`.
+
+Fresh detached `origin/main` passed the full CPU package (**351 library tests
+passed**, 4 expected ignores, all binary tests), scoped strict Clippy,
+formatting, diff, report, FIT/prep evidence, D23/D32 ratchets and claim-wording
+checks at the merge commit.
+
 ## Size
 
 The implementation adds one diagnostic driver, one optional CPU forward table

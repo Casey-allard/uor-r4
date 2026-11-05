@@ -419,10 +419,10 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/table-anchor-isolation": {
-    "branch": "deepseek/table-anchor-isolation",
-    "claimed_at": "2026-11-05T10:37:07-05:00",
-    "head": "1c5209f8e",
+  "deepseek/table-anchor-isolation-release": {
+    "branch": "deepseek/table-anchor-isolation-release",
+    "claimed_at": "2026-11-05T11:29:56-05:00",
+    "head": "5e7d5c681",
     "lab": "deepseek",
     "note": ""
   },
