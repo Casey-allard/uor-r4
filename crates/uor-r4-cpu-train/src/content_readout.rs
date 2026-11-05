@@ -100,6 +100,14 @@ pub struct ContentReadoutReading {
     pub first_divergence: BTreeMap<usize, u64>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ContentPrediction {
+    pub target: u32,
+    pub distance: u32,
+    pub ambiguous: bool,
+    pub within_threshold: bool,
+}
+
 /// Decision-for-decision parity between this CPU readout path and the integer
 /// stack engine carrying the same artifact-bound sidecar.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -314,7 +322,7 @@ fn derive_content_readout_with_endpoint(
     fit_content_readout(rows, target_values, mode, include_reference_end)
 }
 
-fn fit_content_readout(
+pub(crate) fn fit_content_readout(
     rows: Vec<ContentExample>,
     target_values: usize,
     mode: ContentSignatureMode,
@@ -697,9 +705,8 @@ fn select_content_target(
     signature: &ContentSignature,
     writer_token: u32,
 ) -> Result<(u32, Option<u32>, bool, bool)> {
-    let nearest = nearest_target(&readout.rows, readout.rows.len(), signature)?
-        .ok_or_else(|| invalid("content readout has no rows"))?;
-    if nearest.distance <= readout.max_distance {
+    let nearest = predict_content_target(readout, signature)?;
+    if nearest.within_threshold {
         Ok((
             nearest.target,
             Some(nearest.distance),
@@ -714,6 +721,24 @@ fn select_content_target(
             false,
         ))
     }
+}
+
+pub fn predict_content_target(
+    readout: &ContentReadout,
+    signature: &ContentSignature,
+) -> Result<ContentPrediction> {
+    validate_content_readout(readout)?;
+    if signature.len() != readout.signature_bits / 64 {
+        return Err(invalid("content prediction signature width differs"));
+    }
+    let nearest = nearest_target(&readout.rows, readout.rows.len(), signature)?
+        .ok_or_else(|| invalid("content readout has no rows"))?;
+    Ok(ContentPrediction {
+        target: nearest.target,
+        distance: nearest.distance,
+        ambiguous: nearest.ambiguous,
+        within_threshold: nearest.distance <= readout.max_distance,
+    })
 }
 
 struct NearestTarget {

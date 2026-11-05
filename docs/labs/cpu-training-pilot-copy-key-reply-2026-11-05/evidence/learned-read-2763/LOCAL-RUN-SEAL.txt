@@ -1,0 +1,10 @@
+Original local run root:
+local/deepseek/copy-learned-read/2026-11-05
+
+Original local run manifest:
+SHA256SUMS
+
+Original local run manifest SHA-256:
+b53633e201bef6d9b81dec1f51894d1db12297f0330b2de2fd0e6ad6ad141afd
+
+Verify from the original run root with `sha256sum -c SHA256SUMS`.

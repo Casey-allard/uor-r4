@@ -1,0 +1,9 @@
+{
+  "learned_body_positions": 475,
+  "longest_body_positions": 474,
+  "learned_arbitrations": 174,
+  "compares": false,
+  "all_control_reachable": true,
+  "exact_reference": 0,
+  "bos_complete": 0
+}

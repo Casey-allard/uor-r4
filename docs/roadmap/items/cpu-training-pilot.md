@@ -465,6 +465,17 @@ derive candidate agreement from context instead of treating a static row as a
 copy key. See
 [deepseek-165](../../loop/tasks/cpu-training-pilot/deepseek-165/REPORT.md).
 
+Learning from generated query codes did not escape that ceiling. A modulo-256
+readout fitted on 4,661 longest-copy train states was restricted to exact-copy
+candidates and evaluated on a fresh seed-2763 panel. It arbitrated 210 and 174
+decisions but scored with longest-32 on seed 1 and gained one body position on
+seed 2, below the paired threshold; the shuffled learned read also failed the
+comparison. Leave-one-out training top-1 was only 116 and 125 of 1,024. This
+closes the fixed row-level nearest-example copy read. The next candidate
+representation must model multi-token continuation or candidate-specific
+context rather than map one writer state to one token. See
+[deepseek-167](../../loop/tasks/cpu-training-pilot/deepseek-167/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

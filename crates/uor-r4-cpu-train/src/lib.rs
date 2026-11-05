@@ -18,6 +18,7 @@ mod discrete_route;
 mod fbs;
 mod gain_train;
 mod hamming;
+mod learned_copy_reply;
 mod memory;
 mod memory_train;
 mod panel;
@@ -90,6 +91,10 @@ pub use gain_train::{
     CpuTerminationGainTrainer, ServedGainConfig, ServedGainMove, ServedGainStep,
     TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading, TerminationGainStep,
     CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
+};
+pub use learned_copy_reply::{
+    derive_learned_copy_readout, evaluate_learned_copy_replies, LearnedCopyArm, LearnedCopyReading,
+    LearnedCopyStep, LearnedCopyTraining, TimedLearnedCopyReading, LEARNED_COPY_MAX_TRAINING_ROWS,
 };
 pub use memory_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,

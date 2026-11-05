@@ -77,3 +77,20 @@ and premature-BOS replies. The classification is **REJECT** for raw
 token-row sign proximity as copy arbitration. See
 [deepseek-165](../../loop/tasks/cpu-training-pilot/deepseek-165/REPORT.md)
 and [`evidence/geometric-2762/`](evidence/geometric-2762/).
+
+## Learned geometric copy read
+
+Deepseek-167 trained a modulo-256 query-code readout on generated longest-32
+train states and allowed it to choose only from the exact-copy candidate set.
+On a fresh seed-2763 panel with 453 reachable replies, the learned read scored
+**474 and 475/4,686** body positions against **474** for longest-32. The
+shuffled readout scored 475 and 474. The paired longest and shuffled
+comparisons both failed.
+
+The learned read arbitrated 210 and 174 candidate decisions and changed 52 and
+245 decisions versus longest-32. Its 1,024-row fit had only 116 and 125
+leave-one-out top-1 rows, with 957/2,048 fitted radius. The result closes this
+row-level nearest-example representation; it is not evidence against all
+learned geometric attention. See
+[deepseek-167](../../loop/tasks/cpu-training-pilot/deepseek-167/REPORT.md)
+and [`evidence/learned-read-2763/`](evidence/learned-read-2763/).

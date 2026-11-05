@@ -80,5 +80,9 @@ name = "cpu-copy-key-reply-oracle"
 path = "src/bin/cpu-copy-key-reply-oracle.rs"
 
 [[bin]]
+name = "cpu-learned-copy-read"
+path = "src/bin/cpu-learned-copy-read.rs"
+
+[[bin]]
 name = "cpu-copy-generated-stop"
 path = "src/bin/cpu-copy-generated-stop.rs"

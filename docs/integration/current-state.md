@@ -1,3 +1,18 @@
+## 2026-11-05 — Learned query-code copy read rejects (deepseek)
+
+A learned modulo-256 code read was fitted on longest-32 train trajectories and
+allowed to choose only from the exact-copy candidate set. On a fresh seed-2763
+panel with 453 reachable replies it scored **474 and 475/4,686** correct body
+positions against **474** for longest-32 on both artifact seeds. It arbitrated
+210 and 174 candidates and changed 52 and 245 decisions, but the paired
+longest and shuffled-read comparisons failed. Training leave-one-out top-1 was
+only **116 and 125/1,024**, with a 957/2,048 fitted radius. All learned and
+control arms remained deterministic with zero exact, BOS-complete or premature
+BOS replies. Record:
+[deepseek-167](../loop/tasks/cpu-training-pilot/deepseek-167/REPORT.md).
+**Next:** change the trained copy representation or target rather than adding
+rows or loosening this readout.
+
 ## 2026-11-05 — Token-row sign distance rejects as copy arbitration (deepseek)
 
 The geometric copy arm ranked every available exact-copy candidate by

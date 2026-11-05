@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/copy-learned-read": {
+    "branch": "deepseek/copy-learned-read",
+    "claimed_at": "2026-11-05T02:58:57-05:00",
+    "head": "127c6e310",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/count-table-control": {
     "branch": "deepseek/count-table-control",
     "claimed_at": "2026-11-03T09:11:47-05:00",
