@@ -6,7 +6,7 @@ Order: [ORDER.md](ORDER.md). Base: `127c6e310`.
 
 ## Status
 
-Complete. The learned geometric copy read is **REJECT**.
+Complete and merged. The learned geometric copy read is **REJECT**.
 
 ## Question
 
@@ -60,6 +60,10 @@ read did not establish a treatment advantage.
   [`learned-read-2763/`](../../../labs/cpu-training-pilot-copy-key-reply-2026-11-05/evidence/learned-read-2763/),
   raw local manifest SHA-256
   `b53633e201bef6d9b81dec1f51894d1db12297f0330b2de2fd0e6ad6ad141afd`.
+- reviewed head: `9909feb356fad2a2157d1a66f327e1cb6d8f842f`;
+- protected merge: `f579da5978a80684d47d47498d0817810f90710b`;
+- fresh-main CPU library: **302 passed**, 4 expected ignores;
+- fresh-main CPU binaries: **83 passed**.
 
 The paired comparisons against longest-32, longest-4 and shuffled-learned
 failed on both seeds. The sealed outcome is **REJECT**.
@@ -77,15 +81,15 @@ failed on both seeds. The sealed outcome is **REJECT**.
 
 ## What remains
 
-Complete exact-head review, protected merge, fresh-main verification and claim
-release. Learned copy arbitration remains open, but the next attempt must use
-a materially different candidate representation or training target; more rows
-or a looser threshold on this exact readout are not indicated.
+No delivery work remains for this bounded experiment. Learned copy arbitration
+remains open, but the next attempt must use a materially different candidate
+representation or training target; more rows or a looser threshold on this
+exact readout are not indicated.
 
 ## Size
 
-Final source, tests, preparation and compact evidence are measured against
-base `127c6e310` at delivery.
+Against base `127c6e310`, the merged result changes 35 paths (**+2,185 / -4
+textual lines**) plus gzipped evidence blobs. No `.u16` corpus is committed.
 
 ## Skills used
 
