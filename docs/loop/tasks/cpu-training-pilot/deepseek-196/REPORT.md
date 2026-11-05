@@ -107,6 +107,18 @@ Compact evidence: [result.json](evidence/result.json).
 - per-command RSS checks and preflight coverage/control gates: enforced;
 - no fresh panel was generated.
 
+## Delivery
+
+PR #3752 was reviewed at exact head
+`ae6a6916e4af27eec578427f0606a21480a4af00` with a counted
+`uor-review v1` APPROVE and all required checks green. The protected queue
+merged it as `03c929896efe795a62745281b84ebafa7fba0c77`.
+
+Fresh `main` has identical content for all 15 changed files. The CPU package
+passed **371 tests** with four expected ignores, the compact evidence manifest
+read back clean, and all three source hashes still match the registration. The
+release record removes the completed source claim.
+
 ## Reading
 
 The local exact-copy domain is too complete for a “local absent” fallback to be
