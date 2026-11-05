@@ -47,6 +47,10 @@ changed.
 
 ## Measurements
 
+- reviewed delivery head:
+  `1052f92555ce0ce3402d0cc96a9b4c22eca7f1c0`;
+- PR: #3732;
+- protected merge: `5bd24915e92f434d902c55b0db46063f5ab40851`;
 - Synthetic positive: **256** tokens, width **32**, **4,096** checked port
   coordinates over **256** distinct cells, zero mismatches.
 - One moved coordinate: **1** mismatch, **1** token, **1** row.
@@ -71,10 +75,10 @@ changed.
 - direct audit runs on both public unanchored artifacts;
 - artifact SHA-256 agreement with the public `SHA256SUMS`;
 - fresh-context review, with the output-alias and hash-branch findings fixed;
+- exact-head review, all required CI checks and protected merge;
+- fresh-main CPU package: **340 passed**, 4 expected ignores;
+- fresh-main binary tests: **101 passed**; strict Clippy passed;
 - `git diff --check`.
-
-Report, loop, review and fresh-main gates are recorded after the reviewed
-delivery.
 
 ## Size
 
