@@ -104,8 +104,10 @@ hashes and generator seeds.
   non-vacuity controls, RSS limits and fresh-process determinism passed.
 - The three evidence manifests verify independently.
 - No serving, integer, CUDA, float-training or Claude-owned source changed.
-- Exact-head review, protected merge and fresh-main verification are required
-  at delivery.
+- Exact-head adversarial review passed at `4daadc58b`; PR #3690 merged as
+  `ab0a759cd`.
+- Fresh `main` passed **267** library tests with 4 expected ignores, the
+  copy-key binary test, evidence-manifest verification and result-field checks.
 
 ## Skills used
 
