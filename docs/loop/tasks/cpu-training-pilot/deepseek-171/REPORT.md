@@ -6,8 +6,7 @@ Order: [ORDER.md](ORDER.md). Base: `03f220688`.
 
 ## Status
 
-Experiment complete as **REJECT**. Delivery review and protected merge remain
-pending.
+Complete and merged as **REJECT**.
 
 ## Question
 
@@ -72,6 +71,10 @@ No serving, CUDA, float-training, termination or Claude-owned source changed.
   raw local manifest SHA-256
   `c2523410a33a4cbe130efd63440d4534f3b718443e07e4155d3cae0a95decc70`;
 - sealed outcome: `REJECT`.
+- reviewed head: `0d1e8d7574d7623e83f1633419f6cab950068cb4`;
+- protected merge: `fd6e6d4c8c969b13410bca351ffbfa85a1821096`;
+- fresh-main CPU library: **308 passed**, 4 expected ignores;
+- fresh-main CPU binaries: **83 passed**.
 
 All eleven registered comparisons and every copy control were reachable. The
 result is valid but negative; it is not an instrument or control fault.
@@ -98,8 +101,9 @@ predicted token.
 
 ## Size
 
-The implementation changes two source paths before documentation and compact
-evidence. No `.u16` corpus is committed.
+Against base `03f220688`, the merged result changes 32 paths
+(**+1,224 / -53 textual lines**) plus gzipped evidence blobs. No `.u16` corpus
+is committed.
 
 ## Skills used
 
