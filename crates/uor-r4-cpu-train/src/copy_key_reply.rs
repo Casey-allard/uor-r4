@@ -14,14 +14,17 @@ use crate::{invalid, CpuFbsForward, CpuFbsHead, CpuTrainError, MemoryWeightSampl
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
 const COPY_KEY_REPLY_WINDOW: usize = 192;
+pub const COPY_KEY_REPLY_MAX_DEPTH: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CopyKeyReplyArm {
+    Longest32To1,
     Longest4To1,
     K2BackoffK1,
     FixedDepth1,
     RandomAvailableDepth,
+    RandomAvailableDepth32,
     Writer,
 }
 
@@ -33,13 +36,24 @@ impl CopyKeyReplyArm {
         Self::RandomAvailableDepth,
         Self::Writer,
     ];
+    pub const EVALUATION_ARMS: [Self; 7] = [
+        Self::Longest32To1,
+        Self::Longest4To1,
+        Self::K2BackoffK1,
+        Self::FixedDepth1,
+        Self::RandomAvailableDepth,
+        Self::RandomAvailableDepth32,
+        Self::Writer,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
+            Self::Longest32To1 => "longest_32_to_1",
             Self::Longest4To1 => "longest_4_to_1",
             Self::K2BackoffK1 => "k2_backoff_k1",
             Self::FixedDepth1 => "fixed_depth_1",
             Self::RandomAvailableDepth => "random_available_depth",
+            Self::RandomAvailableDepth32 => "random_available_depth_32",
             Self::Writer => "writer",
         }
     }
@@ -59,7 +73,7 @@ pub enum CopyKeyReplyMetric {
 pub struct CopyKeyReplyDecision {
     pub token: u32,
     pub depth: Option<usize>,
-    pub matches: [Option<u32>; COPY_KEY_MAX_DEPTH],
+    pub matches: [Option<u32>; COPY_KEY_REPLY_MAX_DEPTH],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,7 +123,7 @@ pub struct CopyKeyReplyReading {
     pub decisions: u64,
     pub copy_decisions: u64,
     pub fallback_decisions: u64,
-    pub selected_depth_counts: [u64; COPY_KEY_MAX_DEPTH],
+    pub selected_depth_counts: [u64; COPY_KEY_REPLY_MAX_DEPTH],
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -141,7 +155,7 @@ struct DecisionCounts {
     decisions: u64,
     copy_decisions: u64,
     fallback_decisions: u64,
-    selected_depth_counts: [u64; COPY_KEY_MAX_DEPTH],
+    selected_depth_counts: [u64; COPY_KEY_REPLY_MAX_DEPTH],
 }
 
 /// Select one next token from the current prompt and generated-token stream.
@@ -159,6 +173,9 @@ pub fn copy_key_reply_decision(
 ) -> CopyKeyReplyDecision {
     let matches = exact_suffix_matches(stream);
     let depth = match arm {
+        CopyKeyReplyArm::Longest32To1 => (1..=COPY_KEY_REPLY_MAX_DEPTH)
+            .rev()
+            .find(|&depth| matches[depth - 1].is_some()),
         CopyKeyReplyArm::Longest4To1 => (1..=COPY_KEY_MAX_DEPTH)
             .rev()
             .find(|&depth| matches[depth - 1].is_some()),
@@ -168,6 +185,21 @@ pub fn copy_key_reply_decision(
         CopyKeyReplyArm::FixedDepth1 => matches[0].is_some().then_some(1),
         CopyKeyReplyArm::RandomAvailableDepth => {
             let available = (1..=COPY_KEY_MAX_DEPTH)
+                .filter(|&depth| matches[depth - 1].is_some())
+                .collect::<Vec<_>>();
+            if available.is_empty() {
+                None
+            } else {
+                let draw = splitmix64(
+                    seed ^ (row as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+                        ^ (generated_step as u64).wrapping_mul(0xd1b5_4a32_d192_ed03),
+                ) as usize
+                    % available.len();
+                Some(available[draw])
+            }
+        }
+        CopyKeyReplyArm::RandomAvailableDepth32 => {
+            let available = (1..=COPY_KEY_REPLY_MAX_DEPTH)
                 .filter(|&depth| matches[depth - 1].is_some())
                 .collect::<Vec<_>>();
             if available.is_empty() {
@@ -396,7 +428,11 @@ fn summarize(
             let slot = counts
                 .selected_depth_counts
                 .get_mut(depth - 1)
-                .ok_or_else(|| invalid("copy-key reply selected depth is outside 1..=4"))?;
+                .ok_or_else(|| {
+                    invalid(format!(
+                        "copy-key reply selected depth is outside 1..={COPY_KEY_REPLY_MAX_DEPTH}"
+                    ))
+                })?;
             *slot = checked_add(*slot, 1)?;
         }
     }
@@ -436,14 +472,14 @@ fn summarize(
     Ok(reading)
 }
 
-fn exact_suffix_matches(stream: &[u32]) -> [Option<u32>; COPY_KEY_MAX_DEPTH] {
+fn exact_suffix_matches(stream: &[u32]) -> [Option<u32>; COPY_KEY_REPLY_MAX_DEPTH] {
     let window_start = stream.len().saturating_sub(COPY_KEY_REPLY_WINDOW);
     let window = &stream[window_start..];
     let Some(current) = window.len().checked_sub(1) else {
-        return [None; COPY_KEY_MAX_DEPTH];
+        return [None; COPY_KEY_REPLY_MAX_DEPTH];
     };
-    let mut matches = [None; COPY_KEY_MAX_DEPTH];
-    for depth in 1..=COPY_KEY_MAX_DEPTH {
+    let mut matches = [None; COPY_KEY_REPLY_MAX_DEPTH];
+    for depth in 1..=COPY_KEY_REPLY_MAX_DEPTH {
         matches[depth - 1] = (1..current).rev().find_map(|candidate| {
             (0..depth)
                 .all(|back| {
@@ -566,7 +602,12 @@ mod tests {
     fn latest_exact_suffix_and_depth_policies_are_fixed() {
         let stream = [9, 6, 7, 8, 5, 7, 6, 7];
         let matches = exact_suffix_matches(&stream);
-        assert_eq!(matches, [Some(6), Some(8), None, None]);
+        assert_eq!(matches[..4], [Some(6), Some(8), None, None]);
+        assert!(matches[4..].iter().all(Option::is_none));
+        let longest_32 =
+            copy_key_reply_decision(&stream, 77, CopyKeyReplyArm::Longest32To1, 1, 0, 0);
+        assert_eq!(longest_32.token, 8);
+        assert_eq!(longest_32.depth, Some(2));
         let longest = copy_key_reply_decision(&stream, 77, CopyKeyReplyArm::Longest4To1, 1, 0, 0);
         assert_eq!(longest.token, 8);
         assert_eq!(longest.depth, Some(2));
@@ -582,13 +623,50 @@ mod tests {
     }
 
     #[test]
+    fn copy_arm_serde_names_are_stable() {
+        assert_eq!(
+            serde_json::to_string(&CopyKeyReplyArm::Longest4To1).unwrap(),
+            "\"longest4_to1\""
+        );
+        assert_eq!(
+            serde_json::to_string(&CopyKeyReplyArm::Longest32To1).unwrap(),
+            "\"longest32_to1\""
+        );
+        assert_eq!(
+            serde_json::to_string(&CopyKeyReplyArm::RandomAvailableDepth32).unwrap(),
+            "\"random_available_depth32\""
+        );
+    }
+
+    #[test]
     fn missing_history_repeats_the_first_token() {
         let stream = [5, 5, 5];
         let matches = exact_suffix_matches(&stream);
-        assert_eq!(matches, [Some(5); COPY_KEY_MAX_DEPTH]);
+        assert_eq!(
+            matches,
+            [Some(5); COPY_KEY_REPLY_MAX_DEPTH],
+            "startup history repeats the first token at every depth"
+        );
         let none = copy_key_reply_decision(&[5], 9, CopyKeyReplyArm::Longest4To1, 0, 0, 0);
         assert_eq!(none.token, 9);
         assert_eq!(none.depth, None);
+    }
+
+    #[test]
+    fn longest_32_prefers_the_maximum_depth_match() {
+        let stream = (1..=COPY_KEY_REPLY_MAX_DEPTH as u32)
+            .chain(1..=COPY_KEY_REPLY_MAX_DEPTH as u32)
+            .collect::<Vec<_>>();
+        let matches = exact_suffix_matches(&stream);
+        assert_eq!(
+            matches[COPY_KEY_REPLY_MAX_DEPTH - 1],
+            Some(1),
+            "{matches:?}"
+        );
+        let longest_32 =
+            copy_key_reply_decision(&stream, 77, CopyKeyReplyArm::Longest32To1, 1, 0, 0);
+        assert_eq!(longest_32.depth, Some(COPY_KEY_REPLY_MAX_DEPTH));
+        assert_eq!(longest_32.token, 1);
     }
 
     #[test]

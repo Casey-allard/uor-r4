@@ -21,7 +21,12 @@ fn run() -> Result<(), String> {
     let artifact = PathBuf::from(values.next().ok_or_else(usage)?);
     let mut cap = 32usize;
     let mut seed = 153u64;
+    let mut allow_underpowered = false;
     while let Some(flag) = values.next() {
+        if flag == "--allow-underpowered" {
+            allow_underpowered = true;
+            continue;
+        }
         let value = values
             .next()
             .ok_or_else(|| format!("{flag} needs a value\n{}", usage()))?;
@@ -69,10 +74,10 @@ fn run() -> Result<(), String> {
         .collect::<Vec<_>>();
 
     let mut arms = BTreeMap::new();
-    for arm in CopyKeyReplyArm::ALL {
+    for arm in CopyKeyReplyArm::EVALUATION_ARMS {
         let reading = evaluate_copy_key_replies(&artifact_bytes, &samples, cap, arm, seed)
             .map_err(|error| error.to_string())?;
-        if reading.reading.reference_reachable < 200 {
+        if !allow_underpowered && reading.reading.reference_reachable < 200 {
             return Err(format!(
                 "{} has {} reachable complete-reply examples, below the 200-row floor",
                 arm.name(),
@@ -83,16 +88,23 @@ fn run() -> Result<(), String> {
     }
 
     let longest = arms
+        .get(CopyKeyReplyArm::Longest32To1.name())
+        .ok_or_else(|| "longest-32 reading is missing".to_owned())?;
+    let longest_4 = arms
         .get(CopyKeyReplyArm::Longest4To1.name())
-        .ok_or_else(|| "longest-first reading is missing".to_owned())?;
+        .ok_or_else(|| "longest-4 reading is missing".to_owned())?;
     let random = arms
+        .get(CopyKeyReplyArm::RandomAvailableDepth32.name())
+        .ok_or_else(|| "random-depth-32 reading is missing".to_owned())?;
+    let random_4 = arms
         .get(CopyKeyReplyArm::RandomAvailableDepth.name())
-        .ok_or_else(|| "random-depth reading is missing".to_owned())?;
+        .ok_or_else(|| "random-depth-4 reading is missing".to_owned())?;
     let mut comparisons = BTreeMap::new();
     for control in [
+        CopyKeyReplyArm::Longest4To1,
         CopyKeyReplyArm::K2BackoffK1,
         CopyKeyReplyArm::FixedDepth1,
-        CopyKeyReplyArm::RandomAvailableDepth,
+        CopyKeyReplyArm::RandomAvailableDepth32,
         CopyKeyReplyArm::Writer,
     ] {
         let control_reading = arms
@@ -113,7 +125,8 @@ fn run() -> Result<(), String> {
         comparisons.insert(control.name().to_owned(), by_metric);
     }
 
-    let random_changes = random_changes(longest, random);
+    let random_changes_from_longest_32 = random_changes(longest, random);
+    let random_changes = random_changes(longest_4, random_4);
     let input_sha256 = uor_r4_discrete::corpus::sha256(&artifact_bytes);
     let output = serde_json::json!({
         "schema": "uor-r4.cpu-copy-key-reply/1",
@@ -133,8 +146,8 @@ fn run() -> Result<(), String> {
         "settings": {
             "cap": cap,
             "seed": seed,
-            "maximum_copy_depth": uor_r4_cpu_train::COPY_KEY_MAX_DEPTH,
-            "arms": CopyKeyReplyArm::ALL.iter().map(|arm| arm.name()).collect::<Vec<_>>(),
+            "maximum_copy_depth": uor_r4_cpu_train::COPY_KEY_REPLY_MAX_DEPTH,
+            "arms": CopyKeyReplyArm::EVALUATION_ARMS.iter().map(|arm| arm.name()).collect::<Vec<_>>(),
         },
         "examples": {
             "documents": corpus.document_count(),
@@ -144,6 +157,7 @@ fn run() -> Result<(), String> {
         },
         "comparisons": comparisons,
         "random_nonvacuity": random_changes,
+        "random_nonvacuity_from_longest_32": random_changes_from_longest_32,
         "arms": arms,
     });
     println!(
@@ -217,7 +231,7 @@ fn read(path: &Path) -> Result<Vec<u8>, String> {
 }
 
 fn usage() -> String {
-    "usage: cpu-copy-key-reply TOKENS MASK MANIFEST ARTIFACT [--cap N] [--seed N]".to_owned()
+    "usage: cpu-copy-key-reply TOKENS MASK MANIFEST ARTIFACT [--cap N] [--seed N] [--allow-underpowered]".to_owned()
 }
 
 #[cfg(test)]

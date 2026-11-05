@@ -60,7 +60,7 @@ pub use copy_key_reply::{
     compare_copy_key_reply_rows, copy_key_reply_decision, evaluate_copy_key_replies,
     generate_copy_key_reply, CopyKeyReplyArm, CopyKeyReplyComparison, CopyKeyReplyDecision,
     CopyKeyReplyMetric, CopyKeyReplyReading, CopyKeyReplyRow, CopyKeyReplyStep,
-    TimedCopyKeyReplyReading,
+    TimedCopyKeyReplyReading, COPY_KEY_REPLY_MAX_DEPTH,
 };
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,

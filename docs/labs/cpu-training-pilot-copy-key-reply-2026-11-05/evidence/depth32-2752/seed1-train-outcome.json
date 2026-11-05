@@ -1,0 +1,6 @@
+{
+  "train_not_below_longest_4": true,
+  "candidate_premature_zero": true,
+  "candidate_body_positions": 409,
+  "longest_4_body_positions": 409
+}

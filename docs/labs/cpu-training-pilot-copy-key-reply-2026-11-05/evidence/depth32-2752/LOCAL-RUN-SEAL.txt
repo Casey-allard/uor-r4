@@ -1,0 +1,10 @@
+Original local run root:
+local/deepseek/copy-depth32/2026-11-05
+
+Original local run manifest:
+SHA256SUMS
+
+Original local run manifest SHA-256:
+1d8b2af139899ecba803e5fc42b96c466cf7fd4034a47676c0536824468bf3da
+
+Verify from the original run root with `sha256sum -c SHA256SUMS`.

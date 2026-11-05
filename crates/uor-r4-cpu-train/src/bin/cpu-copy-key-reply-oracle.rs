@@ -85,11 +85,15 @@ fn run() -> Result<()> {
         .get("arms")
         .and_then(Value::as_object)
         .ok_or_else(|| "report has no arms object".to_owned())?;
-    if arm_values.len() != CopyKeyReplyArm::ALL.len() {
+    let arm_set: &[CopyKeyReplyArm] = if arm_values.len() == CopyKeyReplyArm::ALL.len() {
+        &CopyKeyReplyArm::ALL
+    } else if arm_values.len() == CopyKeyReplyArm::EVALUATION_ARMS.len() {
+        &CopyKeyReplyArm::EVALUATION_ARMS
+    } else {
         return Err("report arm count differs".to_owned());
-    }
+    };
     let mut arms = BTreeMap::new();
-    for arm in CopyKeyReplyArm::ALL {
+    for arm in arm_set.iter().copied() {
         let value = arm_values
             .get(arm.name())
             .ok_or_else(|| format!("report lacks arm {}", arm.name()))?;
@@ -364,10 +368,12 @@ fn trace_len(report: &Value, row: usize) -> Result<u64> {
 
 fn arm_reading_name(name: &str) -> String {
     match name {
+        "longest_32_to_1" => "longest32_to1",
         "longest_4_to_1" => "longest4_to1",
         "k2_backoff_k1" => "k2_backoff_k1",
         "fixed_depth_1" => "fixed_depth1",
         "random_available_depth" => "random_available_depth",
+        "random_available_depth_32" => "random_available_depth32",
         "writer" => "writer",
         _ => name,
     }

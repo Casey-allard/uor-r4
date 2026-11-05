@@ -1,0 +1,10 @@
+{
+  "fresh_passes_longest_4": false,
+  "fresh_passes_k2": true,
+  "fresh_passes_depth_1": true,
+  "fresh_passes_random": true,
+  "fresh_passes_writer": true,
+  "fresh_premature_zero": true,
+  "exact_reference": 0,
+  "bos_complete": 0
+}

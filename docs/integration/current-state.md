@@ -1,3 +1,16 @@
+## 2026-11-05 — Longer exact copy depth adds no token distinction (deepseek)
+
+The longest-32 exact-suffix arm selected deeper matches than longest-4 on a
+fresh 458-reply panel but chose the same token at every fresh-dev decision. It tied
+longest-4 at **409/4,661** train and **300/4,758** fresh-dev correct body
+positions on both artifact seeds, so the paired nested comparison failed.
+Longest-32 still beat `k2>k1`, fixed depth 1, random-32 and writer; no arm
+emitted BOS or completed a reply. This closes the tested depth-8-through-32
+exact-suffix extension, not exact copy or a different geometric read. Record:
+[deepseek-163](../loop/tasks/cpu-training-pilot/deepseek-163/REPORT.md).
+**Next:** test a non-exact geometric copy/read representation, then combine the
+selected content path with independent termination.
+
 ## 2026-11-05 — Exact-body stop filter does not transfer (deepseek)
 
 Filtering the deepseek-157 replay to the 11 train trajectories with exact

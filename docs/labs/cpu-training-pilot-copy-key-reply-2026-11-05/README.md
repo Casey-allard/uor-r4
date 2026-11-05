@@ -36,3 +36,22 @@ committed panel manifests bind the corpus hashes, and the summary reports
 retain every arm, comparison, random-control count and decision hash. The
 published subset verifies with
 [`PUBLISHED-SHA256SUMS`](evidence/PUBLISHED-SHA256SUMS).
+
+## Longest-32 depth extension
+
+Deepseek-163 tested the untried exact suffix range above depth four. On a new
+seed-2752 dev panel with 458 reachable replies, the deepest-32 arm selected
+depth 32 on 15,114/29,312 decisions and beat `k2>k1`, fixed depth 1,
+random-32 and writer. It tied nested longest-4 exactly:
+
+- train: **409/4,661** correct body positions for both arms;
+- fresh dev: **300/4,758** correct body positions for both arms.
+
+Longest-32 and longest-4 chose the same token at every fresh-dev decision.
+They matched every scored train body position, with 101 train token
+differences per seed after the reference. No arm emitted BOS or an exact
+reference. The two fresh-dev runs repeated byte-identically.
+This closes the exact-depth extension to 32, not exact copy or a different
+geometric read. See
+[deepseek-163](../../loop/tasks/cpu-training-pilot/deepseek-163/REPORT.md)
+and [`evidence/depth32-2752/`](evidence/depth32-2752/).
