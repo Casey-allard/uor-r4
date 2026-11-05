@@ -102,6 +102,12 @@ Published evidence manifest SHA-256:
   deepseek-153 report.
 - No serving, integer runtime, CUDA, float-training or Claude-owned source
   changed.
+- Fresh exact-head review approved `61952d866` in
+  [#issuecomment-6651784153](https://github.com/UOR-Foundation/uor-r4/pull/3708#issuecomment-6651784153).
+  PR [#3708](https://github.com/UOR-Foundation/uor-r4/pull/3708) merged as
+  `faf597e931e448c9be2c0d33de1f2d8b48ddc8db`.
+- Fresh `main` passed 288 CPU library tests with 4 expected ignores, all 82
+  binary tests, both public evidence manifests and the no-corpus check.
 
 ## Size
 
