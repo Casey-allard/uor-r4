@@ -368,6 +368,7 @@ fn trace_len(report: &Value, row: usize) -> Result<u64> {
 
 fn arm_reading_name(name: &str) -> String {
     match name {
+        "geometric_copy_32" => "geometric_copy32",
         "longest_32_to_1" => "longest32_to1",
         "longest_4_to_1" => "longest4_to1",
         "k2_backoff_k1" => "k2_backoff_k1",

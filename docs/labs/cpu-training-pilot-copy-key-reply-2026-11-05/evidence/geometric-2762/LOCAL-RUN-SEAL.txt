@@ -1,0 +1,10 @@
+Original local run root:
+local/deepseek/copy-geometric/2026-11-05
+
+Original local run manifest:
+SHA256SUMS
+
+Original local run manifest SHA-256:
+9ee6cf3e8cfc0d775217705bb052525d1898e7e16246769c9a90612b4fa17750
+
+Verify from the original run root with `sha256sum -c SHA256SUMS`.

@@ -87,6 +87,9 @@ fn run() -> Result<(), String> {
         arms.insert(arm.name().to_owned(), reading);
     }
 
+    let candidate = arms
+        .get(CopyKeyReplyArm::GeometricCopy32.name())
+        .ok_or_else(|| "geometric-copy reading is missing".to_owned())?;
     let longest = arms
         .get(CopyKeyReplyArm::Longest32To1.name())
         .ok_or_else(|| "longest-32 reading is missing".to_owned())?;
@@ -101,6 +104,7 @@ fn run() -> Result<(), String> {
         .ok_or_else(|| "random-depth-4 reading is missing".to_owned())?;
     let mut comparisons = BTreeMap::new();
     for control in [
+        CopyKeyReplyArm::Longest32To1,
         CopyKeyReplyArm::Longest4To1,
         CopyKeyReplyArm::K2BackoffK1,
         CopyKeyReplyArm::FixedDepth1,
@@ -118,7 +122,7 @@ fn run() -> Result<(), String> {
             CopyKeyReplyMetric::CorrectBodyPositions,
         ] {
             let comparison =
-                compare_copy_key_reply_rows(&longest.rows, &control_reading.rows, metric)
+                compare_copy_key_reply_rows(&candidate.rows, &control_reading.rows, metric)
                     .map_err(|error| error.to_string())?;
             by_metric.insert(metric_name(metric).to_owned(), comparison);
         }
@@ -126,6 +130,7 @@ fn run() -> Result<(), String> {
     }
 
     let random_changes_from_longest_32 = random_changes(longest, random);
+    let geometric_changes_from_longest_32 = random_changes(candidate, longest);
     let random_changes = random_changes(longest_4, random_4);
     let input_sha256 = uor_r4_discrete::corpus::sha256(&artifact_bytes);
     let output = serde_json::json!({
@@ -158,6 +163,7 @@ fn run() -> Result<(), String> {
         "comparisons": comparisons,
         "random_nonvacuity": random_changes,
         "random_nonvacuity_from_longest_32": random_changes_from_longest_32,
+        "geometric_changes_from_longest_32": geometric_changes_from_longest_32,
         "arms": arms,
     });
     println!(

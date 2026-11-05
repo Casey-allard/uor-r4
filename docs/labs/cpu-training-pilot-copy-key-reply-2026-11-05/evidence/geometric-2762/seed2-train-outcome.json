@@ -1,0 +1,6 @@
+{
+  "train_not_below_longest_32": false,
+  "geometric_candidate_premature_zero": true,
+  "geometric_body_positions": 195,
+  "longest_32_body_positions": 409
+}

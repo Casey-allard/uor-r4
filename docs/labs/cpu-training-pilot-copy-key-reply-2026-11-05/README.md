@@ -55,3 +55,25 @@ This closes the exact-depth extension to 32, not exact copy or a different
 geometric read. See
 [deepseek-163](../../loop/tasks/cpu-training-pilot/deepseek-163/REPORT.md)
 and [`evidence/depth32-2752/`](evidence/depth32-2752/).
+
+## Geometric copy arbitration
+
+Deepseek-165 replaced longest-first arbitration with sign-Hamming distance
+between the current 256-coordinate Q12 writer query and each exact-copy
+candidate token's shared vector-table row. Distance, deeper suffix depth and
+lower token id formed the fixed tie order.
+
+On a fresh seed-2762 dev panel with 443 reachable replies, the arm changed
+5,106 and 4,891 decisions versus longest-32 across the two artifact seeds. It
+scored **270 and 286/4,822** correct body positions against **624** for
+longest-32, **547** for `k2>k1` and **414** for random-32. On train it scored
+**174 and 195/4,661** against **409**. It beat fixed depth 1 and writer on
+fresh dev, but failed every required comparison against the stronger copy
+controls and the train non-inferiority floor.
+
+Every geometric copy decision carried its selected distance, both fresh
+processes repeated byte-identically, and all arms had zero exact, BOS-complete
+and premature-BOS replies. The classification is **REJECT** for raw
+token-row sign proximity as copy arbitration. See
+[deepseek-165](../../loop/tasks/cpu-training-pilot/deepseek-165/REPORT.md)
+and [`evidence/geometric-2762/`](evidence/geometric-2762/).

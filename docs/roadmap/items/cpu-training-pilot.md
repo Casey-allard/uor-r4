@@ -453,6 +453,18 @@ next content test to a non-exact geometric read rather than a longer exact
 suffix. See
 [deepseek-163](../../loop/tasks/cpu-training-pilot/deepseek-163/REPORT.md).
 
+Static token-row geometry did not repair that gap. A second fresh screen ranked
+the same exact-copy candidates by sign-Hamming distance between the current
+Q12 writer query and each token's shared vector-table row. It changed
+thousands of decisions and remained deterministic, but scored only **270 and
+286/4,822** fresh body positions against **624** for longest-32, and **174 and
+195/4,661** against **409** on train. It beat fixed depth 1 and writer but lost
+longest-32, `k2>k1` and random-32. This closes raw per-token writer-row sign
+proximity as an arbitration rule. The next geometric-copy read must learn or
+derive candidate agreement from context instead of treating a static row as a
+copy key. See
+[deepseek-165](../../loop/tasks/cpu-training-pilot/deepseek-165/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

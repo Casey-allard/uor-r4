@@ -6,6 +6,7 @@
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use uor_r4_integer::stack::{reply_stop, ReplyEnd};
 
 use crate::copy_key_depth::COPY_KEY_MAX_DEPTH;
@@ -19,6 +20,7 @@ pub const COPY_KEY_REPLY_MAX_DEPTH: usize = 32;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CopyKeyReplyArm {
+    GeometricCopy32,
     Longest32To1,
     Longest4To1,
     K2BackoffK1,
@@ -36,7 +38,8 @@ impl CopyKeyReplyArm {
         Self::RandomAvailableDepth,
         Self::Writer,
     ];
-    pub const EVALUATION_ARMS: [Self; 7] = [
+    pub const EVALUATION_ARMS: [Self; 8] = [
+        Self::GeometricCopy32,
         Self::Longest32To1,
         Self::Longest4To1,
         Self::K2BackoffK1,
@@ -48,6 +51,7 @@ impl CopyKeyReplyArm {
 
     pub fn name(self) -> &'static str {
         match self {
+            Self::GeometricCopy32 => "geometric_copy_32",
             Self::Longest32To1 => "longest_32_to_1",
             Self::Longest4To1 => "longest_4_to_1",
             Self::K2BackoffK1 => "k2_backoff_k1",
@@ -74,6 +78,7 @@ pub struct CopyKeyReplyDecision {
     pub token: u32,
     pub depth: Option<usize>,
     pub matches: [Option<u32>; COPY_KEY_REPLY_MAX_DEPTH],
+    pub sign_hamming: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -84,6 +89,7 @@ pub struct CopyKeyReplyStep {
     pub writer_token: u32,
     pub selected_token: u32,
     pub selected_depth: Option<usize>,
+    pub selected_sign_hamming: Option<u32>,
     pub used_copy: bool,
 }
 
@@ -173,6 +179,9 @@ pub fn copy_key_reply_decision(
 ) -> CopyKeyReplyDecision {
     let matches = exact_suffix_matches(stream);
     let depth = match arm {
+        CopyKeyReplyArm::GeometricCopy32 => (1..=COPY_KEY_REPLY_MAX_DEPTH)
+            .rev()
+            .find(|&depth| matches[depth - 1].is_some()),
         CopyKeyReplyArm::Longest32To1 => (1..=COPY_KEY_REPLY_MAX_DEPTH)
             .rev()
             .find(|&depth| matches[depth - 1].is_some()),
@@ -221,7 +230,45 @@ pub fn copy_key_reply_decision(
             .unwrap_or(writer_token),
         depth,
         matches,
+        sign_hamming: None,
     }
+}
+
+fn geometric_copy_key_reply_decision(
+    mut decision: CopyKeyReplyDecision,
+    query: &[i32],
+    forward: &CpuFbsForward,
+) -> Result<CopyKeyReplyDecision> {
+    let mut candidates = Vec::new();
+    for depth in (1..=COPY_KEY_REPLY_MAX_DEPTH).rev() {
+        let Some(token) = decision.matches[depth - 1] else {
+            continue;
+        };
+        let distance = forward
+            .token_sign_hamming(query, token)
+            .map_err(|error| invalid(format!("geometric copy candidate: {error}")))?;
+        candidates.push((token, depth, distance));
+    }
+    if let Some((token, depth, distance)) = select_geometric_candidate(candidates) {
+        decision.token = token;
+        decision.depth = Some(depth);
+        decision.sign_hamming = Some(distance);
+    }
+    Ok(decision)
+}
+
+fn select_geometric_candidate(
+    candidates: impl IntoIterator<Item = (u32, usize, u32)>,
+) -> Option<(u32, usize, u32)> {
+    candidates
+        .into_iter()
+        .min_by_key(|&candidate| geometric_candidate_key(candidate))
+}
+
+fn geometric_candidate_key(
+    (token, depth, distance): (u32, usize, u32),
+) -> (u32, Reverse<usize>, u32) {
+    (distance, Reverse(depth), token)
 }
 
 /// Generate one bounded reply under a fixed copy-selection arm.
@@ -243,7 +290,7 @@ pub fn generate_copy_key_reply(
     }
 
     let mut stream = Vec::with_capacity(context);
-    let mut next_writer = None;
+    let mut next = None;
     for (index, &token) in prompt.iter().enumerate() {
         if index + 1 == prompt.len() {
             forward.mark_reply_start();
@@ -253,20 +300,24 @@ pub fn generate_copy_key_reply(
             .map_err(|error| invalid(format!("copy-key prompt step: {error}")))?;
         stream.push(token);
         if index + 1 == prompt.len() {
-            next_writer = Some(step.token);
+            next = Some((step.token, step.query_q12));
         }
     }
-    let mut next_writer = next_writer.ok_or_else(|| invalid("copy-key reply prompt is empty"))?;
+    let mut next = next.ok_or_else(|| invalid("copy-key reply prompt is empty"))?;
     let mut tokens = Vec::with_capacity(cap);
     let mut steps = Vec::with_capacity(cap);
     loop {
-        let decision = copy_key_reply_decision(&stream, next_writer, arm, seed, row, tokens.len());
+        let mut decision = copy_key_reply_decision(&stream, next.0, arm, seed, row, tokens.len());
+        if arm == CopyKeyReplyArm::GeometricCopy32 {
+            decision = geometric_copy_key_reply_decision(decision, &next.1, &forward)?;
+        }
         steps.push(CopyKeyReplyStep {
             row,
             generated_step: tokens.len(),
-            writer_token: next_writer,
+            writer_token: next.0,
             selected_token: decision.token,
             selected_depth: decision.depth,
+            selected_sign_hamming: decision.sign_hamming,
             used_copy: decision.depth.is_some(),
         });
         let stop = reply_stop(decision.token, tokens.len(), prompt.len(), cap, context);
@@ -290,7 +341,7 @@ pub fn generate_copy_key_reply(
         let step = forward
             .step(decision.token, CpuFbsHead::Writer)
             .map_err(|error| invalid(format!("copy-key generated step: {error}")))?;
-        next_writer = step.token;
+        next = (step.token, step.query_q12);
     }
 }
 
@@ -539,6 +590,8 @@ fn decision_hash(steps: &[CopyKeyReplyStep]) -> String {
         bytes.extend_from_slice(&step.writer_token.to_le_bytes());
         bytes.extend_from_slice(&step.selected_token.to_le_bytes());
         bytes.push(step.selected_depth.map_or(0, |depth| depth as u8));
+        bytes.push(u8::from(step.selected_sign_hamming.is_some()));
+        bytes.extend_from_slice(&step.selected_sign_hamming.unwrap_or_default().to_le_bytes());
     }
     uor_r4_discrete::corpus::sha256(&bytes)
 }
@@ -636,6 +689,10 @@ mod tests {
             serde_json::to_string(&CopyKeyReplyArm::RandomAvailableDepth32).unwrap(),
             "\"random_available_depth32\""
         );
+        assert_eq!(
+            serde_json::to_string(&CopyKeyReplyArm::GeometricCopy32).unwrap(),
+            "\"geometric_copy32\""
+        );
     }
 
     #[test]
@@ -667,6 +724,76 @@ mod tests {
             copy_key_reply_decision(&stream, 77, CopyKeyReplyArm::Longest32To1, 1, 0, 0);
         assert_eq!(longest_32.depth, Some(COPY_KEY_REPLY_MAX_DEPTH));
         assert_eq!(longest_32.token, 1);
+    }
+
+    #[test]
+    fn geometric_arbitration_breaks_equal_distance_toward_depth() {
+        let artifact = artifact();
+        let mut forward = CpuFbsForward::from_artifact(&artifact).unwrap();
+        forward.mark_reply_start();
+        let step = forward.step(7, CpuFbsHead::Writer).unwrap();
+        let mut matches = [None; COPY_KEY_REPLY_MAX_DEPTH];
+        matches[0] = Some(7);
+        matches[COPY_KEY_REPLY_MAX_DEPTH - 1] = Some(7);
+        let decision = CopyKeyReplyDecision {
+            token: 8,
+            depth: None,
+            matches,
+            sign_hamming: None,
+        };
+        let selected =
+            geometric_copy_key_reply_decision(decision, &step.query_q12, &forward).unwrap();
+        assert_eq!(selected.token, 7);
+        assert_eq!(selected.depth, Some(COPY_KEY_REPLY_MAX_DEPTH));
+        assert_eq!(
+            selected.sign_hamming,
+            Some(forward.token_sign_hamming(&step.query_q12, 7).unwrap())
+        );
+    }
+
+    #[test]
+    fn geometric_ranking_tie_breaks_by_depth_then_token() {
+        let candidates = [
+            (9, 4, 7),
+            (3, 2, 3),
+            (8, 4, 7),
+            (8, COPY_KEY_REPLY_MAX_DEPTH, 3),
+        ];
+        let best = select_geometric_candidate(candidates).unwrap();
+        assert_eq!(best, (8, COPY_KEY_REPLY_MAX_DEPTH, 3));
+
+        let same_depth = [(9, 5, 3), (3, 5, 3)];
+        let best = select_geometric_candidate(same_depth).unwrap();
+        assert_eq!(best, (3, 5, 3));
+    }
+
+    #[test]
+    fn geometric_ranking_uses_the_smallest_measured_distance() {
+        let candidates = [(3, 1, 12), (9, 7, 4), (7, 2, 8)];
+        assert_eq!(
+            select_geometric_candidate(candidates),
+            Some((9, 7, 4)),
+            "the nearer distinct token must win regardless of candidate order"
+        );
+    }
+
+    #[test]
+    fn decision_hash_binds_selected_sign_hamming() {
+        let step = CopyKeyReplyStep {
+            row: 2,
+            generated_step: 5,
+            writer_token: 17,
+            selected_token: 11,
+            selected_depth: Some(4),
+            selected_sign_hamming: Some(0),
+            used_copy: true,
+        };
+        let mut changed = step.clone();
+        changed.selected_sign_hamming = Some(1);
+        assert_ne!(
+            decision_hash(std::slice::from_ref(&step)),
+            decision_hash(std::slice::from_ref(&changed))
+        );
     }
 
     #[test]
@@ -710,6 +837,46 @@ mod tests {
         assert!(first.depth.is_some());
         let none =
             copy_key_reply_decision(&[1], 88, CopyKeyReplyArm::RandomAvailableDepth, 7, 2, 3);
+        assert_eq!(none.token, 88);
+        assert_eq!(none.depth, None);
+    }
+
+    #[test]
+    fn random_depth_32_is_deterministic_covers_its_domain_and_never_invents_a_match() {
+        let stream = (1..=COPY_KEY_REPLY_MAX_DEPTH as u32)
+            .chain(1..=COPY_KEY_REPLY_MAX_DEPTH as u32)
+            .collect::<Vec<_>>();
+        let matches = exact_suffix_matches(&stream);
+        assert!(matches.iter().all(Option::is_some), "{matches:?}");
+
+        let mut depths = std::collections::BTreeSet::new();
+        for seed in 0..64 {
+            let decision = copy_key_reply_decision(
+                &stream,
+                88,
+                CopyKeyReplyArm::RandomAvailableDepth32,
+                seed,
+                0,
+                0,
+            );
+            let repeat = copy_key_reply_decision(
+                &stream,
+                88,
+                CopyKeyReplyArm::RandomAvailableDepth32,
+                seed,
+                0,
+                0,
+            );
+            assert_eq!(decision, repeat);
+            let depth = decision.depth.expect("every depth is available");
+            depths.insert(depth);
+            assert_eq!(decision.token, matches[depth - 1].unwrap());
+        }
+        assert_eq!(depths.first(), Some(&1));
+        assert_eq!(depths.last(), Some(&COPY_KEY_REPLY_MAX_DEPTH));
+
+        let none =
+            copy_key_reply_decision(&[1], 88, CopyKeyReplyArm::RandomAvailableDepth32, 7, 2, 3);
         assert_eq!(none.token, 88);
         assert_eq!(none.depth, None);
     }
@@ -848,6 +1015,40 @@ mod tests {
         let repeat =
             evaluate_copy_key_replies(&artifact, &samples, 8, CopyKeyReplyArm::Longest4To1, 153)
                 .unwrap();
+        assert_eq!(first.reading, repeat.reading);
+        assert_eq!(first.rows, repeat.rows);
+        assert_eq!(first.steps, repeat.steps);
+        assert_eq!(first.reply_sha256, repeat.reply_sha256);
+        assert_eq!(first.decision_sha256, repeat.decision_sha256);
+    }
+
+    #[test]
+    fn geometric_arm_replay_binds_query_state_and_selected_distance() {
+        let artifact = artifact();
+        let samples = vec![MemoryWeightSample {
+            prompt: vec![3, 4, 5, 4],
+            reply: vec![5, 4, 5, POINT_KEY_BOS],
+        }];
+        let first = evaluate_copy_key_replies(
+            &artifact,
+            &samples,
+            8,
+            CopyKeyReplyArm::GeometricCopy32,
+            153,
+        )
+        .unwrap();
+        let repeat = evaluate_copy_key_replies(
+            &artifact,
+            &samples,
+            8,
+            CopyKeyReplyArm::GeometricCopy32,
+            153,
+        )
+        .unwrap();
+        assert!(first
+            .steps
+            .iter()
+            .any(|step| step.used_copy && step.selected_sign_hamming.is_some()));
         assert_eq!(first.reading, repeat.reading);
         assert_eq!(first.rows, repeat.rows);
         assert_eq!(first.steps, repeat.steps);

@@ -1,3 +1,18 @@
+## 2026-11-05 — Token-row sign distance rejects as copy arbitration (deepseek)
+
+The geometric copy arm ranked every available exact-copy candidate by
+sign-Hamming distance between the current 256-coordinate Q12 writer query and
+the token's shared vector-table row. On a fresh seed-2762 panel it changed
+thousands of decisions but scored only **270 and 286 / 4,822** correct body
+positions against **624** for longest-32 on both artifact seeds. Train also
+fell to **174 and 195 / 4,661** against **409**. The arm beat fixed depth 1
+and writer, but lost longest-32, longest-4, `k2>k1` and random-32. All runs
+were deterministic, every copied geometric decision carried a distance, and
+all arms remained at zero exact, BOS-complete and premature-BOS replies.
+Record: [deepseek-165](../loop/tasks/cpu-training-pilot/deepseek-165/REPORT.md).
+**Next:** derive the geometric copy ranking from learned context/query-read
+geometry; do not retune raw token-row sign distance on this panel.
+
 ## 2026-11-05 — Longer exact copy depth adds no token distinction (deepseek)
 
 The longest-32 exact-suffix arm selected deeper matches than longest-4 on a

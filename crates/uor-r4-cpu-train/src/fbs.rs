@@ -687,6 +687,16 @@ impl CpuFbsForward {
         })
     }
 
+    /// Sign-Hamming distance between the current Q12 query and one token's
+    /// shared vector-table row. Each coordinate contributes one bit.
+    pub fn token_sign_hamming(&self, query: &[i32], token: u32) -> Result<u32> {
+        if query.len() != self.width || token as usize >= self.vocab {
+            return Err(invalid("token sign-Hamming query or token differs"));
+        }
+        let row = &self.writer_table[token as usize * self.width..][..self.width];
+        Ok(sign_hamming_q12(query, row))
+    }
+
     pub(crate) fn replay_final_gain(
         &self,
         norm_before_final_gain: &[i64],
@@ -879,6 +889,14 @@ impl CpuFbsForward {
             trace,
         ))
     }
+}
+
+fn sign_hamming_q12(query: &[i32], table: &[i16]) -> u32 {
+    query
+        .iter()
+        .zip(table)
+        .map(|(&query, &table)| u32::from((query >= 0) != (table >= 0)))
+        .sum()
 }
 
 fn validate_shape(model: &IntegerStackModel) -> Result<()> {
@@ -1441,6 +1459,15 @@ mod tests {
         let model = IntegerStackModel::parse(&bytes).unwrap();
         let cpu = CpuFbsForward::from_model(&model).unwrap();
         (model, cpu)
+    }
+
+    #[test]
+    fn sign_hamming_maps_nonnegative_values_to_one_and_counts_xor_bits() {
+        let query = [-1, 0, 1, 2, -3, 0];
+        let table: [i16; 6] = [0, -1, -2, 3, 0, -4];
+        // Query signs 0,1,1,1,0,1; table signs 1,0,0,1,1,0.
+        assert_eq!(sign_hamming_q12(&query, &table), 5);
+        assert_eq!(sign_hamming_q12(&[-1, -1], &[0, 0]), 2);
     }
 
     #[test]
