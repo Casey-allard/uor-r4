@@ -1,0 +1,128 @@
+{
+  "schema": "uor-r4.cpu-query-port-summary/1",
+  "implementation": {
+    "base": "7787313b2",
+    "implementation_pin": "722abaff3",
+    "fit_head": "e2e756dee",
+    "go_head": "944a7fb4e",
+    "driver_sha256": "0ca75e1b2204c0907e79c1d8a2fd9f3a3c80b6054b8787d1b0d251d0307ed1d9",
+    "substrate": "cpu-development-research",
+    "qualification": "gpu-required",
+    "threads": 16
+  },
+  "outcome": "REJECT",
+  "scope": "Two-seed component calibration on previously exposed public train/dev panels; not fresh capability, language or complete-reply evidence.",
+  "seeds": [
+    {
+      "seed": 1,
+      "input_artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "status": "REJECT",
+      "accepted_moves": 8,
+      "shuffled_accepted_moves": 8,
+      "shuffled_attempts": 8,
+      "wall_elapsed_ms": 66165.67206000001,
+      "peak_rss_kib": 156920,
+      "report_sha256": "6483762798763033d93389c5c4d07dc67eb532952ce25e18f8fd93de5a48162b",
+      "sealed_manifest_sha256": "dfb729109b24c719090b150a9a19a75d66c677a9c6f4abf371de192746c8cb15",
+      "arms": {
+        "raw_frozen": {
+          "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+          "admitted": 245,
+          "top1": 181,
+          "top8": 236,
+          "port_distance": 29882444
+        },
+        "table_anchor_baseline": {
+          "artifact_sha256": "88c6d1e3a40db3d23a72a0435060147306e98bf9b7ad46d7c42e4099e1ad5a03",
+          "admitted": 120,
+          "top1": 55,
+          "top8": 86,
+          "port_distance": 25493709
+        },
+        "trained": {
+          "artifact_sha256": "c7d4c0dd6d9488891c4268967d6ba5e127578fabc23cb15753448084937516ec",
+          "admitted": 120,
+          "top1": 55,
+          "top8": 87,
+          "port_distance": 25331024
+        },
+        "random_gain": {
+          "artifact_sha256": "8a204959c1db9ada4e0b095cee4ce9028cf09066e022592414f49ddee1bc4f9e",
+          "admitted": 119,
+          "top1": 54,
+          "top8": 85,
+          "port_distance": 25480346
+        },
+        "shuffled_cells": {
+          "artifact_sha256": "36e3192c1dbacdbbc7b74d1c24359f1fbc49598271e835a0e0671f9906e4f546",
+          "admitted": 120,
+          "top1": 54,
+          "top8": 85,
+          "port_distance": 25327969
+        }
+      },
+      "bar": {
+        "parity_exact": true,
+        "control_moves_matched": true,
+        "admission_and_top1_non_fall": true,
+        "target_port_distance_below_table_anchor_random_and_shuffled": false
+      }
+    },
+    {
+      "seed": 2,
+      "input_artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "status": "REJECT",
+      "accepted_moves": 8,
+      "shuffled_accepted_moves": 8,
+      "shuffled_attempts": 8,
+      "wall_elapsed_ms": 66725.95401300001,
+      "peak_rss_kib": 156612,
+      "report_sha256": "2f5a27ba494ab3f326f2a6171f910dfe9173d2f9884dbcbb55be95dbadbb8195",
+      "sealed_manifest_sha256": "76c4f743e0b438dfc027d3738062d2016356d5c85a383d0e294c0ee8a22a55ab",
+      "arms": {
+        "raw_frozen": {
+          "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+          "admitted": 171,
+          "top1": 136,
+          "top8": 164,
+          "port_distance": 23870298
+        },
+        "table_anchor_baseline": {
+          "artifact_sha256": "275fcde2c67153d6ea0140da067e3151616d0bbd6ed3e40439e6a69618fb3930",
+          "admitted": 29,
+          "top1": 10,
+          "top8": 20,
+          "port_distance": 27634674
+        },
+        "trained": {
+          "artifact_sha256": "b75f34a2a9eb42af95429241ff95655ccc46b4d6d9c4f1cd81d5073a8216f44d",
+          "admitted": 28,
+          "top1": 9,
+          "top8": 19,
+          "port_distance": 27312048
+        },
+        "random_gain": {
+          "artifact_sha256": "9ef5f2d42038b95668fdd06adf7985ef5c5b29d55cf8722a6339eb1900fb1ae6",
+          "admitted": 28,
+          "top1": 9,
+          "top8": 19,
+          "port_distance": 27618635
+        },
+        "shuffled_cells": {
+          "artifact_sha256": "6d2b4063228cbb7ad359dd16fd477cccf846aef560157d52087f95f548f173d5",
+          "admitted": 28,
+          "top1": 9,
+          "top8": 19,
+          "port_distance": 27443854
+        }
+      },
+      "bar": {
+        "parity_exact": true,
+        "control_moves_matched": true,
+        "admission_and_top1_non_fall": false,
+        "target_port_distance_below_table_anchor_random_and_shuffled": true
+      }
+    }
+  ],
+  "finding": "Query-port training lowers port distance but does not clear both seeds: seed 1 loses to the shuffled-cell control by 3,055 units, and seed 2 loses one admitted target and one top-1. Table anchoring itself sharply reduces admitted/top-1/top-8 on both seeds."
+}

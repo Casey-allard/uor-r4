@@ -62,6 +62,18 @@ lower complete-query target distance. The finite fixture reduced distance in
 both arms with exact CPU/serving parity, but top-1 stayed unchanged. It is a
 mechanism result, not corpus training or capability evidence.
 
+The first query-port objective trained the 16 final-gain coordinates that
+scale the writer query's two 8-coordinate ports toward each target cell's
+roots. It started from the table-anchored construction Claude-290 introduced
+and used matched random and shuffled-root controls. The two-seed run rejected:
+seed 1 lost to shuffled roots, while seed 2 lost one admitted target and one
+top-1. The table anchor itself sharply reduced admitted/top-1, showing that
+overwriting the shared input/writer table's port blocks carries a large
+decoding cost. The run does not separate input-code effects from direct
+writer-row port mismatch. Future geometric addressing must preserve learned
+token identity while adding cell structure. See
+[deepseek-183](../loop/tasks/cpu-training-pilot/deepseek-183/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

@@ -547,6 +547,22 @@ different candidate-conditioned representation or objective; longest-32
 remains the current body selector. See
 [deepseek-179](../../loop/tasks/cpu-training-pilot/deepseek-179/REPORT.md).
 
+The next CPU comparison trained the two query ports directly toward each
+target's cell roots, starting from the table-anchored construction Claude-290
+introduced. Eight moves were accepted on each public artifact with exact
+CPU/serving parity. Seed 1 improved port distance over the table-anchor and
+random controls but lost to the moved-count-matched shuffled-root control by
+3,055 units. Seed 2 reduced port distance below all three controls, but lost
+one admitted target and one top-1 against the table-anchor baseline. More
+importantly, anchoring every token row's shared input/writer ports collapsed
+admitted/top-1 from 245/181 to 120/55 on seed 1 and from 171/136 to 29/10 on
+seed 2. This is a **REJECT** for the tested query-port gain objective and a
+strong cost signal for table-wide port anchoring. The run does not separate
+the input-code effect from direct writer-row mismatch; the next representation
+must decouple writer addressing from the learned input code or train both with
+an identity-preservation objective. See
+[deepseek-183](../../loop/tasks/cpu-training-pilot/deepseek-183/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

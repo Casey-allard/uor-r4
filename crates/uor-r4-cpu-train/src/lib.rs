@@ -95,11 +95,13 @@ pub use fbs::{
     WriterPortMismatch, WriterTokenDiagnostic, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
 };
 pub use gain_train::{
-    evaluate_termination_gain_samples, random_gain_control, read_gain, replace_final_gain,
-    shuffle_termination_gain_labels, termination_gain_labels, CpuServedGainTrainer,
-    CpuTerminationGainTrainer, ServedGainConfig, ServedGainMove, ServedGainStep,
-    TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading, TerminationGainStep,
-    CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
+    anchor_writer_ports, evaluate_termination_gain_samples, random_gain_control,
+    random_port_gain_control, read_gain, replace_final_gain, shuffle_termination_gain_labels,
+    termination_gain_labels, CpuPortRootTrainer, CpuServedGainTrainer, CpuTerminationGainTrainer,
+    PortRootConfig, PortRootReading, PortRootStep, ServedGainConfig, ServedGainMove,
+    ServedGainStep, TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading,
+    TerminationGainStep, CPU_PORT_ROOT_TRAINER_SCHEMA, CPU_SERVED_GAIN_TRAINER_SCHEMA,
+    CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
 };
 pub use geometric_candidate_anchor::{
     calibrate_expanded_candidate_union, compare_anchored_candidate_rows,

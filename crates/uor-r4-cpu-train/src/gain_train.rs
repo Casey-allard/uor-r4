@@ -6,19 +6,22 @@
 //! conversion, writer decision, turn-memory movement and point fallback.
 
 use rayon::prelude::*;
+use uor_r4_discrete::normalization_mechanism::orbit_root_coords;
 use uor_r4_integer::stack::{read_memory_uorlut01, IntegerStackModel, POINT_KEY_BOS};
 
 use crate::fbs::CpuServedTrace;
 use crate::memory_train::{checked_sample_totals, validate_samples};
+use crate::train::{patch_writer_table, RankMarginSample};
 use crate::{
     audit_memory_weight_samples, invalid, CpuFbsForward, CpuFbsHead, CpuTrainError,
-    MemoryWeightParityReading, MemoryWeightReading, MemoryWeightSample,
+    MemoryWeightParityReading, MemoryWeightReading, MemoryWeightSample, PanelExportReading,
 };
 
 type Result<T> = std::result::Result<T, CpuTrainError>;
 
 pub const CPU_SERVED_GAIN_TRAINER_SCHEMA: &str = "uor-r4.cpu-served-gain-trainer/1";
 pub const CPU_TERMINATION_GAIN_TRAINER_SCHEMA: &str = "uor-r4.cpu-termination-gain-trainer/1";
+pub const CPU_PORT_ROOT_TRAINER_SCHEMA: &str = "uor-r4.cpu-port-root-trainer/1";
 const CORPUS_EOS: u32 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -52,6 +55,483 @@ pub struct ServedGainMove {
     pub coordinate: usize,
     pub before_code: i16,
     pub after_code: i16,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortRootConfig {
+    pub step_code: i16,
+    /// Rotate every target cell by this amount. Zero trains the true cells;
+    /// one is the matched shuffled-cell control.
+    pub cell_shift: u8,
+}
+
+impl Default for PortRootConfig {
+    fn default() -> Self {
+        Self {
+            step_code: 1,
+            cell_shift: 0,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortRootReading {
+    pub artifact_sha256: String,
+    pub samples: usize,
+    pub target_admitted: u64,
+    pub top1_correct: u64,
+    pub top8_correct: u64,
+    pub target_port_distance_sum: u64,
+    pub target_port_abs_sum: u64,
+    pub port_coordinates_checked: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortRootStep {
+    pub index: u64,
+    pub updated: bool,
+    pub coordinate: Option<usize>,
+    pub before_code: Option<i16>,
+    pub after_code: Option<i16>,
+    pub before: PortRootReading,
+    pub after: PortRootReading,
+    pub parity: Option<PanelExportReading>,
+}
+
+#[derive(Clone)]
+struct CachedPortDecision {
+    target: u32,
+    norm_before_final_gain: Vec<i64>,
+}
+
+#[derive(Clone)]
+struct CpuPortTrajectory {
+    forward: CpuFbsForward,
+    decisions: Vec<CachedPortDecision>,
+    roots_q12: [[i32; 8]; 16],
+}
+
+impl CpuPortTrajectory {
+    fn build(artifact: &[u8], samples: &[RankMarginSample]) -> Result<Self> {
+        validate_port_artifact(artifact)?;
+        if samples.is_empty() || samples.iter().any(|sample| sample.input.is_empty()) {
+            return Err(invalid("port-root training needs non-empty causal samples"));
+        }
+        let forward = CpuFbsForward::from_artifact(artifact)
+            .map_err(|error| invalid(format!("port-root forward: {error}")))?;
+        let decisions = samples
+            .par_iter()
+            .map(|sample| {
+                let mut forward = CpuFbsForward::from_artifact(artifact)
+                    .map_err(|error| invalid(format!("port-root forward: {error}")))?;
+                let mut norm = None;
+                for (index, &token) in sample.input.iter().enumerate() {
+                    if index + 1 == sample.input.len() {
+                        let (_, trace) = forward
+                            .step_with_trace(token, CpuFbsHead::Writer)
+                            .map_err(|error| invalid(format!("port-root forward: {error}")))?;
+                        norm = Some(trace.norm_before_final_gain);
+                    } else {
+                        forward
+                            .step(token, CpuFbsHead::Writer)
+                            .map_err(|error| invalid(format!("port-root forward: {error}")))?;
+                    }
+                }
+                Ok(CachedPortDecision {
+                    target: sample.target,
+                    norm_before_final_gain: norm
+                        .ok_or_else(|| invalid("port-root sample has no final trace"))?,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let roots_q12 = std::array::from_fn(|root| {
+            orbit_root_coords(root as u8)
+                .expect("the 16 writer roots are valid")
+                .map(|value| value << 12)
+        });
+        Ok(Self {
+            forward,
+            decisions,
+            roots_q12,
+        })
+    }
+
+    fn evaluate(&self, artifact: &[u8], config: PortRootConfig) -> Result<PortRootReading> {
+        let gain = read_gain(artifact)?;
+        let width = self.forward.width();
+        let zero_weights = vec![0i32; width];
+        let readings = self
+            .decisions
+            .par_iter()
+            .map(|decision| {
+                let (query, _) = self
+                    .forward
+                    .replay_final_gain(
+                        &decision.norm_before_final_gain,
+                        &gain,
+                        None,
+                        &zero_weights,
+                        None,
+                    )
+                    .map_err(|error| invalid(format!("port-root replay: {error}")))?;
+                let diagnostic = self
+                    .forward
+                    .writer_token_diagnostic(&query, decision.target)
+                    .map_err(|error| invalid(format!("port-root writer diagnostic: {error}")))?;
+                let expected_cell =
+                    (decision.target & 0xff).wrapping_add(u32::from(config.cell_shift)) & 0xff;
+                let roots = [
+                    &self.roots_q12[(expected_cell >> 4) as usize],
+                    &self.roots_q12[(expected_cell & 15) as usize],
+                ];
+                let target_port_distance_sum =
+                    roots
+                        .into_iter()
+                        .enumerate()
+                        .try_fold(0u64, |sum, (port, root)| {
+                            let start = if port == 0 { 0 } else { width - 8 };
+                            query[start..start + 8].iter().zip(root).try_fold(
+                                sum,
+                                |sum, (&actual, &expected)| {
+                                    sum.checked_add(u64::from(actual.abs_diff(expected)))
+                                        .ok_or_else(|| invalid("port-root distance sum overflows"))
+                                },
+                            )
+                        })?;
+                let target_port_abs_sum = query[..8].iter().chain(&query[width - 8..]).try_fold(
+                    0u64,
+                    |sum, &value| {
+                        sum.checked_add(u64::from(value.unsigned_abs()))
+                            .ok_or_else(|| invalid("port-root magnitude sum overflows"))
+                    },
+                )?;
+                Ok((
+                    u64::from(diagnostic.admitted),
+                    u64::from(diagnostic.chosen_token == diagnostic.target_token),
+                    u64::from(diagnostic.top8),
+                    target_port_distance_sum,
+                    target_port_abs_sum,
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut reading = PortRootReading {
+            artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
+            samples: self.decisions.len(),
+            target_admitted: 0,
+            top1_correct: 0,
+            top8_correct: 0,
+            target_port_distance_sum: 0,
+            target_port_abs_sum: 0,
+            port_coordinates_checked: 0,
+        };
+        for (admitted, top1, top8, distance, magnitude) in readings {
+            reading.target_admitted = reading
+                .target_admitted
+                .checked_add(admitted)
+                .ok_or_else(|| invalid("port-root admission count overflows"))?;
+            reading.top1_correct = reading
+                .top1_correct
+                .checked_add(top1)
+                .ok_or_else(|| invalid("port-root top-1 count overflows"))?;
+            reading.top8_correct = reading
+                .top8_correct
+                .checked_add(top8)
+                .ok_or_else(|| invalid("port-root top-8 count overflows"))?;
+            reading.target_port_distance_sum = reading
+                .target_port_distance_sum
+                .checked_add(distance)
+                .ok_or_else(|| invalid("port-root distance sum overflows"))?;
+            reading.target_port_abs_sum = reading
+                .target_port_abs_sum
+                .checked_add(magnitude)
+                .ok_or_else(|| invalid("port-root magnitude sum overflows"))?;
+            reading.port_coordinates_checked = reading
+                .port_coordinates_checked
+                .checked_add(16)
+                .ok_or_else(|| invalid("port-root coordinate count overflows"))?;
+        }
+        Ok(reading)
+    }
+}
+
+#[derive(Clone)]
+pub struct CpuPortRootTrainer {
+    initial_artifact: Vec<u8>,
+    artifact: Vec<u8>,
+    samples: Vec<RankMarginSample>,
+    config: PortRootConfig,
+    steps: u64,
+    trajectory: CpuPortTrajectory,
+}
+
+impl std::fmt::Debug for CpuPortRootTrainer {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CpuPortRootTrainer")
+            .field("artifact_bytes", &self.artifact.len())
+            .field("samples", &self.samples.len())
+            .field("config", &self.config)
+            .field("steps", &self.steps)
+            .finish()
+    }
+}
+
+impl CpuPortRootTrainer {
+    pub fn from_artifact(
+        artifact: &[u8],
+        samples: Vec<RankMarginSample>,
+        config: PortRootConfig,
+    ) -> Result<Self> {
+        if config.step_code == 0 {
+            return Err(invalid("port-root step code must be nonzero"));
+        }
+        if config.cell_shift > 1 {
+            return Err(invalid("port-root cell shift must be zero or one"));
+        }
+        let trajectory = CpuPortTrajectory::build(artifact, &samples)?;
+        Ok(Self {
+            initial_artifact: artifact.to_vec(),
+            artifact: artifact.to_vec(),
+            samples,
+            config,
+            steps: 0,
+            trajectory,
+        })
+    }
+
+    pub fn artifact(&self) -> &[u8] {
+        &self.artifact
+    }
+
+    pub fn initial_artifact(&self) -> &[u8] {
+        &self.initial_artifact
+    }
+
+    pub fn config(&self) -> PortRootConfig {
+        self.config
+    }
+
+    pub fn step_count(&self) -> u64 {
+        self.steps
+    }
+
+    pub fn reading(&self) -> Result<PortRootReading> {
+        self.trajectory.evaluate(&self.artifact, self.config)
+    }
+
+    pub fn train_step(&mut self) -> Result<PortRootStep> {
+        let index = self.steps;
+        let before = self.reading()?;
+        let gain = read_gain(&self.artifact)?;
+        let mut candidates = Vec::with_capacity(34);
+        for coordinate in port_gain_coordinates(gain.len()) {
+            let original = gain[coordinate];
+            for delta in [self.config.step_code, -self.config.step_code] {
+                let Some(after) = original.checked_add(delta) else {
+                    continue;
+                };
+                if after != original {
+                    candidates.push((coordinate, original, after));
+                }
+            }
+        }
+        let evaluated = candidates
+            .par_chunks(16)
+            .map(|chunk| {
+                let mut best = None;
+                for &(coordinate, original, after) in chunk {
+                    let mut trial = gain.clone();
+                    trial[coordinate] = after;
+                    let artifact = patch_gain(&self.artifact, &trial)?;
+                    let reading = self.trajectory.evaluate(&artifact, self.config)?;
+                    if !port_candidate_safe(&reading, &before) || !port_improves(&reading, &before)
+                    {
+                        continue;
+                    }
+                    let candidate = PortGainCandidate {
+                        coordinate,
+                        before_code: original,
+                        after_code: after,
+                        artifact,
+                        reading,
+                    };
+                    if best.as_ref().is_none_or(|current: &PortGainCandidate| {
+                        port_improves(&candidate.reading, &current.reading)
+                    }) {
+                        best = Some(candidate);
+                    }
+                }
+                Ok::<_, CpuTrainError>(best)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let best = evaluated
+            .into_iter()
+            .flatten()
+            .reduce(|current, candidate| {
+                if port_improves(&candidate.reading, &current.reading) {
+                    candidate
+                } else {
+                    current
+                }
+            });
+        self.steps = self
+            .steps
+            .checked_add(1)
+            .ok_or_else(|| invalid("port-root step counter exhausted"))?;
+        let Some(best) = best else {
+            return Ok(PortRootStep {
+                index,
+                updated: false,
+                coordinate: None,
+                before_code: None,
+                after_code: None,
+                before: before.clone(),
+                after: before,
+                parity: None,
+            });
+        };
+        let parity =
+            crate::CpuPanelEvaluator::from_artifact(&best.artifact, self.samples.clone(), 1)?
+                .evaluate()?;
+        if !parity.export.is_exact() {
+            return Err(invalid("port-root update lost complete CPU/serving parity"));
+        }
+        self.artifact = best.artifact;
+        Ok(PortRootStep {
+            index,
+            updated: true,
+            coordinate: Some(best.coordinate),
+            before_code: Some(best.before_code),
+            after_code: Some(best.after_code),
+            before,
+            after: best.reading,
+            parity: Some(parity.export),
+        })
+    }
+}
+
+struct PortGainCandidate {
+    coordinate: usize,
+    before_code: i16,
+    after_code: i16,
+    artifact: Vec<u8>,
+    reading: PortRootReading,
+}
+
+fn port_gain_coordinates(width: usize) -> Vec<usize> {
+    (0..8).chain(width - 8..width).collect()
+}
+
+fn port_candidate_safe(after: &PortRootReading, before: &PortRootReading) -> bool {
+    after.target_admitted >= before.target_admitted
+        && after.top1_correct >= before.top1_correct
+        && after.top8_correct >= before.top8_correct
+}
+
+fn port_improves(after: &PortRootReading, before: &PortRootReading) -> bool {
+    after.target_port_distance_sum < before.target_port_distance_sum
+        || (after.target_port_distance_sum == before.target_port_distance_sum
+            && (after.target_admitted > before.target_admitted
+                || (after.target_admitted == before.target_admitted
+                    && (after.top1_correct > before.top1_correct
+                        || (after.top1_correct == before.top1_correct
+                            && after.top8_correct > before.top8_correct)))))
+}
+
+fn validate_port_artifact(artifact: &[u8]) -> Result<()> {
+    let forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("port-root forward: {error}")))?;
+    if !forward.supports_gain_replay() {
+        return Err(invalid(
+            "port-root training does not support a Hamming readout",
+        ));
+    }
+    if read_memory_uorlut01(artifact)
+        .map_err(|error| invalid(format!("port-root memory: {error}")))?
+        .is_some()
+    {
+        return Err(invalid(
+            "port-root training requires the memory-free source artifact",
+        ));
+    }
+    let _ = read_gain(artifact)?;
+    Ok(())
+}
+
+pub fn random_port_gain_control(
+    artifact: &[u8],
+    moves: usize,
+    seed: u64,
+) -> Result<(Vec<u8>, Vec<ServedGainMove>)> {
+    let mut gain = read_gain(artifact)?;
+    let coordinates = port_gain_coordinates(gain.len());
+    if coordinates.is_empty() {
+        return Err(invalid("port-root artifact has no port gain coordinates"));
+    }
+    let mut state = seed.max(1);
+    let mut records = Vec::with_capacity(moves);
+    for _ in 0..moves {
+        let mut moved = None;
+        for _ in 0..coordinates.len().saturating_mul(2).max(1) {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let coordinate = coordinates[(state as usize) % coordinates.len()];
+            let delta = if state >> 63 == 0 { 1i16 } else { -1i16 };
+            let before = gain[coordinate];
+            if let Some(after) = before.checked_add(delta) {
+                if after != before {
+                    gain[coordinate] = after;
+                    moved = Some(ServedGainMove {
+                        coordinate,
+                        before_code: before,
+                        after_code: after,
+                    });
+                    break;
+                }
+            }
+        }
+        records
+            .push(moved.ok_or_else(|| invalid("random port-gain control found no movable code"))?);
+    }
+    Ok((patch_gain(artifact, &gain)?, records))
+}
+
+pub fn anchor_writer_ports(artifact: &[u8]) -> Result<Vec<u8>> {
+    let forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("writer-port anchor: {error}")))?;
+    let width = forward.width();
+    if width < 16 {
+        return Err(invalid("writer-port anchor requires width at least 16"));
+    }
+    let mut table = forward.token_table().to_vec();
+    let roots_q12 = std::array::from_fn::<_, 16, _>(|root| {
+        orbit_root_coords(root as u8)
+            .expect("the 16 writer roots are valid")
+            .map(|value| value << 12)
+    });
+    for token in 0..forward.vocabulary() {
+        let cell = token & 0xff;
+        let row = &mut table[token * width..(token + 1) * width];
+        for (start, root) in [(0, cell >> 4), (width - 8, cell & 15)] {
+            for coordinate in 0..8 {
+                row[start + coordinate] = i16::try_from(roots_q12[root][coordinate])
+                    .map_err(|_| invalid("writer root does not fit i16"))?;
+            }
+        }
+    }
+    let artifact = patch_writer_table(artifact, &table)?;
+    let audit = CpuFbsForward::audit_writer_port_anchors(&artifact)
+        .map_err(|error| invalid(format!("writer-port anchor audit: {error}")))?;
+    if !audit.passes() {
+        return Err(invalid(
+            "writer-port anchor did not survive artifact read-back",
+        ));
+    }
+    Ok(artifact)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1189,6 +1669,37 @@ mod tests {
         export_fbs_trunk_uorlut01(&snapshot).unwrap()
     }
 
+    fn port_fixture() -> Vec<u8> {
+        export_fbs_trunk_uorlut01(&synthetic_fbs_trunk_with(
+            1_991,
+            FbsSynth {
+                vocab: crate::VOCABULARY,
+                d: WIDTH,
+                mlp: 64,
+                layers: 2,
+                context: 16,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        ))
+        .unwrap()
+    }
+
+    fn port_samples() -> Vec<RankMarginSample> {
+        (0u32..64)
+            .map(|row| RankMarginSample {
+                input: vec![
+                    (row * 257 + 3) % crate::VOCABULARY as u32,
+                    (row * 109 + 17) % crate::VOCABULARY as u32,
+                ],
+                target: (row * 613 + 29) % crate::VOCABULARY as u32,
+            })
+            .collect()
+    }
+
     fn samples() -> Vec<MemoryWeightSample> {
         vec![
             MemoryWeightSample {
@@ -1460,5 +1971,211 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("Hamming"));
+    }
+
+    fn full_port_reading(
+        artifact: &[u8],
+        samples: &[RankMarginSample],
+        cell_shift: u8,
+    ) -> PortRootReading {
+        let mut forward = CpuFbsForward::from_artifact(artifact).unwrap();
+        let roots_q12 = std::array::from_fn::<_, 16, _>(|root| {
+            orbit_root_coords(root as u8)
+                .unwrap()
+                .map(|value| value << 12)
+        });
+        let width = forward.width();
+        let mut reading = PortRootReading {
+            artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
+            samples: samples.len(),
+            target_admitted: 0,
+            top1_correct: 0,
+            top8_correct: 0,
+            target_port_distance_sum: 0,
+            target_port_abs_sum: 0,
+            port_coordinates_checked: 0,
+        };
+        for sample in samples {
+            forward.reset();
+            let mut query = None;
+            for &token in &sample.input {
+                query = Some(forward.step(token, CpuFbsHead::Writer).unwrap().query_q12);
+            }
+            let query = query.unwrap();
+            let diagnostic = forward
+                .writer_token_diagnostic(&query, sample.target)
+                .unwrap();
+            let cell = ((sample.target & 0xff).wrapping_add(u32::from(cell_shift))) & 0xff;
+            for (port, root) in [(0, cell >> 4), (width - 8, cell & 15)] {
+                for coordinate in 0..8 {
+                    reading.target_port_distance_sum += u64::from(
+                        query[port + coordinate].abs_diff(roots_q12[root as usize][coordinate]),
+                    );
+                    reading.target_port_abs_sum +=
+                        u64::from(query[port + coordinate].unsigned_abs());
+                    reading.port_coordinates_checked += 1;
+                }
+            }
+            reading.target_admitted += u64::from(diagnostic.admitted);
+            reading.top1_correct += u64::from(diagnostic.chosen_token == diagnostic.target_token);
+            reading.top8_correct += u64::from(diagnostic.top8);
+        }
+        reading
+    }
+
+    #[test]
+    fn cached_port_replay_matches_a_fresh_complete_forward() {
+        let artifact = port_fixture();
+        let samples = port_samples();
+        for cell_shift in [0, 1] {
+            let config = PortRootConfig {
+                cell_shift,
+                ..PortRootConfig::default()
+            };
+            let trainer =
+                CpuPortRootTrainer::from_artifact(&artifact, samples.clone(), config).unwrap();
+            assert_eq!(
+                trainer.reading().unwrap(),
+                full_port_reading(&artifact, &samples, cell_shift)
+            );
+        }
+    }
+
+    #[test]
+    fn port_root_trainer_moves_only_port_gain_codes() {
+        let artifact = port_fixture();
+        let before = read_gain(&artifact).unwrap();
+        let mut trainer =
+            CpuPortRootTrainer::from_artifact(&artifact, port_samples(), PortRootConfig::default())
+                .unwrap();
+        let mut step = None;
+        for _ in 0..8 {
+            let candidate = trainer.train_step().unwrap();
+            if candidate.updated {
+                step = Some(candidate);
+                break;
+            }
+        }
+        let step = step.expect("a synthetic port-root move should improve");
+        assert!(matches!(step.coordinate, Some(0..=7 | 56..=63)));
+        let after = read_gain(trainer.artifact()).unwrap();
+        let changed = before
+            .iter()
+            .zip(&after)
+            .enumerate()
+            .filter_map(|(index, (left, right))| (left != right).then_some(index))
+            .collect::<Vec<_>>();
+        assert!(changed.contains(&step.coordinate.unwrap()));
+        assert!(changed
+            .into_iter()
+            .all(|index| !(8..WIDTH - 8).contains(&index)));
+        assert!(step
+            .parity
+            .is_some_and(|parity| parity.query_coordinate_mismatches == 0
+                && parity.token_mismatches == 0
+                && parity.kept_cell_mismatches == 0));
+    }
+
+    #[test]
+    fn port_candidate_safety_refuses_admission_and_ranking_regressions() {
+        let before = PortRootReading {
+            artifact_sha256: "00".repeat(32),
+            samples: 4,
+            target_admitted: 4,
+            top1_correct: 2,
+            top8_correct: 3,
+            target_port_distance_sum: 100,
+            target_port_abs_sum: 200,
+            port_coordinates_checked: 64,
+        };
+        let mut improvement = before.clone();
+        improvement.target_port_distance_sum = 99;
+        assert!(port_candidate_safe(&improvement, &before));
+        assert!(port_improves(&improvement, &before));
+
+        for mutate in [
+            |reading: &mut PortRootReading| reading.target_admitted -= 1,
+            |reading: &mut PortRootReading| reading.top1_correct -= 1,
+            |reading: &mut PortRootReading| reading.top8_correct -= 1,
+        ] {
+            let mut unsafe_move = improvement.clone();
+            mutate(&mut unsafe_move);
+            assert!(!port_candidate_safe(&unsafe_move, &before));
+        }
+    }
+
+    #[test]
+    fn port_gain_coordinates_are_only_the_two_query_port_blocks() {
+        assert_eq!(
+            port_gain_coordinates(WIDTH),
+            (0..8).chain(WIDTH - 8..WIDTH).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn shuffled_cell_and_random_port_controls_are_deterministic() {
+        let artifact = port_fixture();
+        let actual =
+            CpuPortRootTrainer::from_artifact(&artifact, port_samples(), PortRootConfig::default())
+                .unwrap();
+        let shuffled = CpuPortRootTrainer::from_artifact(
+            &artifact,
+            port_samples(),
+            PortRootConfig {
+                cell_shift: 1,
+                ..PortRootConfig::default()
+            },
+        )
+        .unwrap();
+        assert_ne!(actual.reading().unwrap(), shuffled.reading().unwrap());
+        assert!(CpuPortRootTrainer::from_artifact(
+            &artifact,
+            port_samples(),
+            PortRootConfig {
+                cell_shift: 2,
+                ..PortRootConfig::default()
+            },
+        )
+        .is_err());
+
+        let (first, first_moves) = random_port_gain_control(&artifact, 4, 77).unwrap();
+        let (second, second_moves) = random_port_gain_control(&artifact, 4, 77).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first_moves, second_moves);
+        assert!(first_moves
+            .iter()
+            .all(|movement| movement.coordinate < 8 || movement.coordinate >= WIDTH - 8));
+    }
+
+    #[test]
+    fn writer_port_anchor_is_exact_after_patch_and_read_back() {
+        let artifact = port_fixture();
+        let anchored = anchor_writer_ports(&artifact).unwrap();
+        let audit = CpuFbsForward::audit_writer_port_anchors(&anchored).unwrap();
+        assert!(audit.passes());
+        assert_ne!(artifact, anchored);
+    }
+
+    #[test]
+    fn port_trainer_fails_closed_on_bad_memory_or_hamming_artifacts() {
+        let samples = port_samples();
+        assert!(CpuPortRootTrainer::from_artifact(
+            b"not a UORLUT01 artifact",
+            samples.clone(),
+            PortRootConfig::default(),
+        )
+        .is_err());
+        assert!(CpuPortRootTrainer::from_artifact(
+            &fixture(),
+            samples.clone(),
+            PortRootConfig::default(),
+        )
+        .is_err());
+        assert!(CpuPortRootTrainer::from_artifact(
+            &fixture_with_hamming(true),
+            samples,
+            PortRootConfig::default(),
+        )
+        .is_err());
     }
 }

@@ -1,3 +1,23 @@
+## 2026-11-05 — Query-port root training rejects; table anchoring has a large shared input/writer cost (deepseek)
+
+A new CPU trainer moved only the 16 final-gain codes that scale the writer
+query's two 8-coordinate ports, starting from a table-anchored baseline that
+matches Claude-290. It accepted all eight moves on both public artifacts with
+exact CPU/serving parity.
+
+The result is **REJECT**. Seed 1 reduced port distance over the anchored and
+random controls but lost to the matched shuffled-root control, 25,331,024
+versus 25,327,969. Seed 2 reduced distance below every control, but lost one
+admitted target and one top-1 against the table-anchor baseline.
+
+The larger signal is the table anchor's cost to ordinary decoding: admitted /
+top-1 fell from 245 / 181 to 120 / 55 on seed 1 and from 171 / 136 to 29 / 10
+on seed 2. The treatment changes both recurrent inputs and writer rows, so this
+run does not separate those effects. The next design should preserve learned
+token identity while adding cell addressing, not overwrite the same ports
+without a preservation control. Record:
+[deepseek-183](../loop/tasks/cpu-training-pilot/deepseek-183/REPORT.md).
+
 ## 2026-11-05 — Expanded-cell anchored correction rejects (deepseek)
 
 The CPU writer’s candidate source can be widened beyond its served eight cells
