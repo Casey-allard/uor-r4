@@ -16286,6 +16286,98 @@ mod tests {
         Ok(())
     }
 
+    /// claude-285 (G2): one training step as served, through the trunk's own loss, at (S)
+    /// 192 × 2 and (L) 2048 × 4. The fused quantizers give the chains' loss and every gradient bit
+    /// for bit, after an A/A pair (the chains twice) shows that the step repeats itself; a fused
+    /// node can change the order in which candle sums a gradient, which this would catch.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "needs a CUDA device; run on the pod"]
+    fn one_step_as_served_is_bit_equal_with_the_fused_quantizers() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        for (context, batch) in [(SHEET_CONTEXT, 2), (2048, 4)] {
+            let ids: Vec<u32> = (0..batch * context)
+                .map(|i| ((i * 37 + 5) % hs::SHEET_VOCAB) as u32)
+                .collect();
+            let scored: Vec<u32> = (0..batch * context - 1)
+                .step_by(7)
+                .map(|i| i as u32)
+                .collect();
+            let targets: Vec<u32> = scored.iter().map(|&i| ids[i as usize + 1]).collect();
+            let step = |fused: bool| -> Result<(Vec<u32>, Vec<Vec<u32>>, hs::FusedQuantizeCounts)> {
+                let (mut model, reads, memory) = served_parts(&device)?;
+                model.set_context(context)?;
+                crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
+                crate::flock_read_memory::set_turn_memory(Some(memory.clone()));
+                let served = round_if_served(true, &model, Some(&reads), Some(&memory))?;
+                let ((loss, grads), counts) = hs::with_fused_quantize(fused, || {
+                    with_training_forward(true, 1, 0, || {
+                        let loss = batch_loss(
+                            &model,
+                            PointObjective::Cell,
+                            &ids,
+                            &scored,
+                            &targets,
+                            batch,
+                            true,
+                        )?;
+                        let grads = loss.backward()?;
+                        Ok((loss, grads))
+                    })
+                })?;
+                if let Some(served) = served {
+                    served.restore()?;
+                }
+                let bits = |t: &Tensor| -> Result<Vec<u32>> {
+                    Ok(t.flatten_all()?
+                        .to_vec1::<f32>()?
+                        .into_iter()
+                        .map(f32::to_bits)
+                        .collect())
+                };
+                let mut grad_bits = Vec::new();
+                for var in served_vars(&model, &reads, &memory) {
+                    grad_bits.push(match grads.get(var.as_tensor()) {
+                        Some(grad) => bits(grad)?,
+                        None => Vec::new(),
+                    });
+                }
+                crate::flock_read_hamming::set_hamming_reads(None);
+                crate::flock_read_memory::set_turn_memory(None);
+                Ok((bits(&loss)?, grad_bits, counts))
+            };
+            let chain = step(false)?;
+            let again = step(false)?;
+            assert_eq!((&again.0, &again.1), (&chain.0, &chain.1), "{context}: A/A");
+            let fused = step(true)?;
+            eprintln!(
+                "claude-285 G2 {context}x{batch}: chains {:?}, fused {:?}",
+                chain.2, fused.2
+            );
+            assert!(
+                fused.2.activation_fused > 0 && fused.2.residual_fused > 0,
+                "{context}"
+            );
+            assert_eq!(
+                fused.2.activation_fused + fused.2.activation_chain,
+                chain.2.activation_chain,
+                "{context}: the same activation calls"
+            );
+            assert_eq!(
+                fused.2.residual_fused + fused.2.residual_chain,
+                chain.2.residual_chain,
+                "{context}: the same residual calls"
+            );
+            assert_eq!(fused.0, chain.0, "{context}: loss");
+            assert!(
+                chain.1.iter().any(|grad| !grad.is_empty()),
+                "{context}: gradients"
+            );
+            assert_eq!(fused.1, chain.1, "{context}: every gradient");
+        }
+        Ok(())
+    }
+
     /// claude-262: one training step as served reaches every projection that reads a requantized
     /// activation. Each layer's `mlp.down` and `rec.out` table gets a gradient whose norm
     /// is within 4x of the plain step's, from the same initial values, and never 0. Before, the

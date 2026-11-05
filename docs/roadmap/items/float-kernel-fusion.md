@@ -37,7 +37,10 @@ Why these two kernels first:
    - Its host probe points at the export rounding instead: `grid_code` searches 2,032 grid candidates on the host for every rounded gain on every step, and nine matrices are copied to the host and back each step. Replacing the activation-scale loop saved about 2% of one CPU activation there.
    - That is a host probe, not a GPU profile, but it is the reason the fusion below waits on a measurement.
    - The two items share `hamilton_sheet.rs`, so the claim's overlap check orders their units. This item adds the kernel list that any new GPU kernel for that repair also needs. It does not take on the export rounding.
-3. **The fused quantizers,** forward and backward, one kernel each, in `cuda_stack.cu`. That source builds both the f32 and the bf16 modules: `act_t` is defined at `cuda_stack.cu:61-85`, and the bf16 module is the same source built with `-DUOR_STORAGE_BF16` (`build.rs:40`). `spiralcore_fbs.cu` needs no change.
+3. **The fused quantizers,** forward and backward, one kernel each. **Built and gated in [claude-285](../../loop/tasks/float-kernel-fusion/claude-285/REPORT.md) (5 Nov).**
+   - **Where:** `src/fused_quantize.cu`, built f32 only as its own PTX module, so the pinned `cuda_stack.cu` is unchanged. The kernels run behind `train-in-space --fused-quantize 1`, whose default is 0.
+   - **What held on one RTX 5090:** each kernel equals its chain bit for bit. That covers the ops' forward and gradient on edge rows, one training step at P2b's recipe at (S) and (L) (the loss and every gradient), and eight training steps' models, samples and progress.
+   - **What is left:** what the kernels save (done-when 4) and the flag's default (done-when 5).
 
 ## Done when
 

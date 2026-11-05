@@ -36,6 +36,9 @@ const MODULE_BF16: &str = "uor_r4_geometric_stack_bf16";
 /// The Candle custom-module name `geometric_stack_native_cuda.rs` loads the
 /// SpiralCore/FBS sheet arms' PTX under (`SPIRALCORE_FBS_ARMS_MODULE` there).
 const ARMS_MODULE: &str = "uor_r4_spiralcore_fbs_arms";
+/// The Candle custom-module name `fused_quantize.rs` loads the fused served
+/// quantizers' PTX under (float-kernel-fusion, claude-285).
+pub(crate) const FUSED_QUANTIZE_MODULE: &str = "uor_r4_fused_quantize";
 
 /// The kernels of the PTX loaded under the Candle module name `module`: the
 /// list `build.rs` scanned from the sources that PTX compiles. `None` for a
@@ -45,6 +48,7 @@ pub fn module_kernels(module: &str) -> Option<&'static [&'static str]> {
         MODULE => Some(kernel_lists::CUDA_STACK_F32),
         MODULE_BF16 => Some(kernel_lists::CUDA_STACK_BF16),
         ARMS_MODULE => Some(kernel_lists::SPIRALCORE_FBS_ARMS_F32),
+        FUSED_QUANTIZE_MODULE => Some(kernel_lists::FUSED_QUANTIZE_F32),
         _ => None,
     }
 }
@@ -384,6 +388,22 @@ pub mod cuda {
         )
     }
 
+    /// [`launch_prebuilt`] over `groups` blocks of `group` threads each.
+    pub fn launch_groups_prebuilt(
+        device: &CudaDevice,
+        module: &str,
+        ptx: &str,
+        name: &str,
+        groups: (usize, usize, usize),
+        group: (usize, usize, usize),
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        if groups.0 * groups.1 * groups.2 == 0 {
+            return Ok(());
+        }
+        dispatch_module(device, module, ptx, name, groups, group, args)
+    }
+
     fn dispatch_module(
         device: &CudaDevice,
         module: &str,
@@ -473,12 +493,32 @@ pub mod cuda {
 mod tests {
     use super::*;
 
-    fn modules() -> [(&'static str, &'static [&'static str]); 3] {
+    fn modules() -> [(&'static str, &'static [&'static str]); 4] {
         [
             (MODULE, kernel_lists::CUDA_STACK_F32),
             (MODULE_BF16, kernel_lists::CUDA_STACK_BF16),
             (ARMS_MODULE, kernel_lists::SPIRALCORE_FBS_ARMS_F32),
+            (FUSED_QUANTIZE_MODULE, kernel_lists::FUSED_QUANTIZE_F32),
         ]
+    }
+
+    /// The fused quantizers' kernels (claude-285) are their own module's, and only its.
+    #[test]
+    fn the_fused_quantizers_load_from_their_own_module_only() {
+        let fused = [
+            "activation_quantize16_fwd",
+            "activation_quantize16_bwd",
+            "q16_residual_fwd",
+            "q16_residual_bwd",
+        ];
+        assert_eq!(kernel_lists::FUSED_QUANTIZE_F32, fused);
+        for name in fused {
+            assert_eq!(admit_launch(FUSED_QUANTIZE_MODULE, name), Ok(()), "{name}");
+            for module in [MODULE, MODULE_BF16, ARMS_MODULE] {
+                assert!(admit_launch(module, name).is_err(), "{module} {name}");
+            }
+        }
+        assert!(admit_launch(FUSED_QUANTIZE_MODULE, "rms_norm_fwd").is_err());
     }
 
     #[test]

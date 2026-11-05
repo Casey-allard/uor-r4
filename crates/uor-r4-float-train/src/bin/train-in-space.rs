@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--served-forward 0|1] [--context N]`
 //!
 //! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
 //! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
@@ -64,8 +64,15 @@
 //! and the unprofiled one after it, train with both served quantizer chains skipped, and its even
 //! pairs keep them, so the two classes' step times give the chains' share. `--steps` and
 //! `--eval-every` must each be above the window's end, `8 + 2K`, so that no evaluation forward is
-//! inside it. The switch's record, checked, goes to `DIR/quantizer-timing.json`. The run's losses
-//! and checkpoints are not results.
+//! inside it. The switch's record goes to `DIR/quantizer-timing.json` once its check passes, and to
+//! `DIR/quantizer-timing.invalid.json` when it fails (claude-285). The run's losses and checkpoints
+//! are not results.
+//!
+//! `--fused-quantize 1` (needs `--train-as-served 1`; float-kernel-fusion, claude-285) runs each
+//! served quantizer chain as one fused CUDA op (`fused_quantize`), with the chain's bits, forward
+//! and gradient. The activation quantizer fuses under its bridge only, and a CPU or non-contiguous
+//! input keeps its chain. The default, 0, keeps the chains. Given either way, the option writes
+//! `DIR/fused-quantize.json`: the flag and how many calls took each path.
 //!
 //! `--turn-memory-dropout P` (thousandths, 0 to 1000; needs `--turn-memory`) drops the memory from
 //! that share of training windows, which then name no memory row (one-model-end-to-end protocol
@@ -296,6 +303,7 @@ fn main() -> Result<()> {
     let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
     let mut time_quantizers = false;
+    let mut fused_quantize: Option<bool> = None;
     let (mut opening_read, mut opening_anchor) = (None, None);
     let (mut prompt_register, mut register_picks, mut register_select) = (None, None, None);
     let mut config = LongConfig {
@@ -485,6 +493,7 @@ fn main() -> Result<()> {
             "--steps" => config.steps = number(&value)?,
             "--profile" => config.profile = number(&value)?,
             "--time-without-quantizers" => time_quantizers = switch(&value)?,
+            "--fused-quantize" => fused_quantize = Some(switch(&value)?),
             "--turn-memory" => config.turn_memory = number(&value)?,
             "--turn-memory-empty" => config.turn_memory_empty = switch(&value)?,
             "--turn-memory-reply" => config.turn_memory_reply = switch(&value)?,
@@ -712,6 +721,11 @@ fn main() -> Result<()> {
         config.profile,
         config.steps,
         config.eval_every,
+    )?;
+    fused_quantize_applies(
+        fused_quantize.is_some(),
+        modes[7] && recall == 0,
+        config.train_as_served,
     )?;
     if last_opening.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
@@ -1113,18 +1127,45 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let out = out.ok_or_else(|| FloatTrainError::Invalid("--out is required".to_owned()))?;
-    if time_quantizers {
-        let ((), timing) =
+    let (timing, counts) = uor_r4_float_train::hamilton_sheet::with_fused_quantize(
+        fused_quantize.unwrap_or(false),
+        || {
+            if !time_quantizers {
+                return run_long(&data_root, &out, &config, &device).map(|()| None);
+            }
             uor_r4_float_train::hamilton_sheet::time_without_quantizers(config.profile, || {
                 run_long(&data_root, &out, &config, &device)
-            })?;
+            })
+            .map(|((), timing)| Some(timing))
+        },
+    )?;
+    if let Some(fused) = fused_quantize {
         std::fs::write(
-            out.join("quantizer-timing.json"),
-            serde_json::to_vec_pretty(&timing)?,
+            out.join("fused-quantize.json"),
+            serde_json::to_vec_pretty(
+                &serde_json::json!({"fused_quantize": fused, "counts": counts}),
+            )?,
         )?;
-        return timing.check();
     }
-    run_long(&data_root, &out, &config, &device)
+    let Some(timing) = timing else {
+        return Ok(());
+    };
+    let checked = timing.check();
+    std::fs::write(
+        out.join(quantizer_timing_record(checked.is_ok())),
+        serde_json::to_vec_pretty(&timing)?,
+    )?;
+    checked
+}
+
+/// The timing record's name: the checked name only once its check passed (claude-285, carried
+/// from claude-284's review), so a record that failed it is never read as a measurement.
+fn quantizer_timing_record(checked: bool) -> &'static str {
+    if checked {
+        "quantizer-timing.json"
+    } else {
+        "quantizer-timing.invalid.json"
+    }
 }
 
 /// `--copy-key-oracle` (claude-267): exact-match copy-key purity on an unpinned UORT pair, with
@@ -1406,6 +1447,19 @@ fn time_without_quantizers_applies(
     Ok(())
 }
 
+/// `--fused-quantize 0|1` (float-kernel-fusion, claude-285) picks the served quantizers' path in a
+/// training run trained as served, the one mode whose forwards run them under the flag, and given
+/// either way it writes that run's `fused-quantize.json`.
+fn fused_quantize_applies(given: bool, training: bool, served: bool) -> Result<()> {
+    if given && !(training && served) {
+        return Err(FloatTrainError::Invalid(
+            "--fused-quantize applies to training with --out and --train-as-served 1 only"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1487,5 +1541,26 @@ mod tests {
         assert!(timed(true, true, 64, 136, 137).is_err(), "--steps");
         assert!(timed(true, true, 64, 137, 136).is_err(), "--eval-every");
         assert!(timed(true, true, usize::MAX, 137, 137).is_err());
+    }
+
+    #[test]
+    fn the_fused_quantize_option_needs_a_served_training_run_and_a_failed_timing_record_is_marked()
+    {
+        // claude-285: an omitted option writes no record and keeps the chains.
+        assert!(fused_quantize_applies(false, false, false).is_ok());
+        assert!(fused_quantize_applies(true, true, true).is_ok());
+        assert!(
+            fused_quantize_applies(true, false, true).is_err(),
+            "not training"
+        );
+        assert!(
+            fused_quantize_applies(true, true, false).is_err(),
+            "not served"
+        );
+        assert_eq!(quantizer_timing_record(true), "quantizer-timing.json");
+        assert_eq!(
+            quantizer_timing_record(false),
+            "quantizer-timing.invalid.json"
+        );
     }
 }

@@ -18,6 +18,7 @@ pub mod flock_read_hamming;
 pub mod flock_read_memory;
 pub mod flock_read_opening;
 pub mod flock_read_register;
+pub mod fused_quantize;
 #[path = "geometric_stack_native.rs"]
 pub mod geometric_stack;
 pub mod hamilton_sheet;

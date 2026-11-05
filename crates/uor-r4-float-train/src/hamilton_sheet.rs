@@ -579,6 +579,11 @@ thread_local! {
     /// The served forward running now under an armed switch: `Some(true)` when it skips both
     /// quantizer chains, `Some(false)` when it keeps them, `None` when it is not counted.
     static TIMING_SKIPS: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+    /// The fused quantizers' flag ([`with_fused_quantize`], float-kernel-fusion, claude-285).
+    static FUSED_QUANTIZE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// Each quantizer path's calls on this thread since the flag's scope began.
+    static FUSED_COUNTS: std::cell::Cell<FusedQuantizeCounts> =
+        const { std::cell::Cell::new(FusedQuantizeCounts::ZERO) };
 }
 
 struct ScopeRestore<F: FnOnce()> {
@@ -613,7 +618,7 @@ pub const ACTIVATION_EXP: i32 = uor_r4_integer::fbs_snapshot::FBS_ACTIVATION_EXP
 /// The largest row magnitude, as the integer step holds it at [`ACTIVATION_EXP`], that the
 /// quantizer tells apart: an `i64` product saturates below 2^63, so every magnitude from 2^62 on
 /// has bit length 63 and keeps the same shift, 48.
-const ACTIVATION_SATURATED: f64 = 4_611_686_018_427_387_904.0; // 2^62
+pub(crate) const ACTIVATION_SATURATED: f64 = 4_611_686_018_427_387_904.0; // 2^62
 
 /// Runs `f` with the trunk's residual stream rounded to 2^-16 after the embedding and after each
 /// sublayer add, where the integer session holds it (claude-133, the Q16 control). It restores
@@ -656,13 +661,17 @@ pub(crate) fn q16_residual(x: Tensor) -> Result<Tensor> {
     if timing_skips(TimedChain::Residual, x.elem_count()) {
         return Ok(x);
     }
+    let bridge = BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get());
+    if fused_applies(TimedChain::Residual, &x, true) {
+        return Ok(crate::fused_quantize::q16_residual(&x, bridge)?);
+    }
     let scaled = x.affine(f64::from(Q16_SCALE), 0.0)?;
     let rounded = scaled
         .affine(1.0, 0.5)?
         .floor()?
         .clamp(f64::from(i32::MIN), f64::from(i32::MAX))?
         .affine(1.0 / f64::from(Q16_SCALE), 0.0)?;
-    if !BRIDGE_Q16_RESIDUAL.with(|bridge| bridge.get()) {
+    if !bridge {
         return Ok(rounded);
     }
     let dtype = x.dtype();
@@ -733,6 +742,11 @@ pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
     if timing_skips(TimedChain::Activation, x.elem_count()) {
         return Ok(x.clone());
     }
+    // The kernel computes the bridged form only, which the served wrapper always takes.
+    let bridge = BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get());
+    if fused_applies(TimedChain::Activation, x, bridge) {
+        return Ok(crate::fused_quantize::activation_quantize16(x)?);
+    }
     // The row's integer magnitude, held apart from the gradient: the scale only selects the grid.
     let mut integer = x
         .abs()?
@@ -759,7 +773,7 @@ pub(crate) fn activation_quantize16(x: &Tensor) -> Result<Tensor> {
         .floor()?
         .clamp(-32767.0, 32767.0)?
         .broadcast_div(&scale)?;
-    if !BRIDGE_ACTIVATION_I16.with(|bridge| bridge.get()) {
+    if !bridge {
         return Ok(quantized);
     }
     let dtype = x.dtype();
@@ -836,7 +850,9 @@ impl QuantizerTiming {
     }
 
     /// The record's own check: each of the window's training steps ran one served forward, in its
-    /// pair's class and in order, and the kept forwards called both chains.
+    /// pair's class and in order; the kept forwards called both chains; and the skipped forwards
+    /// came to each chain as many times, with as many elements, as the kept ones (claude-283's
+    /// review, I-4), so the two classes ran the same model.
     pub fn check(&self) -> Result<()> {
         let pairs = |skip: bool| -> Vec<usize> {
             (0..self.profile)
@@ -863,6 +879,22 @@ impl QuantizerTiming {
             return Err(invalid(
                 "the quantizer timing record's kept forwards called a chain no time",
             ));
+        }
+        let calls = |counts: &ChainCounts| {
+            [
+                counts.activation_calls,
+                counts.activation_elements,
+                counts.residual_calls,
+                counts.residual_elements,
+            ]
+        };
+        if calls(&self.skipped) != calls(&self.kept) {
+            return Err(invalid(format!(
+                "the quantizer timing record's skipped forwards came to the chains {:?} times and \
+                 elements, not the kept forwards' {:?}",
+                calls(&self.skipped),
+                calls(&self.kept)
+            )));
         }
         Ok(())
     }
@@ -960,6 +992,72 @@ fn timing_class(served_step: usize) -> Option<bool> {
         counts.steps.push(served_step - 1);
         Some(skips)
     })
+}
+
+/// Each quantizer path's calls (float-kernel-fusion, claude-285): what `train-in-space
+/// --fused-quantize` records, so a run shows which path its forwards took.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct FusedQuantizeCounts {
+    pub activation_fused: u64,
+    pub activation_chain: u64,
+    pub residual_fused: u64,
+    pub residual_chain: u64,
+}
+
+impl FusedQuantizeCounts {
+    const ZERO: Self = Self {
+        activation_fused: 0,
+        activation_chain: 0,
+        residual_fused: 0,
+        residual_chain: 0,
+    };
+}
+
+/// Runs `f` with the fused quantizers' flag set to `on` and the path counts started at zero, and
+/// returns the counts its calls made. It restores the flag and the counts as they were on every
+/// exit, so a nested scope's calls are not in the outer scope's counts. With the flag on, a quantizer call past its early returns takes the fused op
+/// ([`crate::fused_quantize`]) when its input is a contiguous f32 CUDA tensor (for the activation
+/// quantizer, under its bridge as well), and its op chain otherwise.
+pub fn with_fused_quantize<T>(
+    on: bool,
+    f: impl FnOnce() -> Result<T>,
+) -> Result<(T, FusedQuantizeCounts)> {
+    struct Restore(bool, FusedQuantizeCounts);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            FUSED_QUANTIZE.with(|flag| flag.set(self.0));
+            FUSED_COUNTS.with(|counts| counts.set(self.1));
+        }
+    }
+    let _restore = Restore(
+        FUSED_QUANTIZE.with(|flag| flag.replace(on)),
+        FUSED_COUNTS.with(|counts| counts.replace(FusedQuantizeCounts::ZERO)),
+    );
+    let value = f()?;
+    Ok((value, FUSED_COUNTS.with(|counts| counts.get())))
+}
+
+/// Whether this call of `chain` on `x` takes the fused op, counting the path it takes. `eligible`
+/// is the chain's own condition on top of the input's. An empty input keeps the chain, which
+/// returns it empty where the activation op refuses a row of width 0.
+fn fused_applies(chain: TimedChain, x: &Tensor, eligible: bool) -> bool {
+    let fused = eligible
+        && FUSED_QUANTIZE.with(|flag| flag.get())
+        && x.elem_count() > 0
+        && x.dtype() == candle_core::DType::F32
+        && x.is_contiguous()
+        && x.device().is_cuda();
+    FUSED_COUNTS.with(|cell| {
+        let mut counts = cell.get();
+        match (chain, fused) {
+            (TimedChain::Activation, true) => counts.activation_fused += 1,
+            (TimedChain::Activation, false) => counts.activation_chain += 1,
+            (TimedChain::Residual, true) => counts.residual_fused += 1,
+            (TimedChain::Residual, false) => counts.residual_chain += 1,
+        }
+        cell.set(counts);
+    });
+    fused
 }
 
 /// Enable the served graph's discrete training boundaries together: the D11 contract the run is
@@ -4365,6 +4463,13 @@ mod tests {
         let mut idle = timing.clone();
         idle.kept.residual_calls = 0;
         assert!(idle.check().is_err());
+        // claude-285, I-4: the two classes must come to each chain alike.
+        let mut fewer = timing.clone();
+        fewer.skipped.activation_calls = 1;
+        assert!(fewer.check().is_err());
+        let mut smaller = timing.clone();
+        smaller.skipped.residual_elements = 4;
+        assert!(smaller.check().is_err());
     }
 
     /// float-kernel-fusion, claude-283: the switch refuses a window that would skip nothing and an
