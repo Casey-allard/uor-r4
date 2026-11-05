@@ -58,6 +58,9 @@ No serving, CUDA, float-inference, termination or Claude-owned source changed.
 - reviewed implementation head: `7a326d4162e952108721dd716e38c51790271ab3`;
 - FIT: issue #3506 comment `6658474404`;
 - GO docs head: `2183f2f69958690ece84da309de6cf21d7b1c092`;
+- reviewed delivery head: `ad2fdfa0ee51ed7f5a5fdf1d54b73cfd69895cc0`;
+- PR: #3725;
+- protected merge: `4ea0976615b4b59e4394c30476931f15291b0951`;
 - fresh panel: seed 2768, `dev,dev`, 128 conversations, 15,654 tokens;
 - panel tokens SHA-256:
   `ba38a53172a24bd8f20fae676d304c456f9dceaf37ec9294c6232ebefc0f152e`;
@@ -84,6 +87,10 @@ and [`evidence/geometric-candidate-union-2768/`](../../../../labs/cpu-training-p
 - Registered shell and jq syntax.
 - Raw and published evidence seals.
 - Lane-scope and no-corpus checks.
+- Exact-head approval, all required CI checks and protected merge.
+- Fresh-main CPU library: **326 passed**, 4 expected ignores.
+- Fresh-main driver binary test: **1 passed**; strict Clippy passed.
+- Fresh-main source pins, published evidence and no-corpus checks passed.
 
 ## Skills used
 
