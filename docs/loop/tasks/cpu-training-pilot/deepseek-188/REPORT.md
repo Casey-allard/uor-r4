@@ -84,6 +84,17 @@ Compact evidence:
 - both original discovery reports and both final verification reports sealed;
 - source artifact identity, non-gain byte identity and exact CPU/serving parity.
 
+## Delivery
+
+PR #3742 was reviewed at exact head
+`eddaf1cb479126aede8579223c83b3b8ff1a617d`. All required checks passed and
+the protected queue merged it as
+`9577aebc9b7dbb0964906efffd13662b7d4984c8`.
+
+Fresh detached `origin/main` passed the full CPU package (**351 library tests
+passed**, 4 expected ignores, all binary tests), scoped strict Clippy,
+formatting, diff, report/FIT evidence and the `CONTROL_FAULT` evidence check.
+
 ## Size
 
 This unit adds one raw mode to the existing CPU query-port driver, focused tests,
