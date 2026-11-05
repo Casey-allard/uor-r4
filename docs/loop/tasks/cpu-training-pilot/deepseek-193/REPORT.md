@@ -120,13 +120,26 @@ Compact evidence: [result.json](evidence/result.json).
 - corrected non-author TEST FITNESS: **FIT**;
 - separate D67 pre-run review: **GO**;
 - focused suffix-memory tests: **7 passed**;
-- full CPU release suite: **370 passed**, 4 expected ignores, all binary tests
-  passed;
+- full CPU release suite: **366 passed**, 4 expected ignores (370 tests
+  selected), all binary tests passed;
 - strict scoped Clippy with `--all-targets --no-deps -- -D warnings`: passed;
 - formatting, `git diff --check`, `prep-check`, input/source pins and output
   sealing: passed;
 - both artifact repeats matched after timing removal;
 - no fresh panel was generated before FIT and GO.
+
+## Delivery
+
+PR #3748 was reviewed at exact head
+`d7d36773a428b7944ba8630936044b0028e7673f` with a counted
+`uor-review v1` APPROVE and all required checks green. The protected queue
+merged it as `fa19e62192af61552333b99ba47d99e3143d11d5`.
+
+Fresh `main` has identical content for all 14 changed files. The merged CPU
+package ran 370 selected tests as **366 passed, 4 expected ignores**, with all
+binary tests passing. The two source hashes still match this report, the
+evidence manifest reads back clean, and `prep-check` still reports FIT for the
+completed sheet. The release record removes the completed source claim.
 
 ## Reading
 

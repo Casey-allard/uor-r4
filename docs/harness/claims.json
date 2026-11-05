@@ -118,12 +118,12 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/copy-suffix-memory": {
-    "branch": "deepseek/copy-suffix-memory",
-    "claimed_at": "2026-11-05T14:20:46-05:00",
-    "head": "1f1e3a756",
+  "deepseek/copy-suffix-release": {
+    "branch": "deepseek/copy-suffix-release",
+    "claimed_at": "2026-11-05T14:45:21-05:00",
+    "head": "fa19e6219",
     "lab": "deepseek",
-    "note": "trained reply-suffix continuation memory with matched local-copy, depth-one and successor-shuffle controls"
+    "note": "record deepseek-193 merge and release its source claim"
   },
   "deepseek/count-table-control": {
     "branch": "deepseek/count-table-control",
