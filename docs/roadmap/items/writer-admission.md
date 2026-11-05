@@ -19,7 +19,14 @@ The decision is to serve whole-table nearest, because the writer failed at one s
 
 ## What is missing
 
-- **claude-150's evidence** (its REPORT and the float-training notebook's row): with the `voronoi` objective, the writer held at seed 1 (`8,430` top-1 at step 32,768, against nearest's `6,762`). At seed 2 it never learned (`493` against `6,909`). There, the target's cell was admitted on only `461`–`714` of 14,287 rows, against `8,558`–`9,451` at seed 1. Why admission failed at seed 2 is not known.
+- **claude-150's evidence** (its REPORT and the float-training notebook's row): with the `voronoi` objective, the writer held at seed 1 (`8,430` top-1 at step 32,768, against nearest's `6,762`). At seed 2 it never learned (`493` against `6,909`). There, the target's cell was admitted on only `208`–`714` of 14,287 rows from step 4,096, against `8,558`–`9,563` at seed 1.
+- **The diagnosis (done-when 1, [claude-289](../../loop/tasks/writer-admission/claude-289/REPORT.md)): seed 2's ports went flat.**
+  - From step 4,096, both of seed 2's ports sit at the roots' centre, where all 16 roots tie: their mean |x| falls to `5.4e-7`, and every row's 256 cell scores lie within `1e-4`.
+  - Admission is then a near-tie lottery, about chance (8 of 256 cells).
+  - The trunk learned anyway (nearest `6,909`). Seed 1's ports point at the target's roots instead (class L).
+  - Both seeds start alike, and they split before step 2,048.
+  - So done-when 2's change must be one the tie point cannot satisfy. A margin alone is not expected to leave it (an inference, untested). The REPORT's Still open, item 1, cautions that a symmetric pull toward the target's root may share the centre as its minimum while the port is uninformed.
+- **Main refuses checkpoints saved before `bcf2f57f7`** (29 Oct): their projection fingerprint pins `spiralcore_fbs.cu`, whose backward changed. A reading of claude-150's checkpoints is built on `074d54b2`, as claude-289's evidence branch was.
 - **The writer** ([`native_vector_writer.rs`](../../../crates/uor-r4-float-train/src/native_vector_writer.rs), `address_scores`) keeps 8 of 256 cells. A cell is a pair of roots: the query's first and last 8 coordinates are each scored against 16 SpiralCore roots, by mean absolute distance. A token outside the kept cells cannot be decoded.
   This is the float-train crate's copy, the one `train-in-space` builds against (`crates/uor-r4-float-train/src/lib.rs`). `crates/uor-r4-training` holds another copy, which is not in scope.
 - **The writer has not been read under the cell objective,** which the current recipe (claude-152's (a)) trains for whole-table nearest. The one earlier disagreement, `345` against nearest's `7,813` (the map, stage 7), came from a checkpoint trained with the writer's own `MarginHinge { rivals: 8 }` objective, whose margin could not be met (the float-training notebook's 27 Oct "Exploration" row).

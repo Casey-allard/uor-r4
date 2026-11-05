@@ -455,6 +455,10 @@ pub struct Inspection {
     pub token_unviolated_hits: usize,
     pub token_margin: f64,
     pub address_margin: f64,
+    /// The writer's admission over every scored DEV row, port by port (writer-admission,
+    /// claude-289); its admitted count is `admitted_hits`. Not read on a served forward.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admission: Option<hs::AdmissionReading>,
     /// Over the first DEV windows' scored rows: how many distinct cells are admitted first.
     pub probe_rows: usize,
     pub distinct_first_cells: usize,
@@ -7013,6 +7017,27 @@ pub fn inspect_run(
                 false,
             )?
         };
+        // The panel's own points again, read port by port; it must admit what the panel admits
+        // (claude-289's I-1), or the inspection stops.
+        let admission = if served {
+            None
+        } else {
+            let counts = hs::admission_dev_panel(
+                &model,
+                &dev_windows,
+                HamiltonArm::HamiltonActive,
+                seed,
+                step,
+            )?;
+            if counts.rows != dev.scored_rows || counts.admitted != dev.admitted_target_hits {
+                return Err(invalid(format!(
+                    "{name}: the admission reading ({} of {} rows) disagrees with the DEV panel \
+                     ({} of {})",
+                    counts.admitted, counts.rows, dev.admitted_target_hits, dev.scored_rows
+                )));
+            }
+            Some(counts.reading())
+        };
         let query = with_eval_forward(served, seed, step, || {
             let hidden = crate::flock_read::points(&model, &ids, probe.len(), SHEET_CONTEXT)?;
             let idx = Tensor::from_vec(scored.clone(), scored.len(), device)?;
@@ -7081,6 +7106,7 @@ pub fn inspect_run(
             token_unviolated_hits: dev.token_unviolated_hits,
             token_margin: dev.token_margin,
             address_margin: dev.address_margin,
+            admission,
             probe_rows: first_cells.len(),
             distinct_first_cells: first_cells
                 .iter()

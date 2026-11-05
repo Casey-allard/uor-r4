@@ -2555,6 +2555,454 @@ fn score_dev_panel(
     ))
 }
 
+/// Each cell-score spread bound [`AdmissionCounts`] counts rows under: best minus worst of a row's
+/// 256 cell scores.
+pub const ADMISSION_SPREAD_BOUNDS: [f32; 4] = [1.0e-6, 1.0e-4, 1.0e-2, 1.0e-1];
+const PORT_ROOTS: usize = 16;
+
+/// The writer's admission, read row by row (writer-admission, claude-289): each query port's
+/// scores against the 16 SpiralCore roots, where the target's cell and its two roots rank, and
+/// the cells kept. A port is the query's first or last 8 coordinates, and cell `c` pairs the
+/// first port's root `c / 16` with the last port's root `c % 16` (`native_vector_writer.rs`,
+/// `address_scores`). Ranks follow the writer's tie rule: an exact tie goes to the smaller index.
+/// Counts and sums only, so batches merge exactly.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdmissionCounts {
+    pub rows: usize,
+    /// Rows whose target's cell is among the writer's kept cells.
+    pub admitted: usize,
+    /// Rows by the target cell's rank among the 256.
+    pub target_cell_rank: Vec<u64>,
+    /// Rows whose target cell's rank equals the cell's own id, as an exact tie of all 256 gives.
+    pub rank_is_cell_rows: u64,
+    /// Rows keeping each cell first, and keeping it at all.
+    pub first_cell: Vec<u64>,
+    pub kept_cell: Vec<u64>,
+    /// Rows whose cell-score spread is under each of [`ADMISSION_SPREAD_BOUNDS`].
+    pub cell_spread_below: Vec<u64>,
+    pub cell_spread_sum: f64,
+    /// The last kept cell's score minus the best cell left out, summed over rows.
+    pub cut_gap_sum: f64,
+    /// Over rows whose target is not admitted, the last kept cell's score minus the target's.
+    pub miss_gap_sum: f64,
+    /// The first port, then the last.
+    pub ports: [PortCounts; 2],
+}
+
+/// One port's part of [`AdmissionCounts`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct PortCounts {
+    /// Rows scoring each root best.
+    pub top_root: Vec<u64>,
+    /// Rows by the rank of the target's own root in this port.
+    pub target_root_rank: Vec<u64>,
+    /// Rows whose target needs each root in this port.
+    pub target_root: Vec<u64>,
+    /// The best root's score minus the second's, summed over rows.
+    pub top_gap_sum: f64,
+    /// Each of the port's 8 coordinates summed over rows, and their squares summed.
+    pub coordinate_sum: Vec<f64>,
+    pub coordinate_square_sum: Vec<f64>,
+    /// Every coordinate's absolute value, summed over the 8 and over rows.
+    pub abs_sum: f64,
+}
+
+/// [`AdmissionCounts`] read for a report: bands, means and distinct counts.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct AdmissionReading {
+    pub rows: usize,
+    pub admitted: usize,
+    /// Rows by the target cell's rank: 0, 1-7, 8-15, 16-63 and 64-255.
+    pub target_cell_rank_bands: [u64; 5],
+    pub target_cell_rank_mean: f64,
+    pub rank_is_cell_rows: u64,
+    /// Cells some row keeps first, the rows on the commonest first cell, and cells kept at all.
+    pub first_cells_distinct: usize,
+    pub first_cell_mode_rows: u64,
+    pub kept_cells_distinct: usize,
+    pub cell_spread_below: Vec<u64>,
+    pub cell_spread_mean: f64,
+    pub cut_gap_mean: f64,
+    /// Over rows not admitted; 0 when every row is.
+    pub miss_gap_mean: f64,
+    pub ports: [PortReading; 2],
+}
+
+/// One port's part of [`AdmissionReading`].
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct PortReading {
+    pub top_root: Vec<u64>,
+    pub top_roots_distinct: usize,
+    pub top_root_mode_rows: u64,
+    pub target_root_rank: Vec<u64>,
+    pub target_root_rank_mean: f64,
+    pub target_root: Vec<u64>,
+    pub top_gap_mean: f64,
+    /// Each coordinate's mean over rows.
+    pub centre: Vec<f64>,
+    /// Each coordinate's standard deviation over rows, averaged over the 8.
+    pub spread: f64,
+    pub mean_abs: f64,
+}
+
+impl PortCounts {
+    fn new() -> Self {
+        Self {
+            top_root: vec![0; PORT_ROOTS],
+            target_root_rank: vec![0; PORT_ROOTS],
+            target_root: vec![0; PORT_ROOTS],
+            top_gap_sum: 0.0,
+            coordinate_sum: vec![0.0; 8],
+            coordinate_square_sum: vec![0.0; 8],
+            abs_sum: 0.0,
+        }
+    }
+    fn merge(&mut self, other: &Self) {
+        add_counts(&mut self.top_root, &other.top_root);
+        add_counts(&mut self.target_root_rank, &other.target_root_rank);
+        add_counts(&mut self.target_root, &other.target_root);
+        self.top_gap_sum += other.top_gap_sum;
+        add_sums(&mut self.coordinate_sum, &other.coordinate_sum);
+        add_sums(&mut self.coordinate_square_sum, &other.coordinate_square_sum);
+        self.abs_sum += other.abs_sum;
+    }
+    fn reading(&self, rows: usize) -> PortReading {
+        let n = rows.max(1) as f64;
+        let centre: Vec<f64> = self.coordinate_sum.iter().map(|s| s / n).collect();
+        let spread = self
+            .coordinate_square_sum
+            .iter()
+            .zip(&centre)
+            .map(|(sq, mean)| (sq / n - mean * mean).max(0.0).sqrt())
+            .sum::<f64>()
+            / 8.0;
+        PortReading {
+            top_roots_distinct: self.top_root.iter().filter(|&&c| c > 0).count(),
+            top_root_mode_rows: self.top_root.iter().copied().max().unwrap_or(0),
+            target_root_rank_mean: rank_mean(&self.target_root_rank),
+            top_root: self.top_root.clone(),
+            target_root_rank: self.target_root_rank.clone(),
+            target_root: self.target_root.clone(),
+            top_gap_mean: self.top_gap_sum / n,
+            centre,
+            spread,
+            mean_abs: self.abs_sum / (8.0 * n),
+        }
+    }
+}
+
+fn add_counts(into: &mut [u64], from: &[u64]) {
+    into.iter_mut().zip(from).for_each(|(a, b)| *a += b);
+}
+
+fn add_sums(into: &mut [f64], from: &[f64]) {
+    into.iter_mut().zip(from).for_each(|(a, b)| *a += b);
+}
+
+/// The mean rank of a by-rank row count.
+fn rank_mean(by_rank: &[u64]) -> f64 {
+    let rows: u64 = by_rank.iter().sum();
+    let total: u64 = by_rank.iter().enumerate().map(|(r, &c)| r as u64 * c).sum();
+    total as f64 / rows.max(1) as f64
+}
+
+impl AdmissionCounts {
+    pub fn new() -> Self {
+        Self {
+            rows: 0,
+            admitted: 0,
+            target_cell_rank: vec![0; CELLS],
+            rank_is_cell_rows: 0,
+            first_cell: vec![0; CELLS],
+            kept_cell: vec![0; CELLS],
+            cell_spread_below: vec![0; ADMISSION_SPREAD_BOUNDS.len()],
+            cell_spread_sum: 0.0,
+            cut_gap_sum: 0.0,
+            miss_gap_sum: 0.0,
+            ports: [PortCounts::new(), PortCounts::new()],
+        }
+    }
+    pub fn merge(&mut self, other: &Self) {
+        self.rows += other.rows;
+        self.admitted += other.admitted;
+        add_counts(&mut self.target_cell_rank, &other.target_cell_rank);
+        self.rank_is_cell_rows += other.rank_is_cell_rows;
+        add_counts(&mut self.first_cell, &other.first_cell);
+        add_counts(&mut self.kept_cell, &other.kept_cell);
+        add_counts(&mut self.cell_spread_below, &other.cell_spread_below);
+        self.cell_spread_sum += other.cell_spread_sum;
+        self.cut_gap_sum += other.cut_gap_sum;
+        self.miss_gap_sum += other.miss_gap_sum;
+        for (port, other) in self.ports.iter_mut().zip(&other.ports) {
+            port.merge(other);
+        }
+    }
+    pub fn reading(&self) -> AdmissionReading {
+        let n = self.rows.max(1) as f64;
+        let rank = &self.target_cell_rank;
+        let band = |from: usize, to: usize| rank[from..to].iter().sum::<u64>();
+        let missed = self.rows - self.admitted;
+        AdmissionReading {
+            rows: self.rows,
+            admitted: self.admitted,
+            target_cell_rank_bands: [
+                band(0, 1),
+                band(1, 8),
+                band(8, 16),
+                band(16, 64),
+                band(64, CELLS),
+            ],
+            target_cell_rank_mean: rank_mean(rank),
+            rank_is_cell_rows: self.rank_is_cell_rows,
+            first_cells_distinct: self.first_cell.iter().filter(|&&c| c > 0).count(),
+            first_cell_mode_rows: self.first_cell.iter().copied().max().unwrap_or(0),
+            kept_cells_distinct: self.kept_cell.iter().filter(|&&c| c > 0).count(),
+            cell_spread_below: self.cell_spread_below.clone(),
+            cell_spread_mean: self.cell_spread_sum / n,
+            cut_gap_mean: self.cut_gap_sum / n,
+            miss_gap_mean: if missed == 0 {
+                0.0
+            } else {
+                self.miss_gap_sum / missed as f64
+            },
+            ports: [
+                self.ports[0].reading(self.rows),
+                self.ports[1].reading(self.rows),
+            ],
+        }
+    }
+}
+
+impl Default for AdmissionCounts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// [`AdmissionCounts`] for one batch of query rows and their targets, on `writer`'s own kept
+/// cells and cell scores. Each port's 16 scores are formed as the writer forms them, and their
+/// pairwise sums must equal the writer's 256 cell scores exactly, or the reading is refused; so
+/// must the kept cells and the ranks' admitted count. Only counts and sums leave the device.
+pub fn admission_counts(
+    writer: &NativeVectorWriter,
+    query: &Tensor,
+    targets: &[u32],
+) -> Result<AdmissionCounts> {
+    use candle_core::DType;
+    let device = query.device();
+    let (rows, width) = query.dims2()?;
+    if rows != targets.len() || width < 8 {
+        return Err(invalid("admission reading needs one target per query row"));
+    }
+    let c = writer.candidates(query)?;
+    let cells = c.address_scores();
+    let kept_cells = c.cell_ids().dim(1)?;
+    let plan = crate::spiralcore_fbs::ProjectionPlan::new(8, 8)?;
+    let roots = Tensor::from_vec(
+        plan.geometry
+            .roots
+            .iter()
+            .flatten()
+            .map(|v| f32::from(*v))
+            .collect::<Vec<_>>(),
+        (PORT_ROOTS, 8),
+        device,
+    )?;
+    let query = query.to_dtype(DType::F32)?;
+    let port = |start: usize| -> Result<Tensor> {
+        Ok(query
+            .narrow(1, start, 8)?
+            .unsqueeze(1)?
+            .broadcast_sub(&roots.unsqueeze(0)?)?
+            .abs()?
+            .mean(2)?
+            .neg()?)
+    };
+    let starts = [0, width - 8];
+    let scores = [port(starts[0])?, port(starts[1])?];
+    let paired = scores[0]
+        .unsqueeze(2)?
+        .broadcast_add(&scores[1].unsqueeze(1)?)?
+        .reshape((rows, CELLS))?;
+    let count = |t: Tensor| -> Result<u64> {
+        Ok(u64::from(t.to_dtype(DType::U32)?.sum_all()?.to_scalar::<u32>()?))
+    };
+    let total = |t: Tensor| -> Result<f64> {
+        Ok(f64::from(t.to_dtype(DType::F32)?.sum_all()?.to_scalar::<f32>()?))
+    };
+    if count(paired.ne(cells)?)? != 0 {
+        return Err(invalid(
+            "admission ports do not reproduce the writer's cell scores",
+        ));
+    }
+    let index = |n: usize| -> Result<Tensor> {
+        Ok(Tensor::arange(0u32, n as u32, device)?.unsqueeze(0)?)
+    };
+    let histogram = |values: &Tensor, bins: usize| -> Result<Vec<u64>> {
+        Ok(values
+            .flatten_all()?
+            .unsqueeze(1)?
+            .broadcast_eq(&index(bins)?)?
+            .to_dtype(DType::U32)?
+            .sum(0)?
+            .to_vec1::<u32>()?
+            .into_iter()
+            .map(u64::from)
+            .collect())
+    };
+    // The writer's tie rule: everything scoring higher, and every exact tie at a smaller index.
+    let rank = |scores: &Tensor, at: &Tensor| -> Result<Tensor> {
+        let own = scores.gather(at, 1)?;
+        let before = scores
+            .broadcast_eq(&own)?
+            .mul(&index(scores.dim(1)?)?.broadcast_lt(at)?)?;
+        Ok(scores
+            .broadcast_gt(&own)?
+            .add(&before)?
+            .to_dtype(DType::U32)?
+            .sum(1)?)
+    };
+    let best = |scores: &Tensor| -> Result<Tensor> {
+        let tied = scores.broadcast_eq(&scores.max_keepdim(1)?)?;
+        let ids = index(scores.dim(1)?)?.broadcast_as(scores.shape())?;
+        let absent = Tensor::full(u32::MAX, scores.shape(), device)?;
+        Ok(tied.where_cond(&ids, &absent)?.min_keepdim(1)?)
+    };
+    let absent_score = Tensor::full(-1.0e30f32, cells.shape(), device)?;
+    let absent_root = Tensor::full(-1.0e30f32, (rows, PORT_ROOTS), device)?;
+    let mut counts = AdmissionCounts::new();
+    counts.rows = rows;
+
+    let target_cells: Vec<u32> = targets.iter().map(|t| t % CELLS as u32).collect();
+    let target_cell = Tensor::from_vec(target_cells.clone(), (rows, 1), device)?;
+    let admitted = c
+        .cell_ids()
+        .broadcast_eq(&target_cell)?
+        .to_dtype(DType::U32)?
+        .sum(1)?
+        .gt(0u32)?;
+    counts.admitted = count(admitted)? as usize;
+    let cell_rank = rank(cells, &target_cell)?;
+    if count(cell_rank.lt(kept_cells as u32)?)? != counts.admitted as u64 {
+        return Err(invalid("admission ranks disagree with the writer's kept cells"));
+    }
+    counts.target_cell_rank = histogram(&cell_rank, CELLS)?;
+    counts.rank_is_cell_rows = count(cell_rank.eq(&target_cell.squeeze(1)?)?)?;
+    counts.first_cell = histogram(&c.cell_ids().narrow(1, 0, 1)?, CELLS)?;
+    counts.kept_cell = histogram(c.cell_ids(), CELLS)?;
+    let spread = cells.max(1)?.sub(&cells.min(1)?)?;
+    for (below, bound) in counts
+        .cell_spread_below
+        .iter_mut()
+        .zip(ADMISSION_SPREAD_BOUNDS)
+    {
+        *below = count(spread.lt(bound)?)?;
+    }
+    counts.cell_spread_sum = total(spread)?;
+    let last_kept = cells.gather(c.cell_ids(), 1)?.min(1)?;
+    let kept = c
+        .cell_ids()
+        .unsqueeze(2)?
+        .broadcast_eq(&index(CELLS)?.unsqueeze(0)?)?
+        .to_dtype(DType::U32)?
+        .sum(1)?
+        .gt(0u32)?;
+    let left_out = kept.where_cond(&absent_score, cells)?.max(1)?;
+    counts.cut_gap_sum = total(last_kept.sub(&left_out)?)?;
+    let missed = cell_rank.ge(kept_cells as u32)?.to_dtype(DType::F32)?;
+    let target_score = cells.gather(&target_cell, 1)?.squeeze(1)?;
+    counts.miss_gap_sum = total(last_kept.sub(&target_score)?.mul(&missed)?)?;
+
+    for (p, (port, start)) in scores.iter().zip(starts).enumerate() {
+        let need: Vec<u32> = target_cells
+            .iter()
+            .map(|&c| if p == 0 { c / 16 } else { c % 16 })
+            .collect();
+        let need = Tensor::from_vec(need, (rows, 1), device)?;
+        let top = best(port)?;
+        let second = index(PORT_ROOTS)?
+            .broadcast_eq(&top)?
+            .where_cond(&absent_root, port)?
+            .max(1)?;
+        let coordinates = query.narrow(1, start, 8)?;
+        let out = &mut counts.ports[p];
+        out.top_root = histogram(&top, PORT_ROOTS)?;
+        out.target_root_rank = histogram(&rank(port, &need)?, PORT_ROOTS)?;
+        out.target_root = histogram(&need, PORT_ROOTS)?;
+        out.top_gap_sum = total(port.max(1)?.sub(&second)?)?;
+        out.coordinate_sum = coordinates
+            .sum(0)?
+            .to_vec1::<f32>()?
+            .into_iter()
+            .map(f64::from)
+            .collect();
+        out.coordinate_square_sum = coordinates
+            .sqr()?
+            .sum(0)?
+            .to_vec1::<f32>()?
+            .into_iter()
+            .map(f64::from)
+            .collect();
+        out.abs_sum = total(coordinates.abs()?)?;
+    }
+    Ok(counts)
+}
+
+/// [`AdmissionCounts`] over the DEV panel, on the points [`evaluate_dev_panel`] reads in
+/// continuous `f32`: the same gate state (`arm`, `seed`, `step`, export mode and telemetry off),
+/// the same batches and the same writer, so its admitted count is the panel's
+/// `admitted_target_hits`.
+pub fn admission_dev_panel(
+    model: &StackModel,
+    dev_windows: &[CausalWindow],
+    arm: HamiltonArm,
+    seed: u64,
+    step: usize,
+) -> Result<AdmissionCounts> {
+    GATE_HOOK.with(|cell| {
+        let mut st = cell.borrow_mut();
+        st.active_arm = Some(arm);
+        st.seed = seed;
+        st.step = step;
+        st.fwd_call_idx = 0;
+        st.icosian_export_mode = false;
+        st.capture_telemetry = false;
+    });
+    let spec = WriterSpec {
+        vocabulary: model.config.vocab_size,
+        width: model.config.width,
+        kept_cells: SHEET_KEPT_CELLS,
+    };
+    let table = model
+        .variables()
+        .get("embedding.weight")
+        .ok_or_else(|| invalid("missing embedding.weight"))?
+        .as_tensor()
+        .clone();
+    let writer = NativeVectorWriter::new(&table, spec)?;
+    let mut counts = AdmissionCounts::new();
+    for chunk in dev_windows.chunks(SHEET_EVAL_BATCH) {
+        let mut flat_ids = Vec::with_capacity(chunk.len() * SHEET_CONTEXT);
+        let mut scored_indices = Vec::new();
+        let mut scored_targets = Vec::new();
+        for (b_idx, win) in chunk.iter().enumerate() {
+            flat_ids.extend_from_slice(&win.input_ids);
+            for (&off, &tgt) in win.scored_offsets.iter().zip(&win.scored_targets) {
+                scored_indices.push((b_idx * SHEET_CONTEXT + off) as u32);
+                scored_targets.push(tgt);
+            }
+        }
+        if scored_indices.is_empty() {
+            continue;
+        }
+        let hidden = model.hidden(&flat_ids, chunk.len(), SHEET_CONTEXT)?;
+        let idx = Tensor::from_vec(scored_indices, scored_targets.len(), model.device())?;
+        let query = hidden.index_select(&idx, 0)?;
+        counts.merge(&admission_counts(&writer, &query, &scored_targets)?);
+    }
+    Ok(counts)
+}
+
 pub fn compute_export_gap(
     float_eval: &DevEvalMetrics,
     float_preds: &[u32],
@@ -4854,6 +5302,179 @@ mod tests {
         assert!(nested.is_err());
         let ((), timing) = time_without_quantizers(2, || Ok(()))?;
         assert!(timing.kept.steps.is_empty() && timing.skipped.steps.is_empty());
+        Ok(())
+    }
+
+    /// writer-admission, claude-289: batches merge by addition, and a reading's bands, means and
+    /// distinct counts come from the merged counts.
+    #[test]
+    fn admission_counts_merge_and_read() {
+        let mut one = AdmissionCounts::new();
+        one.rows = 3;
+        one.admitted = 2;
+        one.target_cell_rank[0] = 1;
+        one.target_cell_rank[7] = 1;
+        one.target_cell_rank[200] = 1;
+        one.rank_is_cell_rows = 1;
+        one.first_cell[4] = 3;
+        one.kept_cell[4] = 3;
+        one.kept_cell[9] = 1;
+        one.cell_spread_below = vec![1, 1, 2, 3];
+        one.cell_spread_sum = 0.3;
+        one.cut_gap_sum = 0.6;
+        one.miss_gap_sum = 0.5;
+        one.ports[0].top_root[2] = 3;
+        one.ports[0].target_root_rank[1] = 3;
+        one.ports[0].target_root[2] = 3;
+        one.ports[0].top_gap_sum = 1.5;
+        one.ports[0].coordinate_sum[0] = 3.0;
+        one.ports[0].coordinate_square_sum[0] = 5.0;
+        one.ports[0].abs_sum = 6.0;
+        let mut two = AdmissionCounts::new();
+        two.rows = 1;
+        two.admitted = 1;
+        two.target_cell_rank[12] = 1;
+        two.first_cell[5] = 1;
+        two.kept_cell[5] = 1;
+        two.cell_spread_below = vec![0, 0, 0, 1];
+        two.cell_spread_sum = 0.1;
+        two.ports[0].top_root[5] = 1;
+        two.ports[0].target_root_rank[15] = 1;
+        two.ports[0].target_root[5] = 1;
+        two.ports[0].coordinate_sum[0] = 1.0;
+        two.ports[0].coordinate_square_sum[0] = 1.0;
+        two.ports[0].abs_sum = 2.0;
+        // Both sides carry these, so a field the merge drops reads as one side alone.
+        two.rank_is_cell_rows = 1;
+        one.ports[1].abs_sum = 1.0;
+        two.ports[1].abs_sum = 3.0;
+        let mut merged = one.clone();
+        merged.merge(&two);
+        assert_eq!(merged.rows, 4);
+        assert_eq!(merged.admitted, 3);
+        let r = merged.reading();
+        assert_eq!(r.target_cell_rank_bands, [1, 1, 1, 0, 1]);
+        assert_eq!(r.target_cell_rank_mean, (7.0 + 200.0 + 12.0) / 4.0);
+        assert_eq!((r.first_cells_distinct, r.first_cell_mode_rows), (2, 3));
+        assert_eq!(r.kept_cells_distinct, 3);
+        assert_eq!(r.cell_spread_below, vec![1, 1, 2, 4]);
+        assert!((r.cell_spread_mean - 0.1).abs() < 1e-12);
+        assert!((r.cut_gap_mean - 0.15).abs() < 1e-12);
+        // The miss gap is a mean over the one row not admitted.
+        assert_eq!(r.miss_gap_mean, 0.5);
+        let p = &r.ports[0];
+        assert_eq!((p.top_roots_distinct, p.top_root_mode_rows), (2, 3));
+        assert_eq!(p.target_root_rank_mean, (3.0 + 15.0) / 4.0);
+        assert_eq!(p.top_gap_mean, 1.5 / 4.0);
+        // Coordinate 0 holds 3.0 over three rows and 1.0 over one: mean 1, mean square 1.5.
+        assert_eq!(p.centre[0], 1.0);
+        assert!((p.spread - 0.5f64.sqrt() / 8.0).abs() < 1e-12);
+        assert_eq!(p.mean_abs, 8.0 / 32.0);
+        assert_eq!((p.target_root[2], p.target_root[5]), (3, 1));
+        assert_eq!(r.rank_is_cell_rows, 2);
+        assert_eq!(r.ports[1].mean_abs, 4.0 / 32.0);
+        // Every row admitted: the miss gap reads 0, not a division by zero.
+        assert_eq!(two.reading().miss_gap_mean, 0.0);
+    }
+
+    /// writer-admission, claude-289: ports placed on known roots, and the zero query that ties all
+    /// 256 cells, read as the geometry says. Two rows sit on roots 3 and 5, with targets in cell
+    /// 53 = 3 * 16 + 5. Two sit at zero, where every root of the anchor orbit is 0.5 away and
+    /// the writer keeps cells 0 to 7, with targets in cells 200 (missed) and 5 (admitted).
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn admission_counts_read_known_ports_on_cuda() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let table = Tensor::zeros((4096, 16), candle_core::DType::F32, &device)?;
+        let writer = NativeVectorWriter::new(
+            &table,
+            WriterSpec {
+                vocabulary: 4096,
+                width: 16,
+                kept_cells: 8,
+            },
+        )?;
+        let roots = crate::spiralcore_fbs::ProjectionPlan::new(8, 8)?.geometry.roots;
+        let root = |r: usize| roots[r].map(f32::from);
+        let mut rows: Vec<f32> = Vec::new();
+        for _ in 0..2 {
+            rows.extend(root(3));
+            rows.extend(root(5));
+        }
+        rows.extend([0.0f32; 32]);
+        let query = Tensor::from_vec(rows, (4, 16), &device)?;
+        let counts = admission_counts(&writer, &query, &[53, 309, 200, 5])?;
+        assert_eq!((counts.rows, counts.admitted), (4, 3));
+        let r = counts.reading();
+        assert_eq!(r.target_cell_rank_bands, [2, 1, 0, 0, 1]);
+        assert_eq!(counts.target_cell_rank[5], 1);
+        assert_eq!(counts.target_cell_rank[200], 1);
+        // Under the full tie a target's rank is its cell's id.
+        assert_eq!(r.rank_is_cell_rows, 2);
+        assert_eq!((counts.first_cell[53], counts.first_cell[0]), (2, 2));
+        assert!(counts.kept_cell[..8].iter().all(|&c| c >= 2));
+        assert_eq!(counts.kept_cell[53], 2);
+        assert_eq!(r.cell_spread_below, vec![2, 2, 2, 2]);
+        assert!(counts.cut_gap_sum >= 0.0);
+        assert_eq!(r.miss_gap_mean, 0.0);
+        let (nearest, _) = crate::in_space_long::root_separation()?;
+        for (p, (on, need)) in [(3usize, [3usize, 12, 0]), (5, [5, 8, 5])]
+            .into_iter()
+            .enumerate()
+        {
+            let port = &counts.ports[p];
+            let reading = &r.ports[p];
+            assert_eq!((port.top_root[on], port.top_root[0]), (2, 2));
+            let mut want = vec![0u64; 16];
+            want[need[0]] += 2;
+            want[need[1]] += 1;
+            want[need[2]] += 1;
+            assert_eq!(port.target_root, want);
+            // On the root its own target needs, rank 0; at zero, the tie ranks a root by its id.
+            let mut ranks = vec![0u64; 16];
+            ranks[0] += 2;
+            ranks[need[1]] += 1;
+            ranks[need[2]] += 1;
+            assert_eq!(port.target_root_rank, ranks);
+            assert!(port.top_gap_sum >= 2.0 * nearest - 1e-6);
+            let half: Vec<f64> = root(on).iter().map(|&v| f64::from(v) / 2.0).collect();
+            assert_eq!(reading.centre, half);
+            assert_eq!(reading.mean_abs, 0.25);
+            assert!((reading.spread - 0.25).abs() < 1e-9);
+        }
+        Ok(())
+    }
+
+    /// writer-admission, claude-289: a near-tie inside the flat class's `1e-4` band. The first
+    /// port sits at `e` times root 0 and the second at zero. Root 0 then scores `-0.5 + e / 2`,
+    /// a root sharing one signed coordinate with it `-0.5`, and one sharing none `-0.5 - e / 2`,
+    /// so the 256 cell scores span `e / 2` to `e`.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn admission_counts_read_a_near_tie_on_cuda() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let table = Tensor::zeros((4096, 16), candle_core::DType::F32, &device)?;
+        let writer = NativeVectorWriter::new(
+            &table,
+            WriterSpec {
+                vocabulary: 4096,
+                width: 16,
+                kept_cells: 8,
+            },
+        )?;
+        let e = 5.0e-5f32;
+        let roots = crate::spiralcore_fbs::ProjectionPlan::new(8, 8)?.geometry.roots;
+        let mut row: Vec<f32> = roots[0].map(|v| f32::from(v) * e).to_vec();
+        row.extend([0.0f32; 8]);
+        let query = Tensor::from_vec(row, (1, 16), &device)?;
+        let counts = admission_counts(&writer, &query, &[0])?;
+        assert_eq!((counts.rows, counts.admitted), (1, 1));
+        let r = counts.reading();
+        assert_eq!(r.cell_spread_below, vec![0, 1, 1, 1]);
+        let half = f64::from(e) / 2.0;
+        assert!(r.cell_spread_mean > 0.9 * half && r.cell_spread_mean < 2.1 * half);
+        assert_eq!(counts.ports[0].top_root[0], 1);
+        assert!(counts.ports[0].top_gap_sum > 0.9 * half);
         Ok(())
     }
 }
