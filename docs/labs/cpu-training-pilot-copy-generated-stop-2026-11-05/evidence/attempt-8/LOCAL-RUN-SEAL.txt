@@ -1,0 +1,11 @@
+Original local run root:
+local/deepseek/copy-exact-stop-confirm/2026-11-05
+
+Original local run manifest:
+SHA256SUMS
+
+Original local run manifest SHA-256:
+e936ec3bd7cbb7c42ee97ee6ce46b4ee933a3f7f558f12c72d1062f81bbdd595
+
+Verify from the original run root with `sha256sum -c SHA256SUMS`. The manifest
+is not duplicated here because its file paths are rooted inside that run tree.

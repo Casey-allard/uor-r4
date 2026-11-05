@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -56,7 +57,21 @@ enum StopClass {
 #[derive(Clone, Debug)]
 struct PanelTrace {
     trajectories: Vec<Trajectory>,
-    rows: Vec<StopSignatureRow>,
+    all_rows: Vec<StopSignatureRow>,
+    exact_rows: Vec<StopSignatureRow>,
+}
+
+struct BarInput<'a> {
+    replies: usize,
+    oracle: u64,
+    minimum_exact: u64,
+    minimum_replies: usize,
+    minimum_oracle: u64,
+    training_power: bool,
+    true_rows: &'a [ReplyRow],
+    shuffled_rows: &'a [ReplyRow],
+    all_reference_rows: Option<&'a [ReplyRow]>,
+    no_gate_rows: &'a [ReplyRow],
 }
 
 fn main() {
@@ -79,7 +94,17 @@ fn run() -> Result<()> {
     let dev_manifest = PathBuf::from(values.next().ok_or_else(usage)?);
     let mut prototypes = 8usize;
     let mut seed = 157u64;
+    let mut exact_body_terminal = false;
+    let mut min_train_exact = 0u64;
+    let mut min_dev_exact = 0u64;
+    let mut min_dev_replies = 0usize;
+    let mut min_dev_oracle = 0u64;
+    let mut min_distinct_terminal = 0usize;
     while let Some(flag) = values.next() {
+        if flag == "--exact-body" {
+            exact_body_terminal = true;
+            continue;
+        }
         let value = values
             .next()
             .ok_or_else(|| format!("{flag} needs a value\n{}", usage()))?;
@@ -91,6 +116,31 @@ fn run() -> Result<()> {
             }
             "--seed" => {
                 seed = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--min-train-exact" => {
+                min_train_exact = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--min-dev-exact" => {
+                min_dev_exact = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--min-dev-replies" => {
+                min_dev_replies = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--min-dev-oracle" => {
+                min_dev_oracle = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--min-distinct-terminal" => {
+                min_distinct_terminal = value
                     .parse()
                     .map_err(|_| format!("not a number: {value}"))?
             }
@@ -131,43 +181,74 @@ fn run() -> Result<()> {
         &dev_manifest,
     )?;
 
-    let true_training = fit_stop_signature_gate(&train.rows, prototypes)
+    let training_rows = select_training_rows(&train, exact_body_terminal);
+    let true_training = fit_stop_signature_gate(training_rows, prototypes)
         .map_err(|error| format!("true gate fit: {error}"))?;
-    let shuffled_rows = shuffle_stop_signature_rows(&train.rows, seed)
+    let shuffled_rows = shuffle_stop_signature_rows(training_rows, seed)
         .map_err(|error| format!("shuffled rows: {error}"))?;
     if shuffled_rows
         .iter()
-        .zip(&train.rows)
+        .zip(training_rows)
         .all(|(left, right)| left.terminal == right.terminal)
     {
         return Err("shuffled gate is vacuous".to_owned());
     }
     let shuffled_training = fit_stop_signature_gate(&shuffled_rows, prototypes)
         .map_err(|error| format!("shuffled gate fit: {error}"))?;
+    let all_reference_training = exact_body_terminal
+        .then(|| fit_stop_signature_gate(&train.all_rows, prototypes))
+        .transpose()
+        .map_err(|error| format!("all-reference gate fit: {error}"))?;
 
     let train_true = evaluate_gate(&train.trajectories, &true_training.gate)?;
     let train_shuffled = evaluate_gate(&train.trajectories, &shuffled_training.gate)?;
+    let train_all_reference = all_reference_training
+        .as_ref()
+        .map(|training| evaluate_gate(&train.trajectories, &training.gate))
+        .transpose()?;
     let train_none = evaluate_gate(&train.trajectories, &no_gate())?;
     let dev_true = evaluate_gate(&dev.trajectories, &true_training.gate)?;
     let dev_shuffled = evaluate_gate(&dev.trajectories, &shuffled_training.gate)?;
+    let dev_all_reference = all_reference_training
+        .as_ref()
+        .map(|training| evaluate_gate(&dev.trajectories, &training.gate))
+        .transpose()?;
     let dev_none = evaluate_gate(&dev.trajectories, &no_gate())?;
 
     let train_oracle = oracle_exact(&train.trajectories);
     let dev_oracle = oracle_exact(&dev.trajectories);
-    let train_bar = panel_bar(
-        train.trajectories.len(),
-        train_oracle,
-        &train_true.1,
-        &train_shuffled.1,
-        &train_none.1,
-    )?;
-    let dev_bar = panel_bar(
-        dev.trajectories.len(),
-        dev_oracle,
-        &dev_true.1,
-        &dev_shuffled.1,
-        &dev_none.1,
-    )?;
+    let census = signature_census(training_rows);
+    let distinct_terminal = census["distinct_terminal"]
+        .as_u64()
+        .and_then(|count| usize::try_from(count).ok())
+        .ok_or_else(|| "selected terminal census is not a usize".to_owned())?;
+    let training_power = distinct_terminal >= min_distinct_terminal;
+    let train_bar = panel_bar(BarInput {
+        replies: train.trajectories.len(),
+        oracle: train_oracle,
+        minimum_exact: min_train_exact,
+        minimum_replies: 0,
+        minimum_oracle: 0,
+        training_power,
+        true_rows: &train_true.1,
+        shuffled_rows: &train_shuffled.1,
+        all_reference_rows: train_all_reference
+            .as_ref()
+            .map(|(_, rows)| rows.as_slice()),
+        no_gate_rows: &train_none.1,
+    })?;
+    let dev_bar = panel_bar(BarInput {
+        replies: dev.trajectories.len(),
+        oracle: dev_oracle,
+        minimum_exact: min_dev_exact,
+        minimum_replies: min_dev_replies,
+        minimum_oracle: min_dev_oracle,
+        training_power,
+        true_rows: &dev_true.1,
+        shuffled_rows: &dev_shuffled.1,
+        all_reference_rows: dev_all_reference.as_ref().map(|(_, rows)| rows.as_slice()),
+        no_gate_rows: &dev_none.1,
+    })?;
 
     let output = serde_json::json!({
         "schema": "uor-r4.cpu-copy-generated-stop/1",
@@ -189,16 +270,30 @@ fn run() -> Result<()> {
         "settings": {
             "prototypes": prototypes,
             "seed": seed,
-            "terminal_label": "generated_step == normalized reference length",
+            "terminal_label": if exact_body_terminal {
+                "exact body + generated_step == normalized reference length"
+            } else {
+                "generated_step == normalized reference length"
+            },
         },
         "training": {
             "true": gate_summary(&true_training),
             "shuffled": gate_summary(&shuffled_training),
+            "all_reference": all_reference_training.as_ref().map(gate_summary),
+            "selected_census": signature_census(training_rows),
+            "requirements": {
+                "minimum_exact_train_replies": min_train_exact,
+                "minimum_exact_dev_replies": min_dev_exact,
+                "minimum_dev_replies": min_dev_replies,
+                "minimum_dev_oracle_exact": min_dev_oracle,
+                "minimum_distinct_terminal_signatures": min_distinct_terminal,
+            },
         },
         "train": {
             "oracle_exact": train_oracle,
             "true": reply_summary(&train_true),
             "shuffled": reply_summary(&train_shuffled),
+            "all_reference": train_all_reference.as_ref().map(reply_summary),
             "no_gate": reply_summary(&train_none),
             "bar": train_bar,
         },
@@ -206,6 +301,7 @@ fn run() -> Result<()> {
             "oracle_exact": dev_oracle,
             "true": reply_summary(&dev_true),
             "shuffled": reply_summary(&dev_shuffled),
+            "all_reference": dev_all_reference.as_ref().map(reply_summary),
             "no_gate": reply_summary(&dev_none),
             "bar": dev_bar,
         },
@@ -304,7 +400,8 @@ fn load_panel(
     }
 
     let mut trajectories = Vec::with_capacity(samples.len());
-    let mut rows = Vec::new();
+    let mut all_rows = Vec::new();
+    let mut exact_rows = Vec::new();
     for (row, sample) in samples.iter().enumerate() {
         let mut trace = std::mem::take(&mut by_row[row]);
         trace.sort_unstable_by_key(|(step, _)| *step);
@@ -329,9 +426,10 @@ fn load_panel(
             artifact,
             &sample.prompt,
             &selected,
-            reference.len(),
+            &reference,
             row,
-            &mut rows,
+            &mut all_rows,
+            &mut exact_rows,
         )?;
         trajectories.push(Trajectory {
             row,
@@ -340,21 +438,28 @@ fn load_panel(
             decisions,
         });
     }
-    Ok(PanelTrace { trajectories, rows })
+    Ok(PanelTrace {
+        trajectories,
+        all_rows,
+        exact_rows,
+    })
 }
 
 fn replay_decisions(
     artifact: &[u8],
     prompt: &[u32],
     selected: &[u32],
-    reference_len: usize,
+    reference: &[u32],
     row: usize,
-    rows: &mut Vec<StopSignatureRow>,
+    all_rows: &mut Vec<StopSignatureRow>,
+    exact_rows: &mut Vec<StopSignatureRow>,
 ) -> Result<Vec<Decision>> {
+    let reference_len = reference.len();
+    let body_exact = body_matches_reference(selected, reference);
     let mut forward = CpuFbsForward::from_artifact(artifact)
         .map_err(|error| format!("replay forward: {error}"))?;
     let context = forward.context_length();
-    if prompt.is_empty() || prompt.len() > context || selected.len() <= reference_len {
+    if prompt.is_empty() || prompt.len() > context || selected.len() < reference_len {
         return Err(format!("row {row} trace is outside the artifact context"));
     }
     let mut step = None;
@@ -371,7 +476,7 @@ fn replay_decisions(
     }
     let mut step = step.ok_or_else(|| format!("row {row} prompt is empty"))?;
     let mut decisions = Vec::with_capacity(reference_len + 1);
-    for (generated_step, &next_token) in selected.iter().take(reference_len + 1).enumerate() {
+    for generated_step in 0..=reference_len {
         let terminal = generated_step == reference_len;
         let signature = pack_stop_signature(&step.query_q12)
             .map_err(|error| format!("row {row} signature: {error}"))?;
@@ -379,19 +484,41 @@ fn replay_decisions(
             generated_step,
             signature,
         });
-        rows.push(StopSignatureRow {
+        let row_reading = StopSignatureRow {
             signature,
             terminal,
             writer_token: step.token,
-        });
+        };
+        all_rows.push(row_reading.clone());
+        if body_exact {
+            exact_rows.push(row_reading);
+        }
         if terminal {
             break;
         }
+        let next_token = replay_token(selected, generated_step, reference_len, row)?
+            .ok_or_else(|| format!("row {row} missing nonterminal token"))?;
         step = forward
             .step(next_token, CpuFbsHead::Writer)
             .map_err(|error| format!("row {row} generated step: {error}"))?;
     }
     Ok(decisions)
+}
+
+fn replay_token(
+    selected: &[u32],
+    generated_step: usize,
+    reference_len: usize,
+    row: usize,
+) -> Result<Option<u32>> {
+    if generated_step == reference_len {
+        return Ok(None);
+    }
+    selected
+        .get(generated_step)
+        .copied()
+        .map(Some)
+        .ok_or_else(|| format!("row {row} missing generated token {generated_step}"))
 }
 
 fn evaluate_gate(
@@ -440,38 +567,62 @@ fn evaluate_gate(
 fn oracle_exact(trajectories: &[Trajectory]) -> u64 {
     trajectories
         .iter()
-        .filter(|trajectory| {
-            trajectory.selected[..trajectory.reference.len()] == trajectory.reference
-        })
+        .filter(|trajectory| body_matches_reference(&trajectory.selected, &trajectory.reference))
         .count() as u64
 }
 
-fn panel_bar(
-    replies: usize,
-    oracle: u64,
-    true_rows: &[ReplyRow],
-    shuffled_rows: &[ReplyRow],
-    no_gate_rows: &[ReplyRow],
-) -> Result<Value> {
-    let true_reading = summarize_rows(true_rows);
-    let shuffled_reading = summarize_rows(shuffled_rows);
-    let no_gate_reading = summarize_rows(no_gate_rows);
-    let floor = oracle.div_ceil(2);
-    let false_stop_limit = replies as u64 / 100;
-    let shuffled = compare_rows(true_rows, shuffled_rows)?;
-    let no_gate = compare_rows(true_rows, no_gate_rows)?;
+fn body_matches_reference(selected: &[u32], reference: &[u32]) -> bool {
+    selected.len() >= reference.len() && &selected[..reference.len()] == reference
+}
+
+fn select_training_rows(panel: &PanelTrace, exact_body: bool) -> &[StopSignatureRow] {
+    if exact_body {
+        &panel.exact_rows
+    } else {
+        &panel.all_rows
+    }
+}
+
+fn panel_bar(input: BarInput<'_>) -> Result<Value> {
+    let true_reading = summarize_rows(input.true_rows);
+    let shuffled_reading = summarize_rows(input.shuffled_rows);
+    let all_reference_reading = input.all_reference_rows.map(summarize_rows);
+    let no_gate_reading = summarize_rows(input.no_gate_rows);
+    let floor = input.oracle.div_ceil(2).max(input.minimum_exact);
+    let false_stop_limit = input.replies as u64 / 100;
+    let shuffled = compare_rows(input.true_rows, input.shuffled_rows)?;
+    let all_reference = input
+        .all_reference_rows
+        .map(|rows| compare_rows(input.true_rows, rows))
+        .transpose()?;
+    let no_gate = compare_rows(input.true_rows, input.no_gate_rows)?;
+    let all_reference_passes = all_reference
+        .as_ref()
+        .is_none_or(|comparison| comparison["passes"].as_bool() == Some(true));
     Ok(serde_json::json!({
         "oracle_floor": floor,
+        "minimum_exact": input.minimum_exact,
+        "minimum_replies": input.minimum_replies,
+        "minimum_oracle": input.minimum_oracle,
+        "training_power": input.training_power,
+        "reply_power": input.replies >= input.minimum_replies,
+        "oracle_power": input.oracle >= input.minimum_oracle,
         "true_exact": true_reading.exact,
         "true_premature": true_reading.premature,
         "false_stop_limit": false_stop_limit,
         "shuffled_exact": shuffled_reading.exact,
+        "all_reference_exact": all_reference_reading.map(|reading| reading.exact),
         "no_gate_exact": no_gate_reading.exact,
         "true_vs_shuffled": shuffled,
+        "true_vs_all_reference": all_reference,
         "true_vs_no_gate": no_gate,
-        "passes": true_reading.exact >= floor
+        "passes": input.training_power
+            && input.replies >= input.minimum_replies
+            && input.oracle >= input.minimum_oracle
+            && true_reading.exact >= floor
             && true_reading.premature <= false_stop_limit
             && shuffled["passes"].as_bool() == Some(true)
+            && all_reference_passes
             && no_gate["passes"].as_bool() == Some(true),
     }))
 }
@@ -531,6 +682,25 @@ fn gate_summary(training: &StopSignatureTraining) -> Value {
     })
 }
 
+fn signature_census(rows: &[StopSignatureRow]) -> Value {
+    let terminal = rows
+        .iter()
+        .filter(|row| row.terminal)
+        .map(|row| row.signature)
+        .collect::<BTreeSet<_>>();
+    let nonterminal = rows
+        .iter()
+        .filter(|row| !row.terminal)
+        .map(|row| row.signature)
+        .collect::<BTreeSet<_>>();
+    serde_json::json!({
+        "terminal_rows": rows.iter().filter(|row| row.terminal).count(),
+        "nonterminal_rows": rows.iter().filter(|row| !row.terminal).count(),
+        "distinct_terminal": terminal.len(),
+        "distinct_nonterminal": nonterminal.len(),
+    })
+}
+
 fn no_gate() -> StopSignatureGate {
     StopSignatureGate {
         signature_bits: uor_r4_cpu_train::STOP_SIGNATURE_BITS,
@@ -574,7 +744,7 @@ fn read(path: &Path) -> Result<Vec<u8>> {
 }
 
 fn usage() -> String {
-    "usage: cpu-copy-generated-stop ARTIFACT TRAIN_REPORT TRAIN_TOKENS TRAIN_MASK TRAIN_MANIFEST DEV_REPORT DEV_TOKENS DEV_MASK DEV_MANIFEST [--prototypes N] [--seed N]".to_owned()
+    "usage: cpu-copy-generated-stop ARTIFACT TRAIN_REPORT TRAIN_TOKENS TRAIN_MASK TRAIN_MANIFEST DEV_REPORT DEV_TOKENS DEV_MASK DEV_MANIFEST [--prototypes N] [--seed N] [--exact-body] [--min-train-exact N] [--min-dev-exact N] [--min-dev-replies N] [--min-dev-oracle N] [--min-distinct-terminal N]".to_owned()
 }
 
 #[cfg(test)]
@@ -642,5 +812,94 @@ mod tests {
             }]),
             0
         );
+    }
+
+    #[test]
+    fn exact_body_requires_complete_reference_prefix() {
+        assert!(body_matches_reference(&[1, 2, 3], &[1, 2]));
+        assert!(!body_matches_reference(&[1, 9, 3], &[1, 2]));
+        assert!(!body_matches_reference(&[1], &[1, 2]));
+    }
+
+    #[test]
+    fn exact_cap_does_not_require_a_trailing_token() {
+        assert_eq!(replay_token(&[1, 2], 1, 2, 0).unwrap(), Some(2));
+        assert_eq!(replay_token(&[1, 2], 2, 2, 0).unwrap(), None);
+        assert!(replay_token(&[1], 1, 2, 0).is_err());
+    }
+
+    #[test]
+    fn exact_body_selection_uses_only_clean_rows() {
+        let row = |terminal| StopSignatureRow {
+            signature: [u64::from(terminal); uor_r4_cpu_train::STOP_SIGNATURE_WORDS],
+            terminal,
+            writer_token: u32::from(terminal),
+        };
+        let panel = PanelTrace {
+            trajectories: Vec::new(),
+            all_rows: vec![row(false), row(true), row(false)],
+            exact_rows: vec![row(true)],
+        };
+        assert_eq!(select_training_rows(&panel, false).len(), 3);
+        assert_eq!(select_training_rows(&panel, true).len(), 1);
+        assert!(select_training_rows(&panel, true)[0].terminal);
+    }
+
+    #[test]
+    fn signature_census_deduplicates_each_class() {
+        let row = |signature_word, terminal| StopSignatureRow {
+            signature: [signature_word; uor_r4_cpu_train::STOP_SIGNATURE_WORDS],
+            terminal,
+            writer_token: 0,
+        };
+        let census = signature_census(&[
+            row(1, true),
+            row(1, true),
+            row(2, true),
+            row(3, false),
+            row(3, false),
+        ]);
+        assert_eq!(census["terminal_rows"], 3);
+        assert_eq!(census["nonterminal_rows"], 2);
+        assert_eq!(census["distinct_terminal"], 2);
+        assert_eq!(census["distinct_nonterminal"], 1);
+    }
+
+    #[test]
+    fn bar_requires_registered_power_and_floor() {
+        let candidate = (0..10)
+            .map(|step| decision(step, step < 7, false, step < 7))
+            .collect::<Vec<_>>();
+        let control = (0..10)
+            .map(|step| decision(step, false, false, false))
+            .collect::<Vec<_>>();
+        let insufficient = panel_bar(BarInput {
+            replies: 10,
+            oracle: 7,
+            minimum_exact: 7,
+            minimum_replies: 10,
+            minimum_oracle: 7,
+            training_power: false,
+            true_rows: &candidate,
+            shuffled_rows: &control,
+            all_reference_rows: Some(&control),
+            no_gate_rows: &control,
+        })
+        .unwrap();
+        assert_eq!(insufficient["passes"], false);
+        let sufficient = panel_bar(BarInput {
+            replies: 10,
+            oracle: 7,
+            minimum_exact: 7,
+            minimum_replies: 10,
+            minimum_oracle: 7,
+            training_power: true,
+            true_rows: &candidate,
+            shuffled_rows: &control,
+            all_reference_rows: Some(&control),
+            no_gate_rows: &control,
+        })
+        .unwrap();
+        assert_eq!(sufficient["passes"], true);
     }
 }
