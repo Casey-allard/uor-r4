@@ -1,0 +1,339 @@
+{
+  "schema": "uor-r4.cpu-copy-key-reply/1",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "claim": "bounded complete-reply writer override; no language or serving claim",
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut",
+    "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json",
+    "manifest_split": "train",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8",
+    "mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16",
+    "tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91"
+  },
+  "settings": {
+    "arms": [
+      "longest_4_to_1",
+      "k2_backoff_k1",
+      "fixed_depth_1",
+      "random_available_depth",
+      "writer"
+    ],
+    "cap": 64,
+    "maximum_copy_depth": 4,
+    "seed": 153
+  },
+  "examples": {
+    "documents": 128,
+    "evaluated": 453,
+    "reachable": 453,
+    "total": 453
+  },
+  "comparisons": {
+    "fixed_depth_1": {
+      "correct_body_positions": {
+        "candidate_only": 14,
+        "candidate_sum": 409,
+        "control_only": 7,
+        "control_sum": 158,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 6
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 20,
+        "control_only": 0,
+        "control_sum": 20,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "k2_backoff_k1": {
+      "correct_body_positions": {
+        "candidate_only": 4,
+        "candidate_sum": 409,
+        "control_only": 2,
+        "control_sum": 376,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 3
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 20,
+        "control_only": 0,
+        "control_sum": 20,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "random_available_depth": {
+      "correct_body_positions": {
+        "candidate_only": 12,
+        "candidate_sum": 409,
+        "control_only": 3,
+        "control_sum": 216,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 4
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 20,
+        "control_only": 0,
+        "control_sum": 20,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "writer": {
+      "correct_body_positions": {
+        "candidate_only": 63,
+        "candidate_sum": 409,
+        "control_only": 52,
+        "control_sum": 59,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 15
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 20,
+        "candidate_sum": 20,
+        "control_only": 15,
+        "control_sum": 15,
+        "metric": "opening_correct",
+        "passes": true,
+        "threshold": 8
+      }
+    }
+  },
+  "random_nonvacuity": {
+    "changed_rows": 70,
+    "changed_steps": 3382,
+    "first_changed_step": {
+      "generated_step": 33,
+      "row": 7
+    },
+    "non_vacuous": true
+  },
+  "arms": {
+    "fixed_depth_1": {
+      "reading": {
+        "arm": "fixed_depth1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 158,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          28992,
+          0,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "5d4b514466c597422e8a4fe4be19459931679f830717e433795e42accc3fd0b3",
+      "decision_sha256": "972d859adf075be2d439d37f05848ba523623f2a7046cc5747a3eda4f18d6f9c",
+      "wall_elapsed_us": 406035,
+      "generated_tokens_per_second": 71402.71158890243
+    },
+    "k2_backoff_k1": {
+      "reading": {
+        "arm": "k2_backoff_k1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 376,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          453,
+          28539,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "ef7370a6c319a5d9f528c4e9bc1c30b23cd5ef8de100d7efdadca5a77c714846",
+      "decision_sha256": "6ef7c07308fefc8a4ce6c290b78b852978611f1f26cf1449dac2b30f7717f3bc",
+      "wall_elapsed_us": 409179,
+      "generated_tokens_per_second": 70854.07608894884
+    },
+    "longest_4_to_1": {
+      "reading": {
+        "arm": "longest4_to1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 409,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          453,
+          453,
+          453,
+          27633
+        ]
+      },
+      "reply_sha256": "7804822bc8a7a82c99ecd4d5996d930ddcbfa8f84e72180a5838b3dd8970a985",
+      "decision_sha256": "24ca694f9faea5885dfa49d9971b38fbe39ffc8eb9bc08102b5760460841386a",
+      "wall_elapsed_us": 411803,
+      "generated_tokens_per_second": 70402.59541576919
+    },
+    "random_available_depth": {
+      "reading": {
+        "arm": "random_available_depth",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 216,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          7850,
+          7377,
+          6904,
+          6861
+        ]
+      },
+      "reply_sha256": "6c3008c81d774ef87dcadbbb41c9d0b4faa3765822f73ad239d39aa66075479a",
+      "decision_sha256": "cb55a3196c859ad5fa87e225d14b8378fd0bf0f564e4d745fd76b79e53548924",
+      "wall_elapsed_us": 407896,
+      "generated_tokens_per_second": 71076.94118108538
+    },
+    "writer": {
+      "reading": {
+        "arm": "writer",
+        "bos_complete": 0,
+        "copy_decisions": 0,
+        "correct_body_positions": 59,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 28992,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 15,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "20fda2b4ed4a9ea9c7f714a7ad6989a2ec38d8010c28202290e48ecfcc76512b",
+      "decision_sha256": "d21eafa45ea4c763b1e9fcf00907b5f07301f9b1a4ae4353b6a4d072701759c3",
+      "wall_elapsed_us": 412626,
+      "generated_tokens_per_second": 70262.1744630731
+    }
+  }
+}

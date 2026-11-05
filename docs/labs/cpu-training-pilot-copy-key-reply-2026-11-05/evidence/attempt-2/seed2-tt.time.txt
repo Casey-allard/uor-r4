@@ -1,0 +1,23 @@
+	Command being timed: "timeout 900s env RAYON_NUM_THREADS=32 /home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-copy-key-longest-reply/target/deepseek/copy-key-longest-reply/release/cpu-copy-key-reply /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8 /home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json /home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut --cap 64 --seed 153"
+	User time (seconds): 62.41
+	System time (seconds): 0.25
+	Percent of CPU this job got: 2851%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 370728
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 98097
+	Voluntary context switches: 937
+	Involuntary context switches: 7603
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 58408
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,339 @@
+{
+  "schema": "uor-r4.cpu-copy-key-reply/1",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "claim": "bounded complete-reply writer override; no language or serving claim",
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-2-raw_both.uorlut",
+    "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/manifest.json",
+    "manifest_split": "dev",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/response_mask.u8",
+    "mask_sha256": "bdcf7d9d3835d7eb43fe5d71dcb28a9cf452c73b15f5dc700c164ff1348df866",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/dd-2712/tokens.u16",
+    "tokens_sha256": "337c8dd23e149a5e78567f77b3fe416c4dd04e7a6edd4cc90986272f17990e45"
+  },
+  "settings": {
+    "arms": [
+      "longest_4_to_1",
+      "k2_backoff_k1",
+      "fixed_depth_1",
+      "random_available_depth",
+      "writer"
+    ],
+    "cap": 64,
+    "maximum_copy_depth": 4,
+    "seed": 153
+  },
+  "examples": {
+    "documents": 128,
+    "evaluated": 449,
+    "reachable": 449,
+    "total": 449
+  },
+  "comparisons": {
+    "fixed_depth_1": {
+      "correct_body_positions": {
+        "candidate_only": 18,
+        "candidate_sum": 556,
+        "control_only": 8,
+        "control_sum": 192,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 6
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 25,
+        "control_only": 0,
+        "control_sum": 25,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "k2_backoff_k1": {
+      "correct_body_positions": {
+        "candidate_only": 6,
+        "candidate_sum": 556,
+        "control_only": 1,
+        "control_sum": 458,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 2
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 25,
+        "control_only": 0,
+        "control_sum": 25,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "random_available_depth": {
+      "correct_body_positions": {
+        "candidate_only": 14,
+        "candidate_sum": 556,
+        "control_only": 3,
+        "control_sum": 307,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 4
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 0,
+        "candidate_sum": 25,
+        "control_only": 0,
+        "control_sum": 25,
+        "metric": "opening_correct",
+        "passes": false,
+        "threshold": 2
+      }
+    },
+    "writer": {
+      "correct_body_positions": {
+        "candidate_only": 83,
+        "candidate_sum": 556,
+        "control_only": 34,
+        "control_sum": 49,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 12
+      },
+      "exact_reference": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": false,
+        "threshold": 2
+      },
+      "non_premature_bos": {
+        "candidate_only": 0,
+        "candidate_sum": 0,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "non_premature_bos",
+        "passes": false,
+        "threshold": 2
+      },
+      "opening_correct": {
+        "candidate_only": 25,
+        "candidate_sum": 25,
+        "control_only": 17,
+        "control_sum": 17,
+        "metric": "opening_correct",
+        "passes": true,
+        "threshold": 9
+      }
+    }
+  },
+  "random_nonvacuity": {
+    "changed_rows": 86,
+    "changed_steps": 4104,
+    "first_changed_step": {
+      "generated_step": 36,
+      "row": 7
+    },
+    "non_vacuous": true
+  },
+  "arms": {
+    "fixed_depth_1": {
+      "reading": {
+        "arm": "fixed_depth1",
+        "bos_complete": 0,
+        "copy_decisions": 28736,
+        "correct_body_positions": 192,
+        "decisions": 28736,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28736,
+        "non_premature_bos": 0,
+        "opening_correct": 25,
+        "premature_bos": 0,
+        "reference_reachable": 449,
+        "reference_tokens": 4614,
+        "replies": 449,
+        "selected_depth_counts": [
+          28736,
+          0,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "72d0b71422819027e2b78d3a6e70ec0b6192cc6f4f430d3d005dcbad83637e30",
+      "decision_sha256": "60e161352d5b4b324dd0d92296c68d1a4680de211d2e76627d3be34386ad7d42",
+      "wall_elapsed_us": 405935,
+      "generated_tokens_per_second": 70789.65844285415
+    },
+    "k2_backoff_k1": {
+      "reading": {
+        "arm": "k2_backoff_k1",
+        "bos_complete": 0,
+        "copy_decisions": 28736,
+        "correct_body_positions": 458,
+        "decisions": 28736,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28736,
+        "non_premature_bos": 0,
+        "opening_correct": 25,
+        "premature_bos": 0,
+        "reference_reachable": 449,
+        "reference_tokens": 4614,
+        "replies": 449,
+        "selected_depth_counts": [
+          449,
+          28287,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "3df1f2649e88f1ad443f5a69039fd14b658349745296b933aeff0ef9696bff60",
+      "decision_sha256": "8bca4fac32fd2dd38dbbc6b03aff2075580d5eed607328c4be3998452de07063",
+      "wall_elapsed_us": 404639,
+      "generated_tokens_per_second": 71016.3874465882
+    },
+    "longest_4_to_1": {
+      "reading": {
+        "arm": "longest4_to1",
+        "bos_complete": 0,
+        "copy_decisions": 28736,
+        "correct_body_positions": 556,
+        "decisions": 28736,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28736,
+        "non_premature_bos": 0,
+        "opening_correct": 25,
+        "premature_bos": 0,
+        "reference_reachable": 449,
+        "reference_tokens": 4614,
+        "replies": 449,
+        "selected_depth_counts": [
+          449,
+          449,
+          449,
+          27389
+        ]
+      },
+      "reply_sha256": "5feec03f2298eb5ef504df5c7084023eb57fdcdc91c1a2ff263caf9df70a7d4e",
+      "decision_sha256": "479405cf4e2db0ceef9e73643593826f14dba1f7e115c5937b3454e2e6f886f9",
+      "wall_elapsed_us": 413545,
+      "generated_tokens_per_second": 69486.99657836511
+    },
+    "random_available_depth": {
+      "reading": {
+        "arm": "random_available_depth",
+        "bos_complete": 0,
+        "copy_decisions": 28736,
+        "correct_body_positions": 307,
+        "decisions": 28736,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28736,
+        "non_premature_bos": 0,
+        "opening_correct": 25,
+        "premature_bos": 0,
+        "reference_reachable": 449,
+        "reference_tokens": 4614,
+        "replies": 449,
+        "selected_depth_counts": [
+          7780,
+          7318,
+          6845,
+          6793
+        ]
+      },
+      "reply_sha256": "960a4aba3710c09bc06827fff1ef06407d07a6c94e4837b1737227453321a20b",
+      "decision_sha256": "450e84d47f0e85ded292775094b937bef491c073bc9148ede5319b9d7c323b80",
+      "wall_elapsed_us": 414893,
+      "generated_tokens_per_second": 69261.23120901051
+    },
+    "writer": {
+      "reading": {
+        "arm": "writer",
+        "bos_complete": 0,
+        "copy_decisions": 0,
+        "correct_body_positions": 49,
+        "decisions": 28736,
+        "exact_reference": 0,
+        "fallback_decisions": 28736,
+        "generated_tokens": 28736,
+        "non_premature_bos": 0,
+        "opening_correct": 17,
+        "premature_bos": 0,
+        "reference_reachable": 449,
+        "reference_tokens": 4614,
+        "replies": 449,
+        "selected_depth_counts": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "reply_sha256": "43a51e0fe56c47dcba7300e9f124da0639e0929710701669132a6afc8c1ab77a",
+      "decision_sha256": "43ecabbe4033021abeb6e9815681dc1dbeb5bbf6b3ebf90223730ad2374f912b",
+      "wall_elapsed_us": 406232,
+      "generated_tokens_per_second": 70737.9034640304
+    }
+  }
+}

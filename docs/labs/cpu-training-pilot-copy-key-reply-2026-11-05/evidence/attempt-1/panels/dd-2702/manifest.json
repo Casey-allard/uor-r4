@@ -1,0 +1,28 @@
+{
+  "cell": {
+    "phrasing": "dev",
+    "value": "dev"
+  },
+  "conversations": 128,
+  "dialogue_protocol_version": 2,
+  "mask_bytes": 16159,
+  "mask_schema": "uor-r4-response-mask/u8/v1",
+  "mask_sha256": "76ccda553688f7c3a8037c82bcae677df9f8462db4896fffaafe7f60be9e9108",
+  "max_tokens": 256,
+  "mix": "default",
+  "probe_screen": "none (milestone_world_v2_probe is preserved under cfg(any()))",
+  "response_tokens": 5165,
+  "schema": "uor-r4-chat-corpus/v1",
+  "seed": 2702,
+  "split": "dev",
+  "tokenizer": {
+    "bos_id": 0,
+    "sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "vocab_size": 4096
+  },
+  "tokens": 16159,
+  "tokens_bytes": 32382,
+  "tokens_sha256": "422b35f8d572003cac706be461c7f810d253a9459abd659746395db82641fbb8",
+  "world": "m-world-v2",
+  "writer": "one-model-end-to-end heldout-panel (claude-204)"
+}

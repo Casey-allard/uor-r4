@@ -11,6 +11,7 @@ use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_c
 
 mod content_readout;
 mod copy_key_depth;
+mod copy_key_reply;
 mod corpus;
 mod counterfactual;
 mod discrete_route;
@@ -54,6 +55,12 @@ pub use copy_key_depth::{
     evaluate_copy_key_depth, evaluate_copy_key_router, fit_copy_key_router, CopyKeyComparison,
     CopyKeyDepthArm, CopyKeyDepthReading, CopyKeyRouteStat, CopyKeyRouter, CopyKeyRouterReading,
     COPY_KEY_AGE_BINS, COPY_KEY_MAX_DEPTH,
+};
+pub use copy_key_reply::{
+    compare_copy_key_reply_rows, copy_key_reply_decision, evaluate_copy_key_replies,
+    generate_copy_key_reply, CopyKeyReplyArm, CopyKeyReplyComparison, CopyKeyReplyDecision,
+    CopyKeyReplyMetric, CopyKeyReplyReading, CopyKeyReplyRow, CopyKeyReplyStep,
+    TimedCopyKeyReplyReading,
 };
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,

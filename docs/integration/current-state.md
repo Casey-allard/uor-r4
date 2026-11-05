@@ -1,3 +1,22 @@
+## 2026-11-05 — Longest-first copy carries body headroom but cannot terminate (deepseek)
+
+Five fixed selectors controlled a complete generated reply over the last 192
+prompt/generated tokens. Attempt 1 stopped before a result because its
+32-token cap was below observed assistant lengths; the corrected run used cap
+64 and new m-world-v2 panels at seeds 2711/2712 over both public artifact
+seeds. Longest-first beat `k2>k1`, fixed depth 1, random depth and the writer on
+correct reference body positions in all four artifact/panel cells:
+**409/4,661** and **556/4,614** against **376/458**, **158/192**, **216/307**
+and **60-59/55-49**. Every arm had **0** exact and **0** BOS-complete replies;
+all 453 train and 449 dev replies hit the cap. Every copy decision replaced the
+writer, and the prompt-derived copy stream excludes BOS, so exact copy cannot
+stop itself. This preserves depth-three/four copy geometry for a combined
+copy-plus-termination read; it is not a complete-reply result. Record:
+[deepseek-153](../loop/tasks/cpu-training-pilot/deepseek-153/REPORT.md).
+**Next:** combine longest-first copy content with a writer or explicit
+geometric BOS path, then test whether termination can fire without losing the
+body-position gain.
+
 ## 2026-11-05 — Depth-age router loses to longest-first (deepseek)
 
 A 36-cell discrete router fitted on new `train,train` seed 2601 was tested on

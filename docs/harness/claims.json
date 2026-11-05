@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/copy-key-longest-reply": {
+    "branch": "deepseek/copy-key-longest-reply",
+    "claimed_at": "2026-11-04T22:16:57-05:00",
+    "head": "e06635e3a",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/copy-key2-cpu": {
     "branch": "deepseek/copy-key2-cpu",
     "claimed_at": "2026-11-03T02:21:59-05:00",

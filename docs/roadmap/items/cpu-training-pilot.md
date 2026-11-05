@@ -9,7 +9,7 @@ needs_gpu: false
 depends_on: [cpu-discrete-training-path, cpu-shared-vector-train, cpu-quantization-exact-memory, cpu-whole-path-exact-updates]
 notebook: docs/research/notebook/cpu-training.md
 done_class: host
-scope: [crates/uor-r4-cpu-train/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/README.md, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/src/openai.rs, crates/uor-r4-integer/src/session_codec.rs, crates/uor-r4-integer/src/stack/chat.rs, crates/uor-r4-integer/src/stack/content_readout.rs, crates/uor-r4-integer/src/stack/mod.rs, crates/uor-r4-integer/src/stack/session.rs, crates/uor-r4-integer/tests/openai_loopback.rs, crates/uor-r4-integer/tests/session_codec_interop_fixture.rs, crates/uor-r4-core/Cargo.toml, crates/uor-r4-core/src/native_support.rs, crates/uor-r4-discrete/Cargo.toml, Cargo.toml, Cargo.lock, docs/harness/claims.json, docs/harness/prep/cpu-training-pilot*, docs/integration/current-state.md, docs/labs/cpu-training-pilot-*/resource-ledger.json, docs/labs/cpu-training-pilot-content-serving-2026-11-04/**, docs/labs/cpu-training-pilot-trajectory-density-2026-11-04/**, docs/labs/cpu-training-pilot-copy-key-depth-2026-11-05/**, docs/loop/tasks/cpu-training-pilot/**, docs/research/cpu-training-program.md, docs/research/notebook/cpu-training.md, docs/roadmap/items/cpu-training-pilot.md]
+scope: [crates/uor-r4-cpu-train/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/README.md, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/src/openai.rs, crates/uor-r4-integer/src/session_codec.rs, crates/uor-r4-integer/src/stack/chat.rs, crates/uor-r4-integer/src/stack/content_readout.rs, crates/uor-r4-integer/src/stack/mod.rs, crates/uor-r4-integer/src/stack/session.rs, crates/uor-r4-integer/tests/openai_loopback.rs, crates/uor-r4-integer/tests/session_codec_interop_fixture.rs, crates/uor-r4-core/Cargo.toml, crates/uor-r4-core/src/native_support.rs, crates/uor-r4-discrete/Cargo.toml, Cargo.toml, Cargo.lock, docs/harness/claims.json, docs/harness/prep/cpu-training-pilot*, docs/integration/current-state.md, docs/labs/cpu-training-pilot-*/resource-ledger.json, docs/labs/cpu-training-pilot-content-serving-2026-11-04/**, docs/labs/cpu-training-pilot-trajectory-density-2026-11-04/**, docs/labs/cpu-training-pilot-copy-key-depth-2026-11-05/**, docs/labs/cpu-training-pilot-copy-key-reply-2026-11-05/**, docs/loop/tasks/cpu-training-pilot/**, docs/research/cpu-training-program.md, docs/research/notebook/cpu-training.md, docs/roadmap/items/cpu-training-pilot.md]
 ---
 
 ## Why it matters
@@ -400,6 +400,18 @@ pre-registered comparisons were required. Longest-first therefore remains the
 selected exact-copy candidate; the negative closes this fitted depth/age table,
 not learned copy reads generally. See
 [deepseek-151](../../loop/tasks/cpu-training-pilot/deepseek-151/REPORT.md).
+
+The complete-reply bridge then applied the five fixed selectors to generated
+trajectories on two new panels and two public artifact seeds. Longest-first
+exact copy beat `k2>k1`, fixed depth 1, random depth and the unmodified writer
+on correct reference body positions in all four artifact/panel cells. However,
+every decision was a copy decision, no writer fallback occurred, and every
+reply hit the 64-token cap with zero BOS-complete or exact replies. Because the
+prompt-derived copy domain excludes BOS, longest-first copy carries content
+headroom but cannot terminate by itself. The result preserves depth-three/four
+geometry for a combined copy-plus-termination read rather than selecting an
+exact-copy decoder. See
+[deepseek-153](../../loop/tasks/cpu-training-pilot/deepseek-153/REPORT.md).
 
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through

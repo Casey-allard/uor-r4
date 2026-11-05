@@ -70,3 +70,7 @@ path = "src/bin/cpu-memory-panel-driver.rs"
 [[bin]]
 name = "cpu-gain-panel-driver"
 path = "src/bin/cpu-gain-panel-driver.rs"
+
+[[bin]]
+name = "cpu-copy-key-reply"
+path = "src/bin/cpu-copy-key-reply.rs"
