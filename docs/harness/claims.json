@@ -174,13 +174,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/expanded-candidate-anchor": {
-    "branch": "deepseek/expanded-candidate-anchor",
-    "claimed_at": "2026-11-05T08:23:43-05:00",
-    "head": "d416181c1",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/export-contract-guard": {
     "branch": "deepseek/export-contract-guard",
     "claimed_at": "2026-11-03T13:42:31-05:00",

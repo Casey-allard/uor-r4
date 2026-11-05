@@ -58,6 +58,9 @@ No serving, CUDA, float-inference, termination or Claude-owned source changed.
 - FIT head for the corrected run:
   `ef9413826d90d2dec5b026cbbd97ca95f4ed9734`;
 - GO head: `181dc76e902882e024fe9c3a6b0c179d5f635571`;
+- reviewed delivery head: `627c057279fa876faaf39153d76e11166298970a`;
+- PR: #3728;
+- protected merge: `02d0a814bc18b0dc5fdbd8531db1002d71c0992f`;
 - fresh panel: seed 2770, `dev,dev`, 128 conversations, 15,591 tokens;
 - fresh tokens SHA-256:
   `5f18d4aa8a1b0a048d797cc5becc34efe42aebb718e90ba580e8e1b01960eddc`;
@@ -92,6 +95,10 @@ under `evidence/expanded-candidate-*`.
 - Both fresh-process repeats matched after timing fields were removed.
 - Raw and published evidence seals.
 - Lane-scope and no-corpus checks.
+- Exact-head approval, all required CI checks and protected merge.
+- Fresh-main CPU library: **335 passed**, 4 expected ignores.
+- Fresh-main driver tests: **3 passed**; strict Clippy passed.
+- Fresh-main evidence, calibration, resource ledger and no-corpus checks.
 
 ## Size
 
