@@ -20,6 +20,14 @@
 //! DIR --train-sha256 HEX --train-mask-sha256 HEX`, and counts against that TRAIN. `--score-rows
 //! --context N` is refused from 193 to 1,536, where the row stride is untested.
 //!
+//! `--score-rows` also accepts `[--past-window slide|blocks|carry] [--past-window-stride S]`
+//! (claude-287): each `--panel` is cut past the checkpoint's own window W by that rule: `slide`
+//! scores every later target with at least W - S + 1 tokens before it, `blocks` with back-to-back
+//! windows of W, and `carry` with one window per conversation at C, 2,048 or 4,096, which the
+//! model then reads. DEV keeps 192. Each panel also writes `past-window-NAME-*.json`, its rows and
+//! queries by band, with the run's own loss. `--context`, when given, must be W; `--fresh-v2`
+//! and the key, trace and force flags are refused with it.
+//!
 //! `--score-rows` also accepts `[--sample-opening first|last]` (claude-274): `first`, the
 //! default, decodes each sampled window from its first scored target, a reply opening; `last`
 //! from its last reply opening with at least 16 tokens of prompt, so a long window gives a long
@@ -242,7 +250,7 @@ use uor_r4_float_train::in_space_long::{
     cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
     gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
     run_long, run_recall, score_rows, scopes_ok, set_decode_cache, take_decode_forwards,
-    DecodeRule, LongConfig, PointObjective, ReadScope, TrainSplit, DEFAULT_REGISTER_PICKS,
+    DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, TrainSplit, DEFAULT_REGISTER_PICKS,
     MEMORY_DROPOUT_MAX,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
@@ -295,6 +303,9 @@ fn main() -> Result<()> {
     let mut batched_decode = None;
     let mut decode_cache = true;
     let mut last_opening = None;
+    let mut past_window: Option<String> = None;
+    let mut past_stride: Option<usize> = None;
+    let mut context_given = false;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -518,6 +529,8 @@ fn main() -> Result<()> {
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
+            "--past-window" => past_window = Some(value.clone()),
+            "--past-window-stride" => past_stride = Some(number(&value)?),
             "--sample-opening" => {
                 last_opening = Some(match value.as_str() {
                     "first" => false,
@@ -598,7 +611,8 @@ fn main() -> Result<()> {
             }
             "--width" => config.width = number(&value)?,
             "--context" => {
-                config.context = uor_r4_float_train::in_space_long::training_context(number(&value)?)?
+                config.context = uor_r4_float_train::in_space_long::training_context(number(&value)?)?;
+                context_given = true;
             }
             "--type-spin" => config.type_spin = switch(&value)?,
             "--train-split" => split_dir = Some(PathBuf::from(&value)),
@@ -727,6 +741,20 @@ fn main() -> Result<()> {
         modes[7] && recall == 0,
         config.train_as_served,
     )?;
+    let past_window = match (past_window, past_stride) {
+        (Some(rule), stride) => Some(PastWindowRule::parse(&rule, stride)?),
+        (None, Some(_)) => {
+            return Err(FloatTrainError::Invalid(
+                "--past-window-stride needs --past-window slide".to_owned(),
+            ))
+        }
+        (None, None) => None,
+    };
+    if past_window.is_some() && score.is_none() {
+        return Err(FloatTrainError::Invalid(
+            "--past-window applies to --score-rows only".to_owned(),
+        ));
+    }
     if last_opening.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
             "--sample-opening applies to --score-rows only".to_owned(),
@@ -1050,6 +1078,8 @@ fn main() -> Result<()> {
             config.context,
             last_opening.unwrap_or(false),
             &panel_queries,
+            past_window,
+            context_given,
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }

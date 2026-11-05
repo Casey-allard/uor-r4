@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [integer-hamming-read]
 notebook: docs/research/notebook/m4-serving.md
-scope: [crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/point_key.rs, crates/uor-r4-integer/src/bin/fbs-export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/bin/fbs-snapshot.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/memory.rs, crates/uor-r4-integer/src/stack/dialogue_memory.rs, docs/model/pipeline-map.md, docs/harness/prep/integer-long-context*, docs/roadmap/items/integer-long-context.md, docs/loop/tasks/integer-long-context/**, docs/research/notebook/m4-serving.md]
+scope: [crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/point_key.rs, crates/uor-r4-integer/src/bin/fbs-export.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/bin/fbs-snapshot.rs, crates/uor-r4-float-train/src/flock_read_hamming.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-integer/src/stack/hamming.rs, crates/uor-r4-integer/src/stack/memory.rs, crates/uor-r4-integer/src/stack/dialogue_memory.rs, docs/model/pipeline-map.md, docs/harness/prep/integer-long-context*, docs/roadmap/items/integer-long-context.md, docs/loop/tasks/integer-long-context/**, docs/research/notebook/m4-serving.md, crates/uor-r4-integer/src/stack/session.rs, crates/uor-r4-integer/src/stack/mod.rs]
 ---
 
 ## Why it matters
@@ -62,19 +62,19 @@ The trunk's recurrence makes (c) the geometry's own answer, which is why long co
   - `docs-status-refresh`'s scope covers `docs/model/*.md`, the pipeline map included.
 - **Kept out of scope:**
   - `bin/uor-chat.rs`: `cpu-training-pilot` holds it, and the session applies the rule itself.
-  - `stack/session.rs` and `stack/mod.rs`, until claude-287's last commit returns them for claude-288. They are this item's only overlap with `cpu-training-pilot` (DeepSeek's lane), and `loop claim` refuses an overlapping claim while either item has an open order. So the float units hold no lock on that lane.
+  - `stack/session.rs` and `stack/mod.rs` were kept out through claude-287, whose last commit returned them for claude-288. They are this item's only overlap with `cpu-training-pilot` (DeepSeek's lane), and `loop claim` refuses an overlapping claim while either item has an open order, so the float units held no lock on that lane.
   - `milestone_world_v2.rs`: its `CONTEXT = 256` caps one episode. `chain=` in `heldout-panel` and `m-world-recall-corpus` writes conversations past any window (claude-271, claude-275).
 
-## Where it stands (5 Nov, claude-286)
+## Where it stands (5 Nov, claude-287)
 
 The plan, recorded in [claude-286's ORDER](../../loop/tasks/integer-long-context/claude-286/ORDER.md), is three units, P4 in Casey's plan of 4 Nov. The 2 Nov owner log on #3471 sets the target: a served conversation of 4,096 tokens, with tok/s and resident memory out to 8,192.
-1. **claude-286:** the cancel probe, and this item's scope and text.
-2. **claude-287, done-whens 1 and 2:**
-   - `--score-rows --past-window slide|blocks|carry` in the float scorer;
-   - a `chain=4096` held-out panel;
-   - a prep sheet with FIT and a pre-run review, on `a7r` (window 192) over p-long and P2b's (L) (window 2,048) over the new panel, each at seeds 1 and 2, memory on and off;
-   - one RTX 5090 pod, and the decision review.
-3. **claude-288, done-whens 3 to 5:** the session serves the chosen rule, recorded in the artifact. Then the tests, tok/s and resident memory to 8,192, and gap 6.
+1. **claude-286, done:** the cancel probe, and this item's scope and text.
+2. **claude-287, done-whens 1 and 2, done** ([REPORT](../../loop/tasks/integer-long-context/claude-287/REPORT.md)):
+   - `--score-rows --past-window slide|blocks|carry` in the float scorer, and a `chain=4096` held-out panel, p-long4k;
+   - the sheet [`integer-long-context-2026-11-05.md`](../../harness/prep/integer-long-context-2026-11-05.md), FIT, and its pre-run review;
+   - one RTX 5090 pod ($1.70), sealed in the store under `results/claude/integer-long-context-2026-11-05/c287/`;
+   - **the decision review on #3471: carry, provisional.** a7r reads row 5 (its seeds disagree on carry) and P2b's (L) row 4 (carry holds at both seeds). No rule recalls a far note, so (L)'s row 4 is re-read on the first checkpoint that does; a7r's row 5, provisional because its seeds disagree, is re-read there by extension. #3714 holds the scorer's hardening for that re-read.
+3. **claude-288, done-whens 3 to 5, next:** the session serves carry, recorded in the artifact, with a test against the float forward's carry past 192 and a negative gate. Then tok/s and resident memory to 8,192, and gap 6. `stack/session.rs` and `stack/mod.rs` are back in the scope for it.
 
 ## Rules that apply
 

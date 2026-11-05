@@ -1921,6 +1921,178 @@ pub fn build_document_windows(
     Ok((windows, doc_starts.len()))
 }
 
+/// The scorer's slide rule (claude-287): [`build_document_windows`]'s cut, except that each
+/// document's first chunk holds up to `context` targets and every later chunk up to `stride`.
+/// Each chunk's input is still the `context` tokens before its last target, never crossing
+/// `doc_start`, so every target past a document's first `context` sits at an offset of at least
+/// `context - stride` and reads at least `context - stride + 1` tokens of its own document. With
+/// `stride == context` it equals [`build_document_windows`]; `stride` 0 or above `context` is
+/// refused.
+pub fn build_document_windows_sliding(
+    tokens: &[u32],
+    mask: &[u8],
+    context: usize,
+    stride: usize,
+    bos_id: u32,
+) -> Result<(Vec<CausalWindow>, usize)> {
+    if stride == 0 || stride > context {
+        return Err(invalid(format!(
+            "a sliding stride wants 1 to the context {context}, not {stride}"
+        )));
+    }
+    let doc_starts: Vec<usize> = tokens
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, &t)| (t == bos_id).then_some(idx))
+        .collect();
+    let mut windows = Vec::new();
+    for (doc_id, &doc_start) in doc_starts.iter().enumerate() {
+        let doc_end = doc_starts.get(doc_id + 1).copied().unwrap_or(tokens.len());
+        let mut target_cursor = doc_start + 1;
+        while target_cursor < doc_end {
+            let take = if target_cursor == doc_start + 1 {
+                context
+            } else {
+                stride
+            };
+            let target_end = (target_cursor + take).min(doc_end);
+            let win_start = (target_end - 1).saturating_sub(context).max(doc_start);
+            let active_len = (target_end - 1) - win_start;
+            let mut input_ids = vec![bos_id; context];
+            input_ids[..active_len].copy_from_slice(&tokens[win_start..win_start + active_len]);
+            let mut scored_offsets = Vec::new();
+            let mut scored_targets = Vec::new();
+            let mut scored_corpus_positions = Vec::new();
+            for p in target_cursor..target_end {
+                if tokens[p] != bos_id && mask[p] == 1 {
+                    scored_offsets.push(p - 1 - win_start);
+                    scored_targets.push(tokens[p]);
+                    scored_corpus_positions.push(p);
+                }
+            }
+            if !scored_offsets.is_empty() {
+                windows.push(CausalWindow {
+                    doc_id,
+                    input_ids,
+                    scored_offsets,
+                    scored_targets,
+                    scored_corpus_positions,
+                });
+            }
+            target_cursor = target_end;
+        }
+    }
+    Ok((windows, doc_starts.len()))
+}
+
+/// The scorer's blocks rule (claude-287): [`build_document_windows`]'s back-to-back chunks of
+/// `context` targets, except that each chunk reads only its own block, from `doc_start` plus a
+/// multiple of `context`. [`build_document_windows`] reads a document's last, shorter chunk from
+/// the `context` tokens before its last target, back into the block before, so that block
+/// carries part of the one before it and is no forgetting control. Every full block is the same
+/// window in both.
+pub fn build_document_blocks(
+    tokens: &[u32],
+    mask: &[u8],
+    context: usize,
+    bos_id: u32,
+) -> Result<(Vec<CausalWindow>, usize)> {
+    let doc_starts: Vec<usize> = tokens
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, &t)| (t == bos_id).then_some(idx))
+        .collect();
+    let mut windows = Vec::new();
+    for (doc_id, &doc_start) in doc_starts.iter().enumerate() {
+        let doc_end = doc_starts.get(doc_id + 1).copied().unwrap_or(tokens.len());
+        let mut target_cursor = doc_start + 1;
+        while target_cursor < doc_end {
+            let target_end = (target_cursor + context).min(doc_end);
+            // The block's inputs are (target_cursor - 1)..(target_end - 1): its own tokens only.
+            let win_start = target_cursor - 1;
+            let active_len = (target_end - 1) - win_start;
+            let mut input_ids = vec![bos_id; context];
+            input_ids[..active_len].copy_from_slice(&tokens[win_start..win_start + active_len]);
+            let mut scored_offsets = Vec::new();
+            let mut scored_targets = Vec::new();
+            let mut scored_corpus_positions = Vec::new();
+            for p in target_cursor..target_end {
+                if tokens[p] != bos_id && mask[p] == 1 {
+                    scored_offsets.push(p - 1 - win_start);
+                    scored_targets.push(tokens[p]);
+                    scored_corpus_positions.push(p);
+                }
+            }
+            if !scored_offsets.is_empty() {
+                windows.push(CausalWindow {
+                    doc_id,
+                    input_ids,
+                    scored_offsets,
+                    scored_targets,
+                    scored_corpus_positions,
+                });
+            }
+            target_cursor = target_end;
+        }
+    }
+    Ok((windows, doc_starts.len()))
+}
+
+/// The carry cut (claude-287): one window over a whole document, at the smallest of the stack's
+/// two long contexts that holds the longest BOS-opened document, `longest_doc_tokens` counting its
+/// BOS. Longer than 4,096 tokens is refused.
+pub fn carry_context(longest_doc_tokens: usize) -> Result<usize> {
+    match longest_doc_tokens {
+        0..=2048 => Ok(2048),
+        2049..=4096 => Ok(4096),
+        _ => Err(invalid(format!(
+            "carry wants every document within 4096 tokens; the longest has {longest_doc_tokens}"
+        ))),
+    }
+}
+
+/// The carry windows (claude-287): [`build_document_windows`] at the [`carry_context`] of the
+/// longest BOS-opened document, so each document is one window; returns `(C, windows)`.
+pub fn carry_windows(
+    tokens: &[u32],
+    mask: &[u8],
+    bos_id: u32,
+) -> Result<(usize, Vec<CausalWindow>)> {
+    let doc_starts: Vec<usize> = tokens
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, &t)| (t == bos_id).then_some(idx))
+        .collect();
+    let longest = doc_starts
+        .iter()
+        .enumerate()
+        .map(|(i, &start)| doc_starts.get(i + 1).copied().unwrap_or(tokens.len()) - start)
+        .max()
+        .unwrap_or(0);
+    let context = carry_context(longest)?;
+    Ok((context, carry_windows_at(tokens, mask, bos_id, context)?))
+}
+
+/// [`carry_windows`] at a given `context`: refused when a document needs two windows.
+fn carry_windows_at(
+    tokens: &[u32],
+    mask: &[u8],
+    bos_id: u32,
+    context: usize,
+) -> Result<Vec<CausalWindow>> {
+    let (windows, _) = build_document_windows(tokens, mask, context, bos_id)?;
+    if let Some(pair) = windows
+        .windows(2)
+        .find(|pair| pair[0].doc_id == pair[1].doc_id)
+    {
+        return Err(invalid(format!(
+            "carry at {context} tokens cuts document {} into more than one window",
+            pair[0].doc_id
+        )));
+    }
+    Ok(windows)
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UnigramReference {
     pub train_eligible_targets: usize,
@@ -4218,6 +4390,206 @@ mod tests {
             neg[axis] = -1000;
             assert_eq!(signed_h4_code_i32(neg), (2 * axis) as u8);
         }
+        Ok(())
+    }
+
+    /// claude-287: two documents of 20 and 10 tokens (BOS at 0 and 20), every fifth position
+    /// unscored.
+    fn past_window_panel() -> (Vec<u32>, Vec<u8>) {
+        let tokens = (0..30u32)
+            .map(|p| if p == 0 || p == 20 { 0 } else { 100 + p })
+            .collect();
+        let mask = (0..30usize).map(|p| u8::from(p % 5 != 3)).collect();
+        (tokens, mask)
+    }
+
+    /// Each scored row as (corpus position, target, the inputs it reads), sorted by position.
+    fn past_window_rows(windows: &[CausalWindow]) -> Vec<(usize, u32, Vec<u32>)> {
+        let mut rows: Vec<_> = windows
+            .iter()
+            .flat_map(|w| {
+                w.scored_offsets
+                    .iter()
+                    .zip(&w.scored_targets)
+                    .zip(&w.scored_corpus_positions)
+                    .map(move |((&off, &t), &p)| (p, t, w.input_ids[..=off].to_vec()))
+            })
+            .collect();
+        rows.sort();
+        rows
+    }
+
+    fn past_window_doc_start(tokens: &[u32], p: usize) -> usize {
+        (0..p).rev().find(|&i| tokens[i] == 0).unwrap()
+    }
+
+    fn past_window_scored(tokens: &[u32], mask: &[u8]) -> Vec<usize> {
+        (1..tokens.len())
+            .filter(|&p| tokens[p] != 0 && mask[p] == 1)
+            .collect()
+    }
+
+    #[test]
+    fn past_window_cuts_agree_on_each_documents_first_window() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        let w = 8;
+        let first = |rows: Vec<(usize, u32, Vec<u32>)>| -> Vec<(usize, u32, Vec<u32>)> {
+            rows.into_iter()
+                .filter(|r| r.0 - past_window_doc_start(&tokens, r.0) <= w)
+                .collect()
+        };
+        let blocks = first(past_window_rows(
+            &build_document_windows(&tokens, &mask, w, 0)?.0,
+        ));
+        let (carry_c, carry) = carry_windows(&tokens, &mask, 0)?;
+        assert_eq!(carry_c, 2048);
+        assert_eq!(first(past_window_rows(&carry)), blocks);
+        for stride in [1, 3, w] {
+            let (slid, _) = build_document_windows_sliding(&tokens, &mask, w, stride, 0)?;
+            assert_eq!(first(past_window_rows(&slid)), blocks, "stride {stride}");
+        }
+        let (own, _) = build_document_blocks(&tokens, &mask, w, 0)?;
+        assert_eq!(first(past_window_rows(&own)), blocks);
+        // Six scored targets in each document's first eight.
+        assert_eq!(blocks.len(), 12);
+        assert!(blocks.iter().all(|(p, _, inputs)| {
+            let doc = past_window_doc_start(&tokens, *p);
+            inputs.as_slice() == &tokens[doc..*p]
+        }));
+        Ok(())
+    }
+
+    /// claude-287 pre-run review: blocks scores the base cut's targets, each read from the start
+    /// of its own block of `w`. A full block is the base cut's window; a document's later, shorter
+    /// block is not, since the base cut reads it from the `w` tokens before its last target.
+    #[test]
+    fn past_window_blocks_read_only_their_own_block() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        let doc_end =
+            |p: usize| (p..tokens.len()).find(|&i| tokens[i] == 0).unwrap_or(tokens.len());
+        for w in [1, 3, 8, 10, 64] {
+            let (own, docs) = build_document_blocks(&tokens, &mask, w, 0)?;
+            let (base, base_docs) = build_document_windows(&tokens, &mask, w, 0)?;
+            assert_eq!(docs, base_docs);
+            let (rows, base_rows) = (past_window_rows(&own), past_window_rows(&base));
+            assert_eq!(rows.len(), base_rows.len(), "W {w}");
+            let mut short = 0;
+            for ((p, t, inputs), (base_p, base_t, base_inputs)) in rows.iter().zip(&base_rows) {
+                assert_eq!((p, t), (base_p, base_t), "W {w}");
+                let doc = past_window_doc_start(&tokens, *p);
+                let start = doc + (p - 1 - doc) / w * w;
+                assert_eq!(inputs.as_slice(), &tokens[start..*p], "W {w}, target {p}");
+                if start + w < doc_end(*p) {
+                    assert_eq!(inputs, base_inputs, "W {w}, target {p}: a full block");
+                } else if inputs != base_inputs {
+                    short += 1;
+                }
+            }
+            // At 3, 8 and 10 a document ends in a shorter block after its first.
+            assert_eq!(short > 0, [3, 8, 10].contains(&w), "W {w}: {short}");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn past_window_slide_scores_each_target_once_with_a_full_past() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        let w = 8;
+        for stride in [1, 3, w] {
+            let (windows, docs) = build_document_windows_sliding(&tokens, &mask, w, stride, 0)?;
+            assert_eq!(docs, 2);
+            let mut positions = Vec::new();
+            for window in &windows {
+                assert_eq!(window.input_ids.len(), w);
+                for (&off, &p) in window
+                    .scored_offsets
+                    .iter()
+                    .zip(&window.scored_corpus_positions)
+                {
+                    assert!(off < w);
+                    let (doc, win_start) = (past_window_doc_start(&tokens, p), p - 1 - off);
+                    assert_eq!(window.doc_id, usize::from(doc == 20));
+                    assert!(
+                        win_start >= doc,
+                        "stride {stride} target {p} crosses its BOS"
+                    );
+                    assert_eq!(&window.input_ids[..=off], &tokens[win_start..p]);
+                    if p - doc > w {
+                        assert!(off + 1 >= w - stride + 1, "stride {stride} target {p}");
+                    }
+                    positions.push(p);
+                }
+            }
+            positions.sort();
+            assert_eq!(
+                positions,
+                past_window_scored(&tokens, &mask),
+                "stride {stride}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn past_window_slide_at_full_stride_equals_document_windows() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        for context in [3, 8, 16] {
+            let (blocks, blocks_docs) = build_document_windows(&tokens, &mask, context, 0)?;
+            let (slid, slid_docs) =
+                build_document_windows_sliding(&tokens, &mask, context, context, 0)?;
+            assert_eq!(blocks_docs, slid_docs);
+            assert_eq!(blocks.len(), slid.len(), "context {context}");
+            for (a, b) in blocks.iter().zip(&slid) {
+                assert_eq!(a.doc_id, b.doc_id);
+                assert_eq!(a.input_ids, b.input_ids);
+                assert_eq!(a.scored_offsets, b.scored_offsets);
+                assert_eq!(a.scored_targets, b.scored_targets);
+                assert_eq!(a.scored_corpus_positions, b.scored_corpus_positions);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn past_window_slide_by_one_equals_the_brute_force_window() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        let w = 8;
+        let brute: Vec<(usize, u32, Vec<u32>)> = past_window_scored(&tokens, &mask)
+            .into_iter()
+            .map(|p| {
+                let doc = past_window_doc_start(&tokens, p);
+                (
+                    p,
+                    tokens[p],
+                    tokens[doc.max(p.saturating_sub(w))..p].to_vec(),
+                )
+            })
+            .collect();
+        let (slid, _) = build_document_windows_sliding(&tokens, &mask, w, 1, 0)?;
+        assert_eq!(past_window_rows(&slid), brute);
+        Ok(())
+    }
+
+    #[test]
+    fn past_window_carry_context_and_stride_bounds() -> Result<()> {
+        assert_eq!(carry_context(1)?, 2048);
+        assert_eq!(carry_context(2048)?, 2048);
+        assert_eq!(carry_context(2049)?, 4096);
+        assert_eq!(carry_context(4096)?, 4096);
+        assert!(carry_context(4097).is_err());
+        let (tokens, mask) = past_window_panel();
+        let (context, windows) = carry_windows(&tokens, &mask, 0)?;
+        assert_eq!(context, 2048);
+        assert_eq!(windows.iter().map(|w| w.doc_id).collect::<Vec<_>>(), [0, 1]);
+        // Document 0 has 19 targets: one window at 19 tokens, two at 18.
+        assert_eq!(carry_windows_at(&tokens, &mask, 0, 19)?.len(), 2);
+        assert!(carry_windows_at(&tokens, &mask, 0, 18).is_err());
+        let mut long = vec![7u32; 4097];
+        long[0] = 0;
+        assert!(carry_windows(&long, &vec![1u8; 4097], 0).is_err());
+        assert!(build_document_windows_sliding(&tokens, &mask, 8, 0, 0).is_err());
+        assert!(build_document_windows_sliding(&tokens, &mask, 8, 9, 0).is_err());
+        assert!(build_document_windows_sliding(&tokens, &mask, 8, 8, 0).is_ok());
         Ok(())
     }
 
