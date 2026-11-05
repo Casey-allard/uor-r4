@@ -1,0 +1,10 @@
+Raw local root:
+/home/callard/projects/codex-playground/uor-r4/local/deepseek/expanded-candidate-anchor-k16/2026-11-05
+
+Raw SHA256SUMS:
+e6a1881aa8fbe3ec913c1bc5f6f80ea93022d40765d4c164b0cc6052645822f5
+
+The raw root verifies with `sha256sum -c SHA256SUMS --quiet`.
+Fresh panel: seed 2770, dev,dev, 128 conversations.
+Seed 1 report: d30a7e3d879d2f7e04403151dce67ef67b4aa360e77983a53a17dfe1deba3e72
+Seed 2 report: 5b6ea1f2796465979cf19d5691896b19b0ea9eaa6d4e138034d5a164c75c584f

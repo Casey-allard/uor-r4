@@ -1,0 +1,24 @@
+Train-only candidate-cell sweep for deepseek-179.
+
+Inputs:
+- train panel: tt-2711
+- cap: 64
+- cell sweep: 8,12,16,24,32
+- fresh panel read: false
+
+The normalized JSON files remove only `elapsed_us`, which varies by process.
+
+seed1.normalized.json SHA-256:
+1d3c315b0119c3f58aae1cc4c8ddabadc61c033d1d2f8c8c1e5430578f622647
+
+seed2.normalized.json SHA-256:
+ab5efaf8de343d5de1eb30b676f2d753ed858f0b6e14cf82f7d3cc5b870c88a9
+
+At 16 cells:
+- seed 1: 2,753 target-present groups, 348 target tokens, 865
+  baseline-wrong groups;
+- seed 2: 2,219 target-present groups, 343 target tokens, 635
+  baseline-wrong groups.
+
+The observed non-BOS writer candidate count is 255-256 per group against a cap
+of 256.

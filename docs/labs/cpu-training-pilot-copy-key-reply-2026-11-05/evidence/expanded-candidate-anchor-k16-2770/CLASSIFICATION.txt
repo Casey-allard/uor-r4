@@ -1,0 +1,22 @@
+Classification: REJECT
+
+Both artifact seeds cleared every training floor and completed all six
+comparison arms on fresh seed 2770.
+
+Correct body positions:
+
+- anchored trained: 13 / 4
+- anchored shuffled: 2 / 8
+- anchored geometry-only: 202 / 68
+- unanchored trained: 218 / 603
+- longest-32: 603 / 603
+- writer: 47 / 48
+
+The anchored ranker overrode longest-32 on all 27,264 decisions on both
+artifacts. It passed only the seed-1 shuffled comparison and no required
+comparison on seed 2. Every arm emitted zero premature BOS and no exact
+reference. The control-vs-longest checks were non-vacuous and both artifact
+runs repeated byte-identically after timing fields were removed.
+
+This closes the fitted K16 linear correction configuration. It is not a
+negative for geometry-based candidate ranking generally.

@@ -533,6 +533,20 @@ yet robust or strong enough; the next unit must clear both artifacts under a
 new seed without lowering the floor. See
 [deepseek-177](../../loop/tasks/cpu-training-pilot/deepseek-177/REPORT.md).
 
+Widening the CPU-only geometric cell source supplied enough supervision but did
+not improve arbitration. K12 stopped before evaluation because seed 2 had only
+**2,043** target-present groups against 2,048; that selection attempt is
+preserved as an instrument fault. K16 cleared every floor on both public
+artifacts. On fresh seed 2770, its longest-32-anchored linear correction
+overrode the baseline on all 27,264 decisions and scored only **13 / 4** body
+positions, against **603 / 603** for longest-32, geometry-only **202 / 68**,
+unanchored **218 / 603** and writer **47 / 48**. Both repeats matched and every
+control differed from longest-32. This closes the fitted K16 linear correction,
+not geometric candidate ranking generally. Future copy/body work needs a
+different candidate-conditioned representation or objective; longest-32
+remains the current body selector. See
+[deepseek-179](../../loop/tasks/cpu-training-pilot/deepseek-179/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

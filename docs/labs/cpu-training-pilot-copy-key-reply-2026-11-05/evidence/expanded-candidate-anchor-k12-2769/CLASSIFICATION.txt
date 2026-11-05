@@ -1,0 +1,18 @@
+Classification: INSTRUMENT_FAULT / K12_SELECTION_ERROR
+Raw automation outcome: INSUFFICIENT_TRAINING_DATA
+
+The K12 registration selected 12 cells as the smallest passing row, but seed 2
+has only 2,043 target-present groups, five below the declared 2,048 floor. The
+driver correctly stopped before fit or reply evaluation.
+
+Preserved driver error:
+
+cpu-learned-copy-read: anchored candidate calibration has 2043 groups, 330 target tokens and 459 baseline-wrong groups; requires 2048, 64 and 256
+
+The raw outcome remains unchanged in outcome.raw.txt. The registration's
+selection arithmetic was invalid, so this attempt is not an anchored-ranker
+mechanism result. Seed 2769 is closed and must not be reused.
+
+Seed 1 had passed the floors and its diagnostic report is retained. The
+subsequent K16 registration used already-predeclared calibration row 16 and a
+new seed, 2770.

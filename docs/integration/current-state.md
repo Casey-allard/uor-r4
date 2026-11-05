@@ -1,3 +1,25 @@
+## 2026-11-05 — Expanded-cell anchored correction rejects (deepseek)
+
+The CPU writer’s candidate source can be widened beyond its served eight cells
+without changing serving. A train-only sweep found that 12 cells missed the
+2,048-group floor on artifact seed 2 by five groups; that attempt is preserved
+as an instrument/selection fault. K16 cleared every floor on both artifacts.
+
+On fresh seed 2770, the K16 anchored correction updated only wherever
+longest-32 was wrong and required a strictly positive score to override it.
+It nevertheless displaced longest-32 on all 27,264 decisions and scored only
+**13 / 4** correct body positions, against **603 / 603** for longest-32,
+geometry-only **202 / 68**, unanchored **218 / 603** and writer **47 / 48**.
+
+Both artifact repeats matched, every control differed from longest-32, and no
+arm emitted premature BOS. The result is **REJECT** for this fitted linear
+candidate correction; it does not reject geometric candidate ranking itself.
+Seeds 2769 and 2770 are closed. Record:
+[deepseek-179](../loop/tasks/cpu-training-pilot/deepseek-179/REPORT.md).
+**Next:** change the candidate-conditioned representation/objective rather than
+widening cells or adding more similar features; retain longest-32 as the current
+body selector and prioritize independent completion/termination.
+
 ## 2026-11-05 — Geometric candidate union doubles seed-1 supervision but misses seed-2 floor (deepseek)
 
 Adding the writer's top 128 non-BOS geometric candidates to exact-copy history

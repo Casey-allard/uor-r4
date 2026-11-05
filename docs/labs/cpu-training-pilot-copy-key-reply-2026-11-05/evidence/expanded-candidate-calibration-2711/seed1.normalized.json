@@ -1,0 +1,97 @@
+{
+  "calibration": [
+    {
+      "baseline_correct_groups": 1888,
+      "baseline_wrong_groups": 554,
+      "candidate_rows": 313326,
+      "cells": 8,
+      "generated_rows": 442,
+      "max_writer_candidates_per_group": 128,
+      "min_writer_candidates_per_group": 127,
+      "target_present_groups": 2442,
+      "target_values": 332,
+      "writer_candidate_limit": 128,
+      "writer_candidate_rows": 312349
+    },
+    {
+      "baseline_correct_groups": 1888,
+      "baseline_wrong_groups": 778,
+      "candidate_rows": 512467,
+      "cells": 12,
+      "generated_rows": 451,
+      "max_writer_candidates_per_group": 192,
+      "min_writer_candidates_per_group": 191,
+      "target_present_groups": 2666,
+      "target_values": 345,
+      "writer_candidate_limit": 192,
+      "writer_candidate_rows": 511452
+    },
+    {
+      "baseline_correct_groups": 1888,
+      "baseline_wrong_groups": 865,
+      "candidate_rows": 705251,
+      "cells": 16,
+      "generated_rows": 451,
+      "max_writer_candidates_per_group": 256,
+      "min_writer_candidates_per_group": 255,
+      "target_present_groups": 2753,
+      "target_values": 348,
+      "writer_candidate_limit": 256,
+      "writer_candidate_rows": 704267
+    },
+    {
+      "baseline_correct_groups": 1888,
+      "baseline_wrong_groups": 1117,
+      "candidate_rows": 1153972,
+      "cells": 24,
+      "generated_rows": 451,
+      "max_writer_candidates_per_group": 384,
+      "min_writer_candidates_per_group": 383,
+      "target_present_groups": 3005,
+      "target_values": 369,
+      "writer_candidate_limit": 384,
+      "writer_candidate_rows": 1153029
+    },
+    {
+      "baseline_correct_groups": 1888,
+      "baseline_wrong_groups": 1293,
+      "candidate_rows": 1628439,
+      "cells": 32,
+      "generated_rows": 451,
+      "max_writer_candidates_per_group": 512,
+      "min_writer_candidates_per_group": 511,
+      "target_present_groups": 3181,
+      "target_values": 377,
+      "writer_candidate_limit": 512,
+      "writer_candidate_rows": 1627516
+    }
+  ],
+  "claim": "bounded train-panel candidate eligibility; no language or serving claim",
+  "inputs": {
+    "artifact": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut",
+    "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "train_manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "train_mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_split": "train",
+    "train_tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16",
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91"
+  },
+  "qualification": "development-only",
+  "schema": "uor-r4.cpu-expanded-candidate-calibration/1",
+  "settings": {
+    "cap": 64,
+    "cells": [
+      8,
+      12,
+      16,
+      24,
+      32
+    ],
+    "fresh_panel_read": false,
+    "served_writer_cells": 8
+  },
+  "substrate": "cpu-development-research"
+}

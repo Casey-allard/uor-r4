@@ -18,6 +18,7 @@ mod counterfactual;
 mod discrete_route;
 mod fbs;
 mod gain_train;
+mod geometric_candidate_anchor;
 mod geometric_candidate_rank;
 mod hamming;
 mod learned_copy_reply;
@@ -99,6 +100,15 @@ pub use gain_train::{
     CpuTerminationGainTrainer, ServedGainConfig, ServedGainMove, ServedGainStep,
     TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading, TerminationGainStep,
     CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
+};
+pub use geometric_candidate_anchor::{
+    calibrate_expanded_candidate_union, compare_anchored_candidate_rows,
+    derive_anchored_candidate_rankers, evaluate_anchored_candidate_replies, AnchoredCandidateArm,
+    AnchoredCandidateRanker, AnchoredCandidateReading, AnchoredCandidateTraining,
+    ExpandedCandidateCalibration, TimedAnchoredCandidateReading, ANCHORED_CANDIDATE_CELL_SWEEP,
+    ANCHORED_CANDIDATE_EPOCHS, ANCHORED_CANDIDATE_FEATURES, ANCHORED_CANDIDATE_FEATURE_NAMES,
+    ANCHORED_CANDIDATE_MIN_BASELINE_WRONG, ANCHORED_CANDIDATE_MIN_GROUPS,
+    ANCHORED_CANDIDATE_MIN_TARGETS,
 };
 pub use geometric_candidate_rank::{
     compare_geometric_candidate_rows, derive_geometric_candidate_rankers,

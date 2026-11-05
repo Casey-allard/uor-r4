@@ -707,13 +707,29 @@ impl CpuFbsForward {
         query: &[i32],
         limit: usize,
     ) -> Result<Vec<(u32, i64)>> {
+        self.writer_candidate_order_with_cells(query, self.kept_cells, limit)
+    }
+
+    /// Rank candidates from a caller-selected number of geometric cells.
+    ///
+    /// This is an offline candidate-source control. The served writer still
+    /// uses its artifact-bound `kept_cells`.
+    pub(crate) fn writer_candidate_order_with_cells(
+        &self,
+        query: &[i32],
+        cells: usize,
+        limit: usize,
+    ) -> Result<Vec<(u32, i64)>> {
         if query.len() != self.width {
             return Err(invalid("writer candidate query width differs"));
         }
         if limit == 0 {
             return Err(invalid("writer candidate limit is zero"));
         }
-        let cells = writer_cells(query, &self.roots_q12, self.kept_cells);
+        if cells == 0 || cells > 256 {
+            return Err(invalid("writer candidate cell count differs"));
+        }
+        let cells = writer_cells(query, &self.roots_q12, cells);
         let mut candidates = writer_candidates(query, &self.writer_table, self.vocab, &cells);
         candidates.sort_unstable_by(|left, right| {
             right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))

@@ -3,13 +3,17 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use uor_r4_cpu_train::{
+    calibrate_expanded_candidate_union, compare_anchored_candidate_rows,
     compare_copy_key_reply_rows, compare_geometric_candidate_rows, content_mapping_sha256,
-    derive_copy_candidate_rankers, derive_geometric_candidate_rankers, derive_learned_copy_readout,
-    evaluate_copy_key_replies, evaluate_geometric_candidate_replies, evaluate_learned_copy_replies,
+    derive_anchored_candidate_rankers, derive_copy_candidate_rankers,
+    derive_geometric_candidate_rankers, derive_learned_copy_readout,
+    evaluate_anchored_candidate_replies, evaluate_copy_key_replies,
+    evaluate_geometric_candidate_replies, evaluate_learned_copy_replies,
     evaluate_ranked_copy_replies, shuffle_content_targets, validate_corpus_manifest,
-    CopyCandidateRanker, CopyKeyReplyArm, CopyKeyReplyMetric, CopyKeyReplyRow, CopyKeyReplyStep,
-    CopyRankerTrajectory, CpuCorpusIdentity, CpuMaskedCorpus, GeometricCandidateArm,
-    GeometricCandidateStep, LearnedCopyArm, LearnedCopyStep, MemoryWeightSample, RankedCopyStep,
+    AnchoredCandidateArm, CopyCandidateRanker, CopyKeyReplyArm, CopyKeyReplyMetric,
+    CopyKeyReplyRow, CopyKeyReplyStep, CopyRankerTrajectory, CpuCorpusIdentity, CpuMaskedCorpus,
+    GeometricCandidateArm, GeometricCandidateStep, LearnedCopyArm, LearnedCopyStep,
+    MemoryWeightSample, RankedCopyStep,
 };
 
 fn main() {
@@ -45,6 +49,7 @@ struct PanelRun<'a> {
 enum RankerCandidates {
     ExactCopy,
     GeometricUnion,
+    AnchoredExpanded,
 }
 
 fn run() -> Result<(), String> {
@@ -60,6 +65,8 @@ fn run() -> Result<(), String> {
     let mut seed = 153u64;
     let mut ranker_trajectory = CopyRankerTrajectory::Longest32;
     let mut ranker_candidates = RankerCandidates::ExactCopy;
+    let mut candidate_cells = 0usize;
+    let mut candidate_calibration = None;
     let mut allow_underpowered = false;
     while let Some(flag) = values.next() {
         if flag == "--allow-underpowered" {
@@ -95,12 +102,21 @@ fn run() -> Result<(), String> {
                 ranker_candidates = match value.as_str() {
                     "exact-copy" => RankerCandidates::ExactCopy,
                     "geometric-union" => RankerCandidates::GeometricUnion,
+                    "anchored-expanded" => RankerCandidates::AnchoredExpanded,
                     _ => {
                         return Err(format!(
-                            "--ranker-candidates expects exact-copy or geometric-union: {value}"
+                            "--ranker-candidates expects exact-copy, geometric-union or anchored-expanded: {value}"
                         ))
                     }
                 };
+            }
+            "--candidate-cells" => {
+                candidate_cells = value
+                    .parse()
+                    .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--candidate-calibration" => {
+                candidate_calibration = Some(parse_cells(&value)?);
             }
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
@@ -112,6 +128,19 @@ fn run() -> Result<(), String> {
     let artifact_bytes = read(&artifact)?;
     let (train_samples, train_identity, train_documents) =
         load_samples(&train_tokens, &train_mask, &train_manifest)?;
+    if let Some(cells) = candidate_calibration {
+        return run_candidate_calibration(CandidateCalibrationInputs {
+            artifact: &artifact_bytes,
+            train_samples: &train_samples,
+            train_identity: &train_identity,
+            train_tokens: &train_tokens,
+            train_mask: &train_mask,
+            train_manifest: &train_manifest,
+            artifact_path: &artifact,
+            cap,
+            cells: &cells,
+        });
+    }
     let (test_samples, test_identity, test_documents) =
         load_samples(&test_tokens, &test_mask, &test_manifest)?;
     if train_identity.tokenizer_sha256 != test_identity.tokenizer_sha256
@@ -142,6 +171,35 @@ fn run() -> Result<(), String> {
             artifact_path: &artifact,
             cap,
             seed,
+            allow_underpowered,
+        });
+    }
+    if ranker_candidates == RankerCandidates::AnchoredExpanded {
+        if ranker_trajectory != CopyRankerTrajectory::ReferencePrefix {
+            return Err(
+                "anchored-expanded candidate ranking requires --ranker-trajectory reference"
+                    .to_owned(),
+            );
+        }
+        if candidate_cells == 0 {
+            return Err("anchored-expanded candidate ranking needs --candidate-cells N".to_owned());
+        }
+        return run_anchored_candidate_union(AnchoredCandidateInputs {
+            artifact: &artifact_bytes,
+            train_samples: &train_samples,
+            test_samples: &test_samples,
+            train_identity: &train_identity,
+            test_identity: &test_identity,
+            train_tokens: &train_tokens,
+            train_mask: &train_mask,
+            train_manifest: &train_manifest,
+            test_tokens: &test_tokens,
+            test_mask: &test_mask,
+            test_manifest: &test_manifest,
+            artifact_path: &artifact,
+            cap,
+            seed,
+            cells: candidate_cells,
             allow_underpowered,
         });
     }
@@ -271,6 +329,71 @@ fn run() -> Result<(), String> {
         serde_json::to_string_pretty(&output).map_err(|error| error.to_string())?
     );
     Ok(())
+}
+
+struct CandidateCalibrationInputs<'a> {
+    artifact: &'a [u8],
+    train_samples: &'a [MemoryWeightSample],
+    train_identity: &'a CpuCorpusIdentity,
+    train_tokens: &'a Path,
+    train_mask: &'a Path,
+    train_manifest: &'a Path,
+    artifact_path: &'a Path,
+    cap: usize,
+    cells: &'a [usize],
+}
+
+fn run_candidate_calibration(inputs: CandidateCalibrationInputs<'_>) -> Result<(), String> {
+    let started = Instant::now();
+    let readings = calibrate_expanded_candidate_union(
+        inputs.artifact,
+        inputs.train_samples,
+        inputs.cap,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let elapsed_us = started.elapsed().as_micros() as u64;
+    let output = serde_json::json!({
+        "schema": "uor-r4.cpu-expanded-candidate-calibration/1",
+        "substrate": "cpu-development-research",
+        "qualification": "development-only",
+        "claim": "bounded train-panel candidate eligibility; no language or serving claim",
+        "inputs": {
+            "artifact": inputs.artifact_path.display().to_string(),
+            "artifact_sha256": uor_r4_discrete::corpus::sha256(inputs.artifact),
+            "train_tokens": inputs.train_tokens.display().to_string(),
+            "train_mask": inputs.train_mask.display().to_string(),
+            "train_manifest": inputs.train_manifest.display().to_string(),
+            "train_tokens_sha256": inputs.train_identity.tokens_sha256,
+            "train_mask_sha256": inputs.train_identity.mask_sha256,
+            "train_manifest_sha256": uor_r4_discrete::corpus::sha256(&read(inputs.train_manifest)?),
+            "train_split": inputs.train_identity.split,
+            "tokenizer_sha256": inputs.train_identity.tokenizer_sha256,
+        },
+        "settings": {
+            "cap": inputs.cap,
+            "cells": inputs.cells,
+            "fresh_panel_read": false,
+            "served_writer_cells": 8,
+        },
+        "calibration": readings,
+        "elapsed_us": elapsed_us,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output).map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+fn parse_cells(value: &str) -> Result<Vec<usize>, String> {
+    value
+        .split(',')
+        .map(|part| {
+            part.parse::<usize>()
+                .map_err(|_| format!("candidate cell count is not a number: {part}"))
+        })
+        .collect()
 }
 
 struct GeometricCandidateInputs<'a> {
@@ -471,6 +594,277 @@ fn run_geometric_candidate_union(inputs: GeometricCandidateInputs<'_>) -> Result
                 "geometry_only": {
                     "reply_sha256": geometry_only.reply_sha256,
                     "decision_sha256": geometry_only.decision_sha256,
+                },
+                "longest_32": {
+                    "reply_sha256": longest.reply_sha256,
+                    "decision_sha256": longest.decision_sha256,
+                },
+                "writer": {
+                    "reply_sha256": writer.reply_sha256,
+                    "decision_sha256": writer.decision_sha256,
+                },
+            },
+            "elapsed_us": test_elapsed_us,
+        },
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output).map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+struct AnchoredCandidateInputs<'a> {
+    artifact: &'a [u8],
+    train_samples: &'a [MemoryWeightSample],
+    test_samples: &'a [MemoryWeightSample],
+    train_identity: &'a CpuCorpusIdentity,
+    test_identity: &'a CpuCorpusIdentity,
+    train_tokens: &'a Path,
+    train_mask: &'a Path,
+    train_manifest: &'a Path,
+    test_tokens: &'a Path,
+    test_mask: &'a Path,
+    test_manifest: &'a Path,
+    artifact_path: &'a Path,
+    cap: usize,
+    seed: u64,
+    cells: usize,
+    allow_underpowered: bool,
+}
+
+fn run_anchored_candidate_union(inputs: AnchoredCandidateInputs<'_>) -> Result<(), String> {
+    let training_started = Instant::now();
+    let training = derive_anchored_candidate_rankers(
+        inputs.artifact,
+        inputs.train_samples,
+        inputs.cap,
+        inputs.seed,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let training_elapsed_us = training_started.elapsed().as_micros() as u64;
+    let test_started = Instant::now();
+    let trained = evaluate_anchored_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        AnchoredCandidateArm::Trained,
+        &training.trained,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let shuffled = evaluate_anchored_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        AnchoredCandidateArm::Shuffled,
+        &training.shuffled,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let geometry_only = evaluate_anchored_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        AnchoredCandidateArm::GeometryOnly,
+        &training.geometry_only,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let unanchored = evaluate_anchored_candidate_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        AnchoredCandidateArm::Unanchored,
+        &training.unanchored,
+        inputs.cells,
+    )
+    .map_err(|error| error.to_string())?;
+    let longest = evaluate_copy_key_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        CopyKeyReplyArm::Longest32To1,
+        inputs.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let writer = evaluate_copy_key_replies(
+        inputs.artifact,
+        inputs.test_samples,
+        inputs.cap,
+        CopyKeyReplyArm::Writer,
+        inputs.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let test_elapsed_us = test_started.elapsed().as_micros() as u64;
+    if !inputs.allow_underpowered
+        && [
+            trained.reading.reference_reachable,
+            shuffled.reading.reference_reachable,
+            geometry_only.reading.reference_reachable,
+            unanchored.reading.reference_reachable,
+            longest.reading.reference_reachable,
+            writer.reading.reference_reachable,
+        ]
+        .into_iter()
+        .any(|reachable| reachable < 200)
+    {
+        return Err("anchored candidate control has fewer than 200 reachable replies".to_owned());
+    }
+    let comparisons = serde_json::json!({
+        "longest_32": compare_anchored_candidate_rows(
+            &trained.rows,
+            &longest.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "writer": compare_anchored_candidate_rows(
+            &trained.rows,
+            &writer.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "geometry_only": compare_anchored_candidate_rows(
+            &trained.rows,
+            &geometry_only.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "shuffled": compare_anchored_candidate_rows(
+            &trained.rows,
+            &shuffled.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+        "unanchored": compare_anchored_candidate_rows(
+            &trained.rows,
+            &unanchored.rows,
+            CopyKeyReplyMetric::CorrectBodyPositions,
+        )
+        .map_err(|error| error.to_string())?,
+    });
+    let changes = serde_json::json!({
+        "longest_32": copy_control_changes(&trained.rows, &trained.steps, &longest.steps),
+        "writer": copy_control_changes(&trained.rows, &trained.steps, &writer.steps),
+        "geometry_only": geometric_candidate_changes(
+            &trained.rows,
+            &trained.steps,
+            &geometry_only.steps,
+        ),
+        "shuffled": geometric_candidate_changes(
+            &trained.rows,
+            &trained.steps,
+            &shuffled.steps,
+        ),
+        "unanchored": geometric_candidate_changes(
+            &trained.rows,
+            &trained.steps,
+            &unanchored.steps,
+        ),
+    });
+    let control_changes_vs_longest = serde_json::json!({
+        "geometry_only": copy_control_changes(
+            &trained.rows,
+            &geometry_only.steps,
+            &longest.steps,
+        ),
+        "shuffled": copy_control_changes(
+            &trained.rows,
+            &shuffled.steps,
+            &longest.steps,
+        ),
+        "unanchored": copy_control_changes(
+            &trained.rows,
+            &unanchored.steps,
+            &longest.steps,
+        ),
+    });
+    let output = serde_json::json!({
+        "schema": "uor-r4.cpu-anchored-expanded-candidate-ranker/1",
+        "substrate": "cpu-development-research",
+        "qualification": "development-only",
+        "claim": "bounded longest-32-anchored next-token candidate correction; no language or serving claim",
+        "inputs": {
+            "artifact": inputs.artifact_path.display().to_string(),
+            "artifact_sha256": uor_r4_discrete::corpus::sha256(inputs.artifact),
+            "train_tokens": inputs.train_tokens.display().to_string(),
+            "train_mask": inputs.train_mask.display().to_string(),
+            "train_manifest": inputs.train_manifest.display().to_string(),
+            "train_tokens_sha256": inputs.train_identity.tokens_sha256,
+            "train_mask_sha256": inputs.train_identity.mask_sha256,
+            "train_manifest_sha256": uor_r4_discrete::corpus::sha256(&read(inputs.train_manifest)?),
+            "train_split": inputs.train_identity.split,
+            "test_tokens": inputs.test_tokens.display().to_string(),
+            "test_mask": inputs.test_mask.display().to_string(),
+            "test_manifest": inputs.test_manifest.display().to_string(),
+            "test_tokens_sha256": inputs.test_identity.tokens_sha256,
+            "test_mask_sha256": inputs.test_identity.mask_sha256,
+            "test_manifest_sha256": uor_r4_discrete::corpus::sha256(&read(inputs.test_manifest)?),
+            "test_split": inputs.test_identity.split,
+            "tokenizer_sha256": inputs.test_identity.tokenizer_sha256,
+        },
+        "settings": {
+            "cap": inputs.cap,
+            "seed": inputs.seed,
+            "candidate_set": training.candidate_set,
+            "cells": training.cells,
+            "writer_candidate_limit": training.writer_candidate_limit,
+            "maximum_copy_depth": training.exact_depth,
+            "baseline": "longest_32",
+            "override_rule": "strict_positive_score",
+            "served_writer_cells": 8,
+        },
+        "training": {
+            "generated_rows": training.generated_rows,
+            "supervised_groups": training.supervised_groups,
+            "baseline_correct_groups": training.baseline_correct_groups,
+            "baseline_wrong_groups": training.baseline_wrong_groups,
+            "writer_candidate_rows": training.writer_candidate_rows,
+            "min_writer_candidates_per_group": training.min_writer_candidates_per_group,
+            "max_writer_candidates_per_group": training.max_writer_candidates_per_group,
+            "target_values": training.target_values,
+            "candidate_rows": training.candidate_rows,
+            "shuffled_target_changes": training.shuffled_target_changes,
+            "elapsed_us": training_elapsed_us,
+        },
+        "candidate_ranker": {
+            "features": uor_r4_cpu_train::ANCHORED_CANDIDATE_FEATURE_NAMES,
+            "epochs": uor_r4_cpu_train::ANCHORED_CANDIDATE_EPOCHS,
+            "trained_weights": training.trained.weights,
+            "trained_weights_sha256": training.trained.weights_sha256(),
+            "shuffled_weights": training.shuffled.weights,
+            "shuffled_weights_sha256": training.shuffled.weights_sha256(),
+            "geometry_only_weights": training.geometry_only.weights,
+            "unanchored_weights": training.unanchored.weights,
+            "unanchored_weights_sha256": training.unanchored.weights_sha256(),
+        },
+        "test": {
+            "trained": trained.reading,
+            "shuffled": shuffled.reading,
+            "geometry_only": geometry_only.reading,
+            "unanchored": unanchored.reading,
+            "longest_32": longest.reading,
+            "writer": writer.reading,
+            "comparisons": comparisons,
+            "changes": changes,
+            "control_changes_vs_longest": control_changes_vs_longest,
+            "signatures": {
+                "trained": {
+                    "reply_sha256": trained.reply_sha256,
+                    "decision_sha256": trained.decision_sha256,
+                },
+                "shuffled": {
+                    "reply_sha256": shuffled.reply_sha256,
+                    "decision_sha256": shuffled.decision_sha256,
+                },
+                "geometry_only": {
+                    "reply_sha256": geometry_only.reply_sha256,
+                    "decision_sha256": geometry_only.decision_sha256,
+                },
+                "unanchored": {
+                    "reply_sha256": unanchored.reply_sha256,
+                    "decision_sha256": unanchored.decision_sha256,
                 },
                 "longest_32": {
                     "reply_sha256": longest.reply_sha256,
@@ -963,7 +1357,8 @@ fn usage() -> String {
     "usage: cpu-learned-copy-read TRAIN_TOKENS TRAIN_MASK TRAIN_MANIFEST \
      TEST_TOKENS TEST_MASK TEST_MANIFEST ARTIFACT [--cap N] [--seed N] \
      [--ranker-trajectory longest32|reference] \
-     [--ranker-candidates exact-copy|geometric-union] \
+     [--ranker-candidates exact-copy|geometric-union|anchored-expanded] \
+     [--candidate-cells N] [--candidate-calibration 8,12,16,24,32] \
      [--allow-underpowered]"
         .to_owned()
 }
@@ -987,8 +1382,54 @@ mod tests {
             "--seed",
             "--ranker-trajectory",
             "--ranker-candidates",
+            "--candidate-cells",
+            "--candidate-calibration",
         ] {
             assert!(usage.contains(word), "{usage}");
         }
+    }
+
+    #[test]
+    fn candidate_cell_sweep_parser_is_strict() {
+        assert_eq!(parse_cells("8,12,16,24,32").unwrap(), [8, 12, 16, 24, 32]);
+        assert!(parse_cells("8,x,16").is_err());
+        assert!(parse_cells("").is_err());
+    }
+
+    #[test]
+    fn control_changes_are_bound_against_longest_not_only_the_trained_arm() {
+        let row = CopyKeyReplyRow {
+            row: 0,
+            reachable: true,
+            exact_reference: false,
+            bos_complete: false,
+            opening_correct: false,
+            premature_bos: false,
+            non_premature_bos: false,
+            generated_tokens: 1,
+            reference_tokens: 1,
+            correct_body_positions: 0,
+            copy_decisions: 0,
+            fallback_decisions: 1,
+            stop: "cap".to_owned(),
+            reply_sha256: "00".repeat(32),
+        };
+        let step = |token| GeometricCandidateStep {
+            row: 0,
+            generated_step: 0,
+            writer_token: 5,
+            longest_token: 7,
+            selected_token: token,
+            selected_exact_depth: None,
+            selected_writer_rank: None,
+            selected_score: Some(1),
+            candidate_count: 3,
+            used_exact_copy: false,
+        };
+        let unchanged =
+            geometric_candidate_changes(std::slice::from_ref(&row), &[step(7)], &[step(7)]);
+        assert_eq!(unchanged["non_vacuous"], false);
+        let changed = geometric_candidate_changes(&[row], &[step(9)], &[step(7)]);
+        assert_eq!(changed["non_vacuous"], true);
     }
 }

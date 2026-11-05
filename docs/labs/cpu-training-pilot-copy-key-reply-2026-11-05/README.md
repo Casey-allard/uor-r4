@@ -193,3 +193,25 @@ Published evidence is in
 Raw corpus payloads remain in the local sealed root; the committed manifest
 binds their identities. See
 [deepseek-177](../../loop/tasks/cpu-training-pilot/deepseek-177/REPORT.md).
+
+## Expanded-cell longest-anchored correction
+
+Deepseek-179 tested whether the CPU candidate source should read more of the
+writer's 256 geometric cells and whether a learned correction should preserve
+longest-32 unless an alternative had a strictly higher score.
+
+The first registration selected 12 cells although artifact seed 2 had only
+**2,043** target-present groups, below the 2,048 floor. The driver stopped
+before evaluation. This is preserved as
+`INSTRUMENT_FAULT / K12_SELECTION_ERROR`, and seed 2769 is closed.
+
+The corrected 16-cell run cleared all floors on seed 2770. It completed both
+artifacts and both repeats, but **rejected** the anchored correction. The
+ranker overrode longest-32 on all 27,264 decisions per artifact and scored only
+**13 / 4** correct body positions, against **603 / 603** for longest-32. The
+geometry-only control scored 202 / 68; unanchored trained scored 218 / 603.
+
+The run made no complete reply, language or serving claim. Fitted linear
+correction is closed for this candidate representation. See
+[deepseek-179](../../loop/tasks/cpu-training-pilot/deepseek-179/REPORT.md)
+and [`evidence/expanded-candidate-anchor-k16-2770/`](evidence/expanded-candidate-anchor-k16-2770/).
