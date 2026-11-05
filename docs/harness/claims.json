@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/copy-key-termination-oracle": {
+    "branch": "deepseek/copy-key-termination-oracle",
+    "claimed_at": "2026-11-04T23:17:13-05:00",
+    "head": "835cfeb66",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/copy-key2-cpu": {
     "branch": "deepseek/copy-key2-cpu",
     "claimed_at": "2026-11-03T02:21:59-05:00",

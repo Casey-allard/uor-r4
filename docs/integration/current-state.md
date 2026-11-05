@@ -1,3 +1,18 @@
+## 2026-11-05 — Perfect stopping would rescue a bounded copy subset (deepseek)
+
+The four sealed deepseek-153 traces were replayed without new model forwards,
+then truncated at each reference length and given an oracle BOS. Longest-first
+produced **11/453** exact train and **13/449** exact dev replies on both
+artifact seeds; `k2>k1` produced 8/8, random 0/2, and depth-1 and writer zero.
+Every paired exact and body-position comparison favored longest-first. The
+copy bodies still missed most references: common-prefix totals were
+**325/4,661** and **451/4,614**, with maximum prefixes of 41 and 48 tokens.
+Perfect termination is therefore the immediate blocker, while terminal-token
+accuracy remains the next content target. Record:
+[deepseek-155](../loop/tasks/cpu-training-pilot/deepseek-155/REPORT.md).
+**Next:** pair longest-first copy with a trainable geometric stop and test
+whether it recovers the 11/13 exact ceiling without premature stops.
+
 ## 2026-11-05 — Longest-first copy carries body headroom but cannot terminate (deepseek)
 
 Five fixed selectors controlled a complete generated reply over the last 192

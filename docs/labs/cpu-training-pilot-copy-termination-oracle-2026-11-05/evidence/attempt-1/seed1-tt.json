@@ -1,0 +1,233 @@
+{
+  "arms": {
+    "fixed_depth_1": {
+      "common_prefix_sum": 59,
+      "max_common_prefix": 10,
+      "reading": {
+        "arm": "fixed_depth1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 158,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          28992,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "k2_backoff_k1": {
+      "common_prefix_sum": 291,
+      "max_common_prefix": 41,
+      "reading": {
+        "arm": "k2_backoff_k1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 376,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          453,
+          28539,
+          0,
+          0
+        ]
+      }
+    },
+    "longest_4_to_1": {
+      "common_prefix_sum": 325,
+      "max_common_prefix": 41,
+      "reading": {
+        "arm": "longest4_to1",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 409,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          453,
+          453,
+          453,
+          27633
+        ]
+      }
+    },
+    "random_available_depth": {
+      "common_prefix_sum": 129,
+      "max_common_prefix": 21,
+      "reading": {
+        "arm": "random_available_depth",
+        "bos_complete": 0,
+        "copy_decisions": 28992,
+        "correct_body_positions": 216,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 0,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 20,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          7850,
+          7377,
+          6904,
+          6861
+        ]
+      }
+    },
+    "writer": {
+      "common_prefix_sum": 0,
+      "max_common_prefix": 0,
+      "reading": {
+        "arm": "writer",
+        "bos_complete": 0,
+        "copy_decisions": 0,
+        "correct_body_positions": 60,
+        "decisions": 28992,
+        "exact_reference": 0,
+        "fallback_decisions": 28992,
+        "generated_tokens": 28992,
+        "non_premature_bos": 0,
+        "opening_correct": 0,
+        "premature_bos": 0,
+        "reference_reachable": 453,
+        "reference_tokens": 4661,
+        "replies": 453,
+        "selected_depth_counts": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "cell_outcome": "content_remains_insufficient",
+  "claim": "sealed-trace oracle-stop ceiling; no new model decode or language claim",
+  "comparisons": {
+    "fixed_depth1": {
+      "correct_body_positions": {
+        "candidate_only": 11,
+        "candidate_sum": 325,
+        "control_only": 0,
+        "control_sum": 59,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 2
+      },
+      "exact_reference": {
+        "candidate_only": 11,
+        "candidate_sum": 11,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": true,
+        "threshold": 2
+      }
+    },
+    "k2_backoff_k1": {
+      "correct_body_positions": {
+        "candidate_only": 3,
+        "candidate_sum": 325,
+        "control_only": 0,
+        "control_sum": 291,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 2
+      },
+      "exact_reference": {
+        "candidate_only": 3,
+        "candidate_sum": 11,
+        "control_only": 0,
+        "control_sum": 8,
+        "metric": "exact_reference",
+        "passes": true,
+        "threshold": 2
+      }
+    },
+    "random_available_depth": {
+      "correct_body_positions": {
+        "candidate_only": 11,
+        "candidate_sum": 325,
+        "control_only": 0,
+        "control_sum": 129,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 2
+      },
+      "exact_reference": {
+        "candidate_only": 11,
+        "candidate_sum": 11,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": true,
+        "threshold": 2
+      }
+    },
+    "writer": {
+      "correct_body_positions": {
+        "candidate_only": 20,
+        "candidate_sum": 325,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "correct_body_positions",
+        "passes": true,
+        "threshold": 2
+      },
+      "exact_reference": {
+        "candidate_only": 11,
+        "candidate_sum": 11,
+        "control_only": 0,
+        "control_sum": 0,
+        "metric": "exact_reference",
+        "passes": true,
+        "threshold": 2
+      }
+    }
+  },
+  "inputs": {
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8",
+    "mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "report": "/dev/fd/63",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16",
+    "tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91"
+  },
+  "qualification": "development-only",
+  "schema": "uor-r4.cpu-copy-key-reply-oracle/1",
+  "settings": {
+    "oracle_stop": "BOS at normalized reference length",
+    "rows": 453
+  },
+  "substrate": "cpu-development-research"
+}
