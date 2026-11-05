@@ -1,0 +1,56 @@
+{
+  "schema": "uor-r4.cpu-raw-query-port-summary/1",
+  "implementation": {
+    "base": "d634c77e5",
+    "fit_head": "ad4340df0244727759cf19bc94b4445a86c97e3f",
+    "final_implementation_pin": "771c99ecf42ee344b43f439dfff8666d953f04da",
+    "discovery_driver_sha256": "f314747053c697b111e0e116db7420eca3b2e9a277448875d818fe2318ebbd84",
+    "verified_driver_sha256": "7210266b5c71e838f5b7e8a7f29ce3275abd57bc11ca20dbf2ea17612d295e81",
+    "substrate": "cpu-development-research",
+    "qualification": "gpu-required",
+    "threads": 16
+  },
+  "outcome": "CONTROL_FAULT",
+  "scope": "Two-seed raw-conditioned query-port calibration on previously exposed public panels; raw table bytes and all non-gain artifact bytes were preserved.",
+  "seeds": [
+    {
+      "seed": 1,
+      "status": "CONTROL_FAULT",
+      "accepted": 8,
+      "shuffled_accepted": 8,
+      "shuffled_attempts": 8,
+      "verification_wall_elapsed_ms": 71765.619588,
+      "verification_peak_rss_kib": 157000,
+      "report_sha256": "5e1f102aa2d0491696116643adc17e37ac7db33e1d7541f490fee0e303ef40ee",
+      "sealed_manifest_sha256": "f523f2a8dce30d670da6c362288d0b01c796a44d1b54ac86eaf72744327c6cc3",
+      "raw_serving_parity_exact": true,
+      "shuffled_arm_distinct": false,
+      "arms": {
+        "raw": {"admitted": 245, "top1": 181, "top8": 236, "port_distance": 29882444, "port_abs": 18468626},
+        "trained": {"admitted": 253, "top1": 185, "top8": 241, "port_distance": 29613365, "port_abs": 18164159},
+        "random_gain": {"admitted": 246, "top1": 182, "top8": 236, "port_distance": 29818562, "port_abs": 18387360},
+        "shuffled_cells": {"admitted": 253, "top1": 185, "top8": 241, "port_distance": 29613365, "port_abs": 18164159}
+      }
+    },
+    {
+      "seed": 2,
+      "status": "CONTROL_FAULT",
+      "accepted": 5,
+      "shuffled_accepted": 5,
+      "shuffled_attempts": 5,
+      "verification_wall_elapsed_ms": 52274.166919,
+      "verification_peak_rss_kib": 154856,
+      "report_sha256": "f89d577977a2be9d49e4f15c8c82410adc90c836bfe0917c0678c336dfa3c967",
+      "sealed_manifest_sha256": "d6762369d50b2de37bce83a8bc3c0ddfc3b8a6beedab00e8448d97cb5450f7e8",
+      "raw_serving_parity_exact": true,
+      "shuffled_arm_distinct": false,
+      "arms": {
+        "raw": {"admitted": 171, "top1": 136, "top8": 164, "port_distance": 23870298, "port_abs": 7915390},
+        "trained": {"admitted": 171, "top1": 137, "top8": 164, "port_distance": 23786304, "port_abs": 7824472},
+        "random_gain": {"admitted": 171, "top1": 138, "top8": 164, "port_distance": 23802494, "port_abs": 7844356},
+        "shuffled_cells": {"admitted": 171, "top1": 137, "top8": 164, "port_distance": 23786304, "port_abs": 7824472}
+      }
+    }
+  ],
+  "finding": "Raw-conditioned query-port moves preserved input and parity and lowered distance versus raw and random gain on both seeds, but the shuffled-cell arm was behaviorally identical to trained on both seeds. No promotion; the control must be redesigned before this objective can produce a mechanism result."
+}

@@ -1,3 +1,24 @@
+## 2026-11-05 — Raw query-port geometry preserves input but its cell control collapses (deepseek)
+
+The final-gain query-port objective was rerun from unmodified public artifacts,
+keeping every learned token table row raw and changing only the 16 port-gain
+codes. Both outputs remain exportable one-table `UORLUT01` artifacts with exact
+616-row CPU/serving parity.
+
+Trained port distance improved over raw frozen on seed 1
+(`29,882,444→29,613,365`) and seed 2 (`23,870,298→23,786,304`) while retaining
+admission, top-1 and top-8. But the moved-count-matched shuffled-cell arm was
+behaviorally identical to trained on both seeds. The trained arm beat random
+gain (`29,613,365 < 29,818,562` and `23,786,304 < 23,802,494`).
+
+The result is **CONTROL_FAULT**, not a promoted model result. The one-step
+cell-rotation control needs redesign before this objective can yield a valid
+mechanism comparison. Record:
+[deepseek-188](../loop/tasks/cpu-training-pilot/deepseek-188/REPORT.md).
+**Next:** preserve learned input identity while testing a behaviorally
+independent writer-address representation; do not reuse this cell-rotation
+control.
+
 ## 2026-11-05 — Table-anchor decoding loss is an input-code effect, not writer-row mismatch (deepseek)
 
 A four-arm CPU diagnostic kept the FBS trunk and targets fixed while replacing

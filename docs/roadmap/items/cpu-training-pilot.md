@@ -575,6 +575,19 @@ input rows or trained with input-code preservation. The hybrid table pairs are
 not representable in the current one-table artifact and make no serving claim.
 See [deepseek-185](../../loop/tasks/cpu-training-pilot/deepseek-185/REPORT.md).
 
+The next CPU training comparison kept the shared table raw and moved only the
+final-gain query ports, so every result remained an exportable one-table
+artifact. Seed 1 accepted eight moves and seed 2 five, with exact 616-row
+CPU/serving parity and retained admission/top-1/top-8. Target-port distance
+improved over raw on both seeds (`29,882,444→29,613,365` and
+`23,870,298→23,786,304`). However, the shuffled-cell arm was behaviorally
+identical to trained on both seeds. The trained arm beat random gain
+(`29,613,365 < 29,818,562` and `23,786,304 < 23,802,494`), but the result is a
+**CONTROL_FAULT** with no promotion: the one-step cell-rotation control is
+closed for this raw-conditioned configuration, so the objective still needs a
+behaviorally distinct control. See
+[deepseek-188](../../loop/tasks/cpu-training-pilot/deepseek-188/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
