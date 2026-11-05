@@ -1,3 +1,19 @@
+## 2026-11-04 — Combined trajectory-density termination closed at preflight (deepseek)
+
+The current modulo-256 code and the phase-aligned transition were concatenated
+into a 4,096-bit termination state while content selection continued to use
+the code alone. Seed 1 retained 84 terminal and 1,484 nonterminal generated
+rows, changed 58 leave-one-out firing decisions, and produced a zero-mismatch
+code-prefix audit over 1,145 decisions. Terminal recall was **16/84** against
+the 26/84 floor; false stops were **11/1,484** against a 14-row limit. The
+shuffled control recalled 18/84 with 13/1,484 false stops. The registered
+preflight stopped before seed 2 or generation. This closes the fixed
+current-code/phase-transition concatenation and density objective, not
+trajectory geometry or learned vector-space attention. Record:
+[deepseek-147](../loop/tasks/cpu-training-pilot/deepseek-147/REPORT.md).
+**Next:** a terminal representation or objective that increases endpoint recall
+without retuning the closed density contract.
+
 ## 2026-11-04 — First-order trajectory content readout closed at preflight (deepseek)
 
 The positive 2,048-bit content code was augmented with the generated-state

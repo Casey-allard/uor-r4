@@ -4,19 +4,21 @@ use std::time::Instant;
 
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, audit_content_stop_phase_content_prefix,
-    content_continuation_loo_prediction, content_mapping_sha256, content_stop_density_gate_fires,
+    audit_content_stop_trajectory_content_prefix, content_continuation_loo_prediction,
+    content_mapping_sha256, content_stop_density_gate_fires,
     content_stop_density_predictions_changed, content_stop_gate_fires, content_target_mapping,
     derive_content_continuation_rows, derive_content_readout, derive_content_stop_phase_rows,
-    derive_content_stop_readout, derive_content_stop_rows, derive_turn_memory,
-    evaluate_content_continuation_gate, evaluate_content_readout,
+    derive_content_stop_readout, derive_content_stop_rows, derive_content_stop_trajectory_rows,
+    derive_turn_memory, evaluate_content_continuation_gate, evaluate_content_readout,
     evaluate_content_stop_density_gate, evaluate_content_stop_gate,
-    evaluate_content_stop_phase_density_gate, fit_content_continuation_gate,
-    fit_content_stop_density_gate, fit_content_stop_gate, shuffle_content_continuation_rows,
-    shuffle_content_stop_rows, shuffle_content_targets, validate_corpus_manifest,
-    verify_content_readout_serving, ContentContinuationRow, ContentContinuationTraining,
-    ContentPromptReading, ContentReadout, ContentReadoutReading, ContentSignatureMode,
-    ContentStopDensityGate, ContentStopGate, ContentStopRow, CpuConversationSample,
-    CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES, CONTENT_MIN_TRAINING_ROWS,
+    evaluate_content_stop_phase_density_gate, evaluate_content_stop_trajectory_density_gate,
+    fit_content_continuation_gate, fit_content_stop_density_gate, fit_content_stop_gate,
+    shuffle_content_continuation_rows, shuffle_content_stop_rows, shuffle_content_targets,
+    validate_corpus_manifest, verify_content_readout_serving, ContentContinuationRow,
+    ContentContinuationTraining, ContentPromptReading, ContentReadout, ContentReadoutReading,
+    ContentSignatureMode, ContentStopDensityGate, ContentStopGate, ContentStopRow,
+    CpuConversationSample, CpuMaskedCorpus, MemoryWeightSample, CONTENT_MIN_TARGET_VALUES,
+    CONTENT_MIN_TRAINING_ROWS,
 };
 use uor_r4_integer::stack::{
     read_memory_uorlut01, IntegerStackModel, STACK_CONTENT_READOUT_SCHEMA,
@@ -37,6 +39,7 @@ struct Config {
     stop_prototypes: usize,
     stop_density_neighbors: Option<usize>,
     stop_phase_neighbors: Option<usize>,
+    stop_trajectory_neighbors: Option<usize>,
     stop_density_offset_radius: u16,
     stop_horizon_neighbors: Option<usize>,
     trajectory_readout: bool,
@@ -75,6 +78,7 @@ fn usage() -> String {
      [--keys N] [--per-key N] [--key-tokens N] [--reply-turn N] \
      [--reply-cap N] [--stop-prototypes N] [--stop-density-neighbors N] \
      [--stop-density-offset-radius N] [--stop-phase-neighbors N] \
+     [--stop-trajectory-neighbors N] \
      [--stop-horizon-neighbors N] \
      [--trajectory-readout] [--seed N] [--select-only]"
         .to_owned()
@@ -101,6 +105,7 @@ fn parse_args() -> Result<Config, String> {
         stop_prototypes: 8,
         stop_density_neighbors: None,
         stop_phase_neighbors: None,
+        stop_trajectory_neighbors: None,
         stop_density_offset_radius: 2,
         stop_horizon_neighbors: None,
         trajectory_readout: false,
@@ -139,6 +144,9 @@ fn parse_args() -> Result<Config, String> {
             "--stop-phase-neighbors" => {
                 config.stop_phase_neighbors = Some(number(&value)?);
             }
+            "--stop-trajectory-neighbors" => {
+                config.stop_trajectory_neighbors = Some(number(&value)?);
+            }
             "--stop-horizon-neighbors" => {
                 config.stop_horizon_neighbors = Some(number(&value)?);
             }
@@ -173,14 +181,24 @@ fn parse_args() -> Result<Config, String> {
             .stop_phase_neighbors
             .is_some_and(|neighbors| !(1..=16).contains(&neighbors))
         || config
+            .stop_trajectory_neighbors
+            .is_some_and(|neighbors| !(1..=16).contains(&neighbors))
+        || config
             .stop_horizon_neighbors
             .is_some_and(|neighbors| !(1..=16).contains(&neighbors))
         || config.stop_density_offset_radius > 16
     {
         return Err("group or reply dimensions are out of bounds".to_owned());
     }
-    if config.stop_density_neighbors.is_some() && config.stop_phase_neighbors.is_some() {
-        return Err("--stop-density-neighbors and --stop-phase-neighbors are exclusive".to_owned());
+    let density_modes = [
+        config.stop_density_neighbors.is_some(),
+        config.stop_phase_neighbors.is_some(),
+        config.stop_trajectory_neighbors.is_some(),
+    ];
+    if density_modes.into_iter().filter(|enabled| *enabled).count() > 1 {
+        return Err("--stop-density-neighbors, --stop-phase-neighbors and \
+             --stop-trajectory-neighbors are exclusive"
+            .to_owned());
     }
     Ok(config)
 }
@@ -347,14 +365,33 @@ fn run() -> Result<serde_json::Value, String> {
         })
         .transpose()
         .map_err(|error| error.to_string())?;
-    let density_rows = phase_gate_rows.as_ref().unwrap_or(&gate_rows);
-    let density_shuffled_rows = if config.stop_phase_neighbors.is_some() {
+    let trajectory_gate_rows = config
+        .stop_trajectory_neighbors
+        .map(|_| {
+            derive_content_stop_trajectory_rows(
+                &memory_artifact,
+                &training_samples,
+                config.reply_cap,
+                true,
+                &code_training.readout,
+            )
+        })
+        .transpose()
+        .map_err(|error| error.to_string())?;
+    let density_rows = trajectory_gate_rows
+        .as_ref()
+        .or(phase_gate_rows.as_ref())
+        .unwrap_or(&gate_rows);
+    let density_shuffled_rows = if config.stop_phase_neighbors.is_some()
+        || config.stop_trajectory_neighbors.is_some()
+    {
         shuffle_content_stop_rows(density_rows, config.seed).map_err(|error| error.to_string())?
     } else {
         gate_shuffled_rows.clone()
     };
     let stop_density_neighbors = config
-        .stop_phase_neighbors
+        .stop_trajectory_neighbors
+        .or(config.stop_phase_neighbors)
         .or(config.stop_density_neighbors);
     let gate_training = fit_content_stop_gate(&gate_rows, config.stop_prototypes)
         .map_err(|error| error.to_string())?;
@@ -403,6 +440,24 @@ fn run() -> Result<serde_json::Value, String> {
             .map_err(|error| error.to_string())
         })
         .transpose()?;
+    let training_trajectory_content_audit = if config.stop_trajectory_neighbors.is_some() {
+        Some(
+            audit_content_stop_trajectory_content_prefix(
+                &memory_artifact,
+                &training_samples,
+                config.reply_cap,
+                true,
+                &code_training.readout,
+                &gate_density_training
+                    .as_ref()
+                    .ok_or_else(|| "trajectory density training is missing".to_owned())?
+                    .gate,
+            )
+            .map_err(|error| error.to_string())?,
+        )
+    } else {
+        None
+    };
     let horizon_rows = config
         .stop_horizon_neighbors
         .map(|_| {
@@ -525,7 +580,13 @@ fn run() -> Result<serde_json::Value, String> {
                 "gate_density": gate_density_training.as_ref().map(|training| {
                     serde_json::json!({
                         "rows": density_rows.len(),
-                        "signature_mode": if config.stop_phase_neighbors.is_some() { "phase_transition" } else { "current_code" },
+                        "signature_mode": if config.stop_trajectory_neighbors.is_some() {
+                            "current_code_phase_transition"
+                        } else if config.stop_phase_neighbors.is_some() {
+                            "phase_transition"
+                        } else {
+                            "current_code"
+                        },
                         "max_neighbors": stop_density_neighbors,
                         "offset_radius": config.stop_density_offset_radius,
                         "training": training,
@@ -533,6 +594,7 @@ fn run() -> Result<serde_json::Value, String> {
                         "true_sha256": gate_density_sha256,
                         "shuffled_sha256": gate_density_shuffled_sha256,
                         "predictions_changed": gate_density_prediction_changes,
+                        "training_content_audit": training_trajectory_content_audit,
                     })
                 }),
                 "gate_horizon": horizon_training.as_ref().map(|training| {
@@ -676,7 +738,16 @@ fn run() -> Result<serde_json::Value, String> {
             (&gate_density_training, &gate_density_shuffled_training)
         {
             let evaluate_density = |gate| {
-                if config.stop_phase_neighbors.is_some() {
+                if config.stop_trajectory_neighbors.is_some() {
+                    evaluate_content_stop_trajectory_density_gate(
+                        &memory_artifact,
+                        &evaluation_samples,
+                        config.reply_cap,
+                        true,
+                        &code_training.readout,
+                        gate,
+                    )
+                } else if config.stop_phase_neighbors.is_some() {
                     evaluate_content_stop_phase_density_gate(
                         &memory_artifact,
                         &evaluation_samples,
@@ -701,7 +772,19 @@ fn run() -> Result<serde_json::Value, String> {
             let (density_shuffled_arm, density_shuffled_prompts) =
                 evaluate_density(&density_shuffled_training.gate)
                     .map_err(|error| error.to_string())?;
-            let phase_content_audit = if config.stop_phase_neighbors.is_some() {
+            let phase_content_audit = if config.stop_trajectory_neighbors.is_some() {
+                Some(
+                    audit_content_stop_trajectory_content_prefix(
+                        &memory_artifact,
+                        &evaluation_samples,
+                        config.reply_cap,
+                        true,
+                        &code_training.readout,
+                        &density_training.gate,
+                    )
+                    .map_err(|error| error.to_string())?,
+                )
+            } else if config.stop_phase_neighbors.is_some() {
                 Some(
                     audit_content_stop_phase_content_prefix(
                         &memory_artifact,
@@ -758,12 +841,16 @@ fn run() -> Result<serde_json::Value, String> {
                 && density_training.terminal_stops >= 26
                 && density_training.nonterminal_stops <= density_training.nonterminal_stop_limit
                 && hashes_differ
-                && (config.stop_phase_neighbors.is_none() || predictions_changed > 0)
+                && (config.stop_phase_neighbors.is_none()
+                    && config.stop_trajectory_neighbors.is_none()
+                    || predictions_changed > 0)
                 && rows_match
                 && phase_content_audit
                     .as_ref()
                     .is_none_or(|audit| audit.decisions > 0 && audit.mismatches == 0);
-            let exact_reference_floor = if config.stop_phase_neighbors.is_some() {
+            let exact_reference_floor = if config.stop_phase_neighbors.is_some()
+                || config.stop_trajectory_neighbors.is_some()
+            {
                 9
             } else {
                 8
