@@ -121,6 +121,14 @@ It does not alter this result or rerun the experiment.
   conversation count, world and tokenizer.
 - No serving, integer runtime, CUDA, float-training or Claude-owned source
   changed.
+- Fresh exact-head review approved `8baf7c98d` in
+  [#issuecomment-6650874504](https://github.com/UOR-Foundation/uor-r4/pull/3703#issuecomment-6650874504).
+  PR [#3703](https://github.com/UOR-Foundation/uor-r4/pull/3703) merged as
+  `3e8780e6153524f2321e49c01836059545aa1284`.
+- Fresh `main` passed 286 library tests with 4 ignored and all 82 binary tests.
+  Its first evidence check exposed the missing local-only corpus file, repaired
+  without a corpus commit by deepseek-161. Fresh `main` then passed the public
+  attempt-8 and top-level evidence manifests.
 
 ## Size
 

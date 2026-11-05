@@ -50,6 +50,12 @@ source or REJECT decision.
 - No `.u16` or other new corpus payload is added by this PR; the existing
   16,339-byte response mask remains unchanged from the base.
 - Report, scope, policy and `git diff --check` pass.
+- Fresh exact-head review approved `b4d7385f1` in
+  [#issuecomment-6651077623](https://github.com/UOR-Foundation/uor-r4/pull/3706#issuecomment-6651077623).
+  PR [#3706](https://github.com/UOR-Foundation/uor-r4/pull/3706) merged as
+  `e29a7f8eb3c11835a90b23f094ac7b7246336d27`.
+- Fresh `main` passes the attempt-8 and top-level public evidence manifests and
+  tracks no `.u16` corpus file.
 
 ## Size
 
