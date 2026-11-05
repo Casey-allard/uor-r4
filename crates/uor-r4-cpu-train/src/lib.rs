@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
 mod content_readout;
+mod copy_key_depth;
 mod corpus;
 mod counterfactual;
 mod discrete_route;
@@ -48,6 +49,10 @@ pub use content_readout::{
     ContentStopDensityTraining, ContentStopGate, ContentStopPhaseAudit, ContentStopRow,
     ContentStopTraining, CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES,
     CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS, CONTENT_TRAJECTORY_SIGNATURE_BITS,
+};
+pub use copy_key_depth::{
+    evaluate_copy_key_depth, CopyKeyComparison, CopyKeyDepthArm, CopyKeyDepthReading,
+    COPY_KEY_MAX_DEPTH,
 };
 pub use corpus::{
     validate_corpus_manifest, CpuConversationSample, CpuCorpusIdentity, CpuCorpusSplit,

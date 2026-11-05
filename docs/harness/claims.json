@@ -111,6 +111,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/copy-key-depth": {
+    "branch": "deepseek/copy-key-depth",
+    "claimed_at": "2026-11-04T20:04:16-05:00",
+    "head": "4e42ffca5",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/copy-key2-cpu": {
     "branch": "deepseek/copy-key2-cpu",
     "claimed_at": "2026-11-03T02:21:59-05:00",

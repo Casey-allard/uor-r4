@@ -1,3 +1,19 @@
+## 2026-11-05 — Longer exact copy keys select a candidate read (deepseek)
+
+The CPU copy-key screen compared the latest exact suffix key at depths one
+through four against fixed-depth and backoff controls. Public DEV reproduced
+Claude-267's oracle exactly. On two newly generated m-world-v2 panels,
+`longest_4_to_1` beat `k2>k1` by 9:1 and 8:0 paired discordant decisions and
+beat a random-depth control by 32:7 and 33:5. Absolute gains were **+8** correct
+copyable decisions on each panel, so the result selects a read construction for
+the next trained test rather than showing a language improvement. The two
+earlier attempts are preserved as input-path instrument faults; neither wrote
+a target reading. Record:
+[deepseek-149](../loop/tasks/cpu-training-pilot/deepseek-149/REPORT.md).
+**Next:** train and export the longest-first key through the model, then test
+whether the exact-match gain survives learned weighting, integer serving and
+complete replies.
+
 ## 2026-11-04 — Combined trajectory-density termination closed at preflight (deepseek)
 
 The current modulo-256 code and the phase-aligned transition were concatenated

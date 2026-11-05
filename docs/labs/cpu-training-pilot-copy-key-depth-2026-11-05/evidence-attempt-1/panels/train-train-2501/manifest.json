@@ -1,0 +1,28 @@
+{
+  "cell": {
+    "phrasing": "train",
+    "value": "train"
+  },
+  "conversations": 64,
+  "dialogue_protocol_version": 2,
+  "mask_bytes": 7529,
+  "mask_schema": "uor-r4-response-mask/u8/v1",
+  "mask_sha256": "cfc02d6541b885ca696b362bc2f890b76b823defefc63e33a464205ed71eb03b",
+  "max_tokens": 256,
+  "mix": "default",
+  "probe_screen": "none (milestone_world_v2_probe is preserved under cfg(any()))",
+  "response_tokens": 2604,
+  "schema": "uor-r4-chat-corpus/v1",
+  "seed": 2501,
+  "split": "train",
+  "tokenizer": {
+    "bos_id": 0,
+    "sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "vocab_size": 4096
+  },
+  "tokens": 7529,
+  "tokens_bytes": 15122,
+  "tokens_sha256": "e750b5117fd4dfa0a1b56bfb9a270f25db562f9a95935442ec47437879be7652",
+  "world": "m-world-v2",
+  "writer": "one-model-end-to-end heldout-panel (claude-204)"
+}

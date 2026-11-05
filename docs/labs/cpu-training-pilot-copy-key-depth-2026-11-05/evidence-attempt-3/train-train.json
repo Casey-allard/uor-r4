@@ -1,0 +1,82 @@
+{
+  "claim": "data-only exact suffix copy-key selection; no model or language claim",
+  "inputs": {
+    "documents": 64,
+    "manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-depth/2026-11-05-attempt-3/panels/train-train-2501/manifest.json",
+    "mask": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-depth/2026-11-05-attempt-3/panels/train-train-2501/response_mask.u8",
+    "mask_sha256": "cfc02d6541b885ca696b362bc2f890b76b823defefc63e33a464205ed71eb03b",
+    "split": "train",
+    "tokens": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-depth/2026-11-05-attempt-3/panels/train-train-2501/tokens.u16",
+    "tokens_sha256": "e750b5117fd4dfa0a1b56bfb9a270f25db562f9a95935442ec47437879be7652"
+  },
+  "qualification": "development-only",
+  "reading": {
+    "copyable_positions": 1508,
+    "eligible_positions": 2604,
+    "fixed": [
+      {
+        "name": "fixed_depth_1",
+        "positions_with_match": 1151,
+        "right": 725
+      },
+      {
+        "name": "fixed_depth_2",
+        "positions_with_match": 807,
+        "right": 640
+      },
+      {
+        "name": "fixed_depth_3",
+        "positions_with_match": 684,
+        "right": 550
+      },
+      {
+        "name": "fixed_depth_4",
+        "positions_with_match": 586,
+        "right": 472
+      }
+    ],
+    "k2_backoff_k1": {
+      "name": "k2_backoff_k1",
+      "positions_with_match": 1151,
+      "right": 807
+    },
+    "longest": {
+      "name": "longest_4_to_1",
+      "positions_with_match": 1151,
+      "right": 815
+    },
+    "longest_vs_k2_backoff": {
+      "candidate_only": 9,
+      "candidate_sum": 815,
+      "control_only": 1,
+      "control_sum": 807,
+      "passes": true,
+      "threshold": 2
+    },
+    "longest_vs_random": {
+      "candidate_only": 32,
+      "candidate_sum": 815,
+      "control_only": 7,
+      "control_sum": 790,
+      "passes": true,
+      "threshold": 6
+    },
+    "random_changed_from_depth1": 125,
+    "random_changed_from_depth1_all": 211,
+    "random_changed_from_longest": 49,
+    "random_depth": {
+      "name": "random_available_depth",
+      "positions_with_match": 1151,
+      "right": 790
+    },
+    "windows": 73
+  },
+  "schema": "uor-r4.cpu-copy-key-depth/1",
+  "settings": {
+    "bos": 0,
+    "context": 192,
+    "maximum_depth": 4,
+    "seed": 149
+  },
+  "substrate": "cpu-development-research"
+}
