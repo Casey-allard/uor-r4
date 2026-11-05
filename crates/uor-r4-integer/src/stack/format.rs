@@ -803,8 +803,8 @@ struct Header {
     numerics: StackNumerics,
     matrices: Vec<MatrixEntry>,
     tables: Vec<TableEntry>,
-    /// Provenance recorded by the exporter; never read by serving arithmetic.
-    #[allow(dead_code)]
+    /// Provenance recorded by the exporter; never read by serving arithmetic. Parse checks a
+    /// carry export's `trained_context` (claude-288).
     source: serde_json::Value,
     /// The trained-in transport snap; absent on a free-transport artifact.
     #[serde(default)]
@@ -892,6 +892,24 @@ impl<'a> Container<'a> {
             return Err(StackError::Group(header.group));
         }
         header.shape.validate()?;
+        // A carry export's trained window (claude-288) lies inside the served context, and its turn
+        // memory keys over the whole served context: one still keyed at the trained window would
+        // serve block-cleared keys under carry provenance (found by DeepSeek's audit on #3717).
+        // A point key, built on 192-token windows, is refused here as `add_point_key_uorlut01`
+        // refuses to add one.
+        if let Some(w) = header.source.get("trained_context") {
+            if !w.as_u64().is_some_and(|w| w >= 1 && w <= header.shape.context as u64) {
+                let limit = "a trained context must be from 1 to the served context";
+                return Err(StackError::Shape(limit));
+            }
+            if header.memory.as_ref().is_some_and(|m| m.key_window != header.shape.context) {
+                let window = "a carry stack's turn memory must key over the served context";
+                return Err(StackError::Shape(window));
+            }
+            if header.point.is_some() {
+                return Err(StackError::Shape("a point key is not served on a carry stack"));
+            }
+        }
         if let Some(hamming) = &header.hamming {
             hamming.check(&header.shape)?;
         }
@@ -1631,6 +1649,33 @@ pub fn export_fbs_trunk_uorlut01_with(
     snap: &FbsTrunkSnapshot,
     snaps: FbsExportSnaps,
 ) -> Result<Vec<u8>, StackError> {
+    export_fbs_trunk(snap, snaps, None)
+}
+
+/// [`export_fbs_trunk_uorlut01_with`] served past the trained window (claude-288): the shape's
+/// context is `context` and the turn memory's key window is the whole served window, the float
+/// carry rule; the snapshot's own context is recorded as `source.trained_context`. The FBS
+/// export writes no read select, so the rank read's [`super::MAX_FLOCK_CONTEXT`] cannot bind.
+pub fn export_fbs_trunk_uorlut01_carry(
+    snap: &FbsTrunkSnapshot,
+    snaps: FbsExportSnaps,
+    context: usize,
+) -> Result<Vec<u8>, StackError> {
+    if context < snap.context {
+        return Err(StackError::Shape("a carry context must be at least the trained context"));
+    }
+    if context > MAX_CONTEXT {
+        return Err(StackError::Shape("a carry context must be at most MAX_CONTEXT (65,536)"));
+    }
+    export_fbs_trunk(snap, snaps, Some(context))
+}
+
+/// The FBS export; `carry` is the served context of a carry export, `None` the trained one.
+fn export_fbs_trunk(
+    snap: &FbsTrunkSnapshot,
+    snaps: FbsExportSnaps,
+    carry: Option<usize>,
+) -> Result<Vec<u8>, StackError> {
     let shape = StackShape {
         vocab: snap.vocab,
         width: snap.width,
@@ -1639,7 +1684,7 @@ pub fn export_fbs_trunk_uorlut01_with(
         pattern: "r".repeat(snap.layers.len()),
         read: "dot".to_owned(),
         rotation: true,
-        context: snap.context,
+        context: carry.unwrap_or(snap.context),
         pointer: None,
         read_select: None,
         read_weights: None,
@@ -1781,7 +1826,7 @@ pub fn export_fbs_trunk_uorlut01_with(
         Some(mem) => {
             let record = StackTurnMemory {
                 k: mem.k,
-                key_window: mem.key_window,
+                key_window: carry.unwrap_or(mem.key_window),
                 opening: mem.opening.len(),
                 reply: mem.reply.as_ref().map(|r| r.entries.len()),
                 reply_turn: mem.reply.as_ref().map(|r| r.turn),
@@ -1867,6 +1912,10 @@ pub fn export_fbs_trunk_uorlut01_with(
     if let Some(record) = &memory {
         header["memory"] = json!(record);
     }
+    // And only a carry export records its trained window (claude-288).
+    if carry.is_some() {
+        header["source"]["trained_context"] = json!(snap.context);
+    }
     let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
     let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
     out.extend_from_slice(MAGIC);
@@ -1902,6 +1951,11 @@ pub fn add_point_key_uorlut01(artifact: &[u8], image: &super::PointKeyImage) -> 
     let data_start = header_end.div_ceil(ALIGN) * ALIGN;
     let mut header: serde_json::Value =
         serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+    // A point key is built on 192-token windows, while a carry stack (claude-288) keys its turn
+    // memory over the whole served context: the two would key one conversation differently.
+    if header["source"].get("trained_context").is_some() {
+        return Err(StackError::Shape("a point key is not added to a carry stack"));
+    }
     let mut b = ExportBuilder::new();
     b.data = artifact[data_start..].to_vec();
     b.push_i16("memory.point.points", &image.points);

@@ -49,7 +49,8 @@
 //!   tokens per second against context, the read's long-context cost;
 //! - `--context-sweep --tokens TOKENS_U16` (claude-242) runs the same protocol at prefills of
 //!   128, 512, 2,048, 8,192 and 32,704 tokens, over the first 32,704 ids of a `UORT` token
-//!   file, so the contexts end at 192 to 32,768. The artifact's context must hold the last.
+//!   file, so the contexts end at 192 to 32,768. It times the points the artifact's context holds
+//!   and names those it skips (claude-288); it refuses one that holds none.
 //!
 //! `--forced PROMPTS_JSON --out FILE` (integer-nearest-readout, claude-244) reads the nearest
 //! head teacher-forced: each panel prompt is stepped as `--replies` steps it, then its reference
@@ -693,19 +694,27 @@ fn context_sweep(
     Ok(json!(points))
 }
 
+/// The `LONG_SWEEP_PREFILLS` an artifact of `context` positions holds with their decode, and
+/// those it cannot (claude-288): a carry export at 8,256 is swept to 8,256, not refused.
+fn long_sweep_points(context: usize) -> (Vec<usize>, Vec<usize>) {
+    LONG_SWEEP_PREFILLS
+        .iter()
+        .partition(|&&prefill| prefill + DECODE <= context)
+}
+
 /// The prompt `--context-sweep --tokens` sweeps (claude-242): a `UORT` token file's first ids, as
-/// many as the largest of `LONG_SWEEP_PREFILLS`. The file is read as `fbs-export --point-key`
-/// reads one: a 64-byte header starting `UORT`, whose count at bytes 8 to 16 must match the
-/// payload, then little-endian `u16` ids. It refuses an artifact whose `context` cannot hold that
-/// prefill and its decode, a file that is not `UORT` or whose count disagrees, one with too few
-/// ids, and an id outside `vocab`.
+/// many as the largest of `LONG_SWEEP_PREFILLS` the artifact's `context` holds with its decode
+/// (claude-288). The file is read as `fbs-export --point-key` reads one: a 64-byte header
+/// starting `UORT`, whose count at bytes 8 to 16 must match the payload, then little-endian `u16`
+/// ids. It refuses an artifact whose `context` holds no prefill and its decode, a file that is
+/// not `UORT` or whose count disagrees, one with too few ids, and an id outside `vocab`.
 fn long_sweep_prompt(bytes: &[u8], vocab: usize, context: usize) -> Result<Vec<u32>, String> {
-    let largest = LONG_SWEEP_PREFILLS[LONG_SWEEP_PREFILLS.len() - 1];
-    if context < largest + DECODE {
+    let Some(&largest) = long_sweep_points(context).0.last() else {
         return Err(format!(
-            "the artifact's context {context} is shorter than {largest} + {DECODE}"
+            "the artifact's context {context} is shorter than {} + {DECODE}",
+            LONG_SWEEP_PREFILLS[0]
         ));
-    }
+    };
     if bytes.len() < 64 || &bytes[..4] != b"UORT" {
         return Err("the token file is not a UORT token file".to_owned());
     }
@@ -1854,17 +1863,24 @@ fn run() -> Result<(), String> {
                 "--context-sweep times the Hamming read, and the artifact has none".to_owned(),
             );
         }
+        let (fit, skipped) = long_sweep_points(context);
         let (prompt, prefills, tokens) = match tokens_arg {
             None => (prompt, &SWEEP_PREFILLS[..], None),
             Some(file) => {
                 let raw = std::fs::read(file).map_err(|e| format!("{file}: {e}"))?;
                 let prompt = long_sweep_prompt(&raw, vocab, context)?;
+                for prefill in &skipped {
+                    eprintln!(
+                        "fbs-toks: skips the prefill {prefill}: the artifact's context {context} \
+                         cannot hold it and its {DECODE} decode steps"
+                    );
+                }
                 let tokens = json!({
                     "file": file,
                     "sha256": hex::encode(<sha2::Sha256 as sha2::Digest>::digest(&raw)),
                     "ids": (raw.len() - 64) / 2,
                 });
-                (prompt, &LONG_SWEEP_PREFILLS[..], Some(tokens))
+                (prompt, &fit[..], Some(tokens))
             }
         };
         let without = IntegerStackModel::parse(&bytes)
@@ -1880,6 +1896,9 @@ fn run() -> Result<(), String> {
         if let Some(tokens) = tokens {
             report["context"] = json!(context);
             report["tokens"] = tokens;
+            if !skipped.is_empty() {
+                report["skipped_prefills"] = json!(skipped);
+            }
         }
         println!("{report}");
         return Ok(());
@@ -2131,13 +2150,15 @@ mod tests {
         assert_eq!(prompt.len(), largest);
         assert_eq!(prompt[0], 258);
         assert_eq!(prompt[largest - 1], ((largest - 1) % 1000) as u32);
-        // An artifact one position short of the last context.
+        // An artifact one position short of the last context sweeps the points it holds
+        // (claude-288); one short of the first is refused.
         assert_eq!(
-            long_sweep_prompt(&bytes, 1000, end - 1).expect_err("short context"),
-            format!(
-                "the artifact's context {} is shorter than {largest} + {DECODE}",
-                end - 1
-            )
+            long_sweep_prompt(&bytes, 1000, end - 1).expect("short context").len(),
+            8_192
+        );
+        assert_eq!(
+            long_sweep_prompt(&bytes, 1000, 191).expect_err("no point"),
+            format!("the artifact's context 191 is shorter than 128 + {DECODE}")
         );
         // Raw ids with no header, a wrong magic, and a header shorter than 64 bytes.
         let raw: Vec<u8> = ids.iter().flat_map(|i| i.to_le_bytes()).collect();
@@ -2189,6 +2210,18 @@ mod tests {
         let mut past = ids;
         past[largest] = 1000;
         assert!(long_sweep_prompt(&bytes_of(&past), 1000, end).is_ok());
+    }
+
+    #[test]
+    fn the_long_sweep_times_the_points_a_carry_context_holds() {
+        // claude-288: a carry export at 8,256 is swept to 8,256 and skips 32,704.
+        assert_eq!(
+            long_sweep_points(8_256),
+            (vec![128, 512, 2_048, 8_192], vec![32_704])
+        );
+        assert_eq!(long_sweep_points(8_255), (vec![128, 512, 2_048], vec![8_192, 32_704]));
+        assert_eq!(long_sweep_points(32_768), (LONG_SWEEP_PREFILLS.to_vec(), vec![]));
+        assert_eq!(long_sweep_points(100), (vec![], LONG_SWEEP_PREFILLS.to_vec()));
     }
 
     /// `--forced` on the synthetic nearest-head artifact (claude-244), whose context is 8.

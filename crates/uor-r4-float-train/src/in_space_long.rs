@@ -17554,4 +17554,50 @@ mod tests {
         assert!(load_panel_queries(&file, "aa", "bb").is_err());
         fs::remove_dir_all(&dir).unwrap();
     }
+
+    /// claude-288's carry key script, written the same in the integer crate's
+    /// `stack::tests::carry_key_script`: 601 ids from a `<|bos|>`, in three turns, each a prompt
+    /// and then a reply ending in `<|eos|>`, as `(opening, end)`.
+    fn carry_key_script() -> (Vec<u32>, [(usize, usize); 3]) {
+        let turns = [(180, 230), (400, 440), (470, 600)];
+        let mut ids: Vec<u32> = (0..=600u32).map(|p| 2 + p * 7 % 254).collect();
+        ids[0] = hs::SHEET_BOS_ID;
+        for &(_, end) in &turns {
+            ids[end] = crate::flock_read_opening::SHEET_EOS_ID;
+        }
+        (ids, turns)
+    }
+
+    /// claude-288: under carry the greedy decode keys the turn memory over its whole window from
+    /// its first id, with no 192-token block. Past 192 an opening's turn reads back to the id
+    /// after the last `<|eos|>` (1, 231, 441 here) and a reply row's length counts from the
+    /// reply's start.
+    /// The served carry session keys every row of the same script this way
+    /// (`stack::tests::carry_session_keys_follow_the_float_rule_past_the_trained_window`).
+    #[test]
+    fn the_carry_decode_keys_read_across_the_trained_window() {
+        use crate::flock_read_opening::{opening_slots, OpeningAnchor};
+        let (ids, turns) = carry_key_script();
+        let (k, context, max) = (4usize, 2_048usize, u32::MAX);
+        for (&(opening, end), anchor) in turns.iter().zip([1usize, 231, 441]) {
+            for row in opening..=end {
+                // The decode's window and cut at this step, as the greedy decode takes them.
+                let start = (row + 1).saturating_sub(context);
+                assert_eq!(start, 0, "the conversation fits the carry context");
+                let window = &ids[start..=row];
+                let cut = prompt_cut(opening + 1, start);
+                if row == opening {
+                    let slots = opening_slots(window, k, OpeningAnchor::Turn);
+                    let key: Vec<u32> = slots[opening].iter().map(|&s| window[s]).collect();
+                    assert_eq!(key, ids[anchor..anchor + k], "opening {opening}");
+                } else {
+                    let reply = &ids[opening + 1..=row];
+                    let key = greedy_reply_key(window, cut - 1, reply).expect("a reply key");
+                    let mut want = ids[anchor..anchor + TURN_KEY].to_vec();
+                    want.extend([max, (row - opening) as u32, max, ids[row]]);
+                    assert_eq!(key, want, "turn at {opening}, row {row}");
+                }
+            }
+        }
+    }
 }

@@ -5618,6 +5618,290 @@ fn turn_memory_keys_follow_the_item_rule() {
     assert!(moved > key_window, "the decoded reply crossed the key window's block boundary");
 }
 
+/// The header JSON of an artifact.
+fn header_json(bytes: &[u8]) -> Value {
+    let len = u64::from_le_bytes(bytes[8..16].try_into().expect("length")) as usize;
+    serde_json::from_slice(&bytes[16..16 + len]).expect("header")
+}
+
+/// A 64-token trunk with its turn memory keyed in 64-token blocks.
+fn carry_trunk() -> super::FbsTrunkSnapshot {
+    let mut snap = turn_memory_trunk(64);
+    snap.memory = Some(synthetic_turn_memory(snap.vocab, snap.width, 4, 64, true, 0, 288));
+    snap
+}
+
+/// claude-288: a carry export serves past the trained window, with the turn memory keyed over the
+/// whole served window and the trained window recorded; the base export stops at it.
+#[test]
+fn carry_export_serves_past_the_trained_window() {
+    let snap = carry_trunk();
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    let carry = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, 200).expect("carry export");
+    let model = IntegerStackModel::parse(&carry).expect("served carry");
+    assert_eq!(model.shape().context, 200);
+    assert_eq!(model.turn_memory().expect("record").key_window, 200);
+    assert_eq!(header_json(&carry)["source"]["trained_context"], json!(64));
+    let mut session = model.session();
+    for i in 0..100usize {
+        session.step_native(20 + (i % 40) as u32).expect("a step past the trained window");
+    }
+    let base = super::export_fbs_trunk_uorlut01_with(&snap, snaps).expect("base export");
+    let model = IntegerStackModel::parse(&base).expect("served base");
+    let mut session = model.session();
+    for i in 0..64usize {
+        session.step_native(20 + (i % 40) as u32).expect("a step inside the window");
+    }
+    assert!(matches!(session.step_native(20), Err(StackError::ContextFull { context: 64 })));
+}
+
+/// claude-288: without carry the export is the wrapper's, byte for byte, with no trained context.
+#[test]
+fn base_export_records_no_trained_context() {
+    let snap = carry_trunk();
+    let base = super::export_fbs_trunk_uorlut01(&snap).expect("base export");
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    let with = super::export_fbs_trunk_uorlut01_with(&snap, snaps).expect("with");
+    assert_eq!(base, with);
+    assert!(header_json(&base)["source"].get("trained_context").is_none());
+}
+
+/// claude-288: a carry context below the trained window or past the limit is refused, and so is a
+/// recorded trained context of 0 or past the served context, a carry stack whose turn memory still
+/// keys at the trained window, and a point key on a carry stack.
+#[test]
+fn carry_export_refusals() {
+    let snap = carry_trunk();
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    for context in [63, super::format::MAX_CONTEXT + 1] {
+        let refused = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, context);
+        assert!(matches!(refused, Err(StackError::Shape(_))), "context {context}");
+    }
+    let carry = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, 200).expect("carry export");
+    for trained in [0, 201] {
+        let edited = with_header(&carry, |h| h["source"]["trained_context"] = json!(trained));
+        assert!(
+            matches!(super::format::Container::parse(&edited), Err(StackError::Shape(_))),
+            "trained_context {trained}"
+        );
+    }
+    let edited = with_header(&carry, |h| h["source"]["trained_context"] = json!(200));
+    assert!(super::format::Container::parse(&edited).is_ok());
+    // The refusals below are pinned by message, since every one of them is a `Shape` error.
+    fn refused<T>(result: Result<T, StackError>, want: &str) -> bool {
+        matches!(result, Err(StackError::Shape(message)) if message == want)
+    }
+    let edited = with_header(&carry, |h| h["memory"]["key_window"] = json!(64));
+    let window = "a carry stack's turn memory must key over the served context";
+    assert!(refused(super::format::Container::parse(&edited), window), "turn memory keyed at the trained window");
+    let unrecorded = with_header(&edited, |h| {
+        h["source"].as_object_mut().expect("source").remove("trained_context");
+    });
+    assert!(super::format::Container::parse(&unrecorded).is_ok(), "the same memory without carry");
+    let point = super::add_point_key_uorlut01(&carry, &synthetic_point_key(&carry, 5));
+    assert!(refused(point, "a point key is not added to a carry stack"), "a point key on a carry stack");
+    let base = super::export_fbs_trunk_uorlut01_with(&snap, snaps).expect("base export");
+    let pointed = super::add_point_key_uorlut01(&base, &synthetic_point_key(&base, 5)).expect("a point key on the base");
+    let edited = with_header(&pointed, |h| h["source"]["trained_context"] = json!(64));
+    let served = "a point key is not served on a carry stack";
+    assert!(refused(super::format::Container::parse(&edited), served), "a point key under carry provenance");
+}
+
+/// claude-288's carry key script, written the same in the float crate's
+/// `the_carry_decode_keys_read_across_the_trained_window`: a conversation of 601 ids from a
+/// `<|bos|>`, in three turns, each a prompt and then a reply ending in `<|eos|>`. Turn 1's reply
+/// crosses 192, turn 2's prompt crosses 384 before its opening, and turn 3's reply crosses 576.
+/// Each turn is `(opening, end)`: the prompt's last row and the reply's last, its `<|eos|>`.
+fn carry_key_script() -> (Vec<u32>, [(usize, usize); 3]) {
+    let turns = [(180, 230), (400, 440), (470, 600)];
+    let mut ids: Vec<u32> = (0..=600u32).map(|p| 2 + p * 7 % 254).collect();
+    ids[0] = 0;
+    for &(_, end) in &turns {
+        ids[end] = 1;
+    }
+    (ids, turns)
+}
+
+/// The float decode's turn-memory key at row `row` of the turn opening at `opening`, under carry:
+/// `greedy_reply_key` over the decode's whole window (`in_space_long.rs`), whose turn anchor is
+/// `opening_slots`' (`flock_read_opening.rs`). The anchor runs from the window's first id and moves
+/// only past a `<|bos|>` or `<|eos|>`, with no block cut. The opening row's key is the anchor's
+/// first `k` ids; a later row's is its first 8, MAX, the reply's length, MAX, the row's id.
+fn float_carry_key(ids: &[u32], opening: usize, row: usize, k: usize) -> Vec<u32> {
+    let mut start = 0;
+    for (t, &id) in ids[..=opening].iter().enumerate() {
+        if id == 0 || id == 1 {
+            start = t + 1;
+        }
+    }
+    let turn = |limit: usize| ids[start..=opening].iter().copied().take(limit);
+    if row == opening {
+        turn(k).collect()
+    } else {
+        turn(8).chain([u32::MAX, (row - opening) as u32, u32::MAX, ids[row]]).collect()
+    }
+}
+
+/// claude-288: under carry the session keys the turn memory as the float decode does past the
+/// trained window, in one key block, the whole served window: every opening and reply row of the
+/// script keys as `float_carry_key`. Each turn is served as `fbs-toks --replies` serves a panel
+/// prompt: a fresh session steps the conversation to the prompt's last id, marked, then the reply.
+/// The trained window's 192-token blocks key differently at rows of every turn; with the export's
+/// `key_window` left at 192 this test fails (G2's negative gate).
+#[test]
+fn carry_session_keys_follow_the_float_rule_past_the_trained_window() {
+    let (k, trained, context) = (4usize, 192usize, 640usize);
+    let (ids, turns) = carry_key_script();
+    // Each turn's anchor, the first id after the `<|bos|>` or `<|eos|>` before it, as the float
+    // crate's test reads it from the float functions.
+    let anchors = [1usize, 231, 441];
+    let mut snap = turn_memory_trunk(trained);
+    snap.memory = Some(synthetic_turn_memory(snap.vocab, snap.width, k, trained, true, 0, 288));
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    let carry = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, context).expect("carry export");
+    let model = IntegerStackModel::parse(&carry).expect("served carry");
+    for (&(opening, end), &anchor) in turns.iter().zip(&anchors) {
+        let (mut rows, mut windowed_differ) = (0usize, 0usize);
+        let mut session = model.session();
+        for row in 0..=end {
+            if row == opening {
+                session.mark_reply_start();
+            }
+            session.step_native(ids[row]).expect("a step past the trained window");
+            if row < opening {
+                assert!(session.last_memory_move().is_none(), "row {row}: a prompt row moved");
+                continue;
+            }
+            let mv = session.last_memory_move().expect("a keyed row").clone();
+            assert_eq!(mv.opening, row == opening, "row {row}");
+            assert_eq!(mv.key, float_carry_key(&ids, opening, row, k), "turn at {opening}, row {row}");
+            if row == opening {
+                assert_eq!(mv.key, ids[anchor..anchor + k], "opening {opening}");
+            } else {
+                assert_eq!(mv.key[..8], ids[anchor..anchor + 8], "row {row}");
+                assert_eq!(mv.key[9], (row - opening) as u32, "row {row}");
+            }
+            let windowed = if row == opening {
+                anchor_turn(&ids, row, k, trained)
+            } else {
+                expected_reply_key(&ids, row, opening + 1, 8, trained)
+            };
+            windowed_differ += usize::from(windowed != mv.key);
+            rows += 1;
+        }
+        assert_eq!(rows, end + 1 - opening, "turn at {opening}");
+        assert!(windowed_differ > 0, "turn at {opening}: the script must reach a row the trained blocks key differently");
+    }
+}
+
+/// claude-288: below the trained window a carry artifact serves the base artifact's steps byte for
+/// byte, with the Hamming read and the turn memory on: every step and every memory move, a stored
+/// opening and reply key among them. The base stops at the window and the carry steps on.
+#[test]
+fn carry_session_serves_the_base_steps_within_the_trained_window() {
+    use super::synthetic::synthetic_hamming;
+    use super::FbsMemoryEntry;
+    let (k, trained) = (4usize, 192usize);
+    let (ids, turns) = carry_key_script();
+    let opening = turns[0].0;
+    let mut snap = turn_memory_trunk(trained);
+    snap.hamming = Some(synthetic_hamming(snap.width, snap.layers.len(), 4, 288));
+    let mut memory = synthetic_turn_memory(snap.vocab, snap.width, k, trained, true, 40, 288);
+    memory.opening.push(FbsMemoryEntry { key: float_carry_key(&ids, opening, opening, k), value: 42 });
+    memory.opening.sort();
+    let reply = memory.reply.as_mut().expect("a reply table");
+    reply.entries.push(FbsMemoryEntry { key: float_carry_key(&ids, opening, opening + 5, k), value: 43 });
+    reply.entries.sort();
+    snap.memory = Some(memory);
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    let base = super::export_fbs_trunk_uorlut01_with(&snap, snaps).expect("base export");
+    let carry = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, 640).expect("carry export");
+    let (base, carry) = (
+        IntegerStackModel::parse(&base).expect("served base"),
+        IntegerStackModel::parse(&carry).expect("served carry"),
+    );
+    let (mut a, mut b) = (base.session(), carry.session());
+    let mut stored = 0usize;
+    for row in 0..trained {
+        if row == opening {
+            a.mark_reply_start();
+            b.mark_reply_start();
+        }
+        let (x, y) = (a.step_native(ids[row]).expect("base step"), b.step_native(ids[row]).expect("carry step"));
+        assert_eq!(x, y, "row {row}");
+        assert_eq!(a.last_memory_move(), b.last_memory_move(), "row {row}");
+        stored += usize::from(b.last_memory_move().is_some_and(|m| m.stored.is_some()));
+    }
+    assert_eq!(stored, 2, "the planted opening and reply keys are served");
+    assert!(matches!(a.step_native(ids[trained]), Err(StackError::ContextFull { context: 192 })));
+    b.step_native(ids[trained]).expect("the carry session steps on");
+}
+
+/// claude-288: past the trained window the carry session's trunk is the float reference's at the
+/// served context over the whole sequence, under the near-tie rule of
+/// `fbs_trunk_export_matches_float_reference_across_full_vocabulary`. Its Hamming read keeps
+/// positions from before the last `W` ids: it scans the whole carried context.
+#[test]
+fn carry_session_matches_the_float_reference_past_the_trained_window() {
+    use super::synthetic::synthetic_hamming;
+    const TIE: f64 = 1.0 / 1024.0;
+    let (trained, context, len) = (8usize, 64usize, 48usize);
+    let snap = synthetic_fbs_trunk(20261105);
+    assert_eq!(snap.context, trained);
+    let sequence: Vec<u32> = (0..len as u32).map(|p| (p * 37 + 11) % snap.vocab as u32).collect();
+    let snaps = super::FbsExportSnaps::SNAPPED;
+    let carry = super::export_fbs_trunk_uorlut01_carry(&snap, snaps, context).expect("carry export");
+    let model = IntegerStackModel::parse(&carry).expect("served carry");
+    let mut wide = snap.clone();
+    wide.context = context;
+    let want = wide.forward_f32(&sequence, true).expect("the reference at the served context");
+    // The artifact exported natively at the served context: the carry session serves its steps
+    // byte for byte at every position, so the trained window enters no served arithmetic.
+    let native = super::export_fbs_trunk_uorlut01_with(&wide, snaps).expect("native export");
+    let native = IntegerStackModel::parse(&native).expect("served native");
+    let (mut session, mut alongside) = (model.session(), native.session());
+    // The least snap margin the reference has met up to each position.
+    let least = |pos: usize| -> f64 {
+        let m = wide.tie_margins(&sequence[..=pos], true, super::FbsReferenceSnaps::INTEGER).expect("margins");
+        m.transition.min(m.gate).min(m.rate)
+    };
+    let mut exceptions = Vec::new();
+    for (pos, (&tok, want)) in sequence.iter().zip(&want).enumerate() {
+        let got = session.step_native(tok).expect("integer step");
+        assert_eq!(got, alongside.step_native(tok).expect("native step"), "position {pos}");
+        let drift = got.query_q12.iter().zip(&want.query).any(|(&g, &w)| (g - (w * 4096.0).round() as i32).abs() > 2);
+        let cells = got.kept_cells != want.kept_cells || got.token != want.token;
+        if drift {
+            // A query off the reference by more than 2 LSB only where the reference meets a new
+            // snap near-tie at this very position (seed 20261105: the gate at position 19).
+            let new_tie = least(pos) < 1e-6 && (pos == 0 || least(pos) < least(pos - 1));
+            assert!(new_tie, "position {pos}: the query drifts with no snap near-tie at it");
+            exceptions.push(pos);
+        } else if cells {
+            let margin = fbs_reference_margin(want, snap.kept_cells, got.kept_cells == want.kept_cells);
+            assert!(margin < TIE, "position {pos}: token {} against {}, margin {margin:.3e}", got.token, want.token);
+            exceptions.push(pos);
+        }
+    }
+    assert!(exceptions.len() <= 4, "{} near-tie exceptions: {exceptions:?}", exceptions.len());
+    assert!(exceptions.iter().all(|&p| p >= trained), "this seed's ties fall past W: {exceptions:?}");
+    let mut read = snap.clone();
+    read.hamming = Some(synthetic_hamming(read.width, read.layers.len(), 4, 2288));
+    let carry = super::export_fbs_trunk_uorlut01_carry(&read, snaps, context).expect("carry export");
+    let model = IntegerStackModel::parse(&carry).expect("served carry with the read");
+    let mut session = model.session();
+    for &tok in &sequence[..len - 1] {
+        session.step_native(tok).expect("integer step");
+    }
+    session.set_hamming_trace(true);
+    session.step_native(sequence[len - 1]).expect("the last step");
+    let trace = session.take_hamming_trace().expect("the trace is on");
+    let row = len - 1;
+    let kept: Vec<u32> = trace.iter().flat_map(|r| &r.heads).flat_map(|h| h.kept.iter().copied()).collect();
+    assert!(!kept.is_empty() && kept.iter().all(|&s| (s as usize) < row), "{kept:?}");
+    assert!(kept.iter().any(|&s| s as usize + trained < row), "the read keeps a position before the last W ids: {kept:?}");
+}
+
 /// Units 2-3: the opening table moves the reply's first step's row and the reply table each later
 /// row, n + w(c - n), after the Hamming readout. A zero weight, an unseen key, a memory without a
 /// reply table and a session without the reply-start signal move nothing.

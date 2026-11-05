@@ -3,7 +3,7 @@ id: integer-long-context
 title: Serve prompts and conversations past the 192-token window
 milestone: research
 area: serving
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [integer-hamming-read]
@@ -65,7 +65,7 @@ The trunk's recurrence makes (c) the geometry's own answer, which is why long co
   - `stack/session.rs` and `stack/mod.rs` were kept out through claude-287, whose last commit returned them for claude-288. They are this item's only overlap with `cpu-training-pilot` (DeepSeek's lane), and `loop claim` refuses an overlapping claim while either item has an open order, so the float units held no lock on that lane.
   - `milestone_world_v2.rs`: its `CONTEXT = 256` caps one episode. `chain=` in `heldout-panel` and `m-world-recall-corpus` writes conversations past any window (claude-271, claude-275).
 
-## Where it stands (5 Nov, claude-287)
+## Where it stands (5 Nov, claude-288: done)
 
 The plan, recorded in [claude-286's ORDER](../../loop/tasks/integer-long-context/claude-286/ORDER.md), is three units, P4 in Casey's plan of 4 Nov. The 2 Nov owner log on #3471 sets the target: a served conversation of 4,096 tokens, with tok/s and resident memory out to 8,192.
 1. **claude-286, done:** the cancel probe, and this item's scope and text.
@@ -74,7 +74,12 @@ The plan, recorded in [claude-286's ORDER](../../loop/tasks/integer-long-context
    - the sheet [`integer-long-context-2026-11-05.md`](../../harness/prep/integer-long-context-2026-11-05.md), FIT, and its pre-run review;
    - one RTX 5090 pod ($1.70), sealed in the store under `results/claude/integer-long-context-2026-11-05/c287/`;
    - **the decision review on #3471: carry, provisional.** a7r reads row 5 (its seeds disagree on carry) and P2b's (L) row 4 (carry holds at both seeds). No rule recalls a far note, so (L)'s row 4 is re-read on the first checkpoint that does; a7r's row 5, provisional because its seeds disagree, is re-read there by extension. #3714 holds the scorer's hardening for that re-read.
-3. **claude-288, done-whens 3 to 5, next:** the session serves carry, recorded in the artifact, with a test against the float forward's carry past 192 and a negative gate. Then tok/s and resident memory to 8,192, and gap 6. `stack/session.rs` and `stack/mod.rs` are back in the scope for it.
+3. **claude-288, done-whens 3 to 5, done** ([REPORT](../../loop/tasks/integer-long-context/claude-288/REPORT.md)):
+   - `fbs-export --context C` writes a carry artifact: context C, the turn memory's key window C, and the trained window recorded in the header. The payload is unchanged, and a base export is byte for byte as before;
+   - the session's keys follow the float carry rule past 192, with a negative gate; within 192 a carry artifact serves the base's steps; past 192 the trunk matches the in-crate float reference except at snap near-ties, and the Hamming read scans past the trained window (a trace, since the reference has no read);
+   - on a7r at 8,256, the served reply equals the float carry's on 378 and 364 of p-long's 609 long queries (seeds 1 and 2; to the first `<|eos|>`, or to 2,048 on the 21 that pass the float's window), and both are equally weak against the reference;
+   - tok/s and resident memory to 8,256 and 32,768 on this M1, and the pipeline map's gap 6.
+- **Left for later items:** carry stays provisional until a checkpoint recalls far notes (claude-287). The chat binary (`cpu-training-pilot`'s lane) serves the context an artifact declares, by its code; it was not run with a carry export here.
 
 ## Rules that apply
 

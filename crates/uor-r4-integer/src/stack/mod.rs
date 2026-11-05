@@ -87,7 +87,8 @@ pub use flock::{
 };
 pub use format::{add_point_key_uorlut01, StackPointKey, POINT_KEY_EXP, STACK_FBS_POINT_SCHEMA};
 pub use format::{
-    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with,
+    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry,
+    export_fbs_trunk_uorlut01_with,
     export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps, FbsQuatMode, FbsReferenceSnaps,
     FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed,
     FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot,

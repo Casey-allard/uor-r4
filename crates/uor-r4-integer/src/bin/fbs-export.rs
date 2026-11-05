@@ -6,8 +6,14 @@
 //! build, and this serving-build binary turns it into the artifact.
 //!
 //! ```text
-//! fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] SNAPSHOT_JSON OUT_PATH
+//! fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C]
+//!     SNAPSHOT_JSON OUT_PATH
 //! ```
+//!
+//! `--context C` serves the model past its trained window under carry (integer-long-context,
+//! claude-288): the artifact's context is C, its turn memory keys over the whole served window,
+//! and `source.trained_context` records the snapshot's own context. It refuses a C below that
+//! context or above 65,536. Without it the artifact is byte for byte the trained-window export.
 //!
 //! `--raw-gates` serves the two Hamilton gates, and `--raw-transition` the
 //! recurrence transition, unsnapped: the unit quaternion of each 4-block by
@@ -43,11 +49,11 @@ use sha2::{Digest, Sha256};
 use uor_r4_integer::fbs_snapshot::{run_readout_nearest, write_new_file};
 use uor_r4_integer::stack::{
     add_point_key_uorlut01, build_point_key, check_point_key_read_back,
-    export_fbs_trunk_uorlut01_with, point_key_windows, FbsExportSnaps, FbsTrunkSnapshot,
-    IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
+    export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_with, point_key_windows,
+    FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
-const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
 
 fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
     let value: serde_json::Value =
@@ -139,6 +145,7 @@ fn run() -> Result<(), String> {
     }
     let mut snaps = FbsExportSnaps::SNAPPED;
     let (mut paths, mut run_config) = (Vec::new(), None::<String>);
+    let mut carry = None::<usize>;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -156,6 +163,18 @@ fn run() -> Result<(), String> {
                     args.next()
                         .ok_or_else(|| format!("--run-config needs a path: {USAGE}"))?,
                 )
+            }
+            "--context" if carry.is_some() => return Err("--context given twice".to_owned()),
+            "--context" => {
+                let value =
+                    args.next().ok_or_else(|| format!("--context needs a value: {USAGE}"))?;
+                carry = Some(
+                    value
+                        .parse()
+                        .ok()
+                        .filter(|&c: &usize| c > 0)
+                        .ok_or_else(|| format!("--context needs a positive integer: {value}"))?,
+                );
             }
             flag if flag.starts_with("--") => return Err(format!("{flag}: {USAGE}")),
             _ => paths.push(arg),
@@ -191,8 +210,11 @@ fn run() -> Result<(), String> {
         }
         snap.readout_nearest = nearest;
     }
-    let artifact =
-        export_fbs_trunk_uorlut01_with(&snap, snaps).map_err(|e| format!("export: {e}"))?;
+    let artifact = match carry {
+        Some(context) => export_fbs_trunk_uorlut01_carry(&snap, snaps, context),
+        None => export_fbs_trunk_uorlut01_with(&snap, snaps),
+    }
+    .map_err(|e| format!("export: {e}"))?;
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;
     write_new_file(Path::new(out), &artifact).map_err(|e| format!("{out}: {e}"))?;
