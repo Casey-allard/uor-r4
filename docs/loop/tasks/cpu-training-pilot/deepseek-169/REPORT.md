@@ -6,8 +6,9 @@ Order: [ORDER.md](ORDER.md). Base: `97c4c5a4a`.
 
 ## Status
 
-Stopped as **INSTRUMENT_FAULT / CONTROL_INVALID**. The primary lookahead arm
-also failed strongly, but the registered target-shuffled control was vacuous.
+Complete and merged as **INSTRUMENT_FAULT / CONTROL_INVALID**. The primary
+lookahead arm also failed strongly, but the registered target-shuffled control
+was vacuous.
 
 ## Question
 
@@ -62,6 +63,10 @@ longest-32.
 - compact evidence:
   [`lookahead-2764/`](../../../labs/cpu-training-pilot-copy-key-reply-2026-11-05/evidence/lookahead-2764/);
   the sealed `outcome.txt` is `INSTRUMENT_FAULT`.
+- reviewed head: `8b0089c57297777b14b964285804bf331af383cf`;
+- protected merge: `4ec22a118a30365fa1c9f6ce6b2180cd3017f53c`;
+- fresh-main CPU library: **305 passed**, 4 expected ignores;
+- fresh-main CPU binaries: **83 passed**.
 
 ## Checks run at the head
 
@@ -76,14 +81,14 @@ longest-32.
 
 ## What remains
 
-Complete reviewed delivery. Do not retune this distance-only lookahead on seed
-2764. A later unit may use the predicted target identity or multi-token future
-content with a new unopened panel.
+No delivery work remains for this bounded experiment. Do not retune this
+distance-only lookahead on seed 2764. A later unit may use predicted target
+identity or multi-token future content with a new unopened panel.
 
 ## Size
 
-Final source, tests, preparation and compact evidence are measured against
-base `97c4c5a4a` at delivery.
+Against base `97c4c5a4a`, the merged result changes 32 paths (**+1,172 / -10
+textual lines**) plus gzipped evidence blobs. No `.u16` corpus is committed.
 
 ## Skills used
 
