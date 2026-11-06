@@ -1,0 +1,56 @@
+{
+  "schema": "uor-r4.cpu-reference-free-closure-summary/1",
+  "outcome": "INSUFFICIENT_POWER",
+  "base": "91be6c9ac",
+  "implementation": "4166a6f1b",
+  "primary": "reference_free_closure",
+  "fresh_seed": 2788,
+  "stop_after_artifact": 1,
+  "seed2_not_run": true,
+  "panel": {
+    "reachable": 428,
+    "tokens_sha256": "1d049e5e3c0a95cceb5a45e5acd569a64bc17c3087d59f1c1aca66880c2bde3d",
+    "mask_sha256": "8b79a29c5bf27616e2337bdf05b444364f94e7d07acd3e144dc7714e96c9fe68",
+    "manifest_sha256": "997f1edc6a493283e212506e8758feb08aae7ec40318e2c1d8ac5e0a8af0d146"
+  },
+  "artifact": {
+    "seed": 1,
+    "sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd"
+  },
+  "closure": {
+    "exact": 16,
+    "body_positions": 876,
+    "premature_bos": 67,
+    "rows_with_candidates": 195,
+    "selected_candidates": 195,
+    "changed_from_first": 21,
+    "exact_candidate_rows": 18
+  },
+  "first_boundary": {
+    "exact": 18,
+    "body_positions": 876,
+    "premature_bos": 70
+  },
+  "shuffled_closure": {
+    "exact": 18,
+    "body_positions": 876,
+    "complete_outcomes_changed": true
+  },
+  "full_retrieval": {
+    "exact": 44,
+    "body_positions": 803,
+    "premature_bos": 0
+  },
+  "power_floor": {
+    "changed_from_first": 100,
+    "exact_candidate_rows": 20
+  },
+  "resources": {
+    "selector_wall_seconds": 8.25,
+    "selector_average_cpu_percent": 931,
+    "selector_peak_rss_kib": 135584,
+    "panel_generator_wall_seconds": 0.60,
+    "panel_generator_peak_rss_kib": 7560
+  },
+  "reason": "Seed 1 produced 21 changed closure selections and 18 exact-candidate rows, below the fixed 100 and 20 power floors. The stop rule prohibited seed 2 and repeats."
+}

@@ -63,16 +63,20 @@ pub enum JointBranchArm {
     LongestSpine,
     BoundaryTerminalVolume,
     ReferenceEndpointOracle,
+    ReferenceFreeClosure,
+    ShuffledClosureFeatures,
 }
 
 impl JointBranchArm {
-    pub const EVALUATION_ARMS: [Self; 6] = [
+    pub const EVALUATION_ARMS: [Self; 8] = [
         Self::Learned,
         Self::ShuffledLabels,
         Self::FirstBoundary,
         Self::LongestSpine,
         Self::BoundaryTerminalVolume,
         Self::ReferenceEndpointOracle,
+        Self::ReferenceFreeClosure,
+        Self::ShuffledClosureFeatures,
     ];
 
     pub fn name(self) -> &'static str {
@@ -83,6 +87,8 @@ impl JointBranchArm {
             Self::LongestSpine => "longest_spine",
             Self::BoundaryTerminalVolume => "boundary_terminal_volume",
             Self::ReferenceEndpointOracle => "reference_endpoint_oracle",
+            Self::ReferenceFreeClosure => "reference_free_closure",
+            Self::ShuffledClosureFeatures => "shuffled_closure_features",
         }
     }
 }
@@ -815,7 +821,14 @@ pub fn evaluate_joint_branch_selection(
                 config.seed,
                 row,
             )?;
-            let selected_index = select_candidate(&spine, config.arm, config.training, reference);
+            let selected_index = select_candidate(
+                &spine,
+                config.arm,
+                config.training,
+                reference,
+                row,
+                config.seed,
+            );
             let tokens = selected_index
                 .and_then(|index| spine.tokens.get(..spine.candidates[index].length))
                 .unwrap_or(spine.tokens.as_slice());
@@ -904,6 +917,8 @@ fn select_candidate(
     arm: JointBranchArm,
     training: &JointBranchTraining,
     reference: &[u32],
+    row: usize,
+    seed: u64,
 ) -> Option<usize> {
     if spine.candidates.is_empty() {
         return None;
@@ -936,7 +951,85 @@ fn select_candidate(
                     && spine.tokens.get(..candidate.length) == Some(reference)
             })
             .or(Some(0)),
+        JointBranchArm::ReferenceFreeClosure => select_closure_candidate(spine, row, seed, false),
+        JointBranchArm::ShuffledClosureFeatures => select_closure_candidate(spine, row, seed, true),
     }
+}
+
+fn select_closure_candidate(
+    spine: &JointBranchSpine,
+    row: usize,
+    seed: u64,
+    shuffled: bool,
+) -> Option<usize> {
+    if spine.candidates.is_empty() {
+        return None;
+    }
+    let associations = closure_associations(spine, row, seed, shuffled);
+    let closed = spine
+        .candidates
+        .iter()
+        .zip(&associations)
+        .enumerate()
+        .filter(|(_, (_, (advantage, tail_support)))| *advantage == 0 && *tail_support >= 4)
+        .min_by_key(|(index, (candidate, _))| {
+            (
+                candidate.length,
+                Reverse(candidate.boundary.depth),
+                Reverse(candidate.boundary.terminal),
+                *index,
+            )
+        })
+        .map(|(index, _)| index);
+    if closed.is_some() {
+        return closed;
+    }
+    spine
+        .candidates
+        .iter()
+        .zip(&associations)
+        .enumerate()
+        .max_by_key(|(index, (candidate, (advantage, tail_support)))| {
+            (
+                Reverse(*advantage),
+                *tail_support,
+                candidate.boundary.depth,
+                candidate.boundary.terminal,
+                Reverse(candidate.length),
+                Reverse(*index),
+            )
+        })
+        .map(|(index, _)| index)
+}
+
+fn closure_associations(
+    spine: &JointBranchSpine,
+    row: usize,
+    seed: u64,
+    shuffled: bool,
+) -> Vec<(i32, u64)> {
+    let mut associations = spine
+        .candidates
+        .iter()
+        .map(|candidate| {
+            (
+                candidate.endpoint_global_advantage,
+                u64::try_from(candidate.features[11].saturating_add(candidate.features[12]))
+                    .unwrap_or(0),
+            )
+        })
+        .collect::<Vec<_>>();
+    if shuffled && associations.len() > 1 {
+        let source = associations.clone();
+        let mut state =
+            seed ^ 0x2355_eed5_eed5_eed5 ^ (row as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        state = splitmix64(state);
+        let offset = 1 + state as usize % (associations.len() - 1);
+        for (index, association) in associations.iter_mut().enumerate() {
+            *association = source[(index + offset) % source.len()];
+        }
+    }
+    associations
 }
 
 fn select_by_score(spine: &JointBranchSpine, selector: &JointBranchSelector) -> Option<usize> {
@@ -1257,8 +1350,83 @@ mod tests {
                 JointBranchArm::ReferenceEndpointOracle,
                 &training,
                 &[40, 10, 20, 30],
+                0,
+                235,
             ),
             Some(0)
+        );
+    }
+
+    fn closure_candidate(
+        length: usize,
+        advantage: i32,
+        tail_local: i32,
+        tail_global: i32,
+        depth: usize,
+        terminal: u64,
+    ) -> JointBranchCandidate {
+        let mut features = [0; JOINT_BRANCH_FEATURES];
+        features[11] = tail_local;
+        features[12] = tail_global;
+        JointBranchCandidate {
+            length,
+            boundary: ReplyBoundaryHit {
+                depth,
+                terminal,
+                nonterminal: 0,
+            },
+            features,
+            endpoint_global_advantage: advantage,
+        }
+    }
+
+    #[test]
+    fn reference_free_closure_chooses_the_earliest_supported_endpoint() {
+        let spine = JointBranchSpine {
+            tokens: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            stop: "cap".to_owned(),
+            candidates: vec![
+                closure_candidate(4, 8, 2, 2, 8, 4),
+                closure_candidate(6, 0, 1, 1, 9, 1),
+                closure_candidate(8, 0, 2, 2, 10, 2),
+                closure_candidate(10, 0, 3, 3, 11, 3),
+            ],
+        };
+        assert_eq!(
+            select_closure_candidate(&spine, 0, 235, false)
+                .map(|index| { spine.candidates[index].length }),
+            Some(8)
+        );
+    }
+
+    #[test]
+    fn shuffled_closure_features_are_deterministic_and_can_change_the_pick() {
+        let spine = JointBranchSpine {
+            tokens: (1..=10).collect(),
+            stop: "cap".to_owned(),
+            candidates: vec![
+                closure_candidate(4, 0, 4, 0, 8, 4),
+                closure_candidate(6, 0, 0, 4, 9, 1),
+                closure_candidate(8, 8, 0, 0, 10, 2),
+                closure_candidate(10, 0, 4, 0, 11, 3),
+            ],
+        };
+        let true_pick = select_closure_candidate(&spine, 0, 235, false).unwrap();
+        let seed = (0..64)
+            .find(|seed| select_closure_candidate(&spine, 0, *seed, true) != Some(true_pick))
+            .expect("a changed closure control");
+        let true_associations = closure_associations(&spine, 0, seed, false);
+        let shuffled_associations = closure_associations(&spine, 0, seed, true);
+        let mut true_sorted = true_associations.clone();
+        true_sorted.sort_unstable();
+        let mut shuffled_sorted = shuffled_associations.clone();
+        shuffled_sorted.sort_unstable();
+        assert_eq!(true_sorted, shuffled_sorted);
+        assert_ne!(true_associations, shuffled_associations);
+        assert_eq!(true_associations.len(), spine.candidates.len());
+        assert_eq!(
+            select_closure_candidate(&spine, 0, seed, true),
+            select_closure_candidate(&spine, 0, seed, true)
         );
     }
 

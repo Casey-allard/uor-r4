@@ -1,0 +1,23 @@
+	Command being timed: ".worktrees/deepseek-reference-free/target/release/cpu-joint-branch-driver local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16 local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8 local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json local/deepseek/reference-free/2026-11-06/panels/dd-2788/tokens.u16 local/deepseek/reference-free/2026-11-06/panels/dd-2788/response_mask.u8 local/deepseek/reference-free/2026-11-06/panels/dd-2788/manifest.json local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut --expected-train-tokens 140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91 --expected-train-mask d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad --expected-train-manifest d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5 --expected-panel-tokens 1d049e5e3c0a95cceb5a45e5acd569a64bc17c3087d59f1c1aca66880c2bde3d --expected-panel-mask 8b79a29c5bf27616e2337bdf05b444364f94e7d07acd3e144dc7714e96c9fe68 --expected-panel-manifest 997f1edc6a493283e212506e8758feb08aae7ec40318e2c1d8ac5e0a8af0d146 --expected-artifact a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd --primary reference-free-closure --seed 2788"
+	User time (seconds): 76.74
+	System time (seconds): 0.17
+	Percent of CPU this job got: 931%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:08.25
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 135584
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 494169
+	Voluntary context switches: 740
+	Involuntary context switches: 425
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,3 +1,16 @@
+## 2026-11-06 — Reference-free closure stops on sparse candidate power (deepseek)
+
+A label-free closure rule chose the earliest complete branch with no deeper
+global continuation advantage and at least four tail decisions. On fresh seed
+2788, artifact seed 1 it selected **195** candidates and changed **21**
+complete branches from first-boundary, with **18** exact-candidate rows. The
+fixed floors were 100 and 20, so seed 2 and repeats did not run.
+
+The run is **INSUFFICIENT_POWER**, not a mechanism negative. Only **195/428**
+reachable rows had any boundary candidate, making candidate coverage the next
+blocker. Record:
+[deepseek-235](../loop/tasks/cpu-training-pilot/deepseek-235/REPORT.md).
+
 ## 2026-11-06 — Consumed fresh panels still do not supervise exact endpoints (deepseek)
 
 Four consumed dev panels, seeds 2783-2786, were pinned as calibration data for

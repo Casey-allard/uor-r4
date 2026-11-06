@@ -841,6 +841,14 @@ pool as **INSUFFICIENT_POWER** and moves the next unit to reference-free
 completion scoring. See
 [deepseek-233](../../loop/tasks/cpu-training-pilot/deepseek-233/REPORT.md).
 
+A reference-free closure rule then selected the earliest candidate with no
+deeper continuation advantage and four tail decisions. Seed 2788 artifact 1
+selected **195** candidates and changed **21** branches from first-boundary;
+only **18** rows had an exact candidate. Both tests were below the fixed power
+floors, so seed 2 and repeats did not run. This is **INSUFFICIENT_POWER**; the
+measured blocker is candidate coverage across only **195/428** reachable rows.
+See [deepseek-235](../../loop/tasks/cpu-training-pilot/deepseek-235/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

@@ -6,7 +6,8 @@ use uor_r4_cpu_train::{
     evaluate_joint_branch_selection, evaluate_prompt_retrieval, fit_joint_branch_selector,
     fit_joint_branch_selector_on_panels, validate_corpus_manifest, CopyKeyReplyMetric,
     CpuConversationSample, CpuCorpusIdentity, CpuMaskedCorpus, JointBranchArm,
-    JointBranchEvaluation, MemoryWeightSample, PromptRetrievalArm, TimedJointBranchReading,
+    JointBranchEvaluation, JointBranchTraining, MemoryWeightSample, PromptRetrievalArm,
+    TimedJointBranchReading,
 };
 use uor_r4_cpu_train::{
     derive_full_sequence_suffix_content_memory, JOINT_BRANCH_EPOCHS, JOINT_BRANCH_FEATURE_NAMES,
@@ -57,31 +58,46 @@ fn run() -> Result<(), String> {
     let boundary =
         derive_reply_boundary_memory(&train.samples).map_err(|error| error.to_string())?;
     let boundary_census = boundary.census();
-    let training = if calibrations.is_empty() {
-        fit_joint_branch_selector(&train.conversations, config.cap, config.seed)
+    let training = if config.primary == PrimaryArm::Learned {
+        if calibrations.is_empty() {
+            fit_joint_branch_selector(&train.conversations, config.cap, config.seed)
+                .map_err(|error| error.to_string())?
+        } else {
+            let calibration_samples = calibrations
+                .iter()
+                .flat_map(|panel| panel.samples.iter().cloned())
+                .collect::<Vec<_>>();
+            fit_joint_branch_selector_on_panels(
+                &artifact,
+                &calibration_samples,
+                &suffix,
+                &boundary,
+                config.cap,
+                233,
+            )
             .map_err(|error| error.to_string())?
+        }
     } else {
-        let calibration_samples = calibrations
-            .iter()
-            .flat_map(|panel| panel.samples.iter().cloned())
-            .collect::<Vec<_>>();
-        fit_joint_branch_selector_on_panels(
-            &artifact,
-            &calibration_samples,
-            &suffix,
-            &boundary,
-            config.cap,
-            233,
-        )
-        .map_err(|error| error.to_string())?
+        JointBranchTraining {
+            trained: uor_r4_cpu_train::JointBranchSelector::zero(),
+            shuffled: uor_r4_cpu_train::JointBranchSelector::zero(),
+            rows: 0,
+            supervised_groups: 0,
+            baseline_wrong_groups: 0,
+            candidate_rows: 0,
+            positive_rows: 0,
+            shuffled_label_changes: 0,
+        }
     };
-    let eligible = training.supervised_groups >= 96 && training.baseline_wrong_groups > 0;
+    let eligible = config.primary == PrimaryArm::ReferenceFreeClosure
+        || (training.supervised_groups >= 96 && training.baseline_wrong_groups > 0);
     if config.preflight || !eligible {
         let report = serde_json::json!({
             "schema": "uor-r4.cpu-joint-branch-preflight/1",
             "substrate": "cpu-development-research",
             "qualification": "development-only",
             "mode": if config.preflight { "preflight" } else { "auto_stop" },
+            "primary": config.primary.name(),
             "inputs": {
                 "train": panel_input(&train),
                 "calibrations": calibrations.iter().map(panel_input).collect::<Vec<_>>(),
@@ -137,12 +153,19 @@ fn run() -> Result<(), String> {
         .map_err(|error| error.to_string())?;
         readings.insert(arm.name(), reading);
     }
-    let learned = readings
-        .get(JointBranchArm::Learned.name())
-        .ok_or_else(|| "learned reading is missing".to_owned())?;
-    let shuffled = readings
-        .get(JointBranchArm::ShuffledLabels.name())
-        .ok_or_else(|| "shuffled reading is missing".to_owned())?;
+    let (primary_arm, control_arm) = match config.primary {
+        PrimaryArm::Learned => (JointBranchArm::Learned, JointBranchArm::ShuffledLabels),
+        PrimaryArm::ReferenceFreeClosure => (
+            JointBranchArm::ReferenceFreeClosure,
+            JointBranchArm::ShuffledClosureFeatures,
+        ),
+    };
+    let primary = readings
+        .get(primary_arm.name())
+        .ok_or_else(|| "primary reading is missing".to_owned())?;
+    let control = readings
+        .get(control_arm.name())
+        .ok_or_else(|| "primary control reading is missing".to_owned())?;
     let first = readings
         .get(JointBranchArm::FirstBoundary.name())
         .ok_or_else(|| "first-boundary reading is missing".to_owned())?;
@@ -158,40 +181,44 @@ fn run() -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
 
-    let exact_vs_shuffled = compare(learned, shuffled, CopyKeyReplyMetric::ExactReference)?;
-    let body_vs_shuffled = compare(learned, shuffled, CopyKeyReplyMetric::CorrectBodyPositions)?;
-    let exact_vs_first = compare(learned, first, CopyKeyReplyMetric::ExactReference)?;
-    let body_vs_first = compare(learned, first, CopyKeyReplyMetric::CorrectBodyPositions)?;
+    let exact_vs_control = compare(primary, control, CopyKeyReplyMetric::ExactReference)?;
+    let body_vs_control = compare(primary, control, CopyKeyReplyMetric::CorrectBodyPositions)?;
+    let exact_vs_first = compare(primary, first, CopyKeyReplyMetric::ExactReference)?;
+    let body_vs_first = compare(primary, first, CopyKeyReplyMetric::CorrectBodyPositions)?;
 
-    let reachable = learned.reading.reference_reachable;
-    let all_emitted = learned.reading.bos_complete == reachable
-        && learned.reading.selected_candidates == reachable;
-    let exact_retained = learned.reading.exact_reference >= first.reading.exact_reference;
+    let reachable = primary.reading.reference_reachable;
+    let all_emitted = primary.reading.bos_complete == reachable
+        && primary.reading.selected_candidates == reachable;
+    let exact_retained = primary.reading.exact_reference >= first.reading.exact_reference;
     let body_retained =
-        learned.reading.correct_body_positions >= first.reading.correct_body_positions;
-    let changed_from_first = learned.reading.changed_from_first > 0;
-    let changed_from_shuffled = complete_rows_changed(learned, shuffled) > 0;
-    let exact_shuffled = exact_vs_shuffled["passes"].as_bool().unwrap_or(false);
+        primary.reading.correct_body_positions >= first.reading.correct_body_positions;
+    let changed_from_first = primary.reading.changed_from_first > 0;
+    let changed_from_control = complete_rows_changed(primary, control) > 0;
+    let exact_control = exact_vs_control["passes"].as_bool().unwrap_or(false);
     let exact_first = exact_vs_first["passes"].as_bool().unwrap_or(false);
-    let shuffle_active =
-        training.shuffled_label_changes > 0 && training.trained != training.shuffled;
-    let outcome = if training.supervised_groups < 96
+    let shuffle_active = match config.primary {
+        PrimaryArm::Learned => {
+            training.shuffled_label_changes > 0 && training.trained != training.shuffled
+        }
+        PrimaryArm::ReferenceFreeClosure => changed_from_control,
+    };
+    let outcome = if (config.primary == PrimaryArm::Learned && training.supervised_groups < 96)
         || reachable < 200
-        || learned.reading.changed_from_first < 100
-        || learned.reading.exact_candidate_rows < 20
+        || primary.reading.changed_from_first < 100
+        || primary.reading.exact_candidate_rows < 20
     {
         "INSUFFICIENT_POWER"
     } else if !shuffle_active
-        || learned.reading.selected_candidates == 0
+        || primary.reading.selected_candidates == 0
         || !changed_from_first
-        || !changed_from_shuffled
+        || !changed_from_control
     {
         "CONTROL_FAULT"
     } else if all_emitted
-        && learned.reading.premature_bos == 0
+        && primary.reading.premature_bos == 0
         && exact_retained
         && body_retained
-        && exact_shuffled
+        && exact_control
         && exact_first
     {
         "KEEP"
@@ -199,11 +226,19 @@ fn run() -> Result<(), String> {
         "REJECT"
     };
 
+    let claim = match config.primary {
+        PrimaryArm::Learned => {
+            "integer pairwise selection over complete boundary branches cut from one full-sequence geometric content spine"
+        }
+        PrimaryArm::ReferenceFreeClosure => {
+            "reference-free earliest supported closure over complete boundary branches cut from one full-sequence geometric content spine"
+        }
+    };
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-joint-branch-selection/1",
         "substrate": "cpu-development-research",
         "qualification": "development-only",
-        "claim": "integer pairwise selection over complete boundary branches cut from one full-sequence geometric content spine",
+        "claim": claim,
         "inputs": {
             "train": panel_input(&train),
             "calibrations": calibrations.iter().map(panel_input).collect::<Vec<_>>(),
@@ -212,6 +247,8 @@ fn run() -> Result<(), String> {
             "artifact_sha256": artifact_sha256,
         },
         "settings": {
+            "primary": primary_arm.name(),
+            "primary_control": control_arm.name(),
             "cap": config.cap,
             "seed": config.seed,
             "features": JOINT_BRANCH_FEATURE_NAMES,
@@ -235,8 +272,8 @@ fn run() -> Result<(), String> {
             .collect::<BTreeMap<_, _>>(),
         "full_retrieval": full_retrieval.reading,
         "comparisons": {
-            "exact_vs_shuffled": exact_vs_shuffled,
-            "body_vs_shuffled": body_vs_shuffled,
+            "exact_vs_control": exact_vs_control,
+            "body_vs_control": body_vs_control,
             "exact_vs_first": exact_vs_first,
             "body_vs_first": body_vs_first,
         },
@@ -259,10 +296,10 @@ fn run() -> Result<(), String> {
             "all_emitted": all_emitted,
             "exact_retained": exact_retained,
             "body_retained": body_retained,
-            "exact_vs_shuffled": exact_shuffled,
+            "exact_vs_control": exact_control,
             "exact_vs_first": exact_first,
             "changed_from_first": changed_from_first,
-            "changed_from_shuffled": changed_from_shuffled,
+            "changed_from_control": changed_from_control,
             "shuffle_active": shuffle_active,
             "outcome": outcome,
         },
@@ -403,6 +440,21 @@ struct PanelPaths {
     expected_manifest_sha256: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PrimaryArm {
+    Learned,
+    ReferenceFreeClosure,
+}
+
+impl PrimaryArm {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Learned => "learned",
+            Self::ReferenceFreeClosure => "reference_free_closure",
+        }
+    }
+}
+
 struct Config {
     train: PanelPaths,
     panel: PanelPaths,
@@ -412,6 +464,7 @@ struct Config {
     cap: usize,
     seed: u64,
     preflight: bool,
+    primary: PrimaryArm,
 }
 
 struct CalibrationPath {
@@ -425,6 +478,7 @@ fn parse_args() -> Result<Config, String> {
     let mut cap = 64usize;
     let mut seed = 231u64;
     let mut preflight = false;
+    let mut primary = PrimaryArm::Learned;
     let mut calibration_directories = Vec::new();
     let mut calibration_manifests = Vec::new();
     let mut expected = BTreeMap::<String, String>::new();
@@ -450,6 +504,13 @@ fn parse_args() -> Result<Config, String> {
                 seed = value
                     .parse()
                     .map_err(|_| format!("not a number: {value}"))?
+            }
+            "--primary" => {
+                primary = match value.as_str() {
+                    "learned" => PrimaryArm::Learned,
+                    "reference-free-closure" => PrimaryArm::ReferenceFreeClosure,
+                    _ => return Err(format!("unknown primary {value}\n{}", usage())),
+                }
             }
             "--calibration" => calibration_directories.push(PathBuf::from(value)),
             "--expected-calibration-manifest" => calibration_manifests.push(value),
@@ -519,6 +580,7 @@ fn parse_args() -> Result<Config, String> {
         cap,
         seed,
         preflight,
+        primary,
     })
 }
 
@@ -544,7 +606,7 @@ fn usage() -> String {
      --expected-train-tokens HEX --expected-train-mask HEX \
      --expected-train-manifest HEX --expected-panel-tokens HEX \
      --expected-panel-mask HEX --expected-panel-manifest HEX \
-     --expected-artifact HEX [--calibration DIR \
+     --expected-artifact HEX [--primary learned|reference-free-closure] [--calibration DIR \
      --expected-calibration-manifest HEX]... [--cap N] [--seed N] [--preflight]"
         .to_owned()
 }
@@ -567,6 +629,7 @@ mod tests {
             "--expected-artifact",
             "--calibration",
             "--expected-calibration-manifest",
+            "--primary",
             "--preflight",
         ] {
             assert!(usage.contains(word), "{usage}");

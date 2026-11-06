@@ -326,6 +326,15 @@ boundary to supervise this branch choice. The next unit therefore moves to a
 reference-free completion objective rather than adding more panels. See
 [deepseek-233](../loop/tasks/cpu-training-pilot/deepseek-233/REPORT.md).
 
+The reference-free follow-up chose the earliest branch with no deeper global
+continuation advantage and at least four decisions in its eight-step tail.
+Fresh seed 2788 produced **195/428** candidate-bearing rows and changed only
+**21** branches from first-boundary, with **18** exact-candidate rows, below the
+fixed floors of 100 and 20. The run stopped after artifact seed 1 as
+**INSUFFICIENT_POWER**; it is not a selector negative. Candidate coverage, not
+the closure score, is now the measured blocker. See
+[deepseek-235](../loop/tasks/cpu-training-pilot/deepseek-235/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.
