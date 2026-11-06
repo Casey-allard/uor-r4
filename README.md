@@ -20,51 +20,57 @@ Chat assistants run on **transformers**: programs that spend much of their effor
 large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job more
 cheaply: geometric rotations, whole-number addresses built from primes, small lookup tables and an
 exact memory. The goal is a fast language model that trains quickly and runs on your own laptop or
-in your browser, with local computation by default and, in the web Studio only, an optional user-configured OpenAI-compatible API that sends prompts to the chosen endpoint; the desktop shell has no OpenAI-compatible API mode. The project is open research and **pre-alpha**:
-**one milestone is complete, but no model built under its rules holds a useful conversation yet.**
-[What UOR-R4 is](docs/start/what-is-uor-r4.md) explains the bet in five minutes.
+in your browser, computing locally by default. The web Studio alone has an optional mode that sends
+prompts to an OpenAI-compatible endpoint the user configures; the desktop shell has none.
+
+The project is open research and **pre-alpha**. One of eight milestones is complete, but **no model
+built under its rules holds a useful conversation yet.** [What UOR-R4 is](docs/start/what-is-uor-r4.md)
+explains the bet in five minutes, and the [glossary](docs/start/glossary.md) defines every term used
+below.
 
 ## Where we are
 
-**30 Oct 2026: M1 is complete — 1 of 8 milestones.** The saved 19-table discrete
-`trunk-joint-pointer-v1-d11` model, exported as two seeded `UORLUT01` integer artifacts, passed all
-six closing bars on both seeds
-([M1 #2029](https://github.com/UOR-Foundation/uor-r4/issues/2029), [M1 close](docs/labs/m1-close-saved-model/README.md), [Fresh V2](docs/labs/m1-fresh-panel-transfer/README.md), [bar-f](docs/loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). This is a measured language-base result, not useful-chat qualification.
+**Milestone 1 is complete (30 Oct 2026).** A saved discrete model, exported as two integer
+artifacts (one per training seed), predicts the next token better than two fixed baselines built
+from its own training text:
 
-| Test | Saved model, seed 1 / seed 2 | Controls | Outcome |
-|---|---:|---:|---|
-| DEV next-token top-1, 14,287 rows | **7,002 / 7,001** | unigram 1,226; T2 6,300; bar target 6,324 (T2 + 24) | Beats both and the target at both seeds |
-| Fresh V2, 14,479 rows | **7,215 / 7,228** | unigram 1,279; T2 6,582 | Beats both beyond the paired band of 82 |
-| Held-out phrasing p-f, 15,953 rows | **7,850 / 7,872** | unigram 1,409; T2 7,375 | Beats both beyond the paired band of 81 |
+- the **unigram** table, which always guesses by overall word frequency;
+- the **T2** table, which looks at the previous word and guesses the word most often seen after it.
 
-The same saved artifacts have zero export/reference gap on the 14,287-row DEV panel at both seeds and pass the planted-fault control. They
-serve at a median **10,876 / 10,566 decode tokens per second on an Apple M1**, measured with a
-192-token prefill and 64-token decode for bar (f); the older close-grade bar (c) reports 11,026 /
-10,573 tok/s. Bar (f) uses prompts whose phrasing templates are absent
-from TRAIN at K = 1,024. **The limit:** 62.5% of p-f's *reference replies* are verbatim TRAIN
-replies. That is data overlap, not a generated-copy rate: M1 shows reading new prompts into known
-kinds of reply, not inventing new kinds of reply or carrying a conversation.
+| Test panel | Saved model, seed 1 / seed 2 | Unigram | T2 | Outcome |
+|---|---:|---:|---:|---|
+| Development panel, 14,287 rows | **7,002 / 7,001** | 1,226 | 6,300 | Beats both at both seeds |
+| A fresh panel, 14,479 rows | **7,215 / 7,228** | 1,279 | 6,582 | Beats both beyond the paired noise band |
+| Prompts in phrasings absent from training, 15,953 rows | **7,850 / 7,872** | 1,409 | 7,375 | Beats both beyond the paired noise band |
 
-### The live research question
+The integer artifacts match the reference model exactly on the development panel and decode at a
+median of about **10,900 / 10,600 tokens per second on an Apple M1 laptop**.
 
-The separate float-trained FBS trunk is working toward complete replies. Claude-217's cycle-step
-experiment ends every registered loop, but the content decision is underpowered and greedy stays
-the decode. Exact turn memory also misses reworded questions: its key is the turn's exact first
-token ids ([claude-217](docs/loop/tasks/one-model-end-to-end/claude-217/REPORT.md)).
+**What this does not show.** These panels come from a templated conversation corpus, and 62.5% of
+the held-out panel's reference replies also appear verbatim in training. M1 shows a model reading
+new prompts into known kinds of reply. It does not show a model inventing new replies or carrying a
+conversation. The evidence: [M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029) and
+[M1 close](docs/labs/m1-close-saved-model/README.md).
 
-Claude-218 found trunk-state memory keys that improved reply openings offline.
-[Claude-219](docs/loop/tasks/one-model-end-to-end/claude-219/REPORT.md) then tested those keys in
-free generation on fresh p-v. Where exact memory misses, serving the **point key** for the first
-reply token improves template replies by **+13, +8 and +12** and exact replies by **+9, +8 and
-+12**, at three seeds. This is a real but partial gain: keyed openings are right on **27–31%** of
-the 385 openings it gives, only **12–18%** of the lift from forcing the right first token. The
-cheaper sign key is inconclusive at this panel size. [Claude-220](docs/loop/tasks/one-model-end-to-end/claude-220/REPORT.md)
-then served the point key inside one float model on fresh p-w: templates improve by **+41/+40/+42**
-at three seeds, with exact claude-219 parity. That gain recalls TRAIN replies rather than
-generalizing. [Claude-222](docs/loop/tasks/point-key-integer/claude-222/REPORT.md) has now built the
-integer point table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](docs/loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade.
-[Claude-227](docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](docs/loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](docs/loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths. [Claude-232](docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then ran greedy parity: DEV first-token agreement is 291, 285 and 284 of 310 at three seeds, and p-w agreement is 911, 777 and 64 of 1,202. Every cell missed the bar, so the mismatch must be localized before the p-x rerun. Useful conversation
-remains unproven.
+### The open research question
+
+**Does the model learn human-written text?** M1's panels are templated. On real human text, a
+held-out panel of 1,460,697 rows from public conversation and encyclopedia text, the model does not
+yet beat the T2 baseline:
+
+- **First runs (6 Nov):** training loss stays flat over 8,192 steps at two model widths, and every
+  run trails the unigram table
+  ([report](docs/loop/tasks/scale-probe/claude-295/REPORT.md)).
+- **More data and more steps (6 Nov):** the best run (more training text, 32,768 steps) gets
+  272,867 and 234,892 rows right at its two seeds against T2's 256,660. One seed is ahead and one
+  behind, so the result is **inside the noise band, not a win**. Every run now beats the unigram
+  table, and more training text is the one change that helped beyond the noise band at both seeds,
+  at 8,192 steps ([report](docs/loop/tasks/one-model-end-to-end/claude-297/REPORT.md)).
+- **Next:** the same recipe at a four-times-larger batch, to test whether the two seeds'
+  disagreement is training noise ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)).
+
+Every result, negative ones included, is one row in the
+[research notebook](docs/research/notebook/float-training.md).
 
 ## The three products
 
@@ -84,9 +90,9 @@ None ships today. A trained integer artifact exists; an integrated, qualified pr
 
 M2 asks for complete correct replies grounded in exact memory; M3 then qualifies durable memory.
 After that come one served model (M4), laptop cost (M5), reasoning and coding (M6), browser/API
-distribution (M7) and an alpha release (M8). The immediate end-to-end work is to make new-phrasing
-reply openings reachable, serve every part in integers, and measure one whole model on fresh
-prompts with tokens per second. This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
+distribution (M7) and an alpha release (M8). The immediate work is the open question above: a
+model that beats both baselines on human-written text at every seed. Serving, speed and size work
+for that model follow once it does. This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
 
 ## How it works
 

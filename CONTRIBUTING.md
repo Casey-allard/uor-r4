@@ -74,7 +74,7 @@ or dependency. Never commit model weights, corpora, binaries or secrets ([charte
 
 ### Model work is gated
 
-M1 is complete; M2 and M3 are in progress; M4–M8 are not complete. M7 has a browser engine and Studio
+M1 is complete; M2 is blocked and M3 is held; M4–M8 are not complete. M7 has a browser engine and Studio
 harness on a synthetic stand-in, but no accepted model bundle. GPU training or evaluation, and any
 run a milestone claim rests on, needs a one-page pre-registration with a non-author **TEST FITNESS:
 FIT** review and the lab's own whole-project pre-run review (D67). The D41 donor pass is the named
