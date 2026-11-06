@@ -125,6 +125,18 @@ The next attempt must compare local and global suffix depth directly rather than
 waiting for local copy to disappear. See
 [deepseek-196](../loop/tasks/cpu-training-pilot/deepseek-196/REPORT.md).
 
+Full prompt-plus-reply history then gave the global suffix table the same stream
+surface as local exact copy. A confident global suffix replaced local only when
+deeper, with ties staying local. On fresh seed 2774, treatment raised exact
+replies from **0/0** to **17/17** and body positions from **578/578** to
+**847/844** across the two artifacts; every body comparison and the paired exact
+comparison passed. The unchanged boundary nevertheless made **85/104**
+premature stops against the four-stop limit, so the combined decode rejected.
+This is a **content-positive, termination-limited** result. Preserve the
+full-sequence content and depth arbiter, and next align stopping to the same
+trajectory. See
+[deepseek-198](../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

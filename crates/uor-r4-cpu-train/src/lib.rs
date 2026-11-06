@@ -31,6 +31,7 @@ mod reply_eval;
 mod self_prefix;
 mod served_forward;
 mod stop_signature;
+mod suffix_arbitration;
 mod suffix_fallback;
 mod suffix_memory;
 mod train;
@@ -183,17 +184,25 @@ pub use stop_signature::{
     StopSignatureEvaluation, StopSignatureGate, StopSignatureReading, StopSignatureReplyReading,
     StopSignatureRow, StopSignatureTraining, STOP_SIGNATURE_BITS, STOP_SIGNATURE_WORDS,
 };
+pub use suffix_arbitration::{
+    compare_suffix_arbitration_rows, evaluate_suffix_arbitration_replies,
+    generate_suffix_arbitration_reply, suffix_arbitration_changes, SuffixArbitrationArm,
+    SuffixArbitrationChanges, SuffixArbitrationReading, SuffixArbitrationStep,
+    TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
+    SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH,
+};
 pub use suffix_fallback::{
     compare_suffix_fallback_rows, evaluate_suffix_fallback_replies, generate_suffix_fallback_reply,
     suffix_fallback_changes, SuffixFallbackArm, SuffixFallbackChanges, SuffixFallbackReading,
     SuffixFallbackStep, TimedSuffixFallbackReading, SUFFIX_FALLBACK_MIN_OBSERVATIONS,
 };
 pub use suffix_memory::{
-    compare_suffix_memory_rows, derive_suffix_content_memory, derive_suffix_memory,
-    evaluate_suffix_memory_replies, generate_suffix_memory_reply, shuffle_suffix_memory,
-    suffix_decision_changes, SuffixDecisionChanges, SuffixMemoryArm, SuffixMemoryCensus,
-    SuffixMemoryPrediction, SuffixMemoryReading, SuffixMemoryStep, SuffixMemoryTable,
-    TimedSuffixMemoryReading, SUFFIX_MEMORY_MAX_DEPTH,
+    compare_suffix_memory_rows, derive_full_sequence_suffix_content_memory,
+    derive_suffix_content_memory, derive_suffix_memory, evaluate_suffix_memory_replies,
+    generate_suffix_memory_reply, shuffle_suffix_memory, suffix_decision_changes,
+    SuffixDecisionChanges, SuffixMemoryArm, SuffixMemoryCensus, SuffixMemoryPrediction,
+    SuffixMemoryReading, SuffixMemoryStep, SuffixMemoryTable, TimedSuffixMemoryReading,
+    SUFFIX_MEMORY_MAX_DEPTH,
 };
 pub use train::{
     CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,

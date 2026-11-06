@@ -1,3 +1,22 @@
+## 2026-11-05 — Full-sequence suffix arbitration improves content but stopping regresses (deepseek)
+
+Reply-target suffix memory was trained over full prompt-plus-reply histories,
+so global suffixes and local exact copy inspect the same stream. A confident
+global suffix replaced local only when its match was deeper; ties stayed local.
+The true deepseek-191 boundary remained the stopping rule.
+
+On fresh seed 2774 and both artifacts, treatment produced **17/17** exact
+replies and **847/844** body positions, versus **0/0** and **578/578** for local
+copy. All five body comparisons and the paired exact comparison passed on both
+artifacts. Treatment also raised opening correctness to **68/68**.
+
+The combined configuration nevertheless failed because the unchanged boundary
+made **85/104** premature stops against the four-stop ceiling. This is a
+**content-positive, termination-limited** result: full-sequence depth
+arbitration is worth preserving, but termination must be trained or keyed on
+the same changed trajectory. Record:
+[deepseek-198](../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
+
 ## 2026-11-05 — Strict local priority makes content-suffix fallback unreachable (deepseek)
 
 The global suffix table was rebuilt without BOS targets and used only when

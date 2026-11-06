@@ -651,6 +651,20 @@ must compare local and global suffix depth directly, allowing a deeper
 confident global continuation to arbitrate against a shallow local match. See
 [deepseek-196](../../loop/tasks/cpu-training-pilot/deepseek-196/REPORT.md).
 
+The next unit aligned the memory surfaces: full prompt-plus-reply histories
+became the suffix table, and global/local depth was compared on the same stream.
+A confident global suffix replaced local only when deeper; ties stayed local.
+On fresh seed 2774 and both artifacts, treatment produced **17/17** exact
+replies and **847/844** body positions, against local **0/0** and **578/578**.
+All five body comparisons and the exact comparison passed on both artifacts.
+
+The combined configuration still rejected because the inherited boundary made
+**85/104** premature stops against the four-stop ceiling. This is a
+**content-positive, termination-limited** result. The full-sequence content
+and depth arbiter should be retained; the next unit must retrain or re-key
+termination on the same memory trajectory. See
+[deepseek-198](../../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

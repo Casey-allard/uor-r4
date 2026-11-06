@@ -269,6 +269,42 @@ pub fn derive_suffix_content_memory(samples: &[MemoryWeightSample]) -> Result<Su
     derive_suffix_memory_with_terminal(samples, false)
 }
 
+/// Derive reply-target counts over full prompt-plus-reply histories. Keys may
+/// include prompt tokens, so this table reads the same stream surface as local
+/// exact copy. Terminal BOS transitions are excluded.
+pub fn derive_full_sequence_suffix_content_memory(
+    samples: &[MemoryWeightSample],
+) -> Result<SuffixMemoryTable> {
+    if samples.is_empty() {
+        return Err(invalid(
+            "full-sequence suffix derivation needs training samples",
+        ));
+    }
+    let mut entries = BTreeMap::<Vec<u32>, SuccessorCounts>::new();
+    for sample in samples {
+        let reply = normalized_reference(&sample.reply);
+        if reply.is_empty() || sample.prompt.is_empty() {
+            return Err(invalid(
+                "full-sequence suffix derivation saw an empty prompt or reply",
+            ));
+        }
+        let mut history = sample.prompt.clone();
+        for &target in reply {
+            let maximum = history.len().min(SUFFIX_MEMORY_MAX_DEPTH);
+            for depth in 1..=maximum {
+                add_successor(&mut entries, &history[history.len() - depth..], target)?;
+            }
+            history.push(target);
+        }
+    }
+    if entries.is_empty() {
+        return Err(invalid(
+            "full-sequence suffix derivation found no transitions",
+        ));
+    }
+    Ok(SuffixMemoryTable { entries })
+}
+
 fn derive_suffix_memory_with_terminal(
     samples: &[MemoryWeightSample],
     include_terminal: bool,
@@ -938,6 +974,30 @@ mod tests {
             table.predict(&[20], SUFFIX_MEMORY_MAX_DEPTH).unwrap().token,
             30
         );
+    }
+
+    #[test]
+    fn full_sequence_table_learns_prompt_conditioned_reply_starts() {
+        let table = derive_full_sequence_suffix_content_memory(&[MemoryWeightSample {
+            prompt: vec![10, 20],
+            reply: vec![30, 40, 1],
+        }])
+        .unwrap();
+        assert_eq!(
+            table
+                .predict(&[10, 20], SUFFIX_MEMORY_MAX_DEPTH)
+                .unwrap()
+                .token,
+            30
+        );
+        assert_eq!(
+            table
+                .predict(&[10, 20, 30], SUFFIX_MEMORY_MAX_DEPTH)
+                .unwrap()
+                .token,
+            40
+        );
+        assert_eq!(table.census().bos_transitions, 0);
     }
 
     #[test]
