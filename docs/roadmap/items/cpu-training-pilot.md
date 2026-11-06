@@ -678,6 +678,17 @@ must change the continuation objective or bind stopping to the selected
 content source. See
 [deepseek-200](../../loop/tasks/cpu-training-pilot/deepseek-200/REPORT.md).
 
+The next unit combined content and stopping into a complete continuation
+decision. On fresh seed 2776, treatment and tokenwise content both produced
+**17/17** exact replies; treatment reduced premature stops from **74/98** to
+**71/64** and retained **682/678** body positions, still above the four-stop
+ceiling. It emitted **187** whole closures, changed **8/39** complete replies
+relative to tokenwise content, and the shuffled closure produced **0/0**
+exact. This is a **REJECT** for the fixed strict-majority continuation mode.
+The next endpoint experiment needs a new state or supervision signal rather
+than another form of the same suffix history. See
+[deepseek-202](../../loop/tasks/cpu-training-pilot/deepseek-202/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

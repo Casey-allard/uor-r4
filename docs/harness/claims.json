@@ -97,6 +97,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/continuation-closure": {
+    "branch": "deepseek/continuation-closure",
+    "claimed_at": "2026-11-05T21:53:25-05:00",
+    "head": "d56427955",
+    "lab": "deepseek",
+    "note": "completion-level continuation closure from full-history suffix memory; endpoint decision for CPU exact-memory chat"
+  },
   "deepseek/continuation-horizon": {
     "branch": "deepseek/continuation-horizon",
     "claimed_at": "2026-11-04T16:35:38-05:00",

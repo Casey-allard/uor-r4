@@ -35,6 +35,22 @@ stopping repair. The next endpoint design must change the continuation
 objective or bind termination to the selected content source. Record:
 [deepseek-200](../loop/tasks/cpu-training-pilot/deepseek-200/REPORT.md).
 
+## 2026-11-05 — Whole continuation preserves content but still over-stops (deepseek)
+
+Predicting the complete remaining reply from the selected full-history suffix
+reduced premature stopping from **74/98** to **71/64**, but both source
+closure and tokenwise content produced **17/17** exact replies. Body positions
+stayed at **682/678**, while the four-stop ceiling still failed. Closure made
+**187** whole-reply decisions and changed **8/39** complete replies relative
+to tokenwise content. A shuffled closure produced **0/0** exact replies.
+
+This is a **REJECT** for the fixed strict-majority continuation mode. The
+completion mechanism is active and preserves the positive body result, but it
+does not add an exact-reply gain or solve termination. The next endpoint
+experiment needs a new state signal rather than another representation of the
+same suffix history. Record:
+[deepseek-202](../loop/tasks/cpu-training-pilot/deepseek-202/REPORT.md).
+
 ## 2026-11-05 — Strict local priority makes content-suffix fallback unreachable (deepseek)
 
 The global suffix table was rebuilt without BOS targets and used only when
