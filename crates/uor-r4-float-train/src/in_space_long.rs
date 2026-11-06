@@ -202,6 +202,59 @@ pub struct LongConfig {
     /// [`SHEET_CONTEXT`], so a run at the default writes the same file as before.
     #[serde(skip_serializing_if = "is_sheet_context")]
     pub context: usize,
+    /// The targets TRAIN's loss reads (claude-296): the text's own, or `mode:K`'s fixed targets
+    /// ([`fixed_targets`]). Inputs, windows and masks are unchanged, and DEV and scoring read the
+    /// text's own targets. Left out of `config.json` when observed, so a run without it writes
+    /// the same file as before.
+    #[serde(skip_serializing_if = "TrainTargets::is_observed")]
+    pub train_targets: TrainTargets,
+}
+
+/// What TRAIN's scored targets are ([`LongConfig::train_targets`], claude-296).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrainTargets {
+    /// The text's own next tokens.
+    Observed,
+    /// `mode:K`, K from 1 to 4: each scored target is the commonest scored token after its
+    /// context in the whole split ([`fixed_targets`]). `mode:1` is the split's T2 pick.
+    Mode(usize),
+}
+
+impl TrainTargets {
+    /// `observed`, or `mode:K` with K from 1 to 4.
+    pub fn parse(text: &str) -> Result<Self> {
+        if text == "observed" {
+            return Ok(Self::Observed);
+        }
+        match text
+            .strip_prefix("mode:")
+            .and_then(|k| k.parse::<usize>().ok())
+        {
+            Some(k) if (1..=4).contains(&k) => Ok(Self::Mode(k)),
+            _ => Err(invalid(format!(
+                "--train-targets wants observed or mode:K with K from 1 to 4, not {text}"
+            ))),
+        }
+    }
+
+    fn is_observed(&self) -> bool {
+        *self == Self::Observed
+    }
+}
+
+impl std::fmt::Display for TrainTargets {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Observed => f.write_str("observed"),
+            Self::Mode(k) => write!(f, "mode:{k}"),
+        }
+    }
+}
+
+impl Serialize for TrainTargets {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
+        s.collect_str(self)
+    }
 }
 
 /// The float values one step rounded as served ([`LongConfig::train_as_served`], claude-258):
@@ -11057,27 +11110,194 @@ fn load_named_split(split: &TrainSplit) -> Result<(Vec<u32>, Vec<u8>)> {
 
 /// TRAIN's windows of `context` tokens with at least 4 scored targets, each context-long; at
 /// least `batch` of them; and TRAIN's response mask. TRAIN is the pinned split, or `split` when
-/// a run names one.
+/// a run names one. Under `mode:K` the windows' scored targets are the fixed ones, and the
+/// `[targets]` line reports the swap (I-m, claude-296).
 fn load_train(
     data_root: &Path,
     batch: usize,
     split: Option<&TrainSplit>,
     context: usize,
+    targets: TrainTargets,
 ) -> Result<(Vec<CausalWindow>, Vec<u8>)> {
     let (train_tokens, train_mask) = match split {
         None => load_train_split(data_root)?,
         Some(split) => load_named_split(split)?,
     };
-    let (train_windows, _) =
-        hs::build_document_windows(&train_tokens, &train_mask, context, hs::SHEET_BOS_ID)?;
-    let usable: Vec<CausalWindow> = train_windows
+    let (usable, swap) = train_windows(&train_tokens, &train_mask, context, batch, targets)?;
+    if let Some(swap) = swap {
+        let hidden = if swap.hidden_context.len() > 1 {
+            format!(", context hidden by k {:?}", swap.hidden_context)
+        } else {
+            String::new()
+        };
+        println!(
+            "[targets] {targets}: split scored {}, window scored {}, replaced {}, distinct {} -> {}{hidden}",
+            swap.split_scored,
+            swap.window_scored,
+            swap.replaced,
+            swap.distinct_before,
+            swap.distinct_after
+        );
+    }
+    Ok((usable, train_mask))
+}
+
+/// [`load_train`]'s windows from a decoded split: [`hs::build_document_windows`]'s, those with
+/// at least 4 scored targets, at least `batch` of them and each context-long. Under `mode:K`
+/// their scored targets are replaced by [`fixed_targets`], counted over the whole split before
+/// the filter, through each window's `scored_corpus_positions`; `observed` returns the windows
+/// untouched and no swap.
+fn train_windows(
+    tokens: &[u32],
+    mask: &[u8],
+    context: usize,
+    batch: usize,
+    targets: TrainTargets,
+) -> Result<(Vec<CausalWindow>, Option<TargetSwap>)> {
+    let (windows, _) = hs::build_document_windows(tokens, mask, context, hs::SHEET_BOS_ID)?;
+    let mut usable: Vec<CausalWindow> = windows
         .into_iter()
         .filter(|w| w.scored_offsets.len() >= 4)
         .collect();
     if usable.len() < batch || usable.iter().any(|w| w.input_ids.len() != context) {
         return Err(invalid("TRAIN windows are too few or not context-long"));
     }
-    Ok((usable, train_mask))
+    let TrainTargets::Mode(k_max) = targets else {
+        return Ok((usable, None));
+    };
+    let fixed = fixed_targets(tokens, mask, k_max, hs::SHEET_BOS_ID)?;
+    let distinct = |windows: &[CausalWindow]| {
+        windows
+            .iter()
+            .flat_map(|w| w.scored_targets.iter().copied())
+            .collect::<std::collections::BTreeSet<u32>>()
+            .len()
+    };
+    let mut swap = TargetSwap {
+        split_scored: fixed.iter().filter(|t| t.is_some()).count(),
+        window_scored: 0,
+        replaced: 0,
+        distinct_before: distinct(&usable),
+        distinct_after: 0,
+        hidden_context: vec![0; k_max],
+    };
+    for window in &mut usable {
+        for i in 0..window.scored_targets.len() {
+            let p = window.scored_corpus_positions[i];
+            let (target, k) = fixed[p].ok_or_else(|| {
+                invalid(format!(
+                    "TRAIN position {p} is scored but has no fixed target"
+                ))
+            })?;
+            swap.window_scored += 1;
+            if target != window.scored_targets[i] {
+                swap.replaced += 1;
+            }
+            // The k tokens before p sit at input offsets offset + 1 − k ..= offset.
+            if window.scored_offsets[i] + 1 < k {
+                swap.hidden_context[k - 1] += 1;
+            }
+            window.scored_targets[i] = target;
+        }
+    }
+    swap.distinct_after = distinct(&usable);
+    Ok((usable, Some(swap)))
+}
+
+/// What `mode:K` changed in TRAIN's usable windows ([`train_windows`], I-m).
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TargetSwap {
+    /// The split's scored positions, counted before the window filter.
+    split_scored: usize,
+    /// The scored targets in the usable windows, which the loss reads.
+    window_scored: usize,
+    /// How many of those the fixed target replaced.
+    replaced: usize,
+    /// Distinct targets in the usable windows, before and after.
+    distinct_before: usize,
+    distinct_after: usize,
+    /// For each k from 1 to K, the window targets taken at k whose window offset is below
+    /// k − 1, so the trunk cannot see their whole context.
+    hidden_context: Vec<usize>,
+}
+
+/// `mode:K`'s fixed target, and the context length it was taken at, for every scored position of
+/// a split (claude-296); `None` at every other position.
+///
+/// A position `p` is scored as [`hs::build_document_windows`] scores it: past its document's
+/// `<|bos|>` at `d`, not `<|bos|>`, mask 1. For `k` from `min(K, p − d)` down to 1, `s_k` is the
+/// `k` tokens before `p`, which may include the document's own `<|bos|>` and never reach past it.
+/// `count(s_k, t)` counts the scored positions whose `k` preceding tokens are `s_k` and whose
+/// token is `t`, `p` itself included. The target is the `t` with the largest count, at the
+/// largest `k` whose `s_k` occurs at 2 or more scored positions (at `k = 1`, at 1 or more), ties
+/// to the smallest id. So `mode:1` is the split's T2 pick, as the scale-probe instrument builds
+/// it.
+fn fixed_targets(
+    tokens: &[u32],
+    mask: &[u8],
+    k_max: usize,
+    bos_id: u32,
+) -> Result<Vec<Option<(u32, usize)>>> {
+    if !(1..=4).contains(&k_max) {
+        return Err(invalid(format!("mode:{k_max}: K runs from 1 to 4")));
+    }
+    if mask.len() != tokens.len() {
+        return Err(invalid("TRAIN's mask and tokens differ in length"));
+    }
+    // Every scored position, with its depth p − d past its document's BOS.
+    let mut scored = Vec::new();
+    let mut doc_start = None;
+    for (p, &token) in tokens.iter().enumerate() {
+        if token == bos_id {
+            doc_start = Some(p);
+        } else if let Some(d) = doc_start {
+            if mask[p] == 1 {
+                scored.push((p, p - d));
+            }
+        }
+    }
+    let mut targets = vec![None; tokens.len()];
+    // Each k overwrites the last where its context qualifies, so the largest qualifying k wins.
+    for k in 1..=k_max {
+        // (the k tokens before p, 32 bits each; the token at p; p), sorted, so each context's
+        // targets run together in id order.
+        let mut keyed: Vec<(u128, u32, usize)> = scored
+            .iter()
+            .filter(|&&(_, depth)| depth >= k)
+            .map(|&(p, _)| {
+                let key = tokens[p - k..p]
+                    .iter()
+                    .fold(0u128, |key, &t| (key << 32) | u128::from(t));
+                (key, tokens[p], p)
+            })
+            .collect();
+        keyed.sort_unstable();
+        let mut start = 0;
+        while start < keyed.len() {
+            let key = keyed[start].0;
+            let mut end = start;
+            let (mut best, mut best_count) = (keyed[start].1, 0);
+            while end < keyed.len() && keyed[end].0 == key {
+                let token = keyed[end].1;
+                let run = keyed[end..]
+                    .iter()
+                    .take_while(|e| e.0 == key && e.1 == token)
+                    .count();
+                // Strictly more: the first, smallest id keeps a tie.
+                if run > best_count {
+                    (best, best_count) = (token, run);
+                }
+                end += run;
+            }
+            if k == 1 || end - start >= 2 {
+                for &(_, _, p) in &keyed[start..end] {
+                    targets[p] = Some((best, k));
+                }
+            }
+            start = end;
+        }
+    }
+    Ok(targets)
 }
 
 /// One parameter's gradient norm on the first training batch ([`gradient_norms`]).
@@ -11096,7 +11316,13 @@ pub fn gradient_norms(
     device: &Device,
 ) -> Result<Vec<GradientNorm>> {
     let (usable, _) =
-        load_train(data_root, config.batch, config.train_split.as_ref(), config.context)?;
+        load_train(
+            data_root,
+            config.batch,
+            config.train_split.as_ref(),
+            config.context,
+            config.train_targets,
+        )?;
     arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
     crate::geometric_stack::set_retention_rates(config.retain_rates);
     crate::geometric_stack::set_folded_scores(config.fold_scores);
@@ -11391,6 +11617,17 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             ));
         }
     }
+    // Fixed targets (claude-296) replace only what the loss reads from `load_train`'s windows;
+    // the turn memory and its reply table rebuild TRAIN's windows (`start_memory`) and would key
+    // on the text's own targets.
+    if config.train_targets != TrainTargets::Observed
+        && (config.turn_memory > 0 || config.turn_memory_reply)
+    {
+        return Err(invalid(
+            "--train-targets is refused with the turn memory and its reply table, which read \
+             TRAIN's own targets",
+        ));
+    }
     // Training as served (claude-258) rounds what the export carries: the trunk, the Hamming
     // read and the turn memory. A read it does not carry would train at values no artifact holds,
     // and a run with folded or reflected rate scores has no export at all (`run_rate_reading`).
@@ -11423,7 +11660,13 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     let tokenizer = pinned_tokenizer(data_root)?;
 
     let (usable, train_mask) =
-        load_train(data_root, config.batch, config.train_split.as_ref(), config.context)?;
+        load_train(
+            data_root,
+            config.batch,
+            config.train_split.as_ref(),
+            config.context,
+            config.train_targets,
+        )?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     let prompts = sample_windows(&dev_windows, &dev_mask, config.samples);
     println!(
@@ -12808,6 +13051,7 @@ mod tests {
             train_as_served: false,
             writer_anchor: false,
             context: hs::SHEET_CONTEXT,
+            train_targets: TrainTargets::Observed,
         }
     }
 
@@ -13048,6 +13292,220 @@ mod tests {
         assert!(window_time(4 * 2_048 + 1, 4).is_err());
         assert!(window_time(0, 4).is_err());
         assert!(window_time(8, 0).is_err());
+    }
+
+    /// claude-296: `mode:1`'s target at each scored position, with its context length.
+    fn mode_one(tokens: &[u32], mask: &[u8]) -> Vec<Option<(u32, usize)>> {
+        fixed_targets(tokens, mask, 1, hs::SHEET_BOS_ID).unwrap()
+    }
+
+    /// claude-296: a position counts itself, so a context seen once keeps its own token; only
+    /// scored positions count; BOS and unscored positions get no target; ties go to the smaller id.
+    #[test]
+    fn fixed_targets_count_scored_positions_with_the_self_count_and_ties() {
+        // 0 is BOS. After 5: 7 at 2 and 6, 8 at 4, 9 at 9. After 7 (once): 5 at 3.
+        let tokens = [0, 5, 7, 5, 8, 5, 7, 0, 5, 9];
+        let mask = [1u8; 10];
+        let t = mode_one(&tokens, &mask);
+        let picks: Vec<Option<u32>> = t.iter().map(|x| x.map(|(token, _)| token)).collect();
+        assert_eq!(
+            picks,
+            [
+                None,
+                Some(5),
+                Some(7),
+                Some(5),
+                Some(7),
+                Some(5),
+                Some(7),
+                None,
+                Some(5),
+                Some(7)
+            ]
+        );
+        assert!(t.iter().flatten().all(|&(_, k)| k == 1));
+        // Unscored at 6: after 5 it is 7 once and 8 once, a tie to 7, and 6 itself gets none.
+        let tokens = [0, 5, 7, 5, 8, 5, 8];
+        let mut mask = [1u8; 7];
+        mask[6] = 0;
+        let t = mode_one(&tokens, &mask);
+        assert_eq!(t[2].map(|x| x.0), Some(7), "the unscored 8 must not count");
+        assert_eq!(t[4].map(|x| x.0), Some(7));
+        assert_eq!(t[6], None);
+        // A tie the other way round still goes to the smaller id.
+        let t = mode_one(&[0, 3, 6, 3, 4], &[1; 5]);
+        assert_eq!((t[2].map(|x| x.0), t[4].map(|x| x.0)), (Some(4), Some(4)));
+    }
+
+    /// claude-296: `mode:K` backs off to a shorter context when the longer one occurs at fewer
+    /// than 2 scored positions, and never reaches past its document's BOS.
+    #[test]
+    fn fixed_targets_back_off_and_stop_at_the_document() {
+        // After [1, 2]: 4 twice. After 2 alone: 4 twice and 3 three times. [5, 2] is seen once.
+        let tokens = [0, 1, 2, 4, 1, 2, 4, 5, 2, 3, 6, 2, 3, 7, 2, 3];
+        let mask = [1u8; 16];
+        let two = fixed_targets(&tokens, &mask, 2, hs::SHEET_BOS_ID).unwrap();
+        assert_eq!((two[3], two[6]), (Some((4, 2)), Some((4, 2))));
+        assert_eq!(
+            (two[9], two[12], two[15]),
+            (Some((3, 1)), Some((3, 1)), Some((3, 1)))
+        );
+        assert_eq!(
+            mode_one(&tokens, &mask)[3],
+            Some((3, 1)),
+            "mode:1 reads 2 alone"
+        );
+        // Three documents. Each first target's only context is its own BOS: after BOS, 8 twice
+        // and 7 once. Read across the boundary, [9, BOS] would be seen twice (8 then 7), a tie
+        // to 7. The second target's [BOS, 8] holds the document's own BOS and is seen twice.
+        let tokens = [0, 8, 9, 0, 8, 9, 0, 7];
+        let t = fixed_targets(&tokens, &[1; 8], 2, hs::SHEET_BOS_ID).unwrap();
+        assert_eq!(
+            (t[1], t[4], t[7]),
+            (Some((8, 1)), Some((8, 1)), Some((8, 1)))
+        );
+        assert_eq!((t[2], t[5]), (Some((9, 2)), Some((9, 2))));
+        assert!(fixed_targets(&tokens, &[1; 8], 5, hs::SHEET_BOS_ID).is_err());
+        assert!(fixed_targets(&tokens, &[1; 7], 1, hs::SHEET_BOS_ID).is_err());
+    }
+
+    /// claude-296: the counts come from the whole split, before the window filter, so a position
+    /// in a dropped window still counts; `observed` leaves every window as it was.
+    #[test]
+    fn train_windows_count_the_whole_split_and_observed_changes_nothing() {
+        // The first document's window keeps 5 scored targets; the two short ones are dropped,
+        // but their two 4s after 2 outvote its own 3.
+        let tokens = [0, 2, 3, 1, 1, 1, 0, 2, 4, 0, 2, 4];
+        let mask = [1u8; 12];
+        let (fixed, swap) = train_windows(&tokens, &mask, 8, 1, TrainTargets::Mode(1)).unwrap();
+        assert_eq!(fixed.len(), 1);
+        assert_eq!(fixed[0].scored_targets, [2, 4, 1, 1, 1]);
+        let swap = swap.unwrap();
+        assert_eq!(
+            swap,
+            TargetSwap {
+                split_scored: 9,
+                window_scored: 5,
+                replaced: 1,
+                distinct_before: 3,
+                distinct_after: 3,
+                hidden_context: vec![0],
+            }
+        );
+        let (observed, none) = train_windows(&tokens, &mask, 8, 1, TrainTargets::Observed).unwrap();
+        assert!(none.is_none());
+        let (built, _) = hs::build_document_windows(&tokens, &mask, 8, hs::SHEET_BOS_ID).unwrap();
+        let parts = |w: &CausalWindow| {
+            (
+                w.doc_id,
+                w.input_ids.clone(),
+                w.scored_offsets.clone(),
+                w.scored_targets.clone(),
+                w.scored_corpus_positions.clone(),
+            )
+        };
+        let kept: Vec<_> = built
+            .iter()
+            .filter(|w| w.scored_offsets.len() >= 4)
+            .map(parts)
+            .collect();
+        assert_eq!(observed.iter().map(parts).collect::<Vec<_>>(), kept);
+        // Only the targets differ under mode:1.
+        assert_eq!(
+            (fixed[0].input_ids.clone(), fixed[0].scored_offsets.clone()),
+            (kept[0].1.clone(), kept[0].2.clone())
+        );
+    }
+
+    /// claude-296: on a seeded corpus with ties, `mode:1` is a brute-force T2 at every scored
+    /// position: the commonest scored token after `tokens[p − 1]`, ties to the smallest id.
+    #[test]
+    fn mode_one_is_a_brute_force_t2_at_every_scored_position() {
+        let mut state = 0x2960_u64;
+        let mut next = |m: u64| {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (state >> 33) % m
+        };
+        let mut tokens = Vec::new();
+        let mut mask = Vec::new();
+        for _ in 0..3_000 {
+            let bos = tokens.is_empty() || next(40) == 0;
+            tokens.push(if bos {
+                hs::SHEET_BOS_ID
+            } else {
+                1 + next(9) as u32
+            });
+            mask.push(u8::from(next(5) != 0));
+        }
+        // The corpus opens on a BOS, so every later non-BOS position with mask 1 is scored.
+        let scored: Vec<bool> = (0..tokens.len())
+            .map(|p| p > 0 && tokens[p] != hs::SHEET_BOS_ID && mask[p] == 1)
+            .collect();
+        let got = mode_one(&tokens, &mask);
+        let mut ties = 0;
+        for p in 0..tokens.len() {
+            if !scored[p] {
+                assert_eq!(got[p], None, "position {p}");
+                continue;
+            }
+            let mut counts = [0usize; 10];
+            for q in (1..tokens.len()).filter(|&q| scored[q] && tokens[q - 1] == tokens[p - 1]) {
+                counts[tokens[q] as usize] += 1;
+            }
+            let best = *counts.iter().max().unwrap();
+            ties += usize::from(counts.iter().filter(|&&c| c == best).count() > 1);
+            let pick = counts.iter().position(|&c| c == best).unwrap() as u32;
+            assert_eq!(got[p], Some((pick, 1)), "position {p}");
+        }
+        assert!(
+            ties > 0,
+            "the corpus must hold a tie, or the tie rule goes untested"
+        );
+    }
+
+    /// claude-296: `--train-targets` parses observed and mode:1 to mode:4 only; `config.json`
+    /// leaves out observed and writes `mode:K`; the turn memory refuses fixed targets.
+    #[test]
+    fn train_targets_parse_serialize_and_refuse_the_turn_memory() {
+        assert_eq!(
+            TrainTargets::parse("observed").unwrap(),
+            TrainTargets::Observed
+        );
+        for k in 1..=4 {
+            assert_eq!(
+                TrainTargets::parse(&format!("mode:{k}")).unwrap(),
+                TrainTargets::Mode(k)
+            );
+        }
+        for bad in ["mode:0", "mode:5", "mode:", "mode:x", "nearest"] {
+            assert!(TrainTargets::parse(bad).is_err(), "{bad}");
+        }
+        let plain =
+            String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
+        assert!(!plain.contains("train_targets"), "{plain}");
+        let fixed = LongConfig {
+            train_targets: TrainTargets::Mode(1),
+            ..config(0, None)
+        };
+        let fixed = String::from_utf8(serde_json::to_vec_pretty(&fixed).unwrap()).unwrap();
+        assert!(fixed.contains("\"train_targets\": \"mode:1\""), "{fixed}");
+        let missing = std::env::temp_dir().join(format!("claude-296-none-{}", std::process::id()));
+        for (turn_memory, turn_memory_reply) in [(8, false), (8, true), (0, true)] {
+            let config = LongConfig {
+                train_targets: TrainTargets::Mode(1),
+                turn_memory,
+                turn_memory_reply,
+                ..config(0, None)
+            };
+            let refusal = run_long(&missing, &missing.join("out"), &config, &Device::Cpu)
+                .err()
+                .map(|e| e.to_string())
+                .unwrap_or_default();
+            assert!(refusal.contains("--train-targets is refused"), "{refusal}");
+        }
+        assert!(!missing.exists());
     }
 
     /// claude-273: `assemble` lays each scored row at its window's start in the flat ids. At a

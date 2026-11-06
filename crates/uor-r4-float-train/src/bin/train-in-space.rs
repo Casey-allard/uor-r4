@@ -1,7 +1,14 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
-//! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX]
+//! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
 //! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--served-forward 0|1] [--context N]`
+//!
+//! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
+//! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
+//! backing off to fewer where that context is seen once (`mode:1` is T2's pick). Inputs, windows
+//! and masks are unchanged, and DEV and scoring read the real targets. The run prints a
+//! `[targets]` line (I-m). It is refused outside training and with the turn memory. `observed`,
+//! the default, writes the same `config.json` as before.
 //!
 //! `--context N` trains at an N-token window, 2 to 4096 (claude-273): TRAIN is cut into N-token
 //! windows and the model is built to read N positions. DEV's evaluation keeps the sheet's
@@ -255,7 +262,7 @@ use uor_r4_float_train::in_space_long::{
     cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
     gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
     run_long, run_recall, score_rows, scopes_ok, set_decode_cache, take_decode_forwards,
-    DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, TrainSplit, DEFAULT_REGISTER_PICKS,
+    DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, TrainSplit, TrainTargets, DEFAULT_REGISTER_PICKS,
     MEMORY_DROPOUT_MAX,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
@@ -360,6 +367,7 @@ fn main() -> Result<()> {
         train_as_served: false,
         writer_anchor: false,
         context: uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT,
+        train_targets: TrainTargets::Observed,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -507,6 +515,7 @@ fn main() -> Result<()> {
                     }
                 }
             }
+            "--train-targets" => config.train_targets = TrainTargets::parse(&value)?,
             "--steps" => config.steps = number(&value)?,
             "--profile" => config.profile = number(&value)?,
             "--time-without-quantizers" => time_quantizers = switch(&value)?,
@@ -726,6 +735,13 @@ fn main() -> Result<()> {
     if config.writer_anchor && !modes[7] {
         return Err(FloatTrainError::Invalid(
             "--writer-anchor applies to training with --out only".to_owned(),
+        ));
+    }
+    // Fixed targets (claude-296) replace what `run_long`'s loss reads from TRAIN: a training
+    // input only, never the recall task's, a scoring's or a probe's.
+    if config.train_targets != TrainTargets::Observed && (!modes[7] || recall > 0) {
+        return Err(FloatTrainError::Invalid(
+            "--train-targets applies to training with --out only, and not to --recall".to_owned(),
         ));
     }
     // Training as served is a training switch; no other mode would read it.
