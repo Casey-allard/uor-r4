@@ -109,6 +109,13 @@ over the vocabulary rather than a learned low-dimensional embedding.
 - integer blanket all-target Clippy retains pre-existing diagnostics outside
   the touched file.
 
+## Delivery
+
+PR #3767 merged through the protected queue as
+`b8e01c13bb07c69c9484a9a850489ce3c245d631`. Fresh main retained the reviewed
+source and evidence hashes, passed the serving/API/CPU suites, and reproduced
+the sealed seed-1 VSA report after timing and absolute-path removal.
+
 ## Skills used
 
 No system-provided Codex skill applied.
