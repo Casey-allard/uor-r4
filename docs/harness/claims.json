@@ -69,6 +69,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/content-length-release": {
+    "branch": "deepseek/content-length-release",
+    "claimed_at": "2026-11-06T04:11:12-05:00",
+    "head": "ed0295ba1",
+    "lab": "deepseek",
+    "note": "release the completed content-length implementation claim"
+  },
   "deepseek/content-readout": {
     "branch": "deepseek/content-readout",
     "claimed_at": "2026-11-04T16:20:00-05:00",
@@ -96,13 +103,6 @@
     "head": "202aa1e29",
     "lab": "deepseek",
     "note": ""
-  },
-  "deepseek/content-length": {
-    "branch": "deepseek/content-length",
-    "claimed_at": "2026-11-06T03:47:34-05:00",
-    "head": "bbb8c5332",
-    "lab": "deepseek",
-    "note": "full-sequence content with reference-independent retrieved-length completion"
   },
   "deepseek/continuation-horizon": {
     "branch": "deepseek/continuation-horizon",
