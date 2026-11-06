@@ -233,6 +233,16 @@ geometric-continuation signal, not another weighting of the same summary
 features. See
 [deepseek-215](../loop/tasks/cpu-training-pilot/deepseek-215/REPORT.md).
 
+The next unit connected retrieval to generation directly. A TRAIN-selected
+four-token retrieved prefix was forced through the exact CPU FBS state before
+greedy continuation. It raised body positions from **46/61** model-only to
+**513/499** and beat shuffled prefixes (**112/116**), but every one of 450 rows
+on both artifacts hit the 64-token cap. No prefix arm produced an exact reply
+or BOS completion; even a perfect reference prefix failed to terminate. This is
+a **REJECT** for complete prefix continuation, with a positive content-transfer
+diagnosis and termination as the remaining blocker. See
+[deepseek-217](../loop/tasks/cpu-training-pilot/deepseek-217/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

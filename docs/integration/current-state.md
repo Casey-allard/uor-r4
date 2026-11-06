@@ -1,3 +1,18 @@
+## 2026-11-06 — Retrieved prefixes improve content but never terminate (deepseek)
+
+A TRAIN-selected four-token retrieved prefix was forced through the exact CPU
+FBS writer state before greedy continuation on fresh seed 2781. It raised body
+positions from **46 to 513** on artifact seed 1 and **61 to 499** on seed 2,
+beating shuffled prefixes at **112/116**. However, no prefix arm produced an
+exact reply or a BOS completion; all 450 rows reached the 64-token cap. A
+perfect reference prefix likewise failed to terminate.
+
+This is a **REJECT** for prefix continuation as a complete-reply mechanism.
+The diagnosis is positive: retrieved prefix content transfers, and
+termination is the remaining blocker. Exact Jaccard remains the serving
+default. Record:
+[deepseek-217](../loop/tasks/cpu-training-pilot/deepseek-217/REPORT.md).
+
 ## 2026-11-06 — Lexical-only reply ranker is stable but weaker (deepseek)
 
 An ablation removed artifact-bound writer geometry from the deepseek-213

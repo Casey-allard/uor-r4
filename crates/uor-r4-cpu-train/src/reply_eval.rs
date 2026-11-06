@@ -206,6 +206,79 @@ pub fn generate_reply_memory_off(
     generate_reply_with_memory(artifact, prompt, cap, false)
 }
 
+/// Generate greedily after forcing a short reply prefix through the exact
+/// served CPU forward. Returned tokens include the forced prefix.
+pub fn generate_reply_with_prefix(
+    artifact: &[u8],
+    prompt: &[u32],
+    prefix: &[u32],
+    cap: usize,
+) -> Result<GeneratedReply> {
+    let mut forward = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("seeded-reply forward: {error}")))?;
+    let context = forward.context_length();
+    if cap == 0
+        || cap > 64
+        || prompt.is_empty()
+        || prompt.len() > context
+        || prefix.len() > cap
+        || prompt
+            .len()
+            .checked_add(prefix.len())
+            .is_none_or(|total| total >= context)
+    {
+        return Err(invalid(
+            "seeded-reply prompt, prefix, cap or context is invalid",
+        ));
+    }
+    let mut next = None;
+    for (index, &token) in prompt.iter().enumerate() {
+        if index + 1 == prompt.len() {
+            forward.mark_reply_start();
+        }
+        let step = forward
+            .step(token, CpuFbsHead::Writer)
+            .map_err(|error| invalid(format!("seeded-reply prompt step: {error}")))?;
+        if index + 1 == prompt.len() {
+            next = Some(step.token);
+        }
+    }
+    let mut next = next.ok_or_else(|| invalid("seeded-reply prompt is empty"))?;
+    for &token in prefix {
+        next = forward
+            .step(token, CpuFbsHead::Writer)
+            .map(|step| step.token)
+            .map_err(|error| invalid(format!("seeded-reply prefix step: {error}")))?;
+    }
+    let mut tokens = prefix.to_vec();
+    if tokens.len() == cap {
+        return Ok(GeneratedReply {
+            tokens,
+            stop: "cap",
+        });
+    }
+    loop {
+        let stop = reply_stop(next, tokens.len(), prompt.len(), cap, context);
+        if stop != Some(ReplyEnd::Bos) {
+            tokens.push(next);
+        }
+        if let Some(stop) = stop {
+            return Ok(GeneratedReply {
+                tokens,
+                stop: match stop {
+                    ReplyEnd::Bos => "bos",
+                    ReplyEnd::Length => "cap",
+                    ReplyEnd::Context => "context",
+                },
+            });
+        }
+        next = forward
+            .step(next, CpuFbsHead::Writer)
+            .map(|step| step.token)
+            .map_err(|error| invalid(format!("seeded-reply continuation step: {error}")))?;
+    }
+}
+
 fn generate_reply_with_memory(
     artifact: &[u8],
     prompt: &[u32],

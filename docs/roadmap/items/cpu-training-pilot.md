@@ -758,6 +758,15 @@ the next answer-selection test needs sequence compatibility or a different
 geometric continuation target rather than another summary-feature weighting.
 See [deepseek-215](../../loop/tasks/cpu-training-pilot/deepseek-215/REPORT.md).
 
+The next generation unit forced a TRAIN-selected retrieved opening of length
+1/2/4 through the exact CPU FBS state. Length 4 raised body matches from
+**46/61** model-only to **513/499** and beat shuffled prefixes (**112/116**),
+but no prefix arm produced an exact reply or BOS completion; every 450-row arm
+hit the 64-token cap. A perfect reference prefix also failed to stop. This is
+a **REJECT** for complete prefix continuation, with content transfer isolated
+as positive and termination as the remaining blocker. See
+[deepseek-217](../../loop/tasks/cpu-training-pilot/deepseek-217/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

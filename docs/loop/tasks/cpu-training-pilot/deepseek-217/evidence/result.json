@@ -1,0 +1,92 @@
+{
+  "schema": "uor-r4.cpu-prompt-prefix-continuation-summary/1",
+  "outcome": "REJECT_TERMINATION_LIMITED",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "base": "423dcf4d79e819cf6eaa4f1d3afbeb9fb87c637f",
+  "implementation_head": "b2adf76e7",
+  "registration_head": "f95be576f",
+  "selected_prefix": 4,
+  "inputs": {
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "artifact_seed_1_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "artifact_seed_2_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "sidecar_seed_1_sha256": "2a298b44ea34d1a8e2d40191951d3da9b3300e2ac7de65e6c2ec13950a0b6424",
+    "sidecar_seed_2_sha256": "6504dcb047ce7157dd5e968c29441505cf48d993f01ec63222125634c61963b7"
+  },
+  "panel": {
+    "seed": 2781,
+    "cell": ["dev", "dev"],
+    "protocol": 2,
+    "conversations": 128,
+    "tokens": 15842,
+    "reference_reachable_per_artifact": 450,
+    "tokens_sha256": "6b0bdf618ba9dc1cff165002dec2934ca9da47e88c7256bc802a87f54982221e",
+    "mask_sha256": "703b8b9c8da2b0c30527eae23dcc78ef7906c1042bce6e2a774e049d4c577be1",
+    "manifest_sha256": "c3d795724d789bf763805151a07bd1cda5992fb0edf7c0ebff71ed353132a74b"
+  },
+  "arms": {
+    "seed_1": {
+      "model_only": {"exact": 0, "opening": 0, "body": 46, "emitted": 0, "generated_tokens": 28800},
+      "full_retrieval": {"exact": 47, "opening": 122, "body": 802, "emitted": 450, "premature_bos": 174},
+      "retrieved_prefix_1": {"exact": 0, "opening": 122, "body": 312, "emitted": 0},
+      "retrieved_prefix_2": {"exact": 0, "opening": 122, "body": 370, "emitted": 0},
+      "retrieved_prefix_4": {"exact": 0, "opening": 122, "body": 513, "emitted": 0},
+      "shuffled_prefix_4": {"exact": 0, "opening": 24, "body": 112, "emitted": 0},
+      "reference_prefix_4": {"exact": 0, "opening": 450, "body": 1929, "emitted": 0}
+    },
+    "seed_2": {
+      "model_only": {"exact": 0, "opening": 18, "body": 61, "emitted": 0, "generated_tokens": 28800},
+      "full_retrieval": {"exact": 47, "opening": 122, "body": 802, "emitted": 450, "premature_bos": 174},
+      "retrieved_prefix_1": {"exact": 0, "opening": 122, "body": 205, "emitted": 0},
+      "retrieved_prefix_2": {"exact": 0, "opening": 122, "body": 369, "emitted": 0},
+      "retrieved_prefix_4": {"exact": 0, "opening": 122, "body": 499, "emitted": 0},
+      "shuffled_prefix_4": {"exact": 0, "opening": 24, "body": 116, "emitted": 0},
+      "reference_prefix_4": {"exact": 0, "opening": 450, "body": 1878, "emitted": 0}
+    }
+  },
+  "comparisons": {
+    "seed_1": {
+      "selected_vs_model_body": {"candidate_sum": 513, "control_sum": 46, "passes": true},
+      "selected_vs_model_exact": {"candidate_only": 0, "control_only": 0, "threshold": 2, "passes": false},
+      "selected_vs_shuffled_exact": {"candidate_only": 0, "control_only": 0, "threshold": 2, "passes": false}
+    },
+    "seed_2": {
+      "selected_vs_model_body": {"candidate_sum": 499, "control_sum": 61, "passes": true},
+      "selected_vs_model_exact": {"candidate_only": 0, "control_only": 0, "threshold": 2, "passes": false},
+      "selected_vs_shuffled_exact": {"candidate_only": 0, "control_only": 0, "threshold": 2, "passes": false}
+    }
+  },
+  "controls": {
+    "all_reachable": 450,
+    "generated_cap_tokens_per_prefix_arm": 28800,
+    "prefix_bos_completions": 0,
+    "full_retrieval_premature_bos": 174,
+    "repeats_identical": true
+  },
+  "resources": {
+    "generator_build_seconds": 13.34,
+    "panel_seconds": 0.58,
+    "selector_wall_seconds": [4.35, 4.38, 4.39, 4.52, 4.55, 4.55],
+    "peak_rss_kib": 189568,
+    "retained_bytes": 136461
+  },
+  "tests": {
+    "cpu_library_passed": 399,
+    "cpu_library_ignored": 4
+  },
+  "source_sha256": {
+    "reply_eval": "ce2d7fb0f13d936a9167e9ccb0a91bf46456d22c4f871d133225f71e2a32c04f",
+    "cpu_lib": "7a9b3e5cf0376e42a5273054863c8d2ce526502cb864601b1492bb3ab2c41878",
+    "binary_source": "94cf981067761a202da2be9d77bdcf2fa8c2bd5be724754bc8dcec2673f1fd33",
+    "release_binary": "1b64025637b2d4665757bec592f92cc88df66800388c06e98c073429b99c49a8"
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/prompt-prefix/2026-11-06",
+    "sha256sums_sha256": "a470112a4bac615da945933e1804bb92b6f3f6cd481300a5866442e582958e25"
+  },
+  "outcome_reason": "The selected four-token prefix strongly improved body alignment over model-only and shuffled controls, but no prefix arm produced an exact reply or BOS completion; every prefix arm consumed the 64-token cap."
+}
