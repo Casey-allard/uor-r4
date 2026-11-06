@@ -689,6 +689,21 @@ The next endpoint experiment needs a new state or supervision signal rather
 than another form of the same suffix history. See
 [deepseek-202](../../loop/tasks/cpu-training-pilot/deepseek-202/REPORT.md).
 
+The next unit changed the completion object from a token trajectory to one
+complete TRAIN reply. Prompts were ranked by exact unigram-set Jaccard overlap
+with integer cross-multiplication, and the selected response was emitted with
+BOS. On fresh seed 2777 and both artifacts, treatment produced **39/471**
+exact replies and **948** correct body positions with **0** premature stops.
+None of the 471 panel prompts exactly matched a TRAIN prompt. Treatment beat
+bigram Jaccard (**29/27** exact), shuffled replies (**1/6**), Q12 query
+geometry (**12/12**) and fixed ordinal (**0/0**); the complete-reply membership
+oracle was **191**. Both artifacts produced identical treatment reply and
+decision digests and repeated exactly. This is a **KEEP** for exact prompt-set
+retrieval. Remaining work is sidecar integration, substitution of an
+artifact-bound discrete/VSA signature for literal token-set overlap, and
+response generation beyond the learned TRAIN reply set. See
+[deepseek-204](../../loop/tasks/cpu-training-pilot/deepseek-204/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

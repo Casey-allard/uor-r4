@@ -1,3 +1,19 @@
+## 2026-11-05 — Prompt-set retrieval clears the CPU completion bar (deepseek)
+
+The completion object changed from a generated token trajectory to one complete
+TRAIN reply selected by exact unigram-set Jaccard overlap between prompts.
+On fresh seed 2777 and both public artifacts, treatment produced **39/471**
+exact replies and **948** correct body positions with **zero premature BOS**.
+Every one of the 471 reference-reachable rows received a complete reply. No
+panel prompt exactly matched a TRAIN prompt.
+
+Treatment beat bigram Jaccard (**29/27** exact), shuffled replies (**1/6**),
+Q12 query-geometry nearest (**12/12**) and fixed ordinal (**0/0**) on exact
+replies. The complete-reply membership oracle was **191**, so this remains
+exact-memory retrieval rather than general fresh-phrasing understanding. Q12
+writer geometry did not improve token-set retrieval. Record:
+[deepseek-204](../loop/tasks/cpu-training-pilot/deepseek-204/REPORT.md).
+
 ## 2026-11-05 — Full-sequence suffix arbitration improves content but stopping regresses (deepseek)
 
 Reply-target suffix memory was trained over full prompt-plus-reply histories,

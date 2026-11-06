@@ -27,6 +27,7 @@ mod learned_copy_reply;
 mod memory;
 mod memory_train;
 mod panel;
+mod prompt_retrieval;
 mod quant_shadow;
 mod reply_boundary;
 mod reply_eval;
@@ -157,6 +158,12 @@ pub use memory_train::{
 pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,
     PanelReading,
+};
+pub use prompt_retrieval::{
+    compare_prompt_retrieval_rows, derive_prompt_retrieval_memory, evaluate_prompt_retrieval,
+    shuffle_prompt_retrieval_replies, PromptRetrievalArm, PromptRetrievalCensus,
+    PromptRetrievalDecision, PromptRetrievalMemory, PromptRetrievalReading, PromptRetrievalStep,
+    TimedPromptRetrievalReading, PROMPT_RETRIEVAL_MAX_CAP, PROMPT_RETRIEVAL_MAX_CONTEXT,
 };
 pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,

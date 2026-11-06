@@ -163,6 +163,20 @@ whole-continuation mode; another endpoint needs new state or supervision, not
 another arrangement of the same suffix history. See
 [deepseek-202](../loop/tasks/cpu-training-pilot/deepseek-202/REPORT.md).
 
+The next unit changed the completion object instead of the stop table. It
+retained a complete TRAIN response when its prompt had the greatest exact
+unigram-set Jaccard overlap, then emitted that response with BOS. On fresh
+seed 2777 and both artifacts, retrieval produced **39/471** exact replies,
+**948** correct body positions and **0** premature stops, with all 471
+reference-reachable rows receiving a complete response. None of the 471 panel
+prompts exactly matched a TRAIN prompt. Bigram Jaccard reached **29/27** exact
+replies, shuffled replies **1/6**, Q12 query geometry **12/12**, fixed ordinal
+**0/0**, and the complete-reply membership oracle **191**. This is a **KEEP**
+for exact prompt-set retrieval, not general response generation; the next step
+is to turn the token-set index into an artifact-bound discrete sidecar and test
+whether geometric or VSA signatures can preserve the gain. See
+[deepseek-204](../loop/tasks/cpu-training-pilot/deepseek-204/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.
