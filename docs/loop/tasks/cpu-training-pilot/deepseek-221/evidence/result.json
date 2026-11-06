@@ -1,0 +1,59 @@
+{
+  "schema": "uor-r4.cpu-nearest-rival-gain-summary/1",
+  "outcome": "CONTROL_FAULT",
+  "substrate": "cpu-development-research",
+  "qualification": "gpu-required",
+  "base": "4fde31439",
+  "implementation": "2ba8b56b6",
+  "run_source": {
+    "gain_train": "db819022a1f5a4ad6dd1db5fd61a854352cf0d902683d20aaf0b453e97665e62",
+    "cpu_lib": "e8ee4a749d391d072da58afc0e13a4b33a8a92eeb9a58ac770c2bbac51779044",
+    "driver": "2087f747509282d5d62b6239ed6ce68ed4c1935dcf73ebe8d83c6997eb61eb01",
+    "release_binary": "542a2d9980dec9b57eaa2e107427df0919c166d70ffebaf271335ad8b3e80e3b"
+  },
+  "post_run_repair": {
+    "driver": "1df4ffbba613e274ae353ead9b2d72f77f53fd769b0293deb35ac2631e20dee1",
+    "release_binary": "fc27c7497bb063a471409857a075f5980a3f65eae6d477e726df076c20cf15f2",
+    "scope": "classify a behaviorally vacuous shuffled-target artifact as CONTROL_FAULT"
+  },
+  "seed_1": {
+    "changed_targets": 2529,
+    "decisions": 2538,
+    "accepted_moves": 8,
+    "trained_artifact_sha256": "d658d37ca03d343ceb5c4b6b08ba24bfe88fd2f283d839538006cc09c4f8d049",
+    "shuffled_artifact_sha256": "d658d37ca03d343ceb5c4b6b08ba24bfe88fd2f283d839538006cc09c4f8d049",
+    "accepted_moves_identical": true,
+    "held_out": {
+      "frozen_top1": 291,
+      "trained_top1": 291,
+      "random_top1": 291,
+      "shuffled_top1": 291,
+      "frozen_rival_hinge_sum": 521955557,
+      "trained_rival_hinge_sum": 519784273,
+      "random_rival_hinge_sum": 522006729,
+      "shuffled_rival_hinge_sum": 519784273
+    },
+    "parity_exact": true
+  },
+  "seed_2": "NOT_RUN_CONTROL_FAULT",
+  "repeat": "NOT_RUN_CONTROL_FAULT",
+  "resources": {
+    "rayon_threads": 24,
+    "wall_seconds": 23.72,
+    "cpu_percent": 1916,
+    "peak_rss_kib": 266704,
+    "retained_bytes": 6638505
+  },
+  "tests": {
+    "nearest_rival_library": 3,
+    "driver": 2,
+    "cpu_library_passed": 402,
+    "cpu_library_ignored": 4
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/nearest-rival-gain/2026-11-06",
+    "sha256sums_sha256": "fabfea413d03a7bdf22963c54c53fa4b8b0f81632583f6c244039c53f0e9a686",
+    "seed1_report_sha256": "b479cd622b67809b79032e2166c55a81938c3551b645dade6aa5d3768e19aa54"
+  },
+  "outcome_reason": "A cyclic shuffle changed 2,529 of 2,538 target labels, yet the shuffled trainer selected the same eight gain moves and produced the same artifact as the true-target trainer. The shuffled control was therefore behaviorally non-discriminating, and no mechanism or quality conclusion is reported."
+}

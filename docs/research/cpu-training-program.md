@@ -253,6 +253,15 @@ Retrieved-prefix body positions were **452/427** against model-only
 at **33/459** exact and the small absolute gain does not change serving. See
 [deepseek-219](../loop/tasks/cpu-training-pilot/deepseek-219/REPORT.md).
 
+The next training-through-serving attempt replaced target distance with Claude's
+successful nearest-rival idea: an eight-rival Q12 hinge over the exact final
+served query. The cyclic shuffled-target control changed **2,529/2,538**
+labels, but selected the same eight final-gain moves and produced a
+byte-identical artifact to the true-target arm. Held-out top-1 stayed **291**
+for frozen, true, random and shuffled arms. This is a **CONTROL_FAULT**, not a
+mechanism negative; seed 2 and the repeat stopped. See
+[deepseek-221](../loop/tasks/cpu-training-pilot/deepseek-221/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

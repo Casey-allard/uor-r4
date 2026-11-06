@@ -49,6 +49,33 @@ pub struct ServedGainStep {
     pub parity: Option<MemoryWeightParityReading>,
 }
 
+pub const NEAREST_RIVAL_COUNT: usize = 8;
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NearestRivalGainReading {
+    pub artifact_sha256: String,
+    pub samples: usize,
+    pub decisions: u64,
+    pub top1_correct: u64,
+    pub target_distance_sum: u64,
+    pub rival_hinge_sum: u64,
+    pub rival_distances: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NearestRivalGainStep {
+    pub index: u64,
+    pub updated: bool,
+    pub coordinate: Option<usize>,
+    pub before_code: Option<i16>,
+    pub after_code: Option<i16>,
+    pub before: NearestRivalGainReading,
+    pub after: NearestRivalGainReading,
+    pub parity: Option<MemoryWeightParityReading>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServedGainMove {
@@ -757,6 +784,473 @@ impl CpuServedGainTrainer {
             parity: Some(parity),
         })
     }
+}
+
+#[derive(Clone)]
+pub struct CpuNearestRivalGainTrainer {
+    initial_artifact: Vec<u8>,
+    artifact: Vec<u8>,
+    samples: Vec<MemoryWeightSample>,
+    config: ServedGainConfig,
+    target_shift: usize,
+    target_changes: usize,
+    steps: u64,
+    trajectory: CpuGainTrajectory,
+}
+
+impl std::fmt::Debug for CpuNearestRivalGainTrainer {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CpuNearestRivalGainTrainer")
+            .field("artifact_bytes", &self.artifact.len())
+            .field("samples", &self.samples.len())
+            .field("step_code", &self.config.step_code)
+            .field("target_shift", &self.target_shift)
+            .field("target_changes", &self.target_changes)
+            .field("steps", &self.steps)
+            .finish()
+    }
+}
+
+impl CpuNearestRivalGainTrainer {
+    pub fn from_artifact_cached(
+        artifact: &[u8],
+        samples: Vec<MemoryWeightSample>,
+        config: ServedGainConfig,
+        target_shift: usize,
+    ) -> Result<Self> {
+        if config.step_code == 0 {
+            return Err(invalid("nearest-rival gain step code must be nonzero"));
+        }
+        validate_samples(artifact, &samples)?;
+        validate_artifact(artifact)?;
+        let trajectory = CpuGainTrajectory::build(artifact, &samples)?;
+        if trajectory.decisions.is_empty() {
+            return Err(invalid("nearest-rival gain samples contain no decision"));
+        }
+        let shift = target_shift % trajectory.decisions.len();
+        let target_changes = trajectory
+            .decisions
+            .iter()
+            .enumerate()
+            .filter(|(index, decision)| {
+                trajectory.decisions[(index + shift) % trajectory.decisions.len()].target
+                    != decision.target
+            })
+            .count();
+        if shift != 0 && target_changes == 0 {
+            return Err(invalid("nearest-rival target shuffle is vacuous"));
+        }
+        Ok(Self {
+            initial_artifact: artifact.to_vec(),
+            artifact: artifact.to_vec(),
+            samples,
+            config,
+            target_shift: shift,
+            target_changes,
+            steps: 0,
+            trajectory,
+        })
+    }
+
+    pub fn artifact(&self) -> &[u8] {
+        &self.artifact
+    }
+
+    pub fn initial_artifact(&self) -> &[u8] {
+        &self.initial_artifact
+    }
+
+    pub fn config(&self) -> ServedGainConfig {
+        self.config
+    }
+
+    pub fn step_count(&self) -> u64 {
+        self.steps
+    }
+
+    pub fn target_shift(&self) -> usize {
+        self.target_shift
+    }
+
+    pub fn target_changes(&self) -> usize {
+        self.target_changes
+    }
+
+    pub fn reading(&self) -> Result<NearestRivalGainReading> {
+        self.trajectory.nearest_rival_reading_with_limit(
+            &self.artifact,
+            &self.trajectory.targets(self.target_shift),
+            None,
+            NEAREST_RIVAL_COUNT,
+        )
+    }
+
+    pub fn train_step(&mut self) -> Result<NearestRivalGainStep> {
+        let index = self.steps;
+        let targets = self.trajectory.targets(self.target_shift);
+        let rivals =
+            self.trajectory
+                .nearest_rivals(&self.artifact, &targets, NEAREST_RIVAL_COUNT)?;
+        let before = self
+            .trajectory
+            .nearest_rival_reading(&self.artifact, &targets, &rivals)?;
+        let gain = read_gain(&self.artifact)?;
+        let mut candidates = Vec::with_capacity(gain.len() * 2);
+        for (coordinate, &original) in gain.iter().enumerate() {
+            for delta in [self.config.step_code, -self.config.step_code] {
+                let Some(after) = original.checked_add(delta) else {
+                    continue;
+                };
+                if after != original {
+                    candidates.push((coordinate, original, after));
+                }
+            }
+        }
+        let evaluated = candidates
+            .par_chunks(16)
+            .map(|chunk| {
+                let mut best: Option<NearestRivalCandidate> = None;
+                for &(coordinate, original, after) in chunk {
+                    let mut trial = gain.clone();
+                    trial[coordinate] = after;
+                    let artifact = patch_gain(&self.artifact, &trial)?;
+                    let reading = self
+                        .trajectory
+                        .nearest_rival_reading(&artifact, &targets, &rivals)?;
+                    if !nearest_rival_improvement(&reading, &before) {
+                        continue;
+                    }
+                    let candidate = NearestRivalCandidate {
+                        coordinate,
+                        before_code: original,
+                        after_code: after,
+                        artifact,
+                        reading,
+                    };
+                    if best.as_ref().is_none_or(|current| {
+                        nearest_rival_improvement(&candidate.reading, &current.reading)
+                    }) {
+                        best = Some(candidate);
+                    }
+                }
+                Ok::<_, CpuTrainError>(best)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let best = evaluated
+            .into_iter()
+            .flatten()
+            .reduce(|current, candidate| {
+                if nearest_rival_improvement(&candidate.reading, &current.reading) {
+                    candidate
+                } else {
+                    current
+                }
+            });
+        self.steps = self
+            .steps
+            .checked_add(1)
+            .ok_or_else(|| invalid("nearest-rival gain step counter exhausted"))?;
+        let Some(best) = best else {
+            return Ok(NearestRivalGainStep {
+                index,
+                updated: false,
+                coordinate: None,
+                before_code: None,
+                after_code: None,
+                before: before.clone(),
+                after: before,
+                parity: None,
+            });
+        };
+        let parity = audit_memory_weight_samples(&best.artifact, &self.samples, true)?;
+        if !parity.is_exact() {
+            return Err(invalid(
+                "nearest-rival gain update lost complete CPU/serving parity",
+            ));
+        }
+        self.artifact = best.artifact;
+        Ok(NearestRivalGainStep {
+            index,
+            updated: true,
+            coordinate: Some(best.coordinate),
+            before_code: Some(best.before_code),
+            after_code: Some(best.after_code),
+            before,
+            after: best.reading,
+            parity: Some(parity),
+        })
+    }
+}
+
+pub fn evaluate_nearest_rival_gain_samples(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+) -> Result<NearestRivalGainReading> {
+    validate_samples(artifact, samples)?;
+    validate_artifact(artifact)?;
+    let trajectory = CpuGainTrajectory::build(artifact, samples)?;
+    trajectory.nearest_rival_reading_with_limit(
+        artifact,
+        &trajectory.targets(0),
+        None,
+        NEAREST_RIVAL_COUNT,
+    )
+}
+
+fn nearest_rival_improvement(
+    after: &NearestRivalGainReading,
+    before: &NearestRivalGainReading,
+) -> bool {
+    (
+        after.rival_hinge_sum,
+        after.target_distance_sum,
+        std::cmp::Reverse(after.top1_correct),
+    ) < (
+        before.rival_hinge_sum,
+        before.target_distance_sum,
+        std::cmp::Reverse(before.top1_correct),
+    )
+}
+
+struct NearestRivalCandidate {
+    coordinate: usize,
+    before_code: i16,
+    after_code: i16,
+    artifact: Vec<u8>,
+    reading: NearestRivalGainReading,
+}
+
+impl CpuGainTrajectory {
+    fn targets(&self, shift: usize) -> Vec<u32> {
+        (0..self.decisions.len())
+            .map(|index| self.decisions[(index + shift) % self.decisions.len()].target)
+            .collect()
+    }
+
+    fn nearest_rivals(
+        &self,
+        artifact: &[u8],
+        targets: &[u32],
+        limit: usize,
+    ) -> Result<Vec<Vec<u32>>> {
+        if targets.len() != self.decisions.len() || limit == 0 {
+            return Err(invalid("nearest-rival target or width mismatch"));
+        }
+        let gain = read_gain(artifact)?;
+        let width = self.forward.width();
+        let vocab = self.forward.vocabulary();
+        let table = self.forward.token_table();
+        self.decisions
+            .par_iter()
+            .zip(targets)
+            .map(|(decision, &target)| {
+                if target as usize >= vocab {
+                    return Err(invalid("nearest-rival target is outside vocabulary"));
+                }
+                let (query, _) = self
+                    .forward
+                    .replay_final_gain(
+                        &decision.norm_before_final_gain,
+                        &gain,
+                        decision.memory,
+                        &self.opening_weights,
+                        self.reply_weights.as_deref(),
+                    )
+                    .map_err(|error| invalid(format!("nearest-rival replay: {error}")))?;
+                let mut nearest = vec![(u64::MAX, u32::MAX); limit];
+                for token in 0..vocab {
+                    if token as u32 == target {
+                        continue;
+                    }
+                    let row = &table[token * width..][..width];
+                    let distance =
+                        query
+                            .iter()
+                            .zip(row)
+                            .try_fold(0u64, |sum, (&left, &right)| {
+                                sum.checked_add(u64::from(left.abs_diff(i32::from(right))))
+                                    .ok_or_else(|| invalid("nearest-rival distance overflows"))
+                            })?;
+                    insert_nearest_rival(&mut nearest, distance, token as u32);
+                }
+                if nearest
+                    .last()
+                    .is_some_and(|&(distance, _)| distance == u64::MAX)
+                {
+                    return Err(invalid("nearest-rival list is incomplete"));
+                }
+                Ok(nearest.into_iter().map(|(_, token)| token).collect())
+            })
+            .collect()
+    }
+
+    fn nearest_rival_reading(
+        &self,
+        artifact: &[u8],
+        targets: &[u32],
+        rivals: &[Vec<u32>],
+    ) -> Result<NearestRivalGainReading> {
+        self.nearest_rival_reading_with_limit(artifact, targets, Some(rivals), NEAREST_RIVAL_COUNT)
+    }
+
+    fn nearest_rival_reading_with_limit(
+        &self,
+        artifact: &[u8],
+        targets: &[u32],
+        fixed_rivals: Option<&[Vec<u32>]>,
+        limit: usize,
+    ) -> Result<NearestRivalGainReading> {
+        let limit = fixed_rivals
+            .and_then(|rivals| rivals.first().map(Vec::len))
+            .unwrap_or(limit);
+        if targets.len() != self.decisions.len()
+            || limit == 0
+            || fixed_rivals.is_some_and(|rivals| {
+                rivals.len() != self.decisions.len()
+                    || rivals.iter().any(|tokens| tokens.len() != limit)
+            })
+        {
+            return Err(invalid("nearest-rival reading shape differs"));
+        }
+        if let Some(rivals) = fixed_rivals {
+            if rivals.iter().zip(targets).any(|(tokens, &target)| {
+                tokens
+                    .iter()
+                    .any(|&token| token as usize >= self.forward.vocabulary())
+                    || tokens.contains(&target)
+                    || tokens
+                        .iter()
+                        .enumerate()
+                        .any(|(index, token)| tokens[..index].contains(token))
+            }) {
+                return Err(invalid("nearest-rival identities differ"));
+            }
+        }
+        let gain = read_gain(artifact)?;
+        let width = self.forward.width();
+        let vocab = self.forward.vocabulary();
+        let table = self.forward.token_table();
+        let readings = self
+            .decisions
+            .par_iter()
+            .zip(targets)
+            .enumerate()
+            .map(|(index, (decision, &target))| {
+                if target as usize >= vocab {
+                    return Err(invalid("nearest-rival target is outside vocabulary"));
+                }
+                let (query, token) = self
+                    .forward
+                    .replay_final_gain(
+                        &decision.norm_before_final_gain,
+                        &gain,
+                        decision.memory,
+                        &self.opening_weights,
+                        self.reply_weights.as_deref(),
+                    )
+                    .map_err(|error| invalid(format!("nearest-rival replay: {error}")))?;
+                let target_row = &table[target as usize * width..][..width];
+                let target_distance = row_distance(&query, target_row)?;
+                let computed = fixed_rivals.is_none().then(|| {
+                    let mut nearest = vec![(u64::MAX, u32::MAX); limit];
+                    for candidate in 0..vocab {
+                        if candidate as u32 == target {
+                            continue;
+                        }
+                        let row = &table[candidate * width..][..width];
+                        let Ok(distance) = row_distance(&query, row) else {
+                            return Err(invalid("nearest-rival distance overflows"));
+                        };
+                        insert_nearest_rival(&mut nearest, distance, candidate as u32);
+                    }
+                    Ok::<_, CpuTrainError>(nearest)
+                });
+                let nearest = match (fixed_rivals, computed.transpose()?) {
+                    (Some(rivals), None) => rivals[index]
+                        .iter()
+                        .map(|&rival| {
+                            let row = &table[rival as usize * width..][..width];
+                            Ok((row_distance(&query, row)?, rival))
+                        })
+                        .collect::<Result<Vec<_>>>()?,
+                    (None, Some(nearest)) => nearest,
+                    _ => return Err(invalid("nearest-rival source differs")),
+                };
+                let mut hinge_sum = 0u64;
+                for (rival_distance, _) in &nearest {
+                    let hinge = 1i128 + i128::from(target_distance) - i128::from(*rival_distance);
+                    let hinge = u64::try_from(hinge.max(0))
+                        .map_err(|_| invalid("nearest-rival hinge exceeds u64"))?;
+                    hinge_sum = hinge_sum
+                        .checked_add(hinge)
+                        .ok_or_else(|| invalid("nearest-rival hinge sum overflows"))?;
+                }
+                Ok((
+                    u64::from(token == target),
+                    target_distance,
+                    hinge_sum,
+                    nearest.len() as u64,
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut reading = NearestRivalGainReading {
+            artifact_sha256: uor_r4_discrete::corpus::sha256(artifact),
+            samples: self.samples,
+            decisions: 0,
+            top1_correct: 0,
+            target_distance_sum: 0,
+            rival_hinge_sum: 0,
+            rival_distances: 0,
+        };
+        for (top1, target_distance, hinge_sum, rival_count) in readings {
+            reading.decisions = reading
+                .decisions
+                .checked_add(1)
+                .ok_or_else(|| invalid("nearest-rival decision count overflows"))?;
+            reading.top1_correct = reading
+                .top1_correct
+                .checked_add(top1)
+                .ok_or_else(|| invalid("nearest-rival top-1 count overflows"))?;
+            reading.target_distance_sum = reading
+                .target_distance_sum
+                .checked_add(target_distance)
+                .ok_or_else(|| invalid("nearest-rival target distance overflows"))?;
+            reading.rival_hinge_sum = reading
+                .rival_hinge_sum
+                .checked_add(hinge_sum)
+                .ok_or_else(|| invalid("nearest-rival hinge count overflows"))?;
+            reading.rival_distances = reading
+                .rival_distances
+                .checked_add(rival_count)
+                .ok_or_else(|| invalid("nearest-rival distance count overflows"))?;
+        }
+        Ok(reading)
+    }
+}
+
+fn row_distance(query: &[i32], row: &[i16]) -> Result<u64> {
+    if query.len() != row.len() {
+        return Err(invalid("nearest-rival query and row widths differ"));
+    }
+    query
+        .iter()
+        .zip(row)
+        .try_fold(0u64, |sum, (&left, &right)| {
+            sum.checked_add(u64::from(left.abs_diff(i32::from(right))))
+                .ok_or_else(|| invalid("nearest-rival distance overflows"))
+        })
+}
+
+fn insert_nearest_rival(nearest: &mut [(u64, u32)], distance: u64, token: u32) {
+    let Some(position) = nearest
+        .iter()
+        .position(|&(current, current_token)| (distance, token) < (current, current_token))
+    else {
+        return;
+    };
+    nearest.copy_within(position..nearest.len() - 1, position + 1);
+    nearest[position] = (distance, token);
 }
 
 /// Derive one terminal label for each teacher-forced decision. Every training
@@ -1877,6 +2371,108 @@ mod tests {
     #[test]
     fn cached_gain_replay_matches_the_full_forward() {
         assert_cached_matches_full(&fixture(), 3);
+    }
+
+    #[test]
+    fn nearest_rival_fixed_and_refreshed_rankings_agree_on_the_same_query() {
+        let artifact = fixture();
+        let trajectory = CpuGainTrajectory::build(&artifact, &samples()).unwrap();
+        let targets = trajectory.targets(0);
+        let rivals = trajectory
+            .nearest_rivals(&artifact, &targets, NEAREST_RIVAL_COUNT)
+            .unwrap();
+        let fixed = trajectory
+            .nearest_rival_reading(&artifact, &targets, &rivals)
+            .unwrap();
+        let refreshed = trajectory
+            .nearest_rival_reading_with_limit(&artifact, &targets, None, NEAREST_RIVAL_COUNT)
+            .unwrap();
+        assert_eq!(fixed, refreshed);
+        assert_eq!(fixed.rival_distances, fixed.decisions * 8);
+        assert!(rivals
+            .iter()
+            .zip(&targets)
+            .all(|(tokens, target)| tokens.len() == 8
+                && !tokens.contains(target)
+                && tokens
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .len()
+                    == 8));
+    }
+
+    #[test]
+    fn nearest_rival_target_shuffle_is_matched_and_rejects_a_vacuous_shift() {
+        let artifact = fixture();
+        let config = ServedGainConfig::default();
+        let trainer =
+            CpuNearestRivalGainTrainer::from_artifact_cached(&artifact, samples(), config, 1)
+                .unwrap();
+        assert_eq!(trainer.target_shift(), 1);
+        assert!(trainer.target_changes() > 0);
+        let mut targets = trainer.trajectory.targets(0);
+        let mut shifted = trainer.trajectory.targets(1);
+        targets.sort_unstable();
+        shifted.sort_unstable();
+        assert_eq!(
+            targets, shifted,
+            "the cyclic shift preserves the target multiset"
+        );
+
+        let same = CpuNearestRivalGainTrainer::from_artifact_cached(
+            &artifact,
+            samples(),
+            config,
+            trainer.trajectory.decisions.len(),
+        )
+        .unwrap();
+        assert_eq!(same.target_shift(), 0);
+        assert_eq!(same.target_changes(), 0);
+    }
+
+    #[test]
+    fn nearest_rival_objective_is_lexicographic_and_gain_only() {
+        let before = NearestRivalGainReading {
+            artifact_sha256: "00".repeat(32),
+            samples: 1,
+            decisions: 2,
+            top1_correct: 1,
+            target_distance_sum: 20,
+            rival_hinge_sum: 10,
+            rival_distances: 16,
+        };
+        let mut lower_hinge = before.clone();
+        lower_hinge.rival_hinge_sum = 9;
+        lower_hinge.target_distance_sum = 30;
+        assert!(nearest_rival_improvement(&lower_hinge, &before));
+
+        let mut lower_distance = before.clone();
+        lower_distance.target_distance_sum = 19;
+        assert!(nearest_rival_improvement(&lower_distance, &before));
+
+        let mut more_top1 = before.clone();
+        more_top1.top1_correct = 2;
+        assert!(nearest_rival_improvement(&more_top1, &before));
+
+        let artifact = fixture();
+        let mut changed = read_gain(&artifact).unwrap();
+        changed[0] = changed[0].checked_add(1).unwrap();
+        let patched = patch_gain(&artifact, &changed).unwrap();
+        let gain_bytes = read_gain(&artifact)
+            .unwrap()
+            .into_iter()
+            .flat_map(i16::to_le_bytes)
+            .collect::<Vec<_>>();
+        let start = artifact
+            .windows(gain_bytes.len())
+            .position(|window| window == gain_bytes)
+            .unwrap();
+        assert_eq!(&artifact[..start], &patched[..start]);
+        assert_eq!(
+            &artifact[start + gain_bytes.len()..],
+            &patched[start + gain_bytes.len()..]
+        );
     }
 
     #[test]

@@ -120,13 +120,14 @@ pub use full_sequence_boundary::{
     FULL_BOUNDARY_MIN_DEPTH, FULL_BOUNDARY_MIN_OBSERVATIONS,
 };
 pub use gain_train::{
-    anchor_writer_ports, evaluate_termination_gain_samples, random_gain_control,
-    random_port_gain_control, read_gain, replace_final_gain, shuffle_termination_gain_labels,
-    termination_gain_labels, CpuPortRootTrainer, CpuServedGainTrainer, CpuTerminationGainTrainer,
-    PortRootConfig, PortRootReading, PortRootStep, ServedGainConfig, ServedGainMove,
-    ServedGainStep, TerminationGainConfig, TerminationGainEvaluation, TerminationGainReading,
-    TerminationGainStep, CPU_PORT_ROOT_TRAINER_SCHEMA, CPU_SERVED_GAIN_TRAINER_SCHEMA,
-    CPU_TERMINATION_GAIN_TRAINER_SCHEMA,
+    anchor_writer_ports, evaluate_nearest_rival_gain_samples, evaluate_termination_gain_samples,
+    random_gain_control, random_port_gain_control, read_gain, replace_final_gain,
+    shuffle_termination_gain_labels, termination_gain_labels, CpuNearestRivalGainTrainer,
+    CpuPortRootTrainer, CpuServedGainTrainer, CpuTerminationGainTrainer, NearestRivalGainReading,
+    NearestRivalGainStep, PortRootConfig, PortRootReading, PortRootStep, ServedGainConfig,
+    ServedGainMove, ServedGainStep, TerminationGainConfig, TerminationGainEvaluation,
+    TerminationGainReading, TerminationGainStep, CPU_PORT_ROOT_TRAINER_SCHEMA,
+    CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA, NEAREST_RIVAL_COUNT,
 };
 pub use geometric_candidate_anchor::{
     calibrate_expanded_candidate_union, compare_anchored_candidate_rows,
