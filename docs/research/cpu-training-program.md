@@ -305,6 +305,18 @@ at **661/660**, and only **202/223** of 467 replies completed. This is a
 jointly with content or over complete branches. See
 [deepseek-229](../loop/tasks/cpu-training-pilot/deepseek-229/REPORT.md).
 
+The next unit implemented that joint representation: one generated content
+spine retained every boundary endpoint as a complete candidate, and a bounded
+integer pairwise selector ranked whole branches with 15 content and
+termination features. Its TRAIN preflight stopped before fresh seed 2787. The
+full-memory spine produced **77** supervised groups but no group where the
+first boundary was wrong; document-grouped four-fold reference prefixes
+produced **0** candidates across 453 rows. This is **INSUFFICIENT_POWER**, not
+a mechanism negative. TRAIN reference trajectories do not expose the fresh
+false stops, so the next endpoint objective needs distribution-matched or
+reference-free supervision. See
+[deepseek-231](../loop/tasks/cpu-training-pilot/deepseek-231/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

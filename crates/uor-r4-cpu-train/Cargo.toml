@@ -49,6 +49,10 @@ name = "cpu-content-length-driver"
 path = "src/bin/cpu-content-length-driver.rs"
 
 [[bin]]
+name = "cpu-joint-branch-driver"
+path = "src/bin/cpu-joint-branch-driver.rs"
+
+[[bin]]
 name = "cpu-copy-full-boundary"
 path = "src/bin/cpu-copy-full-boundary.rs"
 

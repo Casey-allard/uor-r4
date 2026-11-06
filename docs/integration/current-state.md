@@ -1,3 +1,18 @@
+## 2026-11-06 — Complete-branch selection lacks TRAIN endpoint supervision (deepseek)
+
+A joint complete-branch selector was implemented over one full-sequence
+geometric content spine, with every boundary endpoint retained as a candidate
+and 15 integer content/termination features ranked by a pairwise perceptron.
+The fresh seed-2787 panel was not generated: the power gate stopped first.
+
+The full-memory generated-spine preflight exposed **77** supervised groups but
+**0** where the first boundary was wrong. Document-grouped four-fold
+reference-prefix supervision then exposed **0** candidate rows across all
+**453** TRAIN rows. This is **INSUFFICIENT_POWER**, not a fresh mechanism
+negative. The next endpoint objective needs supervision from the distribution
+shift that creates fresh false boundaries, or a reference-free score. Record:
+[deepseek-231](../loop/tasks/cpu-training-pilot/deepseek-231/REPORT.md).
+
 ## 2026-11-06 — Continuation guard suppresses stops but breaks exact content (deepseek)
 
 A confident full-sequence continuation suppressed **23** boundary decisions on

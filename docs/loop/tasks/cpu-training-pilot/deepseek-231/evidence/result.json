@@ -1,0 +1,29 @@
+{
+  "schema": "uor-r4.cpu-joint-branch-summary/1",
+  "outcome": "INSUFFICIENT_POWER",
+  "base": "b4a7aac9f",
+  "fresh_panel_generated": false,
+  "train": {
+    "tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5"
+  },
+  "preflight": {
+    "rows": 453,
+    "supervised_groups": 0,
+    "baseline_wrong_groups": 0,
+    "candidate_rows": 0,
+    "positive_rows": 0
+  },
+  "earlier_generated_spine_preflight": {
+    "supervised_groups": 77,
+    "baseline_wrong_groups": 0,
+    "candidate_rows": 273,
+    "positive_rows": 77
+  },
+  "power_floor": {
+    "supervised_groups": 96,
+    "baseline_wrong_groups": 1
+  },
+  "reason": "TRAIN reference prefixes exposed no supervised false-boundary branch; document-grouped held-out reference prefixes produced no candidates, and the full-memory generated spine produced no group where the first boundary was wrong."
+}

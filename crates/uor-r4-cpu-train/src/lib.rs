@@ -23,6 +23,7 @@ mod gain_train;
 mod geometric_candidate_anchor;
 mod geometric_candidate_rank;
 mod hamming;
+mod joint_branch;
 mod learned_copy_reply;
 mod memory;
 mod memory_train;
@@ -145,6 +146,15 @@ pub use geometric_candidate_rank::{
     TimedGeometricCandidateReading, GEOMETRIC_CANDIDATE_EPOCHS, GEOMETRIC_CANDIDATE_FEATURES,
     GEOMETRIC_CANDIDATE_FEATURE_NAMES, GEOMETRIC_CANDIDATE_MIN_GROUPS,
     GEOMETRIC_CANDIDATE_MIN_TARGETS, GEOMETRIC_CANDIDATE_TOP_WRITER,
+};
+pub use joint_branch::{
+    compare_joint_branch_rows, evaluate_joint_branch_selection, fit_joint_branch_selector,
+    generate_joint_branch_spine, JointBranchArm, JointBranchCandidate, JointBranchEvaluation,
+    JointBranchReading, JointBranchSelector, JointBranchSpine, JointBranchStep,
+    JointBranchTraining, TimedJointBranchReading, JOINT_BRANCH_EPOCHS, JOINT_BRANCH_FEATURES,
+    JOINT_BRANCH_FEATURE_NAMES, JOINT_BRANCH_FOLDS, JOINT_BRANCH_LEARNING_RATE,
+    JOINT_BRANCH_MIN_OBSERVATIONS, JOINT_BRANCH_SHUFFLE_SEED, JOINT_BRANCH_TAIL,
+    JOINT_BRANCH_WEIGHT_LIMIT,
 };
 pub use learned_copy_reply::{
     derive_learned_copy_readout, evaluate_learned_copy_replies, LearnedCopyArm, LearnedCopyReading,
