@@ -212,6 +212,17 @@ representation must preserve candidate rank while reducing width, rather than
 colliding distinct token ids. See
 [deepseek-211](../loop/tasks/cpu-training-pilot/deepseek-211/REPORT.md).
 
+The next answer-selection unit trained a small integer ranker on TRAIN
+leave-one-out prompt neighbors. The ranker saw the raw Jaccard top-16 and eight
+token, reply-frequency and writer-query features. On fresh seed 2779 it changed
+raw exact/body from **55/966** to **59/1022** on artifact seed 2 but to
+**21/325** on artifact seed 1. The candidate oracle held **163** exact replies,
+so the loss was not insufficient candidate coverage. This is a **REJECT** for
+the fixed shared additive recipe. The next answer-selection attempt should keep
+artifact-independent lexical features separate from artifact-bound geometric
+features. See
+[deepseek-213](../loop/tasks/cpu-training-pilot/deepseek-213/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

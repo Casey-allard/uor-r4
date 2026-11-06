@@ -28,6 +28,7 @@ mod memory;
 mod memory_train;
 mod panel;
 mod prompt_retrieval;
+mod prompt_reply_rank;
 mod quant_shadow;
 mod reply_boundary;
 mod reply_eval;
@@ -164,6 +165,16 @@ pub use prompt_retrieval::{
     shuffle_prompt_retrieval_replies, PromptRetrievalArm, PromptRetrievalCensus,
     PromptRetrievalDecision, PromptRetrievalMemory, PromptRetrievalReading, PromptRetrievalStep,
     TimedPromptRetrievalReading, PROMPT_RETRIEVAL_MAX_CAP, PROMPT_RETRIEVAL_MAX_CONTEXT,
+};
+pub use prompt_reply_rank::{
+    compare_prompt_reply_rank_rows, derive_prompt_reply_rank_memory,
+    evaluate_prompt_reply_ranking, fit_prompt_reply_ranker, PromptReplyRankArm,
+    PromptReplyRankMemory, PromptReplyRankReading, PromptReplyRankStep, PromptReplyRankTraining,
+    PromptReplyRanker, TimedPromptReplyRankReading,
+    PROMPT_REPLY_RANK_EPOCHS, PROMPT_REPLY_RANK_FEATURES, PROMPT_REPLY_RANK_FEATURE_NAMES,
+    PROMPT_REPLY_RANK_LEARNING_RATE, PROMPT_REPLY_RANK_MIN_BASELINE_WRONG,
+    PROMPT_REPLY_RANK_MIN_GROUPS, PROMPT_REPLY_RANK_SHUFFLE_SEED, PROMPT_REPLY_RANK_TOP_K,
+    PROMPT_REPLY_RANK_WEIGHT_LIMIT,
 };
 pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,

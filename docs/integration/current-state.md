@@ -1,3 +1,18 @@
+## 2026-11-06 — Learned whole-reply ranker is artifact-unstable (deepseek)
+
+A bounded integer pairwise perceptron ranked the raw Jaccard top-16 complete
+replies using eight token, reply-frequency and writer-query features. It trained
+on 193 leave-one-out TRAIN groups and evaluated on fresh seed 2779 with both
+public artifacts.
+
+Artifact seed 2 improved raw retrieval from **55 to 59** exact replies and
+**966 to 1,022** body positions. Artifact seed 1 fell from **55 to 21** exact
+and **966 to 325** body. All 464 reachable rows were emitted with zero premature
+BOS, and the candidate oracle contained 163 correct replies. This is a
+**REJECT** for the fixed shared additive ranking recipe; exact Jaccard remains
+the serving default. Record:
+[deepseek-213](../loop/tasks/cpu-training-pilot/deepseek-213/REPORT.md).
+
 ## 2026-11-06 — Compressed prompt VSA loses retrieval quality (deepseek)
 
 TRAIN-only calibration selected a 1,024-bit modulo signature from a fixed

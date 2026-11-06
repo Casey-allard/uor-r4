@@ -1,0 +1,176 @@
+{
+  "schema": "uor-r4.cpu-prompt-reply-ranker-summary/1",
+  "outcome": "REJECT_ARTIFACT_UNSTABLE",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "base": "dc2a05d72aa753815564d6865d1f98e4e73824db",
+  "implementation_head": "169af13d5",
+  "registration_head": "e7f3f9e6a709542c5b64930aa4deb3f09435e19d",
+  "inputs": {
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "artifact_seed_1_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "artifact_seed_2_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "sidecar_seed_1_sha256": "2a298b44ea34d1a8e2d40191951d3da9b3300e2ac7de65e6c2ec13950a0b6424",
+    "sidecar_seed_2_sha256": "6504dcb047ce7157dd5e968c29441505cf48d993f01ec63222125634c61963b7"
+  },
+  "panel": {
+    "seed": 2779,
+    "cell": ["dev", "dev"],
+    "protocol": 2,
+    "conversations": 128,
+    "tokens": 16386,
+    "reference_reachable_per_artifact": 464,
+    "candidate_correct_present": 163,
+    "tokens_sha256": "ce95b88a26c32f38703d279efd5a6873c7a9b2399f7d8c152c2b0ef8414f5e83",
+    "mask_sha256": "7d047492b98e6648711c08e6cdf5bbabac30d64e22706a17909098a665c6cda1",
+    "manifest_sha256": "d6f5c7aea46df2f7e157beae215611533585d4f00f9a0b98a72abb1a3fc99824"
+  },
+  "training": {
+    "rows": 453,
+    "supervised_groups": 193,
+    "baseline_wrong_groups": 119,
+    "candidate_rows": 3088,
+    "positive_rows": 506,
+    "shuffled_label_changes": 756,
+    "top_k": 16,
+    "epochs": 8,
+    "feature_names": [
+      "bias",
+      "unigram_jaccard_q16",
+      "query_coverage_q16",
+      "candidate_coverage_q16",
+      "reply_prompt_overlap_q16",
+      "writer_distance_advantage",
+      "reply_frequency",
+      "reply_length_delta"
+    ]
+  },
+  "artifacts": {
+    "seed_1": {
+      "trained_weights": [0, -7063, -46980, -28516, -31305, -1063, 5048, -521],
+      "shuffled_weights": [0, -46811, -42356, -45621, 14808, -44746, 690, -1411],
+      "raw": {
+        "exact_reference": 55,
+        "opening_correct": 127,
+        "correct_body_positions": 966,
+        "decision_sha256": "02790c0034f4b1a48ad4e770cb66931a81fd11ef14671934e7a267f0bd099038"
+      },
+      "learned": {
+        "exact_reference": 21,
+        "opening_correct": 63,
+        "correct_body_positions": 325,
+        "decision_sha256": "a3fd6352c3728c2045549e75558b636e1363cec6a2cce2168967530a86a50ce4"
+      },
+      "shuffled": {
+        "exact_reference": 14,
+        "opening_correct": 71,
+        "correct_body_positions": 401
+      },
+      "quality_delta_vs_raw": {
+        "exact_reference": -34,
+        "opening_correct": -64,
+        "correct_body_positions": -641
+      },
+      "comparisons": {
+        "learned_vs_raw_exact": {
+          "candidate_only": 19,
+          "control_only": 53,
+          "threshold": 15,
+          "passes": false
+        },
+        "learned_vs_raw_body": {
+          "candidate_sum": 325,
+          "control_sum": 966,
+          "passes": false
+        },
+        "learned_vs_shuffled_exact": {
+          "candidate_only": 20,
+          "control_only": 13,
+          "threshold": 8,
+          "passes": true
+        }
+      }
+    },
+    "seed_2": {
+      "trained_weights": [0, 31931, -3375, -6915, 3655, 3745, 4910, -1170],
+      "shuffled_weights": [0, -11599, -34987, -8250, -23535, -1353, 334, -954],
+      "raw": {
+        "exact_reference": 55,
+        "opening_correct": 127,
+        "correct_body_positions": 966,
+        "decision_sha256": "02790c0034f4b1a48ad4e770cb66931a81fd11ef14671934e7a267f0bd099038"
+      },
+      "learned": {
+        "exact_reference": 59,
+        "opening_correct": 145,
+        "correct_body_positions": 1022,
+        "decision_sha256": "9c3068201ae86c6fc848790a5b74022ea2dd45ab99ce62a62ee833c57c63e836"
+      },
+      "shuffled": {
+        "exact_reference": 14,
+        "opening_correct": 59,
+        "correct_body_positions": 270
+      },
+      "quality_delta_vs_raw": {
+        "exact_reference": 4,
+        "opening_correct": 18,
+        "correct_body_positions": 56
+      },
+      "comparisons": {
+        "learned_vs_raw_exact": {
+          "candidate_only": 15,
+          "control_only": 11,
+          "threshold": 7,
+          "passes": true
+        },
+        "learned_vs_raw_body": {
+          "candidate_sum": 1022,
+          "control_sum": 966,
+          "passes": true
+        },
+        "learned_vs_shuffled_exact": {
+          "candidate_only": 58,
+          "control_only": 13,
+          "threshold": 8,
+          "passes": true
+        }
+      }
+    }
+  },
+  "controls": {
+    "raw_emitted_per_artifact": 464,
+    "learned_emitted_per_artifact": 464,
+    "premature_bos_per_artifact": 0,
+    "reference_membership_oracle_exact": 210,
+    "reference_membership_oracle_body": 2244,
+    "repeats_identical": true
+  },
+  "resources": {
+    "generator_build_seconds": 9.88,
+    "panel_seconds": 0.63,
+    "selector_wall_seconds": [5.77, 5.79, 5.86],
+    "peak_rss_kib": 208424,
+    "retained_bytes": 182625
+  },
+  "tests": {
+    "focused_ranker": 4,
+    "cpu_library_passed": 398,
+    "cpu_library_ignored": 4
+  },
+  "source_sha256": {
+    "ranker": "714ecd92f79d7c4aa145f3e00211df793160d1a15a502b9fdbb8187ea9e37409",
+    "ranker_binary": "70a05489a4030cb982172d86328efa493e7515a224cdb3b12c72dbf48d61c115",
+    "cpu_lib": "0ac072c3aed799fc62f795c02dd35ce23077f986cc2f5a74cf3191e5c17446cf",
+    "release_binary": "254716c7f70e92df69c15ca279ad7320052decf47248f5e104b82b4096d2e3d9",
+    "generator_manifest": "dcd31a8ff3b1ffdb699768a4621020a2743e7cc8c1099e65622758a98460af2c",
+    "generator_lock": "e623c315d9c3118532feb1c9e4e0d3fa699f623444fd0a91f4194b7f810440dd"
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/prompt-reply-ranker/2026-11-06",
+    "sha256sums_sha256": "c05089c74bedd90d95b56b05cb00be24c5d20d7eb3044e48f653ec0bf0d6f7a9"
+  },
+  "outcome_reason": "The learned ranker failed both exact and body comparisons against raw Jaccard on artifact seed 1; a gain on seed 2 was not replicated."
+}

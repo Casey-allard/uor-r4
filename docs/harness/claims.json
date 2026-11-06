@@ -349,6 +349,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/prompt-reply-ranker": {
+    "branch": "deepseek/prompt-reply-ranker",
+    "claimed_at": "2026-11-06T01:30:00-05:00",
+    "head": "dc2a05d72",
+    "lab": "deepseek",
+    "note": "TRAIN-only integer whole-reply neighbor ranking on fresh seed 2779"
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",

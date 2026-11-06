@@ -738,6 +738,17 @@ exactly. This is a **REJECT** for the selected lossy candidate set; exact
 preserve candidate rank rather than collide token identities. See
 [deepseek-211](../../loop/tasks/cpu-training-pilot/deepseek-211/REPORT.md).
 
+The next answer-selection unit trained an integer pairwise ranker over the raw
+Jaccard top-16 complete replies. It used 193 TRAIN leave-one-out groups, 119
+baseline-wrong groups and eight bounded token, reply-frequency and writer-query
+features. On fresh seed 2779, learned/raw exact and body changed from
+**55/966** to **59/1022** on artifact seed 2 but to **21/325** on artifact
+seed 1. The candidate oracle contained 163 exact replies, so coverage was not
+the limiter. This is a **REJECT** for the fixed shared additive recipe; exact
+Jaccard remains the serving default. The next learning attempt should separate
+artifact-independent lexical semantics from artifact-bound geometry. See
+[deepseek-213](../../loop/tasks/cpu-training-pilot/deepseek-213/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference
