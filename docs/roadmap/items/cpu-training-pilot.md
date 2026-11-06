@@ -810,6 +810,12 @@ prompt-level retrieved reply is not a reliable stopping state after generation
 diverges. See
 [deepseek-225](../../loop/tasks/cpu-training-pilot/deepseek-225/REPORT.md).
 
+Top-eight retrieved branches doubled endpoint stops from 23 to **48** and cut
+premature BOS to **43/68**, but only **175/208** of 437 replies completed and
+exact/body stayed at boundary **14** and **936/933**. The shuffled guard tied
+at 14 exact. This is a **REJECT** for fixed K=8 branch coverage. See
+[deepseek-227](../../loop/tasks/cpu-training-pilot/deepseek-227/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

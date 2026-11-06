@@ -289,6 +289,14 @@ brittle after generated-content divergence; the next stop must use
 generated-branch evidence. See
 [deepseek-225](../loop/tasks/cpu-training-pilot/deepseek-225/REPORT.md).
 
+Top-eight retrieved branches were then tested as a generalized endpoint set.
+They doubled endpoint stops from 23 to **48** and reduced premature BOS to
+**43/68**, but only **175/208** of 437 replies completed and exact/body stayed
+at boundary **14** and **936/933**. The shuffled branch guard also made 14
+exact replies. This is a **REJECT** for fixed K=8 coverage; the next signal
+must come from the generated branch itself. See
+[deepseek-227](../loop/tasks/cpu-training-pilot/deepseek-227/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

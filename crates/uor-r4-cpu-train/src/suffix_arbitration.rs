@@ -158,11 +158,37 @@ pub fn generate_suffix_arbitration_reply_with_aligned_endpoint(
     seed: u64,
     row: usize,
 ) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    let branches = vec![retrieved_reply.to_vec()];
+    generate_suffix_arbitration_reply_with_branch_endpoint(
+        artifact,
+        prompt,
+        cap,
+        &branches,
+        arm,
+        suffix_memory,
+        boundary,
+        seed,
+        row,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn generate_suffix_arbitration_reply_with_branch_endpoint(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    retrieved_replies: &[Vec<u32>],
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
     generate_suffix_arbitration_reply_with_endpoint(
         artifact,
         prompt,
         cap,
-        Endpoint::AlignedRetrieved(retrieved_reply),
+        Endpoint::AlignedBranches(retrieved_replies),
         arm,
         suffix_memory,
         boundary,
@@ -199,7 +225,7 @@ pub fn generate_suffix_arbitration_reply_to_length(
 enum Endpoint<'a> {
     Boundary(usize),
     Length(usize),
-    AlignedRetrieved(&'a [u32]),
+    AlignedBranches(&'a [Vec<u32>]),
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -258,23 +284,30 @@ fn generate_suffix_arbitration_reply_with_endpoint(
                 }
                 true
             }
-            Endpoint::AlignedRetrieved(retrieved) => {
-                if retrieved.is_empty() || retrieved.len() > cap {
-                    return Err(invalid("suffix-arbitration retrieved endpoint is invalid"));
+            Endpoint::AlignedBranches(retrieved) => {
+                if retrieved.is_empty()
+                    || retrieved
+                        .iter()
+                        .any(|reply| reply.is_empty() || reply.len() > cap)
+                {
+                    return Err(invalid("suffix-arbitration retrieved branches are invalid"));
                 }
-                let aligned = retrieved
-                    .get(..tokens.len())
-                    .is_some_and(|prefix| prefix == tokens);
-                if aligned && tokens.len() == retrieved.len() {
-                    return Ok((
-                        GeneratedReply {
-                            tokens,
-                            stop: "retrieved_endpoint",
-                        },
-                        steps,
-                    ));
+                let mut extends = false;
+                for reply in retrieved {
+                    if reply.get(..tokens.len()) == Some(tokens.as_slice()) {
+                        if reply.len() == tokens.len() {
+                            return Ok((
+                                GeneratedReply {
+                                    tokens,
+                                    stop: "retrieved_endpoint",
+                                },
+                                steps,
+                            ));
+                        }
+                        extends = true;
+                    }
                 }
-                aligned
+                extends
             }
             Endpoint::Boundary(_) => false,
         };
@@ -292,7 +325,7 @@ fn generate_suffix_arbitration_reply_with_endpoint(
                         },
                     )
                 }
-                Endpoint::Boundary(_) | Endpoint::AlignedRetrieved(_) => {
+                Endpoint::Boundary(_) | Endpoint::AlignedBranches(_) => {
                     boundary.stop_decision(&tokens)
                 }
             };
@@ -643,6 +676,33 @@ pub fn evaluate_suffix_arbitration_replies_with_aligned_endpoint(
     boundary: &ReplyBoundaryMemory,
     seed: u64,
 ) -> Result<TimedSuffixArbitrationReading> {
+    let branches = retrieved_replies
+        .iter()
+        .map(|reply| vec![reply.clone()])
+        .collect::<Vec<_>>();
+    evaluate_suffix_arbitration_replies_with_branch_endpoint(
+        artifact,
+        samples,
+        &branches,
+        cap,
+        arm,
+        suffix_memory,
+        boundary,
+        seed,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_suffix_arbitration_replies_with_branch_endpoint(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    retrieved_replies: &[Vec<Vec<u32>>],
+    cap: usize,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+) -> Result<TimedSuffixArbitrationReading> {
     if samples.is_empty() || retrieved_replies.len() != samples.len() || cap == 0 || cap > 64 {
         return Err(invalid(
             "suffix-arbitration retrieved endpoint inputs differ",
@@ -656,22 +716,24 @@ pub fn evaluate_suffix_arbitration_replies_with_aligned_endpoint(
         .par_iter()
         .zip(retrieved_replies)
         .enumerate()
-        .map(|(row, (sample, retrieved))| {
+        .map(|(row, (sample, retrieved_branches))| {
             let reference = normalized_reference(&sample.reply).to_vec();
             if sample.prompt.len() > context
                 || reference.len() > cap
-                || retrieved.is_empty()
-                || retrieved.len() > cap
+                || retrieved_branches.is_empty()
+                || retrieved_branches
+                    .iter()
+                    .any(|retrieved| retrieved.is_empty() || retrieved.len() > cap)
             {
                 return Err(invalid(
-                    "suffix-arbitration sample or retrieved endpoint exceeds its bound",
+                    "suffix-arbitration sample or retrieved branches exceed their bound",
                 ));
             }
-            let (generated, steps) = generate_suffix_arbitration_reply_with_aligned_endpoint(
+            let (generated, steps) = generate_suffix_arbitration_reply_with_branch_endpoint(
                 artifact,
                 &sample.prompt,
                 cap,
-                retrieved,
+                retrieved_branches,
                 arm,
                 suffix_memory,
                 boundary,
@@ -1173,5 +1235,31 @@ mod tests {
         .unwrap();
         assert_eq!(reading.reading.retrieved_endpoint_complete, 0);
         assert_ne!(reading.rows[0].stop, "retrieved_endpoint");
+    }
+
+    #[test]
+    fn one_extending_branch_defers_boundary_until_its_complete_reply() {
+        let training = [
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[41, 11, 21, 31]),
+        ];
+        let table = derive_full_sequence_suffix_content_memory(&training).unwrap();
+        let evaluation = [sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30])];
+        let reading = evaluate_suffix_arbitration_replies_with_branch_endpoint(
+            &artifact(),
+            &evaluation,
+            &[vec![vec![99], vec![40, 10, 20, 30]]],
+            16,
+            SuffixArbitrationArm::DeeperFullSequence32,
+            Some(&table),
+            &ReplyBoundaryMemory::default(),
+            227,
+        )
+        .unwrap();
+        assert_eq!(reading.reading.retrieved_endpoint_complete, 1);
+        assert_eq!(reading.reading.exact_reference, 1);
+        assert_eq!(reading.rows[0].stop, "retrieved_endpoint");
     }
 }

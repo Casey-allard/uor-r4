@@ -1,3 +1,12 @@
+## 2026-11-06 — Top-eight branch coverage doubles endpoint stops but still fails (deepseek)
+
+Top-8 retrieved branches made **48** endpoint stops per artifact, up from 23
+for top-1, and reduced premature BOS from **55/80** to **43/68**. However only
+**175/208** of 437 reachable replies completed, and exact/body stayed exactly at
+the boundary arm's **14** and **936/933**. The shuffled branch guard also made
+14 exact replies. This is a **REJECT** for fixed K=8 branch coverage.
+Record: [deepseek-227](../loop/tasks/cpu-training-pilot/deepseek-227/REPORT.md).
+
 ## 2026-11-06 — Retrieved-prefix endpoint guard preserves content but still fails termination (deepseek)
 
 A generated-reply-prefix guard deferred the boundary only while the complete

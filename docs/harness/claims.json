@@ -62,6 +62,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/content-branch-endpoint": {
+    "branch": "deepseek/content-branch-endpoint",
+    "claimed_at": "2026-11-06T05:53:23-05:00",
+    "head": "7b1e888ef",
+    "lab": "deepseek",
+    "note": "top-K retrieved branches as a generated-trajectory endpoint guard"
+  },
   "deepseek/content-code": {
     "branch": "deepseek/content-code",
     "claimed_at": "2026-11-04T11:02:37-05:00",

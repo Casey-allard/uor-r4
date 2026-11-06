@@ -1,0 +1,37 @@
+{
+  "schema": "uor-r4.cpu-branch-endpoint-summary/1",
+  "outcome": "REJECT",
+  "base": "7b1e888ef",
+  "implementation": "75a126c97",
+  "panel": {
+    "seed": 2785,
+    "reachable": 437,
+    "tokens_sha256": "f5a6714a579cd8f4666b5bca5c24ec4d5e35e930b9057c6fe5b086a3d4a4638e",
+    "mask_sha256": "83cabdcfd86d0acf31d8172eb020ed50ca13eabf9571ca665fc6a3cf4f062ea9",
+    "manifest_sha256": "a5214c2f8430a9a3c22e4b468e40d6594247dbe5ac1e9fc30025e31cba9dcbf1"
+  },
+  "seeds": {
+    "1": {
+      "exact": {"candidate":14,"boundary":14,"top1":14,"shuffled":14,"retrieval":41},
+      "body": {"candidate":936,"boundary":936,"top1":936,"shuffled":936,"retrieval":864},
+      "premature_bos": {"candidate":43,"boundary":55,"top1":46,"shuffled":52},
+      "emitted": 175,
+      "endpoint_completions": 48,
+      "global_decisions": 1920,
+      "report_sha256": "32357c376f18123bf260a0c317b40dd90b2c9b55f78d1a0dda983109c097ebb9",
+      "repeat_identical": true
+    },
+    "2": {
+      "exact": {"candidate":14,"boundary":14,"top1":14,"shuffled":14,"retrieval":41},
+      "body": {"candidate":933,"boundary":933,"top1":933,"shuffled":933,"retrieval":864},
+      "premature_bos": {"candidate":68,"boundary":80,"top1":71,"shuffled":77},
+      "emitted": 208,
+      "endpoint_completions": 48,
+      "global_decisions": 2173,
+      "report_sha256": "4ab74b9af6567bdfb5fb35cc5c7f9ae261a47e05e5062310e390ea48dc6fddeb",
+      "repeat_identical": true
+    }
+  },
+  "raw_sha256sums": "17869456a2d79691a3e7d2b37c35f37e276c4ec5bad9bd1ca5b886c241618d31",
+  "outcome_reason": "K=8 doubled endpoint completions but preserved boundary exact/body quality, left most replies incomplete, and did not beat the shuffled branch guard on exact replies."
+}

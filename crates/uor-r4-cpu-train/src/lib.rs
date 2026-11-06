@@ -226,9 +226,11 @@ pub use stop_signature::{
 pub use suffix_arbitration::{
     compare_suffix_arbitration_rows, evaluate_suffix_arbitration_replies,
     evaluate_suffix_arbitration_replies_to_length,
-    evaluate_suffix_arbitration_replies_with_aligned_endpoint, generate_suffix_arbitration_reply,
+    evaluate_suffix_arbitration_replies_with_aligned_endpoint,
+    evaluate_suffix_arbitration_replies_with_branch_endpoint, generate_suffix_arbitration_reply,
     generate_suffix_arbitration_reply_to_length,
-    generate_suffix_arbitration_reply_with_aligned_endpoint, suffix_arbitration_changes,
+    generate_suffix_arbitration_reply_with_aligned_endpoint,
+    generate_suffix_arbitration_reply_with_branch_endpoint, suffix_arbitration_changes,
     SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading,
     SuffixArbitrationStep, TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
     SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH,

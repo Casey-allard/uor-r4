@@ -149,6 +149,32 @@ impl PromptRetrievalMemory {
             .map(|entry| entry.reply.as_slice())
     }
 
+    pub fn top_replies(&self, prompt: &[u32], limit: usize) -> Result<Vec<Vec<u32>>> {
+        if prompt.is_empty() || limit == 0 || limit > self.entries.len() {
+            return Err(invalid("prompt retrieval top-K inputs differ"));
+        }
+        let query = prompt.iter().copied().collect::<BTreeSet<_>>();
+        let mut ranked = self
+            .entries
+            .iter()
+            .enumerate()
+            .map(|(ordinal, entry)| {
+                let (numerator, denominator) = intersection_union(&query, &entry.unigram);
+                (numerator, denominator, ordinal)
+            })
+            .collect::<Vec<_>>();
+        ranked.sort_by(|left, right| {
+            compare_ratio(left.0, left.1, right.0, right.1)
+                .reverse()
+                .then_with(|| left.2.cmp(&right.2))
+        });
+        Ok(ranked
+            .into_iter()
+            .take(limit)
+            .map(|(_, _, ordinal)| self.entries[ordinal].reply.clone())
+            .collect())
+    }
+
     pub fn census(&self) -> PromptRetrievalCensus {
         PromptRetrievalCensus {
             entries: self.entries.len() as u64,
