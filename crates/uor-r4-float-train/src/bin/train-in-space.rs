@@ -155,7 +155,9 @@
 //! claude-208). `--flock-cell M,...` (thousandths of a score) adds the cell rule's samples at each
 //! margin, with the memory on (claude-213).
 //! `--query-cache-out DIR` writes the query-cache/1 evidence from that same scoring forward, for
-//! the separately built CPU readout evaluator. It changes no scoring decision.
+//! the separately built CPU readout evaluator. It also captures TRAIN, selected by `--train-split`
+//! when supplied, as the cache's `train` split. `--query-cache-memory 0|1` captures one memory
+//! mode instead of both. It changes no scoring decision.
 //!
 //! `train-in-space --data-root DIR --cell-grade 1 --runs DIR --panel NAME=DIR --flock-cell M,...`:
 //! grades the cell rule on the laptop (claude-213, `in_space_long::cell_grade`) from `--runs`'
@@ -326,6 +328,7 @@ fn main() -> Result<()> {
     let mut past_stride: Option<usize> = None;
     let mut context_given = false;
     let mut query_cache_out: Option<PathBuf> = None;
+    let mut query_cache_memory = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -558,6 +561,7 @@ fn main() -> Result<()> {
             "--past-window" => past_window = Some(value.clone()),
             "--past-window-stride" => past_stride = Some(number(&value)?),
             "--query-cache-out" => query_cache_out = Some(PathBuf::from(value)),
+            "--query-cache-memory" => query_cache_memory = Some(switch(&value)?),
             "--sample-opening" => {
                 last_opening = Some(match value.as_str() {
                     "first" => false,
@@ -808,6 +812,11 @@ fn main() -> Result<()> {
     if query_cache_out.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
             "--query-cache-out applies to --score-rows only".to_owned(),
+        ));
+    }
+    if query_cache_memory.is_some() && query_cache_out.is_none() {
+        return Err(FloatTrainError::Invalid(
+            "--query-cache-memory needs --query-cache-out".to_owned(),
         ));
     }
     if overturn_on && fresh_v2.is_some() {
@@ -1095,6 +1104,7 @@ fn main() -> Result<()> {
             &data_root,
             &checkpoint,
             &out,
+            config.train_split.as_ref(),
             fresh_v2.as_deref(),
             &extra_panels,
             config.samples,
@@ -1126,6 +1136,7 @@ fn main() -> Result<()> {
             past_window,
             context_given,
             query_cache_out.as_deref(),
+            query_cache_memory,
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }

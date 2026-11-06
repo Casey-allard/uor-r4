@@ -7621,6 +7621,10 @@ struct ScoreSplit {
     past: Option<PastCut>,
 }
 
+fn captures_memory_mode(requested: Option<bool>, current: bool) -> bool {
+    requested.is_none_or(|wanted| wanted == current)
+}
+
 /// Write `bytes` to a new file at `path`; an existing file is refused, never replaced.
 fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new()
@@ -7729,6 +7733,7 @@ pub fn score_rows(
     data_root: &Path,
     checkpoint: &Path,
     out: &Path,
+    train_split: Option<&TrainSplit>,
     fresh_v2: Option<&Path>,
     panels: &[(String, PathBuf)],
     samples: usize,
@@ -7756,6 +7761,7 @@ pub fn score_rows(
     past_window: Option<PastWindowRule>,
     context_given: bool,
     query_cache_root: Option<&Path>,
+    query_cache_memory: Option<bool>,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     let context = match past_window {
@@ -7827,6 +7833,31 @@ pub fn score_rows(
         queries: None,
         past: None,
     }];
+    let cache_train = match query_cache_root {
+        Some(_) => {
+            let (tokens, mask, tokens_sha256) = match train_split {
+                Some(split) => {
+                    let (tokens, mask) = load_named_split(split)?;
+                    (tokens, mask, split.tokens_sha256.clone())
+                }
+                None => {
+                    let (tokens, mask) = load_train_split(data_root)?;
+                    (tokens, mask, hs::PINNED_TRAIN_TOKENS_SHA256.to_owned())
+                }
+            };
+            Some(ScoreSplit {
+                name: "train".to_owned(),
+                windows: windows_of(&tokens, &mask, context)?,
+                mask,
+                sha256: Some(tokens_sha256),
+                samples: false,
+                context,
+                queries: None,
+                past: None,
+            })
+        }
+        None => None,
+    };
     if let Some(dir) = fresh_v2 {
         let (tokens, mask) = load_fresh_v2(dir)?;
         splits.push(ScoreSplit {
@@ -8097,11 +8128,13 @@ pub fn score_rows(
     for on in [true, false] {
         crate::flock_read_memory::set_turn_memory(if on { memory.clone() } else { None });
         let label = if on { "memory" } else { "no-memory" };
+        let cache_on = captures_memory_mode(query_cache_memory, on);
         // claude-287: each past-window panel's row bands in this pass, written with its queries.
         let mut past_bands: BTreeMap<String, Vec<PastWindowBand>> = BTreeMap::new();
         for split in &splits {
             let mut cache_split = query_cache
                 .as_mut()
+                .filter(|_| cache_on)
                 .map(|cache| cache.start_split(&split.name, label, on, split.context))
                 .transpose()?;
             // Q5's decision trace (claude-251), in the memory pass only, as F′'s rows are read.
@@ -8238,6 +8271,48 @@ pub fn score_rows(
                 search: None,
                 context: split.context,
             });
+        }
+        if cache_on {
+            if let (Some(cache), Some(train)) = (query_cache.as_mut(), cache_train.as_ref()) {
+                let mut writer = cache.start_split(&train.name, label, on, train.context)?;
+                let picks = row_picks(
+                    &model,
+                    &train.windows,
+                    &train.mask,
+                    seed,
+                    step,
+                    trained_as_served,
+                    None,
+                    |query, _| {
+                        writer.write_tensor(query)?;
+                        Ok(())
+                    },
+                )?;
+                let positions = picks
+                    .iter()
+                    .map(|pick| {
+                        u32::try_from(pick.position)
+                            .map_err(|_| invalid("query cache position exceeds u32"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let tokens_sha256 = train
+                    .sha256
+                    .clone()
+                    .ok_or_else(|| invalid("query cache TRAIN has no corpus token identity"))?;
+                cache.finish_split(
+                    writer,
+                    &CachedRows {
+                        targets: picks.iter().map(|pick| pick.target).collect(),
+                        positions,
+                        nearest: picks.iter().map(|pick| pick.nearest).collect(),
+                        writer: picks.iter().map(|pick| pick.writer).collect(),
+                        opens: picks.iter().map(|pick| u8::from(pick.opens)).collect(),
+                        copies: picks.iter().map(|pick| u8::from(pick.copies)).collect(),
+                    },
+                    tokens_sha256,
+                    sha256_bytes(&train.mask),
+                )?;
+            }
         }
         // Greedy with the memory on and off; the Flock rules, and greedy under each read scope
         // (claude-215), with it on only, as served.
@@ -12347,6 +12422,16 @@ mod tests {
     use super::*;
     #[cfg(feature = "cuda")]
     use crate::spiralcore_fbs_sheet::build_fbs_model;
+
+    #[test]
+    fn query_cache_captures_every_or_only_the_requested_memory_mode() {
+        assert!(captures_memory_mode(None, true));
+        assert!(captures_memory_mode(None, false));
+        assert!(captures_memory_mode(Some(true), true));
+        assert!(!captures_memory_mode(Some(true), false));
+        assert!(captures_memory_mode(Some(false), false));
+        assert!(!captures_memory_mode(Some(false), true));
+    }
 
     #[test]
     fn each_epoch_order_is_a_seeded_permutation() {
