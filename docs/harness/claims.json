@@ -363,6 +363,13 @@
     "lab": "deepseek",
     "note": "generated-query final-gain training toward K8 target-cell admission"
   },
+  "deepseek/readout-refit": {
+    "branch": "deepseek/readout-refit",
+    "claimed_at": "2026-11-06T10:14:27-05:00",
+    "head": "1f2bd76ce",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/reply-termination": {
     "branch": "deepseek/reply-termination",
     "claimed_at": "2026-11-04T00:06:22-05:00",

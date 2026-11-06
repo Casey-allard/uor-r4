@@ -135,3 +135,7 @@ path = "src/bin/cpu-learned-copy-read.rs"
 [[bin]]
 name = "cpu-copy-generated-stop"
 path = "src/bin/cpu-copy-generated-stop.rs"
+
+[[bin]]
+name = "cpu-readout-refit"
+path = "src/bin/cpu-readout-refit.rs"

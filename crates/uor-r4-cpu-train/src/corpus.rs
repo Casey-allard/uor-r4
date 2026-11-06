@@ -278,6 +278,35 @@ impl CpuMaskedCorpus {
         Ok(examples)
     }
 
+    /// Every masked reply target with its complete causal prefix.
+    pub fn causal_samples(&self) -> Result<Vec<RankMarginSample>> {
+        let mut samples = Vec::new();
+        for document in &self.documents {
+            for target_position in document.start + 1..document.end {
+                if self.mask[target_position] != 1 {
+                    continue;
+                }
+                let prefix_start = target_position
+                    .saturating_sub(self.context)
+                    .max(document.start);
+                let input = self.tokens[prefix_start..target_position].to_vec();
+                if input.is_empty() || input.len() > self.context {
+                    return Err(invalid(
+                        "corpus causal prefix length is outside the model context",
+                    ));
+                }
+                samples.push(RankMarginSample {
+                    input,
+                    target: self.tokens[target_position],
+                });
+            }
+        }
+        if samples.is_empty() {
+            return Err(invalid("corpus has no causal response targets"));
+        }
+        Ok(samples)
+    }
+
     fn document_samples(&self, document: &Range<usize>) -> Result<Vec<RankMarginSample>> {
         let mut samples = Vec::new();
         for target_position in document.start + 1..document.end {
@@ -449,6 +478,16 @@ mod tests {
 
     #[test]
     fn causal_samples_stop_at_document_boundaries_and_context() {
+        let causal = corpus().causal_samples().unwrap();
+        assert_eq!(causal.len(), 9);
+        assert_eq!(
+            causal[0],
+            RankMarginSample {
+                input: vec![0, 10],
+                target: 11,
+            }
+        );
+        assert!(causal.iter().all(|sample| sample.input.len() <= 3));
         let split = corpus().split(2, 16).unwrap();
         assert_eq!(split.training_documents, 2);
         assert_eq!(split.evaluation_documents, 2);

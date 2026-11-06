@@ -31,6 +31,7 @@ mod panel;
 mod prompt_retrieval;
 mod prompt_reply_rank;
 mod quant_shadow;
+mod readout_refit;
 mod reply_boundary;
 mod reply_eval;
 mod self_prefix;
@@ -192,6 +193,11 @@ pub use quant_shadow::{
     CpuQuantizationPanelReading, CpuQuantizationShadow, CpuQuantizationStep, QuantizationGate,
     CPU_QUANTIZATION_CHECKPOINT_SCHEMA,
 };
+pub use readout_refit::{
+    evaluate_output_table, observe_refit_thresholds, paired_two_sigma, refit_output_table,
+    score_readout, shuffle_refit_targets, ObservationCensus, ReadoutDecision, ReadoutEvaluation,
+    ReadoutObservation, ReadoutRefitMethod, RefittedOutputTable, ShuffledAssignment,
+};
 pub use reply_boundary::{
     boundary_stop_changes, compare_boundary_rows, derive_reply_boundary_memory,
     evaluate_boundary_replies, generate_boundary_reply, shuffle_reply_boundary_memory,
@@ -260,7 +266,8 @@ pub use suffix_memory::{
     SUFFIX_MEMORY_MAX_DEPTH,
 };
 pub use train::{
-    CpuRankMarginTrainer, RankMarginConfig, RankMarginReading, RankMarginSample, RankMarginStep,
+    patch_writer_table, CpuRankMarginTrainer, RankMarginConfig, RankMarginReading,
+    RankMarginSample, RankMarginStep,
 };
 
 pub const VOCABULARY: usize = 4_096;

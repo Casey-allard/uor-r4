@@ -1,0 +1,44 @@
+{
+  "schema": "uor-r4.cpu-readout-refit-compact-result/1",
+  "status": "COMPLETE",
+  "overall_decision": "FINAL_REJECT",
+  "seed": 2789,
+  "implementation_head": "8907ce5c9f5953f664209aa24175466e8c2e6ea9",
+  "executor_binary_sha256": "714047ba4c4670e52ae1cf2d1d9f68bc1feef7f66feae80c52a0b336bf89c071",
+  "panel": {
+    "tokens_sha256": "48e3d45303ab303e8e32460cb123ca183ac378822ebb5d8ab59f535e12d991f0",
+    "mask_sha256": "42175a3e2c00e4c1b5ef59ab8e270969ae4331e8456bb5900817d02a026d8bc6",
+    "manifest_sha256": "7ac81f888d2a440905981d6ca115b3c6ef6b817f9c80675e72feaa751fc57027",
+    "response_targets": 5072
+  },
+  "artifacts": [
+    {
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "artifact_outcome": "ARTIFACT_REJECT",
+      "deterministic_core_sha256": "98807cb77186beac5def74fb254de3e29bfe8840ee12cb637f0a186246fc6c5e",
+      "original_top1": 1539,
+      "median_top1": 1355,
+      "original_top8": 2037,
+      "median_top8": 1678,
+      "shared_median_top1": 148,
+      "shared_median_top8": 302
+    },
+    {
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "artifact_outcome": "ARTIFACT_REJECT",
+      "deterministic_core_sha256": "2a68dfd24c8e6c1d26223fa8bee49a1c3052a8d497343f19fbc50d0c4d18649c",
+      "original_top1": 1239,
+      "median_top1": 1278,
+      "original_top8": 1472,
+      "median_top8": 1455,
+      "shared_median_top1": 233,
+      "shared_median_top8": 362
+    }
+  ],
+  "repeat_exact": true,
+  "artifact_set_exact": true,
+  "input_identity_exact": true,
+  "aggregate_deterministic_core_sha256": "f8be6e2f6b92a6983759bb25c6f4142b16a8dbcf00695f8937c79ba26f5c009c",
+  "evidence_sha256sums": "fd3b3e675821ebcebc5a55d837fb82e549d37db958d4996cd77d2aa25a28edd1",
+  "execution_deviation": "The first transaction created and pinned the panel, then stopped before reports because the reports parent directory did not exist. The same panel was retained; no seed or analysis rule was retuned."
+}

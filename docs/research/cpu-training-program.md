@@ -86,6 +86,18 @@ output-path and cost evidence only; it does not train a real-text model or show
 that a width fits GPU memory. See
 [deepseek-190](../loop/tasks/cpu-training-pilot/deepseek-190/REPORT.md).
 
+The output-table refit screen then held the input/FBS/admission path fixed and
+changed only target rows with at least eight TRAIN observations. On a fresh
+5,072-target panel, coordinate-wise median top-1/top-8 was 1,355/1,678 versus
+original 1,539/2,037 on seed 1 and 1,278/1,455 versus 1,239/1,472 on seed 2.
+Median beat the shuffled target control on both seeds but lost top-8 on both,
+so the two-artifact bar rejected. A shared-table median diagnostic changed
+4,695/4,569 decisions and fell to 148/233 top-1, confirming that fitting an
+output table without separating it from the input path is destructive. This
+closes the tested coordinate-centering objective, not a rank-aware output
+learner or a representable two-table artifact. See
+[deepseek-237](../loop/tasks/cpu-training-pilot/deepseek-237/REPORT.md).
+
 Exact reply-boundary memory was then tested as a termination path for the
 `Longest32To1` body selector. TRAIN-only suffixes of 4-32 generated tokens
 could emit BOS only when no continuation was observed; a depth-preserving

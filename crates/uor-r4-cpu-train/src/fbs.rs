@@ -413,6 +413,14 @@ impl CpuFbsForward {
         self.vocab
     }
 
+    pub fn has_hamming_reads(&self) -> bool {
+        self.hamming.is_some()
+    }
+
+    pub fn has_turn_memory(&self) -> bool {
+        self.memory.is_some()
+    }
+
     pub(crate) fn token_table(&self) -> &[i16] {
         &self.writer_table
     }
@@ -708,7 +716,7 @@ impl CpuFbsForward {
 
     #[cfg(test)]
     pub(crate) fn has_memory(&self) -> bool {
-        self.memory.is_some()
+        self.has_turn_memory()
     }
 
     #[cfg(test)]

@@ -755,7 +755,7 @@ fn move_away(value: i16, query: i32, step: i16, limit: i16) -> i16 {
     next.clamp(-i32::from(limit), i32::from(limit)) as i16
 }
 
-pub(crate) fn patch_writer_table(artifact: &[u8], table: &[i16]) -> Result<Vec<u8>> {
+pub fn patch_writer_table(artifact: &[u8], table: &[i16]) -> Result<Vec<u8>> {
     if artifact.len() < 16 || &artifact[..8] != b"UORLUT01" {
         return Err(invalid("artifact magic differs"));
     }
