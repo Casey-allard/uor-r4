@@ -349,13 +349,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/prompt-reply-lexical": {
-    "branch": "deepseek/prompt-reply-lexical",
-    "claimed_at": "2026-11-06T02:15:00-05:00",
-    "head": "86cd73af4",
-    "lab": "deepseek",
-    "note": "artifact-independent lexical reply ranker on fresh seed 2780"
-  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",
