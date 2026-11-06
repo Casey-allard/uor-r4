@@ -728,6 +728,16 @@ processes per artifact, aggregate median throughput rose from **9,820.55** to
 compressed or learned signature that can preserve the retrieval result. See
 [deepseek-209](../../loop/tasks/cpu-training-pilot/deepseek-209/REPORT.md).
 
+The first compressed-representation unit calibrated four fixed binary
+signatures on TRAIN only and selected 1,024-bit modulo. On fresh seed 2778 and
+both artifacts it was **3.67x** faster inside the selector, but exact, opening
+and body readings fell from **49/138/1061** to **48/133/1011**. Both arms
+emitted all 445 reachable replies with zero premature BOS and repeated
+exactly. This is a **REJECT** for the selected lossy candidate set; exact
+4,096-bit binary VSA remains the serving default. Future compression must
+preserve candidate rank rather than collide token identities. See
+[deepseek-211](../../loop/tasks/cpu-training-pilot/deepseek-211/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

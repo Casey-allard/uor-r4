@@ -349,6 +349,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/prompt-vsa-compression": {
+    "branch": "deepseek/prompt-vsa-compression",
+    "claimed_at": "2026-11-06T00:45:51-05:00",
+    "head": "4d1e705aa",
+    "lab": "deepseek",
+    "note": "TRAIN-calibrated compressed prompt VSA on fresh seed 2778"
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",

@@ -231,7 +231,10 @@ response that exceeds `max_tokens`/context falls back to the normal greedy
 path. The sidecar never changes `UORLUT01`, raw `step`, `step_native` or the
 content-readout path. The loaded prompt sets are vocabulary-dimensional binary
 vectors; AND/OR popcounts compute the exact intersection and union, so ranking
-is bitwise and adds no matrix operation.
+is bitwise and adds no matrix operation. A first-party research constructor can
+fold token ids into narrower modulo or SplitMix64 signatures, but this is not a
+serving default: the tested 1,024-bit modulo signature lost retrieval quality
+on fresh seed 2778 and is rejected. Exact 4,096-bit serving is unchanged.
 `--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
 same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
 `/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement

@@ -202,6 +202,16 @@ vocabulary dimensions; the open question is whether a compressed learned VSA
 signature can preserve the result. See
 [deepseek-209](../loop/tasks/cpu-training-pilot/deepseek-209/REPORT.md).
 
+The first compressed-signature test calibrated four fixed binary candidates on
+TRAIN only and selected 1,024-bit modulo. On fresh seed 2778 and both artifacts
+it raised isolated selection throughput by **3.67x**, but exact replies,
+openings and body positions fell by **1/5/50** per artifact. All 445 reachable
+rows still emitted with zero premature BOS and exact repeats. This is a
+**REJECT** for the selected lossy map, not for compression generally. The next
+representation must preserve candidate rank while reducing width, rather than
+colliding distinct token ids. See
+[deepseek-211](../loop/tasks/cpu-training-pilot/deepseek-211/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.
