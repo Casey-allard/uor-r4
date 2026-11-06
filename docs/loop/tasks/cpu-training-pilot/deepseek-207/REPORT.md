@@ -121,6 +121,14 @@ preserves the row-level result and its serving identity.
 - both sidecars and reports repeated exactly;
 - sealed evidence manifest read-back: passed.
 
+## Delivery
+
+PR #3765 merged through the protected queue as
+`a8d9a2e16dc551f09a74c233e6fe640753db97f9`. Fresh main retained the reviewed
+source and compact-evidence hashes, passed the serving/API/CPU suites, and
+reproduced the sealed seed-1 serving report after timing and absolute-path
+removal.
+
 ## Skills used
 
 No system-provided Codex skill applied. Repository D22/D67, D84 CPU research,

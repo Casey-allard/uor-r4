@@ -349,13 +349,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/prompt-retrieval-serving": {
-    "branch": "deepseek/prompt-retrieval-serving",
-    "claimed_at": "2026-11-05T23:44:48-05:00",
-    "head": "c0e6b6757",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",
