@@ -36,6 +36,7 @@ use crate::flock_read_memory::MemoryLookup;
 use crate::geometric_stack::stage_clock::{self, StageTime};
 use crate::geometric_stack::{RateScores, StackAdamW, StackModel};
 use crate::hamilton_sheet::{self as hs, CausalWindow, HamiltonArm, SHEET_CONTEXT};
+use crate::query_cache::{CachedRows, QueryCacheWriter};
 use crate::spiralcore_fbs_arms::{self as arms, FbsArm};
 use crate::spiralcore_fbs_sheet::{build_fbs_model_at, panel_loss};
 use crate::{invalid, sha256_bytes, Result};
@@ -7754,6 +7755,7 @@ pub fn score_rows(
     panel_queries: &[(String, PathBuf)],
     past_window: Option<PastWindowRule>,
     context_given: bool,
+    query_cache_root: Option<&Path>,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     let context = match past_window {
@@ -8000,6 +8002,27 @@ pub fn score_rows(
     // (claude-216); its decodes take the cut through `--reply-read`, as served.
     let trained = run_trained_cut(checkpoint)?;
     let trained_as_served = run_train_as_served(checkpoint, served_forward)?;
+    let mut query_cache = match query_cache_root {
+        Some(root) => {
+            let table = table(&model)?;
+            let (vocab, width) = table.dims2()?;
+            let values = table
+                .to_vec2::<f32>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
+            Some(QueryCacheWriter::new(
+                root,
+                checkpoint,
+                data_root,
+                &values,
+                vocab,
+                width,
+                if trained_as_served { "q12-f32" } else { "f32" },
+            )?)
+        }
+        None => None,
+    };
     set_trained_cut(trained);
     println!("[cut] scoring with the trained cut: {}", trained.map_or("none", |s| s.name()));
     let memory = crate::flock_read_memory::turn_memory();
@@ -8059,6 +8082,17 @@ pub fn score_rows(
     } else {
         Vec::new()
     };
+    let split_hashes = splits
+        .iter()
+        .map(|split| {
+            let tokens = split.sha256.clone().unwrap_or_else(|| match split.name.as_str() {
+                "dev" => hs::PINNED_DEV_TOKENS_SHA256.to_owned(),
+                "fresh-v2" => PINNED_FRESH_V2_TOKENS_SHA256.to_owned(),
+                _ => String::new(),
+            });
+            (split.name.clone(), (tokens, sha256_bytes(&split.mask)))
+        })
+        .collect::<BTreeMap<_, _>>();
     let mut written = Vec::new();
     for on in [true, false] {
         crate::flock_read_memory::set_turn_memory(if on { memory.clone() } else { None });
@@ -8066,6 +8100,10 @@ pub fn score_rows(
         // claude-287: each past-window panel's row bands in this pass, written with its queries.
         let mut past_bands: BTreeMap<String, Vec<PastWindowBand>> = BTreeMap::new();
         for split in &splits {
+            let mut cache_split = query_cache
+                .as_mut()
+                .map(|cache| cache.start_split(&split.name, label, on, split.context))
+                .transpose()?;
             // Q5's decision trace (claude-251), in the memory pass only, as F′'s rows are read.
             let mut trace = match traces.iter().find(|(name, _)| on && *name == split.name) {
                 Some((_, positions)) => {
@@ -8097,6 +8135,9 @@ pub fn score_rows(
                 trained_as_served,
                 trace.as_mut(),
                 |query, _| {
+                    if let Some(writer) = cache_split.as_mut() {
+                        writer.write_tensor(query)?;
+                    }
                     let (Some(cut), Some(objective)) = (&split.past, objective) else {
                         return Ok(());
                     };
@@ -8124,6 +8165,41 @@ pub fn score_rows(
                     Ok(())
                 },
             )?;
+            if let Some(writer) = cache_split.take() {
+                let (tokens_sha256, mask_sha256) = split_hashes
+                    .get(&split.name)
+                    .cloned()
+                    .ok_or_else(|| invalid("query cache split identity is absent"))?;
+                if tokens_sha256.is_empty() {
+                    return Err(invalid(format!(
+                        "query cache split {} has no corpus token identity",
+                        split.name
+                    )));
+                }
+                let positions = picks
+                    .iter()
+                    .map(|pick| {
+                        u32::try_from(pick.position)
+                            .map_err(|_| invalid("query cache position exceeds u32"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                query_cache
+                    .as_mut()
+                    .ok_or_else(|| invalid("query cache writer disappeared"))?
+                    .finish_split(
+                        writer,
+                        &CachedRows {
+                            targets: picks.iter().map(|pick| pick.target).collect(),
+                            positions,
+                            nearest: picks.iter().map(|pick| pick.nearest).collect(),
+                            writer: picks.iter().map(|pick| pick.writer).collect(),
+                            opens: picks.iter().map(|pick| u8::from(pick.opens)).collect(),
+                            copies: picks.iter().map(|pick| u8::from(pick.copies)).collect(),
+                        },
+                        tokens_sha256,
+                        mask_sha256,
+                    )?;
+            }
             if let Some(cut) = &split.past {
                 if objective.is_some() && cursor != flat.len() {
                     return Err(invalid("a past-window split's losses do not cover its rows"));
@@ -8488,6 +8564,9 @@ pub fn score_rows(
                 });
             }
         }
+    }
+    if let Some(cache) = query_cache {
+        cache.finish()?;
     }
     for (split, keys) in splits.iter().zip(&named_openings) {
         let file = format!("keys-{}.json", split.name);

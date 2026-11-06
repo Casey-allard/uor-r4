@@ -26,6 +26,7 @@ pub mod in_space_long;
 pub mod kernel_controls;
 pub mod native_starling_spec;
 pub mod native_vector_writer;
+pub mod query_cache;
 pub mod secant_descent;
 pub mod spiralcore_fbs;
 pub mod spiralcore_fbs_arms;

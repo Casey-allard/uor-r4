@@ -15,6 +15,7 @@ candle-core = "0.9"
 cudarc = { version = "0.19.10", default-features = false, features = ["std", "driver", "f16", "cuda-version-from-build-system"], optional = true }
 half = "2.7"
 hex = "0.4"
+rayon = "1.10"
 safetensors = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
