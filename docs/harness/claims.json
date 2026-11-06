@@ -216,13 +216,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/full-sequence-boundary": {
-    "branch": "deepseek/full-sequence-boundary",
-    "claimed_at": "2026-11-05T20:38:50-05:00",
-    "head": "5ed64d3ca",
-    "lab": "deepseek",
-    "note": "full prompt-plus-reply boundary memory aligned to full-sequence content arbitration"
-  },
   "deepseek/generated-prefix": {
     "branch": "deepseek/generated-prefix",
     "claimed_at": "2026-11-04T15:00:00-05:00",

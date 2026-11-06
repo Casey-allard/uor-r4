@@ -132,11 +132,19 @@ suffix key.
 - fresh per-artifact control gate: correctly returned `CONTROL_FAULT`;
 - output compaction on the exit path and 32 MiB evidence limit: passed;
 - repeats: not run after the registered stop condition fired.
+- final exact-head review: **APPROVE** at `473361e70`;
+- all required PR checks: pass;
 
 ## Delivery
 
-Pending exact-head review, protected merge, fresh-main verification and claim
-release.
+PR #3757 was reviewed at exact head
+`473361e706ad719c44001d6a4cbaa1267c02bfa2` with a counted
+`uor-review v1` APPROVE and all required checks green. The protected queue
+merged it as `9f40967f11c09863de5cd279fe863f93d705e731`.
+
+Fresh `main` has identical content for all 14 changed files. The CPU package
+passed **380 tests** with four expected ignores, source and compact evidence
+hashes match the registration, and the pre-registration is complete.
 
 ## Skills used
 
