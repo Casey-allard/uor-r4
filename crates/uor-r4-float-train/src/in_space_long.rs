@@ -147,6 +147,11 @@ pub struct LongConfig {
     pub train_split: Option<TrainSplit>,
     pub samples: usize,
     pub reply_tokens: usize,
+    /// Take each step's `batch` windows forward and backward this many at a time, and make one
+    /// optimizer step on their summed gradients (claude-300): see [`step_gradient`]. It must
+    /// divide `batch`; 0 is off and left out of `config.json`, and `batch` itself is the same.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub micro_batch: usize,
     /// Profile this many training steps by stage (fbs-cost-profile, claude-157): see
     /// [`profile_window`]. 0 is off, and left out of `config.json`.
     #[serde(skip_serializing_if = "is_zero")]
@@ -1320,6 +1325,147 @@ fn batch_loss(
     };
     stage_clock::mark("points.select");
     query_loss(model, objective, &query, targets)
+}
+
+/// One training step's loss and gradient on `windows`, each `context` long (claude-300).
+///
+/// The windows go forward and backward `micro` at a time; 0, or a `micro` that covers them, is
+/// one forward. Every objective's loss is a mean over its scored rows, so each forward's loss is
+/// weighted by its share of the step's scored rows, and the summed gradient is the one a single
+/// forward of every window gives. `rows(lo, hi)` sets the turn memory's rows, and the cut's mask,
+/// for windows `lo..hi` before their forward. The loss returned is the forwards' weighted sum.
+///
+/// The gate hook carries the real step: at step 0 its backward runs diagnostics with host syncs,
+/// and a checkpoint's replies leave it at 0. Training as served (`served`) adds the complete
+/// quantization bridge and Q12 query used by the exported graph.
+#[allow(clippy::too_many_arguments)]
+fn step_gradient(
+    model: &StackModel,
+    objective: PointObjective,
+    windows: &[&CausalWindow],
+    micro: usize,
+    context: usize,
+    served: bool,
+    seed: u64,
+    step: usize,
+    mut rows: impl FnMut(usize, usize) -> Result<()>,
+) -> Result<(f64, candle_core::backprop::GradStore)> {
+    let micro = if micro == 0 {
+        windows.len()
+    } else {
+        micro.min(windows.len())
+    };
+    let total: usize = windows.iter().map(|w| w.scored_offsets.len()).sum();
+    let mut sum: Option<(f64, candle_core::backprop::GradStore)> = None;
+    for lo in (0..windows.len()).step_by(micro.max(1)) {
+        let hi = (lo + micro).min(windows.len());
+        rows(lo, hi)?;
+        let (ids, scored, targets) = assemble(&windows[lo..hi]);
+        // The memory's rows are `b · context + offset`, so every window must be whole.
+        if ids.len() != (hi - lo) * context {
+            return Err(invalid("a training batch's windows are not context-long"));
+        }
+        // A forward's share of the step's scored rows; one forward of the whole batch is left
+        // unscaled, so a step without micro-batches is the one it was. A micro-batch with no
+        // scored row adds nothing to the gradient.
+        let share = (hi - lo < windows.len()).then(|| scored.len() as f64 / total as f64);
+        if share.is_some() && scored.is_empty() {
+            continue;
+        }
+        let (value, grads) = with_training_forward(served, seed, step, || {
+            let loss = batch_loss(model, objective, &ids, &scored, &targets, hi - lo, served)?;
+            // The copy to the host waits for the GPU to finish the forward. Only the nearest and
+            // cell objectives mark their own stages; the sheet's and Voronoi objectives count in
+            // this one.
+            let value = f64::from(loss.to_scalar::<f32>()?);
+            stage_clock::mark("objective.readback");
+            if !value.is_finite() {
+                return Err(invalid(format!("non-finite training loss at step {step}")));
+            }
+            let loss = match share {
+                Some(share) => loss.affine(share, 0.0)?,
+                None => loss,
+            };
+            let grads = loss.backward()?;
+            stage_clock::mark("backward");
+            Ok((value * share.unwrap_or(1.0), grads))
+        })?;
+        sum = Some(match sum {
+            None => (value, grads),
+            Some((so_far, mut acc)) => {
+                add_grads(&mut acc, &grads)?;
+                (so_far + value, acc)
+            }
+        });
+    }
+    sum.ok_or_else(|| invalid(format!("training step {step} has no scored row")))
+}
+
+/// One forward's turn-memory rows, reply rows and cut mask, set before it runs (claude-300).
+#[derive(Default)]
+struct ForwardRows {
+    memory: Option<Vec<usize>>,
+    replies: Option<crate::flock_read_memory::ReplyRows>,
+    mask: Option<Vec<u8>>,
+}
+
+/// The opening rows of the forward of the batch's windows `lo..hi` (claude-300): window `b`, TRAIN
+/// window `picked[b]`, sits at `b − lo` in that forward. `kept(b)` takes the window's place in the
+/// whole batch.
+fn forward_openings(
+    picked: &[usize],
+    lo: usize,
+    hi: usize,
+    context: usize,
+    openings: &[Vec<usize>],
+    kept: impl Fn(usize) -> bool,
+) -> Vec<usize> {
+    (lo..hi)
+        .filter(|&b| kept(b))
+        .flat_map(|b| {
+            openings[picked[b]]
+                .iter()
+                .map(move |&offset| (b - lo) * context + offset)
+        })
+        .collect()
+}
+
+/// The reply rows, with their keys, of the same forward as [`forward_openings`].
+fn forward_replies(
+    picked: &[usize],
+    lo: usize,
+    hi: usize,
+    context: usize,
+    replies: &ReplyOffsets,
+    kept: impl Fn(usize) -> bool,
+) -> crate::flock_read_memory::ReplyRows {
+    (lo..hi)
+        .filter(|&b| kept(b))
+        .flat_map(|b| {
+            replies[picked[b]]
+                .iter()
+                .map(move |(offset, key)| ((b - lo) * context + offset, key.clone()))
+        })
+        .collect()
+}
+
+/// Add `more`'s gradients into `acc`, variable by variable.
+fn add_grads(
+    acc: &mut candle_core::backprop::GradStore,
+    more: &candle_core::backprop::GradStore,
+) -> Result<()> {
+    let ids: Vec<candle_core::TensorId> = more.get_ids().copied().collect();
+    for id in ids {
+        let Some(grad) = more.get_id(id) else {
+            continue;
+        };
+        let summed = match acc.get_id(id) {
+            Some(so_far) => so_far.add(grad)?,
+            None => grad.clone(),
+        };
+        acc.insert_id(id, summed);
+    }
+    Ok(())
 }
 
 /// `objective`'s loss for the predicted points `query`, one row per target.
@@ -11595,6 +11741,12 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     if config.steps == 0 || config.batch == 0 || config.eval_every == 0 {
         return Err(invalid("steps, batch and eval-every must be positive"));
     }
+    if config.micro_batch != 0 && !config.batch.is_multiple_of(config.micro_batch) {
+        return Err(invalid(format!(
+            "--micro-batch {} does not divide --batch {}",
+            config.micro_batch, config.batch
+        )));
+    }
     training_context(config.context)?;
     // A clock left on by a run that failed mid-step on this thread starts no stage of this one.
     stage_clock::reset();
@@ -11943,47 +12095,47 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         }
         let picked = &order[cursor..cursor + config.batch];
         let windows: Vec<&CausalWindow> = picked.iter().map(|&i| &usable[i]).collect();
-        // A window the memory is dropped from (protocol I-B) names no memory row below.
+        cursor += config.batch;
+        // Each forward's rows, built before the step's clock starts: one forward of the whole
+        // batch, or one per micro-batch. A window the memory is dropped from (protocol I-B)
+        // names no memory row; its draw keeps its place in the whole batch.
+        let micro = match config.micro_batch {
+            0 => config.batch,
+            m => m,
+        };
         let kept = |b: usize| {
             !memory_dropped(config.seed, step, b, config.batch, config.turn_memory_dropout)
         };
-        // The batch's opening rows, which the turn memory moves; none when it is off.
-        crate::flock_read_memory::set_memory_rows(memory.as_ref().map(|_| {
-            picked
-                .iter()
-                .enumerate()
-                .filter(|&(b, _)| kept(b))
-                .flat_map(|(b, &i)| {
-                    train_openings[i]
-                        .iter()
-                        .map(move |&offset| b * config.context + offset)
+        let mut forwards: Vec<ForwardRows> = (0..config.batch)
+            .step_by(micro)
+            .map(|lo| {
+                let hi = (lo + micro).min(config.batch);
+                Ok(ForwardRows {
+                    // The opening rows, which the turn memory moves; none when it is off.
+                    memory: memory.as_ref().map(|_| {
+                        forward_openings(picked, lo, hi, config.context, &train_openings, kept)
+                    }),
+                    // The reply rows past their openings, with their keys (claude-193); none
+                    // when there is no reply table.
+                    replies: (!train_replies.is_empty()).then(|| {
+                        forward_replies(picked, lo, hi, config.context, &train_replies, kept)
+                    }),
+                    // Under the cut (claude-216), every reply row reads only before its reply.
+                    mask: trained_cut_on()
+                        .then(|| window_input_mask(&windows[lo..hi], &train_mask))
+                        .transpose()?,
                 })
-                .collect()
-        }));
-        // Its reply rows past their openings, with their keys (claude-193); none when it has no
-        // reply table.
-        crate::flock_read_memory::set_reply_rows((!train_replies.is_empty()).then(|| {
-            picked
-                .iter()
-                .enumerate()
-                .filter(|&(b, _)| kept(b))
-                .flat_map(|(b, &i)| {
-                    train_replies[i]
-                        .iter()
-                        .map(move |(offset, key)| (b * config.context + offset, key.clone()))
-                })
-                .collect()
-        }));
-        cursor += config.batch;
-        let (ids, scored, targets) = assemble(&windows);
-        // The memory's rows are `b · config.context + offset`, so every window must be whole.
-        if ids.len() != config.batch * config.context {
-            return Err(invalid("a training batch's windows are not context-long"));
-        }
-        // Under the cut (claude-216), every reply row of the batch reads only before its reply.
-        if trained_cut_on() {
-            set_reply_mask(Some(window_input_mask(&windows, &train_mask)?));
-        }
+            })
+            .collect::<Result<_>>()?;
+        let forward_rows = |lo: usize, _hi: usize| -> Result<()> {
+            let rows = std::mem::take(&mut forwards[lo / micro]);
+            crate::flock_read_memory::set_memory_rows(rows.memory);
+            crate::flock_read_memory::set_reply_rows(rows.replies);
+            if let Some(mask) = rows.mask {
+                set_reply_mask(Some(mask));
+            }
+            Ok(())
+        };
         let profiled = profile_window(step, config.profile);
         let started = Instant::now();
         if profiled == Some(true) {
@@ -11999,35 +12151,16 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if served.is_some() {
             stage_clock::mark("served.round");
         }
-        // The gate hook carries the real step: at step 0 its backward runs diagnostics with host
-        // syncs, and a checkpoint's replies leave it at 0. Training as served adds the complete
-        // quantization bridge and Q12 query used by the exported graph.
-        let (value, mut grads) = with_training_forward(
+        let (value, mut grads) = step_gradient(
+            &model,
+            config.objective,
+            &windows,
+            config.micro_batch,
+            config.context,
             config.train_as_served,
             config.seed,
             step,
-            || {
-                let loss = batch_loss(
-                    &model,
-                    config.objective,
-                    &ids,
-                    &scored,
-                    &targets,
-                    config.batch,
-                    config.train_as_served,
-                )?;
-                // The copy to the host waits for the GPU to finish the forward. Only the nearest
-                // and cell objectives mark their own stages; the sheet's and Voronoi objectives
-                // count in this one.
-                let value = f64::from(loss.to_scalar::<f32>()?);
-                stage_clock::mark("objective.readback");
-                if !value.is_finite() {
-                    return Err(invalid(format!("non-finite training loss at step {step}")));
-                }
-                let grads = loss.backward()?;
-                stage_clock::mark("backward");
-                Ok((value, grads))
-            },
+            forward_rows,
         )?;
         // The gradient, taken at the exported values, moves the float values they came from.
         if let Some(served) = served {
@@ -13041,6 +13174,7 @@ mod tests {
             train_split: None,
             samples: 6,
             reply_tokens: 48,
+            micro_batch: 0,
             profile: 0,
             turn_memory: 0,
             turn_memory_empty: false,
@@ -14233,6 +14367,96 @@ mod tests {
 
     #[cfg(feature = "cuda")]
     #[test]
+    fn micro_batches_weighted_by_their_scored_rows_give_the_whole_batchs_step() {
+        let device = Device::new_cuda(0).unwrap();
+        // Eight windows; window b scores b + 1 rows, so the four micro-batches of two score 3, 7,
+        // 11 and 15 of the step's 36 rows, and weighting them 1/4 each would miss the batch.
+        let windows: Vec<CausalWindow> = (0..8usize)
+            .map(|b| {
+                let input_ids: Vec<u32> = (0..SHEET_CONTEXT)
+                    .map(|i| ((i * 37 + b * 101) % 4095 + 1) as u32)
+                    .collect();
+                let scored_offsets: Vec<usize> = (0..=b).map(|r| 20 + r * 19).collect();
+                CausalWindow {
+                    doc_id: b,
+                    scored_targets: scored_offsets.iter().map(|&o| input_ids[o + 1]).collect(),
+                    scored_corpus_positions: scored_offsets
+                        .iter()
+                        .map(|&o| b * SHEET_CONTEXT + o + 1)
+                        .collect(),
+                    input_ids,
+                    scored_offsets,
+                }
+            })
+            .collect();
+        let windows: Vec<&CausalWindow> = windows.iter().collect();
+        for (objective, served) in [
+            (PointObjective::Nearest, false),
+            (PointObjective::Nearest, true),
+            (PointObjective::Cell, false),
+        ] {
+            let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
+            let step = |micro: usize| {
+                let mut forwards = Vec::new();
+                let (value, grads) = step_gradient(
+                    &model,
+                    objective,
+                    &windows,
+                    micro,
+                    SHEET_CONTEXT,
+                    served,
+                    1,
+                    3,
+                    |lo, hi| {
+                        forwards.push((lo, hi));
+                        Ok(())
+                    },
+                )
+                .unwrap();
+                (value, grads, forwards)
+            };
+            let (whole, whole_grads, one) = step(0);
+            let (split, split_grads, four) = step(2);
+            let case = format!("{objective:?}, served {served}");
+            assert_eq!(one, vec![(0, 8)], "{case}");
+            assert_eq!(four, vec![(0, 2), (2, 4), (4, 6), (6, 8)], "{case}");
+            assert!(
+                (whole - split).abs() <= 1e-5 * whole.abs().max(1.0),
+                "{case}: loss {whole} != {split}"
+            );
+            let mut compared = 0;
+            for (name, var) in model.variables() {
+                let (a, b) = (
+                    whole_grads.get(var.as_tensor()),
+                    split_grads.get(var.as_tensor()),
+                );
+                assert_eq!(a.is_some(), b.is_some(), "{case}: {name}");
+                let (Some(a), Some(b)) = (a, b) else {
+                    continue;
+                };
+                let flat = |t: &Tensor| {
+                    t.flatten_all()
+                        .unwrap()
+                        .to_dtype(DType::F32)
+                        .unwrap()
+                        .to_vec1::<f32>()
+                        .unwrap()
+                };
+                let (a, b) = (flat(a), flat(b));
+                let scale = a.iter().fold(0f32, |m, x| m.max(x.abs()));
+                let diff = a.iter().zip(&b).fold(0f32, |m, (x, y)| m.max((x - y).abs()));
+                assert!(
+                    diff <= 1e-4 * scale.max(1e-6),
+                    "{case}: {name} differs by {diff} at scale {scale}"
+                );
+                compared += 1;
+            }
+            assert!(compared > 0, "{case}: no gradient compared");
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
     fn the_stage_clock_times_a_step_without_changing_its_loss() {
         let device = Device::new_cuda(0).unwrap();
         let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
@@ -14396,6 +14620,57 @@ mod tests {
         config.profile = 3;
         let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         assert!(json.contains("\"profile\": 3"), "{json}");
+    }
+
+    #[test]
+    fn a_micro_batch_is_refused_unless_it_divides_the_batch_and_is_written_only_when_set() {
+        let missing = std::env::temp_dir().join(format!("claude-300-none-{}", std::process::id()));
+        let mut config = config(0, None);
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(!json.contains("micro_batch"), "{json}");
+        (config.batch, config.micro_batch) = (16, 3);
+        let refused = run_long(&missing, &missing.join("out"), &config, &Device::Cpu)
+            .err()
+            .map(|e| e.to_string());
+        assert!(
+            refused
+                .as_deref()
+                .is_some_and(|e| e.contains("--micro-batch 3 does not divide --batch 16")),
+            "{refused:?}"
+        );
+        assert!(!missing.exists());
+        config.micro_batch = 4;
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(json.contains("\"micro_batch\": 4"), "{json}");
+    }
+
+    #[test]
+    fn each_micro_batch_names_the_whole_batchs_rows_at_its_own_place() {
+        // Six TRAIN windows of context 10, a batch of four of them in a shuffled order, and a
+        // dropout that drops the window at the whole batch's place 2.
+        let context = 10;
+        let picked = [4usize, 0, 5, 2];
+        let openings: Vec<Vec<usize>> = (0..6).map(|i| vec![i, i + 3]).collect();
+        let replies: ReplyOffsets = (0..6).map(|i| vec![(i + 1, vec![i as u32, 7])]).collect();
+        let kept = |b: usize| b != 2;
+        let whole = forward_openings(&picked, 0, 4, context, &openings, kept);
+        assert_eq!(whole, vec![4, 7, 10, 13, 32, 35]);
+        let whole_replies = forward_replies(&picked, 0, 4, context, &replies, kept);
+        for micro in [1usize, 2, 4] {
+            let (mut rows, mut reply_rows) = (Vec::new(), Vec::new());
+            for lo in (0..4).step_by(micro) {
+                let part = forward_openings(&picked, lo, lo + micro, context, &openings, kept);
+                // Every row lies inside its own forward's windows.
+                assert!(part.iter().all(|&r| r < micro * context), "micro {micro}: {part:?}");
+                rows.extend(part.iter().map(|&r| lo * context + r));
+                let part = forward_replies(&picked, lo, lo + micro, context, &replies, kept);
+                assert!(part.iter().all(|(r, _)| *r < micro * context));
+                reply_rows.extend(part.into_iter().map(|(r, k)| (lo * context + r, k)));
+            }
+            // Shifted back by their forward's start, they are the whole batch's rows.
+            assert_eq!(rows, whole, "micro {micro}");
+            assert_eq!(reply_rows, whole_replies, "micro {micro}");
+        }
     }
 
     #[test]
