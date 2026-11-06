@@ -55,7 +55,7 @@ pub struct ReplyBoundaryCounts {
     pub nonterminal: u64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ReplyBoundaryMemory {
     entries: BTreeMap<Vec<u32>, ReplyBoundaryCounts>,
 }

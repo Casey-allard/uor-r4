@@ -87,6 +87,7 @@ pub struct SuffixArbitrationReading {
     pub reference_reachable: u64,
     pub exact_reference: u64,
     pub bos_complete: u64,
+    pub length_complete: u64,
     pub opening_correct: u64,
     pub premature_bos: u64,
     pub non_premature_bos: u64,
@@ -131,6 +132,61 @@ pub fn generate_suffix_arbitration_reply(
     seed: u64,
     row: usize,
 ) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    generate_suffix_arbitration_reply_with_endpoint(
+        artifact,
+        prompt,
+        cap,
+        Endpoint::Boundary(reference_length),
+        arm,
+        suffix_memory,
+        boundary,
+        seed,
+        row,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn generate_suffix_arbitration_reply_to_length(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    length: usize,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    seed: u64,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    generate_suffix_arbitration_reply_with_endpoint(
+        artifact,
+        prompt,
+        cap,
+        Endpoint::Length(length),
+        arm,
+        suffix_memory,
+        &ReplyBoundaryMemory::default(),
+        seed,
+        row,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum Endpoint {
+    Boundary(usize),
+    Length(usize),
+}
+
+#[allow(clippy::too_many_arguments)]
+fn generate_suffix_arbitration_reply_with_endpoint(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    endpoint: Endpoint,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
     let mut forward = CpuFbsForward::from_artifact(artifact)
         .map_err(|error| invalid(format!("suffix-arbitration forward: {error}")))?;
     let context = forward.context_length();
@@ -159,14 +215,34 @@ pub fn generate_suffix_arbitration_reply(
     let mut steps = Vec::with_capacity(cap);
 
     loop {
-        let boundary_hit = if arm == SuffixArbitrationArm::ReferenceLengthOracle {
-            (tokens.len() == reference_length).then_some(crate::reply_boundary::ReplyBoundaryHit {
-                depth: 0,
-                terminal: 1,
-                nonterminal: 0,
-            })
-        } else {
-            boundary.stop_decision(&tokens)
+        if let Endpoint::Length(length) = endpoint {
+            if length == 0 || length > cap {
+                return Err(invalid("suffix-arbitration stored length exceeds cap"));
+            }
+            if tokens.len() == length {
+                return Ok((
+                    GeneratedReply {
+                        tokens,
+                        stop: "length",
+                    },
+                    steps,
+                ));
+            }
+        }
+        let boundary_hit = match endpoint {
+            Endpoint::Length(_) => None,
+            Endpoint::Boundary(reference_length)
+                if arm == SuffixArbitrationArm::ReferenceLengthOracle =>
+            {
+                (tokens.len() == reference_length).then_some(
+                    crate::reply_boundary::ReplyBoundaryHit {
+                        depth: 0,
+                        terminal: 1,
+                        nonterminal: 0,
+                    },
+                )
+            }
+            Endpoint::Boundary(_) => boundary.stop_decision(&tokens),
         };
         if let Some(hit) = boundary_hit {
             steps.push(SuffixArbitrationStep {
@@ -369,7 +445,103 @@ pub fn evaluate_suffix_arbitration_replies(
             let row_reading = CopyKeyReplyRow {
                 row,
                 reachable,
-                exact_reference: generated.stop == "bos" && generated.tokens == reference,
+                exact_reference: generated.tokens == reference,
+                bos_complete: generated.stop == "bos",
+                opening_correct,
+                premature_bos,
+                non_premature_bos,
+                generated_tokens: generated.tokens.len() as u64,
+                reference_tokens: reference.len() as u64,
+                correct_body_positions,
+                copy_decisions: local_decisions,
+                fallback_decisions: steps.len() as u64 - local_decisions,
+                stop: generated.stop.to_owned(),
+                reply_sha256: token_hash(&generated.tokens),
+            };
+            Ok((row_reading, steps))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let wall_elapsed_us = started.elapsed().as_micros().try_into().unwrap_or(u64::MAX);
+    let (rows, steps): (Vec<_>, Vec<_>) = evaluated.into_iter().unzip();
+    let steps = steps.into_iter().flatten().collect::<Vec<_>>();
+    let reading = summarize(arm, &rows, &steps)?;
+    let reply_sha256 = reply_hash(&rows);
+    let decision_sha256 = decision_hash(&steps);
+    let generated_tokens_per_second = if wall_elapsed_us == 0 {
+        0.0
+    } else {
+        reading.generated_tokens as f64 * 1_000_000.0 / wall_elapsed_us as f64
+    };
+    Ok(TimedSuffixArbitrationReading {
+        reading,
+        rows,
+        steps,
+        reply_sha256,
+        decision_sha256,
+        wall_elapsed_us,
+        generated_tokens_per_second,
+    })
+}
+
+pub fn evaluate_suffix_arbitration_replies_to_length(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    lengths: &[usize],
+    cap: usize,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    seed: u64,
+) -> Result<TimedSuffixArbitrationReading> {
+    if samples.is_empty() || lengths.len() != samples.len() || cap == 0 || cap > 64 {
+        return Err(invalid("suffix-arbitration length inputs differ"));
+    }
+    let context = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("suffix-arbitration context: {error}")))?
+        .context_length();
+    let started = std::time::Instant::now();
+    let evaluated = samples
+        .par_iter()
+        .zip(lengths)
+        .enumerate()
+        .map(|(row, (sample, &length))| {
+            let reference = normalized_reference(&sample.reply).to_vec();
+            if sample.prompt.len() > context || reference.len() > cap || length == 0 || length > cap
+            {
+                return Err(invalid(
+                    "suffix-arbitration sample exceeds its context, cap or stored length",
+                ));
+            }
+            let (generated, steps) = generate_suffix_arbitration_reply_to_length(
+                artifact,
+                &sample.prompt,
+                cap,
+                length,
+                arm,
+                suffix_memory,
+                seed,
+                row,
+            )?;
+            let reachable = reference_reachable(sample.prompt.len(), reference.len(), cap, context);
+            let opening_correct = matches!(
+                (generated.tokens.first(), reference.first()),
+                (Some(generated), Some(reference)) if generated == reference
+            );
+            let correct_body_positions = generated
+                .tokens
+                .iter()
+                .zip(&reference)
+                .filter(|(generated, reference)| generated == reference)
+                .count() as u64;
+            let premature_bos = generated.stop == "bos" && generated.tokens.len() < reference.len();
+            let non_premature_bos = generated.stop == "bos" && !premature_bos;
+            let local_decisions = steps
+                .iter()
+                .filter(|step| !step.used_global && step.local_copy_depth.is_some())
+                .count() as u64;
+            let row_reading = CopyKeyReplyRow {
+                row,
+                reachable,
+                exact_reference: generated.tokens == reference,
                 bos_complete: generated.stop == "bos",
                 opening_correct,
                 premature_bos,
@@ -473,6 +645,7 @@ fn summarize(
         reference_reachable: 0,
         exact_reference: 0,
         bos_complete: 0,
+        length_complete: 0,
         opening_correct: 0,
         premature_bos: 0,
         non_premature_bos: 0,
@@ -489,6 +662,7 @@ fn summarize(
         reading.reference_reachable += u64::from(row.reachable);
         reading.exact_reference += u64::from(row.reachable && row.exact_reference);
         reading.bos_complete += u64::from(row.reachable && row.bos_complete);
+        reading.length_complete += u64::from(row.reachable && row.stop == "length");
         reading.opening_correct += u64::from(row.reachable && row.opening_correct);
         reading.premature_bos += u64::from(row.reachable && row.premature_bos);
         reading.non_premature_bos += u64::from(row.reachable && row.non_premature_bos);
@@ -736,5 +910,50 @@ mod tests {
             })
             .expect("shuffle needs to change a complete trajectory");
         assert_ne!(true_reply.decision_sha256, shuffled_reply.decision_sha256);
+    }
+
+    #[test]
+    fn stored_length_completes_exactly_without_a_boundary_signal() {
+        let training = [
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[41, 11, 21, 31]),
+        ];
+        let table = derive_full_sequence_suffix_content_memory(&training).unwrap();
+        let evaluation = [sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30])];
+        let reading = evaluate_suffix_arbitration_replies_to_length(
+            &artifact(),
+            &evaluation,
+            &[4],
+            16,
+            SuffixArbitrationArm::DeeperFullSequence32,
+            Some(&table),
+            198,
+        )
+        .unwrap();
+        assert_eq!(reading.reading.reference_reachable, 1);
+        assert_eq!(reading.reading.length_complete, 1);
+        assert_eq!(reading.reading.bos_complete, 0);
+        assert_eq!(reading.reading.exact_reference, 1);
+        assert_eq!(reading.rows[0].stop, "length");
+    }
+
+    #[test]
+    fn stored_length_refuses_zero_and_a_budget_above_the_cap() {
+        let artifact = artifact();
+        let evaluation = [sample(&[10, 11, 12], &[20])];
+        for length in [0, 5] {
+            assert!(evaluate_suffix_arbitration_replies_to_length(
+                &artifact,
+                &evaluation,
+                &[length],
+                4,
+                SuffixArbitrationArm::WriterBoundary,
+                None,
+                198,
+            )
+            .is_err());
+        }
     }
 }

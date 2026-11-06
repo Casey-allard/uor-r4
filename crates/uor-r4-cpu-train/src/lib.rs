@@ -225,9 +225,10 @@ pub use stop_signature::{
 };
 pub use suffix_arbitration::{
     compare_suffix_arbitration_rows, evaluate_suffix_arbitration_replies,
-    generate_suffix_arbitration_reply, suffix_arbitration_changes, SuffixArbitrationArm,
-    SuffixArbitrationChanges, SuffixArbitrationReading, SuffixArbitrationStep,
-    TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
+    evaluate_suffix_arbitration_replies_to_length, generate_suffix_arbitration_reply,
+    generate_suffix_arbitration_reply_to_length, suffix_arbitration_changes,
+    SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading,
+    SuffixArbitrationStep, TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
     SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH,
 };
 pub use suffix_fallback::{

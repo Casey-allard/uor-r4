@@ -1,0 +1,146 @@
+{
+  "schema": "uor-r4.cpu-content-length-summary/1",
+  "outcome": "REJECT",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "base": "bbb8c5332",
+  "implementation": "74793da76",
+  "run_source": {
+    "suffix_arbitration": "b404b33856e21f4599d30434acd9ef71ba00ac339cc93aded3676aed2d1fad49",
+    "driver": "4a4da3804e32b6faec78a24357146ed6e61b43a804fc576d688e8397512273a5",
+    "release_binary": "609343405c1f8ae38f699cb971755ff51fe6144be26743858478bcf423725977"
+  },
+  "construction": {
+    "retrieval": "raw unigram Jaccard, lower ordinal on ties",
+    "length_source": "nearest TRAIN prompt's stored reply",
+    "cap": 64,
+    "suffix_depth": 32,
+    "minimum_observations": 2,
+    "shuffle_changed_targets": 75034,
+    "content_bos_transitions": 0,
+    "shuffled_bos_transitions": 0
+  },
+  "panel": {
+    "cell": "dev,dev",
+    "seed": 2783,
+    "protocol": 2,
+    "conversations": 128,
+    "tokens": 16319,
+    "response_tokens": 5163,
+    "reachable_replies": 457,
+    "tokens_sha256": "15790736fef71aeddfb2d5a2bd5686379e478690d2a83c5bda9a57f19bd166f1",
+    "mask_sha256": "913592f695e841a07512345090e62ff71393ad437e5fb5a2e956f52b5f624946",
+    "manifest_sha256": "90e8f9e9a1dabc393b124a66e2c1fed0c9d3f670bf0128b60b00674032d87b78"
+  },
+  "seeds": {
+    "1": {
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "reachable": 457,
+      "global_decisions": 1517,
+      "premature_bos": 0,
+      "complete_by_stored_length": 457,
+      "exact": {
+        "candidate": 6,
+        "boundary": 14,
+        "shallow_global": 6,
+        "local": 0,
+        "shuffled": 0,
+        "writer": 0,
+        "full_retrieval": 42,
+        "reference_length_oracle": 16
+      },
+      "body": {
+        "candidate": 560,
+        "boundary": 760,
+        "shallow_global": 521,
+        "local": 425,
+        "shuffled": 425,
+        "writer": 38,
+        "full_retrieval": 879,
+        "reference_length_oracle": 599
+      },
+      "changed_steps": {
+        "from_local": 2271,
+        "from_shuffled": 2274
+      },
+      "divergent_rows": {
+        "from_local": 236,
+        "from_shuffled": 236
+      },
+      "comparisons": {
+        "local_exact": true,
+        "local_body": true,
+        "shuffled_exact": true,
+        "shuffled_body": true,
+        "boundary_body_retained": false
+      },
+      "report_sha256": "00a25eb913fed6be5bd1163dac439be08378c90334dff4448cca8293964490ed",
+      "repeat_identical_after_timing_removal": true
+    },
+    "2": {
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "reachable": 457,
+      "global_decisions": 1562,
+      "premature_bos": 0,
+      "complete_by_stored_length": 457,
+      "exact": {
+        "candidate": 6,
+        "boundary": 14,
+        "shallow_global": 6,
+        "local": 0,
+        "shuffled": 0,
+        "writer": 0,
+        "full_retrieval": 42,
+        "reference_length_oracle": 16
+      },
+      "body": {
+        "candidate": 560,
+        "boundary": 760,
+        "shallow_global": 521,
+        "local": 425,
+        "shuffled": 425,
+        "writer": 52,
+        "full_retrieval": 879,
+        "reference_length_oracle": 599
+      },
+      "changed_steps": {
+        "from_local": 2270,
+        "from_shuffled": 2273
+      },
+      "divergent_rows": {
+        "from_local": 236,
+        "from_shuffled": 236
+      },
+      "comparisons": {
+        "local_exact": true,
+        "local_body": true,
+        "shuffled_exact": true,
+        "shuffled_body": true,
+        "boundary_body_retained": false
+      },
+      "report_sha256": "38a5a40cb7e9e7f8137bea5854dc1e11a93eed95195b2e1dffbba94f5fed14a6",
+      "repeat_identical_after_timing_removal": true
+    }
+  },
+  "resources": {
+    "scored_wall_seconds": [5.84, 5.92],
+    "cpu_percent": [998, 1011],
+    "peak_rss_kib": 265988,
+    "driver_build_seconds": 29.9,
+    "driver_build_peak_rss_kib": 1360392,
+    "panel_seconds": 0.64,
+    "panel_peak_rss_kib": 7444,
+    "retained_bytes": 151172
+  },
+  "tests": {
+    "focused_length_tests": 2,
+    "driver_usage_tests": 1,
+    "cpu_library_passed": 404,
+    "cpu_library_ignored": 4
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/content-length/2026-11-06",
+    "sha256sums_sha256": "440b75dd443a18600c967095f2807c29e043272681e1c3a44a997ed9dd6fb293"
+  },
+  "outcome_reason": "Stored-length completion emitted every reachable reply with zero premature BOS and beat local and shuffled length controls on exact and body positions, but made 6 exact replies and 560 body positions versus 14 exact and 760 body positions for the boundary control. The registered body-retention bar therefore failed."
+}

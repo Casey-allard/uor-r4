@@ -45,6 +45,10 @@ name = "cpu-copy-suffix-arbitration"
 path = "src/bin/cpu-copy-suffix-arbitration.rs"
 
 [[bin]]
+name = "cpu-content-length-driver"
+path = "src/bin/cpu-content-length-driver.rs"
+
+[[bin]]
 name = "cpu-copy-full-boundary"
 path = "src/bin/cpu-copy-full-boundary.rs"
 

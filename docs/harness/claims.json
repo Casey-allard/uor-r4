@@ -97,6 +97,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/content-length": {
+    "branch": "deepseek/content-length",
+    "claimed_at": "2026-11-06T03:47:34-05:00",
+    "head": "bbb8c5332",
+    "lab": "deepseek",
+    "note": "full-sequence content with reference-independent retrieved-length completion"
+  },
   "deepseek/continuation-horizon": {
     "branch": "deepseek/continuation-horizon",
     "claimed_at": "2026-11-04T16:35:38-05:00",

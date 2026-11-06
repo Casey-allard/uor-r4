@@ -1,3 +1,23 @@
+## 2026-11-06 — Stored-length completion removes bad stops but loses content quality (deepseek)
+
+The full-sequence suffix content selector from deepseek-198 was paired with the
+nearest TRAIN reply's stored length instead of its boundary stop. On fresh seed
+2783 and both public artifacts it emitted all **457** reachable replies with
+zero premature BOS and **0** BOS stops, making **6** exact replies and **560**
+body positions. It beat local and shuffled length controls at **0** exact and
+**425** body positions.
+
+The registered retention bar failed: the original boundary control made
+**14** exact replies and **760** body positions. Full retrieval remained
+stronger at **42/879**, while a reference-length oracle made **16/599**. A
+correct length alone does not preserve the content trajectory.
+
+This is a **REJECT** for the fixed stored-length substitution, not for
+full-sequence content or geometric termination. The next mechanism must expose
+continuation-state evidence rather than treat a retrieved length as sufficient
+termination. Record:
+[deepseek-223](../loop/tasks/cpu-training-pilot/deepseek-223/REPORT.md).
+
 ## 2026-11-06 — Nearest-rival gain control is behaviorally vacuous (deepseek)
 
 An eight-rival Q12 hinge trainer evaluated every final-gain move through the
