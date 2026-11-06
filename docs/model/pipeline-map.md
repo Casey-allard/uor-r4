@@ -347,7 +347,14 @@ GPT-4's own size and training data are not published (GPT-4 Technical Report, ex
    - **Not yet shown:** that serving past 192 helps a conversation. The rule, carry, is provisional (claude-287): no checkpoint recalls a far note. On long prompts the served replies equal the float model's on 60–62%, and both are weak against the reference.
 7. **The FBS artifact has no text path.** It takes ids and gives ids (stage 8).
 8. **The two model paths do not join.** The M1 bar rests on the discrete path, the replies on the FBS trunk, and they use different tables, trunks and formats (Two model paths).
-9. **Scale caps, with one data point.** Width 512 fits best (`10,152 / 11,140`), at about half the training speed with 8 heads. The writer allows at most 8,192 identities and width 1,024. The corpus is 7.5M tokens, and no run has measured how ability grows beyond that (stages 1, 4 and 7).
+9. **How ability grows with scale is unread: width 1,024 did not run, and on human text the trunk's training loss does not yet fall** (scale-probe, claude-295, #3472).
+   - **The first run on human-written text.** The one model, trained as served, ran at widths 256 and 512 on a quarter, a half and all of 28M tokens of Wikipedia and OASST2. Its training loss stays at about 1.0035 for 8,192 steps.
+   - **Against simple tables.** On the 1,460,697-row held-out panel, every cell at both widths is behind its TRAIN's unigram (by 12,460–25,917 rows at 256 and 17,194–24,363 at 512) and far behind its T2.
+   - **Width 512 is not measurably better at these two seeds.** Against width 256 at D3 it reads `inside` (band 9,574 rows), not distinguishable at this power. Its data slope is `mixed`, and it serves at about half of 256's laptop rate (decode 673 against 1,329 tok/s).
+   - **What it predicts.** The trunk predicts roughly the text's token mix, spread across contexts, not the likeliest token. This is a lead, not yet tested.
+   - **The slope is not measured.** The deciding slopes (R1 across width, R2 across data) need width 1,024, which does not fit a 32 GB card. They wait for scale-probe's second run unit, which under Casey's one track (#2028 6675163438) runs once the trunk beats its unigram and T2 on human text.
+   - **The next step** is one-model-end-to-end's classification (claude-296): a fixed-target test that splits instrument from mechanism.
+   - **Earlier, on the templated M-world:** width 512 fit best (`10,152 / 11,140`), at about half the training speed with 8 heads. The writer allows at most 8,192 identities and width 1,024 (stages 1, 4 and 7).
 10. **Greedy decoding only, and the cost of multiplier-free serving.** A lawful sampling rule does not exist and has no decision. The multiplier-free rule has one: D80 and D81 (28 Oct 2026) allow the integer multiply and divide. The 4.3-fold energy cost was measured on an older model under the old rule (stages 8 and 11).
 
 ## Recommended order of work
