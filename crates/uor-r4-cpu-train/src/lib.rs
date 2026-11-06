@@ -169,12 +169,12 @@ pub use prompt_retrieval::{
 pub use prompt_reply_rank::{
     compare_prompt_reply_rank_rows, derive_prompt_reply_rank_memory,
     evaluate_prompt_reply_ranking, fit_prompt_reply_ranker, PromptReplyRankArm,
-    PromptReplyRankMemory, PromptReplyRankReading, PromptReplyRankStep, PromptReplyRankTraining,
-    PromptReplyRanker, TimedPromptReplyRankReading,
+    PromptReplyRankFeatureSet, PromptReplyRankMemory, PromptReplyRankReading, PromptReplyRankStep,
+    PromptReplyRankTraining, PromptReplyRanker, TimedPromptReplyRankReading,
     PROMPT_REPLY_RANK_EPOCHS, PROMPT_REPLY_RANK_FEATURES, PROMPT_REPLY_RANK_FEATURE_NAMES,
     PROMPT_REPLY_RANK_LEARNING_RATE, PROMPT_REPLY_RANK_MIN_BASELINE_WRONG,
     PROMPT_REPLY_RANK_MIN_GROUPS, PROMPT_REPLY_RANK_SHUFFLE_SEED, PROMPT_REPLY_RANK_TOP_K,
-    PROMPT_REPLY_RANK_WEIGHT_LIMIT,
+    PROMPT_REPLY_RANK_WEIGHT_LIMIT, PROMPT_REPLY_RANK_WRITER_FEATURE,
 };
 pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,

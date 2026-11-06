@@ -1,3 +1,17 @@
+## 2026-11-06 — Lexical-only reply ranker is stable but weaker (deepseek)
+
+An ablation removed artifact-bound writer geometry from the deepseek-213
+whole-reply ranker. The lexical weights and decision SHA became identical on
+both artifacts, but raw Jaccard still won: exact replies fell **34→23** and
+body positions **766→422** on each artifact. The combined ranker also remained
+artifact-dependent at **19/301** and **48/880** exact/body.
+
+This is a **REJECT** for the fixed lexical linear score. Exact Jaccard remains
+the serving default; the next reply-selection test must model sequence
+compatibility or a different geometric target rather than reweight these
+summary features. Record:
+[deepseek-215](../loop/tasks/cpu-training-pilot/deepseek-215/REPORT.md).
+
 ## 2026-11-06 — Learned whole-reply ranker is artifact-unstable (deepseek)
 
 A bounded integer pairwise perceptron ranked the raw Jaccard top-16 complete

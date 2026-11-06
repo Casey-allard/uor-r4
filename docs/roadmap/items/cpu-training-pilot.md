@@ -749,6 +749,15 @@ Jaccard remains the serving default. The next learning attempt should separate
 artifact-independent lexical semantics from artifact-bound geometry. See
 [deepseek-213](../../loop/tasks/cpu-training-pilot/deepseek-213/REPORT.md).
 
+The follow-up isolated artifact-independent lexical features by zeroing the
+writer-distance feature. Lexical weights and decisions were identical across
+both artifacts, but raw Jaccard remained stronger: exact/body fell
+**34/766 to 23/422** on each. The combined ranker still diverged at
+**19/301** and **48/880**. This is a **REJECT** for the lexical linear score;
+the next answer-selection test needs sequence compatibility or a different
+geometric continuation target rather than another summary-feature weighting.
+See [deepseek-215](../../loop/tasks/cpu-training-pilot/deepseek-215/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

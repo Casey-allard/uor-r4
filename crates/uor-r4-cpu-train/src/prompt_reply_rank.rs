@@ -24,6 +24,7 @@ pub const PROMPT_REPLY_RANK_WEIGHT_LIMIT: i64 = 65_536;
 pub const PROMPT_REPLY_RANK_MIN_GROUPS: usize = 96;
 pub const PROMPT_REPLY_RANK_MIN_BASELINE_WRONG: usize = 24;
 pub const PROMPT_REPLY_RANK_SHUFFLE_SEED: u64 = 213;
+pub const PROMPT_REPLY_RANK_WRITER_FEATURE: usize = 5;
 
 pub const PROMPT_REPLY_RANK_FEATURE_NAMES: [&str; PROMPT_REPLY_RANK_FEATURES] = [
     "bias",
@@ -56,10 +57,23 @@ impl PromptReplyRanker {
     }
 
     pub fn score(&self, features: &[i32; PROMPT_REPLY_RANK_FEATURES]) -> i64 {
+        self.score_for(features, PromptReplyRankFeatureSet::Combined)
+    }
+
+    fn score_for(
+        &self,
+        features: &[i32; PROMPT_REPLY_RANK_FEATURES],
+        feature_set: PromptReplyRankFeatureSet,
+    ) -> i64 {
         self.weights
             .iter()
             .zip(features)
-            .map(|(&weight, &feature)| weight * i64::from(feature))
+            .enumerate()
+            .filter(|(index, _)| {
+                feature_set == PromptReplyRankFeatureSet::Combined
+                    || *index != PROMPT_REPLY_RANK_WRITER_FEATURE
+            })
+            .map(|(_, (&weight, &feature))| weight * i64::from(feature))
             .sum()
     }
 
@@ -72,11 +86,19 @@ impl PromptReplyRanker {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PromptReplyRankFeatureSet {
+    Combined,
+    Lexical,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PromptReplyRankArm {
+    LearnedLexical,
     LearnedRanker,
     RawUnigramJaccard,
+    ShuffledLexical,
     ShuffledRanker,
     QueryGeometry,
     FixedOrdinal,
@@ -84,9 +106,11 @@ pub enum PromptReplyRankArm {
 }
 
 impl PromptReplyRankArm {
-    pub const EVALUATION_ARMS: [Self; 6] = [
-        Self::LearnedRanker,
+    pub const EVALUATION_ARMS: [Self; 8] = [
+        Self::LearnedLexical,
         Self::RawUnigramJaccard,
+        Self::ShuffledLexical,
+        Self::LearnedRanker,
         Self::ShuffledRanker,
         Self::QueryGeometry,
         Self::FixedOrdinal,
@@ -95,8 +119,10 @@ impl PromptReplyRankArm {
 
     pub fn name(self) -> &'static str {
         match self {
+            Self::LearnedLexical => "learned_lexical",
             Self::LearnedRanker => "learned_ranker",
             Self::RawUnigramJaccard => "raw_unigram_jaccard",
+            Self::ShuffledLexical => "shuffled_lexical",
             Self::ShuffledRanker => "shuffled_ranker",
             Self::QueryGeometry => "query_geometry",
             Self::FixedOrdinal => "fixed_ordinal",
@@ -148,6 +174,8 @@ struct TrainingGroup {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PromptReplyRankTraining {
+    pub lexical: PromptReplyRanker,
+    pub shuffled_lexical: PromptReplyRanker,
     pub trained: PromptReplyRanker,
     pub shuffled: PromptReplyRanker,
     pub rows: u64,
@@ -282,8 +310,12 @@ pub fn fit_prompt_reply_ranker(memory: &PromptReplyRankMemory) -> Result<PromptR
             "prompt-reply ranker has {baseline_wrong_groups} baseline-wrong groups, fewer than {PROMPT_REPLY_RANK_MIN_BASELINE_WRONG}"
         )));
     }
-    let (trained, _) = fit_weights(memory, &groups, false);
-    let (shuffled, shuffled_label_changes) = fit_weights(memory, &groups, true);
+    let (trained, _) = fit_weights(memory, &groups, false, PromptReplyRankFeatureSet::Combined);
+    let (shuffled, shuffled_label_changes) =
+        fit_weights(memory, &groups, true, PromptReplyRankFeatureSet::Combined);
+    let (lexical, _) = fit_weights(memory, &groups, false, PromptReplyRankFeatureSet::Lexical);
+    let (shuffled_lexical, lexical_shuffle_changes) =
+        fit_weights(memory, &groups, true, PromptReplyRankFeatureSet::Lexical);
     if shuffled_label_changes == 0 {
         return Err(invalid("prompt-reply ranker target shuffle is vacuous"));
     }
@@ -291,6 +323,19 @@ pub fn fit_prompt_reply_ranker(memory: &PromptReplyRankMemory) -> Result<PromptR
         return Err(invalid(
             "prompt-reply ranker true and shuffled weights are identical",
         ));
+    }
+    if lexical.weights == shuffled_lexical.weights {
+        return Err(invalid(
+            "prompt-reply lexical true and shuffled weights are identical",
+        ));
+    }
+    if lexical.weights[PROMPT_REPLY_RANK_WRITER_FEATURE] != 0
+        || shuffled_lexical.weights[PROMPT_REPLY_RANK_WRITER_FEATURE] != 0
+    {
+        return Err(invalid("lexical ranker retained a writer-distance weight"));
+    }
+    if lexical_shuffle_changes != shuffled_label_changes {
+        return Err(invalid("ranker shuffles applied different label changes"));
     }
     let candidate_rows = groups
         .iter()
@@ -307,6 +352,8 @@ pub fn fit_prompt_reply_ranker(memory: &PromptReplyRankMemory) -> Result<PromptR
         })
         .sum();
     Ok(PromptReplyRankTraining {
+        lexical,
+        shuffled_lexical,
         trained,
         shuffled,
         rows: memory.entries.len() as u64,
@@ -466,6 +513,7 @@ fn fit_weights(
     memory: &PromptReplyRankMemory,
     groups: &[TrainingGroup],
     shuffle: bool,
+    feature_set: PromptReplyRankFeatureSet,
 ) -> (PromptReplyRanker, u64) {
     let mut ranker = PromptReplyRanker::zero();
     let mut label_changes = 0u64;
@@ -505,17 +553,24 @@ fn fit_weights(
                 .filter(|(index, _)| !positives[*index])
                 .max_by_key(|(_, candidate)| {
                     (
-                        ranker.score(&candidate.features),
+                        ranker.score_for(&candidate.features, feature_set),
                         Reverse(candidate.raw_rank),
                     )
                 })
             else {
                 continue;
             };
-            let negative_score = ranker.score(&negative.1.features);
+            let negative_score = ranker.score_for(&negative.1.features, feature_set);
             for (index, candidate) in group.candidates.iter().enumerate() {
-                if positives[index] && ranker.score(&candidate.features) <= negative_score {
+                if positives[index]
+                    && ranker.score_for(&candidate.features, feature_set) <= negative_score
+                {
                     for feature in 0..PROMPT_REPLY_RANK_FEATURES {
+                        if feature_set == PromptReplyRankFeatureSet::Lexical
+                            && feature == PROMPT_REPLY_RANK_WRITER_FEATURE
+                        {
+                            continue;
+                        }
                         ranker.weights[feature] = (ranker.weights[feature]
                             + ranker.learning_rate
                                 * i64::from(
@@ -669,9 +724,20 @@ fn select(
             .ok_or_else(|| invalid("prompt-reply ranker geometry table is empty"))?;
         return Ok((memory.entries[ordinal].reply.clone(), ordinal, None, 0, 0));
     }
-    let ranker = match arm {
-        PromptReplyRankArm::LearnedRanker => &training.trained,
-        PromptReplyRankArm::ShuffledRanker => &training.shuffled,
+    let (ranker, feature_set) = match arm {
+        PromptReplyRankArm::LearnedLexical => {
+            (&training.lexical, PromptReplyRankFeatureSet::Lexical)
+        }
+        PromptReplyRankArm::LearnedRanker => {
+            (&training.trained, PromptReplyRankFeatureSet::Combined)
+        }
+        PromptReplyRankArm::ShuffledLexical => (
+            &training.shuffled_lexical,
+            PromptReplyRankFeatureSet::Lexical,
+        ),
+        PromptReplyRankArm::ShuffledRanker => {
+            (&training.shuffled, PromptReplyRankFeatureSet::Combined)
+        }
         PromptReplyRankArm::RawUnigramJaccard => {
             let candidate = &candidates[0];
             return Ok((
@@ -690,7 +756,7 @@ fn select(
         .iter()
         .max_by_key(|candidate| {
             (
-                ranker.score(&candidate.features),
+                ranker.score_for(&candidate.features, feature_set),
                 usize::MAX - candidate.raw_rank,
             )
         })
@@ -698,7 +764,7 @@ fn select(
     Ok((
         memory.entries[selected.ordinal].reply.clone(),
         selected.ordinal,
-        Some(ranker.score(&selected.features)),
+        Some(ranker.score_for(&selected.features, feature_set)),
         selected.raw_numerator,
         selected.raw_denominator,
     ))
@@ -921,7 +987,8 @@ mod tests {
             reference: vec![10, 11],
             candidates: vec![candidate(2, 0, 100), candidate(1, 1, 0)],
         }];
-        let (trained, changes) = fit_weights(&memory, &groups, false);
+        let (trained, changes) =
+            fit_weights(&memory, &groups, false, PromptReplyRankFeatureSet::Combined);
         assert_eq!(changes, 0);
         assert!(trained.weights[1] < 0);
         let selected = shuffled_positive_indices(0, 16, 3);
@@ -940,6 +1007,8 @@ mod tests {
         }];
         let memory = memory(entries);
         let training = PromptReplyRankTraining {
+            lexical: PromptReplyRanker::zero(),
+            shuffled_lexical: PromptReplyRanker::zero(),
             trained: PromptReplyRanker::zero(),
             shuffled: PromptReplyRanker::zero(),
             rows: 1,
@@ -960,5 +1029,21 @@ mod tests {
         )
         .unwrap();
         assert_eq!(selected.0, [10, 11]);
+    }
+
+    #[test]
+    fn lexical_scoring_ignores_the_writer_feature() {
+        let mut ranker = PromptReplyRanker::zero();
+        ranker.weights[PROMPT_REPLY_RANK_WRITER_FEATURE] = 128;
+        let mut features = [0; PROMPT_REPLY_RANK_FEATURES];
+        features[PROMPT_REPLY_RANK_WRITER_FEATURE] = 100;
+        assert_eq!(
+            ranker.score_for(&features, PromptReplyRankFeatureSet::Combined),
+            12_800
+        );
+        assert_eq!(
+            ranker.score_for(&features, PromptReplyRankFeatureSet::Lexical),
+            0
+        );
     }
 }

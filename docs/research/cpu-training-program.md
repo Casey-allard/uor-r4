@@ -223,6 +223,16 @@ artifact-independent lexical features separate from artifact-bound geometric
 features. See
 [deepseek-213](../loop/tasks/cpu-training-pilot/deepseek-213/REPORT.md).
 
+The follow-up isolated artifact-independent lexical features by zeroing the
+writer-distance feature. Lexical weights and decisions became identical across
+the two artifacts, but raw Jaccard still selected more exact replies and body
+tokens: **34/766 → 23/422** on both. The combined weights continued to split
+(**19/301** versus **48/880**). This is a **REJECT** for the fixed lexical
+linear score. The next answer-selection test needs a sequence-compatibility or
+geometric-continuation signal, not another weighting of the same summary
+features. See
+[deepseek-215](../loop/tasks/cpu-training-pilot/deepseek-215/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

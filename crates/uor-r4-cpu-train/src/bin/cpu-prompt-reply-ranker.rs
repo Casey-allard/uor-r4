@@ -116,12 +116,36 @@ fn run() -> Result<(), String> {
     let learned = outputs
         .get("learned_ranker")
         .ok_or_else(|| "learned output is missing".to_owned())?;
+    let lexical = outputs
+        .get("learned_lexical")
+        .ok_or_else(|| "lexical output is missing".to_owned())?;
     let raw = outputs
         .get("raw_unigram_jaccard")
         .ok_or_else(|| "raw output is missing".to_owned())?;
     let shuffled = outputs
         .get("shuffled_ranker")
         .ok_or_else(|| "shuffled output is missing".to_owned())?;
+    let shuffled_lexical = outputs
+        .get("shuffled_lexical")
+        .ok_or_else(|| "shuffled lexical output is missing".to_owned())?;
+    let lexical_vs_raw_exact = compare_prompt_reply_rank_rows(
+        &lexical.rows,
+        &raw.rows,
+        uor_r4_cpu_train::CopyKeyReplyMetric::ExactReference,
+    )
+    .map_err(|error| error.to_string())?;
+    let lexical_vs_raw_body = compare_prompt_reply_rank_rows(
+        &lexical.rows,
+        &raw.rows,
+        uor_r4_cpu_train::CopyKeyReplyMetric::CorrectBodyPositions,
+    )
+    .map_err(|error| error.to_string())?;
+    let lexical_vs_shuffled = compare_prompt_reply_rank_rows(
+        &lexical.rows,
+        &shuffled_lexical.rows,
+        uor_r4_cpu_train::CopyKeyReplyMetric::ExactReference,
+    )
+    .map_err(|error| error.to_string())?;
     let exact_vs_raw = compare_prompt_reply_rank_rows(
         &learned.rows,
         &raw.rows,
@@ -157,6 +181,9 @@ fn run() -> Result<(), String> {
         "training": training,
         "arms": outputs,
         "comparisons": {
+            "lexical_vs_raw_exact": lexical_vs_raw_exact,
+            "lexical_vs_raw_body": lexical_vs_raw_body,
+            "lexical_vs_shuffled_exact": lexical_vs_shuffled,
             "learned_vs_raw_exact": exact_vs_raw,
             "learned_vs_raw_body": body_vs_raw,
             "learned_vs_shuffled_exact": exact_vs_shuffled,
