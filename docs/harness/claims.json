@@ -97,13 +97,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/continuation-geometry-analysis": {
-    "branch": "deepseek/continuation-geometry-analysis",
-    "claimed_at": "2026-11-05T22:59:20-05:00",
-    "head": "77f189f58",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/continuation-horizon": {
     "branch": "deepseek/continuation-horizon",
     "claimed_at": "2026-11-04T16:35:38-05:00",
@@ -353,6 +346,13 @@
     "branch": "deepseek/point-prototypes",
     "claimed_at": "2026-11-04T06:48:33-05:00",
     "head": "6f653f2b4",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/prompt-retrieval-release": {
+    "branch": "deepseek/prompt-retrieval-release",
+    "claimed_at": "2026-11-05T23:26:54-05:00",
+    "head": "5fc76143d",
     "lab": "deepseek",
     "note": ""
   },

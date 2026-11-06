@@ -144,6 +144,14 @@ geometry-tie arm are controls, not causes of the pass.
 - final D23 wording correction left the release binary byte-identical:
   `6f9eda0b9ad014407780635ce2ae24dff409d58936d82420ce0f7228e4ae5368`.
 
+## Delivery
+
+PR #3761 merged through the protected queue as
+`5fc76143d1b96933f2e91c1094bc939896c61489`. Fresh `main` contains the reviewed
+source and evidence hashes, passes **394 library tests with 4 expected
+ignores** plus **112 binary tests**, and reproduces the sealed seed-1 report
+after removing timing and absolute path fields.
+
 ## Skills used
 
 No system-provided Codex skill applied. Repository D22/D67, D84 CPU research,
