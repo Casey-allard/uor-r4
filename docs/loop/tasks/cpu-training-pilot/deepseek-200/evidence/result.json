@@ -1,0 +1,177 @@
+{
+  "schema": "uor-r4.cpu-full-sequence-boundary-summary/1",
+  "outcome": "CONTROL_FAULT",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "reason": "full-history and reply-only boundaries made identical observable stop decisions on both fresh artifacts",
+  "implementation_head": "89ed3d2138143f520ddc22e80c871e5d7f522484",
+  "review_head": "ce180de32b45c561a70814bdaead47aeefb227c5",
+  "inputs": {
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "panel_tokens_sha256": "63b6163e84d5f10a1d87e2c2c38c9038c42548b61e5a55ea36d687c583272501",
+    "panel_mask_sha256": "bdd2ae86fc1e7279c29145e4d5d8b83925f83265cd55308dc8b3ae1993082f08",
+    "panel_manifest_sha256": "39762c8fe2fa09581a239a0e0d497c02674e3b168107db281ea7f7d361ba0d9c",
+    "artifact_seed_1_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "artifact_seed_2_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+  },
+  "panel": {
+    "seed": 2775,
+    "cell": [
+      "dev",
+      "dev"
+    ],
+    "protocol": 2,
+    "conversations": 128,
+    "reachable_per_artifact": 461
+  },
+  "tables": {
+    "content": {
+      "suffixes": 76157,
+      "transitions": 114556,
+      "bos_transitions": 0,
+      "ambiguous_suffixes": 1848
+    },
+    "full_boundary": {
+      "suffixes": 76169,
+      "terminal_occurrences": 11083,
+      "nonterminal_occurrences": 93080,
+      "terminal_only_suffixes": 8231,
+      "ambiguous_suffixes": 1
+    },
+    "shuffled_boundary": {
+      "suffixes": 76169,
+      "terminal_occurrences": 11083,
+      "nonterminal_occurrences": 93080,
+      "terminal_only_suffixes": 1137,
+      "ambiguous_suffixes": 9180
+    },
+    "changed_boundary_terminals": 16470
+  },
+  "seed_1": {
+    "control_non_vacuous": false,
+    "observable_stop_changes_vs_reply": 0,
+    "observable_stop_changes_vs_shuffled": 179,
+    "treatment": {
+      "exact": 15,
+      "bos": 185,
+      "premature": 66,
+      "opening": 69,
+      "body": 662,
+      "generated_tokens": 19584,
+      "global_decisions": 1931,
+      "local_decisions": 17413,
+      "writer_decisions": 240
+    },
+    "reply_boundary": {
+      "exact": 15,
+      "bos": 185,
+      "premature": 66,
+      "opening": 69,
+      "body": 662,
+      "generated_tokens": 19584
+    },
+    "shuffled_full": {
+      "exact": 0,
+      "bos": 9,
+      "premature": 4,
+      "opening": 69,
+      "body": 662,
+      "generated_tokens": 29072
+    },
+    "content_no_boundary": {
+      "exact": 0,
+      "bos": 0,
+      "premature": 0,
+      "opening": 69,
+      "body": 662,
+      "generated_tokens": 29504
+    },
+    "content_oracle": {
+      "exact": 25,
+      "bos": 461,
+      "body": 662,
+      "generated_tokens": 4549
+    }
+  },
+  "seed_2": {
+    "control_non_vacuous": false,
+    "observable_stop_changes_vs_reply": 0,
+    "observable_stop_changes_vs_shuffled": 225,
+    "treatment": {
+      "exact": 15,
+      "bos": 225,
+      "premature": 94,
+      "opening": 69,
+      "body": 656,
+      "generated_tokens": 17459,
+      "global_decisions": 2179,
+      "local_decisions": 15121,
+      "writer_decisions": 159
+    },
+    "reply_boundary": {
+      "exact": 15,
+      "bos": 225,
+      "premature": 94,
+      "opening": 69,
+      "body": 656,
+      "generated_tokens": 17459
+    },
+    "shuffled_full": {
+      "exact": 0,
+      "bos": 3,
+      "premature": 0,
+      "opening": 69,
+      "body": 656,
+      "generated_tokens": 29408
+    },
+    "content_no_boundary": {
+      "exact": 0,
+      "bos": 0,
+      "premature": 0,
+      "opening": 69,
+      "body": 656,
+      "generated_tokens": 29504
+    },
+    "content_oracle": {
+      "exact": 25,
+      "bos": 461,
+      "body": 656,
+      "generated_tokens": 4549
+    }
+  },
+  "resources": {
+    "build_wall_seconds": 22.50,
+    "generator_build_wall_seconds": 10.71,
+    "train_preflight_wall_seconds": 3.45,
+    "panel_wall_seconds": 0.63,
+    "seed_1_wall_seconds": 3.67,
+    "seed_2_wall_seconds": 3.66,
+    "peak_rss_kib": 1253812,
+    "retained_bytes": 5268949,
+    "repeats": "not run: the per-artifact control gate stopped the registered sequence"
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/full-sequence-boundary/2026-11-05-attempt-2",
+    "sha256sums_sha256": "310dca229a6889c4a4e228a7fd0dad60ce919589a25c89ff9b995685ba6fafe5",
+    "preflight_gzip_sha256": "e428f6dcf52daf33406589a1d006fa3b2ce00f033f1c989ee72f025f09b9fccf",
+    "seed_1_gzip_sha256": "5e539f2b5eab449489ac72dd96453713253886e15659145df173b3f68518a6ea",
+    "seed_2_gzip_sha256": "79d42ae27edbd12ca7c7506c7742063df442c55a8dca7d0cbf9c74f52a29a41e"
+  },
+  "attempt_1": {
+    "outcome": "CONTROL_FAULT",
+    "reason": "TRAIN preflight required full-vs-reply change on exact replay",
+    "full_boundary_stops": 241,
+    "observable_stop_changes_vs_reply": 0,
+    "observable_stop_changes_vs_shuffled": 226,
+    "panel_opened": false,
+    "sha256sums_sha256": "9a01e2e30db0c4f21b47ef6f6e06e7bd9725925bff7898112be494b074710292"
+  },
+  "attempt_2_invocation_fault": {
+    "reason": "shell wrapper attempted to execute run_limited through /usr/bin/time",
+    "panel_opened": false,
+    "sha256sums_sha256": "b4a9e236e87f26d2b5ee2bf196f788259f13661fe319f42bf5491d8bc8f89674"
+  }
+}

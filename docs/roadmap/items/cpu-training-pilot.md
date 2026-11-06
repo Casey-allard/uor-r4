@@ -665,6 +665,19 @@ and depth arbiter should be retained; the next unit must retrain or re-key
 termination on the same memory trajectory. See
 [deepseek-198](../../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
 
+The follow-up re-keyed stopping over the complete prompt-plus-reply history
+while holding that content selector fixed. On fresh seed 2775 and both
+artifacts, the full-history and reply-only boundaries made **0** different
+observable stop decisions. Both produced **15/15** exact replies and
+**66/66** / **94/94** premature stops; body positions matched at
+**662/662** and **656/656**. The full boundary differed from shuffled at
+**179/225** positions, so its terminal signal was active. The registered
+per-artifact gate returned **CONTROL_FAULT** and stopped before repeats.
+Full-history suffix keying is closed as a termination repair; the next endpoint
+must change the continuation objective or bind stopping to the selected
+content source. See
+[deepseek-200](../../loop/tasks/cpu-training-pilot/deepseek-200/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

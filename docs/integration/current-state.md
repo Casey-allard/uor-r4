@@ -17,6 +17,24 @@ arbitration is worth preserving, but termination must be trained or keyed on
 the same changed trajectory. Record:
 [deepseek-198](../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
 
+## 2026-11-05 — Full-history boundary does not change stop positions (deepseek)
+
+The next unit held the successful full-sequence content selector fixed and
+replaced its reply-only stopping table with terminal/nonterminal suffixes over
+the complete prompt-plus-reply history. On fresh seed 2775 and both artifacts,
+the full-history and reply-only boundaries stopped at **0** different
+observable positions. Both produced **15/15** exact replies and
+**66/66** / **94/94** premature stops; body positions also matched at
+**662/662** and **656/656**. The full boundary differed from shuffled at
+**179/225** positions, so the terminal signal was active, but changing the key
+surface did not change termination.
+
+This is a **CONTROL_FAULT**, not a geometric-termination negative. The positive
+content result remains, while this full-history suffix table is closed as a
+stopping repair. The next endpoint design must change the continuation
+objective or bind termination to the selected content source. Record:
+[deepseek-200](../loop/tasks/cpu-training-pilot/deepseek-200/REPORT.md).
+
 ## 2026-11-05 — Strict local priority makes content-suffix fallback unreachable (deepseek)
 
 The global suffix table was rebuilt without BOS targets and used only when

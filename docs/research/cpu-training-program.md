@@ -137,6 +137,19 @@ full-sequence content and depth arbiter, and next align stopping to the same
 trajectory. See
 [deepseek-198](../loop/tasks/cpu-training-pilot/deepseek-198/REPORT.md).
 
+The next unit re-keyed that stopping table over the complete prompt-plus-reply
+history while holding the content selector fixed. On fresh seed 2775, the
+full-history and reply-only boundaries stopped at **0** different observable
+positions on both artifacts. Both produced **15/15** exact replies and
+**66/66** / **94/94** premature stops; body positions matched at **662/662**
+and **656/656**. Full-versus-shuffled stopping changed **179/225** positions,
+so the terminal table was active. The registered per-artifact gate returned
+**CONTROL_FAULT** and stopped before repeats. This closes full-history suffix
+keying as the termination repair, not geometric termination generally; the
+next endpoint must change the continuation objective or bind stopping to the
+selected content source. See
+[deepseek-200](../loop/tasks/cpu-training-pilot/deepseek-200/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

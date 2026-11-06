@@ -44,6 +44,10 @@ name = "cpu-copy-suffix-arbitration"
 path = "src/bin/cpu-copy-suffix-arbitration.rs"
 
 [[bin]]
+name = "cpu-copy-full-boundary"
+path = "src/bin/cpu-copy-full-boundary.rs"
+
+[[bin]]
 name = "cpu-rank-margin-bench"
 path = "src/bin/cpu-rank-margin-bench.rs"
 

@@ -17,6 +17,7 @@ mod corpus;
 mod counterfactual;
 mod discrete_route;
 mod fbs;
+mod full_sequence_boundary;
 mod gain_train;
 mod geometric_candidate_anchor;
 mod geometric_candidate_rank;
@@ -97,6 +98,14 @@ pub use discrete_route::{
 pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterPortAnchorAudit,
     WriterPortMismatch, WriterTokenDiagnostic, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
+};
+pub use full_sequence_boundary::{
+    compare_full_boundary_rows, derive_full_sequence_boundary, evaluate_full_boundary_replies,
+    full_boundary_changes, full_boundary_stop_changes, generate_full_boundary_reply,
+    shuffle_full_boundary, FullBoundaryArm, FullBoundaryCensus, FullBoundaryChanges,
+    FullBoundaryCounts, FullBoundaryReading, FullBoundaryStep, FullBoundaryStop,
+    FullSequenceBoundaryMemory, TimedFullBoundaryReading, FULL_BOUNDARY_MAX_DEPTH,
+    FULL_BOUNDARY_MIN_DEPTH, FULL_BOUNDARY_MIN_OBSERVATIONS,
 };
 pub use gain_train::{
     anchor_writer_ports, evaluate_termination_gain_samples, random_gain_control,
