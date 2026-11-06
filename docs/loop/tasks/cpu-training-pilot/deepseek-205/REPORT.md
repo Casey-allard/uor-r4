@@ -37,7 +37,7 @@ recorded the protected merge and fresh-main verification.
 - no serving, CUDA, float-training, exporter or Claude-owned source changed.
 
 The `deepseek/continuation-geometry-analysis` claim is removed in this unit.
-The separate release claim remains only while this PR is open.
+The separate release claim was removed by deepseek-206 after this PR merged.
 
 ## Checks run at the head
 
