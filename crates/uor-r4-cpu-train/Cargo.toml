@@ -11,6 +11,7 @@ blake3 = "1.5"
 rayon = "1.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10"
 uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-discrete = { path = "../uor-r4-discrete" }
 uor-r4-integer = { path = "../uor-r4-integer", features = ["fbs-synthetic", "serving-wasm"] }
@@ -139,3 +140,11 @@ path = "src/bin/cpu-copy-generated-stop.rs"
 [[bin]]
 name = "cpu-readout-refit"
 path = "src/bin/cpu-readout-refit.rs"
+
+[[bin]]
+name = "cpu-query-cache-evaluate"
+path = "src/bin/cpu-query-cache-evaluate.rs"
+
+[[bin]]
+name = "cpu-query-cache-aggregate"
+path = "src/bin/cpu-query-cache-aggregate.rs"

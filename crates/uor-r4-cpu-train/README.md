@@ -77,6 +77,18 @@ readouts over generated trajectories. Besides the comparison arms, it emits
 decision-for-decision against `IntegerStackModel::serve_step` carrying that
 sidecar. Sidecar parity is a serving-integrity result, not a language result.
 
+`cpu-query-cache-evaluate` verifies a sealed `uor-r4.fbs-query-cache/1`,
+checks every split, checkpoint and run-config hash, validates every query on
+the Q12 grid, streams TRAIN queries into candidate and matched-label output
+tables, and evaluates the original, centroid and control over panel rows. The
+binary hard-codes the registered n3S inputs, fitted-row/observation floor,
+split inventory and pooled row identity; it has no diagnostic override path. It
+emits the pooled paired bar in Rust. The query forward remains GPU research;
+this CPU binary starts from its captured Q12 evidence.
+`cpu-query-cache-aggregate` requires one seed-1 and one seed-2 report, rebuilds the
+pooled counts and paired tests from their raw fields, and applies control-fault,
+power and two-seed keep/reject precedence.
+
 ## Checks
 
 ```sh
@@ -92,6 +104,7 @@ cargo run --release -p uor-r4-cpu-train --bin cpu-public-fbs-parity -- <public-f
 cargo run --release -p uor-r4-cpu-train --bin cpu-served-forward-audit -- --artifact <fbs-artifact> --tokens 0,7,11 --no-timing
 cargo run --release -p uor-r4-cpu-train --bin cpu-corpus-driver -- <artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
 cargo run --release -p uor-r4-cpu-train --bin cpu-discrete-corpus-driver -- <four-table-artifact> <tokens.u16> <mask.u8> <manifest.json> <seed> <steps> <evaluation-stride> <max-evaluation> <checkpoint-every> <checkpoint-dir> [resume-checkpoint]
+cargo run --release -p uor-r4-cpu-train --bin cpu-query-cache-evaluate -- CACHE --seed 1 --train train --panel oasst2 --panel wiki-00000 --panel wiki-00020 --panel wiki-00040 --memory 0 --expect-train-tokens ed8f25374e99bd65cd509b5cfcdffb6a8476401a973ea02aaaaa0ea76e35ee52 --expect-train-mask ec6e520c7a67aaf6efc7aaf42bf7513b3e697239fb18b73a1e89f130eacd4875 --expect-rows 1460697 --expect-identity 5f88a5b3295ba5d684a8c75206787642fd65a2377d2dbb268992ec5c71a621eb --checkpoint-root "$CHECKPOINT" --out centroid.json
 ```
 
 The forward benchmark prints read-free, copy-only, copy-plus-type and full Hamming-plus-memory cases with hashes and process peak RSS. Its readings are component throughput, not training or language evidence.

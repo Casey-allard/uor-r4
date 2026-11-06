@@ -52,9 +52,13 @@ fn run() -> Result<(), String> {
     for arm in SuffixArbitrationArm::EVALUATION_ARMS {
         let table = match arm {
             SuffixArbitrationArm::DeeperFullSequence32
+            | SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded
             | SuffixArbitrationArm::ShallowLocalGlobal4
             | SuffixArbitrationArm::FullSequence32Only => Some(&suffix),
-            SuffixArbitrationArm::DeeperFullSequenceShuffled => Some(&shuffled),
+            SuffixArbitrationArm::DeeperFullSequenceShuffled
+            | SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded => {
+                Some(&shuffled)
+            }
             SuffixArbitrationArm::LocalLongest32Boundary
             | SuffixArbitrationArm::WriterBoundary
             | SuffixArbitrationArm::ReferenceLengthOracle => None,
