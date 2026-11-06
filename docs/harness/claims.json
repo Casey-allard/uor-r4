@@ -349,6 +349,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/prefix-length": {
+    "branch": "deepseek/prefix-length",
+    "claimed_at": "2026-11-06T03:15:00-05:00",
+    "head": "86996114f",
+    "lab": "deepseek",
+    "note": "retrieved-prefix continuation with neighbor-length termination"
+  },
   "deepseek/public-chat-baseline": {
     "branch": "deepseek/public-chat-baseline",
     "claimed_at": "2026-11-02T14:45:17-05:00",

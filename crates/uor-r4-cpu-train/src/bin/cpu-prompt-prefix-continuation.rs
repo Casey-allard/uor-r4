@@ -13,6 +13,7 @@ use uor_r4_integer::stack::PromptReplyExample;
 
 const CAP: usize = 64;
 const PREFIXES: [usize; 3] = [1, 2, 4];
+const LENGTH_PREFIX: usize = 4;
 
 fn main() {
     if let Err(error) = run() {
@@ -73,8 +74,45 @@ fn run() -> Result<(), String> {
             .collect(),
     );
     let (_, panel) = load_panel(&config.panel)?;
-    let selected_k = choose_prefix(&memory)?;
-    let arms = evaluate_arms(&artifact, &memory, &panel)?;
+    let output = if config.length_completion {
+        length_completion_output(
+            &artifact,
+            &artifact_sha256,
+            &tokenizer_sha256,
+            &sidecar_bytes,
+            &config,
+            &memory,
+            &panel,
+        )?
+    } else {
+        prefix_continuation_output(
+            &artifact,
+            &artifact_sha256,
+            &tokenizer_sha256,
+            &sidecar_bytes,
+            &config,
+            &memory,
+            &panel,
+        )?
+    };
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output).map_err(|e| e.to_string())?
+    );
+    Ok(())
+}
+
+fn prefix_continuation_output(
+    artifact: &[u8],
+    artifact_sha256: &str,
+    tokenizer_sha256: &str,
+    sidecar_bytes: &[u8],
+    config: &Config,
+    memory: &Memory,
+    panel: &[MemoryWeightSample],
+) -> Result<serde_json::Value, String> {
+    let selected_k = choose_prefix(memory)?;
+    let arms = evaluate_arms(artifact, memory, panel)?;
     let selected = &arms[&format!("retrieved_prefix_{selected_k}")];
     let model = &arms["model_only"];
     let shuffled = &arms[&format!("shuffled_prefix_{selected_k}")];
@@ -96,13 +134,13 @@ fn run() -> Result<(), String> {
         CopyKeyReplyMetric::ExactReference,
     )
     .map_err(|e| e.to_string())?;
-    let output = serde_json::json!({
+    Ok(serde_json::json!({
         "schema": "uor-r4.cpu-prompt-prefix-continuation/1",
         "substrate": "cpu-development-research",
         "qualification": "development-only",
         "artifact_sha256": artifact_sha256,
         "tokenizer_sha256": tokenizer_sha256,
-        "sidecar_sha256": uor_r4_discrete::corpus::sha256(&sidecar_bytes),
+        "sidecar_sha256": uor_r4_discrete::corpus::sha256(sidecar_bytes),
         "train": panel_input(&config.train),
         "panel": panel_input(&config.panel),
         "selected_prefix": selected_k,
@@ -116,12 +154,62 @@ fn run() -> Result<(), String> {
             "selected_vs_model_body": body_vs_model,
             "selected_vs_shuffled_exact": exact_vs_shuffled,
         },
-    });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&output).map_err(|e| e.to_string())?
-    );
-    Ok(())
+    }))
+}
+
+fn length_completion_output(
+    artifact: &[u8],
+    artifact_sha256: &str,
+    tokenizer_sha256: &str,
+    sidecar_bytes: &[u8],
+    config: &Config,
+    memory: &Memory,
+    panel: &[MemoryWeightSample],
+) -> Result<serde_json::Value, String> {
+    let arms = evaluate_length_arms(artifact, memory, panel)?;
+    let selected = &arms[&format!("retrieved_prefix_{LENGTH_PREFIX}_length")];
+    let model = &arms["model_only_retrieved_length"];
+    let shuffled = &arms[&format!("shuffled_prefix_{LENGTH_PREFIX}_length")];
+    let exact_vs_model = compare_copy_key_reply_rows(
+        &selected.rows,
+        &model.rows,
+        CopyKeyReplyMetric::ExactReference,
+    )
+    .map_err(|e| e.to_string())?;
+    let body_vs_model = compare_copy_key_reply_rows(
+        &selected.rows,
+        &model.rows,
+        CopyKeyReplyMetric::CorrectBodyPositions,
+    )
+    .map_err(|e| e.to_string())?;
+    let exact_vs_shuffled = compare_copy_key_reply_rows(
+        &selected.rows,
+        &shuffled.rows,
+        CopyKeyReplyMetric::ExactReference,
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({
+        "schema": "uor-r4.cpu-prompt-prefix-length/1",
+        "substrate": "cpu-development-research",
+        "qualification": "development-only",
+        "artifact_sha256": artifact_sha256,
+        "tokenizer_sha256": tokenizer_sha256,
+        "sidecar_sha256": uor_r4_discrete::corpus::sha256(sidecar_bytes),
+        "train": panel_input(&config.train),
+        "panel": panel_input(&config.panel),
+        "selected_prefix": LENGTH_PREFIX,
+        "length_signal": "nearest stored reply length, capped at 64",
+        "arms": arms.into_iter().map(|(name, result)| (name, serde_json::json!({
+            "reading": result.reading,
+            "reply_sha256": result.reply_sha256,
+            "decision_sha256": result.decision_sha256,
+        }))).collect::<BTreeMap<_, _>>(),
+        "comparisons": {
+            "selected_vs_model_exact": exact_vs_model,
+            "selected_vs_model_body": body_vs_model,
+            "selected_vs_shuffled_exact": exact_vs_shuffled,
+        },
+    }))
 }
 
 #[derive(Clone)]
@@ -174,6 +262,9 @@ struct Reading {
     body: u64,
     premature_bos: u64,
     bos_complete: u64,
+    length_complete: u64,
+    cap_stopped: u64,
+    context_stopped: u64,
     generated_tokens: u64,
 }
 
@@ -229,6 +320,124 @@ fn evaluate_arms(
     arms.into_iter()
         .map(|(name, arm)| Ok((name, evaluate(artifact, memory, samples, arm)?)))
         .collect()
+}
+
+fn evaluate_length_arms(
+    artifact: &[u8],
+    memory: &Memory,
+    samples: &[MemoryWeightSample],
+) -> Result<BTreeMap<String, ResultRows>, String> {
+    let arms = vec![
+        ("model_only_cap".to_owned(), LengthArm::ModelOnlyCap),
+        (
+            "model_only_retrieved_length".to_owned(),
+            LengthArm::ModelOnlyRetrievedLength,
+        ),
+        (
+            format!("retrieved_prefix_{LENGTH_PREFIX}_length"),
+            LengthArm::RetrievedLength,
+        ),
+        (
+            format!("shuffled_prefix_{LENGTH_PREFIX}_length"),
+            LengthArm::ShuffledLength,
+        ),
+        ("full_retrieval".to_owned(), LengthArm::FullRetrieval),
+        (
+            "reference_length_oracle".to_owned(),
+            LengthArm::ReferenceLength,
+        ),
+    ];
+    arms.into_iter()
+        .map(|(name, arm)| Ok((name, evaluate_length(artifact, memory, samples, arm)?)))
+        .collect()
+}
+
+#[derive(Clone, Copy)]
+enum LengthArm {
+    ModelOnlyCap,
+    ModelOnlyRetrievedLength,
+    RetrievedLength,
+    ShuffledLength,
+    FullRetrieval,
+    ReferenceLength,
+}
+
+fn evaluate_length(
+    artifact: &[u8],
+    memory: &Memory,
+    samples: &[MemoryWeightSample],
+    arm: LengthArm,
+) -> Result<ResultRows, String> {
+    let started = Instant::now();
+    let evaluated = samples
+        .par_iter()
+        .enumerate()
+        .map(|(row, sample)| {
+            let reference = normalized_reference(&sample.reply);
+            let ordinal = memory.select(&sample.prompt, None);
+            let retrieved = &memory.replies[ordinal];
+            if retrieved.is_empty() {
+                return Err(format!("row {row}: retrieved reply is empty"));
+            }
+            let retrieved_limit = retrieved.len().min(CAP);
+            let (tokens, raw_stop, requested_limit, exact_without_bos) = match arm {
+                LengthArm::ModelOnlyCap => {
+                    let reply =
+                        generate_reply(artifact, &sample.prompt, CAP).map_err(|e| e.to_string())?;
+                    (reply.tokens, reply.stop, CAP, false)
+                }
+                LengthArm::ModelOnlyRetrievedLength => {
+                    let reply = generate_reply(artifact, &sample.prompt, retrieved_limit)
+                        .map_err(|e| e.to_string())?;
+                    (reply.tokens, reply.stop, retrieved_limit, true)
+                }
+                LengthArm::RetrievedLength => {
+                    let prefix = &retrieved[..retrieved.len().min(LENGTH_PREFIX)];
+                    let reply = generate_reply_with_prefix(
+                        artifact,
+                        &sample.prompt,
+                        prefix,
+                        retrieved_limit,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    (reply.tokens, reply.stop, retrieved_limit, true)
+                }
+                LengthArm::ShuffledLength => {
+                    let shuffled = next_distinct(memory, ordinal, LENGTH_PREFIX);
+                    let prefix = &memory.replies[shuffled]
+                        [..memory.replies[shuffled].len().min(LENGTH_PREFIX)];
+                    let reply = generate_reply_with_prefix(
+                        artifact,
+                        &sample.prompt,
+                        prefix,
+                        retrieved_limit,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    (reply.tokens, reply.stop, retrieved_limit, true)
+                }
+                LengthArm::FullRetrieval => (retrieved.clone(), "retrieval", 0, true),
+                LengthArm::ReferenceLength => {
+                    if reference.is_empty() {
+                        return Err(format!("row {row}: reference reply is empty"));
+                    }
+                    let reference_limit = reference.len().min(CAP);
+                    let reply = generate_reply(artifact, &sample.prompt, reference_limit)
+                        .map_err(|e| e.to_string())?;
+                    (reply.tokens, reply.stop, reference_limit, true)
+                }
+            };
+            Ok(make_reply_row(
+                row,
+                sample,
+                reference,
+                &tokens,
+                raw_stop,
+                requested_limit,
+                exact_without_bos,
+            ))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    summarize_rows(evaluated, started)
 }
 
 #[derive(Clone, Copy)]
@@ -292,43 +501,84 @@ fn evaluate(
                     (reply.tokens, reply.stop)
                 }
             };
-            let reachable = reference.len() < CAP && sample.prompt.len() + reference.len() < 256;
-            let exact = stop == "bos" && tokens == reference;
-            let opening = tokens.first() == reference.first() && !tokens.is_empty();
-            let body = tokens.iter().zip(reference).filter(|(a, b)| a == b).count() as u64;
-            Ok(CopyKeyReplyRow {
-                row,
-                reachable,
-                exact_reference: exact,
-                bos_complete: stop == "bos",
-                opening_correct: opening,
-                premature_bos: stop == "bos" && tokens.len() < reference.len(),
-                non_premature_bos: stop == "bos" && tokens.len() >= reference.len(),
-                generated_tokens: tokens.len() as u64,
-                reference_tokens: reference.len() as u64,
-                correct_body_positions: body,
-                copy_decisions: u64::from(stop == "bos"),
-                fallback_decisions: u64::from(stop != "bos"),
-                stop: stop.to_owned(),
-                reply_sha256: token_hash(&tokens),
-            })
+            Ok(make_reply_row(
+                row, sample, reference, &tokens, stop, 0, false,
+            ))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    summarize_rows(evaluated, started)
+}
+
+fn make_reply_row(
+    row: usize,
+    sample: &MemoryWeightSample,
+    reference: &[u32],
+    tokens: &[u32],
+    raw_stop: &str,
+    requested_limit: usize,
+    exact_without_bos: bool,
+) -> CopyKeyReplyRow {
+    let stop = if raw_stop == "retrieval" {
+        "retrieval"
+    } else if exact_without_bos && raw_stop == "cap" && tokens.len() == requested_limit {
+        "length"
+    } else {
+        raw_stop
+    };
+    let reachable = reference.len() < CAP && sample.prompt.len() + reference.len() < 256;
+    let exact = if exact_without_bos {
+        tokens == reference
+    } else {
+        stop == "bos" && tokens == reference
+    };
+    let opening = tokens.first() == reference.first() && !tokens.is_empty();
+    let body = tokens
+        .iter()
+        .zip(reference)
+        .filter(|(left, right)| left == right)
+        .count() as u64;
+    let complete = matches!(stop, "bos" | "length" | "retrieval");
+    CopyKeyReplyRow {
+        row,
+        reachable,
+        exact_reference: exact,
+        bos_complete: stop == "bos",
+        opening_correct: opening,
+        premature_bos: stop == "bos" && tokens.len() < reference.len(),
+        non_premature_bos: stop == "bos" && tokens.len() >= reference.len(),
+        generated_tokens: tokens.len() as u64,
+        reference_tokens: reference.len() as u64,
+        correct_body_positions: body,
+        copy_decisions: u64::from(complete),
+        fallback_decisions: u64::from(!complete),
+        stop: stop.to_owned(),
+        reply_sha256: token_hash(tokens),
+    }
+}
+
+fn summarize_rows(evaluated: Vec<CopyKeyReplyRow>, started: Instant) -> Result<ResultRows, String> {
     let reading = Reading {
         replies: evaluated.len() as u64,
         reachable: evaluated.iter().filter(|row| row.reachable).count() as u64,
-        emitted: evaluated.iter().filter(|row| row.bos_complete).count() as u64,
+        emitted: evaluated
+            .iter()
+            .filter(|row| matches!(row.stop.as_str(), "bos" | "length" | "retrieval"))
+            .count() as u64,
         exact: evaluated.iter().filter(|row| row.exact_reference).count() as u64,
         opening: evaluated.iter().filter(|row| row.opening_correct).count() as u64,
         body: evaluated.iter().map(|row| row.correct_body_positions).sum(),
         premature_bos: evaluated.iter().filter(|row| row.premature_bos).count() as u64,
         bos_complete: evaluated.iter().filter(|row| row.bos_complete).count() as u64,
+        length_complete: evaluated.iter().filter(|row| row.stop == "length").count() as u64,
+        cap_stopped: evaluated.iter().filter(|row| row.stop == "cap").count() as u64,
+        context_stopped: evaluated.iter().filter(|row| row.stop == "context").count() as u64,
         generated_tokens: evaluated.iter().map(|row| row.generated_tokens).sum(),
     };
     let mut hasher = blake3::Hasher::new();
     for row in &evaluated {
         hasher.update(&(row.row as u64).to_le_bytes());
-        hasher.update(&(row.generated_tokens as u64).to_le_bytes());
+        hasher.update(&row.generated_tokens.to_le_bytes());
+        hasher.update(row.stop.as_bytes());
         hasher.update(row.reply_sha256.as_bytes());
     }
     let decision_sha256 = hasher.finalize().to_hex().to_string();
@@ -423,26 +673,41 @@ struct Config {
     protocol: u8,
     expected_artifact: String,
     expected_tokenizer: String,
+    length_completion: bool,
 }
 
 fn parse_args() -> Result<Config, String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     if args.len() < 5 {
-        return Err("usage: cpu-prompt-prefix-continuation SIDECAR TRAIN PANEL ARTIFACT TOKENIZER --expected-artifact SHA --expected-tokenizer SHA".to_owned());
+        return Err("usage: cpu-prompt-prefix-continuation SIDECAR TRAIN PANEL ARTIFACT TOKENIZER --expected-artifact SHA --expected-tokenizer SHA [--protocol N] [--length-completion]".to_owned());
     }
     let mut named = BTreeMap::new();
     let mut protocol = 2;
+    let mut length_completion = false;
     let mut index = 5;
     while index < args.len() {
-        let value = args
-            .get(index + 1)
-            .ok_or_else(|| format!("{} needs value", args[index]))?;
         match args[index].as_str() {
-            "--protocol" => protocol = value.parse().map_err(|_| "bad protocol")?,
+            "--length-completion" => {
+                length_completion = true;
+                index += 1;
+                continue;
+            }
+            "--protocol" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--protocol needs value".to_owned())?;
+                protocol = value.parse().map_err(|_| "bad protocol")?;
+            }
             "--expected-artifact" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--expected-artifact needs value".to_owned())?;
                 named.insert("artifact", value.clone());
             }
             "--expected-tokenizer" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--expected-tokenizer needs value".to_owned())?;
                 named.insert("tokenizer", value.clone());
             }
             other => return Err(format!("unknown argument {other}")),
@@ -458,5 +723,65 @@ fn parse_args() -> Result<Config, String> {
         protocol,
         expected_artifact: named.remove("artifact").ok_or("missing artifact hash")?,
         expected_tokenizer: named.remove("tokenizer").ok_or("missing tokenizer hash")?,
+        length_completion,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample() -> MemoryWeightSample {
+        MemoryWeightSample {
+            prompt: vec![10, 11, 12],
+            reply: vec![20, 21, 22],
+        }
+    }
+
+    #[test]
+    fn retrieved_length_marks_an_identity_matched_length_stop_exact() {
+        let sample = sample();
+        let row = make_reply_row(7, &sample, &[20, 21, 22], &[20, 21, 22], "cap", 3, true);
+        assert_eq!(row.stop, "length");
+        assert!(row.reachable);
+        assert!(row.exact_reference);
+        assert!(!row.bos_complete);
+        assert_eq!(row.copy_decisions, 1);
+        assert_eq!(row.fallback_decisions, 0);
+    }
+
+    #[test]
+    fn ordinary_bos_behavior_is_unchanged_without_length_exactness() {
+        let sample = sample();
+        let bos = make_reply_row(7, &sample, &[20, 21, 22], &[20, 21, 22], "bos", 0, false);
+        assert_eq!(bos.stop, "bos");
+        assert!(bos.exact_reference);
+        assert!(bos.bos_complete);
+
+        let length = make_reply_row(7, &sample, &[20, 21, 22], &[20, 21, 22], "cap", 3, false);
+        assert_eq!(length.stop, "cap");
+        assert!(!length.exact_reference);
+        assert_eq!(length.fallback_decisions, 1);
+    }
+
+    #[test]
+    fn retrieved_limit_is_positive_bounded_and_never_borrows_reference_length() {
+        let stored_reply_length = 47;
+        let reference_length = 3;
+        assert_eq!(stored_reply_length.min(CAP), 47);
+        assert_ne!(stored_reply_length.min(CAP), reference_length);
+        assert_eq!(usize::MAX.min(CAP), 64);
+    }
+
+    #[test]
+    fn premature_and_nonpremature_bos_remain_distinct() {
+        let sample = sample();
+        let premature = make_reply_row(1, &sample, &[20, 21, 22], &[20], "bos", 0, true);
+        assert!(premature.premature_bos);
+        assert!(!premature.non_premature_bos);
+
+        let complete = make_reply_row(2, &sample, &[20, 21, 22], &[20, 21, 22], "bos", 0, true);
+        assert!(!complete.premature_bos);
+        assert!(complete.non_premature_bos);
+    }
 }

@@ -767,6 +767,16 @@ a **REJECT** for complete prefix continuation, with content transfer isolated
 as positive and termination as the remaining blocker. See
 [deepseek-217](../../loop/tasks/cpu-training-pilot/deepseek-217/REPORT.md).
 
+The length-termination follow-up kept the four-token retrieved opening and used
+the nearest stored reply's length as the completion budget. On fresh seed 2782
+it produced **9/459** exact replies on artifact seed 1 and **10/459** on seed
+2; model-only and shuffled-prefix length completion both stayed at **0**.
+Retrieved-prefix body positions were **452/427** against model-only
+**49/41**. Every reachable row emitted by length and none by BOS. This is a
+**KEEP** for bounded completion, while full retrieval remains stronger at
+**33/459** exact and native termination remains open. See
+[deepseek-219](../../loop/tasks/cpu-training-pilot/deepseek-219/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

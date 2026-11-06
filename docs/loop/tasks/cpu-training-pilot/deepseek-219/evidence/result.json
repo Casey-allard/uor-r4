@@ -1,0 +1,95 @@
+{
+  "schema": "uor-r4.cpu-prompt-prefix-length-summary/1",
+  "outcome": "KEEP",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "base": "86996114f121db151cd84534581eb84059ddbfec",
+  "implementation_head": "f5cb4f7a98a8e1a08e3d33e9dd04642442f8d9a1",
+  "registration_head": "a5cff02f8",
+  "selected_prefix": 4,
+  "inputs": {
+    "train_tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91",
+    "train_mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+    "train_manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+    "artifact_seed_1_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+    "artifact_seed_2_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "sidecar_seed_1_sha256": "2a298b44ea34d1a8e2d40191951d3da9b3300e2ac7de65e6c2ec13950a0b6424",
+    "sidecar_seed_2_sha256": "6504dcb047ce7157dd5e968c29441505cf48d993f01ec63222125634c61963b7"
+  },
+  "panel": {
+    "seed": 2782,
+    "cell": ["dev", "dev"],
+    "protocol": 2,
+    "conversations": 128,
+    "tokens": 15786,
+    "reference_reachable_per_artifact": 459,
+    "tokens_sha256": "e9c8c4fd074e92960883e442ca97911d46d985145a170e86d15fa220943ae3ff",
+    "mask_sha256": "91212bde0f1a825389e7cc6500dbf8e159c2c971d4ff02c661d5dff49ac047e6",
+    "manifest_sha256": "e34af1d20ca48075dda43965a7283fbbff4e507a11581adb21d8b79a18fffa5e"
+  },
+  "arms": {
+    "seed_1": {
+      "model_only_cap": {"exact": 0, "opening": 0, "body": 70, "emitted": 0, "cap_stopped": 459},
+      "model_only_retrieved_length": {"exact": 0, "opening": 0, "body": 49, "emitted": 459, "length_stopped": 459},
+      "retrieved_prefix_4_length": {"exact": 9, "opening": 106, "body": 452, "emitted": 459, "length_stopped": 459, "bos_complete": 0},
+      "shuffled_prefix_4_length": {"exact": 0, "opening": 21, "body": 72, "emitted": 459, "length_stopped": 459},
+      "full_retrieval": {"exact": 33, "opening": 106, "body": 762, "emitted": 459},
+      "reference_length_oracle": {"exact": 0, "opening": 0, "body": 70, "emitted": 459, "length_stopped": 459}
+    },
+    "seed_2": {
+      "model_only_cap": {"exact": 0, "opening": 21, "body": 58, "emitted": 0, "cap_stopped": 459},
+      "model_only_retrieved_length": {"exact": 0, "opening": 21, "body": 41, "emitted": 459, "length_stopped": 459},
+      "retrieved_prefix_4_length": {"exact": 10, "opening": 106, "body": 427, "emitted": 459, "length_stopped": 459, "bos_complete": 0},
+      "shuffled_prefix_4_length": {"exact": 0, "opening": 21, "body": 80, "emitted": 459, "length_stopped": 459},
+      "full_retrieval": {"exact": 33, "opening": 106, "body": 762, "emitted": 459},
+      "reference_length_oracle": {"exact": 0, "opening": 21, "body": 58, "emitted": 459, "length_stopped": 459}
+    }
+  },
+  "comparisons": {
+    "seed_1": {
+      "selected_vs_model_body": {"candidate_sum": 452, "control_sum": 49, "threshold": 11, "passes": true},
+      "selected_vs_model_exact": {"candidate_only": 9, "control_only": 0, "threshold": 2, "passes": true},
+      "selected_vs_shuffled_exact": {"candidate_only": 9, "control_only": 0, "threshold": 2, "passes": true}
+    },
+    "seed_2": {
+      "selected_vs_model_body": {"candidate_sum": 427, "control_sum": 41, "threshold": 10, "passes": true},
+      "selected_vs_model_exact": {"candidate_only": 10, "control_only": 0, "threshold": 2, "passes": true},
+      "selected_vs_shuffled_exact": {"candidate_only": 10, "control_only": 0, "threshold": 2, "passes": true}
+    }
+  },
+  "controls": {
+    "all_reachable": 459,
+    "selected_emitted": 459,
+    "selected_length_stops": 459,
+    "selected_bos_stops": 0,
+    "selected_premature_bos": 0,
+    "repeats_identical": true,
+    "retrieved_length_independent_of_reference": true
+  },
+  "resources": {
+    "generator_build_seconds": 13.69,
+    "binary_build_seconds": 30.04,
+    "panel_seconds": 0.58,
+    "selector_wall_seconds": [1.35, 1.43, 1.41, 1.38, 1.38, 1.41],
+    "selector_cpu_percent": [2853, 2894, 2944, 2837, 2877, 2913],
+    "peak_rss_kib": 206024,
+    "retained_bytes": 128485
+  },
+  "tests": {
+    "focused_length_completion": 4,
+    "cpu_library_passed": 399,
+    "cpu_library_ignored": 4
+  },
+  "source_sha256": {
+    "reply_eval": "ce2d7fb0f13d936a9167e9ccb0a91bf46456d22c4f871d133225f71e2a32c04f",
+    "cpu_lib": "145e0031e8aa514fe3476314209c59bc2f394007c41f69254a32c4cd4095254f",
+    "binary_source": "98a6c26a757c0b00dce2414119d49af95d36d0a55c82ad207c1e6c770c269312",
+    "release_binary": "91ed9c0182cf4350873e6e8fd17f3b6de0553955513c2184149664e8692c67a1"
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/prefix-length/2026-11-06",
+    "sha256sums_sha256": "1cee8582ca5f374371f2e1f0cd7249b56babf0b39770b879187379ab6baedc41"
+  },
+  "outcome_reason": "The four-token retrieved prefix plus the nearest stored reply's length produced 9/459 and 10/459 exact replies, retained body positions over the model-only length control, and beat shuffled-prefix length completion on both artifacts. Every reachable row emitted by length without a BOS stop."
+}

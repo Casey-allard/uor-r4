@@ -1,3 +1,18 @@
+## 2026-11-06 — Retrieved-prefix length completion passes controls (deepseek)
+
+The four-token retrieved prefix from deepseek-217 was paired with the nearest
+stored reply's length as a completion budget on fresh seed 2782. The mechanism
+produced **9/459** exact replies on artifact seed 1 and **10/459** on seed 2,
+retained body positions over model-only length completion (**452/49** and
+**427/41**), and beat shuffled-prefix length completion (**0** exact on both).
+Every reachable row emitted by length with no BOS stop.
+
+This is a **KEEP** for the development-only CPU mechanism. It remains weak in
+absolute terms and full retrieval is stronger at **33/459** exact on both
+artifacts, so exact Jaccard remains the serving default. Native termination is
+still unresolved. Record:
+[deepseek-219](../loop/tasks/cpu-training-pilot/deepseek-219/REPORT.md).
+
 ## 2026-11-06 — Retrieved prefixes improve content but never terminate (deepseek)
 
 A TRAIN-selected four-token retrieved prefix was forced through the exact CPU

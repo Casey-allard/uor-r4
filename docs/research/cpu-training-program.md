@@ -243,6 +243,16 @@ a **REJECT** for complete prefix continuation, with a positive content-transfer
 diagnosis and termination as the remaining blocker. See
 [deepseek-217](../loop/tasks/cpu-training-pilot/deepseek-217/REPORT.md).
 
+The length-termination follow-up used the same four-token retrieved opening
+with the nearest stored reply's length as the stop budget. On fresh seed 2782,
+it produced **9/459** exact replies on artifact seed 1 and **10/459** on seed
+2, while model-only and shuffled-prefix length controls stayed at **0**.
+Retrieved-prefix body positions were **452/427** against model-only
+**49/41**. All reachable rows emitted by length and none by BOS. This is a
+**KEEP** for the bounded completion mechanism, but full retrieval still leads
+at **33/459** exact and the small absolute gain does not change serving. See
+[deepseek-219](../loop/tasks/cpu-training-pilot/deepseek-219/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.
