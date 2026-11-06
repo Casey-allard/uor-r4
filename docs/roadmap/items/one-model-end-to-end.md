@@ -87,6 +87,37 @@ unavailable because this artifact carries neither mechanism. See
 
 ## What is missing
 
+**The one track (owner direction, 6 Nov, #2028 6675163438): the trunk learns human text.** Every claude unit
+goes to the trunk's no-memory top-1 on the human held-out panel until it beats both its TRAIN's unigram and T2
+beyond the paired band, at every seed. P6 and all serving, speed, integer, long-context and size work are
+parked until then. The sequence, each step chosen by the one before it:
+
+1. **Steps × data (claude-297, done: not met).** The 2×2 of TRAIN D1 or D3 at 8,192 or 32,768 steps, width 256,
+   two seeds, of 1,460,697 rows, seed 1 / seed 2: (n1S) 216,675 / 223,689, (n1L) 232,100 / 225,571, (n3S)
+   236,892 / 241,075, (n3L) 272,867 / 234,892, against T2's 253,018 (D1) and 256,660 (D3) and the unigram's
+   37,421. (n3L) reads `inside` its T2 (ahead at seed 1, behind at seed 2); the other cells are behind. Data is
+   the one lever decided at both seeds (D3 ahead of D1 at 8,192 steps). `pair`'s band includes the seed spread,
+   so added seeds cannot turn (n3L) ahead. The decision review takes the sheet's data branch instead: longer at
+   D3, or more human text, with a recipe whose seeds agree. (n3L)'s seeds split by step 8,192.
+2. **Centroid refit of the readout, on step 1's sealed checkpoints.** With the trunk frozen, teacher-force TRAIN
+   and set each token's point to the mean hidden state that precedes it: the closed-form fit of the nearest
+   readout. It is geometric and TRAIN-only, with no exponential, no product of matrices and no memory. Arms: each
+   sealed cell as trained against refit, graded no-memory on the same panel. It costs one GPU pass, no training.
+   The idea is lexlean-r4's `gpu/train_uorlut_v8.rs` (lines 1001–1032), which did it once at a 1/8 step with no
+   held-out grade.
+3. **The step-1 lever, larger.** If (n3L) meets the bar at both seeds, width 1,024 with the served-form check.
+   If data moved it without meeting the bar, a longer D3 and more steps. If neither, step 4 first.
+4. **The objective, if nearest plateaus.** An address-margin term beside the token margin, from lexlean-r4's
+   integer `R4.Objective.hinge` (`crates/wasm/src/lexlean_generated.rs`, lines 223–292), which has no GPU path.
+5. **After the bar: train equals serve on the integer table.** lexlean-r4's strict-improvement guard
+   (`docs/LEARNING.md`, lines 46–93): an integer move is kept only if a TRAIN-held loss strictly falls, so the
+   served table is the trained one. lexlean supplies no loss; ours would be the rank margin against rival tokens.
+
+The full lexlean-r4 read, negatives first, is in claude-297's REPORT. Its "2.085B parameters" are counted n-gram
+entries over hand-written replies, it has no held-out next-token grade, and its serving reader uses an exponential
+lookup table, which CHARTER §3.2 bans, so it is a format cross-check only. Folding T2's successor table into the trunk's weights was rejected: it
+would grade the trunk on T2's own answers.
+
 The D11 diagnostic/training scopes are now panic-safe on the host: a drop
 guard restores gate, snap and training-bridge state after a caught panic, so a
 failed diagnostic cannot contaminate the next forward on that thread. See
