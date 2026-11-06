@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use uor_r4_cpu_train::{
     compare_joint_branch_rows, derive_prompt_retrieval_memory, derive_reply_boundary_memory,
     evaluate_joint_branch_selection, evaluate_prompt_retrieval, fit_joint_branch_selector,
-    validate_corpus_manifest, CopyKeyReplyMetric, CpuConversationSample, CpuCorpusIdentity,
-    CpuMaskedCorpus, JointBranchArm, JointBranchEvaluation, MemoryWeightSample, PromptRetrievalArm,
-    TimedJointBranchReading,
+    fit_joint_branch_selector_on_panels, validate_corpus_manifest, CopyKeyReplyMetric,
+    CpuConversationSample, CpuCorpusIdentity, CpuMaskedCorpus, JointBranchArm,
+    JointBranchEvaluation, MemoryWeightSample, PromptRetrievalArm, TimedJointBranchReading,
 };
 use uor_r4_cpu_train::{
     derive_full_sequence_suffix_content_memory, JOINT_BRANCH_EPOCHS, JOINT_BRANCH_FEATURE_NAMES,
@@ -34,7 +34,11 @@ fn main() {
 fn run() -> Result<(), String> {
     let config = parse_args()?;
     let train = load_panel(&config.train)?;
-    let panel = load_panel(&config.panel)?;
+    let calibrations = config
+        .calibrations
+        .iter()
+        .map(load_calibration)
+        .collect::<Result<Vec<_>, _>>()?;
     let artifact = read(&config.artifact)?;
     let artifact_sha256 = uor_r4_discrete::corpus::sha256(&artifact);
     if artifact_sha256 != config.expected_artifact_sha256 {
@@ -53,8 +57,24 @@ fn run() -> Result<(), String> {
     let boundary =
         derive_reply_boundary_memory(&train.samples).map_err(|error| error.to_string())?;
     let boundary_census = boundary.census();
-    let training = fit_joint_branch_selector(&train.conversations, config.cap, config.seed)
-        .map_err(|error| error.to_string())?;
+    let training = if calibrations.is_empty() {
+        fit_joint_branch_selector(&train.conversations, config.cap, config.seed)
+            .map_err(|error| error.to_string())?
+    } else {
+        let calibration_samples = calibrations
+            .iter()
+            .flat_map(|panel| panel.samples.iter().cloned())
+            .collect::<Vec<_>>();
+        fit_joint_branch_selector_on_panels(
+            &artifact,
+            &calibration_samples,
+            &suffix,
+            &boundary,
+            config.cap,
+            233,
+        )
+        .map_err(|error| error.to_string())?
+    };
     let eligible = training.supervised_groups >= 96 && training.baseline_wrong_groups > 0;
     if config.preflight || !eligible {
         let report = serde_json::json!({
@@ -64,6 +84,8 @@ fn run() -> Result<(), String> {
             "mode": if config.preflight { "preflight" } else { "auto_stop" },
             "inputs": {
                 "train": panel_input(&train),
+                "calibrations": calibrations.iter().map(panel_input).collect::<Vec<_>>(),
+                "panel_plan": panel_path_input(&config.panel),
                 "artifact": config.artifact,
                 "artifact_sha256": artifact_sha256,
             },
@@ -87,6 +109,15 @@ fn run() -> Result<(), String> {
             serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
         );
         return Ok(());
+    }
+
+    let panel = load_panel(&config.panel)?;
+    if calibrations.iter().any(|calibration| {
+        calibration.identity.tokens_sha256 == panel.identity.tokens_sha256
+            || calibration.identity.mask_sha256 == panel.identity.mask_sha256
+            || calibration.manifest_sha256 == panel.manifest_sha256
+    }) {
+        return Err("a calibration panel overlaps the evaluation panel".to_owned());
     }
 
     let mut readings = BTreeMap::new();
@@ -175,6 +206,7 @@ fn run() -> Result<(), String> {
         "claim": "integer pairwise selection over complete boundary branches cut from one full-sequence geometric content spine",
         "inputs": {
             "train": panel_input(&train),
+            "calibrations": calibrations.iter().map(panel_input).collect::<Vec<_>>(),
             "panel": panel_input(&panel),
             "artifact": config.artifact,
             "artifact_sha256": artifact_sha256,
@@ -190,6 +222,7 @@ fn run() -> Result<(), String> {
             "tail": JOINT_BRANCH_TAIL,
             "shuffle_seed": JOINT_BRANCH_SHUFFLE_SEED,
             "folds": JOINT_BRANCH_FOLDS,
+            "calibration_generation_seed": (!calibrations.is_empty()).then_some(233),
         },
         "tables": {
             "suffix": suffix_census,
@@ -324,6 +357,43 @@ fn load_panel(paths: &PanelPaths) -> Result<Panel, String> {
     })
 }
 
+fn load_calibration(path: &CalibrationPath) -> Result<Panel, String> {
+    let tokens = path.directory.join("tokens.u16");
+    let mask = path.directory.join("response_mask.u8");
+    let manifest = path.directory.join("manifest.json");
+    let manifest_bytes = read(&manifest)?;
+    let manifest_sha256 = uor_r4_discrete::corpus::sha256(&manifest_bytes);
+    if manifest_sha256 != path.expected_manifest_sha256 {
+        return Err(format!(
+            "{}: calibration manifest differs",
+            manifest.display()
+        ));
+    }
+    let token_bytes = read(&tokens)?;
+    let mask_bytes = read(&mask)?;
+    let identity = validate_corpus_manifest(&manifest_bytes, &token_bytes, &mask_bytes)
+        .map_err(|error| error.to_string())?;
+    load_panel(&PanelPaths {
+        tokens,
+        mask,
+        manifest,
+        expected_tokens_sha256: identity.tokens_sha256,
+        expected_mask_sha256: identity.mask_sha256,
+        expected_manifest_sha256: manifest_sha256,
+    })
+}
+
+fn panel_path_input(paths: &PanelPaths) -> serde_json::Value {
+    serde_json::json!({
+        "tokens": paths.tokens,
+        "tokens_sha256": paths.expected_tokens_sha256,
+        "mask": paths.mask,
+        "mask_sha256": paths.expected_mask_sha256,
+        "manifest": paths.manifest,
+        "manifest_sha256": paths.expected_manifest_sha256,
+    })
+}
+
 struct PanelPaths {
     tokens: PathBuf,
     mask: PathBuf,
@@ -336,11 +406,17 @@ struct PanelPaths {
 struct Config {
     train: PanelPaths,
     panel: PanelPaths,
+    calibrations: Vec<CalibrationPath>,
     artifact: PathBuf,
     expected_artifact_sha256: String,
     cap: usize,
     seed: u64,
     preflight: bool,
+}
+
+struct CalibrationPath {
+    directory: PathBuf,
+    expected_manifest_sha256: String,
 }
 
 fn parse_args() -> Result<Config, String> {
@@ -349,6 +425,8 @@ fn parse_args() -> Result<Config, String> {
     let mut cap = 64usize;
     let mut seed = 231u64;
     let mut preflight = false;
+    let mut calibration_directories = Vec::new();
+    let mut calibration_manifests = Vec::new();
     let mut expected = BTreeMap::<String, String>::new();
     while let Some(flag) = args.next() {
         if !flag.starts_with("--") {
@@ -373,6 +451,8 @@ fn parse_args() -> Result<Config, String> {
                     .parse()
                     .map_err(|_| format!("not a number: {value}"))?
             }
+            "--calibration" => calibration_directories.push(PathBuf::from(value)),
+            "--expected-calibration-manifest" => calibration_manifests.push(value),
             "--expected-train-tokens" => set_expected(&mut expected, "train_tokens", value, &flag)?,
             "--expected-train-mask" => set_expected(&mut expected, "train_mask", value, &flag)?,
             "--expected-train-manifest" => {
@@ -389,6 +469,15 @@ fn parse_args() -> Result<Config, String> {
     }
     if positional.len() != 7 || !(1..=64).contains(&cap) {
         return Err(usage());
+    }
+    if calibration_directories.len() != calibration_manifests.len() {
+        return Err("--calibration and --expected-calibration-manifest counts differ".to_owned());
+    }
+    if calibration_manifests
+        .iter()
+        .any(|value| value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    {
+        return Err("--expected-calibration-manifest is not a SHA-256".to_owned());
     }
     for key in [
         "train_tokens",
@@ -417,6 +506,14 @@ fn parse_args() -> Result<Config, String> {
     Ok(Config {
         train: panel_paths(0, "train"),
         panel: panel_paths(3, "panel"),
+        calibrations: calibration_directories
+            .into_iter()
+            .zip(calibration_manifests)
+            .map(|(directory, expected_manifest_sha256)| CalibrationPath {
+                directory,
+                expected_manifest_sha256: expected_manifest_sha256.to_ascii_lowercase(),
+            })
+            .collect(),
         artifact: positional[6].clone(),
         expected_artifact_sha256: expected["artifact"].to_ascii_lowercase(),
         cap,
@@ -447,7 +544,8 @@ fn usage() -> String {
      --expected-train-tokens HEX --expected-train-mask HEX \
      --expected-train-manifest HEX --expected-panel-tokens HEX \
      --expected-panel-mask HEX --expected-panel-manifest HEX \
-     --expected-artifact HEX [--cap N] [--seed N] [--preflight]"
+     --expected-artifact HEX [--calibration DIR \
+     --expected-calibration-manifest HEX]... [--cap N] [--seed N] [--preflight]"
         .to_owned()
 }
 
@@ -467,6 +565,8 @@ mod tests {
             "PANEL_MANIFEST",
             "ARTIFACT",
             "--expected-artifact",
+            "--calibration",
+            "--expected-calibration-manifest",
             "--preflight",
         ] {
             assert!(usage.contains(word), "{usage}");

@@ -1,3 +1,16 @@
+## 2026-11-06 — Consumed fresh panels still do not supervise exact endpoints (deepseek)
+
+Four consumed dev panels, seeds 2783-2786, were pinned as calibration data for
+the complete-branch selector. Across **1,832** rows they produced only **58**
+groups with multiple branches and an exact endpoint, and **0** groups where an
+exact endpoint followed a wrong first boundary. The power gate stopped before
+new seed 2788.
+
+This is **INSUFFICIENT_POWER** for exact-endpoint calibration, not a fresh
+negative. The next branch objective must score completion without requiring a
+calibration reference to contain the exact endpoint. Record:
+[deepseek-233](../loop/tasks/cpu-training-pilot/deepseek-233/REPORT.md).
+
 ## 2026-11-06 — Complete-branch selection lacks TRAIN endpoint supervision (deepseek)
 
 A joint complete-branch selector was implemented over one full-sequence

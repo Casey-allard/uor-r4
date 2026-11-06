@@ -149,12 +149,12 @@ pub use geometric_candidate_rank::{
 };
 pub use joint_branch::{
     compare_joint_branch_rows, evaluate_joint_branch_selection, fit_joint_branch_selector,
-    generate_joint_branch_spine, JointBranchArm, JointBranchCandidate, JointBranchEvaluation,
-    JointBranchReading, JointBranchSelector, JointBranchSpine, JointBranchStep,
-    JointBranchTraining, TimedJointBranchReading, JOINT_BRANCH_EPOCHS, JOINT_BRANCH_FEATURES,
-    JOINT_BRANCH_FEATURE_NAMES, JOINT_BRANCH_FOLDS, JOINT_BRANCH_LEARNING_RATE,
-    JOINT_BRANCH_MIN_OBSERVATIONS, JOINT_BRANCH_SHUFFLE_SEED, JOINT_BRANCH_TAIL,
-    JOINT_BRANCH_WEIGHT_LIMIT,
+    fit_joint_branch_selector_on_panels, generate_joint_branch_spine, JointBranchArm,
+    JointBranchCandidate, JointBranchEvaluation, JointBranchReading, JointBranchSelector,
+    JointBranchSpine, JointBranchStep, JointBranchTraining, TimedJointBranchReading,
+    JOINT_BRANCH_EPOCHS, JOINT_BRANCH_FEATURES, JOINT_BRANCH_FEATURE_NAMES, JOINT_BRANCH_FOLDS,
+    JOINT_BRANCH_LEARNING_RATE, JOINT_BRANCH_MIN_OBSERVATIONS, JOINT_BRANCH_SHUFFLE_SEED,
+    JOINT_BRANCH_TAIL, JOINT_BRANCH_WEIGHT_LIMIT,
 };
 pub use learned_copy_reply::{
     derive_learned_copy_readout, evaluate_learned_copy_replies, LearnedCopyArm, LearnedCopyReading,

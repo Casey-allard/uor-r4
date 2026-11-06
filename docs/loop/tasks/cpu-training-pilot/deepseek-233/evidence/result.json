@@ -1,0 +1,29 @@
+{
+  "schema": "uor-r4.cpu-calibrated-branch-summary/1",
+  "outcome": "INSUFFICIENT_POWER",
+  "base": "ddc66e665",
+  "fresh_panel_generated": false,
+  "artifact": {
+    "seed": 1,
+    "sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd"
+  },
+  "calibration": {
+    "panels": [2783, 2784, 2785, 2786],
+    "rows": 1832,
+    "supervised_groups": 58,
+    "baseline_wrong_groups": 0,
+    "candidate_rows": 233,
+    "positive_rows": 58,
+    "shuffled_label_changes": 84
+  },
+  "power_floor": {
+    "supervised_groups": 96,
+    "baseline_wrong_groups": 1
+  },
+  "resources": {
+    "wall_seconds": 28.98,
+    "average_cpu_percent": 1576,
+    "peak_rss_kib": 136532
+  },
+  "reason": "Previously consumed dev panels supplied too few exact-branch groups and no group where an exact endpoint followed a wrong first boundary."
+}

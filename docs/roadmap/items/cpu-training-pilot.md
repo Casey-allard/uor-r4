@@ -833,6 +833,14 @@ TRAIN reference trajectories do not expose the false stops that occur on fresh
 generated trajectories. See
 [deepseek-231](../../loop/tasks/cpu-training-pilot/deepseek-231/REPORT.md).
 
+Distribution-matched calibration then used consumed dev panels 2783-2786.
+Across **1,832** rows it produced only **58** exact-endpoint groups and **0**
+where the exact endpoint followed a wrong first boundary, so it stopped before
+new seed 2788. This closes exact-endpoint calibration for the current branch
+pool as **INSUFFICIENT_POWER** and moves the next unit to reference-free
+completion scoring. See
+[deepseek-233](../../loop/tasks/cpu-training-pilot/deepseek-233/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

@@ -1,0 +1,23 @@
+	Command being timed: ".worktrees/deepseek-calibrated-branch/target/debug/cpu-joint-branch-driver local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/tokens.u16 local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/response_mask.u8 local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711/manifest.json local/deepseek/calibrated-branch/2026-11-06/panels/dd-2788/tokens.u16 local/deepseek/calibrated-branch/2026-11-06/panels/dd-2788/response_mask.u8 local/deepseek/calibrated-branch/2026-11-06/panels/dd-2788/manifest.json local/deepseek/public-fbs-dual/dual-c131-seed-1-raw_both.uorlut --expected-train-tokens 140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91 --expected-train-mask d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad --expected-train-manifest d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5 --expected-panel-tokens 0000000000000000000000000000000000000000000000000000000000000000 --expected-panel-mask 0000000000000000000000000000000000000000000000000000000000000000 --expected-panel-manifest 0000000000000000000000000000000000000000000000000000000000000000 --expected-artifact a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd --calibration local/deepseek/content-length/2026-11-06/panels/dd-2783 --expected-calibration-manifest 90e8f9e9a1dabc393b124a66e2c1fed0c9d3f670bf0128b60b00674032d87b78 --calibration local/deepseek/content-prefix-endpoint/2026-11-06/panels/dd-2784 --expected-calibration-manifest 03a01091a2907ec7dd3252964894c6ebae83797fa691d1f9ece3f9027fa0a68c --calibration local/deepseek/content-branch-endpoint/2026-11-06/panels/dd-2785 --expected-calibration-manifest a5214c2f8430a9a3c22e4b468e40d6594247dbe5ac1e9fc30025e31cba9dcbf1 --calibration local/deepseek/continuation-guard/2026-11-06/panels/dd-2786 --expected-calibration-manifest 19d9629273ea423f5d39bef81740ef34c018a440ff4206359575290e1e8b773b --cap 64 --seed 2788 --preflight"
+	User time (seconds): 456.84
+	System time (seconds): 0.04
+	Percent of CPU this job got: 1576%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:28.98
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 136532
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 34342
+	Voluntary context switches: 132
+	Involuntary context switches: 810
+	Swaps: 0
+	File system inputs: 96
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

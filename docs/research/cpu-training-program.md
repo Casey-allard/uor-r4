@@ -317,6 +317,15 @@ false stops, so the next endpoint objective needs distribution-matched or
 reference-free supervision. See
 [deepseek-231](../loop/tasks/cpu-training-pilot/deepseek-231/REPORT.md).
 
+The distribution-matched follow-up used four already consumed fresh dev panels
+as calibration. Across **1,832** rows it found **58** groups with both multiple
+branches and an exact endpoint, but **0** groups where that endpoint followed a
+wrong first boundary. The power gate stopped before new seed 2788. Exact
+complete endpoints are too sparse and too easily selected by the first
+boundary to supervise this branch choice. The next unit therefore moves to a
+reference-free completion objective rather than adding more panels. See
+[deepseek-233](../loop/tasks/cpu-training-pilot/deepseek-233/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

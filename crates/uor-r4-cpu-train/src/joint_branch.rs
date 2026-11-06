@@ -441,11 +441,86 @@ pub fn fit_joint_branch_selector(
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
+    finish_training(groups, samples.len() as u64)
+}
+
+pub fn fit_joint_branch_selector_on_panels(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    suffix_memory: &SuffixMemoryTable,
+    boundary: &ReplyBoundaryMemory,
+    cap: usize,
+    seed: u64,
+) -> Result<JointBranchTraining> {
+    if samples.is_empty() || cap == 0 || cap > 64 {
+        return Err(invalid("joint-branch calibration inputs differ"));
+    }
+    let context = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("joint-branch calibration context: {error}")))?
+        .context_length();
+    let groups = samples
+        .par_iter()
+        .enumerate()
+        .map(|(row, sample)| {
+            let reference = normalized_reference(&sample.reply);
+            if reference.is_empty()
+                || reference.len() >= cap
+                || sample.prompt.len() > context
+                || sample
+                    .prompt
+                    .len()
+                    .checked_add(reference.len())
+                    .is_none_or(|total| total >= context)
+            {
+                return Ok(None);
+            }
+            let spine = generate_joint_branch_spine(
+                artifact,
+                &sample.prompt,
+                cap,
+                suffix_memory,
+                boundary,
+                seed,
+                row,
+            )?;
+            if spine.candidates.len() < 2 {
+                return Ok(None);
+            }
+            let positives = spine
+                .candidates
+                .iter()
+                .map(|candidate| {
+                    candidate.length == reference.len()
+                        && spine.tokens.get(..candidate.length) == Some(reference)
+                })
+                .collect::<Vec<_>>();
+            if !positives.iter().any(|positive| *positive) {
+                return Ok(None);
+            }
+            let first_exact = spine.candidates.first().is_some_and(|candidate| {
+                candidate.length == reference.len()
+                    && spine.tokens.get(..candidate.length) == Some(reference)
+            });
+            Ok(Some(TrainingGroup {
+                row,
+                candidates: spine.candidates,
+                positives,
+                baseline_wrong: !first_exact,
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    finish_training(groups, samples.len() as u64)
+}
+
+fn finish_training(groups: Vec<TrainingGroup>, rows: u64) -> Result<JointBranchTraining> {
     if groups.is_empty() {
         return Ok(JointBranchTraining {
             trained: JointBranchSelector::zero(),
             shuffled: JointBranchSelector::zero(),
-            rows: samples.len() as u64,
+            rows,
             supervised_groups: 0,
             baseline_wrong_groups: 0,
             candidate_rows: 0,
@@ -463,7 +538,7 @@ pub fn fit_joint_branch_selector(
     Ok(JointBranchTraining {
         trained,
         shuffled,
-        rows: samples.len() as u64,
+        rows,
         supervised_groups: groups.len() as u64,
         baseline_wrong_groups: groups.iter().filter(|group| group.baseline_wrong).count() as u64,
         candidate_rows: groups
@@ -1208,6 +1283,39 @@ mod tests {
         .unwrap();
         assert!(candidates.iter().any(|candidate| candidate.length == 4));
         assert!(candidates.iter().all(|candidate| candidate.length <= 4));
+    }
+
+    #[test]
+    fn panel_fit_uses_generated_complete_branches_and_is_deterministic() {
+        let training = [
+            sample(&[9], &[40, 10, 20, 30, 1]),
+            sample(&[9], &[40, 10, 20, 30, 1]),
+            sample(&[9], &[41, 11, 21, 31, 1]),
+        ];
+        let suffix = derive_full_sequence_suffix_content_memory(&training).unwrap();
+        let boundary = derive_reply_boundary_memory(&training).unwrap();
+        let calibration = [sample(&[9], &[40, 10, 20, 30, 1])];
+        let first = fit_joint_branch_selector_on_panels(
+            &artifact(),
+            &calibration,
+            &suffix,
+            &boundary,
+            16,
+            233,
+        )
+        .unwrap();
+        let second = fit_joint_branch_selector_on_panels(
+            &artifact(),
+            &calibration,
+            &suffix,
+            &boundary,
+            16,
+            233,
+        )
+        .unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.rows, 1);
+        assert!(first.supervised_groups <= 1);
     }
 
     #[test]
