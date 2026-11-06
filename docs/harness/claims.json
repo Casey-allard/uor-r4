@@ -69,13 +69,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/content-prefix-endpoint": {
-    "branch": "deepseek/content-prefix-endpoint",
-    "claimed_at": "2026-11-06T04:22:50-05:00",
-    "head": "07349193e",
-    "lab": "deepseek",
-    "note": "full-sequence content with a generated-prefix-aligned retrieved endpoint and boundary fallback"
-  },
   "deepseek/content-readout": {
     "branch": "deepseek/content-readout",
     "claimed_at": "2026-11-04T16:20:00-05:00",
