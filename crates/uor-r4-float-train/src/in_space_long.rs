@@ -7625,6 +7625,10 @@ fn captures_memory_mode(requested: Option<bool>, current: bool) -> bool {
     requested.is_none_or(|wanted| wanted == current)
 }
 
+fn captures_query_cache_split(include_dev: bool, split: &str) -> bool {
+    include_dev || split != "dev"
+}
+
 /// Write `bytes` to a new file at `path`; an existing file is refused, never replaced.
 fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new()
@@ -7762,6 +7766,7 @@ pub fn score_rows(
     context_given: bool,
     query_cache_root: Option<&Path>,
     query_cache_memory: Option<bool>,
+    query_cache_dev: bool,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
     let context = match past_window {
@@ -8134,7 +8139,7 @@ pub fn score_rows(
         for split in &splits {
             let mut cache_split = query_cache
                 .as_mut()
-                .filter(|_| cache_on)
+                .filter(|_| cache_on && captures_query_cache_split(query_cache_dev, &split.name))
                 .map(|cache| cache.start_split(&split.name, label, on, split.context))
                 .transpose()?;
             // Q5's decision trace (claude-251), in the memory pass only, as F′'s rows are read.
@@ -12431,6 +12436,15 @@ mod tests {
         assert!(!captures_memory_mode(Some(true), false));
         assert!(captures_memory_mode(Some(false), false));
         assert!(!captures_memory_mode(Some(false), true));
+    }
+
+    #[test]
+    fn query_cache_can_omit_dev() {
+        assert!(captures_query_cache_split(true, "dev"));
+        assert!(captures_query_cache_split(true, "wiki-00000"));
+        assert!(!captures_query_cache_split(false, "dev"));
+        assert!(captures_query_cache_split(false, "wiki-00000"));
+        assert!(captures_query_cache_split(false, "train"));
     }
 
     #[test]

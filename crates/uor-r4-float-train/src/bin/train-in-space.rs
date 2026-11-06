@@ -157,7 +157,8 @@
 //! `--query-cache-out DIR` writes the query-cache/1 evidence from that same scoring forward, for
 //! the separately built CPU readout evaluator. It also captures TRAIN, selected by `--train-split`
 //! when supplied, as the cache's `train` split. `--query-cache-memory 0|1` captures one memory
-//! mode instead of both. It changes no scoring decision.
+//! mode instead of both. `--query-cache-dev 0` omits the built-in DEV split while still scoring
+//! it normally. These options change no scoring decision.
 //!
 //! `train-in-space --data-root DIR --cell-grade 1 --runs DIR --panel NAME=DIR --flock-cell M,...`:
 //! grades the cell rule on the laptop (claude-213, `in_space_long::cell_grade`) from `--runs`'
@@ -329,6 +330,7 @@ fn main() -> Result<()> {
     let mut context_given = false;
     let mut query_cache_out: Option<PathBuf> = None;
     let mut query_cache_memory = None;
+    let mut query_cache_dev = None;
     let mut key_levels: Vec<(String, u8)> = Vec::new();
     let mut keys_runs: Option<PathBuf> = None;
     let mut scopes: Vec<ReadScope> = Vec::new();
@@ -562,6 +564,7 @@ fn main() -> Result<()> {
             "--past-window-stride" => past_stride = Some(number(&value)?),
             "--query-cache-out" => query_cache_out = Some(PathBuf::from(value)),
             "--query-cache-memory" => query_cache_memory = Some(switch(&value)?),
+            "--query-cache-dev" => query_cache_dev = Some(switch(&value)?),
             "--sample-opening" => {
                 last_opening = Some(match value.as_str() {
                     "first" => false,
@@ -817,6 +820,11 @@ fn main() -> Result<()> {
     if query_cache_memory.is_some() && query_cache_out.is_none() {
         return Err(FloatTrainError::Invalid(
             "--query-cache-memory needs --query-cache-out".to_owned(),
+        ));
+    }
+    if query_cache_dev.is_some() && query_cache_out.is_none() {
+        return Err(FloatTrainError::Invalid(
+            "--query-cache-dev needs --query-cache-out".to_owned(),
         ));
     }
     if overturn_on && fresh_v2.is_some() {
@@ -1137,6 +1145,7 @@ fn main() -> Result<()> {
             context_given,
             query_cache_out.as_deref(),
             query_cache_memory,
+            query_cache_dev.unwrap_or(true),
         )? {
             println!("{}", serde_json::to_string(&file)?);
         }

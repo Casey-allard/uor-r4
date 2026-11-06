@@ -3,7 +3,7 @@
 Lab: deepseek. Item: [one-model-end-to-end](../../../../roadmap/items/one-model-end-to-end.md)
 (#3407). Order: [ORDER.md](ORDER.md). Sheet:
 [one-model-end-to-end-centroid-2026-11-06](../../../../harness/prep/one-model-end-to-end-centroid-2026-11-06.md).
-Base: `ffe65bcd3`.
+Base: `a9a0f75ac`.
 
 ## What did not work, first
 
@@ -13,10 +13,13 @@ Base: `ffe65bcd3`.
 - **The merged cache wrote both memory modes.** On D3 that is 27,416,554 TRAIN queries,
   about 29 GiB per mode. This unit adds `--query-cache-memory 0|1`; the registered run
   requests no-memory only.
-- **The real capture cannot run on this workstation.** The private Hugging Face store
-  returns HTTP 401 without an owner token, and there is no `uor-pod` config, Vast key,
-  compute SSH key or running GPU. `uor-pod status` reports no free GPU or offer. The
-  sheet is therefore PENDING, not FIT, and no panel was opened.
+- **The first capture inventory could not reach the registered evaluator.** `score_rows`
+  always cached DEV as well as TRAIN and the requested panels, but the evaluator requires
+  exactly TRAIN plus its four registered panels. This unit adds explicit DEV omission;
+  ordinary DEV scoring is unchanged.
+- **No capture was available when the execution package was prepared.** The private
+  store and Vast credentials are now installed, but both existing pods are busy and
+  must not be touched. The sheet remains PENDING, not FIT, and no panel was opened.
 
 ## What changed
 
@@ -26,7 +29,9 @@ Base: `ffe65bcd3`.
   `row_picks` decoder as evaluation splits. It is not added to normal scored outputs.
 - `--query-cache-memory 0|1` selects one memory mode for caching and is refused unless
   `--query-cache-out` is present.
-- The focus test checks both modes are captured by default and exactly one when selected.
+- `--query-cache-dev 0|1` defaults to `1` for compatibility. `0` omits only the DEV cache
+  split while leaving DEV in the ordinary scored outputs.
+- Focused tests check both memory modes and the DEV omission rule.
 - A current-checkpoint sheet pins D3, both n3S archives, all four held-out panels and a
   two-seed zero/centroid/shuffle decision rule.
 
@@ -42,14 +47,19 @@ Expected capture scale from published pins:
 - TRAIN: 27,416,554 scored rows;
 - panel: 1,460,697 scored rows across four roots;
 - no-memory cache: about 29 GiB per seed before the seal;
-- proposed run: two sequential RTX 5090 captures, estimated 2-4 hours and at most $5.
+- proposed run: one RTX 5090 capture per seed, estimated 2-4 hours each, with the
+  package's hard wall and price caps.
 
 ## Checks run at the head
 
 - `cargo check -p uor-r4-float-train --bin train-in-space --bin
   fbs-query-cache --locked --offline`: passed.
-- `cargo test -p uor-r4-float-train --lib --no-fail-fast --locked --offline`:
-  **293 passed, 0 failed**.
+- `CARGO_TARGET_DIR=target cargo test -p uor-r4-float-train --lib
+  --no-fail-fast --locked --offline`:
+  **294 passed, 0 failed**.
+- `cargo clippy -p uor-r4-float-train --all-targets --no-deps --locked
+  --offline`: passed with the crate's pre-existing warnings.
+- D23, D25 and D32 ratchets: passed.
 - `uor-harness prep-check`: the sheet is structurally complete and `PENDING`.
 - `git diff --check`: passed.
 - Scoped Clippy and the full harness are run before delivery.
@@ -63,9 +73,9 @@ task-report and compute rules were used directly.
 
 ## Still open
 
-1. Supply a private-store token and Vast/pod credentials on this workstation.
-2. Obtain a fresh non-author `TEST FITNESS: FIT` for the sheet.
-3. Obtain the D67 pre-run review for the exact job.
+1. Obtain a fresh non-author `TEST FITNESS: FIT` for the sheet.
+2. Obtain the D67 pre-run review for the exact job.
+3. Lease a Codex-owned pod without touching either busy existing pod.
 4. Capture n3S at seeds 1 and 2, seal and upload both caches.
 5. Run the CPU evaluator, pool the four panels and report the registered verdict.
 
@@ -77,5 +87,6 @@ The readout experiment needs two things: queries from TRAIN to fit new output ro
 queries from the held-out panels to grade them. The merged cache captured only the
 grading side. This change captures TRAIN as well and can record only the no-memory path,
 which halves the storage. The experiment is now fully specified against the current
-checkpoint, but the checkpoint is in a private store and this machine has no access or
-GPU credential, so the actual model run has not happened.
+checkpoint and can produce the exact registered split inventory. Credentials are now
+available, but the sheet still needs fitness and pre-run review and both existing GPUs
+remain busy, so the actual model run has not happened.
