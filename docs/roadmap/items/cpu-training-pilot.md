@@ -717,6 +717,17 @@ work is an artifact-bound VSA/vector prompt signature and generation beyond
 the learned TRAIN reply set. See
 [deepseek-207](../../loop/tasks/cpu-training-pilot/deepseek-207/REPORT.md).
 
+The next representation unit moved prompt retrieval from ordered sets to a
+4,096-bit binary vocabulary VSA index. Bitwise AND/OR popcounts preserve exact
+Jaccard decisions while avoiding ordered-set work. All **471/471** selections
+on both artifacts matched the literal-set and CPU arms; exact, opening, body
+and stopping readings remained **39/131/948/0**. Across three alternating
+processes per artifact, aggregate median throughput rose from **9,820.55** to
+**46,362.99 prompts/s** (**4.72x**) with unchanged sidecar bytes. This is a
+**KEEP** for exact binary VSA serving. Remaining representation work is a
+compressed or learned signature that can preserve the retrieval result. See
+[deepseek-209](../../loop/tasks/cpu-training-pilot/deepseek-209/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

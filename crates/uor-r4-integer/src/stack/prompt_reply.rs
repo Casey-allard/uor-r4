@@ -1,8 +1,10 @@
 //! Artifact-bound complete-reply retrieval for stack serving.
 //!
-//! A sidecar stores prompt/reply token pairs from a training corpus. At a chat
-//! boundary it ranks prompts by exact token-set Jaccard overlap and returns one
-//! complete reply. The model artifact and dialogue bytes are unchanged.
+//! A sidecar stores prompt/reply token pairs from a training corpus. At load
+//! time each prompt becomes a vocabulary-dimensional binary vector. At a chat
+//! boundary, bitwise AND/OR popcounts recover exact set Jaccard overlap and the
+//! selector returns one complete reply. The model artifact and dialogue bytes
+//! are unchanged.
 
 use std::collections::BTreeSet;
 use std::io::Read;
@@ -28,7 +30,8 @@ pub struct PromptReplyExample {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct PromptReplyIndex {
-    prompt: BTreeSet<u32>,
+    prompt_tokens: Vec<u32>,
+    prompt_signature: Vec<u64>,
     reply: Vec<u32>,
 }
 
@@ -39,6 +42,7 @@ pub struct PromptReplyReadout {
     protocol_version: u8,
     ignore_token_ids: Vec<u32>,
     entries: Vec<PromptReplyIndex>,
+    signature_words: usize,
     sidecar_sha256: Option<String>,
 }
 
@@ -78,13 +82,15 @@ impl PromptReplyReadout {
             return Err(prompt_error("protocol_version must be 1 or 2"));
         }
         validate_ignore_ids(&ignore_token_ids)?;
-        let indexes = validate_entries(entries, &ignore_token_ids, vocab)?;
+        let signature_words = vocab.div_ceil(64);
+        let indexes = validate_entries(entries, &ignore_token_ids, vocab, signature_words)?;
         Ok(Self {
             artifact_sha256,
             tokenizer_sha256,
             protocol_version,
             ignore_token_ids: ignore_token_ids.into_iter().collect(),
             entries: indexes,
+            signature_words,
             sidecar_sha256: None,
         })
     }
@@ -202,7 +208,7 @@ impl PromptReplyReadout {
                 .entries
                 .iter()
                 .map(|entry| PromptReplyExample {
-                    prompt: entry.prompt.iter().copied().collect(),
+                    prompt: entry.prompt_tokens.clone(),
                     reply: entry.reply.clone(),
                 })
                 .collect(),
@@ -213,6 +219,10 @@ impl PromptReplyReadout {
 
     pub fn entries(&self) -> usize {
         self.entries.len()
+    }
+
+    pub fn signature_words(&self) -> usize {
+        self.signature_words
     }
 
     pub fn artifact_sha256(&self) -> &str {
@@ -241,18 +251,19 @@ impl PromptReplyReadout {
             .iter()
             .copied()
             .collect::<BTreeSet<_>>();
-        let query = history
-            .iter()
-            .copied()
-            .filter(|token| !ignored.contains(token))
-            .collect::<BTreeSet<_>>();
-        if query.is_empty() {
+        let mut query = vec![0u64; self.signature_words];
+        for &token in history {
+            if !ignored.contains(&token) {
+                let token = token as usize;
+                query[token / 64] |= 1u64 << (token % 64);
+            }
+        }
+        if query.iter().all(|&word| word == 0) {
             return None;
         }
         let mut best: Option<(u64, u64, usize)> = None;
         for (ordinal, entry) in self.entries.iter().enumerate() {
-            let numerator = query.intersection(&entry.prompt).count() as u64;
-            let denominator = query.union(&entry.prompt).count() as u64;
+            let (numerator, denominator) = signature_overlap(&query, &entry.prompt_signature);
             let replace = match best {
                 None => true,
                 Some((best_num, best_den, best_ordinal)) => {
@@ -281,6 +292,7 @@ fn validate_entries(
     entries: Vec<PromptReplyExample>,
     ignore_token_ids: &[u32],
     vocab: usize,
+    signature_words: usize,
 ) -> Result<Vec<PromptReplyIndex>, StackError> {
     if entries.is_empty() || entries.len() > MAX_PROMPT_REPLY_ENTRIES {
         return Err(prompt_error(format!(
@@ -320,12 +332,29 @@ fn validate_entries(
                     )));
                 }
             }
+            let mut prompt_signature = vec![0u64; signature_words];
+            for &token in &entry.prompt {
+                let token = token as usize;
+                prompt_signature[token / 64] |= 1u64 << (token % 64);
+            }
             Ok(PromptReplyIndex {
-                prompt: entry.prompt.into_iter().collect(),
+                prompt_tokens: entry.prompt,
+                prompt_signature,
                 reply: entry.reply,
             })
         })
         .collect()
+}
+
+fn signature_overlap(left: &[u64], right: &[u64]) -> (u64, u64) {
+    left.iter()
+        .zip(right)
+        .fold((0u64, 0u64), |(intersection, union), (&left, &right)| {
+            (
+                intersection + u64::from((left & right).count_ones()),
+                union + u64::from((left | right).count_ones()),
+            )
+        })
 }
 
 fn validate_ignore_ids(ids: &[u32]) -> Result<(), StackError> {
@@ -399,6 +428,25 @@ mod tests {
         assert_eq!(selection.reply, [10]);
         assert_eq!(selection.similarity_numerator, 2);
         assert_eq!(selection.similarity_denominator, 4);
+    }
+
+    #[test]
+    fn binary_signature_preserves_set_counts_and_hamming_symmetric_difference() {
+        let readout = readout(vec![example(&[3, 4], &[10])]);
+        let query = [3, 5];
+        let mut query_signature = vec![0u64; readout.signature_words()];
+        for token in query {
+            query_signature[token as usize / 64] |= 1u64 << (token as usize % 64);
+        }
+        let (intersection, union) =
+            signature_overlap(&query_signature, &readout.entries[0].prompt_signature);
+        let hamming: u32 = query_signature
+            .iter()
+            .zip(&readout.entries[0].prompt_signature)
+            .map(|(&left, &right)| (left ^ right).count_ones())
+            .sum();
+        assert_eq!((intersection, union, hamming), (1, 3, 2));
+        assert_eq!(hamming, union as u32 - intersection as u32);
     }
 
     #[test]

@@ -229,7 +229,9 @@ hashes and returns one complete training reply by exact prompt-token-set
 Jaccard ordering. A hit emits the stored reply followed by EOS; a miss or a
 response that exceeds `max_tokens`/context falls back to the normal greedy
 path. The sidecar never changes `UORLUT01`, raw `step`, `step_native` or the
-content-readout path.
+content-readout path. The loaded prompt sets are vocabulary-dimensional binary
+vectors; AND/OR popcounts compute the exact intersection and union, so ranking
+is bitwise and adds no matrix operation.
 `--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
 same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
 `/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement

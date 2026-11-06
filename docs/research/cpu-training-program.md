@@ -190,6 +190,18 @@ reply set. The next representation should test whether an artifact-bound VSA or
 vector signature can preserve the same row-level result. See
 [deepseek-207](../loop/tasks/cpu-training-pilot/deepseek-207/REPORT.md).
 
+The selector itself then moved from ordered sets to a vocabulary-dimensional
+binary VSA index. Each prompt loads as **4,096 bits** in 64 `u64` words, and
+AND/OR popcounts recover exact set intersection and union. All **471/471**
+decisions on both artifacts matched the literal-set and CPU arms, preserving
+**39** exact replies, **131** openings and **948** body positions. Across three
+alternating processes per artifact, aggregate median throughput rose from
+**9,820.55** to **46,362.99 prompts/s** (**4.72x**) with unchanged sidecar
+bytes. This validates binary set geometry in serving but still uses one-hot
+vocabulary dimensions; the open question is whether a compressed learned VSA
+signature can preserve the result. See
+[deepseek-209](../loop/tasks/cpu-training-pilot/deepseek-209/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.
