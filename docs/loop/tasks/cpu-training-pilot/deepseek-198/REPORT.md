@@ -116,6 +116,18 @@ Compact evidence: [result.json](evidence/result.json).
   fresh per-seed gates: passed;
 - all fresh repeats matched after timing removal.
 
+## Delivery
+
+PR #3755 was reviewed at exact head
+`fb670e5f78134ae66e57087ea0265378a3b23f99` with a counted
+`uor-review v1` APPROVE and all required checks green. The protected queue
+merged it as `67f7d35c902c1caa788c140243922f85ae9d043b`.
+
+Fresh `main` has identical content for all 15 changed files. The CPU package
+passed **375 tests** with four expected ignores, the compact evidence manifest
+read back clean, and all three source hashes still match the registration. The
+release record removes the completed source claim.
+
 ## Reading
 
 This is the first CPU suffix experiment in the sequence with a strong content
