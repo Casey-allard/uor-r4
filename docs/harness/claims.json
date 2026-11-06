@@ -97,13 +97,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/continuation-guard": {
-    "branch": "deepseek/continuation-guard",
-    "claimed_at": "2026-11-06T06:16:01-05:00",
-    "head": "31974240d",
-    "lab": "deepseek",
-    "note": "content-continuation-backed boundary stopping"
-  },
   "deepseek/continuation-horizon": {
     "branch": "deepseek/continuation-horizon",
     "claimed_at": "2026-11-04T16:35:38-05:00",
