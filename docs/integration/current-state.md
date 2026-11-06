@@ -1,3 +1,17 @@
+## 2026-11-06 — Continuation guard suppresses stops but breaks exact content (deepseek)
+
+A confident full-sequence continuation suppressed **23** boundary decisions on
+fresh seed 2786 and both artifacts, but exact replies fell from **17 to 14**
+while body positions stayed at **661/660**. Premature BOS moved only from
+**70/81** to **65/80**, and only **202/223** of 467 reachable replies completed.
+The shuffled guard made zero exact replies, confirming activity rather than a
+vacuous control.
+
+This is a **REJECT** for the fixed continuation-backed boundary guard.
+Confident continuation is relevant branch evidence, but extending past a
+boundary can alter correct trailing content. Record:
+[deepseek-229](../loop/tasks/cpu-training-pilot/deepseek-229/REPORT.md).
+
 ## 2026-11-06 — Top-eight branch coverage doubles endpoint stops but still fails (deepseek)
 
 Top-8 retrieved branches made **48** endpoint stops per artifact, up from 23

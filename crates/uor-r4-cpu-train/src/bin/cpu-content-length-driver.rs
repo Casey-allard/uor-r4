@@ -162,10 +162,21 @@ fn run() -> Result<(), String> {
         config.seed,
     )
     .map_err(|error| error.to_string())?;
+    let guarded_candidate = evaluate_suffix_arbitration_replies(
+        &artifact,
+        &panel.samples,
+        config.cap,
+        SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded,
+        Some(&suffix),
+        &boundary,
+        config.seed,
+    )
+    .map_err(|error| error.to_string())?;
     let candidate = match config.endpoint {
         EndpointMode::Length => &length_candidate,
         EndpointMode::AlignedRetrieved => &aligned_candidate,
         EndpointMode::TopKBranches => &branch_candidate,
+        EndpointMode::ContinuationGuard => &guarded_candidate,
     };
     let boundary_arm = evaluate_suffix_arbitration_replies(
         &artifact,
@@ -205,6 +216,16 @@ fn run() -> Result<(), String> {
         config.cap,
         SuffixArbitrationArm::DeeperFullSequence32,
         Some(&suffix),
+        &boundary,
+        config.seed,
+    )
+    .map_err(|error| error.to_string())?;
+    let shuffled_continuation_guard = evaluate_suffix_arbitration_replies(
+        &artifact,
+        &panel.samples,
+        config.cap,
+        SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded,
+        Some(&shuffled),
         &boundary,
         config.seed,
     )
@@ -312,6 +333,12 @@ fn run() -> Result<(), String> {
             &reference_branch_oracle,
             changed_retrieval_replies,
         ),
+        EndpointMode::ContinuationGuard => (
+            &shuffled_continuation_guard,
+            &local_aligned,
+            &reference_endpoint_oracle,
+            changed_targets,
+        ),
     };
 
     let comparisons = compare_arms(
@@ -345,7 +372,9 @@ fn run() -> Result<(), String> {
     let all_emitted = emitted == reachable;
     let comparison_control = match config.endpoint {
         EndpointMode::Length => "shuffled_endpoint_control",
-        EndpointMode::AlignedRetrieved | EndpointMode::TopKBranches => "shuffled_endpoint_control",
+        EndpointMode::AlignedRetrieved
+        | EndpointMode::TopKBranches
+        | EndpointMode::ContinuationGuard => "shuffled_endpoint_control",
     };
     let exact_shuffled = comparisons[comparison_control]["exact_reference"]["passes"]
         .as_bool()
@@ -357,7 +386,9 @@ fn run() -> Result<(), String> {
         EndpointMode::Length => {
             changes_from_local.changed_steps > 0 && changes_from_shuffled.changed_steps > 0
         }
-        EndpointMode::AlignedRetrieved | EndpointMode::TopKBranches => {
+        EndpointMode::AlignedRetrieved
+        | EndpointMode::TopKBranches
+        | EndpointMode::ContinuationGuard => {
             complete_rows_changed_from_boundary > 0 && complete_rows_changed_from_shuffled > 0
         }
     };
@@ -367,6 +398,7 @@ fn run() -> Result<(), String> {
         EndpointMode::AlignedRetrieved | EndpointMode::TopKBranches => {
             candidate.reading.retrieved_endpoint_complete >= 20
         }
+        EndpointMode::ContinuationGuard => candidate.reading.guarded_bos_complete >= 20,
     };
     let output = if reachable < 200 || candidate.reading.global_decisions < 100 || !endpoint_power {
         "INSUFFICIENT_POWER"
@@ -402,6 +434,8 @@ fn run() -> Result<(), String> {
         "reference_length_oracle": reference_length_oracle.reading,
         "reference_endpoint_oracle": reference_endpoint_oracle.reading,
         "reference_branch_oracle": reference_branch_oracle.reading,
+        "continuation_guarded": guarded_candidate.reading,
+        "shuffled_continuation_guarded": shuffled_continuation_guard.reading,
     });
     let report = serde_json::json!({
         "schema": "uor-r4.cpu-content-endpoint/2",
@@ -421,6 +455,7 @@ fn run() -> Result<(), String> {
                 EndpointMode::Length => "stored_length",
                 EndpointMode::AlignedRetrieved => "aligned_retrieved_with_boundary_fallback",
                 EndpointMode::TopKBranches => "top_k_branches_with_boundary_fallback",
+                EndpointMode::ContinuationGuard => "content_continuation_guarded_boundary",
             },
             "top_k": config.top_k,
             "retrieval": "raw unigram Jaccard, lower ordinal on ties",
@@ -467,6 +502,7 @@ fn run() -> Result<(), String> {
             "premature_bos": candidate.reading.premature_bos,
             "global_decisions": candidate.reading.global_decisions,
             "endpoint_completions": candidate.reading.retrieved_endpoint_complete,
+            "guarded_bos_completions": candidate.reading.guarded_bos_complete,
             "reachability_consistent": reachability_consistent,
             "exact_vs_shuffled": exact_shuffled,
             "body_candidate": candidate.reading.correct_body_positions,
@@ -605,6 +641,7 @@ enum EndpointMode {
     Length,
     AlignedRetrieved,
     TopKBranches,
+    ContinuationGuard,
 }
 
 struct Config {
@@ -650,6 +687,7 @@ fn parse_args() -> Result<Config, String> {
                     "length" => EndpointMode::Length,
                     "aligned-retrieved" => EndpointMode::AlignedRetrieved,
                     "top-k-branches" => EndpointMode::TopKBranches,
+                    "continuation-guard" => EndpointMode::ContinuationGuard,
                     _ => return Err(format!("unknown endpoint {value}\n{}", usage())),
                 }
             }
@@ -734,7 +772,7 @@ fn usage() -> String {
      --expected-train-manifest HEX --expected-panel-tokens HEX \
      --expected-panel-mask HEX --expected-panel-manifest HEX \
      --expected-artifact HEX [--cap N] [--seed N] \
-     [--endpoint length|aligned-retrieved|top-k-branches] [--top-k N]"
+     [--endpoint length|aligned-retrieved|top-k-branches|continuation-guard] [--top-k N]"
         .to_owned()
 }
 

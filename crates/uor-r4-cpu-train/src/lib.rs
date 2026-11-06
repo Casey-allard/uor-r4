@@ -230,9 +230,10 @@ pub use suffix_arbitration::{
     evaluate_suffix_arbitration_replies_with_branch_endpoint, generate_suffix_arbitration_reply,
     generate_suffix_arbitration_reply_to_length,
     generate_suffix_arbitration_reply_with_aligned_endpoint,
-    generate_suffix_arbitration_reply_with_branch_endpoint, suffix_arbitration_changes,
-    SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading,
-    SuffixArbitrationStep, TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
+    generate_suffix_arbitration_reply_with_branch_endpoint,
+    generate_suffix_arbitration_reply_with_continuation_guard, suffix_arbitration_changes,
+    SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading, SuffixArbitrationStep,
+    TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
     SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH,
 };
 pub use suffix_fallback::{

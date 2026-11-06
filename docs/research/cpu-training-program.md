@@ -297,6 +297,14 @@ exact replies. This is a **REJECT** for fixed K=8 coverage; the next signal
 must come from the generated branch itself. See
 [deepseek-227](../loop/tasks/cpu-training-pilot/deepseek-227/REPORT.md).
 
+A boundary-time confidence guard then used the content model's own
+continuation as permission to defer BOS. It suppressed **23** decisions per
+artifact, but exact replies fell from **17 to 14**, body positions stayed flat
+at **661/660**, and only **202/223** of 467 replies completed. This is a
+**REJECT** for the fixed continuation-backed boundary. Stopping must be trained
+jointly with content or over complete branches. See
+[deepseek-229](../loop/tasks/cpu-training-pilot/deepseek-229/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

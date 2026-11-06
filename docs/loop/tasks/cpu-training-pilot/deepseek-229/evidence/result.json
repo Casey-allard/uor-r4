@@ -1,0 +1,37 @@
+{
+  "schema": "uor-r4.cpu-continuation-guard-summary/1",
+  "outcome": "REJECT",
+  "base": "31974240d",
+  "implementation": "e3f09dd41",
+  "panel": {
+    "seed": 2786,
+    "reachable": 467,
+    "tokens_sha256": "614120412a4161554ebf263d79e8ad6f3126463d0745e4209dc5fb89738e2c71",
+    "mask_sha256": "0398275d4fa01eb1f321246dd7bceaba919a4cdb294caebe12db812877f437ac",
+    "manifest_sha256": "19d9629273ea423f5d39bef81740ef34c018a440ff4206359575290e1e8b773b"
+  },
+  "seeds": {
+    "1": {
+      "exact": {"candidate":14,"boundary":17,"shuffled":0,"retrieval":69},
+      "body": {"candidate":661,"boundary":661,"shuffled":426,"retrieval":1053},
+      "premature_bos": {"candidate":65,"boundary":70,"shuffled":8},
+      "guarded_bos": 202,
+      "emitted": 202,
+      "global_decisions": 2730,
+      "report_sha256": "f56b925e3c11b6264ab39e10aa51925e8191927aae7f1e159b2917a11826c3ab",
+      "repeat_identical": true
+    },
+    "2": {
+      "exact": {"candidate":14,"boundary":17,"shuffled":0,"retrieval":69},
+      "body": {"candidate":660,"boundary":660,"shuffled":426,"retrieval":1053},
+      "premature_bos": {"candidate":80,"boundary":81,"shuffled":8},
+      "guarded_bos": 223,
+      "emitted": 223,
+      "global_decisions": 2929,
+      "report_sha256": "8fb2a7c054fbbc716f501d785d7b583328fbfb47de656ffb570765a5acc84e6a",
+      "repeat_identical": true
+    }
+  },
+  "raw_sha256sums": "bfa7b6103a1ec247dacd4bfaf4f216ff07a609799ececd391f5f33dd955d9edf",
+  "outcome_reason": "The guard changed 23 boundary decisions and beat shuffled continuation, but exact replies fell from 17 to 14 on both artifacts and only 202/223 of 467 reachable replies completed."
+}

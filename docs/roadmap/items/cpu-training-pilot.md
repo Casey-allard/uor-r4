@@ -816,6 +816,12 @@ exact/body stayed at boundary **14** and **936/933**. The shuffled guard tied
 at 14 exact. This is a **REJECT** for fixed K=8 branch coverage. See
 [deepseek-227](../../loop/tasks/cpu-training-pilot/deepseek-227/REPORT.md).
 
+A generated-state continuation guard suppressed 23 boundary decisions but cut
+exact replies from 17 to 14 and left body at 661/660. Premature BOS improved
+only to 65/80, and 202/223 of 467 replies completed. This is a **REJECT** for
+the fixed continuation-backed boundary. See
+[deepseek-229](../../loop/tasks/cpu-training-pilot/deepseek-229/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

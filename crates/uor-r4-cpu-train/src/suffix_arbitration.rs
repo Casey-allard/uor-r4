@@ -29,7 +29,9 @@ pub const SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH: usize = 4;
 #[serde(rename_all = "snake_case")]
 pub enum SuffixArbitrationArm {
     DeeperFullSequence32,
+    DeeperFullSequenceContinuationGuarded,
     DeeperFullSequenceShuffled,
+    DeeperFullSequenceShuffledContinuationGuarded,
     ShallowLocalGlobal4,
     FullSequence32Only,
     LocalLongest32Boundary,
@@ -38,9 +40,11 @@ pub enum SuffixArbitrationArm {
 }
 
 impl SuffixArbitrationArm {
-    pub const EVALUATION_ARMS: [Self; 7] = [
+    pub const EVALUATION_ARMS: [Self; 9] = [
         Self::DeeperFullSequence32,
+        Self::DeeperFullSequenceContinuationGuarded,
         Self::DeeperFullSequenceShuffled,
+        Self::DeeperFullSequenceShuffledContinuationGuarded,
         Self::ShallowLocalGlobal4,
         Self::FullSequence32Only,
         Self::LocalLongest32Boundary,
@@ -51,7 +55,13 @@ impl SuffixArbitrationArm {
     pub fn name(self) -> &'static str {
         match self {
             Self::DeeperFullSequence32 => "deeper_full_sequence_32",
+            Self::DeeperFullSequenceContinuationGuarded => {
+                "deeper_full_sequence_continuation_guarded"
+            }
             Self::DeeperFullSequenceShuffled => "deeper_full_sequence_shuffled",
+            Self::DeeperFullSequenceShuffledContinuationGuarded => {
+                "deeper_full_sequence_shuffled_continuation_guarded"
+            }
             Self::ShallowLocalGlobal4 => "shallow_local_global_4",
             Self::FullSequence32Only => "full_sequence_32_only",
             Self::LocalLongest32Boundary => "local_longest_32_boundary",
@@ -87,6 +97,7 @@ pub struct SuffixArbitrationReading {
     pub reference_reachable: u64,
     pub exact_reference: u64,
     pub bos_complete: u64,
+    pub guarded_bos_complete: u64,
     pub length_complete: u64,
     pub retrieved_endpoint_complete: u64,
     pub opening_correct: u64,
@@ -133,11 +144,20 @@ pub fn generate_suffix_arbitration_reply(
     seed: u64,
     row: usize,
 ) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    let endpoint = if matches!(
+        arm,
+        SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded
+            | SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded
+    ) {
+        Endpoint::ContinuationGuardedBoundary
+    } else {
+        Endpoint::Boundary(reference_length)
+    };
     generate_suffix_arbitration_reply_with_endpoint(
         artifact,
         prompt,
         cap,
-        Endpoint::Boundary(reference_length),
+        endpoint,
         arm,
         suffix_memory,
         boundary,
@@ -164,6 +184,30 @@ pub fn generate_suffix_arbitration_reply_with_aligned_endpoint(
         prompt,
         cap,
         &branches,
+        arm,
+        suffix_memory,
+        boundary,
+        seed,
+        row,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn generate_suffix_arbitration_reply_with_continuation_guard(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    generate_suffix_arbitration_reply_with_endpoint(
+        artifact,
+        prompt,
+        cap,
+        Endpoint::ContinuationGuardedBoundary,
         arm,
         suffix_memory,
         boundary,
@@ -224,6 +268,7 @@ pub fn generate_suffix_arbitration_reply_to_length(
 #[derive(Clone, Copy)]
 enum Endpoint<'a> {
     Boundary(usize),
+    ContinuationGuardedBoundary,
     Length(usize),
     AlignedBranches(&'a [Vec<u32>]),
 }
@@ -268,6 +313,47 @@ fn generate_suffix_arbitration_reply_with_endpoint(
     let mut steps = Vec::with_capacity(cap);
 
     loop {
+        let local = matches!(
+            arm,
+            SuffixArbitrationArm::DeeperFullSequence32
+                | SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded
+                | SuffixArbitrationArm::DeeperFullSequenceShuffled
+                | SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded
+                | SuffixArbitrationArm::ShallowLocalGlobal4
+                | SuffixArbitrationArm::LocalLongest32Boundary
+                | SuffixArbitrationArm::ReferenceLengthOracle
+        )
+        .then(|| {
+            copy_key_reply_decision(
+                &stream,
+                writer_token,
+                CopyKeyReplyArm::Longest32To1,
+                seed,
+                row,
+                tokens.len(),
+            )
+        });
+        let local_depth = local.as_ref().and_then(|decision| decision.depth);
+        let global = if matches!(
+            arm,
+            SuffixArbitrationArm::DeeperFullSequence32
+                | SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded
+                | SuffixArbitrationArm::DeeperFullSequenceShuffled
+                | SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded
+                | SuffixArbitrationArm::ShallowLocalGlobal4
+                | SuffixArbitrationArm::FullSequence32Only
+        ) {
+            suffix_memory
+                .ok_or_else(|| invalid("suffix-arbitration arm has no table"))?
+                .predict_confident(
+                    &stream,
+                    SUFFIX_MEMORY_MAX_DEPTH,
+                    SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
+                )
+        } else {
+            None
+        };
+
         let suppress_boundary = match endpoint {
             Endpoint::Length(length) => {
                 if length == 0 || length > cap {
@@ -309,7 +395,7 @@ fn generate_suffix_arbitration_reply_with_endpoint(
                 }
                 extends
             }
-            Endpoint::Boundary(_) => false,
+            Endpoint::Boundary(_) | Endpoint::ContinuationGuardedBoundary => false,
         };
         if !suppress_boundary {
             let boundary_hit = match endpoint {
@@ -325,75 +411,46 @@ fn generate_suffix_arbitration_reply_with_endpoint(
                         },
                     )
                 }
-                Endpoint::Boundary(_) | Endpoint::AlignedBranches(_) => {
-                    boundary.stop_decision(&tokens)
-                }
+                Endpoint::Boundary(_)
+                | Endpoint::ContinuationGuardedBoundary
+                | Endpoint::AlignedBranches(_) => boundary.stop_decision(&tokens),
             };
             if let Some(hit) = boundary_hit {
-                steps.push(SuffixArbitrationStep {
-                    row,
-                    generated_step: tokens.len(),
-                    writer_token,
-                    local_token: None,
-                    global_token: None,
-                    selected_token: POINT_KEY_BOS,
-                    used_global: false,
-                    local_copy_depth: None,
-                    global_depth: None,
-                    global_observations: 0,
-                    global_successor_count: 0,
-                    global_distinct_targets: 0,
-                    boundary_depth: Some(hit.depth),
-                    boundary_terminal: hit.terminal,
-                    boundary_nonterminal: hit.nonterminal,
-                });
-                return Ok((
-                    GeneratedReply {
-                        tokens,
-                        stop: "bos",
-                    },
-                    steps,
-                ));
+                let guarded = matches!(endpoint, Endpoint::ContinuationGuardedBoundary);
+                let continuation = guarded
+                    && global
+                        .is_some_and(|prediction| local_depth.is_none_or(|d| prediction.depth > d));
+                if continuation {
+                    // A confident deeper generated continuation is evidence
+                    // that the boundary hit is premature.
+                } else {
+                    steps.push(SuffixArbitrationStep {
+                        row,
+                        generated_step: tokens.len(),
+                        writer_token,
+                        local_token: None,
+                        global_token: None,
+                        selected_token: POINT_KEY_BOS,
+                        used_global: false,
+                        local_copy_depth: None,
+                        global_depth: None,
+                        global_observations: 0,
+                        global_successor_count: 0,
+                        global_distinct_targets: 0,
+                        boundary_depth: Some(hit.depth),
+                        boundary_terminal: hit.terminal,
+                        boundary_nonterminal: hit.nonterminal,
+                    });
+                    return Ok((
+                        GeneratedReply {
+                            tokens,
+                            stop: if guarded { "guarded_bos" } else { "bos" },
+                        },
+                        steps,
+                    ));
+                }
             }
         }
-
-        let local = matches!(
-            arm,
-            SuffixArbitrationArm::DeeperFullSequence32
-                | SuffixArbitrationArm::DeeperFullSequenceShuffled
-                | SuffixArbitrationArm::ShallowLocalGlobal4
-                | SuffixArbitrationArm::LocalLongest32Boundary
-                | SuffixArbitrationArm::ReferenceLengthOracle
-        )
-        .then(|| {
-            copy_key_reply_decision(
-                &stream,
-                writer_token,
-                CopyKeyReplyArm::Longest32To1,
-                seed,
-                row,
-                tokens.len(),
-            )
-        });
-        let local_depth = local.as_ref().and_then(|decision| decision.depth);
-
-        let global = if matches!(
-            arm,
-            SuffixArbitrationArm::DeeperFullSequence32
-                | SuffixArbitrationArm::DeeperFullSequenceShuffled
-                | SuffixArbitrationArm::ShallowLocalGlobal4
-                | SuffixArbitrationArm::FullSequence32Only
-        ) {
-            suffix_memory
-                .ok_or_else(|| invalid("suffix-arbitration arm has no table"))?
-                .predict_confident(
-                    &stream,
-                    SUFFIX_MEMORY_MAX_DEPTH,
-                    SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
-                )
-        } else {
-            None
-        };
 
         let (selected_token, used_global) = choose_token(arm, local.as_ref(), global, writer_token);
 
@@ -449,7 +506,9 @@ fn choose_token(
     let use_global = match (arm, global) {
         (
             SuffixArbitrationArm::DeeperFullSequence32
-            | SuffixArbitrationArm::DeeperFullSequenceShuffled,
+            | SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded
+            | SuffixArbitrationArm::DeeperFullSequenceShuffled
+            | SuffixArbitrationArm::DeeperFullSequenceShuffledContinuationGuarded,
             Some(global),
         ) => local_depth.is_none_or(|depth| global.depth > depth),
         (SuffixArbitrationArm::ShallowLocalGlobal4, Some(_)) => {
@@ -518,8 +577,9 @@ pub fn evaluate_suffix_arbitration_replies(
                 .zip(&reference)
                 .filter(|(generated, reference)| generated == reference)
                 .count() as u64;
-            let premature_bos = generated.stop == "bos" && generated.tokens.len() < reference.len();
-            let non_premature_bos = generated.stop == "bos" && !premature_bos;
+            let premature_bos =
+                is_bos_stop(&generated.stop) && generated.tokens.len() < reference.len();
+            let non_premature_bos = is_bos_stop(&generated.stop) && !premature_bos;
             let local_decisions = steps
                 .iter()
                 .filter(|step| {
@@ -532,7 +592,7 @@ pub fn evaluate_suffix_arbitration_replies(
                 row,
                 reachable,
                 exact_reference: generated.tokens == reference,
-                bos_complete: generated.stop == "bos",
+                bos_complete: is_bos_stop(&generated.stop),
                 opening_correct,
                 premature_bos,
                 non_premature_bos,
@@ -618,8 +678,9 @@ pub fn evaluate_suffix_arbitration_replies_to_length(
                 .zip(&reference)
                 .filter(|(generated, reference)| generated == reference)
                 .count() as u64;
-            let premature_bos = generated.stop == "bos" && generated.tokens.len() < reference.len();
-            let non_premature_bos = generated.stop == "bos" && !premature_bos;
+            let premature_bos =
+                is_bos_stop(&generated.stop) && generated.tokens.len() < reference.len();
+            let non_premature_bos = is_bos_stop(&generated.stop) && !premature_bos;
             let local_decisions = steps
                 .iter()
                 .filter(|step| !step.used_global && step.local_copy_depth.is_some())
@@ -628,7 +689,7 @@ pub fn evaluate_suffix_arbitration_replies_to_length(
                 row,
                 reachable,
                 exact_reference: generated.tokens == reference,
-                bos_complete: generated.stop == "bos",
+                bos_complete: is_bos_stop(&generated.stop),
                 opening_correct,
                 premature_bos,
                 non_premature_bos,
@@ -751,8 +812,9 @@ pub fn evaluate_suffix_arbitration_replies_with_branch_endpoint(
                 .zip(&reference)
                 .filter(|(generated, reference)| generated == reference)
                 .count() as u64;
-            let premature_bos = generated.stop == "bos" && generated.tokens.len() < reference.len();
-            let non_premature_bos = generated.stop == "bos" && !premature_bos;
+            let premature_bos =
+                is_bos_stop(&generated.stop) && generated.tokens.len() < reference.len();
+            let non_premature_bos = is_bos_stop(&generated.stop) && !premature_bos;
             let local_decisions = steps
                 .iter()
                 .filter(|step| !step.used_global && step.local_copy_depth.is_some())
@@ -761,7 +823,7 @@ pub fn evaluate_suffix_arbitration_replies_with_branch_endpoint(
                 row,
                 reachable,
                 exact_reference: generated.tokens == reference,
-                bos_complete: generated.stop == "bos",
+                bos_complete: is_bos_stop(&generated.stop),
                 opening_correct,
                 premature_bos,
                 non_premature_bos,
@@ -864,6 +926,7 @@ fn summarize(
         reference_reachable: 0,
         exact_reference: 0,
         bos_complete: 0,
+        guarded_bos_complete: 0,
         length_complete: 0,
         retrieved_endpoint_complete: 0,
         opening_correct: 0,
@@ -882,6 +945,7 @@ fn summarize(
         reading.reference_reachable += u64::from(row.reachable);
         reading.exact_reference += u64::from(row.reachable && row.exact_reference);
         reading.bos_complete += u64::from(row.reachable && row.bos_complete);
+        reading.guarded_bos_complete += u64::from(row.reachable && row.stop == "guarded_bos");
         reading.length_complete += u64::from(row.reachable && row.stop == "length");
         reading.retrieved_endpoint_complete +=
             u64::from(row.reachable && row.stop == "retrieved_endpoint");
@@ -918,6 +982,10 @@ fn summarize(
 fn checked_add(left: u64, right: u64) -> Result<u64> {
     left.checked_add(right)
         .ok_or_else(|| invalid("suffix-arbitration counter overflows"))
+}
+
+fn is_bos_stop(stop: &str) -> bool {
+    stop == "bos" || stop == "guarded_bos"
 }
 
 fn reference_reachable(
@@ -1261,5 +1329,41 @@ mod tests {
         assert_eq!(reading.reading.retrieved_endpoint_complete, 1);
         assert_eq!(reading.reading.exact_reference, 1);
         assert_eq!(reading.rows[0].stop, "retrieved_endpoint");
+    }
+
+    #[test]
+    fn confident_content_continuation_suppresses_a_premature_boundary() {
+        let training = [
+            sample(&[9], &[40, 10, 20, 30, 1]),
+            sample(&[9], &[40, 10, 20, 30, 1]),
+            sample(&[9], &[40, 10, 20, 30, 1]),
+            sample(&[9], &[41, 11, 21, 31, 1]),
+        ];
+        let table = derive_full_sequence_suffix_content_memory(&training).unwrap();
+        let evaluation = [sample(&[9], &[40, 10, 20, 30, 1])];
+        let baseline = evaluate_suffix_arbitration_replies(
+            &artifact(),
+            &evaluation,
+            16,
+            SuffixArbitrationArm::DeeperFullSequence32,
+            Some(&table),
+            &boundary(),
+            229,
+        )
+        .unwrap();
+        assert_eq!(baseline.reading.exact_reference, 1);
+        let guarded = evaluate_suffix_arbitration_replies(
+            &artifact(),
+            &evaluation,
+            16,
+            SuffixArbitrationArm::DeeperFullSequenceContinuationGuarded,
+            Some(&table),
+            &boundary(),
+            229,
+        )
+        .unwrap();
+        assert_eq!(guarded.reading.guarded_bos_complete, 1);
+        assert_eq!(guarded.reading.premature_bos, 0);
+        assert_eq!(guarded.reading.exact_reference, 1);
     }
 }
