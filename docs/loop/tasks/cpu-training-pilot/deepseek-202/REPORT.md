@@ -129,11 +129,19 @@ permutation over the same exact history would repeat this closed configuration.
 - both fresh-process repeats matched after timing removal;
 - failure-path compression and retained-size enforcement: passed;
 - final result seal: valid.
+- final exact-head review: **APPROVE** at `42536cb25`;
+- all required PR checks: pass.
 
 ## Delivery
 
-Pending exact-head review, protected merge, fresh-main verification and claim
-release.
+PR #3759 was reviewed at exact head
+`42536cb25443336e1cd7b057486be262da62acf3` with a counted
+`uor-review v1` APPROVE and all required checks green. The protected queue
+merged it as `d2313599a94f84e57e40d2fa9c72d1cf38d07fb7`.
+
+Fresh `main` has identical content for all 14 changed files. The CPU package
+passed **389 tests** with four expected ignores, source and compact evidence
+hashes match the registration, and the pre-registration is complete.
 
 ## Skills used
 
