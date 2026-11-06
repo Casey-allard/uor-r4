@@ -177,6 +177,19 @@ is to turn the token-set index into an artifact-bound discrete sidecar and test
 whether geometric or VSA signatures can preserve the gain. See
 [deepseek-204](../loop/tasks/cpu-training-pilot/deepseek-204/REPORT.md).
 
+The positive result is now available at the local serving boundary as a strict
+discrete sidecar. `uor-r4.stack-prompt-reply-readout/1` binds the exact
+artifact, tokenizer, dialogue protocol and control ids. On both public
+artifacts it matched all **471/471** CPU selections by source ordinal and reply
+SHA, preserving **39** exact replies, **131** openings and **948** body
+positions with no `UORLUT01` change. The loopback path emits the full stored
+reply with EOS and falls back to ordinary greedy generation when the response
+does not fit. Selection throughput was approximately **9.8k-10.1k prompts/s**.
+This is serving-contract evidence, not generation beyond the learned TRAIN
+reply set. The next representation should test whether an artifact-bound VSA or
+vector signature can preserve the same row-level result. See
+[deepseek-207](../loop/tasks/cpu-training-pilot/deepseek-207/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

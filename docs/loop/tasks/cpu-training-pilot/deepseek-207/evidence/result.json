@@ -1,0 +1,114 @@
+{
+  "schema": "uor-r4.cpu-prompt-reply-serving-result/1",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "implementation": "ab6afb9208bacebcf5cf5f178976494b302507e8",
+  "seed1": {
+    "reading": {
+      "correct_body_positions": 948,
+      "emitted": 471,
+      "exact_reference": 39,
+      "generated_tokens": 4960,
+      "opening_correct": 131,
+      "premature_bos": 0,
+      "reference_reachable": 471,
+      "reference_tokens": 4702,
+      "replies": 471
+    },
+    "cpu_arm": {
+      "arm": "unigram_jaccard_ordinal_tie",
+      "bos_complete": 471,
+      "correct_body_positions": 948,
+      "distinct_selected_replies": 126,
+      "emitted_replies": 471,
+      "exact_reference": 39,
+      "generated_tokens": 4960,
+      "geometry_ties": 0,
+      "opening_correct": 131,
+      "premature_bos": 0,
+      "reference_reachable": 471,
+      "reference_tokens": 4702,
+      "replies": 471
+    },
+    "decision_sha256": "a142efc85caae824c088441ff654e3c78ad828c6aab408ff1fb22d46d4fd558c",
+    "prompts_per_second": 9818.636647904941,
+    "repeat_exact": true,
+    "sidecar_sha256": "2a298b44ea34d1a8e2d40191951d3da9b3300e2ac7de65e6c2ec13950a0b6424",
+    "sidecar_bytes": 62846,
+    "panel": {
+      "manifest_sha256": "e19cae91843c8d6db15a5862aac911bcd7bf538b2fa62b927d6b9be1ead147e0",
+      "mask_sha256": "ba97d44e56d690b4d0f39ded6469afc5b6a1ee5f25cc1f0822e9762812995bec",
+      "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/prompt-retrieval/2026-11-05/panels/dd-2777",
+      "tokens_sha256": "13146ad6c1869524d4121b0c016f9548e8c28289390b07e106ec8563a7b1b2b6"
+    },
+    "train": {
+      "manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+      "mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+      "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711",
+      "tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91"
+    }
+  },
+  "seed2": {
+    "reading": {
+      "correct_body_positions": 948,
+      "emitted": 471,
+      "exact_reference": 39,
+      "generated_tokens": 4960,
+      "opening_correct": 131,
+      "premature_bos": 0,
+      "reference_reachable": 471,
+      "reference_tokens": 4702,
+      "replies": 471
+    },
+    "cpu_arm": {
+      "arm": "unigram_jaccard_ordinal_tie",
+      "bos_complete": 471,
+      "correct_body_positions": 948,
+      "distinct_selected_replies": 126,
+      "emitted_replies": 471,
+      "exact_reference": 39,
+      "generated_tokens": 4960,
+      "geometry_ties": 0,
+      "opening_correct": 131,
+      "premature_bos": 0,
+      "reference_reachable": 471,
+      "reference_tokens": 4702,
+      "replies": 471
+    },
+    "decision_sha256": "a142efc85caae824c088441ff654e3c78ad828c6aab408ff1fb22d46d4fd558c",
+    "prompts_per_second": 10061.952574236275,
+    "repeat_exact": true,
+    "sidecar_sha256": "6504dcb047ce7157dd5e968c29441505cf48d993f01ec63222125634c61963b7",
+    "sidecar_bytes": 62846,
+    "panel": {
+      "manifest_sha256": "e19cae91843c8d6db15a5862aac911bcd7bf538b2fa62b927d6b9be1ead147e0",
+      "mask_sha256": "ba97d44e56d690b4d0f39ded6469afc5b6a1ee5f25cc1f0822e9762812995bec",
+      "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/prompt-retrieval/2026-11-05/panels/dd-2777",
+      "tokens_sha256": "13146ad6c1869524d4121b0c016f9548e8c28289390b07e106ec8563a7b1b2b6"
+    },
+    "train": {
+      "manifest_sha256": "d570caedbb628167c59b96b14746863b99998c2f67289d1deca16dbebd402ba5",
+      "mask_sha256": "d0aaa2b1007e62098ab943187f25e13bddbaed3508dce881a176c2827052c0ad",
+      "path": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/copy-key-longest-reply/2026-11-05-attempt-2/panels/tt-2711",
+      "tokens_sha256": "140cf50d638d6066aec0a31345183712b6fc5d95502384223b91af9504b48f91"
+    }
+  },
+  "artifact_invariant_decision_sha256": true,
+  "api_tests": 19,
+  "library_tests": 473,
+  "ignored_library_tests": 1,
+  "cpu_library_tests": 394,
+  "ignored_cpu_library_tests": 4,
+  "binary_sha256": {
+    "sidecar_builder": "f8ab1cf1829fa998574c1251afd1e28a20c7d0a93bd98fc7a718be046ce42d56",
+    "serving_check": "0a0bf46c1d6235afffd300c353bcee4fd773b3cf9abd3145e464bb3517b18c12"
+  },
+  "retained_evidence_bytes": 376443,
+  "sealed_sha256sums": "581d7590feae3fee30e3009b0a400bf4b72efda1e803c25ed548d94cd19c6cfc",
+  "superseded_attempts": [
+    "2026-11-05",
+    "2026-11-05-attempt-2",
+    "2026-11-05-attempt-3"
+  ],
+  "outcome": "KEEP"
+}

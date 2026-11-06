@@ -1,3 +1,18 @@
+## 2026-11-06 — Prompt-set retrieval reaches loopback serving (deepseek)
+
+The deepseek-204 prompt-set completion result is now a strict
+`uor-r4.stack-prompt-reply-readout/1` sidecar. It binds the artifact,
+tokenizer, dialogue protocol and ignored control ids, then returns one complete
+training reply through `uor-chat --serve --prompt-reply`.
+
+On both artifacts, all **471/471** panel selections matched the CPU arm by
+source ordinal and reply SHA. The served result retained **39** exact replies,
+**131** correct openings, **948** body positions and zero premature BOS.
+Selection throughput was about **9.8k-10.1k prompts/s**. Oversized responses
+fall back to ordinary greedy model generation. The result remains exact-memory
+serving, not fresh response generation. Record:
+[deepseek-207](../loop/tasks/cpu-training-pilot/deepseek-207/REPORT.md).
+
 ## 2026-11-05 — Prompt-set retrieval clears the CPU completion bar (deepseek)
 
 The completion object changed from a generated token trajectory to one complete

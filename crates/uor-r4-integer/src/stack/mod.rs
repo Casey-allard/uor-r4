@@ -60,6 +60,7 @@ mod hamming;
 pub(crate) mod kernels;
 mod memory;
 mod point_key;
+mod prompt_reply;
 mod session;
 #[cfg(feature = "serving-wasm")]
 pub mod simd;
@@ -88,13 +89,12 @@ pub use flock::{
 pub use format::{add_point_key_uorlut01, StackPointKey, POINT_KEY_EXP, STACK_FBS_POINT_SCHEMA};
 pub use format::{
     decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry,
-    export_fbs_trunk_uorlut01_with,
-    export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps, FbsQuatMode, FbsReferenceSnaps,
-    FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot, FbsWriterOutput, Fixed,
-    FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot,
-    StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap,
-    GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA, STACK_FBS_SCHEMA,
-    STACK_POINTER_SCHEMA, STACK_READ_SCHEMA, STACK_SCHEMA,
+    export_fbs_trunk_uorlut01_with, export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps,
+    FbsQuatMode, FbsReferenceSnaps, FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot,
+    FbsWriterOutput, Fixed, FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence,
+    FloatTrunkSnapshot, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,
+    StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA,
+    STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA, STACK_SCHEMA,
 };
 pub use format::{
     FbsHammingRead, FbsHammingSnapshot, StackHamming, HAMMING_KEPT, HAMMING_MARGIN_EXP,
@@ -114,6 +114,11 @@ pub use memory::{read_memory_uorlut01, MemoryImage, MemoryTableImage};
 pub use point_key::{
     build_point_key, check_point_key_read_back, panel_reply, point_key_windows, reply_stop,
     PanelReply, PointKeyImage, PointKeyWindow, ReplyEnd, POINT_KEY_BOS, POINT_KEY_WINDOW,
+};
+pub use prompt_reply::{
+    PromptReplyExample, PromptReplyReadout, PromptReplySelection, MAX_PROMPT_REPLY_ENTRIES,
+    MAX_PROMPT_REPLY_PROMPT_TOKENS, MAX_PROMPT_REPLY_REPLY_TOKENS, MAX_PROMPT_REPLY_SIDECAR_BYTES,
+    STACK_PROMPT_REPLY_SCHEMA,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use session::verify_step_objdump_zero_mul_zero_float;
@@ -205,6 +210,8 @@ pub enum StackError {
     Threads(String),
     /// A serving content-readout sidecar is malformed, foreign or unsafe.
     ContentReadout(String),
+    /// A prompt-reply retrieval sidecar is malformed, foreign or unsafe.
+    PromptReply(String),
 }
 
 impl fmt::Display for StackError {
@@ -280,6 +287,7 @@ impl fmt::Display for StackError {
             ),
             Self::Threads(reason) => write!(f, "stack engine threads: {reason}"),
             Self::ContentReadout(reason) => write!(f, "stack content readout: {reason}"),
+            Self::PromptReply(reason) => write!(f, "stack prompt reply: {reason}"),
         }
     }
 }

@@ -1,5 +1,4 @@
 use serde_json::{json, Value};
-#[cfg(feature = "fbs-synthetic")]
 use sha2::{Digest, Sha256};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -15,6 +14,7 @@ use uor_r4_integer::stack::{
     STACK_CONTENT_READOUT_SCHEMA,
 };
 use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackStop};
+use uor_r4_integer::stack::{PromptReplyExample, PromptReplyReadout};
 use uor_r4_tokenizer::dialogue::Message;
 use uor_r4_vision::{decompose_rgba, Grid};
 
@@ -223,6 +223,66 @@ fn tokenizer_json_with_vocab(vocab_size: usize) -> Vec<u8> {
 fn serving() -> OpenAiServing {
     let model = IntegerStackModel::parse(&artifact(5)).unwrap();
     OpenAiServing::new(model, tokenizer_json(), 2).unwrap()
+}
+
+fn serving_with_prompt_reply() -> (OpenAiServing, String, String) {
+    let model = IntegerStackModel::parse(&artifact(5)).unwrap();
+    let tokenizer_json = tokenizer_json();
+    let chat = StackChat::from_tokenizer_json(&model, &tokenizer_json, 2).unwrap();
+    let encoded = chat
+        .protocol()
+        .bind(chat.tokenizer())
+        .unwrap()
+        .encode_assistant_prefix(&[Message {
+            role: "user",
+            content: "Hi",
+        }]);
+    let ignored = vec![
+        chat.protocol().bos_id,
+        chat.protocol().eos_id,
+        chat.protocol().unk_id,
+    ];
+    let prompt = encoded
+        .tokens
+        .iter()
+        .copied()
+        .filter(|token| !ignored.contains(token))
+        .collect::<Vec<_>>();
+    let tokenizer_sha256 = hex::encode(Sha256::digest(&tokenizer_json));
+    let readout = PromptReplyReadout::from_entries(
+        model.artifact_sha256(),
+        tokenizer_sha256,
+        2,
+        ignored,
+        vec![PromptReplyExample {
+            prompt,
+            reply: vec![3, 4, 5],
+        }],
+        model.shape().vocab,
+    )
+    .unwrap();
+    let sidecar = readout.to_sidecar_bytes().unwrap();
+    let sha256 = hex::encode(Sha256::digest(&sidecar));
+    let path = std::env::temp_dir().join(format!(
+        "uor-openai-prompt-reply-{}.json",
+        std::process::id()
+    ));
+    std::fs::write(&path, &sidecar).unwrap();
+    let loaded = PromptReplyReadout::from_sidecar(
+        &sidecar,
+        model.artifact_sha256(),
+        readout.tokenizer_sha256(),
+        2,
+        &[0, 1, 2],
+        model.shape().vocab,
+    )
+    .unwrap();
+    let path_string = path.to_str().unwrap().to_owned();
+    let serving = OpenAiServing::new(model, tokenizer_json, 2)
+        .unwrap()
+        .with_prompt_reply_readout(loaded, path_string.clone(), sha256.clone())
+        .unwrap();
+    (serving, path_string, sha256)
 }
 
 fn serving_with_context(context: usize) -> OpenAiServing {
@@ -598,6 +658,47 @@ fn models_health_and_json_generation_routes() {
     );
     assert_usage(&response);
     server.shutdown().unwrap();
+}
+
+#[test]
+fn prompt_reply_readout_returns_a_complete_response_and_falls_back_on_cap() {
+    let (serving, path, sha256) = serving_with_prompt_reply();
+    let health = serving.health_json();
+    assert_eq!(health["prompt_reply_readout"].as_str(), Some(path.as_str()));
+    assert_eq!(
+        health["prompt_reply_readout_sha256"].as_str(),
+        Some(sha256.as_str())
+    );
+
+    let messages = [Message {
+        role: "user",
+        content: "Hi",
+    }];
+    let mut emitted = Vec::new();
+    let outcome = serving
+        .generate(&messages, 8, |id, bytes| {
+            emitted.push((id, bytes.to_vec()));
+            Ok(())
+        })
+        .unwrap();
+    assert!(outcome.uor.prompt_reply_fired);
+    assert_eq!(outcome.uor.prompt_reply_ordinal, Some(0));
+    assert_eq!(&outcome.reply.ids[..3], &[3, 4, 5]);
+    assert_eq!(outcome.reply.ids.last(), Some(&1));
+    assert_eq!(outcome.reply.stop, StackStop::Eos);
+    assert_eq!(
+        emitted.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        outcome.reply.ids
+    );
+    let response = serving.response_json(GenerationFamily::Chat, &outcome);
+    assert_eq!(response["uor"]["prompt_reply_fired"], true);
+    assert_eq!(response["uor"]["prompt_reply_ordinal"], 0);
+    assert_eq!(response["prompt_reply_readout"], path);
+    assert_eq!(response["prompt_reply_readout_sha256"], sha256);
+
+    let fallback = serving.generate(&messages, 3, |_, _| Ok(())).unwrap();
+    assert!(!fallback.uor.prompt_reply_fired);
+    assert_eq!(fallback.uor.prompt_reply_ordinal, None);
 }
 
 #[test]

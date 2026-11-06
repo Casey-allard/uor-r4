@@ -209,7 +209,7 @@ learned-model execution, spawned CLI exit-status test or chat-quality claim.
 
 `uor-chat` serves three different containers, and they hold different models. `--bundle <PATH>` loads
 the sealed recurrent bundle described above. `--stack <model.lut> --tokenizer <TOKENIZER.json>
-[--content-readout <SIDECAR>] [--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
+[--content-readout <SIDECAR>] [--prompt-reply <SIDECAR>] [--protocol 1|2] [--threads N] [--say TEXT] [--max-tokens N]` instead serves a `UORLUT01` geometric
 stack artifact directly, through `stack::IntegerStackModel` under the literal-role protocol
 (`stack::StackChat`; default version 2, the pinned corpus encoding; version 1 remains selectable for
 old artifacts): the engine's integers and the float stack's stop rules, greedy `stack_argmax`
@@ -223,6 +223,13 @@ radius. Raw `step` and `step_native` remain unchanged. The one-shot, REPL, promp
 loopback paths all use the attached model. Session snapshots written with a readout use the
 `UR4SESS2` codec and bind its canonical hash; restore refuses a missing or different readout before
 changing state. Legacy `UR4SESS1` bytes remain unchanged when no readout is attached.
+`--prompt-reply` attaches an `uor-r4.stack-prompt-reply-readout/1` sidecar on
+the loopback serving path. The sidecar binds the exact artifact and tokenizer
+hashes and returns one complete training reply by exact prompt-token-set
+Jaccard ordering. A hit emits the stored reply followed by EOS; a miss or a
+response that exceeds `max_tokens`/context falls back to the normal greedy
+path. The sidecar never changes `UORLUT01`, raw `step`, `step_native` or the
+content-readout path.
 `--memory <VALUE>` adds one `System: Memory: <VALUE>.` turn before the next assistant reply, using the
 same literal-role encoder as training. In the REPL, `/memory <VALUE>` queues the same one-turn line,
 `/memory` displays it and `/memory clear` removes it. The value is explicit in this unit; statement

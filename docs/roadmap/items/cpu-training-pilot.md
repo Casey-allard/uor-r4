@@ -704,6 +704,19 @@ artifact-bound discrete/VSA signature for literal token-set overlap, and
 response generation beyond the learned TRAIN reply set. See
 [deepseek-204](../../loop/tasks/cpu-training-pilot/deepseek-204/REPORT.md).
 
+The next unit made that exact-memory completion available at the loopback
+boundary. A strict `uor-r4.stack-prompt-reply-readout/1` sidecar binds the
+artifact, tokenizer, protocol and ignored control ids; `uor-chat --serve
+--prompt-reply` emits a complete stored reply with EOS or falls back to greedy
+generation when it cannot fit. Both artifacts matched all **471/471** CPU
+selections by source ordinal and reply SHA, retaining **39** exact replies,
+**131** openings, **948** body positions and zero premature BOS. Selection ran
+at approximately **9.8k-10.1k prompts/s**, sidecars were **62,846** bytes, and
+`UORLUT01` was unchanged. This is a **KEEP** for exact-memory serving. Remaining
+work is an artifact-bound VSA/vector prompt signature and generation beyond
+the learned TRAIN reply set. See
+[deepseek-207](../../loop/tasks/cpu-training-pilot/deepseek-207/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

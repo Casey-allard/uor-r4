@@ -1,6 +1,7 @@
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -9,8 +10,8 @@ use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_vision::{parse_canonical, Decomposition};
 
 use crate::stack::{
-    stack_schema_for, IntegerStackModel, StackChat, StackChatError, StackError, StackReply,
-    StackStop,
+    stack_schema_for, IntegerStackModel, PromptReplyReadout, StackChat, StackChatError, StackError,
+    StackReply, StackStop,
 };
 
 const IMAGE_CONTENT_SCHEMA: &str = "uor-r4.image-decomposition/1";
@@ -192,6 +193,8 @@ pub struct UorMetrics {
     pub completion_ids: Vec<u32>,
     pub tokens_per_second_milli: Option<u64>,
     pub stop: String,
+    pub prompt_reply_fired: bool,
+    pub prompt_reply_ordinal: Option<usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -222,12 +225,20 @@ pub struct OpenAiServing {
     tokenizer_json: Vec<u8>,
     protocol_version: u8,
     content_readout_identity: Option<ContentReadoutIdentity>,
+    prompt_reply: Option<Box<PromptReplyReadout>>,
+    prompt_reply_identity: Option<PromptReplyIdentity>,
     busy: AtomicBool,
     images: Mutex<VecDeque<IssuedImage>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ContentReadoutIdentity {
+    pub path: String,
+    pub sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PromptReplyIdentity {
     pub path: String,
     pub sha256: String,
 }
@@ -309,6 +320,8 @@ impl OpenAiServing {
             tokenizer_json,
             protocol_version,
             content_readout_identity: None,
+            prompt_reply: None,
+            prompt_reply_identity: None,
             busy: AtomicBool::new(false),
             images: Mutex::new(VecDeque::new()),
         })
@@ -339,6 +352,45 @@ impl OpenAiServing {
             .into());
         }
         self.content_readout_identity = Some(ContentReadoutIdentity { path, sha256 });
+        Ok(self)
+    }
+
+    pub fn with_prompt_reply_readout(
+        mut self,
+        readout: PromptReplyReadout,
+        path: impl Into<String>,
+        sha256: impl Into<String>,
+    ) -> Result<Self, StackChatError> {
+        let (path, sha256) = (path.into(), sha256.into());
+        if readout.artifact_sha256() != self.model.artifact_sha256() {
+            return Err(StackError::PromptReply(
+                "prompt-reply readout does not bind the loaded artifact".to_owned(),
+            )
+            .into());
+        }
+        let tokenizer_sha256 = hex::encode(Sha256::digest(&self.tokenizer_json));
+        if readout.tokenizer_sha256() != tokenizer_sha256
+            || readout.protocol_version() != self.protocol_version
+        {
+            return Err(StackError::PromptReply(
+                "prompt-reply readout does not bind the loaded tokenizer and protocol".to_owned(),
+            )
+            .into());
+        }
+        if path.is_empty()
+            || sha256.len() != 64
+            || !sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || readout.sidecar_sha256() != Some(sha256.as_str())
+        {
+            return Err(StackError::PromptReply(
+                "loopback prompt-reply identity is not a path plus the sidecar SHA-256".to_owned(),
+            )
+            .into());
+        }
+        self.prompt_reply = Some(Box::new(readout));
+        self.prompt_reply_identity = Some(PromptReplyIdentity { path, sha256 });
         Ok(self)
     }
 
@@ -392,6 +444,8 @@ impl OpenAiServing {
             "artifact_sha256": self.model.artifact_sha256(),
             "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
             "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+            "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256),
             "inflight_limit": 1
         })
     }
@@ -405,7 +459,9 @@ impl OpenAiServing {
             "artifact_sha256": self.model.artifact_sha256(),
             "artifact_schema": stack_schema_for(self.model.shape()),
             "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+            "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
         })
     }
 
@@ -420,6 +476,8 @@ impl OpenAiServing {
             "artifact_schema": stack_schema_for(self.model.shape()),
             "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
             "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+            "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256),
             "context": self.model.shape().context,
             "decoding": "greedy",
             "inflight_limit": 1,
@@ -710,15 +768,53 @@ impl OpenAiServing {
             .with_param("messages"));
         }
         let prompt_tokens = encoded.tokens.len();
-        let reply = chat.reply_history_with(&encoded.tokens, max_tokens, |id, bytes| {
-            if first_token_ns.is_none() {
-                first_token_ns = Some(nanos(started.elapsed()));
-            }
-            emit(id, bytes).map_err(|error| {
-                emitted_error = Some(error);
-                StackChatError::Protocol("OpenAI emission aborted".into())
-            })
+        let mut prompt_reply_fired = false;
+        let mut prompt_reply_ordinal = None;
+        let retrieved = self.prompt_reply.as_deref().and_then(|readout| {
+            let selection = readout.select(&encoded.tokens)?;
+            let response_tokens = selection.reply.len().checked_add(1)?;
+            (response_tokens <= max_tokens
+                && encoded
+                    .tokens
+                    .len()
+                    .checked_add(response_tokens)
+                    .is_some_and(|total| total <= self.model.shape().context))
+            .then_some(selection)
         });
+        let reply = if let Some(selection) = retrieved {
+            prompt_reply_fired = true;
+            prompt_reply_ordinal = Some(selection.prompt_ordinal);
+            let mut ids = selection.reply;
+            ids.push(chat.protocol().eos_id);
+            for &id in &ids {
+                if first_token_ns.is_none() {
+                    first_token_ns = Some(nanos(started.elapsed()));
+                }
+                let bytes = chat.tokenizer().decode_bytes(&[id]);
+                emit(id, &bytes)?;
+            }
+            let words = ids
+                .iter()
+                .copied()
+                .filter(|&id| id != chat.protocol().eos_id)
+                .collect::<Vec<_>>();
+            let decoded = chat.tokenizer().decode(&words);
+            Ok(StackReply {
+                ids,
+                text: chat.protocol().reply_text(&decoded).to_owned(),
+                stop: StackStop::Eos,
+            })
+        } else {
+            chat.reply_history_with(&encoded.tokens, max_tokens, |id, bytes| {
+                if first_token_ns.is_none() {
+                    first_token_ns = Some(nanos(started.elapsed()));
+                }
+                emit(id, bytes).map_err(|error| {
+                    emitted_error = Some(error);
+                    StackChatError::Protocol("OpenAI emission aborted".into())
+                })
+            })
+        };
         if let Some(error) = emitted_error {
             return Err(error);
         }
@@ -745,6 +841,8 @@ impl OpenAiServing {
             completion_ids: reply.ids.clone(),
             tokens_per_second_milli,
             stop: reply.stop.name().into(),
+            prompt_reply_fired,
+            prompt_reply_ordinal,
         };
         Ok(GenerationOutcome { reply, usage, uor })
     }
@@ -760,14 +858,18 @@ impl OpenAiServing {
                 "choices": [{"index": 0, "message": {"role": "assistant", "content": outcome.reply.text}, "finish_reason": finish}],
                 "usage": usage, "uor": metrics,
                 "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+                "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+                "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
             }),
             GenerationFamily::Completion => json!({
                 "id": request_id("cmpl"), "object": "text_completion", "created": created, "model": self.model_id(),
                 "choices": [{"index": 0, "text": outcome.reply.text, "finish_reason": finish}],
                 "usage": usage, "uor": metrics,
                 "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+                "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+                "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
             }),
             GenerationFamily::Responses => {
                 self.responses_json_with_identity(outcome, &self.stream_identity(family))
@@ -798,7 +900,9 @@ impl OpenAiServing {
             "usage": {"prompt_tokens": outcome.usage.prompt_tokens, "completion_tokens": outcome.usage.completion_tokens, "total_tokens": outcome.usage.total_tokens, "input_tokens": outcome.usage.prompt_tokens, "output_tokens": outcome.usage.completion_tokens},
             "uor": outcome.uor,
             "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+            "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
         })
     }
 
@@ -854,7 +958,9 @@ impl OpenAiServing {
                     "choices": [{"index": 0, "delta": {}, "finish_reason": finish}],
                     "uor": {"stop": outcome.uor.stop},
                     "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+                    "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+                    "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
                 })
             }
             GenerationFamily::Completion => {
@@ -866,7 +972,9 @@ impl OpenAiServing {
                     "choices": [{"index": 0, "text": "", "finish_reason": finish}],
                     "uor": {"stop": outcome.uor.stop},
                     "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+                    "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+                    "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+                    "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
                 })
             }
             GenerationFamily::Responses => {
@@ -895,7 +1003,9 @@ impl OpenAiServing {
             "usage": outcome.usage,
             "uor": outcome.uor,
             "content_readout": self.content_readout_identity.as_ref().map(|identity| &identity.path),
-            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256)
+            "content_readout_sha256": self.content_readout_identity.as_ref().map(|identity| &identity.sha256),
+            "prompt_reply_readout": self.prompt_reply_identity.as_ref().map(|identity| &identity.path),
+            "prompt_reply_readout_sha256": self.prompt_reply_identity.as_ref().map(|identity| &identity.sha256)
         })
     }
 }

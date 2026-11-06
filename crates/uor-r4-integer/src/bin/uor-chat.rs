@@ -20,15 +20,16 @@ use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
-    is_dialogue_query, recall_from_dialogue, ContentReadout, IntegerStackModel, SieveRecall,
-    StackChat, StackChatError, StackError, StackReply,
+    is_dialogue_query, recall_from_dialogue, ContentReadout, IntegerStackModel, PromptReplyReadout,
+    SieveRecall, StackChat, StackChatError, StackError, StackReply,
 };
 
 /// How the stack path picks each token: `IntegerStackSession::serve_step`.
 const STACK_DECODING: &str =
-    "greedy serve_step (dense: integer argmax; SpiralCore/FBS: native/point fallback, optionally overridden by an artifact-bound content-readout sidecar)";
+    "greedy serve_step with optional complete prompt/reply retrieval and artifact-bound content-readout sidecars";
 use uor_r4_integer::{IntegerError, Result};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
+use uor_r4_tokenizer::ByteBpeTokenizer;
 
 const VERSION: &str = "0.1.0";
 
@@ -49,6 +50,8 @@ struct CliArgs {
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
     content_readout_path: Option<PathBuf>,
+    /// Optional artifact-bound complete prompt/reply readout for loopback serving.
+    prompt_reply_path: Option<PathBuf>,
     /// Literal-role dialogue version for the stack artifact (default 2).
     protocol: u8,
     threads: usize,
@@ -191,6 +194,7 @@ impl Default for CliArgs {
             discrete_path: None,
             tokenizer_path: None,
             content_readout_path: None,
+            prompt_reply_path: None,
             protocol: 2,
             threads: 1,
             say: None,
@@ -231,6 +235,7 @@ fn print_usage() {
     eprintln!("                              raw-token serving through IntegerDiscreteModel");
     eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
     eprintln!("      --content-readout <P>   artifact-bound content-readout sidecar for --stack");
+    eprintln!("      --prompt-reply <P>      complete prompt/reply readout for --serve");
     eprintln!(
         "      --protocol <1|2>        literal-role dialogue version for --stack (default: 2)"
     );
@@ -392,6 +397,17 @@ fn parse_cli_args() -> CliArgs {
                 } else {
                     eprintln!(
                         "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--content-readout'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--prompt-reply" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.prompt_reply_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--prompt-reply'"
                     );
                     process::exit(1);
                 }
@@ -612,6 +628,10 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.content_readout_path.is_some() && args.stack_path.is_none() {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--content-readout' requires '--stack'");
+        process::exit(1);
+    }
+    if args.prompt_reply_path.is_some() && args.serve.is_none() {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--prompt-reply' requires '--serve'");
         process::exit(1);
     }
     if args.serve.is_some() && args.stack_path.is_none() {
@@ -1684,9 +1704,38 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         let port = port
             .parse::<u16>()
             .map_err(|_| StackCliError::Usage("--serve port must be a u16".into()))?;
-        let mut serving = OpenAiServing::new(model, std::fs::read(tokenizer_path)?, cli.protocol)?;
+        let tokenizer_bytes = std::fs::read(tokenizer_path)?;
+        let prompt_reply = if let Some(path) = cli.prompt_reply_path.as_deref() {
+            let path_string = path
+                .to_str()
+                .ok_or_else(|| StackCliError::Usage("--prompt-reply path must be UTF-8".into()))?;
+            let tokenizer_sha256 = hex::encode(Sha256::digest(&tokenizer_bytes));
+            let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
+                .ok_or_else(|| StackCliError::Usage("prompt-reply tokenizer is invalid".into()))?;
+            let protocol = DialogueProtocol::literal_roles_version(&tokenizer, cli.protocol)
+                .map_err(|error| StackCliError::Usage(error.to_string()))?;
+            let (bytes, readout) = PromptReplyReadout::read_sidecar(
+                path,
+                model.artifact_sha256(),
+                &tokenizer_sha256,
+                cli.protocol,
+                &[protocol.bos_id, protocol.eos_id, protocol.unk_id],
+                model.shape().vocab,
+            )?;
+            Some((
+                readout,
+                path_string.to_owned(),
+                hex::encode(Sha256::digest(&bytes)),
+            ))
+        } else {
+            None
+        };
+        let mut serving = OpenAiServing::new(model, tokenizer_bytes, cli.protocol)?;
         if let Some((path, sha256)) = content_readout_identity {
             serving = serving.with_content_readout_identity(path, sha256)?;
+        }
+        if let Some((readout, path, sha256)) = prompt_reply {
+            serving = serving.with_prompt_reply_readout(readout, path, sha256)?;
         }
         let mut config = LoopbackConfig::new(serving)
             .map_err(|error| StackCliError::Usage(error.to_string()))?;
