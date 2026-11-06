@@ -274,6 +274,21 @@ for the fixed stored-length substitution, not full-sequence content or
 geometric termination. See
 [deepseek-223](../loop/tasks/cpu-training-pilot/deepseek-223/REPORT.md).
 
+The next termination unit conditioned the stored endpoint on the generated
+trajectory itself. It deferred the boundary only while the complete generated
+reply remained an exact prefix of the nearest retrieved TRAIN reply, stopped
+at a full aligned reply, and restored boundary stopping after divergence. On
+fresh seed 2784 and both artifacts this changed **23** complete outcomes and
+reduced premature BOS from **73/91** to **67/85**, but exact and body counts
+stayed at **17** and **644/642**, only **206/229** of 471 reachable replies
+completed, and the true guard did not beat the shuffled guard on exact replies.
+Unconditional length still lost content at **497/495** body positions, while
+full retrieval remained stronger at **50/955**. This is a **REJECT** for the
+fixed full-prefix alignment guard. A retrieved prompt-level reply is too
+brittle after generated-content divergence; the next stop must use
+generated-branch evidence. See
+[deepseek-225](../loop/tasks/cpu-training-pilot/deepseek-225/REPORT.md).
+
 ### 5. Quantization and exact memory
 
 Hamming reads, exact turn memory, saved-session restart and the finite integer/float shadow gate are complete. A genuine trained FBS float snapshot is not available, so the trained-artifact float-shadow and complete-reply comparisons remain `NOT_RUN`.

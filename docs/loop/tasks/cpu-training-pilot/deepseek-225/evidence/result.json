@@ -1,0 +1,124 @@
+{
+  "schema": "uor-r4.cpu-aligned-endpoint-summary/1",
+  "outcome": "REJECT",
+  "substrate": "cpu-development-research",
+  "qualification": "development-only",
+  "base": "07349193e",
+  "implementation": "7afcac83c",
+  "run_source": {
+    "suffix_arbitration": "90fb52752b3a09315a43da775e0521a7d78524f8830a4613e4cad69ebed2c54b",
+    "prompt_retrieval": "68f19750e8c14370a41a07b4897eec238e1d48313683250667e02052a58970c4",
+    "driver": "6be78357935a900aba8e36611066c99e78218f85bffbe4dae4a637214ca0b3e5",
+    "release_binary": "4671b279340132fc1d9fa078de533d7f2ecf118d229deafe0118f02f78b4191e"
+  },
+  "construction": {
+    "retrieval": "raw unigram Jaccard, lower ordinal on ties",
+    "endpoint": "aligned retrieved reply with boundary fallback",
+    "cap": 64,
+    "suffix_depth": 32,
+    "minimum_observations": 2,
+    "suffix_shuffle_changed_targets": 75093,
+    "retrieval_shuffle_changed_replies": 450,
+    "content_bos_transitions": 0,
+    "shuffled_bos_transitions": 0
+  },
+  "panel": {
+    "cell": "dev,dev",
+    "seed": 2784,
+    "protocol": 2,
+    "conversations": 128,
+    "tokens": 16768,
+    "response_tokens": 5370,
+    "reachable_replies": 471,
+    "tokens_sha256": "510e11010ecdeb4bdf2ea70d76c6d2e1d6da5c34fa1b2705b84180664a4e82d8",
+    "mask_sha256": "ed16c32bacf5fbcdb9ad556dd75cf5ad735fd75fc1092f2a29c187403c8e540a",
+    "manifest_sha256": "03a01091a2907ec7dd3252964894c6ebae83797fa691d1f9ece3f9027fa0a68c"
+  },
+  "seeds": {
+    "1": {
+      "artifact_sha256": "a9df5263e8b170931d876e7fc3ccbbf1b41805e8a07f90248528c62d57f56cfd",
+      "reachable": 471,
+      "global_decisions": 2118,
+      "emitted": 206,
+      "premature_bos": 67,
+      "endpoint_completions": 23,
+      "exact": {
+        "candidate": 17,
+        "boundary": 17,
+        "shuffled_guard": 17,
+        "stored_length": 11,
+        "local_aligned": 0,
+        "full_retrieval": 50,
+        "endpoint_oracle": 27
+      },
+      "body": {
+        "candidate": 644,
+        "boundary": 644,
+        "shuffled_guard": 644,
+        "stored_length": 497,
+        "local_aligned": 481,
+        "full_retrieval": 955,
+        "endpoint_oracle": 644
+      },
+      "complete_changes": {
+        "from_boundary": 23,
+        "from_shuffled_guard": 24
+      },
+      "report_sha256": "2134cd86cf8f23887aa6ef00c95ad2486e9b607a703911279d205ab1ce2b8832",
+      "repeat_identical": true
+    },
+    "2": {
+      "artifact_sha256": "da56fe96b14a4a0bf383996873f10f3b149f63ebcc22d14e3dfaa260a8db51d1",
+      "reachable": 471,
+      "global_decisions": 2275,
+      "emitted": 229,
+      "premature_bos": 85,
+      "endpoint_completions": 23,
+      "exact": {
+        "candidate": 17,
+        "boundary": 17,
+        "shuffled_guard": 17,
+        "stored_length": 11,
+        "local_aligned": 0,
+        "full_retrieval": 50,
+        "endpoint_oracle": 27
+      },
+      "body": {
+        "candidate": 642,
+        "boundary": 642,
+        "shuffled_guard": 642,
+        "stored_length": 495,
+        "local_aligned": 481,
+        "full_retrieval": 955,
+        "endpoint_oracle": 642
+      },
+      "complete_changes": {
+        "from_boundary": 23,
+        "from_shuffled_guard": 24
+      },
+      "report_sha256": "6a267ef1b4f91f59729118a4bc6dd0a5703fe3e5a93a7a71ab46c46c2dce1a20",
+      "repeat_identical": true
+    }
+  },
+  "resources": {
+    "scored_wall_seconds": [7.99, 8.09, 8.86, 8.91],
+    "cpu_percent": [1286, 1296, 1419, 1447],
+    "peak_rss_kib": 280420,
+    "panel_seconds": 0.71,
+    "panel_peak_rss_kib": 7596,
+    "driver_build_seconds": 22.32,
+    "retained_bytes": 174195
+  },
+  "tests": {
+    "focused_endpoint_tests": 2,
+    "driver_tests": 1,
+    "cpu_library_passed": 406,
+    "cpu_library_ignored": 4
+  },
+  "raw_evidence": {
+    "output_root": "local/deepseek/content-prefix-endpoint/2026-11-06",
+    "sha256sums_sha256": "eacbdbfc0f82f72d1f79574d9aef7b8b113cd32eebf8edc16718c6e6ef525340",
+    "preflight_sha256": "82676f9e012f2b3cd034a5332d3df2be0837d23206e78733bfa69825e79739fb"
+  },
+  "outcome_reason": "The aligned true-retrieval guard changed 23 complete outcomes per artifact and reduced premature BOS by six, but only 206/229 reachable replies completed, 67/85 stopped prematurely, and exact/body quality was unchanged from boundary. It does not beat the shuffled-retrieval guard on exact replies."
+}

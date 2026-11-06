@@ -798,6 +798,18 @@ stored-length substitution: a retrieved budget stops the model but does not
 preserve the full-sequence content trajectory. See
 [deepseek-223](../../loop/tasks/cpu-training-pilot/deepseek-223/REPORT.md).
 
+The next endpoint guard deferred the boundary only while the complete generated
+reply remained an exact prefix of the nearest retrieved TRAIN reply, stopping
+at the endpoint and restoring boundary stopping after divergence. On fresh seed
+2784 and both artifacts it preserved the boundary arm's **17** exact and
+**644/642** body counts, changed **23** complete outcomes and reduced premature
+BOS from **73/91** to **67/85**. However only **206/229** of 471 reachable
+replies completed, and the true guard did not beat shuffled retrieval on exact
+replies. This is a **REJECT** for the fixed full-prefix endpoint guard: a
+prompt-level retrieved reply is not a reliable stopping state after generation
+diverges. See
+[deepseek-225](../../loop/tasks/cpu-training-pilot/deepseek-225/REPORT.md).
+
 The next writer unit tested training on the model's own generated prefixes
 instead of reference prefixes. Its exact scan fed self-generated tokens through
 FBS, Hamming and opening/reply memory, aligned live queries with reference

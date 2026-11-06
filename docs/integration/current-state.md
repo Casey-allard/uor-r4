@@ -1,3 +1,23 @@
+## 2026-11-06 — Retrieved-prefix endpoint guard preserves content but still fails termination (deepseek)
+
+A generated-reply-prefix guard deferred the boundary only while the complete
+generated reply remained a prefix of the nearest retrieved TRAIN reply. On
+fresh seed 2784 and both artifacts it preserved the boundary arm's **17** exact
+replies and **644/642** body positions, changed **23** complete outcomes, and
+reduced premature BOS from **73/91** to **67/85**.
+
+That was insufficient. The candidate completed only **206/229** of 471
+reachable replies, and the true-retrieval guard did not beat the shuffled guard
+on exact replies. Unconditional stored length still lost content at
+**497/495** body positions, while full retrieval remained stronger at **50**
+exact and **955** body.
+
+This is a **REJECT** for the fixed full-prefix endpoint guard. It confirms that
+a prompt-level retrieved reply becomes brittle after generated-content
+divergence; the next stop signal must use generated-state branch evidence.
+Record:
+[deepseek-225](../loop/tasks/cpu-training-pilot/deepseek-225/REPORT.md).
+
 ## 2026-11-06 — Stored-length completion removes bad stops but loses content quality (deepseek)
 
 The full-sequence suffix content selector from deepseek-198 was paired with the

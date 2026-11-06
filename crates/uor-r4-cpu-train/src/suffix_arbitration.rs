@@ -88,6 +88,7 @@ pub struct SuffixArbitrationReading {
     pub exact_reference: u64,
     pub bos_complete: u64,
     pub length_complete: u64,
+    pub retrieved_endpoint_complete: u64,
     pub opening_correct: u64,
     pub premature_bos: u64,
     pub non_premature_bos: u64,
@@ -146,6 +147,31 @@ pub fn generate_suffix_arbitration_reply(
 }
 
 #[allow(clippy::too_many_arguments)]
+pub fn generate_suffix_arbitration_reply_with_aligned_endpoint(
+    artifact: &[u8],
+    prompt: &[u32],
+    cap: usize,
+    retrieved_reply: &[u32],
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+    row: usize,
+) -> Result<(GeneratedReply, Vec<SuffixArbitrationStep>)> {
+    generate_suffix_arbitration_reply_with_endpoint(
+        artifact,
+        prompt,
+        cap,
+        Endpoint::AlignedRetrieved(retrieved_reply),
+        arm,
+        suffix_memory,
+        boundary,
+        seed,
+        row,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn generate_suffix_arbitration_reply_to_length(
     artifact: &[u8],
     prompt: &[u32],
@@ -170,9 +196,10 @@ pub fn generate_suffix_arbitration_reply_to_length(
 }
 
 #[derive(Clone, Copy)]
-enum Endpoint {
+enum Endpoint<'a> {
     Boundary(usize),
     Length(usize),
+    AlignedRetrieved(&'a [u32]),
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -180,7 +207,7 @@ fn generate_suffix_arbitration_reply_with_endpoint(
     artifact: &[u8],
     prompt: &[u32],
     cap: usize,
-    endpoint: Endpoint,
+    endpoint: Endpoint<'_>,
     arm: SuffixArbitrationArm,
     suffix_memory: Option<&SuffixMemoryTable>,
     boundary: &ReplyBoundaryMemory,
@@ -215,60 +242,86 @@ fn generate_suffix_arbitration_reply_with_endpoint(
     let mut steps = Vec::with_capacity(cap);
 
     loop {
-        if let Endpoint::Length(length) = endpoint {
-            if length == 0 || length > cap {
-                return Err(invalid("suffix-arbitration stored length exceeds cap"));
+        let suppress_boundary = match endpoint {
+            Endpoint::Length(length) => {
+                if length == 0 || length > cap {
+                    return Err(invalid("suffix-arbitration stored length exceeds cap"));
+                }
+                if tokens.len() == length {
+                    return Ok((
+                        GeneratedReply {
+                            tokens,
+                            stop: "length",
+                        },
+                        steps,
+                    ));
+                }
+                true
             }
-            if tokens.len() == length {
+            Endpoint::AlignedRetrieved(retrieved) => {
+                if retrieved.is_empty() || retrieved.len() > cap {
+                    return Err(invalid("suffix-arbitration retrieved endpoint is invalid"));
+                }
+                let aligned = retrieved
+                    .get(..tokens.len())
+                    .is_some_and(|prefix| prefix == tokens);
+                if aligned && tokens.len() == retrieved.len() {
+                    return Ok((
+                        GeneratedReply {
+                            tokens,
+                            stop: "retrieved_endpoint",
+                        },
+                        steps,
+                    ));
+                }
+                aligned
+            }
+            Endpoint::Boundary(_) => false,
+        };
+        if !suppress_boundary {
+            let boundary_hit = match endpoint {
+                Endpoint::Length(_) => unreachable!("stored length suppresses boundary"),
+                Endpoint::Boundary(reference_length)
+                    if arm == SuffixArbitrationArm::ReferenceLengthOracle =>
+                {
+                    (tokens.len() == reference_length).then_some(
+                        crate::reply_boundary::ReplyBoundaryHit {
+                            depth: 0,
+                            terminal: 1,
+                            nonterminal: 0,
+                        },
+                    )
+                }
+                Endpoint::Boundary(_) | Endpoint::AlignedRetrieved(_) => {
+                    boundary.stop_decision(&tokens)
+                }
+            };
+            if let Some(hit) = boundary_hit {
+                steps.push(SuffixArbitrationStep {
+                    row,
+                    generated_step: tokens.len(),
+                    writer_token,
+                    local_token: None,
+                    global_token: None,
+                    selected_token: POINT_KEY_BOS,
+                    used_global: false,
+                    local_copy_depth: None,
+                    global_depth: None,
+                    global_observations: 0,
+                    global_successor_count: 0,
+                    global_distinct_targets: 0,
+                    boundary_depth: Some(hit.depth),
+                    boundary_terminal: hit.terminal,
+                    boundary_nonterminal: hit.nonterminal,
+                });
                 return Ok((
                     GeneratedReply {
                         tokens,
-                        stop: "length",
+                        stop: "bos",
                     },
                     steps,
                 ));
             }
-        }
-        let boundary_hit = match endpoint {
-            Endpoint::Length(_) => None,
-            Endpoint::Boundary(reference_length)
-                if arm == SuffixArbitrationArm::ReferenceLengthOracle =>
-            {
-                (tokens.len() == reference_length).then_some(
-                    crate::reply_boundary::ReplyBoundaryHit {
-                        depth: 0,
-                        terminal: 1,
-                        nonterminal: 0,
-                    },
-                )
-            }
-            Endpoint::Boundary(_) => boundary.stop_decision(&tokens),
-        };
-        if let Some(hit) = boundary_hit {
-            steps.push(SuffixArbitrationStep {
-                row,
-                generated_step: tokens.len(),
-                writer_token,
-                local_token: None,
-                global_token: None,
-                selected_token: POINT_KEY_BOS,
-                used_global: false,
-                local_copy_depth: None,
-                global_depth: None,
-                global_observations: 0,
-                global_successor_count: 0,
-                global_distinct_targets: 0,
-                boundary_depth: Some(hit.depth),
-                boundary_terminal: hit.terminal,
-                boundary_nonterminal: hit.nonterminal,
-            });
-            return Ok((
-                GeneratedReply {
-                    tokens,
-                    stop: "bos",
-                },
-                steps,
-            ));
         }
 
         let local = matches!(
@@ -579,6 +632,110 @@ pub fn evaluate_suffix_arbitration_replies_to_length(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_suffix_arbitration_replies_with_aligned_endpoint(
+    artifact: &[u8],
+    samples: &[MemoryWeightSample],
+    retrieved_replies: &[Vec<u32>],
+    cap: usize,
+    arm: SuffixArbitrationArm,
+    suffix_memory: Option<&SuffixMemoryTable>,
+    boundary: &ReplyBoundaryMemory,
+    seed: u64,
+) -> Result<TimedSuffixArbitrationReading> {
+    if samples.is_empty() || retrieved_replies.len() != samples.len() || cap == 0 || cap > 64 {
+        return Err(invalid(
+            "suffix-arbitration retrieved endpoint inputs differ",
+        ));
+    }
+    let context = CpuFbsForward::from_artifact(artifact)
+        .map_err(|error| invalid(format!("suffix-arbitration context: {error}")))?
+        .context_length();
+    let started = std::time::Instant::now();
+    let evaluated = samples
+        .par_iter()
+        .zip(retrieved_replies)
+        .enumerate()
+        .map(|(row, (sample, retrieved))| {
+            let reference = normalized_reference(&sample.reply).to_vec();
+            if sample.prompt.len() > context
+                || reference.len() > cap
+                || retrieved.is_empty()
+                || retrieved.len() > cap
+            {
+                return Err(invalid(
+                    "suffix-arbitration sample or retrieved endpoint exceeds its bound",
+                ));
+            }
+            let (generated, steps) = generate_suffix_arbitration_reply_with_aligned_endpoint(
+                artifact,
+                &sample.prompt,
+                cap,
+                retrieved,
+                arm,
+                suffix_memory,
+                boundary,
+                seed,
+                row,
+            )?;
+            let reachable = reference_reachable(sample.prompt.len(), reference.len(), cap, context);
+            let opening_correct = matches!(
+                (generated.tokens.first(), reference.first()),
+                (Some(generated), Some(reference)) if generated == reference
+            );
+            let correct_body_positions = generated
+                .tokens
+                .iter()
+                .zip(&reference)
+                .filter(|(generated, reference)| generated == reference)
+                .count() as u64;
+            let premature_bos = generated.stop == "bos" && generated.tokens.len() < reference.len();
+            let non_premature_bos = generated.stop == "bos" && !premature_bos;
+            let local_decisions = steps
+                .iter()
+                .filter(|step| !step.used_global && step.local_copy_depth.is_some())
+                .count() as u64;
+            let row_reading = CopyKeyReplyRow {
+                row,
+                reachable,
+                exact_reference: generated.tokens == reference,
+                bos_complete: generated.stop == "bos",
+                opening_correct,
+                premature_bos,
+                non_premature_bos,
+                generated_tokens: generated.tokens.len() as u64,
+                reference_tokens: reference.len() as u64,
+                correct_body_positions,
+                copy_decisions: local_decisions,
+                fallback_decisions: steps.len() as u64 - local_decisions,
+                stop: generated.stop.to_owned(),
+                reply_sha256: token_hash(&generated.tokens),
+            };
+            Ok((row_reading, steps))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let wall_elapsed_us = started.elapsed().as_micros().try_into().unwrap_or(u64::MAX);
+    let (rows, steps): (Vec<_>, Vec<_>) = evaluated.into_iter().unzip();
+    let steps = steps.into_iter().flatten().collect::<Vec<_>>();
+    let reading = summarize(arm, &rows, &steps)?;
+    let reply_sha256 = reply_hash(&rows);
+    let decision_sha256 = decision_hash(&steps);
+    let generated_tokens_per_second = if wall_elapsed_us == 0 {
+        0.0
+    } else {
+        reading.generated_tokens as f64 * 1_000_000.0 / wall_elapsed_us as f64
+    };
+    Ok(TimedSuffixArbitrationReading {
+        reading,
+        rows,
+        steps,
+        reply_sha256,
+        decision_sha256,
+        wall_elapsed_us,
+        generated_tokens_per_second,
+    })
+}
+
 pub fn compare_suffix_arbitration_rows(
     candidate: &[CopyKeyReplyRow],
     control: &[CopyKeyReplyRow],
@@ -646,6 +803,7 @@ fn summarize(
         exact_reference: 0,
         bos_complete: 0,
         length_complete: 0,
+        retrieved_endpoint_complete: 0,
         opening_correct: 0,
         premature_bos: 0,
         non_premature_bos: 0,
@@ -663,6 +821,8 @@ fn summarize(
         reading.exact_reference += u64::from(row.reachable && row.exact_reference);
         reading.bos_complete += u64::from(row.reachable && row.bos_complete);
         reading.length_complete += u64::from(row.reachable && row.stop == "length");
+        reading.retrieved_endpoint_complete +=
+            u64::from(row.reachable && row.stop == "retrieved_endpoint");
         reading.opening_correct += u64::from(row.reachable && row.opening_correct);
         reading.premature_bos += u64::from(row.reachable && row.premature_bos);
         reading.non_premature_bos += u64::from(row.reachable && row.non_premature_bos);
@@ -955,5 +1115,63 @@ mod tests {
             )
             .is_err());
         }
+    }
+
+    #[test]
+    fn aligned_retrieved_endpoint_stops_without_injecting_content() {
+        let training = [
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30]),
+            sample(&[10, 20, 30, 40, 50, 60], &[41, 11, 21, 31]),
+        ];
+        let table = derive_full_sequence_suffix_content_memory(&training).unwrap();
+        let evaluation = [sample(&[10, 20, 30, 40, 50, 60], &[40, 10, 20, 30])];
+        let reading = evaluate_suffix_arbitration_replies_with_aligned_endpoint(
+            &artifact(),
+            &evaluation,
+            &[vec![40, 10, 20, 30]],
+            16,
+            SuffixArbitrationArm::DeeperFullSequence32,
+            Some(&table),
+            &ReplyBoundaryMemory::default(),
+            225,
+        )
+        .unwrap();
+        assert_eq!(reading.reading.length_complete, 0);
+        assert_eq!(reading.reading.retrieved_endpoint_complete, 1);
+        assert_eq!(reading.reading.bos_complete, 0);
+        assert_eq!(reading.reading.exact_reference, 1);
+        assert_eq!(reading.rows[0].stop, "retrieved_endpoint");
+    }
+
+    #[test]
+    fn aligned_retrieved_endpoint_refuses_empty_and_diverges_without_stopping() {
+        let artifact = artifact();
+        let evaluation = [sample(&[10, 11, 12], &[20])];
+        assert!(evaluate_suffix_arbitration_replies_with_aligned_endpoint(
+            &artifact,
+            &evaluation,
+            &[Vec::new()],
+            4,
+            SuffixArbitrationArm::WriterBoundary,
+            None,
+            &ReplyBoundaryMemory::default(),
+            225,
+        )
+        .is_err());
+        let reading = evaluate_suffix_arbitration_replies_with_aligned_endpoint(
+            &artifact,
+            &evaluation,
+            &[vec![99]],
+            4,
+            SuffixArbitrationArm::WriterBoundary,
+            None,
+            &ReplyBoundaryMemory::default(),
+            225,
+        )
+        .unwrap();
+        assert_eq!(reading.reading.retrieved_endpoint_complete, 0);
+        assert_ne!(reading.rows[0].stop, "retrieved_endpoint");
     }
 }

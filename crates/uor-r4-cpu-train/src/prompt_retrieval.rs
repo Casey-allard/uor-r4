@@ -143,6 +143,12 @@ impl PromptRetrievalMemory {
         self.entries.iter().any(|entry| entry.reply == reply)
     }
 
+    pub fn reply_at(&self, ordinal: usize) -> Option<&[u32]> {
+        self.entries
+            .get(ordinal)
+            .map(|entry| entry.reply.as_slice())
+    }
+
     pub fn census(&self) -> PromptRetrievalCensus {
         PromptRetrievalCensus {
             entries: self.entries.len() as u64,
