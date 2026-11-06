@@ -180,12 +180,12 @@
                     <main>
                         <h1 id="the-three-products"><a class="header" href="#the-three-products">The three products</a></h1>
 <p>UOR-R4 aims to ship one thing people can use: a small, fast language model that runs on your own
-laptop or in your browser, with local computation by default and no model server required. For the web Studio only, an optional user-configured OpenAI-compatible API sends prompts to the endpoint the user chooses; the desktop shell has no OpenAI-compatible API mode. The three products are the <strong>model</strong> in
+laptop or in your browser, with local computation by default and no model server required. For the web Studio only, an optional user-configured OpenAI-compatible API sends prompts to the endpoint the user chooses; the desktop app uses a host-managed OpenAI-compatible <code>uor-chat</code> sidecar on loopback and user-approved MCP rather than arbitrary custom providers. The three products are the <strong>model</strong> in
 one integer file, a <strong>web client</strong> that runs it in a browser tab, and a <strong>desktop client</strong> that runs
 it natively with durable memory. <strong>None ships today.</strong> M1 is complete (1 of 8), but no useful
 conversation, integrated qualified product or alpha release exists.</p>
 <p>Labels: <strong>proof</strong>, <strong>measurement</strong>, <strong>hypothesis</strong> (<a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>, <a href="../start/glossary.html">glossary</a>).</p>
-<p><img src="../figures/products/product-family.svg" alt="One integer model file feeding a browser-based web client and a native desktop client. Local mode has no default model server. Only the web Studio offers an optional user-configured OpenAI-compatible API; the desktop shell has no OpenAI-compatible API mode." /></p>
+<p><img src="https://github.com/UOR-Foundation/uor-r4/raw/main/docs/products/product-family.svg" alt="One integer model file feeding a browser-based web client and a native desktop client. Local mode has no default model server. Only the web Studio offers an optional user-configured OpenAI-compatible API; the desktop app uses a host-managed OpenAI-compatible uor-chat sidecar on loopback and user-approved MCP rather than arbitrary custom providers." /></p>
 <p><em>One model file is intended to feed two clients sharing one interface and local storage.</em></p>
 <h2 id="the-three-at-a-glance"><a class="header" href="#the-three-at-a-glance">The three at a glance</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Product</th><th>What it is meant to be</th><th>What exists today</th><th>Main gate</th></tr></thead><tbody>
