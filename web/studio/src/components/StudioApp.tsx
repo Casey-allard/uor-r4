@@ -21,6 +21,8 @@ import { WorkspaceEditor } from './WorkspaceEditor.js';
 import { createDesktopActions } from '../adapters/desktopActions.js';
 import type { DesktopActions } from '../adapters/desktopActions.js';
 import { ChangesPanel, TerminalPanel } from './DesktopTools.js';
+import { McpConnections } from './McpConnections.js';
+import type { McpConnect } from '../adapters/mcpConnections.js';
 import type { PaletteCommand, ShellStatus, StudioSection } from './types.js';
 
 interface StudioAppProps {
@@ -32,6 +34,7 @@ interface StudioAppProps {
     ui: StudioUiApi;
     download?(name: string, content: string): void;
     desktop?: DesktopActions;
+    mcpConnect?: McpConnect;
 }
 
 function browserDownload(name: string, content: string) {
@@ -45,7 +48,7 @@ function browserDownload(name: string, content: string) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function StudioApp({ store, adapter, sources, files, sessions, ui, download = browserDownload, desktop }: StudioAppProps) {
+export function StudioApp({ store, adapter, sources, files, sessions, ui, download = browserDownload, desktop, mcpConnect }: StudioAppProps) {
     const state = useLifecycle(store);
     const [activeSection, setActiveSection] = useState<StudioSection>('agent');
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -169,7 +172,10 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
                 ui.toast('Clipboard unavailable.', 'error');
             }} />}
             {activeSection === 'terminal' && <TerminalPanel actions={desktopActions} files={files} />}
-            {activeSection === 'models' && <ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} />}
+            {activeSection === 'models' && (<>
+                <ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} />
+                <McpConnections ui={ui} connectRemote={mcpConnect} />
+            </>)}
             {activeSection === 'guide' && <Guide />}
             <Inspector store={store} ui={ui} open={inspectorOpen} onClose={() => setInspectorOpen(false)} />
             {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}

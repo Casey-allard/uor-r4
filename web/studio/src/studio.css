@@ -258,6 +258,16 @@
     font-size: 0.875rem;
 }
 
+.mcp-tool-list {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 0.75rem;
+}
+
+.mcp-result {
+    min-height: 3rem;
+}
+
 @media (max-width: 800px) {
     .studio-body {
         grid-template-columns: 1fr;

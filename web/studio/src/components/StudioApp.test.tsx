@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
+import type { Attachment } from '../adapters/workflow.js';
 import { createDesktopActions } from '../adapters/desktopActions.js';
 import { StudioApp } from './StudioApp.js';
 import { makeFiles, makeModelAdapter, makeSessions, makeSources, makeUi } from './studioTestFixtures.js';
@@ -591,5 +592,45 @@ describe('StudioApp', () => {
         await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
         await vi.waitFor(() => expect(document.getElementById('terminalConsentState')?.textContent).toContain('enabled'));
         expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_git_status', 'native_git_diff', 'native_enable_terminal']);
+    });
+
+    it('attaches an MCP result and exposes it through existing @ mentions', async () => {
+        const result = { content: [{ type: 'text', text: 'context text' }] };
+        const session = {
+            listTools: vi.fn(async () => [{ name: 'read_file', description: 'Read a file' }]),
+            callTool: vi.fn(async () => result),
+            disconnect: vi.fn(async () => undefined),
+        };
+        const mcpConnect = vi.fn(async () => session);
+        const attachments: Attachment[] = [];
+        const ui = makeUi();
+        ui.getAttachments = vi.fn(() => attachments);
+        ui.addAttachment = vi.fn((entry: Attachment) => {
+            attachments.push(entry);
+            document.dispatchEvent(new CustomEvent('uor-attachments-changed'));
+        });
+        const store = new LifecycleStore();
+        act(() => {
+            render(<StudioApp store={store} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={ui} download={vi.fn()} mcpConnect={mcpConnect} />, host);
+        });
+        act(() => { destination('Models').click(); });
+        const url = host.querySelector<HTMLInputElement>('input[aria-label="MCP server URL"]')!;
+        act(() => { url.value = 'http://127.0.0.1:9000/mcp'; url.dispatchEvent(new Event('input', { bubbles: true })); });
+        await act(async () => { button('Connect').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(document.querySelector('.mcp-tool-button')).not.toBeNull());
+        await act(async () => { (document.querySelector('.mcp-tool-button') as HTMLButtonElement).click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(document.getElementById('mcpResultOutput')?.textContent).toContain('context text'));
+        await act(async () => { button('Attach result').click(); await Promise.resolve(); });
+        expect(attachments).toEqual([{ name: 'mcp-read_file.json', kind: 'text', content: JSON.stringify(result, null, 2), source: 'mcp' }]);
+        act(() => { destination('Agent').click(); });
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => {
+            prompt.value = '@mcp';
+            prompt.setSelectionRange(4, 4);
+            prompt.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        const mentions = host.querySelector('[role="listbox"][aria-label="Attachment mentions"]')!;
+        expect(mentions.textContent).toContain('mcp-read_file.json');
+        expect(session.callTool).toHaveBeenCalledOnce();
     });
 });
