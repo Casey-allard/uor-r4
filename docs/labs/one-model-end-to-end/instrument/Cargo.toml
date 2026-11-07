@@ -33,6 +33,15 @@ required-features = ["cpu-parity"]
 name = "corpus-eos-exposure"
 path = "src/bin/corpus-eos-exposure.rs"
 
+[[bin]]
+name = "m2-sft-exclusions"
+path = "src/bin/m2-sft-exclusions.rs"
+
+[[bin]]
+name = "corpus-panel-overlap"
+path = "src/bin/corpus-panel-overlap.rs"
+required-features = ["cpu-parity"]
+
 [dependencies]
 uor-r4-training = { path = "../../../../crates/uor-r4-training", optional = true }
 uor-r4-core = { path = "../../../../crates/uor-r4-core", optional = true }

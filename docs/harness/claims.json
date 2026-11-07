@@ -384,6 +384,13 @@
     "lab": "deepseek",
     "note": "checkpoint-initialized fine-tune support for the one-model path"
   },
+  "deepseek/one-model-reply-sft": {
+    "branch": "deepseek/one-model-reply-sft",
+    "claimed_at": "2026-11-07T14:01:40-05:00",
+    "head": "b80933c4b",
+    "lab": "deepseek",
+    "note": "reply-masked corpus and missing-panel recovery for the one-model path"
+  },
   "deepseek/oracle-corpus-support": {
     "branch": "deepseek/oracle-corpus-support",
     "claimed_at": "2026-11-02T22:00:48-05:00",
