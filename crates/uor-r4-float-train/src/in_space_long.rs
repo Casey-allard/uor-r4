@@ -1387,7 +1387,7 @@ fn step_gradient(
                 Some(share) => loss.affine(share, 0.0)?,
                 None => loss,
             };
-            let grads = loss.backward()?;
+            let grads = variables_only(&loss, loss.backward()?)?;
             stage_clock::mark("backward");
             Ok((value * share.unwrap_or(1.0), grads))
         })?;
@@ -1448,6 +1448,31 @@ fn forward_replies(
                 .map(move |(offset, key)| ((b - lo) * context + offset, key.clone()))
         })
         .collect()
+}
+
+/// The gradients of `grads` that belong to the variables `loss` reaches, and no others (claude-303).
+/// candle's `backward` also leaves a gradient on every input that tracks none (a detached table's
+/// points, a mask), which no optimizer reads. The Hamming read's copy heads gather a
+/// `(positions, kept, width)` payload from a detached table, so at width 1,024 those gradients
+/// filled the card. Summed across micro-batches by [`add_grads`], they made a step's memory follow
+/// the whole batch however it was split (claude-302).
+fn variables_only(
+    loss: &Tensor,
+    mut grads: candle_core::backprop::GradStore,
+) -> Result<candle_core::backprop::GradStore> {
+    // `GradStore::new` is private: the backward of a fresh scalar is a store holding only that
+    // scalar's own gradient, which is removed.
+    let seed = Tensor::zeros((), DType::F32, loss.device())?;
+    let mut kept = seed.backward()?;
+    kept.remove(&seed);
+    for node in loss.sorted_nodes() {
+        if node.is_variable() {
+            if let Some(grad) = grads.remove(node) {
+                kept.insert(node, grad);
+            }
+        }
+    }
+    Ok(kept)
 }
 
 /// Add `more`'s gradients into `acc`, variable by variable.
@@ -14541,6 +14566,35 @@ mod tests {
             .to_scalar::<f32>()
             .unwrap();
         assert!((writer - ours).abs() < 1e-6, "{writer} != {ours}");
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_steps_gradients_keep_only_the_variables_a_detached_input_leaves_none() {
+        let device = Device::new_cuda(0).unwrap();
+        let var = candle_core::Var::from_tensor(
+            &Tensor::new(&[0.5f32, -1.25, 2.0, 0.75], &device).unwrap(),
+        )
+        .unwrap();
+        // A detached table's points, as the Hamming read's copy heads gather them.
+        let table = Tensor::new(&[3.0f32, -2.0, 0.5, 1.5], &device)
+            .unwrap()
+            .detach();
+        let loss = var.as_tensor().mul(&table).unwrap().sum_all().unwrap();
+        let raw = loss.backward().unwrap();
+        // candle leaves the detached input a gradient no optimizer reads (claude-302's memory).
+        assert!(raw.get(&table).is_some(), "candle no longer keeps it: drop the prune");
+        // So with the prune set aside, `kept` below is `raw` and its count check fails.
+        assert!(raw.get_ids().count() >= 2);
+        let want = raw.get(var.as_tensor()).unwrap().to_vec1::<f32>().unwrap();
+        let kept = variables_only(&loss, loss.backward().unwrap()).unwrap();
+        assert_eq!(kept.get_ids().count(), 1, "only the variable's gradient is kept");
+        assert!(kept.get(&table).is_none());
+        let got = kept.get(var.as_tensor()).unwrap().to_vec1::<f32>().unwrap();
+        assert_eq!(
+            got.iter().map(|g| g.to_bits()).collect::<Vec<_>>(),
+            want.iter().map(|g| g.to_bits()).collect::<Vec<_>>()
+        );
     }
 
     #[cfg(feature = "cuda")]
