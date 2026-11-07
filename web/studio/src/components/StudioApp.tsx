@@ -18,6 +18,9 @@ import { ModelPicker } from './ModelPicker.js';
 import { SessionList } from './SessionList.js';
 import { Settings } from './Settings.js';
 import { WorkspaceEditor } from './WorkspaceEditor.js';
+import { createDesktopActions } from '../adapters/desktopActions.js';
+import type { DesktopActions } from '../adapters/desktopActions.js';
+import { ChangesPanel, TerminalPanel } from './DesktopTools.js';
 import type { PaletteCommand, ShellStatus, StudioSection } from './types.js';
 
 interface StudioAppProps {
@@ -28,6 +31,7 @@ interface StudioAppProps {
     sessions: SessionApi;
     ui: StudioUiApi;
     download?(name: string, content: string): void;
+    desktop?: DesktopActions;
 }
 
 function browserDownload(name: string, content: string) {
@@ -41,7 +45,7 @@ function browserDownload(name: string, content: string) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function StudioApp({ store, adapter, sources, files, sessions, ui, download = browserDownload }: StudioAppProps) {
+export function StudioApp({ store, adapter, sources, files, sessions, ui, download = browserDownload, desktop }: StudioAppProps) {
     const state = useLifecycle(store);
     const [activeSection, setActiveSection] = useState<StudioSection>('agent');
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -53,6 +57,7 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     const [agentPasted, setAgentPasted] = useState('');
     const [editorSettings, setEditorSettings] = useState(() => ui.getSettings());
     const generation = useMemo(() => createGenerationAdapter(store, sessions), [store, sessions]);
+    const desktopActions = useMemo(() => desktop ?? createDesktopActions(), [desktop]);
     useEffect(() => () => generation.dispose(), [generation]);
     useEffect(() => {
         const viewChanged = (event: Event) => {
@@ -60,6 +65,8 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
             if (view === 'chat') setActiveSection('agent');
             if (view === 'model') setActiveSection('models');
             if (view === 'workspace' || view === 'editor' || view === 'files') setActiveSection('workspace');
+            if (view === 'changes') setActiveSection('changes');
+            if (view === 'terminal') setActiveSection('terminal');
             if (view === 'guide') setActiveSection('guide');
         };
         const filesChanged = (event: Event) => {
@@ -102,6 +109,8 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     const commands: PaletteCommand[] = [
         { id: 'agent', group: 'Navigation', label: 'Go to Agent', description: 'Chat and context', run: () => setActiveSection('agent') },
         { id: 'workspace', group: 'Navigation', label: 'Go to Workspace', description: 'Files and editor', run: () => setActiveSection('workspace') },
+        { id: 'changes', group: 'Navigation', label: 'Go to Changes', description: 'Bounded Git status and diff', run: () => setActiveSection('changes') },
+        { id: 'terminal', group: 'Navigation', label: 'Go to Terminal', description: 'Guarded native commands', run: () => setActiveSection('terminal') },
         { id: 'models', group: 'Navigation', label: 'Go to Models', description: 'Artifacts and providers', run: () => setActiveSection('models') },
         { id: 'guide', group: 'Navigation', label: 'Go to Guide', description: 'Workflows and limits', run: () => setActiveSection('guide') },
         { id: 'new-session', group: 'Sessions', label: 'New session', description: 'Start a clean thread', disabled: state.session.phase === 'generating', run: () => {
@@ -155,6 +164,11 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
                 />
             )}
             {activeSection === 'workspace' && <WorkspaceEditor store={store} files={files} operations={operations} onError={reportFile} onSuccess={succeed} settings={editorSettings} />}
+            {activeSection === 'changes' && <ChangesPanel actions={desktopActions} files={files} copy={(text) => {
+                if (navigator.clipboard) return navigator.clipboard.writeText(text);
+                ui.toast('Clipboard unavailable.', 'error');
+            }} />}
+            {activeSection === 'terminal' && <TerminalPanel actions={desktopActions} files={files} />}
             {activeSection === 'models' && <ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} />}
             {activeSection === 'guide' && <Guide />}
             <Inspector store={store} ui={ui} open={inspectorOpen} onClose={() => setInspectorOpen(false)} />

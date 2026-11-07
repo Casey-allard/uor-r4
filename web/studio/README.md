@@ -107,6 +107,8 @@ Narrow live-page bridge corrections correlate chat completion, include attachmen
 
 `RichMessage` renders common Markdown headings, lists, quotes, fenced code, inline code, strong text, and HTTP(S) links through Preact nodes rather than HTML strings. Raw HTML and unsafe/relative destinations stay literal, rendering performs no fetch, and copy/insert/save/retry keep the exact original message. Tables, math, raw HTML, images, and syntax highlighting are outside this component's current scope. The live transcript remains unchanged.
 
+`StudioApp` now exposes Agent, Workspace, Changes, Terminal, Models, and Guide through navigation and the command palette. `ChangesPanel` refreshes bounded Git status/diff through the existing native adapter and copies the exact raw diff. `TerminalPanel` requires app-session enablement and retains per-command native approval. Unavailable hosts, failures, cancellation, and stale async results are explicit; repository/terminal output is inert. These are typed component/adapter fixtures, not real repository, command, or packaged-GUI acceptance.
+
 Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. The library
 build emits uncommitted `dist/` output; `src/studio.css` does not alter the legacy `index.css`.
 Native progress and dialog elements preserve unknown totals and indeterminate finalization; dialogs

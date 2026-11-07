@@ -1,4 +1,4 @@
-export type StudioSection = 'agent' | 'workspace' | 'models' | 'guide';
+export type StudioSection = 'agent' | 'workspace' | 'changes' | 'terminal' | 'models' | 'guide';
 
 export interface ShellStatus {
     source: string;

@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
+import { createDesktopActions } from '../adapters/desktopActions.js';
 import { StudioApp } from './StudioApp.js';
 import { makeFiles, makeModelAdapter, makeSessions, makeSources, makeUi } from './studioTestFixtures.js';
 
@@ -26,7 +27,7 @@ function button(label: string): HTMLButtonElement {
 }
 
 describe('StudioApp', () => {
-    it('composes all four destinations with one status source and on-demand inspector', () => {
+    it('composes all six destinations with one status source and on-demand inspector', () => {
         const store = new LifecycleStore();
         act(() => {
             render(<StudioApp store={store} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} />, host);
@@ -41,6 +42,13 @@ describe('StudioApp', () => {
         act(() => { destination('Guide').click(); });
         expect(host.textContent).toContain('next-token prediction');
         expect(host.textContent).toContain('not a conversational assistant');
+        act(() => { button('Command palette').click(); });
+        const paletteInput = host.querySelector<HTMLInputElement>('input[aria-label="Search commands"]')!;
+        act(() => { paletteInput.value = 'Go to Changes'; paletteInput.dispatchEvent(new Event('input', { bubbles: true })); });
+        act(() => { paletteInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+        expect(host.textContent).toContain('Native Git is unavailable in this browser build; use the desktop build.');
+        act(() => { destination('Terminal').click(); });
+        expect(host.textContent).toContain('Guarded terminal actions are unavailable in this browser build.');
         act(() => { destination('Agent').click(); });
         expect(host.textContent).toContain('No messages yet');
         act(() => { button('Inspector').click(); });
@@ -559,5 +567,29 @@ describe('StudioApp', () => {
         act(() => { button('Remove API A').click(); });
         act(() => { button('Confirm removal').click(); });
         expect(host.querySelector('[role="alert"]')).toBeNull();
+    });
+
+    it('uses an available native host through composed Changes and Terminal views', async () => {
+        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
+            if (command === 'native_git_status') return { branch: 'main', modified_files: ['a.rs'], untracked_files: [], timed_out: false };
+            if (command === 'native_git_diff') return { diff: 'composed diff', truncated: false, timed_out: false };
+            if (command === 'native_enable_terminal') return { enabled: true };
+            throw new Error(`unexpected ${command}`);
+        });
+        const store = new LifecycleStore();
+        const files = makeFiles();
+        const summary = files.treeSummary();
+        files.treeSummary = vi.fn(() => ({ ...summary, rootPath: '/granted/project' }));
+        act(() => {
+            render(<StudioApp store={store} adapter={makeModelAdapter()} sources={makeSources()} files={files} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} desktop={createDesktopActions({ invoke })} />, host);
+        });
+        act(() => { destination('Changes').click(); });
+        expect(button('Refresh changes').disabled).toBe(false);
+        await act(async () => { button('Refresh changes').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(document.getElementById('gitDiffOutput')?.textContent).toContain('composed diff'));
+        act(() => { destination('Terminal').click(); });
+        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(document.getElementById('terminalConsentState')?.textContent).toContain('enabled'));
+        expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_git_status', 'native_git_diff', 'native_enable_terminal']);
     });
 });

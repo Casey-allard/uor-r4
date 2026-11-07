@@ -12,7 +12,7 @@ describe('AppShell', () => {
         act(() => { render(<AppShell activeSection="agent" onSection={vi.fn()} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }}><div>Content</div></AppShell>, host); });
         expect(host.querySelector('button[aria-controls="studio-navigation"]')?.getAttribute('aria-expanded')).toBe('true');
     });
-    it('provides four destinations, one main/status region, and a labeled drawer', () => {
+    it('provides six destinations, one main/status region, and a labeled drawer', () => {
         const onSection = vi.fn();
         const onInspector = vi.fn();
         act(() => {
@@ -29,7 +29,7 @@ describe('AppShell', () => {
         expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
         expect(host.querySelector('[role="status"]')?.textContent).toContain('API A');
         const navigation = host.querySelector<HTMLElement>('nav[aria-label="Studio"]')!;
-        expect(Array.from(navigation.querySelectorAll('button')).map((node) => node.textContent)).toEqual(['Agent', 'Workspace', 'Models', 'Guide']);
+        expect(Array.from(navigation.querySelectorAll('button')).map((node) => node.textContent)).toEqual(['Agent', 'Workspace', 'Changes', 'Terminal', 'Models', 'Guide']);
         const workspace = Array.from(navigation.querySelectorAll('button')).find((node) => node.textContent === 'Workspace')!;
         workspace.click();
         expect(onSection).toHaveBeenCalledWith('workspace');

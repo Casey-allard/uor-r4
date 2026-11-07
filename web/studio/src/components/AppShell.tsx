@@ -17,6 +17,8 @@ interface AppShellProps {
 const destinations: Array<{ id: StudioSection; label: string }> = [
     { id: 'agent', label: 'Agent' },
     { id: 'workspace', label: 'Workspace' },
+    { id: 'changes', label: 'Changes' },
+    { id: 'terminal', label: 'Terminal' },
     { id: 'models', label: 'Models' },
     { id: 'guide', label: 'Guide' },
 ];

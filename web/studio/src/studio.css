@@ -244,6 +244,20 @@
     outline-offset: 2px;
 }
 
+.desktop-output {
+    max-width: 100%;
+    max-height: 32rem;
+    overflow: auto;
+    border: 1px solid var(--studio-border);
+    border-radius: 0.5rem;
+    background: var(--studio-panel);
+    padding: 0.75rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, monospace;
+    font-size: 0.875rem;
+}
+
 @media (max-width: 800px) {
     .studio-body {
         grid-template-columns: 1fr;
