@@ -1328,6 +1328,30 @@ fn batch_loss(
     query_loss(model, objective, &query, targets)
 }
 
+/// The step's loss from its forwards' detached scalars, in one device-to-host read.
+///
+/// Each scalar stays an f32 on the device until the step's last backward has run. Stacking them
+/// costs one copy instead of one blocking copy a micro-batch. The host then applies each
+/// forward's share in the same f64 order [`step_gradient`] used before the read was deferred.
+fn weighted_step_loss(losses: &[Tensor], shares: &[f64], step: usize) -> Result<f64> {
+    if losses.len() != shares.len() || losses.is_empty() {
+        return Err(invalid(format!(
+            "training step {step} has {} losses for {} shares",
+            losses.len(),
+            shares.len()
+        )));
+    }
+    let values = Tensor::stack(losses, 0)?.to_vec1::<f32>()?;
+    let mut sum = 0.0f64;
+    for (&value, &share) in values.iter().zip(shares) {
+        if !value.is_finite() {
+            return Err(invalid(format!("non-finite training loss at step {step}")));
+        }
+        sum += f64::from(value) * share;
+    }
+    Ok(sum)
+}
+
 /// One training step's loss and gradient on `windows`, each `context` long (claude-300).
 ///
 /// The windows go forward and backward `micro` at a time; 0, or a `micro` that covers them, is
@@ -1357,7 +1381,9 @@ fn step_gradient(
         micro.min(windows.len())
     };
     let total: usize = windows.iter().map(|w| w.scored_offsets.len()).sum();
-    let mut sum: Option<(f64, candle_core::backprop::GradStore)> = None;
+    let mut grads: Option<candle_core::backprop::GradStore> = None;
+    let mut losses = Vec::new();
+    let mut shares = Vec::new();
     for lo in (0..windows.len()).step_by(micro.max(1)) {
         let hi = (lo + micro).min(windows.len());
         rows(lo, hi)?;
@@ -1373,33 +1399,35 @@ fn step_gradient(
         if share.is_some() && scored.is_empty() {
             continue;
         }
-        let (value, grads) = with_training_forward(served, seed, step, || {
+        let (loss, share, forward_grads) = with_training_forward(served, seed, step, || {
             let loss = batch_loss(model, objective, &ids, &scored, &targets, hi - lo, served)?;
-            // The copy to the host waits for the GPU to finish the forward. Only the nearest and
-            // cell objectives mark their own stages; the sheet's and Voronoi objectives count in
-            // this one.
-            let value = f64::from(loss.to_scalar::<f32>()?);
-            stage_clock::mark("objective.readback");
-            if !value.is_finite() {
-                return Err(invalid(format!("non-finite training loss at step {step}")));
-            }
+            let detached = loss.detach();
             let loss = match share {
                 Some(share) => loss.affine(share, 0.0)?,
                 None => loss,
             };
             let grads = variables_only(&loss, loss.backward()?)?;
             stage_clock::mark("backward");
-            Ok((value * share.unwrap_or(1.0), grads))
+            Ok((detached, share.unwrap_or(1.0), grads))
         })?;
-        sum = Some(match sum {
-            None => (value, grads),
-            Some((so_far, mut acc)) => {
-                add_grads(&mut acc, &grads)?;
-                (so_far + value, acc)
+        losses.push(loss);
+        shares.push(share);
+        grads = Some(match grads {
+            None => forward_grads,
+            Some(mut acc) => {
+                add_grads(&mut acc, &forward_grads)?;
+                acc
             }
         });
     }
-    sum.ok_or_else(|| invalid(format!("training step {step} has no scored row")))
+    let Some(grads) = grads else {
+        return Err(invalid(format!("training step {step} has no scored row")));
+    };
+    // Only the nearest and cell objectives mark their own stages; the sheet's and Voronoi
+    // objectives count in this one. The single read waits for every backward in the step.
+    let value = weighted_step_loss(&losses, &shares, step)?;
+    stage_clock::mark("objective.readback");
+    Ok((value, grads))
 }
 
 /// One forward's turn-memory rows, reply rows and cut mask, set before it runs (claude-300).
@@ -14594,6 +14622,32 @@ mod tests {
         assert_eq!(
             got.iter().map(|g| g.to_bits()).collect::<Vec<_>>(),
             want.iter().map(|g| g.to_bits()).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn one_loss_read_keeps_the_steps_weighted_sum_and_refuses_non_finite() {
+        let device = Device::Cpu;
+        let losses: Vec<Tensor> = [1.25f32, 2.5, -0.75]
+            .into_iter()
+            .map(|value| Tensor::new(value, &device).unwrap().detach())
+            .collect();
+        let shares = [0.125f64, 0.375, 0.5];
+        let expected = losses.iter().zip(shares).fold(0.0f64, |sum, (loss, share)| {
+            sum + f64::from(loss.to_scalar::<f32>().unwrap()) * share
+        });
+        assert_eq!(
+            weighted_step_loss(&losses, &shares, 9).unwrap().to_bits(),
+            expected.to_bits()
+        );
+
+        let non_finite = vec![Tensor::new(f32::NAN, &device).unwrap().detach()];
+        let error = weighted_step_loss(&non_finite, &[1.0], 10)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("non-finite training loss at step 10"),
+            "{error}"
         );
     }
 
