@@ -314,6 +314,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/m6-rustc-verifier": {
+    "branch": "deepseek/m6-rustc-verifier",
+    "claimed_at": "2026-11-07T02:53:48-05:00",
+    "head": "596bf7453",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/memory-heldout-comparison": {
     "branch": "deepseek/memory-heldout-comparison",
     "claimed_at": "2026-11-03T10:40:52-05:00",

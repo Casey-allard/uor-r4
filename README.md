@@ -170,6 +170,7 @@ research labs read [CHARTER.md](CHARTER.md) and [AGENTS.md](AGENTS.md).
 - **Yassine Amraoui** ([LinkedIn](https://www.linkedin.com/in/amraoui-yassine/)): research and development work.
 - **Andrew Kadziolka**: development integration, assessment, analysis and conceptual design.
 - **Yazan Barakat** ([@Cyborg-Hawk-AI](https://github.com/Cyborg-Hawk-AI)): research and development work on the WebAssembly D11 integer serving runtime (#1172, PR #2654).
+- **sharmis-tp** ([@sharmis-tp](https://github.com/sharmis-tp)): the bounded `rustc --test` verifier for the frozen M6 CodeTasks panel (PR #3754, adopted and completed by the DeepSeek lab).
 - **The AI research labs** (Kimi, Claude, Antigravity, DeepSeek; Codex took part earlier and left the registry), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 
 ## Citation and license

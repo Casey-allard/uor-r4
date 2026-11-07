@@ -34,6 +34,7 @@ Every row is graded by `grade_m6_row` / `grade_m6_panel` in [`crates/uor-r4-harn
    - **Safe execution & oracle (`SandboxProgram`, `grade_code_task_program`, `grade_code_task_row`):**
      - Candidate programs execute inside `SandboxProgram::execute`, a total 8-register integer machine with a hard instruction cap (`MAX_SANDBOX_STEPS = 256`), checked integer arithmetic (`checked_add/sub/mul/div/rem`), zero heap allocation, and zero filesystem/network/process I/O.
      - Each row also provides `SandboxProgram::to_rust_source`, emitting a standalone Rust module (`pub fn solve(x: i64) -> i64` and `#[test] fn verify_vectors()`) for offline `rustc --test` / `cargo test` verification.
+       - The [`m6_rustc_verifier`](../../../crates/uor-r4-harness/src/panel_m6_rustc_verifier.rs) compiles and runs the canonical source for all 80 rows; its [`integration tests`](../../../crates/uor-r4-harness/tests/panel_m6_rustc_verifier.rs) require 80/80. This is trusted-source instrument QA, not a sandbox or a model result.
      - Passing requires matching all `4 / 4` held-out `(input, expected_output)` test vectors in exact canonical format (`V0=<y0>;V1=<y1>;V2=<y2>;V3=<y3>`) within `256` steps with zero runtime traps.
 
 ## 3. Overlap Exclusion and Lawful Count-Table Baseline Noise (CHARTER §3.10, §4.4)

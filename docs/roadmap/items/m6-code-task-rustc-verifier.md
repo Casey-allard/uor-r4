@@ -8,7 +8,7 @@ open_to: anyone
 needs_gpu: false
 depends_on: [m6-reasoning-panel-freeze]
 notebook: docs/research/notebook/m6-reasoning-coding.md
-scope: [crates/uor-r4-harness/src/panel*.rs, crates/uor-r4-harness/tests/panel*.rs, docs/labs/m6-reasoning-panel-freeze/**, docs/harness/panels/m6-reasoning.json, docs/research/notebook/m6-reasoning-coding.md, docs/loop/tasks/m6-code-task-rustc-verifier/**, docs/roadmap/items/m6-code-task-rustc-verifier.md]
+scope: [crates/uor-r4-harness/src/panel*.rs, crates/uor-r4-harness/tests/panel*.rs, docs/labs/m6-reasoning-panel-freeze/**, docs/harness/panels/m6-reasoning.json, docs/research/notebook/m6-reasoning-coding.md, docs/loop/tasks/m6-code-task-rustc-verifier/**, docs/roadmap/items/m6-code-task-rustc-verifier.md, docs/harness/claims.json, README.md]
 ---
 
 ## Why it matters
