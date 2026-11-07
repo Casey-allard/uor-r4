@@ -322,6 +322,11 @@ async function normaliseMessages(messages) {
     const normalized = [];
     for (const message of messages) {
         if (!message) continue;
+        if (message.tool === 'm6-exact-arithmetic') {
+            const promptIndex = normalized.map((entry) => entry.role).lastIndexOf('user');
+            if (promptIndex >= 0) normalized.splice(promptIndex, 1);
+            continue;
+        }
         const content = await message.content;
         if (!((typeof content === 'string' && content.length > 0) || (Array.isArray(content) && content.length > 0))) continue;
         normalized.push({ role: ['system', 'user', 'assistant'].includes(message.role) ? message.role : 'user', content });

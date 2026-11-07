@@ -603,6 +603,9 @@
             worker: null,
             workerState: 'starting',
             caps: null,
+            currentLoadId: null,
+            readyLoadId: null,
+            requestedFileName: 'stack.lut',
             conversations: [],
             activeConversationId: null,
             generating: false,
@@ -627,6 +630,8 @@
             apiStartedNs: null,
             apiFirstTokenNs: null,
             apiMetrics: null,
+            pendingModelSourceChange: null,
+            healthyModelSnapshot: null,
         };
 
         function $(selector, root) {
@@ -676,7 +681,7 @@
                     messages: conversation.messages.filter(function (message) {
                         return message && typeof message.content === 'string' && message.role;
                     }).map(function (message) {
-                        return { role: message.role, content: message.content, meta: message.meta || null };
+                        return { role: message.role, content: message.content, meta: message.meta || null, tool: message.tool || null };
                     }),
                     checkpoint: typeof conversation.checkpoint === 'string' ? conversation.checkpoint : null,
                     lastToken: typeof conversation.lastToken === 'number' ? conversation.lastToken : null,
@@ -934,7 +939,9 @@
                     ? sources.loadBundled()
                     : (typeof ModelSources !== 'undefined' ? ModelSources.loadBundled() : null);
                 if (loading && typeof loading.catch === 'function') {
-                    loading.catch(function (error) { toast(String(error && error.message || error), 'error'); });
+                    loading.catch(function (error) {
+                        if (!error || (error.uorStale !== true && error.uorReported !== true)) toast(String(error && error.message || error), 'error');
+                    });
                 }
             }, true);
             quickButton('Choose a model', function () { go('models', 'model'); });
@@ -1212,6 +1219,8 @@
                 if (!app.apiConfig) return false;
                 try { return Boolean(normalizeBaseUrl(app.apiConfig.baseUrl)); } catch (_error) { return false; }
             }
+            if (app.workerState !== undefined && app.workerState !== 'ready') return false;
+            if (app.currentLoadId !== undefined && app.readyLoadId !== app.currentLoadId) return false;
             return Boolean(app.caps) && app.caps.synthetic === true && app.caps.engine_supported !== false && app.caps.can_generate !== false && !isDiscreteCapabilities(app.caps);
         }
 
@@ -1311,13 +1320,37 @@
         function onWorkerMessage(event) {
             var message = event && event.data ? event.data : {};
             if (message.action === 'runtime_loaded') {
-                app.workerState = 'ready';
+                if (app.workerState === 'starting') app.workerState = 'runtime-ready';
                 setEngineStatus('ready', 'ok', 'Engine: ' + (message.engine || 'serving-wasm') + ' · WebAssembly in a Web Worker');
                 updateComposerState();
                 return;
             }
             if (message.action === 'model_loaded') {
-                app.caps = message.capabilities;
+                if (typeof message.id === 'number' && message.id !== app.currentLoadId) return;
+                var capabilities = message.capabilities || {};
+                var artifactSha256 = capabilities.artifact_sha256;
+                var missingCurrentId = typeof message.id !== 'number';
+                var fileMismatch = capabilities.file_name !== app.requestedFileName;
+                var invalidHash = !artifactSha256 || !/^[0-9a-f]{64}$/.test(artifactSha256);
+                var hashMismatch = app.expectedSha256 && artifactSha256 !== app.expectedSha256;
+                if (missingCurrentId || fileMismatch || invalidHash || hashMismatch) {
+                    app.workerState = 'error';
+                    var identityError = missingCurrentId
+                        ? 'Worker returned model_loaded without the current load operation ID.'
+                        : fileMismatch
+                            ? 'Worker returned ' + (capabilities.file_name || '<missing filename>') + ' instead of the requested ' + app.requestedFileName + '.'
+                            : invalidHash
+                                ? 'Worker returned missing or invalid artifact SHA-256 ' + (artifactSha256 || '<missing hash>') + '; expected a 64-character lowercase hex digest' + (app.expectedSha256 ? ' (' + app.expectedSha256 + ')' : '') + '.'
+                                : 'Worker returned artifact SHA-256 ' + artifactSha256 + ' instead of the expected ' + app.expectedSha256 + '.';
+                    app.healthyModelSnapshot = null;
+                    clearWorkerModel();
+                    setModelStatus(identityError, 'err');
+                    toast(identityError, 'error');
+                    return;
+                }
+                app.healthyModelSnapshot = null;
+                app.caps = capabilities;
+                app.readyLoadId = app.currentLoadId === undefined ? null : app.currentLoadId;
                 app.workerState = 'ready';
                 setEngineStatus('ready', 'ok', 'Engine: ' + (app.caps.engine || 'serving-wasm') + ' · ' + describeCapabilities());
                 setModelStatus((app.caps.status_label || 'loaded') + ' · ' + (app.caps.schema || 'schema?'), app.caps.synthetic ? 'warn' : 'ok', describeCapabilities());
@@ -1350,8 +1383,12 @@
                     app.streamingBodyEl.textContent = app.assistantBuffer;
                     scrollChat(false);
                 }
-                var count = message.tokenCount || 0;
-                setMetrics(count + ' tokens · ' + formatTps(message.tps) + ' tok/s');
+                if (message.tool === 'm6-exact-arithmetic') {
+                    setMetrics('0 model tokens · tool');
+                } else {
+                    var count = message.tokenCount || 0;
+                    setMetrics(count + ' tokens · ' + formatTps(message.tps) + ' tok/s');
+                }
                 return;
             }
             if (message.action === 'generate_complete') {
@@ -1385,9 +1422,33 @@
                 return;
             }
             if (message.action === 'operation_error') {
+                if (message.operation === 'load_model' && typeof message.id === 'number' && message.id !== app.currentLoadId) return;
                 var workerError = String(message.error || 'Operation failed.');
+                if (message.operation === 'load_model' && /Stop generation before loading/.test(workerError)) {
+                    var restoredHealthyModel = restoreHealthyModelState(app.healthyModelSnapshot);
+                    app.healthyModelSnapshot = null;
+                    if (restoredHealthyModel) {
+                        app.workerState = 'ready';
+                    } else if (app.caps) {
+                        app.workerState = 'ready';
+                        if (app.readyLoadId !== null && app.readyLoadId !== undefined) {
+                            app.currentLoadId = app.readyLoadId;
+                        }
+                    } else {
+                        app.workerState = 'error';
+                    }
+                    toast(workerError, 'warn');
+                    updateComposerState();
+                    return;
+                }
                 app.lastWorkerError = workerError;
                 document.documentElement.dataset.lastWorkerError = workerError;
+                if (message.operation === 'load_model') {
+                    app.healthyModelSnapshot = null;
+                    app.workerState = 'error';
+                    clearWorkerModel();
+                    setModelStatus(workerError, 'err');
+                }
                 if (app.workerState !== 'ready') {
                     app.workerState = 'error';
                     var reason = /pkg|dynamically imported module|Failed to fetch/i.test(workerError)
@@ -1473,7 +1534,8 @@
                 return;
             }
             var text = typeof message.fullText === 'string' ? message.fullText : app.assistantBuffer;
-            var meta = [
+            var exactTool = message.tool === 'm6-exact-arithmetic' || message.stoppedBy === 'tool';
+            var meta = exactTool ? '0 model tokens · tool' : [
                 (message.tokenCount || 0) + ' tokens',
                 (message.tps ? formatTps(message.tps) + ' tok/s' : 'timing unavailable'),
                 message.stoppedBy === 'cancelled' ? 'stopped' : 'length',
@@ -1494,15 +1556,15 @@
             } else if (text) {
                 appendMessageElement('assistant', text, meta);
             }
-            conversation.messages.push({ role: 'assistant', content: text, meta: meta });
+            conversation.messages.push({ role: 'assistant', content: text, meta: meta, tool: message.tool || null });
             conversation.sourceKind = 'wasm';
             touchConversation(conversation);
             app.generating = false;
             app.streamingBodyEl = null;
             app.assistantBuffer = '';
             updateComposerState();
-            setMetrics((message.tokenCount || 0) + ' tokens · ' + formatTps(message.tps) + ' tok/s · ' + (message.stoppedBy === 'cancelled' ? 'stopped' : 'complete'));
-            requestCheckpoint(conversation);
+            setMetrics(exactTool ? meta : (message.tokenCount || 0) + ' tokens · ' + formatTps(message.tps) + ' tok/s · ' + (message.stoppedBy === 'cancelled' ? 'stopped' : 'complete'));
+            if (!exactTool) requestCheckpoint(conversation);
             renderConversationList();
             scrollChat(false);
             clearChatRequest(message.id);
@@ -1557,7 +1619,9 @@
         }
 
         function sendViaWorker(prompt, conversation) {
-            if (!app.worker || !app.caps) {
+            if (!app.worker || !app.caps
+                || (app.workerState !== undefined && app.workerState !== 'ready')
+                || (app.currentLoadId !== undefined && app.readyLoadId !== app.currentLoadId)) {
                 toast('Load a local model first under Connections.', 'warn');
                 setView('model');
                 return false;
@@ -1592,7 +1656,7 @@
                     // historical user turn that the native API rejects. The final turn
                     // remains empty so a live image-only request has no text part.
                     if (message.role === 'user' && content === '' && index !== lastIndex) content = '[Image patch input]';
-                    return { role: message.role, content: content };
+                    return { role: message.role, content: content, tool: message.tool || null };
                 });
             var attachments = window.__studioUi && typeof window.__studioUi.getAttachments === 'function'
                 ? window.__studioUi.getAttachments()
@@ -1660,7 +1724,11 @@
                             firstTokenNs: app.apiFirstTokenNs,
                             chars: app.assistantBuffer.length,
                         });
-                        setMetrics(app.apiMetrics.text());
+                        if (meta.uor && meta.uor.tool === 'm6-exact-arithmetic') {
+                            setMetrics('0 model tokens · tool');
+                        } else {
+                            setMetrics(app.apiMetrics.text());
+                        }
                         scrollChat(false);
                     },
                     onDone: function (result) {
@@ -1675,7 +1743,8 @@
                             finishReason: result && result.stopped ? 'stopped' : result && result.finishReason,
                             chars: text.length,
                         });
-                        var finalMetrics = app.apiMetrics.text();
+                        var exactTool = result && result.uor && result.uor.tool === 'm6-exact-arithmetic';
+                        var finalMetrics = exactTool ? '0 model tokens · tool' : app.apiMetrics.text();
                         var placeholder = document.querySelector('#chatMessages .msg[data-streaming="true"]');
                         if (placeholder) {
                             placeholder.dataset.streaming = 'false';
@@ -1684,7 +1753,7 @@
                             var metaNode = placeholder.querySelector('.msg-meta');
                             if (metaNode) metaNode.textContent = finalMetrics;
                         }
-                        conversation.messages.push({ role: 'assistant', content: text, meta: finalMetrics });
+                        conversation.messages.push({ role: 'assistant', content: text, meta: finalMetrics, tool: result && result.uor && result.uor.tool ? result.uor.tool : null });
                         conversation.sourceKind = 'api';
                         touchConversation(conversation);
                         app.generating = false;
@@ -1886,14 +1955,169 @@
             if (app.generating && app.activeGenerationKind === 'api' && app.abortController) app.abortController.abort();
         }
 
+        function guardModelSourceOperations(sources, doc) {
+            var latestOperationId = 0;
+            ['loadBundled', 'loadPublished', 'loadFromUrl', 'loadLocalFile'].forEach(function (name) {
+                var original = sources[name];
+                if (typeof original !== 'function') return;
+                sources[name] = function (input, operation) {
+                    if (app.generating) {
+                        toast('Stop the current reply before changing models.', 'warn');
+                        return Promise.resolve({ blocked: true, stale: true });
+                    }
+                    var current = operation;
+                    if (name === 'loadBundled' && current === undefined && input && typeof input === 'object') current = input;
+                    if (current && Number.isInteger(current.operationId) && typeof current.sourceId === 'string') {
+                        latestOperationId = Math.max(latestOperationId, current.operationId);
+                    } else {
+                        latestOperationId += 1;
+                        current = { operationId: latestOperationId, sourceId: 'studio-' + name };
+                    }
+                    var result = name === 'loadBundled'
+                        ? original.call(this, current)
+                        : original.call(this, input, current);
+                    if (result && typeof result.catch === 'function') {
+                        return result.catch(function (error) {
+                            if (current.operationId < latestOperationId) {
+                                if (error && typeof error === 'object') error.uorStale = true;
+                            } else {
+                                if (error && typeof error === 'object') error.uorReported = true;
+                                toast(String(error && error.message || error), 'error');
+                            }
+                            throw error;
+                        });
+                    }
+                    return result;
+                };
+            });
+            if (doc && typeof doc.addEventListener === 'function') {
+                doc.addEventListener('uor-model-source-changed', function (event) {
+                    var detail = event && event.detail ? event.detail : {};
+                    if (detail.kind === 'api') latestOperationId += 1;
+                });
+                doc.addEventListener('uor-generation-finished', function () {
+                    if (app.generating) return;
+                    var pending = app.pendingModelSourceChange;
+                    app.pendingModelSourceChange = null;
+                    if (pending) onModelSourceChanged({ detail: pending });
+                });
+                doc.addEventListener('click', function (event) {
+                    var closest = event.target && event.target.closest;
+                    if (!closest) return;
+                    var bundled = event.target.closest('[data-action="load-bundled"]');
+                    if (bundled) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        var loading = sources.loadBundled();
+                        if (loading && typeof loading.catch === 'function') {
+                            loading.catch(function () {
+                                /* the page wrapper already toasted current errors */
+                            });
+                        }
+                        return loading;
+                    }
+                    var blocked = event.target.closest('[data-action="api-use"]')
+                        || event.target.closest('[data-action="api-remove"]');
+                    if (blocked && app.generating) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        toast('Stop the current reply before changing models.', 'warn');
+                    }
+                }, true);
+            }
+        }
+
+        function captureHealthyModelState() {
+            if (app.healthyModelSnapshot) return app.healthyModelSnapshot;
+            if (!app.caps) return null;
+            var dataset = document.documentElement.dataset;
+            return {
+                caps: app.caps,
+                modelMeta: app.modelMeta,
+                tokenizerArtifact: app.tokenizerArtifact,
+                loadMs: app.loadMs,
+                requestedFileName: app.requestedFileName,
+                expectedSha256: app.expectedSha256,
+                loadId: app.readyLoadId,
+                dataset: {
+                    modelSchema: dataset.modelSchema,
+                    modelSha256: dataset.modelSha256,
+                    modelShaVerified: dataset.modelShaVerified,
+                    modelSize: dataset.modelSize,
+                    modelTokenizer: dataset.modelTokenizer,
+                    modelSource: dataset.modelSource,
+                    modelSourceLabel: dataset.modelSourceLabel,
+                    modelDiscrete: dataset.modelDiscrete,
+                    modelLoadMs: dataset.modelLoadMs,
+                },
+            };
+        }
+
+        function restoreHealthyModelState(snapshot) {
+            if (!snapshot || snapshot.loadId === null || snapshot.loadId === undefined) return false;
+            app.caps = snapshot.caps;
+            app.modelMeta = snapshot.modelMeta;
+            app.tokenizerArtifact = snapshot.tokenizerArtifact;
+            app.loadMs = snapshot.loadMs;
+            app.requestedFileName = snapshot.requestedFileName;
+            app.expectedSha256 = snapshot.expectedSha256;
+            app.currentLoadId = snapshot.loadId;
+            app.readyLoadId = snapshot.loadId;
+            app.workerState = 'ready';
+            var dataset = document.documentElement.dataset;
+            Object.keys(snapshot.dataset).forEach(function (name) {
+                dataset[name] = snapshot.dataset[name];
+            });
+            var capabilityDetail = typeof describeCapabilities === 'function' ? describeCapabilities() : '';
+            if (typeof setEngineStatus === 'function') {
+                setEngineStatus('ready', 'ok', 'Engine: ' + (app.caps.engine || 'serving-wasm') + ' · ' + capabilityDetail);
+            }
+            if (typeof setModelStatus === 'function') {
+                setModelStatus((app.caps.status_label || 'loaded') + ' · ' + (app.caps.schema || 'schema?'), app.caps.synthetic ? 'warn' : 'ok', capabilityDetail);
+            }
+            if (typeof updateCapabilitiesFooter === 'function') updateCapabilitiesFooter();
+            return true;
+        }
+
+        function clearWorkerModel() {
+            app.caps = null;
+            app.modelMeta = null;
+            app.tokenizerArtifact = null;
+            app.readyLoadId = null;
+            app.loadMs = null;
+            [
+                'modelSchema', 'modelSha256', 'modelShaVerified', 'modelSize',
+                'modelTokenizer', 'modelSource', 'modelSourceLabel', 'modelDiscrete',
+                'modelLoadMs',
+            ].forEach(function (name) {
+                document.documentElement.dataset[name] = '';
+            });
+            if (typeof updateCapabilitiesFooter === 'function') updateCapabilitiesFooter();
+            updateComposerState();
+        }
+
         function onModelSourceChanged(event) {
             var detail = event && event.detail ? event.detail : {};
+            var switchesSource = detail.kind === 'wasm'
+                || (detail.kind === 'api' && detail.apiConfig);
+            if (switchesSource) {
+                if (app.generating) {
+                    app.pendingModelSourceChange = detail;
+                    return;
+                }
+                app.pendingModelSourceChange = null;
+            }
             if (detail.kind === 'wasm' && detail.bytes) {
+                app.healthyModelSnapshot = captureHealthyModelState();
                 abortApiForLocalSource();
                 app.mode = 'wasm';
                 app.apiConfig = null;
+                app.currentLoadId = (app.currentLoadId || 0) + 1;
+                app.workerState = 'loading';
+                clearWorkerModel();
                 app.tokenizerArtifact = detail.tokenizerArtifact || null;
                 app.expectedSha256 = detail.expectedSha256 || '';
+                app.requestedFileName = detail.fileName || 'stack.lut';
                 app.modelMeta = detail.meta || null;
                 setModelStatus('loading ' + (detail.fileName || 'artifact') + '…', 'warn');
                 updatePrivacyStatus();
@@ -1911,12 +2135,16 @@
                     if (detail.expectedSha256) payload.expectedSha256 = detail.expectedSha256;
                     if (detail.tokenizerArtifact) payload.tokenizerArtifact = detail.tokenizerArtifact;
                     app.loadStartedAt = (window.performance && performance.now) ? performance.now() : Date.now();
-                    app.worker.postMessage({ action: 'load_model', payload: payload });
+                    app.worker.postMessage({ action: 'load_model', id: app.currentLoadId, payload: payload });
                 }
                 setView('chat');
                 return;
             }
             if (detail.kind === 'api' && detail.apiConfig) {
+                app.healthyModelSnapshot = null;
+                app.currentLoadId = (app.currentLoadId || 0) + 1;
+                app.workerState = 'loading';
+                clearWorkerModel();
                 app.mode = 'api';
                 app.apiConfig = detail.apiConfig;
                 setModelStatus('API · ' + (detail.apiConfig.model || detail.apiConfig.label || 'endpoint'), 'accent', detail.apiConfig.baseUrl || '');
@@ -1944,6 +2172,8 @@
                 return;
             }
             if (detail.kind === 'state' && detail.removedActive) {
+                app.pendingModelSourceChange = null;
+                app.healthyModelSnapshot = null;
                 abortApiForLocalSource();
                 app.mode = 'wasm';
                 app.apiConfig = null;
@@ -2254,6 +2484,7 @@
             bindHeader();
             bindComposer();
             bindEditor();
+            guardModelSourceOperations(ModelSources, document);
             if (window.__UOR_NATIVE_BOOTSTRAP__) ModelSources.registerNativeBootstrap(window.__UOR_NATIVE_BOOTSTRAP__);
             mountModelSources($('#modelSourceMount'));
             var modelList = ModelSources.list();
@@ -2269,7 +2500,7 @@
             startWorker();
             if (active.kind === 'wasm' && active.id === 'bundled-demo' && !app.caps) {
                 ModelSources.loadBundled({ operationId: 1, sourceId: 'bundled-demo' }).catch(function (error) {
-                    toast('The offline demo could not load: ' + String(error && error.message || error), 'error');
+                    if (!error || (error.uorStale !== true && error.uorReported !== true)) toast('The offline demo could not load: ' + String(error && error.message || error), 'error');
                 });
             }
             updateComposerState();

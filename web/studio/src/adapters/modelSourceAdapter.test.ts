@@ -3,8 +3,10 @@ import { LifecycleStore } from '../state/lifecycle.js';
 import { createModelSourceAdapter, LOAD_PROGRESS_EVENT } from './modelSourceAdapter.js';
 import type { ApiProvider, ModelSourceList } from '../../assets/js/model_sources.js';
 
+const EXPECTED_SHA256 = 'a'.repeat(64);
+
 function sources() {
-    const result = { bytes: new Uint8Array(), fileName: 'model.lut', expectedSha256: 'abc', meta: { schema: 'uor-r4.lut-stack/1' } };
+    const result = { bytes: new Uint8Array(), fileName: 'model.lut', expectedSha256: EXPECTED_SHA256, meta: { schema: 'uor-r4.lut-stack/1' } };
     const provider: ApiProvider = { id: 'api-a', label: 'API A', preset: 'custom', baseUrl: 'https://api.example.com/v1', model: 'model-a', apiKey: '' };
     const list = (): ModelSourceList => ({ active: { kind: 'wasm', id: 'bundled-demo' }, wasm: {}, api: [provider] });
     return {
@@ -43,7 +45,7 @@ describe('model source adapter', () => {
         expect(api.loadFromUrl).toHaveBeenCalledWith('https://example.com/model.lut', { operationId: 1, sourceId: 'url' });
         expect(store.getState().artifact.phase).toBe('finalizing');
         expect(store.canRun()).toBe(false);
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'uor-r4.lut-stack/1' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'uor-r4.lut-stack/1', file_name: 'model.lut', artifact_sha256: EXPECTED_SHA256 } });
         expect(store.getState().artifact.phase).toBe('ready');
         expect(store.canRun()).toBe(true);
     });
@@ -67,7 +69,7 @@ describe('model source adapter', () => {
     it('failed replacement leaves run disabled rather than falling back', async () => {
         const adapter = createModelSourceAdapter(store, sources(), worker());
         await adapter.loadFromUrl('https://example.com/a.lut');
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'old' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'old', file_name: 'a.lut', artifact_sha256: EXPECTED_SHA256 } });
         expect(store.canRun()).toBe(true);
         await adapter.loadFromUrl('https://example.com/b.lut');
         adapter.handleWorkerMessage({ action: 'operation_error', id: 2, error: 'bad model' });
@@ -116,7 +118,7 @@ describe('model source adapter', () => {
         expect(transport.postMessage).toHaveBeenCalledWith({
             action: 'load_model',
             id: 1,
-            payload: expect.objectContaining({ expectedSha256: 'abc' }),
+            payload: expect.objectContaining({ expectedSha256: EXPECTED_SHA256 }),
         });
     });
 
@@ -125,15 +127,15 @@ describe('model source adapter', () => {
         const adapter = createModelSourceAdapter(store, sources(), transport);
         await adapter.loadFromUrl('https://example.com/a.lut');
         await adapter.loadFromUrl('https://example.com/b.lut');
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'old', file_name: 'a.lut', artifact_sha256: 'abc' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'old', file_name: 'a.lut', artifact_sha256: EXPECTED_SHA256 } });
         expect(store.canRun()).toBe(false);
         await vi.waitFor(() => expect(transport.postMessage).toHaveBeenCalledTimes(2));
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'b.lut', artifact_sha256: 'abc', sha256_verified: true, engine_supported: true, can_generate: false, can_predict: true, source: 'url' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'b.lut', artifact_sha256: EXPECTED_SHA256, sha256_verified: true, engine_supported: true, can_generate: false, can_predict: true, source: 'url' } });
         expect(store.getState().residentArtifact).toMatchObject({
             sourceId: 'url',
             schema: 'new',
             fileName: 'b.lut',
-            sha256: 'abc',
+            sha256: EXPECTED_SHA256,
             verified: true,
             engineSupported: true,
             canGenerate: false,
@@ -149,7 +151,7 @@ describe('model source adapter', () => {
         await adapter.loadFromUrl('https://example.com/model.lut');
         await adapter.loadFromUrl('https://example.com/model.lut');
         expect(transport.postMessage).toHaveBeenCalledTimes(1);
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { file_name: 'model.lut', artifact_sha256: 'abc' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { file_name: 'model.lut', artifact_sha256: EXPECTED_SHA256 } });
         expect(store.canRun()).toBe(false);
         await vi.waitFor(() => expect(transport.postMessage).toHaveBeenCalledTimes(2));
         adapter.handleWorkerMessage({ action: 'operation_error', id: 2, error: 'replacement failed' });
@@ -160,7 +162,7 @@ describe('model source adapter', () => {
     it('ignores non-load worker errors after readiness', async () => {
         const adapter = createModelSourceAdapter(store, sources(), worker());
         await adapter.loadFromUrl('https://example.com/model.lut');
-        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'model.lut' } });
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { schema: 'new', file_name: 'model.lut', artifact_sha256: EXPECTED_SHA256 } });
         expect(store.canRun()).toBe(true);
         adapter.handleWorkerMessage({ action: 'operation_error', id: 999, error: 'unrelated error' });
         expect(store.getState().artifact.phase).toBe('ready');
@@ -215,5 +217,88 @@ describe('model source adapter', () => {
         adapter.selectApi('api-a', 'https://api.example.com/v1');
         await expect(adapter.testApi('api-b')).rejects.toThrow('non-selected API');
         expect(api.testApi).not.toHaveBeenCalled();
+    });
+
+    it('turns a current worker filename mismatch into an explicit load error', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'model_loaded', id: 1, capabilities: { file_name: 'other.lut', artifact_sha256: EXPECTED_SHA256 } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('other.lut');
+        expect(store.getState().artifact.error).toContain('model.lut');
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('turns a current worker expected-hash mismatch into an explicit load error', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'model_loaded', id: 1, capabilities: { file_name: 'model.lut', artifact_sha256: 'deadbeef' } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('deadbeef');
+        expect(store.getState().artifact.error).toContain(EXPECTED_SHA256);
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('distinguishes a valid but wrong 64-character worker hash from the expected hash', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        const actual = 'b'.repeat(64);
+        adapter.handleWorkerMessage({ action: 'model_loaded', id: 1, capabilities: { file_name: 'model.lut', artifact_sha256: actual } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain(actual);
+        expect(store.getState().artifact.error).toContain(EXPECTED_SHA256);
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('rejects a no-id worker identity mismatch instead of leaving finalizing pending', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { file_name: 'other.lut', artifact_sha256: EXPECTED_SHA256 } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('other.lut');
+        expect(store.getState().artifact.error).toContain('model.lut');
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('completes the single pending operation on a no-ID operation error', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'operation_error', operation: 'load_model', error: 'legacy load failure' });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('legacy load failure');
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('only a load-model no-ID operation error fails the pending load', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'operation_error', operation: 'generate', error: 'unrelated failure' });
+        expect(store.getState().artifact.phase).toBe('finalizing');
+        expect(store.canRun()).toBe(false);
+        adapter.handleWorkerMessage({ action: 'operation_error', operation: 'load_model', error: 'load failed' });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('load failed');
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('rejects missing worker artifact identity instead of marking ready', async () => {
+        const adapter = createModelSourceAdapter(store, sources(), worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { file_name: 'model.lut' } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('SHA-256');
+        expect(store.getState().artifact.error).toContain(EXPECTED_SHA256);
+        expect(store.canRun()).toBe(false);
+    });
+
+    it('rejects a missing worker hash for an unpinned load', async () => {
+        const api = sources();
+        api.loadFromUrl = vi.fn(async () => ({ bytes: new Uint8Array(), fileName: 'model.lut', expectedSha256: '', meta: { schema: 'uor-r4.lut-stack/1' } }));
+        const adapter = createModelSourceAdapter(store, api, worker());
+        await adapter.loadFromUrl('https://example.com/model.lut');
+        adapter.handleWorkerMessage({ action: 'model_loaded', capabilities: { file_name: 'model.lut' } });
+        expect(store.getState().artifact.phase).toBe('error');
+        expect(store.getState().artifact.error).toContain('SHA-256');
+        expect(store.canRun()).toBe(false);
     });
 });

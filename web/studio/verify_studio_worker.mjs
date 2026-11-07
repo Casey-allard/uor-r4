@@ -294,6 +294,20 @@ assert(Array.isArray(infoMsg.refused_schemas) && infoMsg.refused_schemas.length 
 assert(infoMsg.turn_memory_served === true, 'engine_info should report the turn memory served');
 
 // 2. Load the synthetic stack via `load_model` -> `loadStack`.
+const wrongExpectedHash = 'b'.repeat(64);
+await sendToWorker({
+    action: 'load_model',
+    id: 'wrong_hash',
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'synthetic-stack.lut',
+        expectedSha256: wrongExpectedHash,
+    },
+});
+const wrongHashMessage = await waitForMessage((m) => m.action === 'operation_error' && m.id === 'wrong_hash');
+assert(wrongHashMessage.error.includes(wrongExpectedHash), `worker error must include the full expected digest: ${wrongHashMessage.error}`);
+assert(wrongHashMessage.error.includes(tokenizerArtifact.stack_sha256), `worker error must include the full actual digest: ${wrongHashMessage.error}`);
+
 await sendToWorker({
     action: 'load_model',
     payload: {
@@ -322,6 +336,707 @@ const EXPECTED_32 = [
     38, 9, 33, 8, 25, 38, 30, 25, 17, 30, 30, 30, 17, 30, 30, 30,
     30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
 ];
+
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_exact_add',
+    payload: {
+        conversationId: 'conv_verify_exact_add',
+        messages: [{ role: 'user', content: '17 + 25' }],
+        options: { max_new_tokens: 32 },
+    },
+});
+const genExact = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_exact_add');
+assert(genExact.action === 'generate_complete', `exact arithmetic failed: ${JSON.stringify(genExact)}`);
+assert(genExact.fullText.startsWith('42\n'), `exact arithmetic must put the answer first, got ${JSON.stringify(genExact.fullText)}`);
+assert(genExact.fullText.includes('tool, not model generation'), 'exact arithmetic must identify itself as a tool');
+assert(genExact.fullText.includes('p0: 7 + 5 + 0 -> 2, carry 1'), `exact arithmetic must expose the actual carry trace, got ${JSON.stringify(genExact.fullText)}`);
+assert(genExact.tool === 'm6-exact-arithmetic', `exact arithmetic must carry a tool marker, got ${JSON.stringify(genExact)}`);
+assert(genExact.tokenCount === 0 && genExact.tokenIds.length === 0 && genExact.tps === null, `exact arithmetic must not invent model tokens or rates: ${JSON.stringify(genExact)}`);
+assert(!['weightsPerToken', 'allocDelta', 'allocEvents'].some((field) => field in genExact), `exact arithmetic must omit model accounting fields: ${JSON.stringify(genExact)}`);
+
+for (const [index, prompt] of [
+    'What is 17 * 25?',
+    'What is 17 % 25?',
+    'What is 17 ^ 25?',
+    'What is ((17 + 25))?',
+    'What is {17 + 25}?',
+    'What is +17 * 25?',
+    'What is -17 % 25?',
+    'What is +17 ^ 25?',
+    'What is +17 / 25?',
+    'What is +17 × 25?',
+    'What is +17 ÷ 25?',
+    'What is .5 + 25?',
+    'What is -17.5 + 25?',
+    'What is (-17 * 25)?',
+    'What is % 25?',
+    'What is - 25?',
+    'What is -?',
+    'What is [17 + 25]?',
+    '2026-11-05 + 1',
+    '2026-11-05 - 1',
+].entries()) {
+    const id = `gen_exact_unsupported_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId: `conv_verify_exact_unsupported_${index}`,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const unsupported = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(unsupported.action === 'generate_error', `unsupported arithmetic must fail explicitly instead of generating (${prompt}): ${JSON.stringify(unsupported)}`);
+}
+
+for (const spaces of [157, 159, 160]) {
+    const id = `gen_exact_overlong_${spaces}`;
+    const overlongArithmetic = `1${' '.repeat(spaces)}+ 1`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId: `conv_verify_exact_overlong_${spaces}`,
+            messages: [{ role: 'user', content: overlongArithmetic }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const overlong = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(overlong.action === 'generate_error' && overlong.error.includes('160-byte'), `overlong arithmetic with ${spaces} spaces must return the prompt limit: ${JSON.stringify(overlong)}`);
+}
+
+const signedOverlongArithmetic = `+1${' '.repeat(159)}* 1`;
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_exact_signed_overlong',
+    payload: {
+        conversationId: 'conv_verify_exact_signed_overlong',
+        messages: [{ role: 'user', content: signedOverlongArithmetic }],
+        options: { max_new_tokens: 32 },
+    },
+});
+const signedOverlong = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_exact_signed_overlong');
+assert(signedOverlong.action === 'generate_error' && signedOverlong.error.includes('160-byte'), `signed overlong arithmetic must return the prompt limit: ${JSON.stringify(signedOverlong)}`);
+
+for (const [index, prompt] of [`${' '.repeat(200)}1 + 1`, `1 + 1${' '.repeat(200)}`].entries()) {
+    const id = `gen_exact_padded_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId: `conv_verify_exact_padded_${index}`,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const padded = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(padded.action === 'generate_error' && padded.error.includes('160-byte'), `whitespace-padded arithmetic must return the prompt limit: ${JSON.stringify(padded)}`);
+}
+
+for (const [index, prompt] of [
+    '1 -',
+    'What is 1 -?',
+    '2026-11-05 -',
+    `${' '.repeat(200)}1 -`,
+    `${' '.repeat(200)}1 - ?`,
+    `${' '.repeat(200)}1 - Show your work`,
+    `${' '.repeat(200)}2026-11-05 - ?`,
+    `${'1'.repeat(200)} - ?`,
+].entries()) {
+    const id = `gen_exact_incomplete_subtraction_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId: `conv_verify_exact_incomplete_subtraction_${index}`,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const incomplete = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    const expectedError = index >= 3 ? '160-byte' : 'decimal';
+    assert(incomplete.action === 'generate_error' && incomplete.error.includes(expectedError), `incomplete subtraction must fail explicitly: ${JSON.stringify(incomplete)}`);
+}
+
+for (const [index, expression] of ['-', '- 25', '- 2.5', '-?'].entries()) {
+    for (const [side, prompt] of [`${' '.repeat(200)}${expression}`, `${expression}${' '.repeat(200)}`].entries()) {
+        const id = `gen_exact_padded_minus_${index}_${side}`;
+        await sendToWorker({
+            action: 'generate',
+            id,
+            payload: {
+                conversationId: `conv_verify_exact_padded_minus_${index}_${side}`,
+                messages: [{ role: 'user', content: prompt }],
+                options: { max_new_tokens: 32 },
+            },
+        });
+        const padded = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+        assert(padded.action === 'generate_error' && padded.error.includes('leading minus'), `padded leading-minus arithmetic must fail explicitly: ${JSON.stringify(padded)}`);
+    }
+}
+
+for (const [index, prompt] of [
+    '2026-11-05T17:25Z',
+    '2026-11-05T17:25+01:00',
+    '2026-11-05T17:25-01:00',
+    '2026-11-05 17:25+01:00',
+    '2026-11-05T17:25Z?',
+    '2026-11-05T17:25+01:00?',
+    '2026-11-05T17:25-01:00?',
+    'What is 2026-11-05T17:25+01:00?',
+    'What is 2026-11-05T17:25Z?',
+    '- this is ordinary prose',
+    `${' '.repeat(200)}- this is ordinary prose`,
+    `- this is ordinary prose${' '.repeat(200)}`,
+    '-42 is the answer',
+    '+42 is the answer',
+    '- 1. Introduction',
+    '1. Introduction',
+    '1) Introduction',
+    '1 - Introduction',
+    '2026 - Year in review',
+    '2026-11-05 - Year in review',
+    'What is +42, really?',
+    '-42,',
+    '2026-11-05T17:25+01:00,',
+    '2026-11-05T17:25-01:00,',
+    '2026-11-05T17:25+01:00, what day is it?',
+    '2026-11-05T17:25-01:00, what day is it?',
+    'What is 2026-11-05T17:25+01:00 in UTC?',
+    'What is 2026-11-05T17:25-01:00 in UTC?',
+    'What is 2026-11-05T17:25Z in UTC?',
+    '2026-11-05T17:25+01:00, 5pm',
+    '2026-11-05T17:25-01:00, 5pm',
+    '2026-11-05T17:25Z, 5pm',
+].entries()) {
+    const id = `gen_iso_${index}`;
+    const expectedTokens = prompt.includes(', what day is it?') || prompt.includes('in UTC') || prompt.includes(', 5pm') ? 8 : 32;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId: `conv_verify_iso_${index}`,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: expectedTokens },
+        },
+    });
+    const iso = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(iso.action === 'generate_complete' && iso.tokenCount === expectedTokens, `ordinary signed/date prose must use the ordinary model path: ${JSON.stringify(iso)}`);
+}
+
+for (let index = 0; index < 16; index += 1) {
+    const conversationId = `conv_verify_iso_${index}`;
+    const id = `close_review18_preclean_${index}`;
+    await sendToWorker({ action: 'close_session', id, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === id);
+    assert(closed.action === 'session_reset', `pre-existing review conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of [
+    '2026-11-05  - 1',
+    '2026-11-05, - 1',
+    '2026-11-05T17:25+01:00, - 1',
+    '2026-11-05  -',
+    '2026-11-05 +',
+    'What is 17 & 25?',
+    '17 | 25',
+    '17 << 2',
+    '17 = 25',
+    '17 (25)',
+    `${' '.repeat(200)}2026-11-05  - 1`,
+    `${' '.repeat(200)}2026-11-05, - 1`,
+    `${' '.repeat(200)}2026-11-05T17:25+01:00, - 1`,
+    `${' '.repeat(200)}2026-11-05 +`,
+    '+1 800 555 0100 + 2',
+    '10 - 20 minutes + 3',
+].entries()) {
+    const id = `gen_review18_boundary_${index}`;
+    const conversationId = `conv_review18_boundary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(boundary.action === 'generate_error', `review arithmetic boundary must fail explicitly instead of generating (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `review arithmetic boundary emitted model chunks (${prompt})`);
+    const expectedError = index >= 10 && index <= 13 ? '160-byte' : 'exact arithmetic';
+    assert(boundary.error.includes(expectedError), `review arithmetic boundary returned the wrong error (${prompt}): ${JSON.stringify(boundary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review arithmetic boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['+1 800 555 0100', '+1 2 3', '10 - 20 minutes'].entries()) {
+    const id = `gen_review18_ordinary_${index}`;
+    const conversationId = `conv_review18_ordinary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: {
+            conversationId,
+            messages: [{ role: 'user', content: prompt }],
+            options: { max_new_tokens: 32 },
+        },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === 32, `ordinary signed/range prose must use the ordinary model path: ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `ordinary review conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['~17', '17 ~ 25', '~17 + 25', '17 − 25', '10 - 20 minutes + 3', '10 - 20 (25)'].entries()) {
+    const id = `gen_review20_boundary_${index}`;
+    const conversationId = `conv_review20_boundary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(boundary.action === 'generate_error' && boundary.error.includes('exact arithmetic'), `review20 arithmetic boundary must fail explicitly instead of generating (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `review20 arithmetic boundary emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review20 boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of [
+    '10 - 20 °C',
+    '10 - 20 km/h',
+    '10 - 20%',
+    '10 - 20 (approx)',
+    '10 - 20 min, then rest',
+    '5pm - 6pm',
+    '9am - 5pm',
+    '5:00 - 6:00',
+    '2026-11-05T17:25+01:00, 5pm - 6pm',
+].entries()) {
+    const id = `gen_review20_ordinary_${index}`;
+    const conversationId = `conv_review20_ordinary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === 32, `ordinary range/time prose must use the ordinary model path: ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review20 ordinary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['17 ≤ 25', '17 ≥ 25', '17 ≠ 25', '17 · 25', '+', '+?', '+1-800-555-0100 + 2'].entries()) {
+    const id = `gen_review23_boundary_${index}`;
+    const conversationId = `conv_review23_boundary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(boundary.action === 'generate_error' && boundary.error.includes('exact arithmetic'), `review23 arithmetic boundary must fail explicitly instead of generating (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `review23 arithmetic boundary emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review23 boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of [
+    '5 pm - 6 pm',
+    '5:00 PM - 6:00 PM',
+    '5:00:00 - 6:00:00',
+    '2026-11-05T17:25+01:00, 5 pm - 6 pm',
+    '2026-11-05T17:25+01:00, 5:00:00 - 6:00:00',
+    '10 - 20?',
+    '10 - 20.',
+    '10 - 20°',
+    '10 - 20$',
+    '10 - 20€',
+    '+1-800-555-0100',
+    '+1 (800) 555-0100',
+].entries()) {
+    const id = `gen_review23_ordinary_${index}`;
+    const conversationId = `conv_review23_ordinary_${index}`;
+    const expectedTokens = prompt.includes('T17:25') ? 8 : 32;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: expectedTokens } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === expectedTokens, `ordinary review23 prose must use the ordinary model path: ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review23 ordinary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_review23_valid_subtraction',
+    payload: {
+        conversationId: 'conv_review23_valid_subtraction',
+        messages: [{ role: 'user', content: '50 - 12?' }],
+        options: { max_new_tokens: 32 },
+    },
+});
+const validSubtraction = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_review23_valid_subtraction');
+assert(validSubtraction.action === 'generate_complete' && validSubtraction.fullText.startsWith('38\n') && validSubtraction.tokenCount === 0, `valid subtraction with punctuation must remain exact: ${JSON.stringify(validSubtraction)}`);
+
+const activeJobGeneration = sendToWorker({
+    action: 'generate',
+    id: 'gen_active_job',
+    payload: { conversationId: 'conv_active_job', messages: [{ role: 'user', content: 'active job' }], options: { max_new_tokens: 32 } },
+});
+const blockedActiveLoad = sendToWorker({
+    action: 'load_model',
+    id: 201,
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'blocked-active.lut',
+    },
+});
+const blockedActiveLoadMessage = await waitForMessage((m) => (m.action === 'operation_error' || m.action === 'model_loaded') && m.id === 201);
+assert(blockedActiveLoadMessage.action === 'operation_error' && blockedActiveLoadMessage.operation === 'load_model' && /Stop generation before loading/.test(blockedActiveLoadMessage.error), `an active-job load must be rejected: ${JSON.stringify(blockedActiveLoadMessage)}`);
+assert(!emittedMessages.some((m) => m.action === 'model_loaded' && m.id === 201), 'a blocked active-job load must not replace the healthy model');
+await blockedActiveLoad;
+const activeJobCompletion = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_active_job');
+assert(activeJobCompletion.action === 'generate_complete' && activeJobCompletion.tokenCount === 32, `the active generation must complete after the rejected load: ${JSON.stringify(activeJobCompletion)}`);
+await activeJobGeneration;
+await sendToWorker({ action: 'generate', id: 'gen_after_active_job', payload: { conversationId: 'conv_after_active_job', messages: [{ role: 'user', content: 'after active job' }], options: { max_new_tokens: 32 } } });
+const afterActiveJobCompletion = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_after_active_job');
+assert(afterActiveJobCompletion.action === 'generate_complete' && afterActiveJobCompletion.tokenCount === 32, `the healthy model must remain usable: ${JSON.stringify(afterActiveJobCompletion)}`);
+await sendToWorker({ action: 'close_session', id: 'close_active_job', payload: { conversationId: 'conv_active_job' } });
+const closedActiveJob = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === 'close_active_job');
+assert(closedActiveJob.action === 'session_reset', `active-job conversation did not close: ${JSON.stringify(closedActiveJob)}`);
+await sendToWorker({ action: 'close_session', id: 'close_after_active_job', payload: { conversationId: 'conv_after_active_job' } });
+const closedAfterActiveJob = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === 'close_after_active_job');
+assert(closedAfterActiveJob.action === 'session_reset', `post-active-job conversation did not close: ${JSON.stringify(closedAfterActiveJob)}`);
+
+for (const [index, prompt] of ['5 pm - 6 pm?', '9am - 5pm?', '5:00 PM - 6:00 PM?', '+1-800-555-0100?'].entries()) {
+    const id = `gen_final_review_punctuation_${index}`;
+    const conversationId = `conv_final_review_punctuation_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === 32, `punctuated time/telephone prose must use the ordinary model path (${prompt}): ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `punctuated prose conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+const timeRangeProse = [];
+for (const [index, prompt] of ['5 pm - 6 pm, then dinner', '2026-11-05T17:25 - 18:00'].entries()) {
+    const id = `gen_final_review_time_range_${index}`;
+    const conversationId = `conv_final_review_time_range_${index}`;
+    const expectedTokens = prompt.includes('T17:25') ? 8 : 32;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: expectedTokens } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    timeRangeProse.push({ prompt, expectedTokens, message: ordinary });
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `time-range prose conversation did not close: ${JSON.stringify(closed)}`);
+}
+const badTimeRangeProse = timeRangeProse.filter(({ expectedTokens, message }) => message.action !== 'generate_complete' || message.tokenCount !== expectedTokens);
+assert(badTimeRangeProse.length === 0, `time-range prose must use the ordinary model path: ${JSON.stringify(badTimeRangeProse)}`);
+
+const proseBoundary = [];
+for (const [index, prompt] of ['5 pm - 6, then dinner', '12 - 1 pm, then lunch', '5 people attended - 3 left', '1 (800) 555-0100', '(800) 555-0100'].entries()) {
+    const id = `gen_final_review_prose_${index}`;
+    const conversationId = `conv_final_review_prose_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    proseBoundary.push({ prompt, message: ordinary });
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `prose boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+const badProseBoundary = proseBoundary.filter(({ message }) => message.action !== 'generate_complete' || message.tokenCount !== 32);
+assert(badProseBoundary.length === 0, `prose boundary must use the ordinary model path: ${JSON.stringify(badProseBoundary)}`);
+
+const groupedArithmetic = [];
+for (const [index, prompt] of ['What is (1234567-8)?', '(1234567-8)', '1 (800) 555-0100 -2', '(800) 555-0100 -2', '5 people attended - 3 left + 2'].entries()) {
+    const id = `gen_final_review_grouped_${index}`;
+    const conversationId = `conv_final_review_grouped_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const result = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    groupedArithmetic.push({ prompt, message: result });
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `grouped arithmetic conversation did not close: ${JSON.stringify(closed)}`);
+}
+const badGroupedArithmetic = groupedArithmetic.filter(({ message }) => message.action !== 'generate_error');
+assert(badGroupedArithmetic.length === 0, `grouped/continued arithmetic must be explicit errors: ${JSON.stringify(badGroupedArithmetic)}`);
+
+const ratioInstruction = [];
+for (const [index, prompt] of ['17/25 show your work', '17/25 please', '17/25 answer with the number first', '17/25 in binary', '17/25 in hex', '17/25 in decimal', '17/25 as a decimal', '17/25 to decimal', '17/25 percent', '17/25 as a percentage', '17/25 simplified', '1/2 cup + 3'].entries()) {
+    const id = `gen_final_review_ratio_${index}`;
+    const conversationId = `conv_final_review_ratio_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const result = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    ratioInstruction.push({ prompt, message: result });
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `ratio instruction conversation did not close: ${JSON.stringify(closed)}`);
+}
+const ratioFailures = ratioInstruction.filter(({ message }) => message.action !== 'generate_error' || !message.error.includes('exact arithmetic'));
+const paddedRatioPrompt = `${' '.repeat(200)}17/25 show your work`;
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_final_review_ratio_padded',
+    payload: { conversationId: 'conv_final_review_ratio_padded', messages: [{ role: 'user', content: paddedRatioPrompt }], options: { max_new_tokens: 32 } },
+});
+const paddedRatio = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_final_review_ratio_padded');
+if (!(paddedRatio.action === 'generate_error' && paddedRatio.error.includes('160-byte'))) {
+    ratioFailures.push({ prompt: 'over-160-byte instruction-suffixed division', message: paddedRatio });
+}
+const paddedInDecimalPrompt = `${' '.repeat(200)}17/25 in decimal`;
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_final_review_ratio_padded_decimal',
+    payload: { conversationId: 'conv_final_review_ratio_padded_decimal', messages: [{ role: 'user', content: paddedInDecimalPrompt }], options: { max_new_tokens: 32 } },
+});
+const paddedInDecimal = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_final_review_ratio_padded_decimal');
+if (!(paddedInDecimal.action === 'generate_error' && paddedInDecimal.error.includes('160-byte'))) {
+    ratioFailures.push({ prompt: 'over-160-byte in-decimal division', message: paddedInDecimal });
+}
+assert(ratioFailures.length === 0, `instruction-suffixed division must be an explicit error: ${JSON.stringify(ratioFailures)}`);
+await sendToWorker({ action: 'close_session', id: 'close_gen_final_review_ratio_padded', payload: { conversationId: 'conv_final_review_ratio_padded' } });
+const closedPaddedRatio = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === 'close_gen_final_review_ratio_padded');
+assert(closedPaddedRatio.action === 'session_reset', `padded ratio conversation did not close: ${JSON.stringify(closedPaddedRatio)}`);
+await sendToWorker({ action: 'close_session', id: 'close_gen_final_review_ratio_padded_decimal', payload: { conversationId: 'conv_final_review_ratio_padded_decimal' } });
+const closedPaddedInDecimal = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === 'close_gen_final_review_ratio_padded_decimal');
+assert(closedPaddedInDecimal.action === 'session_reset', `padded in-decimal conversation did not close: ${JSON.stringify(closedPaddedInDecimal)}`);
+
+const ratioUnitProse = [];
+for (const [index, prompt] of ['1/2 gallon', '1/2 gram', '1/2 liter', '1/2 dozen'].entries()) {
+    const id = `gen_final_review_ratio_unit_${index}`;
+    const conversationId = `conv_final_review_ratio_unit_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const result = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    ratioUnitProse.push({ prompt, message: result });
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `ratio unit conversation did not close: ${JSON.stringify(closed)}`);
+}
+const badRatioUnitProse = ratioUnitProse.filter(({ message }) => message.action !== 'generate_complete' || message.tokenCount !== 32);
+assert(badRatioUnitProse.length === 0, `ordinary unit ratio prose must use the ordinary model path: ${JSON.stringify(badRatioUnitProse)}`);
+
+for (const [index, prompt] of ['17-', 'What is 17-?', '17--25', '2026-11-05 - 1 minute'].entries()) {
+    const id = `gen_review27_boundary_${index}`;
+    const conversationId = `conv_review27_boundary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(boundary.action === 'generate_error' && boundary.error.includes('exact arithmetic'), `review27 arithmetic boundary must fail explicitly instead of generating (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `review27 arithmetic boundary emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review27 boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, [prompt, expected]] of [
+    ['50-12', '38'],
+    ['What is 50-12?', '38'],
+    ['50 -12', '38'],
+    ['50- 12', '38'],
+    ['What is 50 -12?', '38'],
+    ['What is 50- 12?', '38'],
+    ['17-25', 'underflow'],
+    ['What is 17-25?', 'underflow'],
+    [`${' '.repeat(200)}50-12`, '160-byte'],
+    ['11 -05', '6'],
+    ['2026 -11', '2015'],
+    ['What is 10 -20?', 'underflow'],
+    ['What is 12 -25?', 'underflow'],
+    ['2026-11-05 -1', 'exact arithmetic'],
+    ['2026-11-05, -1', 'exact arithmetic'],
+    ['2026-11-05,-1', 'exact arithmetic'],
+    ['2026-11-05,- 1', 'exact arithmetic'],
+    ['2026-11-05 , -1', 'exact arithmetic'],
+    ['2026-11-05T17:25Z,-1', 'exact arithmetic'],
+    ['2026-11-05T17:25-01:00,-1', 'exact arithmetic'],
+    ['2026-11-05T17:25+01:00, -1', 'exact arithmetic'],
+    ['2026-11-05 +1', 'exact arithmetic'],
+    ['17/25 of 3', 'exact arithmetic'],
+    ['5-10 minutes + 3', 'exact arithmetic'],
+    ['2026-11-05 - 2026-11-10 + 3', 'exact arithmetic'],
+].entries()) {
+    const id = `gen_review28_compact_${index}`;
+    const conversationId = `conv_review28_compact_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const result = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    if (['38', '6', '2015'].includes(expected)) {
+        assert(result.action === 'generate_complete' && result.fullText.startsWith(`${expected}\n`) && result.tokenCount === 0, `compact subtraction must compute exactly (${prompt}): ${JSON.stringify(result)}`);
+    } else {
+        assert(result.action === 'generate_error' && result.error.includes(expected), `compact subtraction must fail explicitly (${prompt}): ${JSON.stringify(result)}`);
+    }
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `compact subtraction emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `compact subtraction conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['3/4 of the students passed', '5-10 minutes', '50-12 minutes', '2026-11-05 - 2026-11-10', '12:00 - 1, then lunch', '5:00 - 6', '12 - 1:00', '5 - 6:00', '3/4 of the 20 students passed', '5-10 minutes, 3 times', '5-10 km', '5-10 cm', '5-10 min', '5-10 students', '5-10 dollars', '2026-11-05 - 2026-11-10, 3 days'].entries()) {
+    const id = `gen_review29_range_${index}`;
+    const conversationId = `conv_review29_range_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === 32, `ordinary ratio/range prose must use the ordinary model path: ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review29 range conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['24/7 support', '1/2 cup', '1/2 cup sugar', '11-05-2026', '05-11-2026', '1-800-555-0100', '123-45-6789'].entries()) {
+    const id = `gen_review27_ordinary_${index}`;
+    const conversationId = `conv_review27_ordinary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === 32, `ordinary ratio/no-space prose must use the ordinary model path: ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `review27 ordinary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, [prompt, result]] of [
+    ['What is 10 - 2?', '8'],
+    ['What is 100 - 20?', '80'],
+    ['What is 50 - 12,', '38'],
+    ['What is 50 - 12 please', '38'],
+    ['2026 - 11', '2015'],
+].entries()) {
+    const id = `gen_final_review_exact_${index}`;
+    const conversationId = `conv_final_review_exact_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const exact = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(exact.action === 'generate_complete' && exact.fullText.startsWith(`${result}\n`) && exact.tokenCount === 0, `final-review arithmetic must compute exactly (${prompt}): ${JSON.stringify(exact)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `final-review arithmetic emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `final-review exact conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['What is 17 - 25?', 'What is 17 - 25,', 'What is 10 - 20?', 'What is 50 - 12 + 1', '2026 - 11 - 05', '5 pm - 6 pm + 3', '1 (800) 555-0100 + 2'].entries()) {
+    const id = `gen_final_review_boundary_${index}`;
+    const conversationId = `conv_final_review_boundary_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    const underflow = prompt.includes('17 - 25') || prompt === 'What is 10 - 20?';
+    assert(boundary.action === 'generate_error' && (underflow ? /underflow/i.test(boundary.error) : boundary.error.includes('exact arithmetic')), `final-review arithmetic boundary must fail explicitly (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `final-review arithmetic boundary emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `final-review boundary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['What is 20 + 5 %', 'What is 20 + 5 / two', 'What is 20 + 5 (two)', 'What is 17 + 25 in binary', 'What is 20 + 10, then double it', 'What is 20 - 10 in binary'].entries()) {
+    const id = `gen_final_review_false_answer_${index}`;
+    const conversationId = `conv_final_review_false_answer_${index}`;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: 32 } },
+    });
+    const boundary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(boundary.action === 'generate_error' && boundary.error.includes('exact arithmetic'), `false-answer arithmetic request must be an explicit error (${prompt}): ${JSON.stringify(boundary)}`);
+    assert(!emittedMessages.some((m) => m.id === id && m.action === 'generate_chunk'), `false-answer arithmetic request emitted model chunks (${prompt})`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `false-answer conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+for (const [index, prompt] of ['10 - 20?', '10 - 20 minutes', '10 - 20 please', '10 - 20, please', '10 - 20, show your work', '10 - 20, answer with the number first', '10 - 20, please show your work'].entries()) {
+    const id = `gen_final_review_ordinary_${index}`;
+    const conversationId = `conv_final_review_ordinary_${index}`;
+    const expectedTokens = prompt.includes('answer with the number first') ? 8 : 32;
+    await sendToWorker({
+        action: 'generate',
+        id,
+        payload: { conversationId, messages: [{ role: 'user', content: prompt }], options: { max_new_tokens: expectedTokens } },
+    });
+    const ordinary = await waitForMessage((m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === id);
+    assert(ordinary.action === 'generate_complete' && ordinary.tokenCount === expectedTokens, `ordinary final-review prose must use the ordinary model path (${prompt}): ${JSON.stringify(ordinary)}`);
+    await sendToWorker({ action: 'close_session', id: `close_${id}`, payload: { conversationId } });
+    const closed = await waitForMessage((m) => (m.action === 'session_reset' || m.action === 'operation_error') && m.id === `close_${id}`);
+    assert(closed.action === 'session_reset', `final-review ordinary conversation did not close: ${JSON.stringify(closed)}`);
+}
+
+const staleLoad = sendToWorker({
+    action: 'load_model',
+    id: 101,
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'stale.lut',
+        expectedSha256: wrongExpectedHash,
+    },
+});
+const currentLoad = sendToWorker({
+    action: 'load_model',
+    id: 102,
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'current.lut',
+    },
+});
+await Promise.all([staleLoad, currentLoad]);
+const concurrentLoadMessages = emittedMessages.filter((m) => m.action === 'model_loaded' || m.action === 'operation_error');
+emittedMessages.length = 0;
+assert(concurrentLoadMessages.length === 1 && concurrentLoadMessages[0].action === 'model_loaded' && concurrentLoadMessages[0].id === 102, `only the current load may commit or report: ${JSON.stringify(concurrentLoadMessages)}`);
+assert(concurrentLoadMessages[0].capabilities.file_name === 'current.lut', `stale load replaced current capabilities: ${JSON.stringify(concurrentLoadMessages)}`);
 
 await sendToWorker({
     action: 'generate',

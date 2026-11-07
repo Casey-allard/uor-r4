@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: false
 notebook: docs/research/notebook/m4-serving.md
 depends_on: [m7-studio-live-model-sources, infra-desktop-client-tauri]
-scope: [crates/uor-r4-integer/src/m6_exact_arithmetic.rs, crates/uor-r4-integer/src/wasm_bindgen_exports.rs, src-tauri/**, web/studio/**, docs/products/**, docs/loop/tasks/m7-lexlean-studio-tools/**, docs/superpowers/plans/2026-11-05-lexlean-studio-tools.md, docs/research/notebook/m4-serving.md]
+scope: [crates/uor-r4-integer/src/m6_exact_arithmetic.rs, crates/uor-r4-integer/src/wasm_bindgen_exports.rs, src-tauri/**, web/studio/**, scripts/studio/verify-tauri-app.sh, docs/products/**, docs/loop/tasks/m7-lexlean-studio-tools/**, docs/superpowers/plans/2026-11-05-lexlean-studio-tools.md, docs/research/notebook/m4-serving.md]
 done_class: host
 ---
 

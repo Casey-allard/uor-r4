@@ -72,6 +72,7 @@ let activeHandle = null;
 let activeDiscrete = null;
 let initialSessionBytes = null;
 let activeJob = null;
+let latestLoadToken = 0;
 const sessions = new Map();
 const sessionEpochs = new Map();
 
@@ -289,6 +290,18 @@ function encodePromptTokens(payload, vocabSize, artifact) {
     return encodeTextWithArtifact(text, vocabSize, artifact);
 }
 
+function exactToolFromPayload(payload) {
+    if (!wasmModule || typeof wasmModule.exactArithmetic !== 'function') return null;
+    const userMessage = (payload.messages || []).filter((m) => m.role === 'user').pop();
+    const prompt = typeof payload.prompt === 'string'
+        ? payload.prompt
+        : (typeof userMessage?.content === 'string' ? userMessage.content : '');
+    if (!prompt.trim()) return null;
+    const result = JSON.parse(wasmModule.exactArithmetic(prompt));
+    if (result.error) throw new Error(result.error);
+    return result.handled ? result : null;
+}
+
 function formatTokenChunk(tokenId, index, artifact, decodeText) {
     if (decodeText && artifact && artifact.mode === BYTE_BPE_MODE) {
         return decodeTokenIdWithArtifact(tokenId, artifact);
@@ -349,6 +362,7 @@ function expectedSha256Of(payload) {
 
 self.onmessage = async ({ data }) => {
     const { action, id, payload = {} } = data || {};
+    const loadToken = action === 'load_model' ? ++latestLoadToken : null;
     try {
         if (action === 'cancel' || action === 'stop_generation') {
             cancelActive();
@@ -429,7 +443,15 @@ self.onmessage = async ({ data }) => {
             if (activeJob) {
                 throw new Error('Stop generation before loading a stack artifact.');
             }
+            capabilities = null;
+            tokenizerArtifact = null;
+            activeHandle = null;
+            activeDiscrete = null;
+            initialSessionBytes = null;
+            sessions.clear();
+            sessionEpochs.clear();
             await ensureWasmLoaded();
+            if (loadToken !== latestLoadToken) return;
             const raw = toBytes(payload.bytes);
             if (!raw.byteLength) {
                 throw new Error('The selected stack artifact is empty.');
@@ -443,14 +465,17 @@ self.onmessage = async ({ data }) => {
             }
             const headerInfo = parseUorLutHeader(raw);
             const artifactSha256 = await sha256Hex(raw);
+            if (loadToken !== latestLoadToken) return;
             const expectedSha256 = expectedSha256Of(payload);
             if (expectedSha256 && artifactSha256 !== expectedSha256) {
-                throw new Error(`Artifact sha256 ${artifactSha256.slice(0, 12)}... does not match the expected ${expectedSha256.slice(0, 12)}...; refusing to load.`);
+                throw new Error(`Artifact sha256 ${artifactSha256} does not match the expected ${expectedSha256}; refusing to load.`);
             }
             const { source, source_label } = normalizeSource(payload);
-            tokenizerArtifact = await loadTokenizerArtifact(raw, headerInfo, payload.tokenizerArtifact);
+            const nextTokenizerArtifact = await loadTokenizerArtifact(raw, headerInfo, payload.tokenizerArtifact);
+            if (loadToken !== latestLoadToken) return;
             if (headerInfo.engine_kind === 'discrete') {
                 const handle = wasmModule.loadDiscrete(raw);
+                tokenizerArtifact = nextTokenizerArtifact;
                 activeDiscrete = handle;
                 activeHandle = null;
                 initialSessionBytes = null;
@@ -474,7 +499,7 @@ self.onmessage = async ({ data }) => {
                     features: headerInfo.features,
                     synthetic: false,
                     status_label: headerInfo.status_label,
-                    tokenizer_label: tokenizerLabel(tokenizerArtifact, headerInfo.shape.vocab),
+                    tokenizer_label: tokenizerLabel(nextTokenizerArtifact, headerInfo.shape.vocab),
                     weights_per_token: null,
                     checkpoint_bytes: null,
                     can_generate: false,
@@ -484,6 +509,7 @@ self.onmessage = async ({ data }) => {
                 };
                 self.postMessage({
                     action: 'model_loaded',
+                    id,
                     capabilities,
                     bytes: raw.byteLength,
                     schema: headerInfo.schema,
@@ -506,6 +532,7 @@ self.onmessage = async ({ data }) => {
             }
             const hasTurnMemory = Boolean(turnMemory && turnMemory.present);
 
+            tokenizerArtifact = nextTokenizerArtifact;
             activeHandle = handle;
             activeDiscrete = null;
             initialSessionBytes = new Uint8Array(blankState);
@@ -531,7 +558,7 @@ self.onmessage = async ({ data }) => {
                 group: headerInfo.group,
                 synthetic: headerInfo.synthetic,
                 status_label: headerInfo.status_label,
-                tokenizer_label: tokenizerLabel(tokenizerArtifact, headerInfo.shape.vocab),
+                tokenizer_label: tokenizerLabel(nextTokenizerArtifact, headerInfo.shape.vocab),
                 weights_per_token: wpt,
                 checkpoint_bytes: initialSessionBytes.byteLength,
                 turn_memory: turnMemory,
@@ -543,6 +570,7 @@ self.onmessage = async ({ data }) => {
 
             self.postMessage({
                 action: 'model_loaded',
+                id,
                 capabilities,
                 bytes: raw.byteLength,
                 schema: headerInfo.schema,
@@ -679,6 +707,41 @@ self.onmessage = async ({ data }) => {
             throw new Error('Another generation is active. Wait for its completion or cancellation.');
         }
 
+        const exactTool = exactToolFromPayload(payload);
+        if (exactTool) {
+            const started = performance.now();
+            const job = { id, cancelled: false };
+            activeJob = job;
+            try {
+                self.postMessage({
+                    action: 'stream_token',
+                    id,
+                    chunk: exactTool.text,
+                    fullText: exactTool.text,
+                    tokenCount: 0,
+                    tps: null,
+                    tool: 'm6-exact-arithmetic',
+                });
+                const durationSec = (performance.now() - started) / 1000;
+                self.postMessage({
+                    action: 'generate_complete',
+                    id,
+                    fullText: exactTool.text,
+                    tokenIds: [],
+                    tokenCount: 0,
+                    durationSec,
+                    tps: null,
+                    stoppedBy: 'tool',
+                    tool: 'm6-exact-arithmetic',
+                    statusLabel: 'exact arithmetic tool',
+                    tokenizerLabel: 'R4 geometric decimal place-value tool',
+                });
+            } finally {
+                if (activeJob === job) activeJob = null;
+            }
+            return;
+        }
+
         const hasTurnMemory = Boolean(capabilities && capabilities.turn_memory && capabilities.turn_memory.present);
         const convId = payload.conversationId || 'default';
         const entry = hasTurnMemory ? null : ensureSessionEntry(convId);
@@ -776,9 +839,11 @@ self.onmessage = async ({ data }) => {
             }
         }
     } catch (error) {
+        if (action === 'load_model' && loadToken !== latestLoadToken) return;
         self.postMessage({
             action: action === 'generate' ? 'generate_error' : 'operation_error',
             id,
+            operation: action,
             error: String(error),
         });
     }

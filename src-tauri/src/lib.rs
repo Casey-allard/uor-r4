@@ -19,6 +19,7 @@ pub mod sidecar;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+use uor_r4_integer::m6_exact_arithmetic::exact_arithmetic_tool;
 use uor_r4_integer::session_codec;
 use uor_r4_integer::stack::{
     stack_argmax, IntegerStackModel, StackShape, MAGIC as UORLUT01_MAGIC, STACK_SCHEMA,
@@ -1959,6 +1960,39 @@ pub fn dispatch_rpc_command(
     args: &Value,
 ) -> Result<Value, String> {
     match cmd {
+        "native_exact_arithmetic" => {
+            let request = args
+                .get("request")
+                .and_then(Value::as_str)
+                .and_then(|raw| serde_json::from_str::<Value>(raw).ok())
+                .unwrap_or_else(|| args.clone());
+            let prompt = request
+                .get("messages")
+                .and_then(Value::as_array)
+                .and_then(|messages| {
+                    messages.iter().rev().find(|message| {
+                        message.get("role").and_then(Value::as_str) == Some("user")
+                    })
+                })
+                .and_then(|message| message.get("content"))
+                .and_then(Value::as_str);
+            let Some(prompt) = prompt else {
+                return Ok(json!({"handled": false}));
+            };
+            match exact_arithmetic_tool(prompt) {
+                None => Ok(json!({"handled": false})),
+                Some(Ok(answer)) => Ok(json!({
+                    "handled": true,
+                    "expression": answer.expression,
+                    "result": answer.result,
+                    "text": answer.text,
+                })),
+                Some(Err(error)) => Ok(json!({
+                    "handled": true,
+                    "error": error.to_string(),
+                })),
+            }
+        }
         "native_list_local_models" => {
             if let Some(dir) = args.get("modelDir").and_then(Value::as_str) {
                 backend
@@ -2765,6 +2799,20 @@ pub mod tauri_gui {
     }
 
     #[tauri::command(async)]
+    pub fn native_exact_arithmetic(
+        state: tauri::State<'_, TauriDesktopState>,
+        request: String,
+    ) -> Result<Value, String> {
+        state.with_backend(|backend| {
+            dispatch_rpc_command(
+                backend,
+                "native_exact_arithmetic",
+                &json!({ "request": request }),
+            )
+        })
+    }
+
+    #[tauri::command(async)]
     pub fn native_decompose_image(
         state: tauri::State<'_, TauriDesktopState>,
         width: u32,
@@ -3281,6 +3329,7 @@ pub mod tauri_gui {
             .manage(state)
             .invoke_handler(tauri::generate_handler![
                 native_models,
+                native_exact_arithmetic,
                 native_decompose_image,
                 native_chat_completions,
                 host_cancel_chat,

@@ -46,11 +46,7 @@ pub fn load_stack(artifact: &[u8]) -> Result<u32, JsError> {
 #[wasm_bindgen(js_name = step)]
 pub fn step(handle: u32, token: u32) -> Result<Vec<i32>, JsError> {
     let out = crate::wasm_serve::wasm_step(handle, token).map_err(|e| JsError::new(&e))?;
-    Ok(vec![
-        out.next as i32,
-        out.margin_q16,
-        out.position as i32,
-    ])
+    Ok(vec![out.next as i32, out.margin_q16, out.position as i32])
 }
 
 /// Serialize the session state.
@@ -120,4 +116,21 @@ pub fn predict_discrete(handle: u32, ids: &[u32]) -> Result<String, JsError> {
 #[wasm_bindgen(js_name = discreteInfo)]
 pub fn discrete_info(handle: u32) -> Result<String, JsError> {
     crate::wasm_serve::wasm_discrete_info(handle).map_err(|e| JsError::new(&e))
+}
+
+/// Answer a strict decimal expression without invoking a model or its token accounting.
+#[wasm_bindgen(js_name = exactArithmetic)]
+pub fn exact_arithmetic(prompt: &str) -> Result<String, JsError> {
+    let result = match crate::m6_exact_arithmetic::exact_arithmetic_tool(prompt) {
+        None => serde_json::json!({"handled": false}),
+        Some(Ok(answer)) => serde_json::json!({
+            "handled": true,
+            "expression": answer.expression,
+            "result": answer.result,
+            "text": answer.text,
+            "tool": "m6-exact-arithmetic"
+        }),
+        Some(Err(error)) => serde_json::json!({"handled": true, "error": error.to_string()}),
+    };
+    serde_json::to_string(&result).map_err(|error| JsError::new(&error.to_string()))
 }

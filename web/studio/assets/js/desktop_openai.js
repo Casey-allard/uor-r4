@@ -67,6 +67,13 @@ function directResponse(result) {
     });
 }
 
+function jsonResponse(value, status = 200) {
+    return new Response(JSON.stringify(value), {
+        status,
+        headers: { 'content-type': 'application/json' },
+    });
+}
+
 function eventResponse(queue, initial) {
     let firstPull = true;
     const stream = new ReadableStream({
@@ -113,6 +120,32 @@ export function createDesktopOpenAI({ invoke, Channel, maxQueueBytes = DEFAULT_M
         }
         if (parsed.pathname !== '/v1/chat/completions') {
             throw new Error('Unsupported desktop OpenAI endpoint: ' + parsed.pathname);
+        }
+        let exact = null;
+        try {
+            exact = await invoke('native_exact_arithmetic', { request: String(init.body || '{}') });
+        } catch (_error) {
+            exact = null;
+        }
+        if (exact?.handled) {
+            if (exact.error) {
+                return jsonResponse({ error: { message: String(exact.error), type: 'invalid_request_error' } }, 400);
+            }
+            return jsonResponse({
+                id: pageId + '-exact-' + (++serial),
+                object: 'chat.completion',
+                created: Math.floor(Date.now() / 1000),
+                model: 'uor-chat',
+                choices: [{ index: 0, message: { role: 'assistant', content: exact.text }, finish_reason: 'stop' }],
+                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                uor: {
+                    tool: 'm6-exact-arithmetic',
+                    completion_tokens: 0,
+                    completion_ids: [],
+                    tokens_per_second_milli: null,
+                    stop: 'tool',
+                },
+            });
         }
         const channel = new Channel();
         const queue = new DesktopEventQueue(maxQueueBytes);

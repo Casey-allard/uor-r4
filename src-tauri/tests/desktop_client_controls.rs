@@ -698,6 +698,722 @@ fn durable_store_refuses_scope_symlink_escape() {
 }
 
 #[test]
+fn native_exact_arithmetic_rpc_returns_a_tool_answer_or_falls_through() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    let arithmetic = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":"What is 17 + 25? Answer with the number first."}],"stream":true}),
+    )
+    .expect("arithmetic RPC should succeed");
+    assert_eq!(arithmetic["handled"], json!(true));
+    assert_eq!(arithmetic["expression"], json!("17 + 25"));
+    assert_eq!(arithmetic["result"], json!("42"));
+    assert!(arithmetic["text"]
+        .as_str()
+        .unwrap_or_default()
+        .starts_with("42\n"));
+    assert!(arithmetic["text"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("tool, not model generation"));
+
+    let ordinary = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":"Hi"}],"stream":true}),
+    )
+    .expect("ordinary RPC should succeed");
+    assert_eq!(ordinary["handled"], json!(false));
+
+    let underflow = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":"1 - 2"}]}),
+    )
+    .expect("underflow RPC should succeed");
+    assert_eq!(underflow["handled"], json!(true));
+    assert!(underflow["error"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("underflow"));
+
+    for prompt in [
+        "What is 17 * 25?",
+        "What is 17.5 + 25?",
+        "What is (17 + 25)?",
+        "What is 17 % 25?",
+        "What is 17 ^ 25?",
+        "What is ((17 + 25))?",
+        "What is {17 + 25}?",
+        "What is +17 * 25?",
+        "What is -17 % 25?",
+        "What is +17 ^ 25?",
+        "What is +17 / 25?",
+        "What is +17 × 25?",
+        "What is +17 ÷ 25?",
+        "What is .5 + 25?",
+        "What is -17.5 + 25?",
+        "What is (-17 * 25)?",
+        "What is % 25?",
+        "What is - 25?",
+        "What is -?",
+        "What is [17 + 25]?",
+        "2026-11-05 + 1",
+        "2026-11-05 - 1",
+        "1 -",
+        "What is 1 -?",
+        "2026-11-05 -",
+    ] {
+        let unsupported = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("unsupported arithmetic RPC should succeed");
+        assert_eq!(
+            unsupported["handled"],
+            json!(true),
+            "fell through: {prompt}"
+        );
+        assert!(unsupported["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+
+    for spaces in [157, 159, 160] {
+        let over_limit = format!("1{}+ 1", " ".repeat(spaces));
+        let over_limit_response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":over_limit}]}),
+        )
+        .expect("overlong arithmetic RPC should succeed");
+        assert_eq!(over_limit_response["handled"], json!(true));
+        assert!(over_limit_response["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("160-byte"));
+    }
+
+    for prompt in [
+        format!("{}1 + 1", " ".repeat(200)),
+        format!("1 + 1{}", " ".repeat(200)),
+        format!("{}1 -", " ".repeat(200)),
+        format!("{}1 - ?", " ".repeat(200)),
+        format!("{}1 - Show your work", " ".repeat(200)),
+        format!("{}2026-11-05 - ?", " ".repeat(200)),
+        format!("{} - ?", "1".repeat(200)),
+    ] {
+        let padded = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("whitespace-padded arithmetic RPC should succeed");
+        assert_eq!(padded["handled"], json!(true));
+        assert!(padded["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("160-byte"));
+    }
+
+    for expression in ["-", "- 25", "- 2.5", "-?"] {
+        for prompt in [
+            format!("{}{}", " ".repeat(200), expression),
+            format!("{}{}", expression, " ".repeat(200)),
+        ] {
+            let padded = dispatch_rpc_command(
+                &mut backend,
+                "native_exact_arithmetic",
+                &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+            )
+            .expect("padded leading-minus RPC should succeed");
+            assert_eq!(padded["handled"], json!(true));
+            assert!(padded["error"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("leading minus"));
+        }
+    }
+
+    for prompt in [
+        "2026-11-05",
+        "2026-11-05T17:25Z",
+        "2026-11-05T17:25+01:00",
+        "2026-11-05T17:25-01:00",
+        "2026-11-05 17:25+01:00",
+        "2026-11-05T17:25Z?",
+        "2026-11-05T17:25+01:00?",
+        "2026-11-05T17:25-01:00?",
+        "What is 2026-11-05T17:25+01:00?",
+        "What is 2026-11-05T17:25Z?",
+        "- this is ordinary prose",
+        "- this is ordinary prose with a longer padded bullet",
+        "-42 is the answer",
+        "+42 is the answer",
+        "- 1. Introduction",
+        "1. Introduction",
+        "1) Introduction",
+        "1 - Introduction",
+        "2026 - Year in review",
+        "2026-11-05 - Year in review",
+        "What is +42, really?",
+        "-42,",
+        "2026-11-05T17:25+01:00,",
+        "2026-11-05T17:25-01:00,",
+        "2026-11-05T17:25+01:00, what day is it?",
+        "2026-11-05T17:25-01:00, what day is it?",
+        "What is 2026-11-05T17:25+01:00 in UTC?",
+        "What is 2026-11-05T17:25-01:00 in UTC?",
+        "What is 2026-11-05T17:25Z in UTC?",
+        "2026-11-05T17:25+01:00, 5pm",
+        "2026-11-05T17:25-01:00, 5pm",
+        "2026-11-05T17:25Z, 5pm",
+    ] {
+        let iso = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ISO date/time RPC should succeed");
+        assert_eq!(iso["handled"], json!(false), "intercepted: {prompt}");
+    }
+}
+
+#[test]
+fn native_exact_arithmetic_review18_boundary_regressions() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for prompt in [
+        "2026-11-05  - 1",
+        "2026-11-05, - 1",
+        "2026-11-05T17:25+01:00, - 1",
+        "2026-11-05  -",
+        "2026-11-05 +",
+        "What is 17 & 25?",
+        "17 | 25",
+        "17 << 2",
+        "17 = 25",
+        "17 (25)",
+        "+1 800 555 0100 + 2",
+        "10 - 20 minutes + 3",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("review arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+    for prompt in [
+        "2026-11-05  - 1",
+        "2026-11-05, - 1",
+        "2026-11-05T17:25+01:00, - 1",
+        "2026-11-05 +",
+    ] {
+        let prompt = format!("{}{}", " ".repeat(200), prompt);
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("overlong review arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true));
+        assert!(response["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("160-byte"));
+    }
+    for prompt in ["+1 800 555 0100", "+1 2 3", "10 - 20 minutes"] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary signed/range prose RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+}
+
+#[test]
+fn native_exact_arithmetic_review20_boundary_regressions() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for prompt in [
+        "~17",
+        "17 ~ 25",
+        "~17 + 25",
+        "17 − 25",
+        "10 - 20 minutes + 3",
+        "10 - 20 (25)",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("review20 arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+    for prompt in [
+        "10 - 20 °C",
+        "10 - 20 km/h",
+        "10 - 20%",
+        "10 - 20 (approx)",
+        "10 - 20 min, then rest",
+        "5pm - 6pm",
+        "9am - 5pm",
+        "5:00 - 6:00",
+        "2026-11-05T17:25+01:00, 5pm - 6pm",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary range/time prose RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+}
+
+#[test]
+fn native_exact_arithmetic_review23_boundary_regressions() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for prompt in [
+        "17 ≤ 25",
+        "17 ≥ 25",
+        "17 ≠ 25",
+        "17 · 25",
+        "+",
+        "+?",
+        "+1-800-555-0100 + 2",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("review23 arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+    for prompt in [
+        "5 pm - 6 pm",
+        "5:00 PM - 6:00 PM",
+        "5:00:00 - 6:00:00",
+        "2026-11-05T17:25+01:00, 5 pm - 6 pm",
+        "2026-11-05T17:25+01:00, 5:00:00 - 6:00:00",
+        "10 - 20?",
+        "10 - 20.",
+        "10 - 20°",
+        "10 - 20$",
+        "10 - 20€",
+        "+1-800-555-0100",
+        "+1 (800) 555-0100",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary review23 prose RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+    let subtraction = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":"50 - 12?"}]}),
+    )
+    .expect("valid subtraction with sentence punctuation should succeed");
+    assert_eq!(subtraction["handled"], json!(true));
+    assert_eq!(subtraction["result"], json!("38"));
+}
+
+#[test]
+fn native_exact_arithmetic_review27_boundary_regressions() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for prompt in ["17-", "What is 17-?", "17--25", "2026-11-05 - 1 minute"] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("review27 arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+    for prompt in [
+        "24/7 support",
+        "1/2 cup",
+        "11-05-2026",
+        "05-11-2026",
+        "1-800-555-0100",
+        "123-45-6789",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary ratio/date/telephone prose RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+}
+
+#[test]
+fn native_exact_arithmetic_review28_compact_subtraction() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for prompt in [
+        "50-12",
+        "What is 50-12?",
+        "50 -12",
+        "50- 12",
+        "What is 50 -12?",
+        "What is 50- 12?",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("compact subtraction RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert_eq!(response["result"], json!("38"), "wrong result: {prompt}");
+    }
+    for (prompt, expected) in [("11 -05", "6"), ("2026 -11", "2015")] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("one-sided date-like subtraction RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert_eq!(
+            response["result"],
+            json!(expected),
+            "wrong result: {prompt}"
+        );
+    }
+    for prompt in ["17-25", "What is 17-25?"] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("compact underflow RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| error.contains("underflow")));
+    }
+    let over_limit = format!("{}50-12", " ".repeat(200));
+    let response = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":over_limit}]}),
+    )
+    .expect("overlong compact subtraction RPC should succeed");
+    assert_eq!(response["handled"], json!(true));
+    assert!(response["error"]
+        .as_str()
+        .is_some_and(|error| error.contains("160-byte")));
+    for prompt in [
+        "11-05",
+        "2026-11",
+        "What is 11-05?",
+        "What is 2026-11?",
+        "11-05-2026",
+        "05-11-2026",
+        "1-800-555-0100",
+        "123-45-6789",
+        "3/4 of the students passed",
+        "5-10 minutes",
+        "50-12 minutes",
+        "2026-11-05 - 2026-11-10",
+        "12:00 - 1, then lunch",
+        "5:00 - 6",
+        "12 - 1:00",
+        "5 - 6:00",
+        "3/4 of the 20 students passed",
+        "5-10 minutes, 3 times",
+        "5-10 km",
+        "5-10 cm",
+        "5-10 min",
+        "5-10 students",
+        "5-10 dollars",
+        "2026-11-05 - 2026-11-10, 3 days",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary compact date/telephone/range RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+    for prompt in [
+        "What is 10 -20?",
+        "What is 12 -25?",
+        "2026-11-05 -1",
+        "2026-11-05, -1",
+        "2026-11-05,-1",
+        "2026-11-05,- 1",
+        "2026-11-05 , -1",
+        "2026-11-05T17:25Z,-1",
+        "2026-11-05T17:25-01:00,-1",
+        "2026-11-05T17:25+01:00, -1",
+        "2026-11-05 +1",
+        "17/25 of 3",
+        "5-10 minutes + 3",
+        "2026-11-05 - 2026-11-10 + 3",
+        "17/25 in decimal",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("continued arithmetic RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(response["error"]
+            .as_str()
+            .is_some_and(|error| !error.is_empty()));
+    }
+}
+
+#[test]
+fn native_exact_arithmetic_final_review_range_and_punctuation_regressions() {
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    for (prompt, result) in [
+        ("What is 10 - 2?", "8"),
+        ("What is 100 - 20?", "80"),
+        ("What is 50 - 12,", "38"),
+        ("What is 50 - 12 please", "38"),
+        ("2026 - 11", "2015"),
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("valid final-review arithmetic RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert_eq!(response["result"], json!(result), "wrong result: {prompt}");
+    }
+    for prompt in [
+        "What is 17 - 25?",
+        "What is 17 - 25,",
+        "What is 10 - 20?",
+        "What is 50 - 12 + 1",
+        "What is 20 + 5 %",
+        "What is 20 + 5 / two",
+        "What is 20 + 5 (two)",
+        "What is 17 + 25 in binary",
+        "What is 20 + 10, then double it",
+        "What is 20 - 10 in binary",
+        "2026 - 11 - 05",
+        "5 pm - 6 pm + 3",
+        "1 (800) 555-0100 + 2",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("final-review arithmetic boundary RPC should succeed");
+        assert_eq!(response["handled"], json!(true), "fell through: {prompt}");
+        assert!(
+            response["error"]
+                .as_str()
+                .is_some_and(|error| !error.is_empty()),
+            "missing explicit error: {prompt}"
+        );
+    }
+    for prompt in [
+        "10 - 20?",
+        "10 - 20 minutes",
+        "10 - 20 please",
+        "10 - 20, please",
+        "10 - 20, show your work",
+        "10 - 20, answer with the number first",
+        "10 - 20, please show your work",
+        "5 pm - 6 pm, then dinner",
+        "2026-11-05T17:25 - 18:00",
+        "5 pm - 6 pm?",
+        "9am - 5pm?",
+        "5:00 PM - 6:00 PM?",
+        "+1-800-555-0100?",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary final-review prose RPC should succeed");
+        assert_eq!(response["handled"], json!(false), "intercepted: {prompt}");
+    }
+    let mut intercepted = Vec::new();
+    for prompt in [
+        "5 pm - 6, then dinner",
+        "12 - 1 pm, then lunch",
+        "5 people attended - 3 left",
+        "1 (800) 555-0100",
+        "(800) 555-0100",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary final-review prose RPC should succeed");
+        if response["handled"] != json!(false) {
+            intercepted.push(prompt);
+        }
+    }
+    assert!(
+        intercepted.is_empty(),
+        "ordinary final-review prose was intercepted: {intercepted:?}"
+    );
+    let subtraction_prose = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":"5 - 3 left"}]}),
+    )
+    .expect("tool-handled subtraction prose RPC should succeed");
+    assert_eq!(
+        subtraction_prose["handled"],
+        json!(true),
+        "5 - 3 left must remain tool-handled"
+    );
+    let mut missing_errors = Vec::new();
+    for prompt in [
+        "What is (1234567-8)?",
+        "(1234567-8)",
+        "1 (800) 555-0100 -2",
+        "(800) 555-0100 -2",
+        "5 people attended - 3 left + 2",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("grouped arithmetic boundary RPC should succeed");
+        let explicit_error = response["handled"] == json!(true)
+            && response["error"]
+                .as_str()
+                .is_some_and(|error| !error.is_empty());
+        if !explicit_error {
+            missing_errors.push(prompt);
+        }
+    }
+    assert!(
+        missing_errors.is_empty(),
+        "grouped or continued arithmetic must be explicit non-empty errors: {missing_errors:?}"
+    );
+    for prompt in ["24/7 support", "1/2 cup", "1/2 cup sugar"] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary ratio prose RPC should succeed");
+        assert_eq!(
+            response["handled"],
+            json!(false),
+            "ordinary ratio prose was intercepted: {prompt}"
+        );
+    }
+    let mut intercepted_units = Vec::new();
+    for prompt in ["1/2 gallon", "1/2 gram", "1/2 liter", "1/2 dozen"] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("ordinary unit ratio RPC should succeed");
+        if response["handled"] != json!(false) {
+            intercepted_units.push(prompt);
+        }
+    }
+    assert!(
+        intercepted_units.is_empty(),
+        "ordinary unit ratio prose was intercepted: {intercepted_units:?}"
+    );
+    let mut ratio_failures: Vec<String> = Vec::new();
+    for prompt in [
+        "17/25 show your work",
+        "17/25 please",
+        "17/25 answer with the number first",
+        "17/25 in binary",
+        "17/25 in hex",
+        "17/25 in decimal",
+        "17/25 as a decimal",
+        "17/25 to decimal",
+        "17/25 percent",
+        "17/25 as a percentage",
+        "17/25 simplified",
+        "1/2 cup + 3",
+    ] {
+        let response = dispatch_rpc_command(
+            &mut backend,
+            "native_exact_arithmetic",
+            &json!({"model":"uor-chat","messages":[{"role":"user","content":prompt}]}),
+        )
+        .expect("instruction-suffixed division RPC should succeed");
+        let explicit_error = response["handled"] == json!(true)
+            && response["error"]
+                .as_str()
+                .is_some_and(|error| !error.is_empty());
+        if !explicit_error {
+            ratio_failures.push(prompt.to_string());
+        }
+    }
+    let padded_ratio = format!("{}17/25 show your work", " ".repeat(200));
+    let padded_response = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":padded_ratio}]}),
+    )
+    .expect("padded instruction-suffixed division RPC should succeed");
+    let padded_ok = padded_response["handled"] == json!(true)
+        && padded_response["error"]
+            .as_str()
+            .is_some_and(|error| error.contains("160-byte"));
+    if !padded_ok {
+        ratio_failures.push("over-160-byte instruction-suffixed division".to_string());
+    }
+    let padded_decimal = format!("{}17/25 in decimal", " ".repeat(200));
+    let padded_decimal_response = dispatch_rpc_command(
+        &mut backend,
+        "native_exact_arithmetic",
+        &json!({"model":"uor-chat","messages":[{"role":"user","content":padded_decimal}]}),
+    )
+    .expect("padded in-decimal division RPC should succeed");
+    let padded_decimal_ok = padded_decimal_response["handled"] == json!(true)
+        && padded_decimal_response["error"]
+            .as_str()
+            .is_some_and(|error| error.contains("160-byte"));
+    if !padded_decimal_ok {
+        ratio_failures.push("over-160-byte in-decimal division".to_string());
+    }
+    assert!(
+        ratio_failures.is_empty(),
+        "instruction-suffixed division must be an explicit non-empty error: {ratio_failures:?}"
+    );
+}
+
+#[test]
 fn native_write_file_enforces_its_size_cap() {
     let root = unique_temp_dir("write-cap");
     let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());

@@ -16,6 +16,7 @@ class TestChannel {
 function chatResponse({ stream = true, status = 200, chunks = [] }) {
     return async (command, args) => {
         if (command === 'host_cancel_chat') return {};
+        if (command === 'native_exact_arithmetic') return { handled: false };
         if (command !== 'native_chat_completions') throw new Error('unexpected ' + command);
         const headers = { 'content-type': stream ? 'text/event-stream' : 'application/json' };
         for (const chunk of chunks) args.onEvent.emit({ status, headers, bodyChunk: Array.from(new TextEncoder().encode(chunk)), terminal: false });
@@ -81,6 +82,7 @@ test('desktop queue overflow aborts instead of growing without bound', async () 
     const { fetch } = createDesktopOpenAI({
         invoke: async (command, args) => {
             if (command === 'host_cancel_chat') { cancelled.push(args.requestId); return {}; }
+            if (command === 'native_exact_arithmetic') return { handled: false };
             args.onEvent.emit({ status: 200, headers: { 'content-type': 'text/event-stream' }, bodyChunk: new Array(2049).fill(120), terminal: false });
             return { status: 200, headers: { 'content-type': 'text/event-stream' } };
         },
@@ -98,6 +100,7 @@ test('desktop queue releases capped bytes as the reader consumes chunks', async 
     const { fetch } = createDesktopOpenAI({
         invoke: async (command, args) => {
             if (command === 'host_cancel_chat') return {};
+            if (command === 'native_exact_arithmetic') return { handled: false };
             channel = args.onEvent;
             return { status: 200, headers: { 'content-type': 'text/event-stream' } };
         },
@@ -161,4 +164,84 @@ test('the Tauri boot registers the desktop transport before native model bootstr
     assert.ok(registration > 0, 'desktop registration is missing');
     assert.ok(bootstrap > registration, 'native model bootstrap ran before desktop registration');
     assert.match(html, /window\.__TAURI__[\s\S]*?\.core\.Channel/);
+});
+
+test('desktop exact arithmetic returns a tool JSON response without starting chat or inventing tokens', async () => {
+    const calls = [];
+    const { fetch } = createDesktopOpenAI({
+        invoke: async (command, args) => {
+            calls.push(command);
+            if (command === 'native_exact_arithmetic') {
+                return { handled: true, expression: '17 + 25', result: '42', text: '42\n\nR4 geometric exact arithmetic — tool, not model generation\n- p0: 7 + 5 + 0 -> 2, carry 1\n- p1: 1 + 2 + 1 -> 4, carry 0' };
+            }
+            throw new Error('ordinary chat must not start for an exact tool answer: ' + command);
+        },
+        Channel: TestChannel,
+    });
+    const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'uor-chat', messages: [{ role: 'user', content: 'What is 17 + 25? Answer with the number first.' }], stream: true }),
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /application\/json/);
+    const body = await response.json();
+    assert.equal(body.model, 'uor-chat');
+    assert.ok(body.choices[0].message.content.startsWith('42\n'));
+    assert.deepEqual(body.usage, { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+    assert.equal(body.uor.tool, 'm6-exact-arithmetic');
+    assert.deepEqual(body.uor.completion_ids, []);
+    assert.equal(body.uor.tokens_per_second_milli, null);
+    assert.deepEqual(calls, ['native_exact_arithmetic']);
+});
+
+test('desktop exact arithmetic propagates unsupported signed forms as explicit errors', async () => {
+    const { fetch } = createDesktopOpenAI({
+        invoke: async (command) => {
+            if (command === 'native_exact_arithmetic') {
+                return { handled: true, error: 'exact arithmetic supports only one unsigned decimal + or - expression' };
+            }
+            throw new Error('ordinary chat must not start for an unsupported arithmetic form: ' + command);
+        },
+        Channel: TestChannel,
+    });
+    const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'uor-chat', messages: [{ role: 'user', content: 'What is +17 * 25?' }], stream: true }),
+    });
+    assert.equal(response.status, 400);
+    const body = await response.json();
+    assert.match(body.error.message, /supports only one unsigned decimal/);
+});
+
+test('a rejected exact-arithmetic probe continues through the ordinary sidecar stream', async () => {
+    const calls = [];
+    const { fetch } = createDesktopOpenAI({
+        invoke: async (command, args) => {
+            calls.push(command);
+            if (command === 'native_exact_arithmetic') throw new Error('probe unavailable');
+            if (command === 'host_cancel_chat') return {};
+            if (command !== 'native_chat_completions') throw new Error('unexpected ' + command);
+            args.onEvent.emit({
+                status: 200,
+                headers: { 'content-type': 'text/event-stream' },
+                bodyChunk: Array.from(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"hello"}}]}\r\n\r\n')),
+                terminal: false,
+            });
+            args.onEvent.emit({
+                status: 200,
+                headers: { 'content-type': 'text/event-stream' },
+                bodyChunk: Array.from(new TextEncoder().encode('data: [DONE]\r\n\r\n')),
+                terminal: true,
+            });
+            return { status: 200, headers: { 'content-type': 'text/event-stream' } };
+        },
+        Channel: TestChannel,
+    });
+    const response = await fetch('/v1/chat/completions', { method: 'POST', body: JSON.stringify({ model: 'uor-chat', stream: true }) });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /text\/event-stream/);
+    const text = await response.text();
+    assert.match(text, /hello/);
+    assert.match(text, /\[DONE\]/);
+    assert.deepEqual(calls, ['native_exact_arithmetic', 'native_chat_completions']);
 });

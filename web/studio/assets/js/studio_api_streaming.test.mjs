@@ -277,3 +277,438 @@ test('a registered desktop transport handles API requests without direct browser
         globalThis.UORStudioApiTransport.register(null);
     }
 });
+
+test('exact tool exchanges stay visible but are not sent back to the model', async () => {
+    const payload = { choices: [{ index: 0, message: { role: 'assistant', content: 'synthetic continuation' }, finish_reason: 'length' }] };
+    let request;
+    globalThis.fetch = async (_url, init) => {
+        request = init;
+        return new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    const messages = [
+        { role: 'user', content: 'What is 17 + 25? Answer with the number first.' },
+        { role: 'assistant', content: '42\n\nR4 geometric exact arithmetic — tool, not model generation\n- p0: 7 + 5 + 0 -> 2, carry 1', tool: 'm6-exact-arithmetic' },
+        { role: 'user', content: 'Hi' },
+    ];
+    const result = await streamChatCompletions({ config, messages });
+    assert.equal(result.ok, true);
+    assert.deepEqual(JSON.parse(request.body).messages, [messages[2]]);
+});
+
+async function inlineStudioFunction(name) {
+    const { readFileSync } = await import('node:fs');
+    const { default: vm } = await import('node:vm');
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    const start = html.indexOf(`function ${name}(`);
+    assert.notEqual(start, -1, `missing inline function ${name}`);
+    const open = html.indexOf('{', start);
+    let depth = 0;
+    for (let index = open; index < html.length; index += 1) {
+        if (html[index] === '{') depth += 1;
+        if (html[index] === '}') {
+            depth -= 1;
+            if (depth === 0) {
+                const source = html.slice(start, index + 1);
+                if (name === 'onWorkerMessage') {
+                    const clear = await inlineStudioFunction('clearWorkerModel');
+                    return { source: `${clear.source}\n${source}`, vm };
+                }
+                return { source, vm };
+            }
+        }
+    }
+    throw new Error(`unterminated inline function ${name}`);
+}
+
+test('apiMessages preserves exact-tool metadata for the next request', async () => {
+    const { source, vm } = await inlineStudioFunction('apiMessages');
+    const apiMessages = vm.runInNewContext(`${source};apiMessages`, {
+        window: {},
+        app: { apiConfig: null, abortController: null },
+        decomposeNativeImage: null,
+        imageUrlPart: null,
+    });
+    const messages = apiMessages({
+        messages: [
+            { role: 'user', content: 'What is 17 + 25? Answer with the number first.' },
+            { role: 'assistant', content: '42\n\nR4 geometric exact arithmetic — tool, not model generation', tool: 'm6-exact-arithmetic' },
+            { role: 'user', content: 'Hi' },
+        ],
+    });
+    assert.equal(messages[1].tool, 'm6-exact-arithmetic');
+});
+
+test('loadConversations preserves exact-tool metadata across restore', async () => {
+    const { source, vm } = await inlineStudioFunction('loadConversations');
+    const stored = [{
+        id: 'saved-chat',
+        title: 'Saved chat',
+        messages: [
+            { role: 'user', content: 'What is 17 + 25? Answer with the number first.' },
+            { role: 'assistant', content: '42\n\nR4 geometric exact arithmetic — tool, not model generation', tool: 'm6-exact-arithmetic' },
+            { role: 'user', content: 'Hi' },
+        ],
+    }];
+    const context = {
+        CONVERSATIONS_KEY: 'conversations',
+        app: { conversations: [], activeConversationId: null },
+        readJson(key, fallback) {
+            return key === 'conversations' ? stored : fallback;
+        },
+    };
+    vm.runInNewContext(`${source};loadConversations`, context)();
+    assert.equal(context.app.conversations[0].messages[1].tool, 'm6-exact-arithmetic');
+});
+
+function liveWorkerContext() {
+    const context = {
+        app: {
+            caps: null,
+            workerState: 'loading',
+            expectedSha256: '',
+            requestedFileName: 'model.lut',
+            loadStartedAt: null,
+        },
+        setEngineStatus() {},
+        describeCapabilities() { return ''; },
+        document: { documentElement: { dataset: {} } },
+        fillPredictorSha() {},
+        fillPredictorModelInfo() {},
+        updateCapabilitiesFooter() {},
+        updateComposerState() {},
+        renderMessages() {},
+        restoreActiveConversation() {},
+        isDiscreteCapabilities() { return false; },
+        setPredictorMode() {},
+    };
+    context.setModelStatus = (detail) => { context.modelStatus = detail; };
+    context.toast = (detail) => { context.toastMessage = detail; };
+    return context;
+}
+
+test('live model_loaded rejects mismatched identity explicitly', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    context.app.currentLoadId = 1;
+    context.app.workerState = 'loading';
+    context.app.expectedSha256 = 'a'.repeat(64);
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', id: 1, capabilities: { file_name: 'other.lut', artifact_sha256: 'a'.repeat(64) } },
+    });
+    assert.equal(context.app.workerState, 'error');
+    assert.equal(context.app.caps, null);
+    assert.match(context.toastMessage, /other\.lut/);
+});
+
+test('live model_loaded rejects missing filenames and missing or invalid hashes', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    for (const [capabilities, expected] of [
+        [{ artifact_sha256: 'a'.repeat(64) }, /<missing filename>/],
+        [{ file_name: 'model.lut' }, /<missing hash>/],
+        [{ file_name: 'model.lut', artifact_sha256: 'not-a-sha256' }, /not-a-sha256/],
+    ]) {
+        const context = liveWorkerContext();
+        context.app.currentLoadId = 1;
+        context.app.workerState = 'loading';
+        context.app.expectedSha256 = 'a'.repeat(64);
+        vm.runInNewContext(`${source};onWorkerMessage`, context)({
+            data: { action: 'model_loaded', id: 1, capabilities },
+        });
+        assert.equal(context.app.workerState, 'error');
+        assert.equal(context.app.caps, null);
+        assert.match(context.toastMessage, expected);
+    }
+});
+
+test('API selection invalidates a posted worker load before its completion arrives', async () => {
+    const changed = await inlineStudioFunction('onModelSourceChanged');
+    const worker = await inlineStudioFunction('onWorkerMessage');
+    const vm = changed.vm;
+    const context = {
+        app: { currentLoadId: 1, readyLoadId: null, workerState: 'loading', mode: 'wasm', apiConfig: null, caps: null, generating: false },
+        document: { documentElement: { dataset: {} } },
+        setModelStatus(detail) { context.modelStatus = detail; },
+        updatePrivacyStatus() {},
+        updateComposerState() {},
+        updateCapabilitiesFooter() {},
+        renderMessages() {},
+        setView() {},
+        isNativeLoopback() { return false; },
+        toast(detail) { context.toastMessage = detail; },
+        setEngineStatus() {},
+        describeCapabilities() { return 'synthetic'; },
+        setPredictorMode() {},
+        fillPredictorSha() {},
+        fillPredictorModelInfo() {},
+        ModelSources: {},
+    };
+    vm.runInNewContext(`${worker.source}\n${changed.source};onModelSourceChanged`, context)({
+        detail: { kind: 'api', apiConfig: { baseUrl: 'https://api.example.test/v1', model: 'api-model' } },
+    });
+    const apiStatus = context.modelStatus;
+    context.toastMessage = undefined;
+    vm.runInNewContext(`${worker.source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', id: 1, capabilities: { file_name: 'model.lut', artifact_sha256: 'a'.repeat(64), synthetic: true, engine_supported: true, can_generate: true } },
+    });
+    assert.equal(context.app.currentLoadId, 2);
+    assert.equal(context.app.readyLoadId, null);
+    assert.equal(context.app.caps, null);
+    assert.equal(context.modelStatus, apiStatus);
+    assert.equal(context.toastMessage, undefined);
+});
+
+test('live model_loaded rejects a missing current load ID', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    context.app.currentLoadId = 1;
+    context.app.workerState = 'loading';
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', capabilities: { file_name: 'model.lut', artifact_sha256: 'a'.repeat(64) } },
+    });
+    assert.equal(context.app.workerState, 'error');
+    assert.equal(context.app.caps, null);
+    assert.match(context.toastMessage, /without the current load operation ID/);
+});
+
+
+test('live model_loaded clears previous capabilities on current identity failure', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    let composerUpdates = 0;
+    context.updateComposerState = () => { composerUpdates += 1; };
+    context.app.caps = { synthetic: true, engine_supported: true, can_generate: true };
+    context.app.modelMeta = { fileName: 'old.lut' };
+    context.app.currentLoadId = 3;
+    context.app.readyLoadId = null;
+    context.app.workerState = 'loading';
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', id: 3, capabilities: { file_name: 'other.lut', artifact_sha256: 'a'.repeat(64) } },
+    });
+    assert.equal(context.app.workerState, 'error');
+    assert.equal(context.app.caps, null);
+    assert.equal(context.app.modelMeta, null);
+    assert.equal(context.document.documentElement.dataset.modelSha256, '');
+    assert.ok(composerUpdates > 0);
+    const readiness = await inlineStudioFunction('chatReadiness');
+    assert.equal(vm.runInNewContext(`${readiness.source};chatReadiness`, {
+        app: context.app,
+        normalizeBaseUrl() { return 'http://127.0.0.1'; },
+        isDiscreteCapabilities() { return false; },
+    })(), false);
+});
+
+test('live model_loaded ignores a stale numeric load response', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    context.app.currentLoadId = 3;
+    context.app.readyLoadId = null;
+    context.app.workerState = 'loading';
+    context.app.expectedSha256 = 'a'.repeat(64);
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', id: 2, capabilities: { file_name: 'model.lut', artifact_sha256: 'a'.repeat(64) } },
+    });
+    assert.equal(context.app.workerState, 'loading');
+    assert.equal(context.app.caps, null);
+    assert.equal(context.toastMessage, undefined);
+});
+
+test('exact-tool local completion omits model rates, stop reasons, allocation deltas, and checkpoints', async () => {
+    const { source, vm } = await inlineStudioFunction('finishLocalGeneration');
+    const conversation = { id: 'chat-tool', messages: [] };
+    const app = {
+        chatRequests: { gen_tool: 7 },
+        activeChatRequestId: 'gen_tool',
+        activeGenerationId: 7,
+        chatGenerationId: 7,
+        generating: true,
+        assistantBuffer: '',
+        conversations: [conversation],
+        activeConversationId: conversation.id,
+        caps: { turn_memory: { present: true } },
+    };
+    const appended = [];
+    let checkpointCalls = 0;
+    const context = {
+        app,
+        chatRequestMatches(id, generationId) { return id === 'gen_tool' && generationId === 7; },
+        activeConversation() { return conversation; },
+        document: { querySelector() { return null; }, dispatchEvent() {} },
+        CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init.detail; } },
+        appendMessageElement(role, text, meta) { appended.push({ role, text, meta }); },
+        touchConversation() {},
+        updateComposerState() {},
+        setMetrics(text) { context.footerMetrics = text; },
+        requestCheckpoint() { checkpointCalls += 1; },
+        renderConversationList() {},
+        scrollChat() {},
+        clearChatRequest(id) { delete app.chatRequests[id]; },
+        formatTps(value) { return String(value); },
+    };
+    vm.runInNewContext(`${source};finishLocalGeneration`, context)({
+        id: 'gen_tool',
+        fullText: '42\n\nR4 geometric exact arithmetic — tool, not model generation',
+        tokenCount: 0,
+        tps: null,
+        stoppedBy: 'tool',
+        tool: 'm6-exact-arithmetic',
+        allocDelta: 0,
+    });
+    assert.equal(appended.length, 1);
+    assert.equal(appended[0].meta, '0 model tokens · tool');
+    assert.equal(context.footerMetrics, '0 model tokens · tool');
+    assert.doesNotMatch(appended[0].meta, /tok\/s|length|stop|alloc/);
+    assert.equal(checkpointCalls, 0, 'an exact answer must not request an unsupported turn-memory checkpoint');
+});
+
+test('exact-tool API completion omits computed model metrics in every render phase', async () => {
+    const { source, vm } = await inlineStudioFunction('sendViaApi');
+    const { createStreamMetrics } = await import('./stream_metrics.js');
+    const conversation = { id: 'api-tool', messages: [] };
+    const app = {
+        apiConfig: config,
+        apiMetrics: null,
+        assistantBuffer: '',
+        apiCompletionIds: [],
+        apiStartedNs: null,
+        apiFirstTokenNs: null,
+        generating: false,
+    };
+    const context = {
+        app,
+        AbortController: globalThis.AbortController,
+        beginGeneration() {
+            app.activeChatRequestId = 11;
+            app.chatGenerationId = 12;
+            app.activeGenerationId = 12;
+            app.generating = true;
+            app.assistantBuffer = '';
+            app.apiMetrics = createStreamMetrics();
+            app.apiStartedNs = 0;
+            app.apiFirstTokenNs = null;
+        },
+        streamChatCompletions(options) {
+            options.onDelta('42', { uor: { tool: 'm6-exact-arithmetic' } });
+            options.onDone({
+                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                uor: { tool: 'm6-exact-arithmetic', stop: 'tool' },
+                finishReason: 'stop',
+                stopped: false,
+            });
+            return Promise.resolve({ ok: true });
+        },
+        configFromSources() { return config; },
+        chatRequestMatches() { return true; },
+        window: { performance: { now() { return 1; } } },
+        document: { querySelector() { return null; }, dispatchEvent() {} },
+        CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init.detail; } },
+        touchConversation() {},
+        updatePrivacyStatus() {},
+        updateComposerState() {},
+        setMetrics(text) { (context.metricLabels ||= []).push(text); },
+        renderConversationList() {},
+        scrollChat() {},
+        clearChatRequest() {},
+        finishApiWithError(error) { throw error; },
+    };
+    await vm.runInNewContext(`async ${source};sendViaApi`, context)('17+25', conversation, [{ role: 'user', content: '17+25' }]);
+    assert.equal(conversation.messages.length, 1);
+    assert.equal(conversation.messages[0].meta, '0 model tokens · tool');
+    assert.doesNotMatch(conversation.messages[0].meta, /tok\/s|length|stop|alloc/);
+    assert.deepEqual(context.metricLabels, ['0 model tokens · tool', '0 model tokens · tool']);
+});
+
+test('exact-tool local streaming uses the tool label', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    context.app.streamingBodyEl = null;
+    context.app.assistantBuffer = '';
+    context.scrollChat = () => {};
+    context.formatTps = () => 'n/a';
+    context.setMetrics = (text) => { context.footerMetrics = text; };
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: {
+            action: 'stream_token',
+            fullText: '42\n\nR4 geometric exact arithmetic — tool, not model generation',
+            tokenCount: 0,
+            tps: null,
+            tool: 'm6-exact-arithmetic',
+        },
+    });
+    assert.equal(context.footerMetrics, '0 model tokens · tool');
+});
+
+
+test('live model_loaded rejects a valid but wrong expected digest', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    const actual = 'b'.repeat(64);
+    context.app.currentLoadId = 1;
+    context.app.workerState = 'loading';
+    context.app.expectedSha256 = 'a'.repeat(64);
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'model_loaded', id: 1, capabilities: { file_name: 'model.lut', artifact_sha256: actual } },
+    });
+    assert.equal(context.app.workerState, 'error');
+    assert.equal(context.app.caps, null);
+    assert.match(context.toastMessage, new RegExp(actual));
+    assert.match(context.toastMessage, new RegExp('a'.repeat(64)));
+});
+
+
+test('current load operation_error preserves both full digests', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    const expected = 'a'.repeat(64);
+    const actual = 'b'.repeat(64);
+    context.app.currentLoadId = 7;
+    context.app.predictionRequests = {};
+    context.app.workerState = 'loading';
+    context.app.expectedSha256 = expected;
+    const error = `Artifact sha256 ${actual} does not match the expected ${expected}; refusing to load.`;
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'operation_error', operation: 'load_model', id: 7, error },
+    });
+    assert.equal(context.app.workerState, 'error');
+    assert.equal(context.app.caps, null);
+    assert.match(context.modelStatus, new RegExp(expected));
+    assert.match(context.modelStatus, new RegExp(actual));
+});
+
+
+test('live model_loaded rejects no-ID in ready and pre-load states', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    for (const state of ['ready', 'pre-load']) {
+        const context = liveWorkerContext();
+        if (state === 'ready') {
+            context.app.currentLoadId = 1;
+            context.app.readyLoadId = 1;
+            context.app.workerState = 'ready';
+        } else {
+            context.app.currentLoadId = null;
+            context.app.readyLoadId = null;
+            context.app.workerState = 'starting';
+        }
+        vm.runInNewContext(`${source};onWorkerMessage`, context)({
+            data: { action: 'model_loaded', capabilities: { file_name: 'model.lut', artifact_sha256: 'a'.repeat(64) } },
+        });
+        assert.equal(context.app.workerState, 'error', state);
+        assert.equal(context.app.caps, null, state);
+        assert.match(context.toastMessage, /without the current load operation ID/, state);
+    }
+});
+
+test('stale load errors are not recorded in current diagnostics', async () => {
+    const { source, vm } = await inlineStudioFunction('onWorkerMessage');
+    const context = liveWorkerContext();
+    context.app.currentLoadId = 3;
+    context.app.readyLoadId = 3;
+    context.app.workerState = 'ready';
+    context.app.caps = { synthetic: true, engine_supported: true, can_generate: true };
+    vm.runInNewContext(`${source};onWorkerMessage`, context)({
+        data: { action: 'operation_error', operation: 'load_model', id: 2, error: 'stale failure' },
+    });
+    assert.equal(context.app.lastWorkerError, undefined);
+    assert.equal(context.document.documentElement.dataset.lastWorkerError, undefined);
+    assert.equal(context.toastMessage, undefined);
+    assert.equal(context.app.workerState, 'ready');
+});
