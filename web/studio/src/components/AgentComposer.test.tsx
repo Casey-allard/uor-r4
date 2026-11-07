@@ -305,6 +305,27 @@ describe('AgentComposer', () => {
         expect(generation.send).toHaveBeenCalledWith('Original prompt');
     });
 
+    it('renders rich assistant content while preserving exact raw message actions', () => {
+        const { store, sessionApi, fileApi, generation, copy, download } = mount();
+        const assistantContent = '# Answer\n\nUse **bold** and `code`.';
+        sessionApi.getConversationMessages = vi.fn(() => [{ role: 'user', content: 'Original prompt' }, { role: 'assistant', content: assistantContent }]);
+        act(() => { store.dispatch({ type: 'session/activated' }); });
+        const assistant = host.querySelector('article[data-role="assistant"]')!;
+        expect(assistant.querySelector('h1')?.textContent).toBe('Answer');
+        expect(assistant.querySelector('.rich-message strong')?.textContent).toBe('bold');
+        expect(assistant.querySelector('.rich-message code')?.textContent).toBe('code');
+        const action = (label: string) => Array.from(assistant.querySelectorAll('button')).find((node) => node.textContent === label)!;
+        act(() => { action('Copy').click(); });
+        expect(copy).toHaveBeenCalledWith(assistantContent);
+        act(() => { action('Insert into editor').click(); });
+        expect(fileApi.insertText).toHaveBeenCalledWith(assistantContent, expect.stringMatching(/^agent-message-\d+-\d+\.md$/));
+        act(() => { action('Save as file').click(); });
+        expect(download).toHaveBeenCalledWith('studio-message.md', assistantContent);
+        act(() => { store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' }); });
+        act(() => { action('Retry').click(); });
+        expect(generation.send).toHaveBeenCalledWith('Original prompt');
+    });
+
     it('preserves the current unsent draft when retrying an older message', () => {
         const { store, sessionApi } = mount();
         sessionApi.getConversationMessages = vi.fn(() => [{ role: 'user', content: 'Original prompt' }, { role: 'assistant', content: 'Assistant answer' }]);

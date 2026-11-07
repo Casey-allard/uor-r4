@@ -105,6 +105,8 @@ Narrow live-page bridge corrections correlate chat completion, include attachmen
 
 `AgentComposer` now mounts the exported TypeScript `createComposerInput` controller, preserving Enter/Shift+Enter, IME refusal, bounded prompt history with exact draft restoration, reset/destroy, paste/drop/picker channels, and the existing bounded text-file reader. Its `/` menu filters the six build-task templates and its `@` menu filters the active file/current attachments without duplicating retained names. Both menus expose listbox/option state and keyboard focus through the prompt textarea. These are typed-component checks only: the legacy plain-JS controller and live page remain unchanged.
 
+`RichMessage` renders common Markdown headings, lists, quotes, fenced code, inline code, strong text, and HTTP(S) links through Preact nodes rather than HTML strings. Raw HTML and unsafe/relative destinations stay literal, rendering performs no fetch, and copy/insert/save/retry keep the exact original message. Tables, math, raw HTML, images, and syntax highlighting are outside this component's current scope. The live transcript remains unchanged.
+
 Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. The library
 build emits uncommitted `dist/` output; `src/studio.css` does not alter the legacy `index.css`.
 Native progress and dialog elements preserve unknown totals and indeterminate finalization; dialogs

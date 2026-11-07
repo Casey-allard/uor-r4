@@ -12,6 +12,7 @@ export * from './components/CommandPalette.js';
 export * from './components/ModelPicker.js';
 export * from './components/WorkspaceEditor.js';
 export * from './components/AgentComposer.js';
+export * from './components/RichMessage.js';
 export * from './components/SessionList.js';
 export * from './components/Inspector.js';
 export * from './components/Guide.js';

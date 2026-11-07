@@ -7,6 +7,7 @@ import type { GenerationAdapter } from '../adapters/generation.js';
 import type { Attachment, SessionApi, StudioUiApi, WorkspaceApi } from '../adapters/workflow.js';
 import type { LifecycleStore } from '../state/lifecycle.js';
 import { useLifecycle } from '../state/useLifecycle.js';
+import { RichMessage } from './RichMessage.js';
 
 interface AgentComposerProps {
     store: LifecycleStore;
@@ -304,7 +305,7 @@ export function AgentComposer({ store, sessions, files, ui, generation, copy, do
                 {messages.map((message, index) => (
                     <article data-role={message.role}>
                         <strong>{message.role}</strong>
-                        <p>{message.content}</p>
+                        <RichMessage content={message.content} />
                         <button type="button" onClick={() => void copy(message.content)}>Copy</button>
                         <button type="button" onClick={() => files.insertText(message.content, nextInsertName())}>Insert into editor</button>
                         <button type="button" onClick={() => download('studio-message.md', message.content)}>Save as file</button>
