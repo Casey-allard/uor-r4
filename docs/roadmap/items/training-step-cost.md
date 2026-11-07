@@ -24,6 +24,7 @@ The owner, 28 Oct 2026, in claude's chat (the message's first clause, recorded i
 - **The backward's split.** Its host time is 0.98–0.99 of its GPU time. That fits launches with the GPU keeping pace, or the host waiting at a sync inside it; claude-157 could not tell which. Which forward stage's gradient dominates is not measured.
 - **A cheaper rival search.** The search is GPU-bound and grows with the table (4,096 × width). A search over a subset, for example the writer's kept cells, or a search every few steps with the rivals kept, has not been run. Its effect on prediction is a hypothesis.
   - [deepseek-2](../../loop/tasks/training-step-cost/deepseek-2/REPORT.md) built an off-by-default one-pass top-eight selector. It is 3.69× to 19.23× faster than the repeated argmax rounds at 256–4,096 rows, but the full synthetic step is only 1.07% faster. Current CUDA argmax has no defined tie order; the selector's lower-id ties move gradients by 0.75–1.14%. This meets done-when 2's implementation and tests, but does not satisfy the prediction/cost bar in done-when 3.
+  - [deepseek-3](../../loop/tasks/training-step-cost/deepseek-3/REPORT.md) fuses whole-table L1 scoring with that selection. Search time falls 5.07×–20.98× at 256–4,096 rows, and the synthetic nearest-objective step falls 40.1% (139.524 → 83.627 ms) with bit-equal loss. Tied gradients still move by 1.14%, so the flag stays off until the registered two-seed prediction/cost run in done-when 3.
 
 ## Done when
 

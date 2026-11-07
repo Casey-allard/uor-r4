@@ -244,6 +244,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/fused-nearest": {
+    "branch": "deepseek/fused-nearest",
+    "claimed_at": "2026-11-07T12:31:54-05:00",
+    "head": "2b46c7080",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/generated-prefix": {
     "branch": "deepseek/generated-prefix",
     "claimed_at": "2026-11-04T15:00:00-05:00",
