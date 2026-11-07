@@ -370,6 +370,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/one-model-eval-diagnostics": {
+    "branch": "deepseek/one-model-eval-diagnostics",
+    "claimed_at": "2026-11-07T14:01:40-05:00",
+    "head": "b80933c4b",
+    "lab": "deepseek",
+    "note": "EOS rank, rendering, and same-scorer parity diagnostics for the one-model path"
+  },
   "deepseek/oracle-corpus-support": {
     "branch": "deepseek/oracle-corpus-support",
     "claimed_at": "2026-11-02T22:00:48-05:00",
