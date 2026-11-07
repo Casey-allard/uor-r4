@@ -216,6 +216,7 @@ pub fn generate_reply_with_prefix(
 ) -> Result<GeneratedReply> {
     let mut forward = CpuFbsForward::from_artifact(artifact)
         .map_err(|error| invalid(format!("seeded-reply forward: {error}")))?;
+    let head = forward.served_head();
     let context = forward.context_length();
     if cap == 0
         || cap > 64
@@ -237,7 +238,7 @@ pub fn generate_reply_with_prefix(
             forward.mark_reply_start();
         }
         let step = forward
-            .step(token, CpuFbsHead::Writer)
+            .step(token, head)
             .map_err(|error| invalid(format!("seeded-reply prompt step: {error}")))?;
         if index + 1 == prompt.len() {
             next = Some(step.token);
@@ -246,7 +247,7 @@ pub fn generate_reply_with_prefix(
     let mut next = next.ok_or_else(|| invalid("seeded-reply prompt is empty"))?;
     for &token in prefix {
         next = forward
-            .step(token, CpuFbsHead::Writer)
+            .step(token, head)
             .map(|step| step.token)
             .map_err(|error| invalid(format!("seeded-reply prefix step: {error}")))?;
     }
@@ -273,7 +274,7 @@ pub fn generate_reply_with_prefix(
             });
         }
         next = forward
-            .step(next, CpuFbsHead::Writer)
+            .step(next, head)
             .map(|step| step.token)
             .map_err(|error| invalid(format!("seeded-reply continuation step: {error}")))?;
     }
@@ -290,6 +291,7 @@ fn generate_reply_with_memory(
     if !memory_enabled {
         forward.disable_memory();
     }
+    let head = forward.served_head();
     let context = forward.context_length();
     if cap == 0 || cap > 64 || prompt.is_empty() || prompt.len() > context {
         return Err(invalid(
@@ -302,7 +304,7 @@ fn generate_reply_with_memory(
             forward.mark_reply_start();
         }
         let step = forward
-            .step(token, CpuFbsHead::Writer)
+            .step(token, head)
             .map_err(|error| invalid(format!("complete-reply prompt step: {error}")))?;
         if index + 1 == prompt.len() {
             first = Some(step.token);
@@ -315,7 +317,7 @@ fn generate_reply_with_memory(
         context,
         |token| {
             forward
-                .step(token, CpuFbsHead::Writer)
+                .step(token, head)
                 .map(|step| step.token)
                 .map_err(|error| invalid(format!("complete-reply generated step: {error}")))
         },
@@ -1664,6 +1666,10 @@ mod tests {
     };
 
     fn artifact() -> Vec<u8> {
+        artifact_with_head(false)
+    }
+
+    fn artifact_with_head(nearest: bool) -> Vec<u8> {
         let mut snapshot = synthetic_fbs_trunk_with(
             931,
             FbsSynth {
@@ -1680,7 +1686,56 @@ mod tests {
             },
         );
         snapshot.memory = None;
+        snapshot.readout_nearest = nearest;
         export_fbs_trunk_uorlut01(&snapshot).unwrap()
+    }
+
+    fn reply_with_head(
+        artifact: &[u8],
+        prompt: &[u32],
+        cap: usize,
+        head: CpuFbsHead,
+    ) -> GeneratedReply {
+        let mut forward = CpuFbsForward::from_artifact(artifact).unwrap();
+        let context = forward.context_length();
+        let mut next = None;
+        for (index, &token) in prompt.iter().enumerate() {
+            if index + 1 == prompt.len() {
+                forward.mark_reply_start();
+            }
+            let step = forward.step(token, head).unwrap();
+            if index + 1 == prompt.len() {
+                next = Some(step.token);
+            }
+        }
+        bounded_reply(next.unwrap(), prompt.len(), cap, context, |token| {
+            Ok(forward.step(token, head).unwrap().token)
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn complete_replies_use_the_artifact_head() {
+        let nearest_artifact = artifact_with_head(true);
+        assert_eq!(
+            CpuFbsForward::from_artifact(&nearest_artifact)
+                .unwrap()
+                .served_head(),
+            CpuFbsHead::Nearest
+        );
+        let prompt = [10, 11, 12];
+        let nearest = reply_with_head(&nearest_artifact, &prompt, 4, CpuFbsHead::Nearest);
+        let writer = reply_with_head(&nearest_artifact, &prompt, 4, CpuFbsHead::Writer);
+        assert_ne!(nearest, writer);
+        assert_eq!(
+            generate_reply(&nearest_artifact, &prompt, 4).unwrap(),
+            nearest
+        );
+        assert_eq!(
+            generate_reply_with_prefix(&nearest_artifact, &prompt, &nearest.tokens[..1], 4)
+                .unwrap(),
+            nearest
+        );
     }
 
     #[test]

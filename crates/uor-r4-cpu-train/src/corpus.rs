@@ -226,12 +226,60 @@ impl CpuMaskedCorpus {
     /// EOS boundary and is truncated from the left only when prompt plus reply
     /// would exceed the model context.
     pub fn conversation_examples(&self) -> Result<Vec<CpuConversationSample>> {
+        let mut examples = Vec::new();
+        self.for_each_conversation_span(|ordinal, prompt_start, start, end| {
+            examples.push(self.conversation_example_at(ordinal, prompt_start, start, end));
+        })?;
+        if examples.is_empty() {
+            return Err(invalid(
+                "corpus has no complete assistant response examples",
+            ));
+        }
+        Ok(examples)
+    }
+
+    /// Select at most `maximum` complete assistant responses at deterministic
+    /// evenly spaced ranks across the corpus.
+    pub fn conversation_examples_capped(
+        &self,
+        maximum: usize,
+    ) -> Result<Vec<CpuConversationSample>> {
+        if maximum == 0 {
+            return Err(invalid("conversation example cap must be positive"));
+        }
+        let mut total = 0usize;
+        self.for_each_conversation_span(|_, _, _, _| total += 1)?;
+        if total == 0 {
+            return Err(invalid(
+                "corpus has no complete assistant response examples",
+            ));
+        }
+        let selected = maximum.min(total);
+        let mut observed = 0usize;
+        let mut next = 0usize;
+        let mut examples = Vec::with_capacity(selected);
+        self.for_each_conversation_span(|ordinal, prompt_start, start, end| {
+            if next < selected && observed == even_rank(next, total, selected) {
+                examples.push(self.conversation_example_at(ordinal, prompt_start, start, end));
+                next += 1;
+            }
+            observed += 1;
+        })?;
+        if examples.len() != selected {
+            return Err(invalid("conversation example sampling lost a selected row"));
+        }
+        Ok(examples)
+    }
+
+    fn for_each_conversation_span(
+        &self,
+        mut visit: impl FnMut(usize, usize, usize, usize),
+    ) -> Result<()> {
         if self.bos != 0 {
             return Err(invalid(
                 "conversation examples require BOS id 0 so EOS id 1 is unambiguous",
             ));
         }
-        let mut examples = Vec::new();
         for (ordinal, document) in self.documents.iter().enumerate() {
             let mut start = document.start;
             while start < document.end {
@@ -245,8 +293,7 @@ impl CpuMaskedCorpus {
                 while end < document.end && self.mask[end] == 1 {
                     end += 1;
                 }
-                let reply = self.tokens[start..end].to_vec();
-                if reply.len() >= self.context {
+                if end - start >= self.context {
                     start = end;
                     continue;
                 }
@@ -257,54 +304,102 @@ impl CpuMaskedCorpus {
                         break;
                     }
                 }
-                let prompt = &self.tokens[prompt_start..start];
-                if !prompt.is_empty() {
-                    let budget = self.context - reply.len();
-                    let prompt = &prompt[prompt.len().saturating_sub(budget)..];
-                    examples.push(CpuConversationSample {
-                        document_ordinal: ordinal,
-                        prompt: prompt.to_vec(),
-                        reply,
-                    });
+                if prompt_start < start {
+                    visit(ordinal, prompt_start, start, end);
                 }
                 start = end;
             }
         }
-        if examples.is_empty() {
-            return Err(invalid(
-                "corpus has no complete assistant response examples",
-            ));
+        Ok(())
+    }
+
+    fn conversation_example_at(
+        &self,
+        document_ordinal: usize,
+        prompt_start: usize,
+        reply_start: usize,
+        reply_end: usize,
+    ) -> CpuConversationSample {
+        let reply = &self.tokens[reply_start..reply_end];
+        let budget = self.context - reply.len();
+        let prompt = &self.tokens[prompt_start..reply_start];
+        CpuConversationSample {
+            document_ordinal,
+            prompt: prompt[prompt.len().saturating_sub(budget)..].to_vec(),
+            reply: reply.to_vec(),
         }
-        Ok(examples)
     }
 
     /// Every masked reply target with its complete causal prefix.
     pub fn causal_samples(&self) -> Result<Vec<RankMarginSample>> {
         let mut samples = Vec::new();
+        self.for_each_causal_position(|position, document_start| {
+            samples.push(self.causal_sample_at(position, document_start));
+        });
+        if samples.is_empty() {
+            return Err(invalid("corpus has no causal response targets"));
+        }
+        Ok(samples)
+    }
+
+    /// Select at most `maximum` causal response targets at deterministic evenly
+    /// spaced ranks across the corpus.
+    pub fn causal_samples_capped(&self, maximum: usize) -> Result<Vec<RankMarginSample>> {
+        if maximum == 0 {
+            return Err(invalid("causal sample cap must be positive"));
+        }
+        let total = self.causal_target_count();
+        if total == 0 {
+            return Err(invalid("corpus has no causal response targets"));
+        }
+        let selected = maximum.min(total);
+        let mut observed = 0usize;
+        let mut next = 0usize;
+        let mut samples = Vec::with_capacity(selected);
+        self.for_each_causal_position(|position, document_start| {
+            if next < selected && observed == even_rank(next, total, selected) {
+                samples.push(self.causal_sample_at(position, document_start));
+                next += 1;
+            }
+            observed += 1;
+        });
+        if samples.len() != selected {
+            return Err(invalid("causal sample sampling lost a selected row"));
+        }
+        Ok(samples)
+    }
+
+    /// Count the causal response targets eligible for grading.
+    pub fn causal_target_count(&self) -> usize {
+        self.documents
+            .iter()
+            .map(|document| {
+                (document.start + 1..document.end)
+                    .filter(|&position| self.mask[position] == 1)
+                    .count()
+            })
+            .sum()
+    }
+
+    fn for_each_causal_position(&self, mut visit: impl FnMut(usize, usize)) {
         for document in &self.documents {
             for target_position in document.start + 1..document.end {
                 if self.mask[target_position] != 1 {
                     continue;
                 }
-                let prefix_start = target_position
-                    .saturating_sub(self.context)
-                    .max(document.start);
-                let input = self.tokens[prefix_start..target_position].to_vec();
-                if input.is_empty() || input.len() > self.context {
-                    return Err(invalid(
-                        "corpus causal prefix length is outside the model context",
-                    ));
-                }
-                samples.push(RankMarginSample {
-                    input,
-                    target: self.tokens[target_position],
-                });
+                visit(target_position, document.start);
             }
         }
-        if samples.is_empty() {
-            return Err(invalid("corpus has no causal response targets"));
+    }
+
+    fn causal_sample_at(&self, target_position: usize, document_start: usize) -> RankMarginSample {
+        let prefix_start = target_position
+            .saturating_sub(self.context)
+            .max(document_start);
+        RankMarginSample {
+            input: self.tokens[prefix_start..target_position].to_vec(),
+            target: self.tokens[target_position],
         }
-        Ok(samples)
     }
 
     fn document_samples(&self, document: &Range<usize>) -> Result<Vec<RankMarginSample>> {
@@ -430,6 +525,10 @@ fn evenly_cap<T: Clone>(values: Vec<T>, maximum: usize) -> Vec<T> {
         .collect()
 }
 
+fn even_rank(rank: usize, total: usize, selected: usize) -> usize {
+    usize::try_from(rank as u128 * total as u128 / selected as u128).unwrap_or(usize::MAX)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -518,6 +617,29 @@ mod tests {
             .iter()
             .chain([sample.target].iter())
             .all(|token| *token == 0 || [20, 21, 22, 40, 41, 42].contains(token))));
+    }
+
+    #[test]
+    fn capped_samples_are_bounded_evenly_spaced_and_deterministic() {
+        let corpus = corpus();
+        let all = corpus.causal_samples().unwrap();
+        let capped = corpus.causal_samples_capped(3).unwrap();
+        assert_eq!(corpus.causal_target_count(), all.len());
+        assert_eq!(capped, vec![all[0].clone(), all[3].clone(), all[6].clone()]);
+        assert_eq!(corpus.causal_samples_capped(100).unwrap(), all);
+        assert!(corpus.causal_samples_capped(0).is_err());
+
+        let conversations = corpus.conversation_examples().unwrap();
+        let capped = corpus.conversation_examples_capped(2).unwrap();
+        assert_eq!(
+            capped,
+            vec![conversations[0].clone(), conversations[1].clone()]
+        );
+        assert_eq!(
+            corpus.conversation_examples_capped(100).unwrap(),
+            conversations
+        );
+        assert!(corpus.conversation_examples_capped(0).is_err());
     }
 
     #[test]

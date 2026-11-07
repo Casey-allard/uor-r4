@@ -1,0 +1,86 @@
+{
+  "schema": "uor-r4.cpu-checkpoint-grade-result/1",
+  "status": "COMPLETE",
+  "qualification": "cpu-development-research",
+  "panel": {
+    "split": "dev",
+    "tokens": 15512,
+    "response_targets": 4900,
+    "tokens_sha256": "1d049e5e3c0a95cceb5a45e5acd569a64bc17c3087d59f1c1aca66880c2bde3d",
+    "mask_sha256": "8b79a29c5bf27616e2337bdf05b444364f94e7d07acd3e144dc7714e96c9fe68",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+  },
+  "settings": {
+    "max_evaluation_rows": 4900,
+    "max_reply_examples": 16,
+    "reply_tokens": 16,
+    "margin_q12": 1
+  },
+  "seed_1": {
+    "artifact_sha256": "9a370566cd9da163191c0196763c68ddb395927fcf61fdecc1736b04941a4bd9",
+    "snapshot_sha256": "0c2f4c1cefa293c5076293535e3dda4b206e409167610733d75ea3455bdf722c",
+    "head": "nearest",
+    "rows": 4900,
+    "top1_correct": 1036,
+    "sample_fingerprint": "e885b20a2ec994945920e25f97d953a12c2edcc36e24f5d8da6246fc3f3f6863",
+    "reply_sample_fingerprint": "7da9a28e3ea6cca22d3bf570764454d700bfabcce7df03cb450033b85214c196",
+    "replies": 16,
+    "bos_complete": 0,
+    "cap_stopped": 16,
+    "exact_reference": 0,
+    "reference_reachable": 13,
+    "distinct_non_empty": 11,
+    "repeated_4gram": 10,
+    "audit": {
+      "positions": 192,
+      "query_coordinates": 49152,
+      "query_mismatches": 0,
+      "tokens": 192,
+      "token_mismatches": 0,
+      "kept_cells": 1536,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "seed_2_against_seed_1": {
+    "artifact_sha256": "5039cadefd60633bcff5ac8511aff362e1174ef4cda20844a8febad625d2e304",
+    "snapshot_sha256": "a80c406da9ace065d90d78aeaf9115b4c937b182f5b72b11fe900368b31f8f6d",
+    "head": "nearest",
+    "rows": 4900,
+    "top1_correct": 1110,
+    "reply_sample_fingerprint": "7da9a28e3ea6cca22d3bf570764454d700bfabcce7df03cb450033b85214c196",
+    "top1_delta": 74,
+    "top1_only_candidate": 181,
+    "top1_only_baseline": 107,
+    "replies": 16,
+    "bos_complete": 0,
+    "cap_stopped": 16,
+    "exact_reference": 0,
+    "reference_reachable": 13,
+    "distinct_non_empty": 14,
+    "repeated_4gram": 8,
+    "audit": {
+      "positions": 192,
+      "query_coordinates": 49152,
+      "query_mismatches": 0,
+      "tokens": 192,
+      "token_mismatches": 0,
+      "kept_cells": 1536,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "checkpoint_mode": {
+    "seed_1_artifact_sha256": "9a370566cd9da163191c0196763c68ddb395927fcf61fdecc1736b04941a4bd9",
+    "seed_2_artifact_sha256": "5039cadefd60633bcff5ac8511aff362e1174ef4cda20844a8febad625d2e304",
+    "seed_1_snapshot_sha256": "0c2f4c1cefa293c5076293535e3dda4b206e409167610733d75ea3455bdf722c",
+    "seed_2_snapshot_sha256": "a80c406da9ace065d90d78aeaf9115b4c937b182f5b72b11fe900368b31f8f6d"
+  },
+  "deterministic_replay": {
+    "normalized_report_sha256": "98d0b7a8a362c28d58d5c925b7f605767e8512f34ad0eb146af0eda44821803e",
+    "matched": true
+  },
+  "limitations": [
+    "CPU development evidence does not replace GPU qualification.",
+    "Top-8 and target admission are present only for native-writer artifacts.",
+    "The complete-reply panel is bounded and does not establish float/integer equivalence or useful chat."
+  ]
+}

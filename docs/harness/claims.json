@@ -13,13 +13,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/b64l-cpu-export": {
-    "branch": "deepseek/b64l-cpu-export",
-    "claimed_at": "2026-11-06T21:44:44-05:00",
-    "head": "4c45dec40",
-    "lab": "deepseek",
-    "note": "owner-approved CPU export and integer serving qualification for accepted b64L checkpoints"
-  },
   "deepseek/batched-scorer": {
     "branch": "deepseek/batched-scorer",
     "claimed_at": "2026-11-02T22:48:16-05:00",
@@ -73,6 +66,13 @@
     "branch": "deepseek/chat-protocol2-default",
     "claimed_at": "2026-11-02T22:19:36-05:00",
     "head": "7394c344d",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/checkpoint-grade": {
+    "branch": "deepseek/checkpoint-grade",
+    "claimed_at": "2026-11-07T00:20:26-05:00",
+    "head": "d43e33950",
     "lab": "deepseek",
     "note": ""
   },

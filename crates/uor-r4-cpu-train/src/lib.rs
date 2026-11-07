@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
 mod content_readout;
+mod checkpoint_grade;
 mod continuation_closure;
 mod copy_candidate_rank;
 mod copy_key_depth;
@@ -66,6 +67,11 @@ pub use content_readout::{
     ContentStopDensityTraining, ContentStopGate, ContentStopPhaseAudit, ContentStopRow,
     ContentStopTraining, CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES,
     CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS, CONTENT_TRAJECTORY_SIGNATURE_BITS,
+};
+pub use checkpoint_grade::{
+    grade_checkpoint_artifact, CheckpointGradeAudit, CheckpointGradeBaseline,
+    CheckpointGradeConfig, CheckpointGradeCorpus, CheckpointGradeEvaluation, CheckpointGradeReport,
+    CheckpointGradeSettings, CHECKPOINT_GRADE_SCHEMA,
 };
 pub use continuation_closure::{
     changed_closure_rows, compare_continuation_closure_rows, continuation_closure_changes,

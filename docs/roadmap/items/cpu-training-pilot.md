@@ -925,6 +925,17 @@ the strict 2-GiB stop. This is CPU implementation performance evidence, not a
 capability result. See
 [deepseek-129](../../loop/tasks/cpu-training-pilot/deepseek-129/REPORT.md).
 
+The current local checkpoint path is now one command. `cpu-checkpoint-grade`
+can export a saved train-as-served checkpoint or grade an existing artifact,
+select a deterministic bounded panel sample, generate complete replies, compare
+a baseline on the same rows and require CPU/serving parity. Both accepted b64L
+seeds reproduced their artifact and snapshot hashes; on all 4,900 rows of the
+registered `dd-2788` development panel, nearest top-1 was 1,036 for seed 1 and
+1,110 for seed 2. The corresponding 32 bounded replies all hit the token cap
+and none matched its reference, so the package is useful local instrumentation,
+not model-quality or useful-chat evidence. See
+[deepseek-240](../../loop/tasks/cpu-training-pilot/deepseek-240/REPORT.md).
+
 ## Done when
 
 - The pre-registration exists before compute and names pass, fail and stop outcomes.

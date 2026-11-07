@@ -241,6 +241,7 @@ pub struct CpuFbsForward {
     input_table: Option<Vec<i16>>,
     roots_q12: [[i32; 8]; 16],
     kept_cells: usize,
+    head: CpuFbsHead,
     context: usize,
     raw_gates: bool,
     raw_transition: bool,
@@ -274,6 +275,11 @@ impl CpuFbsForward {
             model.shape().raw_gates,
             model.shape().raw_transition,
             model.shape().rec_retention(),
+            if model.shape().head_nearest() {
+                CpuFbsHead::Nearest
+            } else {
+                CpuFbsHead::Writer
+            },
         )
     }
 
@@ -299,6 +305,11 @@ impl CpuFbsForward {
             model.shape().raw_gates,
             model.shape().raw_transition,
             model.shape().rec_retention(),
+            if model.shape().head_nearest() {
+                CpuFbsHead::Nearest
+            } else {
+                CpuFbsHead::Writer
+            },
         )?;
         if let Some(hamming) = hamming {
             let reads = CpuHamming::new(
@@ -380,6 +391,7 @@ impl CpuFbsForward {
         raw_gates: bool,
         raw_transition: bool,
         retention: bool,
+        head: CpuFbsHead,
     ) -> Result<Self> {
         let width = image.final_gain.len();
         if width == 0 || !width.is_multiple_of(GROUP) || !width.is_multiple_of(4) {
@@ -422,6 +434,7 @@ impl CpuFbsForward {
             input_table: None,
             roots_q12: *image.roots_q12,
             kept_cells: image.kept_cells,
+            head,
             context,
             raw_gates,
             raw_transition,
@@ -450,6 +463,10 @@ impl CpuFbsForward {
 
     pub fn has_turn_memory(&self) -> bool {
         self.memory.is_some()
+    }
+
+    pub(crate) fn served_head(&self) -> CpuFbsHead {
+        self.head
     }
 
     pub(crate) fn token_table(&self) -> &[i16] {

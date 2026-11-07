@@ -154,3 +154,7 @@ path = "src/bin/cpu-query-cache-aggregate.rs"
 [[bin]]
 name = "cpu-fbs-export"
 path = "src/bin/cpu-fbs-export.rs"
+
+[[bin]]
+name = "cpu-checkpoint-grade"
+path = "src/bin/cpu-checkpoint-grade.rs"
