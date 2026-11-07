@@ -2352,7 +2352,9 @@ name = "uor-r4-cpu-train"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "hex",
  "rayon",
+ "safetensors 0.7.0",
  "serde",
  "serde_json",
  "sha2",

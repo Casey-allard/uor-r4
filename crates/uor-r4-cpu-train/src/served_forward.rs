@@ -991,9 +991,17 @@ fn manifest_from_model(
             kept_cells: image.kept_cells,
         },
         projection: "spiralcore_fbs_signed_axis_permutation",
-        recurrence: "recurrence_only_geometric_decay_rate",
+        recurrence: if shape.rec_retention() {
+            "recurrence_only_geometric_retention_rate"
+        } else {
+            "recurrence_only_geometric_decay_rate"
+        },
         recurrence_pattern: shape.pattern.clone(),
-        recurrence_gates: "geometric_hamilton_output_with_dyadic_rate",
+        recurrence_gates: if shape.rec_retention() {
+            "geometric_hamilton_output_with_retention_rate"
+        } else {
+            "geometric_hamilton_output_with_dyadic_rate"
+        },
         transition_action: if shape.raw_transition {
             "raw_unit_quaternion"
         } else {
@@ -2258,7 +2266,7 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_retention_mode_is_refused() {
+    fn retention_mode_matches_serving() {
         let mut snapshot = synthetic_fbs_trunk_with(
             703,
             FbsSynth {
@@ -2276,9 +2284,20 @@ mod tests {
         );
         snapshot.retain_rates = true;
         let artifact = export_fbs_trunk_uorlut01(&snapshot).unwrap();
-        let error =
-            audit_served_forward(&artifact, &ServedForwardAuditConfig::new(vec![0])).unwrap_err();
-        assert!(error.to_string().contains("CPU FBS forward refusal"));
+        let report =
+            audit_served_forward(&artifact, &ServedForwardAuditConfig::new(vec![0])).unwrap();
+        assert_eq!(
+            report.manifest.recurrence,
+            "recurrence_only_geometric_retention_rate"
+        );
+        assert_eq!(
+            report.manifest.recurrence_gates,
+            "geometric_hamilton_output_with_retention_rate"
+        );
+        assert_eq!(report.parity.query_coordinate_mismatches, 0);
+        assert_eq!(report.parity.token_mismatches, 0);
+        assert_eq!(report.parity.kept_cell_mismatches, 0);
+        assert!(!report.parity.instrument_fault);
     }
 
     #[test]

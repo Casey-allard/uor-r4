@@ -19,6 +19,30 @@ const STATE_EXP: i32 = FbsImage::STATE_EXP;
 const NORM_FINE_EXP: i32 = FbsImage::NORM_FINE_EXP;
 const Q12_EXP: i32 = FbsImage::Q12_EXP;
 const GRID_EXP_BIAS: i32 = 64;
+const RETAIN_LAMBDA_Q31: [u64; 16] = retain_lambdas();
+const RETAIN_KEEP_Q31: [u64; 16] = retain_keeps();
+
+const fn retain_lambdas() -> [u64; 16] {
+    let mut table = [0u64; 16];
+    let mut index = 0;
+    while index < 16 {
+        table[index] = (1u64 << 31) - (1u64 << (30 - index));
+        index += 1;
+    }
+    table
+}
+
+const fn retain_keeps() -> [u64; 16] {
+    let lambdas = retain_lambdas();
+    let mut table = [0u64; 16];
+    let mut index = 0;
+    while index < 16 {
+        let lambda = lambdas[index] as u128;
+        table[index] = ((1u128 << 62) - lambda * lambda).isqrt() as u64;
+        index += 1;
+    }
+    table
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FbsForwardError {
@@ -124,6 +148,8 @@ struct CpuFbsSessionShape {
     context: usize,
     raw_gates: bool,
     raw_transition: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    retention: bool,
     hamming: bool,
     memory: bool,
 }
@@ -218,6 +244,7 @@ pub struct CpuFbsForward {
     context: usize,
     raw_gates: bool,
     raw_transition: bool,
+    retention: bool,
     position: usize,
     state: Vec<Vec<i64>>,
     history: Vec<Vec<i32>>,
@@ -246,6 +273,7 @@ impl CpuFbsForward {
             model.shape().context,
             model.shape().raw_gates,
             model.shape().raw_transition,
+            model.shape().rec_retention(),
         )
     }
 
@@ -270,6 +298,7 @@ impl CpuFbsForward {
             context,
             model.shape().raw_gates,
             model.shape().raw_transition,
+            model.shape().rec_retention(),
         )?;
         if let Some(hamming) = hamming {
             let reads = CpuHamming::new(
@@ -350,6 +379,7 @@ impl CpuFbsForward {
         context: usize,
         raw_gates: bool,
         raw_transition: bool,
+        retention: bool,
     ) -> Result<Self> {
         let width = image.final_gain.len();
         if width == 0 || !width.is_multiple_of(GROUP) || !width.is_multiple_of(4) {
@@ -395,6 +425,7 @@ impl CpuFbsForward {
             context,
             raw_gates,
             raw_transition,
+            retention,
             position: 0,
             tokens: Vec::with_capacity(context),
             hamming: None,
@@ -607,6 +638,7 @@ impl CpuFbsForward {
             context: self.context,
             raw_gates: self.raw_gates,
             raw_transition: self.raw_transition,
+            retention: self.retention,
             hamming: self.hamming.is_some(),
             memory: self.memory.is_some(),
         }
@@ -951,6 +983,7 @@ impl CpuFbsForward {
                 layer,
                 self.raw_transition,
                 self.raw_gates,
+                self.retention,
                 &mut self.state[index],
                 &mut self.history[index],
                 &branches,
@@ -1072,7 +1105,6 @@ fn validate_shape(model: &IntegerStackModel) -> Result<()> {
     let shape = model.shape();
     if !shape.projection_fbs()
         || !shape.rec_geometric()
-        || shape.rec_retention()
         || !shape.gate_hamilton()
         || !shape.rotation
         || shape.pointer.is_some()
@@ -1162,6 +1194,7 @@ fn recurrence(
     layer: &Layer,
     raw_transition: bool,
     raw_gates: bool,
+    retention: bool,
     state: &mut [i64],
     history: &mut [i32],
     branches: &[i32],
@@ -1193,7 +1226,11 @@ fn recurrence(
     for lane in 0..lanes {
         let rate = decays[lane].saturating_add(layer.decay_offset[lane]);
         let idx = ((i64::from(rate.clamp(0, 1 << 16)) >> 12) as usize).min(15);
-        let lambda = 1u64 << (30 - idx);
+        let (lambda, keep) = if retention {
+            (RETAIN_LAMBDA_Q31[idx], RETAIN_KEEP_Q31[idx])
+        } else {
+            (1u64 << (30 - idx), FbsImage::GEOMETRIC_KEEP_Q31[idx])
+        };
         let raw = [
             rotations[lane * 4],
             rotations[lane * 4 + 1],
@@ -1212,7 +1249,6 @@ fn recurrence(
             state[lane * 4 + 3],
         ];
         let moved = hamilton(transition, held);
-        let keep = FbsImage::GEOMETRIC_KEEP_Q31[idx];
         for channel in 0..4 {
             let drive = i128::from(keep) * i128::from(scratch[lane * 4 + channel]);
             state[lane * 4 + channel] = shift_wide(moved[channel].wrapping_add(drive << 16), 31);
@@ -2891,6 +2927,10 @@ mod tests {
         let restored = CpuFbsForward::resume(&checkpoint, &artifact).unwrap();
         assert_eq!(restored.checkpoint_bytes().unwrap(), checkpoint);
         let value: serde_json::Value = serde_json::from_slice(&checkpoint).unwrap();
+        assert!(
+            value["payload"]["shape"].get("retention").is_none(),
+            "a decay-rate session keeps the prior /2 checkpoint shape"
+        );
         let resealed = |value: &mut serde_json::Value| {
             let state = serde_json::to_vec(&value["payload"]).unwrap();
             value["state_sha256"] = serde_json::json!(uor_r4_discrete::corpus::sha256(&state));
@@ -3027,7 +3067,7 @@ mod tests {
     }
 
     #[test]
-    fn retention_rate_artifacts_require_their_other_rate_tables() {
+    fn retention_rate_artifacts_match_serving_and_resume() {
         let mut snapshot = synthetic_fbs_trunk_with(
             31,
             FbsSynth {
@@ -3046,7 +3086,20 @@ mod tests {
         snapshot.retain_rates = true;
         let bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
         let model = IntegerStackModel::parse(&bytes).unwrap();
-        assert!(CpuFbsForward::from_model(&model).is_err());
+        let mut cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
+        let mut serving = model.session();
+        for token in [17, 31, 63, 127, 255] {
+            let expected = serving.step_native(token).unwrap();
+            let actual = cpu.step(token, CpuFbsHead::Writer).unwrap();
+            assert_eq!(actual.query_q12, expected.query_q12);
+            assert_eq!(actual.token, expected.token);
+            assert_eq!(actual.kept_cells, expected.kept_cells);
+        }
+        let checkpoint = cpu.checkpoint_bytes().unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&checkpoint).unwrap();
+        assert_eq!(value["payload"]["shape"]["retention"], true);
+        let resumed = CpuFbsForward::resume(&checkpoint, &bytes).unwrap();
+        assert_eq!(resumed.checkpoint_bytes().unwrap(), checkpoint);
     }
 
     #[test]

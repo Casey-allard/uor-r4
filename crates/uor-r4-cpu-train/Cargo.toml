@@ -8,7 +8,9 @@ publish = false
 
 [dependencies]
 blake3 = "1.5"
+hex = "0.4"
 rayon = "1.10"
+safetensors = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
@@ -148,3 +150,7 @@ path = "src/bin/cpu-query-cache-evaluate.rs"
 [[bin]]
 name = "cpu-query-cache-aggregate"
 path = "src/bin/cpu-query-cache-aggregate.rs"
+
+[[bin]]
+name = "cpu-fbs-export"
+path = "src/bin/cpu-fbs-export.rs"

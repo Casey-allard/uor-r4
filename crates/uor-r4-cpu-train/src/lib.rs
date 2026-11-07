@@ -18,6 +18,7 @@ mod corpus;
 mod counterfactual;
 mod discrete_route;
 mod fbs;
+mod fbs_snapshot_cpu;
 mod full_sequence_boundary;
 mod gain_train;
 mod geometric_candidate_anchor;
@@ -114,6 +115,7 @@ pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterPortAnchorAudit,
     WriterPortMismatch, WriterTokenDiagnostic, CPU_FBS_SESSION_CHECKPOINT_SCHEMA,
 };
+pub use fbs_snapshot_cpu::{export_saved_checkpoint, snapshot_from_saved_checkpoint};
 pub use full_sequence_boundary::{
     compare_full_boundary_rows, derive_full_sequence_boundary, evaluate_full_boundary_replies,
     full_boundary_changes, full_boundary_stop_changes, generate_full_boundary_reply,

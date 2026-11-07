@@ -1,0 +1,108 @@
+{
+  "schema": "uor-r4.b64l-cpu-export-result/1",
+  "status": "COMPLETE",
+  "base": "195c217783fbecd58db70dd842129e90cff2a69c",
+  "source": "Claude-301 b64L width-256 step-016384",
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "deterministic_reexport": true,
+  "cpu_serving_parity": true,
+  "float_integer_complete_reply_equivalence": false,
+  "useful_chat": false,
+  "evidence_store": {
+    "repository": "caseyallard/uor-r4-store",
+    "path": "results/deepseek/b64l-cpu-export-2026-11-06/b64l-cpu-export-evidence-2026-11-06.tar.gz",
+    "sha256": "cba67ceb79121eea8c26bb5eca59ba232419d59f55567edefad454c30676bdb9",
+    "readback_sha256_matches": true
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "archive_sha256": "f7852f2540e58c17b2311d39fb47f8e53471e2cda8d6136f81b034cdf6bf5bba",
+      "run_config_sha256": "6b2b84640e37d1f6322a5b4ab6db0d783469d7adf4db1c7e67b532d4310056f2",
+      "model_config_sha256": "1045acb61d92d390f0f61617ffa4c1847437473c9694c09787b48bf46e761ed2",
+      "model_tensors_sha256": "6fd2d764171cc416d5ff272e19e3ebe0644183ab9c43ca0662706756ac75f5de",
+      "hamming_tensors_sha256": "672de97fcc329b10c3cde591f66047352851f9fe1d02df85a168190f5ba12ddd",
+      "artifact_sha256": "9a370566cd9da163191c0196763c68ddb395927fcf61fdecc1736b04941a4bd9",
+      "snapshot_sha256": "0c2f4c1cefa293c5076293535e3dda4b206e409167610733d75ea3455bdf722c",
+      "artifact_bytes": 2156416,
+      "snapshot_bytes": 12839628,
+      "fresh_128_audit": {
+        "positions": 128,
+        "query_coordinates": 32768,
+        "query_mismatches": 0,
+        "tokens": 128,
+        "token_mismatches": 0,
+        "kept_cells": 1024,
+        "kept_cell_mismatches": 0,
+        "instrument_fault": false
+      },
+      "fbs_toks": {
+        "prefill_tokens": 128,
+        "prefill_tokens_per_second": 1520,
+        "decode_tokens": 64,
+        "decode_tokens_per_second": 1492
+      },
+      "chat_hello": {
+        "reply_ids": [318, 2301, 223, 19, 27, 27, 27],
+        "reply_text": "Hello 1999",
+        "stop": "short_cycle",
+        "repeat_exact": true
+      },
+      "float_32_token_parity": {
+        "prompts": 16,
+        "first_token_mismatches": 0,
+        "whole_reply_mismatches": 9,
+        "first_divergence_offsets": [4, 3, 2, 6, 2, 6, 2, 9, 7]
+      }
+    },
+    {
+      "seed": 2,
+      "archive_sha256": "1f24f03a4b638f7ad6fafd184f980bca324de758085a62e5b5d0dfb3a4f6ab32",
+      "run_config_sha256": "f21567d0b43ba5fcc444bda840ad77bf8a5e9b46315ed8e515d223619f15e593",
+      "model_config_sha256": "778145167a18ff3b1006d4f609b7f608cc528b0dd753279b3ff38c8c63a88b95",
+      "model_tensors_sha256": "13f3ae6230831ad9797224c0d20ecb6d15463fc28a3fcbea0ddfd9f0046c3306",
+      "hamming_tensors_sha256": "3de5f52daa5d48504c3bba757e6ede95dd6a31bcba42653c5d12a6c1c5c35c7d",
+      "artifact_sha256": "5039cadefd60633bcff5ac8511aff362e1174ef4cda20844a8febad625d2e304",
+      "snapshot_sha256": "a80c406da9ace065d90d78aeaf9115b4c937b182f5b72b11fe900368b31f8f6d",
+      "artifact_bytes": 2156416,
+      "snapshot_bytes": 12584108,
+      "fresh_128_audit": {
+        "positions": 128,
+        "query_coordinates": 32768,
+        "query_mismatches": 0,
+        "tokens": 128,
+        "token_mismatches": 0,
+        "kept_cells": 1024,
+        "kept_cell_mismatches": 0,
+        "instrument_fault": false
+      },
+      "fbs_toks": {
+        "prefill_tokens": 128,
+        "prefill_tokens_per_second": 1520,
+        "decode_tokens": 64,
+        "decode_tokens_per_second": 1489
+      },
+      "chat_hello": {
+        "reply_ids": [318, 2301, 3, 201, 201, 35, 560, 652, 714, 28, 318, 2301, 3, 201, 201, 201],
+        "reply_text": "Hello!\n\nAssistant: Hello!\n\n\n",
+        "stop": "short_cycle"
+      },
+      "float_32_token_parity": {
+        "prompts": 16,
+        "first_token_mismatches": 0,
+        "whole_reply_mismatches": 4,
+        "first_divergence_offsets": [3, 4, 20, 6]
+      }
+    }
+  ],
+  "full_16_reply_cpu_serving_audit_per_seed": {
+    "positions": 1344,
+    "query_coordinates": 344064,
+    "query_mismatches": 0,
+    "tokens": 1344,
+    "token_mismatches": 0,
+    "kept_cells": 10752,
+    "kept_cell_mismatches": 0,
+    "instrument_fault": false
+  }
+}
