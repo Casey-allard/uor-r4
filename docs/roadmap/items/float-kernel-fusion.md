@@ -20,14 +20,14 @@ Casey was then told that a fused kernel moves a pinned count: the float crate pi
 Why these two kernels first:
 - **The step is host-bound.** [claude-157](../../loop/tasks/fbs-cost-profile/claude-157/REPORT.md) found the backward 62% of a training step in one configuration on an RTX 5090, and 54% in the other, with host time 0.98–0.99 of GPU time. That is launch overhead or a wait at a sync inside the backward; the run does not tell them apart. The cancel rule below is there for that reason.
 - **The served quantizers are op chains.** Under `--train-as-served 1`:
-  - `activation_quantize16` (`hamilton_sheet.rs:723`) is 43 stock tensor ops a call, 51 with the straight-through bridge the served wrapper (`:761`) always takes. It runs twice a layer: on the recurrence's output gate (`geometric_stack_native.rs:2109`, in `composed_recurrence`) and on the MLP gate (`:1757`, in `mlp`). The layer loop (`:1634-1639`) calls both in every forward, and gate telemetry adds one more call to each.
-  - `q16_residual` (`:646`) is 6 ops, or 14 with the bridge. It rounds the residual 1 + 2 × layers times a trunk, once more after each read, and again on every FBS projection's output (`served_projection_q16`, `:774`, through `StackModel::linear`).
+  - `activation_quantize16` (`hamilton_sheet.rs:741`) is 49 stock tensor ops a call, including the straight-through bridge the served wrapper (`:787`) always takes; these are tensor operations, not guaranteed kernel launches. It runs twice a layer: on the recurrence's output gate (`geometric_stack_native.rs:2137`, in `composed_recurrence`) and on the MLP gate (`:1785`, in `mlp`). The layer loop (`:1662-1667`) calls both in every forward, and gate telemetry adds one more call to each.
+  - `q16_residual` (`:657`) is 13 tensor ops, including the bridge; these are tensor operations, not guaranteed kernel launches. It rounds the residual 1 + 2 × layers times a trunk, once more after each read, and again on every FBS projection's output (`served_projection_q16`, `:800`, through `StackModel::linear`).
   - Each has a one-line backward: the gradient times the in-range mask.
 - **Scoring has the same floor.** [claude-279](../../loop/tasks/one-model-end-to-end/claude-279/REPORT.md) put scoring's decode on the exact cache. A cached step is then estimated at 8–9 ms for (L) at both 192 and 2,048 tokens. A step computes one position, so most of that is a fixed cost per forward, and the forward runs the same quantizer chains.
 
-## What is missing
+## State and remaining work
 
-1. **One kernel list.** `KERNEL_ENTRY_POINTS` (`src/lib.rs:36`) and `EXPECTED_KERNELS` (`tests/no_training_crate_dep.rs:9`) are two hand copies of the same 26 names (22 in `cuda_stack.cu`, 4 in `spiralcore_fbs.cu`), and the test asserts the count 26 (`:103`). At run time, only the `HISTORICAL_KERNELS` deny list (defined at `src/cuda_stack_kernels.rs:46`, checked at `:356`) and the PTX load (`:376`) stand between a name and its launch. Nothing ties a launched name to the list.
+1. **One kernel list, generated and enforced.** `KERNEL_ENTRY_POINTS` (`src/lib.rs:55`) is the generated stack list, with no separate `EXPECTED_KERNELS` copy. The test rescans each module's sources (`tests/no_training_crate_dep.rs:91-127`), and `admit_launch` (`src/cuda_stack_kernels.rs:61`) refuses a name outside its module's list. `dispatch_module` rejects `HISTORICAL_KERNELS` (`:93`) before that admission check (`:421-428`) and PTX load (`:442`).
 2. **A measured share.** Measured in [claude-283](../../loop/tasks/float-kernel-fusion/claude-283/REPORT.md), on one RTX 5090 at P2b's recipe with `--train-as-served 1`. Skipping both chains on alternate pairs of steps inside one run shortened a step by 7.5% at (S), 192 × 16 (noise 0.46%), and by 2.6% at (L), 2,048 × 4. The cancel rule did not fire, so done-whens 2 and 3 start.
    - **Where the time is:** almost all in the forward, spread evenly over the 12 sublayers. The backward holds 1.9 ms at (L) and 1.0 ms at (S).
    - **The calls:** a forward makes 12 `activation_quantize16` calls (about 49 tensor ops each) and 50 `q16_residual` calls (13 each), about 1,240 ops in all. Fused, that is 62.
@@ -37,18 +37,23 @@ Why these two kernels first:
    - Its host probe points at the export rounding instead: `grid_code` searches 2,032 grid candidates on the host for every rounded gain on every step, and nine matrices are copied to the host and back each step. Replacing the activation-scale loop saved about 2% of one CPU activation there.
    - That is a host probe, not a GPU profile, but it is the reason the fusion below waits on a measurement.
    - The two items share `hamilton_sheet.rs`, so the claim's overlap check orders their units. This item adds the kernel list that any new GPU kernel for that repair also needs. It does not take on the export rounding.
-3. **The fused quantizers,** forward and backward, one kernel each. **Built and gated in [claude-285](../../loop/tasks/float-kernel-fusion/claude-285/REPORT.md) (5 Nov).**
+3. **The fused quantizers are built; cost and default remain.** Forward and backward, one kernel each. **Built and gated in [claude-285](../../loop/tasks/float-kernel-fusion/claude-285/REPORT.md) (5 Nov).**
    - **Where:** `src/fused_quantize.cu`, built f32 only as its own PTX module, so the pinned `cuda_stack.cu` is unchanged. The kernels run behind `train-in-space --fused-quantize 1`, whose default is 0.
    - **What held on one RTX 5090:** each kernel equals its chain bit for bit. That covers the ops' forward and gradient on edge rows, one training step at P2b's recipe at (S) and (L) (the loss and every gradient), and eight training steps' models, samples and progress.
    - **What is left:** what the kernels save (done-when 4) and the flag's default (done-when 5).
+   - **The training cost is ready to run:** [deepseek-1's
+     sheet](../../harness/prep/float-kernel-fusion-fused-cost-2026-11-07.md) passed a fresh
+     non-author FIT review at `820a1103b`. It is computed as NOT_RUN for now because the owner's
+     current pipeline-first direction defers new training runs. The flag remains off; a later
+     pre-run review starts the short/long-context timing and asks whether the training default
+     should change.
 
 ## Done when
 
 1. **The kernel list is generated.**
-   - `build.rs` scans each `MODULES` entry's combined `sources` (`build.rs:26-54`) for `extern "C" __global__ void <name>` on every build, CPU builds included. It writes one list per PTX module, which `lib.rs` includes. The arms module is built from three files, `spiralcore_fbs_arms_prelude.cu`, `spiralcore_fbs.cu` and `spiralcore_fbs_arms.cu` (`:44-53`). So its list is the 4 FBS kernels plus `spiralcore_fbs_arm_fwd` and `spiralcore_fbs_arm_bwd`.
+   - `build.rs` scans each `MODULES` entry's combined `sources` (`build.rs:34-74`) for `extern "C" __global__ void <name>` on every build, CPU builds included. It writes one list per PTX module, which `lib.rs` includes. The arms module is built from three files, `spiralcore_fbs_arms_prelude.cu`, `spiralcore_fbs.cu` and `spiralcore_fbs_arms.cu` (`:52-61`). So its list is the 4 FBS kernels plus `spiralcore_fbs_arm_fwd` and `spiralcore_fbs_arm_bwd`.
    - The dispatch refuses a name not in its own module's list. The arms kernels, launched through `launch_prebuilt` (`geometric_stack_native_cuda.rs:798-805`), must pass that check, not fail it.
-   - No literal kernel count is left in code, tests or their doc comments: `lib.rs:3-4, :33-35`, `tests/no_training_crate_dep.rs:3-4`, and the messages at `:83` and `:104`.
-   - The test re-scans the sources itself and compares with the generated lists. The banned-token scan stays.
+   - No literal total-kernel count remains in code or tests: the generated list is `lib.rs:36-55`, and the test re-scans the sources and compares the lists at `tests/no_training_crate_dep.rs:91-127`. The banned-token scan stays.
 2. **Fused `activation_quantize16`,** behind a flag, equal bit for bit to the op chain it replaces. The flag is a thread-local in `hamilton_sheet.rs`, where the served wrappers switch to the kernel, set by a `train-in-space` option. It is equal:
    - forward and backward, on random rows that include zeros, −0, saturating rows, subnormals and exact .5 ties;
    - inside one training step at P2b's recipe: the loss and every gradient.
@@ -65,9 +70,9 @@ Why these two kernels first:
 ## How to start
 
 - **Measure before fusing.** Done-when 1 needs no measurement. Before done-when 2 or 3, time a training step at P2b's recipe with `--train-as-served 1`, chain by chain: the two quantizer chains against the rest of the step (`train-in-space --profile N` and `nsys` where the machine has it). If the cancel rule fires, report it, and the fusion does not start.
-- The list's two copies: `src/lib.rs:3-4, :33-36` and `tests/no_training_crate_dep.rs:9, :81-108`. `build.rs` names the three PTX modules at `:26-54` and builds them with nvcc at `:76-95`. The scan must run before the early return at `:68-70`, so CPU builds get the list too.
-- The chains and their CPU twins: `hamilton_sheet.rs:646-780` (`q16_residual_ste_scalar :675`, `activation_scale_scalar :691`, `activation_quantize16_ste_scalar :705`). Kernels load at `cuda_stack_kernels.rs:376`; the PTX is embedded at `:85-86`.
-- Stale "24" text to correct on the way: `tests/twenty_four_kernel_controls.rs:1-5` and the crate's `Cargo.toml` description.
+- The generated-list implementation is `src/lib.rs:36-55`, tested by `tests/no_training_crate_dep.rs:91-127`. `build.rs` declares the five PTX modules at `:34-74`; the scan runs before the CPU-only early return at `:92-94`, so CPU builds get the lists too.
+- The chains and their CPU twins: `hamilton_sheet.rs:657-783` (`q16_residual_ste_scalar :693`, `activation_scale_scalar :709`, `activation_quantize16_ste_scalar :723`). Kernels load through `cuda_stack_kernels.rs:373-394`; the PTX is embedded at `:132-133`.
+- The historical filename `tests/twenty_four_kernel_controls.rs` keeps its earlier count; its header (`:1-6`) records that choice, and the crate description carries no numeric kernel count.
 - **Where the kernels go** (claude-284's cancel probe). `cuda_stack.cu`'s SHA-256 is pinned as earlier sheets' source identity (`spiralcore_fbs_sheet.rs:54`, tested at `:4156`), so the fused kernels get their own source, `src/fused_quantize.cu`, built by `build.rs` as their own PTX module, as the SpiralCore arms were. The one-step gate needs the served model parts and the step's loss, which only `in_space_long.rs`'s `tests` module reaches; the unit changes no line outside it.
 - **Where it runs.** Kernel development may use Casey's local RTX 4090 (Linux) once it is up. The gates that count, done-when 2 to 4, run on an RTX 5090 pod. That is Casey's call 1 of 4 Nov (#2028 6638209391): qualification stays on 5090 pods until the 4090 bring-up's step 4 shows the cards agree. A 4090 needs its own PTX target (it cannot load `compute_120`).
 
