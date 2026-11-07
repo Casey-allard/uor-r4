@@ -1,0 +1,84 @@
+{
+  "schema": "uor-r4.centroid-checkpoint-inputs/1",
+  "source_pin": "3f41847a30eb8a6020109620e525047b89c279ea",
+  "evaluation": {
+    "profile": "n3s-registered-v1",
+    "profile_role": "frozen-evaluation-protocol",
+    "target_id": "b64l-centroid-v1"
+  },
+  "expected": {
+    "run": {
+      "objective": "nearest",
+      "train_as_served": true,
+      "width": 256,
+      "hamming_read": 4,
+      "batch": 64,
+      "micro_batch": 16,
+      "steps": 16384
+    },
+    "model": {
+      "arch": "geometric",
+      "gate": "hamilton",
+      "head": "spiralcore_product",
+      "pattern": "rrrrrr",
+      "rotation": true,
+      "width": 256,
+      "context": 192,
+      "heads": 4
+    }
+  },
+  "seeds": {
+    "1": {
+      "run_store": "results/claude/one-model-end-to-end-d3-accum-2026-11-06/runs-2/s1",
+      "archive": "d3-accum-s1.tar.gz",
+      "archive_sha256": "f7852f2540e58c17b2311d39fb47f8e53471e2cda8d6136f81b034cdf6bf5bba",
+      "run_case": "b64L-s1",
+      "checkpoint": "oh/run/b64L-s1/models/step-016384",
+      "checkpoint_manifest": "oh/run/SHA256SUMS.files",
+      "run_config": {
+        "path": "oh/run/b64L-s1/config.json",
+        "sha256": "6b2b84640e37d1f6322a5b4ab6db0d783469d7adf4db1c7e67b532d4310056f2"
+      },
+      "checkpoint_files": {
+        "config.json": {
+          "path": "oh/run/b64L-s1/models/step-016384/config.json",
+          "sha256": "1045acb61d92d390f0f61617ffa4c1847437473c9694c09787b48bf46e761ed2"
+        },
+        "model.safetensors": {
+          "path": "oh/run/b64L-s1/models/step-016384/model.safetensors",
+          "sha256": "6fd2d764171cc416d5ff272e19e3ebe0644183ab9c43ca0662706756ac75f5de"
+        },
+        "hamming_read.safetensors": {
+          "path": "oh/run/b64L-s1/models/step-016384/hamming_read.safetensors",
+          "sha256": "672de97fcc329b10c3cde591f66047352851f9fe1d02df85a168190f5ba12ddd"
+        }
+      }
+    },
+    "2": {
+      "run_store": "results/claude/one-model-end-to-end-d3-accum-2026-11-06/runs-2/s2",
+      "archive": "d3-accum-s2.tar.gz",
+      "archive_sha256": "1f24f03a4b638f7ad6fafd184f980bca324de758085a62e5b5d0dfb3a4f6ab32",
+      "run_case": "b64L-s2",
+      "checkpoint": "oh/run/b64L-s2/models/step-016384",
+      "checkpoint_manifest": "oh/run/SHA256SUMS.files",
+      "run_config": {
+        "path": "oh/run/b64L-s2/config.json",
+        "sha256": "f21567d0b43ba5fcc444bda840ad77bf8a5e9b46315ed8e515d223619f15e593"
+      },
+      "checkpoint_files": {
+        "config.json": {
+          "path": "oh/run/b64L-s2/models/step-016384/config.json",
+          "sha256": "778145167a18ff3b1006d4f609b7f608cc528b0dd753279b3ff38c8c63a88b95"
+        },
+        "model.safetensors": {
+          "path": "oh/run/b64L-s2/models/step-016384/model.safetensors",
+          "sha256": "13f3ae6230831ad9797224c0d20ecb6d15463fc28a3fcbea0ddfd9f0046c3306"
+        },
+        "hamming_read.safetensors": {
+          "path": "oh/run/b64L-s2/models/step-016384/hamming_read.safetensors",
+          "sha256": "3de5f52daa5d48504c3bba757e6ede95dd6a31bcba42653c5d12a6c1c5c35c7d"
+        }
+      }
+    }
+  }
+}
