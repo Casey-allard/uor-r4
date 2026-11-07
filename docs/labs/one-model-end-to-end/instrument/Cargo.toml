@@ -29,6 +29,10 @@ name = "served-reply-panel"
 path = "src/bin/served-reply-panel.rs"
 required-features = ["cpu-parity"]
 
+[[bin]]
+name = "corpus-eos-exposure"
+path = "src/bin/corpus-eos-exposure.rs"
+
 [dependencies]
 uor-r4-training = { path = "../../../../crates/uor-r4-training", optional = true }
 uor-r4-core = { path = "../../../../crates/uor-r4-core", optional = true }
