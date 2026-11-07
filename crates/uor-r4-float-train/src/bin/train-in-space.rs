@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -47,6 +47,14 @@
 //! i16 activations and the Q12 scored query are active; the gradient moves the float values the
 //! rounded forward came from; and every checkpoint is scored and saved through that same served
 //! forward. It refuses reads or training-only cuts that the export does not carry.
+//!
+//! `--init-from CHECKPOINT` starts a fine-tune from a saved `models/step-N` directory
+//! (deepseek-20): the geometric trunk and its Hamming read are loaded exactly, while the
+//! optimizer and schedule start fresh. The flag is for training with `--out`; `DIR/init.json`
+//! records the canonical source paths and SHA-256s. The loaded width, architecture, gates,
+//! vocabulary and vector head must match the run. Flock, content, opening, prompt-register and
+//! turn-memory reads are refused until their checkpoint restore is implemented, so no read is
+//! silently recreated from new parameters.
 //!
 //! `--writer-anchor 1` anchors the writer's ports (claude-290): the shared table's first and last
 //! 8D blocks hold exactly the SpiralCore roots of each token's own cell, re-set after every main
@@ -286,6 +294,16 @@ fn batched_decode_or_default(given: Option<bool>) -> bool {
     given.unwrap_or(BATCHED_DECODE_DEFAULT)
 }
 
+/// `--init-from` changes only the weight initialization of a training run.
+fn init_from_applies(init_from: bool, training_with_out: bool) -> Result<()> {
+    if init_from && !training_with_out {
+        return Err(FloatTrainError::Invalid(
+            "--init-from applies to training with --out only".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let mut data_root = None;
     let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
@@ -383,6 +401,7 @@ fn main() -> Result<()> {
         writer_anchor: false,
         context: uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT,
         train_targets: TrainTargets::Observed,
+        init_from: None,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -559,6 +578,7 @@ fn main() -> Result<()> {
             }
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--writer-anchor" => config.writer_anchor = switch(&value)?,
+            "--init-from" => config.init_from = Some(PathBuf::from(value)),
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -770,6 +790,7 @@ fn main() -> Result<()> {
             "--train-as-served applies to training with --out only".to_owned(),
         ));
     }
+    init_from_applies(config.init_from.is_some(), modes[7] && recall == 0)?;
     fast_rivals_applies(
         config.fast_rivals,
         modes[7] && recall == 0,
@@ -1691,5 +1712,13 @@ mod tests {
         assert!(fast_rivals_applies(true, true, PointObjective::Voronoi).is_ok());
         assert!(fast_rivals_applies(true, false, PointObjective::Nearest).is_err());
         assert!(fast_rivals_applies(true, true, PointObjective::Sheet).is_err());
+    }
+
+    #[test]
+    fn checkpoint_initialization_is_a_training_only_switch() {
+        assert!(init_from_applies(false, false).is_ok());
+        assert!(init_from_applies(true, true).is_ok());
+        let error = init_from_applies(true, false).unwrap_err().to_string();
+        assert!(error.contains("training with --out only"), "{error}");
     }
 }

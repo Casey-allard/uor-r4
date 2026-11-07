@@ -34,7 +34,10 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 pub use crate::flock_read_hamming::ReadScope;
 use crate::flock_read_memory::MemoryLookup;
 use crate::geometric_stack::stage_clock::{self, StageTime};
-use crate::geometric_stack::{RateScores, StackAdamW, StackModel};
+use crate::geometric_stack::{
+    Gate, Objective, RateScores, ReadScore, RecGates, RotationGroup, StackAdamW, StackArch,
+    StackModel,
+};
 use crate::hamilton_sheet::{self as hs, CausalWindow, HamiltonArm, SHEET_CONTEXT};
 use crate::query_cache::{CachedRows, QueryCacheWriter};
 use crate::spiralcore_fbs_arms::{self as arms, FbsArm};
@@ -218,6 +221,11 @@ pub struct LongConfig {
     /// the same file as before.
     #[serde(skip_serializing_if = "TrainTargets::is_observed")]
     pub train_targets: TrainTargets,
+    /// Fine-tune from this saved `models/step-N` checkpoint instead of a fresh seed
+    /// (deepseek-20): the trunk and its Hamming read are loaded exactly, while the optimizer and
+    /// schedule start fresh. Left out of `config.json` when absent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub init_from: Option<PathBuf>,
 }
 
 /// What TRAIN's scored targets are ([`LongConfig::train_targets`], claude-296).
@@ -693,6 +701,351 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     Ok(())
 }
 
+const INIT_RECORD_SCHEMA: &str = "uor-r4.train-in-space-init/1";
+const HAMMING_SIDECAR: &str = "hamming_read.safetensors";
+const UNSUPPORTED_INIT_SIDECARS: [&str; 6] = [
+    "flock_read.safetensors",
+    "content_read.safetensors",
+    "opening_read.safetensors",
+    "prompt_register.safetensors",
+    "turn_memory.safetensors",
+    "turn_memory_reply.safetensors",
+];
+
+#[derive(Debug, Serialize)]
+struct InitializationRecord {
+    schema: &'static str,
+    mode: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    checkpoint: Option<PathBuf>,
+    run_config: InitializationFile,
+    files: BTreeMap<String, InitializationFile>,
+    optimizer: &'static str,
+    schedule: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct InitializationFile {
+    path: PathBuf,
+    sha256: String,
+}
+
+/// The source run config beside a checkpoint, either at a copied run root or two
+/// levels above a `models/step-N` directory.
+fn source_run_config(checkpoint: &Path) -> Result<PathBuf> {
+    let checkpoint = checkpoint.canonicalize().map_err(|error| {
+        invalid(format!(
+            "--init-from cannot resolve {}: {error}",
+            checkpoint.display()
+        ))
+    })?;
+    let mut candidates = Vec::new();
+    candidates.push(checkpoint.join("config.json"));
+    if let Some(run) = checkpoint.parent().and_then(Path::parent) {
+        candidates.push(run.join("config.json"));
+    }
+    for path in candidates {
+        if !path.is_file() {
+            continue;
+        }
+        let value: serde_json::Value = serde_json::from_slice(&fs::read(&path)?)
+            .map_err(|error| invalid(format!("{}: {error}", path.display())))?;
+        if value.get("steps").is_some() {
+            return Ok(path.canonicalize()?);
+        }
+    }
+    Err(invalid(format!(
+        "--init-from requires the source run config beside {} or two levels above it",
+        checkpoint.display()
+    )))
+}
+
+/// A non-negative integer in a run config, with an omitted key read as zero.
+fn source_config_usize(value: &serde_json::Value, name: &str, path: &Path) -> Result<usize> {
+    let Some(raw) = value.get(name) else {
+        return Ok(0);
+    };
+    raw.as_u64()
+        .and_then(|number| usize::try_from(number).ok())
+        .ok_or_else(|| {
+            invalid(format!(
+                "{}: {name} must be a non-negative integer",
+                path.display()
+            ))
+        })
+}
+
+/// A boolean in a run config, with an omitted key read as false.
+fn source_config_bool(value: &serde_json::Value, name: &str, path: &Path) -> Result<bool> {
+    match value.get(name) {
+        None => Ok(false),
+        Some(raw) => raw.as_bool().ok_or_else(|| {
+            invalid(format!("{}: {name} must be a boolean", path.display()))
+        }),
+    }
+}
+
+/// Refuse selections that this checkpoint-initialized path cannot reproduce exactly. The current
+/// `(b64L)` target has one trunk and the Hamming read; creating another read from fresh parameters
+/// would silently change the model being fine-tuned.
+fn validate_checkpoint_selection(config: &LongConfig) -> Result<()> {
+    let Some(checkpoint) = &config.init_from else {
+        return Ok(());
+    };
+    if !checkpoint.is_dir() {
+        return Err(invalid(format!(
+            "--init-from wants a saved checkpoint directory, not {}",
+            checkpoint.display()
+        )));
+    }
+    let source_path = source_run_config(checkpoint)?;
+    let source: serde_json::Value = serde_json::from_slice(&fs::read(&source_path)?)
+        .map_err(|error| invalid(format!("{}: {error}", source_path.display())))?;
+    check_run_arm(checkpoint, FbsArm::OneAtomActive)?;
+    if config.fbs_arm != FbsArm::OneAtomActive {
+        return Err(invalid(
+            "--init-from currently loads the one-atom SpiralCore/FBS checkpoint; another --fbs-arm needs a compatible saved query shape",
+        ));
+    }
+    if config.writer_anchor {
+        return Err(invalid(
+            "--init-from preserves the loaded table; --writer-anchor would rewrite it at step 0",
+        ));
+    }
+    if config.flock_read > 0
+        || config.content_read > 0
+        || config.opening_read > 0
+        || config.prompt_register > 0
+        || config.turn_memory > 0
+        || config.turn_memory_reply
+    {
+        return Err(invalid(
+            "--init-from currently loads the trunk and Hamming read only; Flock, content, opening, prompt-register and turn-memory reads are not resumed or recreated",
+        ));
+    }
+    for name in [
+        "flock_read",
+        "content_read",
+        "opening_read",
+        "prompt_register",
+        "turn_memory",
+    ] {
+        let declared = source_config_usize(&source, name, &source_path)?;
+        if declared > 0 {
+            return Err(invalid(format!(
+                "--init-from source run config {} declares {name}={declared}, but this path cannot resume or recreate that read",
+                source_path.display()
+            )));
+        }
+    }
+    if source_config_bool(&source, "turn_memory_reply", &source_path)? {
+        return Err(invalid(format!(
+            "--init-from source run config {} declares turn_memory_reply, but this path cannot resume or recreate the reply memory",
+            source_path.display()
+        )));
+    }
+    let source_hamming = source_config_usize(&source, "hamming_read", &source_path)?;
+    if source_hamming != config.hamming_read {
+        return Err(invalid(format!(
+            "--init-from source run config {} declares hamming_read={source_hamming}, but this run names --hamming-read {}",
+            source_path.display(),
+            config.hamming_read
+        )));
+    }
+    for (name, wanted) in [
+        ("retain_rates", config.retain_rates),
+        ("fold_scores", config.fold_scores),
+        ("reflect_floor", config.reflect_floor),
+        ("train_as_served", config.train_as_served),
+    ] {
+        let declared = source_config_bool(&source, name, &source_path)?;
+        if declared != wanted {
+            return Err(invalid(format!(
+                "--init-from source run config {} declares {name}={declared}, but this run uses {name}={wanted}",
+                source_path.display()
+            )));
+        }
+    }
+    for sidecar in UNSUPPORTED_INIT_SIDECARS {
+        let path = checkpoint.join(sidecar);
+        if path.exists() {
+            return Err(invalid(format!(
+                "--init-from does not load the checkpoint's unsupported sidecar {}; it would otherwise be silently omitted",
+                path.display()
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Check that a loaded checkpoint is the geometric model the run's switches name. The window is
+/// checked and set separately because it sizes no weight.
+fn check_checkpoint_model(model: &StackModel, config: &LongConfig) -> Result<()> {
+    let saved = &model.config;
+    let mismatch = |what: &str, got: String, want: String| {
+        invalid(format!(
+            "--init-from checkpoint {what} is {got}, but this run needs {want}"
+        ))
+    };
+    if saved.width != config.width {
+        return Err(mismatch(
+            "width",
+            saved.width.to_string(),
+            config.width.to_string(),
+        ));
+    }
+    if saved.arch != StackArch::Geometric {
+        return Err(mismatch(
+            "architecture",
+            format!("{:?}", saved.arch),
+            "geometric".into(),
+        ));
+    }
+    if saved.pattern != "rrrrrr" {
+        return Err(mismatch("pattern", saved.pattern.clone(), "rrrrrr".into()));
+    }
+    if saved.gate != Gate::Hamilton || saved.rec_gates != RecGates::Geometric {
+        return Err(invalid(format!(
+            "--init-from checkpoint gates are {:?}/{:?}, but this run needs Hamilton/Geometric",
+            saved.gate, saved.rec_gates
+        )));
+    }
+    for (name, got, want) in [
+        ("vocabulary", saved.vocab_size, hs::SHEET_VOCAB),
+        ("heads", saved.heads, hs::SHEET_HEADS),
+        ("MLP width", saved.mlp_hidden, hs::SHEET_MLP_HIDDEN),
+    ] {
+        if got != want {
+            return Err(mismatch(name, got.to_string(), want.to_string()));
+        }
+    }
+    if !saved.rotation || saved.rotation_group != RotationGroup::Quaternion {
+        return Err(invalid(
+            "--init-from checkpoint lacks the quaternion SpiralCore/FBS transport",
+        ));
+    }
+    if saved.read != ReadScore::Dot
+        || saved.objective
+            != (Objective::MarginHinge {
+                rivals: hs::SHEET_RIVALS,
+            })
+        || saved.memory.is_some()
+        || saved.select.is_some()
+        || saved.pointer.is_some()
+        || saved.read_router.is_some()
+    {
+        return Err(invalid(
+            "--init-from checkpoint is not the native geometric margin/nearest stack",
+        ));
+    }
+    let head = model
+        .native_vector_head_spec()
+        .ok_or_else(|| invalid("--init-from checkpoint has no shared native vector head"))?;
+    if head.vocabulary != saved.vocab_size
+        || head.width != saved.width
+        || head.kept_cells != hs::SHEET_KEPT_CELLS
+    {
+        return Err(invalid(format!(
+            "--init-from checkpoint vector head is vocabulary {}, width {}, {} kept cells; this run needs {}, {}, {}",
+            head.vocabulary,
+            head.width,
+            head.kept_cells,
+            saved.vocab_size,
+            saved.width,
+            hs::SHEET_KEPT_CELLS
+        )));
+    }
+    Ok(())
+}
+
+fn checkpoint_hamming(
+    config: &LongConfig,
+    directory: &Path,
+    device: &Device,
+) -> Result<
+    Option<(
+        crate::flock_read_hamming::HammingReads,
+        crate::flock_read::FlockAdamW,
+    )>,
+> {
+    if let Some(keys) = &config.hamming_copy_keys {
+        if config.hamming_copy_key != 1 {
+            return Err(invalid(
+                "--hamming-copy-keys names every copy head's key; leave --hamming-copy-key out",
+            ));
+        }
+        if keys.windows(2).all(|window| window[0] == window[1]) {
+            return Err(invalid(
+                "--hamming-copy-keys gives the copy heads different keys; when every head takes the same key, use --hamming-copy-key",
+            ));
+        }
+    }
+    let sidecar = directory.join(HAMMING_SIDECAR);
+    if config.hamming_read == 0 {
+        if sidecar.exists() {
+            return Err(invalid(format!(
+                "--init-from checkpoint has {}, but --hamming-read is 0; select the saved read with its head count",
+                sidecar.display()
+            )));
+        }
+        if config.hamming_copy_key != 1 || config.hamming_copy_keys.is_some() {
+            return Err(invalid(
+                "--hamming-copy-key and --hamming-copy-keys need the checkpoint's --hamming-read",
+            ));
+        }
+        return Ok(None);
+    }
+    let reads = crate::flock_read_hamming::HammingReads::load(directory, device)?.ok_or_else(
+        || {
+            invalid(format!(
+                "--hamming-read {} needs the checkpoint sidecar {}, which is missing",
+                config.hamming_read,
+                sidecar.display()
+            ))
+        },
+    )?;
+    if reads.heads() != Some(config.hamming_read) || reads.width()? != Some(config.width) {
+        return Err(invalid(format!(
+            "--init-from checkpoint Hamming read is {:?} heads by {:?} coordinates; this run needs {} by {}",
+            reads.heads(),
+            reads.width()?,
+            config.hamming_read,
+            config.width
+        )));
+    }
+    if let Some(keys) = &config.hamming_copy_keys {
+        if reads.copy_keys() != *keys {
+            return Err(invalid(format!(
+                "--init-from checkpoint Hamming copy keys are {:?}, but --hamming-copy-keys names {:?}",
+                reads.copy_keys(),
+                keys
+            )));
+        }
+    } else if reads.mixed_copy_keys().is_some()
+        || reads
+            .copy_keys()
+            .iter()
+            .any(|&key| key != config.hamming_copy_key)
+    {
+        return Err(invalid(format!(
+            "--init-from checkpoint Hamming copy keys are {:?}, but this run names {}",
+            reads.copy_keys(),
+            config.hamming_copy_key
+        )));
+    }
+    let type_spin = reads.type_spin()?;
+    if type_spin != config.type_spin {
+        return Err(invalid(format!(
+            "--init-from checkpoint Hamming type spin is {}, but this run names {}",
+            type_spin,
+            config.type_spin
+        )));
+    }
+    crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
+    let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
+    Ok(Some((reads, opt)))
+}
+
 /// The Hamming reads `config` asks for, set on this thread, with their optimizer; none when off.
 fn start_hamming(
     config: &LongConfig,
@@ -703,6 +1056,9 @@ fn start_hamming(
         crate::flock_read::FlockAdamW,
     )>,
 > {
+    if let Some(directory) = &config.init_from {
+        return checkpoint_hamming(config, directory, device);
+    }
     if config.hamming_read == 0 {
         if config.hamming_copy_key != 1 || config.hamming_copy_keys.is_some() {
             return Err(invalid("--hamming-copy-key and --hamming-copy-keys key the Hamming read's copy heads; turn the read on with --hamming-read"));
@@ -928,11 +1284,73 @@ pub fn training_context(context: usize) -> Result<usize> {
 
 /// The trunk a run trains: [`build_fbs_model_at`] at `arm` and `config`'s seed and width, built
 /// to read `config.context` positions (claude-273). The window sizes no weight, so the trunk's
-/// weights are the ones it has at [`SHEET_CONTEXT`].
+/// weights are the ones it has at [`SHEET_CONTEXT`]. With `--init-from`, the saved trunk is
+/// loaded exactly in place of the fresh construction (deepseek-20).
 fn build_long_model(arm: FbsArm, config: &LongConfig, device: &Device) -> Result<StackModel> {
-    let mut model = build_fbs_model_at(arm, config.seed, config.width, device)?;
+    let mut model = match &config.init_from {
+        Some(checkpoint) => {
+            let model = StackModel::load(checkpoint, device)?;
+            check_checkpoint_model(&model, config)?;
+            model
+        }
+        None => build_fbs_model_at(arm, config.seed, config.width, device)?,
+    };
     model.set_context(training_context(config.context)?)?;
     Ok(model)
+}
+
+/// Write how the run's weights were initialized. A checkpoint source is named by canonical path
+/// and SHA-256 for the trunk, model config and every loaded sidecar. Optimizer moments and the
+/// schedule are never read from the checkpoint, so both say `fresh`.
+fn write_initialization_record(out: &Path, config: &LongConfig) -> Result<()> {
+    let Some(checkpoint) = &config.init_from else {
+        return Ok(());
+    };
+    let mut files = BTreeMap::new();
+    let checkpoint = checkpoint.canonicalize().map_err(|error| {
+        invalid(format!(
+            "--init-from cannot resolve {}: {error}",
+            checkpoint.display()
+        ))
+    })?;
+    let run_config = source_run_config(&checkpoint)?;
+    let run_config_bytes = fs::read(&run_config)?;
+    let run_config_record = InitializationFile {
+        path: run_config,
+        sha256: sha256_bytes(&run_config_bytes),
+    };
+    let mut names = vec!["model.safetensors", "config.json"];
+    if config.hamming_read > 0 {
+        names.push(HAMMING_SIDECAR);
+    }
+    for name in names {
+        let path = checkpoint.join(name);
+        if !path.is_file() {
+            return Err(invalid(format!(
+                "--init-from checkpoint lacks {}",
+                path.display()
+            )));
+        }
+        let bytes = fs::read(&path)?;
+        files.insert(
+            name.to_owned(),
+            InitializationFile {
+                path: path.canonicalize()?,
+                sha256: sha256_bytes(&bytes),
+            },
+        );
+    }
+    let record = InitializationRecord {
+        schema: INIT_RECORD_SCHEMA,
+        mode: "checkpoint",
+        checkpoint: Some(checkpoint),
+        run_config: run_config_record,
+        files,
+        optimizer: "fresh",
+        schedule: "fresh",
+    };
+    fs::write(out.join("init.json"), serde_json::to_vec_pretty(&record)?)?;
+    Ok(())
 }
 
 const ABSENT: f32 = -1.0e30;
@@ -12024,6 +12442,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         )));
     }
     training_context(config.context)?;
+    validate_checkpoint_selection(config)?;
     // A clock left on by a run that failed mid-step on this thread starts no stage of this one.
     stage_clock::reset();
     if config.profile > 0 {
@@ -12153,6 +12572,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     };
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
     let mut hamming = start_hamming(config, device)?;
+    write_initialization_record(out, config)?;
     // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
     let mut opening = start_opening(config, device)?;
     // The prompt register (claude-155), when on: its own optimizer, applied inside the trunk.
@@ -13482,7 +13902,329 @@ mod tests {
             writer_anchor: false,
             context: hs::SHEET_CONTEXT,
             train_targets: TrainTargets::Observed,
+            init_from: None,
         }
+    }
+
+    fn init_test_dir(name: &str) -> PathBuf {
+        let directory =
+            std::env::temp_dir().join(format!("deepseek-20-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&directory);
+        fs::create_dir_all(&directory).unwrap();
+        directory
+    }
+
+    fn tensor_bits(tensor: &Tensor) -> Vec<u32> {
+        tensor
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap()
+            .into_iter()
+            .map(f32::to_bits)
+            .collect()
+    }
+
+    fn checkpoint_path(root: &Path) -> PathBuf {
+        root.join("run/models/step-000008")
+    }
+
+    fn write_source_run_config(checkpoint: &Path) {
+        let run = checkpoint.parent().and_then(Path::parent).unwrap();
+        fs::create_dir_all(run).unwrap();
+        fs::write(run.join("config.json"), br#"{"steps":8}"#).unwrap();
+    }
+
+    #[test]
+    fn a_config_without_checkpoint_initialization_writes_no_init_key() {
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
+        assert!(!json.contains("init_from"), "{json}");
+    }
+
+    /// deepseek-20: the checkpoint's weights are copied bit for bit, while the requested training
+    /// window is applied to the loaded model rather than treated as a saved weight shape.
+    #[test]
+    fn checkpoint_initialization_preserves_every_trunk_tensor_and_sets_the_training_context() {
+        let device = Device::Cpu;
+        let root = init_test_dir("trunk");
+        let source = checkpoint_path(&root);
+        let mut saved = build_fbs_model_at(FbsArm::OneAtomActive, 7, 32, &device).unwrap();
+        saved.set_context(128).unwrap();
+        saved.save(&source).unwrap();
+        write_source_run_config(&source);
+
+        let config = LongConfig {
+            width: 32,
+            context: 64,
+            init_from: Some(source),
+            ..config(0, None)
+        };
+        let loaded = build_long_model(FbsArm::OneAtomActive, &config, &device).unwrap();
+        assert_eq!(loaded.config.context, 64);
+        assert_eq!(
+            saved.variables().keys().collect::<Vec<_>>(),
+            loaded.variables().keys().collect::<Vec<_>>()
+        );
+        for (name, var) in saved.variables() {
+            assert_eq!(
+                tensor_bits(var.as_tensor()),
+                tensor_bits(loaded.variables()[name].as_tensor()),
+                "{name}"
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn checkpoint_initialization_preserves_hamming_tensors_and_copy_keys() {
+        let device = Device::Cpu;
+        let root = init_test_dir("hamming");
+        let source = checkpoint_path(&root);
+        build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &device)
+            .unwrap()
+            .save(&source)
+            .unwrap();
+        write_source_run_config(&source);
+        let reads = crate::flock_read_hamming::HammingReads::new(4, 32, &device)
+            .unwrap()
+            .with_copy_key(2)
+            .unwrap();
+        for (index, var) in reads.variables().into_iter().enumerate() {
+            let count = var.dims().iter().product();
+            let values = (0..count)
+                .map(|at| ((index * 17 + at) as f32 - 13.0) / 29.0)
+                .collect::<Vec<_>>();
+            var.set(&Tensor::from_vec(values, var.dims(), &device).unwrap())
+                .unwrap();
+        }
+        reads.save(&source).unwrap();
+        let expected = reads
+            .variables()
+            .iter()
+            .map(|var| tensor_bits(var.as_tensor()))
+            .collect::<Vec<_>>();
+
+        let config = LongConfig {
+            width: 32,
+            hamming_read: 4,
+            hamming_copy_key: 2,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let (loaded, _) = start_hamming(&config, &device).unwrap().unwrap();
+        assert_eq!(loaded.copy_keys(), vec![2, 2]);
+        assert_eq!(loaded.heads(), Some(4));
+        assert_eq!(loaded.width().unwrap(), Some(32));
+        assert_eq!(
+            loaded
+                .variables()
+                .iter()
+                .map(|var| tensor_bits(var.as_tensor()))
+                .collect::<Vec<_>>(),
+            expected
+        );
+
+        let out = root.join("out");
+        fs::create_dir_all(&out).unwrap();
+        write_initialization_record(&out, &config).unwrap();
+        let record: serde_json::Value =
+            serde_json::from_slice(&fs::read(out.join("init.json")).unwrap()).unwrap();
+        assert_eq!(
+            record["files"][HAMMING_SIDECAR]["sha256"],
+            sha256_bytes(&fs::read(source.join(HAMMING_SIDECAR)).unwrap())
+        );
+        let run_config = source.parent().and_then(Path::parent).unwrap().join("config.json");
+        assert_eq!(
+            record["run_config"]["sha256"],
+            sha256_bytes(&fs::read(run_config).unwrap())
+        );
+        crate::flock_read_hamming::set_hamming_reads(None);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn checkpoint_initialization_fails_closed_on_reads_and_shape_mismatches() {
+        let device = Device::Cpu;
+        let root = init_test_dir("refusals");
+        let source = checkpoint_path(&root);
+        build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &device)
+            .unwrap()
+            .save(&source)
+            .unwrap();
+        write_source_run_config(&source);
+
+        let width = LongConfig {
+            width: 64,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = build_long_model(FbsArm::OneAtomActive, &width, &device)
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(error.contains("width is 32"), "{error}");
+
+        let missing = LongConfig {
+            width: 32,
+            hamming_read: 4,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = start_hamming(&missing, &device).err().unwrap().to_string();
+        assert!(
+            error.contains("sidecar") && error.contains("missing"),
+            "{error}"
+        );
+
+        let unsupported = LongConfig {
+            width: 32,
+            flock_read: 7,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&unsupported)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("Hamming read only"), "{error}");
+
+        fs::write(source.join("turn_memory.safetensors"), b"not loaded").unwrap();
+        let sidecar = LongConfig {
+            width: 32,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&sidecar)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("unsupported sidecar"), "{error}");
+
+        fs::remove_file(source.join("turn_memory.safetensors")).unwrap();
+        let run_config = source.parent().and_then(Path::parent).unwrap().join("config.json");
+        fs::write(&run_config, br#"{"steps":8,"fbs_arm":"IdentityTransport"}"#).unwrap();
+        let other_arm = LongConfig {
+            width: 32,
+            init_from: Some(source),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&other_arm)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("trained with") && error.contains("not Fbs_1Atom_Active"), "{error}");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn checkpoint_initialization_honors_source_read_declarations() {
+        let device = Device::Cpu;
+        let root = init_test_dir("source-reads");
+        let source = checkpoint_path(&root);
+        build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &device)
+            .unwrap()
+            .save(&source)
+            .unwrap();
+        let run = source.parent().and_then(Path::parent).unwrap();
+        fs::create_dir_all(run).unwrap();
+        let run_config = run.join("config.json");
+
+        fs::write(&run_config, br#"{"steps":8,"hamming_read":4}"#).unwrap();
+        let missing_hamming = LongConfig {
+            width: 32,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&missing_hamming)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("declares hamming_read=4") && error.contains("names --hamming-read 0"),
+            "{error}"
+        );
+
+        fs::write(&run_config, br#"{"steps":8,"turn_memory":8}"#).unwrap();
+        let memory = LongConfig {
+            width: 32,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&memory)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("declares turn_memory=8") && error.contains("cannot resume"),
+            "{error}"
+        );
+
+        fs::write(&run_config, br#"{"steps":8,"retain_rates":true}"#).unwrap();
+        let flags = LongConfig {
+            width: 32,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        let error = validate_checkpoint_selection(&flags)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("declares retain_rates=true") && error.contains("retain_rates=false"),
+            "{error}"
+        );
+        let matching_flags = LongConfig {
+            retain_rates: true,
+            ..flags
+        };
+        validate_checkpoint_selection(&matching_flags).unwrap();
+
+        fs::write(&run_config, br#"{"steps":8,"hamming_read":0}"#).unwrap();
+        fs::write(source.join(HAMMING_SIDECAR), b"present").unwrap();
+        let error = checkpoint_hamming(&memory, &source, &device)
+            .err()
+            .expect("an unexplained Hamming sidecar is refused")
+            .to_string();
+        assert!(
+            error.contains("head count") && !error.contains("--hamming-read 4"),
+            "{error}"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn initialization_record_names_checkpoint_files_hashes_and_fresh_training_state() {
+        let device = Device::Cpu;
+        let root = init_test_dir("record");
+        let source = checkpoint_path(&root);
+        build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &device)
+            .unwrap()
+            .save(&source)
+            .unwrap();
+        write_source_run_config(&source);
+        let out = root.join("out");
+        fs::create_dir_all(&out).unwrap();
+        let checkpoint = LongConfig {
+            width: 32,
+            init_from: Some(source.clone()),
+            ..config(0, None)
+        };
+        write_initialization_record(&out, &checkpoint).unwrap();
+        let record: serde_json::Value =
+            serde_json::from_slice(&fs::read(out.join("init.json")).unwrap()).unwrap();
+        assert_eq!(record["mode"], "checkpoint");
+        assert_eq!(record["optimizer"], "fresh");
+        assert_eq!(record["schedule"], "fresh");
+        for name in ["model.safetensors", "config.json"] {
+            assert_eq!(
+                record["files"][name]["sha256"],
+                sha256_bytes(&fs::read(source.join(name)).unwrap())
+            );
+        }
+
+        let fresh_out = root.join("fresh-out");
+        fs::create_dir_all(&fresh_out).unwrap();
+        let fresh = LongConfig {
+            width: 32,
+            ..config(0, None)
+        };
+        write_initialization_record(&fresh_out, &fresh).unwrap();
+        assert!(!fresh_out.join("init.json").exists());
+        fs::remove_dir_all(root).unwrap();
     }
 
     use crate::flock_read_opening::OpeningAnchor;

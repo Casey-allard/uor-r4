@@ -770,6 +770,40 @@ impl HammingReads {
         }
     }
 
+    /// The read's head count when it has one; a saved checkpoint always does.
+    pub fn heads(&self) -> Option<usize> {
+        self.reads.first().map(HammingRead::heads)
+    }
+
+    /// The read's coordinate width when it has one, refusing reads that disagree.
+    pub fn width(&self) -> Result<Option<usize>> {
+        let Some(first) = self.reads.first() else {
+            return Ok(None);
+        };
+        let width = first.weight.dim(1)?;
+        if self.reads.iter().any(|read| read.weight.dim(1).ok() != Some(width)) {
+            return Err(invalid("the Hamming reads disagree on their coordinate width"));
+        }
+        Ok(Some(width))
+    }
+
+    /// Whether every read carries the type heads' SpiralCore position signal.
+    /// A sidecar with the signal on only some depths is internally inconsistent.
+    pub fn type_spin(&self) -> Result<bool> {
+        let present = self
+            .reads
+            .iter()
+            .filter(|read| read.step_rotation.is_some())
+            .count();
+        match (present, self.reads.len()) {
+            (0, _) => Ok(false),
+            (present, depth) if present == depth => Ok(true),
+            _ => Err(invalid(
+                "the Hamming reads carry type-spin tensors on only some depths",
+            )),
+        }
+    }
+
     /// The same reads with every parameter drawn from `seed`, for the step cache's gates
     /// (claude-279): unit rotations (the type spin's too, when on), margins from 37% to 69% of a
     /// head's bits, so heads both keep and drop candidates, and weights in [-0.5, 0.5].
@@ -1880,6 +1914,21 @@ mod tests {
         }
         assert!(check_copy_keys(&[1, 2], 4, 48).is_err(), "a key-2 head still needs whole-lane halves");
         assert!(check_copy_keys(&[1, 1], 4, 48).is_ok());
+    }
+
+    #[test]
+    fn a_partially_spun_hamming_sidecar_is_refused() {
+        let mut reads = HammingReads::new(4, 32, &Device::Cpu)
+            .unwrap()
+            .with_type_spin()
+            .unwrap();
+        assert!(reads.type_spin().unwrap());
+        reads.reads[0].step_rotation = None;
+        assert!(reads
+            .type_spin()
+            .unwrap_err()
+            .to_string()
+            .contains("only some depths"));
     }
 
     /// claude-261: `hamming_read.safetensors` records the copy key only when it is 2, so a
