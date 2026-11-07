@@ -377,6 +377,13 @@
     "lab": "deepseek",
     "note": "EOS rank, rendering, and same-scorer parity diagnostics for the one-model path"
   },
+  "deepseek/one-model-packet-parity": {
+    "branch": "deepseek/one-model-packet-parity",
+    "claimed_at": "2026-11-07T15:43:29-05:00",
+    "head": "549abc878",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/one-model-train-init": {
     "branch": "deepseek/one-model-train-init",
     "claimed_at": "2026-11-07T14:01:35-05:00",

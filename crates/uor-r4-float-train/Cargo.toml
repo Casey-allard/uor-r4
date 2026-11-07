@@ -9,6 +9,7 @@ default = []
 # Ahead-of-time nvcc compilation of src/cuda_stack.cu + src/spiralcore_fbs.cu into PTX (CHARTER §3.4 / D29).
 cuda = ["candle-core/cuda", "dep:cudarc"]
 metal = []
+packet-parity = ["cuda", "dep:uor-r4-cpu-train"]
 
 [dependencies]
 candle-core = "0.9"
@@ -26,3 +27,4 @@ uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-integer = { path = "../uor-r4-integer" }
 # Decodes the long run's checkpoint replies to text (in_space_long).
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+uor-r4-cpu-train = { path = "../uor-r4-cpu-train", optional = true }

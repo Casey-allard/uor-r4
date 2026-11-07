@@ -9216,6 +9216,179 @@ pub fn score_rows(
     Ok(written)
 }
 
+/// One teacher-forced float decision from a packet prompt.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub struct FloatTokenRank {
+    pub target_token: u32,
+    pub chosen_token: u32,
+    pub rank: usize,
+    pub candidate_count: usize,
+    pub target_score: f32,
+    pub chosen_score: f32,
+}
+
+/// A loaded checkpoint for packet-level float/integer parity.
+///
+/// This is the float side of the common prompt/target interface used by
+/// `served-reply-panel`: the caller renders a packet once, gives the same token
+/// prompt to this reader and to `CpuFbsForward`, and compares their ranks and
+/// greedy replies. The current interface is deliberately limited to checkpoints
+/// with no turn memory or reply-read cut, so every row has the same meaning on
+/// both sides.
+pub struct PacketCheckpoint {
+    model: StackModel,
+    objective: PointObjective,
+    served: bool,
+    _guard: ArmGuard,
+}
+
+impl PacketCheckpoint {
+    pub fn load(checkpoint: &Path, device: &Device) -> Result<Self> {
+        check_run_arm(checkpoint, FbsArm::OneAtomActive)?;
+        let source = source_run_config(checkpoint)?;
+        let source_value: serde_json::Value = serde_json::from_slice(&fs::read(&source)?)
+            .map_err(|error| invalid(format!("{}: {error}", source.display())))?;
+        arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
+        crate::geometric_stack::set_retention_rates(source_config_bool(
+            &source_value,
+            "retain_rates",
+            &source,
+        )?);
+        crate::geometric_stack::set_folded_scores(source_config_bool(
+            &source_value,
+            "fold_scores",
+            &source,
+        )?);
+        crate::geometric_stack::set_reflected_floor(source_config_bool(
+            &source_value,
+            "reflect_floor",
+            &source,
+        )?);
+        crate::geometric_stack::set_input_table_fixed(source_config_bool(
+            &source_value,
+            "fix_input_table",
+            &source,
+        )?);
+        let guard = ArmGuard;
+        let model = StackModel::load(checkpoint, device)?;
+        if model.config.read != ReadScore::Dot {
+            return Err(invalid(
+                "packet parity reads the native geometric nearest stack",
+            ));
+        }
+        load_reads(checkpoint, device)?;
+        if crate::flock_read_memory::turn_memory().is_some() {
+            return Err(invalid(
+                "packet parity currently requires a checkpoint without turn memory",
+            ));
+        }
+        if run_trained_cut(checkpoint)?.is_some() {
+            return Err(invalid(
+                "packet parity currently requires a checkpoint without a reply-read cut",
+            ));
+        }
+        let objective = run_objective(checkpoint)?
+            .ok_or_else(|| invalid("packet parity needs the source run's objective"))?;
+        if !objective.decodes_nearest() {
+            return Err(invalid("packet parity needs a nearest-decoding objective"));
+        }
+        Ok(Self {
+            served: run_train_as_served(checkpoint, None)?,
+            model,
+            objective,
+            _guard: guard,
+        })
+    }
+
+    pub fn context(&self) -> usize {
+        self.model.config.context
+    }
+
+    /// Teacher-force `targets` after `prompt` and return the served nearest float
+    /// decision before each target is fed back.
+    pub fn teacher_forced_ranks(
+        &self,
+        prompt: &[u32],
+        targets: &[u32],
+    ) -> Result<Vec<FloatTokenRank>> {
+        if prompt.is_empty() {
+            return Err(invalid("packet teacher forcing needs a nonempty prompt"));
+        }
+        let fed = targets.len().saturating_sub(1);
+        if prompt.len().saturating_add(fed) > self.context() {
+            return Err(invalid("packet prompt plus targets passes the context"));
+        }
+        let table = table(&self.model)?;
+        with_eval_forward(self.served, 0, 0, || {
+            let mut ids = prompt.to_vec();
+            let mut rows = Vec::with_capacity(targets.len());
+            for (index, &target) in targets.iter().enumerate() {
+                if ids.is_empty() {
+                    return Err(invalid("packet teacher forcing lost its prompt"));
+                }
+                let hidden = crate::flock_read::points(&self.model, &ids, 1, ids.len())?;
+                let point = hidden.narrow(0, ids.len() - 1, 1)?;
+                let point = if self.served {
+                    hs::q12_query(&point)?
+                } else {
+                    point
+                };
+                let scores = nearest_scores(&point, &table)?;
+                let values = scores.flatten_all()?.to_vec1::<f32>()?;
+                let target_index = target as usize;
+                let target_score = *values
+                    .get(target_index)
+                    .ok_or_else(|| invalid("packet target is outside the vocabulary"))?;
+                let chosen_index = values
+                    .iter()
+                    .enumerate()
+                    .max_by(|(left_id, left), (right_id, right)| {
+                        left.total_cmp(right)
+                            .then_with(|| right_id.cmp(left_id))
+                    })
+                    .map(|(id, _)| id)
+                    .ok_or_else(|| invalid("packet forward returned no nearest token"))?;
+                let rank = 1 + values
+                    .iter()
+                    .enumerate()
+                    .filter(|&(id, &score)| {
+                        id != target_index
+                            && (score > target_score
+                                || (score == target_score && id < target_index))
+                    })
+                    .count();
+                rows.push(FloatTokenRank {
+                    target_token: target,
+                    chosen_token: chosen_index as u32,
+                    rank,
+                    candidate_count: values.len(),
+                    target_score,
+                    chosen_score: values[chosen_index],
+                });
+                if index + 1 < targets.len() {
+                    ids.push(target);
+                }
+            }
+            Ok(rows)
+        })
+    }
+
+    /// Greedy float reply from the same rendered packet prompt.
+    pub fn greedy_reply(&self, prompt: &[u32], reply_tokens: usize) -> Result<Vec<u32>> {
+        if prompt.is_empty() || reply_tokens == 0 {
+            return Err(invalid("packet decode needs a prompt and positive cap"));
+        }
+        greedy_reply_with_mode(
+            &self.model,
+            self.objective,
+            prompt,
+            reply_tokens,
+            0,
+            self.served,
+        )
+    }
+}
+
 /// The served point key's table file (claude-220), in a scoring run's `out`.
 pub const OPENING_TABLE_FILE: &str = "opening-table.safetensors";
 
@@ -13933,6 +14106,26 @@ mod tests {
         let run = checkpoint.parent().and_then(Path::parent).unwrap();
         fs::create_dir_all(run).unwrap();
         fs::write(run.join("config.json"), br#"{"steps":8}"#).unwrap();
+    }
+
+    #[test]
+    fn packet_reader_loads_the_exact_geometric_checkpoint_shape() {
+        let device = Device::Cpu;
+        let root = init_test_dir("packet-reader");
+        let source = checkpoint_path(&root);
+        let mut model = build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &device).unwrap();
+        model.set_context(64).unwrap();
+        model.save(&source).unwrap();
+        let run = source.parent().and_then(Path::parent).unwrap();
+        fs::write(
+            run.join("config.json"),
+            br#"{"steps":8,"objective":"nearest","retain_rates":false,"fold_scores":false,"reflect_floor":false,"fix_input_table":false,"train_as_served":false}"#,
+        )
+        .unwrap();
+        let reader = PacketCheckpoint::load(&source, &device).unwrap();
+        assert_eq!(reader.context(), 64);
+        assert_eq!(reader.objective, PointObjective::Nearest);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
