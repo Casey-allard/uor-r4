@@ -39,6 +39,8 @@ const ARMS_MODULE: &str = "uor_r4_spiralcore_fbs_arms";
 /// The Candle custom-module name `fused_quantize.rs` loads the fused served
 /// quantizers' PTX under (float-kernel-fusion, claude-285).
 pub(crate) const FUSED_QUANTIZE_MODULE: &str = "uor_r4_fused_quantize";
+/// The Candle custom-module name `top8_positions.rs` loads the exact bounded selector under.
+pub(crate) const TOP8_POSITIONS_MODULE: &str = "uor_r4_top8_positions";
 
 /// The kernels of the PTX loaded under the Candle module name `module`: the
 /// list `build.rs` scanned from the sources that PTX compiles. `None` for a
@@ -49,6 +51,7 @@ pub fn module_kernels(module: &str) -> Option<&'static [&'static str]> {
         MODULE_BF16 => Some(kernel_lists::CUDA_STACK_BF16),
         ARMS_MODULE => Some(kernel_lists::SPIRALCORE_FBS_ARMS_F32),
         FUSED_QUANTIZE_MODULE => Some(kernel_lists::FUSED_QUANTIZE_F32),
+        TOP8_POSITIONS_MODULE => Some(kernel_lists::TOP8_POSITIONS_F32),
         _ => None,
     }
 }
@@ -182,6 +185,8 @@ pub mod cuda {
         B(CudaView<'a, bf16>),
         /// An f64 device buffer.
         D(CudaView<'a, f64>),
+        /// A u8 device buffer.
+        U8(CudaView<'a, u8>),
         /// A u32 device buffer.
         U(CudaView<'a, u32>),
         U32(u32),
@@ -446,6 +451,9 @@ pub mod cuda {
                     builder.arg(view);
                 }
                 Arg::D(view) => {
+                    builder.arg(view);
+                }
+                Arg::U8(view) => {
                     builder.arg(view);
                 }
                 Arg::U(view) => {

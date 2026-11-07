@@ -31,6 +31,7 @@ pub mod secant_descent;
 pub mod spiralcore_fbs;
 pub mod spiralcore_fbs_arms;
 pub mod spiralcore_fbs_sheet;
+pub mod top8_positions;
 
 /// One ahead-of-time PTX module: its file, the sources `build.rs` joins and compiles for it,
 /// and the `extern "C" __global__` entry points it found in them, in declaration order.

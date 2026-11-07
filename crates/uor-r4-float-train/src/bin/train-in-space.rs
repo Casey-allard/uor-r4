@@ -371,6 +371,7 @@ fn main() -> Result<()> {
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
+        fast_rivals: false,
         profile: 0,
         turn_memory: 0,
         turn_memory_empty: false,
@@ -532,6 +533,7 @@ fn main() -> Result<()> {
             "--train-targets" => config.train_targets = TrainTargets::parse(&value)?,
             "--steps" => config.steps = number(&value)?,
             "--micro-batch" => config.micro_batch = number(&value)?,
+            "--fast-rivals" => config.fast_rivals = switch(&value)?,
             "--profile" => config.profile = number(&value)?,
             "--time-without-quantizers" => time_quantizers = switch(&value)?,
             "--fused-quantize" => fused_quantize = Some(switch(&value)?),
@@ -768,6 +770,11 @@ fn main() -> Result<()> {
             "--train-as-served applies to training with --out only".to_owned(),
         ));
     }
+    fast_rivals_applies(
+        config.fast_rivals,
+        modes[7] && recall == 0,
+        config.objective,
+    )?;
     served_forward_applies(
         served_forward,
         inspect.is_some(),
@@ -1223,16 +1230,22 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let out = out.ok_or_else(|| FloatTrainError::Invalid("--out is required".to_owned()))?;
-    let (timing, counts) = uor_r4_float_train::hamilton_sheet::with_fused_quantize(
-        fused_quantize.unwrap_or(false),
+    let (timing, counts) = uor_r4_float_train::in_space_long::with_fast_rivals(
+        config.fast_rivals,
         || {
-            if !time_quantizers {
-                return run_long(&data_root, &out, &config, &device).map(|()| None);
-            }
-            uor_r4_float_train::hamilton_sheet::time_without_quantizers(config.profile, || {
-                run_long(&data_root, &out, &config, &device)
-            })
-            .map(|((), timing)| Some(timing))
+            uor_r4_float_train::hamilton_sheet::with_fused_quantize(
+                fused_quantize.unwrap_or(false),
+                || {
+                    if !time_quantizers {
+                        return run_long(&data_root, &out, &config, &device).map(|()| None);
+                    }
+                    uor_r4_float_train::hamilton_sheet::time_without_quantizers(
+                        config.profile,
+                        || run_long(&data_root, &out, &config, &device),
+                    )
+                    .map(|((), timing)| Some(timing))
+                },
+            )
         },
     )?;
     if let Some(fused) = fused_quantize {
@@ -1556,6 +1569,17 @@ fn fused_quantize_applies(given: bool, training: bool, served: bool) -> Result<(
     Ok(())
 }
 
+/// `--fast-rivals` selects the wrong-token rivals of a training objective in one bounded CUDA
+/// pass; the sheet objective has no whole-table rival search to replace.
+fn fast_rivals_applies(on: bool, training: bool, objective: PointObjective) -> Result<()> {
+    if on && (!training || objective == PointObjective::Sheet) {
+        return Err(FloatTrainError::Invalid(
+            "--fast-rivals applies to --out training with a nearest-style objective".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1658,5 +1682,14 @@ mod tests {
             quantizer_timing_record(false),
             "quantizer-timing.invalid.json"
         );
+    }
+
+    #[test]
+    fn fast_rivals_needs_training_an_objective_that_searches_the_table() {
+        assert!(fast_rivals_applies(false, false, PointObjective::Sheet).is_ok());
+        assert!(fast_rivals_applies(true, true, PointObjective::Nearest).is_ok());
+        assert!(fast_rivals_applies(true, true, PointObjective::Voronoi).is_ok());
+        assert!(fast_rivals_applies(true, false, PointObjective::Nearest).is_err());
+        assert!(fast_rivals_applies(true, true, PointObjective::Sheet).is_err());
     }
 }

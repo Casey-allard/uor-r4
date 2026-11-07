@@ -202,6 +202,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/fast-nearest": {
+    "branch": "deepseek/fast-nearest",
+    "claimed_at": "2026-11-07T11:55:33-05:00",
+    "head": "11dd0b623",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/fbs-wide-export": {
     "branch": "deepseek/fbs-wide-export",
     "claimed_at": "2026-11-02T17:45:05-05:00",

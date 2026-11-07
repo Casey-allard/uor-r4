@@ -153,6 +153,10 @@ pub struct LongConfig {
     /// divide `batch`; 0 is off and left out of `config.json`, and `batch` itself is the same.
     #[serde(skip_serializing_if = "is_zero")]
     pub micro_batch: usize,
+    /// Select the objective's nearest wrong tokens with one exact bounded CUDA pass in place of
+    /// repeated whole-vocabulary argmax rounds; left out of `config.json` when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub fast_rivals: bool,
     /// Profile this many training steps by stage (fbs-cost-profile, claude-157): see
     /// [`profile_window`]. 0 is off, and left out of `config.json`.
     #[serde(skip_serializing_if = "is_zero")]
@@ -1071,8 +1075,17 @@ fn hinge(rival: &Tensor, target: &Tensor, margin: f64) -> Result<Tensor> {
 }
 
 /// The `k` best positions of each row of `scores` among those `allowed` (u8, same shape) keeps,
-/// as (rows, k), by repeated argmax on a detached copy.
+/// as (rows, k). The default is repeated argmax on a detached copy; `--fast-rivals` replaces it
+/// with one deterministic CUDA pass.
 fn best_positions(scores: &Tensor, allowed: &Tensor, k: usize) -> Result<Tensor> {
+    if FAST_RIVALS.with(|on| on.get()) {
+        if !scores.device().is_cuda() {
+            return Err(invalid(
+                "the exact rival selector requires CUDA; no host fallback",
+            ));
+        }
+        return Ok(crate::top8_positions::positions(scores, allowed, k)?);
+    }
     let absent = Tensor::full(ABSENT, scores.shape(), scores.device())?;
     let mut left = allowed.where_cond(&scores.detach(), &absent)?;
     let columns = Tensor::arange(0u32, scores.dim(1)? as u32, scores.device())?
@@ -1193,12 +1206,29 @@ fn nearest_loss_on(table: &Tensor, query: &Tensor, targets: &[u32], cell: bool) 
 }
 
 thread_local! {
+    /// Use [`crate::top8_positions`] in place of repeated whole-table `argmax` rounds
+    /// (`train-in-space --fast-rivals 1`).
+    static FAST_RIVALS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     /// The read scope a model trains and scores its rows with (claude-216's
     /// [`LongConfig::reply_read_train`]); none, the default, reads as before.
     static TRAINED_CUT: std::cell::Cell<Option<ReadScope>> = const { std::cell::Cell::new(None) };
     /// The next forward's inputs' response-mask flags ([`window_input_mask`]), which
     /// [`trained_points`] takes under a trained cut.
     static REPLY_MASK: std::cell::RefCell<Option<Vec<u8>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Run `f` with exact one-pass rival selection on or off, restoring the prior thread-local state
+/// after a return or panic.
+pub fn with_fast_rivals<T>(on: bool, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            FAST_RIVALS.with(|cell| cell.set(self.0));
+        }
+    }
+    let previous = FAST_RIVALS.with(|cell| cell.replace(on));
+    let _restore = Restore(previous);
+    f()
 }
 
 /// Train and score rows on this thread with the reply's read held to the prompt under `scope`
@@ -13406,6 +13436,7 @@ mod tests {
             samples: 6,
             reply_tokens: 48,
             micro_batch: 0,
+            fast_rivals: false,
             profile: 0,
             turn_memory: 0,
             turn_memory_empty: false,
@@ -14550,6 +14581,196 @@ mod tests {
 
     #[cfg(feature = "cuda")]
     #[test]
+    fn the_one_pass_rival_selector_keeps_non_ties_and_makes_ties_deterministic() {
+        let device = Device::new_cuda(0).unwrap();
+        let scores = Tensor::new(
+            &[
+                [0.9f32, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0, -0.1, -0.2],
+                [0.5f32; 12],
+                [0.9f32, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0, -0.1, -0.2],
+                [0.9f32, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0, -0.1, -0.2],
+            ],
+            &device,
+        )
+        .unwrap();
+        let allowed = Tensor::new(
+            &[
+                [1u8; 12],
+                [1u8; 12],
+                [0u8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0u8, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+            ],
+            &device,
+        )
+        .unwrap();
+        let old = with_fast_rivals(false, || best_positions(&scores, &allowed, 8)).unwrap();
+        let fast = with_fast_rivals(true, || best_positions(&scores, &allowed, 8)).unwrap();
+        let old = old.to_vec2::<u32>().unwrap();
+        let fast = fast.to_vec2::<u32>().unwrap();
+        // Candle's CUDA argmax reduction does not guarantee a tie order. The selector does:
+        // every equal-score row takes the lower ids, in order.
+        assert_eq!(fast[1], [0, 1, 2, 3, 4, 5, 6, 7]);
+        for row in [0, 2, 3] {
+            assert_eq!(old[row], fast[row], "row {row}");
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "needs a CUDA device; run on the pod"]
+    fn time_the_one_pass_rival_selector() {
+        let device = Device::new_cuda(0).unwrap();
+        for rows in [256usize, 2_048, 4_096] {
+            let vocabulary = 4_096usize;
+            let values: Vec<f32> = (0..rows * vocabulary)
+                .map(|i| -((i % vocabulary) as f32) / vocabulary as f32)
+                .collect();
+            let scores = Tensor::from_vec(values, (rows, vocabulary), &device).unwrap();
+            let allowed = Tensor::ones((rows, vocabulary), DType::U8, &device).unwrap();
+            let run = |fast: bool| {
+                with_fast_rivals(fast, || best_positions(&scores, &allowed, 8)).unwrap()
+            };
+            assert_eq!(
+                run(false).to_vec2::<u32>().unwrap(),
+                run(true).to_vec2::<u32>().unwrap()
+            );
+            for _ in 0..3 {
+                let _ = run(false);
+                let _ = run(true);
+            }
+            device.synchronize().unwrap();
+            let mut old = Vec::with_capacity(20);
+            let mut fast = Vec::with_capacity(20);
+            for _ in 0..20 {
+                let start = Instant::now();
+                let _ = run(false);
+                device.synchronize().unwrap();
+                old.push(start.elapsed().as_secs_f64() * 1_000.0);
+
+                let start = Instant::now();
+                let _ = run(true);
+                device.synchronize().unwrap();
+                fast.push(start.elapsed().as_secs_f64() * 1_000.0);
+            }
+            old.sort_by(f64::total_cmp);
+            fast.sort_by(f64::total_cmp);
+            println!(
+                "{}",
+                serde_json::json!({
+                    "rows": rows,
+                    "vocabulary": vocabulary,
+                    "old_ms": old[old.len() / 2],
+                    "fast_ms": fast[fast.len() / 2],
+                })
+            );
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "needs a CUDA device; run on the pod"]
+    fn the_fast_rival_selector_keeps_the_loss_and_measures_tie_gradient_delta() {
+        let device = Device::new_cuda(0).unwrap();
+        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
+        let windows: Vec<CausalWindow> = (0..16usize)
+            .map(|b| {
+                let input_ids: Vec<u32> = (0..SHEET_CONTEXT)
+                    .map(|i| ((i * 37 + b * 101) % 4095 + 1) as u32)
+                    .collect();
+                let scored_offsets: Vec<usize> = (20..SHEET_CONTEXT - 1).collect();
+                CausalWindow {
+                    doc_id: b,
+                    scored_targets: scored_offsets.iter().map(|&o| input_ids[o + 1]).collect(),
+                    scored_corpus_positions: scored_offsets
+                        .iter()
+                        .map(|&o| b * SHEET_CONTEXT + o + 1)
+                        .collect(),
+                    input_ids,
+                    scored_offsets,
+                }
+            })
+            .collect();
+        let windows: Vec<&CausalWindow> = windows.iter().collect();
+        let step = |fast: bool| {
+            with_fast_rivals(fast, || {
+                step_gradient(
+                    &model,
+                    PointObjective::Nearest,
+                    &windows,
+                    4,
+                    SHEET_CONTEXT,
+                    false,
+                    1,
+                    3,
+                    |_, _| Ok(()),
+                )
+            })
+            .unwrap()
+        };
+        let (old_loss, old_grads) = step(false);
+        let (fast_loss, fast_grads) = step(true);
+        assert_eq!(old_loss.to_bits(), fast_loss.to_bits());
+        let mut compared = 0;
+        let mut worst_gradient = 0.0f32;
+        for (name, var) in model.variables() {
+            let (a, b) = (
+                old_grads.get(var.as_tensor()),
+                fast_grads.get(var.as_tensor()),
+            );
+            assert_eq!(a.is_some(), b.is_some(), "{name}");
+            let (Some(a), Some(b)) = (a, b) else {
+                continue;
+            };
+            let flat = |t: &Tensor| {
+                t.flatten_all()
+                    .unwrap()
+                    .to_dtype(DType::F32)
+                    .unwrap()
+                    .to_vec1::<f32>()
+                    .unwrap()
+            };
+            let (a, b) = (flat(a), flat(b));
+            let scale = a.iter().fold(0f32, |m, x| m.max(x.abs())).max(1e-6);
+            let diff = a
+                .iter()
+                .zip(&b)
+                .fold(0f32, |m, (x, y)| m.max((x - y).abs()));
+            worst_gradient = worst_gradient.max(diff / scale);
+            assert!(diff.is_finite(), "{name}: {diff} at scale {scale}");
+            compared += 1;
+        }
+        assert!(compared > 0);
+
+        for _ in 0..2 {
+            drop(step(false));
+            drop(step(true));
+        }
+        let mut old = Vec::with_capacity(8);
+        let mut fast = Vec::with_capacity(8);
+        for _ in 0..8 {
+            let started = Instant::now();
+            drop(step(false));
+            old.push(started.elapsed().as_secs_f64() * 1_000.0);
+
+            let started = Instant::now();
+            drop(step(true));
+            fast.push(started.elapsed().as_secs_f64() * 1_000.0);
+        }
+        old.sort_by(f64::total_cmp);
+        fast.sort_by(f64::total_cmp);
+        println!(
+            "{}",
+            serde_json::json!({
+                "loss": fast_loss,
+                "gradient_max_relative_difference": worst_gradient,
+                "old_step_ms": old[old.len() / 2],
+                "fast_step_ms": fast[fast.len() / 2],
+            })
+        );
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
     fn whole_table_scores_do_not_depend_on_the_chunk() {
         let device = Device::new_cuda(0).unwrap();
         let table = Tensor::new(
@@ -14649,6 +14870,24 @@ mod tests {
             error.contains("non-finite training loss at step 10"),
             "{error}"
         );
+    }
+
+    #[test]
+    fn fast_rivals_restore_their_prior_state_after_an_error_or_panic() {
+        assert!(!FAST_RIVALS.with(|on| on.get()));
+        let error = with_fast_rivals(true, || -> Result<()> {
+            assert!(FAST_RIVALS.with(|on| on.get()));
+            Err(invalid("test error"))
+        })
+        .unwrap_err();
+        assert!(error.to_string().contains("test error"));
+        assert!(!FAST_RIVALS.with(|on| on.get()));
+
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _: Result<()> = with_fast_rivals(true, || panic!("test panic"));
+        }));
+        assert!(panicked.is_err());
+        assert!(!FAST_RIVALS.with(|on| on.get()));
     }
 
     #[cfg(feature = "cuda")]
@@ -14914,6 +15153,7 @@ mod tests {
         let mut config = config(0, None);
         let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         assert!(!json.contains("micro_batch"), "{json}");
+        assert!(!json.contains("fast_rivals"), "{json}");
         (config.batch, config.micro_batch) = (16, 3);
         let refused = run_long(&missing, &missing.join("out"), &config, &Device::Cpu)
             .err()
@@ -14928,6 +15168,9 @@ mod tests {
         config.micro_batch = 4;
         let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         assert!(json.contains("\"micro_batch\": 4"), "{json}");
+        config.fast_rivals = true;
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(json.contains("\"fast_rivals\": true"), "{json}");
     }
 
     #[test]

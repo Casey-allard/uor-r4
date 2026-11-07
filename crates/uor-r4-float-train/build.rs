@@ -7,6 +7,8 @@
 //! from a prelude, the unchanged `src/spiralcore_fbs.cu` (for its route helpers) and the arms.
 //! The fused served quantizers (`src/fused_quantize.cu`, float-kernel-fusion, claude-285) build
 //! alone as `fused_quantize_f32.ptx`, so the pinned `cuda_stack.cu` stays unchanged.
+//! The exact bounded rival selector (`src/top8_positions.cu`) also builds alone, so its training
+//! optimization cannot move a checkpoint fingerprint.
 //!
 //! On every build, CPU-only laptop builds included, `build.rs` first writes `kernel_lists.rs`
 //! into `OUT_DIR`: each module's `extern "C" __global__ void <name>` entry points, scanned from
@@ -29,7 +31,7 @@ struct Module {
 
 const CUDA: &str = "CARGO_FEATURE_CUDA";
 
-const MODULES: [Module; 4] = [
+const MODULES: [Module; 5] = [
     Module {
         sources: &["src/cuda_stack.cu", "src/spiralcore_fbs.cu"],
         ptx: "cuda_stack_f32.ptx",
@@ -60,6 +62,12 @@ const MODULES: [Module; 4] = [
     Module {
         sources: &["src/fused_quantize.cu"],
         ptx: "fused_quantize_f32.ptx",
+        options: &PRECISE,
+        feature: CUDA,
+    },
+    Module {
+        sources: &["src/top8_positions.cu"],
+        ptx: "top8_positions_f32.ptx",
         options: &PRECISE,
         feature: CUDA,
     },

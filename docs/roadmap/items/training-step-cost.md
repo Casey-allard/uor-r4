@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [fbs-cost-profile]
 notebook: docs/research/notebook/float-training.md
-scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/native_vector_writer.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/geometric_stack_native_cuda.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, docs/harness/prep/training-step-cost*, docs/loop/tasks/training-step-cost/**, docs/research/notebook/float-training.md, docs/roadmap/items/training-step-cost.md]
+scope: [crates/uor-r4-float-train/build.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/src/cuda_stack_kernels.rs, crates/uor-r4-float-train/src/top8_positions.rs, crates/uor-r4-float-train/src/top8_positions.cu, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/native_vector_writer.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/geometric_stack_native_cuda.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, docs/harness/prep/training-step-cost*, docs/loop/tasks/training-step-cost/**, docs/research/notebook/float-training.md, docs/roadmap/items/training-step-cost.md]
 ---
 
 ## Why it matters
@@ -23,6 +23,7 @@ The owner, 28 Oct 2026, in claude's chat (the message's first clause, recorded i
 
 - **The backward's split.** Its host time is 0.98–0.99 of its GPU time. That fits launches with the GPU keeping pace, or the host waiting at a sync inside it; claude-157 could not tell which. Which forward stage's gradient dominates is not measured.
 - **A cheaper rival search.** The search is GPU-bound and grows with the table (4,096 × width). A search over a subset, for example the writer's kept cells, or a search every few steps with the rivals kept, has not been run. Its effect on prediction is a hypothesis.
+  - [deepseek-2](../../loop/tasks/training-step-cost/deepseek-2/REPORT.md) built an off-by-default one-pass top-eight selector. It is 3.69× to 19.23× faster than the repeated argmax rounds at 256–4,096 rows, but the full synthetic step is only 1.07% faster. Current CUDA argmax has no defined tie order; the selector's lower-id ties move gradients by 0.75–1.14%. This meets done-when 2's implementation and tests, but does not satisfy the prediction/cost bar in done-when 3.
 
 ## Done when
 
