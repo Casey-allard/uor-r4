@@ -12,7 +12,7 @@ resolver = "2"
 
 [features]
 panel-writer = ["dep:uor-r4-training", "dep:uor-r4-core"]
-cpu-parity = ["dep:uor-r4-integer", "dep:uor-r4-cpu-train"]
+cpu-parity = ["dep:uor-r4-integer", "dep:uor-r4-cpu-train", "dep:uor-r4-core"]
 
 [[bin]]
 name = "heldout-panel"
@@ -22,6 +22,11 @@ required-features = ["panel-writer"]
 [[bin]]
 name = "m2-evidence"
 path = "src/bin/m2-evidence.rs"
+required-features = ["cpu-parity"]
+
+[[bin]]
+name = "served-reply-panel"
+path = "src/bin/served-reply-panel.rs"
 required-features = ["cpu-parity"]
 
 [dependencies]
