@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-// @ts-expect-error The plain-JavaScript controller has no declaration file.
-import { createComposerInput, readTextFiles } from '../../assets/js/composer_input.js';
+import { createComposerInput, readTextFiles } from './composerInput.js';
 
 function key(textarea: HTMLTextAreaElement, key: string, init: { shiftKey?: boolean; isComposing?: boolean; keyCode?: number } = {}) {
     const event = new KeyboardEvent('keydown', { key, shiftKey: init.shiftKey, bubbles: true, cancelable: true });
@@ -34,6 +33,10 @@ function setup(history: string[] = [], initialDraft = '') {
 }
 
 describe('conversational composer keyboard and history', () => {
+    it('keeps the explicit missing-textarea error when options are omitted', () => {
+        expect(() => createComposerInput()).toThrow('A composer textarea is required.');
+    });
+
     it('sends on Enter, keeps Shift+Enter native, and never sends during IME composition', () => {
         const { textarea, onSend } = setup();
         textarea.value = 'hello';

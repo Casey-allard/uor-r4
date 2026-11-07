@@ -103,6 +103,8 @@ worker, tokenizer, and `studio_api.js` remain unchanged. Existing provider crede
 rendered or copied into component state. Newly entered keys are held only in the modal draft until saved, then persisted through the existing `modelSources.v1` writer; the draft is cleared after a successful save. Failed storage writes roll back and remain visible in the dialog.
 Narrow live-page bridge corrections correlate chat completion, include attachments in API prompts, and return per-session clear results without creating a replacement session; the engine, worker, tokenizer, and `studio_api.js` are unchanged.
 
+`AgentComposer` now mounts the exported TypeScript `createComposerInput` controller, preserving Enter/Shift+Enter, IME refusal, bounded prompt history with exact draft restoration, reset/destroy, paste/drop/picker channels, and the existing bounded text-file reader. Its `/` menu filters the six build-task templates and its `@` menu filters the active file/current attachments without duplicating retained names. Both menus expose listbox/option state and keyboard focus through the prompt textarea. These are typed-component checks only: the legacy plain-JS controller and live page remain unchanged.
+
 Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. The library
 build emits uncommitted `dist/` output; `src/studio.css` does not alter the legacy `index.css`.
 Native progress and dialog elements preserve unknown totals and indeterminate finalization; dialogs

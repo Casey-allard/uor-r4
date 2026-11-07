@@ -3,6 +3,7 @@ export * from './adapters/modelSourceAdapter.js';
 export * from './persistence/migration.js';
 export * from './adapters/workflow.js';
 export * from './adapters/generation.js';
+export * from './adapters/composerInput.js';
 export * from './adapters/fileSave.js';
 export * from './state/useLifecycle.js';
 export * from './components/Modal.js';
