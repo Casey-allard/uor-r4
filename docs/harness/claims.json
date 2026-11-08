@@ -216,6 +216,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/first-reply-hamming-trace": {
+    "branch": "deepseek/first-reply-hamming-trace",
+    "claimed_at": "2026-11-08T16:46:40-05:00",
+    "head": "bfa5de6ce",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/float-kernel-fusion": {
     "branch": "deepseek/float-kernel-fusion",
     "claimed_at": "2026-11-07T11:30:05-05:00",

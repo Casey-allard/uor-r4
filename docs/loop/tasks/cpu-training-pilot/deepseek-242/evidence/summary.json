@@ -1,0 +1,52 @@
+{
+  "schema": "uor-r4.cpu-first-reply-hamming-trace-summary/1",
+  "base": "bfa5de6ce",
+  "substrate": "cpu-development-research",
+  "binary_sha256": "df79343eada95ee9500b0efaca5c5e2f2f720faa4334e238b8aeae284c24bf1c",
+  "artifacts": {
+    "seed_1": "86e51d5ee2c00a4041bcde4d2183884e351099f28f155fb1e6a7516f13064dfe",
+    "seed_2": "8838cd1044ae7152934d8ec09016e268f2dabb0c702dd45e6ab06d7b5198bdae"
+  },
+  "inputs": {
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "panel_inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+    "panel_labels_sha256": "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be",
+    "panel_plan_sha256": "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715",
+    "panel_manifest_sha256": "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964"
+  },
+  "runs": {
+    "s1_one_user": "e7e528f3b798a6560230c29e470bf94f973b30fc59aa3eded79dcc4c1317113c",
+    "s1_per_turn": "8337d8a93e447ec3e5b7bf0dc324302179ae8522017874161bbc110e852e3d6c",
+    "s2_one_user": "8f0c1b3eb5e7d59a646ed5e1cfe05bccb8a65cef1774965c56550625919c3a30",
+    "s2_per_turn": "430c035b67ff4dbff85108db7eb51ecc93c7c77e7e445c4400c941b1544ff5d4"
+  },
+  "repeat": {
+    "report_sha256": "46ea49e5ed2d92ca0a425eb93d2a4ec7cda51c1bb21d17185a385d8bfa682807",
+    "non_timing_fields_equal": true
+  },
+  "trace_alignment": {
+    "reviewed_free_arm": "../../../../../../local/deepseek/forced-copy-panel/runs-v5",
+    "free_arm_executable_sha256": "a6cc69daad3f5dfd9af1ed64dd3a573a8086fa8a0b77d8d200e476c1795cc000",
+    "reference_note": "forced-copy free arm reproducing served-reply-panel generation; CPU decision parity is retained by deepseek-241",
+    "rows_compared": 1024,
+    "chosen_token_mismatches": 0
+  },
+  "chosen": {
+    "rows": 1024,
+    "target_first_token": 0,
+    "other_first_token": 0,
+    "neither": 1024,
+    "same_first_token": 0
+  },
+  "heads": [
+    {"depth": 2, "head": 0, "kind": "copy", "asked_first_token": 33, "other_first_token": 32, "asked_only_span": 65, "other_only_span": 62, "both_spans": 897, "neither_span": 0},
+    {"depth": 2, "head": 1, "kind": "copy", "asked_first_token": 448, "other_first_token": 426, "asked_only_span": 65, "other_only_span": 53, "both_spans": 906, "neither_span": 0},
+    {"depth": 2, "head": 2, "kind": "type", "asked_first_token": 104, "other_first_token": 93, "asked_only_span": 16, "other_only_span": 16, "both_spans": 992, "neither_span": 0},
+    {"depth": 2, "head": 3, "kind": "type", "asked_first_token": 166, "other_first_token": 219, "asked_only_span": 44, "other_only_span": 52, "both_spans": 928, "neither_span": 0},
+    {"depth": 6, "head": 0, "kind": "copy", "asked_first_token": 148, "other_first_token": 145, "asked_only_span": 21, "other_only_span": 21, "both_spans": 978, "neither_span": 4},
+    {"depth": 6, "head": 1, "kind": "copy", "asked_first_token": 466, "other_first_token": 484, "asked_only_span": 25, "other_only_span": 26, "both_spans": 973, "neither_span": 0},
+    {"depth": 6, "head": 2, "kind": "type", "asked_first_token": 411, "other_first_token": 411, "asked_only_span": 44, "other_only_span": 51, "both_spans": 929, "neither_span": 0},
+    {"depth": 6, "head": 3, "kind": "type", "asked_first_token": 60, "other_first_token": 95, "asked_only_span": 73, "other_only_span": 70, "both_spans": 873, "neither_span": 8}
+  ],
+  "claim": "read-only first-reply Hamming value-position attribution; not a capability, selection or serving result"
+}

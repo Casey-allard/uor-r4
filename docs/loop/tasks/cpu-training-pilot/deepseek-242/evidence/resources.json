@@ -1,0 +1,70 @@
+{
+  "schema": "uor-r4.cpu-first-reply-hamming-trace-resources/1",
+  "measured_at": "2026-11-08T22:15:45Z",
+  "substrate": "cpu-development-research",
+  "root": "local/deepseek/first-reply-hamming-trace",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cpus": 32,
+    "threads_per_core": 2,
+    "final_probe_threads": 32
+  },
+  "runs": [
+    {"path": "runs/s1-one-user.json", "wall_ms": 9133, "disposition": "superseded sequential draft without RSS"},
+    {"path": "runs/s1-per-turn.json", "wall_ms": 10672, "disposition": "superseded sequential draft without RSS"},
+    {"path": "runs/s2-one-user.json", "wall_ms": 9330, "disposition": "superseded sequential draft without RSS"},
+    {"path": "runs/s2-per-turn.json", "wall_ms": 10662, "disposition": "superseded sequential draft without RSS"},
+    {"path": "runs-v2/s1-one-user.json", "wall_ms": 9288, "peak_rss_kib": 15212, "disposition": "superseded sequential evidence"},
+    {"path": "runs-v2/s1-per-turn.json", "wall_ms": 10718, "peak_rss_kib": 15256, "disposition": "superseded sequential evidence"},
+    {"path": "runs-v2/s2-one-user.json", "wall_ms": 9381, "peak_rss_kib": 15208, "disposition": "superseded sequential evidence"},
+    {"path": "runs-v2/s2-per-turn.json", "wall_ms": 10662, "peak_rss_kib": 15264, "disposition": "superseded sequential evidence"},
+    {"path": "runs-v3/s1-one-user.json", "wall_ms": 575, "peak_rss_kib": 50264, "disposition": "superseded pre-review 32-thread evidence"},
+    {"path": "runs-v3/s1-per-turn.json", "wall_ms": 658, "peak_rss_kib": 51092, "disposition": "superseded pre-review 32-thread evidence"},
+    {"path": "runs-v3/s2-one-user.json", "wall_ms": 569, "peak_rss_kib": 49484, "disposition": "superseded pre-review 32-thread evidence"},
+    {"path": "runs-v3/s2-per-turn.json", "wall_ms": 653, "peak_rss_kib": 50420, "disposition": "superseded pre-review 32-thread evidence"},
+    {"path": "runs-v3/s1-one-user-repeat.json", "wall_ms": 562, "peak_rss_kib": 46232, "disposition": "superseded pre-review determinism repeat"},
+    {"path": "runs-v4/s1-one-user.json", "wall_ms": 564, "peak_rss_kib": 49564, "disposition": "final reviewed-source 32-thread evidence"},
+    {"path": "runs-v4/s1-per-turn.json", "wall_ms": 655, "peak_rss_kib": 51056, "disposition": "final reviewed-source 32-thread evidence"},
+    {"path": "runs-v4/s2-one-user.json", "wall_ms": 567, "peak_rss_kib": 46872, "disposition": "final reviewed-source 32-thread evidence"},
+    {"path": "runs-v4/s2-per-turn.json", "wall_ms": 646, "peak_rss_kib": 49748, "disposition": "final reviewed-source 32-thread evidence"},
+    {"path": "runs-v4/s1-one-user-repeat.json", "wall_ms": 576, "peak_rss_kib": 50264, "disposition": "final reviewed-source determinism repeat"}
+  ],
+  "totals": {
+    "report_count": 18,
+    "measured_wall_ms": 85871,
+    "measured_wall_seconds": 85.871,
+    "max_peak_rss_kib": 51092,
+    "final_report_count": 5,
+    "final_measured_wall_seconds": 3.008,
+    "final_seed_render_count": 4,
+    "final_seed_render_wall_seconds": 2.432,
+    "final_max_peak_rss_kib": 51056,
+    "sequential_seed_render_wall_seconds": 40.049,
+    "sequential_to_final_speedup": 16.468
+  },
+  "storage": {
+    "local_evidence_and_inputs_bytes": 25165982,
+    "final_runs_bytes": 13981478,
+    "build_target_bytes": 4013712954,
+    "free_bytes_at_measurement": 156639670272,
+    "free_gib_at_measurement": 145.882,
+    "floor_gib": 30,
+    "required_margin_mib": 128,
+    "floor_passes": true
+  },
+  "ledger": {
+    "shared_model_time_active_receipt": "ABSENT",
+    "shared_model_time_ledger_path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "canonical_resource_ledger": "docs/labs/cpu-training-pilot-first-reply-hamming-trace-2026-11-08/resource-ledger.json",
+    "previous_admitted_cumulative_projection_seconds": 98567.677487699,
+    "current_unit_projection_seconds": 1800,
+    "admitted_cumulative_projection_seconds": 100367.677487699
+  },
+  "unmeasured": [
+    "Rust builds and incremental rebuilds",
+    "tests, formatting, Clippy and harness gates",
+    "review and delivery"
+  ],
+  "note": "The measured wall is retained across the early sequential drafts and all 32-thread runs. The four final reviewed-source seed/rendering reports total 2.432 seconds; the fifth report is the 0.576-second determinism repeat, exact apart from timing and RSS."
+}

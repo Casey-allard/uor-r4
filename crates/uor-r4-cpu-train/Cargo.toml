@@ -160,5 +160,9 @@ name = "cpu-forced-copy-panel"
 path = "src/bin/cpu-forced-copy-panel.rs"
 
 [[bin]]
+name = "cpu-first-reply-hamming-trace"
+path = "src/bin/cpu-first-reply-hamming-trace.rs"
+
+[[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"

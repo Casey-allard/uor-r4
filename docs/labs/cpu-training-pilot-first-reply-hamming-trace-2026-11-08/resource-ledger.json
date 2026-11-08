@@ -1,0 +1,72 @@
+{
+  "schema": "uor-r4.cpu-first-reply-hamming-trace-resource/1",
+  "status": "COMPLETE_DIAGNOSTIC",
+  "experiment": "first-reply Hamming value-position trace on sealed Claude-322 integer artifacts",
+  "updated_utc": "2026-11-08T22:15:45Z",
+  "previous_ledger": "cpu-training-pilot-forced-copy-2026-11-08/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 98567.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 1800,
+  "admitted_increment_seconds": 1800,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 100367.677487699,
+  "admitted_cumulative_projection_seconds": 100367.677487699,
+  "lab_cumulative_projection_seconds": 100367.677487699,
+  "projection": {
+    "measured_probe_seconds": 85.871,
+    "builds_and_tests_allowance_seconds": 600,
+    "review_and_delivery_allowance_seconds": 300,
+    "retry_and_setup_allowance_seconds": 814.129,
+    "wall_limit_seconds": 1800
+  },
+  "measured": {
+    "retained_probe_reports": 18,
+    "final_reports": 5,
+    "final_seed_render_cells": 4,
+    "determinism_repeats": 1,
+    "max_peak_rss_kib": 51092,
+    "threads": 32,
+    "probe_seconds": 85.871,
+    "final_probe_seconds": 3.008,
+    "final_max_peak_rss_kib": 51056
+  },
+  "artifacts": {
+    "seed_1_model_uorlut": "86e51d5ee2c00a4041bcde4d2183884e351099f28f155fb1e6a7516f13064dfe",
+    "seed_2_model_uorlut": "8838cd1044ae7152934d8ec09016e268f2dabb0c702dd45e6ab06d7b5198bdae",
+    "first_reply_hamming_trace_binary": "df79343eada95ee9500b0efaca5c5e2f2f720faa4334e238b8aeae284c24bf1c"
+  },
+  "storage": {
+    "local_evidence_and_inputs_bytes": 25165982,
+    "final_runs_bytes": 13981478,
+    "build_target_bytes": 4013712954,
+    "free_bytes_at_measurement": 156639670272,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-242/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-242/REPORT.md",
+    "evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-242/evidence/resources.json"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree target after protected delivery; retain local evidence"
+  }
+}
