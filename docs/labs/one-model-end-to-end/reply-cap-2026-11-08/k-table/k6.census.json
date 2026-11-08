@@ -1,0 +1,205 @@
+{
+  "against": null,
+  "bos_id": 0,
+  "distinct_replies": 61616,
+  "documents": 60000,
+  "eos_id": 1,
+  "eos_in_repeated": {
+    "count": 10174,
+    "of": 68999,
+    "ppm": 147451
+  },
+  "eos_in_top1": {
+    "count": 6,
+    "of": 68999,
+    "ppm": 86
+  },
+  "eos_not_at_reply_end": 0,
+  "eos_targets": 68999,
+  "name": "mwcap-k6",
+  "replies": 68999,
+  "replies_ending_eos": 68999,
+  "reply_8grams": {
+    "distinct": 395021,
+    "windows": 492749
+  },
+  "reply_length": {
+    "max": 58,
+    "median_lower": 13,
+    "min": 3
+  },
+  "schema": "uor-r4-reply-census/v1",
+  "scored_targets": 974908,
+  "sha256": {
+    "manifest.json": "cc8a55bb3fa70a33f2c12b2123511b078285b7f96a3b11e345f37b3c07835425",
+    "response_mask.u8": "0d79c3a12e8c64fa5e2005198d6c9e5084748dc02e19de90b6fef7d925555060",
+    "tokens.u16": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+  },
+  "split": "/Users/casey.allard/uor-r4/local/claude/claude-321/caps/k6",
+  "tokens": 7512797,
+  "top": [
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        14,
+        223,
+        24
+      ],
+      "length": 21
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        14,
+        223,
+        24
+      ],
+      "length": 18
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        16,
+        1
+      ],
+      "length": 15
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        16,
+        1
+      ],
+      "length": 12
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        16,
+        1
+      ],
+      "length": 9
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        18,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        19,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        20,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        21,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 6,
+      "first_ids": [
+        223,
+        19,
+        22,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    }
+  ]
+}

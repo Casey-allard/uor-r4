@@ -1,0 +1,190 @@
+{
+  "against": null,
+  "bos_id": 0,
+  "distinct_replies": 82329,
+  "documents": 198016,
+  "eos_id": 1,
+  "eos_in_repeated": {
+    "count": 638928,
+    "of": 659633,
+    "ppm": 968611
+  },
+  "eos_in_top1": {
+    "count": 13410,
+    "of": 659633,
+    "ppm": 20329
+  },
+  "eos_not_at_reply_end": 0,
+  "eos_targets": 659633,
+  "name": "d3mw3",
+  "replies": 659633,
+  "replies_ending_eos": 659633,
+  "reply_8grams": {
+    "distinct": 23463850,
+    "windows": 30245228
+  },
+  "reply_length": {
+    "max": 96128,
+    "median_lower": 11,
+    "min": 2
+  },
+  "schema": "uor-r4-reply-census/v1",
+  "scored_targets": 34694329,
+  "sha256": {
+    "manifest.json": "9f803c45c30137d887984c6916e7a53588007a562faf3626257829b4d5b7decf",
+    "response_mask.u8": "a245fef488d4bfb0e32a447f14a6fb2543caa28a6bb8252163a8523891c22dff",
+    "tokens.u16": "3cf9ebe2abdf6e6a252df545192af27aea8ec2ac419484aac8932158b5a57b67"
+  },
+  "split": "census-view-318",
+  "tokens": 50506504,
+  "top": [
+    {
+      "count": 13410,
+      "first_ids": [
+        1155,
+        302,
+        311,
+        14,
+        1461,
+        85,
+        388,
+        1265,
+        300,
+        519,
+        16,
+        1
+      ],
+      "length": 12
+    },
+    {
+      "count": 13287,
+      "first_ids": [
+        1399,
+        952,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "length": 9
+    },
+    {
+      "count": 12207,
+      "first_ids": [
+        340,
+        745,
+        261,
+        563,
+        450,
+        85,
+        652,
+        714,
+        16,
+        340,
+        469,
+        641,
+        299,
+        14,
+        1203,
+        579
+      ],
+      "length": 33
+    },
+    {
+      "count": 11328,
+      "first_ids": [
+        1155,
+        302,
+        311,
+        16,
+        1
+      ],
+      "length": 5
+    },
+    {
+      "count": 10959,
+      "first_ids": [
+        2237,
+        302,
+        266,
+        16,
+        1
+      ],
+      "length": 5
+    },
+    {
+      "count": 10452,
+      "first_ids": [
+        439,
+        609,
+        3723,
+        3,
+        1
+      ],
+      "length": 5
+    },
+    {
+      "count": 10356,
+      "first_ids": [
+        617,
+        1462,
+        1836,
+        3,
+        1
+      ],
+      "length": 5
+    },
+    {
+      "count": 10305,
+      "first_ids": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        495,
+        16,
+        1
+      ],
+      "length": 10
+    },
+    {
+      "count": 10290,
+      "first_ids": [
+        1399,
+        952,
+        14,
+        340,
+        500,
+        434,
+        372,
+        495,
+        16,
+        1
+      ],
+      "length": 10
+    },
+    {
+      "count": 10203,
+      "first_ids": [
+        1399,
+        952,
+        14,
+        340,
+        1919,
+        1203,
+        434,
+        372,
+        383,
+        16,
+        1
+      ],
+      "length": 11
+    }
+  ]
+}
