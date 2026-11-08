@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import type { ModelSourceAdapter } from '../adapters/modelSourceAdapter.js';
 import type { ModelSourcesApi } from '../../assets/js/model_sources.js';
-import type { SessionApi, StudioSettings, StudioUiApi, WorkspaceApi } from '../adapters/workflow.js';
+import type { SessionApi, SessionSummary, StudioSettings, StudioUiApi, WorkspaceApi } from '../adapters/workflow.js';
 
 export const testSettings: StudioSettings = { theme: 'dark', reduceMotion: false, fontSize: 13, tabSize: 4, wordWrap: false };
 
@@ -35,10 +35,40 @@ export function makeFiles(): WorkspaceApi {
 }
 
 export function makeSessions(): SessionApi {
+    const items: SessionSummary[] = [];
+    let activeId: string | null = null;
+    let nextId = 0;
+    const create = () => {
+        nextId += 1;
+        items.unshift({ id: `session-new-${nextId}`, title: 'New conversation', createdAt: nextId, updatedAt: nextId, messageCount: 0, preview: '' });
+        activeId = items[0].id;
+        return true;
+    };
     return {
-        getMode: vi.fn((): 'wasm' | 'api' => 'api'), listSessions: vi.fn(() => []), activeSessionId: vi.fn(() => null),
-        selectSession: vi.fn(() => true), newSession: vi.fn(() => true), renameSession: vi.fn(() => true),
-        duplicateSession: vi.fn(() => null), exportSession: vi.fn(() => null), deleteSession: vi.fn(() => true),
+        getMode: vi.fn((): 'wasm' | 'api' => 'api'),
+        listSessions: vi.fn(() => items),
+        activeSessionId: vi.fn(() => activeId),
+        selectSession: vi.fn((id: string) => {
+            if (!items.some((item) => item.id === id)) return false;
+            activeId = id;
+            return true;
+        }),
+        newSession: vi.fn(create),
+        renameSession: vi.fn((id: string, title: string) => {
+            const item = items.find((candidate) => candidate.id === id);
+            if (!item) return false;
+            item.title = title.slice(0, 80);
+            return true;
+        }),
+        duplicateSession: vi.fn(() => null), exportSession: vi.fn(() => null),
+        deleteSession: vi.fn((id: string) => {
+            const index = items.findIndex((item) => item.id === id);
+            if (index < 0) return false;
+            const wasActive = activeId === id;
+            items.splice(index, 1);
+            if (wasActive) create();
+            return true;
+        }),
         getConversationMessages: vi.fn(() => []), setComposerText: vi.fn(() => true), sendPrompt: vi.fn(() => 1), predict: vi.fn(() => 1), stopGeneration: vi.fn(),
     };
 }

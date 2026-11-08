@@ -3,6 +3,7 @@ export * from './adapters/modelSourceAdapter.js';
 export * from './persistence/migration.js';
 export * from './adapters/workflow.js';
 export * from './adapters/generation.js';
+export * from './adapters/agentSession.js';
 export * from './adapters/desktopActions.js';
 export * from './adapters/mcpConnections.js';
 export * from './adapters/composerInput.js';

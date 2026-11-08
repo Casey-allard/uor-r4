@@ -218,21 +218,6 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
         await drainChildSessions();
         await new Promise((r) => setTimeout(r, 100));
     }
-    const requested = cdp.events.slice(before)
-        .filter((e) => e.method === 'Network.requestWillBeSent')
-        .map((e) => e.params.request.url);
-    const external = requested.filter((u) => {
-        if (!/^https?:/i.test(u)) return false;
-        try { return new URL(u).origin !== origin; } catch (_e) { return true; }
-    });
-    const rawTypeScript = requested.filter((url) => {
-        try {
-            const pathname = new URL(url).pathname;
-            return /\.tsx?$/i.test(pathname) || /\/src\/main(?:\.[cm]?[jt]sx?)?$/i.test(pathname);
-        } catch (_e) {
-            return true;
-        }
-    });
     let typed = null;
     if (options.typed) {
         const evaluation = await cdp.send('Runtime.evaluate', {
@@ -241,7 +226,7 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
                 if (models) models.click();
                 await new Promise((resolve) => setTimeout(resolve, 100));
                 const root = document.getElementById('studio-typed-root');
-                const typedMcp = document.querySelectorAll('#studio-typed-root .mcp-connections').length;
+                let typedMcp = document.querySelectorAll('#studio-typed-root .mcp-connections').length;
                 const load = Array.from(root.querySelectorAll('button')).find((button) => button.textContent === 'Load bundled demo');
                 if (load) load.click();
                 let artifactReady = false;
@@ -249,6 +234,64 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
                     if (root.textContent.includes('Artifact: ready')) { artifactReady = true; break; }
                     await new Promise((resolve) => setTimeout(resolve, 100));
                 }
+                const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+                const button = (label) => Array.from(root.querySelectorAll('button')).find((candidate) => candidate.textContent === label);
+                const firstNew = button('New session');
+                if (firstNew) firstNew.click();
+                await pause(100);
+                const firstId = window.__studioUi?.activeSessionId() || null;
+                const secondNew = button('New session');
+                if (secondNew) secondNew.click();
+                await pause(100);
+                const secondId = window.__studioUi?.activeSessionId() || null;
+                const resume = async (id) => {
+                    const sessions = window.__studioUi.listSessions();
+                    const index = sessions.findIndex((item) => item.id === id);
+                    const rows = Array.from(root.querySelectorAll('section[aria-label="Sessions"] li'));
+                    const select = index >= 0 && rows[index]
+                        ? Array.from(rows[index].querySelectorAll('button')).find((candidate) => candidate.textContent === 'Select ' + sessions[index].title)
+                        : null;
+                    if (select) select.click();
+                    await pause(100);
+                    const currentRows = Array.from(root.querySelectorAll('section[aria-label="Sessions"] li'));
+                    return {
+                        idMatches: window.__studioUi.activeSessionId() === id,
+                        markerMatches: currentRows[index]?.getAttribute('aria-current') === 'true',
+                    };
+                };
+                const beforeSend = await resume(firstId);
+                const agent = button('Agent');
+                if (agent) agent.click();
+                await pause(100);
+                const prompt = root.querySelector('textarea[aria-label="Prompt"]');
+                if (prompt) {
+                    prompt.value = '17+25';
+                    prompt.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                await pause(50);
+                const send = button('Send');
+                if (send) send.click();
+                const transcript = () => root.querySelector('[aria-label="Conversation messages"]')?.innerText || '';
+                const hasExactResponse = (text) => text.includes('17 + 25 = 42')
+                    && text.includes('R4 geometric exact arithmetic')
+                    && text.includes('p0: 7 + 5 + 0 -> 2, carry 1');
+                let answerReady = false;
+                for (let attempt = 0; attempt < 80; attempt += 1) {
+                    if (hasExactResponse(transcript())) { answerReady = true; break; }
+                    await pause(100);
+                }
+                let generationComplete = false;
+                for (let attempt = 0; attempt < 80; attempt += 1) {
+                    if (root.textContent.includes('Session: complete')) { generationComplete = true; break; }
+                    await pause(100);
+                }
+                const firstTranscript = transcript();
+                const otherResume = await resume(secondId);
+                const otherTranscript = transcript();
+                const restoredResume = await resume(firstId);
+                const restoredTranscript = transcript();
+                const restoredMatchesOriginal = restoredTranscript === firstTranscript;
+                const typedMcpAfterWorkflow = document.querySelectorAll('#studio-typed-root .mcp-connections').length;
                 const app = document.getElementById('app');
                 return {
                     shell: Boolean(document.querySelector('#studio-typed-root .studio-shell')),
@@ -257,6 +300,7 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
                     legacyHidden: app ? getComputedStyle(app).display === 'none' : false,
                     legacyMcp: document.querySelectorAll('#app #mcpConnections').length,
                     typedMcp,
+                    typedMcpAfterWorkflow,
                     artifactReady,
                     visible: getComputedStyle(root).display !== 'none',
                     typedText: root.innerText.includes('Agent'),
@@ -265,6 +309,19 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
                     legacyReady: Boolean(window.__studioUi && window.__studioFiles),
                     legacyWorker: Boolean(window.__studioApp?.worker),
                     scriptCount: document.scripts.length,
+                    sessionFlow: {
+                        created: Boolean(firstId && secondId && firstId !== secondId),
+                        beforeSend,
+                        answerReady,
+                        firstTranscript: firstTranscript.slice(0, 1000),
+                        otherResume,
+                        otherHasAnswer: hasExactResponse(otherTranscript),
+                        restoredResume,
+                        restoredAnswer: hasExactResponse(restoredTranscript),
+                        restoredTranscript: restoredTranscript.slice(0, 1000),
+                        generationComplete,
+                        restoredMatchesOriginal,
+                    },
                 };
             })()`,
             awaitPromise: true,
@@ -297,6 +354,28 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
         }, sessionId);
         mountError = evaluation.result.value;
     }
+    if (options.typed || options.mountError) {
+        const interactionSettleDeadline = Date.now() + 1000;
+        while (Date.now() < interactionSettleDeadline) {
+            await drainChildSessions();
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+    const requested = cdp.events.slice(before)
+        .filter((e) => e.method === 'Network.requestWillBeSent')
+        .map((e) => e.params.request.url);
+    const external = requested.filter((u) => {
+        if (!/^https?:/i.test(u)) return false;
+        try { return new URL(u).origin !== origin; } catch (_e) { return true; }
+    });
+    const rawTypeScript = requested.filter((url) => {
+        try {
+            const pathname = new URL(url).pathname;
+            return /\.tsx?$/i.test(pathname) || /\/src\/main(?:\.[cm]?[jt]sx?)?$/i.test(pathname);
+        } catch (_e) {
+            return true;
+        }
+    });
     const runtimeErrors = cdp.events.slice(before)
         .filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Runtime.consoleAPICalled')
         .map((event) => event.params);
@@ -335,9 +414,16 @@ async function main() {
             assert(typedPreview.typed?.shellCount === 1 && typedPreview.typed.active, 'typed preview did not mount exactly one StudioApp: ' + JSON.stringify(typedPreview.typed));
             assert(typedPreview.typed.legacyHidden, 'legacy shell remained visible in typed preview');
             assert(typedPreview.typed.legacyMcp === 0, 'legacy MCP auto-boot mounted in typed preview');
-            assert(typedPreview.typed.typedMcp === 1, 'typed MCP panel missing or duplicated: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.typedMcp === 1 && typedPreview.typed.typedMcpAfterWorkflow === 0, 'typed MCP panel counts do not match Models/Agent navigation: ' + JSON.stringify(typedPreview.typed));
             assert(typedPreview.typed.artifactReady, 'typed bundled demo did not reach Artifact: ready: ' + JSON.stringify(typedPreview.typed));
             assert(typedPreview.typed.visible && typedPreview.typed.typedText, 'typed shell is not computed-visible with typed text: ' + JSON.stringify(typedPreview.typed));
+            const flow = typedPreview.typed.sessionFlow;
+            assert(flow?.created, 'typed session creation did not produce two distinct real session IDs: ' + JSON.stringify(flow));
+            assert(flow.beforeSend?.idMatches && flow.beforeSend.markerMatches, 'typed resume did not verify the original active session: ' + JSON.stringify(flow));
+            assert(flow.answerReady && flow.firstTranscript.includes('42'), 'typed UOR arithmetic response was not visible: ' + JSON.stringify(flow));
+            assert(flow.otherResume?.idMatches && flow.otherResume.markerMatches && flow.otherHasAnswer === false, 'the other session exposed the original response: ' + JSON.stringify(flow));
+            assert(flow.restoredResume?.idMatches && flow.restoredResume.markerMatches && flow.restoredAnswer, 'the original session did not restore its response: ' + JSON.stringify(flow));
+            assert(flow.generationComplete && flow.restoredMatchesOriginal, 'the restored transcript is incomplete or has extra content: ' + JSON.stringify(flow));
         }
         const typedMountError = process.env.UOR_STUDIO_TYPED === '1'
             ? await trapPageLoad(cdp, origin, '/studio/dist/__mount_error.html?typed=1', { mountError: true })

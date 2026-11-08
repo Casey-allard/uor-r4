@@ -144,3 +144,45 @@ describe('generation adapter', () => {
         adapter.dispose();
     });
 });
+
+
+describe('failed-start session identity', () => {
+    it('retains the session ID when the legacy start is rejected', () => {
+        const store = new LifecycleStore();
+        const api = sessions();
+        api.activeSessionId = vi.fn(() => 'session-a');
+        api.sendPrompt = vi.fn((): false => false);
+        store.dispatch({ type: 'session/synchronized', activeId: 'session-a', items: [{ id: 'session-a', title: 'A', createdAt: 1, updatedAt: 1, messageCount: 0, preview: '' }] });
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        const adapter = createGenerationAdapter(store, api);
+        expect(adapter.send('hello')).toBe(false);
+        expect(store.getState().session.lastGeneration?.sessionId).toBe('session-a');
+        adapter.dispose();
+    });
+
+    it('fails closed when the active-session read throws', () => {
+        const store = new LifecycleStore();
+        const api = sessions();
+        api.activeSessionId = vi.fn(() => { throw new Error('read failed'); });
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        const adapter = createGenerationAdapter(store, api);
+        expect(adapter.send('hello')).toBe(false);
+        expect(api.sendPrompt).not.toHaveBeenCalled();
+        adapter.dispose();
+    });
+});
+
+
+describe('generation mode read failure', () => {
+    it('returns false instead of invoking the model when getMode throws', () => {
+        const store = new LifecycleStore();
+        const api = sessions();
+        api.getMode = vi.fn(() => { throw new Error('mode read failed'); });
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        const adapter = createGenerationAdapter(store, api);
+        expect(adapter.send('hello')).toBe(false);
+        expect(api.sendPrompt).not.toHaveBeenCalled();
+        expect(api.predict).not.toHaveBeenCalled();
+        adapter.dispose();
+    });
+});

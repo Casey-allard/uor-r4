@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { ModelSourceAdapter } from '../adapters/modelSourceAdapter.js';
 import type { ModelSourcesApi } from '../../assets/js/model_sources.js';
-import { createGenerationAdapter } from '../adapters/generation.js';
+import { createAgentSessionController } from '../adapters/agentSession.js';
 import { saveActiveFile, saveActiveFileCopy } from '../adapters/fileSave.js';
 import { createOperationGate } from '../adapters/operations.js';
 import { syncWorkspaceSummary } from '../adapters/workflow.js';
@@ -59,9 +59,9 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     const [agentDraft, setAgentDraft] = useState('');
     const [agentPasted, setAgentPasted] = useState('');
     const [editorSettings, setEditorSettings] = useState(() => ui.getSettings());
-    const generation = useMemo(() => createGenerationAdapter(store, sessions), [store, sessions]);
+    const agent = useMemo(() => createAgentSessionController(store, sessions), [store, sessions]);
     const desktopActions = useMemo(() => desktop ?? createDesktopActions(), [desktop]);
-    useEffect(() => () => generation.dispose(), [generation]);
+    useEffect(() => () => agent.dispose(), [agent]);
     useEffect(() => {
         const viewChanged = (event: Event) => {
             const view = (event as CustomEvent<{ view?: string }>).detail?.view;
@@ -117,9 +117,8 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
         { id: 'models', group: 'Navigation', label: 'Go to Models', description: 'Artifacts and providers', run: () => setActiveSection('models') },
         { id: 'guide', group: 'Navigation', label: 'Go to Guide', description: 'Workflows and limits', run: () => setActiveSection('guide') },
         { id: 'new-session', group: 'Sessions', label: 'New session', description: 'Start a clean thread', disabled: state.session.phase === 'generating', run: () => {
-            if (sessions.newSession()) {
+            if (agent.create()) {
                 succeed('session:new');
-                store.dispatch({ type: 'session/activated' });
                 setSessionRevision((value) => value + 1);
             } else {
                 report('Could not create a session.', 'session:new');
@@ -144,17 +143,17 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
             onSettings={() => setSettingsOpen(true)}
             onInspector={() => setInspectorOpen((value) => !value)}
             inspectorOpen={inspectorOpen}
-            sessions={<SessionList store={store} sessions={sessions} download={download} onError={report} onSuccess={succeed} onChange={(operation) => { succeed(operation); setSessionRevision((value) => value + 1); }} />}
+            sessions={<SessionList store={store} agent={agent} download={download} onError={report} onSuccess={succeed} onChange={(operation) => { succeed(operation); setSessionRevision((value) => value + 1); }} />}
         >
             {error && <p role="alert">{error.message}</p>}
             {activeSection === 'agent' && (
                 <AgentComposer
-                    key={`${sessions.activeSessionId() || 'new'}:${sessionRevision}`}
+                    key={`${state.session.activeId || 'new'}:${state.session.revision}:${sessionRevision}`}
                     store={store}
                     sessions={sessions}
                     files={files}
                     ui={ui}
-                    generation={generation}
+                    generation={agent}
                     draft={agentDraft}
                     pasted={agentPasted}
                     onDraftChange={setAgentDraft}
@@ -182,8 +181,8 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
             {settingsOpen && <Settings ui={ui} generating={state.session.phase === 'generating'} onClose={() => setSettingsOpen(false)} onError={report} onSettingsChange={setEditorSettings} onSuccess={(kind) => succeed(`settings:${kind}`)} onChange={(kind) => {
                 if (kind === 'editor') store.dispatch({ type: 'file/closed' });
                 else {
+                    agent.refresh();
                     setSessionRevision((value) => value + 1);
-                    store.dispatch({ type: sessions.activeSessionId() ? 'session/activated' : 'session/cleared' });
                 }
             }} />}
         </AppShell>

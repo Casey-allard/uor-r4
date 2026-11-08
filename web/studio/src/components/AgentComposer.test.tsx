@@ -9,7 +9,7 @@ import { AgentComposer } from './AgentComposer.js';
 
 let host: HTMLDivElement;
 beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); });
-afterEach(() => { render(null, host); host.remove(); vi.restoreAllMocks(); });
+afterEach(() => { act(() => { render(null, host); }); host.remove(); vi.restoreAllMocks(); });
 
 function sessions(): SessionApi {
     return {

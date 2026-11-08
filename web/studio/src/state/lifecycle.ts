@@ -5,6 +5,15 @@ export type FilePhase = 'no-folder' | 'no-open-file' | 'clean' | 'dirty' | 'savi
 export type SessionPhase = 'new' | 'active' | 'generating' | 'complete' | 'stopped' | 'error';
 export type Privacy = 'localWASM' | 'loopbackAPI' | 'privateNetworkAPI' | 'remoteAPI';
 
+export interface SessionSummary {
+    id: string;
+    title: string;
+    createdAt: number;
+    updatedAt: number;
+    messageCount: number;
+    preview: string;
+}
+
 export interface SourceRef {
     kind: SourceKind;
     id: string;
@@ -53,12 +62,16 @@ export interface FileState {
 
 export interface GenerationSnapshot {
     generationId: number;
+    sessionId: string | null;
     source: SourceRef;
     privacy: Privacy;
     canStop: boolean;
 }
 
 export interface SessionState {
+    activeId: string | null;
+    revision: number;
+    items: SessionSummary[];
     phase: SessionPhase;
     activeGeneration: GenerationSnapshot | null;
     lastGeneration: GenerationSnapshot | null;
@@ -95,11 +108,13 @@ export type LifecycleAction =
     | { type: 'file/closed' }
     | { type: 'session/activated' }
     | { type: 'session/cleared' }
+    | { type: 'session/synchronized'; activeId: string | null; items: SessionSummary[] }
+    | { type: 'session/interrupted'; activeId: string | null; items: SessionSummary[]; generationId: number }
     | { type: 'file/dirty' }
     | { type: 'file/saveStarted'; path: string }
     | { type: 'file/saveFinished'; path: string; saveId?: number }
     | { type: 'file/saveFailed'; path: string; saveId?: number; error: string }
-    | { type: 'generation/started'; source: SourceRef; generationId?: number }
+    | { type: 'generation/started'; source: SourceRef; generationId?: number; sessionId?: string | null }
     | { type: 'generation/finished'; outcome: 'complete' | 'stopped' | 'error'; generationId: number; error?: string };
 
 function initialState(): LifecycleState {
@@ -111,7 +126,7 @@ function initialState(): LifecycleState {
         api: { testStatus: 'untested' },
         progress: null,
         file: { phase: 'no-folder', path: null, savePath: null, saveId: null, error: null },
-        session: { phase: 'new', activeGeneration: null, lastGeneration: null, error: null },
+        session: { activeId: null, revision: 0, items: [], phase: 'new', activeGeneration: null, lastGeneration: null, error: null },
     };
 }
 
@@ -263,7 +278,15 @@ export class LifecycleStore {
             case 'session/cleared':
                 this.state = {
                     ...this.state,
-                    session: { phase: 'new', activeGeneration: null, lastGeneration: null, error: null },
+                    session: {
+                        activeId: null,
+                        revision: this.state.session.revision + (this.state.session.activeId === null ? 0 : 1),
+                        items: [],
+                        phase: 'new',
+                        activeGeneration: null,
+                        lastGeneration: null,
+                        error: null,
+                    },
                 };
                 return;
             case 'session/activated':
@@ -274,6 +297,45 @@ export class LifecycleStore {
                     };
                 }
                 return;
+            case 'session/synchronized': {
+                const session = this.state.session;
+                if (action.activeId !== null && !action.items.some((item) => item.id === action.activeId)) return;
+                const activeGeneration = session.activeGeneration;
+                if (activeGeneration && activeGeneration.sessionId !== action.activeId) return;
+                const changed = session.activeId !== action.activeId;
+                this.state = {
+                    ...this.state,
+                    session: changed ? {
+                        activeId: action.activeId,
+                        revision: session.revision + 1,
+                        items: action.items.map((item) => ({ ...item })),
+                        phase: action.activeId === null ? 'new' : 'active',
+                        activeGeneration: null,
+                        lastGeneration: null,
+                        error: null,
+                    } : { ...session, items: action.items.map((item) => ({ ...item })) },
+                };
+                return;
+            }
+            case 'session/interrupted': {
+                const session = this.state.session;
+                if (action.activeId !== null && !action.items.some((item) => item.id === action.activeId)) return;
+                const active = session.activeGeneration ?? (session.phase === 'stopped' ? session.lastGeneration : null);
+                if (!active || active.generationId !== action.generationId || active.sessionId === action.activeId || session.activeId !== active.sessionId || session.activeId === action.activeId) return;
+                this.state = {
+                    ...this.state,
+                    session: {
+                        activeId: action.activeId,
+                        revision: session.revision + 1,
+                        items: action.items.map((item) => ({ ...item })),
+                        phase: 'stopped',
+                        activeGeneration: null,
+                        lastGeneration: active,
+                        error: null,
+                    },
+                };
+                return;
+            }
             case 'file/opened':
                 this.state = {
                     ...this.state,
@@ -303,6 +365,8 @@ export class LifecycleStore {
                 return;
             case 'generation/started': {
                 const selected = this.state.selectedSource;
+                const sessionId = action.sessionId ?? null;
+                if (sessionId !== this.state.session.activeId) return;
                 if (this.state.session.phase === 'generating' || !selected || selected.kind !== action.source.kind || selected.id !== action.source.id) return;
                 let privacy: Privacy;
                 try {
@@ -320,10 +384,10 @@ export class LifecycleStore {
                 this.nextGenerationId = Math.max(this.nextGenerationId, generationId);
                 const canStop = selected.kind === 'api'
                     || !(this.state.residentArtifact?.canGenerate === false && this.state.residentArtifact.canPredict === true);
-                const generation = { generationId, source: { ...selected }, privacy, canStop };
+                const generation = { generationId, sessionId, source: { ...selected }, privacy, canStop };
                 this.state = {
                     ...this.state,
-                    session: { phase: 'generating', activeGeneration: generation, lastGeneration: this.state.session.lastGeneration, error: null },
+                    session: { ...this.state.session, phase: 'generating', activeGeneration: generation, lastGeneration: this.state.session.lastGeneration, error: null },
                 };
                 return;
             }
@@ -332,7 +396,7 @@ export class LifecycleStore {
                 if (!active || active.generationId !== action.generationId) return;
                 this.state = {
                     ...this.state,
-                    session: { phase: action.outcome, activeGeneration: null, lastGeneration: active, error: action.error ?? null },
+                    session: { ...this.state.session, phase: action.outcome, activeGeneration: null, lastGeneration: active, error: action.error ?? null },
                 };
                 return;
             }

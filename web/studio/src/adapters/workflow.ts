@@ -1,4 +1,5 @@
-import type { LifecycleStore } from '../state/lifecycle.js';
+import type { LifecycleStore, SessionSummary } from '../state/lifecycle.js';
+export type { SessionSummary } from '../state/lifecycle.js';
 
 export interface StudioFile {
     path: string;
@@ -41,15 +42,6 @@ export interface WorkspaceApi {
     mode(): string;
     tabs(): WorkspaceTab[];
     treeSummary(): WorkspaceSummary;
-}
-
-export interface SessionSummary {
-    id: string;
-    title: string;
-    createdAt: number;
-    updatedAt: number;
-    messageCount: number;
-    preview: string;
 }
 
 export interface ChatMessage {
