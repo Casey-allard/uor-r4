@@ -1,0 +1,75 @@
+{
+  "schema": "uor-r4.cpu-first-reply-hamming-weight-resources/1",
+  "measured_at": "2026-11-08T23:07:38Z",
+  "substrate": "cpu-development-research",
+  "root": "local/deepseek/first-reply-hamming-weight",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cpus": 32,
+    "threads_per_core": 2,
+    "final_probe_threads": 32
+  },
+  "runs": [
+    {"path":"runs/s1-one-user.json","wall_ms":865,"peak_rss_kib":157028,"disposition":"pre-final schema-2 without distance aggregates"},
+    {"path":"runs/s1-per-turn.json","wall_ms":859,"peak_rss_kib":157028,"disposition":"pre-final schema-2 without distance aggregates"},
+    {"path":"runs/s2-one-user.json","wall_ms":975,"peak_rss_kib":157292,"disposition":"pre-final schema-2 without distance aggregates"},
+    {"path":"runs/s2-per-turn.json","wall_ms":866,"peak_rss_kib":156976,"disposition":"pre-final schema-2 without distance aggregates"},
+    {"path":"runs/s1-one-user-repeat.json","wall_ms":988,"peak_rss_kib":157264,"disposition":"pre-final determinism repeat"},
+    {"path":"runs-v1/s1-one-user.json","wall_ms":863,"peak_rss_kib":157252,"disposition":"superseded schema-2 without distance aggregates"},
+    {"path":"runs-v1/s1-per-turn.json","wall_ms":862,"peak_rss_kib":157076,"disposition":"superseded schema-2 without distance aggregates"},
+    {"path":"runs-v1/s2-one-user.json","wall_ms":991,"peak_rss_kib":157416,"disposition":"superseded schema-2 without distance aggregates"},
+    {"path":"runs-v1/s2-per-turn.json","wall_ms":853,"peak_rss_kib":157136,"disposition":"superseded schema-2 without distance aggregates"},
+    {"path":"runs-v1/s1-one-user-repeat.json","wall_ms":1012,"peak_rss_kib":157468,"disposition":"superseded determinism repeat"},
+    {"path":"runs-v2/s1-one-user.json","wall_ms":858,"peak_rss_kib":157188,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v2/s1-per-turn.json","wall_ms":864,"peak_rss_kib":157096,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v2/s2-one-user.json","wall_ms":980,"peak_rss_kib":157560,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v2/s2-per-turn.json","wall_ms":864,"peak_rss_kib":157212,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v2/s1-one-user-repeat.json","wall_ms":977,"peak_rss_kib":157472,"disposition":"superseded pre-review determinism repeat"},
+    {"path":"runs-v3/s1-one-user.json","wall_ms":858,"peak_rss_kib":157272,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v3/s1-per-turn.json","wall_ms":856,"peak_rss_kib":157192,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v3/s2-one-user.json","wall_ms":975,"peak_rss_kib":157464,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v3/s2-per-turn.json","wall_ms":850,"peak_rss_kib":157264,"disposition":"superseded pre-review 32-thread evidence"},
+    {"path":"runs-v3/s1-one-user-repeat.json","wall_ms":981,"peak_rss_kib":157472,"disposition":"superseded pre-review determinism repeat"},
+    {"path":"runs-v4/s1-one-user.json","wall_ms":864,"peak_rss_kib":157192,"disposition":"final reviewed-source 32-thread evidence"},
+    {"path":"runs-v4/s1-per-turn.json","wall_ms":859,"peak_rss_kib":157188,"disposition":"final reviewed-source 32-thread evidence"},
+    {"path":"runs-v4/s2-one-user.json","wall_ms":985,"peak_rss_kib":157512,"disposition":"final reviewed-source 32-thread evidence"},
+    {"path":"runs-v4/s2-per-turn.json","wall_ms":859,"peak_rss_kib":157240,"disposition":"final reviewed-source 32-thread evidence"},
+    {"path":"runs-v4/s1-one-user-repeat.json","wall_ms":988,"peak_rss_kib":157380,"disposition":"final reviewed-source determinism repeat"}
+  ],
+  "totals": {
+    "report_count": 25,
+    "measured_wall_ms": 22752,
+    "measured_wall_seconds": 22.752,
+    "max_peak_rss_kib": 157560,
+    "final_report_count": 5,
+    "final_measured_wall_seconds": 4.555,
+    "final_seed_render_count": 4,
+    "final_seed_render_wall_seconds": 3.567,
+    "final_max_peak_rss_kib": 157512,
+    "final_reports_bytes": 30706698
+  },
+  "storage": {
+    "local_evidence_and_inputs_bytes": 152020565,
+    "build_target_bytes": 3835625723,
+    "free_bytes_at_measurement": 155516141568,
+    "free_gib_at_measurement": 144.836,
+    "floor_gib": 30,
+    "required_margin_mib": 128,
+    "floor_passes": true
+  },
+  "ledger": {
+    "shared_model_time_active_receipt": "ABSENT",
+    "shared_model_time_ledger_path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "canonical_resource_ledger": "docs/labs/cpu-training-pilot-first-reply-hamming-weight-2026-11-08/resource-ledger.json",
+    "previous_admitted_cumulative_projection_seconds": 100367.677487699,
+    "current_unit_projection_seconds": 1800,
+    "admitted_cumulative_projection_seconds": 102167.677487699
+  },
+  "unmeasured": [
+    "Rust builds and incremental rebuilds",
+    "tests, formatting, Clippy and harness gates",
+    "review and delivery"
+  ],
+  "note": "Five retained source iterations establish that distance aggregation and fail-closed query/key/shape validation leave every weight, span and chosen-token field unchanged. The final v4 seed/rendering reports total 3.567 seconds; the fifth report is the 0.988-second determinism repeat."
+}

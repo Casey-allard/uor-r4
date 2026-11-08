@@ -14,13 +14,14 @@ use std::time::Instant;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use uor_r4_core::answer_oracle::FrozenAnswers;
+use uor_r4_cpu_train::{CpuFbsForward, CpuFbsHead, CpuHammingHeadKind, CpuHammingReadTrace};
 use uor_r4_integer::stack::{
     read_hamming_uorlut01, HammingStepRead, IntegerStackModel, NativeStep,
 };
 use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message, SCHEMA_V2};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
-const SCHEMA: &str = "uor-r4.cpu-first-reply-hamming-trace/1";
+const SCHEMA: &str = "uor-r4.cpu-first-reply-hamming-trace/2";
 const ONE_USER_RENDERING: &str = "one-user-turn/v1";
 const PER_TURN_RENDERING: &str = "per-turn/v1";
 const EOS: u32 = 1;
@@ -129,11 +130,25 @@ struct PreparedCase {
 struct HeadTrace {
     head: usize,
     kind: &'static str,
-    kept: Vec<u32>,
+    margin_q16: i32,
+    kept: Vec<PositionTrace>,
     asked_span: bool,
     other_span: bool,
     asked_first_token: bool,
     other_first_token: bool,
+    asked_first_token_active: bool,
+    other_first_token_active: bool,
+    asked_active_span_rows: bool,
+    other_active_span_rows: bool,
+    asked_weight_q31: u64,
+    other_weight_q31: u64,
+}
+
+#[derive(Serialize)]
+struct PositionTrace {
+    position: u32,
+    distance: u32,
+    weight_q31: u64,
 }
 
 #[derive(Serialize)]
@@ -166,7 +181,19 @@ struct HeadTally {
     both_spans: usize,
     asked_first_token: usize,
     other_first_token: usize,
+    asked_first_token_active: usize,
+    other_first_token_active: usize,
+    margin_q16: i32,
+    distance_sum: u64,
+    distance_min: Option<u32>,
+    distance_max: u32,
     kept_positions: u64,
+    active_positions: u64,
+    asked_active_span_rows: usize,
+    other_active_span_rows: usize,
+    both_active_span_rows: usize,
+    asked_weight_q31: u64,
+    other_weight_q31: u64,
 }
 
 #[derive(Default)]
@@ -190,7 +217,19 @@ struct HeadSummary {
     both_spans: usize,
     asked_first_token: usize,
     other_first_token: usize,
+    asked_first_token_active: usize,
+    other_first_token_active: usize,
+    margin_q16: i32,
+    distance_sum: u64,
+    distance_min: Option<u32>,
+    distance_max: u32,
     kept_positions: u64,
+    active_positions: u64,
+    asked_active_span_rows: usize,
+    other_active_span_rows: usize,
+    both_active_span_rows: usize,
+    asked_weight_q31: u64,
+    other_weight_q31: u64,
 }
 
 #[derive(Serialize)]
@@ -308,6 +347,7 @@ fn run() -> Result<()> {
     let hamming = read_hamming_uorlut01(&artifact)
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "artifact carries no Hamming read".to_owned())?;
+    let forward = CpuFbsForward::from_artifact(&artifact).map_err(|error| error.to_string())?;
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
         .ok_or_else(|| "tokenizer JSON is not a supported byte-level BPE tokenizer".to_owned())?;
     let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
@@ -324,7 +364,7 @@ fn run() -> Result<()> {
     let started = Instant::now();
     let rows = prepared
         .par_iter()
-        .map(|case| trace_case(&model, case, copy_heads, &expected_trace_shape))
+        .map(|case| trace_case(&model, &forward, case, copy_heads, &expected_trace_shape))
         .collect::<Result<Vec<_>>>()?;
     let wall = started.elapsed();
 
@@ -351,27 +391,13 @@ fn run() -> Result<()> {
                 let tally = overall_tallies
                     .entry((read.depth, head.head, head.kind))
                     .or_default();
-                tally_head(
-                    tally,
-                    &head.kept,
-                    head.asked_span,
-                    head.other_span,
-                    head.asked_first_token,
-                    head.other_first_token,
-                );
+                tally_head(tally, head);
                 let tally = stratum_tallies
                     .entry(row.stratum.clone())
                     .or_default()
                     .entry((read.depth, head.head, head.kind))
                     .or_default();
-                tally_head(
-                    tally,
-                    &head.kept,
-                    head.asked_span,
-                    head.other_span,
-                    head.asked_first_token,
-                    head.other_first_token,
-                );
+                tally_head(tally, head);
             }
         }
     }
@@ -408,6 +434,9 @@ fn run() -> Result<()> {
             "head": "nearest",
             "reply_position": "after the final prompt token",
             "value_spans": "exact consecutive token spans in the rendered prompt",
+            "distance": "candidate sign-code XOR popcount in bits",
+            "margin": "artifact head margin in Q16 bits",
+            "position_weight": "exact Q31 margin weight used by the served head",
             "read_count": hamming.reads.len(),
             "head_count_per_read": hamming.record.heads,
             "threads": threads,
@@ -421,7 +450,7 @@ fn run() -> Result<()> {
         "rows": rows,
         "wall_milliseconds": wall.as_millis().clamp(1, u128::from(u64::MAX)),
         "peak_rss_kib": peak_rss_kib()?,
-        "claim": "read-only first-reply Hamming value-position attribution; not a capability, selection or serving result"
+        "claim": "read-only first-reply Hamming position, distance and margin-weight attribution; not a causal, capability or serving result"
     });
     let mut bytes = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
     bytes.push(b'\n');
@@ -646,16 +675,41 @@ fn locate_spans(haystack: &[u32], needle: &[u32]) -> Vec<ValueSpan> {
         .collect()
 }
 
-fn kept_in_spans(kept: &[u32], spans: &[ValueSpan]) -> bool {
-    kept.iter().any(|&position| {
-        spans
-            .iter()
-            .any(|span| (span.start..span.end).contains(&(position as usize)))
+fn in_spans(position: u32, spans: &[ValueSpan]) -> bool {
+    spans
+        .iter()
+        .any(|span| (span.start..span.end).contains(&(position as usize)))
+}
+
+fn kept_in_spans(kept: &[PositionTrace], spans: &[ValueSpan]) -> bool {
+    kept.iter()
+        .any(|position| in_spans(position.position, spans))
+}
+
+fn active_in_spans(kept: &[PositionTrace], spans: &[ValueSpan]) -> bool {
+    kept.iter()
+        .any(|position| position.weight_q31 != 0 && in_spans(position.position, spans))
+}
+
+fn kept_at_span_starts(kept: &[PositionTrace], spans: &[ValueSpan]) -> bool {
+    spans.iter().any(|span| {
+        kept.iter()
+            .any(|position| position.position as usize == span.start)
     })
 }
 
-fn kept_at_span_starts(kept: &[u32], spans: &[ValueSpan]) -> bool {
-    spans.iter().any(|span| kept.contains(&(span.start as u32)))
+fn active_at_span_starts(kept: &[PositionTrace], spans: &[ValueSpan]) -> bool {
+    spans.iter().any(|span| {
+        kept.iter()
+            .any(|position| position.position as usize == span.start && position.weight_q31 != 0)
+    })
+}
+
+fn weight_in_spans(kept: &[PositionTrace], spans: &[ValueSpan]) -> u64 {
+    kept.iter()
+        .filter(|position| in_spans(position.position, spans))
+        .map(|position| position.weight_q31)
+        .sum()
 }
 
 fn trace_first_reply(
@@ -685,13 +739,89 @@ fn trace_first_reply(
     Ok((decision, reads))
 }
 
+fn trace_first_reply_weights(
+    forward: &CpuFbsForward,
+    prompt: &[u32],
+) -> Result<(u32, Vec<CpuHammingReadTrace>)> {
+    let (last, prefix) = prompt
+        .split_last()
+        .ok_or_else(|| "first-reply trace needs a nonempty prompt".to_owned())?;
+    let mut forward = forward.clone();
+    for &token in prefix {
+        forward
+            .step(token, CpuFbsHead::Nearest)
+            .map_err(|error| error.to_string())?;
+    }
+    forward.mark_reply_start();
+    forward
+        .set_hamming_trace(true)
+        .map_err(|error| error.to_string())?;
+    let decision = forward
+        .step(*last, CpuFbsHead::Nearest)
+        .map_err(|error| error.to_string())?;
+    let reads = forward
+        .take_hamming_trace()
+        .ok_or_else(|| "CPU Hamming trace did not turn on".to_owned())?;
+    if reads.is_empty() {
+        return Err("the first-reply step produced no CPU Hamming trace".to_owned());
+    }
+    Ok((decision.token, reads))
+}
+
+fn validate_cpu_trace_alignment(
+    reads: &[HammingStepRead],
+    cpu_reads: &[CpuHammingReadTrace],
+    copy_heads: usize,
+) -> Result<()> {
+    if cpu_reads.len() != reads.len() {
+        return Err("CPU and integer Hamming read counts differ".to_owned());
+    }
+    for (integer, cpu) in reads.iter().zip(cpu_reads) {
+        if integer.depth != cpu.depth || integer.heads.len() != cpu.heads.len() {
+            return Err(format!(
+                "CPU and integer Hamming trace shape differs at depth {}",
+                integer.depth
+            ));
+        }
+        for (head, (integer_head, cpu_head)) in integer.heads.iter().zip(&cpu.heads).enumerate() {
+            let expected_kind = if head < copy_heads {
+                CpuHammingHeadKind::Copy
+            } else {
+                CpuHammingHeadKind::Type
+            };
+            let positions = cpu_head
+                .kept
+                .iter()
+                .map(|position| position.position)
+                .collect::<Vec<_>>();
+            if cpu_head.head != head
+                || cpu_head.kind != expected_kind
+                || integer_head.query != cpu_head.query
+                || integer_head.key != cpu_head.key
+                || integer_head.kept != positions
+            {
+                return Err(format!(
+                    "CPU and integer Hamming choices differ at depth {} head {}",
+                    integer.depth, head
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn trace_case(
     model: &IntegerStackModel,
+    forward: &CpuFbsForward,
     case: &PreparedCase,
     copy_heads: usize,
     expected_shape: &[(usize, usize)],
 ) -> Result<RowTrace> {
     let (decision, reads) = trace_first_reply(model, &case.prompt)?;
+    let (cpu_decision, cpu_reads) = trace_first_reply_weights(forward, &case.prompt)?;
+    if decision.token != cpu_decision {
+        return Err(format!("{}: CPU and integer first tokens differ", case.id));
+    }
     let current_shape = reads
         .iter()
         .flat_map(|read| (0..read.heads.len()).map(move |head| (read.depth, head)))
@@ -702,6 +832,8 @@ fn trace_case(
             case.id
         ));
     }
+    validate_cpu_trace_alignment(&reads, &cpu_reads, copy_heads)
+        .map_err(|error| format!("{}: {error}", case.id))?;
     let target_first = *case
         .target
         .content_ids
@@ -714,27 +846,61 @@ fn trace_case(
         .ok_or_else(|| format!("{}: other value has no first token", case.id))?;
     let read_rows = reads
         .iter()
-        .map(|read| ReadTrace {
-            depth: read.depth,
-            heads: read
+        .zip(&cpu_reads)
+        .map(|(read, cpu_read)| {
+            let heads = read
                 .heads
                 .iter()
+                .zip(&cpu_read.heads)
                 .enumerate()
-                .map(|(head, trace)| {
+                .map(|(head, (trace, cpu_trace))| -> Result<HeadTrace> {
                     let kind = if head < copy_heads { "copy" } else { "type" };
-                    HeadTrace {
+                    let kept = trace
+                        .kept
+                        .iter()
+                        .map(|&position| {
+                            cpu_trace
+                                .kept
+                                .iter()
+                                .find(|metric| metric.position == position)
+                                .map(|metric| PositionTrace {
+                                    position,
+                                    distance: metric.distance,
+                                    weight_q31: metric.weight_q31,
+                                })
+                                .ok_or_else(|| {
+                                    format!("{}: no weight metric for position {position}", case.id)
+                                })
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    let asked_span = kept_in_spans(&kept, &case.target_spans);
+                    let other_span = kept_in_spans(&kept, &case.other_spans);
+                    let asked_active_span_rows = active_in_spans(&kept, &case.target_spans);
+                    let other_active_span_rows = active_in_spans(&kept, &case.other_spans);
+                    Ok(HeadTrace {
                         head,
                         kind,
-                        kept: trace.kept.clone(),
-                        asked_span: kept_in_spans(&trace.kept, &case.target_spans),
-                        other_span: kept_in_spans(&trace.kept, &case.other_spans),
-                        asked_first_token: kept_at_span_starts(&trace.kept, &case.target_spans),
-                        other_first_token: kept_at_span_starts(&trace.kept, &case.other_spans),
-                    }
+                        margin_q16: cpu_trace.margin_q16,
+                        asked_span,
+                        other_span,
+                        asked_first_token: kept_at_span_starts(&kept, &case.target_spans),
+                        other_first_token: kept_at_span_starts(&kept, &case.other_spans),
+                        asked_first_token_active: active_at_span_starts(&kept, &case.target_spans),
+                        other_first_token_active: active_at_span_starts(&kept, &case.other_spans),
+                        asked_active_span_rows,
+                        other_active_span_rows,
+                        asked_weight_q31: weight_in_spans(&kept, &case.target_spans),
+                        other_weight_q31: weight_in_spans(&kept, &case.other_spans),
+                        kept,
+                    })
                 })
-                .collect(),
+                .collect::<Result<Vec<_>>>()?;
+            Ok(ReadTrace {
+                depth: read.depth,
+                heads,
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()?;
     Ok(RowTrace {
         id: case.id.clone(),
         pair_id: case.pair_id.clone(),
@@ -749,20 +915,41 @@ fn trace_case(
     })
 }
 
-fn tally_head(
-    tally: &mut HeadTally,
-    kept: &[u32],
-    asked_span: bool,
-    other_span: bool,
-    asked_first: bool,
-    other_first: bool,
-) {
+fn tally_head(tally: &mut HeadTally, head: &HeadTrace) {
     tally.rows += 1;
-    tally.kept_positions += kept.len() as u64;
-    tally.empty_kept += usize::from(kept.is_empty());
-    tally.asked_first_token += usize::from(asked_first);
-    tally.other_first_token += usize::from(other_first);
-    match (asked_span, other_span) {
+    tally.kept_positions += head.kept.len() as u64;
+    tally.active_positions += head
+        .kept
+        .iter()
+        .filter(|position| position.weight_q31 != 0)
+        .count() as u64;
+    tally.empty_kept += usize::from(head.kept.is_empty());
+    tally.asked_first_token += usize::from(head.asked_first_token);
+    tally.other_first_token += usize::from(head.other_first_token);
+    tally.asked_first_token_active += usize::from(head.asked_first_token_active);
+    tally.other_first_token_active += usize::from(head.other_first_token_active);
+    tally.margin_q16 = head.margin_q16;
+    tally.distance_sum = tally.distance_sum.saturating_add(
+        head.kept
+            .iter()
+            .map(|position| u64::from(position.distance))
+            .sum::<u64>(),
+    );
+    for position in &head.kept {
+        tally.distance_min = Some(
+            tally
+                .distance_min
+                .map_or(position.distance, |minimum| minimum.min(position.distance)),
+        );
+        tally.distance_max = tally.distance_max.max(position.distance);
+    }
+    tally.asked_active_span_rows += usize::from(head.asked_active_span_rows);
+    tally.other_active_span_rows += usize::from(head.other_active_span_rows);
+    tally.both_active_span_rows +=
+        usize::from(head.asked_active_span_rows && head.other_active_span_rows);
+    tally.asked_weight_q31 = tally.asked_weight_q31.saturating_add(head.asked_weight_q31);
+    tally.other_weight_q31 = tally.other_weight_q31.saturating_add(head.other_weight_q31);
+    match (head.asked_span, head.other_span) {
         (false, false) => tally.neither_span += 1,
         (true, false) => tally.asked_only += 1,
         (false, true) => tally.other_only += 1,
@@ -795,7 +982,19 @@ fn summarize(
             both_spans: tally.both_spans,
             asked_first_token: tally.asked_first_token,
             other_first_token: tally.other_first_token,
+            asked_first_token_active: tally.asked_first_token_active,
+            other_first_token_active: tally.other_first_token_active,
+            margin_q16: tally.margin_q16,
+            distance_sum: tally.distance_sum,
+            distance_min: tally.distance_min,
+            distance_max: tally.distance_max,
             kept_positions: tally.kept_positions,
+            active_positions: tally.active_positions,
+            asked_active_span_rows: tally.asked_active_span_rows,
+            other_active_span_rows: tally.other_active_span_rows,
+            both_active_span_rows: tally.both_active_span_rows,
+            asked_weight_q31: tally.asked_weight_q31,
+            other_weight_q31: tally.other_weight_q31,
         });
     }
     let reads = reads
@@ -950,8 +1149,8 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uor_r4_integer::stack::export_fbs_trunk_uorlut01;
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
+    use uor_r4_integer::stack::{copy_weight_q31, export_fbs_trunk_uorlut01};
 
     fn byte_level_tokenizer() -> ByteBpeTokenizer {
         let direct = (b'!'..=b'~')
@@ -1121,11 +1320,54 @@ mod tests {
         let asked = ValueSpan { start: 4, end: 6 };
         let other = ValueSpan { start: 8, end: 10 };
         let mut tally = HeadTally::default();
-        tally_head(&mut tally, &[2], false, false, false, false);
-        tally_head(&mut tally, &[4, 9], true, true, true, false);
-        tally_head(&mut tally, &[5], true, false, false, false);
-        tally_head(&mut tally, &[9], false, true, false, true);
-        tally_head(&mut tally, &[], false, false, false, false);
+        let head = |kept: Vec<(u32, u64)>| HeadTrace {
+            head: 0,
+            kind: "copy",
+            margin_q16: 2 << 16,
+            asked_span: kept
+                .iter()
+                .any(|&(position, _)| in_spans(position, &[asked])),
+            other_span: kept
+                .iter()
+                .any(|&(position, _)| in_spans(position, &[other])),
+            asked_first_token: kept.iter().any(|&(position, _)| position == 4),
+            other_first_token: kept.iter().any(|&(position, _)| position == 8),
+            asked_first_token_active: kept
+                .iter()
+                .any(|&(position, weight)| position == 4 && weight != 0),
+            other_first_token_active: kept
+                .iter()
+                .any(|&(position, weight)| position == 8 && weight != 0),
+            asked_active_span_rows: kept
+                .iter()
+                .any(|&(position, weight)| weight != 0 && in_spans(position, &[asked])),
+            other_active_span_rows: kept
+                .iter()
+                .any(|&(position, weight)| weight != 0 && in_spans(position, &[other])),
+            asked_weight_q31: kept
+                .iter()
+                .filter(|&&(position, _)| in_spans(position, &[asked]))
+                .map(|&(_, weight)| weight)
+                .sum(),
+            other_weight_q31: kept
+                .iter()
+                .filter(|&&(position, _)| in_spans(position, &[other]))
+                .map(|&(_, weight)| weight)
+                .sum(),
+            kept: kept
+                .into_iter()
+                .map(|(position, weight_q31)| PositionTrace {
+                    position,
+                    distance: 0,
+                    weight_q31,
+                })
+                .collect(),
+        };
+        tally_head(&mut tally, &head(vec![(2, 0)]));
+        tally_head(&mut tally, &head(vec![(4, 4), (8, 0), (9, 3)]));
+        tally_head(&mut tally, &head(vec![(5, 2)]));
+        tally_head(&mut tally, &head(vec![(9, 0)]));
+        tally_head(&mut tally, &head(Vec::new()));
         assert_eq!(tally.rows, 5);
         assert_eq!(tally.empty_kept, 1);
         assert_eq!(tally.neither_span, 2);
@@ -1134,8 +1376,48 @@ mod tests {
         assert_eq!(tally.both_spans, 1);
         assert_eq!(tally.asked_first_token, 1);
         assert_eq!(tally.other_first_token, 1);
-        assert!(kept_in_spans(&[3, 5], &[asked]));
-        assert!(kept_at_span_starts(&[4, 8], &[asked, other]));
+        assert_eq!(tally.asked_first_token_active, 1);
+        assert_eq!(tally.other_first_token_active, 0);
+        assert_eq!(tally.active_positions, 3);
+        assert_eq!(tally.asked_active_span_rows, 2);
+        assert_eq!(tally.other_active_span_rows, 1);
+        assert_eq!(tally.both_active_span_rows, 1);
+        assert_eq!(tally.asked_weight_q31, 6);
+        assert_eq!(tally.other_weight_q31, 3);
+        assert_eq!(tally.margin_q16, 2 << 16);
+        assert_eq!(tally.distance_sum, 0);
+        assert_eq!(tally.distance_min, Some(0));
+        assert_eq!(tally.distance_max, 0);
+        let kept = [
+            PositionTrace {
+                position: 3,
+                distance: 1,
+                weight_q31: 0,
+            },
+            PositionTrace {
+                position: 5,
+                distance: 0,
+                weight_q31: 2,
+            },
+        ];
+        assert!(kept_in_spans(&kept, &[asked]));
+        assert!(active_in_spans(&kept, &[asked]));
+        assert_eq!(weight_in_spans(&kept, &[asked]), 2);
+        assert!(kept_at_span_starts(
+            &[
+                PositionTrace {
+                    position: 4,
+                    distance: 1,
+                    weight_q31: 1,
+                },
+                PositionTrace {
+                    position: 8,
+                    distance: 1,
+                    weight_q31: 1,
+                },
+            ],
+            &[asked, other]
+        ));
     }
 
     #[test]
@@ -1159,9 +1441,13 @@ mod tests {
         snapshot.hamming = Some(synthetic_hamming(snapshot.width, 2, 4, 242));
         let artifact = export_fbs_trunk_uorlut01(&snapshot).unwrap();
         let model = IntegerStackModel::parse(&artifact).unwrap();
+        let forward = CpuFbsForward::from_artifact(&artifact).unwrap();
         let prompt = [3, 4, 5, 6, 7, 8];
-        let (_, reads) = trace_first_reply(&model, &prompt).unwrap();
+        let (decision, reads) = trace_first_reply(&model, &prompt).unwrap();
+        let (cpu_decision, cpu_reads) = trace_first_reply_weights(&forward, &prompt).unwrap();
+        assert_eq!(decision.token, cpu_decision);
         assert_eq!(reads.len(), 2);
+        assert_eq!(cpu_reads.len(), 2);
         assert_eq!(
             reads.iter().map(|read| read.depth).collect::<Vec<_>>(),
             [1, 2]
@@ -1171,6 +1457,19 @@ mod tests {
             head.kept
                 .iter()
                 .all(|&position| position < prompt.len() as u32)
+        }));
+        assert!(reads.iter().zip(&cpu_reads).all(|(integer, cpu)| {
+            integer.heads.iter().zip(&cpu.heads).all(|(integer, cpu)| {
+                integer.kept
+                    == cpu
+                        .kept
+                        .iter()
+                        .map(|position| position.position)
+                        .collect::<Vec<_>>()
+                    && cpu.kept.iter().all(|position| {
+                        position.weight_q31 == copy_weight_q31(cpu.margin_q16, position.distance)
+                    })
+            })
         }));
     }
 
@@ -1225,5 +1524,82 @@ mod tests {
             Ok(_) => panic!("equal-shortest answers should be ambiguous"),
         };
         assert!(error.contains("ambiguous"), "{error}");
+    }
+
+    #[test]
+    fn cpu_trace_alignment_fails_closed_and_schema_is_v2() {
+        use uor_r4_cpu_train::{CpuHammingHeadTrace, CpuHammingPositionTrace};
+        use uor_r4_integer::stack::HammingStepHead;
+
+        assert_eq!(SCHEMA, "uor-r4.cpu-first-reply-hamming-trace/2");
+        let position = |position| CpuHammingPositionTrace {
+            position,
+            distance: 3,
+            weight_q31: 7,
+        };
+        let cpu_head = |head, kind, query: u64, key: u64, kept: Vec<u32>| CpuHammingHeadTrace {
+            head,
+            kind,
+            query,
+            key,
+            margin_q16: 4 << 16,
+            kept: kept.into_iter().map(position).collect(),
+        };
+        let integer = vec![HammingStepRead {
+            depth: 2,
+            heads: vec![
+                HammingStepHead {
+                    query: 11,
+                    key: 12,
+                    kept: vec![1, 2],
+                },
+                HammingStepHead {
+                    query: 13,
+                    key: 14,
+                    kept: vec![3],
+                },
+            ],
+        }];
+        let matching = vec![CpuHammingReadTrace {
+            depth: 2,
+            heads: vec![
+                cpu_head(0, CpuHammingHeadKind::Copy, 11, 12, vec![1, 2]),
+                cpu_head(1, CpuHammingHeadKind::Type, 13, 14, vec![3]),
+            ],
+        }];
+        validate_cpu_trace_alignment(&integer, &matching, 1).unwrap();
+
+        let error = validate_cpu_trace_alignment(&integer, &[], 1).unwrap_err();
+        assert!(error.contains("read counts"), "{error}");
+
+        let mut wrong_depth = matching.clone();
+        wrong_depth[0].depth = 3;
+        let error = validate_cpu_trace_alignment(&integer, &wrong_depth, 1).unwrap_err();
+        assert!(error.contains("shape"), "{error}");
+
+        let mut wrong_head_count = matching.clone();
+        wrong_head_count[0].heads.pop();
+        let error = validate_cpu_trace_alignment(&integer, &wrong_head_count, 1).unwrap_err();
+        assert!(error.contains("shape"), "{error}");
+
+        let mut wrong_kept = matching;
+        wrong_kept[0].heads[0].kept[1].position = 4;
+        let error = validate_cpu_trace_alignment(&integer, &wrong_kept, 1).unwrap_err();
+        assert!(error.contains("choices"), "{error}");
+
+        let mut wrong_query = vec![CpuHammingReadTrace {
+            depth: 2,
+            heads: vec![
+                cpu_head(0, CpuHammingHeadKind::Copy, 99, 12, vec![1, 2]),
+                cpu_head(1, CpuHammingHeadKind::Type, 13, 14, vec![3]),
+            ],
+        }];
+        let error = validate_cpu_trace_alignment(&integer, &wrong_query, 1).unwrap_err();
+        assert!(error.contains("choices"), "{error}");
+
+        wrong_query[0].heads[0].query = 11;
+        wrong_query[0].heads[0].key = 99;
+        let error = validate_cpu_trace_alignment(&integer, &wrong_query, 1).unwrap_err();
+        assert!(error.contains("choices"), "{error}");
     }
 }

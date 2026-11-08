@@ -140,6 +140,9 @@ pub use gain_train::{
     TerminationGainReading, TerminationGainStep, CPU_PORT_ROOT_TRAINER_SCHEMA,
     CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA, NEAREST_RIVAL_COUNT,
 };
+pub use hamming::{
+    CpuHammingHeadKind, CpuHammingHeadTrace, CpuHammingPositionTrace, CpuHammingReadTrace,
+};
 pub use geometric_candidate_anchor::{
     calibrate_expanded_candidate_union, compare_anchored_candidate_rows,
     derive_anchored_candidate_rankers, evaluate_anchored_candidate_replies, AnchoredCandidateArm,

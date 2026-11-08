@@ -4,6 +4,7 @@
 //! artifact reader supplies only the validated tables; all code construction,
 //! candidate selection, payload caching and hook arithmetic happen here.
 
+use serde::{Deserialize, Serialize};
 use uor_r4_integer::bitcode::popcount_swar;
 use uor_r4_integer::stack::{
     copy_weight_q31, HammingImage, HammingReadImage, StackHamming, COPY_MEAN_EXP,
@@ -163,6 +164,10 @@ impl TypeHeads {
         }
     }
 
+    fn key(&self, token: u32, head: usize) -> u64 {
+        self.keys[token as usize * (self.heads - self.copy) + head]
+    }
+
     fn queries(&self, point: &[i64]) -> Vec<u64> {
         let head_width = self.width / self.heads;
         (self.copy..self.heads)
@@ -189,7 +194,7 @@ impl TypeHeads {
             return Vec::new();
         }
         nearest(query, tokens.len() - 1, self.kept, |position| {
-            self.keys[tokens[position - 1] as usize * (self.heads - self.copy) + head]
+            self.key(tokens[position - 1], head)
         })
     }
 
@@ -236,6 +241,43 @@ pub(crate) struct CpuHamming {
     reads: Vec<Read>,
     layers: usize,
     width: usize,
+}
+
+/// One retained position's exact Hamming choice at a read.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuHammingPositionTrace {
+    pub position: u32,
+    pub distance: u32,
+    pub weight_q31: u64,
+}
+
+/// Whether a traced head is the copy or type half of its read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CpuHammingHeadKind {
+    Copy,
+    Type,
+}
+
+/// One head's kept positions, margin and exact participating weights.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuHammingHeadTrace {
+    pub head: usize,
+    pub kind: CpuHammingHeadKind,
+    pub query: u64,
+    pub key: u64,
+    pub margin_q16: i32,
+    pub kept: Vec<CpuHammingPositionTrace>,
+}
+
+/// One read's traced heads at one hook.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CpuHammingReadTrace {
+    pub depth: usize,
+    pub heads: Vec<CpuHammingHeadTrace>,
 }
 
 impl CpuHamming {
@@ -329,6 +371,79 @@ impl CpuHamming {
         }
     }
 
+    /// Trace the Hamming stream read at `depth` before it changes `x`.
+    pub(crate) fn trace_stream(
+        &self,
+        depth: usize,
+        tokens: &[u32],
+        point: &[i64],
+    ) -> Option<CpuHammingReadTrace> {
+        if depth == self.layers {
+            return None;
+        }
+        let index = self.reads.iter().position(|read| read.depth == depth)?;
+        Some(self.trace_read(index, tokens, point))
+    }
+
+    /// Trace the Hamming readout read before it changes the final norm.
+    pub(crate) fn trace_readout(
+        &self,
+        tokens: &[u32],
+        point: &[i64],
+    ) -> Option<CpuHammingReadTrace> {
+        let index = self
+            .reads
+            .iter()
+            .position(|read| read.depth == self.layers)?;
+        Some(self.trace_read(index, tokens, point))
+    }
+
+    fn trace_read(&self, index: usize, tokens: &[u32], point: &[i64]) -> CpuHammingReadTrace {
+        let read = &self.reads[index];
+        let mut heads = Vec::with_capacity(
+            read.copy.copy
+                + read
+                    .types
+                    .as_ref()
+                    .map_or(0, |types| types.heads - types.copy),
+        );
+        let row = tokens.len().checked_sub(1);
+        for head in 0..read.copy.copy {
+            heads.push(CpuHammingHeadTrace {
+                head,
+                kind: CpuHammingHeadKind::Copy,
+                query: row.map_or(0, |row| read.copy.query_at(tokens, row, head)),
+                key: row
+                    .filter(|row| *row > 0)
+                    .map_or(0, |row| read.copy.key_at(tokens, row, head)),
+                margin_q16: read.copy.margins[head],
+                kept: traced_positions(read.copy.choose(head, tokens), read.copy.margins[head]),
+            });
+        }
+        if let Some(types) = &read.types {
+            for (offset, query) in types.queries(point).into_iter().enumerate() {
+                let head = types.copy + offset;
+                heads.push(CpuHammingHeadTrace {
+                    head,
+                    kind: CpuHammingHeadKind::Type,
+                    query,
+                    key: row
+                        .filter(|row| *row > 0)
+                        .map_or(0, |row| types.key(tokens[row - 1], offset)),
+                    margin_q16: types.margins[offset],
+                    kept: traced_positions(
+                        types.choose(offset, query, tokens),
+                        types.margins[offset],
+                    ),
+                });
+            }
+        }
+        CpuHammingReadTrace {
+            depth: read.depth,
+            heads,
+        }
+    }
+
     pub(crate) fn readout(
         &self,
         tokens: &[u32],
@@ -377,6 +492,16 @@ impl CpuHamming {
     pub(crate) fn erase_copy_codes(&mut self) {
         self.reads[0].copy.codes.fill(0);
     }
+}
+
+fn traced_positions(kept: Vec<(usize, u32)>, margin_q16: i32) -> Vec<CpuHammingPositionTrace> {
+    kept.into_iter()
+        .map(|(position, distance)| CpuHammingPositionTrace {
+            position: position as u32,
+            distance,
+            weight_q31: copy_weight_q31(margin_q16, distance),
+        })
+        .collect()
 }
 
 fn units(raw: &[i32]) -> impl Iterator<Item = [i64; 4]> + '_ {

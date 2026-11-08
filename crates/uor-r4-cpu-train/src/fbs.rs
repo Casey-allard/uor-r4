@@ -10,7 +10,7 @@ use uor_r4_integer::stack::{
     FbsMapImage, Fixed, IntegerStackModel, GROUP, PHI_Q32,
 };
 
-use crate::hamming::CpuHamming;
+use crate::hamming::{CpuHamming, CpuHammingReadTrace};
 use crate::memory::{CpuTurnMemory, MemoryAnchors, MemoryMove};
 
 const RESIDUAL_EXP: i32 = FbsImage::RESIDUAL_EXP;
@@ -252,6 +252,7 @@ pub struct CpuFbsForward {
     tokens: Vec<u32>,
     hamming: Option<CpuHamming>,
     hamming_payloads: Vec<Vec<i64>>,
+    hamming_trace: Option<Vec<CpuHammingReadTrace>>,
     memory: Option<CpuTurnMemory>,
     memory_anchors: MemoryAnchors,
     reply_start: Option<usize>,
@@ -443,6 +444,7 @@ impl CpuFbsForward {
             tokens: Vec::with_capacity(context),
             hamming: None,
             hamming_payloads: Vec::new(),
+            hamming_trace: None,
             memory: None,
             memory_anchors: MemoryAnchors::default(),
             reply_start: None,
@@ -546,6 +548,23 @@ impl CpuFbsForward {
     /// Mark that the next step's row is the prompt's last row and the opening move runs there.
     pub fn mark_reply_start(&mut self) {
         self.reply_start = Some(self.position + 1);
+    }
+
+    /// Record each Hamming read's choices, distances, margins and weights on the
+    /// next step. Tracing changes no forward arithmetic.
+    pub fn set_hamming_trace(&mut self, on: bool) -> Result<()> {
+        if on && self.hamming.is_none() {
+            return Err(invalid(
+                "Hamming trace requested for an artifact without reads",
+            ));
+        }
+        self.hamming_trace = on.then(Vec::new);
+        Ok(())
+    }
+
+    /// Take the reads recorded since [`Self::set_hamming_trace`] enabled tracing.
+    pub fn take_hamming_trace(&mut self) -> Option<Vec<CpuHammingReadTrace>> {
+        self.hamming_trace.take()
     }
 
     /// Stop keying and moving rows, and discard the anchors from any prior reply.
@@ -1025,6 +1044,13 @@ impl CpuFbsForward {
                 *left = left.saturating_add(*right);
             }
             if let Some(hamming) = &self.hamming {
+                if self.hamming_trace.is_some() {
+                    let point = x.iter().map(|&value| i64::from(value)).collect::<Vec<_>>();
+                    let traced = hamming.trace_stream(index + 1, &self.tokens, &point);
+                    if let (Some(trace), Some(read)) = (self.hamming_trace.as_mut(), traced) {
+                        trace.push(read);
+                    }
+                }
                 hamming.stream(
                     index + 1,
                     &self.tokens,
@@ -1039,6 +1065,12 @@ impl CpuFbsForward {
         let norm_before_final_gain = capture_memory_trace.then(|| scratch[..d].to_vec());
         apply_gain(&mut scratch[..d], &self.final_gain);
         if let Some(hamming) = &self.hamming {
+            if self.hamming_trace.is_some() {
+                let traced = hamming.trace_readout(&self.tokens, &scratch[..d]);
+                if let (Some(trace), Some(read)) = (self.hamming_trace.as_mut(), traced) {
+                    trace.push(read);
+                }
+            }
             hamming.readout(
                 &self.tokens,
                 &self.writer_table,
@@ -2607,6 +2639,61 @@ mod tests {
             changed > 0,
             "the combined reads must move the complete query"
         );
+    }
+
+    #[test]
+    fn hamming_trace_is_observation_only_and_accounts_exact_weights() {
+        let (model, forward, _) = hamming_fixture(48, 3, CpuFbsHead::Nearest, 1.0, 1.0, &[1, 3]);
+        let mut traced = forward.clone();
+        let mut untraced = forward;
+        let mut session = model.session();
+        let tokens = repeating_tokens().into_iter().take(5).collect::<Vec<_>>();
+        for &token in &tokens[..tokens.len() - 1] {
+            let served = session.step_native(token).unwrap();
+            let traced_step = traced.step(token, CpuFbsHead::Nearest).unwrap();
+            let untraced_step = untraced.step(token, CpuFbsHead::Nearest).unwrap();
+            assert_eq!(traced_step, untraced_step);
+            assert_eq!(traced_step.query_q12, served.query_q12);
+        }
+        session.set_hamming_trace(true);
+        traced.set_hamming_trace(true).unwrap();
+        let last = *tokens.last().unwrap();
+        let served = session.step_native(last).unwrap();
+        let traced_step = traced.step(last, CpuFbsHead::Nearest).unwrap();
+        let untraced_step = untraced.step(last, CpuFbsHead::Nearest).unwrap();
+        assert_eq!(traced_step, untraced_step);
+        assert_eq!(traced_step.query_q12, served.query_q12);
+
+        let cpu_trace = traced.take_hamming_trace().unwrap();
+        let served_trace = session.take_hamming_trace().unwrap();
+        assert_eq!(cpu_trace.len(), served_trace.len());
+        for (cpu_read, served_read) in cpu_trace.iter().zip(&served_trace) {
+            assert_eq!(cpu_read.depth, served_read.depth);
+            assert_eq!(cpu_read.heads.len(), served_read.heads.len());
+            for (cpu_head, served_head) in cpu_read.heads.iter().zip(&served_read.heads) {
+                assert_eq!(cpu_head.query, served_head.query);
+                assert_eq!(cpu_head.key, served_head.key);
+                assert_eq!(
+                    cpu_head
+                        .kept
+                        .iter()
+                        .map(|position| position.position)
+                        .collect::<Vec<_>>(),
+                    served_head.kept
+                );
+                assert!(cpu_head.kept.iter().all(|position| {
+                    position.weight_q31
+                        == uor_r4_integer::stack::copy_weight_q31(
+                            cpu_head.margin_q16,
+                            position.distance,
+                        )
+                }));
+            }
+        }
+
+        let traced_next = traced.step(9, CpuFbsHead::Nearest).unwrap();
+        let untraced_next = untraced.step(9, CpuFbsHead::Nearest).unwrap();
+        assert_eq!(traced_next, untraced_next);
     }
 
     #[test]
