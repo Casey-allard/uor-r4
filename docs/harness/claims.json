@@ -461,10 +461,10 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/reply-sft-content": {
-    "branch": "deepseek/reply-sft-content",
-    "claimed_at": "2026-11-07T23:59:22-05:00",
-    "head": "8688eb1a9",
+  "deepseek/reply-sft-content-result": {
+    "branch": "deepseek/reply-sft-content-result",
+    "claimed_at": "2026-11-08T01:30:27-05:00",
+    "head": "435d1b4f7",
     "lab": "deepseek",
     "note": ""
   },

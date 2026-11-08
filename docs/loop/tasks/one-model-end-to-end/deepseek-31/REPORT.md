@@ -2,85 +2,131 @@
 
 Lab: deepseek. Item:
 [one-model-end-to-end](../../../../roadmap/items/one-model-end-to-end.md)
-(#3407). Order: [ORDER.md](./ORDER.md). Preparation only so far; no model, pod
-or spend.
+(#3407). Order: [ORDER.md](./ORDER.md). Run pin:
+`435d1b4f739fc54697ddebe01993707f793b85a9`, reviewed runtime
+`c8f9937a197573af83f34d167c246f14167840f738361429fe4c1896e0c1147d`.
+
+**Outcome row 6: partial movement; this content-ratio configuration closes.**
+The selected step-512 checkpoint preserves continuation and reaches 145/256
+free EOS stops, but EOS top-1 and complete accepted replies remain zero. A
+second row 6 on this distinct data intervention authorizes neither seed 2 nor
+another ratio extension.
 
 ## What did not work, first
 
-- The 2,048-step extension repeated row 6: stopping moved, but complete accepted
-  replies stayed at zero.
-- The old mixed store was 41.45% M-World by total tokens but only 20.32% by
-  scored reply tokens. Repeating the excluded M-World store three times raises
-  those shares to 67.98% and 43.35%, and raises scored EOS exposure from 19,625
-  to 39,136 per million.
-- The exact `m2-reply512` bytes remain unavailable. Its deterministic lookalike
-  fails both registered hashes, so it is not used.
+- **More M-World weight moved stopping, not complete content.** The selected
+  checkpoint has 145 free EOS stops, up from 52 in the closed dose, but zero
+  EOS top-1 and zero complete accepted rows.
+- **The movement did not persist monotonically.** Free EOS stops were
+  30/145/38/37/110/12/8/129 across steps 256 through 2,048. Step 512 remained
+  the deterministic winner; the final checkpoint recovered to 129 but did not
+  complete a reply.
+- **The exact `m2-reply512` bytes remain unavailable.** Its deterministic
+  lookalike fails both registered hashes, so it is not used and no M2 claim is
+  possible.
 
 ## What changed
 
-- Built a new 65,071-document mixed store: OASST2 once, then the same excluded
-  M-World store three times.
-- The store has 11,786,293 tokens, 5,710,018 scored targets and 223,469 scored
-  EOS with median reply length 11.
-- The panel-overlap audit is zero for exact prompts, accepted answers and shared
-  six-grams.
-- Added a closed `content-ratio/2048/s1-content-ratio` recipe to the job and
-  launcher. Legacy 1,024 and the registered legacy 2,048 extension remain
-  unchanged, and arbitrary data-root, hash, sheet, report or output overrides
-  are refused.
-- The job now selects the new input root and hashes only for `content-ratio`,
-  validates the four-source manifest and compares the overlap audit against the
-  registered document and assistant-reply counts.
-- Added static-gate and mutation coverage for the recipe pair, corpus hashes,
-  split counts, label, reviewed sheet/report paths and output root.
-- Successful runs now re-hash the raw token and mask after all checkpoint
-  scoring, record their hashes and sizes in `control/post-use-inputs.json`, and
-  remove only those raw payloads before sealing. The fixed source store and
-  corpus manifest preserve recovery and keep the larger input from pushing the
-  seal over 100 MiB.
-- Gate checks are block-aware, so provider-side swaps of legacy and
-  content-ratio constants or launcher pairs fail closed.
+- Built a 65,071-document mixed store: OASST2 reply-masked TRAIN once and the
+  same excluded M-World v2 store three times. It has 11,786,293 tokens,
+  5,710,018 scored targets and 223,469 scored EOS at 39,136 per million.
+- The old mix was 41.45% M-World by total tokens but 20.32% by scored reply
+  targets. The new mix raises those shares to 67.98% and 43.35%.
+- Added the closed `content-ratio/2048/s1-content-ratio` recipe, block-bound
+  data hashes and output root, and gate/mutation coverage for wrong recipes,
+  counts, labels, sheet/report pairs and override attempts.
+- Successful runs now re-hash the raw training inputs, record their hashes and
+  sizes in `control/post-use-inputs.json`, and remove only the raw token/mask
+  payloads before sealing. The source store and manifest preserve recovery.
+
+## What ran
+
+- One DeepSeek-owned RTX 5090 pod, `vast-59672099`, at $0.563/hour.
+- Exact merged pin `435d1b4f7`, seed 1, 2,048 steps from the same `(b64L)`
+  base with unchanged geometry, mask, optimizer, checkpoint scoring, selector,
+  continuation guard and panels.
+- No OOM retry occurred. All eight checkpoints were exported, graded and scored
+  before training continued.
+- The pod was released and deleted after the seal was verified.
 
 ## Measurements
 
-| file | SHA-256 |
-|---|---|
-| `tokens.u16` | `3a645e736f96d2e37a267ba3826512001c41b92d8c689fae1451784b2fa2da34` |
-| `response_mask.u8` | `83911dc7488c13475469fa743e0b6fbca15fcd20e76fc2fee33cb89877673baf` |
-| `manifest.json` | `8b43ff038133a7dc9744bee71dd8aa7e3f6c5e59a664d19690b991a69f0be9fd` |
+| Step | Guard/512 | EOS top-1 | EOS median | Free EOS | Complete rows | Complete pairs |
+|---:|---:|---:|---:|---:|---:|---:|
+| 256 | 139 | 0 | 2 | 30 | 0 | 0 |
+| **512 selected** | **138** | **0** | **2** | **145** | **0** | **0** |
+| 768 | 137 | 0 | 2 | 38 | 0 | 0 |
+| 1,024 | 137 | 0 | 2 | 37 | 0 | 0 |
+| 1,280 | 137 | 0 | 2 | 110 | 0 | 0 |
+| 1,536 | 138 | 0 | 2 | 12 | 0 | 0 |
+| 1,792 | 136 | 0 | 2 | 8 | 0 | 0 |
+| 2,048 | 140 | 0 | 2 | 129 | 0 | 0 |
 
-The EOS census is `e641c81ec8621511b68213cf8322372162ba59504d3f42f72ef1c95b2c5ed003`;
-the overlap audit is `4db5d14f49ca7edaa1d44944cec842f3876c6f23a801ceacc4181bd59c14d5ee`.
-The projected run cost remains about $0.50 at the observed $0.563/hour rate.
+At the selected checkpoint, teacher-forced EOS top-8 and top-32 are both
+256/256. The audit rendering (`one-user-turn/v1`) gives 67 EOS stops; selection
+and outcome readings use the registered `per-turn/v1` values above.
+
+DEV nearest/writer top-1 rose from 3,185/192 at step 0 to 6,116/330 at the
+selected step and ended at 7,062/439 at step 2,048. Training loss ended at
+0.9493008314 after 1,369.986 seconds (18,369 context tokens/s). Pod uptime was
+about 37m24s, about $0.35 at the observed rate.
+
+Corpus-panel overlap remained zero for exact panel strings, exact accepted
+assistant replies and both six-gram classes over 65,071 documents and 223,469
+assistant replies. The base artifact reproduced as `9a370566…`.
+
+## Evidence
+
+- Selected artifact:
+  `406c9a5c05d63c8f2b6044ee6de6ea78d9fa91582dc03c4aa3e4fe877846e384`.
+- Selected model:
+  `11195de63f508a454c085cb538be33aa1d26c3c282e0248b85aa2e9b61e23133`.
+- Selected Hamming read:
+  `e4562c3aa18e3aeaa72ce646ed5d2403b5eb5394476e304d6f83ee8526817c6a`.
+- Run config:
+  `2eda0a4c212fd56d186b05fabbca5bf9cc93cc6a5085bbab26009e22e6089389`;
+  initialization record:
+  `dd84e45ef33087e4547eaab5edd60bbcf8c0d8f8c784289c96e793dd088de01b`.
+- CPU evaluation host: AMD Ryzen 7 7800X3D 8-Core Processor, x86_64, 16
+  logical CPUs. Base and eight checkpoint grades carry matching SHA-bound
+  hardware sidecars.
+- Seal: 135 manifest entries, `BYTES=77,343,856`, 77,358,299 bytes including
+  `SHA256SUMS`; manifest SHA-256
+  `a183ae67c3563d26c2cf3f0e437f5bbe64e2d735dd9b2a0608d8b32da663164f`;
+  `READBACK=verified`, `EXIT=0`, `STOP_REASON=natural-or-failure`.
+- Full readback verified every entry in `SHA256SUMS`.
+- Store root:
+  `results/deepseek/one-model-end-to-end-content-ratio-2026-11-08/runs/s1-content-ratio-20261108t055107z-adb12718d6c9ea88/`.
 
 ## Checks run at the head
 
-- `gate.sh`: 297 checks passed.
-- `test-mutants.sh`: 125 of 125 mutations caught.
-- `test-hardware-evidence.sh`: passed.
-- ShellCheck over the job, launcher and hardware helpers: passed.
-- `bash -n` and `git diff --check`: passed.
-- `loop report --check` and `loop pr-check --local`: passed.
-- Fresh non-author FIT review approved runtime head `53f8f4f2b` with normalized
-  runtime identity `c8f9937a197573af83f34d167c246f14167840f738361429fe4c1896e0c1147d`.
-- Fresh adversarial D67 review approved the same runtime head and rechecked the
-  seal, recipe-pair, compatibility and collision constraints.
-
-Not run: pod creation, training, export, panel scoring, store write or seal
-readback.
+- Landed runtime gate: 297 checks passed.
+- Landed mutation suite: 125 of 125 mutations caught.
+- Hardware-evidence tests passed, including successful-input compaction and
+  mismatched-hash refusal.
+- ShellCheck over the job, launcher and hardware helpers passed; `bash -n`,
+  `git diff --check`, `loop report --check` and `loop pr-check --local` passed.
+- Fresh FIT and adversarial D67 reviews approved runtime head `53f8f4f2b` and
+  recomputed the normalized runtime identity above.
+- The protected merge queue landed PR #3850 as `435d1b4f7`; the landed tree
+  reproduced the same runtime identity, gate and mutation results.
 
 ## Skills used
 
-No system-provided Codex skill applied. The repository's D22, D67, D84, geometry
-and delivery rules were used directly.
+No system-provided Codex skill applied. The repository's D22, D67, D84,
+geometry and delivery rules were used directly.
 
 ## Still open
 
-- Merge through the queue and verify the landed runtime.
-- Run the content-ratio intervention only from that merged pin.
-- No seed 2 unless row 3 is reached. No second ratio extension.
+- The answer-content gap remains: moving the M-World ratio raises stopping but
+  still does not put EOS first or complete an accepted reply.
+- The content-ratio configuration is closed. No seed 2, second ratio extension
+  or useful-chat claim is authorized.
+- Claude's independently registered ratio/mix work remains the separate
+  pretraining route. `m2-reply512` remains unavailable.
 
 ## Plain summary
 
-This unit tests whether giving the same dialogue source three times more weight can
-move complete reply content while retaining stopping and human continuation.
+Tripling M-World's weight made the model stop more often, but it still never
+chose EOS first and never completed an accepted answer. The ratio lever is
+closed at this recipe and dose.
