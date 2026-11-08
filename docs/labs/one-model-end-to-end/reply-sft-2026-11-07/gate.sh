@@ -6,7 +6,8 @@ ROOT=$(cd "$(dirname "$0")/../../../.." && pwd)
 JOB=${1:-"$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/job.sh"}
 LAUNCHER=${2:-"$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/run-s1.sh"}
 TRAINER="$ROOT/crates/uor-r4-float-train/src/in_space_long.rs"
-SHEET="$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"
+SHEET=${3:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"}
+EXTENSION_SHEET=${4:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"}
 checks=0
 
 fail() {
@@ -154,6 +155,10 @@ require_line 'free_generation_rendering:"per-turn/v1",' "$JOB"
 require_line 'The free-generation values used by selection and the outcome map are the' "$SHEET"
 require_line '`per-turn/v1` generated panel'"'"'s EOS stops and complete accepted rows. The' "$SHEET"
 require_line '- Apply row 2 before continuing past 512. Apply rows 1 and 3-7 to the selected' "$SHEET"
+require_line '## Bar' "$EXTENSION_SHEET"
+require_line '## Data split' "$EXTENSION_SHEET"
+require_line '## Steps' "$EXTENSION_SHEET"
+require_line '## Stop rule' "$EXTENSION_SHEET"
 require_line 'init_approval="$RUN/control/init-approved-$label"' "$JOB"
 require_line '[ ! -e "$init_approval" ] ||' "$JOB"
 require_line 'UOR_TRAIN_INIT_APPROVAL="$init_approval" \' "$JOB"
@@ -225,7 +230,12 @@ require_line '--init-from "$B64L" \' "$JOB"
 require_line '--train-split "$RUN/inputs/mix" \' "$JOB"
 require_line '--train-sha256 3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3 \' "$JOB"
 require_line '--train-mask-sha256 67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b \' "$JOB"
-require_line '--batch 64 --micro-batch "$micro" --steps 1024 \' "$JOB"
+require_line 'STEPS=${UOR_SFT_STEPS:-1024}' "$JOB"
+require_line '1024|2048) ;;' "$JOB"
+require_line '--batch 64 --micro-batch "$micro" --steps "$STEPS" \' "$JOB"
+require_line 'if [ "$next" -le "$STEPS" ]; then' "$JOB"
+require_line 'while [ "$next" -le "$STEPS" ]; do' "$JOB"
+require_line 'log "training completed all $STEPS steps"' "$JOB"
 require_line '--eval-every 256 --samples 16 --reply-tokens 64 --seed 1 \' "$JOB"
 require_line 'BUILD_ROOT=${UOR_SFT_BUILD_ROOT:-/workspace/uor-r4/build/deepseek-sft-$RUN_ID}' "$JOB"
 require_line 'PANEL_TARGET=${UOR_SFT_PANEL_TARGET:-$BUILD_ROOT/panel-target}' "$JOB"
@@ -251,6 +261,12 @@ require_line '[ "$(git rev-parse HEAD)" = "$PIN" ] ||' "$LAUNCHER"
 require_line '[ -z "$(git status --porcelain --untracked-files=no)" ] ||' "$LAUNCHER"
 require_line 'git merge-base --is-ancestor "$PIN" origin/main ||' "$LAUNCHER"
 require_line 'REVIEWED_RUNTIME=${UOR_SFT_REVIEWED_RUNTIME:?UOR_SFT_REVIEWED_RUNTIME must name the reviewed runtime identity}' "$LAUNCHER"
+require_line 'RUNTIME_EXCLUDE_FIT=${UOR_SFT_PREP_SHEET:-docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md}' "$LAUNCHER"
+require_line 'RUNTIME_EXCLUDE_REPORT=${UOR_SFT_REPORT:-docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md}' "$LAUNCHER"
+require_line 'STEPS=${UOR_SFT_STEPS:-1024}' "$LAUNCHER"
+require_line '1024:s1|2048:s1-2048) ;;' "$LAUNCHER"
+require_line '1024:docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;' "$LAUNCHER"
+require_line '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-28/REPORT.md) ;;' "$LAUNCHER"
 require_line 'git ls-tree -r "$PIN" |' "$LAUNCHER"
 require_line "path != fit && path != report'" "$LAUNCHER"
 require_line 'git show "$PIN:$RUNTIME_EXCLUDE_FIT" |' "$LAUNCHER"
@@ -273,6 +289,7 @@ grep -Fq 'cannot verify the store topic $STORE_TOPIC; no pod will be rented' "$L
 checks=$((checks + 1))
 require_line '--count 1 --hours 2 --ref "$PIN" \' "$LAUNCHER"
 require_line 'if ! "$POD_TOOL" run "$POD" --lab deepseek --session "$SESSION" --gpu 0 -- \' "$LAUNCHER"
+require_line 'UOR_SFT_OUT_STORE="$OUT_STORE" UOR_SFT_STEPS="$STEPS" \' "$LAUNCHER"
 grep -Fqx "JOB_LOG=\$(awk '/Log: / {" "$LAUNCHER" ||
   fail "$LAUNCHER does not begin parsing uor-pod's job-log path"
 checks=$((checks + 1))

@@ -256,6 +256,11 @@ A positive result establishes that this recipe can move the served model. It
 does not attribute the gain to M-World or the reply mask; that needs a matched
 OASST2-only continuation on the same base and steps.
 
+The single row-6 extension is registered separately in
+[the 2,048-step dose sheet](./one-model-end-to-end-reply-sft-2048-2026-11-07.md):
+it starts again from the same `(b64L)` seed-1 base for 2,048 steps at a new root.
+It is not row 3's longer run from the selected step-512 checkpoint.
+
 ## Instrument checks
 
 - `init.json` names the exact base model/config/Hamming hashes and fresh

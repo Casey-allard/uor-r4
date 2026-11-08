@@ -22,13 +22,30 @@ ROOT=$(git rev-parse --show-toplevel)
 POD_TOOL="$ROOT/scripts/pod/uor-pod"
 STORE="$ROOT/scripts/pod/uor-store"
 JOB="$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/job.sh"
-RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md
-RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md
+RUNTIME_EXCLUDE_FIT=${UOR_SFT_PREP_SHEET:-docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md}
+RUNTIME_EXCLUDE_REPORT=${UOR_SFT_REPORT:-docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md}
 POD_STATE=${UOR_POD_STATE:-$HOME/.local/share/uor-r4/compute}
+STEPS=${UOR_SFT_STEPS:-1024}
+RUN_LABEL=${UOR_SFT_RUN_LABEL:-s1}
+SESSION_LABEL=${UOR_SFT_SESSION_LABEL:-deepseek-sft}
+case "$STEPS:$RUN_LABEL" in
+  1024:s1|2048:s1-2048) ;;
+  *) echo "UOR_SFT_STEPS/UOR_SFT_RUN_LABEL must be 1024/s1 or 2048/s1-2048" >&2; exit 2 ;;
+esac
+case "$SESSION_LABEL" in
+  ''|*[!a-z0-9-]*) echo "UOR_SFT_SESSION_LABEL must be lowercase alphanumeric/hyphen" >&2; exit 2 ;;
+esac
+case "$STEPS:$RUNTIME_EXCLUDE_FIT:$RUNTIME_EXCLUDE_REPORT" in
+  1024:docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;
+  2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-28/REPORT.md) ;;
+  *) echo "the dose, reviewed sheet and report path do not form a registered pair" >&2; exit 2 ;;
+esac
+[ -f "$ROOT/$RUNTIME_EXCLUDE_FIT" ] && [ -f "$ROOT/$RUNTIME_EXCLUDE_REPORT" ] ||
+  { echo "reviewed sheet/report paths do not exist" >&2; exit 2; }
 RUN_ID=$(date -u +%Y%m%dT%H%M%SZ | tr '[:upper:]' '[:lower:]')-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-SESSION="deepseek-sft-$RUN_ID"
-RUN="/workspace/uor-r4/runs/deepseek-sft-s1-$RUN_ID"
-OUT_STORE="results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/s1-$RUN_ID"
+SESSION="$SESSION_LABEL-$RUN_ID"
+RUN="/workspace/uor-r4/runs/deepseek-sft-$RUN_LABEL-$RUN_ID"
+OUT_STORE="results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/$RUN_LABEL-$RUN_ID"
 STORE_TOPIC="results/deepseek/one-model-end-to-end-reply-sft-2026-11-07"
 CONTROLLER="$ROOT/local/deepseek/one-model-sft-2026-11-07/$RUN_ID"
 MAXSEC=${UOR_SFT_MAXSEC:-7200}
@@ -112,6 +129,10 @@ printf '%s  %s\n' "$JOB_SHA256" "$JOB" > "$CONTROLLER/job.sha256"
   printf 'export UOR_SFT_RUN=%q\n' "$RUN"
   printf 'export UOR_SFT_OUT_STORE=%q\n' "$OUT_STORE"
   printf 'export UOR_SFT_SESSION=%q\n' "$SESSION"
+  printf 'export UOR_SFT_STEPS=%q\n' "$STEPS"
+  printf 'export UOR_SFT_RUN_LABEL=%q\n' "$RUN_LABEL"
+  printf 'export UOR_SFT_PREP_SHEET=%q\n' "$RUNTIME_EXCLUDE_FIT"
+  printf 'export UOR_SFT_REPORT=%q\n' "$RUNTIME_EXCLUDE_REPORT"
 } > "$CONTROLLER/controller.env"
 
 if ! listings=$("$STORE" ls "$STORE_TOPIC"); then
@@ -250,7 +271,7 @@ trap cleanup EXIT INT TERM
 
 created=$("$POD_TOOL" up --lab deepseek --session "$SESSION" --gpu 5090 \
   --count 1 --hours 2 --ref "$PIN" \
-  --purpose "reply-masked SFT from b64L seed 1" 2>&1 |
+  --purpose "reply-masked SFT from b64L seed 1, $STEPS steps" 2>&1 |
   tee "$CONTROLLER/up.log")
 POD=$(printf '%s\n' "$created" |
   awk '$1 == "Pod" && $3 == "created;" { print $2; exit }')
@@ -266,7 +287,7 @@ started=$(date +%s)
 SUBMISSION_ATTEMPTED=1
 if ! "$POD_TOOL" run "$POD" --lab deepseek --session "$SESSION" --gpu 0 -- \
   env UOR_SFT_PIN="$PIN" UOR_SFT_RUN_ID="$RUN_ID" UOR_SFT_RUN="$RUN" \
-  UOR_SFT_OUT_STORE="$OUT_STORE" \
+  UOR_SFT_OUT_STORE="$OUT_STORE" UOR_SFT_STEPS="$STEPS" \
   bash /workspace/one-model-reply-sft-job.sh 1 \
   > "$CONTROLLER/run.out" 2>&1; then
   cat "$CONTROLLER/run.out" >&2

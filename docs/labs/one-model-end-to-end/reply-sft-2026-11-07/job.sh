@@ -6,9 +6,9 @@
 #     bash /workspace/one-model-reply-sft-job.sh 1
 #
 # The caller owns the pod, GPU lease and teardown. This script fetches every input,
-# runs the base controls, trains once with checkpoints every 256 steps, exports and
-# scores each checkpoint, applies the registered 512-step stop, then seals and reads
-# the evidence back through uor-store.
+# runs the base controls, trains the registered 1,024- or 2,048-step dose with
+# checkpoints every 256 steps, exports and scores each checkpoint, applies the
+# registered 512-step stop, then seals and reads the evidence back through uor-store.
 set -euo pipefail
 
 SEED=${1:?usage: job.sh SEED}
@@ -18,6 +18,11 @@ case "$SEED" in
   *) echo "SEED must be 1; seed 2 is a later decision" >&2; exit 2 ;;
 esac
 [ "$#" -eq 1 ] || { echo "usage: job.sh 1" >&2; exit 2; }
+STEPS=${UOR_SFT_STEPS:-1024}
+case "$STEPS" in
+  1024|2048) ;;
+  *) echo "UOR_SFT_STEPS must be 1024 or 2048" >&2; exit 2 ;;
+esac
 
 PIN=${UOR_SFT_PIN:?UOR_SFT_PIN must name the reviewed 40-hex merge commit}
 case "$PIN" in
@@ -528,7 +533,7 @@ train_and_score() {
     --objective nearest --retain-rates 1 --decay-mult 1 \
     --lr 0.0002 --lr-end 0 --train-as-served 1 \
     --context 192 --width 256 --hamming-read 4 \
-    --batch 64 --micro-batch "$micro" --steps 1024 \
+    --batch 64 --micro-batch "$micro" --steps "$STEPS" \
     --eval-every 256 --samples 16 --reply-tokens 64 --seed 1 \
     > "$RUN/logs/train-$label.log" 2>&1 &
   TRAIN_PID=$!
@@ -555,7 +560,7 @@ train_and_score() {
     die "could not approve the validated initialization"
 
   while kill -0 "$TRAIN_PID" 2>/dev/null; do
-    if [ "$next" -le 1024 ]; then
+    if [ "$next" -le "$STEPS" ]; then
       checkpoint="$run_dir/models/step-$(printf '%06d' "$next")"
       if [ -d "$checkpoint" ] && [ -f "$checkpoint/.checkpoint-ready" ]; then
         kill -STOP "$TRAIN_PID" 2>/dev/null || true
@@ -578,7 +583,7 @@ train_and_score() {
     TRAIN_FAILURE=$train_rc
     return 0
   fi
-  while [ "$next" -le 1024 ]; do
+  while [ "$next" -le "$STEPS" ]; do
     checkpoint="$run_dir/models/step-$(printf '%06d' "$next")"
     if [ -d "$checkpoint" ]; then
       [ -f "$checkpoint/.checkpoint-ready" ] ||
@@ -617,6 +622,6 @@ fi
 if [ -n "$STOP_REASON" ]; then
   log "registered stop: $STOP_REASON"
 else
-  log "training completed all 1,024 steps"
+  log "training completed all $STEPS steps"
 fi
 log "job complete"
