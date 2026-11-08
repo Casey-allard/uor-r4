@@ -3,17 +3,49 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use rayon::prelude::*;
+use serde::Deserialize;
+use uor_r4_core::answer_oracle::FrozenAnswers;
 use uor_r4_cpu_train::{
     add_turn_memory_uorlut01, audit_memory_weight_samples, derive_turn_memory,
-    evaluate_memory_weight_samples, validate_corpus_manifest, CpuConversationSample, CpuFbsForward,
-    CpuFbsHead, CpuMaskedCorpus, MemoryWeightSample,
+    evaluate_memory_weight_samples, read_uort_token_slice, validate_corpus_manifest,
+    CpuConversationSample, CpuFbsForward, CpuFbsHead, CpuMaskedCorpus, MemoryWeightSample,
 };
 use uor_r4_integer::stack::{
-    add_point_key_uorlut01, build_point_key, read_memory_uorlut01, reply_stop, IntegerStackModel,
-    PointKeyImage, PointKeyWindow, ReplyEnd, POINT_KEY_BOS,
+    add_point_key_uorlut01, build_point_key, read_memory_uorlut01, reply_stop, FbsMemorySnapshot,
+    IntegerStackModel, PointKeyImage, PointKeyWindow, ReplyEnd, POINT_KEY_BOS,
 };
+use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message, SCHEMA_V2};
+use uor_r4_tokenizer::ByteBpeTokenizer;
 
 const SCHEMA: &str = "uor-r4.cpu-point-transfer-run/1";
+const PANEL_SCHEMA: &str = "uor-r4.cpu-opening-panel/1";
+const ONE_USER_RENDERING: &str = "one-user-turn/v1";
+const PER_TURN_RENDERING: &str = "per-turn/v1";
+const PANEL_EOS: u32 = 1;
+const PANEL_NGRAM: usize = 6;
+
+#[derive(Clone)]
+struct PanelConfig {
+    inputs: PathBuf,
+    labels: PathBuf,
+    plan: PathBuf,
+    manifest: PathBuf,
+    tokenizer: PathBuf,
+    rendering: String,
+    train_examples: usize,
+    expected_inputs_sha256: String,
+    expected_labels_sha256: String,
+    expected_plan_sha256: String,
+    expected_manifest_sha256: String,
+    expected_tokenizer_sha256: String,
+}
+
+struct PanelTrainSource<'a> {
+    token_bytes: &'a [u8],
+    mask: &'a [u8],
+    tokenizer_sha256: &'a str,
+    examples: &'a [CpuConversationSample],
+}
 
 #[derive(Clone)]
 struct Config {
@@ -36,6 +68,7 @@ struct Config {
     expected_tokens_sha256: String,
     expected_mask_sha256: String,
     expected_manifest_sha256: String,
+    panel: Option<PanelConfig>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -117,7 +150,13 @@ fn usage() -> String {
      --expected-mask-sha256 HEX --expected-manifest-sha256 HEX \
      [--train-keys N] [--evaluation-keys N] [--per-key N] \
      [--key-tokens N] [--reply-turn N] [--random-seed N] \
-     [--neighbor-vote N] [--target-prototypes N] [--reply-cap N] [--select-only]"
+     [--neighbor-vote N] [--target-prototypes N] [--reply-cap N] [--select-only] \
+     [--train-examples N --rendering one-user-turn/v1|per-turn/v1 \
+      --panel-inputs PATH --panel-labels PATH --panel-plan PATH \
+      --panel-manifest PATH --panel-tokenizer PATH \
+      --expected-panel-inputs-sha256 HEX --expected-panel-labels-sha256 HEX \
+      --expected-panel-plan-sha256 HEX --expected-panel-manifest-sha256 HEX \
+      --expected-panel-tokenizer-sha256 HEX]"
         .to_owned()
 }
 
@@ -148,7 +187,13 @@ fn parse_args() -> Result<Config, String> {
         expected_tokens_sha256: String::new(),
         expected_mask_sha256: String::new(),
         expected_manifest_sha256: String::new(),
+        panel: None,
     };
+    let mut panel_paths = [None, None, None, None, None];
+    let mut panel_hashes = [None, None, None, None, None];
+    let mut panel_rendering = ONE_USER_RENDERING.to_owned();
+    let mut panel_train_examples = 0usize;
+    let mut panel_requested = false;
     while let Some(flag) = values.next() {
         if flag == "--select-only" {
             config.select_only = true;
@@ -171,6 +216,54 @@ fn parse_args() -> Result<Config, String> {
             "--expected-tokens-sha256" => config.expected_tokens_sha256 = hex(&value)?,
             "--expected-mask-sha256" => config.expected_mask_sha256 = hex(&value)?,
             "--expected-manifest-sha256" => config.expected_manifest_sha256 = hex(&value)?,
+            "--panel-inputs" => {
+                panel_requested = true;
+                panel_paths[0] = Some(PathBuf::from(value));
+            }
+            "--panel-labels" => {
+                panel_requested = true;
+                panel_paths[1] = Some(PathBuf::from(value));
+            }
+            "--panel-plan" => {
+                panel_requested = true;
+                panel_paths[2] = Some(PathBuf::from(value));
+            }
+            "--panel-manifest" => {
+                panel_requested = true;
+                panel_paths[3] = Some(PathBuf::from(value));
+            }
+            "--panel-tokenizer" => {
+                panel_requested = true;
+                panel_paths[4] = Some(PathBuf::from(value));
+            }
+            "--expected-panel-inputs-sha256" => {
+                panel_requested = true;
+                panel_hashes[0] = Some(hex(&value)?);
+            }
+            "--expected-panel-labels-sha256" => {
+                panel_requested = true;
+                panel_hashes[1] = Some(hex(&value)?);
+            }
+            "--expected-panel-plan-sha256" => {
+                panel_requested = true;
+                panel_hashes[2] = Some(hex(&value)?);
+            }
+            "--expected-panel-manifest-sha256" => {
+                panel_requested = true;
+                panel_hashes[3] = Some(hex(&value)?);
+            }
+            "--expected-panel-tokenizer-sha256" => {
+                panel_requested = true;
+                panel_hashes[4] = Some(hex(&value)?);
+            }
+            "--rendering" => {
+                panel_requested = true;
+                panel_rendering = value;
+            }
+            "--train-examples" => {
+                panel_requested = true;
+                panel_train_examples = number(&value)?;
+            }
             _ => return Err(format!("unknown argument {flag}\n{}", usage())),
         }
     }
@@ -193,6 +286,60 @@ fn parse_args() -> Result<Config, String> {
         || config.reply_cap > 64
     {
         return Err("group dimensions must be positive and bounded".to_owned());
+    }
+    if panel_requested {
+        if panel_rendering != ONE_USER_RENDERING && panel_rendering != PER_TURN_RENDERING {
+            return Err(format!(
+                "--rendering wants {ONE_USER_RENDERING} or {PER_TURN_RENDERING}"
+            ));
+        }
+        let path_names = [
+            "panel-inputs",
+            "panel-labels",
+            "panel-plan",
+            "panel-manifest",
+            "panel-tokenizer",
+        ];
+        let hash_names = [
+            "expected-panel-inputs-sha256",
+            "expected-panel-labels-sha256",
+            "expected-panel-plan-sha256",
+            "expected-panel-manifest-sha256",
+            "expected-panel-tokenizer-sha256",
+        ];
+        for (index, name) in path_names.iter().enumerate() {
+            if panel_paths[index].is_none() {
+                return Err(format!("--{name} is required in panel mode"));
+            }
+            if panel_hashes[index].is_none() {
+                return Err(format!("--{} is required in panel mode", hash_names[index]));
+            }
+        }
+        let [Some(inputs), Some(labels), Some(plan), Some(manifest), Some(tokenizer)] = panel_paths
+        else {
+            unreachable!("all panel paths were checked");
+        };
+        let [Some(expected_inputs_sha256), Some(expected_labels_sha256), Some(expected_plan_sha256), Some(expected_manifest_sha256), Some(expected_tokenizer_sha256)] =
+            panel_hashes
+        else {
+            unreachable!("all panel hashes were checked");
+        };
+        config.panel = Some(PanelConfig {
+            inputs,
+            labels,
+            plan,
+            manifest,
+            tokenizer,
+            rendering: panel_rendering,
+            train_examples: panel_train_examples,
+            expected_inputs_sha256,
+            expected_labels_sha256,
+            expected_plan_sha256,
+            expected_manifest_sha256,
+            expected_tokenizer_sha256,
+        });
+    } else if panel_train_examples != 0 || panel_rendering != ONE_USER_RENDERING {
+        return Err("panel flags were parsed without panel mode".to_owned());
     }
     Ok(config)
 }
@@ -244,6 +391,12 @@ fn run() -> Result<serde_json::Value, String> {
     }
     let identity =
         validate_corpus_manifest(&manifest, &tokens, &mask).map_err(|error| error.to_string())?;
+    if config.panel.is_some() && identity.split != "train" {
+        return Err(format!(
+            "panel mode requires a TRAIN corpus, found split {:?}",
+            identity.split
+        ));
+    }
     let model = IntegerStackModel::parse(&artifact).map_err(|error| error.to_string())?;
     let shape = model.shape();
     if identity.vocab != shape.vocab || identity.bos != 0 {
@@ -258,9 +411,31 @@ fn run() -> Result<serde_json::Value, String> {
     let corpus =
         CpuMaskedCorpus::from_bytes(&tokens, &mask, shape.vocab, shape.context, identity.bos)
             .map_err(|error| error.to_string())?;
-    let examples = corpus
-        .conversation_examples()
-        .map_err(|error| error.to_string())?;
+    let examples = match config.panel.as_ref() {
+        Some(panel) if panel.train_examples > 0 => corpus
+            .conversation_examples_capped(panel.train_examples)
+            .map_err(|error| error.to_string())?,
+        _ => corpus
+            .conversation_examples()
+            .map_err(|error| error.to_string())?,
+    };
+    if let Some(panel) = &config.panel {
+        let train_source = PanelTrainSource {
+            token_bytes: &tokens,
+            mask: &mask,
+            tokenizer_sha256: &identity.tokenizer_sha256,
+            examples: &examples,
+        };
+        return run_panel_probe(
+            &config,
+            panel,
+            &artifact,
+            &train_source,
+            shape.width,
+            shape.vocab,
+            shape.context,
+        );
+    }
     let (training, evaluation) = select_transfer_groups(&examples, &config)?;
     let training_samples = training
         .iter()
@@ -706,6 +881,920 @@ fn run() -> Result<serde_json::Value, String> {
     Ok(report)
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelInputs {
+    schema: String,
+    cases: Vec<PanelInputCase>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelInputCase {
+    #[serde(default)]
+    #[serde(rename = "actual_prefix_ids")]
+    _actual_prefix_ids: Vec<u32>,
+    id: String,
+    query_ids: Vec<u32>,
+    segments: Vec<PanelSegment>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelSegment {
+    kind: String,
+    event: u64,
+    #[serde(default)]
+    token_ids: Vec<u32>,
+    #[serde(default)]
+    #[serde(rename = "role")]
+    _role: Option<u64>,
+    #[serde(default)]
+    #[serde(rename = "commit")]
+    _commit: Option<u64>,
+    #[serde(default)]
+    #[serde(rename = "entity")]
+    _entity: Vec<u64>,
+    #[serde(default)]
+    #[serde(rename = "original_source_ids")]
+    _original_source_ids: Vec<u32>,
+    #[serde(default)]
+    #[serde(rename = "record")]
+    _record: Option<u64>,
+    #[serde(default)]
+    #[serde(rename = "relation")]
+    _relation: Option<u64>,
+    #[serde(default)]
+    #[serde(rename = "scope")]
+    _scope: Option<String>,
+    #[serde(default)]
+    #[serde(rename = "view")]
+    _view: Option<u64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelLabels {
+    cases: Vec<PanelLabelCase>,
+    membership_only: bool,
+    protocol: String,
+    schema: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelLabelCase {
+    answers: FrozenAnswers,
+    id: String,
+    pair_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelPlan {
+    schema: String,
+    source_policy: String,
+    split: String,
+    histories: Vec<PanelHistory>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelHistory {
+    id: String,
+    stratum: String,
+    turns: Vec<PanelTextRow>,
+    queries: Vec<PanelTextRow>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelTextRow {
+    #[serde(rename = "act")]
+    _act: String,
+    #[serde(rename = "relation")]
+    _relation: String,
+    #[serde(rename = "template")]
+    _template: String,
+    text: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelManifest {
+    excluded_historical_exposures: PanelExcludedExposures,
+    files: BTreeMap<String, PanelManifestFile>,
+    histories: usize,
+    issue: String,
+    milestone: String,
+    milestone_issue: String,
+    model_predictions: String,
+    opposite_query_pairs: usize,
+    ordered_role_value_banks: usize,
+    panel_id: String,
+    rows: usize,
+    schema: String,
+    target_bar_metric: String,
+    target_bar_of: usize,
+    target_bar_pairs: usize,
+    target_bar_pairs_of: usize,
+    target_bar_rows: usize,
+    tokenizer_sha256: String,
+    strata_rows: BTreeMap<String, usize>,
+    unordered_bank_blocks: usize,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelManifestFile {
+    bytes: usize,
+    sha256: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PanelExcludedExposures {
+    dev512_inputs_sha256: String,
+    historical_exposed_literals: usize,
+    opened_fresh128_inputs_sha256: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize)]
+struct PanelOverlapCounts {
+    documents: usize,
+    assistant_replies: usize,
+    exact_panel_in_document: usize,
+    exact_accepted_assistant_reply: usize,
+    documents_with_panel_6gram: usize,
+    assistant_replies_with_panel_6gram: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PanelOverlapAudit {
+    counts: PanelOverlapCounts,
+    pass: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, serde::Serialize)]
+struct PanelOpeningTally {
+    rows: u64,
+    raw_top1: u64,
+    point_changed_raw: u64,
+    point_top1: u64,
+    point_top8: u64,
+    point_top32: u64,
+    shuffled_top1: u64,
+    shuffled_top8: u64,
+    shuffled_changed_raw: u64,
+    constant_top1: u64,
+}
+
+#[derive(serde::Serialize)]
+struct PanelOpeningRow {
+    id: String,
+    stratum: String,
+    prompt_tokens: usize,
+    target_token: u32,
+    raw_token: u32,
+    point_token: u32,
+    shuffled_token: u32,
+    constant_token: u32,
+    point_top8: bool,
+    point_top32: bool,
+    shuffled_top8: bool,
+}
+
+fn run_panel_probe(
+    config: &Config,
+    panel: &PanelConfig,
+    artifact: &[u8],
+    train: &PanelTrainSource<'_>,
+    width: usize,
+    vocab: usize,
+    context: usize,
+) -> Result<serde_json::Value, String> {
+    let started = Instant::now();
+    let training = training_openings(train.examples);
+    if training.is_empty() {
+        return Err("panel mode has no non-EOS reply openings in TRAIN".to_owned());
+    }
+    let empty_memory = FbsMemorySnapshot {
+        k: 8,
+        key_window: context,
+        opening: Vec::new(),
+        opening_weight: vec![0.0; width],
+        reply: None,
+    };
+    let memory_artifact =
+        add_turn_memory_uorlut01(artifact, &empty_memory).map_err(|error| error.to_string())?;
+    let point = derive_point_table(&memory_artifact, &training, width, vocab)?;
+    let random_point = PointKeyImage {
+        width: point.width,
+        points: point.points.clone(),
+        targets: shuffled_targets(&point.targets, config.random_seed)?,
+        vote_k: 1,
+    };
+    let point_artifact =
+        add_point_key_uorlut01(&memory_artifact, &point).map_err(|error| error.to_string())?;
+    let random_artifact = add_point_key_uorlut01(&memory_artifact, &random_point)
+        .map_err(|error| error.to_string())?;
+    let constant_token = constant_opening(&training)?;
+
+    let read = |path: &PathBuf, expected: &str| -> Result<(Vec<u8>, String), String> {
+        let bytes = std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+        let sha = uor_r4_discrete::corpus::sha256(&bytes);
+        if sha != expected {
+            return Err(format!("{} SHA-256 differs: got {sha}", path.display()));
+        }
+        Ok((bytes, sha))
+    };
+    let (inputs_bytes, inputs_sha) = read(&panel.inputs, &panel.expected_inputs_sha256)?;
+    let (labels_bytes, labels_sha) = read(&panel.labels, &panel.expected_labels_sha256)?;
+    let (plan_bytes, plan_sha) = read(&panel.plan, &panel.expected_plan_sha256)?;
+    let (manifest_bytes, manifest_sha) = read(&panel.manifest, &panel.expected_manifest_sha256)?;
+    let (tokenizer_bytes, tokenizer_sha) =
+        read(&panel.tokenizer, &panel.expected_tokenizer_sha256)?;
+    let manifest: PanelManifest = serde_json::from_slice(&manifest_bytes)
+        .map_err(|error| format!("panel manifest: {error}"))?;
+    let expected_strata = BTreeMap::from([
+        ("length2".to_owned(), 64),
+        ("length4".to_owned(), 64),
+        ("length8".to_owned(), 64),
+        ("reassert".to_owned(), 32),
+        ("update".to_owned(), 32),
+    ]);
+    if manifest.schema != "uor-r4.m2-fresh256-panel-manifest/1"
+        || manifest.panel_id != "m2-fresh256"
+        || manifest.milestone != "m2"
+        || manifest.milestone_issue != "#2030"
+        || manifest.issue != "#2849"
+        || manifest.rows != 256
+        || manifest.histories != 128
+        || manifest.opposite_query_pairs != 128
+        || manifest.unordered_bank_blocks != 16
+        || manifest.ordered_role_value_banks != 32
+        || manifest.model_predictions != "NOT_RUN"
+        || manifest.target_bar_metric != "pairs_both_complete_distinct"
+        || manifest.target_bar_rows != 104
+        || manifest.target_bar_of != 256
+        || manifest.target_bar_pairs != 52
+        || manifest.target_bar_pairs_of != 128
+        || manifest
+            .excluded_historical_exposures
+            .historical_exposed_literals
+            != 74
+        || manifest.strata_rows != expected_strata
+    {
+        return Err("panel manifest identity, scope or row inventory differs".to_owned());
+    }
+    for hash in [
+        manifest
+            .excluded_historical_exposures
+            .dev512_inputs_sha256
+            .as_str(),
+        manifest
+            .excluded_historical_exposures
+            .opened_fresh128_inputs_sha256
+            .as_str(),
+    ] {
+        uor_r4_discrete::corpus::validate_sha256(hash)
+            .map_err(|error| format!("panel exclusion identity: {error}"))?;
+    }
+    if manifest.files.len() != 3 {
+        return Err("panel manifest file inventory differs".to_owned());
+    }
+    for (name, actual_sha, actual_bytes) in [
+        ("inputs.json", inputs_sha.as_str(), inputs_bytes.len()),
+        ("labels.json", labels_sha.as_str(), labels_bytes.len()),
+        ("plan.json", plan_sha.as_str(), plan_bytes.len()),
+    ] {
+        if manifest
+            .files
+            .get(name)
+            .is_none_or(|entry| entry.sha256.as_str() != actual_sha || entry.bytes != actual_bytes)
+        {
+            return Err(format!(
+                "panel manifest files.{name} differs from the file read"
+            ));
+        }
+    }
+    if manifest.tokenizer_sha256 != tokenizer_sha {
+        return Err("panel manifest tokenizer_sha256 differs".to_owned());
+    }
+    if train.tokenizer_sha256 != tokenizer_sha {
+        return Err("TRAIN corpus and panel tokenizer identities differ".to_owned());
+    }
+    let inputs: PanelInputs =
+        serde_json::from_slice(&inputs_bytes).map_err(|error| format!("panel inputs: {error}"))?;
+    let labels: PanelLabels =
+        serde_json::from_slice(&labels_bytes).map_err(|error| format!("panel labels: {error}"))?;
+    let plan: PanelPlan =
+        serde_json::from_slice(&plan_bytes).map_err(|error| format!("panel plan: {error}"))?;
+    validate_panel_labels(&labels)?;
+    if inputs.schema != "uor-r4.native-source-bank-probe-input/1"
+        || plan.schema != "uor-r4.raw-natural-reader-construction-plan/1"
+        || plan.split != "fresh"
+        || plan.source_policy
+            != "explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2"
+        || inputs.cases.len() != 256
+        || labels.cases.len() != 256
+        || plan.histories.len() != 128
+        || inputs.cases.iter().any(|case| {
+            !case._actual_prefix_ids.is_empty()
+                || case.query_ids.is_empty()
+                || case.segments.iter().any(|segment| {
+                    !matches!(segment.kind.as_str(), "Context" | "Source")
+                        || (segment.kind == "Context" && segment.token_ids.is_empty())
+                })
+        })
+    {
+        return Err("m2-fresh256 case or history count differs".to_owned());
+    }
+    let by_id = inputs
+        .cases
+        .iter()
+        .map(|case| (case.id.as_str(), case))
+        .collect::<BTreeMap<_, _>>();
+    let label_ids = labels
+        .cases
+        .iter()
+        .map(|case| case.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let pair_rows =
+        labels
+            .cases
+            .iter()
+            .fold(BTreeMap::<&str, usize>::new(), |mut counts, label| {
+                *counts.entry(label.pair_id.as_str()).or_default() += 1;
+                counts
+            });
+    if by_id.len() != inputs.cases.len()
+        || label_ids.len() != labels.cases.len()
+        || pair_rows.len() != 128
+        || pair_rows.values().any(|&rows| rows != 2)
+    {
+        return Err("panel case, label or pair identities are not unique".to_owned());
+    }
+    let strata = plan
+        .histories
+        .iter()
+        .map(|history| {
+            (
+                format!("fresh-{}", history.id),
+                history.stratum.split('/').next().unwrap_or("").to_owned(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    if strata.len() != plan.histories.len() {
+        return Err("panel history identities are not unique".to_owned());
+    }
+    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
+        .ok_or_else(|| "panel tokenizer is not a byte-level BPE tokenizer".to_owned())?;
+    let overlap =
+        audit_panel_training_overlap(train.token_bytes, train.mask, &tokenizer, &plan, &labels)?;
+    if !overlap.pass {
+        return Err(format!(
+            "panel/training overlap found: {:?}",
+            overlap.counts
+        ));
+    }
+    let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
+    let encoder = protocol.bind(&tokenizer).map_err(|e| e.to_string())?;
+    let mut totals = PanelOpeningTally::default();
+    let mut per_stratum = BTreeMap::<String, PanelOpeningTally>::new();
+    let mut observed_strata = BTreeMap::<String, usize>::new();
+    let mut rows = Vec::with_capacity(labels.cases.len());
+    let mut raw_query_mismatches = 0u64;
+    let mut point_served_mismatches = 0u64;
+    let mut shuffled_served_mismatches = 0u64;
+    let mut point_vs_shuffled = Vec::with_capacity(labels.cases.len());
+    let mut point_vs_raw = Vec::with_capacity(labels.cases.len());
+    let mut point_vs_constant = Vec::with_capacity(labels.cases.len());
+    let mut stratified_pairs =
+        BTreeMap::<String, (Vec<(bool, bool)>, Vec<(bool, bool)>, Vec<(bool, bool)>)>::new();
+    for label in &labels.cases {
+        let case = by_id
+            .get(label.id.as_str())
+            .ok_or_else(|| format!("{}: no input case", label.id))?;
+        let stratum = strata
+            .get(&label.pair_id)
+            .ok_or_else(|| format!("{}: no plan history", label.pair_id))?
+            .clone();
+        let (_, prompt) = render_panel_case(&tokenizer, &encoder, case, &panel.rendering)?;
+        let (_, reference_ids) = panel_reference_ids(&encoder, &label.answers)?;
+        let target = *reference_ids
+            .first()
+            .ok_or_else(|| format!("{}: empty reference", label.id))?;
+        if target == POINT_KEY_BOS || target == PANEL_EOS {
+            return Err(format!(
+                "{}: reference starts at boundary token {target}",
+                label.id
+            ));
+        }
+        let (raw_query, raw_token) =
+            opening_query_and_token_with_head(&memory_artifact, &prompt, CpuFbsHead::Nearest)?;
+        let (point_query, point_served) =
+            opening_query_and_token_with_head(&point_artifact, &prompt, CpuFbsHead::Nearest)?;
+        let (shuffle_query, shuffled_served) =
+            opening_query_and_token_with_head(&random_artifact, &prompt, CpuFbsHead::Nearest)?;
+        if point_query != raw_query || shuffle_query != raw_query {
+            raw_query_mismatches += 1;
+        }
+        let point_top = point_candidates(&point, &raw_query, 32)?;
+        let shuffled_top = point_candidates(&random_point, &raw_query, 8)?;
+        let point_token = *point_top
+            .first()
+            .ok_or_else(|| "point table produced no candidate".to_owned())?;
+        let shuffled_token = *shuffled_top
+            .first()
+            .ok_or_else(|| "shuffled point table produced no candidate".to_owned())?;
+        point_served_mismatches += u64::from(point_served != point_token);
+        shuffled_served_mismatches += u64::from(shuffled_served != shuffled_token);
+        let point_top8 = point_top.iter().take(8).any(|token| *token == target);
+        let point_top32 = point_top.iter().take(32).any(|token| *token == target);
+        let shuffled_top8 = shuffled_top.iter().take(8).any(|token| *token == target);
+        let row = PanelOpeningRow {
+            id: label.id.clone(),
+            stratum: stratum.clone(),
+            prompt_tokens: prompt.len(),
+            target_token: target,
+            raw_token,
+            point_token,
+            shuffled_token,
+            constant_token,
+            point_top8,
+            point_top32,
+            shuffled_top8,
+        };
+        add_panel_tally(&mut totals, &row);
+        add_panel_tally(per_stratum.entry(stratum.clone()).or_default(), &row);
+        *observed_strata.entry(stratum.clone()).or_default() += 1;
+        let point_win = point_token == target;
+        let shuffled_win = shuffled_token == target;
+        let raw_win = raw_token == target;
+        let constant_win = constant_token == target;
+        point_vs_shuffled.push((point_win, shuffled_win));
+        point_vs_raw.push((point_win, raw_win));
+        point_vs_constant.push((point_win, constant_win));
+        let (shuffled_pairs, raw_pairs, constant_pairs) =
+            stratified_pairs.entry(stratum).or_default();
+        shuffled_pairs.push((point_win, shuffled_win));
+        raw_pairs.push((point_win, raw_win));
+        constant_pairs.push((point_win, constant_win));
+        rows.push(row);
+    }
+    if observed_strata != manifest.strata_rows {
+        return Err(format!(
+            "panel strata rows {observed_strata:?} differ from manifest {:?}",
+            manifest.strata_rows
+        ));
+    }
+    let panel_targets = rows
+        .iter()
+        .map(|row| row.target_token)
+        .collect::<BTreeSet<_>>();
+    let point_targets = point.targets.iter().copied().collect::<BTreeSet<_>>();
+    let absent_targets = panel_targets
+        .difference(&point_targets)
+        .copied()
+        .collect::<Vec<_>>();
+    if raw_query_mismatches != 0 || point_served_mismatches != 0 || shuffled_served_mismatches != 0
+    {
+        return Err(format!(
+            "panel query/served parity failed: queries={raw_query_mismatches}, point={point_served_mismatches}, shuffled={shuffled_served_mismatches}"
+        ));
+    }
+    let per_stratum_paired = stratified_pairs
+        .into_iter()
+        .map(|(stratum, (shuffled, raw, constant))| {
+            Ok((
+                stratum,
+                serde_json::json!({
+                    "point_vs_shuffled": paired_binary(&shuffled)?,
+                    "point_vs_raw": paired_binary(&raw)?,
+                    "point_vs_constant": paired_binary(&constant)?,
+                }),
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, String>>()?;
+    std::fs::create_dir_all(&config.out).map_err(|error| error.to_string())?;
+    std::fs::write(config.out.join("memory-scaffold.uorlut"), &memory_artifact)
+        .map_err(|error| error.to_string())?;
+    std::fs::write(config.out.join("point.uorlut"), &point_artifact)
+        .map_err(|error| error.to_string())?;
+    std::fs::write(config.out.join("shuffled-point.uorlut"), &random_artifact)
+        .map_err(|error| error.to_string())?;
+    let report = serde_json::json!({
+        "schema": PANEL_SCHEMA,
+        "substrate": "cpu-development-research",
+        "qualification": "gpu-required",
+        "inputs": {
+            "artifact": config.artifact,
+            "artifact_sha256": config.expected_artifact_sha256,
+            "train_tokens": config.tokens,
+            "train_tokens_sha256": config.expected_tokens_sha256,
+            "train_mask": config.mask,
+            "train_mask_sha256": config.expected_mask_sha256,
+            "train_manifest": config.manifest,
+            "train_manifest_sha256": config.expected_manifest_sha256,
+            "panel_inputs": panel.inputs,
+            "panel_inputs_sha256": inputs_sha,
+            "panel_labels": panel.labels,
+            "panel_labels_sha256": labels_sha,
+            "panel_plan": panel.plan,
+            "panel_plan_sha256": plan_sha,
+            "panel_manifest": panel.manifest,
+            "panel_manifest_sha256": manifest_sha,
+            "panel_tokenizer": panel.tokenizer,
+            "panel_tokenizer_sha256": tokenizer_sha,
+        },
+        "settings": {
+            "rendering": panel.rendering,
+            "protocol": SCHEMA_V2,
+            "raw_head": "nearest",
+            "train_examples_requested": panel.train_examples,
+            "train_openings": training.len(),
+            "random_seed": config.random_seed,
+            "point_width": point.width,
+            "point_rows": point.rows(),
+        },
+        "artifacts": {
+            "memory_scaffold_sha256": uor_r4_discrete::corpus::sha256(&memory_artifact),
+            "point_sha256": uor_r4_discrete::corpus::sha256(&point_artifact),
+            "shuffled_point_sha256": uor_r4_discrete::corpus::sha256(&random_artifact),
+        },
+        "opening_vocabulary": {
+            "panel_targets": panel_targets.len(),
+            "point_targets": point_targets.len(),
+            "panel_targets_absent_from_point_table": absent_targets.len(),
+            "absent_target_tokens": absent_targets,
+        },
+        "overlap_control": {
+            "pass": overlap.pass,
+            "counts": overlap.counts,
+        },
+        "totals": totals,
+        "per_stratum": per_stratum,
+        "per_stratum_paired": per_stratum_paired,
+        "paired": {
+            "point_vs_shuffled": paired_binary(&point_vs_shuffled)?,
+            "point_vs_raw": paired_binary(&point_vs_raw)?,
+            "point_vs_constant": paired_binary(&point_vs_constant)?,
+        },
+        "parity": {
+            "query_mismatches": raw_query_mismatches,
+            "point_served_mismatches": point_served_mismatches,
+            "shuffled_served_mismatches": shuffled_served_mismatches,
+        },
+        "rows": rows,
+        "threads": rayon::current_num_threads(),
+        "wall_elapsed_ms": started.elapsed().as_secs_f64() * 1_000.0,
+        "peak_rss_kib": peak_rss_kib()?,
+        "claim": "CPU development-research opening screen on the sealed m2-fresh256 panel; not a fresh capability bar or chat result",
+    });
+    std::fs::write(
+        config.out.join("report.json"),
+        serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(report)
+}
+
+fn training_openings(examples: &[CpuConversationSample]) -> Vec<CpuConversationSample> {
+    examples
+        .iter()
+        .filter(|sample| {
+            sample
+                .reply
+                .first()
+                .is_some_and(|token| *token != POINT_KEY_BOS && *token != PANEL_EOS)
+        })
+        .cloned()
+        .collect()
+}
+
+fn validate_panel_labels(labels: &PanelLabels) -> Result<(), String> {
+    if labels.protocol != SCHEMA_V2 {
+        return Err(format!("panel labels protocol is not {SCHEMA_V2}"));
+    }
+    if labels.schema != "uor-r4.native-source-bank-labels/1" || !labels.membership_only {
+        return Err("panel labels schema or membership_only differs".to_owned());
+    }
+    Ok(())
+}
+
+fn panel_words(text: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    for character in text.chars() {
+        if character.is_alphanumeric() {
+            current.extend(character.to_lowercase());
+        } else if !current.is_empty() {
+            words.push(std::mem::take(&mut current));
+        }
+    }
+    if !current.is_empty() {
+        words.push(current);
+    }
+    words
+}
+
+fn panel_grams(words: &[String]) -> BTreeSet<String> {
+    words
+        .windows(PANEL_NGRAM)
+        .map(|window| window.join(" "))
+        .collect()
+}
+
+fn contains_word_sequence(haystack: &[String], needle: &[String]) -> bool {
+    !needle.is_empty()
+        && haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
+}
+
+fn audit_panel_training_overlap(
+    train_token_bytes: &[u8],
+    train_mask: &[u8],
+    tokenizer: &ByteBpeTokenizer,
+    plan: &PanelPlan,
+    labels: &PanelLabels,
+) -> Result<PanelOverlapAudit, String> {
+    let token_slice = read_uort_token_slice(train_token_bytes, 0, train_mask.len())
+        .map_err(|error| format!("panel overlap token source: {error}"))?;
+    let prompt_words = plan
+        .histories
+        .iter()
+        .flat_map(|history| history.turns.iter().chain(&history.queries))
+        .map(|row| panel_words(&row.text))
+        .filter(|words| !words.is_empty())
+        .collect::<Vec<_>>();
+    let answer_words = labels
+        .cases
+        .iter()
+        .flat_map(|case| case.answers.accepted.iter())
+        .map(|answer| panel_words(answer))
+        .filter(|words| !words.is_empty())
+        .collect::<Vec<_>>();
+    let panel_gram_set = prompt_words
+        .iter()
+        .chain(&answer_words)
+        .flat_map(|words| panel_grams(words))
+        .collect::<BTreeSet<_>>();
+    let mut documents = Vec::new();
+    let mut start = 0usize;
+    for end in (0..=token_slice.tokens.len()).filter(|&index| {
+        index == token_slice.tokens.len() || token_slice.tokens[index] == POINT_KEY_BOS
+    }) {
+        if end <= start {
+            start = end + 1;
+            continue;
+        }
+        documents.push(start..end);
+        start = end + 1;
+    }
+    let counts = documents
+        .par_iter()
+        .map(|document| {
+            let mut counts = PanelOverlapCounts {
+                documents: 1,
+                ..PanelOverlapCounts::default()
+            };
+            let text = tokenizer.decode(&token_slice.tokens[document.clone()]);
+            let document_words = panel_words(&text);
+            counts.exact_panel_in_document = prompt_words
+                .iter()
+                .chain(&answer_words)
+                .filter(|needle| contains_word_sequence(&document_words, needle))
+                .count();
+            if panel_grams(&document_words)
+                .intersection(&panel_gram_set)
+                .next()
+                .is_some()
+            {
+                counts.documents_with_panel_6gram = 1;
+            }
+            let mut reply_start = None;
+            for (offset, masked) in (document.start..=document.end)
+                .map(|offset| (offset, train_mask.get(offset).copied().unwrap_or(0)))
+            {
+                let inside = offset < document.end && masked == 1;
+                match (inside, reply_start) {
+                    (true, None) => reply_start = Some(offset),
+                    (false, Some(from)) => {
+                        counts.assistant_replies += 1;
+                        let reply =
+                            panel_words(&tokenizer.decode(&token_slice.tokens[from..offset]));
+                        if answer_words.contains(&reply) {
+                            counts.exact_accepted_assistant_reply += 1;
+                        }
+                        if panel_grams(&reply)
+                            .intersection(&panel_gram_set)
+                            .next()
+                            .is_some()
+                        {
+                            counts.assistant_replies_with_panel_6gram += 1;
+                        }
+                        reply_start = None;
+                    }
+                    _ => {}
+                }
+            }
+            counts
+        })
+        .reduce(PanelOverlapCounts::default, |mut total, counts| {
+            total.documents += counts.documents;
+            total.assistant_replies += counts.assistant_replies;
+            total.exact_panel_in_document += counts.exact_panel_in_document;
+            total.exact_accepted_assistant_reply += counts.exact_accepted_assistant_reply;
+            total.documents_with_panel_6gram += counts.documents_with_panel_6gram;
+            total.assistant_replies_with_panel_6gram += counts.assistant_replies_with_panel_6gram;
+            total
+        });
+    let pass = counts.exact_panel_in_document == 0
+        && counts.exact_accepted_assistant_reply == 0
+        && counts.documents_with_panel_6gram == 0
+        && counts.assistant_replies_with_panel_6gram == 0;
+    Ok(PanelOverlapAudit { counts, pass })
+}
+
+fn constant_opening(training: &[CpuConversationSample]) -> Result<u32, String> {
+    let mut counts = BTreeMap::<u32, u64>::new();
+    for sample in training {
+        let token = *sample
+            .reply
+            .first()
+            .ok_or_else(|| "training opening is empty".to_owned())?;
+        *counts.entry(token).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .max_by(|left, right| left.1.cmp(&right.1).then_with(|| right.0.cmp(&left.0)))
+        .map(|(token, _)| token)
+        .ok_or_else(|| "training opening census is empty".to_owned())
+}
+
+fn add_panel_tally(tally: &mut PanelOpeningTally, row: &PanelOpeningRow) {
+    tally.rows += 1;
+    tally.raw_top1 += u64::from(row.raw_token == row.target_token);
+    tally.point_changed_raw += u64::from(row.point_token != row.raw_token);
+    tally.point_top1 += u64::from(row.point_token == row.target_token);
+    tally.point_top8 += u64::from(row.point_top8);
+    tally.point_top32 += u64::from(row.point_top32);
+    tally.shuffled_top1 += u64::from(row.shuffled_token == row.target_token);
+    tally.shuffled_top8 += u64::from(row.shuffled_top8);
+    tally.shuffled_changed_raw += u64::from(row.shuffled_token != row.raw_token);
+    tally.constant_top1 += u64::from(row.constant_token == row.target_token);
+}
+
+fn paired_binary(rows: &[(bool, bool)]) -> Result<serde_json::Value, String> {
+    if rows.is_empty() {
+        return Err("paired binary comparison requires rows".to_owned());
+    }
+    let candidate_top1 = rows.iter().filter(|(candidate, _)| *candidate).count();
+    let control_top1 = rows.iter().filter(|(_, control)| *control).count();
+    let candidate_only = rows
+        .iter()
+        .filter(|(candidate, control)| *candidate && !*control)
+        .count();
+    let control_only = rows
+        .iter()
+        .filter(|(candidate, control)| !*candidate && *control)
+        .count();
+    let discordant = candidate_only + control_only;
+    let threshold = std::cmp::max(2, (2.0 * (discordant as f64).sqrt()).ceil() as u64);
+    let gain = candidate_only as i64 - control_only as i64;
+    Ok(serde_json::json!({
+        "rows": rows.len(),
+        "candidate_top1": candidate_top1,
+        "control_top1": control_top1,
+        "candidate_only": candidate_only,
+        "control_only": control_only,
+        "discordant": discordant,
+        "gain": gain,
+        "threshold": threshold,
+        "passes": gain >= i64::try_from(threshold).unwrap_or(i64::MAX),
+    }))
+}
+
+fn point_candidates(
+    image: &PointKeyImage,
+    query: &[i32],
+    maximum: usize,
+) -> Result<Vec<u32>, String> {
+    if query.len() != image.width
+        || image.rows() == 0
+        || maximum == 0
+        || image.points.len() != image.rows() * image.width
+    {
+        return Err("invalid point-candidate query or table".to_owned());
+    }
+    let mut distances = image
+        .points
+        .chunks_exact(image.width)
+        .enumerate()
+        .map(|(row, point)| {
+            let distance = query
+                .iter()
+                .zip(point)
+                .try_fold(0u64, |sum, (&query, &point)| {
+                    sum.checked_add(u64::from(query.abs_diff(i32::from(point))))
+                        .ok_or_else(|| "point-candidate distance overflows".to_owned())
+                })?;
+            Ok((distance, row))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    distances.sort_unstable();
+    let mut seen = BTreeSet::new();
+    let mut candidates = Vec::new();
+    for (_, row) in distances {
+        let target = image.targets[row];
+        if seen.insert(target) {
+            candidates.push(target);
+            if candidates.len() == maximum {
+                break;
+            }
+        }
+    }
+    Ok(candidates)
+}
+
+fn render_panel_case(
+    tokenizer: &ByteBpeTokenizer,
+    encoder: &DialogueEncoder<'_>,
+    case: &PanelInputCase,
+    rendering: &str,
+) -> Result<(String, Vec<u32>), String> {
+    let mut contexts = case
+        .segments
+        .iter()
+        .filter(|segment| segment.kind == "Context")
+        .collect::<Vec<_>>();
+    contexts.sort_by_key(|segment| segment.event);
+    let mut parts = contexts
+        .iter()
+        .map(|segment| tokenizer.decode(&segment.token_ids).trim().to_owned())
+        .collect::<Vec<_>>();
+    parts.push(tokenizer.decode(&case.query_ids).trim().to_owned());
+    let (content, ids) = match rendering {
+        ONE_USER_RENDERING => {
+            let content = parts.join(" ");
+            let ids = encoder
+                .encode_assistant_prefix(&[Message {
+                    role: "user",
+                    content: &content,
+                }])
+                .tokens;
+            (content, ids)
+        }
+        PER_TURN_RENDERING => {
+            if parts.iter().any(|part| part.is_empty()) {
+                return Err(format!("{}: an empty turn cannot be rendered", case.id));
+            }
+            let messages = parts
+                .iter()
+                .map(|content| Message {
+                    role: "user",
+                    content,
+                })
+                .collect::<Vec<_>>();
+            let content = parts.join("\n");
+            let ids = encoder.encode_assistant_prefix(&messages).tokens;
+            (content, ids)
+        }
+        _ => return Err("unknown panel rendering".to_owned()),
+    };
+    Ok((content, ids))
+}
+
+fn panel_reference_ids(
+    encoder: &DialogueEncoder<'_>,
+    answers: &FrozenAnswers,
+) -> Result<(String, Vec<u32>), String> {
+    let answer = answers
+        .accepted
+        .iter()
+        .min_by_key(|answer| answer.len())
+        .ok_or_else(|| "frozen answer set is empty".to_owned())?;
+    let encoded = encoder.encode_assistant_suffix(
+        &[Message {
+            role: "assistant",
+            content: answer,
+        }],
+        true,
+    );
+    let ids = encoded
+        .tokens
+        .iter()
+        .zip(&encoded.response_mask)
+        .filter_map(|(&token, &mask)| (mask == 1).then_some(token))
+        .collect::<Vec<_>>();
+    if ids.last().copied() != Some(PANEL_EOS) {
+        return Err(format!("reference answer {answer:?} does not end in EOS"));
+    }
+    Ok((answer.clone(), ids))
+}
+
 fn group_json(group: &KeyGroup) -> serde_json::Value {
     serde_json::json!({
         "key": group.key,
@@ -807,11 +1896,18 @@ fn derive_point_table(
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let built = build_point_key(&model, &windows).map_err(|error| error.to_string())?;
+    let built = windows
+        .par_iter()
+        .map(|window| {
+            build_point_key(&model, std::slice::from_ref(window)).map_err(|error| error.to_string())
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let mut targets = BTreeMap::<Vec<i16>, BTreeMap<u32, usize>>::new();
-    for (point, &target) in built.points.chunks_exact(width).zip(&built.targets) {
-        let point = point.to_vec();
-        *targets.entry(point).or_default().entry(target).or_default() += 1;
+    for image in built {
+        for (point, &target) in image.points.chunks_exact(width).zip(&image.targets) {
+            let point = point.to_vec();
+            *targets.entry(point).or_default().entry(target).or_default() += 1;
+        }
     }
     let rows = targets
         .into_iter()
@@ -1222,6 +2318,14 @@ fn add_count(left: u64, right: u64) -> Result<u64, String> {
 }
 
 fn opening_query_and_token(artifact: &[u8], prompt: &[u32]) -> Result<(Vec<i32>, u32), String> {
+    opening_query_and_token_with_head(artifact, prompt, CpuFbsHead::Writer)
+}
+
+fn opening_query_and_token_with_head(
+    artifact: &[u8],
+    prompt: &[u32],
+    head: CpuFbsHead,
+) -> Result<(Vec<i32>, u32), String> {
     let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|error| error.to_string())?;
     let mut result = None;
     for (index, &token) in prompt.iter().enumerate() {
@@ -1229,7 +2333,7 @@ fn opening_query_and_token(artifact: &[u8], prompt: &[u32]) -> Result<(Vec<i32>,
             forward.mark_reply_start();
         }
         let step = forward
-            .step(token, CpuFbsHead::Writer)
+            .step(token, head)
             .map_err(|error| error.to_string())?;
         if index + 1 == prompt.len() {
             result = Some((step.query_q12, step.token));
@@ -1417,6 +2521,96 @@ mod tests {
     use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FbsSynth};
     use uor_r4_integer::stack::{export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot};
 
+    fn byte_level_tokenizer() -> ByteBpeTokenizer {
+        let direct = (b'!'..=b'~')
+            .chain(0xA1..=0xAC)
+            .chain(0xAE..=0xFF)
+            .collect::<BTreeSet<_>>();
+        let mut codepoints = Vec::new();
+        for byte in 0u16..=255 {
+            let byte = byte as u8;
+            codepoints.push(u32::from(byte));
+        }
+        let mut extra = 256u32;
+        for byte in 0u16..=255 {
+            let byte = byte as u8;
+            if !direct.contains(&byte) {
+                codepoints.push(extra);
+                extra += 1;
+            }
+        }
+        let mut vocab = BTreeMap::<String, u32>::from([
+            ("<|bos|>".to_owned(), 0),
+            ("<|eos|>".to_owned(), 1),
+            ("<|unk|>".to_owned(), 2),
+        ]);
+        for (index, codepoint) in codepoints.into_iter().enumerate() {
+            vocab.insert(
+                char::from_u32(codepoint).expect("byte mapping").to_string(),
+                3 + index as u32,
+            );
+        }
+        let added = (0..3)
+            .map(|id| {
+                let content = ["<|bos|>", "<|eos|>", "<|unk|>"][id as usize];
+                serde_json::json!({
+                    "id": id,
+                    "content": content,
+                    "single_word": false,
+                    "lstrip": false,
+                    "rstrip": false,
+                    "normalized": false,
+                    "special": true
+                })
+            })
+            .collect::<Vec<_>>();
+        let json = serde_json::json!({
+            "version": "1.0",
+            "truncation": null,
+            "padding": null,
+            "added_tokens": added,
+            "normalizer": null,
+            "pre_tokenizer": {
+                "type": "ByteLevel",
+                "add_prefix_space": false,
+                "trim_offsets": true,
+                "use_regex": true
+            },
+            "post_processor": null,
+            "decoder": {
+                "type": "ByteLevel",
+                "add_prefix_space": true,
+                "trim_offsets": true,
+                "use_regex": true
+            },
+            "model": {
+                "type": "BPE",
+                "dropout": null,
+                "unk_token": "<|unk|>",
+                "continuing_subword_prefix": null,
+                "end_of_word_suffix": null,
+                "fuse_unk": false,
+                "byte_fallback": false,
+                "ignore_merges": false,
+                "vocab": vocab,
+                "merges": []
+            }
+        });
+        ByteBpeTokenizer::from_tokenizer_json_bytes(
+            &serde_json::to_vec(&json).expect("serialize tokenizer"),
+        )
+        .expect("byte tokenizer")
+    }
+
+    fn panel_labels(protocol: &str, schema: &str, membership_only: bool) -> PanelLabels {
+        PanelLabels {
+            cases: Vec::new(),
+            membership_only,
+            protocol: protocol.to_owned(),
+            schema: schema.to_owned(),
+        }
+    }
+
     fn sample(document: usize, key: u32, reply: u32) -> CpuConversationSample {
         CpuConversationSample {
             document_ordinal: document,
@@ -1455,7 +2649,211 @@ mod tests {
             expected_tokens_sha256: String::new(),
             expected_mask_sha256: String::new(),
             expected_manifest_sha256: String::new(),
+            panel: None,
         }
+    }
+
+    #[test]
+    fn panel_point_candidates_are_unique_ordered_and_bounded() {
+        let image = PointKeyImage {
+            width: 1,
+            points: vec![3, 2, 1, 0],
+            targets: vec![7, 7, 8, 9],
+            vote_k: 1,
+        };
+        assert_eq!(point_candidates(&image, &[0], 1).unwrap(), vec![9]);
+        assert_eq!(point_candidates(&image, &[0], 3).unwrap(), vec![9, 8, 7]);
+        assert_eq!(point_candidates(&image, &[0], 32).unwrap(), vec![9, 8, 7]);
+        assert!(point_candidates(&image, &[], 1).is_err());
+        assert!(point_candidates(&image, &[0], 0).is_err());
+    }
+
+    #[test]
+    fn constant_opening_uses_mode_then_smaller_token() {
+        let rows = vec![
+            sample(0, 10, 7),
+            sample(2, 20, 7),
+            sample(4, 30, 6),
+            sample(6, 40, 6),
+        ];
+        assert_eq!(constant_opening(&rows).unwrap(), 6);
+        let tie = vec![sample(0, 10, 7), sample(2, 20, 6)];
+        assert_eq!(constant_opening(&tie).unwrap(), 6);
+    }
+
+    #[test]
+    fn panel_training_skips_boundary_and_eos_openings() {
+        let mut boundary = sample(0, 10, 7);
+        boundary.reply[0] = POINT_KEY_BOS;
+        let mut eos = sample(1, 20, 7);
+        eos.reply[0] = PANEL_EOS;
+        let mut empty = sample(2, 30, 7);
+        empty.reply.clear();
+        let kept = sample(3, 40, 7);
+        let rows = training_openings(&[boundary, eos, empty, kept]);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].reply.first().copied(), Some(7));
+    }
+
+    #[test]
+    fn panel_label_contract_fails_closed() {
+        let valid = panel_labels(SCHEMA_V2, "uor-r4.native-source-bank-labels/1", true);
+        validate_panel_labels(&valid).unwrap();
+        assert!(validate_panel_labels(&panel_labels(
+            "wrong",
+            "uor-r4.native-source-bank-labels/1",
+            true
+        ))
+        .is_err());
+        assert!(validate_panel_labels(&panel_labels(
+            SCHEMA_V2,
+            "uor-r4.native-source-bank-labels/1",
+            false
+        ))
+        .is_err());
+        let extra = format!(
+            r#"{{"cases":[],"membership_only":true,"protocol":"{SCHEMA_V2}","schema":"uor-r4.native-source-bank-labels/1","extra":1}}"#
+        );
+        assert!(serde_json::from_str::<PanelLabels>(&extra).is_err());
+    }
+
+    #[test]
+    fn panel_input_and_plan_contracts_refuse_unknown_metadata() {
+        let inputs = r#"{"schema":"uor-r4.native-source-bank-probe-input/1","cases":[],"extra":1}"#;
+        assert!(serde_json::from_str::<PanelInputs>(inputs).is_err());
+        let plan = format!(
+            r#"{{"schema":"uor-r4.raw-natural-reader-construction-plan/1","source_policy":"explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2","split":"fresh","histories":[],"extra":1}}"#
+        );
+        assert!(serde_json::from_str::<PanelPlan>(&plan).is_err());
+    }
+
+    fn overlap_plan(prompt: &str) -> PanelPlan {
+        PanelPlan {
+            schema: "uor-r4.raw-natural-reader-construction-plan/1".to_owned(),
+            source_policy:
+                "explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2"
+                    .to_owned(),
+            split: "fresh".to_owned(),
+            histories: vec![PanelHistory {
+                id: "history".to_owned(),
+                stratum: "length2/q0".to_owned(),
+                turns: Vec::new(),
+                queries: vec![PanelTextRow {
+                    _act: "query".to_owned(),
+                    _relation: "job".to_owned(),
+                    _template: prompt.to_owned(),
+                    text: prompt.to_owned(),
+                }],
+            }],
+        }
+    }
+
+    fn overlap_labels() -> PanelLabels {
+        PanelLabels {
+            cases: vec![PanelLabelCase {
+                answers: FrozenAnswers {
+                    intent: uor_r4_core::answer_oracle::RecordedValueIntent::Current,
+                    accepted: vec!["eight nine ten eleven twelve thirteen".to_owned()],
+                },
+                id: "case".to_owned(),
+                pair_id: "history".to_owned(),
+            }],
+            membership_only: true,
+            protocol: SCHEMA_V2.to_owned(),
+            schema: "uor-r4.native-source-bank-labels/1".to_owned(),
+        }
+    }
+
+    fn overlap_uort(tokens: &[u32]) -> Vec<u8> {
+        let mut bytes = vec![0u8; 64];
+        bytes[..4].copy_from_slice(b"UORT");
+        bytes[4..8].copy_from_slice(&1u32.to_le_bytes());
+        bytes[8..16].copy_from_slice(&(tokens.len() as u64).to_le_bytes());
+        bytes[16..20].copy_from_slice(&512u32.to_le_bytes());
+        for token in tokens {
+            bytes.extend_from_slice(&u16::try_from(*token).expect("test token").to_le_bytes());
+        }
+        bytes
+    }
+
+    #[test]
+    fn panel_training_overlap_checks_exact_text_and_six_grams() {
+        let tokenizer = byte_level_tokenizer();
+        let training_text = "alpha beta gamma delta epsilon zeta eta";
+        let mut train_tokens = vec![POINT_KEY_BOS];
+        train_tokens.extend(tokenizer.encode(training_text));
+        let train_bytes = overlap_uort(&train_tokens);
+        let mask = vec![0; train_tokens.len()];
+        let labels = overlap_labels();
+        let clear = audit_panel_training_overlap(
+            &train_bytes,
+            &mask,
+            &tokenizer,
+            &overlap_plan("one two three four five six seven"),
+            &labels,
+        )
+        .unwrap();
+        assert!(clear.pass);
+        assert_eq!(clear.counts.documents, 1);
+        let reply = tokenizer.encode("reply text at end");
+        let mut eof_tokens = vec![POINT_KEY_BOS];
+        eof_tokens.extend(&reply);
+        let eof_bytes = overlap_uort(&eof_tokens);
+        let mut eof_mask = vec![0; eof_tokens.len()];
+        eof_mask[1..].fill(1);
+        let eof = audit_panel_training_overlap(
+            &eof_bytes,
+            &eof_mask,
+            &tokenizer,
+            &overlap_plan("one two three four five six seven"),
+            &labels,
+        )
+        .unwrap();
+        assert!(eof.pass);
+        assert_eq!(eof.counts.assistant_replies, 1);
+        let overlap = audit_panel_training_overlap(
+            &train_bytes,
+            &mask,
+            &tokenizer,
+            &overlap_plan("alpha beta gamma delta epsilon zeta"),
+            &labels,
+        )
+        .unwrap();
+        assert!(!overlap.pass);
+        assert_eq!(overlap.counts.exact_panel_in_document, 1);
+        assert_eq!(overlap.counts.documents_with_panel_6gram, 1);
+    }
+
+    #[test]
+    fn panel_reference_encoding_names_the_first_scored_token() {
+        let tokenizer = byte_level_tokenizer();
+        let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).expect("dialogue protocol");
+        let encoder = protocol.bind(&tokenizer).expect("bound encoder");
+        let answers = FrozenAnswers {
+            intent: uor_r4_core::answer_oracle::RecordedValueIntent::Current,
+            accepted: vec!["a.".to_owned()],
+        };
+        let (answer, ids) = panel_reference_ids(&encoder, &answers).unwrap();
+        assert_eq!(answer, "a.");
+        assert!(!ids.is_empty());
+        assert_eq!(ids.last().copied(), Some(PANEL_EOS));
+        assert!(ids[0..ids.len() - 1]
+            .iter()
+            .all(|token| *token != PANEL_EOS));
+    }
+
+    #[test]
+    fn paired_binary_reports_the_registered_discordant_margin() {
+        let rows = [(true, false), (true, false), (false, true), (false, false)];
+        let report = paired_binary(&rows).unwrap();
+        assert_eq!(report["candidate_top1"], 2);
+        assert_eq!(report["control_top1"], 1);
+        assert_eq!(report["candidate_only"], 2);
+        assert_eq!(report["control_only"], 1);
+        assert_eq!(report["gain"], 1);
+        assert_eq!(report["threshold"], 4);
+        assert_eq!(report["passes"], false);
+        assert!(paired_binary(&[]).is_err());
     }
 
     #[test]
@@ -1904,6 +3302,20 @@ mod tests {
         assert_ne!(opening_token(&memory_artifact, &held_out.prompt), target);
         let point_token = opening_token(&point_artifact, &held_out.prompt);
         assert!([target, second_target].contains(&point_token));
+        let (nearest_query, nearest_point_token) = opening_query_and_token_with_head(
+            &point_artifact,
+            &held_out.prompt,
+            CpuFbsHead::Nearest,
+        )
+        .unwrap();
+        let (writer_query, writer_point_token) = opening_query_and_token_with_head(
+            &point_artifact,
+            &held_out.prompt,
+            CpuFbsHead::Writer,
+        )
+        .unwrap();
+        assert_eq!(nearest_query, writer_query);
+        assert_eq!(nearest_point_token, writer_point_token);
         let medoid = derive_target_medoids(&point).unwrap();
         let medoid_artifact = add_point_key_uorlut01(&memory_artifact, &medoid).unwrap();
         let (medoid_query, medoid_token) =

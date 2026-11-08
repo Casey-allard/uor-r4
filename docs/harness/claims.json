@@ -398,6 +398,13 @@
     "lab": "deepseek",
     "note": "checkpoint-initialized fine-tune support for the one-model path"
   },
+  "deepseek/opening-panel": {
+    "branch": "deepseek/opening-panel",
+    "claimed_at": "2026-11-08T05:00:44-05:00",
+    "head": "6a5d51172",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/opening-weight": {
     "branch": "deepseek/opening-weight",
     "claimed_at": "2026-11-08T02:42:34-05:00",

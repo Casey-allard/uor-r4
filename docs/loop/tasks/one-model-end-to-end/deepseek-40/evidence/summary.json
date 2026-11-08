@@ -1,0 +1,197 @@
+{
+  "schema": "uor-r4.cpu-opening-panel-summary/1",
+  "base": "6a5d51172",
+  "substrate": "cpu-development-research",
+  "artifact": {
+    "path": "results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/s1-2048-20261108t040705z-6b521de8f448498f/artifacts/attempt-1/step-001280/model.uorlut",
+    "sha256": "9f349697c3b7cd054f70fe66cb86ffb407ebbf0dcdf63ec16b386174760558e1"
+  },
+  "train": {
+    "tokens_sha256": "3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3",
+    "mask_sha256": "67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b",
+    "manifest_sha256": "a9fba3b4fdb7611625668d8153b9ec7c60ecf57be8adb7c326b2b811524fb809",
+    "split": "train",
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "openings": 74340
+  },
+  "point_table": {
+    "rows": 36632,
+    "width": 256,
+    "targets": 444
+  },
+  "panel": {
+    "inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+    "labels_sha256": "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be",
+    "plan_sha256": "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715",
+    "manifest_sha256": "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964",
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "targets": 20,
+    "targets_absent_from_point_table": 8,
+    "absent_target_tokens": [261, 554, 559, 637, 949, 2292, 2333, 3957]
+  },
+  "opening": {
+    "per-turn/v1": {
+      "report_sha256": "4f03afcb773582b75e9edc4e625d97472893949acc7ff0ead4e462931f4fcf76",
+      "rows": 256,
+      "raw_head": "nearest",
+      "raw_top1": 0,
+      "point_changed_raw": 216,
+      "point_top1": 0,
+      "point_top8": 0,
+      "point_top32": 1,
+      "shuffled_top1": 0,
+      "shuffled_top8": 0,
+      "shuffled_changed_raw": 237,
+      "constant_top1": 0,
+      "point_vs_shuffled_gain": 0,
+      "point_vs_raw_gain": 0,
+      "point_vs_constant_gain": 0,
+      "paired_threshold": 2,
+      "query_mismatches": 0,
+      "point_served_mismatches": 0,
+      "shuffled_served_mismatches": 0,
+      "per_stratum": {
+        "length2": {"rows": 64, "point_changed_raw": 52, "shuffled_changed_raw": 60, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "length4": {"rows": 64, "point_changed_raw": 56, "shuffled_changed_raw": 56, "point_top1": 0, "point_top8": 0, "point_top32": 1},
+        "length8": {"rows": 64, "point_changed_raw": 56, "shuffled_changed_raw": 60, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "reassert": {"rows": 32, "point_changed_raw": 24, "shuffled_changed_raw": 32, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "update": {"rows": 32, "point_changed_raw": 28, "shuffled_changed_raw": 29, "point_top1": 0, "point_top8": 0, "point_top32": 0}
+      },
+      "per_stratum_paired": {
+        "length2": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "length4": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "length8": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "reassert": {"rows": 32, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "update": {"rows": 32, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2}
+      },
+      "wall_elapsed_ms": 123548.384102,
+      "peak_rss_kib": 327988,
+      "threads": 32
+    },
+    "one-user-turn/v1": {
+      "report_sha256": "a65b9be392b389dd7fdd34c6aafd4884364ee436aeb24055d744dc1265d77338",
+      "rows": 256,
+      "raw_head": "nearest",
+      "raw_top1": 0,
+      "point_changed_raw": 247,
+      "point_top1": 0,
+      "point_top8": 0,
+      "point_top32": 1,
+      "shuffled_top1": 0,
+      "shuffled_top8": 1,
+      "shuffled_changed_raw": 256,
+      "constant_top1": 0,
+      "point_vs_shuffled_gain": 0,
+      "point_vs_raw_gain": 0,
+      "point_vs_constant_gain": 0,
+      "paired_threshold": 2,
+      "query_mismatches": 0,
+      "point_served_mismatches": 0,
+      "shuffled_served_mismatches": 0,
+      "per_stratum": {
+        "length2": {"rows": 64, "point_changed_raw": 60, "shuffled_changed_raw": 64, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "length4": {"rows": 64, "point_changed_raw": 62, "shuffled_changed_raw": 64, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "length8": {"rows": 64, "point_changed_raw": 64, "shuffled_changed_raw": 64, "point_top1": 0, "point_top8": 0, "point_top32": 1},
+        "reassert": {"rows": 32, "point_changed_raw": 30, "shuffled_changed_raw": 32, "point_top1": 0, "point_top8": 0, "point_top32": 0},
+        "update": {"rows": 32, "point_changed_raw": 31, "shuffled_changed_raw": 32, "point_top1": 0, "point_top8": 0, "point_top32": 0}
+      },
+      "per_stratum_paired": {
+        "length2": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "length4": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "length8": {"rows": 64, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "reassert": {"rows": 32, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2},
+        "update": {"rows": 32, "point_vs_shuffled_gain": 0, "point_vs_raw_gain": 0, "point_vs_constant_gain": 0, "threshold": 2}
+      },
+      "wall_elapsed_ms": 121042.028337,
+      "peak_rss_kib": 326912,
+      "threads": 32
+    }
+  },
+  "overlap_control": {
+    "pass": true,
+    "documents": 25071,
+    "assistant_replies": 79679,
+    "exact_panel_in_document": 0,
+    "exact_accepted_assistant_reply": 0,
+    "documents_with_panel_6gram": 0,
+    "assistant_replies_with_panel_6gram": 0
+  },
+  "artifacts": {
+    "memory_scaffold_sha256": "25326d6a2ccfe0f617f3493e81ffc1435691b7e8c519d2f6d613c09e74302326",
+    "point_sha256": "7fc90a3e0ef761b4a9f24f24d8bcf590a8a91d5486cee725dfb581283f915171",
+    "shuffled_point_sha256": "2d24deaa237eaf2d523e47d9ab7fd6e71c83fb6f84ce3bf96fd8de38c0e99ec9"
+  },
+  "replies": {
+    "per-turn/v1": {
+      "memory_only": {
+        "report_sha256": "5c3793f4b6ae4d0e6335b85a38a0986e3f7ed8fdd687ba83841247f63509ffce",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 52,
+        "cap_stops": 204,
+        "distinct_non_empty": 31
+      },
+      "point": {
+        "report_sha256": "b11c617f4b641f8345fa98b72a2b1ca3243467cd01530287f56fe1b8a820a2c6",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 20,
+        "cap_stops": 236,
+        "distinct_non_empty": 53
+      },
+      "shuffled": {
+        "report_sha256": "606a166b31016ca93f7113d71b6d21e470233c4a1583eeed06611206115e6019",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 28,
+        "cap_stops": 228,
+        "distinct_non_empty": 43
+      }
+    },
+    "one-user-turn/v1": {
+      "memory_only": {
+        "report_sha256": "70bca093e7abf300dbeee2b1557111e7352e2f3db3a08c674803d6689e7057c0",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 42,
+        "cap_stops": 214,
+        "distinct_non_empty": 47
+      },
+      "point": {
+        "report_sha256": "d1b6c8bcf37cb541261b0f4525fe4d042fd4369b136ecd4e7e5715948ec39b1f",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 45,
+        "cap_stops": 211,
+        "distinct_non_empty": 82
+      },
+      "shuffled": {
+        "report_sha256": "5018e014a38c4d645fafda4c56b9951a76bc4c50c80ac1f4be70ca41e68eb665",
+        "rows": 256,
+        "complete": 0,
+        "pairs_both_complete_distinct": 0,
+        "eos_stops": 47,
+        "cap_stops": 209,
+        "distinct_non_empty": 69
+      }
+    }
+  },
+  "resources": {
+    "receipt": "evidence/resources.json",
+    "opening_reports": 18,
+    "reply_reports": 20,
+    "measured_wall_lower_bound_seconds": 4993.408171,
+    "max_opening_peak_rss_kib": 334120,
+    "retained_evidence_and_inputs_bytes": 908645503,
+    "free_gib_at_measurement": 144.144,
+    "disk_floor_passes": true,
+    "shared_model_time_active_receipt": "ABSENT",
+    "shared_model_time_ledger_path": ".uor-models/native-joint-learning-2026-09-04/model-time.json"
+  },
+  "verdict": "REJECT (global opening point table on m2-fresh256): active but zero first-token or complete-reply gain"
+}
