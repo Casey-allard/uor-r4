@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { LifecycleStore } from './state/lifecycle.js';
 import { mountTypedStudio, typedPreviewRequested } from './bootstrap.js';
 import { StudioApp } from './components/StudioApp.js';
+import { activateStudioMigration, studioMigrationStatus } from './persistence/migration.js';
 
 vi.mock('preact', async (importOriginal) => {
     const actual = await importOriginal<typeof import('preact')>();
@@ -28,6 +29,8 @@ describe('typed Studio bootstrap', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.stubGlobal('Worker', FakeWorker);
+        activateStudioMigration(false);
+        window.localStorage.clear();
         delete legacyWindow.__studioApp;
         legacyWindow.__studioFiles = { tabs: () => [], activeFile: () => null };
         legacyWindow.__studioUi = {
@@ -80,5 +83,15 @@ describe('typed Studio bootstrap', () => {
         await expect(mountTypedStudio(root, { timeoutMs: 10 })).rejects.toThrow('did not initialize');
         expect(render).not.toHaveBeenCalled();
         expect(root.hidden).toBe(false);
+    });
+
+    it('refuses Preact rendering when migration fails', async () => {
+        window.localStorage.setItem('uor.studio.settings.v1', '{bad-json');
+        expect(activateStudioMigration(true).state).toBe('error');
+        expect(studioMigrationStatus().state).toBe('error');
+        const root = document.createElement('div');
+
+        await expect(mountTypedStudio(root)).rejects.toThrow('migration');
+        expect(render).not.toHaveBeenCalled();
     });
 });

@@ -13,10 +13,11 @@
         #studio-typed-root[data-active="true"] { display: block; }
         #studio-typed-root[data-active="true"] ~ #app { display: none; }
     </style>
+    <script src="./assets/js/lifecycle_persistence.js"></script>
     <script>
         (function () {
             try {
-                var stored = window.localStorage.getItem('uor.studio.theme');
+                var stored = window.UORStudioPersistence.getItem('uor.studio.theme');
                 var params = new URLSearchParams(window.location.search);
                 var requested = params.get('theme') || (window.location.hash === '#theme=light' ? 'light' : (window.location.hash === '#theme=dark' ? 'dark' : null));
                 var theme = stored === 'light' || stored === 'dark' ? stored : requested;
@@ -647,7 +648,7 @@
 
         function readJson(key, fallback) {
             try {
-                var raw = window.localStorage.getItem(key);
+                var raw = window.UORStudioPersistence.getItem(key);
                 if (!raw) return fallback;
                 var parsed = JSON.parse(raw);
                 return parsed == null ? fallback : parsed;
@@ -658,7 +659,7 @@
 
         function writeJson(key, value) {
             try {
-                window.localStorage.setItem(key, JSON.stringify(value));
+                window.UORStudioPersistence.setItem(key, JSON.stringify(value));
                 return true;
             } catch (_error) {
                 return false;

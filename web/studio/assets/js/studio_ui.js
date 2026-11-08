@@ -22,9 +22,11 @@
     function $(selector, root) { return (root || document).querySelector(selector); }
     function $all(selector, root) { return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
     function hook(name) { var ui = window.__studioUi; return ui && typeof ui[name] === 'function' ? ui[name] : null; }
+    function storageGetItem(key) { return window.UORStudioPersistence ? window.UORStudioPersistence.getItem(key) : window.localStorage.getItem(key); }
+    function storageSetItem(key, value) { if (window.UORStudioPersistence) { window.UORStudioPersistence.setItem(key, value); } else { window.localStorage.setItem(key, value); } }
 
-    function readJson(key, fallback) { try { var raw = window.localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
-    function writeJson(key, value) { try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (error) { /* optional */ } }
+    function readJson(key, fallback) { try { var raw = storageGetItem(key); return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
+    function writeJson(key, value) { try { storageSetItem(key, JSON.stringify(value)); } catch (error) { /* optional */ } }
     function readUi() { var parsed = readJson(UI_KEY, {}); return parsed && typeof parsed === 'object' ? parsed : {}; }
     function writeUi(patch) { var state = readUi(); Object.keys(patch).forEach(function (key) { state[key] = patch[key]; }); writeJson(UI_KEY, state); }
 
@@ -51,7 +53,7 @@
         var theme = effectiveTheme();
         document.documentElement.setAttribute('data-theme', theme);
         document.documentElement.style.colorScheme = theme;
-        try { window.localStorage.setItem(THEME_KEY, theme); } catch (error) { /* optional */ }
+        try { storageSetItem(THEME_KEY, theme); } catch (error) { /* optional */ }
         document.documentElement.setAttribute('data-reduce-motion', settings.reduceMotion ? '1' : '0');
         document.documentElement.style.setProperty('--editor-font-size', (settings.fontSize || 13) + 'px');
         var editor = document.getElementById('editorText');

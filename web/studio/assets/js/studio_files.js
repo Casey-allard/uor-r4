@@ -10,6 +10,10 @@
     var MAX_DEPTH = 4;
     var TEXT_LIMIT = 2 * 1024 * 1024;
 
+    function storageGetItem(key) { return window.UORStudioPersistence ? window.UORStudioPersistence.getItem(key) : window.localStorage.getItem(key); }
+    function storageSetItem(key, value) { if (window.UORStudioPersistence) { window.UORStudioPersistence.setItem(key, value); } else { window.localStorage.setItem(key, value); } }
+    function storageRemoveItem(key) { if (window.UORStudioPersistence) { window.UORStudioPersistence.removeItem(key); } else { window.localStorage.removeItem(key); } }
+
     var state = {
         rootHandle: null,
         rootPath: '',
@@ -73,13 +77,13 @@
             var payload = state.tabs.filter(function (tab) { return tab.mode !== 'directory' || !tab.dirty; }).map(function (tab) {
                 return { path: tab.path, content: tab.content, dirty: tab.mode !== 'directory' && tab.dirty, mode: tab.mode, rootPath: tab.rootPath };
             });
-            window.localStorage.setItem(TABS_KEY, JSON.stringify({ activePath: state.activePath, activeRootPath: state.activeRootPath, tabs: payload }));
+            storageSetItem(TABS_KEY, JSON.stringify({ activePath: state.activePath, activeRootPath: state.activeRootPath, tabs: payload }));
         } catch (error) { /* storage optional */ }
     }
 
     function restoreTabs() {
         try {
-            var raw = window.localStorage.getItem(TABS_KEY);
+            var raw = storageGetItem(TABS_KEY);
             if (!raw) return;
             var parsed = JSON.parse(raw);
             state.tabs = (parsed.tabs || []).filter(function (tab) { return tab && typeof tab.content === 'string'; }).map(function (tab) {
@@ -103,12 +107,12 @@
     }
 
     function persistRecent() {
-        try { window.localStorage.setItem(RECENT_KEY, JSON.stringify(state.recent.slice(0, 12))); } catch (error) { /* optional */ }
+        try { storageSetItem(RECENT_KEY, JSON.stringify(state.recent.slice(0, 12))); } catch (error) { /* optional */ }
     }
 
     function restoreRecent() {
         try {
-            var parsed = JSON.parse(window.localStorage.getItem(RECENT_KEY) || '[]');
+            var parsed = JSON.parse(storageGetItem(RECENT_KEY) || '[]');
             if (Array.isArray(parsed)) state.recent = parsed.map(function (item) {
                 if (typeof item === 'string') return { path: item, rootPath: '' };
                 if (item && typeof item.path === 'string') return { path: item.path, rootPath: typeof item.rootPath === 'string' ? item.rootPath : '' };
@@ -300,7 +304,7 @@
             toast('Save or close unsaved tabs before exploring the demo workspace.', 'warn');
             return false;
         }
-        try { window.localStorage.removeItem(TABS_KEY); } catch (error) { /* optional */ }
+        try { storageRemoveItem(TABS_KEY); } catch (error) { /* optional */ }
         state.tabs = [];
         state.activePath = null;
         state.activeRootPath = '';

@@ -14,7 +14,7 @@ export function Guide() {
             <p>Local WASM prompts stay in the browser worker. Loopback, private-network, and remote API privacy are labeled separately from local execution.</p>
             <h2>Keyboard and offline behavior</h2>
             <p>Navigation, editor, model, session, palette, and dialog controls use native keyboard semantics. The legacy page makes no external requests at load; remote model and API contact remains user-initiated.</p>
-            <p>Full real-browser parity, one-time browser-data migration, and production cutover are later verification stages.</p>
+            <p>One-time browser-data migration is active for typed previews. Full native/shared parity and production cutover remain later verification stages.</p>
         </section>
     );
 }

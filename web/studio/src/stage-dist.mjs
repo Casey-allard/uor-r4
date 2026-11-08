@@ -10,6 +10,11 @@ if (!existsSync(artifacts)) {
 mkdirSync(destination, { recursive: true });
 cpSync(artifacts, destination, { recursive: true });
 
+const migrationRuntime = new URL('../assets/js/lifecycle_persistence.js', import.meta.url);
+const migrationDestination = new URL('../dist/assets/js/lifecycle_persistence.js', import.meta.url);
+mkdirSync(new URL('../dist/assets/js/', import.meta.url), { recursive: true });
+copyFileSync(migrationRuntime, migrationDestination);
+
 const catalog = new URL('../models.json', import.meta.url);
 if (existsSync(catalog)) copyFileSync(catalog, new URL('../dist/models.json', import.meta.url));
 

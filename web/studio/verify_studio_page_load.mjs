@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { assertMigrationReport, migrationExpression, migrationPreload } from './verify_studio_migration.mjs';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const WORKTREE = resolve(__dirname, '..', '..');
@@ -202,6 +203,10 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
             }
         }
     };
+    if (options.migration) {
+        await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
+        await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: migrationPreload(options.migration) }, sessionId);
+    }
     const before = cdp.events.length;
     await cdp.send('Page.navigate', { url: origin + path }, sessionId);
     const deadline = Date.now() + 25000;
@@ -354,7 +359,41 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
         }, sessionId);
         mountError = evaluation.result.value;
     }
-    if (options.typed || options.mountError) {
+    let migration = null;
+    if (options.migration) {
+        const evaluation = await cdp.send('Runtime.evaluate', {
+            expression: migrationExpression(options.migration, 'before'),
+            awaitPromise: true,
+            returnByValue: true,
+        }, sessionId);
+        migration = evaluation.result.value;
+        if (options.migration === 'success') {
+            const reloadBefore = cdp.events.length;
+            await cdp.send('Page.reload', { ignoreCache: true }, sessionId);
+            const reloadDeadline = Date.now() + 25000;
+            migration.pageReloaded = false;
+            while (Date.now() < reloadDeadline) {
+                await drainChildSessions();
+                if (cdp.events.slice(reloadBefore).some((event) => event.method === 'Page.loadEventFired')) {
+                    migration.pageReloaded = true;
+                    break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            const reloadSettleDeadline = Date.now() + 2000;
+            while (Date.now() < reloadSettleDeadline) {
+                await drainChildSessions();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            const reloaded = await cdp.send('Runtime.evaluate', {
+                expression: migrationExpression(options.migration, 'reload'),
+                awaitPromise: true,
+                returnByValue: true,
+            }, sessionId);
+            migration.reload = reloaded.result.value;
+        }
+    }
+    if (options.typed || options.mountError || options.migration) {
         const interactionSettleDeadline = Date.now() + 1000;
         while (Date.now() < interactionSettleDeadline) {
             await drainChildSessions();
@@ -380,7 +419,7 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
         .filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Runtime.consoleAPICalled')
         .map((event) => event.params);
     await cdp.send('Target.closeTarget', { targetId: target.targetId });
-    return { path: path, loaded: loaded, requested: requested.length, external: external, rawTypeScript, typed, mountError, runtimeErrors };
+    return { path: path, loaded: loaded, requested: requested.length, external: external, rawTypeScript, typed, mountError, migration, runtimeErrors };
 }
 
 async function main() {
@@ -438,6 +477,18 @@ async function main() {
             assert(typedMountError.mountError.visible, 'mount-error text is not computed-visible: ' + JSON.stringify(typedMountError.mountError));
             assert(typedMountError.mountError.shellCount === 0, 'mount-error fixture unexpectedly mounted a shell');
         }
+        const migrationResults = [];
+        if (process.env.UOR_STUDIO_TYPED === '1') {
+            for (const mode of ['success', 'malformed', 'conflict', 'quota']) {
+                const result = await trapPageLoad(cdp, origin, '/studio/dist/index.html?typed=1', { migration: mode });
+                assert(result.loaded, 'typed migration ' + mode + ' never fired loadEventFired');
+                assert(result.external.length === 0, 'typed migration ' + mode + ' made external requests: ' + JSON.stringify(result.external));
+                assert(result.rawTypeScript.length === 0, 'typed migration ' + mode + ' requested raw TypeScript: ' + JSON.stringify(result.rawTypeScript));
+                assert(result.runtimeErrors.length === 0, 'typed migration ' + mode + ' emitted runtime errors: ' + JSON.stringify(result.runtimeErrors));
+                assertMigrationReport(result, mode);
+                migrationResults.push({ mode, result });
+            }
+        }
         const router = await trapPageLoad(cdp, origin, '/studio/geometric_prime_router_webapp.html');
         const report = {
             verdict: 'RUNTIME PAGE-LOAD TRAP PASSED',
@@ -449,6 +500,7 @@ async function main() {
         };
         if (typedPreview) report.pages['typed=1'] = { loaded: typedPreview.loaded, requests: typedPreview.requested, external: typedPreview.external, rawTypeScript: typedPreview.rawTypeScript, runtimeErrors: typedPreview.runtimeErrors.length, checks: typedPreview.typed };
         if (typedMountError) report.pages['typed-mount-error'] = { loaded: typedMountError.loaded, requests: typedMountError.requested, external: typedMountError.external, rawTypeScript: typedMountError.rawTypeScript, runtimeErrors: typedMountError.runtimeErrors.length, checks: typedMountError.mountError };
+        for (const { mode, result } of migrationResults) report.pages['typed-migration-' + mode] = { loaded: result.loaded, requests: result.requested, external: result.external, rawTypeScript: result.rawTypeScript, runtimeErrors: result.runtimeErrors.length, checks: result.migration };
         if (router.external.length > 0) {
             if (strictRouter) {
                 report.verdict = 'RUNTIME PAGE-LOAD TRAP FAILED';

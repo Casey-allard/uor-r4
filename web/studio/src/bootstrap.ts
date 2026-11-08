@@ -5,6 +5,7 @@ import { createLegacyWorkflowApis } from './adapters/workflow.js';
 import type { LegacyWorkflowApis } from './adapters/workflow.js';
 import { ModelSources } from '../assets/js/model_sources.js';
 import { StudioApp } from './components/StudioApp.js';
+import { studioMigrationStatus } from './persistence/migration.js';
 
 interface LegacyAppWindow extends Window {
     __studioApp?: { worker: Worker | null };
@@ -35,6 +36,8 @@ async function waitForWorkflowApis(timeoutMs: number): Promise<LegacyWorkflowApi
 }
 
 export async function mountTypedStudio(root: HTMLElement, options: { timeoutMs?: number } = {}) {
+    const migration = studioMigrationStatus();
+    if (migration.state === 'error') throw new Error(`Browser-state migration failed: ${migration.error || 'unknown error'}`);
     root.hidden = false;
     const apis = await waitForWorkflowApis(options.timeoutMs ?? 5000);
     const store = new LifecycleStore();
