@@ -1,0 +1,21 @@
+{
+  "schema": "uor-r4.opening-weight-launch/1",
+  "run_pin": "a3ac3f326fa95ffe38159cc3c589100cea627664",
+  "reviewed_runtime": {
+    "sha256": "fd303c0a72d178a467ebed99b4fefc05347e193896fc74638b2023cac0b120a1",
+    "method": "docs/labs/one-model-end-to-end/reply-sft-2026-11-07/run-s1.sh hashes the recursively listed run-pin tree, excludes this task's prep sheet and the deepseek-35 review report, then substitutes only RECORDED for the prep sheet's TEST FITNESS and PRE-RUN lines",
+    "recomputed_from": "a3ac3f326fa95ffe38159cc3c589100cea627664"
+  },
+  "pod": {
+    "id": "vast-59686054",
+    "session": "deepseek/deepseek-sft-20261108t081518z-2452c146afc9f2f7",
+    "up_at": "2026-11-08T08:15:25Z",
+    "released_at": "2026-11-08T08:42:10Z",
+    "deleted_at": "2026-11-08T08:42:19Z",
+    "uptime_seconds": 1610,
+    "usd_per_hour": 0.563,
+    "approx_cost_usd": 0.2517861111111111,
+    "cost_basis": "uptime_seconds * usd_per_hour / 3600; rate-derived estimate, not an invoiced charge",
+    "source": "scripts/pod/uor-pod log -n 30"
+  }
+}
