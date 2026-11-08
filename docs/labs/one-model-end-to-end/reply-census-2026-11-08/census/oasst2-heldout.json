@@ -1,0 +1,278 @@
+{
+  "against": {
+    "distinct_8grams": 2764621,
+    "distinct_8grams_in_against": {
+      "count": 12007,
+      "of": 161863,
+      "ppm": 74180
+    },
+    "distinct_replies": 7770,
+    "distinct_replies_in_against": {
+      "count": 1,
+      "of": 427,
+      "ppm": 2341
+    },
+    "name": "oasst2-train",
+    "replies": 7784,
+    "replies_in_against": {
+      "count": 1,
+      "of": 427,
+      "ppm": 2341
+    },
+    "sha256": {
+      "manifest.json": "d5e16e17a2e237bb1a705539cb38c9fa6e7b0fa68fc0ec72eaa667c8ec894e40",
+      "response_mask.u8": "a2b0b2a3ce8cc7491b8ced86eda487353ba4e70da0f9aa5a63161ca6802de7a1",
+      "tokens.u16": "8bdcabfb41284a54575ea2f730f532a896b29dc69250098957b46c6bcae40b90"
+    },
+    "split": "/Users/casey.allard/uor-r4/local/claude/claude-320/store/results/claude/real-text-corpus-2026-11-05/oasst2/train"
+  },
+  "bos_id": 0,
+  "distinct_replies": 427,
+  "documents": 278,
+  "eos_id": 1,
+  "eos_in_repeated": {
+    "count": 0,
+    "of": 427,
+    "ppm": 0
+  },
+  "eos_in_top1": {
+    "count": 1,
+    "of": 427,
+    "ppm": 2341
+  },
+  "eos_not_at_reply_end": 0,
+  "eos_targets": 427,
+  "name": "oasst2-heldout",
+  "replies": 427,
+  "replies_ending_eos": 427,
+  "reply_8grams": {
+    "distinct": 161863,
+    "windows": 181557
+  },
+  "reply_length": {
+    "max": 4704,
+    "median_lower": 339,
+    "min": 5
+  },
+  "schema": "uor-r4-reply-census/v1",
+  "scored_targets": 184542,
+  "sha256": {
+    "manifest.json": "7474ba9331f242148dd9833d5cb085307c8e0d86314d13f285a0ab1c42b8b081",
+    "response_mask.u8": "9c5bb6567c6a4cded2dfb2280ae4acdc798e283a3beae8aaebc695656e1b4833",
+    "tokens.u16": "02a04e97bbb8936c993bf5eff0f29c171ebeae88988217a4100fdc77701f169e"
+  },
+  "split": "/Users/casey.allard/uor-r4/local/claude/claude-320/store/results/claude/real-text-corpus-2026-11-05/oasst2/heldout",
+  "tokens": 214758,
+  "top": [
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        12,
+        12,
+        42,
+        652,
+        2852,
+        269,
+        772,
+        2411,
+        456,
+        421,
+        301,
+        1313,
+        613,
+        465,
+        1651
+      ],
+      "length": 995
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        12,
+        37,
+        260,
+        560,
+        527,
+        324,
+        446,
+        3,
+        12,
+        201,
+        201,
+        12,
+        12,
+        3025,
+        386
+      ],
+      "length": 341
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        19,
+        16,
+        314,
+        615,
+        529,
+        1935,
+        265,
+        2819,
+        304,
+        85,
+        72,
+        1618,
+        284,
+        752,
+        70
+      ],
+      "length": 397
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        19,
+        16,
+        671,
+        516,
+        78,
+        81,
+        373,
+        265,
+        938,
+        465,
+        844,
+        920,
+        950,
+        388,
+        2237
+      ],
+      "length": 1496
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        19,
+        16,
+        971,
+        2401,
+        223,
+        10,
+        72,
+        78,
+        299,
+        2993,
+        331,
+        3028,
+        269,
+        1966,
+        269
+      ],
+      "length": 139
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        19,
+        16,
+        1049,
+        382,
+        82,
+        292,
+        375,
+        450,
+        261,
+        271,
+        3140,
+        848,
+        421,
+        2506,
+        304
+      ],
+      "length": 349
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        20,
+        16,
+        21,
+        18,
+        201,
+        22,
+        16,
+        21,
+        23,
+        201,
+        19,
+        16,
+        19,
+        21,
+        201
+      ],
+      "length": 41
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        20,
+        16,
+        347,
+        23,
+        1
+      ],
+      "length": 6
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        23,
+        301,
+        293,
+        316,
+        291,
+        276,
+        1002,
+        267,
+        309,
+        89,
+        71,
+        303,
+        265,
+        971,
+        78
+      ],
+      "length": 456
+    },
+    {
+      "count": 1,
+      "first_ids": [
+        223,
+        51,
+        87,
+        714,
+        494,
+        519,
+        397,
+        304,
+        465,
+        85,
+        435,
+        261,
+        854,
+        1564,
+        372,
+        1277
+      ],
+      "length": 105
+    }
+  ]
+}
