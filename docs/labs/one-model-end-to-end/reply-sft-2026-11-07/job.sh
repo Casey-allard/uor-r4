@@ -105,11 +105,13 @@ on_exit() {
     kill -CONT "$TRAIN_PID" 2>/dev/null || true
     wait "$TRAIN_PID" 2>/dev/null || true
   fi
+  if declare -F verify_grade_hardware_bindings >/dev/null; then
+    verify_grade_hardware_bindings "$RUN" || rc=1
+  fi
   printf '%s\n' "$rc" > "$RUN/EXIT"
   printf '%s\n' "${STOP_REASON:-natural-or-failure}" > "$RUN/STOP_REASON"
   local seal_bytes actual_seal_bytes
-  if ! seal_bytes=$(find "$RUN" -type f ! -name 'SHA256SUMS*' -printf '%s\n' |
-    awk '{ total += $1 } END { print total + 0 }'); then
+  if ! seal_bytes=$(measure_seal_bytes "$RUN"); then
     echo "could not measure the seal" >&2
     rc=1
     seal_bytes=0
@@ -117,13 +119,9 @@ on_exit() {
   printf '%s\n' "$seal_bytes" > "$RUN/BYTES"
   (
     cd "$RUN"
-    find . -type f ! -name 'SHA256SUMS*' -print0 |
-      sort -z | xargs -0 sha256sum > SHA256SUMS.next
-    mv SHA256SUMS.next SHA256SUMS
-    sha256sum -c SHA256SUMS
+    write_seal_manifest "$RUN"
   ) || rc=1
-  if ! actual_seal_bytes=$(find "$RUN" -type f -printf '%s\n' |
-    awk '{ total += $1 } END { print total + 0 }'); then
+  if ! actual_seal_bytes=$(measure_all_bytes "$RUN"); then
     echo "could not measure the completed seal" >&2
     rc=1
     actual_seal_bytes=$SEAL_LIMIT_BYTES
@@ -182,6 +180,12 @@ git -C "$REPO" checkout --quiet --detach FETCH_HEAD || die "could not checkout $
 actual=$(git -C "$REPO" rev-parse HEAD)
 [ "$actual" = "$PIN" ] || die "source is $actual, not $PIN"
 [ -z "$(git -C "$REPO" status --porcelain)" ] || die "source checkout is dirty"
+HARDWARE_LIB="$REPO/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/hardware-evidence.sh"
+[ -f "$HARDWARE_LIB" ] || die "missing pinned hardware-evidence library"
+# shellcheck disable=SC1091
+# shellcheck source=hardware-evidence.sh
+source "$HARDWARE_LIB"
+capture_cpu_hardware "$RUN"
 
 fetch_file "results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/inputs/tokens.u16" \
   "$RUN/inputs/mix/tokens.u16"
@@ -327,6 +331,8 @@ grade_checkpoint() {
     "b724656f29bdade21aecb372d0568c48c81d78c80f43fe4de8ec667a7824ccc4"' \
     "$grade_dir.json" >/dev/null ||
     die "checkpoint $step grade did not use the registered 512-row sample"
+  verify_grade_labels "$grade_dir.json" "checkpoint $step"
+  bind_grade_hardware "$grade_dir.json"
   rm -f "$snapshot" || die "could not remove transient snapshot for checkpoint $step"
 }
 
@@ -475,6 +481,8 @@ jq -e '.evaluation.samples == 512 and
     "b724656f29bdade21aecb372d0568c48c81d78c80f43fe4de8ec667a7824ccc4"' \
   "$RUN/control/base-grade.json" >/dev/null ||
   die "base continuation grade did not use the registered 512-row sample"
+verify_grade_labels "$RUN/control/base-grade.json" base
+bind_grade_hardware "$RUN/control/base-grade.json"
 base_totals() {
   jq -e "$1" "$RUN/panel/step-000000-$2.json" >/dev/null ||
     die "base $2 control differs from its registered reading"
@@ -610,6 +618,7 @@ if [ "$TRAIN_FAILURE" -ne 0 ]; then
   if grep -Eiq 'out of memory|CUDA_ERROR_OUT_OF_MEMORY|\bOOM\b' \
     "$RUN/logs/train-attempt-1.log"; then
     log "micro-batch 16 ran out of memory; retrying once at micro-batch 8"
+    compact_failed_attempt attempt-1 "$TRAIN_RUN"
     STOP_REASON=
     TRAIN_FAILURE=0
     train_and_score 8 attempt-2 "$RUN/run-mb8"

@@ -37,7 +37,7 @@ case "$SESSION_LABEL" in
 esac
 case "$STEPS:$RUNTIME_EXCLUDE_FIT:$RUNTIME_EXCLUDE_REPORT" in
   1024:docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;
-  2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-28/REPORT.md) ;;
+  2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md) ;;
   *) echo "the dose, reviewed sheet and report path do not form a registered pair" >&2; exit 2 ;;
 esac
 [ -f "$ROOT/$RUNTIME_EXCLUDE_FIT" ] && [ -f "$ROOT/$RUNTIME_EXCLUDE_REPORT" ] ||

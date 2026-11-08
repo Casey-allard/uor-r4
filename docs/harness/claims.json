@@ -384,12 +384,12 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/reply-sft-launch-fix": {
-    "branch": "deepseek/reply-sft-launch-fix",
-    "claimed_at": "2026-11-07T16:20:00-05:00",
-    "head": "43ab4b624",
+  "deepseek/one-model-reply-sft": {
+    "branch": "deepseek/one-model-reply-sft",
+    "claimed_at": "2026-11-07T14:01:40-05:00",
+    "head": "b80933c4b",
     "lab": "deepseek",
-    "note": "wait for the detached reply-SFT remote job through its terminal exit"
+    "note": "reply-masked corpus and missing-panel recovery for the one-model path"
   },
   "deepseek/one-model-train-init": {
     "branch": "deepseek/one-model-train-init",
@@ -397,13 +397,6 @@
     "head": "b80933c4b",
     "lab": "deepseek",
     "note": "checkpoint-initialized fine-tune support for the one-model path"
-  },
-  "deepseek/one-model-reply-sft": {
-    "branch": "deepseek/one-model-reply-sft",
-    "claimed_at": "2026-11-07T14:01:40-05:00",
-    "head": "b80933c4b",
-    "lab": "deepseek",
-    "note": "reply-masked corpus and missing-panel recovery for the one-model path"
   },
   "deepseek/oracle-corpus-support": {
     "branch": "deepseek/oracle-corpus-support",
@@ -453,6 +446,20 @@
     "head": "1f2bd76ce",
     "lab": "deepseek",
     "note": ""
+  },
+  "deepseek/reply-sft-2048-run": {
+    "branch": "deepseek/reply-sft-2048-run",
+    "claimed_at": "2026-11-07T21:38:13-05:00",
+    "head": "56ef8a4fe",
+    "lab": "deepseek",
+    "note": ""
+  },
+  "deepseek/reply-sft-launch-fix": {
+    "branch": "deepseek/reply-sft-launch-fix",
+    "claimed_at": "2026-11-07T16:20:00-05:00",
+    "head": "43ab4b624",
+    "lab": "deepseek",
+    "note": "wait for the detached reply-SFT remote job through its terminal exit"
   },
   "deepseek/reply-termination": {
     "branch": "deepseek/reply-termination",

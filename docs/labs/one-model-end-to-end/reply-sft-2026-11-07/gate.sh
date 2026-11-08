@@ -8,6 +8,8 @@ LAUNCHER=${2:-"$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/run-s1.
 TRAINER="$ROOT/crates/uor-r4-float-train/src/in_space_long.rs"
 SHEET=${3:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"}
 EXTENSION_SHEET=${4:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"}
+HARDWARE_LIB=${5:-"$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/hardware-evidence.sh"}
+HARDWARE_TEST="$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/test-hardware-evidence.sh"
 checks=0
 
 fail() {
@@ -30,11 +32,16 @@ require_line() {
 
 bash -n "$JOB"
 bash -n "$LAUNCHER"
-checks=$((checks + 2))
+bash -n "$HARDWARE_LIB"
+bash -n "$HARDWARE_TEST"
+checks=$((checks + 4))
 if command -v shellcheck >/dev/null; then
-  shellcheck "$JOB" "$LAUNCHER"
+  shellcheck "$JOB" "$LAUNCHER" "$HARDWARE_LIB" "$HARDWARE_TEST"
   checks=$((checks + 1))
 fi
+[ -x "$HARDWARE_TEST" ] || fail "$HARDWARE_TEST is not executable"
+"$HARDWARE_TEST" "$HARDWARE_LIB" >/dev/null
+checks=$((checks + 1))
 
 require_line '2) echo "seed 2 is conditional and is not launched by this script" >&2; exit 2 ;;' "$JOB"
 require_line '*) echo "SEED must be 1; seed 2 is a later decision" >&2; exit 2 ;;' "$JOB"
@@ -183,6 +190,8 @@ require_line '[ "$base_guard" -eq 132 ] ||' "$JOB"
 grep -Fq 'die "base continuation grade did not use the registered 512-row sample"' "$JOB" ||
   fail "$JOB does not pin the base-grade sample fingerprint"
 checks=$((checks + 1))
+require_line 'verify_grade_labels "$RUN/control/base-grade.json" base' "$JOB"
+require_line 'bind_grade_hardware "$RUN/control/base-grade.json"' "$JOB"
 grep -Fq '.evaluation.samples == 512 and' "$JOB" ||
   fail "$JOB does not require the registered 512-row sample count"
 checks=$((checks + 1))
@@ -203,9 +212,12 @@ grep -Fq '.counts.assistant_replies_with_panel_6gram == 0' "$JOB" ||
 checks=$((checks + 1))
 require_line 'die "corpus-panel overlap audit differs from the registered reading"' "$JOB"
 require_line 'die "checkpoint $next is missing without a registered stop"' "$JOB"
+require_line 'verify_grade_labels "$grade_dir.json" "checkpoint $step"' "$JOB"
+require_line 'bind_grade_hardware "$grade_dir.json"' "$JOB"
 require_line 'train_and_score 16 attempt-1 "$RUN/run"' "$JOB"
 require_line 'if [ "$TRAIN_FAILURE" -ne 0 ]; then' "$JOB"
 require_line 'TRAIN_FAILURE=$train_rc' "$JOB"
+require_line 'compact_failed_attempt attempt-1 "$TRAIN_RUN"' "$JOB"
 require_line 'train_and_score 8 attempt-2 "$RUN/run-mb8"' "$JOB"
 require_line '[ "$TRAIN_FAILURE" -eq 0 ] ||' "$JOB"
 require_line "jq -e -s '(map(select(.step == 0)) | length) == 1 and" "$JOB"
@@ -242,6 +254,12 @@ require_line 'PANEL_TARGET=${UOR_SFT_PANEL_TARGET:-$BUILD_ROOT/panel-target}' "$
 require_line 'SNAPSHOT_ROOT=${UOR_SFT_SNAPSHOT_ROOT:-$BUILD_ROOT/snapshots}' "$JOB"
 require_line 'SEAL_LIMIT_BYTES=104857600' "$JOB"
 require_line 'exec >> "$RUN/job.log" 2>&1' "$JOB"
+require_line 'if ! seal_bytes=$(measure_seal_bytes "$RUN"); then' "$JOB"
+require_line 'if ! actual_seal_bytes=$(measure_all_bytes "$RUN"); then' "$JOB"
+require_line 'source "$HARDWARE_LIB"' "$JOB"
+require_line 'capture_cpu_hardware "$RUN"' "$JOB"
+require_line 'verify_grade_hardware_bindings "$RUN" || rc=1' "$JOB"
+require_line 'write_seal_manifest "$RUN"' "$JOB"
 require_line 'CARGO_TARGET_DIR="$PANEL_TARGET" \' "$JOB"
 require_line 'PANEL_BIN="$PANEL_TARGET/release/served-reply-panel"' "$JOB"
 require_line 'oh/run/b64L-s1/models/step-016384 oh/run/b64L-s1/config.json' "$JOB"
@@ -266,7 +284,7 @@ require_line 'RUNTIME_EXCLUDE_REPORT=${UOR_SFT_REPORT:-docs/loop/tasks/one-model
 require_line 'STEPS=${UOR_SFT_STEPS:-1024}' "$LAUNCHER"
 require_line '1024:s1|2048:s1-2048) ;;' "$LAUNCHER"
 require_line '1024:docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;' "$LAUNCHER"
-require_line '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-28/REPORT.md) ;;' "$LAUNCHER"
+require_line '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md) ;;' "$LAUNCHER"
 require_line 'git ls-tree -r "$PIN" |' "$LAUNCHER"
 require_line "path != fit && path != report'" "$LAUNCHER"
 require_line 'git show "$PIN:$RUNTIME_EXCLUDE_FIT" |' "$LAUNCHER"

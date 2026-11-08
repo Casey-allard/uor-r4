@@ -7,6 +7,7 @@ JOB="$HERE/job.sh"
 LAUNCHER="$HERE/run-s1.sh"
 SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"
 EXTENSION_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"
+HARDWARE_LIB="$HERE/hardware-evidence.sh"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 caught=0
@@ -62,6 +63,7 @@ mutate() {
     "$([ "$file" = "$LAUNCHER" ] && printf '%s' "$target" || printf '%s' "$LAUNCHER")" \
     "$([ "$file" = "$SHEET" ] && printf '%s' "$target" || printf '%s' "$SHEET")" \
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
+    "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -85,6 +87,7 @@ mutate_first() {
     "$([ "$file" = "$LAUNCHER" ] && printf '%s' "$target" || printf '%s' "$LAUNCHER")" \
     "$([ "$file" = "$SHEET" ] && printf '%s' "$target" || printf '%s' "$SHEET")" \
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
+    "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -194,6 +197,46 @@ mutate unchecked-positive-train-loss "$JOB" \
   'else ((.train_loss_mean | type) == "number" and
          (.train_loss_mean | isfinite))' \
   'else true'
+mutate missing-cpu-hardware-id "$HARDWARE_LIB" \
+  'cpu_model=$(sed -n '"'"'s/^model name[[:space:]]*:[[:space:]]*//p'"'"' /proc/cpuinfo | head -n 1)' \
+  'cpu_model=unknown'
+mutate unchecked-grade-labels "$HARDWARE_LIB" \
+  'die "$label grade is not labelled D84 CPU development evidence"' \
+  'true'
+mutate missing-checkpoint-hardware-binding "$JOB" \
+  'bind_grade_hardware "$grade_dir.json"' 'true'
+mutate missing-base-hardware-binding "$JOB" \
+  'bind_grade_hardware "$RUN/control/base-grade.json"' 'true'
+mutate cpu-hardware-excluded-from-seal "$HARDWARE_LIB" \
+  "find . -type f ! -name 'SHA256SUMS*' -print0 |" \
+  "find . -type f ! -name 'SHA256SUMS*' ! -name 'cpu.*' -print0 |"
+mutate forged-grade-hardware-sha "$HARDWARE_LIB" \
+  'grade_sha=$(sha256sum "$grade" | cut -d'"'"' '"'"' -f1)' \
+  'grade_sha=0000000000000000000000000000000000000000000000000000000000000000'
+mutate unbound-grade-hardware-model "$HARDWARE_LIB" \
+  '--arg model "$cpu_model" --arg arch "$cpu_arch" --argjson logical "$cpu_logical" \' \
+  '--arg model "unknown" --arg arch "$cpu_arch" --argjson logical "$cpu_logical" \'
+mutate unchecked-grade-hardware-drift "$HARDWARE_LIB" \
+  'die "grade $relative no longer matches its CPU hardware binding"' 'true'
+mutate unknown-cpu-identity-accepted "$HARDWARE_LIB" \
+  "''|unknown|UNKNOWN) die \"could not identify the CPU hardware for D84 evaluation\" ;;" \
+  "''|UNKNOWN) die \"could not identify the CPU hardware for D84 evaluation\" ;;"
+mutate zero-logical-cpus-accepted "$HARDWARE_LIB" \
+  "''|0|*[!0-9]*) die \"could not identify the CPU's logical processor count\" ;;" \
+  "''|*[!0-9]*) die \"could not identify the CPU's logical processor count\" ;;"
+mutate retry-model-evidence-omitted "$HARDWARE_LIB" \
+  'paths=("${run_dir#"$RUN/"}/models" "artifacts/$label" "grades/$label" \' \
+  'paths=("artifacts/$label" "grades/$label" \'
+mutate retry-hash-partial "$HARDWARE_LIB" \
+  'for path in "${paths[@]}"; do' \
+  'for path in "${paths[@]:0:2}"; do'
+mutate retry-deletion-disabled "$HARDWARE_LIB" \
+  '[ ! -e "$RUN/$path" ] || find "$RUN/$path" -depth -delete' 'true'
+mutate seal-size-ignores-cpu "$HARDWARE_LIB" \
+  "find \"\$1\" -type f ! -name 'SHA256SUMS*' -printf '%s\\n' |" \
+  "find \"\$1/control\" -type f ! -name 'SHA256SUMS*' -printf '%s\\n' |"
+mutate uncompacted-oom-retry "$JOB" \
+  'compact_failed_attempt attempt-1 "$TRAIN_RUN"' 'true'
 mutate checkpoint-progress-unchecked "$JOB" \
   'check_progress "$TRAIN_RUN/progress.jsonl"' 'true'
 mutate base-sample-unchecked "$JOB" \
@@ -252,7 +295,7 @@ mutate missing-remote-dose "$LAUNCHER" \
   'UOR_SFT_OUT_STORE="$OUT_STORE" UOR_SFT_STEPS="$STEPS" \' \
   'UOR_SFT_OUT_STORE="$OUT_STORE" \'
 mutate wrong-extension-report "$LAUNCHER" \
-  '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-28/REPORT.md) ;;' \
+  '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md) ;;' \
   '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;'
 mutate signal-cleanup-success "$LAUNCHER" \
   '[ "$STATUS" = SEALED ] || rc=1' \
