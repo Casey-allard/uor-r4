@@ -28,6 +28,7 @@ use std::path::PathBuf;
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::mmap_corpus::{CorpusWriter, MmapCorpusReader};
 use uor_r4_core::report_output;
+use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 type Result<T> = std::result::Result<T, String>;
@@ -106,6 +107,7 @@ fn run(args: &[String]) -> Result<()> {
     )
     .ok_or("unreadable tokenizer.json")?;
     let tokenizer_sha = uor_r4_training::sha256_file(&tokenizer_path).map_err(|e| e.to_string())?;
+    let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
 
     let loaded: Vec<Loaded> = inputs
         .iter()
@@ -131,7 +133,116 @@ fn run(args: &[String]) -> Result<()> {
                 vocab_size
             ));
         }
+        if store.manifest["mask_schema"] != "uor-r4-response-mask/u8/v1" {
+            return Err(format!(
+                "{}: response-mask schema differs",
+                store.path.display()
+            ));
+        }
+        let tokenizer_record = store.manifest["tokenizer"]
+            .as_object()
+            .ok_or_else(|| format!("{}: tokenizer record is absent", store.path.display()))?;
+        if tokenizer_record.get("sha256").and_then(Value::as_str) != Some(tokenizer_sha.as_str()) {
+            return Err(format!(
+                "{}: tokenizer SHA-256 differs from the output tokenizer",
+                store.path.display()
+            ));
+        }
+        if tokenizer_record
+            .get("tokenizer_cid")
+            .is_some_and(|value| value.as_str() != Some(protocol.tokenizer_cid.as_str()))
+        {
+            return Err(format!(
+                "{}: tokenizer CID differs from the dialogue protocol",
+                store.path.display()
+            ));
+        }
+        if tokenizer_record.get("vocab_size").and_then(Value::as_u64) != Some(vocab_size as u64) {
+            return Err(format!(
+                "{}: tokenizer vocabulary differs from its UORT header",
+                store.path.display()
+            ));
+        }
+        if tokenizer_record.get("bos_id").and_then(Value::as_u64)
+            != Some(u64::from(protocol.bos_id))
+        {
+            return Err(format!(
+                "{}: BOS id differs from the dialogue protocol",
+                store.path.display()
+            ));
+        }
+        for (field, expected) in [
+            ("eos_id", u64::from(protocol.eos_id)),
+            ("unk_id", u64::from(protocol.unk_id)),
+        ] {
+            if tokenizer_record
+                .get(field)
+                .is_some_and(|value| value.as_u64() != Some(expected))
+            {
+                return Err(format!(
+                    "{}: tokenizer {field} differs from the dialogue protocol",
+                    store.path.display()
+                ));
+            }
+        }
+        if store
+            .manifest
+            .get("dialogue_protocol")
+            .is_some_and(|value| value.as_str() != Some(protocol.schema.as_str()))
+        {
+            return Err(format!(
+                "{}: dialogue protocol differs",
+                store.path.display()
+            ));
+        }
+        if store.manifest["max_tokens"]
+            .as_u64()
+            .is_none_or(|value| value == 0)
+        {
+            return Err(format!(
+                "{}: max_tokens is absent or zero",
+                store.path.display()
+            ));
+        }
+        if store.manifest["tokens"].as_u64() != Some(store.ids.len() as u64)
+            || store.manifest["tokens_bytes"].as_u64()
+                != Some(
+                    fs::metadata(store.path.join("tokens.u16"))
+                        .map_err(|e| e.to_string())?
+                        .len(),
+                )
+            || store.manifest["mask_bytes"].as_u64() != Some(store.mask.len() as u64)
+        {
+            return Err(format!(
+                "{}: token or mask inventory differs",
+                store.path.display()
+            ));
+        }
+        let response_tokens = store.mask.iter().filter(|&&m| m == 1).count() as u64;
+        if store.manifest["response_tokens"].as_u64() != Some(response_tokens) {
+            return Err(format!(
+                "{}: response-token count differs",
+                store.path.display()
+            ));
+        }
+        if store.manifest["tokens_sha256"]
+            != uor_r4_training::sha256_file(&store.path.join("tokens.u16"))
+                .map_err(|e| e.to_string())?
+            || store.manifest["mask_sha256"]
+                != uor_r4_training::sha256_file(&store.path.join("response_mask.u8"))
+                    .map_err(|e| e.to_string())?
+        {
+            return Err(format!(
+                "{}: token or mask SHA-256 differs",
+                store.path.display()
+            ));
+        }
     }
+    let max_tokens = loaded
+        .iter()
+        .filter_map(|store| store.manifest["max_tokens"].as_u64())
+        .max()
+        .ok_or("no input records max_tokens")?;
 
     let total: usize = loaded.iter().map(|s| s.ids.len()).sum();
     let mut files = Vec::with_capacity(loaded.len());
@@ -202,7 +313,17 @@ fn run(args: &[String]) -> Result<()> {
         },
         "drops": drops,
         "files": files,
-        "tokenizer": {"path": tokenizer_path.display().to_string(), "sha256": tokenizer_sha},
+        "dialogue_protocol": protocol.schema,
+        "tokenizer": {
+            "path": tokenizer_path.display().to_string(),
+            "sha256": tokenizer_sha,
+            "tokenizer_cid": protocol.tokenizer_cid,
+            "vocab_size": vocab_size,
+            "bos_id": protocol.bos_id,
+            "eos_id": protocol.eos_id,
+            "unk_id": protocol.unk_id,
+        },
+        "max_tokens": max_tokens,
         "rows_used": loaded
             .iter()
             .map(|s| s.manifest["rows_used"].as_u64().unwrap_or(0))
@@ -222,7 +343,6 @@ fn run(args: &[String]) -> Result<()> {
     .map_err(|e| e.to_string())?;
     // Decode a boundary token pair as a cheap sanity check that the vocabulary
     // really is shared: the last synthetic id and the first real-store id.
-    let _ = tokenizer;
     println!(
         "mixed {} stores, {total} tokens, {response_tokens} response tokens ({:.1}%)",
         loaded.len(),
