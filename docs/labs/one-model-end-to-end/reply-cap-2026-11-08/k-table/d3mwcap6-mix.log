@@ -1,0 +1,11 @@
+mix /Users/casey.allard/uor-r4/local/claude/claude-322/d3mwcap6 fraction=1/1: tokens=73044895 documents=378016 scored=33364756
+  oasst2: tokens 3773419/3773419 documents 5071/5071
+  wiki-00000: tokens 8011538/8011538 documents 864/864
+  wiki-00020: tokens 8255877/8255877 documents 7970/7970
+  wiki-00040: tokens 7927279/7927279 documents 4111/4111
+  cap1: tokens 7512797/7512797 documents 60000/60000
+  cap2: tokens 7512797/7512797 documents 60000/60000
+  cap3: tokens 7512797/7512797 documents 60000/60000
+  cap4: tokens 7512797/7512797 documents 60000/60000
+  cap5: tokens 7512797/7512797 documents 60000/60000
+  cap6: tokens 7512797/7512797 documents 60000/60000

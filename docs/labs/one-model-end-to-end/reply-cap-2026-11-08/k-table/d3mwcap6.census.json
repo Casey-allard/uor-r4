@@ -1,0 +1,216 @@
+{
+  "against": null,
+  "bos_id": 0,
+  "distinct_replies": 82329,
+  "documents": 378016,
+  "eos_id": 1,
+  "eos_in_repeated": {
+    "count": 424056,
+    "of": 444761,
+    "ppm": 953446
+  },
+  "eos_in_top1": {
+    "count": 50,
+    "of": 444761,
+    "ppm": 112
+  },
+  "eos_not_at_reply_end": 0,
+  "eos_targets": 444761,
+  "name": "d3mwcap6",
+  "replies": 444761,
+  "replies_ending_eos": 444761,
+  "reply_8grams": {
+    "distinct": 23463850,
+    "windows": 30257981
+  },
+  "reply_length": {
+    "max": 96128,
+    "median_lower": 13,
+    "min": 2
+  },
+  "schema": "uor-r4-reply-census/v1",
+  "scored_targets": 33364756,
+  "sha256": {
+    "manifest.json": "9458e854f648c49a3a0dbc97db07945a2ad08733f8cef96ab0ed5a84cc39ec6c",
+    "response_mask.u8": "da506e850145f55b746929e108e0fd240ddf753f6a90b23976c98e159a1cb293",
+    "tokens.u16": "0273173e16e805706a9b3e816c3de46b824a53daf91be3b812be360f8e8e75a7"
+  },
+  "split": "census-view6",
+  "tokens": 73044895,
+  "top": [
+    {
+      "count": 50,
+      "first_ids": [
+        318,
+        2301,
+        3,
+        2577,
+        469,
+        340,
+        436,
+        351,
+        1719,
+        33,
+        1
+      ],
+      "length": 11
+    },
+    {
+      "count": 49,
+      "first_ids": [
+        1692,
+        77,
+        91,
+        81,
+        435,
+        265,
+        2743,
+        3695,
+        372,
+        595,
+        651,
+        304,
+        16,
+        1
+      ],
+      "length": 14
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        14,
+        223,
+        24
+      ],
+      "length": 21
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        14,
+        223,
+        24
+      ],
+      "length": 18
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        14,
+        223,
+        23,
+        16,
+        1
+      ],
+      "length": 15
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        14,
+        223,
+        22,
+        16,
+        1
+      ],
+      "length": 12
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        14,
+        223,
+        20,
+        14,
+        2774,
+        16,
+        1
+      ],
+      "length": 9
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        18,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        19,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    },
+    {
+      "count": 48,
+      "first_ids": [
+        223,
+        19,
+        20,
+        435,
+        1521,
+        16,
+        1
+      ],
+      "length": 7
+    }
+  ]
+}
