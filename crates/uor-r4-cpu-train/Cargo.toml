@@ -156,5 +156,9 @@ name = "cpu-fbs-export"
 path = "src/bin/cpu-fbs-export.rs"
 
 [[bin]]
+name = "cpu-forced-copy-panel"
+path = "src/bin/cpu-forced-copy-panel.rs"
+
+[[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"

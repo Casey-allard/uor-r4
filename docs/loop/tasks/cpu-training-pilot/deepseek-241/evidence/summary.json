@@ -1,0 +1,143 @@
+{
+  "schema": "uor-r4.cpu-forced-copy-panel-summary/1",
+  "base": "973bc0750",
+  "substrate": "cpu-development-research",
+  "binary_sha256": "a6cc69daad3f5dfd9af1ed64dd3a573a8086fa8a0b77d8d200e476c1795cc000",
+  "artifacts": {
+    "seed_1": "86e51d5ee2c00a4041bcde4d2183884e351099f28f155fb1e6a7516f13064dfe",
+    "seed_2": "8838cd1044ae7152934d8ec09016e268f2dabb0c702dd45e6ab06d7b5198bdae"
+  },
+  "inputs": {
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "panel_inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+    "panel_labels_sha256": "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be",
+    "panel_plan_sha256": "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715",
+    "panel_manifest_sha256": "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964"
+  },
+  "runs": {
+    "s1_one_user": {
+      "report_sha256": "cfc5eff109ca6d6a618b40388c5ebf03eb3b9c4255fbce2af291bb930e6f01b1",
+      "free": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 109, "bos_stops": 0, "cap_stops": 147, "context_stops": 0, "first_line_asked": 14, "first_line_other": 11, "first_line_neither": 231, "first_token_target": 0, "forced_prefix_retained": 0, "prefix_retained_without_eos": 0, "target_value_in_prompt": 256},
+      "first_target": {"complete": 41, "pairs": 128, "complete_distinct_pairs": 12, "eos_stops": 136, "bos_stops": 0, "cap_stops": 120, "context_stops": 0, "first_line_asked": 43, "first_line_other": 0, "first_line_neither": 213, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 120, "target_value_in_prompt": 256},
+      "correct_value": {"complete": 230, "pairs": 128, "complete_distinct_pairs": 102, "eos_stops": 243, "bos_stops": 0, "cap_stops": 13, "context_stops": 0, "first_line_asked": 256, "first_line_other": 0, "first_line_neither": 0, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 13, "target_value_in_prompt": 256},
+      "other_relation": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 235, "bos_stops": 0, "cap_stops": 21, "context_stops": 0, "first_line_asked": 0, "first_line_other": 256, "first_line_neither": 0, "first_token_target": 0, "forced_prefix_retained": 256, "prefix_retained_without_eos": 21, "target_value_in_prompt": 256},
+      "shuffled_value": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 239, "bos_stops": 0, "cap_stops": 17, "context_stops": 0, "first_line_asked": 0, "first_line_other": 13, "first_line_neither": 243, "first_token_target": 4, "forced_prefix_retained": 256, "prefix_retained_without_eos": 17, "target_value_in_prompt": 256},
+      "per_stratum_paired": {
+        "length2": {"first_vs_free": [27, 11], "correct_vs_first": [29, 11]},
+        "length4": {"first_vs_free": [0, 2], "correct_vs_first": [58, 16]},
+        "length8": {"first_vs_free": [0, 2], "correct_vs_first": [58, 16]},
+        "reassert": {"first_vs_free": [14, 8], "correct_vs_first": [16, 8]},
+        "update": {"first_vs_free": [0, 2], "correct_vs_first": [28, 11]}
+      }
+    },
+    "s1_per_turn": {
+      "report_sha256": "89363d49a660a2518388fd5f9a75df92fd34b9d70382988b3cc4944d71a967f5",
+      "free": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 130, "bos_stops": 0, "cap_stops": 126, "context_stops": 0, "first_line_asked": 12, "first_line_other": 12, "first_line_neither": 232, "first_token_target": 0, "forced_prefix_retained": 0, "prefix_retained_without_eos": 0, "target_value_in_prompt": 256},
+      "first_target": {"complete": 41, "pairs": 128, "complete_distinct_pairs": 12, "eos_stops": 149, "bos_stops": 0, "cap_stops": 107, "context_stops": 0, "first_line_asked": 45, "first_line_other": 0, "first_line_neither": 211, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 107, "target_value_in_prompt": 256},
+      "correct_value": {"complete": 250, "pairs": 128, "complete_distinct_pairs": 122, "eos_stops": 256, "bos_stops": 0, "cap_stops": 0, "context_stops": 0, "first_line_asked": 256, "first_line_other": 0, "first_line_neither": 0, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 0, "target_value_in_prompt": 256},
+      "other_relation": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 254, "bos_stops": 0, "cap_stops": 2, "context_stops": 0, "first_line_asked": 0, "first_line_other": 256, "first_line_neither": 0, "first_token_target": 0, "forced_prefix_retained": 256, "prefix_retained_without_eos": 2, "target_value_in_prompt": 256},
+      "shuffled_value": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 252, "bos_stops": 0, "cap_stops": 4, "context_stops": 0, "first_line_asked": 0, "first_line_other": 13, "first_line_neither": 243, "first_token_target": 4, "forced_prefix_retained": 256, "prefix_retained_without_eos": 4, "target_value_in_prompt": 256},
+      "per_stratum_paired": {
+        "length2": {"first_vs_free": [29, 11], "correct_vs_first": [33, 12]},
+        "length4": {"first_vs_free": [0, 2], "correct_vs_first": [64, 16]},
+        "length8": {"first_vs_free": [0, 2], "correct_vs_first": [64, 16]},
+        "reassert": {"first_vs_free": [12, 7], "correct_vs_first": [16, 8]},
+        "update": {"first_vs_free": [0, 2], "correct_vs_first": [32, 12]}
+      }
+    },
+    "s2_one_user": {
+      "report_sha256": "2bda77cd3c665524a98b9a065ae16a6fc41a8ab39ad3c30bb28d9d843bad4191",
+      "free": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 86, "bos_stops": 0, "cap_stops": 170, "context_stops": 0, "first_line_asked": 2, "first_line_other": 6, "first_line_neither": 248, "first_token_target": 0, "forced_prefix_retained": 0, "prefix_retained_without_eos": 0, "target_value_in_prompt": 256},
+      "first_target": {"complete": 20, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 119, "bos_stops": 0, "cap_stops": 137, "context_stops": 0, "first_line_asked": 20, "first_line_other": 0, "first_line_neither": 236, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 137, "target_value_in_prompt": 256},
+      "correct_value": {"complete": 200, "pairs": 128, "complete_distinct_pairs": 75, "eos_stops": 237, "bos_stops": 0, "cap_stops": 19, "context_stops": 0, "first_line_asked": 256, "first_line_other": 0, "first_line_neither": 0, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 19, "target_value_in_prompt": 256},
+      "other_relation": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 235, "bos_stops": 0, "cap_stops": 21, "context_stops": 0, "first_line_asked": 0, "first_line_other": 256, "first_line_neither": 0, "first_token_target": 0, "forced_prefix_retained": 256, "prefix_retained_without_eos": 21, "target_value_in_prompt": 256},
+      "shuffled_value": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 226, "bos_stops": 0, "cap_stops": 30, "context_stops": 0, "first_line_asked": 0, "first_line_other": 13, "first_line_neither": 243, "first_token_target": 4, "forced_prefix_retained": 256, "prefix_retained_without_eos": 30, "target_value_in_prompt": 256},
+      "per_stratum_paired": {
+        "length2": {"first_vs_free": [14, 8], "correct_vs_first": [31, 12]},
+        "length4": {"first_vs_free": [0, 2], "correct_vs_first": [44, 14]},
+        "length8": {"first_vs_free": [0, 2], "correct_vs_first": [58, 16]},
+        "reassert": {"first_vs_free": [6, 5], "correct_vs_first": [21, 10]},
+        "update": {"first_vs_free": [0, 2], "correct_vs_first": [26, 11]}
+      }
+    },
+    "s2_per_turn": {
+      "report_sha256": "9d24d8b428e0e68c271ee4c962d178275e64b1734f662995978748807981f92f",
+      "free": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 100, "bos_stops": 0, "cap_stops": 156, "context_stops": 0, "first_line_asked": 2, "first_line_other": 4, "first_line_neither": 250, "first_token_target": 0, "forced_prefix_retained": 0, "prefix_retained_without_eos": 0, "target_value_in_prompt": 256},
+      "first_target": {"complete": 21, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 130, "bos_stops": 0, "cap_stops": 126, "context_stops": 0, "first_line_asked": 21, "first_line_other": 0, "first_line_neither": 235, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 126, "target_value_in_prompt": 256},
+      "correct_value": {"complete": 213, "pairs": 128, "complete_distinct_pairs": 86, "eos_stops": 218, "bos_stops": 0, "cap_stops": 38, "context_stops": 0, "first_line_asked": 256, "first_line_other": 0, "first_line_neither": 0, "first_token_target": 256, "forced_prefix_retained": 256, "prefix_retained_without_eos": 38, "target_value_in_prompt": 256},
+      "other_relation": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 215, "bos_stops": 0, "cap_stops": 41, "context_stops": 0, "first_line_asked": 0, "first_line_other": 256, "first_line_neither": 0, "first_token_target": 0, "forced_prefix_retained": 256, "prefix_retained_without_eos": 41, "target_value_in_prompt": 256},
+      "shuffled_value": {"complete": 0, "pairs": 128, "complete_distinct_pairs": 0, "eos_stops": 211, "bos_stops": 0, "cap_stops": 45, "context_stops": 0, "first_line_asked": 0, "first_line_other": 13, "first_line_neither": 243, "first_token_target": 4, "forced_prefix_retained": 256, "prefix_retained_without_eos": 45, "target_value_in_prompt": 256},
+      "per_stratum_paired": {
+        "length2": {"first_vs_free": [13, 8], "correct_vs_first": [37, 13]},
+        "length4": {"first_vs_free": [0, 2], "correct_vs_first": [54, 15]},
+        "length8": {"first_vs_free": [0, 2], "correct_vs_first": [50, 15]},
+        "reassert": {"first_vs_free": [8, 6], "correct_vs_first": [23, 10]},
+        "update": {"first_vs_free": [0, 2], "correct_vs_first": [28, 11]}
+      }
+    }
+  },
+  "paired": {
+    "s1_one_user": {
+      "first_target_vs_free": {"candidate_only": 41, "control_only": 0, "gain": 41, "threshold": 13, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_first_target": {"candidate_only": 189, "control_only": 0, "gain": 189, "threshold": 28, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_other_relation": {"candidate_only": 230, "control_only": 0, "gain": 230, "threshold": 31, "comparison_kind": "identity-control", "inferential": false, "passes": null},
+      "correct_value_vs_shuffled_value": {"candidate_only": 230, "control_only": 0, "gain": 230, "threshold": 31, "comparison_kind": "identity-control", "inferential": false, "passes": null}
+    },
+    "s1_per_turn": {
+      "first_target_vs_free": {"candidate_only": 41, "control_only": 0, "gain": 41, "threshold": 13, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_first_target": {"candidate_only": 209, "control_only": 0, "gain": 209, "threshold": 29, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_other_relation": {"candidate_only": 250, "control_only": 0, "gain": 250, "threshold": 32, "comparison_kind": "identity-control", "inferential": false, "passes": null},
+      "correct_value_vs_shuffled_value": {"candidate_only": 250, "control_only": 0, "gain": 250, "threshold": 32, "comparison_kind": "identity-control", "inferential": false, "passes": null}
+    },
+    "s2_one_user": {
+      "first_target_vs_free": {"candidate_only": 20, "control_only": 0, "gain": 20, "threshold": 9, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_first_target": {"candidate_only": 180, "control_only": 0, "gain": 180, "threshold": 27, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_other_relation": {"candidate_only": 200, "control_only": 0, "gain": 200, "threshold": 29, "comparison_kind": "identity-control", "inferential": false, "passes": null},
+      "correct_value_vs_shuffled_value": {"candidate_only": 200, "control_only": 0, "gain": 200, "threshold": 29, "comparison_kind": "identity-control", "inferential": false, "passes": null}
+    },
+    "s2_per_turn": {
+      "first_target_vs_free": {"candidate_only": 21, "control_only": 0, "gain": 21, "threshold": 10, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_first_target": {"candidate_only": 192, "control_only": 0, "gain": 192, "threshold": 28, "comparison_kind": "matched-treatment", "inferential": true, "passes": true},
+      "correct_value_vs_other_relation": {"candidate_only": 213, "control_only": 0, "gain": 213, "threshold": 30, "comparison_kind": "identity-control", "inferential": false, "passes": null},
+      "correct_value_vs_shuffled_value": {"candidate_only": 213, "control_only": 0, "gain": 213, "threshold": 30, "comparison_kind": "identity-control", "inferential": false, "passes": null}
+    }
+  },
+  "repeat": {
+    "report_sha256": "b65240deb51a9429a4170805d2bc880ee6fc9dd20d2aaa779145f038a804ec04",
+    "non_timing_fields_equal": true
+  },
+  "parity": {
+    "source": {
+      "receipt": "evidence/parity-token-source.json",
+      "report_sha256": "35ff65d67fd6e82c4b47f949618f6a1ee1e671aae620688f3499996610a97a64",
+      "tokens_file": "evidence/panel-parity-tokens.txt",
+      "tokens_file_sha256": "71f2f80a3e246df87770aa50cc2e734b1d68474ad2423a2bf47fff44f5339a78",
+      "case_id": "fresh-diverse-length2-00-swap0-q0-forward-job",
+      "reply_start": 39,
+      "token_sequence_sha256": "c44886565e763cee62096af3c82e4e1427d7bd8fcd9f952969d25a230af47a7b"
+    },
+    "seed_1": {
+      "report_sha256": "11271dc58a10c41c2fc79fc21b1ddafd3f9324c08aefeec1ec3d89409e5c024b",
+      "positions": 40,
+      "query_coordinates": 10240,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cells": 320,
+      "kept_cell_mismatches": 0
+    },
+    "seed_2": {
+      "report_sha256": "61aeab4529636f65f1fa7d50b89f8613198d45901be09e56ac9fe087b894b069",
+      "positions": 40,
+      "query_coordinates": 10240,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cells": 320,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "resources": {
+    "detail": "evidence/resources.json",
+    "canonical_ledger": "docs/labs/cpu-training-pilot-forced-copy-2026-11-08/resource-ledger.json"
+  },
+  "claim": "CPU development-research forced-copy attribution on two sealed current-state artifacts; not a capability bar or GPU qualification"
+}

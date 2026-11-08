@@ -223,6 +223,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/forced-copy-panel": {
+    "branch": "deepseek/forced-copy-panel",
+    "claimed_at": "2026-11-08T13:08:42-05:00",
+    "head": "2644de75f",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/fresh-replies": {
     "branch": "deepseek/fresh-replies",
     "claimed_at": "2026-11-03T08:43:04-05:00",

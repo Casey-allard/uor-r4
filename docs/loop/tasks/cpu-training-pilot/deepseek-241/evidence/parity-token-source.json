@@ -1,0 +1,10 @@
+{
+  "schema": "uor-r4.cpu-forced-copy-parity-token-source/1",
+  "panel_inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+  "case_id": "fresh-diverse-length2-00-swap0-q0-forward-job",
+  "source_expression": "([.cases[0].segments[] | .token_ids[]?] + .cases[0].query_ids)[0:40]",
+  "token_count": 40,
+  "reply_start": 39,
+  "token_sequence_sha256": "c44886565e763cee62096af3c82e4e1427d7bd8fcd9f952969d25a230af47a7b",
+  "tokens_file": "panel-parity-tokens.txt"
+}

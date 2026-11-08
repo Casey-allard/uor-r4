@@ -1,0 +1,107 @@
+{
+  "schema": "uor-r4.cpu-forced-copy-panel-resources/1",
+  "measured_at": "2026-11-08T19:24:11Z",
+  "substrate": "cpu-development-research",
+  "root": "local/deepseek/forced-copy-panel",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cpus": 32,
+    "threads_per_core": 2,
+    "probe_threads": 32
+  },
+  "runs": [
+    {"path": "runs/s1-one-user.json", "wall_ms": 3526, "peak_rss_kib": 137456, "disposition": "superseded EOS-token instrument mismatch"},
+    {"path": "runs/s1-per-turn.json", "wall_ms": 8017, "peak_rss_kib": 136804, "disposition": "superseded EOS-token instrument mismatch"},
+    {"path": "runs/s2-one-user.json", "wall_ms": 9338, "peak_rss_kib": 135776, "disposition": "superseded EOS-token instrument mismatch"},
+    {"path": "runs/s2-per-turn.json", "wall_ms": 8496, "peak_rss_kib": 137192, "disposition": "superseded EOS-token instrument mismatch"},
+    {"path": "runs-v2/s1-one-user.json", "wall_ms": 2401, "peak_rss_kib": 131132, "disposition": "correct behavior before executable binding"},
+    {"path": "runs-v2/s1-per-turn.json", "wall_ms": 2496, "peak_rss_kib": 133528, "disposition": "correct behavior before executable binding"},
+    {"path": "runs-v2/s2-one-user.json", "wall_ms": 2528, "peak_rss_kib": 132148, "disposition": "correct behavior before executable binding"},
+    {"path": "runs-v2/s2-per-turn.json", "wall_ms": 2746, "peak_rss_kib": 133944, "disposition": "correct behavior before executable binding"},
+    {"path": "runs-v2/s1-one-user-repeat.json", "wall_ms": 2402, "peak_rss_kib": 131916, "disposition": "determinism repeat before executable binding"},
+    {"path": "runs-v3/s1-one-user.json", "wall_ms": 2397, "peak_rss_kib": 131232, "disposition": "superseded; inputs, settings, arm rows, replies, tallies and decisions equal v4; executable identity differs"},
+    {"path": "runs-v3/s1-per-turn.json", "wall_ms": 2545, "peak_rss_kib": 132772, "disposition": "superseded; inputs, settings, arm rows, replies, tallies and decisions equal v4; executable identity differs"},
+    {"path": "runs-v3/s2-one-user.json", "wall_ms": 2535, "peak_rss_kib": 131440, "disposition": "superseded; inputs, settings, arm rows, replies, tallies and decisions equal v4; executable identity differs"},
+    {"path": "runs-v3/s2-per-turn.json", "wall_ms": 2739, "peak_rss_kib": 132492, "disposition": "superseded; inputs, settings, arm rows, replies, tallies and decisions equal v4; executable identity differs"},
+    {"path": "runs-v3/s1-one-user-repeat.json", "wall_ms": 2387, "peak_rss_kib": 131924, "disposition": "superseded determinism repeat; inputs, settings, arm rows, replies, tallies and decisions equal v4; executable identity differs"},
+    {"path": "runs-v4/s1-one-user.json", "wall_ms": 2384, "peak_rss_kib": 131200, "disposition": "superseded by review-repaired evidence; arm rows and decisions equal v5"},
+    {"path": "runs-v4/s1-per-turn.json", "wall_ms": 2522, "peak_rss_kib": 134556, "disposition": "superseded by review-repaired evidence; arm rows and decisions equal v5"},
+    {"path": "runs-v4/s2-one-user.json", "wall_ms": 2478, "peak_rss_kib": 131756, "disposition": "superseded by review-repaired evidence; arm rows and decisions equal v5"},
+    {"path": "runs-v4/s2-per-turn.json", "wall_ms": 2811, "peak_rss_kib": 133524, "disposition": "superseded by review-repaired evidence; arm rows and decisions equal v5"},
+    {"path": "runs-v4/s1-one-user-repeat.json", "wall_ms": 2368, "peak_rss_kib": 132932, "disposition": "superseded by review-repaired evidence; arm rows and decisions equal v5"},
+    {"path": "runs-v5/s1-one-user.json", "wall_ms": 2342, "peak_rss_kib": 132948, "disposition": "final review-repaired exact-source evidence"},
+    {"path": "runs-v5/s1-per-turn.json", "wall_ms": 2469, "peak_rss_kib": 132392, "disposition": "final review-repaired exact-source evidence"},
+    {"path": "runs-v5/s2-one-user.json", "wall_ms": 2513, "peak_rss_kib": 132384, "disposition": "final review-repaired exact-source evidence"},
+    {"path": "runs-v5/s2-per-turn.json", "wall_ms": 2732, "peak_rss_kib": 132840, "disposition": "final review-repaired exact-source evidence"},
+    {"path": "runs-v5/s1-one-user-repeat.json", "wall_ms": 2352, "peak_rss_kib": 132936, "disposition": "final review-repaired exact-source determinism repeat"}
+  ],
+  "totals": {
+    "report_count": 24,
+    "measured_wall_ms": 79524,
+    "measured_wall_seconds": 79.524,
+    "max_peak_rss_kib": 137456
+  },
+  "parity": {
+    "source": {
+      "receipt": "docs/loop/tasks/cpu-training-pilot/deepseek-241/evidence/parity-token-source.json",
+      "receipt_sha256": "35ff65d67fd6e82c4b47f949618f6a1ee1e671aae620688f3499996610a97a64",
+      "tokens_file": "docs/loop/tasks/cpu-training-pilot/deepseek-241/evidence/panel-parity-tokens.txt",
+      "tokens_file_sha256": "71f2f80a3e246df87770aa50cc2e734b1d68474ad2423a2bf47fff44f5339a78",
+      "case_id": "fresh-diverse-length2-00-swap0-q0-forward-job",
+      "reply_start": 39,
+      "token_sequence_sha256": "c44886565e763cee62096af3c82e4e1427d7bd8fcd9f952969d25a230af47a7b"
+    },
+    "seed_1": {
+      "report": "parity-v2/s1.json",
+      "report_sha256": "11271dc58a10c41c2fc79fc21b1ddafd3f9324c08aefeec1ec3d89409e5c024b",
+      "positions": 40,
+      "query_coordinates": 10240,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cells": 320,
+      "kept_cell_mismatches": 0
+    },
+    "seed_2": {
+      "report": "parity-v2/s2.json",
+      "report_sha256": "61aeab4529636f65f1fa7d50b89f8613198d45901be09e56ac9fe087b894b069",
+      "positions": 40,
+      "query_coordinates": 10240,
+      "query_coordinate_mismatches": 0,
+      "token_mismatches": 0,
+      "kept_cells": 320,
+      "kept_cell_mismatches": 0
+    }
+  },
+  "storage": {
+    "local_evidence_and_inputs_bytes": 570541430,
+    "new_unit_retained_runs_bytes": 7367743,
+    "new_unit_retained_parity_bytes": 91852,
+    "build_target_bytes": 5813363277,
+    "temporary_logs_bytes": 17037,
+    "free_bytes_at_measurement": 155054645248,
+    "free_gib_at_measurement": 144.406,
+    "floor_gib": 30,
+    "required_margin_mib": 128,
+    "floor_passes": true
+  },
+  "ledger": {
+    "shared_model_time_active_receipt": "ABSENT",
+    "shared_model_time_ledger_path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "canonical_resource_ledger": "docs/labs/cpu-training-pilot-forced-copy-2026-11-08/resource-ledger.json",
+    "previous_admitted_cumulative_projection_seconds": 95627.677487699,
+    "reconciled_readout_refit_projection_seconds": 1140,
+    "current_unit_admitted_increment_seconds": 1800,
+    "admitted_cumulative_projection_seconds": 98567.677487699,
+    "legacy_cumulative_projected_seconds": 37808.048816343,
+    "note": "The canonical shared model-time ledger was absent. The admitted cumulative reconciles the latest recorded 95,627.677487699-second CPU total, the 1,140-second readout-refit projection, and this unit's 1,800-second increment."
+  },
+  "unmeasured": [
+    "Claude artifact archive download and extraction",
+    "CPU export of the two integer artifacts",
+    "Rust builds and incremental rebuilds",
+    "tests, formatting, Clippy and harness gates",
+    "review and delivery"
+  ],
+  "note": "The measured wall is a lower bound from retained probe reports only."
+}
