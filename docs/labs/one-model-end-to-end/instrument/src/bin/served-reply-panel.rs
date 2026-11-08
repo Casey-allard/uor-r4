@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -271,9 +271,10 @@ fn run() -> Result<()> {
             "artifact serves the writer head; this scorer reads the nearest head".to_owned(),
         );
     }
-    let context_length = CpuFbsForward::from_artifact(&artifact)
-        .map_err(|e| e.to_string())?
-        .context_length();
+    // Built once: every row decodes from a clone of this untouched forward, so the timed loop
+    // holds no artifact parse.
+    let fresh_forward = CpuFbsForward::from_artifact(&artifact).map_err(|e| e.to_string())?;
+    let context_length = fresh_forward.context_length();
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
         .ok_or("tokenizer JSON is not a supported byte-level BPE tokenizer")?;
     let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
@@ -295,6 +296,8 @@ fn run() -> Result<()> {
     }
 
     let started = Instant::now();
+    // Time inside `generate` only (prompt priming plus reply steps), summed exactly and rounded once.
+    let mut decode_time = Duration::ZERO;
     let mut rows = Vec::with_capacity(labels.cases.len());
     let mut pair_rows = Vec::with_capacity(labels.cases.len());
     for label in &labels.cases {
@@ -305,8 +308,10 @@ fn run() -> Result<()> {
             .get(&label.pair_id)
             .ok_or(format!("{}: no plan history", label.pair_id))?;
         let (prompt_text, prompt) = render(&tokenizer, &encoder, case, rendering)?;
-        let mut forward = CpuFbsForward::from_artifact(&artifact).map_err(|e| e.to_string())?;
+        let mut forward = fresh_forward.clone();
+        let decode_started = Instant::now();
         let (reply_ids, stop) = generate(&mut forward, &prompt, cap)?;
+        decode_time += decode_started.elapsed();
         let bytes = tokenizer.decode_bytes(&reply_ids);
         let (reply_text, complete) = score(stop, &bytes, &label.answers, &protocol);
         pair_rows.push((
@@ -327,6 +332,7 @@ fn run() -> Result<()> {
         });
     }
     let wall_milliseconds = started.elapsed().as_millis().max(1);
+    let decode_milliseconds = decode_time.as_millis().max(1);
     let (teacher_rows, teacher_wall_milliseconds) = if teacher_forced {
         let started = Instant::now();
         let mut teacher_rows = Vec::with_capacity(labels.cases.len());
@@ -399,6 +405,8 @@ fn run() -> Result<()> {
         "reply_tokens": reply_tokens,
         "wall_milliseconds": wall_milliseconds,
         "tokens_per_second": reply_tokens as u128 * 1000 / wall_milliseconds,
+        "decode_milliseconds": decode_milliseconds,
+        "decode_tokens_per_second": reply_tokens as u128 * 1000 / decode_milliseconds,
         "rows": rows,
     });
     if teacher_forced {
