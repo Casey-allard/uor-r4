@@ -1,0 +1,52 @@
+{
+  "schema": "uor-r4.opening-diagnostic/1",
+  "source_run": "results/deepseek/one-model-end-to-end-content-ratio-2026-11-08/runs/s1-content-ratio-20261108t055107z-adb12718d6c9ea88",
+  "checkpoint": 512,
+  "artifact_sha256": "406c9a5c05d63c8f2b6044ee6de6ea78d9fa91582dc03c4aa3e4fe877846e384",
+  "reports": {
+    "per_turn": {
+      "sha256": "bf6bbf5506731221f8c7d877453aca81c356290c85edb35ff54e1a00f760bd3c",
+      "rows": 256,
+      "targets": 2832,
+      "top1": 1614,
+      "top8": 2574,
+      "eos_top1": 0,
+      "eos_top8": 256,
+      "eos_rank_p50": 2,
+      "first_target": {
+        "targets": 256,
+        "top1": 0,
+        "top8": 0,
+        "top32": 0,
+        "rank_min": 67,
+        "rank_p50": 956,
+        "rank_max": 4055
+      },
+      "later_targets": 2576,
+      "later_top1": 1614,
+      "later_top8": 2574
+    },
+    "one_user_turn": {
+      "sha256": "bca570ab7e0cd2b16f04e942ad8bf57682dbdb1533c7c611cc0677165acdb5d0",
+      "rows": 256,
+      "targets": 2832,
+      "top1": 1600,
+      "top8": 2574,
+      "eos_top1": 0,
+      "eos_top8": 256,
+      "eos_rank_p50": 2,
+      "first_target": {
+        "targets": 256,
+        "top1": 0,
+        "top8": 0,
+        "top32": 0,
+        "rank_min": 43,
+        "rank_p50": 1189,
+        "rank_max": 4060
+      },
+      "later_targets": 2576,
+      "later_top1": 1600,
+      "later_top8": 2574
+    }
+  }
+}

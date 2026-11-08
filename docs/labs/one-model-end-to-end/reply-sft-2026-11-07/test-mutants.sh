@@ -140,6 +140,9 @@ mutate weak-best-complete "$JOB" \
   '-(.free_complete_rows),' '(.free_complete_rows),'
 mutate missing-free-complete "$JOB" \
   '.totals.complete | numbers' '.totals.complete | null'
+mutate missing-first-target "$JOB" \
+  '.teacher_forced.first_target.top1 | numbers' \
+  '.teacher_forced.first_target.top1 | null'
 mutate one-user-best-source "$JOB" \
   '-per-turn-generated.json") ||' '-one-user-generated.json") ||'
 mutate wrong-best-rendering "$JOB" \

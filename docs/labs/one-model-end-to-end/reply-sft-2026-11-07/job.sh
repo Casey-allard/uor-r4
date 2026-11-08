@@ -399,7 +399,7 @@ score_checkpoint() {
   run_panel "$step" "$artifact" one-user-turn/v1 0 one-user-generated >/dev/null ||
     die "checkpoint $step one-user panel failed"
 
-  local guard eos_top1 eos_p50 free_complete free_eos free_pairs
+  local guard eos_top1 eos_p50 first_top1 first_top8 first_p50 free_complete free_eos free_pairs
   guard=$(jq -er '.evaluation.top1_correct | numbers' \
     "$RUN/grades/$ATTEMPT/step-$(printf '%06d' "$step").json") ||
     die "checkpoint $step grade has no numeric top-1 reading"
@@ -409,6 +409,15 @@ score_checkpoint() {
   eos_p50=$(jq -er '.teacher_forced.totals.eos_rank_p50 | numbers' \
     "$RUN/panel/$ATTEMPT/step-$(printf '%06d' "$step")-per-turn-teacher.json") ||
     die "checkpoint $step teacher panel has no numeric EOS median reading"
+  first_top1=$(jq -er '.teacher_forced.first_target.top1 | numbers' \
+    "$RUN/panel/$ATTEMPT/step-$(printf '%06d' "$step")-per-turn-teacher.json") ||
+    die "checkpoint $step teacher panel has no numeric first-target top-1 reading"
+  first_top8=$(jq -er '.teacher_forced.first_target.top8 | numbers' \
+    "$RUN/panel/$ATTEMPT/step-$(printf '%06d' "$step")-per-turn-teacher.json") ||
+    die "checkpoint $step teacher panel has no numeric first-target top-8 reading"
+  first_p50=$(jq -er '.teacher_forced.first_target.rank_p50 | numbers' \
+    "$RUN/panel/$ATTEMPT/step-$(printf '%06d' "$step")-per-turn-teacher.json") ||
+    die "checkpoint $step teacher panel has no numeric first-target median reading"
   free_complete=$(jq -er '.totals.complete | numbers' \
     "$RUN/panel/$ATTEMPT/step-$(printf '%06d' "$step")-per-turn-generated.json") ||
     die "checkpoint $step free panel has no numeric complete-row reading"
@@ -420,10 +429,14 @@ score_checkpoint() {
     die "checkpoint $step free panel has no numeric complete-pair reading"
   jq -n --argjson step "$step" --argjson guard "$guard" \
     --argjson eos_top1 "$eos_top1" --argjson eos_p50 "$eos_p50" \
+    --argjson first_top1 "$first_top1" --argjson first_top8 "$first_top8" \
+    --argjson first_p50 "$first_p50" \
     --argjson free_complete "$free_complete" --argjson free_eos "$free_eos" \
     --argjson free_pairs "$free_pairs" \
     '{step:$step, guard_top1:$guard, eos_top1:$eos_top1,
-      eos_rank_p50:$eos_p50, free_complete_rows:$free_complete,
+      eos_rank_p50:$eos_p50, first_target_top1:$first_top1,
+      first_target_top8:$first_top8, first_target_rank_p50:$first_p50,
+      free_complete_rows:$free_complete,
       free_eos_stops:$free_eos, free_complete_pairs:$free_pairs}' \
     >> "$RUN/checkpoint-readings-$ATTEMPT.jsonl" ||
     die "could not record checkpoint $step readings"

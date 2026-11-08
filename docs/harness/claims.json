@@ -398,17 +398,17 @@
     "lab": "deepseek",
     "note": "checkpoint-initialized fine-tune support for the one-model path"
   },
+  "deepseek/opening-diagnostic": {
+    "branch": "deepseek/opening-diagnostic",
+    "claimed_at": "2026-11-08T02:20:13-05:00",
+    "head": "0619d850a",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/oracle-corpus-support": {
     "branch": "deepseek/oracle-corpus-support",
     "claimed_at": "2026-11-02T22:00:48-05:00",
     "head": "a4ef288d9",
-    "lab": "deepseek",
-    "note": ""
-  },
-  "deepseek/packet-parity-run": {
-    "branch": "deepseek/packet-parity-run",
-    "claimed_at": "2026-11-08T01:43:26-05:00",
-    "head": "208a29ce5",
     "lab": "deepseek",
     "note": ""
   },

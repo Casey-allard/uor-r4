@@ -699,6 +699,13 @@ fn teacher_forced_report(rows: Vec<TeacherForcedRow>) -> Result<serde_json::Valu
         .flat_map(|row| row.target_ranks.iter().copied())
         .collect();
     let eos: Vec<usize> = rows.iter().filter_map(|row| row.eos_rank).collect();
+    let first_targets: Vec<usize> = rows
+        .iter()
+        .filter_map(|row| row.target_ranks.first().copied())
+        .collect();
+    if first_targets.len() != rows.len() {
+        return Err("teacher-forced rows do not each hold a first target rank".to_owned());
+    }
     let raw_targets: Vec<usize> = rows
         .iter()
         .flat_map(|row| row.raw_target_ranks.iter().copied())
@@ -713,6 +720,7 @@ fn teacher_forced_report(rows: Vec<TeacherForcedRow>) -> Result<serde_json::Valu
     }
     let mut tally = rank_tally(&targets, &eos);
     tally.eos_targets = eos.len();
+    let first_target = rank_tally(&first_targets, &[]);
     let raw_tally = rank_tally(&raw_targets, &raw_eos);
     let per_stratum = {
         let mut by_stratum: BTreeMap<String, (Vec<usize>, Vec<usize>)> = BTreeMap::new();
@@ -733,6 +741,7 @@ fn teacher_forced_report(rows: Vec<TeacherForcedRow>) -> Result<serde_json::Valu
         "reference": "shortest frozen accepted answer",
         "candidate_count": *candidates.first().unwrap_or(&0),
         "totals": tally,
+        "first_target": first_target,
         "raw_totals": raw_tally,
         "point_key_overrides": rows.iter().map(|row| row.point_key_overrides).sum::<usize>(),
         "chosen_target_mismatches": rows.iter().map(|row| row.chosen_target_mismatches).sum::<usize>(),
@@ -1124,6 +1133,31 @@ mod tests {
         assert_eq!(tally.eos_top8, 2);
         assert_eq!(tally.eos_rank_p50, Some(7));
         assert_eq!(tally.eos_rank_max, Some(40));
+    }
+
+    #[test]
+    fn teacher_forced_report_separates_the_first_target_rank() {
+        let row = |id: &str, ranks: Vec<usize>| TeacherForcedRow {
+            id: id.to_owned(),
+            stratum: "length2".to_owned(),
+            answer: "value.".to_owned(),
+            reference_ids: vec![10; ranks.len()],
+            target_ranks: ranks,
+            raw_target_ranks: vec![1],
+            raw_nearest_tokens: vec![10],
+            eos_rank: Some(2),
+            raw_eos_rank: Some(2),
+            point_key_overrides: 0,
+            chosen_target_mismatches: 0,
+            candidate_count: 16,
+        };
+        let report =
+            teacher_forced_report(vec![row("a", vec![9, 1, 1]), row("b", vec![10, 2])]).unwrap();
+        assert_eq!(report["first_target"]["targets"], 2);
+        assert_eq!(report["first_target"]["top1"], 0);
+        assert_eq!(report["first_target"]["top8"], 0);
+        assert_eq!(report["first_target"]["rank_p50"], 9);
+        assert_eq!(report["totals"]["targets"], 5);
     }
 
     #[test]
