@@ -90,13 +90,11 @@ Raster images can be attached by paste, drop, or the multiple-file picker. Brows
 
 Image attachments show previews, names/sizes, removal, and `R4 patch input — experimental; not visual understanding`. Custom OpenAI providers may use ordinary `image_url` content parts with provider errors shown verbatim; local WASM refuses image context. Image bytes and previews remain memory-only. Reload shows zero attached image files and a memory-only notice; text-only sends still work, Clear dismisses the notice, and sending another image requires reattachment. Context overflow is rejected without truncation. This is deterministic decomposition and protocol evidence only, not captioning, recognition, visual question answering, or a trained multimodal artifact.
 
-### Typed workflow components (development library)
+### Typed workflow components and mounted preview
 
-The `src/` library now contains the lifecycle store and all eight approved core components:
+The `src/` tree contains the lifecycle store and all eight approved core components:
 AppShell, ModelPicker, WorkspaceEditor, AgentComposer, SessionList, Inspector, Guide, and Settings.
-`StudioApp` composes them without mounting or replacing the live page. AgentComposer, WorkspaceEditor,
-ModelPicker, SessionList, and Inspector subscribe to one store; AppShell, Guide, and Settings are
-coordinated through props and callbacks.
+`StudioApp` now mounts through a real Vite application build only when `?typed=1` is requested by the staged `assets/js/typed_entry.js`; the default source path remains the legacy application and does not request raw TypeScript. The bootstrap reuses the existing model worker and workflow adapters, waits for the initial-render workspace tabs/active-file, settings/attachments, session-list/active-ID, and conversation-message methods, and suppresses legacy MCP auto-boot in the preview. The real readiness timeout reaches the real initialization catch and renders errors visibly through `showMountError`; default, typed, and controlled built-error checks assert zero runtime exceptions. The browser also requires exactly one typed shell and rejects raw-TypeScript requests. AgentComposer, WorkspaceEditor, ModelPicker, SessionList, and Inspector subscribe to one store; AppShell, Guide, and Settings are coordinated through props and callbacks.
 The components call the existing file/session/UI/model-source APIs through typed bridges. Small public
 hooks forward editor content, generation completion, settings, and attachment changes; the engine,
 worker, tokenizer, and `studio_api.js` remain unchanged. Existing provider credentials are not
@@ -111,8 +109,8 @@ Narrow live-page bridge corrections correlate chat completion, include attachmen
 
 The Models view also includes `McpConnections` through the existing `connectRemote` contract. Explicit Connect lists only valid tool metadata, nested object/array arguments round-trip exactly, Connect is disabled while a call is active, and Call is refused while Connect is active. **Attach result** adds exact result JSON through the existing attachment API with a sanitized `mcp-<tool>.json` name and verifies retention before reporting success. Existing `@` options include the attachment. Credentials are memory-only and cleared after connection/unmount; active sessions supplying `disconnect` are released on unmount, while the direct-browser client's missing hook is an explicit no-op. Failed previous-session cleanup preserves the old session and tools, attempts candidate release, and surfaces previous and candidate cleanup errors. No autonomous loop, second protocol client, stdio expansion, real endpoint, or packaged-GUI claim is made. Future cutover must also avoid the legacy MCP auto-boot mounting beside this component.
 
-Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. This unit passes **377 typed tests across 44 files**, **112 plain-JS tests**, and all four legacy checks. The library
-build emits uncommitted `dist/` output; `src/studio.css` does not alter the legacy `index.css`.
+Run `npm ci`, `npm test`, `npm run typecheck`, and `npm run build` in this directory. This unit passes **384 typed tests across 46 files**, **112 plain-JS tests**, and all four legacy checks. The application
+build emits uncommitted `dist/` output and stages generated artifacts into `dist/pkg`; `src/studio.css` does not alter the legacy `index.css`.
 Native progress and dialog elements preserve unknown totals and indeterminate finalization; dialogs
 use native focus semantics, while browser focus-return verification remains in the parity record.
 M1 discrete artifacts are labeled next-token prediction, not conversational chat.

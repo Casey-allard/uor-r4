@@ -15,7 +15,7 @@
 // Requires a local Google Chrome/Chromium; fails closed when it cannot launch.
 
 import { createServer } from 'node:http';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, readdir, mkdtemp, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -76,6 +76,23 @@ async function startServer() {
                 ].join('');
                 res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
                 res.end(planted);
+                return;
+            }
+            if (url.pathname === '/studio/dist/__mount_error.html') {
+                const entryPattern = /<script type="module" crossorigin src="\.\/assets\/index-[^"]+\.js"><\/script>/;
+                let body = await readFile(join(webRoot, 'studio', 'dist', 'index.html'), 'utf8');
+                const mainChunks = (await readdir(join(webRoot, 'studio', 'dist', 'assets')))
+                    .filter((name) => /^main-[\w-]+\.js$/.test(name));
+                assert(mainChunks.length === 1, 'mount-error fixture requires exactly one compiled main chunk');
+                assert(entryPattern.test(body), 'mount-error fixture could not locate the compiled application entry');
+                const controlledEntry = '<script type="module" crossorigin>'
+                    + 'window.__studioFiles={tabs(){return[]},activeFile(){return null}};'
+                    + 'window.__studioUi={getSettings(){return{}},getAttachments(){return[]}};'
+                    + `import('./assets/${mainChunks[0]}');`
+                    + '</script>';
+                body = body.replace(entryPattern, controlledEntry);
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+                res.end(body);
                 return;
             }
             const raw = normalize(decodeURIComponent(url.pathname));
@@ -160,12 +177,13 @@ async function cdpConnect(wsUrl) {
     return { ws, send, events };
 }
 
-async function trapPageLoad(cdp, origin, path) {
+async function trapPageLoad(cdp, origin, path, options = {}) {
     const target = await cdp.send('Target.createTarget', { url: 'about:blank' });
     const attached = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: true });
     const sessionId = attached.sessionId;
     await cdp.send('Network.enable', {}, sessionId);
     await cdp.send('Page.enable', {}, sessionId);
+    await cdp.send('Runtime.enable', {}, sessionId);
     // Capture dedicated/service worker targets too: auto-attach to every child,
     // enable Network on its own session and resume it (waitForDebuggerOnStart).
     await cdp.send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, sessionId);
@@ -207,8 +225,83 @@ async function trapPageLoad(cdp, origin, path) {
         if (!/^https?:/i.test(u)) return false;
         try { return new URL(u).origin !== origin; } catch (_e) { return true; }
     });
+    const rawTypeScript = requested.filter((url) => {
+        try {
+            const pathname = new URL(url).pathname;
+            return /\.tsx?$/i.test(pathname) || /\/src\/main(?:\.[cm]?[jt]sx?)?$/i.test(pathname);
+        } catch (_e) {
+            return true;
+        }
+    });
+    let typed = null;
+    if (options.typed) {
+        const evaluation = await cdp.send('Runtime.evaluate', {
+            expression: `(async()=>{
+                const models = Array.from(document.querySelectorAll('button')).find((button) => button.textContent === 'Models');
+                if (models) models.click();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const root = document.getElementById('studio-typed-root');
+                const typedMcp = document.querySelectorAll('#studio-typed-root .mcp-connections').length;
+                const load = Array.from(root.querySelectorAll('button')).find((button) => button.textContent === 'Load bundled demo');
+                if (load) load.click();
+                let artifactReady = false;
+                for (let attempt = 0; attempt < 50; attempt += 1) {
+                    if (root.textContent.includes('Artifact: ready')) { artifactReady = true; break; }
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                const app = document.getElementById('app');
+                return {
+                    shell: Boolean(document.querySelector('#studio-typed-root .studio-shell')),
+                    shellCount: document.querySelectorAll('#studio-typed-root .studio-shell').length,
+                    active: document.getElementById('studio-typed-root')?.dataset.active === 'true',
+                    legacyHidden: app ? getComputedStyle(app).display === 'none' : false,
+                    legacyMcp: document.querySelectorAll('#app #mcpConnections').length,
+                    typedMcp,
+                    artifactReady,
+                    visible: getComputedStyle(root).display !== 'none',
+                    typedText: root.innerText.includes('Agent'),
+                    bodyText: document.body.innerText.slice(0, 500),
+                    rootText: document.getElementById('studio-typed-root')?.textContent?.slice(0, 500),
+                    legacyReady: Boolean(window.__studioUi && window.__studioFiles),
+                    legacyWorker: Boolean(window.__studioApp?.worker),
+                    scriptCount: document.scripts.length,
+                };
+            })()`,
+            awaitPromise: true,
+            returnByValue: true,
+        }, sessionId);
+        typed = evaluation.result.value;
+    }
+    let mountError = null;
+    if (options.mountError) {
+        const evaluation = await cdp.send('Runtime.evaluate', {
+            expression: `(async()=>{
+                const root = document.getElementById('studio-typed-root');
+                if (!root) return { missingRoot: true };
+                let timeout = false;
+                for (let attempt = 0; attempt < 75; attempt += 1) {
+                    if (root.textContent.includes('The existing Studio workflow services did not initialize.')) { timeout = true; break; }
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                return {
+                    timeout,
+                    hidden: root.hidden,
+                    active: root.dataset.active === 'true',
+                    visible: getComputedStyle(root).display !== 'none',
+                    shellCount: root.querySelectorAll('.studio-shell').length,
+                    errorText: root.textContent,
+                };
+            })()`,
+            awaitPromise: true,
+            returnByValue: true,
+        }, sessionId);
+        mountError = evaluation.result.value;
+    }
+    const runtimeErrors = cdp.events.slice(before)
+        .filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Runtime.consoleAPICalled')
+        .map((event) => event.params);
     await cdp.send('Target.closeTarget', { targetId: target.targetId });
-    return { path: path, loaded: loaded, requested: requested.length, external: external };
+    return { path: path, loaded: loaded, requested: requested.length, external: external, rawTypeScript, typed, mountError, runtimeErrors };
 }
 
 async function main() {
@@ -228,15 +321,48 @@ async function main() {
         const index = await trapPageLoad(cdp, origin, '/studio/index.html');
         assert(index.loaded, 'index.html never fired loadEventFired');
         assert(index.external.length === 0, 'index.html made external load requests: ' + JSON.stringify(index.external));
+        assert(index.rawTypeScript.length === 0, 'index.html requested raw TypeScript or src/main: ' + JSON.stringify(index.rawTypeScript));
+        assert(index.runtimeErrors.length === 0, 'index.html emitted runtime errors: ' + JSON.stringify(index.runtimeErrors));
+        const typedPreview = process.env.UOR_STUDIO_TYPED === '1'
+            ? await trapPageLoad(cdp, origin, '/studio/dist/index.html?typed=1', { typed: true })
+            : null;
+        if (typedPreview) {
+            if (process.env.UOR_STUDIO_DEBUG === '1') console.log('TYPED_RUNTIME_ERRORS ' + JSON.stringify(typedPreview.runtimeErrors));
+            assert(typedPreview.loaded, 'typed preview never fired loadEventFired');
+            assert(typedPreview.external.length === 0, 'typed preview made external load requests: ' + JSON.stringify(typedPreview.external));
+            assert(typedPreview.rawTypeScript.length === 0, 'typed preview requested raw TypeScript or src/main: ' + JSON.stringify(typedPreview.rawTypeScript));
+            assert(typedPreview.runtimeErrors.length === 0, 'typed preview emitted runtime errors: ' + JSON.stringify(typedPreview.runtimeErrors));
+            assert(typedPreview.typed?.shellCount === 1 && typedPreview.typed.active, 'typed preview did not mount exactly one StudioApp: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.legacyHidden, 'legacy shell remained visible in typed preview');
+            assert(typedPreview.typed.legacyMcp === 0, 'legacy MCP auto-boot mounted in typed preview');
+            assert(typedPreview.typed.typedMcp === 1, 'typed MCP panel missing or duplicated: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.artifactReady, 'typed bundled demo did not reach Artifact: ready: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.visible && typedPreview.typed.typedText, 'typed shell is not computed-visible with typed text: ' + JSON.stringify(typedPreview.typed));
+        }
+        const typedMountError = process.env.UOR_STUDIO_TYPED === '1'
+            ? await trapPageLoad(cdp, origin, '/studio/dist/__mount_error.html?typed=1', { mountError: true })
+            : null;
+        if (typedMountError) {
+            assert(typedMountError.loaded, 'typed mount-error fixture never fired loadEventFired');
+            assert(typedMountError.external.length === 0, 'typed mount-error fixture made external requests: ' + JSON.stringify(typedMountError.external));
+            assert(typedMountError.rawTypeScript.length === 0, 'typed mount-error fixture requested raw TypeScript: ' + JSON.stringify(typedMountError.rawTypeScript));
+            assert(typedMountError.runtimeErrors.length === 0, 'typed mount-error fixture emitted runtime errors: ' + JSON.stringify(typedMountError.runtimeErrors));
+            assert(typedMountError.mountError?.timeout, 'real readiness timeout did not render: ' + JSON.stringify(typedMountError.mountError));
+            assert(typedMountError.mountError.hidden === false && typedMountError.mountError.active, 'mount-error root stayed hidden or inactive: ' + JSON.stringify(typedMountError.mountError));
+            assert(typedMountError.mountError.visible, 'mount-error text is not computed-visible: ' + JSON.stringify(typedMountError.mountError));
+            assert(typedMountError.mountError.shellCount === 0, 'mount-error fixture unexpectedly mounted a shell');
+        }
         const router = await trapPageLoad(cdp, origin, '/studio/geometric_prime_router_webapp.html');
         const report = {
             verdict: 'RUNTIME PAGE-LOAD TRAP PASSED',
             trapSelfTest: { plantedExternalDetected: true, channels: ['inline', 'blob-worker', 'late'] },
             pages: {
-                'index.html': { loaded: index.loaded, requests: index.requested, external: index.external },
-                'geometric_prime_router_webapp.html': { loaded: router.loaded, requests: router.requested, external: router.external },
+                'index.html': { loaded: index.loaded, requests: index.requested, external: index.external, rawTypeScript: index.rawTypeScript, runtimeErrors: index.runtimeErrors.length },
+                'geometric_prime_router_webapp.html': { loaded: router.loaded, requests: router.requested, external: router.external, rawTypeScript: router.rawTypeScript, runtimeErrors: router.runtimeErrors.length },
             },
         };
+        if (typedPreview) report.pages['typed=1'] = { loaded: typedPreview.loaded, requests: typedPreview.requested, external: typedPreview.external, rawTypeScript: typedPreview.rawTypeScript, runtimeErrors: typedPreview.runtimeErrors.length, checks: typedPreview.typed };
+        if (typedMountError) report.pages['typed-mount-error'] = { loaded: typedMountError.loaded, requests: typedMountError.requested, external: typedMountError.external, rawTypeScript: typedMountError.rawTypeScript, runtimeErrors: typedMountError.runtimeErrors.length, checks: typedMountError.mountError };
         if (router.external.length > 0) {
             if (strictRouter) {
                 report.verdict = 'RUNTIME PAGE-LOAD TRAP FAILED';

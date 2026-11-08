@@ -2,6 +2,7 @@ import preact from '@preact/preset-vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+    base: './',
     plugins: [preact()],
     test: {
         environment: 'jsdom',
@@ -11,10 +12,8 @@ export default defineConfig({
         target: 'es2022',
         outDir: 'dist',
         emptyOutDir: true,
-        lib: {
-            entry: 'src/main.ts',
-            formats: ['es'],
-            fileName: 'studio-foundation',
+        rollupOptions: {
+            input: 'index.html',
         },
     },
 });

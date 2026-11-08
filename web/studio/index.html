@@ -8,6 +8,11 @@
     <title>UOR-R4 Studio — local chat</title>
     <link rel="stylesheet" href="./assets/css/uor_offline_fonts.css">
     <link rel="stylesheet" href="./index.css">
+    <style>
+        #studio-typed-root { display: none; min-height: 100vh; }
+        #studio-typed-root[data-active="true"] { display: block; }
+        #studio-typed-root[data-active="true"] ~ #app { display: none; }
+    </style>
     <script>
         (function () {
             try {
@@ -28,6 +33,7 @@
 </head>
 <body data-view="chat">
     <a class="skip-link" href="#mainColumn">Skip to main content</a>
+    <div id="studio-typed-root" hidden></div>
     <div class="app-shell" id="app" data-rail="expanded" data-sidebar="expanded" data-inspector="expanded">
         <header class="topbar" role="banner">
             <div class="topbar-left">
@@ -633,6 +639,7 @@
             pendingModelSourceChange: null,
             healthyModelSnapshot: null,
         };
+        window.__studioApp = app;
 
         function $(selector, root) {
             return (root || document).querySelector(selector);
@@ -2711,5 +2718,6 @@
     <script type="module" src="./assets/js/studio_files.js"></script>
     <script type="module" src="./assets/js/mcp_client.js"></script>
     <script type="module" src="./assets/js/studio_ui.js?v=20261104-session-toolbar"></script>
+    <script type="module" src="./assets/js/typed_entry.js"></script>
 </body>
 </html>

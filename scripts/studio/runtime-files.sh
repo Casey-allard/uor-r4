@@ -25,6 +25,7 @@ list_files() {
         'assets/js/uor_model_worker.js' \
         'assets/js/uor_offline_vendor.js' \
         'assets/js/uor_tokenizer_artifact.js' \
+        'assets/js/typed_entry.js' \
         'pkg/uor_r4_integer.js' \
         'pkg/uor_r4_integer_bg.wasm' \
         'pkg/synthetic-stack.lut' \

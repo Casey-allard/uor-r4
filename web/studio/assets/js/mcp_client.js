@@ -361,6 +361,7 @@ export function mountMcpConnections({ root = globalThis.document, connectRemote:
 }
 
 function bootMcp() {
+    if (new URLSearchParams(globalThis.location?.search || '').get('typed') === '1') return;
     if (globalThis.document?.getElementById('modelSourceMount')) mountMcpConnections();
 }
 
