@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+typed=0
+source_root=''
+
 list_files() {
+    if [ "$typed" = 1 ]; then
+        printf '%s\n' 'index.html' 'models.json'
+        if [ -d "$source_root/assets" ]; then
+            (
+                cd "$source_root"
+                find assets -type f | sort | while IFS= read -r rel; do
+                    case "$rel" in
+                        assets/*.js|assets/*.css|assets/*.wasm) printf '%s\n' "$rel" ;;
+                    esac
+                done
+            )
+        fi
+        printf '%s\n' \
+            'pkg/uor_r4_integer.js' \
+            'pkg/uor_r4_integer_bg.wasm' \
+            'pkg/synthetic-stack.lut' \
+            'pkg/tokenizer.json'
+        return
+    fi
     printf '%s\n' \
         'index.html' \
         'index.css' \
@@ -34,13 +56,21 @@ list_files() {
 
 case "${1:-}" in
     --list)
+        if [ "${2:-}" = '--typed' ]; then
+            typed=1
+            source_root=${3:-$PWD}
+        fi
         list_files
         ;;
     copy)
-        [ "$#" -ge 3 ] || { printf 'usage: runtime-files.sh copy <source> <dest> [--allow-generated-missing]\n' >&2; exit 2; }
+        [ "$#" -ge 3 ] || { printf 'usage: runtime-files.sh copy <source> <dest> [--allow-generated-missing|--typed]\n' >&2; exit 2; }
         src=$2
         dest=$3
         allow_missing=${4:-}
+        if [ "$allow_missing" = '--typed' ]; then
+            typed=1
+            source_root=$src
+        fi
         [ -d "$src" ] || { printf 'Studio source is unavailable: %s\n' "$src" >&2; exit 1; }
         case "$dest" in ''|'/'|'.') printf 'Refusing unsafe destination: %s\n' "$dest" >&2; exit 1 ;; esac
         rm -rf "$dest"
@@ -55,8 +85,12 @@ case "${1:-}" in
         done < <(list_files)
         ;;
     --verify)
-        [ "$#" -eq 2 ] || { printf 'usage: runtime-files.sh --verify <dest>\n' >&2; exit 2; }
+        [ "$#" -ge 2 ] || { printf 'usage: runtime-files.sh --verify <dest> [--typed]\n' >&2; exit 2; }
         dest=$2
+        if [ "${3:-}" = '--typed' ]; then
+            typed=1
+            source_root=$dest
+        fi
         symlink=$(find "$dest" -type l -print -quit)
         if [ -n "$symlink" ]; then
             printf 'Runtime symlinks are refused: %s\n' "$symlink" >&2
@@ -73,7 +107,7 @@ case "${1:-}" in
                     continue
                     ;;
             esac
-            if ! list_files | grep -Fxq "$rel"; then
+            if ! list_files | grep -Fx "$rel" >/dev/null; then
                 printf 'Unexpected runtime file: %s\n' "$path" >&2
                 exit 1
             fi

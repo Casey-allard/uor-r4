@@ -3306,7 +3306,7 @@ pub mod tauri_gui {
                 tauri::WebviewWindowBuilder::new(
                     app,
                     "main",
-                    tauri::WebviewUrl::App("index.html".into()),
+                    tauri::WebviewUrl::App("index.html?typed=1".into()),
                 )
                 .title("UOR Harness")
                 .inner_size(1440.0, 900.0)

@@ -24,10 +24,23 @@ afterEach(() => {
     delete (window as unknown as { UORDesktopActions?: unknown }).UORDesktopActions;
     delete (window as unknown as { __studioFiles?: unknown }).__studioFiles;
     delete (window as unknown as { __studioUi?: unknown }).__studioUi;
+    delete (window as unknown as { __TAURI__?: unknown }).__TAURI__;
     vi.restoreAllMocks();
 });
 
 describe('desktop Git and terminal actions', () => {
+    it('uses the declared Tauri host by default in the typed shell', async () => {
+        const invoke = vi.fn(async (command: string) => {
+            if (command === 'native_git_status') return { branch: 'main', modified_files: [], untracked_files: [] };
+            throw new Error('unexpected command: ' + command);
+        });
+        (window as unknown as { __TAURI__?: unknown }).__TAURI__ = { core: { invoke, Channel: class {} } };
+        const actions = createDesktopActions();
+        expect(actions.available).toBe(true);
+        await actions.gitStatus('/granted/project');
+        expect(invoke).toHaveBeenCalledWith('native_git_status', { repoPath: '/granted/project' });
+    });
+
     it('waits for explicit actions and renders bounded host results as inert text', async () => {
         controls();
         const calls: Array<{ command: string; args: Record<string, unknown> }> = [];

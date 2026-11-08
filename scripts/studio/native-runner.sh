@@ -23,7 +23,7 @@ if [ "${1:-}" = '--check' ]; then
     printf 'serve: 127.0.0.1:8000 (loopback only)\n'
     exit 0
 fi
-if [ "$#" -ne 0 ]; then
+if [ "$#" -ne 0 ] && [ "${1:-}" != '--local' ]; then
     printf 'usage: bash native-runner.sh [--check]\n' >&2
     exit 2
 fi
@@ -68,6 +68,55 @@ fetch_verified() {
     fi
     mv "$partial" "$destination"
 }
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+if [ "${1:-}" = '--local' ] && [ "${2:-}" = '--check' ]; then
+    printf 'local: web/studio/dist\n'
+    printf 'download: none\n'
+    printf 'serve: http://127.0.0.1:8000/?typed=1 (loopback only)\n'
+    exit 0
+fi
+if [ "${1:-}" = '--local' ]; then
+    shift
+    [ "$#" -eq 0 ] || { printf 'usage: bash native-runner.sh --local [--check]\n' >&2; exit 2; }
+    if [ "$(uname -s)" != 'Darwin' ] || [ "$(uname -m)" != 'arm64' ]; then
+        printf 'The local native preview supports only macOS on Apple silicon (Darwin arm64).\n' >&2
+        exit 1
+    fi
+    for command_name in shasum openssl cargo npm node; do
+        if ! command -v "$command_name" >/dev/null 2>&1; then
+            printf 'Required command is unavailable: %s\n' "$command_name" >&2
+            exit 1
+        fi
+    done
+    local_target="${CARGO_TARGET_DIR:-$repo_root/target}/native-runner"
+    export CARGO_TARGET_DIR="$local_target"
+    (
+        cd "$repo_root/web/studio"
+        npm ci
+        ./build_serve_wasm.sh --no-verify
+        npm run build
+    )
+    (
+        cd "$repo_root"
+        cargo build --locked --release -p uor-r4-integer --features serving-wasm --bin uor-chat
+    )
+    studio_root="$repo_root/web/studio/dist"
+    local_chat="$local_target/release/uor-chat"
+    verify_hash "${studio_root}/pkg/synthetic-stack.lut" "$STACK_SHA256"
+    verify_hash "${studio_root}/pkg/tokenizer.json" "$TOKENIZER_SHA256"
+    UOR_RUNNER_TOKEN="$(openssl rand -hex 32)"
+    trap 'unset UOR_RUNNER_TOKEN' EXIT
+    printf 'Native typed Studio development preview: http://127.0.0.1:8000/?typed=1\n'
+    printf 'Press Ctrl+C to stop. No useful-conversation or visual-understanding capability is claimed.\n'
+    printf '%s\n' "$UOR_RUNNER_TOKEN" | "$local_chat" \
+        --stack "${studio_root}/pkg/synthetic-stack.lut" \
+        --tokenizer "${studio_root}/pkg/tokenizer.json" \
+        --serve 127.0.0.1:8000 \
+        --studio-root "$studio_root" \
+        --token-stdin
+    exit $?
+fi
 
 mkdir -p "$RUNNER_HOME"
 fetch_verified "${RELEASE_ROOT}/${BINARY_NAME}" "${RUNNER_HOME}/${BINARY_NAME}" "$UOR_CHAT_SHA256"

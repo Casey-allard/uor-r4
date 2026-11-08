@@ -16,6 +16,7 @@ if [ "${1:-}" = '--check' ]; then
     printf 'sidecar: %s (%s)\n' "$binary_name" "$binary_sha"
     printf 'archive: %s (%s)\n' "$archive_name" "$archive_sha"
     printf 'externalBin: ["binaries/uor-chat"]\n'
+    printf 'typed: web/studio/dist\n'
     printf 'runtime: %s/runtime/studio\n' "$runtime_home"
     exit 0
 fi
@@ -53,17 +54,23 @@ fetch_verified "$release_root/uor-chat-arm64-apple-darwin" "$runtime_home/binari
 fetch_verified "$release_root/$archive_name" "$runtime_home/runtime/$archive_name" "$archive_sha"
 chmod 755 "$runtime_home/binaries/$binary_name"
 
-"$repo_root/scripts/studio/runtime-files.sh" copy "$repo_root/web/studio" "$runtime_home/runtime/studio" --allow-generated-missing
-tar -xzf "$runtime_home/runtime/$archive_name" -C "$runtime_home/runtime" 'studio/pkg' 'studio/models.json'
+(
+    cd "$repo_root/web/studio"
+    npm ci
+    ./build_serve_wasm.sh --no-verify
+    npm run build
+)
+"$repo_root/scripts/studio/runtime-files.sh" copy "$repo_root/web/studio/dist" "$runtime_home/runtime/studio" --typed
+tar -xzf "$runtime_home/runtime/$archive_name" -C "$runtime_home/runtime" 'studio/models.json'
 verify_hash "$runtime_home/runtime/studio/pkg/synthetic-stack.lut" "$stack_sha"
 verify_hash "$runtime_home/runtime/studio/pkg/tokenizer.json" "$tokenizer_sha"
 verify_hash "$runtime_home/runtime/studio/models.json" "$catalog_sha"
-"$repo_root/scripts/studio/runtime-files.sh" --verify "$runtime_home/runtime/studio"
+"$repo_root/scripts/studio/runtime-files.sh" --verify "$runtime_home/runtime/studio" --typed
 : > "$runtime_home/runtime/studio/SHA256SUMS"
 while IFS= read -r rel; do
     if [ -f "$runtime_home/runtime/studio/$rel" ]; then
         shasum -a 256 "$runtime_home/runtime/studio/$rel" | sed "s|$runtime_home/runtime/studio/||" >> "$runtime_home/runtime/studio/SHA256SUMS"
     fi
-done < <("$repo_root/scripts/studio/runtime-files.sh" --list)
+done < <("$repo_root/scripts/studio/runtime-files.sh" --list --typed "$runtime_home/runtime/studio")
 "$repo_root/scripts/studio/generate-tauri-icons.sh"
 printf 'Tauri runtime prepared under %s\n' "$runtime_home"

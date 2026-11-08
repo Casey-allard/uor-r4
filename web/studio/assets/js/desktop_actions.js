@@ -4,7 +4,7 @@ function unavailable() {
     return Promise.reject(new Error(DESKTOP_UNAVAILABLE));
 }
 
-export function createDesktopActions({ invoke } = {}) {
+export function createDesktopActions({ invoke = globalThis.__TAURI__?.core?.invoke?.bind(globalThis.__TAURI__.core) } = {}) {
     if (typeof invoke !== 'function') {
         return {
             available: false,

@@ -521,7 +521,11 @@ async function main() {
     process.exit(exitCode);
 }
 
-main().catch((error) => {
-    console.error('FAIL:', error.message);
-    process.exit(1);
-});
+export { cdpConnect, launchChrome, trapPageLoad };
+
+if (resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    main().catch((error) => {
+        console.error('FAIL:', error.message);
+        process.exit(1);
+    });
+}

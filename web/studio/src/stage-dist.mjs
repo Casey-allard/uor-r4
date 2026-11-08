@@ -1,4 +1,6 @@
-import { cpSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { writeStudioCatalog } from '../../../scripts/studio/catalog.mjs';
 
 const artifacts = new URL('../pkg/', import.meta.url);
 const destination = new URL('../dist/pkg/', import.meta.url);
@@ -8,14 +10,21 @@ if (!existsSync(artifacts)) {
 }
 
 mkdirSync(destination, { recursive: true });
-cpSync(artifacts, destination, { recursive: true });
+for (const name of ['uor_r4_integer.js', 'uor_r4_integer_bg.wasm', 'synthetic-stack.lut', 'tokenizer.json']) {
+    copyFileSync(new URL(`../pkg/${name}`, import.meta.url), new URL(`../dist/pkg/${name}`, import.meta.url));
+}
 
 const migrationRuntime = new URL('../assets/js/lifecycle_persistence.js', import.meta.url);
 const migrationDestination = new URL('../dist/assets/js/lifecycle_persistence.js', import.meta.url);
 mkdirSync(new URL('../dist/assets/js/', import.meta.url), { recursive: true });
 copyFileSync(migrationRuntime, migrationDestination);
 
-const catalog = new URL('../models.json', import.meta.url);
-if (existsSync(catalog)) copyFileSync(catalog, new URL('../dist/models.json', import.meta.url));
+writeStudioCatalog({
+    dest: fileURLToPath(new URL('../dist/', import.meta.url)),
+    publicUrl: '',
+    publicLabel: 'Public model',
+    trainedManifestPath: '',
+    receiptGate: '',
+});
 
 console.log('Staged generated Studio artifacts in dist/pkg.');

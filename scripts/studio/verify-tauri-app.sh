@@ -40,12 +40,13 @@ check_hash "$contents/MacOS/uor-desktop-client" "$UOR_DESKTOP_SHA256"
 cmp -s "$contents/Resources/icon.icns" "$repo_root/src-tauri/icons/icon.icns" || { printf 'Icon differs from the reviewed generated icon\n' >&2; exit 1; }
 cmp -s "$contents/Resources/SHA256SUMS" "$repo_root/src-tauri/runtime/studio/SHA256SUMS" || { printf 'Runtime manifest differs from the reviewed staged frontend\n' >&2; exit 1; }
 [ -s "$contents/Resources/SHA256SUMS" ] || { printf 'Runtime manifest is empty\n' >&2; exit 1; }
-for rel in index.html assets/js/studio_api.js assets/js/desktop_openai.js assets/js/uor_model_worker.js; do
-    cmp -s "$repo_root/src-tauri/runtime/studio/$rel" "$repo_root/web/studio/$rel" || { printf 'Staged frontend differs from current source: %s\n' "$rel" >&2; exit 1; }
+for rel in index.html; do
+    cmp -s "$repo_root/src-tauri/runtime/studio/$rel" "$repo_root/web/studio/dist/$rel" || { printf 'Staged typed frontend differs from current dist: %s\n' "$rel" >&2; exit 1; }
 done
+[ -f "$repo_root/src-tauri/runtime/studio/assets/js/lifecycle_persistence.js" ] || { printf 'Missing staged migration runtime\n' >&2; exit 1; }
 for rel in pkg/uor_r4_integer.js pkg/uor_r4_integer_bg.wasm; do
-    cmp -s "$repo_root/src-tauri/runtime/studio/$rel" "$repo_root/web/studio/$rel" || { printf 'Staged WASM/JS differs from current source: %s\n' "$rel" >&2; exit 1; }
-    cmp -s "$contents/Resources/$rel" "$repo_root/src-tauri/runtime/studio/$rel" || { printf 'Packaged WASM/JS differs from staged source: %s\n' "$rel" >&2; exit 1; }
+    cmp -s "$repo_root/src-tauri/runtime/studio/$rel" "$repo_root/web/studio/dist/$rel" || { printf 'Staged WASM/JS differs from current dist: %s\n' "$rel" >&2; exit 1; }
+    cmp -s "$contents/Resources/$rel" "$repo_root/src-tauri/runtime/studio/$rel" || { printf 'Packaged WASM/JS differs from staged dist: %s\n' "$rel" >&2; exit 1; }
 done
 while IFS=' ' read -r expected rel; do
     [ -n "$expected" ] || continue
@@ -59,7 +60,7 @@ while IFS=' ' read -r expected rel; do
     staged_file="$repo_root/src-tauri/runtime/studio/$resource"
     case "$resource" in
         models.json) ;;
-        *) cmp -s "$staged_file" "$repo_root/web/studio/$resource" || { printf 'Staged runtime differs from current source: %s\n' "$resource" >&2; exit 1; } ;;
+        *) cmp -s "$staged_file" "$repo_root/web/studio/dist/$resource" || { printf 'Staged runtime differs from current dist: %s\n' "$resource" >&2; exit 1; } ;;
     esac
     check_hash "$staged_file" "$expected"
     case "$resource" in

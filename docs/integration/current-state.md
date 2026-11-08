@@ -766,6 +766,10 @@ serving integration rather than the language goal. Record:
 **Next:** pursue geometric termination and continuation, while Claude's P3
 decode-cache path supplies the faster end-to-end scorer.
 
+## 2026-11-08 — Shared mounted Studio runtime development evidence (kimi)
+
+Bounded unit kimi-70 shares one Vite `dist` across the mounted preview, `native-runner.sh --local`, and the unsigned macOS Tauri development app. The local runner serves `/?typed=1` without a release download and isolates Cargo output under `native-runner`; Tauri loads `index.html?typed=1` and retains the release catalog separately from the synthetic dist catalog. Native-browser session/UOR/migration checks and actual packaged session reopen, pasted-context attachment, native save, Git display, and exact-command approval have run. The desktop adapter's missing default Tauri `invoke` is repaired. A packaged Changes result retains branch/diff timeout flags and remains an open diagnostic. The existing legacy `/studio/` at gh-pages `eb832431a` is still the published surface; no typed cutover, typed production publication, signed release, full Phase A acceptance, useful-chat, M7/M8, or Phase B claim is made. Record: [kimi-70 REPORT](../loop/tasks/studio-typed-shell-upgrade/kimi-70/REPORT.md). Protected delivery and final acceptance remain pending at this entry.
+
 ## 2026-11-04 — Conversation-first Studio and native runner published (kimi)
 
 Source PR [#3651](https://github.com/UOR-Foundation/uor-r4/pull/3651) merged as `a877ef9162d86908873c5edca0f1d0711bb6321a`; its tree `3c4c6470cd3426a56e02fc7299a39e3d7e4c6398` is identical to independently approved head `f1b752714`. Fresh detached `main` passed Studio, Node, runner and worker checks. `gh-pages` advanced by fast-forward `233b97fb9 → eb832431a0db59661c701d5b37168e9cfa3d3ae4`, tree `2d5fe037cffa8ad676e22a2bb1e6dac1149c32fa`; the Pages API reports **built** with `updated_at` `2026-11-04T07:26:52Z` and no build ID is claimed.
