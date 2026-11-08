@@ -325,6 +325,13 @@ failed diagnostic cannot contaminate the next forward on that thread. See
   - free-generation measures;
   - decode rules: greedy against a Flock rank rule;
   - integer-artifact measures.
+- **The pivot assessment** ([claude-326](../../loop/tasks/one-model-end-to-end/claude-326/ASSESSMENT.md), 8 Nov, owner decision #2028 6726003019).
+  - **Where the replies fail:** every served configuration from 4 to 8 Nov scored 0 complete on `m2-fresh256`, and the replies fail at the first reply token. There the model must choose which prompt value the question asks for.
+  - **The leading hypothesis is the read's query path:** copy heads match only the current token, and no learned-query read has learned where to look. Data is not yet excluded.
+  - **The next unit (claude-327):**
+    - a laptop first-token reading and Hamming trace on claude's seals;
+    - the 27 Oct recall probe with a query that is not the key, with a two-class arm and a header-gap arm, under its own sheet and FIT.
+  - **No one-knob language run starts on this line** until both are read.
 
 ## Done when
 
