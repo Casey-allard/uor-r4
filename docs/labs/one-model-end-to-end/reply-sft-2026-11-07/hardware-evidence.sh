@@ -125,6 +125,35 @@ compact_failed_attempt() {
   log "compacted $label bulky evidence: $files files, $bytes bytes retained as hashes"
 }
 
+compact_successful_inputs() {
+  local run=$1 tokens mask output staging tokens_sha mask_sha tokens_bytes mask_bytes
+  tokens="$run/inputs/mix/tokens.u16"
+  mask="$run/inputs/mix/response_mask.u8"
+  output="$run/control/post-use-inputs.json"
+  staging="$output.tmp"
+  [ -f "$tokens" ] && [ -f "$mask" ] || return 1
+  [ ! -e "$output" ] || return 1
+  tokens_sha=$(sha256sum "$tokens" | cut -d' ' -f1) || return 1
+  mask_sha=$(sha256sum "$mask" | cut -d' ' -f1) || return 1
+  [ "$tokens_sha" = "$TRAIN_TOKENS_SHA" ] &&
+    [ "$mask_sha" = "$TRAIN_MASK_SHA" ] || return 1
+  tokens_bytes=$(stat -c '%s' "$tokens") || return 1
+  mask_bytes=$(stat -c '%s' "$mask") || return 1
+  jq -n --arg recipe "$RECIPE" --arg tokens_sha "$tokens_sha" \
+    --arg mask_sha "$mask_sha" --arg manifest_sha "$TRAIN_MANIFEST_SHA" \
+    --argjson tokens_bytes "$tokens_bytes" --argjson mask_bytes "$mask_bytes" \
+    '{schema:"uor-r4.reply-sft-post-use-inputs/1",recipe:$recipe,
+      reason:"successful-run seal compaction",
+      retained_manifest_sha256:$manifest_sha,
+      files:{tokens:{sha256:$tokens_sha,bytes:$tokens_bytes},
+        response_mask:{sha256:$mask_sha,bytes:$mask_bytes}}}' \
+    > "$staging" || return 1
+  mv "$staging" "$output" || return 1
+  [ -f "$output" ] || return 1
+  rm -f "$tokens" "$mask" || return 1
+  [ ! -e "$tokens" ] && [ ! -e "$mask" ]
+}
+
 measure_seal_bytes() {
   find "$1" -type f ! -name 'SHA256SUMS*' -printf '%s\n' |
     awk '{ total += $1 } END { print total + 0 }'

@@ -3,6 +3,7 @@
 #
 # Usage:
 #   UOR_SFT_PIN=<40-hex-merge-pin> UOR_SFT_RUN=/workspace/uor-r4/runs/sft-s1 \
+#     UOR_SFT_RECIPE=legacy UOR_SFT_STEPS=1024 UOR_SFT_RUN_LABEL=s1 \
 #     bash /workspace/one-model-reply-sft-job.sh 1
 #
 # The caller owns the pod, GPU lease and teardown. This script fetches every input,
@@ -18,10 +19,12 @@ case "$SEED" in
   *) echo "SEED must be 1; seed 2 is a later decision" >&2; exit 2 ;;
 esac
 [ "$#" -eq 1 ] || { echo "usage: job.sh 1" >&2; exit 2; }
+RECIPE=${UOR_SFT_RECIPE:-legacy}
 STEPS=${UOR_SFT_STEPS:-1024}
-case "$STEPS" in
-  1024|2048) ;;
-  *) echo "UOR_SFT_STEPS must be 1024 or 2048" >&2; exit 2 ;;
+RUN_LABEL=${UOR_SFT_RUN_LABEL:-s1}
+case "$RECIPE:$STEPS:$RUN_LABEL" in
+  legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio) ;;
+  *) echo "recipe, steps and run label do not form a registered SFT pair" >&2; exit 2 ;;
 esac
 
 PIN=${UOR_SFT_PIN:?UOR_SFT_PIN must name the reviewed 40-hex merge commit}
@@ -32,8 +35,25 @@ esac
 
 RUN_ID=${UOR_SFT_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')}
 RUN=${UOR_SFT_RUN:-/workspace/uor-r4/runs/deepseek-sft-s$SEED}
-OUT_STORE=${UOR_SFT_OUT_STORE:-results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/s1}
-STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07
+case "$RECIPE" in
+  legacy)
+    STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07
+    TRAIN_TOKENS_SHA=3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3
+    TRAIN_MASK_SHA=67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b
+    TRAIN_MANIFEST_SHA=1c7aee4dfaffdde07f9c64a5b887b504ee21355038b6ae00897a8a97407d9bbe
+    TRAIN_DOCUMENTS=25071
+    TRAIN_ASSISTANT_REPLIES=79679
+    ;;
+  content-ratio)
+    STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08
+    TRAIN_TOKENS_SHA=3a645e736f96d2e37a267ba3826512001c41b92d8c689fae1451784b2fa2da34
+    TRAIN_MASK_SHA=83911dc7488c13475469fa743e0b6fbca15fcd20e76fc2fee33cb89877673baf
+    TRAIN_MANIFEST_SHA=8b43ff038133a7dc9744bee71dd8aa7e3f6c5e59a664d19690b991a69f0be9fd
+    TRAIN_DOCUMENTS=65071
+    TRAIN_ASSISTANT_REPLIES=223469
+    ;;
+esac
+OUT_STORE="$STORE_TOPIC/runs/$RUN_LABEL-$RUN_ID"
 STORE=/root/uor-store
 REPO=${UOR_REPO:-/root/uor-sft-src-$PIN}
 TARGET=${CARGO_TARGET_DIR:-/workspace/uor-r4/target-deepseek-sft}
@@ -104,6 +124,10 @@ on_exit() {
     kill -TERM "$TRAIN_PID" 2>/dev/null || true
     kill -CONT "$TRAIN_PID" 2>/dev/null || true
     wait "$TRAIN_PID" 2>/dev/null || true
+  fi
+  if [ "$rc" -eq 0 ]; then
+    compact_successful_inputs "$RUN" ||
+      { echo "could not compact the used training inputs for sealing" >&2; rc=1; }
   fi
   if declare -F verify_grade_hardware_bindings >/dev/null; then
     verify_grade_hardware_bindings "$RUN" || rc=1
@@ -187,12 +211,9 @@ HARDWARE_LIB="$REPO/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/hardware
 source "$HARDWARE_LIB"
 capture_cpu_hardware "$RUN"
 
-fetch_file "results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/inputs/tokens.u16" \
-  "$RUN/inputs/mix/tokens.u16"
-fetch_file "results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/inputs/response_mask.u8" \
-  "$RUN/inputs/mix/response_mask.u8"
-fetch_file "results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/inputs/manifest.json" \
-  "$RUN/inputs/mix/manifest.json"
+fetch_file "$STORE_TOPIC/inputs/tokens.u16" "$RUN/inputs/mix/tokens.u16"
+fetch_file "$STORE_TOPIC/inputs/response_mask.u8" "$RUN/inputs/mix/response_mask.u8"
+fetch_file "$STORE_TOPIC/inputs/manifest.json" "$RUN/inputs/mix/manifest.json"
 fetch_file "results/claude/real-text-corpus-2026-11-05/oasst2/heldout/tokens.u16" \
   "$RUN/inputs/oasst2-heldout/tokens.u16"
 fetch_file "results/claude/real-text-corpus-2026-11-05/oasst2/heldout/response_mask.u8" \
@@ -211,12 +232,20 @@ fetch_file "w2-inputs/2026-10-25/driver-data/ft/dev/tokens.u16" \
 fetch_file "w2-inputs/2026-10-25/driver-data/ft/dev/response_mask.u8" \
   "$RUN/inputs/data/ft/dev/response_mask.u8"
 
-check_file 3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3 \
-  "$RUN/inputs/mix/tokens.u16"
-check_file 67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b \
-  "$RUN/inputs/mix/response_mask.u8"
-check_file 1c7aee4dfaffdde07f9c64a5b887b504ee21355038b6ae00897a8a97407d9bbe \
-  "$RUN/inputs/mix/manifest.json"
+check_file "$TRAIN_TOKENS_SHA" "$RUN/inputs/mix/tokens.u16"
+check_file "$TRAIN_MASK_SHA" "$RUN/inputs/mix/response_mask.u8"
+check_file "$TRAIN_MANIFEST_SHA" "$RUN/inputs/mix/manifest.json"
+if [ "$RECIPE" = content-ratio ]; then
+  jq -e --arg tokens "$TRAIN_TOKENS_SHA" --arg mask "$TRAIN_MASK_SHA" '
+    .tokens_sha256 == $tokens and
+    .mask_sha256 == $mask and
+    .rows_used == 65071 and .tokens == 11786293 and
+    .response_tokens == 5710018 and
+    (.files | map(.label)) ==
+      ["oasst2-reply", "mworld-repeat-1", "mworld-repeat-2", "mworld-repeat-3"]' \
+    "$RUN/inputs/mix/manifest.json" >/dev/null ||
+    die "content-ratio corpus manifest differs from the registered split"
+fi
 check_file 02a04e97bbb8936c993bf5eff0f29c171ebeae88988217a4100fdc77701f169e \
   "$RUN/inputs/oasst2-heldout/tokens.u16"
 check_file 9c5bb6567c6a4cded2dfb2280ae4acdc798e283a3beae8aaebc695656e1b4833 \
@@ -437,18 +466,19 @@ log "panel-overlap control"
   --plan "$RUN/inputs/m2-fresh256/plan.json" \
   --labels "$RUN/inputs/m2-fresh256/labels.json" \
   --out "$RUN/control/corpus-panel-overlap.json"
-jq -e '.pass == true and
-  .tokens_sha256 ==
-    "3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3" and
-  .mask_sha256 ==
-    "67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b" and
+jq -e --arg tokens "$TRAIN_TOKENS_SHA" --arg mask "$TRAIN_MASK_SHA" \
+  --argjson documents "$TRAIN_DOCUMENTS" \
+  --argjson replies "$TRAIN_ASSISTANT_REPLIES" '
+  .pass == true and
+  .tokens_sha256 == $tokens and
+  .mask_sha256 == $mask and
   .tokenizer_sha256 ==
     "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89" and
   .plan.sha256 ==
     "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715" and
   .labels.sha256 ==
     "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be" and
-  .counts.documents == 25071 and .counts.assistant_replies == 79679 and
+  .counts.documents == $documents and .counts.assistant_replies == $replies and
   .counts.exact_panel_in_document == 0 and
   .counts.exact_accepted_assistant_reply == 0 and
   .counts.documents_with_panel_6gram == 0 and
@@ -535,8 +565,8 @@ train_and_score() {
     --data-root "$RUN/inputs/data" \
     --init-from "$B64L" \
     --train-split "$RUN/inputs/mix" \
-    --train-sha256 3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3 \
-    --train-mask-sha256 67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b \
+    --train-sha256 "$TRAIN_TOKENS_SHA" \
+    --train-mask-sha256 "$TRAIN_MASK_SHA" \
     --out "$run_dir" \
     --objective nearest --retain-rates 1 --decay-mult 1 \
     --lr 0.0002 --lr-end 0 --train-as-served 1 \

@@ -18,6 +18,7 @@ log() {
 cpu_model=
 cpu_arch=
 cpu_logical=
+zero_pin=$(printf '0%.0s' {1..64})
 # shellcheck disable=SC1091
 # shellcheck source=hardware-evidence.sh
 source "$LIB"
@@ -83,6 +84,44 @@ test ! -e "$RUN/artifacts/attempt-1"
 test ! -e "$RUN/grades/attempt-1"
 test ! -e "$RUN/panel/attempt-1"
 test ! -e "$RUN/scores/attempt-1"
+
+install -d "$RUN/inputs/mix"
+printf 'tokens\n' > "$RUN/inputs/mix/tokens.u16"
+printf 'mask\n' > "$RUN/inputs/mix/response_mask.u8"
+printf 'manifest\n' > "$RUN/inputs/mix/manifest.json"
+TRAIN_TOKENS_SHA=$(sha256sum "$RUN/inputs/mix/tokens.u16" | cut -d' ' -f1)
+TRAIN_MASK_SHA=$(sha256sum "$RUN/inputs/mix/response_mask.u8" | cut -d' ' -f1)
+TRAIN_MANIFEST_SHA=$(sha256sum "$RUN/inputs/mix/manifest.json" | cut -d' ' -f1)
+# shellcheck disable=SC2034 # consumed by compact_successful_inputs
+RECIPE=content-ratio
+compact_successful_inputs "$RUN"
+jq -e --arg tokens "$TRAIN_TOKENS_SHA" --arg mask "$TRAIN_MASK_SHA" \
+  --arg manifest "$TRAIN_MANIFEST_SHA" '
+  .recipe == "content-ratio" and
+  .reason == "successful-run seal compaction" and
+  .retained_manifest_sha256 == $manifest and
+  .files.tokens.sha256 == $tokens and .files.tokens.bytes == 7 and
+  .files.response_mask.sha256 == $mask and .files.response_mask.bytes == 5' \
+  "$RUN/control/post-use-inputs.json" >/dev/null
+test ! -e "$RUN/inputs/mix/tokens.u16"
+test ! -e "$RUN/inputs/mix/response_mask.u8"
+test -f "$RUN/inputs/mix/manifest.json"
+if (compact_successful_inputs "$RUN") >/dev/null 2>&1; then
+  die "successful-input compaction ran twice"
+fi
+
+BAD_INPUTS="$TMP/bad-inputs"
+install -d "$BAD_INPUTS/inputs/mix" "$BAD_INPUTS/control"
+printf 'tokens\n' > "$BAD_INPUTS/inputs/mix/tokens.u16"
+printf 'mask\n' > "$BAD_INPUTS/inputs/mix/response_mask.u8"
+if (
+  TRAIN_TOKENS_SHA=$zero_pin
+  compact_successful_inputs "$BAD_INPUTS"
+) >/dev/null 2>&1; then
+  die "successful-input compaction accepted a mismatched token hash"
+fi
+test -f "$BAD_INPUTS/inputs/mix/tokens.u16"
+test ! -e "$BAD_INPUTS/control/post-use-inputs.json"
 
 printf 'log\n' > "$RUN/job.log"
 MEASURE="$TMP/measure"

@@ -7,6 +7,7 @@ JOB="$HERE/job.sh"
 LAUNCHER="$HERE/run-s1.sh"
 SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"
 EXTENSION_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"
+CONTENT_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md"
 HARDWARE_LIB="$HERE/hardware-evidence.sh"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -64,6 +65,7 @@ mutate() {
     "$([ "$file" = "$SHEET" ] && printf '%s' "$target" || printf '%s' "$SHEET")" \
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
     "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
+    "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -88,6 +90,32 @@ mutate_first() {
     "$([ "$file" = "$SHEET" ] && printf '%s' "$target" || printf '%s' "$SHEET")" \
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
     "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
+    "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
+    >/dev/null 2>&1; then
+    echo "mutation $name escaped" >&2
+    exit 1
+  fi
+  caught=$((caught + 1))
+}
+mutate_swap() {
+  local name=$1 file=$2 first=$3 second=$4
+  attempted=$((attempted + 1))
+  local target="$TMP/$name"
+  cp "$file" "$target"
+  FIRST=$first SECOND=$second perl -0pi -e \
+    's/\Q$ENV{FIRST}\E/\x00/g; s/\Q$ENV{SECOND}\E/$ENV{FIRST}/g; s/\x00/$ENV{SECOND}/g' \
+    "$target"
+  cmp -s "$file" "$target" && {
+    echo "mutation $name did not change its file" >&2
+    exit 1
+  }
+  if "$HERE/gate.sh" \
+    "$([ "$file" = "$JOB" ] && printf '%s' "$target" || printf '%s' "$JOB")" \
+    "$([ "$file" = "$LAUNCHER" ] && printf '%s' "$target" || printf '%s' "$LAUNCHER")" \
+    "$([ "$file" = "$SHEET" ] && printf '%s' "$target" || printf '%s' "$SHEET")" \
+    "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
+    "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
+    "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -135,7 +163,9 @@ mutate missing-checkpoint "$JOB" \
   'elif [ -z "$STOP_REASON" ]; then' 'elif false; then'
 mutate no-termination-cont "$JOB" 'kill -CONT "$TRAIN_PID" 2>/dev/null || true' ''
 mutate wrong-eval "$JOB" '--eval-every 256' '--eval-every 2560'
-mutate wrong-dose "$JOB" '  1024|2048) ;;' '  1024) ;;'
+mutate wrong-dose "$JOB" \
+  'legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio) ;;' \
+  'legacy:1024:s1|legacy:2048:s1-2048) ;;'
 mutate fixed-dose "$JOB" '--steps "$STEPS" \' '--steps 1024 \'
 mutate wrong-seed "$JOB" '--seed 1 \' '--seed 2 \'
 mutate seed-two-enabled "$JOB" '2) echo "seed 2 is conditional and is not launched by this script" >&2; exit 2 ;;' '2) ;;'
@@ -292,11 +322,11 @@ mutate no-remote-job-discovery "$LAUNCHER" \
   "-name '*-"'$SESSION'"-gpu0.sh' -print" \
   "-name '*.sh' -print"
 mutate missing-remote-dose "$LAUNCHER" \
-  'UOR_SFT_OUT_STORE="$OUT_STORE" UOR_SFT_STEPS="$STEPS" \' \
-  'UOR_SFT_OUT_STORE="$OUT_STORE" \'
+  'UOR_SFT_RECIPE="$RECIPE" UOR_SFT_STEPS="$STEPS" \' \
+  'UOR_SFT_RECIPE="$RECIPE" \'
 mutate wrong-extension-report "$LAUNCHER" \
-  '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md) ;;' \
-  '2048:docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md:docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md) ;;'
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md' \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md'
 mutate signal-cleanup-success "$LAUNCHER" \
   '[ "$STATUS" = SEALED ] || rc=1' \
   '[ "$STATUS" = SEALED ] || true'
@@ -307,10 +337,74 @@ mutate launcher-readback-true "$LAUNCHER" \
   '[ "$(cat "$READBACK_FILE")" = verified ]' 'true'
 mutate launcher-exit-true "$LAUNCHER" \
   '[ "$(cat "$CONTROLLER/readback/$OUT_STORE/EXIT")" = 0 ]' 'true'
+mutate wrong-content-store "$JOB" \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08' \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07'
+mutate wrong-content-tokens "$JOB" \
+  3a645e736f96d2e37a267ba3826512001c41b92d8c689fae1451784b2fa2da34 \
+  0000000000000000000000000000000000000000000000000000000000000000
+mutate wrong-content-mask "$JOB" \
+  83911dc7488c13475469fa743e0b6fbca15fcd20e76fc2fee33cb89877673baf \
+  0000000000000000000000000000000000000000000000000000000000000000
+mutate wrong-content-manifest "$JOB" \
+  8b43ff038133a7dc9744bee71dd8aa7e3f6c5e59a664d19690b991a69f0be9fd \
+  0000000000000000000000000000000000000000000000000000000000000000
+mutate weak-content-documents "$JOB" '.rows_used == 65071' '.rows_used >= 1'
+mutate weak-content-responses "$JOB" '.response_tokens == 5710018' '.response_tokens >= 1'
+mutate wrong-content-document-count "$JOB" 'TRAIN_DOCUMENTS=65071' 'TRAIN_DOCUMENTS=1'
+mutate wrong-content-reply-count "$JOB" 'TRAIN_ASSISTANT_REPLIES=223469' 'TRAIN_ASSISTANT_REPLIES=1'
+mutate missing-mworld-repeat "$JOB" \
+  '"mworld-repeat-3"' '"unregistered-repeat"'
+mutate hardcoded-legacy-train-hash "$JOB" \
+  '--train-sha256 "$TRAIN_TOKENS_SHA" \' \
+  '--train-sha256 3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3 \'
+mutate wrong-content-report "$LAUNCHER" \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-31/REPORT.md' \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md'
+mutate wrong-content-label "$JOB" \
+  'content-ratio:2048:s1-content-ratio) ;;' \
+  'content-ratio:2048:s1) ;;'
+mutate content-output-store-override "$JOB" \
+  'case "$RECIPE" in' \
+  'OUT_STORE=${UOR_SFT_OUT_STORE:-override}
+case "$RECIPE" in'
+mutate content-sheet-override "$LAUNCHER" \
+  'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md' \
+  'RUNTIME_EXCLUDE_FIT=${UOR_SFT_PREP_SHEET:-docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md}'
+mutate_swap swapped-recipe-data "$JOB" \
+  '  legacy)
+' \
+  '  content-ratio)
+'
+mutate_swap swapped-launcher-pair "$LAUNCHER" \
+  '  legacy:2048:s1-2048)
+' \
+  '  content-ratio:2048:s1-content-ratio)
+'
+mutate missing-successful-input-compaction "$JOB" \
+  'compact_successful_inputs "$RUN" ||' 'true ||'
+mutate skipped-compaction-token-hash "$HARDWARE_LIB" \
+  '[ "$tokens_sha" = "$TRAIN_TOKENS_SHA" ] &&' 'true &&'
+mutate skipped-compaction-mask-hash "$HARDWARE_LIB" \
+  '[ "$mask_sha" = "$TRAIN_MASK_SHA" ] || return 1' 'true || return 1'
+mutate delete-before-compaction-record "$HARDWARE_LIB" \
+  'mv "$staging" "$output" || return 1
+  [ -f "$output" ] || return 1' \
+  'rm -f "$tokens" "$mask"; true'
 mutate_first missing-extension-bar "$EXTENSION_SHEET" '## Bar' '## Removed bar'
 mutate_first missing-extension-split "$EXTENSION_SHEET" '## Data split' '## Removed split'
 mutate_first missing-extension-steps "$EXTENSION_SHEET" '## Steps' '## Removed steps'
 mutate_first missing-extension-stop "$EXTENSION_SHEET" '## Stop rule' '## Removed stop'
+mutate_first missing-content-bar "$CONTENT_SHEET" '## Bar' '## Removed bar'
+mutate_first missing-content-split "$CONTENT_SHEET" '## Data split' '## Removed split'
+mutate_first missing-content-recipe "$CONTENT_SHEET" '## Recipe' '## Removed recipe'
+mutate_first missing-content-stop "$CONTENT_SHEET" '## Stop rule' '## Removed stop'
+mutate_first missing-content-post-use-record "$CONTENT_SHEET" \
+  '`control/post-use-inputs.json`, and then removes only those two raw payloads.' \
+  '`control/removed.json`, and then removes only those two raw payloads.'
+mutate_first wrong-content-sheet-tokens "$CONTENT_SHEET" \
+  3a645e736f96d2e37a267ba3826512001c41b92d8c689fae1451784b2fa2da34 \
+  0000000000000000000000000000000000000000000000000000000000000000
 
 [ "$caught" -eq "$attempted" ]
 echo "$caught of $attempted mutations caught"

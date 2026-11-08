@@ -461,6 +461,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/reply-sft-content": {
+    "branch": "deepseek/reply-sft-content",
+    "claimed_at": "2026-11-07T23:59:22-05:00",
+    "head": "8688eb1a9",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/reply-sft-launch-fix": {
     "branch": "deepseek/reply-sft-launch-fix",
     "claimed_at": "2026-11-07T16:20:00-05:00",
