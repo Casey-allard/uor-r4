@@ -405,6 +405,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/packet-parity-run": {
+    "branch": "deepseek/packet-parity-run",
+    "claimed_at": "2026-11-08T01:43:26-05:00",
+    "head": "208a29ce5",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/parallel-public-budget": {
     "branch": "deepseek/parallel-public-budget",
     "claimed_at": "2026-11-03T15:02:22-05:00",
@@ -458,13 +465,6 @@
     "branch": "deepseek/reply-sft-2048-run",
     "claimed_at": "2026-11-07T21:38:13-05:00",
     "head": "56ef8a4fe",
-    "lab": "deepseek",
-    "note": ""
-  },
-  "deepseek/reply-sft-content-result": {
-    "branch": "deepseek/reply-sft-content-result",
-    "claimed_at": "2026-11-08T01:30:27-05:00",
-    "head": "435d1b4f7",
     "lab": "deepseek",
     "note": ""
   },
