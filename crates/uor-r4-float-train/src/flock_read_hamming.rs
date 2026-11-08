@@ -88,6 +88,21 @@ thread_local! {
     static TRACE: RefCell<Option<Vec<HammingTraceWindow>>> = const { RefCell::new(None) };
     static COORDS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static CODE_FORCE: RefCell<Vec<ForcedRowCode>> = const { RefCell::new(Vec::new()) };
+    static CLASS_OFF: std::cell::Cell<[[bool; 2]; 2]> =
+        const { std::cell::Cell::new([[false; 2]; 2]) };
+}
+
+/// claude-328: drop classes of heads from the read's combine for the forward passes that follow
+/// on this thread, for eval-only ablations: `off[read][kind]`, read 0 the stream read and 1 the
+/// readout read, kind 0 the copy heads and 1 the type heads. A class that is off adds nothing to
+/// the point; its weights and its choices stay as they are. All `false`, the default, drops none.
+pub fn set_class_ablation(off: [[bool; 2]; 2]) {
+    CLASS_OFF.with(|c| c.set(off));
+}
+
+/// The classes [`set_class_ablation`] last dropped on this thread.
+pub fn class_ablation() -> [[bool; 2]; 2] {
+    CLASS_OFF.with(|c| c.get())
 }
 
 /// claude-253, Q5's forced replay: in the read at `depth`, row `row` of the forward's
@@ -218,6 +233,8 @@ pub(crate) fn step_instrument() -> Option<&'static str> {
         Some("Hamming read's decision trace")
     } else if CODE_FORCE.with(|f| !f.borrow().is_empty()) {
         Some("Hamming read's forced codes")
+    } else if class_ablation() != [[false; 2]; 2] {
+        Some("Hamming read's class ablation")
     } else {
         None
     }
@@ -1059,7 +1076,7 @@ impl HammingRead {
     }
 
     /// The first half of the heads are copy heads; the rest are type heads.
-    fn copy_heads(&self) -> usize {
+    pub fn copy_heads(&self) -> usize {
         self.heads / 2
     }
 
@@ -1420,7 +1437,13 @@ impl HammingRead {
             .map(|kind| Ok(sums[kind].broadcast_div(&found[kind].maximum(1.0)?)?))
             .collect::<Result<Vec<_>>>()?;
         let weight = self.weight.as_tensor();
-        let (copy_weight, type_weight) = (weight.narrow(0, 0, 1)?, weight.narrow(0, 1, 1)?);
+        // claude-328: a class [`set_class_ablation`] drops at this read adds nothing.
+        let off = class_ablation()[usize::from(readout)];
+        let class = |kind: usize| -> Result<Tensor> {
+            let w = weight.narrow(0, kind, 1)?;
+            Ok(if off[kind] { w.zeros_like()? } else { w })
+        };
+        let (copy_weight, type_weight) = (class(0)?, class(1)?);
         let copied = if readout {
             // Only where a copy head found an earlier copy does the prediction move.
             let matched = found[0].gt(0.0)?.to_dtype(DType::F32)?;
@@ -3180,6 +3203,53 @@ mod tests {
         // The stream read is the other one; the readout is not offered at its depth.
         assert!(reads.at_depth(HAMMING_READOUT_DEPTH).is_none());
         assert!(reads.at_depth(HAMMING_DEPTHS[0]).is_some());
+    }
+
+    /// claude-328's I-5, at the read: dropping the readout's copy heads takes the found copy
+    /// away, dropping the stream read's leaves the readout alone, and a copy-scope row cut of 0
+    /// at a found row takes that row's copy away and no other.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_dropped_class_or_a_cut_row_takes_the_found_copy_away() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = HammingReads::new(4, 256, &device).unwrap();
+        let read = reads.readout().unwrap();
+        let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
+        read.weight
+            .set(&Tensor::from_vec(copy_only, (2, 256), &device).unwrap())
+            .unwrap();
+        let ids = [5u32, 7, 5, 9, 11, 9, 3, 5, 5];
+        let n = residual(3, 3, 256, &device);
+        let table = table(16, 256, &device);
+        let points = table.to_vec2::<f32>().unwrap();
+        let own = n.reshape((9, 256)).unwrap().to_vec2::<f32>().unwrap();
+        let out = || {
+            read.apply_readout(&n, &ids, &table)
+                .unwrap()
+                .reshape((9, 256))
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap()
+        };
+        let plain = out();
+        set_class_ablation([[false, false], [true, false]]);
+        let readout_off = out();
+        set_class_ablation([[true, true], [false, false]]);
+        let stream_off = out();
+        set_class_ablation([[false; 2]; 2]);
+        let mut limits = vec![3usize; 9];
+        limits[2] = 0;
+        set_row_cut(Some((ReadScope::Copy, limits)));
+        let cut = out();
+        set_row_cut(None);
+        assert_eq!(readout_off, own, "the readout's copy heads dropped");
+        assert_eq!(stream_off, plain, "the stream read's classes dropped");
+        assert_eq!(cut[2], own[2], "row 2 cut");
+        for c in 0..256 {
+            assert!((plain[2][c] - points[7][c]).abs() < 1e-6, "found, {c}");
+            assert!((cut[5][c] - points[11][c]).abs() < 1e-6, "row 5 kept, {c}");
+        }
+        assert_eq!(out(), plain, "everything restored");
     }
 
     #[cfg(feature = "cuda")]

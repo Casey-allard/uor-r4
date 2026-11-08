@@ -134,7 +134,14 @@
 //! the multi-query associative recall task (`in_space_long::run_recall`), `PAIRS` key-value pairs
 //! per distance bucket in each 192-token window, fresh every step; held-out recall per bucket goes
 //! to `DIR/recall.jsonl`, and the final model to `DIR/models/`. Needs no `--data-root`, and
-//! ignores it if given.
+//! ignores it if given. `--recall-eval-windows N` scores `N` held-out windows (default 128).
+//! claude-328's two-class task, `--recall 4 --recall-query 1 [--recall-header 0|4]`
+//! (`in_space_long::recall_query_window`): each window's 4 episodes hold two relations each and
+//! ask one by a query token that is not its key; with `--recall-header 4` the value is predicted
+//! 4 header tokens after the query. Each reading adds the outcome counts by bucket and tail slot,
+//! and `DIR/recall.json` the held-out distances. `--recall-readings 1` adds the eval-only readings
+//! to each reading (`in_space_long::recall_readings`): five ablations and, for the two-class task,
+//! the trace at the query token and the scored position. They need `--hamming-read`.
 //!
 //! `train-in-space --data-root DIR --opening-bound 1 [--panel NAME=DIR]...`: how well the prompt
 //! words a window shows could name each reply opening, as TRAIN's commonest opening per key
@@ -280,7 +287,7 @@ use uor_r4_float_train::in_space_long::{
     cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
     gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
     run_long, run_recall, score_rows, scopes_ok, set_decode_cache, take_decode_forwards,
-    DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, TrainSplit, TrainTargets, DEFAULT_REGISTER_PICKS,
+    DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, RecallForm, TrainSplit, TrainTargets, DEFAULT_REGISTER_PICKS,
     MEMORY_DROPOUT_MAX,
 };
 use uor_r4_float_train::{FloatTrainError, Result};
@@ -356,6 +363,8 @@ fn main() -> Result<()> {
     let mut scored: Vec<(String, PathBuf)> = Vec::new();
     let (mut split_dir, mut split_tokens, mut split_mask) = (None, None, None);
     let mut recall = 0usize;
+    let (mut recall_query, mut recall_header, mut recall_eval) = (false, 0usize, None::<usize>);
+    let mut recall_readings = false;
     let mut time_quantizers = false;
     let mut fused_quantize: Option<bool> = None;
     let (mut opening_read, mut opening_anchor) = (None, None);
@@ -537,6 +546,10 @@ fn main() -> Result<()> {
                 panel_queries.push(queries);
             }
             "--recall" => recall = number(&value)?,
+            "--recall-query" => recall_query = switch(&value)?,
+            "--recall-header" => recall_header = number(&value)?,
+            "--recall-eval-windows" => recall_eval = Some(number(&value)?),
+            "--recall-readings" => recall_readings = switch(&value)?,
             "--objective" => {
                 config.objective = match value.as_str() {
                     "sheet" => PointObjective::Sheet,
@@ -882,6 +895,31 @@ fn main() -> Result<()> {
             "--fbs-arm applies to training, --score-rows, --inspect and --decode-speed; --recall, --grad-norms and --reach run one-atom only".to_owned(),
         ));
     }
+    // claude-328's two-class task: its flags apply to --recall only, the header to the two-class
+    // task only, and the two-class task holds 4 episodes a window.
+    if recall == 0 && (recall_query || recall_header != 0 || recall_eval.is_some() || recall_readings) {
+        return Err(FloatTrainError::Invalid(
+            "--recall-query, --recall-header, --recall-eval-windows and --recall-readings apply to --recall only".to_owned(),
+        ));
+    }
+    if recall_header != 0 && !recall_query {
+        return Err(FloatTrainError::Invalid(
+            "--recall-header needs --recall-query 1".to_owned(),
+        ));
+    }
+    if recall_header != 0 && recall_header != 4 {
+        return Err(FloatTrainError::Invalid("--recall-header is 0 or 4".to_owned()));
+    }
+    if recall_query && recall != 4 {
+        return Err(FloatTrainError::Invalid(
+            "--recall-query 1 holds 4 episodes a window: give --recall 4".to_owned(),
+        ));
+    }
+    if recall_eval == Some(0) {
+        return Err(FloatTrainError::Invalid(
+            "--recall-eval-windows wants at least 1".to_owned(),
+        ));
+    }
     if recall > 0 {
         let out = out.ok_or_else(|| FloatTrainError::Invalid("--recall needs --out".to_owned()))?;
         if modes[..5].iter().any(|&m| m)
@@ -910,8 +948,14 @@ fn main() -> Result<()> {
                 "--recall trains; it takes --out and no other mode".to_owned(),
             ));
         }
+        let form = RecallForm {
+            query: recall_query,
+            header: recall_header,
+            eval_windows: recall_eval.map_or(RecallForm::default().eval_windows, |n| n as u64),
+            readings: recall_readings,
+        };
         let device = Device::new_cuda(0)?;
-        return run_recall(&out, &config, recall, &device);
+        return run_recall(&out, &config, recall, form, &device);
     }
     let data_root =
         data_root.ok_or_else(|| FloatTrainError::Invalid("--data-root is required".to_owned()))?;

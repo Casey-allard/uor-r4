@@ -11879,6 +11879,191 @@ pub fn recall_window(
     Ok((window, rows.iter().map(|r| r.2).collect()))
 }
 
+/// claude-328: the two-class task's relation tokens, carved from the key range.
+pub const RECALL_RELATIONS: std::ops::Range<u32> = 16..32;
+/// The query tokens: relation `k` is asked by `Q(k) = k + RECALL_QUERY_SHIFT`, a fixed bijection
+/// onto `32..48`, the same in every window and seed.
+pub const RECALL_QUERY_SHIFT: u32 = 16;
+/// The header's four fixed tokens, `H1 … H4`, from their own range.
+pub const RECALL_HEADER: [u32; 4] = [48, 49, 50, 51];
+/// The two-class task's buckets, the far two of [`RECALL_BUCKETS`]: bucket 0 is 33–96, bucket 1
+/// is 97–180.
+pub const RECALL_QUERY_BUCKETS: [(usize, usize); 2] = [(33, 96), (97, 180)];
+/// Episodes per two-class window, one per tail slot.
+pub const RECALL_QUERY_EPISODES: usize = 4;
+
+/// One scored query of a two-class window ([`recall_query_window`]), with every position the
+/// readings need.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RecallQuery {
+    /// The tail slot, 0–3 in position order.
+    pub slot: usize,
+    /// The asked fact's bucket in [`RECALL_QUERY_BUCKETS`]; the other fact's is the same.
+    pub bucket: usize,
+    /// Which of the episode's two relations is asked, 0 or 1.
+    pub j: usize,
+    /// The query token `Q(K_j)`'s position.
+    pub query_pos: usize,
+    /// The scored position: `query_pos` without a header, `H4`'s (`query_pos + 4`) with one.
+    pub scored_offset: usize,
+    pub ask_relation: u32,
+    pub other_relation: u32,
+    pub ask_value: u32,
+    pub other_value: u32,
+    /// The facts' value positions `p`; each relation sits at `p − 1`.
+    pub ask_value_pos: usize,
+    pub other_value_pos: usize,
+    /// `query_pos − p` for each fact.
+    pub ask_distance: usize,
+    pub other_distance: usize,
+    pub ask_nearer: bool,
+    pub ask_first: bool,
+    /// The window's 8 values, episode by episode.
+    pub values: Vec<u32>,
+}
+
+/// claude-328: one window of the two-class recall task (the Part B sheet,
+/// `docs/harness/prep/one-model-end-to-end-query-recall-2026-11-08.md`), and its 4 queries.
+///
+/// The window is `context` tokens, BOS first. It ends with 4 tail slots, one per episode: `Q(K_j)
+/// v` with `header` 0, the value predicted at the query's own position; `Q(K_j) H1 H2 H3 H4 v`
+/// with `header` 4, the value predicted at `H4`'s. Each episode holds two relations, each written
+/// once as `K v` before the first tail slot, and asks one of them, `j`, uniformly. The window's 8
+/// relations and 8 values are distinct. Each slot draws its bucket from a uniform assignment of
+/// two 33–96 and two 97–180 buckets; both facts' distances are drawn uniformly over the bucket
+/// clipped at the slot's largest distance, `query_pos − 2` (position 0 is BOS), and a draw that
+/// collides is redrawn. A window that cannot hold every fact is an error.
+pub fn recall_query_window(
+    seed: u64,
+    index: u64,
+    context: usize,
+    header: usize,
+) -> Result<(CausalWindow, Vec<RecallQuery>)> {
+    if header != 0 && header != RECALL_HEADER.len() {
+        return Err(invalid(format!(
+            "a two-class header is 0 or {} tokens, not {header}",
+            RECALL_HEADER.len()
+        )));
+    }
+    let tail = header + 2;
+    let first_tail = context
+        .checked_sub(RECALL_QUERY_EPISODES * tail)
+        .filter(|&f| f > RECALL_QUERY_BUCKETS[0].0 + 2)
+        .ok_or_else(|| invalid(format!("a {context}-token window cannot hold the two-class tails")))?;
+    // Its own stream, apart from `recall_window`'s for the same `(seed, index)`.
+    let mut state = (seed ^ 0x51C2_8A3D_0F6B_E7C9)
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add(index.wrapping_mul(0xD1B5_4A32_D192_ED03))
+        | 1;
+    let mut next = move || {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    };
+    let below = |n: usize, x: u64| (x % n as u64) as usize;
+    let mut ids: Vec<u32> = (0..context)
+        .map(|_| RECALL_FILLER.start + (next() % u64::from(RECALL_FILLER.end - RECALL_FILLER.start)) as u32)
+        .collect();
+    ids[0] = hs::SHEET_BOS_ID;
+    let mut taken = vec![false; context];
+    taken[0] = true;
+    taken[first_tail..].iter_mut().for_each(|t| *t = true);
+    // 8 distinct relations of the 16, a partial shuffle.
+    let mut relations: Vec<u32> = RECALL_RELATIONS.collect();
+    for i in 0..2 * RECALL_QUERY_EPISODES {
+        let k = i + below(relations.len() - i, next());
+        relations.swap(i, k);
+    }
+    let mut values: Vec<u32> = Vec::with_capacity(2 * RECALL_QUERY_EPISODES);
+    while values.len() < 2 * RECALL_QUERY_EPISODES {
+        let v = RECALL_VALUES.start + (next() % u64::from(RECALL_VALUES.end - RECALL_VALUES.start)) as u32;
+        if !values.contains(&v) {
+            values.push(v);
+        }
+    }
+    // A uniform assignment of the bucket multiset to the slots.
+    let mut buckets = [0usize, 0, 1, 1];
+    for i in (1..buckets.len()).rev() {
+        buckets.swap(i, below(i + 1, next()));
+    }
+    let js: Vec<usize> = (0..RECALL_QUERY_EPISODES).map(|_| below(2, next())).collect();
+    let mut positions = [[0usize; 2]; RECALL_QUERY_EPISODES];
+    // The far bucket's slots first, while the window is emptiest.
+    let mut order: Vec<usize> = (0..RECALL_QUERY_EPISODES).collect();
+    order.sort_by_key(|&slot| std::cmp::Reverse(buckets[slot]));
+    for slot in order {
+        let q = first_tail + slot * tail;
+        let (low, high) = RECALL_QUERY_BUCKETS[buckets[slot]];
+        let high = high.min(q - 2);
+        if low > high {
+            return Err(invalid(format!(
+                "slot {slot} at {q} cannot reach bucket {low}-{}",
+                RECALL_QUERY_BUCKETS[buckets[slot]].1
+            )));
+        }
+        for (fact, position) in positions[slot].iter_mut().enumerate() {
+            let mut placed = false;
+            for _ in 0..10_000 {
+                let d = low + below(high - low + 1, next());
+                let p = q - d;
+                if p < 2 || p >= first_tail || taken[p - 1] || taken[p] {
+                    continue;
+                }
+                taken[p - 1] = true;
+                taken[p] = true;
+                let e = 2 * slot + fact;
+                (ids[p - 1], ids[p]) = (relations[e], values[e]);
+                *position = p;
+                placed = true;
+                break;
+            }
+            if !placed {
+                return Err(invalid(format!(
+                    "a {context}-token two-class window could not place slot {slot}'s fact {fact}"
+                )));
+            }
+        }
+    }
+    let mut queries = Vec::with_capacity(RECALL_QUERY_EPISODES);
+    for slot in 0..RECALL_QUERY_EPISODES {
+        let q = first_tail + slot * tail;
+        let (j, o) = (js[slot], 1 - js[slot]);
+        let (ask, other) = (2 * slot + j, 2 * slot + o);
+        ids[q] = relations[ask] + RECALL_QUERY_SHIFT;
+        ids[q + 1..q + 1 + header].copy_from_slice(&RECALL_HEADER[..header]);
+        ids[q + 1 + header] = values[ask];
+        let (pa, po) = (positions[slot][j], positions[slot][o]);
+        queries.push(RecallQuery {
+            slot,
+            bucket: buckets[slot],
+            j,
+            query_pos: q,
+            scored_offset: q + header,
+            ask_relation: relations[ask],
+            other_relation: relations[other],
+            ask_value: values[ask],
+            other_value: values[other],
+            ask_value_pos: pa,
+            other_value_pos: po,
+            ask_distance: q - pa,
+            other_distance: q - po,
+            ask_nearer: q - pa < q - po,
+            ask_first: pa < po,
+            values: values.clone(),
+        });
+    }
+    let base = index as usize * context;
+    let window = CausalWindow {
+        doc_id: index as usize,
+        input_ids: ids,
+        scored_offsets: queries.iter().map(|q| q.scored_offset).collect(),
+        scored_targets: queries.iter().map(|q| q.ask_value).collect(),
+        scored_corpus_positions: queries.iter().map(|q| base + q.scored_offset + 1).collect(),
+    };
+    Ok((window, queries))
+}
+
 /// One recall checkpoint's reading, one line of `recall.jsonl` ([`run_recall`]).
 #[derive(Clone, Debug, Serialize)]
 pub struct RecallReading {
@@ -11900,6 +12085,434 @@ pub struct RecallReading {
     /// The Hamming reads' margins in bits, read by read and head by head: a margin below every
     /// distance weighs nothing and gets no gradient back.
     pub hamming_margins: Option<Vec<f64>>,
+    /// The two-class task's outcome counts (claude-328), when the run has that task; then `rows`
+    /// and `hits` hold its queries and asked-value hits at the far buckets' places (2 and 3).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<QueryCounts>,
+    /// The eval-only readings (claude-328), when the run takes them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readings: Option<RecallReadings>,
+}
+
+/// claude-328: which recall task a run trains and scores. The default is `--recall` as before.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct RecallForm {
+    /// The two-class task ([`recall_query_window`]) in place of the key-again task.
+    pub query: bool,
+    /// The two-class task's header length, 0 or 4.
+    pub header: usize,
+    /// Held-out windows scored at each checkpoint.
+    pub eval_windows: u64,
+    /// The eval-only readings at each checkpoint ([`recall_readings`]): the five ablations and,
+    /// for the two-class task, the trace. They need a Hamming read.
+    pub readings: bool,
+}
+
+impl Default for RecallForm {
+    fn default() -> Self {
+        Self { query: false, header: 0, eval_windows: RECALL_EVAL_WINDOWS, readings: false }
+    }
+}
+
+/// The two-class task's held-out outcomes, by bucket ([`RECALL_QUERY_BUCKETS`]) and tail slot: each
+/// query's nearest token is the asked value (`ask`), the paired relation's (`oth`), another of the
+/// window's values (`any`), or none of them.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct QueryCounts {
+    pub rows: [[usize; 4]; 2],
+    pub ask: [[usize; 4]; 2],
+    pub oth: [[usize; 4]; 2],
+    pub any: [[usize; 4]; 2],
+}
+
+/// Count `picks`, one per query of `windows` in order, into [`QueryCounts`].
+pub fn count_queries(windows: &[(CausalWindow, Vec<RecallQuery>)], picks: &[u32]) -> Result<QueryCounts> {
+    let queries: Vec<&RecallQuery> = windows.iter().flat_map(|(_, qs)| qs).collect();
+    if queries.len() != picks.len() {
+        return Err(invalid(format!(
+            "{} picks for {} two-class queries",
+            picks.len(),
+            queries.len()
+        )));
+    }
+    let mut counts = QueryCounts::default();
+    for (q, &pick) in queries.iter().zip(picks) {
+        let (b, s) = (q.bucket, q.slot);
+        counts.rows[b][s] += 1;
+        if pick == q.ask_value {
+            counts.ask[b][s] += 1;
+        } else if pick == q.other_value {
+            counts.oth[b][s] += 1;
+        } else if q.values.contains(&pick) {
+            counts.any[b][s] += 1;
+        }
+    }
+    Ok(counts)
+}
+
+/// The realized distances of `windows`' queries, per bucket and slot, for the asked and the other
+/// fact: `distances[b][s]` maps each distance to how many queries had it.
+fn query_distances(windows: &[(CausalWindow, Vec<RecallQuery>)]) -> serde_json::Value {
+    use std::collections::BTreeMap;
+    let mut ask = vec![vec![BTreeMap::<usize, usize>::new(); 4]; 2];
+    let mut other = ask.clone();
+    for q in windows.iter().flat_map(|(_, qs)| qs) {
+        *ask[q.bucket][q.slot].entry(q.ask_distance).or_default() += 1;
+        *other[q.bucket][q.slot].entry(q.other_distance).or_default() += 1;
+    }
+    serde_json::json!({ "ask": ask, "other": other })
+}
+
+/// The whole table's nearest token to the predicted point at every scored row of `windows`, in
+/// order, as [`recall_hits`] decodes them.
+fn recall_picks(model: &StackModel, windows: &[&CausalWindow], seed: u64) -> Result<Vec<u32>> {
+    picks_with(model, windows, seed, |_| Ok(()), |_| Ok(()))
+}
+
+/// [`recall_picks`], running `before` on each chunk of windows ahead of its forward and `after`
+/// once it has run: the readings' hooks ([`recall_readings`]).
+fn picks_with(
+    model: &StackModel,
+    windows: &[&CausalWindow],
+    seed: u64,
+    mut before: impl FnMut(&[&CausalWindow]) -> Result<()>,
+    mut after: impl FnMut(&[&CausalWindow]) -> Result<()>,
+) -> Result<Vec<u32>> {
+    let table = table(model)?;
+    let mut all = Vec::new();
+    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
+        for chunk in windows.chunks(16) {
+            before(chunk)?;
+            let (ids, scored, targets) = assemble(chunk);
+            let hidden = crate::flock_read::points(model, &ids, chunk.len(), SHEET_CONTEXT)?;
+            after(chunk)?;
+            let idx = Tensor::from_vec(scored, targets.len(), model.device())?;
+            let picks = nearest_scores(&hidden.index_select(&idx, 0)?, &table)?
+                .argmax(1)?
+                .to_vec1::<u32>()?;
+            all.extend(picks);
+        }
+        Ok(())
+    })?;
+    Ok(all)
+}
+
+/// claude-328: the five eval-only ablations of the query-recall sheet, each recomputing recall
+/// with some of the Hamming read's heads taken out of the readings only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Ablation {
+    /// `R^{−c2}`: the stream read's copy heads dropped.
+    CopyStream,
+    /// `R^{−c6}`: the readout read's copy heads dropped.
+    CopyReadout,
+    /// `R^{−c}`: the copy heads dropped at both reads.
+    Copy,
+    /// `R^{−t}`: the type heads dropped at both reads.
+    Type,
+    /// `R^{−cQ}`: the copy heads at both reads cut at the question rows only, through the read's
+    /// row cut ([`cut_at_rows`]).
+    CopyAtQuery,
+}
+
+/// The ablations in the order the readings record them.
+pub const RECALL_ABLATIONS: [Ablation; 5] = [
+    Ablation::CopyStream,
+    Ablation::CopyReadout,
+    Ablation::Copy,
+    Ablation::Type,
+    Ablation::CopyAtQuery,
+];
+
+impl Ablation {
+    /// The sheet's name for it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::CopyStream => "-c2",
+            Self::CopyReadout => "-c6",
+            Self::Copy => "-c",
+            Self::Type => "-t",
+            Self::CopyAtQuery => "-cQ",
+        }
+    }
+
+    /// The classes it drops, `[read][kind]` as [`crate::flock_read_hamming::set_class_ablation`]
+    /// takes them; the row cut drops none.
+    pub fn classes(self) -> [[bool; 2]; 2] {
+        match self {
+            Self::CopyStream => [[true, false], [false, false]],
+            Self::CopyReadout => [[false, false], [true, false]],
+            Self::Copy => [[true, false], [true, false]],
+            Self::Type => [[false, true], [false, true]],
+            Self::CopyAtQuery => [[false; 2]; 2],
+        }
+    }
+}
+
+/// The row cut that empties the copy heads' candidates at chosen rows: for windows of `time`
+/// positions, 0 at each of window `i`'s positions `rows[i]` and `time` at every other row of the
+/// `rows.len() · time` the forward reads.
+pub fn cut_at_rows(rows: &[Vec<usize>], time: usize) -> Result<Vec<usize>> {
+    let mut limits = vec![time; rows.len() * time];
+    for (i, at) in rows.iter().enumerate() {
+        for &t in at {
+            if t >= time {
+                return Err(invalid(format!("a cut row {t} outside a window of {time}")));
+            }
+            limits[i * time + t] = 0;
+        }
+    }
+    Ok(limits)
+}
+
+/// One cell of the trace readings: at one position of the two-class task's queries (the
+/// question token, or the scored position), one read, one head and one bucket.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub struct TraceCell {
+    /// `"query"` or `"scored"`.
+    pub position: &'static str,
+    /// The read's depth, as the trace records it.
+    pub depth: usize,
+    pub head: usize,
+    pub copy: bool,
+    pub bucket: usize,
+    pub rows: usize,
+    /// Queries where the asked value's position, or the other fact's, is among the head's kept
+    /// positions with weight above 0. A position kept at weight 0 is not kept.
+    pub kept_ask: usize,
+    pub kept_oth: usize,
+    /// Those positions' weights, summed over the queries (0 where not kept).
+    pub weight_ask: f64,
+    pub weight_oth: f64,
+    /// [`crate::flock_read_hamming::HAMMING_KEPT`] over the earlier positions (at most 1), summed over the queries: the kept
+    /// rate of a head that keeps its positions at random.
+    pub chance: f64,
+}
+
+/// The weight the read gives kept position `s` from position `t` in `head`: `max(0, m − d) /
+/// max(m, 1)`, `d` the bit distance between `t`'s query code and `s`'s key code and `m` the head's
+/// margin; 0 when `s` is not kept.
+fn kept_weight(head: &uor_r4_integer::fbs_snapshot::HammingTraceHead, t: usize, s: usize, m: f64) -> f64 {
+    if !head.kept[t].contains(&(s as u32)) {
+        return 0.0;
+    }
+    let d = f64::from((head.query[t] ^ head.key[s]).count_ones());
+    (m - d).max(0.0) / m.max(1.0)
+}
+
+/// Count `traced`, the trace of `queries`' windows in order, into `cells`: per position (the
+/// question token, then the scored position), read, head and bucket. `margins[read][head]` are the
+/// reads' margins in bits; the first `copy_heads` of each read's heads are its copy heads.
+pub fn count_trace(
+    cells: &mut Vec<TraceCell>,
+    queries: &[&[RecallQuery]],
+    traced: &[HammingTraceWindow],
+    margins: &[Vec<f64>],
+    copy_heads: usize,
+) -> Result<()> {
+    if queries.len() != traced.len() {
+        return Err(invalid(format!(
+            "{} traced windows for {} windows of queries",
+            traced.len(),
+            queries.len()
+        )));
+    }
+    for (window, qs) in traced.iter().zip(queries) {
+        if window.reads.len() != margins.len() {
+            return Err(invalid("a traced window's reads do not match the margins"));
+        }
+        for (r, read) in window.reads.iter().enumerate() {
+            let heads = read.heads.len();
+            if margins[r].len() != heads {
+                return Err(invalid("a traced read's heads do not match its margins"));
+            }
+            let at = |p: usize, h: usize, b: usize| ((p * margins.len() + r) * heads + h) * 2 + b;
+            let size = 2 * margins.len() * heads * 2;
+            if cells.is_empty() {
+                cells.resize(size, TraceCell::default());
+            } else if cells.len() != size {
+                return Err(invalid("the trace's heads changed between windows"));
+            }
+            for q in qs.iter() {
+                for (p, t) in [(0usize, q.query_pos), (1, q.scored_offset)] {
+                    for (h, head) in read.heads.iter().enumerate() {
+                        if t >= head.kept.len() {
+                            return Err(invalid("a query position outside its traced window"));
+                        }
+                        let cell = &mut cells[at(p, h, q.bucket)];
+                        cell.position = ["query", "scored"][p];
+                        cell.depth = read.depth;
+                        cell.head = h;
+                        cell.copy = h < copy_heads;
+                        cell.bucket = q.bucket;
+                        let ask = kept_weight(head, t, q.ask_value_pos, margins[r][h]);
+                        let oth = kept_weight(head, t, q.other_value_pos, margins[r][h]);
+                        cell.rows += 1;
+                        cell.kept_ask += usize::from(ask > 0.0);
+                        cell.kept_oth += usize::from(oth > 0.0);
+                        cell.weight_ask += ask;
+                        cell.weight_oth += oth;
+                        // The real candidates of `t` are `1 ≤ s < t`.
+                        let earlier = t.saturating_sub(1);
+                        if earlier > 0 {
+                            let kept = crate::flock_read_hamming::HAMMING_KEPT as f64;
+                            cell.chance += (kept / earlier as f64).min(1.0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// One ablation's held-out recall: per bucket for the key-again task, and the two-class task's
+/// outcome counts when the run has that task (with its asked-value hits at buckets 2 and 3).
+#[derive(Clone, Debug, Serialize)]
+pub struct AblatedRecall {
+    pub name: &'static str,
+    pub rows: [usize; 4],
+    pub hits: [usize; 4],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<QueryCounts>,
+}
+
+/// One checkpoint's eval-only readings ([`recall_readings`]).
+#[derive(Clone, Debug, Serialize)]
+pub struct RecallReadings {
+    /// Each of [`RECALL_ABLATIONS`], in order.
+    pub ablations: Vec<AblatedRecall>,
+    /// The two-class task's trace cells ([`count_trace`]); empty for the key-again task.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub trace: Vec<TraceCell>,
+}
+
+/// Gives the read back as training runs it when dropped, `Ok` or `Err`: no class dropped and no
+/// row cut.
+struct UndoAblation;
+
+impl Drop for UndoAblation {
+    fn drop(&mut self) {
+        crate::flock_read_hamming::set_class_ablation([[false; 2]; 2]);
+        crate::flock_read_hamming::set_row_cut(None);
+    }
+}
+
+/// Turns the Hamming trace off when dropped.
+struct UndoTrace;
+
+impl Drop for UndoTrace {
+    fn drop(&mut self) {
+        crate::flock_read_hamming::set_hamming_trace(false);
+    }
+}
+
+/// claude-328: the query-recall sheet's eval-only readings on the held-out windows: each of
+/// [`RECALL_ABLATIONS`]' recall and, for the two-class task (`held_queries` not empty), the trace
+/// at the question token and the scored position. `plain` is the checkpoint's own picks of the
+/// two-class task, which the traced forward must reproduce. Every class drop, row cut and trace
+/// is undone before it returns, so training resumes on the read it left.
+fn recall_readings(
+    model: &StackModel,
+    held_out: &[(CausalWindow, Vec<usize>)],
+    held_queries: &[(CausalWindow, Vec<RecallQuery>)],
+    plain: &[u32],
+    seed: u64,
+) -> Result<RecallReadings> {
+    use crate::flock_read_hamming as fh;
+    let reads = fh::hamming_reads().ok_or_else(|| invalid("the readings need a Hamming read"))?;
+    let query = !held_queries.is_empty();
+    let (windows, cut_rows): (Vec<&CausalWindow>, Vec<Vec<usize>>) = if query {
+        held_queries
+            .iter()
+            .map(|(w, qs)| (w, qs.iter().map(|q| q.query_pos).collect()))
+            .unzip()
+    } else {
+        held_out.iter().map(|(w, _)| (w, w.scored_offsets.clone())).unzip()
+    };
+    let mut ablations = Vec::new();
+    for ablation in RECALL_ABLATIONS {
+        let _undo = UndoAblation;
+        fh::set_class_ablation(ablation.classes());
+        let mut done = 0usize;
+        let picks = picks_with(
+            model,
+            &windows,
+            seed,
+            |chunk| {
+                if ablation == Ablation::CopyAtQuery {
+                    let time = chunk[0].input_ids.len();
+                    if chunk.iter().any(|w| w.input_ids.len() != time) {
+                        return Err(invalid("the row cut needs windows of one length"));
+                    }
+                    let limits = cut_at_rows(&cut_rows[done..done + chunk.len()], time)?;
+                    fh::set_row_cut(Some((ReadScope::Copy, limits)));
+                }
+                done += chunk.len();
+                Ok(())
+            },
+            |_| Ok(()),
+        )?;
+        drop(_undo);
+        let (mut rows, mut hits) = ([0usize; 4], [0usize; 4]);
+        let counts = if query {
+            let counts = count_queries(held_queries, &picks)?;
+            for b in 0..2 {
+                rows[2 + b] = counts.rows[b].iter().sum();
+                hits[2 + b] = counts.ask[b].iter().sum();
+            }
+            Some(counts)
+        } else {
+            let scored = held_out.iter().flat_map(|(w, b)| w.scored_targets.iter().zip(b));
+            for (pick, (&target, &bucket)) in picks.iter().zip(scored) {
+                rows[bucket] += 1;
+                hits[bucket] += usize::from(*pick == target);
+            }
+            None
+        };
+        ablations.push(AblatedRecall { name: ablation.name(), rows, hits, query: counts });
+    }
+    let mut trace = Vec::new();
+    if query {
+        let flat = reads.margins()?;
+        let read_count = crate::flock_read_hamming::HAMMING_DEPTHS.len();
+        if flat.is_empty() || flat.len() % read_count != 0 {
+            return Err(invalid("the Hamming reads' margins do not split by read"));
+        }
+        let margins: Vec<Vec<f64>> = flat.chunks(flat.len() / read_count).map(<[f64]>::to_vec).collect();
+        let copy_heads = reads
+            .readout()
+            .ok_or_else(|| invalid("the readings need the readout read"))?
+            .copy_heads();
+        let _undo = UndoTrace;
+        fh::set_hamming_trace(true);
+        let mut done = 0usize;
+        let traced_picks = picks_with(
+            model,
+            &windows,
+            seed,
+            |_| Ok(()),
+            |chunk| {
+                let traced = fh::take_hamming_trace()
+                    .ok_or_else(|| invalid("the Hamming trace went off mid-reading"))?;
+                for (w, t) in chunk.iter().zip(&traced) {
+                    if w.input_ids != t.ids {
+                        return Err(invalid("a traced window is not the window read"));
+                    }
+                }
+                let qs: Vec<&[RecallQuery]> = held_queries[done..done + chunk.len()]
+                    .iter()
+                    .map(|(_, qs)| qs.as_slice())
+                    .collect();
+                count_trace(&mut trace, &qs, &traced, &margins, copy_heads)?;
+                done += chunk.len();
+                Ok(())
+            },
+        )?;
+        if traced_picks != plain {
+            return Err(invalid("the traced forward's picks differ from the checkpoint's"));
+        }
+    }
+    Ok(RecallReadings { ablations, trace })
 }
 
 /// Recall hits per bucket on the held-out `windows`, decoded as the whole table's nearest token.
@@ -11930,6 +12543,14 @@ fn recall_hits(
     Ok((rows, hits))
 }
 
+#[cfg(test)]
+thread_local! {
+    /// claude-328's I-7: every training step's loss [`run_recall`] has run on this thread, in test
+    /// builds only.
+    static RECALL_STEP_LOSSES: std::cell::RefCell<Vec<f64>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
 /// Train the trunk on the recall task, fresh windows every step, with `config`'s reads and
 /// optimizer settings as [`run_long`] uses them, scoring held-out recall per distance bucket
 /// every `eval_every` steps into `out/recall.jsonl`.
@@ -11937,6 +12558,7 @@ pub fn run_recall(
     out: &Path,
     config: &LongConfig,
     pairs_per_bucket: usize,
+    form: RecallForm,
     device: &Device,
 ) -> Result<()> {
     if config.steps == 0 || config.batch == 0 || config.eval_every == 0 || pairs_per_bucket == 0 {
@@ -11944,17 +12566,51 @@ pub fn run_recall(
             "steps, batch, eval-every and pairs must be positive",
         ));
     }
+    if form.eval_windows == 0 {
+        return Err(invalid("a recall run scores at least one held-out window"));
+    }
+    if form.query && pairs_per_bucket != RECALL_QUERY_EPISODES {
+        return Err(invalid(format!(
+            "the two-class task holds {RECALL_QUERY_EPISODES} episodes a window, not {pairs_per_bucket}"
+        )));
+    }
+    if !form.query && form.header != 0 {
+        return Err(invalid("a recall header needs the two-class task"));
+    }
+    if form.readings && config.hamming_read == 0 {
+        return Err(invalid("the recall readings need a Hamming read"));
+    }
     if out.exists() {
         return Err(invalid(format!(
             "{} exists; a run never writes over one",
             out.display()
         )));
     }
+    // The held-out windows, from the held-out seed: the key-again task's, or the two-class task's.
+    let held_seed = config.seed ^ RECALL_EVAL_SEED;
+    let (held_out, held_queries) = if form.query {
+        let windows = (0..form.eval_windows)
+            .map(|i| recall_query_window(held_seed, i, SHEET_CONTEXT, form.header))
+            .collect::<Result<Vec<_>>>()?;
+        (Vec::new(), windows)
+    } else {
+        let windows = (0..form.eval_windows)
+            .map(|i| recall_window(held_seed, i, SHEET_CONTEXT, pairs_per_bucket))
+            .collect::<Result<Vec<_>>>()?;
+        (windows, Vec::new())
+    };
     fs::create_dir_all(out)?;
     fs::write(out.join("config.json"), serde_json::to_vec_pretty(config)?)?;
-    // The task itself, for the record: `config.json` holds only the runner's settings.
-    let task =
+    // The task itself, for the record: `config.json` holds only the runner's settings. The
+    // default form writes what it wrote before claude-328.
+    let mut task =
         serde_json::json!({ "pairs_per_bucket": pairs_per_bucket, "context": SHEET_CONTEXT });
+    if form != RecallForm::default() {
+        task["form"] = serde_json::to_value(form)?;
+    }
+    if form.query {
+        task["held_out_distances"] = query_distances(&held_queries);
+    }
     fs::write(out.join("recall.json"), serde_json::to_vec_pretty(&task)?)?;
     arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
     crate::geometric_stack::set_retention_rates(config.retain_rates);
@@ -11995,20 +12651,28 @@ pub fn run_recall(
     let mut register = start_register(config, device)?;
     let mut opt_main = StackAdamW::new(&model, hs::SHEET_WEIGHT_DECAY, hs::SHEET_CLIP)?;
     let mut opt_decay = StackAdamW::new(&model, 0.0, hs::SHEET_CLIP)?;
-    let held_out: Vec<(CausalWindow, Vec<usize>)> = (0..RECALL_EVAL_WINDOWS)
-        .map(|i| {
-            recall_window(
-                config.seed ^ RECALL_EVAL_SEED,
-                i,
-                SHEET_CONTEXT,
-                pairs_per_bucket,
-            )
-        })
-        .collect::<Result<_>>()?;
     let log = out.join("recall.jsonl");
     let (mut train_seconds, mut loss_sum, mut loss_steps) = (0.0f64, 0.0f64, 0usize);
     let reading = |step: usize, loss: Option<f64>, seconds: f64| -> Result<()> {
-        let (rows, hits) = recall_hits(&model, &held_out, config.seed)?;
+        let (rows, hits, query, picks) = if form.query {
+            let refs: Vec<&CausalWindow> = held_queries.iter().map(|(w, _)| w).collect();
+            let picks = recall_picks(&model, &refs, config.seed)?;
+            let counts = count_queries(&held_queries, &picks)?;
+            let (mut rows, mut hits) = ([0usize; 4], [0usize; 4]);
+            for b in 0..2 {
+                rows[2 + b] = counts.rows[b].iter().sum();
+                hits[2 + b] = counts.ask[b].iter().sum();
+            }
+            (rows, hits, Some(counts), picks)
+        } else {
+            let (rows, hits) = recall_hits(&model, &held_out, config.seed)?;
+            (rows, hits, None, Vec::new())
+        };
+        let readings = if form.readings {
+            Some(recall_readings(&model, &held_out, &held_queries, &picks, config.seed)?)
+        } else {
+            None
+        };
         let context_tokens = (step * config.batch * SHEET_CONTEXT) as f64;
         let scalar = |t: Tensor| -> Result<f64> { Ok(f64::from(t.to_scalar::<f32>()?)) };
         let line = RecallReading {
@@ -12042,6 +12706,8 @@ pub fn run_recall(
                 Some(reads) => Some(reads.margins()?),
                 None => None,
             },
+            query,
+            readings,
         };
         println!(
             "[recall] step {step} hits {:?} of {:?} train {seconds:.0}s",
@@ -12053,13 +12719,14 @@ pub fn run_recall(
     for step in 0..config.steps {
         let windows: Vec<CausalWindow> = (0..config.batch)
             .map(|b| {
-                recall_window(
-                    config.seed,
-                    (step * config.batch + b) as u64,
-                    SHEET_CONTEXT,
-                    pairs_per_bucket,
-                )
-                .map(|(window, _)| window)
+                let index = (step * config.batch + b) as u64;
+                if form.query {
+                    recall_query_window(config.seed, index, SHEET_CONTEXT, form.header)
+                        .map(|(window, _)| window)
+                } else {
+                    recall_window(config.seed, index, SHEET_CONTEXT, pairs_per_bucket)
+                        .map(|(window, _)| window)
+                }
             })
             .collect::<Result<_>>()?;
         let refs: Vec<&CausalWindow> = windows.iter().collect();
@@ -12118,6 +12785,8 @@ pub fn run_recall(
         train_seconds += started.elapsed().as_secs_f64();
         loss_sum += value;
         loss_steps += 1;
+        #[cfg(test)]
+        RECALL_STEP_LOSSES.with(|l| l.borrow_mut().push(value));
         if (step + 1) % config.eval_every == 0 || step + 1 == config.steps {
             reading(step + 1, Some(loss_sum / loss_steps as f64), train_seconds)?;
             (loss_sum, loss_steps) = (0.0, 0);
@@ -13894,6 +14563,404 @@ mod tests {
         assert_eq!(ids(1, 3), ids(1, 3));
         assert_ne!(ids(1, 3), ids(1, 4));
         assert_ne!(ids(1, 3), ids(2, 3));
+    }
+
+    /// claude-328's I-1: the default `--recall` windows, training and held-out, for seeds 1 and 2
+    /// at indices 0–127, hash to the digests `main` wrote at f1112f4f, so the two-class task
+    /// leaves the default path where it was. Per window: the five field lengths, then each field,
+    /// little-endian (ids and targets as `u32`, offsets, positions and buckets as `u64`).
+    #[test]
+    fn recall_default_windows_match_main_fixture() {
+        let digest = |seed: u64| {
+            let mut bytes = Vec::new();
+            for index in 0..128 {
+                let (w, buckets) = recall_window(seed, index, SHEET_CONTEXT, 4).unwrap();
+                for len in [
+                    w.input_ids.len(),
+                    w.scored_offsets.len(),
+                    w.scored_targets.len(),
+                    w.scored_corpus_positions.len(),
+                    buckets.len(),
+                ] {
+                    bytes.extend_from_slice(&(len as u64).to_le_bytes());
+                }
+                w.input_ids.iter().for_each(|v| bytes.extend_from_slice(&v.to_le_bytes()));
+                w.scored_offsets
+                    .iter()
+                    .for_each(|&v| bytes.extend_from_slice(&(v as u64).to_le_bytes()));
+                w.scored_targets.iter().for_each(|v| bytes.extend_from_slice(&v.to_le_bytes()));
+                w.scored_corpus_positions
+                    .iter()
+                    .for_each(|&v| bytes.extend_from_slice(&(v as u64).to_le_bytes()));
+                buckets
+                    .iter()
+                    .for_each(|&v| bytes.extend_from_slice(&(v as u64).to_le_bytes()));
+            }
+            crate::sha256_bytes(&bytes)
+        };
+        let seeds = [1, 2, 1 ^ RECALL_EVAL_SEED, 2 ^ RECALL_EVAL_SEED];
+        let expected = [
+            "b8f80ad81c26d93f0ef23e2bb72fa2a6953703f4e87cd1f8d49500ce573ca597",
+            "ecaa9b2ceb9f666941527baed4f8b14a1f41271025754256f875aba8cfd862dc",
+            "dc2882a288d262b597d33999e0916b6e2d936514f53c8dffb20839fcf256376d",
+            "81bc98514a416bed283d04d172e069b4d449bb093db3aa2efd41ef60f2196136",
+        ];
+        let got: Vec<String> = seeds.iter().map(|&s| digest(s)).collect();
+        assert_eq!(got, expected);
+    }
+
+    /// claude-328's I-2 and I-3 on every structural rule, for both forms: the query token, the
+    /// bijection, one write per relation, the target, 4 targets, the ranges, the distances and
+    /// the tails.
+    #[test]
+    fn recall_query_windows_hold_the_task() {
+        let in_range = |r: &std::ops::Range<u32>, t: u32| r.contains(&t);
+        let queries = RECALL_RELATIONS.start + RECALL_QUERY_SHIFT..RECALL_RELATIONS.end + RECALL_QUERY_SHIFT;
+        // The ranges are disjoint and clear of BOS.
+        let header = RECALL_HEADER[0]..RECALL_HEADER[3] + 1;
+        let ranges = [&RECALL_RELATIONS, &queries, &header, &RECALL_VALUES, &RECALL_FILLER];
+        for (a, ra) in ranges.iter().enumerate() {
+            assert!(!ra.contains(&hs::SHEET_BOS_ID));
+            for rb in &ranges[a + 1..] {
+                assert!(ra.end <= rb.start || rb.end <= ra.start, "{ra:?} meets {rb:?}");
+            }
+        }
+        assert!(RECALL_KEYS.start <= RECALL_RELATIONS.start && header.end <= RECALL_KEYS.end);
+        for head in [0usize, 4] {
+            let tail = head + 2;
+            let first_tail = SHEET_CONTEXT - RECALL_QUERY_EPISODES * tail;
+            for seed in [1u64, 2] {
+                for index in 0..300 {
+                    let (w, qs) = recall_query_window(seed, index, SHEET_CONTEXT, head).unwrap();
+                    let ids = &w.input_ids;
+                    assert_eq!(ids.len(), SHEET_CONTEXT);
+                    assert_eq!(ids[0], hs::SHEET_BOS_ID);
+                    // Exactly 4 scored targets, one per slot, in position order.
+                    assert_eq!(qs.len(), 4);
+                    assert_eq!(w.scored_offsets.len(), 4);
+                    assert_eq!(w.scored_targets.len(), 4);
+                    // Each relation written once, 8 in all; each query token once, at its slot.
+                    let relations: Vec<u32> = ids.iter().copied().filter(|&t| in_range(&RECALL_RELATIONS, t)).collect();
+                    let mut distinct = relations.clone();
+                    distinct.sort_unstable();
+                    distinct.dedup();
+                    assert_eq!((relations.len(), distinct.len()), (8, 8));
+                    let query_at: Vec<usize> = (0..ids.len()).filter(|&i| in_range(&queries, ids[i])).collect();
+                    assert_eq!(query_at, qs.iter().map(|q| q.query_pos).collect::<Vec<_>>());
+                    for (slot, q) in qs.iter().enumerate() {
+                        assert_eq!(q.slot, slot);
+                        assert_eq!(q.query_pos, first_tail + slot * tail);
+                        // The query is the bijection's image of the asked relation, never a relation.
+                        assert_eq!(ids[q.query_pos], q.ask_relation + RECALL_QUERY_SHIFT);
+                        assert!(!in_range(&RECALL_RELATIONS, ids[q.query_pos]));
+                        assert_ne!(q.ask_relation, q.other_relation);
+                        // The facts: `K v` at `p − 1, p`, both before the first tail slot.
+                        for (k, v, p) in [
+                            (q.ask_relation, q.ask_value, q.ask_value_pos),
+                            (q.other_relation, q.other_value, q.other_value_pos),
+                        ] {
+                            assert!(p >= 2 && p < first_tail);
+                            assert_eq!((ids[p - 1], ids[p]), (k, v));
+                        }
+                        // Both distances inside the asked bucket, clipped at `query_pos − 2`.
+                        let (low, high) = RECALL_QUERY_BUCKETS[q.bucket];
+                        let high = high.min(q.query_pos - 2);
+                        for d in [q.ask_distance, q.other_distance] {
+                            assert!((low..=high).contains(&d), "distance {d} outside {low}-{high}");
+                        }
+                        assert_eq!(q.ask_distance, q.query_pos - q.ask_value_pos);
+                        assert_eq!(q.other_distance, q.query_pos - q.other_value_pos);
+                        // The target is the asked relation's value, at the scored position, and
+                        // the value follows in the input (I-3: 5 after the query with a header).
+                        assert_eq!(q.scored_offset, q.query_pos + head);
+                        assert_eq!(w.scored_offsets[slot], q.scored_offset);
+                        assert_eq!(w.scored_targets[slot], q.ask_value);
+                        assert_eq!(ids[q.query_pos + head + 1], q.ask_value);
+                        assert_eq!(&ids[q.query_pos + 1..q.query_pos + 1 + head], &RECALL_HEADER[..head]);
+                    }
+                    // I-3: the tails fill the window's last `4 · tail` positions; everything else
+                    // after BOS is a fact or filler.
+                    assert_eq!(qs[3].scored_offset + 1, SHEET_CONTEXT - 1);
+                    let facts: Vec<usize> = qs
+                        .iter()
+                        .flat_map(|q| [q.ask_value_pos, q.ask_value_pos - 1, q.other_value_pos, q.other_value_pos - 1])
+                        .collect();
+                    for (i, &t) in ids.iter().enumerate().take(first_tail).skip(1) {
+                        if facts.contains(&i) {
+                            assert!(in_range(&RECALL_RELATIONS, t) || in_range(&RECALL_VALUES, t));
+                        } else {
+                            assert!(in_range(&RECALL_FILLER, t), "position {i} holds {t}");
+                        }
+                    }
+                }
+            }
+        }
+        assert!(recall_query_window(1, 0, SHEET_CONTEXT, 3).is_err());
+    }
+
+    /// claude-328: each pick counts once, as the asked value, the paired value, another of the
+    /// window's values, or none, in its bucket and slot; a pick count that does not match the
+    /// queries is refused.
+    #[test]
+    fn two_class_picks_count_by_outcome_bucket_and_slot() {
+        let windows: Vec<(CausalWindow, Vec<RecallQuery>)> =
+            (0..2).map(|i| recall_query_window(9, i, SHEET_CONTEXT, 4).unwrap()).collect();
+        let qs: Vec<&RecallQuery> = windows.iter().flat_map(|(_, q)| q).collect();
+        // Another of query 2's window's values, neither its asked nor its paired one.
+        let stranger = qs[2]
+            .values
+            .iter()
+            .copied()
+            .find(|v| *v != qs[2].ask_value && *v != qs[2].other_value)
+            .unwrap();
+        // Query 0 asked, 1 paired, 2 another value, 3 filler; the second window all asked.
+        let mut picks = vec![qs[0].ask_value, qs[1].other_value, stranger, RECALL_FILLER.start];
+        picks.extend(qs[4..].iter().map(|q| q.ask_value));
+        let c = count_queries(&windows, &picks).unwrap();
+        let total = |m: &[[usize; 4]; 2]| m.iter().flatten().sum::<usize>();
+        assert_eq!((total(&c.rows), total(&c.ask), total(&c.oth), total(&c.any)), (8, 5, 1, 1));
+        assert_eq!(c.oth[qs[1].bucket][1], 1);
+        assert_eq!(c.any[qs[2].bucket][2], 1);
+        // Query 3's filler pick counts as a row and nothing else.
+        let slot3 = |m: &[[usize; 4]; 2]| m[qs[3].bucket][3] - usize::from(qs[7].bucket == qs[3].bucket);
+        assert_eq!((slot3(&c.ask), c.oth[qs[3].bucket][3], c.any[qs[3].bucket][3]), (0, 0, 0));
+        assert!(count_queries(&windows, &picks[..7]).is_err());
+    }
+
+    /// claude-328's I-5, the trace: on a hand-built two-episode window, each head counts the
+    /// asked and the paired value's position at the question token and the scored position, at
+    /// both reads, with the read's own weights; a position kept at weight 0 is not kept; and the
+    /// chance rate is 16 over the earlier positions.
+    #[test]
+    fn the_trace_counts_kept_positions_by_weight_at_both_positions_and_reads() {
+        use uor_r4_integer::fbs_snapshot::{HammingTraceHead, HammingTraceRead};
+        let query = |slot, bucket, query_pos, scored_offset, ask_value_pos, other_value_pos| {
+            RecallQuery {
+                slot,
+                bucket,
+                j: 0,
+                query_pos,
+                scored_offset,
+                ask_relation: 16,
+                other_relation: 17,
+                ask_value: 40,
+                other_value: 41,
+                ask_value_pos,
+                other_value_pos,
+                ask_distance: query_pos - ask_value_pos,
+                other_distance: query_pos - other_value_pos,
+                ask_nearer: ask_value_pos > other_value_pos,
+                ask_first: ask_value_pos < other_value_pos,
+                values: vec![40, 41],
+            }
+        };
+        let time = 34;
+        let queries = vec![query(0, 0, 20, 22, 2, 4), query(1, 1, 30, 32, 4, 2)];
+        // One head: its query code at the rows named, its key codes and its kept positions.
+        let head = |q: &[(usize, u64)], k: &[(usize, u64)], kept: &[(usize, &[u32])]| {
+            let mut h = HammingTraceHead {
+                query: vec![0; time],
+                key: vec![0; time],
+                kept: vec![Vec::new(); time],
+                query_f32: Vec::new(),
+                key_f32: Vec::new(),
+            };
+            q.iter().for_each(|&(t, w)| h.query[t] = w);
+            k.iter().for_each(|&(s, w)| h.key[s] = w);
+            kept.iter().for_each(|&(t, s)| h.kept[t] = s.to_vec());
+            h
+        };
+        // Margins of 3 bits, so a pick at distance d weighs (3 − d) / 3.
+        let stream = HammingTraceRead {
+            depth: 2,
+            heads: vec![
+                // The copy head: at 20 it keeps both (d 1 and 2); at 22 it keeps the paired one at
+                // d 4, past the margin, weight 0; at 30 the asked one at d 0.
+                head(
+                    &[(20, 0b1), (22, 0b1000), (30, 0b111)],
+                    &[(4, 0b111)],
+                    &[(20, &[2, 4]), (22, &[4]), (30, &[4])],
+                ),
+                // The type head: at 22 the asked one (d 0); at 30 both.
+                head(&[], &[], &[(22, &[2]), (30, &[2, 4])]),
+            ],
+        };
+        let readout = HammingTraceRead {
+            depth: 6,
+            heads: vec![
+                head(&[(32, 0b11)], &[(4, 0b111)], &[(32, &[4])]),
+                // The type head keeps the asked one at 30 at d 3, the margin itself: weight 0.
+                head(&[], &[(4, 0b111)], &[(30, &[4])]),
+            ],
+        };
+        let traced = vec![HammingTraceWindow { ids: vec![0; time], reads: vec![stream, readout] }];
+        let margins = vec![vec![3.0, 3.0], vec![3.0, 3.0]];
+        let mut cells = Vec::new();
+        count_trace(&mut cells, &[queries.as_slice()], &traced, &margins, 1).unwrap();
+        assert_eq!(cells.len(), 16);
+        let cell = |position: &str, depth: usize, head: usize, bucket: usize| {
+            cells
+                .iter()
+                .find(|c| c.position == position && c.depth == depth && c.head == head && c.bucket == bucket)
+                .unwrap()
+        };
+        let read = |c: &TraceCell| (c.rows, c.kept_ask, c.kept_oth, c.weight_ask, c.weight_oth);
+        let (third, two_thirds) = (1.0 / 3.0, 2.0 / 3.0);
+        assert_eq!(read(cell("query", 2, 0, 0)), (1, 1, 1, two_thirds, third));
+        assert_eq!(read(cell("scored", 2, 0, 0)), (1, 0, 0, 0.0, 0.0), "kept at weight 0");
+        assert_eq!(read(cell("query", 2, 0, 1)), (1, 1, 0, 1.0, 0.0));
+        assert_eq!(read(cell("scored", 2, 1, 0)), (1, 1, 0, 1.0, 0.0));
+        assert_eq!(read(cell("query", 2, 1, 1)), (1, 1, 1, 1.0, 1.0));
+        assert_eq!(read(cell("scored", 6, 0, 1)), (1, 1, 0, two_thirds, 0.0));
+        assert_eq!(read(cell("query", 6, 1, 1)), (1, 0, 0, 0.0, 0.0));
+        assert!(cell("query", 2, 0, 0).copy && !cell("query", 2, 1, 0).copy);
+        assert_eq!(cell("query", 2, 0, 0).chance, 16.0 / 19.0);
+        assert_eq!(cell("scored", 6, 1, 1).chance, 16.0 / 31.0);
+        // A trace that does not match the windows is refused.
+        assert!(count_trace(&mut cells, &[queries.as_slice(), queries.as_slice()], &traced, &margins, 1).is_err());
+    }
+
+    /// claude-328's I-5, the ablations: each drops the classes the sheet names, and the row cut
+    /// is 0 at the question rows and the window's length everywhere else.
+    #[test]
+    fn the_ablations_drop_their_classes_and_cut_only_the_question_rows() {
+        let named: Vec<(&str, [[bool; 2]; 2])> =
+            RECALL_ABLATIONS.iter().map(|a| (a.name(), a.classes())).collect();
+        assert_eq!(
+            named,
+            [
+                ("-c2", [[true, false], [false, false]]),
+                ("-c6", [[false, false], [true, false]]),
+                ("-c", [[true, false], [true, false]]),
+                ("-t", [[false, true], [false, true]]),
+                ("-cQ", [[false, false], [false, false]]),
+            ]
+        );
+        assert_eq!(cut_at_rows(&[vec![1, 3], vec![0]], 4).unwrap(), [4, 0, 4, 0, 0, 4, 4, 4]);
+        assert!(cut_at_rows(&[vec![4]], 4).is_err());
+        // On a real two-class window: 0 at exactly its four question rows.
+        let (window, queries) = recall_query_window(3, 0, SHEET_CONTEXT, 4).unwrap();
+        let rows: Vec<usize> = queries.iter().map(|q| q.query_pos).collect();
+        let limits = cut_at_rows(&[rows.clone()], window.input_ids.len()).unwrap();
+        for (t, &limit) in limits.iter().enumerate() {
+            assert_eq!(limit, if rows.contains(&t) { 0 } else { SHEET_CONTEXT }, "row {t}");
+        }
+    }
+
+    /// claude-328's I-7: 1,024 steps of B2-h with the readings on (every 512 steps) and off train
+    /// alike bit for bit: the same loss at every step and the same weights at the end. GPU only,
+    /// so it runs on the pod (`--features cuda -- --ignored`), with its two mutation gates.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore]
+    fn the_recall_readings_leave_training_alone() {
+        let device = Device::new_cuda(0).unwrap();
+        // The sheet's B2-h: the FBS trunk's flags, `--hamming-read 4`, the two-class task with
+        // its 4-token header.
+        let config = LongConfig {
+            objective: PointObjective::Nearest,
+            steps: 1024,
+            batch: 16,
+            eval_every: 512,
+            seed: 1,
+            lr: 0.001,
+            lr_end: 0.0,
+            decay_mult: 1.0,
+            retain_rates: true,
+            hamming_read: 4,
+            ..config(0, None)
+        };
+        let run = |readings: bool| {
+            let out = std::env::temp_dir()
+                .join(format!("claude-328-i7-{readings}-{}", std::process::id()));
+            let _ = fs::remove_dir_all(&out);
+            RECALL_STEP_LOSSES.with(|l| l.borrow_mut().clear());
+            let form = RecallForm { query: true, header: 4, readings, ..RecallForm::default() };
+            run_recall(&out, &config, RECALL_QUERY_EPISODES, form, &device).unwrap();
+            let losses: Vec<u64> =
+                RECALL_STEP_LOSSES.with(|l| l.borrow().iter().map(|v| v.to_bits()).collect());
+            let mut files: Vec<(String, Vec<u8>)> = fs::read_dir(out.join("models/step-001024"))
+                .unwrap()
+                .map(|e| {
+                    let e = e.unwrap();
+                    (e.file_name().to_string_lossy().into_owned(), fs::read(e.path()).unwrap())
+                })
+                .collect();
+            files.sort();
+            let lines = fs::read_to_string(out.join("recall.jsonl")).unwrap();
+            fs::remove_dir_all(&out).unwrap();
+            (losses, files, lines)
+        };
+        let (on_losses, on_files, on_lines) = run(true);
+        let (off_losses, off_files, _) = run(false);
+        assert_eq!(on_losses.len(), 1024);
+        assert_eq!(on_losses, off_losses, "every step's loss");
+        assert!(!on_files.is_empty());
+        assert_eq!(on_files, off_files, "the final weights");
+        // The readings ran at steps 0, 512 and 1,024, each with five ablations and the trace.
+        let lines: Vec<serde_json::Value> =
+            on_lines.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        assert_eq!(lines.len(), 3);
+        for line in &lines {
+            assert_eq!(line["readings"]["ablations"].as_array().unwrap().len(), 5);
+            assert!(!line["readings"]["trace"].as_array().unwrap().is_empty());
+        }
+    }
+
+    /// claude-328's I-7, on the laptop: dropping the readings' guard clears every ablation, so no
+    /// class mask or row cut set by one ablation reaches the next ablation or training. The pod
+    /// test above cannot see a leaked depth-2 copy mask, since `−c2` reads equal to the plain read
+    /// on that configuration (claude-328's run).
+    #[test]
+    fn the_ablation_guard_clears_every_mask_and_cut() {
+        use crate::flock_read_hamming as fh;
+        for ablation in RECALL_ABLATIONS {
+            {
+                let _undo = UndoAblation;
+                fh::set_class_ablation(ablation.classes());
+                fh::set_row_cut(Some((fh::ReadScope::Copy, vec![1])));
+            }
+            assert_eq!(fh::class_ablation(), [[false; 2]; 2], "{ablation:?}");
+            assert!(!fh::row_cut_set(), "{ablation:?}");
+        }
+    }
+
+    /// claude-328's I-2 balance over 10,000 windows of each form. In each bucket × slot cell (about
+    /// 5,000 queries) the asked fact is the nearer one, and relation 0 is asked, each 0.5 ± 0.02;
+    /// each slot receives a 33–96 bucket in 0.5 ± 0.02 of windows. "Written first" is not a
+    /// separate count: both facts are measured to the same query, so the asked fact is written
+    /// first exactly when it is the farther one.
+    #[test]
+    fn recall_query_windows_balance_the_choice() {
+        for head in [0usize, 4] {
+            let (mut rows, mut nearer, mut zero) = ([[0usize; 4]; 2], [[0usize; 4]; 2], [[0usize; 4]; 2]);
+            let mut near_bucket = [0usize; 4];
+            let windows = 10_000u64;
+            for index in 0..windows {
+                let (_, qs) = recall_query_window(5, index, SHEET_CONTEXT, head).unwrap();
+                for q in qs {
+                    assert_eq!(q.ask_first, !q.ask_nearer);
+                    rows[q.bucket][q.slot] += 1;
+                    nearer[q.bucket][q.slot] += usize::from(q.ask_nearer);
+                    zero[q.bucket][q.slot] += usize::from(q.j == 0);
+                    near_bucket[q.slot] += usize::from(q.bucket == 0);
+                }
+            }
+            for b in 0..2 {
+                for s in 0..4 {
+                    let n = rows[b][s] as f64;
+                    assert!(n > 4_500.0, "cell {b},{s} has {n} queries");
+                    for (name, k) in [("nearer", nearer[b][s]), ("j = 0", zero[b][s])] {
+                        let rate = k as f64 / n;
+                        assert!((rate - 0.5).abs() <= 0.02, "header {head} cell {b},{s}: {name} {rate:.4}");
+                    }
+                }
+            }
+            for (s, &k) in near_bucket.iter().enumerate() {
+                let rate = k as f64 / windows as f64;
+                assert!((rate - 0.5).abs() <= 0.02, "header {head} slot {s}: 33-96 in {rate:.4}");
+            }
+        }
     }
 
     #[test]
