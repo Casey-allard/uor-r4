@@ -1,0 +1,18 @@
+[package]
+name = "current-state-corpus"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# generator can never change what the workspace builds.
+[workspace]
+
+[dependencies]
+m2-fresh-heldout-panel-instrument = { path = "../../m2-fresh-heldout-panel/instrument" }
+serde_json = "1"
+uor-r4-core = { path = "../../../../crates/uor-r4-core" }
+uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
+
+[dev-dependencies]
+tempfile = "3"
