@@ -447,6 +447,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/reply-sft-2048-result": {
+    "branch": "deepseek/reply-sft-2048-result",
+    "claimed_at": "2026-11-07T23:45:16-05:00",
+    "head": "efee4049e",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/reply-sft-2048-run": {
     "branch": "deepseek/reply-sft-2048-run",
     "claimed_at": "2026-11-07T21:38:13-05:00",
