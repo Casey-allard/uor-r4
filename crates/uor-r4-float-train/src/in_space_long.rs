@@ -158,6 +158,10 @@ pub struct LongConfig {
     pub fix_input_table: bool,
     /// Train on this split in place of the pinned TRAIN; DEV stays the pinned one.
     pub train_split: Option<TrainSplit>,
+    /// Repeat each scored reply-opening row this many times in TRAIN's nearest loss
+    /// (deepseek-35). The default, 1, leaves the run and its config unchanged.
+    #[serde(skip_serializing_if = "is_one")]
+    pub opening_weight: usize,
     pub samples: usize,
     pub reply_tokens: usize,
     /// Take each step's `batch` windows forward and backward this many at a time, and make one
@@ -1888,6 +1892,7 @@ fn step_gradient(
     served: bool,
     seed: u64,
     step: usize,
+    opening_weight: Option<(&[u8], usize)>,
     mut rows: impl FnMut(usize, usize) -> Result<()>,
 ) -> Result<(f64, candle_core::backprop::GradStore)> {
     let micro = if micro == 0 {
@@ -1895,14 +1900,19 @@ fn step_gradient(
     } else {
         micro.min(windows.len())
     };
-    let total: usize = windows.iter().map(|w| w.scored_offsets.len()).sum();
+    let total = opening_weighted_total(windows, opening_weight)?;
     let mut grads: Option<candle_core::backprop::GradStore> = None;
     let mut losses = Vec::new();
     let mut shares = Vec::new();
     for lo in (0..windows.len()).step_by(micro.max(1)) {
         let hi = (lo + micro).min(windows.len());
         rows(lo, hi)?;
-        let (ids, scored, targets) = assemble(&windows[lo..hi]);
+        let (ids, scored, targets) = match opening_weight {
+            Some((mask, weight)) => {
+                assemble_with_opening_weight(&windows[lo..hi], mask, weight)?
+            }
+            None => assemble(&windows[lo..hi]),
+        };
         // The memory's rows are `b · context + offset`, so every window must be whole.
         if ids.len() != (hi - lo) * context {
             return Err(invalid("a training batch's windows are not context-long"));
@@ -2963,6 +2973,58 @@ fn assemble(windows: &[&CausalWindow]) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
         }
     }
     (ids, scored, targets)
+}
+
+/// [`assemble`], repeating each target whose corpus position opens a reply.
+fn assemble_with_opening_weight(
+    windows: &[&CausalWindow],
+    mask: &[u8],
+    weight: usize,
+) -> Result<(Vec<u32>, Vec<u32>, Vec<u32>)> {
+    if !(1..=16).contains(&weight) {
+        return Err(invalid("opening weight must be between 1 and 16"));
+    }
+    if weight == 1 {
+        return Ok(assemble(windows));
+    }
+    let mut ids = Vec::with_capacity(windows.iter().map(|w| w.input_ids.len()).sum());
+    let (mut scored, mut targets) = (Vec::new(), Vec::new());
+    for window in windows {
+        let start = ids.len();
+        ids.extend_from_slice(&window.input_ids);
+        for ((&off, &target), &position) in window
+            .scored_offsets
+            .iter()
+            .zip(&window.scored_targets)
+            .zip(&window.scored_corpus_positions)
+        {
+            if position >= mask.len() {
+                return Err(invalid("opening weight's reply mask is shorter than TRAIN"));
+            }
+            let copies = if opens_reply(mask, position) {
+                weight
+            } else {
+                1
+            };
+            for _ in 0..copies {
+                scored.push((start + off) as u32);
+                targets.push(target);
+            }
+        }
+    }
+    Ok((ids, scored, targets))
+}
+
+fn opening_weighted_total(
+    windows: &[&CausalWindow],
+    opening_weight: Option<(&[u8], usize)>,
+) -> Result<usize> {
+    match opening_weight {
+        Some((mask, weight)) => Ok(assemble_with_opening_weight(windows, mask, weight)?
+            .1
+            .len()),
+        None => Ok(windows.iter().map(|w| w.scored_offsets.len()).sum()),
+    }
 }
 
 /// Whether the target at corpus `position` opens a reply: the token before it is not a response
@@ -12361,7 +12423,7 @@ pub fn gradient_norms(
     config: &LongConfig,
     device: &Device,
 ) -> Result<Vec<GradientNorm>> {
-    let (usable, _) =
+    let (usable, train_mask) =
         load_train(
             data_root,
             config.batch,
@@ -12392,7 +12454,8 @@ pub fn gradient_norms(
     let _opening = start_opening(config, device)?;
     let _register = start_register(config, device)?;
     let windows: Vec<&CausalWindow> = usable.iter().take(config.batch).collect();
-    let (ids, scored, targets) = assemble(&windows);
+    let (ids, scored, targets) =
+        assemble_with_opening_weight(&windows, &train_mask, config.opening_weight)?;
     let grads = hs::with_gate_mode(HamiltonArm::HamiltonActive, config.seed, 0, false, || {
         Ok(batch_loss(
             &model,
@@ -12646,6 +12709,14 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             "--micro-batch {} does not divide --batch {}",
             config.micro_batch, config.batch
         )));
+    }
+    if !(1..=16).contains(&config.opening_weight) {
+        return Err(invalid("--opening-weight runs from 1 to 16"));
+    }
+    if config.opening_weight != 1 && config.objective != PointObjective::Nearest {
+        return Err(invalid(
+            "--opening-weight changes the nearest objective's rows",
+        ));
     }
     training_context(config.context)?;
     validate_checkpoint_selection(config)?;
@@ -13067,6 +13138,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             config.train_as_served,
             config.seed,
             step,
+            Some((&train_mask, config.opening_weight)),
             forward_rows,
         )?;
         // The gradient, taken at the exported values, moves the float values they came from.
@@ -14098,6 +14170,7 @@ mod tests {
             hamming_copy_keys: None,
             fix_input_table: false,
             train_split: None,
+            opening_weight: 1,
             samples: 6,
             reply_tokens: 48,
             micro_batch: 0,
@@ -14968,6 +15041,30 @@ mod tests {
     }
 
     #[test]
+    fn opening_weight_repeats_only_rows_that_open_a_reply() {
+        let window = CausalWindow {
+            doc_id: 0,
+            input_ids: vec![0, 5, 6, 7, 8, 9],
+            scored_offsets: vec![1, 3],
+            scored_targets: vec![6, 8],
+            scored_corpus_positions: vec![2, 4],
+        };
+        let mask = [0, 0, 1, 1, 1, 1];
+        let (_, scored, targets) =
+            assemble_with_opening_weight(&[&window], &mask, 3).unwrap();
+        assert_eq!(scored, [1, 1, 1, 3]);
+        assert_eq!(targets, [6, 6, 6, 8]);
+        assert_eq!(
+            opening_weighted_total(&[&window], Some((&mask, 3))).unwrap(),
+            4
+        );
+        assert_eq!(opening_weighted_total(&[&window], None).unwrap(), 2);
+        let (_, default_scored, default_targets) =
+            assemble_with_opening_weight(&[&window], &mask, 1).unwrap();
+        assert_eq!((default_scored, default_targets), (vec![1, 3], vec![6, 8]));
+    }
+
+    #[test]
     fn a_config_without_the_opening_read_writes_neither_of_its_keys() {
         let json = String::from_utf8(serde_json::to_vec_pretty(&config(0, None)).unwrap()).unwrap();
         assert!(!json.contains("opening_read"), "{json}");
@@ -14977,6 +15074,33 @@ mod tests {
             json.contains("\"hamming_read\": 0,\n  \"width\": 256,"),
             "{json}"
         );
+        assert!(!json.contains("opening_weight"), "{json}");
+    }
+
+    #[test]
+    fn a_nondefault_opening_weight_is_written_to_the_run_config() {
+        let config = LongConfig {
+            opening_weight: 8,
+            ..config(0, None)
+        };
+        let json = String::from_utf8(serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        assert!(json.contains("\"opening_weight\": 8"), "{json}");
+    }
+
+    #[test]
+    fn opening_weight_refuses_non_nearest_objectives() {
+        let root = init_test_dir("opening-weight-nearest");
+        let config = LongConfig {
+            objective: PointObjective::Cell,
+            opening_weight: 8,
+            ..config(0, None)
+        };
+        let refusal = run_long(&root, &root.join("out"), &config, &Device::Cpu)
+            .err()
+            .map(|error| error.to_string())
+            .unwrap_or_default();
+        assert!(refusal.contains("--opening-weight"), "{refusal}");
+        assert!(!root.join("out").exists());
     }
 
     #[test]
@@ -15856,6 +15980,7 @@ mod tests {
                     false,
                     1,
                     3,
+                    None,
                     |_, _| Ok(()),
                 )
             })
@@ -16096,6 +16221,7 @@ mod tests {
                     served,
                     1,
                     3,
+                    None,
                     |lo, hi| {
                         forwards.push((lo, hi));
                         Ok(())
@@ -16142,6 +16268,85 @@ mod tests {
             }
             assert!(compared > 0, "{case}: no gradient compared");
         }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn opening_weighted_micro_batches_match_the_whole_batch_step() {
+        let device = Device::new_cuda(0).unwrap();
+        let model = build_fbs_model(FbsArm::OneAtomActive, 1, &device).unwrap();
+        let windows: Vec<CausalWindow> = (0..4usize)
+            .map(|b| {
+                let input_ids: Vec<u32> = (0..SHEET_CONTEXT)
+                    .map(|i| ((i * 29 + b * 73) % 4095 + 1) as u32)
+                    .collect();
+                let scored_offsets: Vec<usize> = (0..=b).map(|r| 24 + r * 17).collect();
+                CausalWindow {
+                    doc_id: b,
+                    scored_targets: scored_offsets.iter().map(|&o| input_ids[o + 1]).collect(),
+                    scored_corpus_positions: scored_offsets
+                        .iter()
+                        .map(|&o| b * SHEET_CONTEXT + o + 1)
+                        .collect(),
+                    input_ids,
+                    scored_offsets,
+                }
+            })
+            .collect();
+        let mut mask = vec![1u8; windows.len() * SHEET_CONTEXT];
+        for window in &windows {
+            mask[window.scored_corpus_positions[0] - 1] = 0;
+        }
+        let refs: Vec<&CausalWindow> = windows.iter().collect();
+        let step = |micro: usize| {
+            step_gradient(
+                &model,
+                PointObjective::Nearest,
+                &refs,
+                micro,
+                SHEET_CONTEXT,
+                false,
+                1,
+                3,
+                Some((&mask, 3)),
+                |_, _| Ok(()),
+            )
+            .unwrap()
+        };
+        let (whole, whole_grads) = step(0);
+        let (split, split_grads) = step(2);
+        assert!(
+            (whole - split).abs() <= 1e-5 * whole.abs().max(1.0),
+            "loss {whole} != {split}"
+        );
+        let mut compared = 0;
+        for (name, var) in model.variables() {
+            let (a, b) = (
+                whole_grads.get(var.as_tensor()),
+                split_grads.get(var.as_tensor()),
+            );
+            assert_eq!(a.is_some(), b.is_some(), "{name}");
+            let (Some(a), Some(b)) = (a, b) else {
+                continue;
+            };
+            let flat = |t: &Tensor| {
+                t.flatten_all()
+                    .unwrap()
+                    .to_dtype(DType::F32)
+                    .unwrap()
+                    .to_vec1::<f32>()
+                    .unwrap()
+            };
+            let (a, b) = (flat(a), flat(b));
+            let scale = a.iter().fold(0f32, |m, x| m.max(x.abs()));
+            let diff = a.iter().zip(&b).fold(0f32, |m, (x, y)| m.max((x - y).abs()));
+            assert!(
+                diff <= 1e-4 * scale.max(1e-6),
+                "{name} differs by {diff} at scale {scale}"
+            );
+            compared += 1;
+        }
+        assert!(compared > 0, "no gradient compared");
     }
 
     #[cfg(feature = "cuda")]

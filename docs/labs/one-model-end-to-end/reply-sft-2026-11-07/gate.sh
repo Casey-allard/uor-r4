@@ -10,6 +10,7 @@ SHEET=${3:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md
 EXTENSION_SHEET=${4:-"$ROOT/docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"}
 HARDWARE_LIB=${5:-"$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/hardware-evidence.sh"}
 CONTENT_SHEET=${6:-"$ROOT/docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md"}
+OPENING_SHEET=${7:-"$ROOT/docs/harness/prep/one-model-end-to-end-opening-weight-2026-11-08.md"}
 HARDWARE_TEST="$ROOT/docs/labs/one-model-end-to-end/reply-sft-2026-11-07/test-hardware-evidence.sh"
 checks=0
 
@@ -93,7 +94,7 @@ require_line 'got=$(sha256sum "$path" | cut -d'"'"' '"'"' -f1)' "$JOB"
 require_line '[ "$got" = "$want" ] || die "$path hashes to $got, not $want"' "$JOB"
 require_line 'RECIPE=${UOR_SFT_RECIPE:-legacy}' "$JOB"
 require_line 'case "$RECIPE:$STEPS:$RUN_LABEL" in' "$JOB"
-require_line 'legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio) ;;' "$JOB"
+require_line 'legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio|opening-weight:1024:s1-opening-weight) ;;' "$JOB"
 require_line '*) echo "recipe, steps and run label do not form a registered SFT pair" >&2; exit 2 ;;' "$JOB"
 for forbidden_override in UOR_SFT_OUT_STORE UOR_SFT_PREP_SHEET UOR_SFT_REPORT UOR_SFT_TRAIN_ROOT UOR_SFT_TRAIN_SHA; do
   if grep -Fq "$forbidden_override" "$JOB" "$LAUNCHER"; then
@@ -158,6 +159,15 @@ require_case_block 'content-ratio)' "$JOB" \
   'TRAIN_DOCUMENTS=65071' 'TRAIN_ASSISTANT_REPLIES=223469'
 reject_case_block_line 'content-ratio)' "$JOB" \
   'TRAIN_TOKENS_SHA=3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3'
+require_case_block 'opening-weight)' "$JOB" \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07' \
+  'TRAIN_TOKENS_SHA=3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3' \
+  'TRAIN_MASK_SHA=67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b' \
+  'TRAIN_MANIFEST_SHA=1c7aee4dfaffdde07f9c64a5b887b504ee21355038b6ae00897a8a97407d9bbe' \
+  'TRAIN_DOCUMENTS=25071' 'TRAIN_ASSISTANT_REPLIES=79679' \
+  'TRAIN_FLAGS=(--opening-weight 8)'
+reject_case_block_line 'opening-weight)' "$JOB" \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08'
 
 for hash in \
   02a04e97bbb8936c993bf5eff0f29c171ebeae88988217a4100fdc77701f169e \
@@ -266,11 +276,22 @@ require_line '| `tokens.u16` | `3a645e736f96d2e37a267ba3826512001c41b92d8c689fae
 require_line '| `response_mask.u8` | `83911dc7488c13475469fa743e0b6fbca15fcd20e76fc2fee33cb89877673baf` |' "$CONTENT_SHEET"
 require_line '| `manifest.json` | `8b43ff038133a7dc9744bee71dd8aa7e3f6c5e59a664d19690b991a69f0be9fd` |' "$CONTENT_SHEET"
 require_line '`control/post-use-inputs.json`, and then removes only those two raw payloads.' "$CONTENT_SHEET"
+require_line '## Bar' "$OPENING_SHEET"
+require_line '## Data split' "$OPENING_SHEET"
+require_line '## Recipe' "$OPENING_SHEET"
+require_line '## Stop rule' "$OPENING_SHEET"
+require_line '--opening-weight 8' "$OPENING_SHEET"
+require_line '- Positive content row: first-target top-1 >= 16/256 and top-8 >= 64/256;' "$OPENING_SHEET"
+require_line 'Apply this first-match map to the selected checkpoint:' "$OPENING_SHEET"
+require_line 'The original EOS, free-stop and complete-row readings are recorded alongside' "$OPENING_SHEET"
 require_line 'init_approval="$RUN/control/init-approved-$label"' "$JOB"
 require_line '[ ! -e "$init_approval" ] ||' "$JOB"
 require_line 'UOR_TRAIN_INIT_APPROVAL="$init_approval" \' "$JOB"
 require_line 'while [ ! -f "$run_dir/.init-ready" ]; do' "$JOB"
 require_line 'check_initialization "$run_dir"' "$JOB"
+require_line 'if [ "$RECIPE" = opening-weight ]; then' "$JOB"
+require_line 'jq -e '"'"'.opening_weight == 8'"'"' "$run_dir/config.json" >/dev/null ||' "$JOB"
+require_line 'die "opening-weight run config does not record weight 8"' "$JOB"
 require_line 'touch "$init_approval" ||' "$JOB"
 grep -Fq 'fs::write(out.join(INIT_READY_MARKER), b"ready\n")?;' "$TRAINER" ||
   fail "$TRAINER does not publish initialization readiness after writing the record"
@@ -344,6 +365,8 @@ require_line '--init-from "$B64L" \' "$JOB"
 require_line '--train-split "$RUN/inputs/mix" \' "$JOB"
 require_line '--train-sha256 "$TRAIN_TOKENS_SHA" \' "$JOB"
 require_line '--train-mask-sha256 "$TRAIN_MASK_SHA" \' "$JOB"
+require_line '"${TRAIN_FLAGS[@]}" \' "$JOB"
+require_line 'opening_weighted_micro_batches_match_the_whole_batch_step' "$JOB"
 require_line 'STEPS=${UOR_SFT_STEPS:-1024}' "$JOB"
 require_line '--batch 64 --micro-batch "$micro" --steps "$STEPS" \' "$JOB"
 require_line 'if [ "$next" -le "$STEPS" ]; then' "$JOB"
@@ -396,12 +419,15 @@ require_line 'case "$RECIPE:$STEPS:$RUN_LABEL" in' "$LAUNCHER"
 require_line 'legacy:1024:s1)' "$LAUNCHER"
 require_line 'legacy:2048:s1-2048)' "$LAUNCHER"
 require_line 'content-ratio:2048:s1-content-ratio)' "$LAUNCHER"
+require_line 'opening-weight:1024:s1-opening-weight)' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-29/REPORT.md' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md' "$LAUNCHER"
 require_line 'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-31/REPORT.md' "$LAUNCHER"
+require_line 'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-opening-weight-2026-11-08.md' "$LAUNCHER"
+require_line 'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-35/REPORT.md' "$LAUNCHER"
 require_line 'STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08' "$LAUNCHER"
 require_line 'OUT_STORE="$STORE_TOPIC/runs/$RUN_LABEL-$RUN_ID"' "$LAUNCHER"
 require_case_block 'legacy:1024:s1)' "$LAUNCHER" \
@@ -421,6 +447,10 @@ reject_case_block_line 'legacy:1024:s1)' "$LAUNCHER" \
 reject_case_block_line 'legacy:2048:s1-2048)' "$LAUNCHER" \
   'STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08'
 reject_case_block_line 'content-ratio:2048:s1-content-ratio)' "$LAUNCHER" \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07'
+require_case_block 'opening-weight:1024:s1-opening-weight)' "$LAUNCHER" \
+  'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-opening-weight-2026-11-08.md' \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-35/REPORT.md' \
   'STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07'
 require_line 'git ls-tree -r "$PIN" |' "$LAUNCHER"
 require_line "path != fit && path != report'" "$LAUNCHER"

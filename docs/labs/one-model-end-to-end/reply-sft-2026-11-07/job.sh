@@ -23,7 +23,7 @@ RECIPE=${UOR_SFT_RECIPE:-legacy}
 STEPS=${UOR_SFT_STEPS:-1024}
 RUN_LABEL=${UOR_SFT_RUN_LABEL:-s1}
 case "$RECIPE:$STEPS:$RUN_LABEL" in
-  legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio) ;;
+  legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio|opening-weight:1024:s1-opening-weight) ;;
   *) echo "recipe, steps and run label do not form a registered SFT pair" >&2; exit 2 ;;
 esac
 
@@ -35,6 +35,7 @@ esac
 
 RUN_ID=${UOR_SFT_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')}
 RUN=${UOR_SFT_RUN:-/workspace/uor-r4/runs/deepseek-sft-s$SEED}
+TRAIN_FLAGS=()
 case "$RECIPE" in
   legacy)
     STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07
@@ -51,6 +52,15 @@ case "$RECIPE" in
     TRAIN_MANIFEST_SHA=8b43ff038133a7dc9744bee71dd8aa7e3f6c5e59a664d19690b991a69f0be9fd
     TRAIN_DOCUMENTS=65071
     TRAIN_ASSISTANT_REPLIES=223469
+    ;;
+  opening-weight)
+    STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07
+    TRAIN_TOKENS_SHA=3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3
+    TRAIN_MASK_SHA=67af9f09152510edba99795f3ff247a6f17eb80c3907836cd7c0af6d7cddb28b
+    TRAIN_MANIFEST_SHA=1c7aee4dfaffdde07f9c64a5b887b504ee21355038b6ae00897a8a97407d9bbe
+    TRAIN_DOCUMENTS=25071
+    TRAIN_ASSISTANT_REPLIES=79679
+    TRAIN_FLAGS=(--opening-weight 8)
     ;;
 esac
 OUT_STORE="$STORE_TOPIC/runs/$RUN_LABEL-$RUN_ID"
@@ -297,6 +307,8 @@ log "building pinned binaries"
     in_space_long::tests::checkpoint_initialization
   cargo test --release --locked -p uor-r4-float-train --features cuda --lib \
     in_space_long::tests::a_step_saved_as_served
+  cargo test --release --locked -p uor-r4-float-train --features cuda --lib \
+    opening_weighted_micro_batches_match_the_whole_batch_step
 )
 (
   cd "$REPO/docs/labs/one-model-end-to-end/instrument"
@@ -581,6 +593,7 @@ train_and_score() {
     --train-sha256 "$TRAIN_TOKENS_SHA" \
     --train-mask-sha256 "$TRAIN_MASK_SHA" \
     --out "$run_dir" \
+    "${TRAIN_FLAGS[@]}" \
     --objective nearest --retain-rates 1 --decay-mult 1 \
     --lr 0.0002 --lr-end 0 --train-as-served 1 \
     --context 192 --width 256 --hamming-read 4 \
@@ -607,6 +620,10 @@ train_and_score() {
     init_wait=$((init_wait + 1))
   done
   check_initialization "$run_dir"
+  if [ "$RECIPE" = opening-weight ]; then
+    jq -e '.opening_weight == 8' "$run_dir/config.json" >/dev/null ||
+      die "opening-weight run config does not record weight 8"
+  fi
   touch "$init_approval" ||
     die "could not approve the validated initialization"
 

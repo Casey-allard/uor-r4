@@ -43,6 +43,11 @@ case "$RECIPE:$STEPS:$RUN_LABEL" in
     RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-31/REPORT.md
     STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08
     ;;
+  opening-weight:1024:s1-opening-weight)
+    RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-opening-weight-2026-11-08.md
+    RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-35/REPORT.md
+    STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07
+    ;;
   *)
     echo "recipe, steps and run label do not form a registered SFT pair" >&2
     exit 2

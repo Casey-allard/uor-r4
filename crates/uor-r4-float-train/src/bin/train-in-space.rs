@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -374,6 +374,7 @@ fn main() -> Result<()> {
         reflect_floor: false,
         fix_input_table: false,
         train_split: None,
+        opening_weight: 1,
         flock_read: 0,
         content_read: 0,
         hamming_read: 0,
@@ -671,6 +672,14 @@ fn main() -> Result<()> {
                 context_given = true;
             }
             "--type-spin" => config.type_spin = switch(&value)?,
+            "--opening-weight" => match number(&value)? {
+                weight @ 1..=16 => config.opening_weight = weight,
+                _ => {
+                    return Err(FloatTrainError::Invalid(
+                        "--opening-weight wants 1 to 16".to_owned(),
+                    ))
+                }
+            },
             "--train-split" => split_dir = Some(PathBuf::from(&value)),
             "--train-sha256" => split_tokens = Some(value.clone()),
             "--train-mask-sha256" => split_mask = Some(value.clone()),

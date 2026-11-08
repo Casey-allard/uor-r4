@@ -8,6 +8,7 @@ LAUNCHER="$HERE/run-s1.sh"
 SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2026-11-07.md"
 EXTENSION_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-reply-sft-2048-2026-11-07.md"
 CONTENT_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md"
+OPENING_SHEET="$HERE/../../../harness/prep/one-model-end-to-end-opening-weight-2026-11-08.md"
 HARDWARE_LIB="$HERE/hardware-evidence.sh"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -66,6 +67,7 @@ mutate() {
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
     "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
     "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
+    "$([ "$file" = "$OPENING_SHEET" ] && printf '%s' "$target" || printf '%s' "$OPENING_SHEET")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -91,6 +93,7 @@ mutate_first() {
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
     "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
     "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
+    "$([ "$file" = "$OPENING_SHEET" ] && printf '%s' "$target" || printf '%s' "$OPENING_SHEET")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -116,6 +119,7 @@ mutate_swap() {
     "$([ "$file" = "$EXTENSION_SHEET" ] && printf '%s' "$target" || printf '%s' "$EXTENSION_SHEET")" \
     "$([ "$file" = "$HARDWARE_LIB" ] && printf '%s' "$target" || printf '%s' "$HARDWARE_LIB")" \
     "$([ "$file" = "$CONTENT_SHEET" ] && printf '%s' "$target" || printf '%s' "$CONTENT_SHEET")" \
+    "$([ "$file" = "$OPENING_SHEET" ] && printf '%s' "$target" || printf '%s' "$OPENING_SHEET")" \
     >/dev/null 2>&1; then
     echo "mutation $name escaped" >&2
     exit 1
@@ -167,7 +171,7 @@ mutate missing-checkpoint "$JOB" \
 mutate no-termination-cont "$JOB" 'kill -CONT "$TRAIN_PID" 2>/dev/null || true' ''
 mutate wrong-eval "$JOB" '--eval-every 256' '--eval-every 2560'
 mutate wrong-dose "$JOB" \
-  'legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio) ;;' \
+  'legacy:1024:s1|legacy:2048:s1-2048|content-ratio:2048:s1-content-ratio|opening-weight:1024:s1-opening-weight) ;;' \
   'legacy:1024:s1|legacy:2048:s1-2048) ;;'
 mutate fixed-dose "$JOB" '--steps "$STEPS" \' '--steps 1024 \'
 mutate wrong-seed "$JOB" '--seed 1 \' '--seed 2 \'
@@ -192,6 +196,9 @@ mutate wrong-sample "$JOB" \
   b724656f29bdade21aecb372d0568c48c81d78c80f43fe4de8ec667a7824ccc4 \
   0000000000000000000000000000000000000000000000000000000000000000
 mutate missing-init-check "$JOB" '[ -f "$run/init.json" ] ||' 'true ||'
+mutate missing-opening-micro-test "$JOB" \
+  'opening_weighted_micro_batches_match_the_whole_batch_step' \
+  'opening_weighted_micro_batches_match_nothing'
 mutate shared-init-approval "$JOB" \
   'init_approval="$RUN/control/init-approved-$label"' \
   'init_approval="$RUN/control/init-approved"'
@@ -365,8 +372,10 @@ mutate wrong-content-report "$LAUNCHER" \
   'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-31/REPORT.md' \
   'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-25/REPORT.md'
 mutate wrong-content-label "$JOB" \
-  'content-ratio:2048:s1-content-ratio) ;;' \
-  'content-ratio:2048:s1) ;;'
+  '  content-ratio)
+' \
+  '  content-ratio-bad)
+'
 mutate content-output-store-override "$JOB" \
   'case "$RECIPE" in' \
   'OUT_STORE=${UOR_SFT_OUT_STORE:-override}
@@ -374,6 +383,16 @@ case "$RECIPE" in'
 mutate content-sheet-override "$LAUNCHER" \
   'RUNTIME_EXCLUDE_FIT=docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md' \
   'RUNTIME_EXCLUDE_FIT=${UOR_SFT_PREP_SHEET:-docs/harness/prep/one-model-end-to-end-content-ratio-2026-11-08.md}'
+mutate wrong-opening-weight "$JOB" \
+  'TRAIN_FLAGS=(--opening-weight 8)' 'TRAIN_FLAGS=(--opening-weight 7)'
+mutate missing-opening-flag "$JOB" \
+  'TRAIN_FLAGS=(--opening-weight 8)' 'TRAIN_FLAGS=()'
+mutate wrong-opening-store "$JOB" \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-reply-sft-2026-11-07' \
+  'STORE_TOPIC=results/deepseek/one-model-end-to-end-content-ratio-2026-11-08'
+mutate wrong-opening-report "$LAUNCHER" \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-35/REPORT.md' \
+  'RUNTIME_EXCLUDE_REPORT=docs/loop/tasks/one-model-end-to-end/deepseek-31/REPORT.md'
 mutate_swap swapped-recipe-data "$JOB" \
   '  legacy)
 ' \
@@ -408,6 +427,13 @@ mutate_first missing-content-post-use-record "$CONTENT_SHEET" \
 mutate_first wrong-content-sheet-tokens "$CONTENT_SHEET" \
   3a645e736f96d2e37a267ba3826512001c41b92d8c689fae1451784b2fa2da34 \
   0000000000000000000000000000000000000000000000000000000000000000
+mutate_first missing-opening-bar "$OPENING_SHEET" '## Bar' '## Removed bar'
+mutate_first missing-opening-split "$OPENING_SHEET" '## Data split' '## Removed split'
+mutate_first missing-opening-recipe "$OPENING_SHEET" '## Recipe' '## Removed recipe'
+mutate_first missing-opening-stop "$OPENING_SHEET" '## Stop rule' '## Removed stop'
+mutate_first missing-opening-first-match "$OPENING_SHEET" \
+  'Apply this first-match map to the selected checkpoint:' \
+  'Apply these rows in any order:'
 
 [ "$caught" -eq "$attempted" ]
 echo "$caught of $attempted mutations caught"
