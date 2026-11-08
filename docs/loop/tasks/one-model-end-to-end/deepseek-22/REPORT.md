@@ -126,8 +126,9 @@ tokenizer protocol and compute rules were used directly.
 ## Still open
 
 - Fresh non-author FIT and D67 review of the sheet.
-- Run seed 1 under the sheet. Scale to seed 2 only if teacher-forced EOS reaches top-1 and
-  free generation produces at least 16 EOS stops with one complete accepted row.
+- Run seed 1 under the sheet. Scale to seed 2 only after the sheet's positive row: teacher-
+  forced EOS top-1 >= 16/256 with median rank <= 3, free EOS stops >= 16/256, at least
+  four complete accepted rows, and the 512-row continuation guard >= 93.
 - Export and score every 256-step checkpoint; a training loss alone does not decide this
   unit.
 - `m2-reply512` remains unavailable.

@@ -44,6 +44,15 @@ use crate::spiralcore_fbs_arms::{self as arms, FbsArm};
 use crate::spiralcore_fbs_sheet::{build_fbs_model_at, panel_loss};
 use crate::{invalid, sha256_bytes, Result};
 
+/// Written only after every checkpoint tensor and sidecar is closed. A controller may freeze
+/// and copy a checkpoint once this file exists; directory appearance alone can be mid-save.
+const CHECKPOINT_READY_FILE: &str = ".checkpoint-ready";
+
+fn mark_checkpoint_ready(directory: &Path) -> Result<()> {
+    fs::write(directory.join(CHECKPOINT_READY_FILE), b"ready\n")?;
+    Ok(())
+}
+
 /// What the trunk's predicted point is trained against.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -1350,6 +1359,30 @@ fn write_initialization_record(out: &Path, config: &LongConfig) -> Result<()> {
         schedule: "fresh",
     };
     fs::write(out.join("init.json"), serde_json::to_vec_pretty(&record)?)?;
+    Ok(())
+}
+
+const INIT_READY_MARKER: &str = ".init-ready";
+const INIT_APPROVAL_ENV: &str = "UOR_TRAIN_INIT_APPROVAL";
+
+/// Publish a complete initialization record, then hold the trainer at the boundary until its
+/// launch controller accepts the record. Without this handshake, an invalid initialization could
+/// be detected only after optimization had already started.
+fn wait_for_initialization_approval(out: &Path, approval: Option<&Path>) -> Result<()> {
+    fs::write(out.join(INIT_READY_MARKER), b"ready\n")?;
+    let Some(approval) = approval else {
+        return Ok(());
+    };
+    let started = Instant::now();
+    while !approval.is_file() {
+        if started.elapsed().as_secs() >= 120 {
+            return Err(invalid(format!(
+                "initialization record was not approved at {} within 120 seconds",
+                approval.display()
+            )));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
     Ok(())
 }
 
@@ -12746,6 +12779,10 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
     let mut hamming = start_hamming(config, device)?;
     write_initialization_record(out, config)?;
+    if config.init_from.is_some() {
+        let approval = std::env::var_os(INIT_APPROVAL_ENV).map(PathBuf::from);
+        wait_for_initialization_approval(out, approval.as_deref())?;
+    }
     // The opening read (claude-154), when on: its own optimizer, applied inside the trunk.
     let mut opening = start_opening(config, device)?;
     // The prompt register (claude-155), when on: its own optimizer, applied inside the trunk.
@@ -12945,6 +12982,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(served) = served {
             served.restore()?;
         }
+        mark_checkpoint_ready(&directory)?;
         Ok(())
     };
 
@@ -14102,6 +14140,16 @@ mod tests {
         root.join("run/models/step-000008")
     }
 
+    #[test]
+    fn checkpoint_ready_marker_records_completion() {
+        let root = init_test_dir("checkpoint-ready");
+        mark_checkpoint_ready(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join(CHECKPOINT_READY_FILE)).unwrap(),
+            b"ready\n"
+        );
+    }
+
     fn write_source_run_config(checkpoint: &Path) {
         let run = checkpoint.parent().and_then(Path::parent).unwrap();
         fs::create_dir_all(run).unwrap();
@@ -14417,6 +14465,19 @@ mod tests {
         };
         write_initialization_record(&fresh_out, &fresh).unwrap();
         assert!(!fresh_out.join("init.json").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn initialization_record_is_ready_before_controller_approval() {
+        let root = init_test_dir("approval");
+        let approval = root.join("approved");
+        fs::write(&approval, b"ok").unwrap();
+        wait_for_initialization_approval(&root, Some(&approval)).unwrap();
+        assert_eq!(
+            fs::read_to_string(root.join(INIT_READY_MARKER)).unwrap(),
+            "ready\n"
+        );
         fs::remove_dir_all(root).unwrap();
     }
 

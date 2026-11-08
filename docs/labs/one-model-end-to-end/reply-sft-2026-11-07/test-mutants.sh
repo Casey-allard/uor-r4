@@ -20,6 +20,29 @@ grep -Fq 'seed 2 is conditional and is not launched by this script' "$TMP/seed-t
   echo "unmodified job refused seed 2 for the wrong reason" >&2
   exit 1
 }
+actual_log=$(
+  printf '%s\n' \
+    'Started on vast-example gpu 0 (queues behind any job holding the GPU lock). Log: /workspace/uor-r4/jobs/deepseek/example.log' |
+    awk '/Log: / {
+      for (i = 1; i <= NF; i++) if ($i == "Log:") { print $(i + 1); exit }
+    }'
+)
+[ "$actual_log" = /workspace/uor-r4/jobs/deepseek/example.log ] || {
+  echo "the controller does not parse uor-pod's actual job-log line" >&2
+  exit 1
+}
+remote_process=$(
+  printf '%s\n' \
+    '123 456 bash /workspace/uor-r4/jobs/deepseek/example.sh' |
+    awk -v script=/workspace/uor-r4/jobs/deepseek/example.sh '
+      /^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]/ {
+        for (i = 3; i <= NF; i++) if ($i == script) { print $1, $2; exit }
+      }'
+)
+[ "$remote_process" = '123 456' ] || {
+  echo "the controller does not identify the exact remote process group" >&2
+  exit 1
+}
 
 mutate() {
   local name=$1 file=$2 search=$3 replacement=$4
@@ -66,9 +89,41 @@ mutate_first() {
 mutate wrong-stop-step "$JOB" '[ "$step" -eq 512 ]' '[ "$step" -eq 768 ]'
 mutate disabled-stop "$JOB" '[ "$eos_p50" -ge 7 ]; then' '[ "$eos_p50" -ge 7 ] && false; then'
 mutate weak-eos-p50 "$JOB" '[ "$eos_p50" -ge 7 ]' '[ "$eos_p50" -ge 0 ]'
-mutate weak-guard "$JOB" '[ "$guard" -lt 93 ]' '[ "$guard" -lt 0 ]'
-mutate weak-base-guard "$JOB" '[ "$base_guard" -ge 93 ]' '[ "$base_guard" -ge 0 ]'
+mutate wrong-best-no-guard "$JOB" \
+  '(if $guard_safe then 0 else -(.guard_top1) end),' \
+  '(if $guard_safe then 0 else $rows end),'
+mutate weak-best-guard "$JOB" \
+  '($rows | any(.[]; .guard_top1 >= 93))' \
+  '($rows | any(.[]; .guard_top1 >= 0))'
+mutate unfiltered-best-guard "$JOB" \
+  'select(($guard_safe | not) or .guard_top1 >= 93)' 'select(true)'
+mutate weak-best-eos-top1 "$JOB" '-(.eos_top1),' '(.eos_top1),'
+mutate weak-best-free-eos "$JOB" '-(.free_eos_stops),' '(.free_eos_stops),'
+mutate weak-best-complete "$JOB" \
+  '-(.free_complete_rows),' '(.free_complete_rows),'
+mutate missing-free-complete "$JOB" \
+  '.totals.complete | numbers' '.totals.complete | null'
+mutate one-user-best-source "$JOB" \
+  '-per-turn-generated.json") ||' '-one-user-generated.json") ||'
+mutate wrong-best-rendering "$JOB" \
+  'free_generation_rendering:"per-turn/v1",' \
+  'free_generation_rendering:"one-user-turn/v1",'
+mutate last-best-checkpoint "$JOB" \
+  'selected:$ranked[0],' 'selected:$ranked[-1],'
+mutate early-guard-stop "$JOB" \
+  'touch "$marker" || die "could not mark checkpoint $step scored"' \
+  'if [ "$guard" -lt 93 ]; then STOP_REASON="continuation-failure-step-$step"; kill "$TRAIN_PID" 2>/dev/null || true; fi
+  touch "$marker" || die "could not mark checkpoint $step scored"'
+mutate weak-base-guard "$JOB" '[ "$base_guard" -eq 132 ]' '[ "$base_guard" -ge 0 ]'
+mutate wrong-base-rank "$JOB" '.eos_rank_min == 5' '.eos_rank_min == 0'
+mutate missing-per-turn-free "$JOB" \
+  "' base-per-turn-generated" "' base-one-user-generated"
 mutate no-freeze "$JOB" 'kill -STOP "$TRAIN_PID"' 'kill -CONT "$TRAIN_PID"'
+mutate partial-checkpoint "$JOB" \
+  'if [ -d "$checkpoint" ] && [ -f "$checkpoint/.checkpoint-ready" ]; then' \
+  'if [ -d "$checkpoint" ]; then'
+mutate missing-checkpoint "$JOB" \
+  'elif [ -z "$STOP_REASON" ]; then' 'elif false; then'
 mutate no-termination-cont "$JOB" 'kill -CONT "$TRAIN_PID" 2>/dev/null || true' ''
 mutate wrong-eval "$JOB" '--eval-every 256' '--eval-every 2560'
 mutate wrong-seed "$JOB" '--seed 1 \' '--seed 2 \'
@@ -78,8 +133,10 @@ mutate zero-replies "$JOB" '--max-replies 1 --reply-tokens 1' \
 mutate_first checkpoint-zero-replies "$JOB" \
   '--max-evaluation 512 --max-replies 1 --reply-tokens 1' \
   '--max-evaluation 512 --max-replies 0 --reply-tokens 1'
+mutate_first raw-export-flags "$JOB" \
+  '--raw-gates --raw-transition \' '--raw-gates \'
 mutate wrong-panel-target "$JOB" \
-  'PANEL_BIN="$RUN/panel-target/release/served-reply-panel"' \
+  'PANEL_BIN="$PANEL_TARGET/release/served-reply-panel"' \
   'PANEL_BIN="$REPO/docs/labs/one-model-end-to-end/instrument/target/release/served-reply-panel"'
 mutate mixed-hash "$JOB" \
   3a2c397e4b1a13c488096f931cf377efaeed51d2de17c231ac72d4b6291899e3 \
@@ -87,12 +144,108 @@ mutate mixed-hash "$JOB" \
 mutate forge-hash "$JOB" \
   'got=$(sha256sum "$path" | cut -d'"'"' '"'"' -f1)' \
   'got=$want'
+mutate wrong-sample "$JOB" \
+  b724656f29bdade21aecb372d0568c48c81d78c80f43fe4de8ec667a7824ccc4 \
+  0000000000000000000000000000000000000000000000000000000000000000
+mutate missing-init-check "$JOB" '[ -f "$run/init.json" ] ||' 'true ||'
+mutate shared-init-approval "$JOB" \
+  'init_approval="$RUN/control/init-approved-$label"' \
+  'init_approval="$RUN/control/init-approved"'
+mutate missing-oom-retry "$JOB" 'TRAIN_FAILURE=$train_rc' 'TRAIN_FAILURE=0'
+mutate masked-panel-exit "$JOB" \
+  '--reply-tokens 64 --out "$out" || return 1' \
+  '--reply-tokens 64 --out "$out"'
+mutate ignored-panel-exit "$JOB" \
+  'run_panel "$step" "$artifact" per-turn/v1 1 per-turn-teacher >/dev/null ||' \
+  'run_panel "$step" "$artifact" per-turn/v1 1 per-turn-teacher >/dev/null'
+mutate async-seal-log "$JOB" \
+  'exec >> "$RUN/job.log" 2>&1' \
+  'exec > >(tee -a "$RUN/job.log") 2>&1'
+mutate duplicate-checkpoints "$JOB" \
+  'install -d "$RUN/scores/$ATTEMPT"' \
+  'install -d "$RUN/scores/$ATTEMPT"; cp -a "$checkpoint" "$RUN/scores/$ATTEMPT/copy"'
+mutate missing-seal-cap "$JOB" \
+  'if [ "$actual_seal_bytes" -gt "$SEAL_LIMIT_BYTES" ]; then' \
+  'if false; then'
+mutate weak-progress-finite "$JOB" 'all(.[];' 'any(.[];'
+mutate unchecked-single-step-zero "$JOB" \
+  '(map(select(.step == 0)) | length) == 1 and' \
+  '(map(select(.step == 0)) | length) >= 1 and'
+mutate unchecked-positive-progress "$JOB" \
+  '([.[] | select(.step > 0)] | length) > 0 and' 'true and'
+mutate unchecked-dev-loss "$JOB" \
+  '((.dev_loss | type) == "number" and (.dev_loss | isfinite)) and' \
+  '(.dev_loss != null) and'
+mutate unchecked-dev-token-margin "$JOB" \
+  '(.dev_token_margin | isfinite)' 'true'
+mutate unchecked-dev-address-margin "$JOB" \
+  '(.dev_address_margin | isfinite)' 'true'
+mutate unchecked-step-zero-train-loss "$JOB" \
+  'then .train_loss_mean == null' 'then true'
+mutate unchecked-positive-train-loss "$JOB" \
+  'else ((.train_loss_mean | type) == "number" and
+         (.train_loss_mean | isfinite))' \
+  'else true'
+mutate checkpoint-progress-unchecked "$JOB" \
+  'check_progress "$TRAIN_RUN/progress.jsonl"' 'true'
+mutate base-sample-unchecked "$JOB" \
+  'die "base continuation grade did not use the registered 512-row sample"' \
+  'true'
+mutate overlap-accepted "$JOB" \
+  '.counts.exact_accepted_assistant_reply == 0 and' \
+  '.counts.exact_accepted_assistant_reply >= 0 and'
 mutate no-readback "$JOB" 'READBACK_STATUS=verified' 'READBACK_STATUS=unknown'
 mutate directory-readback "$JOB" \
   '[ -d "$sealed" ] && (cd "$sealed" && sha256sum -c SHA256SUMS)' \
   '[ -d "$sealed" ]'
 mutate two-gpus "$LAUNCHER" '--count 1 --hours 2' '--count 2 --hours 2'
+mutate uppercase-session "$LAUNCHER" \
+  " | tr '[:upper:]' '[:lower:]'" ''
+mutate dirty-launch "$LAUNCHER" \
+  '[ -z "$(git status --porcelain --untracked-files=no)" ] ||' \
+  'true ||'
+mutate unmerged-pin "$LAUNCHER" \
+  'git merge-base --is-ancestor "$PIN" origin/main ||' 'true ||'
+mutate reviewed-runtime-unchecked "$LAUNCHER" \
+  '[ "$runtime_sha" = "$REVIEWED_RUNTIME" ] ||' 'true ||'
+mutate weak-global-cap "$LAUNCHER" \
+  'export UOR_POD_MAX_RATE=8.00' 'export UOR_POD_MAX_RATE=80.00'
+mutate store-preflight-fail-open "$LAUNCHER" \
+  'if ! listings=$("$STORE" ls "$STORE_TOPIC"); then' 'if false; then'
+mutate submit-only-wait "$LAUNCHER" \
+  "'exit '*) job_exit=\${probe#exit }; break ;;" '*) break ;;'
+mutate dead-job-ignored "$LAUNCHER" \
+  'elif ! flock -n /root/gpu0.lock true; then printf '"'"'running\\n'"'"'' \
+  'elif false; then printf '"'"'running\\n'"'"''
+mutate ignored-remote-exit "$LAUNCHER" '[ "$job_exit" -eq 0 ] || {' 'true || {'
+mutate missing-job-log "$LAUNCHER" \
+  '*) cat "$CONTROLLER/run.out" >&2; echo "uor-pod did not report a job log" >&2; exit 1 ;;' \
+  '*) ;;'
 mutate no-renew "$LAUNCHER" 'if ! "$POD_TOOL" renew "$POD"' 'if ! true'
+mutate no-stall-stop "$LAUNCHER" \
+  'if [ $((remote_now - last_progress)) -ge "$STALL_SEC" ]; then' \
+  'if false; then'
+mutate epoch-zero-stall "$LAUNCHER" 'last_progress=$started' 'last_progress=0'
+mutate unreachable-as-stopped "$LAUNCHER" \
+  '*) failures=0; unreachable=$((unreachable + 1)) ;;' \
+  '*) failures=$((failures + 1)); unreachable=0 ;;'
+mutate no-rental-discovery "$LAUNCHER" 'discover_owned_pod' 'true'
+mutate no-active-stop "$LAUNCHER" 'if stop_remote_job; then' 'if true; then'
+mutate teardown-after-failed-stop "$LAUNCHER" \
+  '"$POD_TOOL" down "$POD" --lab deepseek --session "$SESSION" --to-store || rc=1' \
+  'true'
+mutate unknown-submission-success "$LAUNCHER" \
+  '[ "$SUBMISSION_ATTEMPTED" -ne 1 ] || {' \
+  'false || {'
+mutate no-remote-job-discovery "$LAUNCHER" \
+  "-name '*-"'$SESSION'"-gpu0.sh' -print" \
+  "-name '*.sh' -print"
+mutate signal-cleanup-success "$LAUNCHER" \
+  '[ "$STATUS" = SEALED ] || rc=1' \
+  '[ "$STATUS" = SEALED ] || true'
+mutate missing-provider-build "$LAUNCHER" \
+  'VAST_ADAPTER="$CONTROLLER/provider-target/debug/uor-r4-pod-provider"' \
+  'VAST_ADAPTER=/missing/uor-r4-pod-provider'
 mutate launcher-readback-true "$LAUNCHER" \
   '[ "$(cat "$READBACK_FILE")" = verified ]' 'true'
 mutate launcher-exit-true "$LAUNCHER" \

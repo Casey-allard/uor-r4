@@ -3,9 +3,9 @@
 Lab: deepseek. Item: [one-model-end-to-end](../../roadmap/items/one-model-end-to-end.md)
 (#3407). Order: [deepseek-22](../loop/tasks/one-model-end-to-end/deepseek-22/ORDER.md).
 
-TEST FITNESS: PENDING (fresh non-author review required).
+TEST FITNESS: FIT - fresh non-author review at `d358ecb848adf8e84ef22ab36d5e6b6c7b59880e`, reviewed-runtime `044120d4bc348aec934028a7fc77f70831b41a745cf601f1639abc516541089a`, reviewer session `01a1b894-3057-7ce1-af5f-b0a9fc06e2ba`.
 
-PRE-RUN: PENDING (fresh D67 review required).
+PRE-RUN: GO - fresh D67 review at `1902f0b2b2c4de57ecef59dc4bd1c1fee901857f`, reviewed-runtime `044120d4bc348aec934028a7fc77f70831b41a745cf601f1639abc516541089a`, reviewer session `01a1b89e-ade6-7b03-ba5f-d19cdbd091ef`.
 
 **Why.** The current (b64L) model clears the human-text panel but serves
 0 complete replies and 0 EOS stops on all 256 `m2-fresh256` rows. D3 scores
@@ -127,9 +127,12 @@ responses against all 96 M2 strings:
 | document sharing a panel word 6-gram | 0 |
 | assistant response sharing a panel word 6-gram | 0 |
 
-Audit SHA: `34a9646195cd2dd929d5ffcc779bbcbfe5157f55554f9894981ee225ba20f053`.
-This supports the M2 exclusion claim for this store. A positive still unlocks a
-matched-data control before the gain is attributed to M-World or the reply mask.
+The historical audit file hash is `34a96461…`. Because its JSON embeds input
+paths, that file hash changes with the run root; the launch check therefore binds
+the full input hashes and the four exact counts above, not that path-dependent
+file hash. This supports the M2 exclusion claim for this store. A positive still
+unlocks a matched-data control before the gain is attributed to M-World or the
+reply mask.
 
 The human continuation guard uses OASST2 held-out, not DEV:
 
@@ -186,10 +189,13 @@ At checkpoints 256, 512, 768 and 1,024, export and score:
 1. `cpu-checkpoint-grade --checkpoint STEP --run-config $SEAL/run/config.json
    --snapshot-out ... --artifact-out ... --tokens OASST2_HELDOUT/tokens.u16
    --mask OASST2_HELDOUT/response_mask.u8 --manifest OASST2_HELDOUT/manifest.json
-   --max-evaluation 512 --max-replies 1 --reply-tokens 1 --out ...`.
+   --max-evaluation 512 --max-replies 1 --reply-tokens 1
+   --raw-gates --raw-transition --out ...`.
    `cpu-checkpoint-grade` refuses `--max-replies 0`; one one-token reply
    exercises the export path while the continuation gate reads the 512-row
-   nearest grade.
+   nearest grade. The source run trained as served, so the exporter requires
+   both raw-snapshot flags; the base export uses the same two flags and must
+   reproduce artifact `9a370566…`.
    Record nearest top-1, its pass/fail against 93, and the export hashes.
 2. `served-reply-panel --artifact ... --rendering per-turn/v1
    --teacher-forced 1 ...`. Record EOS top-1/top-8/top-32, median rank,
@@ -205,8 +211,34 @@ run config, Hamming read and output `UORLUT01` hash.
 
 ## Bar and outcome map
 
-This is a staged development run, not a milestone bar. The M2 acceptance bar
-remains 104/256 complete rows and 52/128 pairs.
+This is a staged development run, not a milestone bar. The current M2 bar is
+>= 256/512 saved questions, plus >= 52/128 pairs that are both complete and
+distinct and >= 104/256 single-row-complete questions on the genuinely fresh
+panel, with the existing graders unchanged. `m2-reply512` remains unavailable,
+so this unit cannot claim an M2 pass.
+
+## Best-checkpoint selection
+
+The selected checkpoint is fixed by these rules, in order:
+
+1. If any checkpoint has `guard_top1 >= 93`, only those guard-safe checkpoints
+   are candidates. If none are guard-safe, every checkpoint is a candidate and
+   guard top-1 descending is the first ordering key.
+2. Order candidates by teacher-forced EOS top-1 descending.
+3. Break ties by free EOS stops descending.
+4. Break ties by complete accepted rows descending.
+5. Break ties by EOS median rank ascending.
+6. Break ties by continuation guard top-1 descending.
+7. Break ties by step ascending, selecting the earlier checkpoint.
+
+The first candidate is the best checkpoint. The job writes the complete ranked
+list and the selected row to `best-checkpoint.json`; after that mechanical
+selection, the outcome map below is applied in its listed order.
+
+The free-generation values used by selection and the outcome map are the
+`per-turn/v1` generated panel's EOS stops and complete accepted rows. The
+`one-user-turn/v1` generated panel is an audit control; it does not select the
+checkpoint or change an outcome.
 
 The first-match outcome map is:
 
@@ -217,7 +249,7 @@ The first-match outcome map is:
 | 3 | EOS top-1 >= 16/256, median rank <= 3, free EOS stops >= 16/256, complete accepted rows >= 4/256, and guard >= 93/512 | **Positive:** termination and some useful content moved together. Unlock seed 2 and a longer run from the best checkpoint. |
 | 4 | EOS top-1 >= 16, free EOS stops >= 16, guard >= 93, complete rows < 4 | **Termination signal, content gap.** No seed 2 yet; first compare first divergence on per-turn replies, then extend answer-content SFT. |
 | 5 | EOS top-1 >= 16, guard >= 93, free EOS stops < 16 | **Ranking-generation gap.** No seed 2; diagnose the teacher-forced/free-generation mismatch before adding EOS weight. |
-| 6 | 0 < EOS top-1 < 16 or median rank improves below 7 but the other thresholds miss | **Partial ranking movement.** No seed 2; run one 2,048-step dose extension at a new root, then apply thresholds 1-5. |
+| 6 | guard >= 93 and at least one movement signal is present (EOS top-1 > 0, free EOS stops > 0, complete rows > 0, or median EOS rank < 7), but rows 3-5 do not apply | **Partial movement.** No seed 2; run one 2,048-step dose extension at a new root, then apply thresholds 1-5. |
 | 7 | none of the above | **No signal at 1,024.** Close this configuration and inspect the scored windows; do not run seed 2. |
 
 A positive result establishes that this recipe can move the served model. It
@@ -230,10 +262,16 @@ OASST2-only continuation on the same base and steps.
   optimizer/schedule.
 - The mixed store and OASST2 held-out files match every full hash and sample
   fingerprint in this sheet before the first forward.
-- `corpus-panel-overlap` reproduces the four zero overlap counts and output SHA
-  above.
+- `corpus-panel-overlap` reproduces the four zero overlap counts and the input
+  identities above; the path-bearing audit file hash is descriptive only.
 - Each checkpoint reloads and exports; `cpu-checkpoint-grade` exports and grades
-  the same bytes.
+  the same bytes. The required raw snapshot is transient and stays outside the
+  seal; the retained artifact is the graded artifact.
+- A checkpoint is marked scored only after its export, all three panels and the
+  numeric reading extraction succeed. Any timeout, probe, panel or copy failure
+  stops the seed and leaves the pod for its failure archive.
+- The job log is written directly; sealing waits for no asynchronous log writer.
+  The completed seal must be at most 100 MiB or the job fails before upload.
 - The panel inputs, labels, plan, manifest and tokenizer equal full hashes
   `1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a`,
   `3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be`,
@@ -243,7 +281,7 @@ OASST2-only continuation on the same base and steps.
 - Seed-1 base free-generation and rank controls reproduce the recorded counts.
 - Every output root is new and every seal is read back.
 
-The executable review unit is deepseek-23:
+The executable review units are deepseek-23 and deepseek-25:
 
 - `docs/labs/one-model-end-to-end/reply-sft-2026-11-07/job.sh` is the pod-side
   input, training, checkpoint, stop, seal and readback chain;
@@ -253,16 +291,23 @@ The executable review unit is deepseek-23:
 ## Steps
 
 1. Record the fresh FIT and D67 review of the merged code, this sheet, job chain,
-   exact input packet and seal paths.
-2. `uor-pod status`; acquire one RTX 5090 32 GiB pod under a Codex-lab lease
+   exact input packet and seal paths, including the reviewed commit and runtime
+   identity.
+2. `uor-pod status`; acquire one RTX 5090 32 GiB pod under a DeepSeek-lab lease
    inside the four-pod/$8h caps. Never touch Claude's pods.
-3. Build the exact merged pin, fetch and hash every input, run the training-unit
-   CPU tests, and reproduce the base rank/free/continuation controls.
-4. Run the 1,024-step training job in the foreground. At each 256-step
-   checkpoint, export and score before proceeding. At step 512, apply row 2 of
-   the outcome map and stop the process if it matches.
+3. Build the exact merged pin with `UOR_SFT_PIN` and
+   `UOR_SFT_REVIEWED_RUNTIME` set from step 1, fetch and hash every input, run
+   the training-unit CPU tests, and reproduce the base rank/free/continuation
+   controls. The runtime identity covers every tracked build/runtime file, this
+   sheet with only its two verdict lines normalized, and excludes only the
+   deepseek-25 report that records review evidence.
+4. Submit the 1,024-step training job through the detached remote runner and
+   wait on its terminal footer. At each 256-step checkpoint, export and score
+   before proceeding. At step 512, apply row 2 of the outcome map and stop the
+   process if it matches.
 5. At completion or stop, seal checkpoints, exports, panel outputs, grades and
-   logs under `results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/s1/`,
+   logs under
+   `results/deepseek/one-model-end-to-end-reply-sft-2026-11-07/runs/s1-<run-id>/`,
    read back, then take the pod down.
 6. Apply the outcome map. Run seed 2 only after row 3 and a fresh decision
    review.
@@ -278,15 +323,18 @@ Resource projection:
 - one RTX 5090 32 GiB; base micro-batch-16 peak about 27 GiB;
 - 1,024 steps at 0.63-0.70 s/step: about 11-12 minutes;
 - setup/build/input verification: 10 minutes; base controls: 2 minutes;
-- five exports/grades and 15 panel passes: 8-10 minutes; seal/readback: 5 min;
+- five exports/grades and 16 panel passes: 8-10 minutes; seal/readback: 5 min;
 - planned wall: 36-39 minutes. One full retry projection: 78 minutes;
 - spend at $1.15/h: $0.69-0.75 planned, $1.50 with one retry;
-- lease/watcher limit: 1.5 h, with healthy-run extension recorded if needed;
+- two-hour lease renewed every 25 minutes; healthy runs are not cancelled by a
+  self-set timer;
 - local CPU: at most 8 Rayon threads for instruments; no local model training;
 - local RAM: 16 GiB envelope; panel/grader run one at a time;
-- new retained data: 20 MiB; pod checkpoints/exports: under 1 GiB; pod build:
-  under 20 GiB; local build/scratch: under 10 GiB;
-- current free space measured at review: 203,999,088 KiB, above the project's
+- sealed input, checkpoint, export, grade and panel evidence: at most 100 MiB;
+  trainer checkpoints are scored in place and raw snapshots are transient;
+  pod panel build outside the seal: under 20 GiB; local build/scratch: under
+  10 GiB;
+- current free space measured at review: 163,126,048 KiB, above the project's
   30 GiB + 128 MiB floor;
 - `model-time.json` and an active storage receipt were absent at review; launch
   must re-check and record that state.
@@ -298,6 +346,7 @@ Resource projection:
 - Out of memory: retry micro-batch 8 once; a second failure is `NOT_RUN`.
 - Non-finite loss, missing checkpoint, failed export/reload, or changed input
   hash: stop that seed.
-- Apply the first-match outcome map before continuing past 512 and before seed 2.
+- Apply row 2 before continuing past 512. Apply rows 1 and 3-7 to the selected
+  best checkpoint after all available checkpoints through 1,024, before seed 2.
 - Never cancel a healthy run because a self-set timer or budget expires; renew
   and record. Never touch Claude's pods, leases, files or GPU devices.

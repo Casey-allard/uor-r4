@@ -384,6 +384,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/reply-sft-launch-fix": {
+    "branch": "deepseek/reply-sft-launch-fix",
+    "claimed_at": "2026-11-07T16:20:00-05:00",
+    "head": "43ab4b624",
+    "lab": "deepseek",
+    "note": "wait for the detached reply-SFT remote job through its terminal exit"
+  },
   "deepseek/one-model-train-init": {
     "branch": "deepseek/one-model-train-init",
     "claimed_at": "2026-11-07T14:01:35-05:00",

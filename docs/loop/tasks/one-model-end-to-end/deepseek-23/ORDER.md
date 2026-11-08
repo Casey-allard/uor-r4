@@ -8,8 +8,8 @@ Lab: deepseek. Item: [one-model-end-to-end](../../../../roadmap/items/one-model-
 Turn deepseek-22's reply-masked SFT sheet into an executable, reviewed seed-1 chain:
 acquire one DeepSeek-owned RTX 5090, restore the exact `(b64L)` seed-1 checkpoint,
 train 1,024 steps on the already sealed mixed store, export and score every
-256-step checkpoint, enforce the continuation and 512-step ranking stops, seal
-the evidence, read it back and take the pod down.
+256-step checkpoint, record the continuation guard, enforce the 512-step ranking
+stop, seal the evidence, read it back and take the pod down.
 
 No seed-2 run starts here. It remains conditional on outcome-map row 3 and a
 fresh decision review.
@@ -38,13 +38,15 @@ fresh decision review.
    steps, and freezes training while each 256-step checkpoint is exported and
    scored.
 3. It stops at step 512 when EOS remains at top-1 zero with median rank at least
-   7, or earlier when the 512-row continuation guard falls below 93.
+   7. It records the 512-row continuation guard at every checkpoint and applies
+   the continuation outcome after all available checkpoints through 1,024.
 4. It seals checkpoints, exports, grades, panel outputs and logs under a new
    store root, verifies the readback and takes the pod down.
 5. A fresh FIT and D67 pre-run review examine the exact merged code, run chain,
    input packet and seal paths.
-6. The seed-1 run completes or is recorded as `NOT_RUN`, and the REPORT applies
-   the sheet's first-match outcome map.
+6. The seed-1 run completes or is recorded as `NOT_RUN`; the REPORT applies the
+   sheet's deterministic best-checkpoint selector and then its first-match
+   outcome map.
 
 ## Stop and ask if
 
