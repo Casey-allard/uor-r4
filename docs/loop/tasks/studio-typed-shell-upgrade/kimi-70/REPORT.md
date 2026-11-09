@@ -40,10 +40,14 @@ Evidence is under `local/kimi/studio-shared-shell/`, including exact-head identi
 
 Shared-runtime planning and red-first implementation, systematic packaged-window diagnosis, test-driven adapter repair, macOS accessibility verification, adversarial evidence review repair, and verification before completion. Agent-53 supplied the first independent CHANGES review; a fresh exact-head `uor-delivery-reviewer` is required after these repairs.
 
+## Follow-up bounded-process repair
+
+The disclosed Git timeout was subsequently reproduced in the default desktop suite and traced to `run_bounded_process`: output-channel disconnection could precede observable normal child exit, and the old post-loop path terminated that child as timed out. A deterministic closed-pipes regression failed in 0.01 seconds before the helper change and passes afterward; a complementary control proves that a genuinely live child still times out. Default desktop now passes **9/19/7/13/8** and GUI **11/23/8/13/9** (library/controls/MCP/review/sidecar), with no main or doc-test failures. The fresh GUI-built package has executable SHA-256 `5453941831b8afa136f488efbadb998d077f993d86237269c0948813b3d5e92d`; its package contract and both real-app Python checks pass. Real packaged Changes now shows `HEAD (unborn) · 2 changed files` and the full two-file diff without branch or diff timeout flags. See [the bounded repair report](../kimi-76/REPORT.md) and `local/kimi/studio-shared-shell/process-control-repair/` for the red/green, AX, screenshot, and exact-diff evidence.
+
 ## Still open
 
-Final repaired-head acceptance and fresh review, protected merge, and fresh-main verification remain for this unit. Final browser/desktop acceptance must diagnose the Git timeout result and cover the complete Phase A workflows before typed production publication and packaged-app launch. Full Phase A and Phase B remain incomplete; #3500 remains open.
+Native CDP passed with the measured shared-runtime and migration behavior. Final complete product/repository acceptance and fresh review, protected merge, and fresh-main verification remain for this unit. Final browser/desktop acceptance must still cover the complete Phase A workflows before typed production publication and packaged-app launch. Full Phase A and Phase B remain incomplete; #3500 remains open.
 
 ## Plain summary
 
-Web preview, the local native runner, and the unsigned macOS app now use the same mounted Vite runtime. Independent evidence proves catalog compatibility, exact arithmetic, session restore, attachment, native save, intent-to-add Git output, and approved command execution. The packaged adapter and build-order defects are repaired. The published legacy surface and synthetic/production catalog scopes are now stated correctly; the Git timeout diagnostic and final delivery/acceptance work remain open.
+Web preview, the local native runner, and the unsigned macOS app now use the same mounted Vite runtime. Independent evidence proves catalog compatibility, exact arithmetic, session restore, attachment, native save, intent-to-add Git output, and approved command execution. The packaged adapter, build-order, and false process-timeout defects are repaired at the measured scope. The published legacy surface and synthetic/production catalog scopes remain unchanged; final delivery and full acceptance work remain open.
