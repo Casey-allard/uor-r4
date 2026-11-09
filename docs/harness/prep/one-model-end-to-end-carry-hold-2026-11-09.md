@@ -1,6 +1,13 @@
 # Prep sheet: the carry lever, a held stream write (one-model-end-to-end, claude-331, 9 Nov 2026)
 
-TEST FITNESS: NOT_FIT after claude-332's two rounds, by different fresh non-author reviewers (claude-332's stop rule applies: no code or run under that unit). Round 2's fixes are applied below but not reviewed.
+TEST FITNESS: PENDING. claude-332 read NOT_FIT after two rounds. claude-333 applied that unit's exact-head review findings and is writing the code. It owes a fresh non-author FIT that reads this sheet together with the code, before any GPU.
+- **claude-333, before its FIT:** claude-332's exact-head review (PR 3881, at `8caddc8a2`) found four minors and two nits. Applied:
+  - the undertrained test is read at the arm's last checkpoint, including an extended arm's;
+  - every extension, under any outcome, runs once;
+  - (r1h)'s found rows are keyed on the slot's `Q` row;
+  - a not-finding branch of its own heads outcome 4;
+  - `g = 0` is "equal as numbers", matching I-H1;
+  - a casing nit.
 - **claude-332 round 2, at `e20d6a47f`:** NOT_FIT. It confirmed the slot layout, the header and scored row, the trunk's causal width-4 convolution and scan, and the payload's construction. Applied:
   - **Major 1:** rows where no ask head found a candidate have `y = u = 0`, so every scaled distance is 0 and the rank would come from the tie-break alone. With claude-330's 376–512 of 512 rows kept, a right payload could have averaged near rank 67 and read as "any other pattern". The ranks are now taken over the found rows only, beside the found fraction, and I-V pins a zero vector.
   - **Major 2:** an extension had no exit, so outcome 1 could match again after it. The extension now runs once, and an arm still undertrained at 16,384 is a named configuration result with a next step. "Near 1" and "near chance" are read at 16,384 for an extended arm.
@@ -25,7 +32,7 @@ TEST FITNESS: NOT_FIT after claude-332's two rounds, by different fresh non-auth
   - **Minor:** outcome 4's "any other pattern" now has a next step.
   - **Nit:** 0.017–0.394 is claude-330's read weight in general (I-4), not `w_y` alone.
   - The other nit was the REPORT's wording, not the sheet's.
-- **Round 2 (claude-331), at `6aec906df`:** NOT FIT. every round 1 major is confirmed fixed in the text. Two new majors and two minors, all applied below:
+- **Round 2 (claude-331), at `6aec906df`:** NOT FIT. Every round 1 major is confirmed fixed in the text. Two new majors and two minors, all applied below:
   - **Major A:** (r1u) by one scalar `|w_y|_mean` did not undo a lane-wise `w_y` with mixed signs. It now ranks `u` against the written value points `w_y ⊙ p_v` at the best non-negative scale, and so does (r1h).
   - **Major B:** outcome 4's third branch read the whole stream at `H4`, which `H4`'s own point can swamp. It is now split on (r1h), with a branch of its own for a held term the residual swamps.
   - **Minor 1:** I-R2 names the trace's fields exactly.
@@ -67,7 +74,7 @@ Under `--hamming-hold h` (requires `--hamming-ask 1`), the **stream read's ask w
 - Let `u_t = w_y ⊙ y_t` be the ask heads' stream write at row `t` (zero where no ask head found a candidate).
 - The stream at row `t` gains `Σ_{s=1..h} g[x_{t−s}] · u_{t−s}`, over rows `t − s` of the same window only.
 - `g` is a new learned table: **one scalar per token, for the stream depth only, starting at 0.** It is saved as `d2.hold`.
-- At `g = 0` the forward equals the forward without the hold, bit for bit.
+- At `g = 0` the forward equals the forward without the hold, as numbers at every element (`−0.0` and `+0.0` count as equal; I-H1).
 - **What it learns.** The scored loss at `H4` reaches `g[Q(K_j)]` through `u` at the `Q` row. It also reaches `a[Q(K_j)]` and `w_y` through the held term. The header tokens' `g` is pushed away from what hurts, since their writes carry the previous slot's answer.
 - **It starts with no gradient.** `g = 0`, `w_y = 0` (`flock_read_hamming.rs:1226`) and `a = 0` (`:832`). The gradient to `g` is `⟨∂L, u⟩`, so it is zero until the direct path moves `w_y` off 0. claude-330's ask arms moved the read's weights off 0, to 0.017–0.394 by step 512. That is claude-330's I-4 reading of the read weights in general, not of `w_y` alone. `|w_y|` and `g` are logged at every checkpoint, so a hold that never moved is read as such (outcome 1), not as a carry failure.
 - **`h = 8` is pre-registered.** It covers B2's 4-token header with room to spare, so the hold does not encode the header's length. No other `h` is run in this unit.
@@ -97,9 +104,9 @@ Under `--hamming-hold h` (requires `--hamming-ask 1`), the **stream read's ask w
 
 Each is reported as the mean rank per checkpoint, with and without `−aS` and `−H`.
 - **The found rows only.** Where no ask head found a candidate inside its margin, `y = 0` and `u = 0`. Every scaled distance is then 0, and the rank would come from the token-id tie-break alone.
-  - So (r1y), (r1u) and (r1h) are taken over the rows where the vector is nonzero.
+  - (r1y) and (r1u) are taken over the `Q` rows where an ask head found a candidate. (r1h) is taken over the `H4` rows whose slot's `Q` row found one, since the held term at `H4` also sums the header's and earlier slots' writes, and can be nonzero where `Q` found nothing.
   - Each is reported beside the **found fraction**: the share of rows it was taken over.
-  - A found fraction below 0.5 is read on its own, as the read not finding (outcome 4's first branch), before any rank is read.
+  - A found fraction below 0.5 is read before any rank, under outcome 4's not-finding branch.
 
 ## Steps: the arms
 
@@ -136,7 +143,7 @@ The forms and the ask arms' flags are claude-330's, unchanged. The ask arms are 
 ## Outcome map (read in order, first match wins)
 
 0. **B0, I-R1 or I-R2 fails:** an instrument fault. Repair it and rerun; nothing else is read.
-**Undertrained**, the test used below: a held arm misses its bar and either its `R_ask` still rises by more than 0.05 between its last two checkpoints, or the hold never grew (the mean `|g|` over the 16 question tokens is below 0.01 at step 4,096).
+**Undertrained**, the test used below: a held arm misses its bar and either its `R_ask` still rises by more than 0.05 between its last two checkpoints, or the hold never grew (the mean `|g|` over the 16 question tokens is below 0.01). Both tests are read at the arm's last checkpoint: step 4,096, or 16,384 for an extended arm. **Every extension, under any outcome, runs once:** an arm extended to 16,384 is read there, and is never extended again.
 
 1. **Undertrained, with no held arm passing:** neither held arm passes, and at least one is undertrained. Extend each undertrained arm to 16,384 steps under this sheet, then read the map again at step 16,384. **The extension runs once.**
    - An arm still undertrained at 16,384 is not extended again.
@@ -145,11 +152,14 @@ The forms and the ask arms' flags are claude-330's, unchanged. The ask arms are 
 
    An arm that passes is never held back by the other arm being undertrained. That case goes to outcome 2 or 3, and the undertrained arm is extended beside it.
 2. **B2-aH passes:** the hold carries the value, and the scored loss alone trains the choice through it. Attribute it with `R^{−H}` and `R^{−aS}` (each expected to fail the bar) and `g` (expected highest on the question tokens). **Next:** a language run with ask heads and the hold on claude-325's bare-answer recipe, under its own sheet.
-2a. **(read with 2) B2-aqH beside a passing B2-aH:** reported either way. If it is undertrained, it is extended to 16,384 steps; it does not change outcome 2.
+2a. **(read with 2) B2-aqH beside a passing B2-aH:** reported either way. If it is undertrained, it is extended once, to 16,384 steps; it does not change outcome 2.
 3. **B2-aqH passes, B2-aH fails:**
-   - If B2-aH is undertrained, it is first extended to 16,384 steps, and the map is read again.
+   - If B2-aH is undertrained, it is first extended once, to 16,384 steps, and the map is read again at 16,384.
    - Otherwise, the reading is: the hold carries the value once the choice is trained at the question row, but the scored loss does not train the choice through the hold. **Next:** the pull at every row (the language form, where both placements are present) on B2, under its own sheet.
 4. **Both held arms fail.** Split by the carry readings on B2-aqH, first match wins:
+   - **Not finding: the found fraction at the `Q` row is below 0.5.** The ask heads find no candidate in most rows, and no rank is read.
+     - **Instrument case:** claude-330's trace kept the asked position in 376–512 of 512 rows. So the found flag is first reconciled with this run's `readings.trace[]` `kept_ask` at depth 2. If they disagree, it is an instrument fault: repair it and rerun.
+     - **Mechanism case:** if they agree (`kept_ask` is also below `0.5 · rows`), it is a configuration result. With the hold, the question no longer finds its key. **Next:** the ask heads' margin under the hold, tested on B2 first.
    - **(r1y) is near chance:** the ask payload at the `Q` row is not the value, though the trace keeps its position. That is a payload fault, instrument-side until the trace and the payload are reconciled. Repair it and rerun.
    - **(r1y) is near 1 and (r1u) is near chance:** the payload is right, and the write's weight `w_y` loses it, in this configuration (§4.1, §4.2). **Next:** the stream combine, tested on B2 first.
    - **(r1u) is near 1, and (r1h) at `H4` is near chance:** the write is right, and the hold does not deliver it to `H4`. Read `g`: a hold that stays small, or that is dominated by the header and value rows' writes, is a configuration result for `h = 8` and this `lr`. **Next:** the hold's form (a carried register, overwritten only by a found write), tested on B2 first.

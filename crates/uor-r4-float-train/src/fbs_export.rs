@@ -399,6 +399,11 @@ pub fn fbs_hamming_snapshot(
                 "hamming_read d{depth} has the type spin (step_rotation), which the integer engine does not serve yet"
             )));
         }
+        if read.hold.is_some() {
+            return Err(invalid(format!(
+                "hamming_read d{depth} holds its ask write (--hamming-hold, claude-333), which the integer engine does not serve"
+            )));
+        }
         if read.ask.is_some() {
             return Err(invalid(format!(
                 "hamming_read d{depth} has ask heads (claude-330), which the integer engine does not serve yet"
@@ -522,6 +527,11 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
         if read.step_rotation.is_some() {
             return Err(invalid(
                 "a Hamming read with the type spin (step_rotation) has no exported form to round to",
+            ));
+        }
+        if read.hold.is_some() {
+            return Err(invalid(
+                "a Hamming read that holds its ask write (--hamming-hold, claude-333) has no exported form to round to",
             ));
         }
         if read.ask.is_some() {

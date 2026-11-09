@@ -166,6 +166,10 @@ pub struct LongConfig {
     /// place of the scored rows (claude-330's B2-aq); left out of `config.json` when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub hamming_attract_at_question: bool,
+    /// The stream read's ask write held for this many rows (`HammingReads::with_hold`,
+    /// claude-333); it needs the ask heads. 0, the default, is off and left out of `config.json`.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub hamming_hold: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -1074,6 +1078,13 @@ fn checkpoint_hamming(
             config.hamming_ask
         )));
     }
+    if reads.hold_rows() != config.hamming_hold {
+        return Err(invalid(format!(
+            "--init-from checkpoint holds the Hamming ask write for {} rows, but this run names {}",
+            reads.hold_rows(),
+            config.hamming_hold
+        )));
+    }
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
@@ -1090,6 +1101,9 @@ fn start_hamming(
     )>,
 > {
     check_pull_flags(config)?;
+    if config.hamming_hold > 0 && !config.hamming_ask {
+        return Err(invalid("--hamming-hold carries the ask heads' write; turn them on with --hamming-ask 1"));
+    }
     if let Some(directory) = &config.init_from {
         return checkpoint_hamming(config, directory, device);
     }
@@ -1124,6 +1138,10 @@ fn start_hamming(
     if config.hamming_ask {
         // One question row per token of the shared table (`build_fbs_model_at`'s vocabulary).
         reads = reads.with_ask(hs::SHEET_VOCAB)?;
+    }
+    if config.hamming_hold > 0 {
+        // One gain per token of the same shared table.
+        reads = reads.with_hold(config.hamming_hold, hs::SHEET_VOCAB)?;
     }
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
@@ -15444,6 +15462,7 @@ mod tests {
             hamming_ask: false,
             hamming_attract: 0.0,
             hamming_attract_at_question: false,
+            hamming_hold: 0,
             fix_input_table: false,
             train_split: None,
             opening_weight: 1,
@@ -21958,6 +21977,42 @@ mod tests {
         assert_eq!(Ablation::CopyAtQuery.row_scope(), Some(ReadScope::Copy));
         assert_eq!(Ablation::AskAtQuery.classes(), [[false; 2]; 2]);
         assert!(RECALL_ABLATIONS.iter().all(|a| *a == Ablation::CopyAtQuery || a.row_scope().is_none()));
+    }
+
+    /// claude-333: `--hamming-hold` stays out of `config.json` when off, needs the ask heads,
+    /// starts the stream read's hold at the rows it names, and a checkpoint's hold must match
+    /// the run's, both ways. Host data only: no forward runs.
+    #[test]
+    fn the_hold_flag_is_off_by_default_needs_the_ask_heads_and_matches_its_checkpoint() {
+        let plain = serde_json::to_string(&config(0, None)).unwrap();
+        assert!(!plain.contains("hamming_hold"));
+        let on = LongConfig { hamming_read: 4, hamming_ask: true, hamming_hold: 8, ..config(0, None) };
+        assert!(serde_json::to_string(&on).unwrap().contains("\"hamming_hold\":8"));
+        let no_ask = LongConfig { hamming_ask: false, ..on.clone() };
+        let refused = start_hamming(&no_ask, &Device::Cpu).err().map(|e| e.to_string());
+        assert!(refused.as_deref().is_some_and(|e| e.contains("--hamming-hold carries")), "{refused:?}");
+        let (reads, _) = start_hamming(&on, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!(reads.hold_rows(), 8);
+        let unheld = LongConfig { hamming_hold: 0, ..on.clone() };
+        let (plain_reads, _) = start_hamming(&unheld, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!(plain_reads.hold_rows(), 0);
+        crate::flock_read_hamming::set_hamming_reads(None);
+        let dir = std::env::temp_dir().join(format!(
+            "hold-checkpoint-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        for (saved, run, fits) in [(&reads, &on, true), (&reads, &unheld, false), (&plain_reads, &on, false)] {
+            std::fs::create_dir(&dir).unwrap();
+            saved.save(&dir).unwrap();
+            let got = checkpoint_hamming(run, &dir, &Device::Cpu).map(|r| r.map(|(r, _)| r.hold_rows()));
+            std::fs::remove_dir_all(&dir).unwrap();
+            match got {
+                Ok(rows) => assert!(fits && rows == Some(8), "{rows:?}"),
+                Err(e) => assert!(!fits && e.to_string().contains("holds the Hamming ask write for"), "{e}"),
+            }
+        }
+        crate::flock_read_hamming::set_hamming_reads(None);
     }
 
     /// claude-330: where the pull sits. Off at `λ = 0`; at the scored rows by default; under

@@ -74,6 +74,9 @@
 //! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
 //! (`HammingReads::ask_pull`), and `--hamming-attract-at question` pulls at each two-class
 //! episode's question row in place of the scored row (needs `--recall-header`).
+//! `--hamming-hold H` (needs `--hamming-ask 1`) holds the stream read's ask write for the next H
+//! rows of its window, scaled by a learned gain per token, starting at zero
+//! (`HammingReads::with_hold`, claude-333).
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
 //! `--score-rows` decodes equal-length prompts together on the full-scope nearest arms, except
@@ -404,6 +407,7 @@ fn main() -> Result<()> {
         hamming_ask: false,
         hamming_attract: 0.0,
         hamming_attract_at_question: false,
+        hamming_hold: 0,
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
@@ -697,6 +701,11 @@ fn main() -> Result<()> {
             "--hamming-attract" => {
                 config.hamming_attract = value.parse().map_err(|_| {
                     FloatTrainError::Invalid("--hamming-attract wants a number".to_owned())
+                })?
+            }
+            "--hamming-hold" => {
+                config.hamming_hold = value.parse().map_err(|_| {
+                    FloatTrainError::Invalid("--hamming-hold wants a row count".to_owned())
                 })?
             }
             "--hamming-attract-at" => {
