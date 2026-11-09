@@ -496,6 +496,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/real-artifact-audit": {
+    "branch": "deepseek/real-artifact-audit",
+    "claimed_at": "2026-11-09T15:41:18-05:00",
+    "head": "29e20156f",
+    "lab": "deepseek",
+    "note": "real carried artifact and exact minus-C cross-engine audit"
+  },
   "deepseek/reply-sft-2048-result": {
     "branch": "deepseek/reply-sft-2048-result",
     "claimed_at": "2026-11-07T23:45:16-05:00",

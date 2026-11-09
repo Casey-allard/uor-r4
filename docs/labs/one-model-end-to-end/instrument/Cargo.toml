@@ -30,6 +30,11 @@ path = "src/bin/served-reply-panel.rs"
 required-features = ["cpu-parity"]
 
 [[bin]]
+name = "real-artifact-audit"
+path = "src/bin/real-artifact-audit.rs"
+required-features = ["cpu-parity"]
+
+[[bin]]
 name = "corpus-eos-exposure"
 path = "src/bin/corpus-eos-exposure.rs"
 
