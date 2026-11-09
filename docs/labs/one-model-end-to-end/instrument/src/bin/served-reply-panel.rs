@@ -39,6 +39,7 @@ use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message, SCH
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 const SCHEMA: &str = "uor-r4.served-reply-panel/1";
+const WINDOWS_SCHEMA: &str = "uor-r4.panel-windows/1";
 const RENDERING: &str = "one-user-turn/v1";
 const PER_TURN_RENDERING: &str = "per-turn/v1";
 const BOS: u32 = 0;
@@ -245,6 +246,13 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
             out.display()
         ));
     }
+    let windows_out = args.get("windows-out").map(PathBuf::from);
+    if let Some(path) = windows_out.as_ref().filter(|path| path.exists()) {
+        return Err(format!(
+            "{} exists; reports are never replaced",
+            path.display()
+        ));
+    }
     let cap: usize = match args.get("reply-tokens") {
         Some(value) => value
             .parse()
@@ -359,6 +367,7 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
     // Time inside `generate` only (prompt priming plus reply steps), summed exactly and rounded once.
     let mut decode_time = Duration::ZERO;
     let mut rows = Vec::with_capacity(labels.cases.len());
+    let mut windows = Vec::with_capacity(labels.cases.len());
     let mut pair_rows = Vec::with_capacity(labels.cases.len());
     for label in &labels.cases {
         let case = by_id
@@ -384,6 +393,10 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
                 decoded
             }
         };
+        windows.push(serde_json::json!({
+            "id": label.id,
+            "tokens": read_window(&prompt, &reply_ids, stop),
+        }));
         let bytes = tokenizer.decode_bytes(&reply_ids);
         let (reply_text, complete) = score(stop, &bytes, &label.answers, &protocol);
         pair_rows.push((
@@ -526,6 +539,15 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
     let mut text = serde_json::to_vec_pretty(&report).map_err(|e| e.to_string())?;
     text.push(b'\n');
     write_new(&out, &text)?;
+    if let Some(path) = &windows_out {
+        let file = serde_json::json!({
+            "schema": WINDOWS_SCHEMA,
+            "artifact_sha256": artifact_sha,
+            "windows": windows,
+        });
+        let bytes = serde_json::to_vec(&file).map_err(|e| e.to_string())?;
+        write_new(path, &bytes)?;
+    }
     println!(
         "{}",
         serde_json::json!({"schema": SCHEMA, "totals": report["totals"],
@@ -1178,6 +1200,17 @@ impl Decoder for IntegerDecoder<'_> {
     }
 }
 
+/// claude-343: the tokens the decode read for this row, in order. `generate` never feeds a token
+/// it stopped on, so a reply ended by the cap or the context has its last token unread, while a
+/// reply ended by EOS or BOS has every token it holds read (the stopping token is not in it).
+fn read_window(prompt: &[u32], reply: &[u32], stop: Stop) -> Vec<u32> {
+    let fed = match stop {
+        Stop::Eos | Stop::Bos => reply,
+        Stop::Cap | Stop::Context => &reply[..reply.len().saturating_sub(1)],
+    };
+    prompt.iter().chain(fed).copied().collect()
+}
+
 fn generate<D: Decoder>(forward: &mut D, prompt: &[u32], cap: usize) -> Result<(Vec<u32>, Stop)> {
     let context = forward.context_length();
     if prompt.is_empty() {
@@ -1266,7 +1299,8 @@ fn pair_metric(rows: &[(String, String, bool, String)]) -> Result<Vec<(String, u
 }
 
 fn parse_args(args: impl Iterator<Item = String>) -> Result<BTreeMap<String, String>> {
-    const FLAGS: [&str; 13] = [
+    const FLAGS: [&str; 14] = [
+        "windows-out",
         "engine",
         "content-readout",
         "artifact",
@@ -2364,6 +2398,47 @@ mod tests {
                     "prompt {prompt}, kept {kept}"
                 );
             }
+        }
+    }
+
+    struct Scripted {
+        context: usize,
+        next: Vec<u32>,
+        fed: Vec<u32>,
+    }
+
+    impl Decoder for Scripted {
+        fn context_length(&self) -> usize {
+            self.context
+        }
+        fn mark_reply_start(&mut self) {}
+        fn step_served(&mut self, token: u32) -> Result<u32> {
+            self.fed.push(token);
+            Ok(self.next.remove(0))
+        }
+    }
+
+    /// claude-343: the window the float is fed is exactly what the decode stepped, under every
+    /// way a reply ends.
+    #[test]
+    fn a_window_holds_exactly_what_the_decode_read() {
+        let prompt = [3, 4];
+        let long = vec![9, 10, 11, 12, 13, 14, 15, 16];
+        for (next, context, cap, want_stop, want_reply) in [
+            (vec![9, 10, EOS], 192, 64, Stop::Eos, vec![10]),
+            (vec![9, 10, BOS], 192, 64, Stop::Bos, vec![10]),
+            (vec![9, EOS], 192, 64, Stop::Eos, vec![]),
+            (long.clone(), 192, 3, Stop::Cap, vec![10, 11, 12]),
+            (long, 4, 64, Stop::Context, vec![10, 11]),
+        ] {
+            let mut decoder = Scripted {
+                context,
+                next,
+                fed: Vec::new(),
+            };
+            let (reply, stop) = generate(&mut decoder, &prompt, cap).unwrap();
+            assert_eq!((stop, &reply), (want_stop, &want_reply));
+            assert_eq!(read_window(&prompt, &reply, stop), decoder.fed, "{stop:?}");
         }
     }
 
