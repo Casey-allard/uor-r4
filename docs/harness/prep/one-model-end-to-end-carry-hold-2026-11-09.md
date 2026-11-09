@@ -1,6 +1,15 @@
 # Prep sheet: the carry lever, a held stream write (one-model-end-to-end, claude-331, 9 Nov 2026)
 
-TEST FITNESS: PENDING. claude-332 read NOT_FIT after two rounds. claude-333 applied that unit's exact-head review findings and is writing the code. It owes a fresh non-author FIT that reads this sheet together with the code, before any GPU.
+TEST FITNESS: FIT, at `3620e4697` (claude-334 round 3, a fresh non-author reviewer). claude-332 read NOT_FIT after two rounds. claude-333 applied that unit's exact-head review findings and built the hold (merged as `d7cc2b93`); claude-334 built the cuts, the row capture and the value ranks (`2eb579ed5`), and the FIT below reads this sheet together with that code.
+- **claude-334 FIT round 3, at `3620e4697`:** FIT. Round 2's three narrow reviewers found one major: several guards had no negative gate. Eight were added, each one place and each failing its named test at the assertion that checks that guard:
+  - the hold flag's refusal without the ask heads, and its default (left out of `config.json` when off);
+  - the decode step's refusal of a held read, and both export refusals;
+  - (r1y) read by raw distance;
+  - the readings' guard leaving the hold cut or the row capture on;
+  - the gain detached (CUDA, run on the test pod).
+  The host seven fail at the expected `file:line` (`local/claude/claude-334/host-gates-334d.out`). The reviewer's two minors are applied: the full gate logs are kept with their panic line, and the CUDA mutation passes the stub-nvcc check. The slices' minors are applied in the same commit: I-V pins the raw and scaled ties, and the guard test checks that its setters took.
+- **claude-334 FIT round 1, at `2eb579ed5`:** NOT FIT, on unchecked items only (the reviewer's budget ran out); no blocker, no major. One minor and one nit, applied: I-V's count of pinned cases ("four", not "two"), and this status line naming the code under review.
+- **claude-334 FIT round 2, at `5b0ba15bc`:** no blocker, no major; the reviewer verified the six ranks' references, scales, found-row filter, Q-to-H4 pairing and field names, and ran out of budget before the rest, which three narrow reviewers finish. One minor, applied: the branches read the plain ranks, since a cut's ranks sit at tie-break chance by construction.
 - **claude-333, before its FIT:** claude-332's exact-head review (PR 3881, at `8caddc8a2`) found four minors and two nits. Applied:
   - the undertrained test is read at the arm's last checkpoint, including an extended arm's;
   - every extension, under any outcome, runs once;
@@ -171,6 +180,8 @@ The forms and the ask arms' flags are claude-330's, unchanged. The ask arms are 
 
 "Near 1" means mean rank ≤ 8; "near chance" means mean rank ≥ 128. Both are read at both seeds, at step 4,096, or at step 16,384 for an arm that was extended. The same readings are reported for B2-aq, the unheld base, whichever outcome lands.
 
+The branches read the **plain** ranks only. Under `−aS` and `−H`, the term a cut removes is zero at found rows (the found flag is set before the cut), so its rank (r1u and r1h under `−aS`, r1h under `−H`) comes from the id tie-break alone, about 256 on average: chance by construction, not a measured distance. Those cut ranks, and the `−aS` and `−H` recalls, are attribution context, never a branch input.
+
 **Seeds:** two seeds that split run a third; at least 2 of 3 must agree. Every cell, rank, `g` value and ablation is reported either way.
 
 ## Instrument checks
@@ -184,7 +195,7 @@ The forms and the ask arms' flags are claude-330's, unchanged. The ask arms are 
 - **I-H3 (the gradient):** at a nonzero `g`, `w_y` and `a`, set by hand (at the zero start every one of these gradients is 0, as the mechanism section says), a loss at row `t + 4` alone gives nonzero gradients to `g[x_t]` and `a[x_t]`, and none to `g` of tokens that appear only after `t + 4`.
 - **I-H4 (save, load and refusals):** `g` round-trips through save and load. The decode step and the export each refuse a read with a hold, with an error that names it.
 - **I-H5 (the cuts):** `−aS` removes every depth-2 ask write and every held term, leaves the copy heads' picks unchanged, and leaves the readout read's ask heads on. `−H` removes every held term and leaves the direct write bit for bit.
-- **I-V (the value ranks):** on hand-built vectors, each rank equals a brute-force sort of the 512 distances, ties broken by token id. Two cases are pinned:
+- **I-V (the value ranks):** on hand-built vectors, each rank equals a brute-force sort of the 512 distances, ties broken by token id. Four cases are pinned:
   - a residual `x` that dominates the stream: (r1y) and (r1u) read 1 while (r1s) reads far from 1;
   - a zero vector (no head found): the row is left out of the rank, and the found fraction counts it as not found;
   - a payload shrunk by the margin weights: `y = 0.3 · p_v`, among value points of uneven size, reads 1 on (r1y), while a raw-distance rank of the same `y` does not;
@@ -221,3 +232,31 @@ claude-330 measured these on one RTX 5090: about 6 minutes for an ask arm and 2.
 - **Watchers:** one is armed on every pod (L-004), with the lease renewed by it.
 - **Scripts:** pinned by SHA-256 in a D67 pre-run review section added before any pod.
 - **Builds:** each checkout builds into its own cargo target, and the job checks the "Compiling … (<checkout>/crates/uor-r4-float-train)" line before trusting a test verdict (claude-330's fix).
+
+## D67 pre-run review (claude-334)
+
+**Verdict: PASS**, from a fresh non-author reviewer, with no blockers. It read the run scripts against this sheet. Two pods run, one per seed, at the code pin `3620e469773eeb5e0bbdfd52817aa03b3999b9f5`. The scripts live in `local/claude/claude-334/`, pinned by SHA-256:
+
+| Script | SHA-256 |
+|---|---|
+| `rjob-334.sh` (the pod job) | `b28fc1995eb0eca503e28982eb7443301fdf6e5c83ce484f8febeea68f4efc31` |
+| `rchain-334.sh` | `90d92a392646ad83b487b90283363ba12c155fb4e661ca0b71c6634b46dfdbd2` |
+| `rseal-334.sh` | `b1eb7b7a96fdee6232fd27749822cbe48c2a06ea181c06f76867abc0ff33cca4` |
+| `rseed-334.sh` (the laptop launcher) | `99f3da9e7f1cabc94af135ba1d2cf7bb699f661d417b61ea1acd23d6f76a3dd1` |
+| `rwatch-334.sh` (the watcher) | `3c4ff35bdcf70ef9ffbda24c3efebbba8670bc91f0897461adbb1fa492a37ae7` |
+
+I-R1 and I-R2 read claude-330's sealed lines. Their SHA-256s are pinned in `rjob-334.sh` and checked again by `rseed-334.sh` before anything is rented:
+
+| Seed | B1-n | B2-aq |
+|---|---|---|
+| 1 | `8942a981…2f86` | `79281e1f…1f21e` |
+| 2 | `47dd148f…81f3` | `15126253…174e0` |
+
+I-1, I-7 and every CUDA negative gate run once, at the same pin, on the test pod t3 (`job-334c.sh`). The run pods run I-p, I-0 and the build, then I-6 and the ladder. Before review, the run job's jq checks were tested on claude-330's sealed lines at both seeds. The B1 rule passes B1-a and fails B1-a0 and B2-aq. I-R2 passes a sealed line against itself, fails it against the other seed's line (on the trace clause), and fails on a wrong SHA-256. `trained_ok` holds on each arm's own shape and fails on every other arm's.
+
+The review's findings, applied:
+- **Major (4a):** each pod sees one seed, and the bar is read at both. So **both held arms and B2-n are extended once, to 16,384 steps, at every seed**, whatever the 4,096 bar says. The undertrained test is recorded in `b2.txt`, and the REPORT applies the outcome map to the data. The extra cost is about 72 minutes per pod; the worst case is about 2.4 h per pod, inside `--hours 3`, the $0.70/h ceiling and the caps.
+- **Major (4b), recorded for the REPORT:** the logs carry `g`'s mean, minimum and maximum on the question tokens, not mean `|g|`. Mean `|g|` equals `|mean|` when `min ≥ 0` or `max ≤ 0`. With mixed signs it lies between `|mean|` and `max(|min|, |max|)`. The REPORT reads "the hold never grew" as true when the upper bound is below 0.01, false when `|mean| ≥ 0.01`, and undecided otherwise, and says so.
+- **Minor (2):** the extension's arms join the NOT_RUN sweep when a stop cuts them off.
+- **Minor (4c):** a bucket with no rows reads as rate 0 in the undertrained test, not as an error.
+- **Noted:** the no-read arms take no `--recall-readings`, as in claude-330's forms, which this sheet adopts unchanged. The common-flags line above names it for every arm, and the REPORT notes this.

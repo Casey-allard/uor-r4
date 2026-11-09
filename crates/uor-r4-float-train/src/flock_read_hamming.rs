@@ -90,6 +90,108 @@ thread_local! {
     static CODE_FORCE: RefCell<Vec<ForcedRowCode>> = const { RefCell::new(Vec::new()) };
     static CLASS_OFF: std::cell::Cell<[[bool; 2]; 2]> =
         const { std::cell::Cell::new([[false; 2]; 2]) };
+    static HOLD_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static CAPTURE: RefCell<Option<RowCapture>> = const { RefCell::new(None) };
+}
+
+/// claude-334's `−H`: with `true`, a held read adds no held term in the forwards that follow on
+/// this thread (`g := 0` at evaluation); its direct write and every other part read as before.
+/// `false`, the default, holds as trained.
+pub fn set_hold_off(off: bool) {
+    HOLD_OFF.with(|h| h.set(off));
+}
+
+/// Whether [`set_hold_off`] last turned the hold off on this thread.
+pub fn hold_off() -> bool {
+    HOLD_OFF.with(|h| h.get())
+}
+
+/// claude-334: what the stream read computed at the captured rows, one vector per row, in the
+/// order [`set_row_capture`] named them.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StreamCapture {
+    /// `y`, the type (ask) heads' mean payload.
+    pub payload: Vec<Vec<f32>>,
+    /// Whether any type (ask) head found a candidate inside its margin.
+    pub found: Vec<bool>,
+    /// `u = w_y ⊙ y`, the write (0 where none found, or under a class drop).
+    pub write: Vec<Vec<f32>>,
+    /// The held term (0 without a hold, or under [`set_hold_off`]).
+    pub held: Vec<Vec<f32>>,
+    /// The stream after the read and the hold, before the rounding.
+    pub out: Vec<Vec<f32>>,
+}
+
+/// claude-334's capture of one forward: the rows of its `batch · time` rows to copy out, the
+/// stream read's parts there, and the readout read's input there (the final point).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RowCapture {
+    pub rows: Vec<usize>,
+    pub stream: Option<StreamCapture>,
+    pub readout_in: Option<Vec<Vec<f32>>>,
+}
+
+/// claude-334: copy the reads' parts at `rows` of the next forward on this thread to the host,
+/// those rows only; `None`, the default, copies nothing. [`take_row_capture`] takes them.
+pub fn set_row_capture(rows: Option<Vec<usize>>) {
+    CAPTURE.with(|c| *c.borrow_mut() = rows.map(|rows| RowCapture { rows, ..RowCapture::default() }));
+}
+
+/// Takes what the capture copied and turns the capture off.
+pub fn take_row_capture() -> Option<RowCapture> {
+    CAPTURE.with(|c| c.borrow_mut().take())
+}
+
+/// The rows of `t` `(rows, width)` at `index`, on the host.
+fn host_rows(t: &Tensor, index: &Tensor) -> Result<Vec<Vec<f32>>> {
+    Ok(t.detach().index_select(index, 0)?.to_vec2::<f32>()?)
+}
+
+/// Copies the read's parts at the captured rows, when a capture is set: the stream read's
+/// (`readout` false) or the readout read's input.
+#[allow(clippy::too_many_arguments)]
+fn capture_rows(
+    readout: bool,
+    input: &Tensor,
+    payload: &Tensor,
+    found: &Tensor,
+    write: &Tensor,
+    held: Option<&Tensor>,
+    out: &Tensor,
+) -> Result<()> {
+    CAPTURE.with(|c| {
+        let mut slot = c.borrow_mut();
+        let Some(capture) = slot.as_mut() else { return Ok(()) };
+        let total = input.dim(0)?;
+        if let Some(&row) = capture.rows.iter().find(|&&r| r >= total) {
+            return Err(invalid(format!("a captured row {row} outside the forward's {total}")));
+        }
+        let rows: Vec<u32> = capture.rows.iter().map(|&r| r as u32).collect();
+        let index = Tensor::from_vec(rows, capture.rows.len(), input.device())?;
+        if readout {
+            if capture.readout_in.is_some() {
+                return Err(invalid("the capture met the readout read twice in one forward"));
+            }
+            capture.readout_in = Some(host_rows(input, &index)?);
+            return Ok(());
+        }
+        if capture.stream.is_some() {
+            return Err(invalid("the capture met the stream read twice in one forward"));
+        }
+        let found = found.detach().index_select(&index, 0)?.flatten_all()?.to_vec1::<f32>()?;
+        let held = match held {
+            Some(h) => host_rows(h, &index)?,
+            None => vec![vec![0.0; write.dim(1)?]; capture.rows.len()],
+        };
+        capture.stream = Some(StreamCapture {
+            payload: host_rows(payload, &index)?,
+            found: found.into_iter().map(|f| f > 0.0).collect(),
+            write: host_rows(write, &index)?,
+            held,
+            out: host_rows(out, &index)?,
+        });
+        Ok(())
+    })
 }
 
 /// claude-328: drop classes of heads from the read's combine for the forward passes that follow
@@ -239,6 +341,10 @@ pub(crate) fn step_instrument() -> Option<&'static str> {
         Some("Hamming read's forced codes")
     } else if class_ablation() != [[false; 2]; 2] {
         Some("Hamming read's class ablation")
+    } else if hold_off() {
+        Some("Hamming read's hold cut")
+    } else if CAPTURE.with(|c| c.borrow().is_some()) {
+        Some("Hamming read's row capture")
     } else {
         None
     }
@@ -915,6 +1021,24 @@ impl HammingReads {
         self.reads.first().and_then(|r| r.hold.as_ref()).map_or(0, |h| h.rows)
     }
 
+    /// claude-334: the stream read's hold gain `g`, one per token, on the host; `None` with no
+    /// hold.
+    pub fn hold_gain(&self) -> Result<Option<Vec<f32>>> {
+        match self.reads.first().and_then(|r| r.hold.as_ref()) {
+            Some(hold) => Ok(Some(hold.gain.as_tensor().to_vec1::<f32>()?)),
+            None => Ok(None),
+        }
+    }
+
+    /// claude-334: each depth's type weight row `w_y` (the weight's row 1), in
+    /// [`HAMMING_DEPTHS`] order, on the host.
+    pub fn type_weights(&self) -> Result<Vec<Vec<f32>>> {
+        self.reads
+            .iter()
+            .map(|r| Ok(r.weight.as_tensor().get(1)?.to_vec1::<f32>()?))
+            .collect()
+    }
+
     /// The found-copy pull (claude-330, `--hamming-attract`): for each `(row, target)` in `pulls`,
     /// the earlier positions `s` of the row's window holding `target` (`1 ≤ s < t` in the window)
     /// are the copies an ask head should find. Each ask head's distance to its nearest one,
@@ -1253,8 +1377,15 @@ impl HammingReads {
             match (i, gain, hold_rows) {
                 (_, None, _) if i > 0 || hold_rows == 0 => {}
                 (0, Some(gain), rows) if rows > 0 => {
-                    if reads[0].ask.is_none() {
+                    let Some(ask) = reads[0].ask.as_ref() else {
                         return Err(invalid("the saved Hamming read holds an ask write but has no ask heads"));
+                    };
+                    // claude-334: one gain per ask row, so a lookup never reads past either.
+                    let (gains, asks) = (gain.dims1()?, ask.dim(0)?);
+                    if gains != asks {
+                        return Err(invalid(format!(
+                            "the saved hold has {gains} gains for {asks} ask rows"
+                        )));
                     }
                     reads[0].hold = Some(Hold { rows, gain: Var::from_tensor(gain)? });
                 }
@@ -1862,13 +1993,32 @@ impl HammingRead {
         let added = copied.broadcast_mul(&copy_weight)?.add(&written)?;
         // claude-333: the stream read's ask write `u = w_y ⊙ y`, held for the next rows of its
         // window, each scaled by its own token's gain (`from` is 0 here: a step refuses a hold).
-        let added = match (&self.hold, readout) {
-            (Some(hold), false) => {
-                added.add(&held_term(&hold.gain, &written, ids, batch, time, hold.rows)?)?
+        // claude-334's `−H` ([`set_hold_off`]) drops the held term alone.
+        let held = match (&self.hold, readout) {
+            (Some(hold), false) if !hold_off() => {
+                Some(held_term(&hold.gain, &written, ids, batch, time, hold.rows)?)
             }
-            _ => added,
+            _ => None,
         };
-        Ok(asked.add(&added)?.reshape((batch, asks, width))?)
+        let added = match &held {
+            Some(held) => added.add(held)?,
+            None => added,
+        };
+        let out = asked.add(&added)?;
+        if from == 0 {
+            capture_rows(
+                readout,
+                &residual.reshape((rows, width))?,
+                &means[1],
+                &found[1],
+                &written,
+                held.as_ref(),
+                &out,
+            )?;
+        } else if CAPTURE.with(|c| c.borrow().is_some()) {
+            return Err(invalid("the row capture needs whole windows, not a decode step"));
+        }
+        Ok(out.reshape((batch, asks, width))?)
     }
 }
 
@@ -4285,6 +4435,14 @@ mod tests {
         }
         let err = saved(&bare)?.err().unwrap_or_default();
         assert!(err.contains("holds an ask write but has no ask heads"), "{err}");
+        // claude-334: a hold whose gains do not match the ask rows is refused at load.
+        let short = HammingReads::new(4, 256, cpu)?.with_ask(16)?.with_hold(8, 12)?;
+        let err = saved(&short)?.err().unwrap_or_default();
+        assert!(err.contains("has 12 gains for 16 ask rows"), "{err}");
+        // claude-334: the hold's gain reads back on the host; an unheld read has none.
+        assert_eq!(reads.hold_gain()?, Some(set.clone()));
+        assert_eq!(asked.hold_gain()?, None);
+        assert_eq!(asked.type_weights()?.len(), HAMMING_DEPTHS.len());
         // The decode step refuses before any arithmetic; the exports refuse it by name.
         let x = Tensor::zeros((1, 4, 256), DType::F32, cpu)?;
         let table = Tensor::zeros((16, 256), DType::F32, cpu)?;
@@ -4295,6 +4453,25 @@ mod tests {
         let err = crate::fbs_export::fbs_hamming_snapshot(&reads, 6, 256).err().map(|e| e.to_string());
         assert!(err.as_deref().is_some_and(|e| e.contains("--hamming-hold")), "{err:?}");
         Ok(())
+    }
+
+    /// claude-334: the hold cut and the row capture are instruments the decode cache's step does
+    /// not carry, so a held or captured read decodes whole windows; the capture is taken once and
+    /// gone. Host state only.
+    #[test]
+    fn the_hold_cut_and_the_capture_keep_the_decode_cache_off() {
+        assert_eq!(step_instrument(), None);
+        set_hold_off(true);
+        assert!(hold_off());
+        assert_eq!(step_instrument(), Some("Hamming read's hold cut"));
+        set_hold_off(false);
+        set_row_capture(Some(vec![0, 3]));
+        assert_eq!(step_instrument(), Some("Hamming read's row capture"));
+        let capture = take_row_capture().expect("set");
+        assert_eq!(capture.rows, vec![0, 3]);
+        assert!(capture.stream.is_none() && capture.readout_in.is_none());
+        assert_eq!(take_row_capture(), None);
+        assert_eq!(step_instrument(), None);
     }
 
     /// Hand-set values off every start: a deterministic wave in (−1, 1).
@@ -4428,12 +4605,78 @@ mod tests {
             let ask = reads.reads[0].ask.as_ref().unwrap().as_tensor();
             grads.get(ask).map_or(vec![0.0; 256], |g| g.get(token).unwrap().to_vec1().unwrap())
         };
+        // claude-334 (claude-333's review): row 6 found its candidate, so a failure below names
+        // the gradient, not a missed find.
+        set_row_capture(Some(vec![6]));
+        held.reads[0].apply(&x, &ids, &table).unwrap();
+        let capture = take_row_capture().expect("the capture");
+        assert_eq!(capture.stream.expect("the stream read").found, vec![true], "row 6 finds s = 2");
         let with_hold = grads(&held);
         let g = with_hold.get(gain.as_tensor()).expect("the gain learns").to_vec1::<f32>().unwrap();
         assert_ne!(g[5], 0.0, "g[x_t]");
         assert!(g[12..].iter().all(|&v| v == 0.0), "tokens after t + 4: {:?}", &g[12..]);
         assert!(ask_row(&with_hold, 5).iter().any(|&v| v != 0.0), "a[x_t] with the hold");
         assert!(ask_row(&grads(&reads), 5).iter().all(|&v| v == 0.0), "and only through it");
+    }
+
+    /// claude-334's I-H5 (the cuts): `−aS` removes every stream ask write and every held term,
+    /// leaves the copy heads' part of the stream and the payload as they were, and leaves the
+    /// readout read's ask heads on, bit for bit. `−H` removes every held term and leaves the
+    /// direct write bit for bit.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_ask_stream_cut_and_the_hold_cut_remove_exactly_their_terms() {
+        use crate::in_space_long::Ablation;
+        let device = Device::new_cuda(0).unwrap();
+        let reads = ask_reads(&device);
+        let on: Vec<f32> = wave(2 * 256, 3).iter().map(|v| v + 1.5).collect();
+        let rows: Vec<f32> = wave(16 * 256, 5).iter().map(|v| v * 0.02).collect();
+        for read in &reads.reads {
+            read.weight.set(&Tensor::from_vec(on.clone(), (2, 256), &device).unwrap()).unwrap();
+            read.ask
+                .as_ref()
+                .unwrap()
+                .set(&Tensor::from_vec(rows.clone(), (16, 256), &device).unwrap())
+                .unwrap();
+        }
+        let held = reads.with_hold(8, 16).unwrap();
+        let gain = &held.reads[0].hold.as_ref().unwrap().gain;
+        gain.set(&Tensor::from_vec(wave(16, 9), 16, &device).unwrap()).unwrap();
+        let ids = [3u32, 5, 7, 4, 2, 1, 5, 8, 9, 10, 11, 12, 13, 14, 15, 12];
+        let x = residual(1, 16, 256, &device);
+        let table = table(16, 256, &device);
+        let all: Vec<usize> = (0..16).collect();
+        let read = |cut: Option<Ablation>| -> (StreamCapture, Vec<f32>) {
+            if let Some(cut) = cut {
+                set_class_ablation(cut.classes());
+                set_hold_off(cut.hold_off());
+            }
+            set_row_capture(Some(all.clone()));
+            held.reads[0].apply(&x, &ids, &table).unwrap();
+            let readout = held.reads[1].apply_readout(&x, &ids, &table).unwrap();
+            let capture = take_row_capture().unwrap();
+            set_class_ablation([[false; 2]; 2]);
+            set_hold_off(false);
+            (capture.stream.unwrap(), readout.flatten_all().unwrap().to_vec1().unwrap())
+        };
+        let zero = |v: &[Vec<f32>]| v.iter().all(|r| r.iter().all(|&c| c == 0.0));
+        let (plain, plain_readout) = read(None);
+        assert!(!zero(&plain.write) && !zero(&plain.held), "the plain read writes and holds");
+        let (cut, cut_readout) = read(Some(Ablation::AskStream));
+        assert!(zero(&cut.write) && zero(&cut.held), "−aS: no ask write and no held term");
+        assert_eq!(cut.payload, plain.payload, "−aS keeps the heads' choices");
+        assert_eq!(cut.found, plain.found);
+        for t in 0..16 {
+            for c in 0..256 {
+                let copy_part = plain.out[t][c] - plain.write[t][c] - plain.held[t][c];
+                assert!((cut.out[t][c] - copy_part).abs() < 1e-5, "row {t} lane {c}: the copy part stays");
+            }
+        }
+        assert_eq!(cut_readout, plain_readout, "−aS leaves the readout read's ask heads on");
+        let (off, _) = read(Some(Ablation::HoldOff));
+        assert!(zero(&off.held), "−H: no held term");
+        assert_eq!(off.write, plain.write, "−H keeps the direct write bit for bit");
+        assert_eq!(off.payload, plain.payload);
     }
 }
 

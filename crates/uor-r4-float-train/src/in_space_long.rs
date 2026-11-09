@@ -12210,6 +12210,59 @@ pub struct RecallReading {
     /// ask heads.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hamming_pull_distance: Option<Vec<f64>>,
+    /// claude-334: the hold's gain `g` by token group, on a held read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hamming_hold_gain: Option<HoldGainReading>,
+    /// claude-334: `|w_y|`, each depth's type weight row's mean absolute value, with the ask
+    /// heads on.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hamming_type_weight_mean_abs: Option<Vec<f64>>,
+}
+
+/// The mean, least and greatest of a group of gains.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+pub struct GainStats {
+    pub mean: f64,
+    pub min: f64,
+    pub max: f64,
+}
+
+/// claude-334: the hold's gain `g` over the two-class task's token groups: the 16 question
+/// tokens, the 4 header tokens, the 512 value tokens, and every other token's mean.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+pub struct HoldGainReading {
+    pub question: GainStats,
+    pub header: GainStats,
+    pub values: GainStats,
+    pub rest_mean: f64,
+}
+
+/// [`HoldGainReading`] of `gain`, one per token.
+pub fn hold_gain_reading(gain: &[f32]) -> Result<HoldGainReading> {
+    let question = RECALL_RELATIONS.start + RECALL_QUERY_SHIFT..RECALL_RELATIONS.end + RECALL_QUERY_SHIFT;
+    let header = RECALL_HEADER[0]..RECALL_HEADER[3] + 1;
+    let groups = [question, header, RECALL_VALUES];
+    if groups.iter().any(|g| g.end as usize > gain.len()) {
+        return Err(invalid(format!("a {}-token hold does not cover the task's tokens", gain.len())));
+    }
+    let stats = |g: &std::ops::Range<u32>| {
+        let v: Vec<f64> = gain[g.start as usize..g.end as usize].iter().map(|&x| f64::from(x)).collect();
+        GainStats {
+            mean: v.iter().sum::<f64>() / v.len() as f64,
+            min: v.iter().copied().fold(f64::INFINITY, f64::min),
+            max: v.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+        }
+    };
+    let rest: Vec<f64> = (0..gain.len())
+        .filter(|&t| !groups.iter().any(|g| g.contains(&(t as u32))))
+        .map(|t| f64::from(gain[t]))
+        .collect();
+    Ok(HoldGainReading {
+        question: stats(&groups[0]),
+        header: stats(&groups[1]),
+        values: stats(&groups[2]),
+        rest_mean: if rest.is_empty() { 0.0 } else { rest.iter().sum::<f64>() / rest.len() as f64 },
+    })
 }
 
 /// claude-328: which recall task a run trains and scores. The default is `--recall` as before.
@@ -12333,6 +12386,13 @@ pub enum Ablation {
     /// `R^{−aQ}` (claude-330): the ask heads at both reads cut at the question rows only; taken
     /// after [`RECALL_ABLATIONS`], and only when the ask heads are on.
     AskAtQuery,
+    /// `R^{−aS}` (claude-334): the stream read's ask heads' write dropped at every row, and with
+    /// it the held term; the readout read's ask heads stay on. Taken after `−aQ`, and only when
+    /// the ask heads are on.
+    AskStream,
+    /// `R^{−H}` (claude-334): the held term dropped (`g := 0`), the direct write kept. Taken
+    /// after `−aS`, and only on a held read.
+    HoldOff,
 }
 
 /// The ablations in the order the readings record them.
@@ -12354,7 +12414,14 @@ impl Ablation {
             Self::Type => "-t",
             Self::CopyAtQuery => "-cQ",
             Self::AskAtQuery => "-aQ",
+            Self::AskStream => "-aS",
+            Self::HoldOff => "-H",
         }
+    }
+
+    /// Whether it turns the hold off ([`crate::flock_read_hamming::set_hold_off`]).
+    pub fn hold_off(self) -> bool {
+        matches!(self, Self::HoldOff)
     }
 
     /// The heads its row cut limits, for the two that cut at the question rows.
@@ -12374,7 +12441,126 @@ impl Ablation {
             Self::CopyReadout => [[false, false], [true, false]],
             Self::Copy => [[true, false], [true, false]],
             Self::Type => [[false, true], [false, true]],
-            Self::CopyAtQuery | Self::AskAtQuery => [[false; 2]; 2],
+            Self::AskStream => [[false, true], [false, false]],
+            Self::CopyAtQuery | Self::AskAtQuery | Self::HoldOff => [[false; 2]; 2],
+        }
+    }
+}
+
+/// claude-334's rank of the value `target`, an index into `refs`, for the point `x`: 1 plus the
+/// values nearer `x`, or as near with a smaller index. `scaled` measures each value at its best
+/// non-negative scale, `min_{α ≥ 0} |x − α r|` with `α* = max(0, ⟨x, r⟩ / ⟨r, r⟩)`; otherwise
+/// the raw distance `|x − r|`, the comparison the nearest readout makes.
+pub fn value_rank(x: &[f32], refs: &[Vec<f32>], target: usize, scaled: bool) -> Result<usize> {
+    if target >= refs.len() {
+        return Err(invalid(format!("value {target} outside {} values", refs.len())));
+    }
+    if refs.iter().any(|r| r.len() != x.len()) {
+        return Err(invalid("a value point's width differs from the ranked point's"));
+    }
+    let distance = |r: &[f32]| -> f64 {
+        let alpha = if scaled {
+            let (xr, rr) = x.iter().zip(r).fold((0.0f64, 0.0f64), |(xr, rr), (&a, &b)| {
+                (xr + f64::from(a) * f64::from(b), rr + f64::from(b) * f64::from(b))
+            });
+            if rr > 0.0 { (xr / rr).max(0.0) } else { 0.0 }
+        } else {
+            1.0
+        };
+        x.iter()
+            .zip(r)
+            .map(|(&a, &b)| {
+                let d = f64::from(a) - alpha * f64::from(b);
+                d * d
+            })
+            .sum()
+    };
+    let d: Vec<f64> = refs.iter().map(|r| distance(r)).collect();
+    let mine = d[target];
+    Ok(1 + d.iter().enumerate().filter(|&(v, &dv)| dv < mine || (dv == mine && v < target)).count())
+}
+
+/// claude-334: one cut's six value ranks over the two-class task's held-out queries, each the
+/// mean rank (of 512 values) over the queries whose `Q` row's ask heads found a candidate.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub struct ValueRanks {
+    /// `"plain"`, `"-aS"` or `"-H"`.
+    pub cut: &'static str,
+    pub rows: usize,
+    pub found: usize,
+    pub found_fraction: f64,
+    /// (r1y) `y` at `Q` against `p_v`, scaled.
+    pub r1y: Option<f64>,
+    /// (r1u) `u` at `Q` against `q_v = w_y ⊙ p_v`, scaled.
+    pub r1u: Option<f64>,
+    /// (r1s) the stream after the write at `Q` against `p_v`, raw (descriptive).
+    pub r1s: Option<f64>,
+    /// (r1h) the held term at `H4` against `q_v`, scaled (held reads only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r1h: Option<f64>,
+    /// (r1hs) the stream after the read and the hold at `H4` against `q_v`, scaled.
+    pub r1hs: Option<f64>,
+    /// (r2) the final point at `H4` against `p_v`, raw.
+    pub r2: Option<f64>,
+}
+
+/// Sums of the six ranks over one cut's found queries ([`ValueRanks`]).
+#[derive(Default)]
+struct RankSums {
+    rows: usize,
+    found: usize,
+    sums: [usize; 6],
+}
+
+impl RankSums {
+    /// Adds query `k`'s ranks from `capture`, whose rows are each query's `Q` row then its
+    /// scored row, in query order. `values` and `written` are `p_v` and `q_v`.
+    fn add(
+        &mut self,
+        capture: &crate::flock_read_hamming::RowCapture,
+        k: usize,
+        target: usize,
+        values: &[Vec<f32>],
+        written: &[Vec<f32>],
+    ) -> Result<()> {
+        let stream = capture.stream.as_ref().ok_or_else(|| invalid("the capture missed the stream read"))?;
+        let final_in = capture.readout_in.as_ref().ok_or_else(|| invalid("the capture missed the readout read"))?;
+        let (q, h) = (2 * k, 2 * k + 1);
+        if h >= stream.found.len() || h >= final_in.len() {
+            return Err(invalid("the capture holds fewer rows than its queries"));
+        }
+        self.rows += 1;
+        if !stream.found[q] {
+            return Ok(());
+        }
+        self.found += 1;
+        let ranks = [
+            value_rank(&stream.payload[q], values, target, true)?,
+            value_rank(&stream.write[q], written, target, true)?,
+            value_rank(&stream.out[q], values, target, false)?,
+            value_rank(&stream.held[h], written, target, true)?,
+            value_rank(&stream.out[h], written, target, true)?,
+            value_rank(&final_in[h], values, target, false)?,
+        ];
+        for (sum, rank) in self.sums.iter_mut().zip(ranks) {
+            *sum += rank;
+        }
+        Ok(())
+    }
+
+    fn ranks(&self, cut: &'static str, held: bool) -> ValueRanks {
+        let mean = |i: usize| (self.found > 0).then(|| self.sums[i] as f64 / self.found as f64);
+        ValueRanks {
+            cut,
+            rows: self.rows,
+            found: self.found,
+            found_fraction: if self.rows > 0 { self.found as f64 / self.rows as f64 } else { 0.0 },
+            r1y: mean(0),
+            r1u: mean(1),
+            r1s: mean(2),
+            r1h: if held { mean(3) } else { None },
+            r1hs: mean(4),
+            r2: mean(5),
         }
     }
 }
@@ -12515,17 +12701,98 @@ pub struct RecallReadings {
     /// The two-class task's trace cells ([`count_trace`]); empty for the key-again task.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub trace: Vec<TraceCell>,
+    /// claude-334: the two-class task's value ranks, plain then each cut (`−aS`, and `−H` on a
+    /// held read), with the ask heads on; empty otherwise.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ranks: Vec<ValueRanks>,
 }
 
-/// Gives the read back as training runs it when dropped, `Ok` or `Err`: no class dropped and no
-/// row cut.
+/// Gives the read back as training runs it when dropped, `Ok` or `Err`: no class dropped, no
+/// row cut, the hold on and no capture.
 struct UndoAblation;
 
 impl Drop for UndoAblation {
     fn drop(&mut self) {
         crate::flock_read_hamming::set_class_ablation([[false; 2]; 2]);
         crate::flock_read_hamming::set_row_cut(None);
+        crate::flock_read_hamming::set_hold_off(false);
+        crate::flock_read_hamming::set_row_capture(None);
     }
+}
+
+/// claude-334: the six value ranks ([`ValueRanks`]) of the two-class task's held-out queries,
+/// plain and under each cut, from one captured forward per cut. The plain forward's picks must be
+/// `plain`, the checkpoint's own: the capture only copies.
+fn value_ranks(
+    model: &StackModel,
+    held_queries: &[(CausalWindow, Vec<RecallQuery>)],
+    plain: &[u32],
+    seed: u64,
+) -> Result<Vec<ValueRanks>> {
+    use crate::flock_read_hamming as fh;
+    let reads = fh::hamming_reads().ok_or_else(|| invalid("the ranks need a Hamming read"))?;
+    let held = reads.hold_rows() > 0;
+    let start = RECALL_VALUES.start as usize;
+    let values = table(model)?.narrow(0, start, RECALL_VALUES.len())?.to_vec2::<f32>()?;
+    let w_y = reads.type_weights()?.into_iter().next().ok_or_else(|| invalid("the ranks need the stream read"))?;
+    let written: Vec<Vec<f32>> =
+        values.iter().map(|p| p.iter().zip(&w_y).map(|(a, b)| a * b).collect()).collect();
+    let windows: Vec<&CausalWindow> = held_queries.iter().map(|(w, _)| w).collect();
+    let mut cuts = vec![("plain", None), ("-aS", Some(Ablation::AskStream))];
+    if held {
+        cuts.push(("-H", Some(Ablation::HoldOff)));
+    }
+    let mut out = Vec::new();
+    for (name, cut) in cuts {
+        let _undo = UndoAblation;
+        if let Some(cut) = cut {
+            fh::set_class_ablation(cut.classes());
+            fh::set_hold_off(cut.hold_off());
+        }
+        let mut sums = RankSums::default();
+        let (mut before_done, mut after_done) = (0usize, 0usize);
+        let picks = picks_with(
+            model,
+            &windows,
+            seed,
+            |chunk| {
+                let time = chunk[0].input_ids.len();
+                if chunk.iter().any(|w| w.input_ids.len() != time) {
+                    return Err(invalid("the capture needs windows of one length"));
+                }
+                let rows = held_queries[before_done..before_done + chunk.len()]
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(i, (_, qs))| qs.iter().flat_map(move |q| [i * time + q.query_pos, i * time + q.scored_offset]))
+                    .collect();
+                fh::set_row_capture(Some(rows));
+                before_done += chunk.len();
+                Ok(())
+            },
+            |chunk| {
+                let capture = fh::take_row_capture().ok_or_else(|| invalid("the capture went off mid-reading"))?;
+                let mut k = 0usize;
+                for (_, qs) in &held_queries[after_done..after_done + chunk.len()] {
+                    for q in qs {
+                        let target = (q.ask_value as usize)
+                            .checked_sub(start)
+                            .filter(|&v| v < values.len())
+                            .ok_or_else(|| invalid(format!("asked value {} is not a value token", q.ask_value)))?;
+                        sums.add(&capture, k, target, &values, &written)?;
+                        k += 1;
+                    }
+                }
+                after_done += chunk.len();
+                Ok(())
+            },
+        )?;
+        drop(_undo);
+        if cut.is_none() && picks != plain {
+            return Err(invalid("the captured forward's picks differ from the checkpoint's"));
+        }
+        out.push(sums.ranks(name, held));
+    }
+    Ok(out)
 }
 
 /// Turns the Hamming trace off when dropped.
@@ -12561,11 +12828,19 @@ fn recall_readings(
         held_out.iter().map(|(w, _)| (w, w.scored_offsets.clone())).unzip()
     };
     let mut ablations = Vec::new();
-    // claude-330: `−aQ` after the five, when the ask heads are on.
-    let asks = reads.has_ask().then_some(Ablation::AskAtQuery);
-    for ablation in RECALL_ABLATIONS.into_iter().chain(asks) {
+    // claude-330: `−aQ` after the five, when the ask heads are on; claude-334: `−aS` after it,
+    // and `−H` after that on a held read.
+    let mut extra = Vec::new();
+    if reads.has_ask() {
+        extra.extend([Ablation::AskAtQuery, Ablation::AskStream]);
+    }
+    if reads.hold_rows() > 0 {
+        extra.push(Ablation::HoldOff);
+    }
+    for ablation in RECALL_ABLATIONS.into_iter().chain(extra) {
         let _undo = UndoAblation;
         fh::set_class_ablation(ablation.classes());
+        fh::set_hold_off(ablation.hold_off());
         let mut done = 0usize;
         let picks = picks_with(
             model,
@@ -12645,7 +12920,13 @@ fn recall_readings(
             return Err(invalid("the traced forward's picks differ from the checkpoint's"));
         }
     }
-    Ok(RecallReadings { ablations, trace })
+    // claude-334: the value ranks, on the two-class task with the ask heads on.
+    let ranks = if query && reads.has_ask() {
+        value_ranks(model, held_queries, plain, seed)?
+    } else {
+        Vec::new()
+    };
+    Ok(RecallReadings { ablations, trace, ranks })
 }
 
 /// Recall hits per bucket on the held-out `windows`, decoded as the whole table's nearest token.
@@ -12870,6 +13151,20 @@ pub fn run_recall(
             readings,
             hamming_attract_mean: attract,
             hamming_pull_distance,
+            hamming_hold_gain: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) => reads.hold_gain()?.map(|g| hold_gain_reading(&g)).transpose()?,
+                None => None,
+            },
+            hamming_type_weight_mean_abs: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) if reads.has_ask() => Some(
+                    reads
+                        .type_weights()?
+                        .iter()
+                        .map(|w| w.iter().map(|&v| f64::from(v.abs())).sum::<f64>() / w.len().max(1) as f64)
+                        .collect(),
+                ),
+                _ => None,
+            },
         };
         println!(
             "[recall] step {step} hits {:?} of {:?} train {seconds:.0}s",
@@ -15051,15 +15346,34 @@ mod tests {
         readings_leave_training_alone(i7_trunk(), form, 5, "328");
     }
 
-    /// claude-330's I-7: the same on B1-a, the ask heads and the found-copy pull on, with the six
-    /// ablations (`−aQ` the sixth) and each depth's pull distance in every reading.
+    /// claude-330's I-7: the same on B1-a, the ask heads and the found-copy pull on, with seven
+    /// ablations (`−aQ` the sixth; claude-334's `−aS`, on every ask read, the seventh) and each
+    /// depth's pull distance in every reading.
     #[cfg(feature = "cuda")]
     #[test]
     #[ignore]
     fn the_recall_readings_leave_ask_training_alone() {
         let config = LongConfig { hamming_ask: true, hamming_attract: 1.0, ..i7_trunk() };
         let form = RecallForm { query: true, ..RecallForm::default() };
-        readings_leave_training_alone(config, form, 6, "330");
+        readings_leave_training_alone(config, form, 7, "330");
+    }
+
+    /// claude-334's I-7 (the carry-hold sheet): the same on B2-aqH, the ask heads with the pull at
+    /// the question and the hold over 8 rows, whose readings add `−aS`, `−H` (eight ablations), the
+    /// row capture and the three rank cuts.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore]
+    fn the_recall_readings_leave_held_training_alone() {
+        let config = LongConfig {
+            hamming_ask: true,
+            hamming_attract: 1.0,
+            hamming_attract_at_question: true,
+            hamming_hold: 8,
+            ..i7_trunk()
+        };
+        let form = RecallForm { query: true, header: 4, ..RecallForm::default() };
+        readings_leave_training_alone(config, form, 8, "334");
     }
 
     /// The I-7 trunk: the FBS trunk's flags, `--hamming-read 4`, 1,024 steps, readings every 512.
@@ -15128,6 +15442,17 @@ mod tests {
             if config.hamming_ask {
                 assert_eq!(line["hamming_pull_distance"].as_array().unwrap().len(), 2);
             }
+            // claude-334: a held read's readings carry the three rank cuts and the hold's gain.
+            if config.hamming_hold > 0 {
+                let cuts: Vec<&str> = line["readings"]["ranks"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|r| r["cut"].as_str().unwrap())
+                    .collect();
+                assert_eq!(cuts, ["plain", "-aS", "-H"]);
+                assert!(line["hamming_hold_gain"]["question"]["mean"].is_number());
+            }
         }
     }
 
@@ -15146,6 +15471,19 @@ mod tests {
             }
             assert_eq!(fh::class_ablation(), [[false; 2]; 2], "{ablation:?}");
             assert!(!fh::row_cut_set(), "{ablation:?}");
+        }
+        // claude-334: the hold cut and the row capture the readings set are cleared too, so
+        // neither reaches training (the pod's I-7 on B2-aqH reads the same end to end).
+        for ablation in [Ablation::AskStream, Ablation::HoldOff] {
+            {
+                let _undo = UndoAblation;
+                fh::set_class_ablation(ablation.classes());
+                fh::set_hold_off(ablation.hold_off());
+                fh::set_row_capture(Some(vec![0]));
+            }
+            assert_eq!(fh::class_ablation(), [[false; 2]; 2], "{ablation:?}");
+            assert!(!fh::hold_off(), "{ablation:?}");
+            assert!(fh::take_row_capture().is_none(), "{ablation:?}");
         }
     }
 
@@ -21977,6 +22315,144 @@ mod tests {
         assert_eq!(Ablation::CopyAtQuery.row_scope(), Some(ReadScope::Copy));
         assert_eq!(Ablation::AskAtQuery.classes(), [[false; 2]; 2]);
         assert!(RECALL_ABLATIONS.iter().all(|a| *a == Ablation::CopyAtQuery || a.row_scope().is_none()));
+    }
+
+    /// claude-334: `−aS` drops the stream read's ask (type) class alone and keeps the hold on;
+    /// `−H` drops no class and turns the hold off; neither cuts rows.
+    #[test]
+    fn the_ask_stream_and_hold_cuts_are_what_the_sheet_names() {
+        assert_eq!(Ablation::AskStream.name(), "-aS");
+        assert_eq!(Ablation::AskStream.classes(), [[false, true], [false, false]]);
+        assert!(!Ablation::AskStream.hold_off());
+        assert_eq!(Ablation::HoldOff.name(), "-H");
+        assert_eq!(Ablation::HoldOff.classes(), [[false; 2]; 2]);
+        assert!(Ablation::HoldOff.hold_off());
+        for a in [Ablation::AskStream, Ablation::HoldOff] {
+            assert_eq!(a.row_scope(), None);
+        }
+        assert!(RECALL_ABLATIONS.iter().chain([&Ablation::AskAtQuery]).all(|a| !a.hold_off()));
+    }
+
+    /// Hand-built value points of uneven size, `n` of width `w`, no two collinear: each lane from a
+    /// 64-bit LCG step of its own index, so the lanes have no short period.
+    fn uneven_points(n: usize, w: usize) -> Vec<Vec<f32>> {
+        let lane = |i: usize| -> f32 {
+            let s = (i as u64 + 1).wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+            ((s >> 40) % 2_000) as f32 / 1_000.0 - 0.9995
+        };
+        (0..n)
+            .map(|v| {
+                let size = 0.5 + (v % 7) as f32 * 0.4;
+                (0..w).map(|c| size * lane(v * w + c)).collect()
+            })
+            .collect()
+    }
+
+    /// claude-334's I-V: each rank equals a brute-force sort of the 512 distances, ties broken by
+    /// token id, scaled and raw; and the sheet's pinned cases read as it says.
+    #[test]
+    fn the_value_ranks_match_a_brute_force_sort_and_the_pinned_cases() -> Result<()> {
+        let (n, w) = (512usize, 16usize);
+        let values = uneven_points(n, w);
+        let brute = |x: &[f32], refs: &[Vec<f32>], target: usize, scaled: bool| -> usize {
+            let mut d: Vec<(f64, usize)> = refs
+                .iter()
+                .enumerate()
+                .map(|(v, r)| {
+                    let xr: f64 = x.iter().zip(r).map(|(&a, &b)| f64::from(a) * f64::from(b)).sum();
+                    let rr: f64 = r.iter().map(|&b| f64::from(b) * f64::from(b)).sum();
+                    let alpha = if !scaled { 1.0 } else if rr > 0.0 { (xr / rr).max(0.0) } else { 0.0 };
+                    let dist = x.iter().zip(r).map(|(&a, &b)| (f64::from(a) - alpha * f64::from(b)).powi(2)).sum();
+                    (dist, v)
+                })
+                .collect();
+            d.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+            1 + d.iter().position(|&(_, v)| v == target).expect("present")
+        };
+        for (i, target) in [0usize, 7, 255, 511].into_iter().enumerate() {
+            let x: Vec<f32> = (0..w).map(|c| ((((i * 31 + c) * 40_503) % 997) as f32 / 498.0) - 1.0).collect();
+            for scaled in [false, true] {
+                assert_eq!(value_rank(&x, &values, target, scaled)?, brute(&x, &values, target, scaled), "{target} {scaled}");
+            }
+        }
+        let t = 300usize;
+        // A payload shrunk by the margin weights reads 1 scaled, and not raw.
+        let shrunk: Vec<f32> = values[t].iter().map(|v| 0.3 * v).collect();
+        assert_eq!(value_rank(&shrunk, &values, t, true)?, 1);
+        assert!(value_rank(&shrunk, &values, t, false)? > 1, "a raw rank of the shrunk payload");
+        // An anti-aligned value does not tie at a negative scale.
+        let mut flipped = values.clone();
+        flipped[0] = values[t].iter().map(|v| -v).collect();
+        assert_eq!(value_rank(&values[t], &flipped, t, true)?, 1, "α* is clamped at 0");
+        // A zero point ties every scaled value at 0: the tie-break alone ranks it.
+        assert_eq!(value_rank(&vec![0.0; w], &values, 7, true)?, 8);
+        // A raw tie: the target's point duplicated at a smaller id ranks first, the target second.
+        let mut dup = values.clone();
+        dup[5] = values[t].clone();
+        for scaled in [false, true] {
+            assert_eq!(value_rank(&values[t], &dup, t, scaled)?, 2, "{scaled}");
+            assert_eq!(brute(&values[t], &dup, t, scaled), 2, "{scaled}");
+        }
+        // A `w_y` of mixed signs and uneven lanes: (r1u), (r1h) and (r1hs) still read 1 against
+        // `q_v`; a raw-point rank of the stream does not.
+        let w_y: Vec<f32> = (0..w).map(|c| if c % 3 == 0 { -1.7 } else { 0.2 + c as f32 * 0.1 }).collect();
+        let written: Vec<Vec<f32>> = values.iter().map(|p| p.iter().zip(&w_y).map(|(a, b)| a * b).collect()).collect();
+        let u = written[t].clone();
+        let held: Vec<f32> = u.iter().map(|v| 0.7 * v).collect();
+        let small: Vec<f32> = (0..w).map(|c| 0.01 * ((c % 5) as f32 - 2.0)).collect();
+        let stream: Vec<f32> = held.iter().zip(&small).map(|(a, b)| a + b).collect();
+        assert_eq!(value_rank(&u, &written, t, true)?, 1, "(r1u)");
+        assert_eq!(value_rank(&held, &written, t, true)?, 1, "(r1h)");
+        assert_eq!(value_rank(&stream, &written, t, true)?, 1, "(r1hs)");
+        assert!(value_rank(&stream, &values, t, false)? > 16, "a raw-point rank of the stream");
+        // A residual that dominates the stream: (r1y) and (r1u) read 1, (r1s) far from it. Query
+        // 0's rows are 0 (`Q`) and 1 (`H4`), query 1's are 2 and 3; query 0's payload is the shrunk
+        // one, so (r1y) reads 1 only scaled.
+        let residual: Vec<f32> = (0..w).map(|c| 9.0 * (((c * 7) % 11) as f32 - 5.0)).collect();
+        let out: Vec<f32> = residual.iter().zip(&u).map(|(a, b)| a + b).collect();
+        let capture = crate::flock_read_hamming::RowCapture {
+            rows: vec![0, 1, 2, 3],
+            stream: Some(crate::flock_read_hamming::StreamCapture {
+                payload: vec![shrunk.clone(), values[t].clone(), vec![0.0; w], vec![0.0; w]],
+                found: vec![true, true, false, true],
+                write: vec![u.clone(), u.clone(), vec![0.0; w], vec![0.0; w]],
+                held: vec![held.clone(), held.clone(), vec![0.0; w], held.clone()],
+                out: vec![out.clone(), stream.clone(), vec![0.0; w], stream.clone()],
+            }),
+            readout_in: Some(vec![values[t].clone(); 4]),
+        };
+        let mut sums = RankSums::default();
+        sums.add(&capture, 0, t, &values, &written)?;
+        // A zero vector where no head found: left out of the ranks, counted as not found.
+        sums.add(&capture, 1, t, &values, &written)?;
+        let ranks = sums.ranks("plain", true);
+        assert_eq!((ranks.rows, ranks.found), (2, 1));
+        assert_eq!(ranks.found_fraction, 0.5);
+        assert_eq!((ranks.r1y, ranks.r1u, ranks.r1h, ranks.r1hs, ranks.r2), (Some(1.0), Some(1.0), Some(1.0), Some(1.0), Some(1.0)));
+        assert!(ranks.r1s.expect("found") > 16.0, "(r1s) shows the residual");
+        assert_eq!(sums.ranks("-aS", false).r1h, None, "an unheld read has no (r1h)");
+        let none = RankSums::default().ranks("plain", true);
+        assert_eq!((none.found_fraction, none.r1y), (0.0, None));
+        Ok(())
+    }
+
+    /// claude-334: the hold's gain by token group.
+    #[test]
+    fn the_hold_gain_reads_by_token_group() -> Result<()> {
+        let mut gain = vec![0.0f32; 4_096];
+        gain[32] = 2.0;
+        gain[47] = -1.0;
+        gain[49] = 0.5;
+        gain[600] = 3.0;
+        gain[2_000] = 4.0;
+        let g = hold_gain_reading(&gain)?;
+        assert_eq!((g.question.min, g.question.max), (-1.0, 2.0));
+        assert_eq!(g.question.mean, 1.0 / 16.0);
+        assert_eq!((g.header.max, g.header.mean), (0.5, 0.125));
+        assert_eq!((g.values.max, g.values.mean), (3.0, 3.0 / 512.0));
+        assert_eq!(g.rest_mean, 4.0 / (4_096.0 - 16.0 - 4.0 - 512.0));
+        assert!(hold_gain_reading(&gain[..1_000]).is_err(), "a hold short of the value tokens");
+        Ok(())
     }
 
     /// claude-333: `--hamming-hold` stays out of `config.json` when off, needs the ask heads,
