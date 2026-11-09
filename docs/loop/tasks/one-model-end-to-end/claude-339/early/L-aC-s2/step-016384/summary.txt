@@ -1,0 +1,23 @@
+L-aC-s2 step-016384: totals {"bos_stops":0,"cap_stops":256,"complete":0,"context_stops":0,"eos_stops":0,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s2 step-016384: stops {"cap":256}
+L-aC-s2 step-016384: complete rows 0
+L-aC-s2 step-016384: collapse among EOS-stopped 0
+L-aC-s2 step-016384: distinct texts 46, most common over all 143
+L-aC-s2 step-016384: median reply length 64
+L-aC-s2 step-016384: EOS per stratum {}
+L-aC-s2 step-016384: first line {"asked":2,"other":3,"both":0,"rows":256}
+L-aC-s2 step-016384 -C: totals {"bos_stops":0,"cap_stops":256,"complete":0,"context_stops":0,"eos_stops":0,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s2 step-016384 -C: stops {"cap":256}
+L-aC-s2 step-016384 -C: complete rows 0
+L-aC-s2 step-016384 -C: collapse among EOS-stopped 0
+L-aC-s2 step-016384 -C: distinct texts 41, most common over all 147
+L-aC-s2 step-016384 -C: median reply length 64
+L-aC-s2 step-016384 -C: EOS per stratum {}
+L-aC-s2 step-016384 -C: first line {"asked":2,"other":3,"both":0,"rows":256}
+sha256 2741d9383a80c300b90ca2d5cbc1e06a9b664d913971f84ddbc2916a1625a430 served.uorlut
+sha256 391392f5c47af2cd6a1e091417dcc04c5340080474ebf6dad5d10ca2cfd277e5 served-minus-C.uorlut
+sha256 33c1bcbc8d4585608f2e1a6a9518b14683cf58f42e501f3e21e97e875dc0b787 score.json
+sha256 a7d8376bd0567e438788221c2719c0c8b5c797d72f9cfce5b393b9d0e9b7c380 score-minus-C.json
+sha256 f0c11bf41d762e09694813d25722df10b09eb65c13fd16bdd6f6134db0be6f94 pod.snapshot.json
+sha256 f090e8036060f5472635a7972d57f4ffd3e3a524118f305193cf70190fb5c4de served.snapshot.json
+scorer: served-reply-panel at main, b4aa8d85b72f17619234dee1a34b8949f4860bee53210c0e8823e24f63982b43

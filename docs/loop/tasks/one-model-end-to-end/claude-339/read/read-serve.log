@@ -1,0 +1,90 @@
+L-aC-s1: last loss 0.9128962673486116, step time 0.528614 s a step (I-t)
+L-aC-s1 xa: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s1: I-xa ok (carry rows 32; integer scores it, default refuses by name)
+L-aC-s1 step-008192: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s1 step-008192: complete 0, EOS 18, first line {"asked":0,"other":0,"both":0,"rows":256}, pull distance 0.28806089991121553
+L-aC-s1 step-012288: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s1 step-012288: complete 0, EOS 0, first line {"asked":0,"other":4,"both":0,"rows":256}, pull distance 0.293533107789699
+L-aC-s1 step-016384: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 1 trunk section(s) differ from the pod's
+L-aC-s1 step-016384: totals {"bos_stops":0,"cap_stops":254,"complete":0,"context_stops":0,"eos_stops":2,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s1 step-016384: collapse among EOS-stopped 1
+L-aC-s1 step-016384: distinct texts 60, most common over all 77
+L-aC-s1 step-016384: median reply length 64
+L-aC-s1 step-016384: EOS per stratum {"reassert":2}
+L-aC-s1 step-016384: first line {"asked":0,"other":3,"both":0,"rows":256}
+L-aC-s1 step-016384: I-5a's record, carry rows 32
+L-aC-s1 step-016384: pull distance 0.3023522681905888, carry gains {"min":-8.113540649414062,"max":8.159332275390625,"negative":337,"n":4096}
+input snapshot e4ae9c820f54466ae5a81572a0841cb739c381328e8c203daa2783731a457f85
+filter 145ec054a7c80ecdaec4fbbd3fcbdfbbd65eafcd5a51aa5c45293b4f9b99ca73 if (.hamming_ask | type) == "array" then .hamming_ask |= map(if . == null then null else del(.carry) end) else . end
+cut snapshot efa0386e2d17351c93a3714dac03989e778dba91e85e774ee81ffa3b88d0a791
+cut artifact 6e85e4e201e09771b56aa54d0ed680120ed00fbb082caaf7a8459681296da5e6
+I-cut: snapshots equal beyond the carry
+I-cut: the full snapshot carries 32 rows, the cut none
+I-cut: ok, 86 sections equal
+L-aC-s1 -C: totals {"bos_stops":0,"cap_stops":252,"complete":0,"context_stops":0,"eos_stops":4,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s1 -C: collapse among EOS-stopped 2
+L-aC-s1 -C: distinct texts 58, most common over all 89
+L-aC-s1 -C: median reply length 64
+L-aC-s1 -C: EOS per stratum {"reassert":3,"update":1}
+L-aC-s1 -C: first line {"asked":0,"other":4,"both":0,"rows":256}
+L-aC-s2: last loss 0.8776416842441422, step time 0.522884 s a step (I-t)
+L-aC-s2 xa: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s2: I-xa ok (carry rows 32; integer scores it, default refuses by name)
+L-aC-s2 step-008192: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s2 step-008192: complete 0, EOS 14, first line {"asked":5,"other":8,"both":0,"rows":256}, pull distance 0.35148995349300094
+L-aC-s2 step-012288: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-aC-s2 step-012288: complete 0, EOS 1, first line {"asked":4,"other":4,"both":0,"rows":256}, pull distance 0.3508037997817155
+L-aC-s2 step-016384: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 1 trunk section(s) differ from the pod's
+L-aC-s2 step-016384: totals {"bos_stops":0,"cap_stops":256,"complete":0,"context_stops":0,"eos_stops":0,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s2 step-016384: collapse among EOS-stopped 0
+L-aC-s2 step-016384: distinct texts 46, most common over all 143
+L-aC-s2 step-016384: median reply length 64
+L-aC-s2 step-016384: EOS per stratum {}
+L-aC-s2 step-016384: first line {"asked":2,"other":3,"both":0,"rows":256}
+L-aC-s2 step-016384: I-5a's record, carry rows 32
+L-aC-s2 step-016384: pull distance 0.3499102523201145, carry gains {"min":-8.095199584960938,"max":8.142013549804688,"negative":460,"n":4096}
+input snapshot f090e8036060f5472635a7972d57f4ffd3e3a524118f305193cf70190fb5c4de
+filter 145ec054a7c80ecdaec4fbbd3fcbdfbbd65eafcd5a51aa5c45293b4f9b99ca73 if (.hamming_ask | type) == "array" then .hamming_ask |= map(if . == null then null else del(.carry) end) else . end
+cut snapshot 6348a1821520e475fdca6fedcb3f41a6a19fee5707d429a82b66e05e12c2daef
+cut artifact 391392f5c47af2cd6a1e091417dcc04c5340080474ebf6dad5d10ca2cfd277e5
+I-cut: snapshots equal beyond the carry
+I-cut: the full snapshot carries 32 rows, the cut none
+I-cut: ok, 86 sections equal
+L-aC-s2 -C: totals {"bos_stops":0,"cap_stops":256,"complete":0,"context_stops":0,"eos_stops":0,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-aC-s2 -C: collapse among EOS-stopped 0
+L-aC-s2 -C: distinct texts 41, most common over all 147
+L-aC-s2 -C: median reply length 64
+L-aC-s2 -C: EOS per stratum {}
+L-aC-s2 -C: first line {"asked":2,"other":3,"both":0,"rows":256}
+L-a-s1: last loss 0.8823381351698111, step time 0.498176 s a step (I-t)
+L-a-s1 xa: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s1: I-xa ok (carry rows none; integer scores it, default refuses by name)
+L-a-s1 step-008192: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s1 step-008192: complete 0, EOS 14, first line {"asked":1,"other":4,"both":0,"rows":256}, pull distance 0.2873589158698451
+L-a-s1 step-012288: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s1 step-012288: complete 0, EOS 5, first line {"asked":2,"other":4,"both":0,"rows":256}, pull distance 0.2826275009429082
+L-a-s1 step-016384: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 1 trunk section(s) differ from the pod's
+L-a-s1 step-016384: totals {"bos_stops":0,"cap_stops":250,"complete":0,"context_stops":0,"eos_stops":6,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-a-s1 step-016384: collapse among EOS-stopped 4
+L-a-s1 step-016384: distinct texts 38, most common over all 172
+L-a-s1 step-016384: median reply length 64
+L-a-s1 step-016384: EOS per stratum {"length2":4,"reassert":2}
+L-a-s1 step-016384: first line {"asked":2,"other":7,"both":0,"rows":256}
+L-a-s1 step-016384: I-5a's record, carry rows none
+L-a-s1 step-016384: pull distance 0.2848467145813629, carry gains "none"
+L-a-s2: last loss 0.8579495672448133, step time 0.489982 s a step (I-t)
+L-a-s2 xa: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s2: I-xa ok (carry rows none; integer scores it, default refuses by name)
+L-a-s2 step-008192: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s2 step-008192: complete 0, EOS 0, first line {"asked":0,"other":0,"both":0,"rows":256}, pull distance 0.27180981608398724
+L-a-s2 step-012288: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 0 trunk section(s) differ from the pod's
+L-a-s2 step-012288: complete 0, EOS 0, first line {"asked":0,"other":0,"both":0,"rows":256}, pull distance 0.26991012765211053
+L-a-s2 step-016384: laptop snapshot: hamming sections equal to the pod's, trunk equal to cpu-fbs-export's, 5 trunk section(s) differ from the pod's
+L-a-s2 step-016384: totals {"bos_stops":0,"cap_stops":256,"complete":0,"context_stops":0,"eos_stops":0,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-a-s2 step-016384: collapse among EOS-stopped 0
+L-a-s2 step-016384: distinct texts 97, most common over all 31
+L-a-s2 step-016384: median reply length 64
+L-a-s2 step-016384: EOS per stratum {}
+L-a-s2 step-016384: first line {"asked":0,"other":0,"both":0,"rows":256}
+L-a-s2 step-016384: I-5a's record, carry rows none
+L-a-s2 step-016384: pull distance 0.26866421625891235, carry gains "none"

@@ -1,0 +1,115 @@
+{
+  "inputs_grade_sha256": {
+    "a1": "be6dce93d783b4a56201298fbac662096b99d9a6e178db5ed949ba0195a03948",
+    "a2": "b8bdeb179350ac6ac161f6bcbd8c8b12491bdca783ec7e77fd696f9025f93f5f",
+    "b1": "24d69af0455c9b18ab819bd73355e30ffa2f56db191f83e899ce0d8d4b092f7e",
+    "b2": "4407e2c2baf24ec94b1ba823316c109868f1fdd4322b4667ff136792518d3ec3"
+  },
+  "pooled": {
+    "seeds": [
+      {
+        "b": 46703,
+        "band": 19481,
+        "c": 65675,
+        "d": -18972,
+        "position": "inside"
+      },
+      {
+        "b": 44401,
+        "band": 19481,
+        "c": 43892,
+        "d": 509,
+        "position": "inside"
+      }
+    ],
+    "spread": 19481,
+    "verdict": "inside"
+  },
+  "schema": "uor-r4-scale-probe-pair/v1",
+  "splits": [
+    {
+      "name": "oasst2",
+      "seeds": [
+        {
+          "b": 6436,
+          "band": 3247,
+          "c": 9012,
+          "d": -2576,
+          "position": "inside"
+        },
+        {
+          "b": 6386,
+          "band": 3247,
+          "c": 5715,
+          "d": 671,
+          "position": "inside"
+        }
+      ],
+      "spread": 3247,
+      "verdict": "inside"
+    },
+    {
+      "name": "wiki-00000",
+      "seeds": [
+        {
+          "b": 13008,
+          "band": 4371,
+          "c": 17776,
+          "d": -4768,
+          "position": "behind"
+        },
+        {
+          "b": 11959,
+          "band": 4371,
+          "c": 12356,
+          "d": -397,
+          "position": "inside"
+        }
+      ],
+      "spread": 4371,
+      "verdict": "mixed"
+    },
+    {
+      "name": "wiki-00020",
+      "seeds": [
+        {
+          "b": 14017,
+          "band": 5869,
+          "c": 19844,
+          "d": -5827,
+          "position": "inside"
+        },
+        {
+          "b": 13206,
+          "band": 5869,
+          "c": 13164,
+          "d": 42,
+          "position": "inside"
+        }
+      ],
+      "spread": 5869,
+      "verdict": "inside"
+    },
+    {
+      "name": "wiki-00040",
+      "seeds": [
+        {
+          "b": 13242,
+          "band": 5994,
+          "c": 19043,
+          "d": -5801,
+          "position": "inside"
+        },
+        {
+          "b": 12850,
+          "band": 5994,
+          "c": 12657,
+          "d": 193,
+          "position": "inside"
+        }
+      ],
+      "spread": 5994,
+      "verdict": "inside"
+    }
+  ]
+}

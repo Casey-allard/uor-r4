@@ -1,0 +1,13 @@
+L-a-s1 step-016384: totals {"bos_stops":0,"cap_stops":250,"complete":0,"context_stops":0,"eos_stops":6,"pairs":128,"pairs_both_complete_distinct":0,"rows":256}
+L-a-s1 step-016384: stops {"cap":250,"eos":6}
+L-a-s1 step-016384: complete rows 0
+L-a-s1 step-016384: collapse among EOS-stopped 4
+L-a-s1 step-016384: distinct texts 38, most common over all 172
+L-a-s1 step-016384: median reply length 64
+L-a-s1 step-016384: EOS per stratum {"length2":4,"reassert":2}
+L-a-s1 step-016384: first line {"asked":2,"other":7,"both":0,"rows":256}
+sha256 7b817369dbe0420a5dc409cdef84ce6598cafacae942b81931e2f7a88ebbed13 served.uorlut
+sha256 7318f4a2867110b0db413e36e8f583103091d18552102fa5ecab4086a9a4d8c7 score.json
+sha256 206737ebf33d145cf64af91f58b0d7a44e321504042f45ff5e240bb8c23bcc77 pod.snapshot.json
+sha256 6b36db05497e6cfa3cc0987fcd94533f8f6d0d29c4596d4689d66f225c26c684 served.snapshot.json
+scorer: served-reply-panel at main, b4aa8d85b72f17619234dee1a34b8949f4860bee53210c0e8823e24f63982b43

@@ -1,0 +1,10 @@
+L-aC-s1: grade exit 0
+L-aC-s2: grade exit 0
+L-a-s1: grade exit 0
+L-a-s2: grade exit 0
+L-aC vs (b64L-D3): pair exit 0
+L-aC vs (b64L-D3): verdict behind, positions behind behind, d -34428 -25118, mean d -29773, ceiling -58212
+L-aC vs claude-322: pair exit 0, verdict inside, d -18972 509
+L-a vs (b64L-D3): pair exit 0
+L-a vs (b64L-D3): verdict behind, positions behind behind, d -12234 -17832, mean d -15033, ceiling -58212
+L-a vs claude-322: pair exit 0, verdict mixed, d 3222 7795

@@ -327,7 +327,8 @@ struct ServedValues {
 impl ServedValues {
     /// Copy each variable's value, then round them in place with the export's own roundings
     /// (`fbs_export::round_tables_as_exported`, `round_hamming_as_exported`,
-    /// `round_memory_as_exported`). A rounding the export refuses leaves every value as it was.
+    /// `round_memory_as_exported`). A rounding the export refuses leaves every value as it was,
+    /// apart from an ask weight already held at the end of its range.
     fn round(
         model: &StackModel,
         reads: Option<&crate::flock_read_hamming::HammingReads>,
@@ -335,6 +336,9 @@ impl ServedValues {
     ) -> Result<Self> {
         let mut vars: Vec<&candle_core::Var> = model.variables().values().collect();
         if let Some(reads) = reads {
+            // claude-339: before the float copies, so the float master stays at the range's
+            // end too and cannot run on past what the export can hold.
+            crate::fbs_export::hold_hamming_ask_in_exported_range(reads)?;
             vars.extend(reads.variables());
         }
         if let Some(memory) = memory {
@@ -21751,6 +21755,64 @@ mod tests {
             held[1] != served_bits(&reads.variables())?,
             held[2] != served_bits(&memory.variables())?,
         ])
+    }
+
+    /// claude-339: an ask weight past the Q12 `i16` range stopped a 16,384-step run at about
+    /// step 14,700. As served it is now held at the end of the range, in both the served value
+    /// and the float master; a weight inside the range is rounded as before.
+    #[test]
+    fn an_ask_weight_past_the_served_range_is_held_at_its_end() -> Result<()> {
+        let device = Device::Cpu;
+        let (model, reads, _memory) = served_parts(&device)?;
+        let reads = reads.with_ask(2)?;
+        let top = 32_767f32 / 4_096f32;
+        let ask = reads.reads[1].ask.as_ref().expect("the read asks");
+        let mut values = vec![0f32; ask.elem_count()];
+        values[..5].copy_from_slice(&[-8.000_233, 8.25, 7.999_9, -7.5, 0.25]);
+        ask.set(&Tensor::from_vec(values, ask.shape(), &device)?)?;
+        let head = |var: &candle_core::Var| -> Result<Vec<f32>> {
+            Ok(var.as_tensor().flatten_all()?.to_vec1::<f32>()?[..5].to_vec())
+        };
+        let guard = round_if_served(true, &model, Some(&reads), None)?.expect("the guard is on");
+        assert_eq!(head(ask)?, [-8.0, top, top, -7.5, 0.25], "the served values");
+        guard.restore()?;
+        assert_eq!(head(ask)?, [-8.0, top, top, -7.5, 0.25], "the float masters");
+        Ok(())
+    }
+
+    /// claude-339: the hold covers every read's ask table, and holds only finite weights. An
+    /// infinite weight or a NaN is still refused by the rounding, never served as the range's end.
+    #[test]
+    fn every_ask_is_held_and_a_weight_not_finite_is_still_refused() -> Result<()> {
+        let device = Device::Cpu;
+        let (model, reads, _memory) = served_parts(&device)?;
+        let reads = reads.with_ask(2)?;
+        let asks: Vec<_> = reads.reads.iter().filter_map(|read| read.ask.as_ref()).collect();
+        assert!(asks.len() > 1, "more than one read asks");
+        for ask in asks {
+            let set = |first: f32, second: f32| -> Result<()> {
+                let mut values = vec![0f32; ask.elem_count()];
+                (values[0], values[1]) = (first, second);
+                Ok(ask.set(&Tensor::from_vec(values, ask.shape(), &device)?)?)
+            };
+            set(-8.25, 0.0)?;
+            let guard = round_if_served(true, &model, Some(&reads), None)?.expect("the guard is on");
+            assert_eq!(ask.as_tensor().flatten_all()?.to_vec1::<f32>()?[0], -8.0, "held");
+            guard.restore()?;
+            // Alone, and beside a finite weight past the range, which makes the hold run.
+            for (bad, other) in [f32::INFINITY, f32::NEG_INFINITY, f32::NAN]
+                .into_iter()
+                .flat_map(|bad| [(bad, 0.0), (bad, -9.0)])
+            {
+                set(bad, other)?;
+                assert!(
+                    round_if_served(true, &model, Some(&reads), None).is_err(),
+                    "{bad} beside {other} refused"
+                );
+            }
+            set(0.0, 0.0)?;
+        }
+        Ok(())
     }
 
     /// claude-258: a checkpoint saved as served is one the export's rounding leaves unchanged in

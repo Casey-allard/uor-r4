@@ -667,6 +667,31 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
     Ok(())
 }
 
+/// claude-339: hold every read's ask table inside what its export can store, the `i16` range at
+/// `2^HAMMING_ASK_EXP` (-8 to 32767/4096). Training as served calls this before it rounds, so a
+/// weight the optimizer carries past that range sits at the end of it, and is served and trained
+/// as that value. Without it a long run stops when one of a million weights crosses -8
+/// (claude-339, at about step 14,700). Only the training path calls it: the export and the
+/// snapshot still refuse a value past the range, because a saved table should never hold one.
+pub fn hold_hamming_ask_in_exported_range(reads: &HammingReads) -> Result<()> {
+    let step = 2f64.powi(HAMMING_ASK_EXP);
+    let (low, high) = ((f64::from(i16::MIN) * step) as f32, (f64::from(i16::MAX) * step) as f32);
+    for ask in reads.reads.iter().filter_map(|read| read.ask.as_ref()) {
+        let tensor = ask.as_tensor();
+        let values = tensor.flatten_all()?.to_vec1::<f32>()?;
+        if values.iter().any(|&v| v.is_finite() && (v < low || v > high)) {
+            // On the host, as the rounding does. A value that is not finite stays as it is,
+            // for the rounding to refuse by name.
+            let held = values
+                .into_iter()
+                .map(|v| if v.is_finite() { v.clamp(low, high) } else { v })
+                .collect();
+            ask.set(&Tensor::from_vec(held, tensor.shape(), tensor.device())?)?;
+        }
+    }
+    Ok(())
+}
+
 /// claude-252: round the turn memory's move weights as the integer artifact holds them
 /// (`quantize_fixed_i32` at `2^MEMORY_WEIGHT_EXP` on [`fbs_memory_snapshot`]'s weights): the
 /// opening weight, and the reply weight when the memory has a reply table. Its keys and stored

@@ -1,0 +1,115 @@
+{
+  "inputs_grade_sha256": {
+    "a1": "2a7ac2c14d77cf27c81f4407b93a11c2222a24f63fede5aab69fe1c32beff49d",
+    "a2": "5483325f3fc885ce20fd9811d83d9bfca87e1a29512b76b59714ee74945cd56c",
+    "b1": "24d69af0455c9b18ab819bd73355e30ffa2f56db191f83e899ce0d8d4b092f7e",
+    "b2": "4407e2c2baf24ec94b1ba823316c109868f1fdd4322b4667ff136792518d3ec3"
+  },
+  "pooled": {
+    "seeds": [
+      {
+        "b": 45298,
+        "band": 4573,
+        "c": 42076,
+        "d": 3222,
+        "position": "inside"
+      },
+      {
+        "b": 58555,
+        "band": 4573,
+        "c": 50760,
+        "d": 7795,
+        "position": "ahead"
+      }
+    ],
+    "spread": 4573,
+    "verdict": "mixed"
+  },
+  "schema": "uor-r4-scale-probe-pair/v1",
+  "splits": [
+    {
+      "name": "oasst2",
+      "seeds": [
+        {
+          "b": 6540,
+          "band": 1125,
+          "c": 5200,
+          "d": 1340,
+          "position": "ahead"
+        },
+        {
+          "b": 8653,
+          "band": 1125,
+          "c": 6188,
+          "d": 2465,
+          "position": "ahead"
+        }
+      ],
+      "spread": 1125,
+      "verdict": "ahead"
+    },
+    {
+      "name": "wiki-00000",
+      "seeds": [
+        {
+          "b": 12155,
+          "band": 996,
+          "c": 12109,
+          "d": 46,
+          "position": "inside"
+        },
+        {
+          "b": 15480,
+          "band": 996,
+          "c": 14438,
+          "d": 1042,
+          "position": "ahead"
+        }
+      ],
+      "spread": 996,
+      "verdict": "mixed"
+    },
+    {
+      "name": "wiki-00020",
+      "seeds": [
+        {
+          "b": 13693,
+          "band": 1182,
+          "c": 12366,
+          "d": 1327,
+          "position": "ahead"
+        },
+        {
+          "b": 17718,
+          "band": 1182,
+          "c": 15209,
+          "d": 2509,
+          "position": "ahead"
+        }
+      ],
+      "spread": 1182,
+      "verdict": "ahead"
+    },
+    {
+      "name": "wiki-00040",
+      "seeds": [
+        {
+          "b": 12910,
+          "band": 1270,
+          "c": 12401,
+          "d": 509,
+          "position": "inside"
+        },
+        {
+          "b": 16704,
+          "band": 1270,
+          "c": 14925,
+          "d": 1779,
+          "position": "ahead"
+        }
+      ],
+      "spread": 1270,
+      "verdict": "mixed"
+    }
+  ]
+}

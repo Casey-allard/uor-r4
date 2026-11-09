@@ -1,0 +1,115 @@
+{
+  "inputs_grade_sha256": {
+    "a1": "be6dce93d783b4a56201298fbac662096b99d9a6e178db5ed949ba0195a03948",
+    "a2": "b8bdeb179350ac6ac161f6bcbd8c8b12491bdca783ec7e77fd696f9025f93f5f",
+    "b1": "e17a13548d09304d901a93683cadb6c7695200261e86770e319003bfc976523a",
+    "b2": "3170c779def7ef376fdc11c96232f3f6ddb2809c436855121fd24be8ed7ab5a1"
+  },
+  "pooled": {
+    "seeds": [
+      {
+        "b": 56834,
+        "band": 9310,
+        "c": 91262,
+        "d": -34428,
+        "position": "behind"
+      },
+      {
+        "b": 52494,
+        "band": 9310,
+        "c": 77612,
+        "d": -25118,
+        "position": "behind"
+      }
+    ],
+    "spread": 9310,
+    "verdict": "behind"
+  },
+  "schema": "uor-r4-scale-probe-pair/v1",
+  "splits": [
+    {
+      "name": "oasst2",
+      "seeds": [
+        {
+          "b": 7774,
+          "band": 1515,
+          "c": 12402,
+          "d": -4628,
+          "position": "behind"
+        },
+        {
+          "b": 7153,
+          "band": 1515,
+          "c": 10266,
+          "d": -3113,
+          "position": "behind"
+        }
+      ],
+      "spread": 1515,
+      "verdict": "behind"
+    },
+    {
+      "name": "wiki-00000",
+      "seeds": [
+        {
+          "b": 15671,
+          "band": 2720,
+          "c": 25421,
+          "d": -9750,
+          "position": "behind"
+        },
+        {
+          "b": 14872,
+          "band": 2720,
+          "c": 21902,
+          "d": -7030,
+          "position": "behind"
+        }
+      ],
+      "spread": 2720,
+      "verdict": "behind"
+    },
+    {
+      "name": "wiki-00020",
+      "seeds": [
+        {
+          "b": 17092,
+          "band": 2487,
+          "c": 27369,
+          "d": -10277,
+          "position": "behind"
+        },
+        {
+          "b": 15436,
+          "band": 2487,
+          "c": 23226,
+          "d": -7790,
+          "position": "behind"
+        }
+      ],
+      "spread": 2487,
+      "verdict": "behind"
+    },
+    {
+      "name": "wiki-00040",
+      "seeds": [
+        {
+          "b": 16297,
+          "band": 2588,
+          "c": 26070,
+          "d": -9773,
+          "position": "behind"
+        },
+        {
+          "b": 15033,
+          "band": 2588,
+          "c": 22218,
+          "d": -7185,
+          "position": "behind"
+        }
+      ],
+      "spread": 2588,
+      "verdict": "behind"
+    }
+  ]
+}
