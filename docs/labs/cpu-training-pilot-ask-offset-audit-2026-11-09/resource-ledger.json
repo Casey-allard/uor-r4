@@ -1,0 +1,65 @@
+{
+  "schema": "uor-r4.cpu-ask-offset-audit-resource/1",
+  "status": "READY_AWAITING_CLAUDE_330_CHECKPOINT",
+  "experiment": "CPU audit for Claude-330 trained ask-offset tensors and ask-head serving design gate",
+  "updated_utc": "2026-11-09T00:21:42Z",
+  "previous_ledger": "cpu-training-pilot-ask-head-oracle-2026-11-08/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 103967.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 1800,
+  "admitted_increment_seconds": 1800,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 105767.677487699,
+  "admitted_cumulative_projection_seconds": 105767.677487699,
+  "lab_cumulative_projection_seconds": 105767.677487699,
+  "projection": {
+    "measured_synthetic_probe_seconds": 5.88,
+    "builds_and_tests_allowance_seconds": 900,
+    "review_and_delivery_allowance_seconds": 300,
+    "retry_and_setup_allowance_seconds": 594.12,
+    "wall_limit_seconds": 1800
+  },
+  "measured": {
+    "synthetic_checkpoint_reports": 1,
+    "synthetic_probe_seconds": 5.88,
+    "max_peak_rss_kib": 228240,
+    "real_claude_330_checkpoint_runs": 0
+  },
+  "artifacts": {
+    "ask_offset_audit_binary": "6dd1b936cfb9193f3bc48bceb8eecfe9a7d3549752927c39dff26297303ece7c",
+    "synthetic_report": "f988f85ff2ee3f5556e6abd760c236b8bad82b8f4f43605b59fca0bbfede4227"
+  },
+  "storage": {
+    "tracked_evidence_bytes": 9522,
+    "build_target_bytes": 6453249300,
+    "free_bytes_at_measurement": 155408941056,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-245/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-245/REPORT.md",
+    "design": "docs/loop/tasks/cpu-training-pilot/deepseek-245/ASK_HEAD_SERVING_DESIGN.md"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree target after protected delivery; no model evidence to retain"
+  }
+}

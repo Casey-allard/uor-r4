@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
+pub mod ask_offset_audit;
 mod ask_head;
 mod content_readout;
 mod checkpoint_grade;
