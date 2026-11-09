@@ -20,7 +20,7 @@ for (const theme of ['dark', 'light'] as const) for (const viewport of [{ name: 
         await page.screenshot({ path: testInfo.outputPath(`${surface.name}-${theme}-${viewport.name}.png`), fullPage: true });
     });
     test(`capture legacy ${theme} ${viewport.name}`, async ({ page }, testInfo) => {
-        await page.setViewportSize({ width: viewport.width, height: viewport.height }); await page.goto(`/?theme=${theme}`);
+        await page.setViewportSize({ width: viewport.width, height: viewport.height }); await page.goto(`/?legacy=1&theme=${theme}`);
         await expect(page.locator('#app')).toBeVisible(); await expect(page.locator('.toast')).toHaveCount(0, { timeout: 6000 });
         await page.screenshot({ path: testInfo.outputPath(`legacy-${theme}-${viewport.name}.png`), fullPage: true });
     });

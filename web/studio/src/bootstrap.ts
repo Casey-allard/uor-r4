@@ -5,14 +5,15 @@ import { createLegacyWorkflowApis } from './adapters/workflow.js';
 import type { LegacyWorkflowApis } from './adapters/workflow.js';
 import { ModelSources } from '../assets/js/model_sources.js';
 import { StudioApp } from './components/StudioApp.js';
-import { studioMigrationStatus } from './persistence/migration.js';
+import { activateStudioMigration, studioMigrationStatus } from './persistence/migration.js';
 
 interface LegacyAppWindow extends Window {
     __studioApp?: { worker: Worker | null };
 }
 
 export function typedPreviewRequested(search: string): boolean {
-    return new URLSearchParams(search).get('typed') === '1';
+    const params = new URLSearchParams(search);
+    return params.get('legacy') !== '1' && params.get('typed') !== '0';
 }
 
 async function waitForWorkflowApis(timeoutMs: number): Promise<LegacyWorkflowApis> {
@@ -36,11 +37,13 @@ async function waitForWorkflowApis(timeoutMs: number): Promise<LegacyWorkflowApi
 }
 
 export async function mountTypedStudio(root: HTMLElement, options: { timeoutMs?: number } = {}) {
+    if (studioMigrationStatus().state === 'inactive') activateStudioMigration(true);
     const migration = studioMigrationStatus();
     if (migration.state === 'error') throw new Error(`Browser-state migration failed: ${migration.error || 'unknown error'}`);
     root.hidden = false;
     const apis = await waitForWorkflowApis(options.timeoutMs ?? 5000);
-    const requestedTheme = new URLSearchParams(window.location.search).get('theme');
+    const requestedTheme = new URLSearchParams(window.location.search).get('theme')
+        || (window.location.hash === '#theme=light' ? 'light' : (window.location.hash === '#theme=dark' ? 'dark' : null));
     if (requestedTheme === 'light' || requestedTheme === 'dark') apis.ui.updateSettings({ theme: requestedTheme });
     const store = new LifecycleStore();
     const legacyWorker = (window as LegacyAppWindow).__studioApp?.worker || null;

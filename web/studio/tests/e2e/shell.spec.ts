@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { openTyped } from './support';
 
+test('default URL enters the typed workbench', async ({ page }) => {
+    await page.goto('/?publish=cutover#theme=light');
+    await expect(page.locator('.harness-shell')).toBeVisible();
+    await expect(page.locator('.agent-workspace')).toBeVisible();
+    await expect(page).toHaveURL('/?publish=cutover#theme=light');
+    await expect(page.locator('#studio-typed-root')).toHaveAttribute('data-active', 'true');
+    await expect(page.locator('#app')).toBeHidden();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+test('explicit legacy selections retain the legacy interface', async ({ page }) => {
+    for (const selection of ['?legacy=1', '?typed=0']) {
+        await page.goto(`/${selection}`);
+        await expect(page).toHaveURL(`/${selection}`);
+        await expect(page.locator('#app')).toBeVisible();
+        await expect(page.locator('#studio-typed-root')).toBeHidden();
+    }
+});
+
 test('uses the approved neutral workbench palette instead of the green placeholder', async ({ page }) => {
     await openTyped(page);
     const shell = page.locator('.harness-shell');

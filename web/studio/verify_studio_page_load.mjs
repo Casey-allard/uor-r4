@@ -441,29 +441,34 @@ async function main() {
         assert(index.external.length === 0, 'index.html made external load requests: ' + JSON.stringify(index.external));
         assert(index.rawTypeScript.length === 0, 'index.html requested raw TypeScript or src/main: ' + JSON.stringify(index.rawTypeScript));
         assert(index.runtimeErrors.length === 0, 'index.html emitted runtime errors: ' + JSON.stringify(index.runtimeErrors));
-        const typedPreview = process.env.UOR_STUDIO_TYPED === '1'
-            ? await trapPageLoad(cdp, origin, '/studio/dist/index.html?typed=1', { typed: true })
-            : null;
-        if (typedPreview) {
-            if (process.env.UOR_STUDIO_DEBUG === '1') console.log('TYPED_RUNTIME_ERRORS ' + JSON.stringify(typedPreview.runtimeErrors));
-            assert(typedPreview.loaded, 'typed preview never fired loadEventFired');
-            assert(typedPreview.external.length === 0, 'typed preview made external load requests: ' + JSON.stringify(typedPreview.external));
-            assert(typedPreview.rawTypeScript.length === 0, 'typed preview requested raw TypeScript or src/main: ' + JSON.stringify(typedPreview.rawTypeScript));
-            assert(typedPreview.runtimeErrors.length === 0, 'typed preview emitted runtime errors: ' + JSON.stringify(typedPreview.runtimeErrors));
-            assert(typedPreview.typed?.shellCount === 1 && typedPreview.typed.active, 'typed preview did not mount exactly one StudioApp: ' + JSON.stringify(typedPreview.typed));
-            assert(typedPreview.typed.legacyHidden, 'legacy shell remained visible in typed preview');
-            assert(typedPreview.typed.legacyMcp === 0, 'legacy MCP auto-boot mounted in typed preview');
-            assert(typedPreview.typed.typedMcp === 1 && typedPreview.typed.typedMcpAfterWorkflow === 0, 'typed MCP panel counts do not match Models/Agent navigation: ' + JSON.stringify(typedPreview.typed));
-            assert(typedPreview.typed.artifactReady, 'typed bundled demo did not reach Artifact: ready: ' + JSON.stringify(typedPreview.typed));
-            assert(typedPreview.typed.visible && typedPreview.typed.typedText, 'typed shell is not computed-visible with typed text: ' + JSON.stringify(typedPreview.typed));
+        const typedRoutes = process.env.UOR_STUDIO_TYPED === '1'
+            ? [
+                ['default', await trapPageLoad(cdp, origin, '/studio/dist/index.html', { typed: true })],
+                ['typed=1', await trapPageLoad(cdp, origin, '/studio/dist/index.html?typed=1', { typed: true })],
+            ]
+            : [];
+        for (const [routeName, typedPreview] of typedRoutes) {
+            if (process.env.UOR_STUDIO_DEBUG === '1') console.log('TYPED_RUNTIME_ERRORS ' + routeName + ' ' + JSON.stringify(typedPreview.runtimeErrors));
+            assert(typedPreview.loaded, routeName + ' never fired loadEventFired');
+            assert(typedPreview.external.length === 0, routeName + ' made external load requests: ' + JSON.stringify(typedPreview.external));
+            assert(typedPreview.rawTypeScript.length === 0, routeName + ' requested raw TypeScript or src/main: ' + JSON.stringify(typedPreview.rawTypeScript));
+            assert(typedPreview.runtimeErrors.length === 0, routeName + ' emitted runtime errors: ' + JSON.stringify(typedPreview.runtimeErrors));
+            assert(typedPreview.typed?.shellCount === 1 && typedPreview.typed.active, routeName + ' did not mount exactly one StudioApp: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.legacyHidden, 'legacy shell remained visible in ' + routeName);
+            assert(typedPreview.typed.legacyMcp === 0, 'legacy MCP auto-boot mounted in ' + routeName + ': ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.typedMcp === 1 && typedPreview.typed.typedMcpAfterWorkflow === 0, 'typed MCP panel counts do not match Models/Agent navigation in ' + routeName + ': ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.artifactReady, routeName + ' bundled demo did not reach Artifact: ready: ' + JSON.stringify(typedPreview.typed));
+            assert(typedPreview.typed.visible && typedPreview.typed.typedText, routeName + ' shell is not computed-visible with typed text: ' + JSON.stringify(typedPreview.typed));
             const flow = typedPreview.typed.sessionFlow;
-            assert(flow?.created, 'typed session creation did not produce two distinct real session IDs: ' + JSON.stringify(flow));
-            assert(flow.beforeSend?.idMatches && flow.beforeSend.markerMatches, 'typed resume did not verify the original active session: ' + JSON.stringify(flow));
-            assert(flow.answerReady && flow.firstTranscript.includes('42'), 'typed UOR arithmetic response was not visible: ' + JSON.stringify(flow));
-            assert(flow.otherResume?.idMatches && flow.otherResume.markerMatches && flow.otherHasAnswer === false, 'the other session exposed the original response: ' + JSON.stringify(flow));
-            assert(flow.restoredResume?.idMatches && flow.restoredResume.markerMatches && flow.restoredAnswer, 'the original session did not restore its response: ' + JSON.stringify(flow));
-            assert(flow.generationComplete && flow.restoredMatchesOriginal, 'the restored transcript is incomplete or has extra content: ' + JSON.stringify(flow));
+            assert(flow?.created, routeName + ' session creation did not produce two distinct real session IDs: ' + JSON.stringify(flow));
+            assert(flow.beforeSend?.idMatches && flow.beforeSend.markerMatches, routeName + ' resume did not verify the original active session: ' + JSON.stringify(flow));
+            assert(flow.answerReady && flow.firstTranscript.includes('42'), routeName + ' UOR arithmetic response was not visible: ' + JSON.stringify(flow));
+            assert(flow.otherResume?.idMatches && flow.otherResume.markerMatches && flow.otherHasAnswer === false, routeName + ' other session exposed the original response: ' + JSON.stringify(flow));
+            assert(flow.restoredResume?.idMatches && flow.restoredResume.markerMatches && flow.restoredAnswer, routeName + ' original session did not restore its response: ' + JSON.stringify(flow));
+            assert(flow.generationComplete && flow.restoredMatchesOriginal, routeName + ' restored transcript is incomplete or has extra content: ' + JSON.stringify(flow));
         }
+        const defaultTyped = typedRoutes.find(([routeName]) => routeName === 'default')?.[1];
+        const typedPreview = typedRoutes.find(([routeName]) => routeName === 'typed=1')?.[1];
         const typedMountError = process.env.UOR_STUDIO_TYPED === '1'
             ? await trapPageLoad(cdp, origin, '/studio/dist/__mount_error.html?typed=1', { mountError: true })
             : null;
@@ -498,6 +503,7 @@ async function main() {
                 'geometric_prime_router_webapp.html': { loaded: router.loaded, requests: router.requested, external: router.external, rawTypeScript: router.rawTypeScript, runtimeErrors: router.runtimeErrors.length },
             },
         };
+        if (defaultTyped) report.pages.default = { loaded: defaultTyped.loaded, requests: defaultTyped.requested, external: defaultTyped.external, rawTypeScript: defaultTyped.rawTypeScript, runtimeErrors: defaultTyped.runtimeErrors.length, checks: defaultTyped.typed };
         if (typedPreview) report.pages['typed=1'] = { loaded: typedPreview.loaded, requests: typedPreview.requested, external: typedPreview.external, rawTypeScript: typedPreview.rawTypeScript, runtimeErrors: typedPreview.runtimeErrors.length, checks: typedPreview.typed };
         if (typedMountError) report.pages['typed-mount-error'] = { loaded: typedMountError.loaded, requests: typedMountError.requested, external: typedMountError.external, rawTypeScript: typedMountError.rawTypeScript, runtimeErrors: typedMountError.runtimeErrors.length, checks: typedMountError.mountError };
         for (const { mode, result } of migrationResults) report.pages['typed-migration-' + mode] = { loaded: result.loaded, requests: result.requested, external: result.external, rawTypeScript: result.rawTypeScript, runtimeErrors: result.runtimeErrors.length, checks: result.migration };

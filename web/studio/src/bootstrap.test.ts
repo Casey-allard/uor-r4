@@ -42,11 +42,12 @@ describe('typed Studio bootstrap', () => {
         };
     });
 
-    it('mounts only for the explicit typed=1 preview', () => {
+    it('defaults to typed mounting while preserving explicit legacy selections', () => {
         expect(typedPreviewRequested('?typed=1')).toBe(true);
         expect(typedPreviewRequested('?typed=0')).toBe(false);
-        expect(typedPreviewRequested('?other=1')).toBe(false);
-        expect(typedPreviewRequested('')).toBe(false);
+        expect(typedPreviewRequested('?legacy=1')).toBe(false);
+        expect(typedPreviewRequested('?other=1')).toBe(true);
+        expect(typedPreviewRequested('')).toBe(true);
     });
 
     it('passes the real StudioApp with lifecycle, model worker, and workflow APIs to Preact', async () => {
@@ -61,8 +62,18 @@ describe('typed Studio bootstrap', () => {
         expect(mounted.files).toBe(legacyWindow.__studioFiles);
         expect(mounted.sessions).toBe(legacyWindow.__studioUi);
         expect(mounted.ui).toBe(legacyWindow.__studioUi);
+        expect(['migrated', 'current']).toContain(studioMigrationStatus().state);
         mounted.dispose();
         expect(root.hidden).toBe(true);
+    });
+
+    it('preserves an already migrated store instead of reactivating it', async () => {
+        activateStudioMigration(true);
+        expect(studioMigrationStatus().state).toBe('migrated');
+        const root = document.createElement('div');
+        const mounted = await mountTypedStudio(root);
+        expect(studioMigrationStatus().state).toBe('migrated');
+        mounted.dispose();
     });
 
     it('reuses an existing model worker instead of starting another engine', async () => {

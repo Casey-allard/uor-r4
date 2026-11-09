@@ -29,7 +29,8 @@ describe('foundation public entry', () => {
         expect(foundation).toBeTypeOf('object');
     });
 
-    it('does not mount or mutate a pre-existing preview root without typed=1', async () => {
+    it('does not mount or mutate a pre-existing preview root with an explicit legacy selection', async () => {
+        window.history.replaceState(null, '', '/?legacy=1');
         const root = document.createElement('div');
         root.id = 'studio-typed-root';
         root.hidden = true;
