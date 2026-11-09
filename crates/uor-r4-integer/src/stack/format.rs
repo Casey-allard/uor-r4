@@ -2080,6 +2080,138 @@ pub fn add_hamming_ask_uorlut01(artifact: &[u8], asks: &[Option<super::AskImage>
     Ok(out)
 }
 
+/// A Hamming stack with its readout question carry removed while every ask table stays byte for
+/// byte: `hamming.d{depth}.carry` and the record's `carry_rows` are removed, and every other
+/// matrix and table is copied in its original data order with new aligned offsets. The result is
+/// read back and its ask images are checked before it is returned. An artifact without a complete
+/// Hamming image or without a carry is refused.
+pub fn drop_hamming_carry_uorlut01(artifact: &[u8]) -> Result<Vec<u8>, StackError> {
+    #[derive(Clone, Copy)]
+    enum SpanAt {
+        MatrixNibbles(usize),
+        MatrixScales(usize),
+        Table(usize),
+    }
+
+    let container = Container::parse(artifact)?;
+    let original = super::hamming::hamming_image(&container)?
+        .ok_or(StackError::Shape("carry ablation needs a stack with Hamming reads"))?;
+    let Some(mut record) = container.hamming.clone() else {
+        return Err(StackError::Shape("carry ablation needs a stack with Hamming reads"));
+    };
+    if record.carry_rows.is_none() {
+        return Err(StackError::Shape("carry ablation needs a Hamming readout carry"));
+    }
+    let depth = *record
+        .depths
+        .last()
+        .ok_or(StackError::Shape("carry ablation needs a readout read"))?;
+    let carry_name = format!("hamming.d{depth}.carry");
+
+    let declared =
+        u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
+    let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
+    let data_start = header_end.div_ceil(ALIGN) * ALIGN;
+    let old_data = artifact.get(data_start..).ok_or(StackError::MissingData)?;
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+
+    let tables = header["tables"]
+        .as_array_mut()
+        .ok_or(StackError::MissingData)?;
+    let carry_index = tables
+        .iter()
+        .position(|table| table["name"] == carry_name)
+        .ok_or_else(|| StackError::MissingSection(carry_name.clone()))?;
+    tables.remove(carry_index);
+    record.carry_rows = None;
+    header["hamming"] = json!(record);
+
+    let span = |value: &serde_json::Value| -> Result<(u64, u64), StackError> {
+        Ok((
+            value["offset"].as_u64().ok_or(StackError::MissingData)?,
+            value["bytes"].as_u64().ok_or(StackError::MissingData)?,
+        ))
+    };
+    let mut sections = Vec::new();
+    for (index, matrix) in header["matrices"]
+        .as_array()
+        .ok_or(StackError::MissingData)?
+        .iter()
+        .enumerate()
+    {
+        sections.push((span(&matrix["nibbles"])?.0, SpanAt::MatrixNibbles(index)));
+        sections.push((span(&matrix["scales"])?.0, SpanAt::MatrixScales(index)));
+    }
+    for (index, table) in header["tables"]
+        .as_array()
+        .ok_or(StackError::MissingData)?
+        .iter()
+        .enumerate()
+    {
+        sections.push((span(&table["span"])?.0, SpanAt::Table(index)));
+    }
+    sections.sort_unstable_by_key(|(offset, _)| *offset);
+
+    let mut builder = ExportBuilder::new();
+    for (_, location) in sections {
+        let old_span = match location {
+            SpanAt::MatrixNibbles(index) => span(&header["matrices"][index]["nibbles"])?,
+            SpanAt::MatrixScales(index) => span(&header["matrices"][index]["scales"])?,
+            SpanAt::Table(index) => span(&header["tables"][index]["span"])?,
+        };
+        let start = usize::try_from(old_span.0).map_err(|_| StackError::MissingData)?;
+        let bytes = usize::try_from(old_span.1).map_err(|_| StackError::MissingData)?;
+        let end = start.checked_add(bytes).ok_or(StackError::MissingData)?;
+        let section = old_data.get(start..end).ok_or(StackError::MissingData)?;
+        let new_span = builder.push_section(section);
+        match location {
+            SpanAt::MatrixNibbles(index) => {
+                header["matrices"][index]["nibbles"] = new_span;
+            }
+            SpanAt::MatrixScales(index) => {
+                header["matrices"][index]["scales"] = new_span;
+            }
+            SpanAt::Table(index) => {
+                header["tables"][index]["span"] = new_span;
+            }
+        }
+    }
+
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + builder.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&builder.data);
+
+    let ablated = super::hamming::hamming_image(&Container::parse(&out)?)?
+        .ok_or(StackError::Shape("carry ablation returned no Hamming image"))?;
+    if ablated.record.carry_rows.is_some()
+        || ablated.record.depths != original.record.depths
+        || ablated.record.asks != original.record.asks
+        || ablated.reads.len() != original.reads.len()
+    {
+        return Err(StackError::Numerics(
+            "carry ablation changed the Hamming read inventory".into(),
+        ));
+    }
+    for (before, after) in original.reads.iter().zip(&ablated.reads) {
+        let asks_match = match (&before.ask, &after.ask) {
+            (None, None) => true,
+            (Some(before), Some(after)) => before.table == after.table && after.carry.is_none(),
+            _ => false,
+        };
+        if !asks_match {
+            return Err(StackError::Numerics(
+                "carry ablation changed an ask table".into(),
+            ));
+        }
+    }
+    Ok(out)
+}
+
 /// A grid-coded scalar as the float references read it: decoded from its
 /// exported grid code when `quantized`, else as trained.
 fn ref_grid(v: f32, positive: bool, quantized: bool) -> Result<f64, StackError> {

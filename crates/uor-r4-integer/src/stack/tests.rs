@@ -7383,6 +7383,142 @@ fn hamming_ask_heads_round_trip() {
     }
 }
 
+/// deepseek-262: carrying a question is an optional readout move, so the exact `−C` control must
+/// keep every ask table and remove only the carry record/section and its gains.
+#[test]
+fn hamming_carry_ablation_keeps_asks_and_removes_only_the_readout_carry() {
+    let (_, asks, carried) = ask_trunk(Some(3));
+    let ablated = super::drop_hamming_carry_uorlut01(&carried).expect("carry ablation");
+
+    let before = super::read_hamming_uorlut01(&carried)
+        .expect("parse carried")
+        .expect("carried reads");
+    let after = super::read_hamming_uorlut01(&ablated)
+        .expect("parse ablated")
+        .expect("ablated reads");
+    assert_eq!(before.record.asks, after.record.asks);
+    assert!(after.record.carry_rows.is_none());
+    assert_eq!(before.record.depths, after.record.depths);
+    for ((before, after), asked) in before.reads.iter().zip(&after.reads).zip(asks.iter()) {
+        let asked = asked.as_ref().expect("both reads ask");
+        let after = after.ask.as_ref().expect("the ask survives");
+        assert_eq!(after.table, asked.table);
+        assert!(after.carry.is_none());
+        assert_eq!(before.ask.as_ref().expect("carried ask").table, after.table);
+    }
+
+    let carried_header = header_json(&carried);
+    let ablated_header = header_json(&ablated);
+    assert_eq!(carried_header["schema"], ablated_header["schema"]);
+    let names = |header: &Value| -> Vec<String> {
+        header["tables"]
+            .as_array()
+            .expect("tables")
+            .iter()
+            .map(|table| table["name"].as_str().expect("name").to_owned())
+            .collect()
+    };
+    let carry = format!("hamming.d{}.carry", before.record.depths.last().unwrap());
+    let mut expected = names(&carried_header);
+    expected.retain(|name| name != &carry);
+    assert_eq!(names(&ablated_header), expected, "only the carry table is removed");
+    let matrices = |header: &Value| -> Vec<Value> {
+        header["matrices"]
+            .as_array()
+            .expect("matrices")
+            .iter()
+            .map(|matrix| {
+                json!({
+                    "name": matrix["name"],
+                    "rows": matrix["rows"],
+                    "cols": matrix["cols"],
+                    "exp_base": matrix["exp_base"],
+                })
+            })
+            .collect()
+    };
+    assert_eq!(
+        matrices(&carried_header),
+        matrices(&ablated_header),
+        "every matrix survives the compacted rebuild"
+    );
+    let sections = |bytes: &[u8], header: &Value| {
+        let declared = u64::from_le_bytes(bytes[8..16].try_into().expect("length")) as usize;
+        let data_start = (16 + declared).div_ceil(64) * 64;
+        let data = &bytes[data_start..];
+        let mut sections = std::collections::BTreeMap::new();
+        let read = |entry: &Value, field: &str| -> Vec<u8> {
+            let span = &entry[field];
+            let start = span["offset"].as_u64().unwrap() as usize;
+            let len = span["bytes"].as_u64().unwrap() as usize;
+            data[start..start + len].to_vec()
+        };
+        for matrix in header["matrices"].as_array().expect("matrices") {
+            let name = matrix["name"].as_str().expect("matrix name");
+            sections.insert(format!("matrix:{name}:nibbles"), read(matrix, "nibbles"));
+            sections.insert(format!("matrix:{name}:scales"), read(matrix, "scales"));
+        }
+        for table in header["tables"].as_array().expect("tables") {
+            let name = table["name"].as_str().expect("table name");
+            sections.insert(format!("table:{name}"), read(table, "span"));
+        }
+        sections
+    };
+    let mut carried_sections = sections(&carried, &carried_header);
+    carried_sections.remove(&format!("table:{carry}"));
+    assert_eq!(
+        carried_sections,
+        sections(&ablated, &ablated_header),
+        "every non-carry section keeps its exact bytes"
+    );
+    assert_eq!(carried_header["hamming"]["asks"], ablated_header["hamming"]["asks"]);
+    assert!(ablated_header["hamming"].get("carry_rows").is_none());
+    assert!(ablated.len() < carried.len());
+
+    let tokens = repeating_tokens();
+    let trace = |bytes: &[u8]| {
+        let model = IntegerStackModel::parse(bytes).expect("served");
+        let mut session = model.session();
+        session.set_hamming_trace(true);
+        for &token in &tokens {
+            session.step_native(token).expect("step");
+        }
+        session.take_hamming_trace().expect("trace")
+    };
+    let (carried_trace, ablated_trace) = (trace(&carried), trace(&ablated));
+    assert_eq!(carried_trace.len(), ablated_trace.len());
+    let mut readout_changes = 0;
+    for (step, (carried, ablated)) in carried_trace.iter().zip(&ablated_trace).enumerate() {
+        let queries = |read: &super::HammingStepRead| {
+            read.heads.iter().map(|head| head.query).collect::<Vec<_>>()
+        };
+        if step % 2 == 0 {
+            assert_eq!(
+                queries(carried),
+                queries(ablated),
+                "stream ask at row {}",
+                step / 2
+            );
+        } else if step / 2 > 0 {
+            readout_changes += usize::from(queries(carried) != queries(ablated));
+        }
+    }
+    assert!(readout_changes > 0, "the carried and ablated readout queries must differ after row 0");
+}
+
+#[test]
+fn hamming_carry_ablation_refuses_artifacts_without_a_carry_or_read() {
+    let (_, _, uncarried) = ask_trunk(None);
+    let error = super::drop_hamming_carry_uorlut01(&uncarried).expect_err("no carry");
+    assert!(error.to_string().contains("readout carry"), "{error}");
+
+    let (mut snapshot, _, _) = served_read_trunk(&[1, 3], 1.0, 1.0);
+    snapshot.hamming = None;
+    let no_read = super::export_fbs_trunk_uorlut01(&snapshot).expect("read-free artifact");
+    let error = super::drop_hamming_carry_uorlut01(&no_read).expect_err("no Hamming read");
+    assert!(error.to_string().contains("Hamming reads"), "{error}");
+}
+
 /// claude-336: a session on an ask artifact records, at every step and read, type-head queries
 /// equal to `TypeHeads::ask_queries` over the window's tokens from row 0, with and without the
 /// readout's carry; at layer 1, whose input is the same as the read-free trunk's, they differ
