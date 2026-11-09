@@ -332,8 +332,8 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
         )?),
         None => None,
     };
-    // Built once: every row decodes from a clone of this untouched forward, or from a fresh session
-    // of the parsed model, so the timed loop holds no artifact parse.
+    // Built once: every row, ranked or decoded, starts from a clone of this untouched forward or a
+    // fresh session of the parsed model, so no timed loop holds an artifact parse.
     let fresh_forward = match engine {
         Engine::Cpu => Some(CpuFbsForward::from_artifact(&artifact).map_err(|e| e.to_string())?),
         Engine::Integer => None,
@@ -421,6 +421,10 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
     // Paired-first time is kept out of the teacher-forced wall time, which stays as before.
     let mut paired_time = Duration::ZERO;
     let (teacher_rows, teacher_wall_milliseconds) = if teacher_forced {
+        // `refuse_engine` keeps the integer engine off the rank paths, so the CPU forward exists.
+        let fresh = fresh_forward
+            .as_ref()
+            .ok_or("--teacher-forced ranks through the CPU port")?;
         let started = Instant::now();
         let mut teacher_rows = Vec::with_capacity(labels.cases.len());
         for label in &labels.cases {
@@ -430,16 +434,15 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
             let stratum = strata
                 .get(&label.pair_id)
                 .ok_or(format!("{}: no plan history", label.pair_id))?;
-            let teacher = teacher_forced_row(
-                &tokenizer, &encoder, &artifact, case, label, stratum, rendering,
-            )?;
+            let teacher =
+                teacher_forced_row(&tokenizer, &encoder, fresh, case, label, stratum, rendering)?;
             if paired_first {
                 let paired_started = Instant::now();
                 let other = partners
                     .get(label.id.as_str())
                     .ok_or(format!("{}: no pair partner", label.id))?;
                 paired_rows.push(paired_first_row(
-                    &tokenizer, &encoder, &artifact, case, label, other, &teacher, rendering,
+                    &tokenizer, &encoder, fresh, case, label, other, &teacher, rendering,
                 )?);
                 paired_time += paired_started.elapsed();
             }
@@ -739,7 +742,7 @@ fn teacher_forced_nearest_ranks(
 fn teacher_forced_row(
     tokenizer: &ByteBpeTokenizer,
     encoder: &DialogueEncoder<'_>,
-    artifact: &[u8],
+    fresh: &CpuFbsForward,
     case: &InputCase,
     label: &LabelCase,
     stratum: &str,
@@ -747,7 +750,7 @@ fn teacher_forced_row(
 ) -> Result<TeacherForcedRow> {
     let (_, prompt) = render(tokenizer, encoder, case, rendering)?;
     let (answer, reference_ids) = reference_ids(encoder, &label.answers)?;
-    let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|e| e.to_string())?;
+    let mut forward = fresh.clone();
     if prompt.is_empty() {
         return Err(format!("{}: empty prompt", case.id));
     }
@@ -925,7 +928,7 @@ fn first_position_ranks(
 fn paired_first_row(
     tokenizer: &ByteBpeTokenizer,
     encoder: &DialogueEncoder<'_>,
-    artifact: &[u8],
+    fresh: &CpuFbsForward,
     case: &InputCase,
     label: &LabelCase,
     other: &LabelCase,
@@ -941,7 +944,7 @@ fn paired_first_row(
     let other_token = *other_ids
         .first()
         .ok_or(format!("{}: empty reference", other.id))?;
-    let mut forward = CpuFbsForward::from_artifact(artifact).map_err(|e| e.to_string())?;
+    let mut forward = fresh.clone();
     let ranks = first_position_ranks(&mut forward, &prompt, &[asked_token, other_token])?;
     let [asked, other_rank] = ranks.as_slice() else {
         return Err(format!("{}: first-position ranks differ", label.id));
@@ -2163,12 +2166,13 @@ mod tests {
             "the fixture needs distinct first tokens"
         );
 
+        let fresh = CpuFbsForward::from_artifact(&artifact).unwrap();
         let teacher = teacher_forced_row(
-            &tokenizer, &encoder, &artifact, &case, &asked, "length2", RENDERING,
+            &tokenizer, &encoder, &fresh, &case, &asked, "length2", RENDERING,
         )
         .unwrap();
         let row = paired_first_row(
-            &tokenizer, &encoder, &artifact, &case, &asked, &other, &teacher, RENDERING,
+            &tokenizer, &encoder, &fresh, &case, &asked, &other, &teacher, RENDERING,
         )
         .unwrap();
         assert_eq!(row.other_id, "b");
@@ -2193,9 +2197,23 @@ mod tests {
         let mut wrong = teacher;
         wrong.target_ranks[0] += 1;
         assert!(paired_first_row(
-            &tokenizer, &encoder, &artifact, &case, &asked, &other, &wrong, RENDERING,
+            &tokenizer, &encoder, &fresh, &case, &asked, &other, &wrong, RENDERING,
         )
         .is_err());
+    }
+
+    /// No row parses the artifact: each parser has one call site in the non-test code, and it sits
+    /// before the first timer. The row functions take a built forward, never the bytes.
+    #[test]
+    fn the_artifact_is_parsed_once_before_every_timer() {
+        let source = include_str!("served-reply-panel.rs");
+        let (code, _) = source.split_once("#[cfg(test)]").unwrap();
+        let first_timer = code.find("Instant::now()").unwrap();
+        for parser in ["CpuFbsForward::from_artifact(", "IntegerStackModel::parse("] {
+            let sites: Vec<usize> = code.match_indices(parser).map(|(at, _)| at).collect();
+            assert_eq!(sites.len(), 1, "{parser} call sites at {sites:?}");
+            assert!(sites[0] < first_timer, "{parser} runs inside a timer");
+        }
     }
 
     #[test]
