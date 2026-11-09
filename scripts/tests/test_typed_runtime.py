@@ -21,6 +21,7 @@ class TypedRuntimeContractTests(unittest.TestCase):
             self.assertTrue((dest / 'index.html').is_file())
             self.assertTrue((dest / 'models.json').is_file())
             self.assertTrue((dest / 'assets/js/lifecycle_persistence.js').is_file())
+            self.assertTrue((dest / 'assets/js/uor_offline_vendor.js').is_file())
             self.assertTrue(any((dest / 'assets').glob('index-*.js')))
             self.assertTrue(any((dest / 'assets').glob('index-*.css')))
             self.assertTrue(any((dest / 'assets').glob('uor_r4_integer_bg-*.wasm')))

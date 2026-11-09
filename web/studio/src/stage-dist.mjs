@@ -16,8 +16,11 @@ for (const name of ['uor_r4_integer.js', 'uor_r4_integer_bg.wasm', 'synthetic-st
 
 const migrationRuntime = new URL('../assets/js/lifecycle_persistence.js', import.meta.url);
 const migrationDestination = new URL('../dist/assets/js/lifecycle_persistence.js', import.meta.url);
+const loopbackVendor = new URL('../assets/js/uor_offline_vendor.js', import.meta.url);
+const loopbackVendorDestination = new URL('../dist/assets/js/uor_offline_vendor.js', import.meta.url);
 mkdirSync(new URL('../dist/assets/js/', import.meta.url), { recursive: true });
 copyFileSync(migrationRuntime, migrationDestination);
+copyFileSync(loopbackVendor, loopbackVendorDestination);
 
 writeStudioCatalog({
     dest: fileURLToPath(new URL('../dist/', import.meta.url)),

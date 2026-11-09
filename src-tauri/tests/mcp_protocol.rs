@@ -49,6 +49,9 @@ impl HttpFixture {
                 match listener.accept() {
                     Ok((mut stream, _)) => {
                         stream
+                            .set_nonblocking(false)
+                            .expect("blocking fixture stream");
+                        stream
                             .set_read_timeout(Some(Duration::from_secs(1)))
                             .expect("fixture read timeout");
                         let mut raw = Vec::new();
@@ -82,7 +85,15 @@ impl HttpFixture {
                                 }
                             }
                         }
-                        let split = header_end.unwrap_or(raw.len());
+                        let complete = header_end
+                            .is_some_and(|split| raw.len() >= split.saturating_add(content_length));
+                        if !complete {
+                            stream
+                                .write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                                .expect("write incomplete-request refusal");
+                            continue;
+                        }
+                        let split = header_end.expect("complete request headers");
                         let head = String::from_utf8_lossy(&raw[..split]).into_owned();
                         let body = &raw
                             [split..split + content_length.min(raw.len().saturating_sub(split))];
@@ -108,7 +119,7 @@ impl HttpFixture {
                                 headers: headers.clone(),
                                 body: message.clone(),
                             });
-                        if options.delay_ms > 0 {
+                        if options.delay_ms > 0 && message["method"] == "tools/call" {
                             std::thread::sleep(Duration::from_millis(options.delay_ms));
                         }
                         if headers.get("authorization").map(String::as_str) != Some("Bearer secret")
@@ -183,17 +194,15 @@ fn write_json(stream: &mut TcpStream, status: u16, content_type: &str, body: &[u
         body.to_vec()
     };
     let head = format!("HTTP/1.1 {status} OK\r\nContent-Type: {content_type}\r\nMcp-Session-Id: session-test\r\nAccess-Control-Allow-Origin: http://127.0.0.1:8765\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
-    stream
-        .write_all(head.as_bytes())
-        .expect("write response head");
-    stream.write_all(&body).expect("write response body");
+    let _ = stream.write_all(head.as_bytes());
+    let _ = stream.write_all(&body);
 }
 
 impl Drop for HttpFixture {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Relaxed);
         if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+            thread.join().expect("HTTP fixture thread panicked");
         }
     }
 }
@@ -295,9 +304,41 @@ fn remote_auth_timeout_and_size_caps_fail_explicitly() {
         timeout: Duration::from_millis(15),
         ..McpLimits::default()
     };
-    let error =
-        McpRemoteSession::connect(&slow.url, "secret", short).expect_err("timeout must fail");
+    let session = McpRemoteSession::connect(&slow.url, "secret", short)
+        .expect("ordinary initialize and notification complete before the hanging tool call");
+    let error = session
+        .call_tool("read_file", &json!({}))
+        .expect_err("hanging tool call must time out");
     assert!(error.contains("timed out"), "{error}");
+    let requests = slow.requests.lock().expect("read hanging-call requests");
+    let hanging = requests
+        .iter()
+        .find(|request| request.body["method"] == "tools/call")
+        .expect("hanging tools/call did not reach the fixture");
+    assert_eq!(
+        hanging.body,
+        json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_file","arguments":{}}})
+    );
+    assert_eq!(
+        hanging.headers.get("authorization").map(String::as_str),
+        Some("Bearer secret")
+    );
+    assert_eq!(
+        hanging.headers.get("content-type").map(String::as_str),
+        Some("application/json")
+    );
+    assert_eq!(
+        hanging.headers.get("mcp-session-id").map(String::as_str),
+        Some("session-test")
+    );
+    assert_eq!(
+        hanging
+            .headers
+            .get("mcp-protocol-version")
+            .map(String::as_str),
+        Some("2025-03-26")
+    );
+    drop(requests);
     drop(slow);
 
     let large = HttpFixture::start(FixtureOptions {

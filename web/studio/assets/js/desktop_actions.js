@@ -196,7 +196,7 @@ export function mountDesktopActions({ actions, root = globalThis.document } = {}
 
 function bootDesktopActions() {
     const core = globalThis.__TAURI__?.core;
-    if (typeof core?.invoke !== 'function' || typeof globalThis.__TAURI__?.core?.Channel !== 'function') return;
+    if (typeof core?.invoke !== 'function') return;
     const actions = createDesktopActions({ invoke: core.invoke.bind(core) });
     globalThis.UORDesktopActions = actions;
     mountDesktopActions({ actions });
