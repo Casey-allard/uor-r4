@@ -19,6 +19,11 @@ export function createDesktopActions({ invoke = globalThis.__TAURI__?.core?.invo
             enableTerminal: unavailable,
             confirmTerminalCommand: unavailable,
             runTerminalCommand: unavailable,
+            openTerminal: unavailable,
+            readTerminal: unavailable,
+            inputTerminal: unavailable,
+            resizeTerminal: unavailable,
+            closeTerminal: unavailable,
         };
     }
     const call = (command, args = {}) => invoke(command, args);
@@ -44,6 +49,11 @@ export function createDesktopActions({ invoke = globalThis.__TAURI__?.core?.invo
                 confirmedCommand: command,
             });
         },
+        openTerminal: (cwd, rows = 24, cols = 80) => call('native_open_terminal', { cwd, rows, cols }),
+        readTerminal: (sessionId, after = 0) => call('native_read_terminal', { sessionId, after }),
+        inputTerminal: (sessionId, data) => call('native_terminal_input', { sessionId, data }),
+        resizeTerminal: (sessionId, rows, cols) => call('native_resize_terminal', { sessionId, rows, cols }),
+        closeTerminal: (sessionId) => call('native_close_terminal', { sessionId }),
     };
 }
 

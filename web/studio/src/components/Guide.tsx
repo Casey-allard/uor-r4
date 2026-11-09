@@ -1,6 +1,6 @@
 export function Guide() {
     return (
-        <section aria-label="Studio guide">
+        <section aria-label="Studio guide" class="guide-panel">
             <h1>Guide</h1>
             <h2>Primary workflow</h2>
             <ol>

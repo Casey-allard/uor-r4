@@ -183,7 +183,7 @@ export function ModelPicker({ store, adapter, sources, operations, onError, onSu
     }
 
     return (
-        <section aria-label="Model sources">
+        <section aria-label="Model sources" class="models-panel">
             <h1>Models</h1>
             <p>{state.selectedSource ? `${state.selectedSource.kind === 'api' ? 'API' : 'Artifact'}: ${state.selectedSource.id}` : 'No model source selected'}</p>
             <p>{state.selectedSource?.kind === 'artifact' && (state.artifact.phase !== 'ready' || state.residentArtifact?.sourceId !== state.selectedSource.id) ? 'Selected model; not ready' : `Artifact: ${state.artifact.phase}`}</p>

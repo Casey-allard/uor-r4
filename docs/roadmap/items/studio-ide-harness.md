@@ -8,38 +8,41 @@ open_to: lab
 needs_gpu: false
 depends_on: [studio-typed-shell-upgrade]
 done_class: host
-scope: [web/studio/index.html, web/studio/index.css, web/studio/README.md, web/studio/assets/js/studio_ui.js, web/studio/assets/js/studio_files.js, web/studio/assets/js/model_sources.js, web/studio/assets/js/mcp_client.js, web/studio/assets/js/mcp_client.test.mjs, web/studio/src/adapters/**, docs/products/web-client.md, docs/superpowers/specs/2026-11-02-studio-ide-harness-design.md, docs/superpowers/plans/2026-11-02-studio-ide-harness.md, docs/loop/tasks/studio-ide-harness/**, docs/roadmap/items/studio-ide-harness.md, docs/roadmap/issues.json]
+scope: [Cargo.toml, Cargo.lock, src-tauri/Cargo.toml, src-tauri/Cargo.lock, .gitignore, crates/uor-r4-studio-agent/**, src-tauri/src/**, src-tauri/tauri.conf.json, src-tauri/tests/**, scripts/tests/test_typed_runtime.py, web/studio/src/**, web/studio/tests/**, web/studio/playwright.config.ts, web/studio/package.json, web/studio/package-lock.json, web/studio/index.html, web/studio/index.css, web/studio/README.md, web/studio/verify_*.mjs, web/studio/assets/js/studio_ui.js, web/studio/assets/js/studio_files.js, web/studio/assets/js/model_sources.js, web/studio/assets/js/mcp_client.js, web/studio/assets/js/mcp_client.test.mjs, web/studio/assets/js/desktop_actions.js, web/studio/src/adapters/**, scripts/studio/**, scripts/stage-studio-site.sh, docs/products/harness-parity.md, docs/products/web-client.md, docs/products/desktop-client.md, docs/integration/current-state.md, docs/research/notebook/m4-serving.md, docs/superpowers/specs/2026-11-02-studio-ide-harness-design.md, docs/superpowers/plans/2026-11-02-studio-ide-harness.md, docs/superpowers/specs/2026-11-08-claude-cowork-parity-design.md, docs/superpowers/plans/2026-11-08-claude-cowork-parity-recovery.md, docs/superpowers/specs/2026-11-08-interactive-terminal-design.md, docs/superpowers/plans/2026-11-08-interactive-terminal.md, docs/loop/tasks/studio-ide-harness/**, docs/roadmap/items/studio-ide-harness.md, docs/roadmap/items/studio-typed-shell-upgrade.md, docs/roadmap/issues.json, docs/roadmap/README.md]
 ---
 
 ## Why it matters
 
-The owner wants the Studio to feel like a professional desktop IDE harness, not a model catalog or a marketing page. The primary workflow should be one clearly labeled experimental UOR Chat connection, ordinary custom API providers, workspace/files, sessions, and real MCP connections. See #3569.
+The owner rejected the green standalone Studio placeholder and reaffirmed the actual target: a UOR-branded, web-hosted Claude Desktop Cowork/Code-style harness with equivalent task capability, using the separately owned R4 model API. The current typed shell has useful lifecycle and native-host work, but its presentation and single-prompt interaction model do not meet that target. This item's earlier Mac-inspired source and real-connection work remains the foundation; the approved 8 November recovery is the next phase, not a rejection of that history.
 
 ## What is missing
 
-The live page already has a working WASM stack engine, API-provider manager, files, sessions, and an IDE-style shell. Its model-source presentation exposes too much research inventory, and its squared visual treatment does not feel like a native Mac application. There is no OpenAI-compatible `uor-chat` HTTP service and no MCP client or desktop stdio bridge. The current trained M1 artifact is next-token prediction, not a conversational product.
+Persistent multi-step agent runtime, parallel projects/tasks, approvals and steering, project memory, scheduling/Dispatch, complete side-by-side editor/diff/browser workflows, connector and computer-use workflows, and honest local/hosted capability boundaries remain missing. Claude owns the model API; this item does not edit or reimplement it.
+
+The neutral workbench, Playwright visual acceptance, and persistent PTY are implemented at unsigned development scope. Host-approved `/bin/zsh` sessions accept direct keyboard input and `read` replies, preserve cwd, resize, and close/reap, with bounded input/output/session counts and no Run command button. The current approval-flow wording ORDER and REPORT are `docs/loop/tasks/studio-ide-harness/kimi-10/`; they follow record corrections in `kimi-9`, evidence reconciliation in `kimi-8`, and the workspace-origin implementation in `kimi-7`. Protected delivery is pending. Static web remains explicitly unsupported, and the shared agent runtime, task orchestration, and R4 API adapter are still open.
 
 ## Done when
 
-- The Studio presents a restrained Mac-inspired interface in dark/light themes and desktop/mobile layouts, with accessible controls, truthful readiness, and preserved non-model workflows.
-- One **UOR Chat — experimental** source uses the existing supported stack/WASM path without claiming a trained conversational product. Custom OpenAI-compatible providers remain available. Research artifacts and next-token diagnostics do not dominate the connection experience.
-- A later unit adds real remote MCP initialize/tool-list/tool-call behavior with explicit protocol, CORS, authentication, privacy, and failure handling. No simulated tools, successful connections, or autonomous tool loops are claimed. Desktop stdio remains a separate host-bridge unit unless an existing verified path supports it.
-- Tests cover actual behavior, including unavailable connections and failures. Built-in-browser checks exercise the source page without real credentials, user files, paid services, or a model request.
-- Repository gates, claim wording, fresh exact-head reviews, green GitHub checks, and protected queue delivery pass. Production publication remains a separate owner decision.
+- The green placeholder is replaced by a reviewed neutral Claude-style shell in both themes and at desktop/mobile sizes, with Playwright evidence for every view.
+- One versioned agent contract drives the same Rust runtime in Tauri/local and hosted-service modes, with durable event/snapshot persistence and explicit static-preview limits.
+- Projects, parallel tasks, plans/tool traces, stop/redirect/side questions/child tasks, approvals, project memory, schedules, cross-device resume, and notifications pass real workflow checks.
+- Editor, diff review, guarded terminal, embedded browser, artifacts, MCP/connectors, computer use, environments, and explicit GitHub PR/CI review pass their live host checks and refusal cases.
+- The real R4 API contract passes at its merged exact head; no fixture, arithmetic response, or static page is presented as live model or full-parity evidence.
+- Existing Studio/Rust checks, fresh exact-head review, protected merge, fresh-main verification, packaged desktop and hosted acceptance, and corrected product records pass. Hosted production is `NOT_RUN` until an owner-provided remote host is verified.
 
 ## How to start
 
-Use `docs/superpowers/specs/2026-11-02-studio-ide-harness-design.md` and `docs/loop/tasks/studio-ide-harness/kimi-1/ORDER.md`. First deliver the Mac-inspired source experience and simplified UOR/API connections. Do not add a decorative MCP panel before its real client unit, change the engine/worker/tokenizer/model artifacts, or touch Claude's active model work.
+Read the earlier `docs/superpowers/specs/2026-11-02-studio-ide-harness-design.md`, then the approved `docs/superpowers/specs/2026-11-08-claude-cowork-parity-design.md` and `docs/superpowers/plans/2026-11-08-claude-cowork-parity-recovery.md`. Begin with the baseline parity matrix and Playwright shell recovery, then the shared agent runtime and workflows. Use `docs/loop/tasks/studio-ide-harness/` for ORDER/REPORT records.
 
 ## Rules that apply
 
-- Preserve existing engine, worker, tokenizer, model artifacts, provider credentials, user data, and non-model workflows.
-- No new runtime dependency is needed for the visual/source unit or the small remote JSON-RPC client. Do not invent a UOR HTTP API or claim the native CLI is one.
-- Keep remote HTTP MCP separate from desktop stdio. Do not execute arbitrary commands or weaken host-owned approval and folder boundaries.
-- #3500 stays open for typed-library parity/migration/cutover. This item references it without changing its acceptance scope.
+- Do not edit `crates/uor-r4-api/**`, model/engine/worker/tokenizer implementations, Claude-owned files, or the owner's checkout.
+- Preserve host-owned folder, terminal, MCP, credential, browser, computer-use, and approval boundaries. No unauthenticated public agent endpoint, destructive test action, real credential, or real browser profile.
+- Static GitHub Pages is a limited preview and cannot claim background or desktop capabilities. No second model API or hidden runtime dependency is introduced.
+- Playwright is a pinned development-only dependency. Generated assets, build outputs, screenshots, credentials, and local evidence are not committed.
+- Every claim links to executed evidence and every unrun row stays `NOT_RUN`. Existing legacy pages and unique prior evidence remain preserved.
 
 ## Sources
 
-- #3500, #3569, and #3440
-- `web/studio/README.md` and `docs/products/web-client.md`
-- `docs/superpowers/specs/2026-11-02-studio-ide-harness-design.md` and `docs/loop/tasks/studio-ide-harness/kimi-1/ORDER.md`
+- #3440, #3500, #3569, #2826, and the owner's 8 November 2026 rejection of the green standalone app and approved parity-recovery plan.
+- `web/studio/README.md`, `docs/products/web-client.md`, and the current Claude Desktop/Cowork official documentation linked from the approved design.

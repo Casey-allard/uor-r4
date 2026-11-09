@@ -56,6 +56,27 @@ class TypedRuntimeContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('typed: web/studio/dist', result.stdout)
 
+    def test_cowork_identity_separates_recovered_workbench_state(self):
+        config = (REPO / 'src-tauri/tauri.conf.json').read_text(encoding='utf-8')
+        self.assertIn('"identifier": "org.uor.r4.desktop.cowork"', config)
+        self.assertNotIn('"identifier": "org.uor.r4.desktop"', config)
+
+    def test_canonical_launcher_builds_and_opens_the_cowork_workbench(self):
+        launcher = REPO / 'scripts/studio/open-cowork.sh'
+        self.assertTrue(launcher.is_file(), 'canonical cowork launcher is missing')
+        source = launcher.read_text(encoding='utf-8')
+        self.assertIn('prepare-tauri-runtime.sh', source)
+        self.assertIn('cargo tauri build --bundles app --features gui', source)
+        self.assertIn('org.uor.r4.desktop.cowork', source)
+        self.assertIn('${CARGO_TARGET_DIR:-$repo_root/target/cowork}', source)
+        self.assertIn('exec "$app/Contents/MacOS/uor-desktop-client"', source)
+        self.assertNotIn('open -n "$app"', source)
+        self.assertNotIn('open -n -g', source)
+        self.assertNotIn('studio-shared-shell-recovered', source)
+        result = run('bash', str(launcher), '--check')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('identity: org.uor.r4.desktop.cowork', result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

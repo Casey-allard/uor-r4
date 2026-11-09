@@ -25,32 +25,18 @@ import { McpConnections } from './McpConnections.js';
 import type { McpConnect } from '../adapters/mcpConnections.js';
 import type { PaletteCommand, ShellStatus, StudioSection } from './types.js';
 
-interface StudioAppProps {
-    store: LifecycleStore;
-    adapter: ModelSourceAdapter;
-    sources: ModelSourcesApi;
-    files: WorkspaceApi;
-    sessions: SessionApi;
-    ui: StudioUiApi;
-    download?(name: string, content: string): void;
-    desktop?: DesktopActions;
-    mcpConnect?: McpConnect;
-}
+interface StudioAppProps { store: LifecycleStore; adapter: ModelSourceAdapter; sources: ModelSourcesApi; files: WorkspaceApi; sessions: SessionApi; ui: StudioUiApi; download?(name: string, content: string): void; desktop?: DesktopActions; mcpConnect?: McpConnect }
 
 function browserDownload(name: string, content: string) {
     const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const link = document.createElement('a'); link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function StudioApp({ store, adapter, sources, files, sessions, ui, download = browserDownload, desktop, mcpConnect }: StudioAppProps) {
     const state = useLifecycle(store);
     const [activeSection, setActiveSection] = useState<StudioSection>('agent');
+    const [secondarySection, setSecondarySection] = useState<StudioSection | null>(null);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -65,45 +51,27 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     useEffect(() => {
         const viewChanged = (event: Event) => {
             const view = (event as CustomEvent<{ view?: string }>).detail?.view;
-            if (view === 'chat') setActiveSection('agent');
-            if (view === 'model') setActiveSection('models');
+            if (view === 'chat') setActiveSection('agent'); if (view === 'model') setActiveSection('models');
             if (view === 'workspace' || view === 'editor' || view === 'files') setActiveSection('workspace');
-            if (view === 'changes') setActiveSection('changes');
-            if (view === 'terminal') setActiveSection('terminal');
-            if (view === 'guide') setActiveSection('guide');
+            if (view === 'changes') setActiveSection('changes'); if (view === 'terminal') setActiveSection('terminal'); if (view === 'guide') setActiveSection('guide');
         };
-        const filesChanged = (event: Event) => {
-            syncWorkspaceSummary(store, (event as CustomEvent<Parameters<typeof syncWorkspaceSummary>[1]>).detail);
-        };
-        document.addEventListener('uor-view-changed', viewChanged);
-        document.addEventListener('uor-files-changed', filesChanged);
-        return () => {
-            document.removeEventListener('uor-view-changed', viewChanged);
-            document.removeEventListener('uor-files-changed', filesChanged);
-        };
+        const filesChanged = (event: Event) => { syncWorkspaceSummary(store, (event as CustomEvent<Parameters<typeof syncWorkspaceSummary>[1]>).detail); };
+        document.addEventListener('uor-view-changed', viewChanged); document.addEventListener('uor-files-changed', filesChanged);
+        return () => { document.removeEventListener('uor-view-changed', viewChanged); document.removeEventListener('uor-files-changed', filesChanged); };
     }, [store]);
-
-    useEffect(() => {
-        if (state.file.phase === 'saved' && error?.surface === 'file' && error.operation === `file:save:${state.file.path}`) setError(null);
-    }, [state.file.phase, state.file.path, error?.surface, error?.operation]);
-
+    useEffect(() => { if (secondarySection === activeSection) setSecondarySection(null); }, [activeSection, secondarySection]);
+    useEffect(() => { if (state.file.phase === 'saved' && error?.surface === 'file' && error.operation === `file:save:${state.file.path}`) setError(null); }, [state.file.phase, state.file.path, error?.surface, error?.operation]);
     const selected = state.selectedSource;
     const activeGeneration = state.session.activeGeneration;
     let privacy: string = activeGeneration?.privacy || 'localWASM';
     if (!activeGeneration && selected?.kind === 'api') {
         if (!selected.endpoint) privacy = 'Invalid API endpoint';
-        else {
-            try { privacy = classifyEndpoint(selected.endpoint); } catch { privacy = 'Invalid API endpoint'; }
-        }
-    } else if (!activeGeneration && !selected && state.session.lastGeneration) {
-        privacy = `Last generation: ${state.session.lastGeneration.privacy}`;
-    }
+        else { try { privacy = classifyEndpoint(selected.endpoint); } catch { privacy = 'Invalid API endpoint'; } }
+    } else if (!activeGeneration && !selected && state.session.lastGeneration) privacy = `Last generation: ${state.session.lastGeneration.privacy}`;
     const status: ShellStatus = {
         source: activeGeneration ? `${activeGeneration.source.kind}: ${activeGeneration.source.id}` : selected ? `${selected.kind}: ${selected.id}` : 'No source selected',
         artifact: selected?.kind === 'artifact' && (state.artifact.phase !== 'ready' || state.residentArtifact?.sourceId !== selected.id) ? 'Selected model; not ready' : `Artifact: ${state.artifact.phase}`,
-        privacy,
-        file: `File: ${state.file.phase}`,
-        session: `Session: ${state.session.phase}`,
+        privacy, file: `File: ${state.file.phase}`, session: `Session: ${state.session.phase}`,
     };
     const report = (message: unknown, operation = 'other') => setError({ message: String(message), surface: 'other', operation });
     const reportFile = (message: string, operation = 'file:other') => setError({ message, surface: 'file', operation });
@@ -116,14 +84,7 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
         { id: 'terminal', group: 'Navigation', label: 'Go to Terminal', description: 'Guarded native commands', run: () => setActiveSection('terminal') },
         { id: 'models', group: 'Navigation', label: 'Go to Models', description: 'Artifacts and providers', run: () => setActiveSection('models') },
         { id: 'guide', group: 'Navigation', label: 'Go to Guide', description: 'Workflows and limits', run: () => setActiveSection('guide') },
-        { id: 'new-session', group: 'Sessions', label: 'New session', description: 'Start a clean thread', disabled: state.session.phase === 'generating', run: () => {
-            if (agent.create()) {
-                succeed('session:new');
-                setSessionRevision((value) => value + 1);
-            } else {
-                report('Could not create a session.', 'session:new');
-            }
-        } },
+        { id: 'new-session', group: 'Sessions', label: 'New session', description: 'Start a clean thread', disabled: state.session.phase === 'generating', run: () => { if (agent.create()) { succeed('session:new'); setSessionRevision((value) => value + 1); } else report('Could not create a session.', 'session:new'); } },
         { id: 'open-folder', group: 'Workspace', label: 'Open folder', description: 'Use the existing folder picker', run: () => { void operations.run('workspace:open-folder', files.openFolder(), succeed, report); } },
         { id: 'save', group: 'Workspace', label: 'Save file', description: 'Save through the existing file API', shortcut: 'Ctrl+S', disabled: !store.canSave(), run: () => { void saveActiveFile(store, files, reportFile); } },
         { id: 'save-as', group: 'Workspace', label: 'Save as', description: 'Download a copy', disabled: !store.canSave(), run: () => { saveActiveFileCopy(store, files, reportFile, succeed); } },
@@ -132,60 +93,25 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
         { id: 'settings', group: 'Interface', label: 'Open settings', description: 'Appearance, editor, and data', run: () => setSettingsOpen(true) },
         { id: 'help', group: 'Help', label: 'Open guide', description: 'Read workflows and model limits', run: () => setActiveSection('guide') },
     ];
-
-    return (
-        <div data-reduce-motion={editorSettings.reduceMotion ? '1' : '0'}>
-        <AppShell
-            activeSection={activeSection}
-            onSection={setActiveSection}
-            status={status}
-            onPalette={() => setPaletteOpen(true)}
-            onSettings={() => setSettingsOpen(true)}
-            onInspector={() => setInspectorOpen((value) => !value)}
-            inspectorOpen={inspectorOpen}
-            sessions={<SessionList store={store} agent={agent} download={download} onError={report} onSuccess={succeed} onChange={(operation) => { succeed(operation); setSessionRevision((value) => value + 1); }} />}
-        >
-            {error && <p role="alert">{error.message}</p>}
-            {activeSection === 'agent' && (
-                <AgentComposer
-                    key={`${state.session.activeId || 'new'}:${state.session.revision}:${sessionRevision}`}
-                    store={store}
-                    sessions={sessions}
-                    files={files}
-                    ui={ui}
-                    generation={agent}
-                    draft={agentDraft}
-                    pasted={agentPasted}
-                    onDraftChange={setAgentDraft}
-                    onPastedChange={setAgentPasted}
-                    copy={(text) => {
-                        if (navigator.clipboard) return navigator.clipboard.writeText(text);
-                        ui.toast('Clipboard unavailable.', 'error');
-                    }}
-                    download={download}
-                />
-            )}
-            {activeSection === 'workspace' && <WorkspaceEditor store={store} files={files} operations={operations} onError={reportFile} onSuccess={succeed} settings={editorSettings} />}
-            {activeSection === 'changes' && <ChangesPanel actions={desktopActions} files={files} copy={(text) => {
-                if (navigator.clipboard) return navigator.clipboard.writeText(text);
-                ui.toast('Clipboard unavailable.', 'error');
-            }} />}
-            {activeSection === 'terminal' && <TerminalPanel actions={desktopActions} files={files} />}
-            {activeSection === 'models' && (<>
-                <ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} />
-                <McpConnections ui={ui} connectRemote={mcpConnect} />
-            </>)}
-            {activeSection === 'guide' && <Guide />}
-            <Inspector store={store} ui={ui} open={inspectorOpen} onClose={() => setInspectorOpen(false)} />
-            {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
-            {settingsOpen && <Settings ui={ui} generating={state.session.phase === 'generating'} onClose={() => setSettingsOpen(false)} onError={report} onSettingsChange={setEditorSettings} onSuccess={(kind) => succeed(`settings:${kind}`)} onChange={(kind) => {
-                if (kind === 'editor') store.dispatch({ type: 'file/closed' });
-                else {
-                    agent.refresh();
-                    setSessionRevision((value) => value + 1);
-                }
-            }} />}
-        </AppShell>
-        </div>
-    );
+    const renderSection = (section: StudioSection, secondary = false) => {
+        const idPrefix = secondary ? 'secondary-' : '';
+        if (section === 'agent') return <AgentComposer key={`${state.session.activeId || 'new'}:${state.session.revision}:${sessionRevision}`} store={store} sessions={sessions} files={files} ui={ui} generation={agent} draft={agentDraft} pasted={agentPasted} onDraftChange={setAgentDraft} onPastedChange={setAgentPasted} copy={(text) => { if (navigator.clipboard) return navigator.clipboard.writeText(text); ui.toast('Clipboard unavailable.', 'error'); }} download={download} />;
+        if (section === 'workspace') return <WorkspaceEditor store={store} files={files} operations={operations} onError={reportFile} onSuccess={succeed} settings={editorSettings} />;
+        if (section === 'changes') return <ChangesPanel actions={desktopActions} files={files} idPrefix={idPrefix} copy={(text) => { if (navigator.clipboard) return navigator.clipboard.writeText(text); ui.toast('Clipboard unavailable.', 'error'); }} />;
+        if (section === 'terminal') return <TerminalPanel actions={desktopActions} files={files} idPrefix={idPrefix} />;
+        if (section === 'models') return <><ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} /><McpConnections ui={ui} connectRemote={mcpConnect} /></>;
+        if (section === 'browser') return <section class="browser-placeholder" aria-label="Browser preview"><span class="browser-placeholder-icon" aria-hidden="true">↗</span><h1>Browser</h1><p>Browser preview requires a harness service</p><p>This static preview does not launch a browser, import cookies, or give the model access to your existing tabs. Connect the local or hosted harness service to enable an isolated preview.</p></section>;
+        return <Guide />;
+    };
+    return <div data-reduce-motion={editorSettings.reduceMotion ? '1' : '0'}><AppShell
+        activeSection={activeSection} onSection={setActiveSection} status={status}
+        onPalette={() => setPaletteOpen(true)} onSettings={() => setSettingsOpen(true)} onInspector={() => setInspectorOpen((value) => !value)} inspectorOpen={inspectorOpen}
+        onModels={() => setActiveSection('models')} onOpenFolder={async () => { await files.openFolder(); succeed('workspace:open-folder'); return files.treeSummary().rootName || files.workspaceName() || 'selected-folder'; }}
+        onSplit={() => setSecondarySection(activeSection === 'agent' ? 'workspace' : 'agent')} onCloseSplit={() => setSecondarySection(null)} secondarySection={secondarySection} secondaryChildren={secondarySection ? renderSection(secondarySection, true) : null}
+        sessions={<SessionList store={store} agent={agent} download={download} onError={report} onSuccess={succeed} onChange={(operation) => { succeed(operation); setSessionRevision((value) => value + 1); }} />}
+        alert={error && <p role="alert" class="workbench-alert">{error.message}</p>} primary={renderSection(activeSection)}>
+        <Inspector store={store} ui={ui} open={inspectorOpen} onClose={() => setInspectorOpen(false)} />
+        {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
+        {settingsOpen && <Settings ui={ui} generating={state.session.phase === 'generating'} onClose={() => setSettingsOpen(false)} onError={report} onSettingsChange={setEditorSettings} onSuccess={(kind) => succeed(`settings:${kind}`)} onChange={(kind) => { if (kind === 'editor') store.dispatch({ type: 'file/closed' }); else { agent.refresh(); setSessionRevision((value) => value + 1); } }} />}
+    </AppShell></div>;
 }

@@ -47,4 +47,20 @@ describe('AppShell', () => {
         expect(host.textContent).toContain('Primary content');
         expect(host.textContent).toContain('Session list');
     });
+
+    it('creates a project through the real folder callback and enters its workspace', async () => {
+        Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.open = true; } });
+        Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.open = false; this.dispatchEvent(new Event('close')); } });
+        const onSection = vi.fn();
+        const onOpenFolder = vi.fn(async () => 'fixture-project');
+        act(() => { render(<AppShell activeSection="agent" onSection={onSection} onOpenFolder={onOpenFolder} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }}><div>Content</div></AppShell>, host); });
+        act(() => { host.querySelector<HTMLButtonElement>('button[data-action="new-project"]')!.click(); });
+        const name = host.querySelector<HTMLInputElement>('input[aria-label="Project name"]')!;
+        act(() => { name.value = 'Fixture project'; name.dispatchEvent(new Event('input', { bubbles: true })); });
+        act(() => { Array.from(host.querySelectorAll('button')).find((button) => button.textContent === 'Choose folder')!.click(); });
+        await vi.waitFor(() => expect(host.querySelector<HTMLInputElement>('input[aria-label="Project folder"]')!.value).toBe('fixture-project'));
+        act(() => { Array.from(host.querySelectorAll('button')).find((button) => button.textContent === 'Create project')!.click(); });
+        expect(onOpenFolder).toHaveBeenCalledOnce();
+        expect(onSection).toHaveBeenCalledWith('workspace');
+    });
 });

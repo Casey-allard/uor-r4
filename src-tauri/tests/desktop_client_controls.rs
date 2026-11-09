@@ -1931,6 +1931,7 @@ fn native_dialog_commands_return_futures_instead_of_blocking_the_main_thread() {
         "native_choose_model_folder",
         "native_enable_terminal",
         "native_confirm_terminal_command",
+        "native_open_terminal",
         "native_mcp_connect_remote",
         "native_mcp_connect_stdio",
     ] {
@@ -1952,7 +1953,7 @@ fn terminal_and_mcp_confirmations_are_parented_to_the_main_window() {
         source
             .matches("let confirmed = confirmation_dialog(")
             .count(),
-        4,
+        5,
         "terminal and MCP confirmations must use native sheets on the main window"
     );
 }

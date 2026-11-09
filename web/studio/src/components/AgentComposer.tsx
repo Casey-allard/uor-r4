@@ -7,7 +7,8 @@ import type { GenerationAdapter } from '../adapters/generation.js';
 import type { Attachment, SessionApi, StudioUiApi, WorkspaceApi } from '../adapters/workflow.js';
 import type { LifecycleStore } from '../state/lifecycle.js';
 import { useLifecycle } from '../state/useLifecycle.js';
-import { RichMessage } from './RichMessage.js';
+import { AgentTranscript } from './AgentTranscript.js';
+import { Icon } from './ui/Icon.js';
 
 interface AgentComposerProps {
     store: LifecycleStore;
@@ -293,92 +294,23 @@ export function AgentComposer({ store, sessions, files, ui, generation, copy, do
     }, [controlledDraft]);
 
     return (
-        <section aria-label="Agent composer">
-            <h1>Agent</h1>
-            <p>{selectionLabel}</p>
-            <p>Session: {state.session.phase}</p>
-            {state.session.error && <p role="alert">{state.session.error}</p>}
-            {activeGeneration && <p>Generating with {activeGeneration.source.id} ({activeGeneration.privacy})</p>}
-
-            <div aria-label="Conversation messages">
-                {messages.length === 0 && <p>No messages yet</p>}
-                {messages.map((message, index) => (
-                    <article data-role={message.role}>
-                        <strong>{message.role}</strong>
-                        <RichMessage content={message.content} />
-                        <button type="button" onClick={() => void copy(message.content)}>Copy</button>
-                        <button type="button" onClick={() => files.insertText(message.content, nextInsertName())}>Insert into editor</button>
-                        <button type="button" onClick={() => download('studio-message.md', message.content)}>Save as file</button>
-                        {message.role === 'assistant' && (
-                            <button type="button" disabled={!store.canRun()} onClick={() => {
-                                const previous = messages.slice(0, index + 1).reverse().find((item) => item.role === 'user');
-                                if (previous) generation.send(previous.content);
-                            }}>Retry</button>
-                        )}
-                    </article>
-                ))}
-            </div>
-
-            <section aria-label="Context attachments">
-                <h2>Context</h2>
-                <button type="button" disabled={!activeFile} onClick={() => {
-                    const file = files.activeFile();
-                    if (file) {
-                        ui.addAttachment({ name: file.path, content: file.content, source: 'editor' });
-                        refresh();
-                    }
-                }}>Attach current file</button>
-                <input ref={pickerRef} type="file" multiple aria-label="Attach text files" />
+        <section aria-label="Agent composer" class="agent-workspace">
+            <header class="agent-heading"><div><h1>Agent</h1><p>{selectionLabel}</p></div><span class="session-phase">Session: {state.session.phase}</span></header>
+            {state.session.error && <p role="alert" class="workbench-alert">{state.session.error}</p>}
+            {activeGeneration && <p class="generation-banner">Generating with {activeGeneration.source.id} ({activeGeneration.privacy})</p>}
+            <AgentTranscript messages={messages} canRun={store.canRun()} copy={copy} insert={(content) => files.insertText(content, nextInsertName())} download={(content) => download('studio-message.md', content)} retry={(content) => generation.send(content)} />
+            <details class="context-drawer" aria-label="Context attachments"><summary><span><Icon name="attach" />Context</span><span class="attachment-count">{attachments.length}</span></summary><div class="context-content">
+                <div class="context-actions"><button type="button" disabled={!activeFile} onClick={() => { const file = files.activeFile(); if (file) { ui.addAttachment({ name: file.path, content: file.content, source: 'editor' }); refresh(); } }}>Attach current file</button><input ref={pickerRef} type="file" multiple aria-label="Attach text files" /><button type="button" disabled={!attachments.length} onClick={() => { ui.clearAttachments(); refresh(); }}>Clear attachments</button></div>
                 <label>Pasted context<textarea aria-label="Pasted context" value={pasted} onInput={(event) => setPasted(event.currentTarget.value)} /></label>
-                <button type="button" disabled={!pasted.trim()} onClick={() => {
-                    ui.addAttachment({ name: 'pasted-context.txt', content: pasted, source: 'paste' });
-                    setPasted('');
-                    refresh();
-                }}>Attach pasted text</button>
-                <button type="button" disabled={!attachments.length} onClick={() => { ui.clearAttachments(); refresh(); }}>Clear attachments</button>
-                <ul>
-                    {attachments.map((attachment) => (
-                        <li>{attachment.name}<button type="button" onClick={() => { ui.removeAttachment(attachment.name); refresh(); }}>{`Remove ${attachment.name}`}</button></li>
-                    ))}
-                </ul>
-            </section>
-
-            <section aria-label="Build task templates">
-                <h2>Build tasks</h2>
-                {templates.map(([kind, label]) => (
-                    <button type="button" data-template={kind} onClick={() => { setDraft(ui.templatePrompt(kind)); setMenu(null); }}>{label}</button>
-                ))}
-            </section>
-
-            <label>Prompt<textarea
-                ref={textareaRef}
-                aria-label="Prompt"
-                aria-expanded={menuOpen ? 'true' : 'false'}
-                aria-controls={menuOpen ? menuId : undefined}
-                aria-activedescendant={menuOpen ? options[activeIndex].id : undefined}
-                defaultValue={initialDraftRef.current}
-                onInput={(event) => {
-                    flushSync(() => setVisibleDraft(event.currentTarget.value));
-                    updateMenu(event.currentTarget);
-                }}
-            /></label>
-            {menuOpen && menu && (
-                <div id={menuId} role="listbox" aria-label={menu.kind === 'commands' ? 'Build task commands' : 'Attachment mentions'}>
-                    {options.map((option, index) => (
-                        <div
-                            id={option.id}
-                            role="option"
-                            aria-selected={index === activeIndex ? 'true' : 'false'}
-                            data-template={option.kind === 'command' ? option.template : undefined}
-                            data-attachment={option.kind === 'mention' ? option.attachment.name : undefined}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => selectOption(option)}
-                        >{option.label}</div>
-                    ))}
-                </div>
-            )}
-            <button type="button" disabled={!visibleDraft.trim() || !store.canRun()} onClick={() => send(textareaRef.current?.value ?? visibleDraft)}>{predictionMode ? 'Predict next tokens' : 'Send'}</button>
-            <button type="button" disabled={!generating || activeGeneration?.canStop === false} onClick={() => { generation.stop(); refresh(); }}>Stop</button>
+                <button type="button" disabled={!pasted.trim()} onClick={() => { ui.addAttachment({ name: 'pasted-context.txt', content: pasted, source: 'paste' }); setPasted(''); refresh(); }}>Attach pasted text</button>
+                <ul class="attachment-list">{attachments.map((attachment) => <li><span>{attachment.name}</span><button type="button" onClick={() => { ui.removeAttachment(attachment.name); refresh(); }}>{`Remove ${attachment.name}`}</button></li>)}</ul>
+            </div></details>
+            <details class="build-tasks" aria-label="Build task templates"><summary><span><Icon name="command" />Build tasks</span><span class="attachment-count">{templates.length}</span></summary><div class="build-task-grid">{templates.map(([kind, label]) => <button type="button" data-template={kind} onClick={() => { setDraft(ui.templatePrompt(kind)); setMenu(null); }}>{label}</button>)}</div></details>
+            <div class="agent-composer">
+                {menuOpen && menu && <div id={menuId} class="composer-menu" role="listbox" aria-label={menu.kind === 'commands' ? 'Build task commands' : 'Attachment mentions'}>{options.map((option, index) => <div id={option.id} role="option" aria-selected={index === activeIndex ? 'true' : 'false'} data-template={option.kind === 'command' ? option.template : undefined} data-attachment={option.kind === 'mention' ? option.attachment.name : undefined} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOption(option)}>{option.label}</div>)}</div>}
+                <div class="composer-input-row"><label class="composer-prompt-field"><span class="visually-hidden">Prompt</span><textarea ref={textareaRef} aria-label="Prompt" placeholder="Ask R4 Harness, or type / for tasks" aria-expanded={menuOpen ? 'true' : 'false'} aria-controls={menuOpen ? menuId : undefined} aria-activedescendant={menuOpen ? options[activeIndex].id : undefined} defaultValue={initialDraftRef.current} onInput={(event) => { flushSync(() => setVisibleDraft(event.currentTarget.value)); updateMenu(event.currentTarget); }} /></label><button type="button" class="send-button" disabled={!visibleDraft.trim() || !store.canRun()} onClick={() => send(textareaRef.current?.value ?? visibleDraft)}><Icon name="send" /><span>{predictionMode ? 'Predict next tokens' : 'Send'}</span></button></div>
+                <div class="composer-footer"><span>Enter to send · Shift+Enter for a line · / tasks · @ context</span><button type="button" disabled={!generating || activeGeneration?.canStop === false} onClick={() => { generation.stop(); refresh(); }}>Stop</button></div>
+            </div>
         </section>
     );
 }

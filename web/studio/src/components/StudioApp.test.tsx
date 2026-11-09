@@ -7,6 +7,21 @@ import { createDesktopActions } from '../adapters/desktopActions.js';
 import { StudioApp } from './StudioApp.js';
 import { makeFiles, makeModelAdapter, makeSessions, makeSources, makeUi } from './studioTestFixtures.js';
 
+vi.mock('@xterm/xterm', () => ({
+    Terminal: class {
+        options = {};
+        open = vi.fn();
+        write = vi.fn();
+        onData = vi.fn();
+        onResize = vi.fn();
+        loadAddon = vi.fn();
+        focus = vi.fn();
+        dispose = vi.fn();
+        resize = vi.fn();
+    },
+}));
+vi.mock('@xterm/addon-fit', () => ({ FitAddon: class { fit = vi.fn(); } }));
+
 let host: HTMLDivElement;
 beforeEach(() => {
     host = document.createElement('div');
@@ -49,7 +64,7 @@ describe('StudioApp', () => {
         act(() => { paletteInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
         expect(host.textContent).toContain('Native Git is unavailable in this browser build; use the desktop build.');
         act(() => { destination('Terminal').click(); });
-        expect(host.textContent).toContain('Guarded terminal actions are unavailable in this browser build.');
+        expect(host.textContent).toContain('Interactive PTY is unavailable in this browser build.');
         act(() => { destination('Agent').click(); });
         expect(host.textContent).toContain('No messages yet');
         act(() => { button('Inspector').click(); });
@@ -622,10 +637,14 @@ describe('StudioApp', () => {
     });
 
     it('uses an available native host through composed Changes and Terminal views', async () => {
+        const snapshot = { sessionId: 'pty-fixture', cursor: 0, active: true, truncated: false, cwd: '/granted/project', shell: '/bin/sh', pid: 123, events: [] };
         const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
             if (command === 'native_git_status') return { branch: 'main', modified_files: ['a.rs'], untracked_files: [], timed_out: false };
             if (command === 'native_git_diff') return { diff: 'composed diff', truncated: false, timed_out: false };
             if (command === 'native_enable_terminal') return { enabled: true };
+            if (command === 'native_open_terminal' || command === 'native_read_terminal') return snapshot;
+            if (command === 'native_close_terminal') return { ...snapshot, active: false };
+            if (command === 'native_terminal_input') return { ok: true };
             throw new Error(`unexpected ${command}`);
         });
         const store = new LifecycleStore();
@@ -640,9 +659,11 @@ describe('StudioApp', () => {
         await act(async () => { button('Refresh changes').click(); await Promise.resolve(); });
         await vi.waitFor(() => expect(document.getElementById('gitDiffOutput')?.textContent).toContain('composed diff'));
         act(() => { destination('Terminal').click(); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalConsentState')?.textContent).toContain('enabled'));
-        expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_git_status', 'native_git_diff', 'native_enable_terminal']);
+        await act(async () => { button('Open terminal').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(document.getElementById('terminalConsentState')?.textContent).toContain('Interactive PTY'));
+        expect(invoke).toHaveBeenCalledWith('native_open_terminal', { cwd: '/granted/project', rows: 24, cols: 80 });
+        expect(invoke).not.toHaveBeenCalledWith('native_run_terminal_command', expect.anything());
+        expect(Array.from(host.querySelectorAll('button')).find((node) => node.textContent === 'Run command')).toBeUndefined();
     });
 
     it('attaches an MCP result and exposes it through existing @ mentions', async () => {

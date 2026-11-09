@@ -40,6 +40,8 @@ export async function mountTypedStudio(root: HTMLElement, options: { timeoutMs?:
     if (migration.state === 'error') throw new Error(`Browser-state migration failed: ${migration.error || 'unknown error'}`);
     root.hidden = false;
     const apis = await waitForWorkflowApis(options.timeoutMs ?? 5000);
+    const requestedTheme = new URLSearchParams(window.location.search).get('theme');
+    if (requestedTheme === 'light' || requestedTheme === 'dark') apis.ui.updateSettings({ theme: requestedTheme });
     const store = new LifecycleStore();
     const legacyWorker = (window as LegacyAppWindow).__studioApp?.worker || null;
     const worker = legacyWorker || new Worker(new URL('../assets/js/uor_model_worker.js', import.meta.url), { type: 'module' });

@@ -5,13 +5,18 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test tests/e2e/visual.spec.ts tests/e2e/shell.spec.ts",
     "typecheck": "tsc --noEmit",
     "build": "vite build && node src/stage-dist.mjs"
   },
   "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
     "preact": "11.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@preact/preset-vite": "2.10.6",
     "jsdom": "30.1.3",
     "typescript": "7.0.2",

@@ -33,6 +33,25 @@ fn apply_cli_grants(args: &[String], backend: &mut DesktopBackend) -> Result<(),
         } else if args[i] == "--enable-terminal" {
             backend.native_set_terminal_enabled(true);
             i += 1;
+        } else if args[i] == "--terminal-home" {
+            let home = args
+                .get(i + 1)
+                .ok_or_else(|| "missing directory after --terminal-home".to_string())?;
+            backend
+                .set_terminal_home(Path::new(home))
+                .map_err(|error| format!("--terminal-home {home}: {error}"))?;
+            i += 2;
+        } else if args[i] == "--approve-shell" {
+            let cwd = args
+                .get(i + 1)
+                .ok_or_else(|| "missing working directory after --approve-shell".to_string())?;
+            let shell = args
+                .get(i + 2)
+                .ok_or_else(|| "missing shell after --approve-shell".to_string())?;
+            backend
+                .host_approve_terminal_shell(Path::new(cwd), Path::new(shell))
+                .map_err(|error| format!("--approve-shell {cwd} {shell}: {error}"))?;
+            i += 3;
         } else if args[i] == "--approve-command" {
             let cwd = args
                 .get(i + 1)

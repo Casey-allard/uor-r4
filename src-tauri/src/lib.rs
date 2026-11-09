@@ -15,6 +15,8 @@ use std::process::Command;
 pub mod mcp;
 pub(crate) mod process_control;
 pub mod sidecar;
+pub mod terminal;
+pub use terminal::{TerminalEvent, TerminalSnapshot};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -368,6 +370,10 @@ pub struct DesktopBackend {
     granted_folders: BTreeSet<PathBuf>,
     terminal_enabled: bool,
     host_approved_commands: BTreeMap<(PathBuf, String), std::time::Instant>,
+    host_approved_shells: BTreeSet<(PathBuf, PathBuf)>,
+    terminal_sessions: BTreeMap<String, terminal::TerminalSession>,
+    terminal_home: Option<PathBuf>,
+    next_terminal_id: u64,
     loaded_model: Option<IntegerStackModel>,
     loaded_capabilities: Option<LoadedModelCapabilities>,
     initial_session_bytes: Option<Vec<u8>>,
@@ -389,6 +395,10 @@ impl DesktopBackend {
             granted_folders: BTreeSet::new(),
             terminal_enabled: false,
             host_approved_commands: BTreeMap::new(),
+            host_approved_shells: BTreeSet::new(),
+            terminal_sessions: BTreeMap::new(),
+            terminal_home: None,
+            next_terminal_id: 1,
             loaded_model: None,
             loaded_capabilities: None,
             initial_session_bytes: None,
@@ -1150,6 +1160,7 @@ impl DesktopBackend {
         self.terminal_enabled = enabled;
         if !enabled {
             self.host_approved_commands.clear();
+            self.host_approved_shells.clear();
         }
     }
 
@@ -2070,6 +2081,16 @@ pub fn build_synthetic_stack_artifact(seed: u64) -> Vec<u8> {
 /// Note that `native_grant_folder`, `native_set_terminal_enabled`, and
 /// `host_approve_terminal_command` are host-owned methods and are intentionally not exposed to
 /// unprivileged page RPC calls.
+fn terminal_dimension(args: &Value, key: &str, default: u16) -> Result<u16, String> {
+    let Some(value) = args.get(key) else {
+        return Ok(default);
+    };
+    let value = value
+        .as_u64()
+        .ok_or_else(|| format!("{key} must be a positive integer"))?;
+    u16::try_from(value).map_err(|_| format!("{key} is too large"))
+}
+
 pub fn dispatch_rpc_command(
     backend: &mut DesktopBackend,
     cmd: &str,
@@ -2450,6 +2471,38 @@ pub fn dispatch_rpc_command(
                 .map_err(|e| e.to_string())?;
             Ok(Value::String(output))
         }
+        "native_open_terminal" => {
+            let cwd = args.get("cwd").and_then(Value::as_str).ok_or_else(|| "missing cwd".to_string())?;
+            let shell = args.get("shell").and_then(Value::as_str).map(PathBuf::from);
+            let rows = terminal_dimension(args, "rows", 24)?;
+            let cols = terminal_dimension(args, "cols", 80)?;
+            let snapshot = backend.open_terminal(Path::new(cwd), shell.as_deref(), rows, cols).map_err(|e| e.to_string())?;
+            serde_json::to_value(snapshot).map_err(|e| e.to_string())
+        }
+        "native_read_terminal" => {
+            let session_id = args.get("sessionId").and_then(Value::as_str).ok_or_else(|| "missing sessionId".to_string())?;
+            let after = args.get("after").and_then(Value::as_u64).unwrap_or(0);
+            let snapshot = backend.read_terminal(session_id, after).map_err(|e| e.to_string())?;
+            serde_json::to_value(snapshot).map_err(|e| e.to_string())
+        }
+        "native_terminal_input" => {
+            let session_id = args.get("sessionId").and_then(Value::as_str).ok_or_else(|| "missing sessionId".to_string())?;
+            let data = args.get("data").and_then(Value::as_str).ok_or_else(|| "missing data".to_string())?;
+            backend.write_terminal(session_id, data.as_bytes()).map_err(|e| e.to_string())?;
+            Ok(json!({ "ok": true }))
+        }
+        "native_resize_terminal" => {
+            let session_id = args.get("sessionId").and_then(Value::as_str).ok_or_else(|| "missing sessionId".to_string())?;
+            let rows = terminal_dimension(args, "rows", 24)?;
+            let cols = terminal_dimension(args, "cols", 80)?;
+            backend.resize_terminal(session_id, rows, cols).map_err(|e| e.to_string())?;
+            Ok(json!({ "ok": true }))
+        }
+        "native_close_terminal" => {
+            let session_id = args.get("sessionId").and_then(Value::as_str).ok_or_else(|| "missing sessionId".to_string())?;
+            let snapshot = backend.close_terminal(session_id).map_err(|e| e.to_string())?;
+            serde_json::to_value(snapshot).map_err(|e| e.to_string())
+        }
         "native_set_terminal_enabled" => Err(
             "TerminalDisabledByDefault: terminal enablement is host-owned and cannot be toggled by page RPC"
                 .to_string(),
@@ -2777,6 +2830,69 @@ pub mod tauri_gui {
             self.with_backend(|backend| {
                 backend.native_set_terminal_enabled(true);
                 Ok(())
+            })
+        }
+
+        pub fn approve_terminal_shell(&self, cwd: &Path, shell: &Path) -> Result<(), String> {
+            self.with_backend(|backend| {
+                backend
+                    .host_approve_terminal_shell(cwd, shell)
+                    .map_err(|error| error.to_string())
+            })
+        }
+
+        pub fn open_terminal(
+            &self,
+            cwd: &Path,
+            shell: Option<&Path>,
+            rows: u16,
+            cols: u16,
+        ) -> Result<super::TerminalSnapshot, String> {
+            self.with_backend(|backend| {
+                backend
+                    .open_terminal(cwd, shell, rows, cols)
+                    .map_err(|error| error.to_string())
+            })
+        }
+
+        pub fn read_terminal(
+            &self,
+            session_id: &str,
+            after: u64,
+        ) -> Result<super::TerminalSnapshot, String> {
+            self.with_backend(|backend| {
+                backend
+                    .read_terminal(session_id, after)
+                    .map_err(|error| error.to_string())
+            })
+        }
+
+        pub fn write_terminal(&self, session_id: &str, input: &[u8]) -> Result<(), String> {
+            self.with_backend(|backend| {
+                backend
+                    .write_terminal(session_id, input)
+                    .map_err(|error| error.to_string())
+            })
+        }
+
+        pub fn resize_terminal(
+            &self,
+            session_id: &str,
+            rows: u16,
+            cols: u16,
+        ) -> Result<(), String> {
+            self.with_backend(|backend| {
+                backend
+                    .resize_terminal(session_id, rows, cols)
+                    .map_err(|error| error.to_string())
+            })
+        }
+
+        pub fn close_terminal(&self, session_id: &str) -> Result<super::TerminalSnapshot, String> {
+            self.with_backend(|backend| {
+                backend
+                    .close_terminal(session_id)
+                    .map_err(|error| error.to_string())
             })
         }
 
@@ -3308,7 +3424,7 @@ pub mod tauri_gui {
         app: tauri::AppHandle,
         state: tauri::State<'_, TauriDesktopState>,
     ) -> Result<Value, String> {
-        let confirmed = confirmation_dialog(&app, "Enable the guarded terminal for this app session? Every command will still require separate approval.")?
+        let confirmed = confirmation_dialog(&app, "Enable terminal for this app session? Each new interactive shell or one-shot command requires host approval.")?
             .title("Enable terminal")
             .kind(MessageDialogKind::Warning)
             .buttons(MessageDialogButtons::OkCancel)
@@ -3359,6 +3475,85 @@ pub mod tauri_gui {
             confirmed_command: confirmed_command.unwrap_or_default(),
         };
         Ok(Value::String(state.run_terminal_command(&request)?))
+    }
+
+    #[tauri::command(async)]
+    pub async fn native_open_terminal(
+        app: tauri::AppHandle,
+        state: tauri::State<'_, TauriDesktopState>,
+        cwd: String,
+        shell: Option<String>,
+        rows: Option<u16>,
+        cols: Option<u16>,
+    ) -> Result<Value, String> {
+        super::validate_consent_text(&cwd).map_err(|error| error.to_string())?;
+        if let Some(shell) = &shell {
+            super::validate_consent_text(shell).map_err(|error| error.to_string())?;
+        }
+        let shell_path = shell.as_deref().map(Path::new);
+        let rows = rows.unwrap_or(24);
+        let cols = cols.unwrap_or(80);
+        match state.open_terminal(Path::new(&cwd), shell_path, rows, cols) {
+            Ok(snapshot) => serde_json::to_value(snapshot).map_err(|error| error.to_string()),
+            Err(error) if error.contains("TerminalConsentRequired") => {
+                let shell_name = shell.as_deref().unwrap_or("/bin/zsh");
+                let confirmed = confirmation_dialog(
+                    &app,
+                    format!("Open an interactive shell?\n\nWorking directory:\n{cwd}\n\nShell:\n{shell_name}\n\nThe shell remains active until you close it."),
+                )?
+                .title("Approve interactive shell")
+                .kind(MessageDialogKind::Warning)
+                .buttons(MessageDialogButtons::OkCancel)
+                .blocking_show();
+                if !confirmed {
+                    return Err("Shell opening was cancelled; no PTY was started.".to_string());
+                }
+                state.approve_terminal_shell(Path::new(&cwd), Path::new(shell_name))?;
+                let snapshot = state.open_terminal(Path::new(&cwd), shell_path, rows, cols)?;
+                serde_json::to_value(snapshot).map_err(|error| error.to_string())
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    #[tauri::command]
+    pub fn native_read_terminal(
+        state: tauri::State<'_, TauriDesktopState>,
+        session_id: String,
+        after: Option<u64>,
+    ) -> Result<Value, String> {
+        let snapshot = state.read_terminal(&session_id, after.unwrap_or(0))?;
+        serde_json::to_value(snapshot).map_err(|error| error.to_string())
+    }
+
+    #[tauri::command]
+    pub fn native_terminal_input(
+        state: tauri::State<'_, TauriDesktopState>,
+        session_id: String,
+        data: String,
+    ) -> Result<Value, String> {
+        state.write_terminal(&session_id, data.as_bytes())?;
+        Ok(json!({ "ok": true }))
+    }
+
+    #[tauri::command]
+    pub fn native_resize_terminal(
+        state: tauri::State<'_, TauriDesktopState>,
+        session_id: String,
+        rows: u16,
+        cols: u16,
+    ) -> Result<Value, String> {
+        state.resize_terminal(&session_id, rows, cols)?;
+        Ok(json!({ "ok": true }))
+    }
+
+    #[tauri::command]
+    pub fn native_close_terminal(
+        state: tauri::State<'_, TauriDesktopState>,
+        session_id: String,
+    ) -> Result<Value, String> {
+        let snapshot = state.close_terminal(&session_id)?;
+        serde_json::to_value(snapshot).map_err(|error| error.to_string())
     }
 
     #[tauri::command(async)]
@@ -3506,6 +3701,11 @@ pub mod tauri_gui {
                 native_enable_terminal,
                 native_confirm_terminal_command,
                 native_run_terminal_command,
+                native_open_terminal,
+                native_read_terminal,
+                native_terminal_input,
+                native_resize_terminal,
+                native_close_terminal,
                 native_mcp_connect_remote,
                 native_mcp_list_tools,
                 native_mcp_call_tool,

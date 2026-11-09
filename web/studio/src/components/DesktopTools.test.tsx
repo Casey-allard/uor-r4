@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopActions } from '../adapters/desktopActions.js';
 import { makeFiles } from './studioTestFixtures.js';
-import { ChangesPanel, TerminalPanel } from './DesktopTools.js';
+import { ChangesPanel } from './DesktopTools.js';
 
 let host: HTMLDivElement;
 beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); });
@@ -20,11 +20,6 @@ function button(label: string): HTMLButtonElement {
     const found = Array.from(host.querySelectorAll('button')).find((node) => node.textContent === label);
     if (!found) throw new Error(`Missing button ${label}`);
     return found;
-}
-
-function input(label: string, value: string) {
-    const field = host.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
-    act(() => { field.value = value; field.dispatchEvent(new Event('input', { bubbles: true })); });
 }
 
 describe('ChangesPanel', () => {
@@ -94,169 +89,7 @@ describe('ChangesPanel', () => {
     });
 });
 
-describe('TerminalPanel', () => {
-    it('enables explicitly, approves every command, and renders inert output', async () => {
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            if (command === 'native_confirm_terminal_command') return { approved: true };
-            if (command === 'native_run_terminal_command') return '<img src=x onerror=window.__terminalXss=1>';
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/granted/project')} />, host); });
-        expect(button('Run command').disabled).toBe(true);
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalConsentState')?.textContent).toContain('enabled'));
-        input('Terminal command', 'pwd');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalOutput')?.textContent).toContain('<img'));
-        expect(document.querySelector('#terminalOutput img')).toBeNull();
-        expect((window as unknown as { __terminalXss?: boolean }).__terminalXss).toBeUndefined();
-        expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_enable_terminal', 'native_confirm_terminal_command', 'native_run_terminal_command']);
-        expect(invoke.mock.calls.at(-1)?.[1]).toMatchObject({ cwd: '/granted/project', command: 'pwd', confirmedCommand: 'pwd', userConfirmed: true });
-    });
-
-    it('reports cancelled approval without running the command', async () => {
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            if (command === 'native_confirm_terminal_command') return { approved: false };
-            if (command === 'native_run_terminal_command') throw new Error('must not run');
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/granted/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Terminal command', 'pwd');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalOutput')?.textContent).toContain('cancelled'));
-        expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_enable_terminal', 'native_confirm_terminal_command']);
-    });
-
-    it('disables guarded actions when the native host is unavailable', () => {
-        act(() => { render(<TerminalPanel actions={createDesktopActions()} files={workspace()} />, host); });
-        expect(button('Enable terminal').disabled).toBe(true);
-        expect(button('Run command').disabled).toBe(true);
-        expect(document.getElementById('terminalConsentState')?.textContent).toContain('browser build');
-    });
-
-    it('ignores a stale command result after the workspace changes and runs only the latest path', async () => {
-        let resolveOutput!: () => void;
-        let runCalls = 0;
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            if (command === 'native_confirm_terminal_command') return { approved: true };
-            if (command === 'native_run_terminal_command') {
-                runCalls += 1;
-                if (runCalls === 1) return new Promise<unknown>((resolve) => { resolveOutput = () => resolve('old output'); });
-                return 'new output';
-            }
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/old/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Terminal command', 'pwd');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        act(() => { document.dispatchEvent(new CustomEvent('uor-files-changed', { detail: { rootPath: '/new/project' } })); });
-        await act(async () => { resolveOutput(); await Promise.resolve(); });
-        expect(document.getElementById('terminalOutput')?.textContent).not.toContain('old output');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalOutput')?.textContent).toContain('new output'));
-        expect(invoke.mock.calls.at(-1)?.[1]).toMatchObject({ cwd: '/new/project', command: 'pwd' });
-    });
-
-    it('prevents Enable during Run and restores both actions after completion', async () => {
-        let resolveRun!: () => void;
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            if (command === 'native_confirm_terminal_command') return { approved: true };
-            if (command === 'native_run_terminal_command') return new Promise<unknown>((resolve) => { resolveRun = () => resolve('done'); });
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/granted/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Terminal command', 'pwd');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        expect(button('Enable terminal').disabled).toBe(true);
-        await act(async () => { resolveRun(); await Promise.resolve(); });
-        await vi.waitFor(() => expect(document.getElementById('terminalOutput')?.textContent).toContain('done'));
-        expect(button('Enable terminal').disabled).toBe(false);
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        expect(button('Run command').disabled).toBe(false);
-    });
-
-    it('prevents Run during Enable and clears the enabling state on completion', async () => {
-        let resolveEnable!: () => void;
-        let enableCalls = 0;
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') {
-                enableCalls += 1;
-                if (enableCalls === 2) return new Promise<unknown>((resolve) => { resolveEnable = () => resolve({ enabled: true }); });
-                return { enabled: true };
-            }
-            if (command === 'native_confirm_terminal_command') return { approved: true };
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/granted/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Terminal command', 'pwd');
-        expect(button('Run command').disabled).toBe(true);
-        await act(async () => { resolveEnable(); await Promise.resolve(); });
-        expect(button('Run command').disabled).toBe(false);
-    });
-
-    it('invalidates a stale refresh when the workspace rootPath is cleared', async () => {
-        let resolveStatus!: () => void;
-        let resolveDiff!: () => void;
-        const invoke = vi.fn(async (command: string) => {
-            if (command === 'native_git_status') return new Promise<unknown>((resolve) => { resolveStatus = () => resolve({ branch: 'old', modified_files: [], untracked_files: [] }); });
-            if (command === 'native_git_diff') return new Promise<unknown>((resolve) => { resolveDiff = () => resolve({ diff: 'old diff', timed_out: false }); });
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<ChangesPanel actions={createDesktopActions({ invoke })} files={workspace('/old/project')} copy={vi.fn()} />, host); });
-        await act(async () => { button('Refresh changes').click(); await Promise.resolve(); });
-        act(() => { document.dispatchEvent(new CustomEvent('uor-files-changed', { detail: { rootPath: '' } })); });
-        await act(async () => { resolveStatus(); resolveDiff(); await Promise.resolve(); });
-        expect(document.getElementById('gitDiffOutput')?.textContent).not.toContain('old diff');
-        expect((document.getElementById('terminalCwd') as HTMLInputElement).value).toBe('');
-        expect(button('Refresh changes').disabled).toBe(true);
-    });
-
-    it('invalidates a stale command result when the workspace rootPath is cleared', async () => {
-        let resolveOutput!: () => void;
-        const invoke = vi.fn(async (command: string, _args: Record<string, unknown> = {}) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            if (command === 'native_confirm_terminal_command') return { approved: true };
-            if (command === 'native_run_terminal_command') return new Promise<unknown>((resolve) => { resolveOutput = () => resolve('old output'); });
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/old/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Terminal command', 'pwd');
-        await act(async () => { button('Run command').click(); await Promise.resolve(); });
-        act(() => { document.dispatchEvent(new CustomEvent('uor-files-changed', { detail: { rootPath: '' } })); });
-        await act(async () => { resolveOutput(); await Promise.resolve(); });
-        expect(document.getElementById('terminalOutput')?.textContent).not.toContain('old output');
-        expect((document.getElementById('terminalCwd') as HTMLInputElement).value).toBe('');
-        expect(button('Run command').disabled).toBe(true);
-    });
-
-    it('explains empty working directory and command states without running', async () => {
-        const invoke = vi.fn(async (command: string) => {
-            if (command === 'native_enable_terminal') return { enabled: true };
-            throw new Error(`unexpected ${command}`);
-        });
-        act(() => { render(<TerminalPanel actions={createDesktopActions({ invoke })} files={workspace('/granted/project')} />, host); });
-        await act(async () => { button('Enable terminal').click(); await Promise.resolve(); });
-        input('Working directory', '');
-        input('Terminal command', 'pwd');
-        expect(document.getElementById('terminalOutput')?.textContent).toContain('Choose a project folder and enter an allowed command.');
-        expect(button('Run command').disabled).toBe(true);
-        input('Working directory', '/granted/project');
-        input('Terminal command', '');
-        expect(document.getElementById('terminalOutput')?.textContent).toContain('Enter an allowed command.');
-        expect(button('Run command').disabled).toBe(true);
-        expect(invoke.mock.calls.map((call) => call[0])).toEqual(['native_enable_terminal']);
-    });
-
+describe('ChangesPanel timeouts and cleanup', () => {
     it('reports timeout states without changing the raw diff', async () => {
         const rawDiff = 'diff --git a/a.rs b/a.rs\n+change';
         const invoke = vi.fn(async (command: string) => {

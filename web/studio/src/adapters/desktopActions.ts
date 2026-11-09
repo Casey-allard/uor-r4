@@ -15,12 +15,37 @@ export interface DesktopGitDiff {
     timed_out?: boolean;
 }
 
+export interface TerminalEvent {
+    type: 'output' | 'exit' | 'error';
+    sessionId: string;
+    sequence: number;
+    dataHex?: string;
+    code?: number | null;
+    message?: string;
+}
+
+export interface TerminalSnapshot {
+    sessionId: string;
+    cursor: number;
+    active: boolean;
+    truncated: boolean;
+    cwd: string;
+    shell: string;
+    pid: number | null;
+    events: TerminalEvent[];
+}
+
 export interface DesktopActions {
     available: boolean;
     gitStatus(repoPath: string): Promise<DesktopGitStatus>;
     gitDiff(repoPath: string): Promise<DesktopGitDiff>;
     enableTerminal(): Promise<{ enabled?: boolean } | null | undefined>;
     runTerminalCommand(cwd: string, command: string): Promise<unknown>;
+    openTerminal(cwd: string, rows: number, cols: number): Promise<TerminalSnapshot>;
+    readTerminal(sessionId: string, after: number): Promise<TerminalSnapshot>;
+    inputTerminal(sessionId: string, data: string): Promise<unknown>;
+    resizeTerminal(sessionId: string, rows: number, cols: number): Promise<unknown>;
+    closeTerminal(sessionId: string): Promise<TerminalSnapshot>;
 }
 
 export function desktopRepositoryPath(files: WorkspaceApi): string {

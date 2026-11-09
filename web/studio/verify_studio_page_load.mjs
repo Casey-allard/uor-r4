@@ -418,7 +418,7 @@ async function trapPageLoad(cdp, origin, path, options = {}) {
     const runtimeErrors = cdp.events.slice(before)
         .filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Runtime.consoleAPICalled')
         .map((event) => event.params);
-    await cdp.send('Target.closeTarget', { targetId: target.targetId });
+    if (!options.keepOpen) await cdp.send('Target.closeTarget', { targetId: target.targetId });
     return { path: path, loaded: loaded, requested: requested.length, external: external, rawTypeScript, typed, mountError, migration, runtimeErrors };
 }
 

@@ -94,4 +94,18 @@ describe('typed Studio bootstrap', () => {
         await expect(mountTypedStudio(root)).rejects.toThrow('migration');
         expect(render).not.toHaveBeenCalled();
     });
+
+    it('applies an explicit theme query through the existing settings API', async () => {
+        const updateSettings = vi.fn();
+        legacyWindow.__studioUi = { ...legacyWindow.__studioUi, updateSettings };
+        window.history.replaceState({}, '', '/?typed=1&theme=light');
+        try {
+            const root = document.createElement('div');
+            const mounted = await mountTypedStudio(root);
+            expect(updateSettings).toHaveBeenCalledWith({ theme: 'light' });
+            mounted.dispose();
+        } finally {
+            window.history.replaceState({}, '', '/');
+        }
+    });
 });

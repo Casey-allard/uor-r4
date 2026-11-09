@@ -1,6 +1,11 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { ShellStatus, StudioSection } from './types.js';
+import { ProjectSidebar } from './ProjectSidebar.js';
+import { SessionToolbar } from './SessionToolbar.js';
+import { PaneDock } from './PaneDock.js';
+import { Modal } from './Modal.js';
+import { Icon } from './ui/Icon.js';
 
 interface AppShellProps {
     activeSection: StudioSection;
@@ -8,46 +13,53 @@ interface AppShellProps {
     status: ShellStatus;
     sessions?: ComponentChildren;
     children: ComponentChildren;
+    primary?: ComponentChildren;
+    secondarySection?: StudioSection | null;
+    secondaryChildren?: ComponentChildren;
+    onSplit?(): void;
+    onCloseSplit?(): void;
     onPalette?(): void;
     onSettings?(): void;
     onInspector?(): void;
     inspectorOpen?: boolean;
+    onModels?(): void;
+    onOpenFolder?(): Promise<string>;
+    alert?: ComponentChildren;
 }
 
-const destinations: Array<{ id: StudioSection; label: string }> = [
-    { id: 'agent', label: 'Agent' },
-    { id: 'workspace', label: 'Workspace' },
-    { id: 'changes', label: 'Changes' },
-    { id: 'terminal', label: 'Terminal' },
-    { id: 'models', label: 'Models' },
-    { id: 'guide', label: 'Guide' },
-];
-
-export function AppShell({ activeSection, onSection, status, sessions, children, onPalette, onSettings, onInspector, inspectorOpen = false }: AppShellProps) {
+export function AppShell({ activeSection, onSection, status, sessions, children, primary, secondarySection, secondaryChildren, onSplit, onCloseSplit, onPalette, onSettings, onInspector, inspectorOpen = false, onModels, onOpenFolder, alert }: AppShellProps) {
     const [drawerOpen, setDrawerOpen] = useState(() => window.innerWidth > 800);
-    return (
-        <div class="studio-shell">
-            <header class="studio-toolbar">
-                <button type="button" aria-label="Toggle navigation" aria-controls="studio-navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(!drawerOpen)}>Menu</button>
-                <strong>UOR-R4 Studio</strong>
-                {onPalette && <button type="button" onClick={onPalette}>Command palette</button>}
-                {onSettings && <button type="button" onClick={onSettings}>Settings</button>}
-                {onInspector && <button type="button" aria-controls="studio-inspector" aria-expanded={inspectorOpen} onClick={onInspector}>Inspector</button>}
-                <div role="status" aria-live="polite" class="studio-status">
-                    <span>{status.source}</span><span>{status.artifact}</span><span>{status.privacy}</span><span>{status.file}</span><span>{status.session}</span>
-                </div>
-            </header>
-            <div class="studio-body">
-                <nav id="studio-navigation" aria-label="Studio" data-open={drawerOpen} hidden={!drawerOpen}>
-                    <ul>
-                        {destinations.map((destination) => (
-                            <li><button type="button" aria-current={activeSection === destination.id ? 'page' : undefined} onClick={() => onSection(destination.id)}>{destination.label}</button></li>
-                        ))}
-                    </ul>
-                    {sessions}
-                </nav>
-                <main>{children}</main>
-            </div>
+    const [projectOpen, setProjectOpen] = useState(false);
+    const [projectName, setProjectName] = useState('uor-r4');
+    const [projectDraft, setProjectDraft] = useState('uor-r4');
+    const [projectFolder, setProjectFolder] = useState('');
+    const [projectError, setProjectError] = useState('');
+    const [choosingFolder, setChoosingFolder] = useState(false);
+    useEffect(() => {
+        const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrawerOpen(false); };
+        document.addEventListener('keydown', close);
+        return () => document.removeEventListener('keydown', close);
+    }, []);
+    const openProject = () => { setProjectDraft(projectName); setProjectFolder(''); setProjectError(''); setProjectOpen(true); };
+    const chooseFolder = async () => {
+        setChoosingFolder(true); setProjectError('');
+        try { setProjectFolder(onOpenFolder ? await onOpenFolder() : 'demo-folder'); }
+        catch (error) { setProjectError(String(error instanceof Error ? error.message : error)); }
+        finally { setChoosingFolder(false); }
+    };
+    return <div class="harness-shell studio-shell">
+        <SessionToolbar status={status} projectName={projectName} drawerOpen={drawerOpen} onToggleProjects={() => setDrawerOpen(!drawerOpen)} onNewProject={openProject} onModels={onModels || (() => onSection('models'))} onPalette={onPalette} onSettings={onSettings} onInspector={onInspector} inspectorOpen={inspectorOpen} />
+        <div class="harness-body">
+            <ProjectSidebar activeSection={activeSection} onSection={onSection} onNewProject={openProject} drawerOpen={drawerOpen} sessions={sessions} />
+            <main id="harness-main" tabindex={-1}>{alert}<PaneDock activeSection={activeSection} onSection={onSection} onSplit={onSplit} onCloseSplit={onCloseSplit} secondarySection={secondarySection} secondaryChildren={secondaryChildren}>{primary ?? children}</PaneDock></main>
         </div>
-    );
+        {children !== primary && children}
+        {projectOpen && <Modal title="New project" onClose={() => setProjectOpen(false)}><form class="project-form" onSubmit={(event) => { event.preventDefault(); if (!projectDraft.trim() || !projectFolder) return; setProjectName(projectDraft.trim()); setProjectOpen(false); onSection('workspace'); }}>
+            {projectError && <p role="alert">{projectError}</p>}
+            <label>Project name<input aria-label="Project name" required value={projectDraft} onInput={(event) => setProjectDraft(event.currentTarget.value)} /></label>
+            <label>Project folder<span class="folder-picker"><input aria-label="Project folder" required readOnly value={projectFolder} placeholder="Choose a folder" /><button type="button" disabled={choosingFolder} onClick={() => void chooseFolder()}><Icon name="folder" />{choosingFolder ? 'Choosing…' : 'Choose folder'}</button></span></label>
+            <p class="form-hint">The selected folder becomes the project workspace. Project memory and scheduled tasks are added by the harness service.</p>
+            <div class="dialog-actions"><button type="button" onClick={() => setProjectOpen(false)}>Cancel</button><button type="submit" class="primary-action" disabled={!projectDraft.trim() || !projectFolder}>Create project</button></div>
+        </form></Modal>}
+    </div>;
 }
