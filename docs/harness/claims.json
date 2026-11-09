@@ -48,13 +48,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/carry-ablation": {
-    "branch": "deepseek/carry-ablation",
-    "claimed_at": "2026-11-09T13:17:03-05:00",
-    "head": "2ff3b19e5",
-    "lab": "deepseek",
-    "note": "validated ask-preserving Hamming carry ablation"
-  },
   "deepseek/centroid-retarget": {
     "branch": "deepseek/centroid-retarget",
     "claimed_at": "2026-11-06T20:19:37-05:00",
@@ -152,6 +145,13 @@
     "head": "640367b30",
     "lab": "deepseek",
     "note": ""
+  },
+  "deepseek/cpu-ask-rank-modes": {
+    "branch": "deepseek/cpu-ask-rank-modes",
+    "claimed_at": "2026-11-09T14:12:16-05:00",
+    "head": "7970da0fc",
+    "lab": "deepseek",
+    "note": "CPU ask/carry generation and rank modes in the reply panel"
   },
   "deepseek/cpu-corpus-resume": {
     "branch": "deepseek/cpu-corpus-resume",

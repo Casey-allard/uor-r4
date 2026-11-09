@@ -16,14 +16,13 @@
 //! `--teacher-forced 1`) also ranks, at the first reply position, the first
 //! reference token of the other case in the same pair beside the asked one's.
 //!
-//! `--engine cpu` refuses, by name, an artifact whose Hamming image asks or
-//! carries, so the panel scores such an artifact only on the product path. The
-//! refusal is a choice since deepseek-261 taught the CPU port to read the ask
-//! tables and the question carry. `--engine integer` decodes through
-//! `IntegerStackSession::serve_step` (claude-336), the product path, and records
+//! Both engines read the Hamming ask tables and the readout question carry.
+//! `--engine cpu` runs them through `CpuFbsForward`, including the teacher-forced
+//! and paired-first ranks. `--engine integer` decodes through
+//! `IntegerStackSession::serve_step`, the product path, and records
 //! `settings.engine`. `--content-readout` attaches an artifact-bound sidecar to
-//! the integer model, as `uor-chat` does. The teacher-forced and paired-first
-//! ranks stay on the CPU port, so the integer engine refuses them.
+//! the integer model, as `uor-chat` does. The rank modes stay on the CPU engine,
+//! so the integer engine refuses them.
 
 use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
@@ -35,9 +34,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uor_r4_core::answer_oracle::FrozenAnswers;
 use uor_r4_cpu_train::{CpuFbsForward, CpuFbsHead, CpuFbsStep};
-use uor_r4_integer::stack::{
-    read_hamming_uorlut01, ContentReadout, IntegerStackModel, IntegerStackSession,
-};
+use uor_r4_integer::stack::{ContentReadout, IntegerStackModel, IntegerStackSession};
 use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message, SCHEMA_V2};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
@@ -211,7 +208,7 @@ struct RankTally {
     eos_rank_max: Option<usize>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct NearestRank {
     target_token: u32,
     chosen_token: u32,
@@ -319,12 +316,7 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<()> {
             "artifact serves the writer head; this scorer reads the nearest head".to_owned(),
         );
     }
-    refuse_engine(
-        engine,
-        &artifact,
-        teacher_forced,
-        args.contains_key("content-readout"),
-    )?;
+    refuse_engine(engine, teacher_forced, args.contains_key("content-readout"))?;
     let content_readout_sha256 = match args.get("content-readout") {
         Some(path) => Some(attach_content_readout(
             &mut model,
@@ -1108,28 +1100,11 @@ fn record_content_readout(report: &mut serde_json::Value, sha256: Option<&str>) 
     }
 }
 
-/// Refuses what an engine does not score: the CPU port on an artifact whose Hamming image asks
-/// (a carry needs an ask, so this covers the carry), which the panel keeps to the product path,
-/// and the integer engine with the teacher-forced ranks, which stay on the CPU port.
-fn refuse_engine(
-    engine: Engine,
-    artifact: &[u8],
-    teacher_forced: bool,
-    content_readout: bool,
-) -> Result<()> {
+/// Refuses the features an engine does not apply: the CPU port does not attach an integer content
+/// readout, and the integer engine does not run the CPU rank modes.
+fn refuse_engine(engine: Engine, teacher_forced: bool, content_readout: bool) -> Result<()> {
     match engine {
         Engine::Cpu => {
-            let asks = read_hamming_uorlut01(artifact)
-                .map_err(|e| format!("artifact: {e}"))?
-                .is_some_and(|image| image.reads.iter().any(|read| read.ask.is_some()));
-            if asks {
-                return Err(
-                    "the artifact's Hamming image asks or carries a question, and the panel \
-                            scores such an artifact only on the product path; score it with \
-                            --engine integer"
-                        .to_owned(),
-                );
-            }
             if content_readout {
                 return Err(
                     "--content-readout is applied by the integer serving path; use \
@@ -1347,10 +1322,10 @@ mod tests {
         synthetic_fbs_trunk_with, synthetic_hamming, FBS_SYNTH_NON_SQUARE,
     };
     use uor_r4_integer::stack::{
-        add_hamming_ask_uorlut01, add_point_key_uorlut01, export_fbs_trunk_uorlut01, AskImage,
-        ContentExample, ContentReadout, ContentSignatureMode, FbsMemoryEntry, FbsMemorySnapshot,
-        FbsReplyTable, PointKeyImage, CONTENT_CODE_SIGNATURE_BITS, MEMORY_PAD,
-        STACK_CONTENT_READOUT_SCHEMA,
+        add_hamming_ask_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
+        export_fbs_trunk_uorlut01, AskImage, ContentExample, ContentReadout, ContentSignatureMode,
+        FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, PointKeyImage,
+        CONTENT_CODE_SIGNATURE_BITS, MEMORY_PAD, STACK_CONTENT_READOUT_SCHEMA,
     };
 
     /// The pinned tokenizer (`d36d3e87…`) lives outside the repository: name it in
@@ -1552,21 +1527,15 @@ mod tests {
     }
 
     #[test]
-    fn each_engine_refuses_what_it_does_not_score() {
-        let (plain, asking) = ask_fixture();
-        assert_eq!(refuse_engine(Engine::Cpu, &plain, true, false), Ok(()));
-        let refused = refuse_engine(Engine::Cpu, &asking, false, false).unwrap_err();
-        assert!(refused.contains("--engine integer"), "{refused}");
-        assert!(refused.contains("product path"), "{refused}");
-        assert_eq!(
-            refuse_engine(Engine::Integer, &asking, false, false),
-            Ok(())
-        );
-        let refused = refuse_engine(Engine::Integer, &plain, true, false).unwrap_err();
+    fn each_engine_refuses_what_it_would_score_silently_wrong() {
+        assert_eq!(refuse_engine(Engine::Cpu, true, false), Ok(()));
+        assert_eq!(refuse_engine(Engine::Cpu, false, false), Ok(()));
+        assert_eq!(refuse_engine(Engine::Integer, false, false), Ok(()));
+        let refused = refuse_engine(Engine::Integer, true, false).unwrap_err();
         assert!(refused.contains("--teacher-forced"), "{refused}");
-        let refused = refuse_engine(Engine::Cpu, &plain, false, true).unwrap_err();
+        let refused = refuse_engine(Engine::Cpu, false, true).unwrap_err();
         assert!(refused.contains("--engine integer"), "{refused}");
-        assert_eq!(refuse_engine(Engine::Integer, &plain, false, true), Ok(()));
+        assert_eq!(refuse_engine(Engine::Integer, false, true), Ok(()));
         let args = |v: &str| BTreeMap::from([("engine".to_owned(), v.to_owned())]);
         assert_eq!(engine_switch(&BTreeMap::new()), Ok(Engine::Cpu));
         assert_eq!(engine_switch(&args("cpu")), Ok(Engine::Cpu));
@@ -1603,29 +1572,74 @@ mod tests {
         }
     }
 
-    /// Since deepseek-261 the CPU port reads the ask heads and the carry as the integer session
-    /// does: the two engines decode the asking artifact alike, and it decodes unlike the one
-    /// without ask heads, so neither engine can pass by ignoring the asks.
+    /// Both engines read the ask tables and the carry. The CPU port used to decode an asking
+    /// artifact exactly as the read-free one; that stale behavior is the fault this test pins.
     #[test]
-    fn both_engines_read_the_ask_heads() {
+    fn both_engines_read_the_ask_heads_and_carry() {
         let (plain, asking) = ask_fixture();
+        let ablated = drop_hamming_carry_uorlut01(&asking).unwrap();
         let cpu = |bytes: &[u8]| {
             let forward = CpuFbsForward::from_artifact(bytes).unwrap();
             decode_all(|| forward.clone())
         };
-        let (plain_model, asking_model) = (
+        let (plain_cpu, asking_cpu, ablated_cpu) = (cpu(&plain), cpu(&asking), cpu(&ablated));
+        assert_ne!(asking_cpu, plain_cpu);
+        assert_ne!(
+            asking_cpu, ablated_cpu,
+            "the carry must change free-running CPU generation"
+        );
+        let (plain_model, asking_model, ablated_model) = (
             IntegerStackModel::parse(&plain).unwrap(),
             IntegerStackModel::parse(&asking).unwrap(),
+            IntegerStackModel::parse(&ablated).unwrap(),
         );
-        assert_eq!(
+        let (plain_integer, asking_integer, ablated_integer) = (
             decode_all(|| IntegerDecoder::new(&plain_model)),
-            cpu(&plain)
-        );
-        assert_eq!(
             decode_all(|| IntegerDecoder::new(&asking_model)),
-            cpu(&asking)
+            decode_all(|| IntegerDecoder::new(&ablated_model)),
         );
-        assert_ne!(cpu(&asking), cpu(&plain));
+        assert_eq!(plain_integer, plain_cpu);
+        assert_eq!(asking_integer, asking_cpu);
+        assert_eq!(ablated_integer, ablated_cpu);
+        assert_ne!(
+            asking_integer, ablated_integer,
+            "the carry must change free-running integer generation"
+        );
+    }
+
+    /// The two CPU rank modes consume the same post-readout query as generation. The carried
+    /// artifact and deepseek-262's ask-preserving ablation therefore must disagree in at least one
+    /// multi-row rank, not merely in a construction field.
+    #[test]
+    fn cpu_rank_modes_use_the_carried_question() {
+        let (_, asking) = ask_fixture();
+        let ablated = drop_hamming_carry_uorlut01(&asking).unwrap();
+        let prompt = [BOS, 5, 9, 13, 17, 2, 7, 11];
+        let targets = [17, 31, 53, 71, 97, 113, 131];
+
+        let mut carried = CpuFbsForward::from_artifact(&asking).unwrap();
+        let mut uncarried = CpuFbsForward::from_artifact(&ablated).unwrap();
+        let carried_teacher =
+            teacher_forced_nearest_ranks(&mut carried, &prompt, &targets).unwrap();
+        let uncarried_teacher =
+            teacher_forced_nearest_ranks(&mut uncarried, &prompt, &targets).unwrap();
+        let changed_teacher_rows = carried_teacher
+            .iter()
+            .zip(&uncarried_teacher)
+            .enumerate()
+            .filter_map(|(row, (carried, uncarried))| (carried != uncarried).then_some(row))
+            .collect::<Vec<_>>();
+        assert!(
+            changed_teacher_rows.iter().any(|&row| row > 0),
+            "the carry must change a later teacher-forced rank: {changed_teacher_rows:?}"
+        );
+
+        let carried_first = first_position_ranks(&mut carried, &prompt, &[17, 31, 53]).unwrap();
+        let uncarried_first = first_position_ranks(&mut uncarried, &prompt, &[17, 31, 53]).unwrap();
+        assert_ne!(
+            carried_first, uncarried_first,
+            "the carry must change paired-first ranking"
+        );
     }
 
     /// `uor-chat` applies an attached content readout only through `serve_step`. The panel's integer
