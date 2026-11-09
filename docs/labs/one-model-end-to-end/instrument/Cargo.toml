@@ -35,6 +35,11 @@ path = "src/bin/real-artifact-audit.rs"
 required-features = ["cpu-parity"]
 
 [[bin]]
+name = "real-carry-geometry"
+path = "src/bin/real-carry-geometry.rs"
+required-features = ["cpu-parity"]
+
+[[bin]]
 name = "corpus-eos-exposure"
 path = "src/bin/corpus-eos-exposure.rs"
 

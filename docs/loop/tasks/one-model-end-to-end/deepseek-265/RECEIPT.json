@@ -1,0 +1,980 @@
+{
+  "claim": "none; explains the registered configuration only and moves no bar",
+  "command": {
+    "argv": [
+      "docs/labs/one-model-end-to-end/instrument/target/release/real-carry-geometry",
+      "receipt",
+      "--train-census",
+      "local/deepseek/carry-geometry/results/train-census-repaired-v2.json",
+      "--train-census-repeat",
+      "local/deepseek/carry-geometry/results/train-census-repaired-v2-repeat.json",
+      "--s1",
+      "local/deepseek/carry-geometry/results/first-reply-s1-repaired-v2.json",
+      "--s1-repeat",
+      "local/deepseek/carry-geometry/results/first-reply-s1-repaired-v2-repeat.json",
+      "--s2",
+      "local/deepseek/carry-geometry/results/first-reply-s2-repaired-v2.json",
+      "--s2-repeat",
+      "local/deepseek/carry-geometry/results/first-reply-s2-repaired-v2-repeat.json",
+      "--out",
+      "<out>"
+    ],
+    "cwd": "/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-real-carry-geometry-diagnosis"
+  },
+  "first_reply": {
+    "seed_1": {
+      "artifact": {
+        "ask_table_entries": 1048576,
+        "carry_gains": 4096,
+        "carry_rows": 32,
+        "readout_depth": 6,
+        "vocabulary": 4096,
+        "width": 256
+      },
+      "asked_rank": {
+        "carried": {
+          "histogram": {
+            "<=1024": 37,
+            "<=128": 5,
+            "<=16": 3,
+            "<=191": 13,
+            "<=24": 1,
+            "<=4": 1,
+            "<=512": 20,
+            "<=64": 7,
+            "<=8": 8,
+            ">1024": 161
+          },
+          "max": 4095,
+          "mean_x1000": 1712609,
+          "min": 4,
+          "p50": 1423,
+          "p90": 4078,
+          "p95": 4088,
+          "p99": 4094,
+          "rows": 256,
+          "within_192": 38,
+          "within_32": 13,
+          "within_64": 20
+        },
+        "minus_c": {
+          "histogram": {
+            "<=1024": 39,
+            "<=128": 6,
+            "<=16": 3,
+            "<=191": 12,
+            "<=4": 1,
+            "<=512": 20,
+            "<=64": 6,
+            "<=8": 9,
+            ">1024": 160
+          },
+          "max": 4095,
+          "mean_x1000": 1711628,
+          "min": 4,
+          "p50": 1454,
+          "p90": 4077,
+          "p95": 4088,
+          "p99": 4094,
+          "rows": 256,
+          "within_192": 37,
+          "within_32": 13,
+          "within_64": 19
+        }
+      },
+      "asked_rank_delta_carried_minus_minus_c": {
+        "failures": {
+          "improved": 60,
+          "rows": 256,
+          "sum": 251,
+          "unchanged": 120,
+          "worse": 76
+        },
+        "query_changed": {
+          "improved": 60,
+          "rows": 168,
+          "sum": 251,
+          "unchanged": 32,
+          "worse": 76
+        },
+        "query_unchanged": {
+          "improved": 0,
+          "rows": 88,
+          "sum": 0,
+          "unchanged": 88,
+          "worse": 0
+        },
+        "successes": {
+          "improved": 0,
+          "rows": 0,
+          "sum": 0,
+          "unchanged": 0,
+          "worse": 0
+        }
+      },
+      "checks": {
+        "carried_writer_table_equals_minus_c": true,
+        "expected_carried_first_lines": 0,
+        "expected_minus_c_first_lines": 0,
+        "minus_c_reproduced_byte_equal": true,
+        "official_first_line_counts_match": true,
+        "official_first_rank_parity": 256,
+        "panel_hashes_verified": true,
+        "rows": 256
+      },
+      "command": {
+        "argv": [
+          "docs/labs/one-model-end-to-end/instrument/target/release/real-carry-geometry",
+          "first-reply",
+          "--carried",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s1-step-016384.uorlut",
+          "--carried-sha256",
+          "ba221c27f846fc171856280135964e6a66a7a4ff5d7733b763570fa1d196b6e7",
+          "--minus-c",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s1-cut.uorlut",
+          "--minus-c-sha256",
+          "6e85e4e201e09771b56aa54d0ed680120ed00fbb082caaf7a8459681296da5e6",
+          "--carried-report",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s1-step-016384.json",
+          "--minus-c-report",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s1-cut.json",
+          "--carried-rank",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/final/L-aC-s1/step-016384/panel-cpu-ranked/carried.json",
+          "--minus-c-rank",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/final/L-aC-s1/step-016384/panel-cpu-ranked/minus-C.json",
+          "--inputs",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/inputs.json",
+          "--labels",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/labels.json",
+          "--plan",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/plan.json",
+          "--panel-manifest",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/manifest.json",
+          "--panel-manifest-sha256",
+          "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964",
+          "--tokenizer",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+          "--expected-carried-first-lines",
+          "0",
+          "--expected-minus-c-first-lines",
+          "0",
+          "--out",
+          "<out>"
+        ],
+        "cwd": "/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-real-carry-geometry-diagnosis"
+      },
+      "controls": {
+        "exact_minus_c": "the cut reproduces byte for byte and replaces the carried query",
+        "interpretation": "a positive carry result requires a first-token or asked-rank movement not reproduced by minus-C",
+        "no_reorder": "case order, token order and head order are the panel's"
+      },
+      "first_line_successes": [],
+      "inputs": {
+        "carried": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s1-step-016384.uorlut",
+        "carried_rank": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/final/L-aC-s1/step-016384/panel-cpu-ranked/carried.json",
+        "carried_rank_sha256": "cc1c724eafdc7c3711989214cba78732d750f63430f2690b083e40742dced116",
+        "carried_report": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s1-step-016384.json",
+        "carried_report_sha256": "cde8fd6a8475c9d54afa874839bedcdcdd858528c3224bd6429b8b96749f1e22",
+        "carried_sha256": "ba221c27f846fc171856280135964e6a66a7a4ff5d7733b763570fa1d196b6e7",
+        "inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+        "labels_sha256": "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be",
+        "minus_c": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s1-cut.uorlut",
+        "minus_c_rank": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/final/L-aC-s1/step-016384/panel-cpu-ranked/minus-C.json",
+        "minus_c_rank_sha256": "81b2d5bea3a158bf0204bbf8ca23c3e1ffee2dfbd9f473224ac92face5f7a678",
+        "minus_c_report": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s1-cut.json",
+        "minus_c_report_sha256": "74b32adcfb8cfd031d9c2060f82d7ff5a0b932949555e9ca218664643e98bb33",
+        "minus_c_sha256": "6e85e4e201e09771b56aa54d0ed680120ed00fbb082caaf7a8459681296da5e6",
+        "panel_manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/manifest.json",
+        "panel_manifest_sha256": "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964",
+        "plan_sha256": "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715",
+        "tokenizer": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "totals": {
+        "asked_rank_changed": 136,
+        "asked_token_in_prompt": 256,
+        "asked_token_inside_carry": 159,
+        "carried_asked_first_line": 0,
+        "carried_asked_not_first_line": 256,
+        "carried_asked_not_top1": 256,
+        "carried_asked_top1": 0,
+        "carried_beats_other": 128,
+        "carried_other_first_line": 3,
+        "carried_other_top1": 0,
+        "chosen_or_rank_changed": 156,
+        "chosen_token_changed": 0,
+        "minus_c_asked_first_line": 0,
+        "minus_c_asked_top1": 0,
+        "minus_c_beats_other": 127,
+        "minus_c_other_first_line": 4,
+        "minus_c_other_top1": 0,
+        "other_rank_changed": 136,
+        "other_token_in_prompt": 256,
+        "other_token_inside_carry": 159,
+        "query_changed": 168,
+        "type_head_kept_changed": 256,
+        "type_heads_changed": 256
+      }
+    },
+    "seed_2": {
+      "artifact": {
+        "ask_table_entries": 1048576,
+        "carry_gains": 4096,
+        "carry_rows": 32,
+        "readout_depth": 6,
+        "vocabulary": 4096,
+        "width": 256
+      },
+      "asked_rank": {
+        "carried": {
+          "histogram": {
+            "<=1024": 42,
+            "<=128": 4,
+            "<=191": 3,
+            "<=512": 19,
+            "<=64": 7,
+            ">1024": 181
+          },
+          "max": 4072,
+          "mean_x1000": 2258234,
+          "min": 41,
+          "p50": 2447,
+          "p90": 4043,
+          "p95": 4058,
+          "p99": 4068,
+          "rows": 256,
+          "within_192": 14,
+          "within_32": 0,
+          "within_64": 7
+        },
+        "minus_c": {
+          "histogram": {
+            "<=1024": 41,
+            "<=128": 4,
+            "<=191": 1,
+            "<=512": 20,
+            "<=64": 7,
+            ">1024": 183
+          },
+          "max": 4072,
+          "mean_x1000": 2269851,
+          "min": 42,
+          "p50": 2450,
+          "p90": 4043,
+          "p95": 4058,
+          "p99": 4068,
+          "rows": 256,
+          "within_192": 12,
+          "within_32": 0,
+          "within_64": 7
+        }
+      },
+      "asked_rank_delta_carried_minus_minus_c": {
+        "failures": {
+          "improved": 94,
+          "rows": 254,
+          "sum": -2982,
+          "unchanged": 88,
+          "worse": 72
+        },
+        "query_changed": {
+          "improved": 95,
+          "rows": 215,
+          "sum": -2974,
+          "unchanged": 47,
+          "worse": 73
+        },
+        "query_unchanged": {
+          "improved": 0,
+          "rows": 41,
+          "sum": 0,
+          "unchanged": 41,
+          "worse": 0
+        },
+        "successes": {
+          "improved": 1,
+          "rows": 2,
+          "sum": 8,
+          "unchanged": 0,
+          "worse": 1
+        }
+      },
+      "checks": {
+        "carried_writer_table_equals_minus_c": true,
+        "expected_carried_first_lines": 2,
+        "expected_minus_c_first_lines": 2,
+        "minus_c_reproduced_byte_equal": true,
+        "official_first_line_counts_match": true,
+        "official_first_rank_parity": 256,
+        "panel_hashes_verified": true,
+        "rows": 256
+      },
+      "command": {
+        "argv": [
+          "docs/labs/one-model-end-to-end/instrument/target/release/real-carry-geometry",
+          "first-reply",
+          "--carried",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s2-step-016384.uorlut",
+          "--carried-sha256",
+          "2741d9383a80c300b90ca2d5cbc1e06a9b664d913971f84ddbc2916a1625a430",
+          "--minus-c",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s2-cut.uorlut",
+          "--minus-c-sha256",
+          "391392f5c47af2cd6a1e091417dcc04c5340080474ebf6dad5d10ca2cfd277e5",
+          "--carried-report",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s2-step-016384.json",
+          "--minus-c-report",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s2-cut.json",
+          "--carried-rank",
+          "local/deepseek/carry-geometry/results/rank-s2-carried.json",
+          "--minus-c-rank",
+          "local/deepseek/carry-geometry/results/rank-s2-minus-C.json",
+          "--inputs",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/inputs.json",
+          "--labels",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/labels.json",
+          "--plan",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/plan.json",
+          "--panel-manifest",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/manifest.json",
+          "--panel-manifest-sha256",
+          "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964",
+          "--tokenizer",
+          "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+          "--expected-carried-first-lines",
+          "2",
+          "--expected-minus-c-first-lines",
+          "2",
+          "--out",
+          "<out>"
+        ],
+        "cwd": "/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-real-carry-geometry-diagnosis"
+      },
+      "controls": {
+        "exact_minus_c": "the cut reproduces byte for byte and replaces the carried query",
+        "interpretation": "a positive carry result requires a first-token or asked-rank movement not reproduced by minus-C",
+        "no_reorder": "case order, token order and head order are the panel's"
+      },
+      "first_line_successes": [
+        {
+          "asked_membership": {
+            "inside_carry": false,
+            "last_occurrence": 11,
+            "row": 51,
+            "rows_back": 40,
+            "token": 554
+          },
+          "asked_token": 554,
+          "carried_asked_rank": 3420,
+          "id": "fresh-diverse-length2-01-swap1-q4-forward-job",
+          "minus_c_asked_rank": 3422,
+          "pair_id": "fresh-diverse-length2-01-swap1-q4-forward",
+          "query_changed_coordinates": 128,
+          "stratum": "length2/q4",
+          "type_head_kept_changed": [
+            2,
+            3
+          ]
+        },
+        {
+          "asked_membership": {
+            "inside_carry": true,
+            "last_occurrence": 27,
+            "row": 51,
+            "rows_back": 24,
+            "token": 554
+          },
+          "asked_token": 554,
+          "carried_asked_rank": 3242,
+          "id": "fresh-diverse-length2-01-swap1-q4-reverse-job",
+          "minus_c_asked_rank": 3232,
+          "pair_id": "fresh-diverse-length2-01-swap1-q4-reverse",
+          "query_changed_coordinates": 126,
+          "stratum": "length2/q4",
+          "type_head_kept_changed": [
+            2,
+            3
+          ]
+        }
+      ],
+      "inputs": {
+        "carried": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s2-step-016384.uorlut",
+        "carried_rank": "local/deepseek/carry-geometry/results/rank-s2-carried.json",
+        "carried_rank_sha256": "f111da5df7d5cbba15816431afbaf7d03dfdd921f3677de3de815e2e6da7ba30",
+        "carried_report": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s2-step-016384.json",
+        "carried_report_sha256": "790b442951944131898de5d3b2776c0d6ab6ab2faaed65a70e195616bec9adf1",
+        "carried_sha256": "2741d9383a80c300b90ca2d5cbc1e06a9b664d913971f84ddbc2916a1625a430",
+        "inputs_sha256": "1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a",
+        "labels_sha256": "3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be",
+        "minus_c": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/served/L-aC-s2-cut.uorlut",
+        "minus_c_rank": "local/deepseek/carry-geometry/results/rank-s2-minus-C.json",
+        "minus_c_rank_sha256": "026926f31b2fd7b7182035d7a6438461d2b9040bd9731a27ff3e55f0b3b6dbf7",
+        "minus_c_report": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/official-read/results/claude/one-model-end-to-end-language-carry-2026-11-09/read/score/L-aC-s2-cut.json",
+        "minus_c_report_sha256": "854538dace22717ac3c323259d2af75bc09706be00261ace5e7926885d034aa8",
+        "minus_c_sha256": "391392f5c47af2cd6a1e091417dcc04c5340080474ebf6dad5d10ca2cfd277e5",
+        "panel_manifest": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/data/m2-fresh256/data/m2-fresh256/manifest.json",
+        "panel_manifest_sha256": "7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964",
+        "plan_sha256": "0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715",
+        "tokenizer": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "totals": {
+        "asked_rank_changed": 168,
+        "asked_token_in_prompt": 256,
+        "asked_token_inside_carry": 159,
+        "carried_asked_first_line": 2,
+        "carried_asked_not_first_line": 254,
+        "carried_asked_not_top1": 256,
+        "carried_asked_top1": 0,
+        "carried_beats_other": 128,
+        "carried_other_first_line": 3,
+        "carried_other_top1": 0,
+        "chosen_or_rank_changed": 208,
+        "chosen_token_changed": 5,
+        "minus_c_asked_first_line": 2,
+        "minus_c_asked_top1": 0,
+        "minus_c_beats_other": 128,
+        "minus_c_other_first_line": 3,
+        "minus_c_other_top1": 0,
+        "other_rank_changed": 175,
+        "other_token_in_prompt": 256,
+        "other_token_inside_carry": 159,
+        "query_changed": 215,
+        "type_head_kept_changed": 256,
+        "type_heads_changed": 512
+      }
+    }
+  },
+  "repeats": {
+    "seed_1": {
+      "byte_identical": true,
+      "receipt_sha256": "1c74107bd5a07b26757cb69d7e06fd70120cd610be7fdea9d0c841198d14157a",
+      "repeat_sha256": "1c74107bd5a07b26757cb69d7e06fd70120cd610be7fdea9d0c841198d14157a"
+    },
+    "seed_2": {
+      "byte_identical": true,
+      "receipt_sha256": "f122af21c689c152f3ddf8d7bad496bba64581c8497bd4b0d2f5825d826787cf",
+      "repeat_sha256": "f122af21c689c152f3ddf8d7bad496bba64581c8497bd4b0d2f5825d826787cf"
+    },
+    "train_census": {
+      "byte_identical": true,
+      "receipt_sha256": "124a4c30f0b41e9a813d5d5cd585f73c3c2957309de5039f6504ff69a90acc74",
+      "repeat_sha256": "124a4c30f0b41e9a813d5d5cd585f73c3c2957309de5039f6504ff69a90acc74"
+    }
+  },
+  "schema": "uor-r4.real-carry-geometry-receipt/1",
+  "software": {
+    "cargo_lock_sha256": "055a1d68855c062c57546d4c47704574791d068d6eca6971e2e8dc903158f6c2",
+    "carry_geometry_source_sha256": "5de43df1d9458f2d94b239ee32215ebeaa0fbfc6f2463d43ce1f690484596db2",
+    "executable_sha256": "6f21f41e63c0aebeafc0ac367a49d3fa9668caf1d05180392592985f8d6afb50",
+    "package": "one-model-end-to-end-panel",
+    "version": "0.1.0"
+  },
+  "train_census": {
+    "carry_rows": 32,
+    "command": {
+      "argv": [
+        "docs/labs/one-model-end-to-end/instrument/target/release/real-carry-geometry",
+        "train-census",
+        "--tokens",
+        "local/deepseek/carry-geometry/train/results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/tokens.u16",
+        "--mask",
+        "local/deepseek/carry-geometry/train/results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/response_mask.u8",
+        "--manifest",
+        "local/deepseek/carry-geometry/train/results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/manifest.json",
+        "--manifest-sha256",
+        "442ead2c92ae9a2e6b0b500ebbc12eb6e472f91c96465b6c1347fa80ac232ae9",
+        "--tokenizer",
+        "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+        "--tokenizer-sha256",
+        "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+        "--carry-rows",
+        "32",
+        "--out",
+        "<out>"
+      ],
+      "cwd": "/home/callard/projects/codex-playground/uor-r4/.worktrees/deepseek-real-carry-geometry-diagnosis"
+    },
+    "components": {
+      "d3-oasst2": {
+        "first_scored_within_192": 4465,
+        "first_scored_within_32": 4465,
+        "heuristic_span_within_192": 965,
+        "heuristic_span_within_32": 472,
+        "heuristic_spans_identified": 1142,
+        "questions": 4465
+      },
+      "mw-balp-capped-copy": {
+        "first_scored_within_192": 171834,
+        "first_scored_within_32": 171834,
+        "heuristic_span_within_192": 159012,
+        "heuristic_span_within_32": 159012,
+        "heuristic_spans_identified": 159012,
+        "questions": 171834
+      }
+    },
+    "controls": {
+      "previous_question_answer_pairs_in_same_document": {
+        "excluded_no_prior_question_or_nonprior": 0,
+        "excluded_single_question_documents": 165289,
+        "interpretation": "only a strictly earlier question may be paired with a scored reply; future questions are never counted",
+        "rows": 6244,
+        "within_carry": 930
+      },
+      "question_end_offset_32_earlier": {
+        "clamped_to_document_start": 0,
+        "interpretation": "moves the same question earlier by the carry reach; this is an offset perturbation, not the primary result",
+        "rows": 176299,
+        "within_carry": 0
+      }
+    },
+    "exclusions": {
+      "assistant_marker_not_terminal": 0,
+      "assistant_reply_runs": 444761,
+      "empty_reply": 0,
+      "missing_assistant_marker": 12945,
+      "missing_user_marker": 0,
+      "user_turn_not_a_question": 255517
+    },
+    "first_answer_target": {
+      "histogram": {
+        "<=8": 176299
+      },
+      "max": 6,
+      "mean_x1000": 6000,
+      "min": 6,
+      "p50": 6,
+      "p90": 6,
+      "p95": 6,
+      "p99": 6,
+      "rows": 176299,
+      "within_192": 176299,
+      "within_32": 176299,
+      "within_64": 176299
+    },
+    "first_answer_tokens_top_15": [
+      [
+        "427 \" It\"",
+        39860
+      ],
+      [
+        "2997 \" Your\"",
+        38861
+      ],
+      [
+        "1354 \" That\"",
+        27551
+      ],
+      [
+        "617 \" You\"",
+        12780
+      ],
+      [
+        "287 \" The\"",
+        7457
+      ],
+      [
+        "223 \" \"",
+        3886
+      ],
+      [
+        "671 \" D\"",
+        2925
+      ],
+      [
+        "971 \" P\"",
+        2833
+      ],
+      [
+        "935 \" K\"",
+        2561
+      ],
+      [
+        "1155 \" G\"",
+        2541
+      ],
+      [
+        "376 \" B\"",
+        2184
+      ],
+      [
+        "273 \" T\"",
+        2142
+      ],
+      [
+        "301 \" S\"",
+        1784
+      ],
+      [
+        "379 \" M\"",
+        1764
+      ],
+      [
+        "1049 \" R\"",
+        1656
+      ]
+    ],
+    "first_scored_input": {
+      "histogram": {
+        "<=8": 176299
+      },
+      "max": 5,
+      "mean_x1000": 5000,
+      "min": 5,
+      "p50": 5,
+      "p90": 5,
+      "p95": 5,
+      "p99": 5,
+      "rows": 176299,
+      "within_192": 176299,
+      "within_32": 176299,
+      "within_64": 176299
+    },
+    "heuristic_repeated_context_span_row": {
+      "context_span_end_to_repeated_span_row": {
+        "histogram": {
+          "<=1024": 506,
+          "<=128": 67298,
+          "<=191": 8054,
+          "<=192": 1,
+          "<=24": 540,
+          "<=32": 468,
+          "<=512": 32142,
+          "<=64": 50954,
+          ">1024": 191
+        },
+        "max": 6237,
+        "mean_x1000": 109676,
+        "min": 19,
+        "p50": 88,
+        "p90": 215,
+        "p95": 219,
+        "p99": 223,
+        "rows": 160154,
+        "within_192": 127314,
+        "within_32": 1008,
+        "within_64": 51962
+      },
+      "context_span_start_to_repeated_span_row": {
+        "histogram": {
+          "<=1024": 510,
+          "<=128": 67704,
+          "<=191": 8913,
+          "<=192": 1,
+          "<=24": 288,
+          "<=32": 600,
+          "<=512": 32145,
+          "<=64": 49802,
+          ">1024": 191
+        },
+        "max": 6239,
+        "mean_x1000": 111663,
+        "min": 21,
+        "p50": 90,
+        "p90": 217,
+        "p95": 221,
+        "p99": 225,
+        "rows": 160154,
+        "within_192": 127307,
+        "within_32": 888,
+        "within_64": 50690
+      },
+      "excluded": 16145,
+      "identified": 160154,
+      "interpretation": "Decoded examples are required before use. This heuristic can select a key or template phrase instead of the answer value, so it supports no value-reach or capability conclusion.",
+      "question_end_to_repeated_span_row": {
+        "histogram": {
+          "<=1024": 22,
+          "<=128": 178,
+          "<=16": 59361,
+          "<=191": 83,
+          "<=192": 2,
+          "<=24": 167,
+          "<=32": 101,
+          "<=512": 152,
+          "<=64": 232,
+          "<=8": 99855,
+          ">1024": 1
+        },
+        "max": 1215,
+        "mean_x1000": 9275,
+        "min": 6,
+        "p50": 8,
+        "p90": 11,
+        "p95": 11,
+        "p99": 13,
+        "rows": 160154,
+        "within_192": 159977,
+        "within_32": 159484,
+        "within_64": 159716
+      },
+      "status": "not-semantic"
+    },
+    "heuristic_repeated_span_examples": {
+      "d3-oasst2-control": [
+        {
+          "question": " What is optimal Mayonnaise thickness?",
+          "question_end_to_value_row": 10,
+          "reply": " The optimal mayonnaise thickness will depend on how it is being used. A runny mayonnaise may be good in chicken salad while a thicker mayonnaise may be better spread over a hamburger bun. The only way to determine your personal preference is to test different levels of viscosity in with different foods.",
+          "value": " mayon"
+        },
+        {
+          "question": " How would I accomplish the same task with a Windows Batch file?",
+          "question_end_to_value_row": 58,
+          "reply": " To accomplish the same task with a Windows Batch file, you can use the \"ping\" command and the \"set\" command to store the results. Here is an example script:\n\n@echo off\n\nset IP=8.8.8.8\nset TEST_COUNT=0\nset FAILURES=0\n\n:loop\nset /a TEST_COUNT=TEST_COUNT+1\nping -n 10 %IP% >nul\nif %errorlevel% neq 0 set /a FAILURES=FAILURES+1\n\nset /a UPTIME=100-100*FAILURES/TEST_COUNT\n\necho uptime: %UPTIME%\n\ntimeout /t 60 /nobreak >nul\ngoto loop\n\nThis script sets the IP address to ping, the number of tests to run, and the number of failures encountered. It then enters an infinite loop that runs a ping test every minute. The results are stored using the \"set\" command, and the uptime percentage is calculated and displayed using the same method as the Bash script. The \"timeout\" command is used to pause for 60 seconds before running the next loop.",
+          "value": " script"
+        },
+        {
+          "question": " Can you give me a step-by-step walkthrough of the process?",
+          "question_end_to_value_row": 21,
+          "reply": " Sure, here's a step-by-step process to identify a bolt thread using a ruler:\n\n1. Clean the bolt: Make sure the bolt is free of dirt, grease, and other debris so that your measurements are accurate.\n\n2. Measure the pitch: Place the ruler on the flat of the thread, zeroing it on the crest of one thread. Measure the distance to the crest of the adjacent thread. This measurement is the pitch of the thread.\n\n3. Measure the diameter: Use a ruler to measure the distance across the flat of the bolt head or the shank immediately under the head. This measurement is the diameter of the bolt.\n\n4. Use the measurements to find the bolt thread size: The measurements of the pitch and diameter can be used to find the specifications of the bolt and its thread size. There are standard thread sizes for bolts, and you can use charts or online resources to match your measurements to a thread size.\n\n5. Verify the thread size: To confirm the thread size, try threading a nut onto the bolt. If the nut threads on easily and fits tightly, your measurements are correct and you have successfully identified the thread size.\n\nNote: If you don't have a ruler, you can estimate the pitch by counting the number of threads in a one-inch length of the bolt and dividing by the number of threads.",
+          "value": " identif"
+        },
+        {
+          "question": " Who is the one on IMDb?",
+          "question_end_to_value_row": 19,
+          "reply": " Okay, I understand you are interested in learning more about Francesco Lelli who is listed on IMDb. However, I'm not sure exactly what information about him you are looking for or what your overall goals are. If you could provide more context about why you want to know about this person or what types of details would be most helpful for your needs, then I can provide more targeted responses. For example, are you researching him for a school project? Or are you interested in his academic work or film career? The more context you can provide, the more helpful I can be.",
+          "value": " Frances"
+        },
+        {
+          "question": " Assuming the injury isn't serious enough to warrant a trip to the hospital, what would be appropriate ways to support and comfort the child?",
+          "question_end_to_value_row": 16,
+          "reply": " Here are some ways to support and comfort a child who has fallen and hit their face, assuming the injury is not serious enough to warrant a trip to the hospital:\n\n1 - Reassure the child: Let the child know that they are okay and that you are there for them. Offer words of comfort and tell them that it is common for accidents to happen.\n2 - Attend to their physical needs: Check the child's injury and clean it if necessary. Apply ice or a cold compress to reduce swelling. If necessary, administer over-the-counter pain medication, but always follow the recommended dosage for children.\n3 - Offer comfort items: Give the child a favorite toy or blanket to help them feel secure and comforted.\n4 - Distract the child: Try to take the child's mind off of the accident by engaging in a fun activity or watching a movie together.\n5 - Show empathy: Listen to the child's concerns and validate their feelings. Offer a hug or hold their hand to show that you care.",
+          "value": " a child"
+        }
+      ],
+      "mw-balp-capped-copy": [
+        {
+          "question": " What's the person I'm talking about's name?",
+          "question_end_to_value_row": 9,
+          "reply": " Your friend is Justtros.",
+          "value": " Justtro"
+        },
+        {
+          "question": " Do you remember what martrailwid was?",
+          "question_end_to_value_row": 10,
+          "reply": " Martrailwid is moutrirjait.",
+          "value": "wid is"
+        },
+        {
+          "question": " What is trendchoutgeen?",
+          "question_end_to_value_row": 11,
+          "reply": " Trendchoutgeen is 71.",
+          "value": "geen is"
+        },
+        {
+          "question": " What was chaisklaik again?",
+          "question_end_to_value_row": 8,
+          "reply": " That's stouswist.",
+          "value": " stousw"
+        },
+        {
+          "question": " What was wuttendfeest again?",
+          "question_end_to_value_row": 10,
+          "reply": " Wuttendfeest is 22.",
+          "value": "feest is"
+        },
+        {
+          "question": " What is chaindmair?",
+          "question_end_to_value_row": 8,
+          "reply": " That's stoutkos.",
+          "value": " stoutk"
+        },
+        {
+          "question": " Do you remember what demzirkcheest was?",
+          "question_end_to_value_row": 12,
+          "reply": " Demzirkcheest is 1854.",
+          "value": "heest is"
+        },
+        {
+          "question": " Who is my friend?",
+          "question_end_to_value_row": 8,
+          "reply": " Your friend is Stanbekzok.",
+          "value": " is Stan"
+        },
+        {
+          "question": " What do you know about my pal?",
+          "question_end_to_value_row": 7,
+          "reply": " Your friend is Werkwoulgand.",
+          "value": " friend is W"
+        },
+        {
+          "question": " What was rorsteedhe again?",
+          "question_end_to_value_row": 8,
+          "reply": " It's 9422.",
+          "value": " 94"
+        },
+        {
+          "question": " What's the capital city of Portugal?",
+          "question_end_to_value_row": 7,
+          "reply": " The capital of Portugal is Lisbon.",
+          "value": " capital of"
+        },
+        {
+          "question": " What is plomtrest?",
+          "question_end_to_value_row": 8,
+          "reply": " That's berknaist.",
+          "value": " berkna"
+        },
+        {
+          "question": " What was shairkpailtir again?",
+          "question_end_to_value_row": 8,
+          "reply": " It's worgrurk.",
+          "value": " worgr"
+        },
+        {
+          "question": " What's my lucky number?",
+          "question_end_to_value_row": 8,
+          "reply": " It is 4164.",
+          "value": " 41"
+        },
+        {
+          "question": " Do you still recognize me?",
+          "question_end_to_value_row": 8,
+          "reply": " You're Hirkbenzas.",
+          "value": " Hirk"
+        },
+        {
+          "question": " What was toundwus again?",
+          "question_end_to_value_row": 8,
+          "reply": " Toundwus is 1306.",
+          "value": "wus is"
+        },
+        {
+          "question": " Where was the area in which I grew up?",
+          "question_end_to_value_row": 10,
+          "reply": " You grew up in Trentestford.",
+          "value": " Trent"
+        },
+        {
+          "question": " What's my code word?",
+          "question_end_to_value_row": 7,
+          "reply": " It is nainlak.",
+          "value": " is nain"
+        },
+        {
+          "question": " What was meerkbitost again?",
+          "question_end_to_value_row": 8,
+          "reply": " It's lirneeddun.",
+          "value": " lirn"
+        },
+        {
+          "question": " Do you remember what paisneksted was?",
+          "question_end_to_value_row": 11,
+          "reply": " Paisneksted is rourdrakshain.",
+          "value": "sted is"
+        }
+      ]
+    },
+    "heuristic_repeated_span_lengths": {
+      "2": 2056,
+      "3": 158098
+    },
+    "inputs": {
+      "documents": 378016,
+      "documents_scanned": 378016,
+      "manifest": "local/deepseek/carry-geometry/train/results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/manifest.json",
+      "manifest_sha256": "442ead2c92ae9a2e6b0b500ebbc12eb6e472f91c96465b6c1347fa80ac232ae9",
+      "mask": "local/deepseek/carry-geometry/train/results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/response_mask.u8",
+      "mask_sha256": "da506e850145f55b746929e108e0fd240ddf753f6a90b23976c98e159a1cb293",
+      "tokenizer": "/home/callard/projects/codex-playground/uor-r4/local/deepseek/real-artifact-audit/tokenizer/pod-setup/rung0-complete-path/20261013-05c84bece/tokenizer-d36d3e87.json",
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "tokens": 73044895,
+      "tokens_sha256": "0273173e16e805706a9b3e816c3de46b824a53daf91be3b812be360f8e8e75a7",
+      "vocabulary": 4096
+    },
+    "method": {
+      "first_answer_row": "the first masked reply token",
+      "question": "the last User turn before an Assistant reply whose content starts with response mask 1 and whose decoded user content ends in ?",
+      "question_row": "the last user-content token before the separator and Assistant marker",
+      "repeated_context_span": "the earliest two- or three-token reply span seen in the preceding 192 context tokens and absent from the question; one-token spans are excluded. This is a nonsemantic control, not an identified answer value",
+      "scored_value_row": "the last Assistant-marker token, which is the input row whose next-token target is the first masked reply token",
+      "window_coverage": "a distance below 192 can be placed in one training window; carry reach is inclusive"
+    },
+    "question_start_to_scored_input": {
+      "histogram": {
+        "<=1024": 6,
+        "<=128": 466,
+        "<=16": 149700,
+        "<=191": 60,
+        "<=24": 23638,
+        "<=32": 1010,
+        "<=512": 33,
+        "<=64": 1380,
+        "<=8": 5,
+        ">1024": 1
+      },
+      "max": 1053,
+      "mean_x1000": 14406,
+      "min": 7,
+      "p50": 13,
+      "p90": 17,
+      "p95": 19,
+      "p99": 34,
+      "rows": 176299,
+      "within_192": 176259,
+      "within_32": 174353,
+      "within_64": 175733
+    },
+    "questions": 176299,
+    "sources": {
+      "cap1": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "cap2": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "cap3": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "cap4": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "cap5": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "cap6": {
+        "first_scored_within_192": 28639,
+        "first_scored_within_32": 28639,
+        "heuristic_span_within_192": 26502,
+        "heuristic_span_within_32": 26502,
+        "heuristic_spans_identified": 26502,
+        "questions": 28639
+      },
+      "oasst2": {
+        "first_scored_within_192": 4465,
+        "first_scored_within_32": 4465,
+        "heuristic_span_within_192": 965,
+        "heuristic_span_within_32": 472,
+        "heuristic_spans_identified": 1142,
+        "questions": 4465
+      }
+    }
+  },
+  "verdict": "instrument-diagnosis"
+}

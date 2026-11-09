@@ -503,6 +503,13 @@
     "lab": "deepseek",
     "note": "real carried artifact and exact minus-C cross-engine audit"
   },
+  "deepseek/real-carry-geometry-diagnosis": {
+    "branch": "deepseek/real-carry-geometry-diagnosis",
+    "claimed_at": "2026-11-09T17:15:01-05:00",
+    "head": "ea3398701",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/reply-sft-2048-result": {
     "branch": "deepseek/reply-sft-2048-result",
     "claimed_at": "2026-11-07T23:45:16-05:00",

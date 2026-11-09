@@ -110,3 +110,52 @@ admitted-cell vector, top-8 and token against integer serving. Other schemas rem
 
 The public smoke result is recorded in the
 [deepseek-1 report](../../loop/tasks/one-model-end-to-end/deepseek-1/REPORT.md).
+
+## `real-carry-geometry`
+
+This CPU-only diagnostic has two measurements and a compact receipt writer. It
+trains nothing, changes no artifact and moves no bar.
+
+`train-census` parses a published mixed dialogue corpus through its UORT header,
+response mask, manifest and pinned tokenizer. It identifies a question as the
+last user turn before an assistant response when that user text ends in `?`.
+For every identified question it records the distance from the question to the
+first scored reply row and to the first masked reply target. A separate
+two/three-token repeated-context-span heuristic is labelled `not-semantic`:
+decoded examples can show a key or template phrase instead of the answer value,
+so it supports no value-reach claim.
+
+```sh
+cargo run --release --offline --features cpu-parity --bin real-carry-geometry -- \
+  train-census \
+  --tokens TRAIN/tokens.u16 --mask TRAIN/response_mask.u8 \
+  --manifest TRAIN/manifest.json --manifest-sha256 MANIFEST_SHA256 \
+  --tokenizer TOKENIZER.json --tokenizer-sha256 TOKENIZER_SHA256 \
+  --carry-rows 32 --out NEW_CENSUS.json
+```
+
+`first-reply` renders the official `m2-fresh256` prompts exactly as
+`served-reply-panel`, replays the carried artifact and its byte-exact `-C`
+control through `CpuFbsForward`, and records each read's Hamming selections,
+the carried query delta, the exact carry terms, asked/other ranks and point-key
+status. It refuses unless artifact and panel hashes match, `-C` reproduces byte
+for byte, both official first-rank reports agree case by case, and every output
+path is new.
+
+```sh
+cargo run --release --offline --features cpu-parity --bin real-carry-geometry -- \
+  first-reply \
+  --carried CARRIED.uorlut --carried-sha256 CARRIED_SHA256 \
+  --minus-c MINUS_C.uorlut --minus-c-sha256 MINUS_C_SHA256 \
+  --carried-report CARRIED.json --minus-c-report MINUS_C.json \
+  --carried-rank CARRIED_RANKED.json --minus-c-rank MINUS_C_RANKED.json \
+  --inputs inputs.json --labels labels.json --plan plan.json \
+  --panel-manifest manifest.json --panel-manifest-sha256 MANIFEST_SHA256 \
+  --tokenizer TOKENIZER.json \
+  --expected-carried-first-lines N --expected-minus-c-first-lines N \
+  --out NEW_TRACE.json
+```
+
+The full traces are large. `receipt` verifies optional byte-identical repeats
+and writes a small committed summary; the full files, input hashes and receipt
+hashes stay in the named evidence report.
