@@ -3487,6 +3487,17 @@ mod decode_cache_tests {
                 hamming::set_hamming_tie_rule(true)
             }),
         ];
+        // claude-337: a carried question sums earlier rows' questions, which a cached step does
+        // not hold, so the scorer's `--score-rows` decode of a carried read runs uncached.
+        hamming::set_hamming_reads(Some(
+            hamming::HammingReads::new(4, 256, &device)?
+                .with_ask(4096)?
+                .with_carry(4, 4096)?,
+        ));
+        assert_eq!(
+            model.prefill_refusal(&ids(4), 1, 4),
+            Some(CacheRefusal::ReadHook("Hamming read's carried question"))
+        );
         hamming::set_hamming_reads(None);
         // Reads set and cleared since the prefill leave as many sites as it saw, none, and are
         // refused too (claude-281); a count of sites alone passes them.

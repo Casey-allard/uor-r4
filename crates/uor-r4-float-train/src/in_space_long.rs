@@ -1955,6 +1955,12 @@ fn weighted_step_loss(losses: &[Tensor], shares: &[f64], step: usize) -> Result<
 /// The gate hook carries the real step: at step 0 its backward runs diagnostics with host syncs,
 /// and a checkpoint's replies leave it at 0. Training as served (`served`) adds the complete
 /// quantization bridge and Q12 query used by the exported graph.
+///
+/// With `pull` (claude-337), each forward also adds `pull.attract` times the found-copy pull
+/// ([`HammingReads::ask_pull`](crate::flock_read_hamming::HammingReads::ask_pull)) over its
+/// scored rows with an earlier copy ([`language_pull_rows`]), weighted by its share of the step's
+/// copy rows, so a micro-batched step's pull gradient is the one a single forward gives. The
+/// returned loss is the task loss alone; `pull` records the step's pull.
 #[allow(clippy::too_many_arguments)]
 fn step_gradient(
     model: &StackModel,
@@ -1967,6 +1973,7 @@ fn step_gradient(
     step: usize,
     opening_weight: Option<(&[u8], usize)>,
     mut rows: impl FnMut(usize, usize) -> Result<()>,
+    mut pull: Option<&mut PullTally>,
 ) -> Result<(f64, candle_core::backprop::GradStore)> {
     let micro = if micro == 0 {
         windows.len()
@@ -1974,6 +1981,29 @@ fn step_gradient(
         micro.min(windows.len())
     };
     let total = opening_weighted_total(windows, opening_weight)?;
+    // claude-337: the pull's rows per forward, its reads and the shared table, when it is on.
+    let lambda = pull.as_deref().map_or(0.0, |t| t.attract);
+    let pulling = match pull.as_deref() {
+        Some(tally) if tally.attract > 0.0 => {
+            let reads = crate::flock_read_hamming::hamming_reads()
+                .filter(|r| r.has_ask())
+                .ok_or_else(|| invalid("--hamming-attract pulls the ask heads; turn them on with --hamming-ask 1"))?;
+            let table = model
+                .variables()
+                .get("embedding.weight")
+                .ok_or_else(|| invalid("the model has no shared vector table"))?
+                .as_tensor()
+                .clone();
+            let per: Vec<Vec<(usize, u32)>> = (0..windows.len())
+                .step_by(micro.max(1))
+                .map(|lo| language_pull_rows(&windows[lo..(lo + micro).min(windows.len())], context))
+                .collect();
+            let all: usize = per.iter().map(Vec::len).sum();
+            Some((reads, table, per, all))
+        }
+        _ => None,
+    };
+    let mut pulled: Vec<Tensor> = Vec::new();
     let mut grads: Option<candle_core::backprop::GradStore> = None;
     let mut losses = Vec::new();
     let mut shares = Vec::new();
@@ -1997,11 +2027,28 @@ fn step_gradient(
         if share.is_some() && scored.is_empty() {
             continue;
         }
+        let pull_here = pulling.as_ref().and_then(|(reads, table, per, all)| {
+            let rows = &per[lo / micro.max(1)];
+            (!rows.is_empty()).then(|| (reads, table, rows, rows.len() as f64 / *all as f64))
+        });
         let (loss, share, forward_grads) = with_training_forward(served, seed, step, || {
             let loss = batch_loss(model, objective, &ids, &scored, &targets, hi - lo, served)?;
             let detached = loss.detach();
             let loss = match share {
                 Some(share) => loss.affine(share, 0.0)?,
+                None => loss,
+            };
+            let loss = match pull_here {
+                Some((reads, table, rows, weight)) => {
+                    let plain = assemble(&windows[lo..hi]).0;
+                    match reads.ask_pull(&plain, context, table, rows)? {
+                        Some(distance) => {
+                            pulled.push(distance.detach().affine(weight, 0.0)?);
+                            loss.add(&distance.affine(lambda * weight, 0.0)?)?
+                        }
+                        None => loss,
+                    }
+                }
                 None => loss,
             };
             let grads = variables_only(&loss, loss.backward()?)?;
@@ -2025,7 +2072,89 @@ fn step_gradient(
     // objectives count in this one. The single read waits for every backward in the step.
     let value = weighted_step_loss(&losses, &shares, step)?;
     stage_clock::mark("objective.readback");
+    // claude-337: the step's pull, the copy-row-weighted sum of its forwards' mean distances, which
+    // is the mean a single forward gives; one read, after the last backward.
+    if let (Some(tally), Some((_, _, _, all))) = (pull.as_deref_mut(), pulling.as_ref()) {
+        let distance = match pulled.len() {
+            0 => None,
+            _ => Some(f64::from(Tensor::stack(&pulled, 0)?.sum_all()?.to_scalar::<f32>()?)),
+        };
+        tally.record(distance, *all);
+    }
     Ok((value, grads))
+}
+
+/// claude-337: the found-copy pull's record over the steps since the last checkpoint, on a
+/// language run (`run_long` under `--hamming-attract λ`).
+#[derive(Debug, Clone, Default, PartialEq)]
+struct PullTally {
+    /// λ, the pull's weight in the loss.
+    attract: f64,
+    /// The sum of the steps' mean pull distances, over the steps with a copy row.
+    distance_sum: f64,
+    /// The steps with at least one copy row.
+    pulled_steps: usize,
+    /// The sum of the steps' copy rows.
+    rows: usize,
+    /// The steps recorded.
+    steps: usize,
+}
+
+impl PullTally {
+    fn new(attract: f64) -> Self {
+        Self { attract, ..Self::default() }
+    }
+
+    fn record(&mut self, distance: Option<f64>, rows: usize) {
+        if let Some(d) = distance {
+            self.distance_sum += d;
+            self.pulled_steps += 1;
+        }
+        self.rows += rows;
+        self.steps += 1;
+    }
+
+    /// The checkpoint's `pull.jsonl` line, then a fresh tally at the same λ.
+    fn line(&mut self, step: usize) -> serde_json::Value {
+        let line = serde_json::json!({
+            "step": step,
+            "hamming_attract": self.attract,
+            "pull_distance_mean": (self.pulled_steps > 0)
+                .then(|| self.distance_sum / self.pulled_steps as f64),
+            "pull_rows_mean": (self.steps > 0).then(|| self.rows as f64 / self.steps as f64),
+            "steps": self.steps,
+        });
+        *self = Self::new(self.attract);
+        line
+    }
+}
+
+/// claude-337: the found-copy pull's `(row, target)`s on language windows, laid out as
+/// [`assemble`] lays them: each scored row whose target stands at an earlier position `s` of its
+/// window, `1 ≤ s < t` (the rule of `pull_pairs`), so a row with no copy is not listed.
+fn language_pull_rows(windows: &[&CausalWindow], context: usize) -> Vec<(usize, u32)> {
+    let mut rows = Vec::new();
+    for (b, window) in windows.iter().enumerate() {
+        let start = b * context;
+        for (&off, &target) in window.scored_offsets.iter().zip(&window.scored_targets) {
+            if (1..off).any(|s| window.input_ids[s] == target) {
+                rows.push((start + off, target));
+            }
+        }
+    }
+    rows
+}
+
+/// claude-337: a language run trains the found-copy pull at its scored rows only; the question
+/// placements need the two-class task's question row, which only `--recall` has.
+fn refuse_pull_placement_outside_recall(config: &LongConfig) -> Result<()> {
+    if config.hamming_attract_at_question || config.hamming_attract_at_both {
+        let place = if config.hamming_attract_at_both { "both" } else { "question" };
+        return Err(invalid(format!(
+            "--hamming-attract-at {place} needs --recall's question rows; a language run pulls at its scored rows"
+        )));
+    }
+    Ok(())
 }
 
 /// One forward's turn-memory rows, reply rows and cut mask, set before it runs (claude-300).
@@ -13932,6 +14061,9 @@ pub fn summarize_profile(rows: &[ProfileRow]) -> ProfileSummary {
 }
 
 pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Device) -> Result<()> {
+    // claude-337: the pull's question placements are refused before anything is read or written.
+    refuse_pull_placement_outside_recall(config)?;
+    check_pull_flags(config)?;
     if config.steps == 0 || config.batch == 0 || config.eval_every == 0 {
         return Err(invalid("steps, batch and eval-every must be positive"));
     }
@@ -14079,8 +14211,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         None
     };
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
-    refuse_pull_outside_recall(config)?;
     let mut hamming = start_hamming(config, device)?;
+    // claude-337: the found-copy pull's record since the last checkpoint, when the pull is on.
+    let mut pull_tally = (config.hamming_attract > 0.0).then(|| PullTally::new(config.hamming_attract));
     write_initialization_record(out, config)?;
     if config.init_from.is_some() {
         let approval = std::env::var_os(INIT_APPROVAL_ENV).map(PathBuf::from);
@@ -14372,6 +14505,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             step,
             Some((&train_mask, config.opening_weight)),
             forward_rows,
+            pull_tally.as_mut(),
         )?;
         // The gradient, taken at the exported values, moves the float values they came from.
         if let Some(served) = served {
@@ -14469,6 +14603,9 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                 train_seconds,
             )?;
             (loss_sum, loss_steps) = (0.0, 0);
+            if let Some(tally) = pull_tally.as_mut() {
+                append_line(&out.join("pull.jsonl"), &serde_json::to_string(&tally.line(step + 1))?)?;
+            }
         }
     }
     Ok(())
@@ -17694,6 +17831,7 @@ mod tests {
                     3,
                     None,
                     |_, _| Ok(()),
+                    None,
                 )
             })
             .unwrap()
@@ -17881,6 +18019,194 @@ mod tests {
         assert!(!FAST_RIVALS.with(|on| on.get()));
     }
 
+    /// claude-337: `count` language windows of `context` tokens, each scoring a few rows whose
+    /// targets stand earlier in the window (copies), one whose target stands only at position 0,
+    /// one whose target stands only at the row itself, and one with no copy at all.
+    fn pull_windows(count: usize, context: usize) -> Vec<CausalWindow> {
+        (0..count)
+            .map(|b| {
+                // Distinct tokens 100.. except where a copy is planted.
+                let mut input_ids: Vec<u32> = (0..context).map(|i| (100 + i + b * 7) as u32).collect();
+                input_ids[0] = 9; // only at position 0, never a candidate
+                input_ids[5] = 11; // a copy for the row at 40 + b
+                input_ids[6] = 12; // a copy for the row at 60
+                input_ids[70] = 13; // only at the row itself, 70
+                let offsets: Vec<usize> = vec![40 + b, 60, 61, 70, 80];
+                let targets: Vec<u32> = vec![11, 12, 9, 13, 4000];
+                CausalWindow {
+                    doc_id: b,
+                    scored_corpus_positions: offsets.iter().map(|&o| b * context + o + 1).collect(),
+                    input_ids,
+                    scored_offsets: offsets,
+                    scored_targets: targets,
+                }
+            })
+            .collect()
+    }
+
+    /// claude-337: the language pull's rows are exactly the scored rows `pull_pairs` finds a copy
+    /// for, at `b · context + offset`; a target only at position 0, only at the row itself, or
+    /// nowhere earlier is not listed.
+    #[test]
+    fn language_pull_rows_are_the_scored_rows_with_an_earlier_copy() {
+        let context = 96;
+        let owned = pull_windows(3, context);
+        let windows: Vec<&CausalWindow> = owned.iter().collect();
+        let got = language_pull_rows(&windows, context);
+        let (ids, scored, targets) = assemble(&windows);
+        let brute: Vec<(usize, u32)> = scored
+            .iter()
+            .zip(&targets)
+            .map(|(&r, &t)| (r as usize, t))
+            .filter(|&pull| {
+                let (_, spans) = crate::flock_read_hamming::pull_pairs(&ids, context, &[pull]).unwrap();
+                !spans.is_empty()
+            })
+            .collect();
+        assert_eq!(got, brute);
+        let want: Vec<(usize, u32)> = (0..3)
+            .flat_map(|b| [(b * context + 40 + b, 11u32), (b * context + 60, 12)])
+            .collect();
+        assert_eq!(got, want, "two copy rows a window, at b · context + offset");
+    }
+
+    /// claude-337: the tally's line is the mean distance over the steps that pulled and the mean
+    /// copy rows over every step, and the tally starts again at the same λ.
+    #[test]
+    fn the_pull_tally_records_its_means_and_starts_again() {
+        let mut tally = PullTally::new(0.5);
+        tally.record(Some(0.25), 6);
+        tally.record(None, 0);
+        tally.record(Some(0.75), 2);
+        let line = tally.line(64);
+        assert_eq!(line["step"], 64);
+        assert_eq!(line["hamming_attract"], 0.5);
+        assert_eq!(line["pull_distance_mean"], 0.5);
+        assert_eq!(line["pull_rows_mean"], 8.0 / 3.0);
+        assert_eq!(line["steps"], 3);
+        assert_eq!(tally, PullTally::new(0.5));
+        let empty = tally.line(128);
+        assert!(empty["pull_distance_mean"].is_null() && empty["pull_rows_mean"].is_null());
+    }
+
+    /// claude-337: a language run takes the pull at its scored rows and refuses the question
+    /// placements by name.
+    #[test]
+    fn a_language_run_refuses_the_question_placements_by_name() {
+        let base = LongConfig { hamming_read: 4, hamming_ask: true, hamming_attract: 1.0, ..config(0, None) };
+        assert!(refuse_pull_placement_outside_recall(&base).is_ok());
+        for (place, c) in [
+            ("question", LongConfig { hamming_attract_at_question: true, ..base.clone() }),
+            ("both", LongConfig { hamming_attract_at_both: true, ..base.clone() }),
+        ] {
+            let err = refuse_pull_placement_outside_recall(&c).err().unwrap().to_string();
+            assert!(err.contains(&format!("--hamming-attract-at {place}")) && err.contains("--recall"), "{err}");
+        }
+        assert!(refuse_pull_outside_recall(&base).is_err(), "the other runners still refuse it");
+        // run_long itself refuses them, and a weight below 0, first, before it reads its data root
+        // or writes `config.json`.
+        let missing = std::env::temp_dir().join(format!("claude-337-none-{}", std::process::id()));
+        for (expect, c) in [
+            ("--hamming-attract-at question", LongConfig { hamming_attract_at_question: true, ..base.clone() }),
+            ("--hamming-attract-at both", LongConfig { hamming_attract_at_both: true, ..base.clone() }),
+            ("a weight of at least 0", LongConfig { hamming_attract: -1.0, ..base.clone() }),
+        ] {
+            let refusal = run_long(&missing, &missing.join("out"), &c, &Device::Cpu)
+                .err()
+                .map(|e| e.to_string())
+                .unwrap_or_default();
+            assert!(refusal.contains(expect), "{refusal}");
+            assert!(!missing.exists());
+        }
+    }
+
+    /// claude-337: a language run's `config.json` records the pull's weight, and leaves it out at 0.
+    #[test]
+    fn a_language_runs_config_records_the_pull_only_when_on() {
+        let on = LongConfig { hamming_read: 4, hamming_ask: true, hamming_attract: 1.0, ..config(0, None) };
+        let json = serde_json::to_string(&on).unwrap();
+        assert!(json.contains("\"hamming_attract\":1.0"), "{json}");
+        assert!(!json.contains("hamming_attract_at"), "{json}");
+        let off = serde_json::to_string(&LongConfig { hamming_attract: 0.0, ..on }).unwrap();
+        assert!(!off.contains("hamming_attract"), "{off}");
+    }
+
+    /// claude-337: the pull in [`step_gradient`]. At λ = 0 the step is bit-identical to a step
+    /// without it; at λ = 1 the logged loss is still the task loss, the pull's gradient reaches the
+    /// ask table and the carry, and a micro-batched step gives the one-forward step's gradient and
+    /// pull reading.
+    /// The model's forward runs on CUDA only, so this test runs on the pod.
+    #[cfg(feature = "cuda")]
+    fn the_language_pull_joins_the_step_gradient_on(device: &Device) {
+        let config = LongConfig {
+            hamming_read: 4,
+            hamming_ask: true,
+            hamming_carry_question: 4,
+            hamming_attract: 1.0,
+            ..config(0, None)
+        };
+        let (reads, _) = start_hamming(&config, device).unwrap().unwrap();
+        let model = build_fbs_model_at(FbsArm::OneAtomActive, 1, config.width, device).unwrap();
+        let owned = pull_windows(4, SHEET_CONTEXT);
+        let windows: Vec<&CausalWindow> = owned.iter().collect();
+        let step = |micro: usize, tally: Option<&mut PullTally>| {
+            step_gradient(&model, PointObjective::Nearest, &windows, micro, SHEET_CONTEXT, false, 1, 3, None, |_, _| Ok(()), tally)
+                .unwrap()
+        };
+        let flat = |t: &Tensor| t.flatten_all().unwrap().to_dtype(DType::F32).unwrap().to_vec1::<f32>().unwrap();
+        let bits = |t: &Tensor| flat(t).iter().map(|v| v.to_bits()).collect::<Vec<_>>();
+        let mut vars: Vec<(String, candle_core::Var)> = model.variables().iter().map(|(n, v)| (n.clone(), v.clone())).collect();
+        vars.extend(reads.variables().into_iter().enumerate().map(|(i, v)| (format!("read{i}"), v.clone())));
+
+        let (plain, plain_grads) = step(0, None);
+        let mut zero = PullTally::new(0.0);
+        let (at_zero, zero_grads) = step(0, Some(&mut zero));
+        assert_eq!(plain.to_bits(), at_zero.to_bits(), "λ = 0 leaves the loss");
+        for (name, var) in &vars {
+            let (a, b) = (plain_grads.get(var.as_tensor()), zero_grads.get(var.as_tensor()));
+            assert_eq!(a.map(bits), b.map(bits), "λ = 0 leaves {name}'s gradient");
+        }
+        assert_eq!(zero.steps, 0, "λ = 0 records nothing");
+
+        let mut whole = PullTally::new(1.0);
+        let (pulled, pulled_grads) = step(0, Some(&mut whole));
+        assert_eq!(plain.to_bits(), pulled.to_bits(), "the logged loss is the task loss");
+        assert_eq!((whole.steps, whole.rows, whole.pulled_steps), (1, 8, 1), "two copy rows a window");
+        let read = &reads.reads[1];
+        let ask = read.ask.as_ref().unwrap();
+        let carry = &read.carry.as_ref().unwrap().gain;
+        let a = flat(pulled_grads.get(ask.as_tensor()).expect("the pull moves the ask table"));
+        assert!(a.iter().any(|&v| v != 0.0), "a nonzero ask-table gradient");
+        let before = plain_grads.get(ask.as_tensor()).map(flat);
+        assert_ne!(before.as_deref(), Some(a.as_slice()), "the pull changes the ask table's gradient");
+        let c = flat(pulled_grads.get(carry.as_tensor()).expect("the pull moves the carry"));
+        assert!(c.iter().any(|&v| v != 0.0), "a nonzero carry gradient");
+
+        let mut split = PullTally::new(1.0);
+        let (_, split_grads) = step(2, Some(&mut split));
+        assert_eq!(split.rows, whole.rows);
+        assert!((split.distance_sum - whole.distance_sum).abs() <= 1e-5, "{split:?} against {whole:?}");
+        let mut compared = 0;
+        for (name, var) in &vars {
+            let (Some(a), Some(b)) = (pulled_grads.get(var.as_tensor()), split_grads.get(var.as_tensor())) else {
+                continue;
+            };
+            let (a, b) = (flat(a), flat(b));
+            let scale = a.iter().fold(0f32, |m, x| m.max(x.abs()));
+            let diff = a.iter().zip(&b).fold(0f32, |m, (x, y)| m.max((x - y).abs()));
+            assert!(diff <= 1e-4 * scale.max(1e-6), "{name} differs by {diff} at scale {scale}");
+            compared += 1;
+        }
+        assert!(compared > 2, "the ask table, the carry and the trunk compared");
+        crate::flock_read_hamming::set_hamming_reads(None);
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_language_pull_joins_the_step_gradient_on_cuda() {
+        the_language_pull_joins_the_step_gradient_on(&Device::new_cuda(0).unwrap());
+    }
+
     #[test]
     fn fused_targets_are_one_per_row_and_inside_the_table() {
         assert!(check_fused_targets(&[0, 3, 7], 3, 8).is_ok());
@@ -17938,6 +18264,7 @@ mod tests {
                         forwards.push((lo, hi));
                         Ok(())
                     },
+                    None,
                 )
                 .unwrap();
                 (value, grads, forwards)
@@ -18022,6 +18349,7 @@ mod tests {
                 3,
                 Some((&mask, 3)),
                 |_, _| Ok(()),
+                None,
             )
             .unwrap()
         };

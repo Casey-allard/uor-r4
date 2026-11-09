@@ -74,7 +74,9 @@
 //! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
 //! (`HammingReads::ask_pull`), and `--hamming-attract-at question` pulls at each two-class
 //! episode's question row in place of the scored row (needs `--recall-header`); `both` pulls at
-//! the question rows and the scored rows together (claude-335).
+//! the question rows and the scored rows together (claude-335). Without `--recall` (claude-337), a
+//! language run takes `--hamming-attract λ` at its scored rows only: each scored row whose target
+//! stands earlier in its window is pulled, and each checkpoint writes the pull to `pull.jsonl`.
 //! `--hamming-hold H` (needs `--hamming-ask 1`) holds the stream read's ask write for the next H
 //! rows of its window, scaled by a learned gain per token, starting at zero
 //! (`HammingReads::with_hold`, claude-333).
@@ -318,6 +320,17 @@ fn init_from_applies(init_from: bool, training_with_out: bool) -> Result<()> {
     if init_from && !training_with_out {
         return Err(FloatTrainError::Invalid(
             "--init-from applies to training with --out only".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+/// claude-337: the found-copy pull trains a run (`run_long`, or `run_recall` under `--recall`), so a
+/// mode that trains nothing refuses a nonzero `--hamming-attract` rather than record it.
+fn pull_applies(attract: f64, other_mode: bool) -> Result<()> {
+    if attract != 0.0 && other_mode {
+        return Err(FloatTrainError::Invalid(
+            "--hamming-attract trains a run; this mode trains nothing".to_owned(),
         ));
     }
     Ok(())
@@ -949,10 +962,11 @@ fn main() -> Result<()> {
             "--recall-query, --recall-header, --recall-eval-windows and --recall-readings apply to --recall only".to_owned(),
         ));
     }
-    // claude-330: the found-copy pull trains in the recall runner only.
-    if recall == 0 && config.hamming_attract != 0.0 {
+    // claude-330: the found-copy pull's question placements need --recall's question rows;
+    // claude-337: a language run pulls at its scored rows.
+    if recall == 0 && (config.hamming_attract_at_question || config.hamming_attract_at_both) {
         return Err(FloatTrainError::Invalid(
-            "--hamming-attract and --hamming-attract-at apply to --recall only".to_owned(),
+            "--hamming-attract-at question and both apply to --recall only; a language run pulls at its scored rows".to_owned(),
         ));
     }
     if recall_header != 0 && !recall_query {
@@ -1012,6 +1026,14 @@ fn main() -> Result<()> {
     }
     let data_root =
         data_root.ok_or_else(|| FloatTrainError::Invalid("--data-root is required".to_owned()))?;
+    // claude-337: past --recall, the pull trains only in run_long; every other mode below returns
+    // before it, so a pull given to one of them would be recorded and never run.
+    let other_mode = key_oracle.is_some() || cycle_grade_on || key_grade_on || panel_prompts_on
+        || integer_grade_on || served_grade_on || keyed_grade_on || !key_levels.is_empty() || keys_runs.is_some()
+        || cut_grade_on || read_grade_on || cell_grade_on || grade_on || controls_on || overturn_on
+        || census_on || reply || bound || score.is_some() || decode.is_some() || grad_norms
+        || reach.is_some() || inspect.is_some();
+    pull_applies(config.hamming_attract, other_mode)?;
     if let Some((tokens, mask)) = &key_oracle {
         return copy_key_oracle(&data_root, tokens, mask);
     }
@@ -1743,6 +1765,14 @@ mod tests {
         assert!(panel_arg("p-dev").is_err());
         assert!(panel_arg("=dir").is_err());
         assert!(panel_arg("name=").is_err());
+    }
+
+    #[test]
+    fn the_pull_is_refused_by_every_mode_that_trains_nothing() {
+        assert!(pull_applies(0.0, true).is_ok());
+        assert!(pull_applies(1.0, false).is_ok());
+        let err = pull_applies(0.5, true).err().unwrap().to_string();
+        assert!(err.contains("this mode trains nothing"), "{err}");
     }
 
     #[test]
