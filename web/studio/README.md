@@ -1,11 +1,11 @@
 # Studio (`web/studio`) — the browser client
 
-**Live:** https://uor-foundation.github.io/uor-r4/studio/ — the current gh-pages `eb832431a` publish serves the conversation-first interface and 700,756-byte wasm bundle (sha256 `df368909…`) and preserves the model catalog with both M1 seeds and both research FBS seeds. Source PR #3651 merged as `a877ef916`; the Pages API reports built at `eb832431a`, and hosted desktop generation and mobile layout inspection, Native setup, all five model cards, runtime bytes and development-file 404s were verified. The previous `233b97fb9` publish served the 700,628-byte `b4ab83f1…` bundle.
+**Live:** https://uor-foundation.github.io/uor-r4/studio/ — the current gh-pages `ab752d595` publish serves the conversation-first interface and 794,677-byte wasm bundle (sha256 `e03b6cd5…`) and preserves the model catalog with both M1 seeds and both research FBS seeds. It was built from `b1af43504`; the Pages build succeeded. Earlier `eb832431a` served 700,756 bytes (`df368909…`), and `233b97fb9` served 700,628 bytes (`b4ab83f1…`); those are historical identities, not the current publish.
 
 The Studio is the project's in-browser interface: editor, chat panel and model manager, with the
 integer serving engine (`crates/uor-r4-integer`, `--features serving-wasm`) running in a Web
 Worker. It is served from the project's documentation site at **`/studio/`**
-(<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `eb832431a`; `233b97fb9` was the previous publish.
+(<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `ab752d595`; `eb832431a` was the previous publish. The publisher now accepts an opt-in `--typed` flag that builds `web/studio/dist` and stages it through the typed allowlist while preserving the legacy default; protected merge and actual typed publication are separate pending steps.
 
 ### Neutral cowork workbench recovery (8 November 2026)
 
@@ -17,7 +17,7 @@ The Terminal panel uses `portable-pty = "0.9.0"`, `@xterm/xterm = "6.0.0"`, and 
 
 The source now opens into one quiet dark conversation column instead of the former panel-heavy IDE. First run automatically loads the bundled synthetic demo; the empty state offers working offline-demo, model-choice and native-setup actions. Connections, Workspace, sessions and diagnostics remain available outside the main chat flow. System typography, rounded message bubbles, a floating composer, mobile-safe 16px input text and compact phone controls are covered by browser inspection at 1440×900 and 390×852 plus focused regressions. Enter/Shift+Enter, IME-safe submission, ArrowUp/Down history, long pastes, attachments, image decomposition and exact metrics retain their existing paths.
 
-Static GitHub Pages still cannot host an API, and HTTPS Pages must not call insecure HTTP loopback. The new [studio-native-runner-v0.1.0 prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) supplies a hash-pinned Apple silicon `uor-chat`, a runtime-only Studio archive, `native-runner.sh` and `SHA256SUMS`. The runner serves the same UI and authenticated native API together on `127.0.0.1:8000`, with an in-memory launch token and no public tunnel or token output. Fresh public downloads and an empty-cache launch passed. A real native short-prompt stream returned 16 completion tokens with exact `19/16/35` usage, measured tok/s and TTFT; a longer prompt correctly returned HTTP 413 at 69 of 64 context positions without truncation. These are synthetic protocol results, not useful conversation, visual understanding, M7/M8 completion or production readiness. The live-Pages publish is `eb832431a`, with hosted desktop generation and mobile layout inspection and Native setup verified.
+Static GitHub Pages still cannot host an API, and HTTPS Pages must not call insecure HTTP loopback. The new [studio-native-runner-v0.1.0 prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) supplies a hash-pinned Apple silicon `uor-chat`, a runtime-only Studio archive, `native-runner.sh` and `SHA256SUMS`. The runner serves the same UI and authenticated native API together on `127.0.0.1:8000`, with an in-memory launch token and no public tunnel or token output. Fresh public downloads and an empty-cache launch passed. A real native short-prompt stream returned 16 completion tokens with exact `19/16/35` usage, measured tok/s and TTFT; a longer prompt correctly returned HTTP 413 at 69 of 64 context positions without truncation. These are synthetic protocol results, not useful conversation, visual understanding, M7/M8 completion or production readiness. The live-Pages publish is `ab752d595`; the earlier hosted desktop generation, mobile layout inspection and Native setup verification at `eb832431a` is historical evidence.
 
 ### First console redesign (superseded by v2)
 
@@ -193,9 +193,10 @@ find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
 ```
 
 So a built Studio published once to `gh-pages` / `gh-pages-preview` **persists across every later
-book deploy**. The current live app at `/studio/` is gh-pages `454bb30fc`, with the M1-capable
-integer wasm bundle and both M1 seeds in `models.json` verified by HTTP and hash checks. The earlier
-`d8e67c66` publish was pre-M1. Publishing a newer page means replacing that directory once.
+book deploy**. The current live app at `/studio/` is gh-pages `ab752d595`, with a 794,677-byte
+M1-capable wasm bundle at SHA-256 `e03b6cd5…` and both M1 seeds in `models.json` verified by HTTP
+and hash checks. The earlier `454bb30fc` publish served M1, and `d8e67c66` was pre-M1; those are
+historical identities, not the current publish. Publishing a newer page means replacing that directory once.
 
 **The publisher.** `scripts/studio/build-and-publish.sh` does the whole unit:
 

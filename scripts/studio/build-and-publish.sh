@@ -22,6 +22,7 @@
 #
 # USAGE
 #   scripts/studio/build-and-publish.sh [options]
+#     --typed                build and stage the neutral Vite app from web/studio/dist (default: legacy)
 #     --target <branch>       gh-pages-preview (default) or gh-pages (live; requires HEAD=main)
 #     --push                  push the publish commit (otherwise dry run)
 #     --no-build              reuse web/studio/pkg/ as built
@@ -46,6 +47,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 
 target=gh-pages-preview
+typed=0
 push=0
 yes=0
 build=1
@@ -61,6 +63,7 @@ die() { printf 'build-and-publish: %s\n' "$*" >&2; exit 2; }
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
+        --typed) typed=1; shift ;;
         --target) target=${2:?--target needs a branch}; shift 2 ;;
         --push) push=1; shift ;;
         --yes) yes=1; shift ;;
@@ -105,6 +108,11 @@ say "Studio build and publish"
 say "  repo:    $root"
 say "  target:  $target ($([ "$push" = 1 ] && echo 'PUSH (confirmed)' || echo 'dry run, nothing pushed'))"
 say "  branch:  ${branch:-detached}"
+if [ "$typed" = 1 ]; then
+    say "  mode:    typed Vite dist"
+else
+    say "  mode:    legacy Studio source"
+fi
 say "  cargo:   $cargo_bin ($("$cargo_bin" --version))"
 say "  wasm:    $wasm_pack ($("$wasm_pack" --version))"
 say "  node:    $node_bin ($("$node_bin" --version))"
@@ -164,6 +172,12 @@ else
     say "== verify skipped (--skip-verify)"
 fi
 
+if [ "$typed" = 1 ]; then
+    say ""
+    say "== build: typed Vite application"
+    ( cd web/studio && npm ci && npm run build )
+fi
+
 # ---------------------------------------------------------------------------
 # 3. Stage the Studio for publication (single source of truth: scripts/stage-studio-site.sh).
 staging=$(mktemp -d "${TMPDIR:-/tmp}/studio-publish.XXXXXX")
@@ -182,8 +196,13 @@ cleanup() {
 trap cleanup EXIT
 
 say ""
-say "== stage: web/studio -> $staging/studio (+ models.json)"
-stage_args=(web/studio "$staging/studio" "$public_url" "$public_label")
+if [ "$typed" = 1 ]; then
+    say "== stage: web/studio/dist -> $staging/studio (+ models.json)"
+    stage_args=(--typed web/studio "$staging/studio" "$public_url" "$public_label")
+else
+    say "== stage: web/studio -> $staging/studio (+ models.json)"
+    stage_args=(web/studio "$staging/studio" "$public_url" "$public_label")
+fi
 if [ -n "$trained_manifest" ]; then
     stage_args+=(--trained-manifest "$trained_manifest")
 fi

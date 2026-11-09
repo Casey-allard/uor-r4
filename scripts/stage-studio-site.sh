@@ -2,12 +2,14 @@
 # Stage the Studio web client (web/studio/) into a published-site directory.
 #
 # Usage:
-#   scripts/stage-studio-site.sh <studio-src> <dest-dir> [public_model_url] [public_model_label] \
+#   scripts/stage-studio-site.sh [--typed] <studio-src> <dest-dir> [public_model_url] [public_model_label] \
 #       [--trained-manifest FILE]
 #
 # <studio-src> is the built web/studio tree; it must already contain the wasm-pack output and the
 # generated demo artifacts (none of these are committed; see web/studio/README.md):
 #   pkg/uor_r4_integer.js, pkg/uor_r4_integer_bg.wasm, pkg/synthetic-stack.lut, pkg/tokenizer.json
+#
+# --typed selects <studio-src>/dist and the typed runtime allowlist instead of the legacy source.
 #
 # The helper:
 #   1. replaces <dest-dir> wholesale (no stale files from an older Studio can survive a publish;
@@ -36,14 +38,22 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 usage() {
-    echo "usage: $0 <studio-src> <dest-dir> [public_model_url] [public_model_label] [--trained-manifest FILE]" >&2
+    echo "usage: $0 [--typed] <studio-src> <dest-dir> [public_model_url] [public_model_label] [--trained-manifest FILE]" >&2
     exit 2
 }
 
+typed=0
+if [ "${1:-}" = '--typed' ]; then
+    typed=1
+    shift
+fi
 [ "$#" -ge 2 ] || usage
 src=$1
 dest=$2
 shift 2
+if [ "$typed" = 1 ]; then
+    src=$src/dist
+fi
 public_url=''
 public_label='Public model'
 trained_manifest=''
@@ -108,13 +118,21 @@ if [ -n "$public_url" ] && [ -z "$public_label" ]; then
     exit 1
 fi
 
-"$repo_root/scripts/studio/runtime-files.sh" copy "$src" "$dest" --allow-generated-missing
+if [ "$typed" = 1 ]; then
+    "$repo_root/scripts/studio/runtime-files.sh" copy "$src" "$dest" --typed
+else
+    "$repo_root/scripts/studio/runtime-files.sh" copy "$src" "$dest" --allow-generated-missing
+fi
 rm -f "$dest/models.json"
 
 node "$repo_root/scripts/studio/catalog.mjs" "$dest" "$public_url" "$public_label" "$trained_manifest" \
     "$repo_root/scripts/validate_served_forward_receipt.py"
 
-"$repo_root/scripts/studio/runtime-files.sh" --verify "$dest"
+if [ "$typed" = 1 ]; then
+    "$repo_root/scripts/studio/runtime-files.sh" --verify "$dest" --typed
+else
+    "$repo_root/scripts/studio/runtime-files.sh" --verify "$dest"
+fi
 
 if find "$dest" -type f -size +100M | grep -q .; then
     echo "stage-studio-site: a file in $dest is over GitHub Pages' 100 MB per-file limit:" >&2
