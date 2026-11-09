@@ -1623,6 +1623,10 @@ impl StackModel {
             if crate::flock_read_hamming::hamming_reads().is_some_and(|r| r.hold_rows() > 0) {
                 return Some(CacheRefusal::ReadHook("Hamming read's held ask write"));
             }
+            // claude-335: likewise a carried question sums earlier rows' questions.
+            if crate::flock_read_hamming::hamming_reads().is_some_and(|r| r.carry_rows() > 0) {
+                return Some(CacheRefusal::ReadHook("Hamming read's carried question"));
+            }
         }
         if RATE_TRACE.with(|t| t.borrow().is_some()) || RATE_FORCE.with(|f| !f.borrow().is_empty())
         {

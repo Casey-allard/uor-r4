@@ -170,6 +170,15 @@ pub struct LongConfig {
     /// claude-333); it needs the ask heads. 0, the default, is off and left out of `config.json`.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub hamming_hold: usize,
+    /// claude-335's B2-aqC: the pull at the question rows and at the scored rows together
+    /// (`--hamming-attract-at both`); left out of `config.json` when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hamming_attract_at_both: bool,
+    /// The readout read's question carried from this many rows back
+    /// (`HammingReads::with_carry`, claude-335); it needs the ask heads. 0, the default, is off
+    /// and left out of `config.json`.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub hamming_carry_question: usize,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -1085,6 +1094,13 @@ fn checkpoint_hamming(
             config.hamming_hold
         )));
     }
+    if reads.carry_rows() != config.hamming_carry_question {
+        return Err(invalid(format!(
+            "--init-from checkpoint carries the Hamming question from {} rows back, but this run names {}",
+            reads.carry_rows(),
+            config.hamming_carry_question
+        )));
+    }
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
@@ -1103,6 +1119,9 @@ fn start_hamming(
     check_pull_flags(config)?;
     if config.hamming_hold > 0 && !config.hamming_ask {
         return Err(invalid("--hamming-hold carries the ask heads' write; turn them on with --hamming-ask 1"));
+    }
+    if config.hamming_carry_question > 0 && !config.hamming_ask {
+        return Err(invalid("--hamming-carry-question carries the ask heads' question; turn them on with --hamming-ask 1"));
     }
     if let Some(directory) = &config.init_from {
         return checkpoint_hamming(config, directory, device);
@@ -1142,6 +1161,10 @@ fn start_hamming(
     if config.hamming_hold > 0 {
         // One gain per token of the same shared table.
         reads = reads.with_hold(config.hamming_hold, hs::SHEET_VOCAB)?;
+    }
+    if config.hamming_carry_question > 0 {
+        // claude-335: one carry gain per token of the same shared table.
+        reads = reads.with_carry(config.hamming_carry_question, hs::SHEET_VOCAB)?;
     }
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
@@ -3044,6 +3067,16 @@ fn attract_rows(windows: &[&CausalWindow], back: usize) -> Result<Vec<(usize, u3
     Ok(rows)
 }
 
+/// claude-335: [`attract_rows`] at each of `backs` in turn, the rows of each placement after the
+/// one before, so `--hamming-attract-at both` pulls at the question rows and the scored rows.
+fn attract_rows_at(windows: &[&CausalWindow], backs: &[usize]) -> Result<Vec<(usize, u32)>> {
+    let mut rows = Vec::new();
+    for &back in backs {
+        rows.extend(attract_rows(windows, back)?);
+    }
+    Ok(rows)
+}
+
 /// claude-330: the found-copy pull's flags agree: a weight of at least 0, on the ask heads, and a
 /// placement only with a weight. [`start_hamming`] and [`run_recall`] (before its `config.json`)
 /// both check them.
@@ -3057,27 +3090,47 @@ fn check_pull_flags(config: &LongConfig) -> Result<()> {
     if config.hamming_attract_at_question && config.hamming_attract == 0.0 {
         return Err(invalid("--hamming-attract-at question places the pull; set --hamming-attract"));
     }
+    if config.hamming_attract_at_both && config.hamming_attract == 0.0 {
+        return Err(invalid("--hamming-attract-at both places the pull; set --hamming-attract"));
+    }
+    if config.hamming_attract_at_both && config.hamming_attract_at_question {
+        return Err(invalid("--hamming-attract-at takes one placement: scored, question or both"));
+    }
     Ok(())
 }
 
 /// claude-330: where the found-copy pull sits under `config` and `form`: `None` when it is off
-/// (`λ = 0`), else how many rows before each scored row, 0, or under
-/// `--hamming-attract-at question` the header's length (`Q(K_j)`'s row), which needs the
-/// two-class task with a header.
-fn attract_plan(config: &LongConfig, form: RecallForm) -> Result<Option<usize>> {
-    if config.hamming_attract_at_question && !(form.query && form.header > 0) {
-        return Err(invalid("--hamming-attract-at question needs the two-class task with a header"));
+/// (`λ = 0`), else how many rows before each scored row, `[0]`, or under
+/// `--hamming-attract-at question` the header's length (`Q(K_j)`'s row), or under
+/// `--hamming-attract-at both` (claude-335) the header's length and then 0; a placement at the
+/// question row needs the two-class task with a header.
+fn attract_plan(config: &LongConfig, form: RecallForm) -> Result<Option<Vec<usize>>> {
+    let at_question = config.hamming_attract_at_question || config.hamming_attract_at_both;
+    if at_question && !(form.query && form.header > 0) {
+        let place = if config.hamming_attract_at_both { "both" } else { "question" };
+        return Err(invalid(format!(
+            "--hamming-attract-at {place} needs the two-class task with a header"
+        )));
     }
     if config.hamming_attract == 0.0 {
         return Ok(None);
     }
-    Ok(Some(if config.hamming_attract_at_question { form.header } else { 0 }))
+    Ok(Some(if config.hamming_attract_at_both {
+        vec![form.header, 0]
+    } else if config.hamming_attract_at_question {
+        vec![form.header]
+    } else {
+        vec![0]
+    }))
 }
 
 /// claude-330: the found-copy pull trains only in the recall runner; elsewhere it is refused, so a
 /// `config.json` never records a pull that did not run.
 fn refuse_pull_outside_recall(config: &LongConfig) -> Result<()> {
-    if config.hamming_attract != 0.0 || config.hamming_attract_at_question {
+    if config.hamming_attract != 0.0
+        || config.hamming_attract_at_question
+        || config.hamming_attract_at_both
+    {
         return Err(invalid("--hamming-attract trains only under --recall"));
     }
     Ok(())
@@ -12213,6 +12266,9 @@ pub struct RecallReading {
     /// claude-334: the hold's gain `g` by token group, on a held read.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hamming_hold_gain: Option<HoldGainReading>,
+    /// claude-335: the question carry's gain `c` by token group, on a carried read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hamming_carry_gain: Option<HoldGainReading>,
     /// claude-334: `|w_y|`, each depth's type weight row's mean absolute value, with the ask
     /// heads on.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -12393,6 +12449,9 @@ pub enum Ablation {
     /// `R^{−H}` (claude-334): the held term dropped (`g := 0`), the direct write kept. Taken
     /// after `−aS`, and only on a held read.
     HoldOff,
+    /// `R^{−C}` (claude-335): the readout read's carried question dropped (`c := 0`), the ask
+    /// heads' own question kept. Taken last, and only on a carried read.
+    CarryOff,
 }
 
 /// The ablations in the order the readings record them.
@@ -12416,12 +12475,18 @@ impl Ablation {
             Self::AskAtQuery => "-aQ",
             Self::AskStream => "-aS",
             Self::HoldOff => "-H",
+            Self::CarryOff => "-C",
         }
     }
 
     /// Whether it turns the hold off ([`crate::flock_read_hamming::set_hold_off`]).
     pub fn hold_off(self) -> bool {
         matches!(self, Self::HoldOff)
+    }
+
+    /// Whether it turns the question carry off ([`crate::flock_read_hamming::set_carry_off`]).
+    pub fn carry_off(self) -> bool {
+        matches!(self, Self::CarryOff)
     }
 
     /// The heads its row cut limits, for the two that cut at the question rows.
@@ -12442,7 +12507,9 @@ impl Ablation {
             Self::Copy => [[true, false], [true, false]],
             Self::Type => [[false, true], [false, true]],
             Self::AskStream => [[false, true], [false, false]],
-            Self::CopyAtQuery | Self::AskAtQuery | Self::HoldOff => [[false; 2]; 2],
+            Self::CopyAtQuery | Self::AskAtQuery | Self::HoldOff | Self::CarryOff => {
+                [[false; 2]; 2]
+            }
         }
     }
 }
@@ -12716,6 +12783,7 @@ impl Drop for UndoAblation {
         crate::flock_read_hamming::set_class_ablation([[false; 2]; 2]);
         crate::flock_read_hamming::set_row_cut(None);
         crate::flock_read_hamming::set_hold_off(false);
+        crate::flock_read_hamming::set_carry_off(false);
         crate::flock_read_hamming::set_row_capture(None);
     }
 }
@@ -12837,10 +12905,15 @@ fn recall_readings(
     if reads.hold_rows() > 0 {
         extra.push(Ablation::HoldOff);
     }
+    // claude-335: `−C` last, on a carried read.
+    if reads.carry_rows() > 0 {
+        extra.push(Ablation::CarryOff);
+    }
     for ablation in RECALL_ABLATIONS.into_iter().chain(extra) {
         let _undo = UndoAblation;
         fh::set_class_ablation(ablation.classes());
         fh::set_hold_off(ablation.hold_off());
+        fh::set_carry_off(ablation.carry_off());
         let mut done = 0usize;
         let picks = picks_with(
             model,
@@ -12998,7 +13071,7 @@ pub fn run_recall(
     // the same rows (the scored rows when the pull is off).
     check_pull_flags(config)?;
     let attract = attract_plan(config, form)?;
-    let attract_back = attract.unwrap_or(0);
+    let attract_backs = attract.clone().unwrap_or_else(|| vec![0]);
     if out.exists() {
         return Err(invalid(format!(
             "{} exists; a run never writes over one",
@@ -13109,7 +13182,7 @@ pub fn run_recall(
                     .ok_or_else(|| invalid("the model has no shared vector table"))?
                     .as_tensor()
                     .detach();
-                let pulls = attract_rows(&windows, attract_back)?;
+                let pulls = attract_rows_at(&windows, &attract_backs)?;
                 reads.ask_pull_depths(&ids, windows[0].input_ids.len(), &table, &pulls)?
             }
             _ => None,
@@ -13155,6 +13228,10 @@ pub fn run_recall(
                 Some(reads) => reads.hold_gain()?.map(|g| hold_gain_reading(&g)).transpose()?,
                 None => None,
             },
+            hamming_carry_gain: match crate::flock_read_hamming::hamming_reads() {
+                Some(reads) => reads.carry_gain()?.map(|c| hold_gain_reading(&c)).transpose()?,
+                None => None,
+            },
             hamming_type_weight_mean_abs: match crate::flock_read_hamming::hamming_reads() {
                 Some(reads) if reads.has_ask() => Some(
                     reads
@@ -13189,8 +13266,8 @@ pub fn run_recall(
         let refs: Vec<&CausalWindow> = windows.iter().collect();
         let (ids, scored, targets) = assemble(&refs);
         // claude-330: the found-copy pull's rows, when it is on.
-        let pulls = match attract {
-            Some(back) => attract_rows(&refs, back)?,
+        let pulls = match &attract {
+            Some(backs) => attract_rows_at(&refs, backs)?,
             None => Vec::new(),
         };
         let started = Instant::now();
@@ -15801,6 +15878,8 @@ mod tests {
             hamming_attract: 0.0,
             hamming_attract_at_question: false,
             hamming_hold: 0,
+            hamming_attract_at_both: false,
+            hamming_carry_question: 0,
             fix_input_table: false,
             train_split: None,
             opening_weight: 1,
@@ -22502,13 +22581,94 @@ mod tests {
         let on = LongConfig { hamming_attract: 1.0, ..off.clone() };
         let question = LongConfig { hamming_attract_at_question: true, ..on.clone() };
         assert_eq!(attract_plan(&off, b2).unwrap(), None, "λ = 0 builds no pull rows");
-        assert_eq!(attract_plan(&on, b2).unwrap(), Some(0));
-        assert_eq!(attract_plan(&question, b2).unwrap(), Some(4));
+        assert_eq!(attract_plan(&on, b2).unwrap(), Some(vec![0]));
+        assert_eq!(attract_plan(&question, b2).unwrap(), Some(vec![4]));
         let refused = attract_plan(&question, b1).err().unwrap().to_string();
         assert!(refused.contains("with a header"), "{refused}");
+        // claude-335: `both` pulls at the question rows, then at the scored rows; it needs a
+        // header and a weight, and is one placement, never with `question`.
+        let both = LongConfig { hamming_attract_at_both: true, ..on.clone() };
+        assert_eq!(attract_plan(&both, b2).unwrap(), Some(vec![4, 0]));
+        let refused = attract_plan(&both, b1).err().unwrap().to_string();
+        assert!(refused.contains("both needs the two-class task with a header"), "{refused}");
+        assert!(check_pull_flags(&both).is_ok());
+        let weightless = LongConfig { hamming_attract: 0.0, ..both.clone() };
+        let refused = check_pull_flags(&weightless).err().unwrap().to_string();
+        assert!(refused.contains("at both places the pull"), "{refused}");
+        let twice = LongConfig { hamming_attract_at_question: true, ..both.clone() };
+        let refused = check_pull_flags(&twice).err().unwrap().to_string();
+        assert!(refused.contains("takes one placement"), "{refused}");
         assert!(refuse_pull_outside_recall(&off).is_ok());
-        for c in [on, question] {
+        let both_unweighted = LongConfig { hamming_attract: 0.0, ..both.clone() };
+        for c in [on, question, both, both_unweighted] {
             assert!(refuse_pull_outside_recall(&c).err().unwrap().to_string().contains("--recall"));
         }
+    }
+
+    /// claude-335: `both`'s rows are the question placement's rows and then the scored rows', on
+    /// B2's windows, each with its episode's asked value.
+    #[test]
+    fn the_both_placement_pulls_at_the_question_rows_and_then_the_scored_rows() -> Result<()> {
+        let built = (0..2)
+            .map(|i| recall_query_window(17, i, SHEET_CONTEXT, 4))
+            .collect::<Result<Vec<_>>>()?;
+        let windows: Vec<&CausalWindow> = built.iter().map(|(w, _)| w).collect();
+        let (question, scored) = (attract_rows(&windows, 4)?, attract_rows(&windows, 0)?);
+        assert!(!question.is_empty() && question.len() == scored.len());
+        assert!(question.iter().zip(&scored).all(|(q, s)| q.0 + 4 == s.0 && q.1 == s.1));
+        let both = attract_rows_at(&windows, &[4, 0])?;
+        assert_eq!(both, question.iter().chain(&scored).copied().collect::<Vec<_>>());
+        assert_eq!(attract_rows_at(&windows, &[0])?, scored);
+        Ok(())
+    }
+
+    /// claude-335: `−C` drops no class, cuts no row, and turns the carry off alone; no other cut
+    /// turns it off.
+    #[test]
+    fn the_carry_cut_is_what_the_sheet_names() {
+        assert_eq!(Ablation::CarryOff.name(), "-C");
+        assert_eq!(Ablation::CarryOff.classes(), [[false; 2]; 2]);
+        assert_eq!(Ablation::CarryOff.row_scope(), None);
+        assert!(Ablation::CarryOff.carry_off() && !Ablation::CarryOff.hold_off());
+        let others = [Ablation::AskAtQuery, Ablation::AskStream, Ablation::HoldOff];
+        assert!(RECALL_ABLATIONS.iter().chain(&others).all(|a| !a.carry_off()));
+    }
+
+    /// claude-335: `--hamming-carry-question` stays out of `config.json` when off, needs the ask
+    /// heads, starts the readout read's carry at the rows it names, and a checkpoint's carry must
+    /// match the run's, both ways. Host data only: no forward runs.
+    #[test]
+    fn the_carry_flag_is_off_by_default_needs_the_ask_heads_and_matches_its_checkpoint() {
+        let plain = serde_json::to_string(&config(0, None)).unwrap();
+        assert!(!plain.contains("hamming_carry_question") && !plain.contains("hamming_attract_at_both"));
+        let on = LongConfig { hamming_read: 4, hamming_ask: true, hamming_carry_question: 4, ..config(0, None) };
+        assert!(serde_json::to_string(&on).unwrap().contains("\"hamming_carry_question\":4"));
+        let both = LongConfig { hamming_attract: 1.0, hamming_attract_at_both: true, ..on.clone() };
+        assert!(serde_json::to_string(&both).unwrap().contains("\"hamming_attract_at_both\":true"));
+        let no_ask = LongConfig { hamming_ask: false, ..on.clone() };
+        let refused = start_hamming(&no_ask, &Device::Cpu).err().map(|e| e.to_string());
+        assert!(refused.as_deref().is_some_and(|e| e.contains("--hamming-carry-question carries")), "{refused:?}");
+        let (reads, _) = start_hamming(&on, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!((reads.carry_rows(), reads.hold_rows()), (4, 0));
+        let uncarried = LongConfig { hamming_carry_question: 0, ..on.clone() };
+        let (plain_reads, _) = start_hamming(&uncarried, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!(plain_reads.carry_rows(), 0);
+        crate::flock_read_hamming::set_hamming_reads(None);
+        let dir = std::env::temp_dir().join(format!(
+            "carry-checkpoint-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        for (saved, run, fits) in [(&reads, &on, true), (&reads, &uncarried, false), (&plain_reads, &on, false)] {
+            std::fs::create_dir(&dir).unwrap();
+            saved.save(&dir).unwrap();
+            let got = checkpoint_hamming(run, &dir, &Device::Cpu).map(|r| r.map(|(r, _)| r.carry_rows()));
+            std::fs::remove_dir_all(&dir).unwrap();
+            match got {
+                Ok(rows) => assert!(fits && rows == Some(4), "{rows:?}"),
+                Err(e) => assert!(!fits && e.to_string().contains("carries the Hamming question from"), "{e}"),
+            }
+        }
+        crate::flock_read_hamming::set_hamming_reads(None);
     }
 }

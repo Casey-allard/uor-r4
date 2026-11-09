@@ -73,10 +73,14 @@
 //! their token's point plus a learned question row against the copy key (`HammingReads::with_ask`,
 //! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
 //! (`HammingReads::ask_pull`), and `--hamming-attract-at question` pulls at each two-class
-//! episode's question row in place of the scored row (needs `--recall-header`).
+//! episode's question row in place of the scored row (needs `--recall-header`); `both` pulls at
+//! the question rows and the scored rows together (claude-335).
 //! `--hamming-hold H` (needs `--hamming-ask 1`) holds the stream read's ask write for the next H
 //! rows of its window, scaled by a learned gain per token, starting at zero
 //! (`HammingReads::with_hold`, claude-333).
+//! `--hamming-carry-question H` (needs `--hamming-ask 1`) adds, at the readout read's ask heads,
+//! the question points of the H rows before each row in its window, each scaled by a learned gain
+//! per token, starting at zero (`HammingReads::with_carry`, claude-335).
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
 //! `--score-rows` decodes equal-length prompts together on the full-scope nearest arms, except
@@ -408,6 +412,8 @@ fn main() -> Result<()> {
         hamming_attract: 0.0,
         hamming_attract_at_question: false,
         hamming_hold: 0,
+        hamming_attract_at_both: false,
+        hamming_carry_question: 0,
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
@@ -708,16 +714,23 @@ fn main() -> Result<()> {
                     FloatTrainError::Invalid("--hamming-hold wants a row count".to_owned())
                 })?
             }
+            "--hamming-carry-question" => {
+                config.hamming_carry_question = value.parse().map_err(|_| {
+                    FloatTrainError::Invalid("--hamming-carry-question wants a row count".to_owned())
+                })?
+            }
             "--hamming-attract-at" => {
-                config.hamming_attract_at_question = match value.as_str() {
-                    "scored" => false,
-                    "question" => true,
-                    _ => {
-                        return Err(FloatTrainError::Invalid(
-                            "--hamming-attract-at wants scored or question".to_owned(),
-                        ))
+                (config.hamming_attract_at_question, config.hamming_attract_at_both) =
+                    match value.as_str() {
+                        "scored" => (false, false),
+                        "question" => (true, false),
+                        "both" => (false, true),
+                        _ => {
+                            return Err(FloatTrainError::Invalid(
+                                "--hamming-attract-at wants scored, question or both".to_owned(),
+                            ))
+                        }
                     }
-                }
             }
             "--opening-weight" => match number(&value)? {
                 weight @ 1..=16 => config.opening_weight = weight,

@@ -391,6 +391,13 @@ pub fn fbs_hamming_snapshot(
             "a Hamming read needs one read per depth {HAMMING_DEPTHS:?} on a width of whole quaternions"
         )));
     }
+    // claude-335: the carry sits at the readout depth, after the stream read's own refusals, so
+    // it is refused by name first.
+    if let Some(depth) = HAMMING_DEPTHS.iter().zip(&reads.reads).find(|(_, r)| r.carry.is_some()).map(|(d, _)| d) {
+        return Err(invalid(format!(
+            "hamming_read d{depth} carries its question (--hamming-carry-question, claude-335), which the integer engine does not serve yet"
+        )));
+    }
     let heads = reads.reads[0].margin.dims().first().copied().unwrap_or(0);
     let mut out = Vec::with_capacity(reads.reads.len());
     for (depth, read) in HAMMING_DEPTHS.iter().zip(&reads.reads) {
@@ -521,6 +528,12 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
             "{} Hamming reads, not one at each depth of {HAMMING_DEPTHS:?}",
             reads.reads.len()
         )));
+    }
+    // claude-335: refused by name before any depth's own refusals, as the export refuses it.
+    if reads.reads.iter().any(|r| r.carry.is_some()) {
+        return Err(invalid(
+            "a Hamming read that carries its question (--hamming-carry-question, claude-335) has no exported form to round to",
+        ));
     }
     let mut rounded = Vec::new();
     for (depth, read) in HAMMING_DEPTHS.iter().zip(&reads.reads) {

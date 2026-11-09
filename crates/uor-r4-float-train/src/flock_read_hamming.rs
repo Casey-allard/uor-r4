@@ -91,6 +91,7 @@ thread_local! {
     static CLASS_OFF: std::cell::Cell<[[bool; 2]; 2]> =
         const { std::cell::Cell::new([[false; 2]; 2]) };
     static HOLD_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static CARRY_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static CAPTURE: RefCell<Option<RowCapture>> = const { RefCell::new(None) };
 }
 
@@ -104,6 +105,18 @@ pub fn set_hold_off(off: bool) {
 /// Whether [`set_hold_off`] last turned the hold off on this thread.
 pub fn hold_off() -> bool {
     HOLD_OFF.with(|h| h.get())
+}
+
+/// claude-335's `−C`: with `true`, a carried read's ask heads ask without the carried term in
+/// the forwards and pulls that follow on this thread (`c := 0` at evaluation); every other part
+/// reads as before. `false`, the default, carries as trained.
+pub fn set_carry_off(off: bool) {
+    CARRY_OFF.with(|c| c.set(off));
+}
+
+/// Whether [`set_carry_off`] last turned the carry off on this thread.
+pub fn carry_off() -> bool {
+    CARRY_OFF.with(|c| c.get())
 }
 
 /// claude-334: what the stream read computed at the captured rows, one vector per row, in the
@@ -343,6 +356,8 @@ pub(crate) fn step_instrument() -> Option<&'static str> {
         Some("Hamming read's class ablation")
     } else if hold_off() {
         Some("Hamming read's hold cut")
+    } else if carry_off() {
+        Some("Hamming read's carry cut")
     } else if CAPTURE.with(|c| c.borrow().is_some()) {
         Some("Hamming read's row capture")
     } else {
@@ -612,6 +627,10 @@ pub struct HammingRead {
     /// only, each row's ask write is carried to the next `rows` rows of its window, scaled by one
     /// learned scalar per token of the row it came from, starting at zero.
     pub(crate) hold: Option<Hold>,
+    /// The question carry, when on ([`HammingReads::with_carry`], claude-335): at the readout
+    /// read only, each ask head's asked point adds the asked points of the `rows` rows before it
+    /// in its window, each scaled by one learned scalar per token of that row, starting at zero.
+    pub(crate) carry: Option<Hold>,
 }
 
 /// The held ask write (claude-333): how many rows a write is held for, and the per-token gain
@@ -1030,6 +1049,41 @@ impl HammingReads {
         }
     }
 
+    /// The same reads with the readout read's question carried for `rows` rows (claude-335,
+    /// `--hamming-carry-question`): a gain `c` per token of `vocab`, starting at zero, so at the
+    /// start the forward is the forward without it. At the readout read only, each ask head's
+    /// asked point at row `t` adds `Σ_{s=1..rows} c[x_{t−s}] · (point(x_{t−s}) + a[x_{t−s}])`
+    /// over rows of the same window; the found-copy pull asks the same way. It needs the ask
+    /// heads, whose asked points it carries; the stream read is unchanged.
+    pub fn with_carry(mut self, rows: usize, vocab: usize) -> Result<Self> {
+        if !self.has_ask() {
+            return Err(invalid(
+                "the question carry carries the ask heads' question; turn them on with --hamming-ask 1",
+            ));
+        }
+        if rows == 0 {
+            return Err(invalid("a question carry reaches 1 row back or more"));
+        }
+        let read = &mut self.reads[1];
+        let device = read.weight.device().clone();
+        read.carry = Some(Hold { rows, gain: Var::zeros(vocab, DType::F32, &device)? });
+        Ok(self)
+    }
+
+    /// How many rows back the readout read carries its question from, or 0 with no carry.
+    pub fn carry_rows(&self) -> usize {
+        self.reads.get(1).and_then(|r| r.carry.as_ref()).map_or(0, |c| c.rows)
+    }
+
+    /// claude-335: the readout read's carry gain `c`, one per token, on the host; `None` with no
+    /// carry.
+    pub fn carry_gain(&self) -> Result<Option<Vec<f32>>> {
+        match self.reads.get(1).and_then(|r| r.carry.as_ref()) {
+            Some(carry) => Ok(Some(carry.gain.as_tensor().to_vec1::<f32>()?)),
+            None => Ok(None),
+        }
+    }
+
     /// claude-334: each depth's type weight row `w_y` (the weight's row 1), in
     /// [`HAMMING_DEPTHS`] order, on the host.
     pub fn type_weights(&self) -> Result<Vec<Vec<f32>>> {
@@ -1109,7 +1163,7 @@ impl HammingReads {
         }
         self.reads
             .iter()
-            .map(|read| read.pull_bits(ids, table, &pairs, &spans))
+            .map(|read| read.pull_bits(ids, time, table, &pairs, &spans))
             .collect::<Result<Vec<_>>>()
             .map(Some)
     }
@@ -1309,6 +1363,11 @@ impl HammingReads {
             let rows = self.hold_rows() as u32;
             tensors.insert("hold_rows".to_owned(), Tensor::new(&[rows], device)?);
         }
+        // claude-335: likewise only a carried read records its carry's rows.
+        if self.carry_rows() > 0 {
+            let rows = self.carry_rows() as u32;
+            tensors.insert("carry_rows".to_owned(), Tensor::new(&[rows], device)?);
+        }
         candle_core::safetensors::save(&tensors, directory.join(FILE))?;
         Ok(())
     }
@@ -1360,6 +1419,7 @@ impl HammingReads {
                     .map(Var::from_tensor)
                     .transpose()?,
                 hold: None,
+                carry: None,
             });
         }
         // claude-333: a hold is saved as the stream read's gain and its row count, both or
@@ -1398,6 +1458,45 @@ impl HammingReads {
                 _ => {
                     return Err(invalid(format!(
                         "the saved Hamming read holds a write at depth {depth}; only the stream read holds one"
+                    )));
+                }
+            }
+        }
+        // claude-335: a carry is saved as the readout read's gain and its row count, both or
+        // neither, and only with the ask heads, whose question it carries.
+        let carry_rows = match tensors.get("carry_rows") {
+            None => 0,
+            Some(tensor) => *tensor
+                .to_vec1::<u32>()?
+                .first()
+                .ok_or_else(|| invalid("the saved carry's row count is empty"))?
+                as usize,
+        };
+        for (i, depth) in HAMMING_DEPTHS.iter().enumerate() {
+            let gain = tensors.get(&format!("d{depth}.carry"));
+            match (i, gain, carry_rows) {
+                (_, None, _) if i != 1 || carry_rows == 0 => {}
+                (1, Some(gain), rows) if rows > 0 => {
+                    let Some(ask) = reads[1].ask.as_ref() else {
+                        return Err(invalid("the saved Hamming read carries a question but has no ask heads"));
+                    };
+                    let (gains, asks) = (gain.dims1()?, ask.dim(0)?);
+                    if gains != asks {
+                        return Err(invalid(format!(
+                            "the saved carry has {gains} gains for {asks} ask rows"
+                        )));
+                    }
+                    reads[1].carry = Some(Hold { rows, gain: Var::from_tensor(gain)? });
+                }
+                (1, None, _) => {
+                    return Err(invalid("the saved Hamming read records carry rows but no gain"));
+                }
+                (1, Some(_), _) => {
+                    return Err(invalid("the saved Hamming read has a carry gain but no row count"));
+                }
+                _ => {
+                    return Err(invalid(format!(
+                        "the saved Hamming read carries a question at depth {depth}; only the readout read carries one"
                     )));
                 }
             }
@@ -1474,6 +1573,7 @@ impl HammingRead {
             copy_keys: vec![1; heads / 2],
             ask: None,
             hold: None,
+            carry: None,
         })
     }
 
@@ -1494,6 +1594,9 @@ impl HammingRead {
         if let Some(hold) = &self.hold {
             named.push(("hold", &hold.gain));
         }
+        if let Some(carry) = &self.carry {
+            named.push(("carry", &carry.gain));
+        }
         named
     }
 
@@ -1506,21 +1609,52 @@ impl HammingRead {
     /// with the residual through the query's; an ask head (claude-330) with the current token's
     /// point plus its question row, through the key's rotation, so at zero rows it asks exactly
     /// as a copy head does. Call it inside [`as_trained`], as the read does.
-    fn asks(&self, current: &Tensor, points: &Tensor, ids: &[u32]) -> Result<(Tensor, Tensor)> {
+    fn asks(
+        &self,
+        current: &Tensor,
+        points: &Tensor,
+        ids: &[u32],
+        time: usize,
+    ) -> Result<(Tensor, Tensor)> {
         let copy = Self::rotate(&self.key_rotation, current)?;
         let typed = match &self.ask {
             None => Self::rotate(&self.query_rotation, points)?,
-            Some(ask) => Self::rotate(&self.key_rotation, &self.asked(current, ask, ids)?)?,
+            Some(ask) => Self::rotate(&self.key_rotation, &self.asked(current, ask, ids, time)?)?,
         };
         Ok((copy, typed))
     }
 
     /// The ask heads' question points (claude-330): each row's detached token point plus its
-    /// token's row of the question table, the only part that learns.
-    fn asked(&self, current: &Tensor, ask: &Var, ids: &[u32]) -> Result<Tensor> {
+    /// token's row of the question table, the only part that learns. With the question carry
+    /// (claude-335, the readout read only), each row adds the earlier rows' question points of
+    /// its window, `ids` in windows of `time`, each scaled by its own token's gain, unless
+    /// [`set_carry_off`] cuts it.
+    fn asked(&self, current: &Tensor, ask: &Var, ids: &[u32], time: usize) -> Result<Tensor> {
         check_ask_ids(ask, ids)?;
         let index = Tensor::from_vec(ids.to_vec(), ids.len(), current.device())?;
-        Ok(current.add(&ask.as_tensor().index_select(&index, 0)?)?)
+        let asked = current.add(&ask.as_tensor().index_select(&index, 0)?)?;
+        match self.carried(&asked, ids, time)? {
+            Some(carried) => Ok(asked.add(&carried)?),
+            None => Ok(asked),
+        }
+    }
+
+    /// claude-335's carried term at every row of `ids`' windows of `time`, for the uncarried
+    /// question points `asked` `(rows, width)`: `Σ_{s=1..h} c[x_{t−s}] · asked_{t−s}`, over rows
+    /// of the same window only, as [`held_term`] sums a hold. `None` with no carry, or under
+    /// [`set_carry_off`].
+    fn carried(&self, asked: &Tensor, ids: &[u32], time: usize) -> Result<Option<Tensor>> {
+        let Some(carry) = &self.carry else {
+            return Ok(None);
+        };
+        if carry_off() {
+            return Ok(None);
+        }
+        if time == 0 || !ids.len().is_multiple_of(time) {
+            return Err(invalid("the question carry needs whole windows"));
+        }
+        let batch = ids.len() / time;
+        Ok(Some(held_term(&carry.gain, asked, ids, batch, time, carry.rows)?))
     }
 
     /// [`HammingReads::ask_pull`] at this depth: the sum over `spans` and the ask heads of each
@@ -1529,6 +1663,7 @@ impl HammingRead {
     fn pull_bits(
         &self,
         ids: &[u32],
+        time: usize,
         table: &Tensor,
         pairs: &[(u32, u32)],
         spans: &[std::ops::Range<usize>],
@@ -1552,6 +1687,24 @@ impl HammingRead {
         let rotation = self.key_rotation.as_tensor().detach();
         let (query, key) = as_trained(|| {
             let question = current.add(&ask.as_tensor().index_select(&tokens(asking)?, 0)?)?;
+            // claude-335: a carried read asks the pull's question as its forward does, the
+            // window's earlier question points added at each asking row.
+            let question = if self.carry.is_some() {
+                check_ask_ids(ask, ids)?;
+                let every = Tensor::from_vec(ids.to_vec(), ids.len(), device)?;
+                let asked = table
+                    .index_select(&every, 0)?
+                    .add(&ask.as_tensor().index_select(&every, 0)?)?;
+                match self.carried(&asked, ids, time)? {
+                    Some(carried) => {
+                        let at: Vec<u32> = pairs.iter().map(|&(t, _)| t).collect();
+                        question.add(&carried.index_select(&tokens(at)?, 0)?)?
+                    }
+                    None => question,
+                }
+            } else {
+                question
+            };
             Ok((
                 Self::rotate_by(&rotation, &question)?,
                 Self::rotate_by(&rotation, &keyed)?.detach(),
@@ -1678,6 +1831,13 @@ impl HammingRead {
                 "the decode step does not serve a held ask write (--hamming-hold, claude-333)",
             ));
         }
+        // claude-335: the carry sums earlier rows' questions; serving it at a step is a later
+        // unit, so the step refuses it before any arithmetic too.
+        if from > 0 && self.carry.is_some() {
+            return Err(invalid(
+                "the decode step does not serve a carried question (--hamming-carry-question, claude-335)",
+            ));
+        }
         // A window of one token has no earlier position to read.
         if time < 2 {
             return Ok(residual.clone());
@@ -1708,7 +1868,7 @@ impl HammingRead {
             // repeated token stays an exact match however that rotation learns; type heads ask
             // with the residual through the query's. Rotations act lane by lane, so each half is
             // cut after.
-            let (copy_asks, type_asks) = self.asks(&current, &points, ids)?;
+            let (copy_asks, type_asks) = self.asks(&current, &points, ids, time)?;
             let key = Self::rotate(&self.key_rotation, &previous)?;
             // With copy key 2, a copy head asks with `x_t`'s half and then `x_{t−1}`'s, and its
             // key is `x_{s−1}`'s half and then `x_{s−2}`'s, every half through the key's rotation,
@@ -4210,7 +4370,7 @@ mod tests {
         let current = table.index_select(&index, 0).unwrap();
         let points = residual(1, 24, 256, &device).reshape((24, 256)).unwrap();
         for (depth, read) in reads.reads.iter().enumerate() {
-            let (copy, typed) = as_trained(|| read.asks(&current, &points, &ids)).unwrap();
+            let (copy, typed) = as_trained(|| read.asks(&current, &points, &ids, 24)).unwrap();
             let residual_asks =
                 as_trained(|| HammingRead::rotate(&read.query_rotation, &points)).unwrap();
             let (copy, typed, plain) = (codes(&copy), codes(&typed), codes(&residual_asks));
@@ -4677,6 +4837,316 @@ mod tests {
         assert!(zero(&off.held), "−H: no held term");
         assert_eq!(off.write, plain.write, "−H keeps the direct write bit for bit");
         assert_eq!(off.payload, plain.payload);
+    }
+
+    /// claude-335, I-C0: the carry needs the ask heads and at least a row; its gain starts at
+    /// zero, one per token, at the readout read alone; it is saved as `d6.carry` with its row
+    /// count and loads back; a save with half of it, a carry at the stream depth, a carry with no
+    /// ask heads, or one whose gains do not match the ask rows, is refused; and the decode step
+    /// and both export paths refuse a carried read, each naming the carry. Host data only: every
+    /// refusal here comes before any arithmetic.
+    #[test]
+    fn the_carry_starts_at_zero_loads_back_and_is_refused_where_it_is_not_served() -> Result<()> {
+        let cpu = &Device::Cpu;
+        assert!(HammingReads::new(4, 256, cpu)?.with_carry(4, 16).is_err(), "no ask heads");
+        assert!(HammingReads::new(4, 256, cpu)?.with_ask(16)?.with_carry(0, 16).is_err(), "0 rows");
+        let asked = HammingReads::new(4, 256, cpu)?.with_ask(16)?;
+        assert_eq!(asked.carry_rows(), 0);
+        let reads = HammingReads::new(4, 256, cpu)?.with_ask(16)?.with_carry(4, 16)?;
+        assert_eq!((reads.carry_rows(), reads.hold_rows()), (4, 0));
+        let gain = &reads.reads[1].carry.as_ref().expect("the readout read carries").gain;
+        assert_eq!(gain.as_tensor().dims(), [16]);
+        assert!(gain.as_tensor().to_vec1::<f32>()?.iter().all(|&v| v == 0.0));
+        assert!(reads.reads[0].carry.is_none(), "the stream read carries nothing");
+        assert!(reads.reads[1].named().iter().any(|(name, _)| *name == "carry"), "it is trained");
+        let set: Vec<f32> = (0..16).map(|i| 0.25 * i as f32 - 2.0).collect();
+        gain.set(&Tensor::from_vec(set.clone(), 16, cpu)?)?;
+        let dir = std::env::temp_dir().join(format!(
+            "hamming-carry-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        let saved = |reads: &HammingReads| -> Result<std::result::Result<HammingReads, String>> {
+            if dir.exists() {
+                std::fs::remove_dir_all(&dir)?;
+            }
+            std::fs::create_dir(&dir)?;
+            reads.save(&dir)?;
+            let names = candle_core::safetensors::load(dir.join(FILE), cpu)?;
+            let loaded = HammingReads::load(&dir, cpu).map_err(|e| e.to_string());
+            std::fs::remove_dir_all(&dir)?;
+            Ok(loaded.map(|r| {
+                let r = r.expect("saved reads");
+                assert_eq!(names.contains_key("d6.carry"), r.carry_rows() > 0, "the gain is d6.carry");
+                assert_eq!(names.contains_key("carry_rows"), r.carry_rows() > 0);
+                r
+            }))
+        };
+        let loaded = saved(&reads)?.expect("a carried read loads");
+        assert_eq!(loaded.carry_rows(), 4);
+        assert_eq!(loaded.carry_gain()?, Some(set.clone()));
+        assert!(loaded.reads[0].carry.is_none());
+        let plain = saved(&asked)?.expect("an uncarried read loads");
+        assert_eq!(plain.carry_rows(), 0);
+        // A held and carried read keeps both apart.
+        let both = HammingReads::new(4, 256, cpu)?.with_ask(16)?.with_hold(8, 16)?.with_carry(4, 16)?;
+        let both = saved(&both)?.expect("held and carried");
+        assert_eq!((both.hold_rows(), both.carry_rows()), (8, 4));
+        // A gain with no row count; a carry at the stream depth; a carry with no ask heads.
+        let mut no_rows = reads.clone();
+        no_rows.reads[1].carry.as_mut().expect("carried").rows = 0;
+        let err = saved(&no_rows)?.err().unwrap_or_default();
+        assert!(err.contains("carry gain but no row count"), "{err}");
+        let mut shallow = reads.clone();
+        shallow.reads[0].carry = shallow.reads[1].carry.clone();
+        let err = saved(&shallow)?.err().unwrap_or_default();
+        assert!(err.contains("at depth 2; only the readout read"), "{err}");
+        let mut bare = reads.clone();
+        for read in &mut bare.reads {
+            read.ask = None;
+        }
+        let err = saved(&bare)?.err().unwrap_or_default();
+        assert!(err.contains("carries a question but has no ask heads"), "{err}");
+        let short = HammingReads::new(4, 256, cpu)?.with_ask(16)?.with_carry(4, 12)?;
+        let err = saved(&short)?.err().unwrap_or_default();
+        assert!(err.contains("the saved carry has 12 gains for 16 ask rows"), "{err}");
+        assert_eq!(asked.carry_gain()?, None);
+        // The decode step refuses before any arithmetic; the exports refuse it by name.
+        let x = Tensor::zeros((1, 4, 256), DType::F32, cpu)?;
+        let table = Tensor::zeros((16, 256), DType::F32, cpu)?;
+        let err = reads.reads[1].apply_readout_last(&x, &[1, 2, 3, 4], &table).err().map(|e| e.to_string());
+        assert!(err.as_deref().is_some_and(|e| e.contains("carried question (--hamming-carry-question")), "{err:?}");
+        let err = crate::fbs_export::round_hamming_as_exported(&reads).err().map(|e| e.to_string());
+        assert!(err.as_deref().is_some_and(|e| e.contains("--hamming-carry-question")), "{err:?}");
+        let err = crate::fbs_export::fbs_hamming_snapshot(&reads, 6, 256).err().map(|e| e.to_string());
+        assert!(err.as_deref().is_some_and(|e| e.contains("--hamming-carry-question")), "{err:?}");
+        Ok(())
+    }
+
+    /// claude-335: the carry cut is an instrument the decode cache's step does not carry. Host
+    /// state only.
+    #[test]
+    fn the_carry_cut_keeps_the_decode_cache_off() {
+        assert_eq!(step_instrument(), None);
+        set_carry_off(true);
+        assert!(carry_off());
+        assert_eq!(step_instrument(), Some("Hamming read's carry cut"));
+        set_carry_off(false);
+        assert_eq!(step_instrument(), None);
+    }
+
+    /// claude-335's reads for the carry tests: the ask heads on, `w_c`, `w_y` and the ask rows
+    /// set off their starts so that every gradient is live.
+    #[cfg(feature = "cuda")]
+    fn live_ask_reads(device: &Device) -> HammingReads {
+        let reads = ask_reads(device);
+        for read in &reads.reads {
+            read.weight
+                .set(&Tensor::from_vec(wave(512, 3), (2, 256), device).unwrap())
+                .unwrap();
+            let rows: Vec<f32> = wave(16 * 256, 5).iter().map(|v| v * 0.05).collect();
+            read.ask
+                .as_ref()
+                .unwrap()
+                .set(&Tensor::from_vec(rows, (16, 256), device).unwrap())
+                .unwrap();
+        }
+        reads
+    }
+
+    /// claude-335, I-C1: at `c = 0`, a carried read's readout forward, and the gradient of every
+    /// parameter the two reads share, equal the uncarried read's as numbers; once `c` moves, the
+    /// readout moves: the carried run does carry.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_carry_starts_off_in_the_readout_forward_and_the_gradient() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = live_ask_reads(&device);
+        let carried = reads.clone().with_carry(4, 16).unwrap();
+        let ids: Vec<u32> = (0..48).map(|i| ((i * 5 + i / 7) % 16) as u32).collect();
+        let x = residual(2, 24, 256, &device);
+        let table = table(16, 256, &device);
+        let probe = Tensor::from_vec(wave(48 * 256, 11), (2, 24, 256), &device).unwrap();
+        let run = |r: &HammingReads| {
+            let out = r.reads[1].apply_readout(&x, &ids, &table).unwrap();
+            let grads = out.mul(&probe).unwrap().sum_all().unwrap().backward().unwrap();
+            (out.flatten_all().unwrap().to_vec1::<f32>().unwrap(), grads)
+        };
+        let ((plain, plain_grads), (with_carry, carried_grads)) = (run(&reads), run(&carried));
+        assert!(plain.iter().zip(&with_carry).all(|(a, b)| a == b), "the forward");
+        let mut live = 0;
+        for (name, var) in reads.reads[1].named() {
+            let of = |grads: &candle_core::backprop::GradStore| {
+                grads.get(var.as_tensor()).map(|g| g.flatten_all().unwrap().to_vec1::<f32>().unwrap())
+            };
+            let (a, b) = (of(&plain_grads), of(&carried_grads));
+            assert_eq!(a.is_some(), b.is_some(), "{name}");
+            if let (Some(a), Some(b)) = (a, b) {
+                assert!(a.iter().zip(&b).all(|(p, q)| p == q), "{name}");
+                live += usize::from(a.iter().any(|&v| v != 0.0));
+            }
+        }
+        assert!(live >= 2, "the weights and the ask rows learn: {live}");
+        let gain = &carried.reads[1].carry.as_ref().unwrap().gain;
+        gain.set(&Tensor::ones(16, DType::F32, &device).unwrap()).unwrap();
+        assert_ne!(run(&carried).0, plain, "a moved gain moves the readout");
+    }
+
+    /// claude-335, I-C2: one nonzero question point `u + a[x_t]` at row `t` (and `a[x_t]` alone
+    /// at the other window's rows of `x_t`, checked by a brute-force sum) reaches the asked points
+    /// of rows `t + 1` to `t + h` of its own window as `c[x_t] · (u + a[x_t])`, exactly, and nothing else: row
+    /// `t` keeps its own point unscaled, and no row before it, past `t + h`, or in the batch's
+    /// other window gets any, also when the window ends inside the carry. Under `−C` only row `t`
+    /// is nonzero.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_carried_question_reaches_exactly_the_next_rows_of_its_window() {
+        let device = Device::new_cuda(0).unwrap();
+        let (batch, time, width, rows) = (2, 16, 256, 4);
+        let reads = HammingReads::new(4, width, &device)
+            .unwrap()
+            .with_ask(16)
+            .unwrap()
+            .with_carry(rows, 16)
+            .unwrap();
+        let read = &reads.reads[1];
+        // Every token's gain differs, so a gain read at the wrong row shows.
+        let gains: Vec<f32> = (0..16).map(|i| i as f32 + 1.0).collect();
+        read.carry
+            .as_ref()
+            .unwrap()
+            .gain
+            .set(&Tensor::from_vec(gains.clone(), 16, &device).unwrap())
+            .unwrap();
+        let ask = read.ask.as_ref().unwrap();
+        let ids: Vec<u32> = (0..batch * time)
+            .map(|i| if i < time { i as u32 } else { ((i * 3) % 16) as u32 })
+            .collect();
+        let u: Vec<f32> = (0..width).map(|k| (k % 7) as f32 * 0.5 - 1.0).collect();
+        // The question table's row of `t`'s token, so the carry must carry `point + a`, not the
+        // point alone (claude-335 FIT round 1, minor 1).
+        let ua: Vec<f32> = (0..width).map(|k| (k % 5) as f32 * 0.25 - 0.5).collect();
+        for t in [3usize, 13] {
+            let mut current = vec![0.0f32; batch * time * width];
+            current[t * width..(t + 1) * width].copy_from_slice(&u);
+            let mut table = vec![0.0f32; 16 * width];
+            let token = ids[t] as usize;
+            table[token * width..(token + 1) * width].copy_from_slice(&ua);
+            ask.set(&Tensor::from_vec(table, (16, width), &device).unwrap()).unwrap();
+            // Every row's own question, `point + a[x_r]`: `t`'s, and the rows of the other
+            // window that hold `t`'s token.
+            let own: Vec<Vec<f32>> = (0..batch * time)
+                .map(|r| {
+                    let point = if r == t { u.clone() } else { vec![0.0; width] };
+                    let a = if ids[r] as usize == token { ua.clone() } else { vec![0.0; width] };
+                    point.iter().zip(&a).map(|(p, q)| p + q).collect()
+                })
+                .collect();
+            let current = Tensor::from_vec(current, (batch * time, width), &device).unwrap();
+            for off in [false, true] {
+                set_carry_off(off);
+                let asked = read.asked(&current, ask, &ids, time).unwrap().to_vec2::<f32>().unwrap();
+                set_carry_off(false);
+                for (r, row) in asked.iter().enumerate() {
+                    // The brute-force sum over the `rows` rows before `r` in its own window.
+                    let mut want = own[r].clone();
+                    if !off {
+                        for s in 1..=rows.min(r % time) {
+                            let g = gains[ids[r - s] as usize];
+                            for (w, v) in want.iter_mut().zip(&own[r - s]) {
+                                *w += g * v;
+                            }
+                        }
+                    }
+                    assert_eq!(*row, want, "point at {t}, row {r}, carry off {off}");
+                }
+            }
+        }
+    }
+
+    /// claude-335, I-C3: with `c[Q] = 1`, every other gain 0 and `a[H4] = −point(H4)`, the readout
+    /// read's pull at `H4` asks exactly the question `Q` asks, so its distance to the copy is
+    /// `Q`'s, bit for bit; under `−C` it is not. The pull's gradient reaches `c` at the tokens of
+    /// the `h` rows before `H4` and at no other, and `a[Q]` through the carry; under `−C` it
+    /// reaches no gain.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_carried_pull_asks_the_question_rows_question_and_trains_the_gain() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = live_ask_reads(&device).with_carry(4, 16).unwrap();
+        // One window: the value 7 at s = 1 after the key 3; Q = 5 at row 6, the header 13, 14, 15
+        // at rows 7 to 9 and H4 = 1 at row 10; tokens 9 to 12 sit at rows 2 to 5, 0, 2, 4, 6, 8
+        // after row 10.
+        let ids = [3u32, 7, 9, 10, 11, 12, 5, 13, 14, 15, 1, 0, 2, 4, 6, 8];
+        let table = table(16, 256, &device);
+        let read = &reads.reads[1];
+        let carry = &read.carry.as_ref().unwrap().gain;
+        let mut gains = vec![0.0f32; 16];
+        gains[5] = 1.0;
+        carry.set(&Tensor::from_vec(gains, 16, &device).unwrap()).unwrap();
+        let ask = read.ask.as_ref().unwrap();
+        let mut rows = ask.as_tensor().to_vec2::<f32>().unwrap();
+        rows[1] = table.get(1).unwrap().to_vec1::<f32>().unwrap().iter().map(|v| -v).collect();
+        ask.set(&Tensor::from_vec(rows.concat(), (16, 256), &device).unwrap()).unwrap();
+        let readout = |pulls: &[(usize, u32)]| reads.ask_pull_depths(&ids, 16, &table, pulls).unwrap().unwrap()[1];
+        let (at_q, at_h4) = (readout(&[(6, 7)]), readout(&[(10, 7)]));
+        assert_eq!(at_q, at_h4, "H4 asks Q's question");
+        set_carry_off(true);
+        let cut = readout(&[(10, 7)]);
+        set_carry_off(false);
+        assert_ne!(cut, at_q, "without the carry H4 asks its own");
+        let grads = reads.ask_pull(&ids, 16, &table, &[(10, 7)]).unwrap().unwrap().backward().unwrap();
+        let c = grads.get(carry.as_tensor()).expect("the gain learns").to_vec1::<f32>().unwrap();
+        for token in [5usize, 13, 14, 15] {
+            assert_ne!(c[token], 0.0, "c[{token}], a row inside the carry");
+        }
+        for token in [0usize, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12] {
+            assert_eq!(c[token], 0.0, "c[{token}], a token outside the carry");
+        }
+        let a = grads.get(ask.as_tensor()).expect("the ask rows learn");
+        assert!(a.get(5).unwrap().to_vec1::<f32>().unwrap().iter().any(|&v| v != 0.0), "a[Q] through the carry");
+        set_carry_off(true);
+        let cut_grads = reads.ask_pull(&ids, 16, &table, &[(10, 7)]).unwrap().unwrap().backward().unwrap();
+        set_carry_off(false);
+        assert!(no_gradient(&cut_grads, carry.as_tensor()), "−C trains no gain");
+    }
+
+    /// claude-335, I-C4: `−C` drops the carried question alone: a carried read with a moved gain
+    /// reads, under the cut, exactly as the same read without a carry, bit for bit, and differs
+    /// without the cut.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_carry_cut_drops_the_carried_question_alone() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = live_ask_reads(&device);
+        let carried = reads.clone().with_carry(4, 16).unwrap();
+        let gains: Vec<f32> = wave(16, 7).iter().map(|v| v * 2.0).collect();
+        carried.reads[1]
+            .carry
+            .as_ref()
+            .unwrap()
+            .gain
+            .set(&Tensor::from_vec(gains, 16, &device).unwrap())
+            .unwrap();
+        let ids: Vec<u32> = (0..48).map(|i| ((i * 5 + i / 7) % 16) as u32).collect();
+        let x = residual(2, 24, 256, &device);
+        let table = table(16, 256, &device);
+        let out = |r: &HammingReads| {
+            r.reads[1].apply_readout(&x, &ids, &table).unwrap().flatten_all().unwrap().to_vec1::<f32>().unwrap()
+        };
+        let plain = out(&reads);
+        set_carry_off(true);
+        let cut = out(&carried);
+        set_carry_off(false);
+        assert_eq!(cut, plain, "−C reads as the uncarried read");
+        assert_ne!(out(&carried), plain, "the carry is on without the cut");
+        let stream = |r: &HammingReads| {
+            r.reads[0].apply(&x, &ids, &table).unwrap().flatten_all().unwrap().to_vec1::<f32>().unwrap()
+        };
+        assert_eq!(stream(&carried), stream(&reads), "the stream read is untouched");
     }
 }
 
