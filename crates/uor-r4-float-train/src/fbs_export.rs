@@ -399,6 +399,11 @@ pub fn fbs_hamming_snapshot(
                 "hamming_read d{depth} has the type spin (step_rotation), which the integer engine does not serve yet"
             )));
         }
+        if read.ask.is_some() {
+            return Err(invalid(format!(
+                "hamming_read d{depth} has ask heads (claude-330), which the integer engine does not serve yet"
+            )));
+        }
         let table = |name: &str, var: &Var, shape: &[usize]| -> Result<Vec<f32>> {
             let name = format!("hamming_read.d{depth}.{name}");
             if var.dims() != shape {
@@ -517,6 +522,11 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
         if read.step_rotation.is_some() {
             return Err(invalid(
                 "a Hamming read with the type spin (step_rotation) has no exported form to round to",
+            ));
+        }
+        if read.ask.is_some() {
+            return Err(invalid(
+                "a Hamming read with ask heads (claude-330) has no exported form to round to",
             ));
         }
         for (table, var, exp) in [
@@ -1492,6 +1502,9 @@ mod tests {
 
         let spun = HammingReads::new(heads, width, &device)?.with_type_spin()?;
         assert!(round_hamming_as_exported(&spun).is_err());
+        let asked = HammingReads::new(heads, width, &device)?.with_ask(16)?;
+        let err = round_hamming_as_exported(&asked).expect_err("ask heads").to_string();
+        assert!(err.contains("ask heads (claude-330)"), "{err}");
         let mut short = HammingReads::new(heads, width, &device)?;
         short.reads.pop();
         let err = round_hamming_as_exported(&short)
@@ -1959,6 +1972,8 @@ mod tests {
         refused(&loaded, HAMMING_READOUT_DEPTH, 64, "hamming_read.d2.query_rotation has shape");
         let spun = loaded.clone().with_type_spin()?;
         refused(&spun, HAMMING_READOUT_DEPTH, width, "the type spin (step_rotation)");
+        let asked = loaded.clone().with_ask(16)?;
+        refused(&asked, HAMMING_READOUT_DEPTH, width, "has ask heads (claude-330)");
         let mut margin = loaded.reads[0].margin.flatten_all()?.to_vec1::<f32>()?;
         let kept = margin.clone();
         margin[2] = 0.0;

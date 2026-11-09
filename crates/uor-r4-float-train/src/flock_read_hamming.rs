@@ -178,6 +178,9 @@ pub enum ReadScope {
     Copy,
     /// Every head chooses only positions before the cut.
     All,
+    /// The ask heads (the type heads under [`HammingReads::with_ask`]) choose only positions
+    /// before the cut; the copy heads, every earlier position (claude-330).
+    Ask,
 }
 
 impl ReadScope {
@@ -187,6 +190,7 @@ impl ReadScope {
             Self::Full => "full",
             Self::Copy => "copy",
             Self::All => "all",
+            Self::Ask => "ask",
         }
     }
 }
@@ -246,6 +250,7 @@ fn head_limited(scope: ReadScope, head: usize, copy_heads: usize) -> bool {
         ReadScope::Full => false,
         ReadScope::Copy => head < copy_heads,
         ReadScope::All => true,
+        ReadScope::Ask => head >= copy_heads,
     }
 }
 
@@ -275,6 +280,7 @@ fn head_limit(cut: Option<(ReadScope, usize)>, head: usize, copy_heads: usize, t
     match cut {
         Some((ReadScope::All, at)) => at.min(time),
         Some((ReadScope::Copy, at)) if head < copy_heads => at.min(time),
+        Some((ReadScope::Ask, at)) if head >= copy_heads => at.min(time),
         _ => time,
     }
 }
@@ -491,6 +497,11 @@ pub struct HammingRead {
     /// two-token key ([`HammingReads::with_copy_key`], claude-261), one entry per copy head
     /// ([`HammingReads::with_copy_keys`], claude-268).
     copy_keys: Vec<usize>,
+    /// The ask heads' question table, when on ([`HammingReads::with_ask`], claude-330): one
+    /// learned point per token, `(vocab, width)`, starting at zero. The type heads then ask with
+    /// the current token's point plus its row, through the key's rotation, and bring back the
+    /// kept position's own token point.
+    pub(crate) ask: Option<Var>,
 }
 
 /// Refuse a copy key the read cannot carry: one other than 1 or 2, or 2 on heads of `width /
@@ -522,6 +533,47 @@ fn check_copy_keys(copy_keys: &[usize], heads: usize, width: usize) -> Result<()
         )));
     }
     copy_keys.iter().try_for_each(|&k| check_copy_key(k, heads, width))
+}
+
+/// claude-330: every asking token has a row in the ask table, so a lookup never reads past it.
+fn check_ask_ids(ask: &Var, ids: &[u32]) -> Result<()> {
+    let rows = ask.as_tensor().dim(0)?;
+    match ids.iter().find(|&&id| id as usize >= rows) {
+        Some(id) => Err(invalid(format!("token {id} has no row in the {rows}-row ask table"))),
+        None => Ok(()),
+    }
+}
+
+/// [`pull_pairs`]'s answer: the `(row, s)` pairs and, per pull with any, the range of its pairs.
+pub(crate) type PullPairs = (Vec<(u32, u32)>, Vec<std::ops::Range<usize>>);
+
+/// The found-copy pull's candidates (claude-330): for each `(row, target)`, the `(row, s)` pairs
+/// of the earlier positions `s` of the row's window holding `target`, `1 ≤ s < t` in the window,
+/// in ascending `s`; and, for each pull with any, the range of its pairs. A pull with none has no
+/// range, so it adds nothing.
+pub(crate) fn pull_pairs(
+    ids: &[u32],
+    time: usize,
+    pulls: &[(usize, u32)],
+) -> Result<PullPairs> {
+    let mut pairs = Vec::new();
+    let mut spans = Vec::new();
+    for &(row, target) in pulls {
+        if row >= ids.len() {
+            return Err(invalid(format!("a found-copy pull at row {row} of {}", ids.len())));
+        }
+        let (start, t) = (row - row % time, row % time);
+        let from = pairs.len();
+        pairs.extend(
+            (1..t)
+                .filter(|&s| ids[start + s] == target)
+                .map(|s| (row as u32, (start + s) as u32)),
+        );
+        if pairs.len() > from {
+            spans.push(from..pairs.len());
+        }
+    }
+    Ok((pairs, spans))
 }
 
 /// The token two before each of `ids`' rows, in windows of `time`: `x_{s−2}`, or, where a window
@@ -733,6 +785,11 @@ impl HammingReads {
     /// head turns its query at `t` and its key at `s` by their frames' inverses, so it compares
     /// them through `F_t ⊗ F_s⁻¹`, the steps of the tokens between them. Copy heads are untouched.
     pub fn with_type_spin(mut self) -> Result<Self> {
+        if self.has_ask() {
+            return Err(invalid(
+                "the type spin and the ask heads both change the type heads; one is on at a time",
+            ));
+        }
         for read in &mut self.reads {
             let lanes = read.weight.dim(1)? / 4;
             let identity: Vec<f32> = (0..lanes).flat_map(|_| [1.0f32, 0.0, 0.0, 0.0]).collect();
@@ -744,6 +801,117 @@ impl HammingReads {
             )?)?);
         }
         Ok(self)
+    }
+
+    /// The same reads with the type heads turned into ask heads (claude-330). Each depth gets its
+    /// own question table, one point per token of `vocab`, starting at zero. An ask head asks with
+    /// the current token's point plus its row, through the key's rotation, against the copy key,
+    /// and brings back the kept position's own token point. At zero rows it asks exactly as a copy
+    /// head does. Its margin starts at a copy head's, a quarter of a head's bits. Copy heads are
+    /// untouched. The type spin also changes the type heads, so the two are refused together.
+    pub fn with_ask(mut self, vocab: usize) -> Result<Self> {
+        if self.type_spin()? {
+            return Err(invalid(
+                "the type spin and the ask heads both change the type heads; one is on at a time",
+            ));
+        }
+        for read in &mut self.reads {
+            let width = read.weight.dim(1)?;
+            let head_width = width / read.heads;
+            let copy_heads = read.copy_heads();
+            let device = read.weight.device().clone();
+            let margins: Vec<f32> = read
+                .margin
+                .as_tensor()
+                .to_vec1::<f32>()?
+                .into_iter()
+                .enumerate()
+                .map(|(h, m)| if h < copy_heads { m } else { (head_width / 4) as f32 })
+                .collect();
+            read.margin = Var::from_tensor(&Tensor::from_vec(margins, read.heads, &device)?)?;
+            read.ask = Some(Var::zeros((vocab, width), DType::F32, &device)?);
+        }
+        Ok(self)
+    }
+
+    /// Whether every depth has its ask heads' question table.
+    pub fn has_ask(&self) -> bool {
+        !self.reads.is_empty() && self.reads.iter().all(|r| r.ask.is_some())
+    }
+
+    /// The found-copy pull (claude-330, `--hamming-attract`): for each `(row, target)` in `pulls`,
+    /// the earlier positions `s` of the row's window holding `target` (`1 ≤ s < t` in the window)
+    /// are the copies an ask head should find. Each ask head's distance to its nearest one,
+    /// `bits(t, s*) / head_width`, `s*` chosen on detached values with ties to the smallest `s`,
+    /// is averaged over the rows with a copy, the ask heads and the depths. The keys and the
+    /// rotation are detached, so only the question rows learn from it. `None` when no row has a
+    /// copy; the caller scales the mean by λ.
+    pub fn ask_pull(
+        &self,
+        ids: &[u32],
+        time: usize,
+        table: &Tensor,
+        pulls: &[(usize, u32)],
+    ) -> Result<Option<Tensor>> {
+        let Some(parts) = self.pull_parts(ids, time, table, pulls)? else {
+            return Ok(None);
+        };
+        let mut total: Option<Tensor> = None;
+        let mut count = 0usize;
+        for (sum, n) in parts {
+            total = Some(match total {
+                None => sum,
+                Some(t) => t.add(&sum)?,
+            });
+            count += n;
+        }
+        Ok(total.map(|t| t.affine(1.0 / count as f64, 0.0)).transpose()?)
+    }
+
+    /// The sheet's pull-distance reading (claude-330): [`Self::ask_pull`]'s mean distance at each
+    /// depth on its own, as plain numbers, over the same `(row, target)`s. `None` when no row has
+    /// a copy.
+    pub fn ask_pull_depths(
+        &self,
+        ids: &[u32],
+        time: usize,
+        table: &Tensor,
+        pulls: &[(usize, u32)],
+    ) -> Result<Option<Vec<f64>>> {
+        let Some(parts) = self.pull_parts(ids, time, table, pulls)? else {
+            return Ok(None);
+        };
+        parts
+            .into_iter()
+            .map(|(sum, n)| Ok(f64::from(sum.to_scalar::<f32>()?) / n as f64))
+            .collect::<Result<Vec<_>>>()
+            .map(Some)
+    }
+
+    /// Each depth's [`HammingRead::pull_bits`]: its sum and its term count, or `None` when no row
+    /// has a copy.
+    fn pull_parts(
+        &self,
+        ids: &[u32],
+        time: usize,
+        table: &Tensor,
+        pulls: &[(usize, u32)],
+    ) -> Result<Option<Vec<(Tensor, usize)>>> {
+        if !self.has_ask() {
+            return Err(invalid("the found-copy pull needs the ask heads"));
+        }
+        if time == 0 || !ids.len().is_multiple_of(time) {
+            return Err(invalid("the found-copy pull needs whole windows"));
+        }
+        let (pairs, spans) = pull_pairs(ids, time, pulls)?;
+        if spans.is_empty() {
+            return Ok(None);
+        }
+        self.reads
+            .iter()
+            .map(|read| read.pull_bits(ids, table, &pairs, &spans))
+            .collect::<Result<Vec<_>>>()
+            .map(Some)
     }
 
     /// The same reads with their copy heads keyed on `copy_key` tokens before a position: 1, the
@@ -981,7 +1149,21 @@ impl HammingReads {
                     .map(Var::from_tensor)
                     .transpose()?,
                 copy_keys: Vec::new(),
+                // Present only when the read was trained with the ask heads (claude-330).
+                ask: tensors
+                    .get(&format!("d{depth}.ask"))
+                    .map(Var::from_tensor)
+                    .transpose()?,
             });
+        }
+        // The ask heads are all or nothing: a save with them at some depths only would load as a
+        // read that the pull refuses and the forward still half uses.
+        let asked = reads.iter().filter(|r| r.ask.is_some()).count();
+        if asked != 0 && asked != reads.len() {
+            return Err(invalid(format!(
+                "the saved Hamming read has ask heads at {asked} of its {} depths",
+                reads.len()
+            )));
         }
         let reads = Self { reads }.with_copy_key(copy_key)?;
         match tensors.get("copy_keys") {
@@ -1044,6 +1226,7 @@ impl HammingRead {
             weight: Var::zeros((2, width), DType::F32, device)?,
             step_rotation: None,
             copy_keys: vec![1; heads / 2],
+            ask: None,
         })
     }
 
@@ -1058,6 +1241,9 @@ impl HammingRead {
         if let Some(step) = &self.step_rotation {
             named.push(("step_rotation", step));
         }
+        if let Some(ask) = &self.ask {
+            named.push(("ask", ask));
+        }
         named
     }
 
@@ -1065,10 +1251,98 @@ impl HammingRead {
         self.named().into_iter().map(|(_, var)| var).collect()
     }
 
+    /// The copy heads' and the type heads' questions, at full width, before the cut into heads:
+    /// a copy head asks with the current token's point through the key's rotation; a type head
+    /// with the residual through the query's; an ask head (claude-330) with the current token's
+    /// point plus its question row, through the key's rotation, so at zero rows it asks exactly
+    /// as a copy head does. Call it inside [`as_trained`], as the read does.
+    fn asks(&self, current: &Tensor, points: &Tensor, ids: &[u32]) -> Result<(Tensor, Tensor)> {
+        let copy = Self::rotate(&self.key_rotation, current)?;
+        let typed = match &self.ask {
+            None => Self::rotate(&self.query_rotation, points)?,
+            Some(ask) => Self::rotate(&self.key_rotation, &self.asked(current, ask, ids)?)?,
+        };
+        Ok((copy, typed))
+    }
+
+    /// The ask heads' question points (claude-330): each row's detached token point plus its
+    /// token's row of the question table, the only part that learns.
+    fn asked(&self, current: &Tensor, ask: &Var, ids: &[u32]) -> Result<Tensor> {
+        check_ask_ids(ask, ids)?;
+        let index = Tensor::from_vec(ids.to_vec(), ids.len(), current.device())?;
+        Ok(current.add(&ask.as_tensor().index_select(&index, 0)?)?)
+    }
+
+    /// [`HammingReads::ask_pull`] at this depth: the sum over `spans` and the ask heads of each
+    /// head's least `bits(t, s) / head_width` over the span's `(t, s)` pairs, and how many terms
+    /// it sums. A rotation acts row by row, lane by lane, so the pairs' rows alone are rotated.
+    fn pull_bits(
+        &self,
+        ids: &[u32],
+        table: &Tensor,
+        pairs: &[(u32, u32)],
+        spans: &[std::ops::Range<usize>],
+    ) -> Result<(Tensor, usize)> {
+        let ask = self
+            .ask
+            .as_ref()
+            .ok_or_else(|| invalid("the found-copy pull needs the ask heads"))?;
+        let (n, device) = (pairs.len(), table.device());
+        let width = table.dim(1)?;
+        let head_width = width / self.heads;
+        let (copy_heads, asks) = (self.copy_heads(), self.heads - self.copy_heads());
+        let table = table.detach();
+        let tokens = |rows: Vec<u32>| Tensor::from_vec(rows, n, device);
+        // The asking row's own token, and the token before each candidate, which its key names.
+        let asking: Vec<u32> = pairs.iter().map(|&(t, _)| ids[t as usize]).collect();
+        check_ask_ids(ask, &asking)?;
+        let named: Vec<u32> = pairs.iter().map(|&(_, s)| ids[s as usize - 1]).collect();
+        let current = table.index_select(&tokens(asking.clone())?, 0)?;
+        let keyed = table.index_select(&tokens(named)?, 0)?;
+        let rotation = self.key_rotation.as_tensor().detach();
+        let (query, key) = as_trained(|| {
+            let question = current.add(&ask.as_tensor().index_select(&tokens(asking)?, 0)?)?;
+            Ok((
+                Self::rotate_by(&rotation, &question)?,
+                Self::rotate_by(&rotation, &keyed)?.detach(),
+            ))
+        })?;
+        let span = (copy_heads * head_width, asks * head_width);
+        let signs = |p: &Tensor| -> Result<Tensor> {
+            Ok(p.ge(0.0)?.to_dtype(DType::F32)?.affine(2.0, -1.0)?)
+        };
+        // The read's straight-through code on the question; the key's code is a constant.
+        let q = query.narrow(1, span.0, span.1)?;
+        let q = q.add(&signs(&q)?.sub(&q)?.detach())?;
+        let k = signs(&key.narrow(1, span.0, span.1)?)?;
+        let agree = q.mul(&k)?.reshape((n, asks, head_width))?.sum(2)?;
+        let bits = agree.affine(-0.5, head_width as f64 / 2.0)?;
+        let values = bits.detach().to_vec2::<f32>()?;
+        let mut chosen = Vec::with_capacity(spans.len() * asks);
+        for range in spans {
+            for h in 0..asks {
+                let best = range
+                    .clone()
+                    .min_by(|&a, &b| values[a][h].total_cmp(&values[b][h]).then(a.cmp(&b)))
+                    .ok_or_else(|| invalid("a found-copy span is empty"))?;
+                chosen.push((best * asks + h) as u32);
+            }
+        }
+        let terms = chosen.len();
+        let picked = bits
+            .flatten_all()?
+            .index_select(&Tensor::from_vec(chosen, terms, device)?, 0)?;
+        Ok((picked.sum_all()?.affine(1.0 / head_width as f64, 0.0)?, terms))
+    }
+
     /// `points` rows rotated lane by lane by `rotation`'s unit quaternions.
     fn rotate(rotation: &Var, points: &Tensor) -> Result<Tensor> {
+        Self::rotate_by(rotation.as_tensor(), points)
+    }
+
+    /// [`Self::rotate`] by a plain tensor, so a caller can pass a detached rotation.
+    fn rotate_by(rotation: &Tensor, points: &Tensor) -> Result<Tensor> {
         let gate = rotation
-            .as_tensor()
             .reshape((1, points.dim(1)?))?
             .broadcast_as(points.shape())?
             .contiguous()?;
@@ -1177,8 +1451,7 @@ impl HammingRead {
             // repeated token stays an exact match however that rotation learns; type heads ask
             // with the residual through the query's. Rotations act lane by lane, so each half is
             // cut after.
-            let copy_asks = Self::rotate(&self.key_rotation, &current)?;
-            let type_asks = Self::rotate(&self.query_rotation, &points)?;
+            let (copy_asks, type_asks) = self.asks(&current, &points, ids)?;
             let key = Self::rotate(&self.key_rotation, &previous)?;
             // With copy key 2, a copy head asks with `x_t`'s half and then `x_{t−1}`'s, and its
             // key is `x_{s−1}`'s half and then `x_{s−2}`'s, every half through the key's rotation,
@@ -1302,9 +1575,13 @@ impl HammingRead {
         // What each kind of head brings back, at full width: a copy head the table's point of the
         // kept position's own token, the readout's own point for it (the 26 Sep head's tied
         // readout); a type head the kept position's rotated residual.
+        // claude-330: an ask head brings back what a copy head does, the kept token's point.
         let sources = [
             current.reshape((batch, time, width))?,
-            value.reshape((batch, time, width))?,
+            match self.ask {
+                None => value.reshape((batch, time, width))?,
+                Some(_) => current.reshape((batch, time, width))?,
+            },
         ];
         let mut sums = [
             Tensor::zeros((asking, width), DType::F32, device)?,
@@ -1444,16 +1721,20 @@ impl HammingRead {
             Ok(if off[kind] { w.zeros_like()? } else { w })
         };
         let (copy_weight, type_weight) = (class(0)?, class(1)?);
-        let copied = if readout {
-            // Only where a copy head found an earlier copy does the prediction move.
-            let matched = found[0].gt(0.0)?.to_dtype(DType::F32)?;
-            means[0].sub(&asked)?.broadcast_mul(&matched)?
-        } else {
-            means[0].clone()
+        // Only where a head of the kind found an earlier copy does the prediction move.
+        let moved = |kind: usize| -> Result<Tensor> {
+            let matched = found[kind].gt(0.0)?.to_dtype(DType::F32)?;
+            Ok(means[kind].sub(&asked)?.broadcast_mul(&matched)?)
+        };
+        let copied = if readout { moved(0)? } else { means[0].clone() };
+        // claude-330: an ask head combines in the copy form, through the type weight row.
+        let typed = match (&self.ask, readout) {
+            (Some(_), true) => moved(1)?,
+            _ => means[1].clone(),
         };
         let added = copied
             .broadcast_mul(&copy_weight)?
-            .add(&means[1].broadcast_mul(&type_weight)?)?;
+            .add(&typed.broadcast_mul(&type_weight)?)?;
         Ok(asked.add(&added)?.reshape((batch, asks, width))?)
     }
 }
@@ -3498,4 +3779,357 @@ mod tests {
         let unsnapped = with_gate_mode(active, 1, 0, false, turn).unwrap();
         assert_ne!(after, unsnapped, "it is snapped");
     }
+
+    /// claude-330: the ask scope's name, and its cuts, decode and row alike, limit the ask heads
+    /// (the type heads) only, so `R^{−aQ}` leaves the copy heads' picks as they were.
+    #[test]
+    fn the_ask_scope_is_named_ask_and_cuts_only_the_ask_heads() {
+        assert_eq!(ReadScope::Ask.name(), "ask");
+        let (time, copy, rows) = (6, 2, 4);
+        for head in 0..4 {
+            let end = if head < copy { time } else { 3 };
+            assert_eq!(head_limit(Some((ReadScope::Ask, 3)), head, copy, time), end, "{head}");
+        }
+        let cut = (ReadScope::Ask, vec![6, 3, 9, 1]);
+        for head in 0..copy {
+            assert_eq!(row_limits(None, Some(&cut), head, copy, time, rows), vec![6; 4]);
+        }
+        for head in copy..4 {
+            assert_eq!(row_limits(None, Some(&cut), head, copy, time, rows), vec![6, 3, 6, 1]);
+        }
+    }
+
+    /// claude-330, I-A2's targets: a pull's candidates are exactly the earlier positions of its
+    /// own window that hold its target, `1 ≤ s < t`, in ascending order; a pull with none has no
+    /// span, so it adds nothing.
+    #[test]
+    fn a_pull_finds_exactly_the_earlier_copies_of_its_target_in_its_window() -> Result<()> {
+        // Window 0 holds 9 at 0, 1, 3, 5; window 1 holds 7 at 8 and 10 (local 0 and 2).
+        let ids = [9u32, 9, 4, 9, 2, 9, 7, 1, 7, 5, 7, 6, 3, 2, 8, 0];
+        let pulls = [(6, 9), (5, 9), (2, 7), (10, 7), (11, 7), (9, 9)];
+        let (pairs, spans) = pull_pairs(&ids, 8, &pulls)?;
+        // Row 6: s = 1, 3, 5 (not 0). Row 5: s = 1, 3 (not itself). Row 2: no 7 before it.
+        // Row 10: only local 0 holds 7 before it, and 0 is never a candidate. Row 11: local 2.
+        // Row 9: no 9 in its own window, whatever window 0 holds.
+        assert_eq!(pairs, vec![(6, 1), (6, 3), (6, 5), (5, 1), (5, 3), (11, 10)]);
+        assert_eq!(spans, vec![0..3, 3..5, 5..6]);
+        assert!(pull_pairs(&ids, 8, &[(16, 9)]).is_err(), "a row outside the batch");
+        Ok(())
+    }
+
+    /// claude-330: the ask heads start as copy heads' questions with zero rows and a quarter of a
+    /// head's bits as their margin; the copy heads keep theirs; the type spin and the ask heads
+    /// refuse each other; the rows are saved and load back.
+    #[test]
+    fn the_ask_heads_start_at_zero_rows_and_load_back() -> Result<()> {
+        let plain = HammingReads::new(4, 256, &Device::Cpu)?;
+        let copy_margins = plain.reads[0].margin.as_tensor().to_vec1::<f32>()?;
+        let reads = HammingReads::new(4, 256, &Device::Cpu)?.with_ask(16)?;
+        assert!(reads.has_ask() && !plain.has_ask());
+        for read in &reads.reads {
+            let margins = read.margin.as_tensor().to_vec1::<f32>()?;
+            assert_eq!(margins[..2], copy_margins[..2], "the copy heads keep theirs");
+            assert_eq!(margins[2..], [16.0, 16.0], "a quarter of 64 bits");
+            let ask = read.ask.as_ref().expect("rows").as_tensor();
+            assert_eq!(ask.dims(), [16, 256]);
+            assert!(ask.flatten_all()?.to_vec1::<f32>()?.iter().all(|&v| v == 0.0));
+        }
+        assert!(HammingReads::new(4, 256, &Device::Cpu)?.with_ask(16)?.with_type_spin().is_err());
+        assert!(HammingReads::new(4, 256, &Device::Cpu)?.with_type_spin()?.with_ask(16).is_err());
+        let dir = std::env::temp_dir().join(format!(
+            "hamming-ask-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        std::fs::create_dir(&dir)?;
+        // Host data only: the laptop refuses CPU compute (D24/D29), not building or copying.
+        let ones = Tensor::from_vec(vec![1.0f32; 16 * 256], (16, 256), &Device::Cpu)?;
+        reads.reads[1].ask.as_ref().expect("rows").set(&ones)?;
+        reads.save(&dir)?;
+        let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("saved reads");
+        // Ask heads at one depth only are refused on load.
+        let mut half = reads.clone();
+        half.reads[0].ask = None;
+        std::fs::remove_dir_all(&dir)?;
+        std::fs::create_dir(&dir)?;
+        half.save(&dir)?;
+        let refused = HammingReads::load(&dir, &Device::Cpu).err().map(|e| e.to_string());
+        std::fs::remove_dir_all(&dir)?;
+        assert!(refused.as_deref().is_some_and(|e| e.contains("ask heads at 1 of its 2 depths")), "{refused:?}");
+        // A token past the table has no row to ask with.
+        let ask = reads.reads[0].ask.as_ref().expect("rows");
+        assert!(check_ask_ids(ask, &[0, 15]).is_ok());
+        let past = check_ask_ids(ask, &[3, 16]).err().map(|e| e.to_string());
+        assert!(past.as_deref().is_some_and(|e| e.contains("token 16 has no row")), "{past:?}");
+        assert!(loaded.has_ask());
+        let sum = |r: &HammingRead| -> Result<f32> {
+            let rows = r.ask.as_ref().expect("rows").as_tensor().flatten_all()?;
+            Ok(rows.to_vec1::<f32>()?.iter().sum())
+        };
+        assert_eq!((sum(&loaded.reads[0])?, sum(&loaded.reads[1])?), (0.0, 4096.0));
+        assert!(!HammingReads::new(4, 256, &Device::Cpu)?.has_ask());
+        Ok(())
+    }
+
+    /// claude-330: reads with the ask heads on, both depths turned by learned key and query
+    /// rotations that differ, as after training.
+    #[cfg(feature = "cuda")]
+    fn ask_reads(device: &Device) -> HammingReads {
+        let reads = HammingReads::new(4, 256, device)
+            .unwrap()
+            .with_ask(16)
+            .unwrap();
+        let turned = |q: [f32; 4]| Tensor::from_vec(q.repeat(64), (64, 4), device).unwrap();
+        for read in &reads.reads {
+            read.key_rotation
+                .set(&turned([0.6, 0.8, 0.0, 0.0]))
+                .unwrap();
+            read.query_rotation
+                .set(&turned([0.8, 0.0, 0.6, 0.0]))
+                .unwrap();
+        }
+        reads
+    }
+
+    /// Each row's sign code, one `bool` per coordinate, as the read's code takes it.
+    #[cfg(feature = "cuda")]
+    fn codes(t: &Tensor) -> Vec<Vec<bool>> {
+        t.to_vec2::<f32>()
+            .unwrap()
+            .into_iter()
+            .map(|r| r.into_iter().map(|v| v >= 0.0).collect())
+            .collect()
+    }
+
+    /// Whether every gradient `grads` holds for `t` is zero (or none is held, as for a detached
+    /// tensor).
+    #[cfg(feature = "cuda")]
+    fn no_gradient(grads: &candle_core::backprop::GradStore, t: &Tensor) -> bool {
+        grads.get(t).map_or(true, |g| {
+            g.abs().unwrap().sum_all().unwrap().to_scalar::<f32>().unwrap() == 0.0
+        })
+    }
+
+    /// I-A1: with zero rows, each ask head's question code is the copy question code of the same
+    /// token, bit for bit, at both depths; and that is not the residual's question.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn ask_heads_start_as_copy_heads_bit_for_bit() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = ask_reads(&device);
+        assert_eq!(reads.reads.len(), HAMMING_DEPTHS.len());
+        let ids: Vec<u32> = (0..24).map(|i| ((i * 7) % 16) as u32).collect();
+        let table = table(16, 256, &device);
+        let index = Tensor::from_vec(ids.clone(), 24, &device).unwrap();
+        let current = table.index_select(&index, 0).unwrap();
+        let points = residual(1, 24, 256, &device).reshape((24, 256)).unwrap();
+        for (depth, read) in reads.reads.iter().enumerate() {
+            let (copy, typed) = as_trained(|| read.asks(&current, &points, &ids)).unwrap();
+            let residual_asks =
+                as_trained(|| HammingRead::rotate(&read.query_rotation, &points)).unwrap();
+            let (copy, typed, plain) = (codes(&copy), codes(&typed), codes(&residual_asks));
+            // Four heads of 64; the ask heads are the last two, columns 128 on.
+            for r in 0..24 {
+                assert_eq!(copy[r][128..], typed[r][128..], "depth {depth}, row {r}");
+            }
+            assert_ne!(typed, plain, "depth {depth}: the residual's question differs");
+        }
+    }
+
+    /// I-A2: the pull finds each ask head's nearest copy (not the first), rows without a copy add
+    /// nothing, and its gradient reaches the question rows alone.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_pull_reaches_the_nearest_copy_and_only_the_question_rows_learn() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = ask_reads(&device);
+        // One window. Token 7 sits at s = 1 after 3, and at s = 3 after 5; a key names the token
+        // before it. Row 6 asks with 5, an exact match at s = 3, not the smaller s = 1. Row 7
+        // asks with 1, which neither key names: each head's nearest is its least distance.
+        let ids = [3u32, 7, 5, 7, 4, 2, 5, 1];
+        let held = Var::from_tensor(&table(16, 256, &device)).unwrap();
+        let table = held.as_tensor();
+        let pull = |pulls: &[(usize, u32)]| reads.ask_pull(&ids, 8, table, pulls).unwrap();
+        let scalar = |t: Tensor| t.to_scalar::<f32>().unwrap();
+        assert_eq!(scalar(pull(&[(6, 7)]).unwrap()), 0.0, "the exact match at s = 3");
+        let mut depths = Vec::new();
+        for read in &reads.reads {
+            let rows = Tensor::from_vec(vec![1u32, 3, 5], 3, &device).unwrap();
+            let rows = table.index_select(&rows, 0).unwrap();
+            let c = codes(&as_trained(|| HammingRead::rotate(&read.key_rotation, &rows)).unwrap());
+            let mut depth = 0.0f32;
+            for h in 2..4 {
+                let bits = |k: usize| (h * 64..(h + 1) * 64).filter(|&i| c[0][i] != c[k][i]).count();
+                depth += bits(1).min(bits(2)) as f32 / 64.0;
+            }
+            depths.push(depth / 2.0);
+        }
+        let expected = depths.iter().sum::<f32>() / depths.len() as f32;
+        let seven = scalar(pull(&[(7, 7)]).unwrap());
+        assert!(expected > 0.0 && (seven - expected).abs() < 1e-6, "{seven} vs {expected}");
+        // The reading: each depth's own mean, on the same rows.
+        let read_out = reads.ask_pull_depths(&ids, 8, table, &[(7, 7), (4, 9)]).unwrap().unwrap();
+        assert_eq!(read_out.len(), depths.len());
+        for (got, want) in read_out.iter().zip(&depths) {
+            assert!((*got - f64::from(*want)).abs() < 1e-6, "{got} vs {want}");
+        }
+        assert!(reads.ask_pull_depths(&ids, 8, table, &[(4, 9)]).unwrap().is_none());
+        // Row 4's target is nowhere in the window; row 1 has no earlier candidate.
+        assert!(pull(&[(4, 9), (1, 7)]).is_none());
+        assert_eq!(scalar(pull(&[(7, 7), (4, 9), (1, 7)]).unwrap()), seven);
+        let grads = pull(&[(7, 7)]).unwrap().backward().unwrap();
+        for read in &reads.reads {
+            assert!(!no_gradient(&grads, read.ask.as_ref().unwrap().as_tensor()));
+            for still in [&read.key_rotation, &read.query_rotation, &read.margin, &read.weight] {
+                assert!(no_gradient(&grads, still.as_tensor()));
+            }
+        }
+        assert!(no_gradient(&grads, table), "the table is detached");
+    }
+
+    /// One plain descent step of `rate` on every depth's question rows.
+    #[cfg(feature = "cuda")]
+    fn ask_step(reads: &HammingReads, grads: &candle_core::backprop::GradStore, rate: f64) {
+        for read in &reads.reads {
+            let ask = read.ask.as_ref().unwrap();
+            if let Some(g) = grads.get(ask.as_tensor()) {
+                ask.set(&ask.as_tensor().sub(&g.affine(rate, 0.0).unwrap()).unwrap())
+                    .unwrap();
+            }
+        }
+    }
+
+    /// I-A3: the pull alone, at λ = 1, teaches a question token whose partner is another token
+    /// to ask for that token's key, within 100 steps; at λ = 0, with no task loss, the rows stay.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_pull_trains_a_question_onto_its_partners_key() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = ask_reads(&device);
+        // Token 7 sits at s = 1, after 5. Row 6 asks with 9.
+        let ids = [5u32, 7, 2, 4, 3, 1, 9, 6];
+        let table = table(16, 256, &device);
+        let pull = || reads.ask_pull(&ids, 8, &table, &[(6, 7)]).unwrap().unwrap();
+        let start = pull().to_scalar::<f32>().unwrap();
+        assert!(start > 0.25, "9 and 5 start about half their bits apart: {start}");
+        let rows = |reads: &HammingReads| -> Vec<Vec<f32>> {
+            reads
+                .reads
+                .iter()
+                .map(|r| r.ask.as_ref().unwrap().as_tensor().flatten_all().unwrap().to_vec1().unwrap())
+                .collect()
+        };
+        // λ = 0: the runner builds no pull rows (`in_space_long`'s `attract_plan`, pinned there),
+        // so there is no term, and the question rows stay where they are.
+        let before = rows(&reads);
+        assert!(reads.ask_pull(&ids, 8, &table, &[]).unwrap().is_none());
+        assert_eq!(rows(&reads), before);
+        let mut steps = 0;
+        while pull().to_scalar::<f32>().unwrap() > 0.0 {
+            assert!(steps < 100, "still {} after 100 steps", pull().to_scalar::<f32>().unwrap());
+            ask_step(&reads, &pull().backward().unwrap(), 64.0);
+            steps += 1;
+        }
+        assert!(steps > 0);
+    }
+
+    /// I-A4: an ask head that keeps the position after the earlier copy moves the readout to that
+    /// position's own table point, as a copy head does; dropping the type class (`−t`) removes the
+    /// move.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn an_ask_head_moves_the_readout_as_a_copy_head_does() {
+        let device = Device::new_cuda(0).unwrap();
+        let reads = ask_reads(&device);
+        let read = &reads.reads[0];
+        // copy_case's windows: [5 7 5], [9 11 9], [3 5 5].
+        let ids = [5u32, 7, 5, 9, 11, 9, 3, 5, 5];
+        let out = residual(3, 3, 256, &device);
+        let table = table(16, 256, &device);
+        let row = |kind: usize| {
+            let on: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i / 256 == kind))).collect();
+            Tensor::from_vec(on, (2, 256), &device).unwrap()
+        };
+        let readout = || {
+            read.apply_readout(&out, &ids, &table)
+                .unwrap()
+                .reshape((9, 256))
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap()
+        };
+        read.weight.set(&row(1)).unwrap();
+        let asked = readout();
+        read.weight.set(&row(0)).unwrap();
+        let copied = readout();
+        let points = table.to_vec2::<f32>().unwrap();
+        let before = out.reshape((9, 256)).unwrap().to_vec2::<f32>().unwrap();
+        for c in 0..256 {
+            assert!((asked[2][c] - points[7][c]).abs() < 1e-6, "window 0, {c}");
+            assert!((asked[5][c] - points[11][c]).abs() < 1e-6, "window 1, {c}");
+        }
+        for r in [0usize, 1, 3, 4, 6, 7, 8] {
+            assert_eq!(asked[r], before[r], "row {r} found nothing and stays");
+        }
+        for r in 0..9 {
+            for c in 0..256 {
+                assert!((asked[r][c] - copied[r][c]).abs() < 1e-6, "row {r}, {c}");
+            }
+        }
+        read.weight.set(&row(1)).unwrap();
+        set_class_ablation([[false, false], [false, true]]);
+        let dropped = readout();
+        set_class_ablation([[false; 2]; 2]);
+        assert_eq!(dropped, before, "−t removes the move");
+    }
 }
+
+// I1-DIGEST BEGIN (claude-330's I-1: the pod appends this module, byte for byte, to the base
+// commit's copy of this file too, and the two printed digests must match.)
+#[cfg(all(test, feature = "cuda"))]
+mod i1_digest {
+    use super::*;
+    use sha2::{Digest, Sha256};
+
+    /// I-1: a fixed forward of the default read, no new flag, stream and readout, at both
+    /// depths, with every learned part set off its start; prints the SHA-256 of the outputs'
+    /// little-endian bytes.
+    #[test]
+    fn ask_default_forward_digest() {
+        let device = Device::new_cuda(0).unwrap();
+        let (batch, time, width, vocab) = (2, 24, 256, 16);
+        let wave = |n: usize, salt: usize| -> Vec<f32> {
+            (0..n)
+                .map(|i| ((((i + salt) * 2_654_435_761) % 1_000) as f32 / 500.0) - 0.999)
+                .collect()
+        };
+        let x = Tensor::from_vec(wave(batch * time * width, 0), (batch, time, width), &device)
+            .unwrap();
+        let table = Tensor::from_vec(wave(vocab * width, 7), (vocab, width), &device).unwrap();
+        let ids: Vec<u32> = (0..batch * time).map(|i| ((i * 5 + i / 7) % vocab) as u32).collect();
+        let turned = |q: [f32; 4]| Tensor::from_vec(q.repeat(width / 4), (width / 4, 4), &device);
+        let reads = HammingReads::new(4, width, &device).unwrap();
+        let mut hash = Sha256::new();
+        for read in &reads.reads {
+            read.key_rotation.set(&turned([0.6, 0.8, 0.0, 0.0]).unwrap()).unwrap();
+            read.query_rotation.set(&turned([0.8, 0.0, 0.6, 0.0]).unwrap()).unwrap();
+            read.value_rotation.set(&turned([0.0, 0.6, 0.0, 0.8]).unwrap()).unwrap();
+            read.weight
+                .set(&Tensor::from_vec(wave(2 * width, 3), (2, width), &device).unwrap())
+                .unwrap();
+            for out in [
+                read.apply(&x, &ids, &table).unwrap(),
+                read.apply_readout(&x, &ids, &table).unwrap(),
+            ] {
+                for v in out.flatten_all().unwrap().to_vec1::<f32>().unwrap() {
+                    hash.update(v.to_le_bytes());
+                }
+            }
+        }
+        println!("I1-DIGEST {}", hex::encode(hash.finalize()));
+    }
+}
+// I1-DIGEST END

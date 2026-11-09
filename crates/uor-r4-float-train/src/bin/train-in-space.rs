@@ -69,6 +69,11 @@
 //! checkpoint's `hamming_read.safetensors` records it, so scoring and the export read it there.
 //! `--hamming-copy-keys K0,K1` gives each copy head its own key, 1 or 2, one per copy head
 //! (`HammingReads::with_copy_keys`, claude-268); the checkpoint records the list when they differ.
+//! `--hamming-ask 1` (needs `--hamming-read`) turns the type heads into ask heads, which ask with
+//! their token's point plus a learned question row against the copy key (`HammingReads::with_ask`,
+//! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
+//! (`HammingReads::ask_pull`), and `--hamming-attract-at question` pulls at each two-class
+//! episode's question row in place of the scored row (needs `--recall-header`).
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
 //! `--score-rows` decodes equal-length prompts together on the full-scope nearest arms, except
@@ -396,6 +401,9 @@ fn main() -> Result<()> {
         type_spin: false,
         hamming_copy_key: 1,
         hamming_copy_keys: None,
+        hamming_ask: false,
+        hamming_attract: 0.0,
+        hamming_attract_at_question: false,
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
@@ -685,6 +693,23 @@ fn main() -> Result<()> {
                 context_given = true;
             }
             "--type-spin" => config.type_spin = switch(&value)?,
+            "--hamming-ask" => config.hamming_ask = switch(&value)?,
+            "--hamming-attract" => {
+                config.hamming_attract = value.parse().map_err(|_| {
+                    FloatTrainError::Invalid("--hamming-attract wants a number".to_owned())
+                })?
+            }
+            "--hamming-attract-at" => {
+                config.hamming_attract_at_question = match value.as_str() {
+                    "scored" => false,
+                    "question" => true,
+                    _ => {
+                        return Err(FloatTrainError::Invalid(
+                            "--hamming-attract-at wants scored or question".to_owned(),
+                        ))
+                    }
+                }
+            }
             "--opening-weight" => match number(&value)? {
                 weight @ 1..=16 => config.opening_weight = weight,
                 _ => {
@@ -900,6 +925,12 @@ fn main() -> Result<()> {
     if recall == 0 && (recall_query || recall_header != 0 || recall_eval.is_some() || recall_readings) {
         return Err(FloatTrainError::Invalid(
             "--recall-query, --recall-header, --recall-eval-windows and --recall-readings apply to --recall only".to_owned(),
+        ));
+    }
+    // claude-330: the found-copy pull trains in the recall runner only.
+    if recall == 0 && config.hamming_attract != 0.0 {
+        return Err(FloatTrainError::Invalid(
+            "--hamming-attract and --hamming-attract-at apply to --recall only".to_owned(),
         ));
     }
     if recall_header != 0 && !recall_query {
