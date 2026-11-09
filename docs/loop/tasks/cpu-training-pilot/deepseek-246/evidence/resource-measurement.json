@@ -1,0 +1,50 @@
+{
+  "schema": "uor-r4.cpu-ask-offset-solver-measurement/1",
+  "measured_utc": "2026-11-09T02:30:11Z",
+  "tool": "/usr/bin/time -v",
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "evidence_test": {
+    "command": "RAYON_NUM_THREADS=16 UOR_KEEP_ASK_OFFSET_SOLVER_EVIDENCE=<fresh-evidence-dir> target/debug/deps/cpu_ask_offset_solver-37b221f1fe61d77a --exact tests::synthetic_checkpoint_writes_solved_sidecar_report_and_repeat --nocapture",
+    "tests_passed": 1,
+    "elapsed_seconds": 5.96,
+    "user_seconds": 5.84,
+    "system_seconds": 0.13,
+    "cpu_percent": 100,
+    "max_rss_kib": 236360,
+    "file_system_outputs_blocks": 0,
+    "retention_root": "created exclusively with create_dir and published through write_new_pair"
+  },
+  "release_benchmark": {
+    "command": "RAYON_NUM_THREADS=16 target/release/deps/uor_r4_cpu_train-3ac0307ae8da2692 --ignored --nocapture --exact ask_offset_solver::tests::release_width_256_two_depth_solver_benchmark",
+    "tests_passed": 1,
+    "solver_evaluations": 393344,
+    "exhausted_readings": 0,
+    "reported_solver_wall_ms": 37,
+    "process_elapsed_seconds": 0.04,
+    "user_seconds": 0.40,
+    "system_seconds": 0.01,
+    "cpu_percent": 895,
+    "max_rss_kib": 60716,
+    "file_system_outputs_blocks": 0
+  },
+  "discarded_cargo_measurement": {
+    "reason": "the first timed invocation included an already-needed compile, so it was not used as the solver's measured test floor",
+    "elapsed_seconds": 9.04,
+    "max_rss_kib": 1175464
+  },
+  "artifacts": {
+    "synthetic_report_sha256": "39ed4fcea8e8a73ba8507e5eb90c5340fdec237c7a4187918e2df83e850a7704",
+    "candidate_hamming_sha256": "ef785c378684f997d24d91b026840854803c61c1a1d61b26ec35bbbc650d0d4a",
+    "solver_evidence_binary_sha256": "62d88fa129231fd10d429f2a27c6278315c2873f803045bb3f677895b4da7426"
+  },
+  "storage": {
+    "retained_evidence_bytes_after_this_file": 24865,
+    "worktree_build_target_bytes": 6930091758,
+    "free_bytes_at_measurement": 155012734976
+  }
+}

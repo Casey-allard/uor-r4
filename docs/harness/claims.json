@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": "generated-state cell-rank and K=8 versus K=16 admission headroom"
   },
+  "deepseek/ask-offset-solver": {
+    "branch": "deepseek/ask-offset-solver",
+    "claimed_at": "2026-11-08T22:28:01-05:00",
+    "head": "21fb7fd65",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/audit-export-gate": {
     "branch": "deepseek/audit-export-gate",
     "claimed_at": "2026-11-03T01:55:46-05:00",

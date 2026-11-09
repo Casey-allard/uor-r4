@@ -131,7 +131,7 @@ impl TrainedAskOffsets {
                 .map_err(|error| format!("{rotation_name}: {error}"))?;
             reads.push(TrainedAskRead {
                 depth,
-                key_rotation: f32_values(&rotation, &rotation_name, &[width])?,
+                key_rotation: f32_values(&rotation, &rotation_name, &[width / 4, 4])?,
                 ask: f32_values(&ask, &ask_name, &[vocab, width])?,
             });
         }
@@ -385,7 +385,7 @@ mod tests {
             (
                 "d2.key_rotation",
                 Dtype::F32,
-                vec![width],
+                vec![width / 4, 4],
                 f32_bytes(rotation),
             ),
         ];
@@ -459,7 +459,7 @@ mod tests {
             (
                 "d2.key_rotation",
                 Dtype::F32,
-                vec![width],
+                vec![width / 4, 4],
                 f32_bytes(rotation.clone()),
             ),
             (
@@ -471,7 +471,7 @@ mod tests {
             (
                 "d6.key_rotation",
                 Dtype::F32,
-                vec![width],
+                vec![width / 4, 4],
                 f32_bytes(rotation),
             ),
         ]);
@@ -523,7 +523,7 @@ mod tests {
             (
                 "d2.key_rotation",
                 Dtype::F32,
-                vec![width],
+                vec![width / 4, 4],
                 f32_bytes(rotation),
             ),
             ("d2.ask", Dtype::F32, vec![vocab, width], f32_bytes(ask)),

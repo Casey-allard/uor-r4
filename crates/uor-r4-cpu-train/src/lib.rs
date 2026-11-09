@@ -11,6 +11,7 @@ use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_c
 
 pub mod ask_offset_audit;
 mod ask_head;
+pub mod ask_offset_solver;
 mod content_readout;
 mod checkpoint_grade;
 mod continuation_closure;

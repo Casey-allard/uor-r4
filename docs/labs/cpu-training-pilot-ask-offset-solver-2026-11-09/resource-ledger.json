@@ -1,0 +1,93 @@
+{
+  "schema": "uor-r4.cpu-ask-offset-solver-resource/1",
+  "status": "COMPLETE_COMPONENT_REVIEW_REPAIRED",
+  "experiment": "offline ask-offset initialization over checkpoint token geometry",
+  "updated_utc": "2026-11-09T02:30:11Z",
+  "previous_ledger": "cpu-training-pilot-ask-offset-audit-2026-11-09/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 105767.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 1800,
+  "admitted_increment_seconds": 1800,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 107567.677487699,
+  "admitted_cumulative_projection_seconds": 107567.677487699,
+  "lab_cumulative_projection_seconds": 107567.677487699,
+  "projection": {
+    "measured_solver_benchmark_seconds": 0.037,
+    "measured_library_tests_seconds": 43.12,
+    "measured_evidence_test_seconds": 5.96,
+    "builds_and_checks_allowance_seconds": 900,
+    "review_and_delivery_allowance_seconds": 300,
+    "retry_and_setup_allowance_seconds": 550.883,
+    "wall_limit_seconds": 1800
+  },
+  "measured": {
+    "synthetic_questions": 16,
+    "synthetic_depths": 2,
+    "synthetic_readings": 32,
+    "solver_total_evaluations": 96,
+    "solver_candidate_evaluations": 96,
+    "solver_coordinate_evaluations": 0,
+    "solver_budget_exhausted_readings": 0,
+    "zero_weighted_bits": 8,
+    "solved_weighted_bits": 0,
+    "benchmark_width": 256,
+    "benchmark_depths": 2,
+    "benchmark_questions": 16,
+    "benchmark_total_evaluations": 393344,
+    "benchmark_budget_exhausted_readings": 0,
+    "benchmark_wall_ms": 37,
+    "library_tests_passed": 472,
+    "library_tests_ignored": 5,
+    "post_merge_library_tests_seconds": 37.91,
+    "post_merge_process_seconds": 38.01,
+    "threads": 16,
+    "max_peak_rss_kib": 755468,
+    "benchmark_peak_rss_kib": 60716,
+    "library_tests_peak_rss_kib": 755468,
+    "post_merge_library_tests_peak_rss_kib": 734648
+  },
+  "artifacts": {
+    "synthetic_report_sha256": "39ed4fcea8e8a73ba8507e5eb90c5340fdec237c7a4187918e2df83e850a7704",
+    "candidate_hamming_sha256": "ef785c378684f997d24d91b026840854803c61c1a1d61b26ec35bbbc650d0d4a",
+    "synthetic_checkpoint_model_sha256": "2a7a8ed21c2a3b5d07c3a4c9e2a35a30c53fa91f0c261bb8da18fde546b49549",
+    "synthetic_checkpoint_hamming_sha256": "f5891af995d5d3a46853d70133f64dc601d95b5ec175d5e9357e42855fda9e88",
+    "default_pull_corpus_sha256": "5b0b129803110a3efb90d063ca6c84bcdc9ac6ac0079ad2ccf733a09c61a80e0",
+    "solver_evidence_binary_sha256": "62d88fa129231fd10d429f2a27c6278315c2873f803045bb3f677895b4da7426",
+    "ask_offset_audit_binary_sha256": "4cd947c7a092b09339b9e4fa46cc8a057bad9c96ed3315b586152b6c419c3426",
+    "resource_measurement_sha256": "12345a560898bf82b8da3da4ae89756971f5cf445c1736e53c567ed42b6785b1"
+  },
+  "storage": {
+    "retained_evidence_bytes": 24865,
+    "worktree_build_target_bytes": 6930091758,
+    "free_bytes_at_measurement": 155012734976,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux 7.0.0-42-generic x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-246/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-246/REPORT.md",
+    "evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-246/evidence/synthetic-report.json"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree target after protected delivery; retain text report and hashes; generated sidecar lives only outside the repository"
+  }
+}

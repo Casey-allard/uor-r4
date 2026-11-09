@@ -380,7 +380,7 @@ mod tests {
             (
                 "d2.key_rotation",
                 Dtype::F32,
-                vec![width],
+                vec![width / 4, 4],
                 f32_bytes(&rotation),
             ),
             ("d2.ask", Dtype::F32, vec![vocab, width], f32_bytes(&ask)),

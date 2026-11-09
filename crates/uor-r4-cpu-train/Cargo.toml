@@ -172,5 +172,9 @@ name = "cpu-ask-offset-audit"
 path = "src/bin/cpu-ask-offset-audit.rs"
 
 [[bin]]
+name = "cpu-ask-offset-solver"
+path = "src/bin/cpu-ask-offset-solver.rs"
+
+[[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"
