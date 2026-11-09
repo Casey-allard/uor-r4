@@ -7,8 +7,8 @@
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::bitcode::popcount_swar;
 use uor_r4_integer::stack::{
-    copy_weight_q31, HammingImage, HammingReadImage, StackHamming, COPY_MEAN_EXP,
-    HAMMING_WEIGHT_EXP,
+    AskImage, COPY_MEAN_EXP, HAMMING_WEIGHT_EXP, HammingImage, HammingReadImage, StackHamming,
+    copy_weight_q31,
 };
 
 const RESIDUAL_EXP: i32 = -16;
@@ -133,7 +133,9 @@ struct TypeHeads {
     keys: Vec<u64>,
     margins: Vec<i32>,
     query: Vec<[i64; 4]>,
+    key: Vec<[i64; 4]>,
     value: Vec<[i64; 4]>,
+    ask: Option<AskImage>,
 }
 
 impl TypeHeads {
@@ -145,22 +147,18 @@ impl TypeHeads {
         width: usize,
     ) -> Self {
         let (copy, heads) = (record.heads / 2, record.heads);
+        let key = unit_rotations(&read.key_rotation);
         Self {
             copy,
             heads,
             kept: record.kept,
             width,
-            keys: vocab_codes(
-                &unit_rotations(&read.key_rotation),
-                table,
-                vocab,
-                width,
-                heads,
-                copy..heads,
-            ),
+            keys: vocab_codes(&key, table, vocab, width, heads, copy..heads),
             margins: read.margin[copy..].to_vec(),
             query: unit_rotations(&read.query_rotation),
+            key,
             value: unit_rotations(&read.value_rotation),
+            ask: read.ask.clone(),
         }
     }
 
@@ -173,6 +171,65 @@ impl TypeHeads {
         (self.copy..self.heads)
             .map(|head| head_code(&self.query, point, head, head_width))
             .collect()
+    }
+
+    fn asked_point(
+        &self,
+        table: &[i16],
+        tokens: &[u32],
+        t: usize,
+        carry: bool,
+    ) -> Option<Vec<i64>> {
+        let ask = self.ask.as_ref()?;
+        let asked = |token: u32, coordinate: usize| -> i64 {
+            let at = token as usize * self.width + coordinate;
+            i64::from(table[at]) + i64::from(ask.table[at])
+        };
+        let mut point: Vec<i64> = (0..self.width)
+            .map(|coordinate| asked(tokens[t], coordinate) << 16)
+            .collect();
+        if carry {
+            if let Some((reach, gains)) = &ask.carry {
+                for lag in 1..=(*reach).min(t) {
+                    let token = tokens[t - lag];
+                    let gain = i64::from(gains[token as usize]);
+                    for (coordinate, value) in point.iter_mut().enumerate() {
+                        *value += gain * asked(token, coordinate);
+                    }
+                }
+            }
+        }
+        Some(point)
+    }
+
+    fn ask_queries(
+        &self,
+        table: &[i16],
+        tokens: &[u32],
+        t: usize,
+        carry: bool,
+    ) -> Option<Vec<u64>> {
+        let point = self.asked_point(table, tokens, t, carry)?;
+        let head_width = self.width / self.heads;
+        Some(
+            (self.copy..self.heads)
+                .map(|head| head_code(&self.key, &point, head, head_width))
+                .collect(),
+        )
+    }
+
+    fn served_queries(
+        &self,
+        point: &[i64],
+        table: &[i16],
+        tokens: &[u32],
+        carry: bool,
+    ) -> Vec<u64> {
+        tokens
+            .len()
+            .checked_sub(1)
+            .and_then(|t| self.ask_queries(table, tokens, t, carry))
+            .unwrap_or_else(|| self.queries(point))
     }
 
     fn payload(&self, point: &[i64], out: &mut [i64]) {
@@ -353,7 +410,9 @@ impl CpuHamming {
             index,
             &x.iter().map(|&v| i64::from(v)).collect::<Vec<_>>(),
             tokens,
+            table,
             payloads,
+            false,
         );
         if copy.is_none() && typed.is_none() {
             return;
@@ -376,29 +435,38 @@ impl CpuHamming {
         &self,
         depth: usize,
         tokens: &[u32],
+        table: &[i16],
         point: &[i64],
     ) -> Option<CpuHammingReadTrace> {
         if depth == self.layers {
             return None;
         }
         let index = self.reads.iter().position(|read| read.depth == depth)?;
-        Some(self.trace_read(index, tokens, point))
+        Some(self.trace_read(index, tokens, table, point, false))
     }
 
     /// Trace the Hamming readout read before it changes the final norm.
     pub(crate) fn trace_readout(
         &self,
         tokens: &[u32],
+        table: &[i16],
         point: &[i64],
     ) -> Option<CpuHammingReadTrace> {
         let index = self
             .reads
             .iter()
             .position(|read| read.depth == self.layers)?;
-        Some(self.trace_read(index, tokens, point))
+        Some(self.trace_read(index, tokens, table, point, true))
     }
 
-    fn trace_read(&self, index: usize, tokens: &[u32], point: &[i64]) -> CpuHammingReadTrace {
+    fn trace_read(
+        &self,
+        index: usize,
+        tokens: &[u32],
+        table: &[i16],
+        point: &[i64],
+        carry: bool,
+    ) -> CpuHammingReadTrace {
         let read = &self.reads[index];
         let mut heads = Vec::with_capacity(
             read.copy.copy
@@ -421,7 +489,11 @@ impl CpuHamming {
             });
         }
         if let Some(types) = &read.types {
-            for (offset, query) in types.queries(point).into_iter().enumerate() {
+            for (offset, query) in types
+                .served_queries(point, table, tokens, carry)
+                .into_iter()
+                .enumerate()
+            {
                 let head = types.copy + offset;
                 heads.push(CpuHammingHeadTrace {
                     head,
@@ -456,7 +528,7 @@ impl CpuHamming {
         };
         let read = &self.reads[index];
         let copy = read.copy.mean(tokens, table);
-        let typed = self.type_mean(index, norm, tokens, payloads);
+        let typed = self.type_mean(index, norm, tokens, table, payloads, true);
         if copy.is_none() && typed.is_none() {
             return;
         }
@@ -478,14 +550,20 @@ impl CpuHamming {
         index: usize,
         point: &[i64],
         tokens: &[u32],
+        table: &[i16],
         payloads: &mut [Vec<i64>],
+        carry: bool,
     ) -> Option<Vec<i128>> {
         let types = self.reads[index].types.as_ref()?;
         let row = tokens.len().checked_sub(1)?;
         let cache = &mut payloads[index];
         types.payload(point, &mut cache[row * self.width..][..self.width]);
         let payloads = &cache[..(row + 1) * self.width];
-        types.mean(&types.queries(point), tokens, payloads)
+        types.mean(
+            &types.served_queries(point, table, tokens, carry),
+            tokens,
+            payloads,
+        )
     }
 
     #[cfg(test)]
@@ -702,6 +780,51 @@ mod tests {
         // 3 is the immediate predecessor, 0 has no predecessor, and 4 is the current row.
         let kept = nearest(0, 4, 16, |_| 0);
         assert_eq!(kept, vec![(1, 0), (2, 0), (3, 0)]);
+    }
+
+    #[test]
+    fn asked_point_carries_every_lag_at_q28_without_rounding() {
+        let vocab = 5;
+        let width = 4;
+        let table = (0..vocab * width)
+            .map(|index| (index as i16 * 3) - 19)
+            .collect::<Vec<_>>();
+        let ask_table = (0..vocab * width)
+            .map(|index| (index as i16 * 5) - 37)
+            .collect::<Vec<_>>();
+        let gains = vec![3, -5, 7, -11, 13];
+        let types = TypeHeads {
+            copy: 1,
+            heads: 2,
+            kept: 1,
+            width,
+            keys: Vec::new(),
+            margins: Vec::new(),
+            query: Vec::new(),
+            key: Vec::new(),
+            value: Vec::new(),
+            ask: Some(AskImage {
+                table: ask_table.clone(),
+                carry: Some((4, gains.clone())),
+            }),
+        };
+        let tokens = [1, 2, 3, 4, 2, 3];
+        let asked = |token: u32, coordinate: usize| {
+            let at = token as usize * width + coordinate;
+            i64::from(table[at]) + i64::from(ask_table[at])
+        };
+        let last = tokens.len() - 1;
+        let without = types.asked_point(&table, &tokens, last, false).unwrap();
+        let with = types.asked_point(&table, &tokens, last, true).unwrap();
+        for coordinate in 0..width {
+            let mut expected = asked(tokens[last], coordinate) << 16;
+            for lag in 1..=4 {
+                expected += i64::from(gains[tokens[last - lag] as usize])
+                    * asked(tokens[last - lag], coordinate);
+            }
+            assert_eq!(without[coordinate], asked(tokens[last], coordinate) << 16);
+            assert_eq!(with[coordinate], expected);
+        }
     }
 
     #[test]

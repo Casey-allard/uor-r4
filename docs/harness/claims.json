@@ -167,6 +167,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/cpu-hamming-ask": {
+    "branch": "deepseek/cpu-hamming-ask",
+    "claimed_at": "2026-11-09T12:19:40-05:00",
+    "head": "64c1c69b3",
+    "lab": "deepseek",
+    "note": "CPU Hamming ask heads and readout carry parity"
+  },
   "deepseek/cpu-m2-evidence": {
     "branch": "deepseek/cpu-m2-evidence",
     "claimed_at": "2026-11-02T07:31:48-05:00",

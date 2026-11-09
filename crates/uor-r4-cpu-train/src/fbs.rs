@@ -6,8 +6,8 @@
 
 use uor_r4_integer::h4_classifier::H4_ROOT_COEFFICIENTS;
 use uor_r4_integer::stack::{
-    read_hamming_uorlut01, read_memory_uorlut01, stack_snap_select, FbsImage, FbsLayerImage,
-    FbsMapImage, Fixed, IntegerStackModel, GROUP, PHI_Q32,
+    FbsImage, FbsLayerImage, FbsMapImage, Fixed, GROUP, IntegerStackModel, PHI_Q32,
+    read_hamming_uorlut01, read_memory_uorlut01, stack_snap_select,
 };
 
 use crate::hamming::{CpuHamming, CpuHammingReadTrace};
@@ -1046,7 +1046,8 @@ impl CpuFbsForward {
             if let Some(hamming) = &self.hamming {
                 if self.hamming_trace.is_some() {
                     let point = x.iter().map(|&value| i64::from(value)).collect::<Vec<_>>();
-                    let traced = hamming.trace_stream(index + 1, &self.tokens, &point);
+                    let traced =
+                        hamming.trace_stream(index + 1, &self.tokens, &self.writer_table, &point);
                     if let (Some(trace), Some(read)) = (self.hamming_trace.as_mut(), traced) {
                         trace.push(read);
                     }
@@ -1066,7 +1067,7 @@ impl CpuFbsForward {
         apply_gain(&mut scratch[..d], &self.final_gain);
         if let Some(hamming) = &self.hamming {
             if self.hamming_trace.is_some() {
-                let traced = hamming.trace_readout(&self.tokens, &scratch[..d]);
+                let traced = hamming.trace_readout(&self.tokens, &self.writer_table, &scratch[..d]);
                 if let (Some(trace), Some(read)) = (self.hamming_trace.as_mut(), traced) {
                     trace.push(read);
                 }
@@ -1685,11 +1686,11 @@ fn bit_length(value: u64) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
+    use uor_r4_integer::stack::synthetic::{FbsSynth, synthetic_fbs_trunk_with, synthetic_hamming};
     use uor_r4_integer::stack::{
+        AskImage, FbsExportSnaps, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable,
+        FbsTrunkSnapshot, IntegerStackModel, MEMORY_PAD, PointKeyImage, add_hamming_ask_uorlut01,
         add_point_key_uorlut01, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with,
-        FbsExportSnaps, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, FbsTrunkSnapshot,
-        IntegerStackModel, PointKeyImage, MEMORY_PAD,
     };
 
     const ANCHOR_AUDIT_SYNTH: FbsSynth = FbsSynth {
@@ -1811,10 +1812,12 @@ mod tests {
         assert_eq!(audit.mismatch_count, expected);
         assert_eq!(audit.mismatch_tokens, 1);
         assert_eq!(audit.mismatch_rows, 1);
-        assert!(audit
-            .first_mismatches
-            .iter()
-            .all(|mismatch| mismatch.token == 0 && mismatch.cell == 0 && mismatch.port == 1));
+        assert!(
+            audit
+                .first_mismatches
+                .iter()
+                .all(|mismatch| mismatch.token == 0 && mismatch.cell == 0 && mismatch.port == 1)
+        );
     }
 
     #[test]
@@ -1998,18 +2001,14 @@ mod tests {
             .unwrap()
             .shared_table()
             .to_vec();
-        assert!(CpuFbsForward::from_artifact_with_tables(
-            &bytes,
-            &table[..table.len() - 1],
-            &table
-        )
-        .is_err());
-        assert!(CpuFbsForward::from_artifact_with_tables(
-            &bytes,
-            &table,
-            &table[..table.len() - 1]
-        )
-        .is_err());
+        assert!(
+            CpuFbsForward::from_artifact_with_tables(&bytes, &table[..table.len() - 1], &table)
+                .is_err()
+        );
+        assert!(
+            CpuFbsForward::from_artifact_with_tables(&bytes, &table, &table[..table.len() - 1])
+                .is_err()
+        );
 
         let memory = memory_artifact_with(191, CpuFbsHead::Writer, false, true, 0.5, None);
         let memory_table = CpuFbsForward::from_artifact(&memory)
@@ -2042,12 +2041,14 @@ mod tests {
             .unwrap()
             .shared_table()
             .to_vec();
-        assert!(CpuFbsForward::from_artifact_with_tables(
-            &hamming_bytes,
-            &hamming_table,
-            &hamming_table
-        )
-        .is_err());
+        assert!(
+            CpuFbsForward::from_artifact_with_tables(
+                &hamming_bytes,
+                &hamming_table,
+                &hamming_table
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2165,6 +2166,30 @@ mod tests {
         snaps: FbsExportSnaps,
         copy_keys: &[usize],
     ) -> (IntegerStackModel, CpuFbsForward, IntegerStackModel) {
+        let snapshot = hamming_snapshot(
+            seed, layers, head, copy_scale, type_scale, depths, copy_keys,
+        );
+        let mut free_snapshot = snapshot.clone();
+        free_snapshot.hamming = None;
+        let free_bytes = export_fbs_trunk_uorlut01(&free_snapshot).unwrap();
+        let free = IntegerStackModel::parse(&free_bytes).unwrap();
+
+        let bytes = export_fbs_trunk_uorlut01_with(&snapshot, snaps).unwrap();
+        let model = IntegerStackModel::parse(&bytes).unwrap();
+        let cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
+        (model, cpu, free)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn hamming_snapshot(
+        seed: u64,
+        layers: usize,
+        head: CpuFbsHead,
+        copy_scale: f32,
+        type_scale: f32,
+        depths: &[usize],
+        copy_keys: &[usize],
+    ) -> FbsTrunkSnapshot {
         let mut snapshot = synthetic_fbs_trunk_with(
             seed,
             FbsSynth {
@@ -2181,8 +2206,6 @@ mod tests {
             },
         );
         snapshot.readout_nearest = head == CpuFbsHead::Nearest;
-        let free_bytes = export_fbs_trunk_uorlut01(&snapshot).unwrap();
-        let free = IntegerStackModel::parse(&free_bytes).unwrap();
 
         let mut hamming = synthetic_hamming(snapshot.width, layers, 4, seed ^ 194);
         hamming.reads = hamming
@@ -2205,10 +2228,7 @@ mod tests {
             types.iter_mut().for_each(|weight| *weight *= type_scale);
         }
         snapshot.hamming = Some(hamming);
-        let bytes = export_fbs_trunk_uorlut01_with(&snapshot, snaps).unwrap();
-        let model = IntegerStackModel::parse(&bytes).unwrap();
-        let cpu = CpuFbsForward::from_artifact(&bytes).unwrap();
-        (model, cpu, free)
+        snapshot
     }
 
     fn repeating_tokens() -> [u32; 16] {
@@ -2219,6 +2239,96 @@ mod tests {
                 ((row - 12) * 5 + 1) as u32
             }
         })
+    }
+
+    fn hamming_ask_artifacts(seed: u64, reach: usize) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+        let snapshot = hamming_snapshot(seed, 3, CpuFbsHead::Writer, 0.0, 1.0, &[1, 3], &[1, 1]);
+        let (vocab, width) = (snapshot.vocab, snapshot.width);
+        let plain = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let ask = |carry: Option<usize>| {
+            let table = (0..vocab * width)
+                .map(|index| {
+                    (((index as u64)
+                        .wrapping_mul(1_103_515_245)
+                        .wrapping_add(seed.wrapping_mul(97))
+                        .wrapping_add(13))
+                        % 8192) as i32
+                        - 4096
+                })
+                .map(|value| value as i16)
+                .collect();
+            let gains = carry.map(|rows| {
+                let gains = (0..vocab)
+                    .map(|token| {
+                        (((token as u64)
+                            .wrapping_mul(8191)
+                            .wrapping_add(seed.wrapping_mul(31))
+                            .wrapping_add(17))
+                            % 65_536) as i32
+                            - 32_768
+                    })
+                    .collect();
+                (rows, gains)
+            });
+            AskImage {
+                table,
+                carry: gains,
+            }
+        };
+        let uncarried =
+            add_hamming_ask_uorlut01(&plain, &[Some(ask(None)), Some(ask(None))]).unwrap();
+        let carried =
+            add_hamming_ask_uorlut01(&plain, &[Some(ask(None)), Some(ask(Some(reach)))]).unwrap();
+        (plain, uncarried, carried)
+    }
+
+    fn run_hamming_artifact(bytes: &[u8], tokens: &[u32]) -> Vec<CpuFbsStep> {
+        let model = IntegerStackModel::parse(bytes).unwrap();
+        let mut session = model.session();
+        session.set_hamming_trace(true);
+        let mut cpu = CpuFbsForward::from_artifact(bytes).unwrap();
+        cpu.set_hamming_trace(true).unwrap();
+        let mut steps = Vec::with_capacity(tokens.len());
+        for (row, &token) in tokens.iter().enumerate() {
+            let expected = session.step_native(token).unwrap();
+            let actual = cpu.step(token, CpuFbsHead::Writer).unwrap();
+            assert_eq!(
+                actual.query_q12, expected.query_q12,
+                "row {row}: complete query"
+            );
+            assert_eq!(actual.token, expected.token, "row {row}: selected token");
+            assert_eq!(
+                actual.kept_cells, expected.kept_cells,
+                "row {row}: kept writer cells"
+            );
+            steps.push(actual);
+        }
+
+        let cpu_trace = cpu.take_hamming_trace().unwrap();
+        let served_trace = session.take_hamming_trace().unwrap();
+        assert_eq!(cpu_trace.len(), served_trace.len());
+        for (row, (cpu_read, served_read)) in cpu_trace.iter().zip(&served_trace).enumerate() {
+            assert_eq!(cpu_read.depth, served_read.depth, "trace row {row}");
+            assert_eq!(
+                cpu_read.heads.len(),
+                served_read.heads.len(),
+                "trace row {row}"
+            );
+            for (cpu_head, served_head) in cpu_read.heads.iter().zip(&served_read.heads) {
+                assert_eq!(cpu_head.query, served_head.query, "trace row {row}");
+                assert_eq!(cpu_head.key, served_head.key, "trace row {row}");
+                assert_eq!(
+                    cpu_head
+                        .kept
+                        .iter()
+                        .map(|position| position.position)
+                        .collect::<Vec<_>>(),
+                    served_head.kept,
+                    "trace row {row}"
+                );
+            }
+        }
+        steps
     }
 
     fn assert_hamming_parity(
@@ -2584,9 +2694,10 @@ mod tests {
         assert_eq!(bos.target_token, 0);
         assert_eq!(bos.target_cell, 0);
         assert_eq!(bos.admitted, bos.rank.is_some());
-        assert!(bos
-            .rank
-            .is_none_or(|rank| (1..=bos.candidate_count).contains(&rank)));
+        assert!(
+            bos.rank
+                .is_none_or(|rank| (1..=bos.candidate_count).contains(&rank))
+        );
         assert_eq!(
             bos.target_minus_chosen_distance,
             bos.target_distance - bos.chosen_distance
@@ -2630,6 +2741,45 @@ mod tests {
     fn type_heads_at_both_hooks_match_serving() {
         let changed = assert_hamming_parity(43, &[1, 3], 0.0, 1.0, CpuFbsHead::Nearest);
         assert!(changed > 0, "the type reads must move the complete query");
+    }
+
+    #[test]
+    fn ask_heads_at_both_hooks_match_serving_without_carry() {
+        let tokens = repeating_tokens();
+        let (plain, asked, _) = hamming_ask_artifacts(263, 4);
+        let plain_steps = run_hamming_artifact(&plain, &tokens);
+        let asked_steps = run_hamming_artifact(&asked, &tokens);
+        assert!(
+            plain_steps
+                .iter()
+                .zip(&asked_steps)
+                .any(|(plain, asked)| plain.query_q12 != asked.query_q12),
+            "the exported ask heads must replace the hook-point queries"
+        );
+    }
+
+    #[test]
+    fn readout_ask_carry_matches_serving_over_a_multi_row_window() {
+        let tokens = repeating_tokens();
+        let (_, uncarried, carried) = hamming_ask_artifacts(269, 4);
+        let uncarried_steps = run_hamming_artifact(&uncarried, &tokens);
+        let carried_steps = run_hamming_artifact(&carried, &tokens);
+        let changed = uncarried_steps
+            .iter()
+            .zip(&carried_steps)
+            .enumerate()
+            .filter(|(_, (uncarried, carried))| {
+                uncarried.query_q12 != carried.query_q12
+                    || uncarried.token != carried.token
+                    || uncarried.kept_cells != carried.kept_cells
+            })
+            .map(|(row, _)| row)
+            .collect::<Vec<_>>();
+        assert!(!changed.is_empty());
+        assert!(
+            changed.iter().any(|&row| row > 0),
+            "the readout carry must change a later row: changed rows {changed:?}"
+        );
     }
 
     #[test]
