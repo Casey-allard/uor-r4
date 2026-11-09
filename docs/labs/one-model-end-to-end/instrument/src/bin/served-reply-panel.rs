@@ -4,7 +4,8 @@
 //! segments' decoded text in event order, then the question, joined by single
 //! spaces, encoded with the literal-role dialogue protocol v2 up to the open
 //! assistant marker. `Source` segments are skipped. Generation is greedy on the
-//! artifact's nearest head through `CpuFbsForward`. A row is complete when it
+//! artifact's nearest head through `CpuFbsForward` (`--engine cpu`, the default) or
+//! the integer session (`--engine integer`). A row is complete when it
 //! stopped on EOS, its reply decodes as UTF-8 and the frozen answer set accepts
 //! the reply text without the v2 leading space.
 //!
@@ -14,6 +15,16 @@
 //! the same integer nearest read that generation uses. `--paired-first 1` (with
 //! `--teacher-forced 1`) also ranks, at the first reply position, the first
 //! reference token of the other case in the same pair beside the asked one's.
+//!
+//! The CPU port's Hamming reads never read an ask table or a question carry
+//! (claude-336), so `--engine cpu` refuses, by name, an artifact whose Hamming
+//! image asks or carries. `--engine integer` decodes through
+//! `IntegerStackSession::step_native`, which serves both (claude-338), and records
+//! `settings.engine`; the teacher-forced and paired-first ranks stay on the CPU
+//! port, so it refuses them. Two limits, named rather than refused: neither
+//! engine applies a content readout's vote (`step_native` returns before it,
+//! where `serve_step` applies it), and the integer engine scores an artifact
+//! with turn memory, which the CPU port refuses, with no test of that path here.
 
 use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
@@ -24,8 +35,8 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uor_r4_core::answer_oracle::FrozenAnswers;
-use uor_r4_cpu_train::{CpuFbsForward, CpuFbsHead};
-use uor_r4_integer::stack::IntegerStackModel;
+use uor_r4_cpu_train::{CpuFbsForward, CpuFbsHead, CpuFbsStep};
+use uor_r4_integer::stack::{read_hamming_uorlut01, IntegerStackModel, IntegerStackSession};
 use uor_r4_tokenizer::dialogue::{DialogueEncoder, DialogueProtocol, Message, SCHEMA_V2};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
@@ -251,6 +262,7 @@ fn run() -> Result<()> {
         ));
     }
     let (teacher_forced, paired_first) = rank_switches(&args)?;
+    let engine = engine_switch(&args)?;
     let read = |name: &str| -> Result<(Vec<u8>, String)> {
         let path = PathBuf::from(flag(name)?);
         let bytes = fs::read(&path).map_err(|error| format!("{}: {error}", path.display()))?;
@@ -302,10 +314,17 @@ fn run() -> Result<()> {
             "artifact serves the writer head; this scorer reads the nearest head".to_owned(),
         );
     }
-    // Built once: every row decodes from a clone of this untouched forward, so the timed loop
-    // holds no artifact parse.
-    let fresh_forward = CpuFbsForward::from_artifact(&artifact).map_err(|e| e.to_string())?;
-    let context_length = fresh_forward.context_length();
+    refuse_engine(engine, &artifact, teacher_forced)?;
+    // Built once: every row decodes from a clone of this untouched forward, or from a fresh session
+    // of the parsed model, so the timed loop holds no artifact parse.
+    let fresh_forward = match engine {
+        Engine::Cpu => Some(CpuFbsForward::from_artifact(&artifact).map_err(|e| e.to_string())?),
+        Engine::Integer => None,
+    };
+    let context_length = match &fresh_forward {
+        Some(forward) => forward.context_length(),
+        None => model.shape().context,
+    };
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_bytes)
         .ok_or("tokenizer JSON is not a supported byte-level BPE tokenizer")?;
     let protocol = DialogueProtocol::literal_roles_v2(&tokenizer).map_err(|e| e.to_string())?;
@@ -339,10 +358,22 @@ fn run() -> Result<()> {
             .get(&label.pair_id)
             .ok_or(format!("{}: no plan history", label.pair_id))?;
         let (prompt_text, prompt) = render(&tokenizer, &encoder, case, rendering)?;
-        let mut forward = fresh_forward.clone();
-        let decode_started = Instant::now();
-        let (reply_ids, stop) = generate(&mut forward, &prompt, cap)?;
-        decode_time += decode_started.elapsed();
+        let (reply_ids, stop) = match &fresh_forward {
+            Some(fresh) => {
+                let mut forward = fresh.clone();
+                let decode_started = Instant::now();
+                let decoded = generate(&mut forward, &prompt, cap)?;
+                decode_time += decode_started.elapsed();
+                decoded
+            }
+            None => {
+                let mut session = IntegerDecoder::new(&model);
+                let decode_started = Instant::now();
+                let decoded = generate(&mut session, &prompt, cap)?;
+                decode_time += decode_started.elapsed();
+                decoded
+            }
+        };
         let bytes = tokenizer.decode_bytes(&reply_ids);
         let (reply_text, complete) = score(stop, &bytes, &label.answers, &protocol);
         pair_rows.push((
@@ -463,6 +494,10 @@ fn run() -> Result<()> {
         "decode_tokens_per_second": reply_tokens as u128 * 1000 / decode_milliseconds,
         "rows": rows,
     });
+    if engine == Engine::Integer {
+        // Recorded only off the default, so a CPU-port report is byte-for-byte what it was.
+        report["settings"]["engine"] = "integer".into();
+    }
     if teacher_forced {
         let mut teacher_report = teacher_forced_report(teacher_rows)?;
         teacher_report["wall_milliseconds"] = teacher_wall_milliseconds.into();
@@ -1016,7 +1051,105 @@ fn stop_for(token: u32, kept: usize, prompt: usize, cap: usize, context: usize) 
     }
 }
 
-fn generate(forward: &mut CpuFbsForward, prompt: &[u32], cap: usize) -> Result<(Vec<u32>, Stop)> {
+/// Which decoder serves the rows: the CPU port (the default) or the integer session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Engine {
+    Cpu,
+    Integer,
+}
+
+fn engine_switch(args: &BTreeMap<String, String>) -> Result<Engine> {
+    match args.get("engine").map(String::as_str) {
+        None | Some("cpu") => Ok(Engine::Cpu),
+        Some("integer") => Ok(Engine::Integer),
+        Some(other) => Err(format!("--engine wants cpu or integer, not {other}")),
+    }
+}
+
+/// Refuses what an engine would score silently wrong: the CPU port on an artifact whose Hamming
+/// image asks (a carry needs an ask, so this covers the carry), and the integer engine with the
+/// teacher-forced ranks, which stay on the CPU port.
+fn refuse_engine(engine: Engine, artifact: &[u8], teacher_forced: bool) -> Result<()> {
+    match engine {
+        Engine::Cpu => {
+            let asks = read_hamming_uorlut01(artifact)
+                .map_err(|e| format!("artifact: {e}"))?
+                .is_some_and(|image| image.reads.iter().any(|read| read.ask.is_some()));
+            if asks {
+                return Err(
+                    "the artifact's Hamming image asks or carries a question, which the \
+                            CPU port does not read; score it with --engine integer"
+                        .to_owned(),
+                );
+            }
+        }
+        Engine::Integer => {
+            if teacher_forced {
+                return Err(
+                    "--teacher-forced ranks through the CPU port; it is refused under \
+                            --engine integer"
+                        .to_owned(),
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+/// One greedy decoder on the nearest head: the CPU port or the integer session.
+trait Decoder {
+    fn context_length(&self) -> usize;
+    fn mark_reply_start(&mut self);
+    fn step_nearest(&mut self, token: u32) -> Result<CpuFbsStep>;
+}
+
+impl Decoder for CpuFbsForward {
+    fn context_length(&self) -> usize {
+        CpuFbsForward::context_length(self)
+    }
+    fn mark_reply_start(&mut self) {
+        CpuFbsForward::mark_reply_start(self);
+    }
+    fn step_nearest(&mut self, token: u32) -> Result<CpuFbsStep> {
+        self.step(token, CpuFbsHead::Nearest)
+            .map_err(|e| e.to_string())
+    }
+}
+
+/// A fresh integer session: `step_native` serves the Hamming reads with their ask heads and the
+/// readout's carry, on the head the artifact names (checked nearest in `run`).
+struct IntegerDecoder<'m> {
+    session: IntegerStackSession<'m>,
+    context: usize,
+}
+
+impl<'m> IntegerDecoder<'m> {
+    fn new(model: &'m IntegerStackModel) -> Self {
+        Self {
+            session: model.session(),
+            context: model.shape().context,
+        }
+    }
+}
+
+impl Decoder for IntegerDecoder<'_> {
+    fn context_length(&self) -> usize {
+        self.context
+    }
+    fn mark_reply_start(&mut self) {
+        self.session.mark_reply_start();
+    }
+    fn step_nearest(&mut self, token: u32) -> Result<CpuFbsStep> {
+        let step = self.session.step_native(token).map_err(|e| e.to_string())?;
+        Ok(CpuFbsStep {
+            token: step.token,
+            kept_cells: step.kept_cells,
+            query_q12: step.query_q12,
+        })
+    }
+}
+
+fn generate<D: Decoder>(forward: &mut D, prompt: &[u32], cap: usize) -> Result<(Vec<u32>, Stop)> {
     let context = forward.context_length();
     if prompt.is_empty() {
         return Err("empty prompt".to_owned());
@@ -1034,27 +1167,17 @@ fn generate(forward: &mut CpuFbsForward, prompt: &[u32], cap: usize) -> Result<(
         if let Some(stop) = stop {
             return Ok((reply, stop));
         }
-        next = forward
-            .step(next, CpuFbsHead::Nearest)
-            .map_err(|e| e.to_string())?
-            .token;
+        next = forward.step_nearest(next)?.token;
     }
 }
 
-fn prime_prompt(
-    forward: &mut CpuFbsForward,
-    prompt: &[u32],
-) -> Result<uor_r4_cpu_train::CpuFbsStep> {
+fn prime_prompt<D: Decoder>(forward: &mut D, prompt: &[u32]) -> Result<CpuFbsStep> {
     let mut step = None;
     for (index, &token) in prompt.iter().enumerate() {
         if index + 1 == prompt.len() {
             forward.mark_reply_start();
         }
-        step = Some(
-            forward
-                .step(token, CpuFbsHead::Nearest)
-                .map_err(|e| e.to_string())?,
-        );
+        step = Some(forward.step_nearest(token)?);
     }
     step.ok_or_else(|| "empty prompt".to_owned())
 }
@@ -1100,7 +1223,8 @@ fn pair_metric(rows: &[(String, String, bool, String)]) -> Result<Vec<(String, u
 }
 
 fn parse_args(args: impl Iterator<Item = String>) -> Result<BTreeMap<String, String>> {
-    const FLAGS: [&str; 11] = [
+    const FLAGS: [&str; 12] = [
+        "engine",
         "artifact",
         "tokenizer",
         "inputs",
@@ -1149,10 +1273,12 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, FBS_SYNTH_NON_SQUARE};
+    use uor_r4_integer::stack::synthetic::{
+        synthetic_fbs_trunk_with, synthetic_hamming, FBS_SYNTH_NON_SQUARE,
+    };
     use uor_r4_integer::stack::{
-        add_point_key_uorlut01, export_fbs_trunk_uorlut01, FbsMemoryEntry, FbsMemorySnapshot,
-        FbsReplyTable, PointKeyImage, MEMORY_PAD,
+        add_hamming_ask_uorlut01, add_point_key_uorlut01, export_fbs_trunk_uorlut01, AskImage,
+        FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable, PointKeyImage, MEMORY_PAD,
     };
 
     /// The pinned tokenizer (`d36d3e87…`) lives outside the repository: name it in
@@ -1179,6 +1305,10 @@ mod tests {
     }
 
     fn point_key_fixture(seed: u64) -> CpuFbsForward {
+        CpuFbsForward::from_artifact(&point_key_artifact(seed)).unwrap()
+    }
+
+    fn point_key_artifact(seed: u64) -> Vec<u8> {
         let mut spec = FBS_SYNTH_NON_SQUARE;
         spec.context = 24;
         let mut snapshot = synthetic_fbs_trunk_with(seed, spec);
@@ -1208,7 +1338,7 @@ mod tests {
             }),
         });
         let artifact = export_fbs_trunk_uorlut01(&snapshot).unwrap();
-        let artifact = add_point_key_uorlut01(
+        add_point_key_uorlut01(
             &artifact,
             &PointKeyImage {
                 width: snapshot.width,
@@ -1217,8 +1347,133 @@ mod tests {
                 vote_k: 1,
             },
         )
-        .unwrap();
-        CpuFbsForward::from_artifact(&artifact).unwrap()
+        .unwrap()
+    }
+
+    /// claude-338: a nearest-head trunk with Hamming reads at depths 1 and 3 (the readout), as
+    /// exported without ask heads, and the same artifact with them, the readout's carrying 3 rows.
+    fn ask_fixture() -> (Vec<u8>, Vec<u8>) {
+        let mut spec = FBS_SYNTH_NON_SQUARE;
+        spec.context = 40;
+        let mut snapshot = synthetic_fbs_trunk_with(20261109, spec);
+        snapshot.readout_nearest = true;
+        let (vocab, width, layers) = (snapshot.vocab, snapshot.width, snapshot.layers.len());
+        let mut read = synthetic_hamming(width, layers, 4, 338);
+        let depths = std::mem::take(&mut read.depths);
+        read.reads = depths
+            .iter()
+            .zip(std::mem::take(&mut read.reads))
+            .filter(|(depth, _)| [1, 3].contains(*depth))
+            .map(|(_, r)| r)
+            .collect();
+        read.depths = vec![1, 3];
+        snapshot.hamming = Some(read);
+        let plain = export_fbs_trunk_uorlut01(&snapshot).unwrap();
+        let mut state = 338u64;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            state >> 33
+        };
+        let mut ask = |carry: Option<usize>| {
+            let table = (0..vocab * width)
+                .map(|_| ((next() % 8192) as i32 - 4096) as i16)
+                .collect();
+            let gains = carry.map(|h| {
+                (
+                    h,
+                    (0..vocab)
+                        .map(|_| (next() % 131_072) as i32 - 65_536)
+                        .collect(),
+                )
+            });
+            Some(AskImage {
+                table,
+                carry: gains,
+            })
+        };
+        let asks = vec![ask(None), ask(Some(3))];
+        let asking = add_hamming_ask_uorlut01(&plain, &asks).unwrap();
+        (plain, asking)
+    }
+
+    /// Prompts that start each row at BOS, reach the point-key memory's opening `[13, 17]` and its
+    /// override after `[7, 11]`, and one past every fixture's context.
+    fn engine_prompts() -> Vec<Vec<u32>> {
+        vec![
+            vec![BOS, 7, 11],
+            vec![BOS, 13, 17, 7, 11],
+            vec![BOS, 5, 9, 13, 17, 2, 7, 11],
+            (0..12).map(|i| (i * 37 + 3) % 500).collect(),
+            (0..41).map(|i| (i * 11 + 2) % 500).collect(),
+        ]
+    }
+
+    fn decode_all<D: Decoder>(fresh: impl Fn() -> D) -> Vec<(Vec<u32>, Stop)> {
+        engine_prompts()
+            .iter()
+            .map(|prompt| generate(&mut fresh(), prompt, 12).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn each_engine_refuses_what_it_would_score_silently_wrong() {
+        let (plain, asking) = ask_fixture();
+        assert_eq!(refuse_engine(Engine::Cpu, &plain, true), Ok(()));
+        let refused = refuse_engine(Engine::Cpu, &asking, false).unwrap_err();
+        assert!(refused.contains("--engine integer"), "{refused}");
+        assert_eq!(refuse_engine(Engine::Integer, &asking, false), Ok(()));
+        let refused = refuse_engine(Engine::Integer, &plain, true).unwrap_err();
+        assert!(refused.contains("--teacher-forced"), "{refused}");
+        let args = |v: &str| BTreeMap::from([("engine".to_owned(), v.to_owned())]);
+        assert_eq!(engine_switch(&BTreeMap::new()), Ok(Engine::Cpu));
+        assert_eq!(engine_switch(&args("cpu")), Ok(Engine::Cpu));
+        assert_eq!(engine_switch(&args("integer")), Ok(Engine::Integer));
+        assert!(engine_switch(&args("float")).is_err());
+        let given = parse_args(["--engine", "integer"].map(String::from).into_iter()).unwrap();
+        assert_eq!(engine_switch(&given), Ok(Engine::Integer));
+    }
+
+    /// Without an ask table the engines are one decoder: the same replies and stops through the
+    /// Hamming reads, the point-key memory and its override, and a prompt past the context.
+    #[test]
+    fn the_integer_session_decodes_as_the_cpu_port_without_an_ask() {
+        let (plain, _) = ask_fixture();
+        for (name, artifact) in [("hamming", plain), ("point key", point_key_artifact(83))] {
+            let cpu = CpuFbsForward::from_artifact(&artifact).unwrap();
+            let model = IntegerStackModel::parse(&artifact).unwrap();
+            let want = decode_all(|| cpu.clone());
+            assert!(
+                want.iter().any(|(_, stop)| *stop == Stop::Context),
+                "{name}"
+            );
+            assert_eq!(decode_all(|| IntegerDecoder::new(&model)), want, "{name}");
+        }
+    }
+
+    /// The fault the CPU-port refusal guards: the port decodes the asking artifact exactly as the
+    /// one without ask heads, while the integer session reads them and decodes it differently.
+    #[test]
+    fn only_the_integer_session_reads_the_ask_heads() {
+        let (plain, asking) = ask_fixture();
+        let cpu = |bytes: &[u8]| {
+            let forward = CpuFbsForward::from_artifact(bytes).unwrap();
+            decode_all(|| forward.clone())
+        };
+        assert_eq!(cpu(&asking), cpu(&plain));
+        let (plain_model, asking_model) = (
+            IntegerStackModel::parse(&plain).unwrap(),
+            IntegerStackModel::parse(&asking).unwrap(),
+        );
+        assert_eq!(
+            decode_all(|| IntegerDecoder::new(&plain_model)),
+            cpu(&plain)
+        );
+        assert_ne!(
+            decode_all(|| IntegerDecoder::new(&asking_model)),
+            decode_all(|| IntegerDecoder::new(&plain_model))
+        );
     }
 
     #[test]
