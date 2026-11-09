@@ -18,6 +18,7 @@ pub struct TrainedAskOffsets {
     width: usize,
     heads: usize,
     reads: Vec<TrainedAskRead>,
+    hold: Option<TrainedAskHold>,
 }
 
 #[derive(Clone, Debug)]
@@ -25,6 +26,13 @@ struct TrainedAskRead {
     depth: usize,
     key_rotation: Vec<f32>,
     ask: Vec<f32>,
+}
+
+#[derive(Clone, Debug)]
+struct TrainedAskHold {
+    rows: usize,
+    gain: Vec<f32>,
+    write_weight: Vec<f32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,6 +57,19 @@ pub struct AskOffsetRelationReading {
     pub relation: u32,
     pub question: u32,
     pub cells: Vec<AskOffsetCellReading>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AskHoldSummary {
+    pub rows: usize,
+    pub gain_nonzero: usize,
+    pub gain_mean: f64,
+    pub gain_min: f64,
+    pub gain_max: f64,
+    pub gain_mean_abs: f64,
+    pub write_weight_nonzero: usize,
+    pub write_weight_mean_abs: f64,
 }
 
 impl TrainedAskOffsets {
@@ -136,12 +157,14 @@ impl TrainedAskOffsets {
             });
         }
 
+        let hold = parse_hold(&hamming, vocab, width)?;
         Ok(Self {
             table,
             vocab,
             width,
             heads,
             reads,
+            hold,
         })
     }
 
@@ -163,6 +186,46 @@ impl TrainedAskOffsets {
 
     pub fn depths(&self) -> impl Iterator<Item = usize> + '_ {
         self.reads.iter().map(|read| read.depth)
+    }
+
+    pub fn hold_summary(&self) -> Option<AskHoldSummary> {
+        let hold = self.hold.as_ref()?;
+        let count = hold.gain.len();
+        let mean = |values: &[f32]| -> f64 {
+            values.iter().map(|&value| f64::from(value)).sum::<f64>() / count as f64
+        };
+        Some(AskHoldSummary {
+            rows: hold.rows,
+            gain_nonzero: hold.gain.iter().filter(|&&value| value != 0.0).count(),
+            gain_mean: mean(&hold.gain),
+            gain_min: hold
+                .gain
+                .iter()
+                .map(|&value| f64::from(value))
+                .fold(f64::INFINITY, f64::min),
+            gain_max: hold
+                .gain
+                .iter()
+                .map(|&value| f64::from(value))
+                .fold(f64::NEG_INFINITY, f64::max),
+            gain_mean_abs: hold
+                .gain
+                .iter()
+                .map(|&value| f64::from(value.abs()))
+                .sum::<f64>()
+                / count as f64,
+            write_weight_nonzero: hold
+                .write_weight
+                .iter()
+                .filter(|&&value| value != 0.0)
+                .count(),
+            write_weight_mean_abs: hold
+                .write_weight
+                .iter()
+                .map(|&value| f64::from(value.abs()))
+                .sum::<f64>()
+                / hold.write_weight.len() as f64,
+        })
     }
 
     pub fn audit_relations(
@@ -290,6 +353,61 @@ impl TrainedAskOffsets {
             ));
         }
         Ok(())
+    }
+}
+
+fn parse_hold(
+    hamming: &SafeTensors<'_>,
+    vocab: usize,
+    width: usize,
+) -> Result<Option<TrainedAskHold>, String> {
+    let hold_names = hamming
+        .names()
+        .into_iter()
+        .filter(|name| {
+            name.strip_prefix('d')
+                .and_then(|name| name.split_once('.'))
+                .is_some_and(|(_, part)| part == "hold")
+        })
+        .collect::<Vec<_>>();
+    let rows_tensor = hamming.tensor("hold_rows").ok();
+    match (hold_names.as_slice(), rows_tensor) {
+        ([], None) => Ok(None),
+        ([], Some(_)) => Err("checkpoint records hold_rows but no d2.hold".to_owned()),
+        ([name], None) => Err(format!("checkpoint has {name} but no hold_rows")),
+        ([name], Some(rows_tensor)) if *name == "d2.hold" => {
+            if vocab == 0 {
+                return Err("a held checkpoint has an empty vocabulary".to_owned());
+            }
+            let rows = *u32_values(&rows_tensor, "hold_rows", &[1])?
+                .first()
+                .ok_or_else(|| "hold_rows is empty".to_owned())? as usize;
+            if rows == 0 {
+                return Err("hold_rows is zero".to_owned());
+            }
+            let gain_tensor = hamming
+                .tensor("d2.hold")
+                .map_err(|error| format!("d2.hold: {error}"))?;
+            let gain = f32_values(&gain_tensor, "d2.hold", &[vocab])?;
+            let weight_tensor = hamming
+                .tensor("d2.weight")
+                .map_err(|error| format!("d2.weight: {error}"))?;
+            let weight = f32_values(&weight_tensor, "d2.weight", &[2, width])?;
+            Ok(Some(TrainedAskHold {
+                rows,
+                gain,
+                write_weight: weight[width..].to_vec(),
+            }))
+        }
+        ([name], Some(_)) => Err(format!(
+            "held ask write is {name}, not the stream read's d2.hold"
+        )),
+        (_, Some(_)) => Err(format!(
+            "checkpoint carries more than one hold tensor: {hold_names:?}"
+        )),
+        (_, None) => Err(format!(
+            "checkpoint carries more than one hold tensor without hold_rows: {hold_names:?}"
+        )),
     }
 }
 
@@ -533,6 +651,226 @@ mod tests {
             .audit_relations(16..32, 16)
             .unwrap_err()
             .contains("not finite after adding"));
+    }
+
+    fn hold_file(
+        rows: Option<u32>,
+        hold_name: &str,
+        gain_shape: usize,
+        gain: &[f32],
+        weight_shape: [usize; 2],
+        weight: Vec<f32>,
+    ) -> Vec<u8> {
+        custom_hold_file(
+            rows.map(|rows| (Dtype::U32, vec![1], u32_bytes([rows]))),
+            vec![(hold_name, gain_shape, gain.to_vec())],
+            Some((weight_shape, weight)),
+        )
+    }
+
+    fn custom_hold_file(
+        rows: Option<(Dtype, Vec<usize>, Vec<u8>)>,
+        holds: Vec<(&str, usize, Vec<f32>)>,
+        weight: Option<([usize; 2], Vec<f32>)>,
+    ) -> Vec<u8> {
+        let (vocab, width) = (64usize, 8usize);
+        let rotation = (0..width / 4)
+            .flat_map(|_| [1.0f32, 0.0, 0.0, 0.0])
+            .collect::<Vec<_>>();
+        let mut tensors = vec![
+            ("heads", Dtype::U32, vec![1], u32_bytes([2])),
+            (
+                "d2.key_rotation",
+                Dtype::F32,
+                vec![width / 4, 4],
+                f32_bytes(rotation.clone()),
+            ),
+            (
+                "d2.ask",
+                Dtype::F32,
+                vec![vocab, width],
+                f32_bytes(vec![0.0; vocab * width]),
+            ),
+            (
+                "d6.key_rotation",
+                Dtype::F32,
+                vec![width / 4, 4],
+                f32_bytes(rotation),
+            ),
+            (
+                "d6.ask",
+                Dtype::F32,
+                vec![vocab, width],
+                f32_bytes(vec![0.0; vocab * width]),
+            ),
+        ];
+        for (name, shape, gain) in holds {
+            tensors.push((name, Dtype::F32, vec![shape], f32_bytes(gain)));
+        }
+        if let Some((shape, weight)) = weight {
+            tensors.push(("d2.weight", Dtype::F32, shape.to_vec(), f32_bytes(weight)));
+        }
+        if let Some((dtype, shape, data)) = rows {
+            tensors.push(("hold_rows", dtype, shape, data));
+        }
+        file(tensors)
+    }
+
+    #[test]
+    fn hold_summary_reads_the_stream_gain_and_type_write() {
+        let mut gain = vec![0.0f32; 64];
+        gain[1] = 0.5;
+        gain[2] = -0.25;
+        gain[3] = 2.0;
+        let mut weight = vec![0.0f32; 16];
+        weight[8] = 1.0;
+        weight[9] = -2.0;
+        let hamming = hold_file(Some(8), "d2.hold", 64, &gain, [2, 8], weight);
+        let offsets = TrainedAskOffsets::from_bytes(&model_file(), &hamming).unwrap();
+        let hold = offsets.hold_summary().unwrap();
+        assert_eq!(hold.rows, 8);
+        assert_eq!(hold.gain_nonzero, 3);
+        assert!((hold.gain_mean - 2.25 / 64.0).abs() < 1e-12);
+        assert_eq!(hold.gain_min, -0.25);
+        assert_eq!(hold.gain_max, 2.0);
+        assert!((hold.gain_mean_abs - 2.75 / 64.0).abs() < 1e-12);
+        assert_eq!(hold.write_weight_nonzero, 2);
+        assert!((hold.write_weight_mean_abs - 3.0 / 8.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn hold_pairs_are_stream_only_and_fail_closed() {
+        let gain = vec![0.0f32; 64];
+        let weight = vec![0.0f32; 16];
+        let no_rows = hold_file(None, "d2.hold", 64, &gain, [2, 8], weight.clone());
+        assert!(TrainedAskOffsets::from_bytes(&model_file(), &no_rows)
+            .unwrap_err()
+            .contains("but no hold_rows"));
+
+        let zero_rows = hold_file(Some(0), "d2.hold", 64, &gain, [2, 8], weight.clone());
+        assert!(TrainedAskOffsets::from_bytes(&model_file(), &zero_rows)
+            .unwrap_err()
+            .contains("hold_rows is zero"));
+
+        // `rows_only` deliberately carries hold_rows without any d*.hold.
+        let rows_only = {
+            let mut tensors = vec![
+                ("heads", Dtype::U32, vec![1], u32_bytes([2])),
+                (
+                    "d2.key_rotation",
+                    Dtype::F32,
+                    vec![2, 4],
+                    f32_bytes((0..2).flat_map(|_| [1.0f32, 0.0, 0.0, 0.0])),
+                ),
+                (
+                    "d2.ask",
+                    Dtype::F32,
+                    vec![64, 8],
+                    f32_bytes(vec![0.0; 64 * 8]),
+                ),
+                (
+                    "d6.key_rotation",
+                    Dtype::F32,
+                    vec![2, 4],
+                    f32_bytes((0..2).flat_map(|_| [1.0f32, 0.0, 0.0, 0.0])),
+                ),
+                (
+                    "d6.ask",
+                    Dtype::F32,
+                    vec![64, 8],
+                    f32_bytes(vec![0.0; 64 * 8]),
+                ),
+                ("hold_rows", Dtype::U32, vec![1], u32_bytes([8])),
+            ];
+            tensors.sort_by_key(|(name, _, _, _)| *name);
+            file(tensors)
+        };
+        assert!(TrainedAskOffsets::from_bytes(&model_file(), &rows_only)
+            .unwrap_err()
+            .contains("hold_rows but no d2.hold"));
+
+        let deep = hold_file(Some(8), "d6.hold", 64, &gain, [2, 8], weight.clone());
+        assert!(TrainedAskOffsets::from_bytes(&model_file(), &deep)
+            .unwrap_err()
+            .contains("not the stream read's d2.hold"));
+
+        let bad_gain_shape = hold_file(Some(8), "d2.hold", 63, &[0.0; 63], [2, 8], weight.clone());
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &bad_gain_shape)
+                .unwrap_err()
+                .contains("not F32 [64]")
+        );
+
+        let bad_weight_shape = hold_file(Some(8), "d2.hold", 64, &gain, [2, 7], vec![0.0; 14]);
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &bad_weight_shape)
+                .unwrap_err()
+                .contains("not F32 [2, 8]")
+        );
+
+        let bad_rows_dtype = custom_hold_file(
+            Some((Dtype::F32, vec![1], f32_bytes([8.0]))),
+            vec![("d2.hold", 64, gain.clone())],
+            Some(([2, 8], weight.clone())),
+        );
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &bad_rows_dtype)
+                .unwrap_err()
+                .contains("hold_rows is F32")
+        );
+
+        let bad_rows_shape = custom_hold_file(
+            Some((Dtype::U32, vec![2], u32_bytes([8, 8]))),
+            vec![("d2.hold", 64, gain.clone())],
+            Some(([2, 8], weight.clone())),
+        );
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &bad_rows_shape)
+                .unwrap_err()
+                .contains("not U32 [1]")
+        );
+
+        let missing_weight = custom_hold_file(
+            Some((Dtype::U32, vec![1], u32_bytes([8]))),
+            vec![("d2.hold", 64, gain.clone())],
+            None,
+        );
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &missing_weight)
+                .unwrap_err()
+                .contains("d2.weight")
+        );
+
+        let mut nonfinite_weight = weight.clone();
+        nonfinite_weight[0] = f32::NAN;
+        let nonfinite_weight = custom_hold_file(
+            Some((Dtype::U32, vec![1], u32_bytes([8]))),
+            vec![("d2.hold", 64, gain.clone())],
+            Some(([2, 8], nonfinite_weight)),
+        );
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &nonfinite_weight)
+                .unwrap_err()
+                .contains("d2.weight[0] is not finite")
+        );
+
+        let multiple_holds = custom_hold_file(
+            Some((Dtype::U32, vec![1], u32_bytes([8]))),
+            vec![("d2.hold", 64, gain.clone()), ("d6.hold", 64, gain.clone())],
+            Some(([2, 8], weight.clone())),
+        );
+        assert!(
+            TrainedAskOffsets::from_bytes(&model_file(), &multiple_holds)
+                .unwrap_err()
+                .contains("more than one hold tensor")
+        );
+
+        let mut nonfinite = gain.clone();
+        nonfinite[7] = f32::NAN;
+        let nonfinite = hold_file(Some(8), "d2.hold", 64, &nonfinite, [2, 8], weight);
+        assert!(TrainedAskOffsets::from_bytes(&model_file(), &nonfinite)
+            .unwrap_err()
+            .contains("d2.hold[7] is not finite"));
     }
 
     fn model_file() -> Vec<u8> {

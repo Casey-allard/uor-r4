@@ -1,0 +1,80 @@
+{
+  "schema": "uor-r4.cpu-carry-hold-audit-resource/1",
+  "status": "COMPLETE_RECORD_REAL_NOT_RUN",
+  "experiment": "CPU held ask-write checkpoint structure and gain audit",
+  "updated_utc": "2026-11-09T05:49:57Z",
+  "previous_ledger": "cpu-training-pilot-real-ask-regression-2026-11-09/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 109367.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 1800,
+  "admitted_increment_seconds": 1800,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 111167.677487699,
+  "admitted_cumulative_projection_seconds": 111167.677487699,
+  "lab_cumulative_projection_seconds": 111167.677487699,
+  "projection": {
+    "measured_library_tests_seconds": 47.16,
+    "builds_and_checks_allowance_seconds": 900,
+    "review_and_delivery_allowance_seconds": 300,
+    "retry_and_setup_allowance_seconds": 552.84,
+    "wall_limit_seconds": 1800
+  },
+  "measured": {
+    "synthetic_hold_rows": 8,
+    "synthetic_gain_nonzero": 2,
+    "synthetic_gain_mean": 0.00390625,
+    "synthetic_gain_min": -0.25,
+    "synthetic_gain_max": 0.5,
+    "synthetic_gain_mean_abs": 0.01171875,
+    "synthetic_write_weight_nonzero": 1,
+    "synthetic_write_weight_mean_abs": 0.1875,
+    "synthetic_ask_cells": 32,
+    "synthetic_trained_target_nearest": 28,
+    "synthetic_regressed_cells": 2,
+    "library_tests_passed": 480,
+    "library_tests_ignored": 5,
+    "library_tests_seconds": 47.06,
+    "library_tests_cpu_percent": 2176,
+    "library_tests_peak_rss_kib": 755748,
+    "repeat_report_byte_identical": true,
+    "real_checkpoints_audited": 0
+  },
+  "artifacts": {
+    "synthetic_report_sha256": "a5f9dacaf19cbe63eafcdf9b64df20638263a38d68d6b3073cacd043ec22211f",
+    "synthetic_report_executable_sha256": "1d039786750aa9ae9a8f788d5937e227d3d79cae50bce57a6f74ce8154cbb779",
+    "release_executable_sha256": "224dd54bf8aea4a6e993787a3d1bea4413590a322516560dc91a0120b2447a8b"
+  },
+  "storage": {
+    "task_and_ledger_bytes": 34089,
+    "worktree_build_target_bytes": 5060627411,
+    "free_bytes_at_measurement": 155112185856,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-251/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-251/REPORT.md",
+    "evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-251/evidence/synthetic-report.json"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree target after delivery; retain text report and hashes"
+  }
+}
