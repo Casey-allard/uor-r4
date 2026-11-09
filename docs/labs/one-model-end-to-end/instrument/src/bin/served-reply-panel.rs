@@ -16,9 +16,10 @@
 //! `--teacher-forced 1`) also ranks, at the first reply position, the first
 //! reference token of the other case in the same pair beside the asked one's.
 //!
-//! The CPU port's Hamming reads never read an ask table or a question carry
-//! (claude-336), so `--engine cpu` refuses, by name, an artifact whose Hamming
-//! image asks or carries. `--engine integer` decodes through
+//! `--engine cpu` refuses, by name, an artifact whose Hamming image asks or
+//! carries, so the panel scores such an artifact only on the product path. The
+//! refusal is a choice since deepseek-261 taught the CPU port to read the ask
+//! tables and the question carry. `--engine integer` decodes through
 //! `IntegerStackSession::serve_step` (claude-336), the product path, and records
 //! `settings.engine`. `--content-readout` attaches an artifact-bound sidecar to
 //! the integer model, as `uor-chat` does. The teacher-forced and paired-first
@@ -1107,9 +1108,9 @@ fn record_content_readout(report: &mut serde_json::Value, sha256: Option<&str>) 
     }
 }
 
-/// Refuses what an engine would score silently wrong: the CPU port on an artifact whose Hamming
-/// image asks (a carry needs an ask, so this covers the carry), and the integer engine with the
-/// teacher-forced ranks, which stay on the CPU port.
+/// Refuses what an engine does not score: the CPU port on an artifact whose Hamming image asks
+/// (a carry needs an ask, so this covers the carry), which the panel keeps to the product path,
+/// and the integer engine with the teacher-forced ranks, which stay on the CPU port.
 fn refuse_engine(
     engine: Engine,
     artifact: &[u8],
@@ -1123,8 +1124,9 @@ fn refuse_engine(
                 .is_some_and(|image| image.reads.iter().any(|read| read.ask.is_some()));
             if asks {
                 return Err(
-                    "the artifact's Hamming image asks or carries a question, which the \
-                            CPU port does not read; score it with --engine integer"
+                    "the artifact's Hamming image asks or carries a question, and the panel \
+                            scores such an artifact only on the product path; score it with \
+                            --engine integer"
                         .to_owned(),
                 );
             }
@@ -1550,11 +1552,12 @@ mod tests {
     }
 
     #[test]
-    fn each_engine_refuses_what_it_would_score_silently_wrong() {
+    fn each_engine_refuses_what_it_does_not_score() {
         let (plain, asking) = ask_fixture();
         assert_eq!(refuse_engine(Engine::Cpu, &plain, true, false), Ok(()));
         let refused = refuse_engine(Engine::Cpu, &asking, false, false).unwrap_err();
         assert!(refused.contains("--engine integer"), "{refused}");
+        assert!(refused.contains("product path"), "{refused}");
         assert_eq!(
             refuse_engine(Engine::Integer, &asking, false, false),
             Ok(())
@@ -1600,16 +1603,16 @@ mod tests {
         }
     }
 
-    /// The fault the CPU-port refusal guards: the port decodes the asking artifact exactly as the
-    /// one without ask heads, while the integer session reads them and decodes it differently.
+    /// Since deepseek-261 the CPU port reads the ask heads and the carry as the integer session
+    /// does: the two engines decode the asking artifact alike, and it decodes unlike the one
+    /// without ask heads, so neither engine can pass by ignoring the asks.
     #[test]
-    fn only_the_integer_session_reads_the_ask_heads() {
+    fn both_engines_read_the_ask_heads() {
         let (plain, asking) = ask_fixture();
         let cpu = |bytes: &[u8]| {
             let forward = CpuFbsForward::from_artifact(bytes).unwrap();
             decode_all(|| forward.clone())
         };
-        assert_eq!(cpu(&asking), cpu(&plain));
         let (plain_model, asking_model) = (
             IntegerStackModel::parse(&plain).unwrap(),
             IntegerStackModel::parse(&asking).unwrap(),
@@ -1618,10 +1621,11 @@ mod tests {
             decode_all(|| IntegerDecoder::new(&plain_model)),
             cpu(&plain)
         );
-        assert_ne!(
+        assert_eq!(
             decode_all(|| IntegerDecoder::new(&asking_model)),
-            decode_all(|| IntegerDecoder::new(&plain_model))
+            cpu(&asking)
         );
+        assert_ne!(cpu(&asking), cpu(&plain));
     }
 
     /// `uor-chat` applies an attached content readout only through `serve_step`. The panel's integer
