@@ -438,6 +438,90 @@ pub struct FbsHammingRead {
     pub weight: Vec<f32>,
 }
 
+/// The snapshot JSON's key for the Hamming reads' ask heads (claude-336), one entry per read.
+/// [`FbsTrunkSnapshot`] refuses unknown fields, so an exporter that does not know the key
+/// refuses a snapshot with ask heads instead of serving the model without them.
+pub const FBS_HAMMING_ASK_KEY: &str = "hamming_ask";
+
+/// The exponent a Hamming ask table is stored at: Q12, the token table's own, so the asked
+/// point `table + a` is an exact sum.
+pub const HAMMING_ASK_EXP: i32 = -12;
+
+/// The exponent a question carry's gains are stored at: Q16.
+pub const HAMMING_CARRY_GAIN_EXP: i32 = -16;
+
+/// One Hamming read's ask heads (claude-330) as `fbs-snapshot` writes them: the question table
+/// and, on the readout read, the question carry (claude-335).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FbsHammingAskRead {
+    /// `vocab * width` question entries, row-major.
+    pub table: Vec<f32>,
+    /// The question carry, on the readout read only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carry: Option<FbsHammingCarry>,
+}
+
+/// A question carry: how many rows back it reaches, and one gain per token.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FbsHammingCarry {
+    pub rows: usize,
+    pub gain: Vec<f32>,
+}
+
+/// `v` at `2^exp` in steps, rounded half away from zero as [`fixed_value`] rounds, or `None`
+/// when it is not finite or its step count does not fit `T`.
+fn fixed_steps<T: TryFrom<i64>>(v: f32, exp: i32) -> Option<T> {
+    if !v.is_finite() {
+        return None;
+    }
+    let steps = (f64::from(v) * 2f64.powi(-exp)).round();
+    if steps.abs() > 2f64.powi(62) {
+        return None;
+    }
+    T::try_from(steps as i64).ok()
+}
+
+/// One read's ask heads at the integers the artifact stores: the question table at Q12 in `i16`
+/// and the carry's reach and gains at Q16 in `i32`. A value that is not finite or does not fit is
+/// refused by name. The float rounding (`round_hamming_as_exported`) rounds to these same values.
+#[allow(clippy::type_complexity)]
+pub fn quantize_hamming_ask(
+    depth: usize,
+    ask: &FbsHammingAskRead,
+) -> Result<(Vec<i16>, Option<(usize, Vec<i32>)>), String> {
+    let table = ask
+        .table
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| {
+            fixed_steps::<i16>(v, HAMMING_ASK_EXP).ok_or_else(|| {
+                format!("hamming_read.d{depth}.ask[{i}] = {v} does not fit Q12 in i16")
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let carry = match &ask.carry {
+        None => None,
+        Some(carry) => Some((
+            carry.rows,
+            carry
+                .gain
+                .iter()
+                .enumerate()
+                .map(|(i, &v)| {
+                    fixed_steps::<i32>(v, HAMMING_CARRY_GAIN_EXP).ok_or_else(|| {
+                        format!(
+                            "hamming_read.d{depth}.carry_gain[{i}] = {v} does not fit Q16 in i32"
+                        )
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
+    };
+    Ok((table, carry))
+}
+
 /// The schema a [`HammingTrace`] carries.
 pub const HAMMING_TRACE_SCHEMA: &str = "uor-r4.hamming-trace/1";
 

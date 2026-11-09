@@ -20,6 +20,11 @@
 //! integer square root and division, under `uor-r4.lut-stack/5` (claude-181).
 //! With neither, the gates and the transition snap to the 120 icosians.
 //!
+//! A snapshot of a model with ask heads (claude-330) holds them under `hamming_ask`, one entry
+//! per Hamming read, with the readout read's question carry (claude-335). They are served from
+//! the artifact's `hamming.d{depth}.ask` and `.carry` sections (claude-336): the question table
+//! at Q12, the gains at Q16. A snapshot without the key exports byte for byte as before.
+//!
 //! `--run-config` reads the run's `config.json` for its readout (integer-nearest-readout,
 //! claude-231) and served contract. A `cell` or `nearest` objective serves the whole table's
 //! nearest token (`head = "native_vector_nearest"`), for a snapshot taken before `fbs-snapshot`
@@ -46,9 +51,12 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use sha2::{Digest, Sha256};
-use uor_r4_integer::fbs_snapshot::{run_readout_nearest, write_new_file};
+use uor_r4_integer::fbs_snapshot::{
+    quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead,
+    FBS_HAMMING_ASK_KEY,
+};
 use uor_r4_integer::stack::{
-    add_point_key_uorlut01, build_point_key, check_point_key_read_back,
+    add_hamming_ask_uorlut01, add_point_key_uorlut01, AskImage, build_point_key, check_point_key_read_back,
     export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_with, point_key_windows,
     FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
@@ -184,8 +192,39 @@ fn run() -> Result<(), String> {
         return Err(USAGE.to_owned());
     };
     let bytes = std::fs::read(snapshot).map_err(|e| format!("{snapshot}: {e}"))?;
-    let mut snap: FbsTrunkSnapshot =
+    // The ask heads (claude-336) ride beside the trunk snapshot under their own key; the rest
+    // must be a trunk snapshot, which refuses any other field.
+    let mut value: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|e| format!("{snapshot}: {e}"))?;
+    let asks: Option<Vec<Option<FbsHammingAskRead>>> = match value.as_object_mut().and_then(|o| o.remove(FBS_HAMMING_ASK_KEY)) {
+        None => None,
+        Some(asks) => Some(serde_json::from_value(asks).map_err(|e| format!("{snapshot}: {FBS_HAMMING_ASK_KEY}: {e}"))?),
+    };
+    let mut snap: FbsTrunkSnapshot =
+        serde_json::from_value(value).map_err(|e| format!("{snapshot}: {e}"))?;
+    // A block in which no read asks is the plain snapshot (claude-336 review).
+    let asks = match asks {
+        None => None,
+        Some(asks) if asks.iter().all(Option::is_none) => None,
+        Some(asks) => {
+            let hamming = snap.hamming.as_ref().ok_or_else(|| format!("{snapshot}: {FBS_HAMMING_ASK_KEY} without Hamming reads"))?;
+            if asks.len() != hamming.depths.len() {
+                return Err(format!("{snapshot}: {FBS_HAMMING_ASK_KEY} has {} entries for {} Hamming reads", asks.len(), hamming.depths.len()));
+            }
+            let images = asks
+                .iter()
+                .zip(&hamming.depths)
+                .map(|(ask, &depth)| {
+                    ask.as_ref()
+                        .map(|ask| quantize_hamming_ask(depth, ask).and_then(|(table, carry)| AskImage::checked(Some(table), carry, snap.vocab, snap.width).map_err(|e| e.to_string())))
+                        .transpose()
+                        .map(Option::flatten)
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| format!("{snapshot}: {e}"))?;
+            Some(images)
+        }
+    };
     // The run's readout (integer-nearest-readout, claude-231), for a snapshot taken before
     // `fbs-snapshot` recorded it. The config's rate reading must agree with the snapshot's.
     if let Some(config) = &run_config {
@@ -215,6 +254,10 @@ fn run() -> Result<(), String> {
         None => export_fbs_trunk_uorlut01_with(&snap, snaps),
     }
     .map_err(|e| format!("export: {e}"))?;
+    let artifact = match asks {
+        None => artifact,
+        Some(asks) => add_hamming_ask_uorlut01(&artifact, &asks).map_err(|e| format!("the ask heads: {e}"))?,
+    };
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;
     write_new_file(Path::new(out), &artifact).map_err(|e| format!("{out}: {e}"))?;

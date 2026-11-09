@@ -21,7 +21,7 @@ use sha2::{Digest, Sha256};
 use uor_r4_integer::discrete_d11::{spiralcore_orbit_roots, spiralcore_signed_axes};
 use uor_r4_integer::fbs_snapshot::{
     fixed_value, grid_code, grid_value, q12_value, write_new_file, FbsFloatPosition,
-    FbsFloatReadout, FbsFloatSequence, FbsHammingRead, FbsHammingSnapshot, FbsMemoryEntry,
+    FbsFloatReadout, FbsFloatSequence, FbsHammingAskRead, FbsHammingCarry, FbsHammingRead, FbsHammingSnapshot, HAMMING_ASK_EXP, HAMMING_CARRY_GAIN_EXP, FbsMemoryEntry,
     FbsMemorySnapshot, FbsReadoutMode, FbsReplyTable, FbsRoutes, FbsTrunkLayer, FbsTrunkSnapshot,
     FBS_FIXED_EXP,
 };
@@ -376,7 +376,77 @@ pub fn check_readout_reads(directory: &Path, readouts: usize) -> Result<()> {
 ///   on the readout whatever the layer count, and the integer engine takes the read at the layer
 ///   count as the readout (claude-199);
 /// - a table of another shape, or one with a value that is not finite.
+///
+/// It also refuses ask heads (claude-330) and the question carry (claude-335), which this snapshot
+/// cannot hold: [`fbs_hamming_snapshot_with_ask`] exports them beside it, so no caller of this one
+/// drops them unseen.
 pub fn fbs_hamming_snapshot(
+    reads: &HammingReads,
+    layers: usize,
+    width: usize,
+) -> Result<FbsHammingSnapshot> {
+    // The shared refusals (the hold, the type spin, a shape) come first, each by its own name.
+    let snapshot = hamming_snapshot(reads, layers, width)?;
+    if let Some(depth) = HAMMING_DEPTHS.iter().zip(&reads.reads).find(|(_, r)| r.carry.is_some()).map(|(d, _)| d) {
+        return Err(invalid(format!(
+            "hamming_read d{depth} carries its question (--hamming-carry-question, claude-335); export it with fbs_hamming_snapshot_with_ask"
+        )));
+    }
+    if let Some(depth) = HAMMING_DEPTHS.iter().zip(&reads.reads).find(|(_, r)| r.ask.is_some()).map(|(d, _)| d) {
+        return Err(invalid(format!(
+            "hamming_read d{depth} has ask heads (claude-330); export it with fbs_hamming_snapshot_with_ask"
+        )));
+    }
+    Ok(snapshot)
+}
+
+/// claude-336: [`fbs_hamming_snapshot`] for reads that may have ask heads (claude-330) and, on the
+/// readout read, the question carry (claude-335): the snapshot, and, when any read asks, one
+/// entry per read for the snapshot JSON's [`FBS_HAMMING_ASK_KEY`](uor_r4_integer::fbs_snapshot::FBS_HAMMING_ASK_KEY).
+/// The hold (claude-333) is still refused.
+pub fn fbs_hamming_snapshot_with_ask(
+    reads: &HammingReads,
+    layers: usize,
+    width: usize,
+) -> Result<(FbsHammingSnapshot, Option<Vec<Option<FbsHammingAskRead>>>)> {
+    let snapshot = hamming_snapshot(reads, layers, width)?;
+    if reads.reads.iter().all(|r| r.ask.is_none() && r.carry.is_none()) {
+        return Ok((snapshot, None));
+    }
+    let mut asks = Vec::with_capacity(reads.reads.len());
+    for (depth, read) in HAMMING_DEPTHS.iter().zip(&reads.reads) {
+        let Some(ask) = &read.ask else {
+            if read.carry.is_some() {
+                return Err(invalid(format!("hamming_read d{depth} carries a question it does not ask")));
+            }
+            asks.push(None);
+            continue;
+        };
+        let name = format!("hamming_read.d{depth}.ask");
+        let [vocab, w] = ask.dims() else {
+            return Err(invalid(format!("{name} has shape {:?}, not (vocab, {width})", ask.dims())));
+        };
+        if *w != width {
+            return Err(invalid(format!("{name} has shape {:?}, not ({vocab}, {width})", ask.dims())));
+        }
+        let table = finite_table(&name, ask.as_tensor().flatten_all()?.to_vec1::<f32>()?)?;
+        let carry = match &read.carry {
+            None => None,
+            Some(hold) => {
+                let name = format!("hamming_read.d{depth}.carry_gain");
+                if hold.gain.dims() != [*vocab] {
+                    return Err(invalid(format!("{name} has shape {:?}, not [{vocab}]", hold.gain.dims())));
+                }
+                let gain = finite_table(&name, hold.gain.as_tensor().to_vec1::<f32>()?)?;
+                Some(FbsHammingCarry { rows: hold.rows, gain })
+            }
+        };
+        asks.push(Some(FbsHammingAskRead { table, carry }));
+    }
+    Ok((snapshot, Some(asks)))
+}
+
+fn hamming_snapshot(
     reads: &HammingReads,
     layers: usize,
     width: usize,
@@ -391,13 +461,6 @@ pub fn fbs_hamming_snapshot(
             "a Hamming read needs one read per depth {HAMMING_DEPTHS:?} on a width of whole quaternions"
         )));
     }
-    // claude-335: the carry sits at the readout depth, after the stream read's own refusals, so
-    // it is refused by name first.
-    if let Some(depth) = HAMMING_DEPTHS.iter().zip(&reads.reads).find(|(_, r)| r.carry.is_some()).map(|(d, _)| d) {
-        return Err(invalid(format!(
-            "hamming_read d{depth} carries its question (--hamming-carry-question, claude-335), which the integer engine does not serve yet"
-        )));
-    }
     let heads = reads.reads[0].margin.dims().first().copied().unwrap_or(0);
     let mut out = Vec::with_capacity(reads.reads.len());
     for (depth, read) in HAMMING_DEPTHS.iter().zip(&reads.reads) {
@@ -409,11 +472,6 @@ pub fn fbs_hamming_snapshot(
         if read.hold.is_some() {
             return Err(invalid(format!(
                 "hamming_read d{depth} holds its ask write (--hamming-hold, claude-333), which the integer engine does not serve"
-            )));
-        }
-        if read.ask.is_some() {
-            return Err(invalid(format!(
-                "hamming_read d{depth} has ask heads (claude-330), which the integer engine does not serve yet"
             )));
         }
         let table = |name: &str, var: &Var, shape: &[usize]| -> Result<Vec<f32>> {
@@ -529,12 +587,6 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
             reads.reads.len()
         )));
     }
-    // claude-335: refused by name before any depth's own refusals, as the export refuses it.
-    if reads.reads.iter().any(|r| r.carry.is_some()) {
-        return Err(invalid(
-            "a Hamming read that carries its question (--hamming-carry-question, claude-335) has no exported form to round to",
-        ));
-    }
     let mut rounded = Vec::new();
     for (depth, read) in HAMMING_DEPTHS.iter().zip(&reads.reads) {
         if read.step_rotation.is_some() {
@@ -547,10 +599,31 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
                 "a Hamming read that holds its ask write (--hamming-hold, claude-333) has no exported form to round to",
             ));
         }
-        if read.ask.is_some() {
-            return Err(invalid(
-                "a Hamming read with ask heads (claude-330) has no exported form to round to",
-            ));
+        if read.carry.is_some() && read.ask.is_none() {
+            return Err(invalid(format!("hamming_read d{depth} carries a question it does not ask")));
+        }
+        // claude-336: the question table at Q12 in i16 and the carry's gains at Q16 in i32, as
+        // `fbs-export` stores them (`quantize_hamming_ask`).
+        for (table, var, exp, limit) in [
+            read.ask.as_ref().map(|v| ("ask", v, HAMMING_ASK_EXP, f64::from(i16::MAX))),
+            read.carry.as_ref().map(|h| ("carry_gain", &h.gain, HAMMING_CARRY_GAIN_EXP, f64::from(i32::MAX))),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let name = format!("hamming_read.d{depth}.{table}");
+            let values = finite_table(&name, var.as_tensor().flatten_all()?.to_vec1::<f32>()?)?;
+            let steps = |v: f32| (f64::from(v) * 2f64.powi(-exp)).round();
+            if let Some(i) = values.iter().position(|&v| steps(v) > limit || steps(v) < -limit - 1.0) {
+                return Err(invalid(format!(
+                    "{name}[{i}] = {} does not fit its integer at 2^{exp}, and the export refuses it",
+                    values[i]
+                )));
+            }
+            // Each rounded value is an exact f32, as above: an f32 at or past 2^7 is on the Q16 step
+            // already, and one below it rounds to at most 23 significant bits.
+            let values: Vec<f32> = values.into_iter().map(|v| fixed_value(v, exp) as f32).collect();
+            rounded.push((var, values));
         }
         for (table, var, exp) in [
             ("query_rotation", &read.query_rotation, HAMMING_ROTATION_EXP),
@@ -722,6 +795,9 @@ fn read_values(reads: Option<&HammingReads>, memory: Option<&TurnMemory>) -> Res
             &read.margin,
             &read.weight,
         ]);
+        // claude-336: the ask heads' question table and the carry's gains, which the copy rounds.
+        vars.extend(read.ask.as_ref());
+        vars.extend(read.carry.as_ref().map(|h| &h.gain));
     }
     vars.extend(memory.map(TurnMemory::variables).unwrap_or_default());
     vars.into_iter().map(bits).collect()
@@ -1418,6 +1494,91 @@ mod tests {
         }
     }
 
+    /// claude-336: ask heads (claude-330) and the readout read's question carry (claude-335)
+    /// export beside the snapshot, and round as `fbs-export` stores them. Without them the
+    /// snapshot is the plain one and has no ask entry; with them each read's entry holds its
+    /// question table, the readout's its carry, and `fbs_hamming_snapshot` still refuses them by
+    /// name. Rounding puts the table on Q12 and the gains on Q16, at exactly the integers
+    /// `quantize_hamming_ask` stores, idempotently. A gain past i32 at Q16, a table value past
+    /// i16 at Q12 and the hold are refused.
+    #[test]
+    fn ask_heads_and_the_carry_export_and_round_as_stored() -> Result<()> {
+        use uor_r4_integer::fbs_snapshot::quantize_hamming_ask;
+        let device = candle_core::Device::Cpu;
+        let (heads, width, vocab) = (4, 32, 16);
+        let plain = HammingReads::new(heads, width, &device)?;
+        let (snap, asks) = fbs_hamming_snapshot_with_ask(&plain, HAMMING_READOUT_DEPTH, width)?;
+        assert!(asks.is_none());
+        assert_eq!(snap, fbs_hamming_snapshot(&plain, HAMMING_READOUT_DEPTH, width)?);
+
+        let reads = HammingReads::new(heads, width, &device)?.with_ask(vocab)?.with_carry(3, vocab)?;
+        let mut rng = Lcg(336);
+        let mut random = |n: usize, scale: f32| -> Vec<f32> {
+            (0..n).map(|_| ((rng.next() % 2_000_001) as f32 / 1_000_000.0 - 1.0) * scale).collect()
+        };
+        for read in &reads.reads {
+            let ask = read.ask.as_ref().expect("asks");
+            ask.set(&Tensor::from_vec(random(vocab * width, 0.75), (vocab, width), &device)?)?;
+        }
+        let gain = &reads.reads[1].carry.as_ref().expect("carries").gain;
+        gain.set(&Tensor::from_vec(random(vocab, 2.0), vocab, &device)?)?;
+        let values = |var: &Var| var.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+
+        let (_, asks) = fbs_hamming_snapshot_with_ask(&reads, HAMMING_READOUT_DEPTH, width)?;
+        let asks = asks.expect("the reads ask");
+        assert_eq!(asks.len(), HAMMING_DEPTHS.len());
+        assert_eq!(asks[0].as_ref().unwrap().table, values(reads.reads[0].ask.as_ref().unwrap()));
+        assert!(asks[0].as_ref().unwrap().carry.is_none(), "the stream read does not carry");
+        let carry = asks[1].as_ref().unwrap().carry.as_ref().expect("the readout carries");
+        assert_eq!((carry.rows, carry.gain.clone()), (3, values(gain)));
+        for (reason, r) in [("has ask heads (claude-330)", HammingReads::new(heads, width, &device)?.with_ask(vocab)?), ("carries its question", reads.clone())] {
+            let message = fbs_hamming_snapshot(&r, HAMMING_READOUT_DEPTH, width).expect_err(reason).to_string();
+            assert!(message.contains(reason), "{message}");
+        }
+
+        round_hamming_as_exported(&reads)?;
+        let (_, rounded) = fbs_hamming_snapshot_with_ask(&reads, HAMMING_READOUT_DEPTH, width)?;
+        let rounded = rounded.expect("the reads ask");
+        let mut moved = 0;
+        for ((depth, before), after) in HAMMING_DEPTHS.iter().zip(&asks).zip(&rounded) {
+            let (before, after) = (before.as_ref().unwrap(), after.as_ref().unwrap());
+            let (table, carry) = quantize_hamming_ask(*depth, before).map_err(invalid)?;
+            let want: Vec<f32> = table.iter().map(|&k| f32::from(k) / 4096.0).collect();
+            assert_eq!(after.table, want, "d{depth}: the table rounds to the stored Q12");
+            moved += before.table.iter().zip(&after.table).filter(|(a, b)| a != b).count();
+            if let (Some((rows, gains)), Some(got)) = (carry, &after.carry) {
+                let want: Vec<f32> = gains.iter().map(|&k| k as f32 / 65_536.0).collect();
+                assert_eq!((rows, &got.gain), (3, &want), "d{depth}: the gains round to the stored Q16");
+            }
+        }
+        assert!(moved > 0, "no value moved, so the rounding had no work");
+        let once = rounded;
+        round_hamming_as_exported(&reads)?;
+        assert_eq!(fbs_hamming_snapshot_with_ask(&reads, HAMMING_READOUT_DEPTH, width)?.1.unwrap(), once, "idempotent");
+
+        let refuse = |reads: &HammingReads, text: &str| {
+            let message = round_hamming_as_exported(reads).expect_err(text).to_string();
+            assert!(message.contains(text), "{message}");
+        };
+        let big = reads.clone();
+        let mut gains = values(&big.reads[1].carry.as_ref().unwrap().gain);
+        gains[2] = 40_000.0;
+        big.reads[1].carry.as_ref().unwrap().gain.set(&Tensor::from_vec(gains, vocab, &device)?)?;
+        refuse(&big, "hamming_read.d6.carry_gain[2]");
+        let wide = HammingReads::new(heads, width, &device)?.with_ask(vocab)?;
+        let mut table = values(wide.reads[0].ask.as_ref().unwrap());
+        table[5] = 9.0;
+        wide.reads[0].ask.as_ref().unwrap().set(&Tensor::from_vec(table, (vocab, width), &device)?)?;
+        refuse(&wide, "hamming_read.d2.ask[5]");
+        let mut bare = reads.clone();
+        bare.reads[1].ask = None;
+        refuse(&bare, "hamming_read d6 carries a question it does not ask");
+        let held = HammingReads::new(heads, width, &device)?.with_ask(vocab)?.with_hold(2, vocab)?;
+        let message = fbs_hamming_snapshot_with_ask(&held, HAMMING_READOUT_DEPTH, width).expect_err("the hold").to_string();
+        assert!(message.contains("--hamming-hold"), "{message}");
+        Ok(())
+    }
+
     /// claude-235: the exponents the rounding uses are the integer format's own; claude-252 adds
     /// the memory's.
     #[test]
@@ -1525,9 +1686,6 @@ mod tests {
 
         let spun = HammingReads::new(heads, width, &device)?.with_type_spin()?;
         assert!(round_hamming_as_exported(&spun).is_err());
-        let asked = HammingReads::new(heads, width, &device)?.with_ask(16)?;
-        let err = round_hamming_as_exported(&asked).expect_err("ask heads").to_string();
-        assert!(err.contains("ask heads (claude-330)"), "{err}");
         let mut short = HammingReads::new(heads, width, &device)?;
         short.reads.pop();
         let err = round_hamming_as_exported(&short)

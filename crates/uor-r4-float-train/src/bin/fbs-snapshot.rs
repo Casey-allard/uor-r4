@@ -89,7 +89,7 @@ use candle_core::Device;
 use sha2::{Digest, Sha256};
 use uor_r4_float_train::fbs_export::{
     check_checkpoint_reads, check_readout_reads, fbs_float_readout, fbs_float_readout_on,
-    fbs_float_readout_served, fbs_float_readout_served_on, fbs_hamming_snapshot,
+    fbs_float_readout_served, fbs_float_readout_served_on, fbs_hamming_snapshot_with_ask,
     fbs_memory_snapshot, fbs_trunk_snapshot, round_hamming_as_exported, round_tables_as_exported,
     run_rate_reading, write_rounded_copy, READOUT_SEQUENCES,
 };
@@ -111,7 +111,7 @@ use uor_r4_float_train::spiralcore_fbs_sheet::PARITY_WINDOW_STRIDE;
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_snapshot::{
     run_readout_nearest, write_new_file, FbsFloatReadout, FbsReadoutMode, HammingTrace,
-    HAMMING_TRACE_SCHEMA,
+    FBS_HAMMING_ASK_KEY, HAMMING_TRACE_SCHEMA,
 };
 
 fn write(path: &str, json: &[u8]) -> Result<()> {
@@ -628,12 +628,29 @@ fn main() -> Result<()> {
         .map(|memory| fbs_memory_snapshot(&memory, SHEET_CONTEXT))
         .transpose()?;
     let hamming = HammingReads::load(dir, &Device::Cpu)?
-        .map(|reads| fbs_hamming_snapshot(&reads, snapshot.layers.len(), snapshot.width))
+        .map(|reads| fbs_hamming_snapshot_with_ask(&reads, snapshot.layers.len(), snapshot.width))
         .transpose()?;
+    let (hamming, asks) = match hamming {
+        Some((hamming, asks)) => (Some(hamming), asks),
+        None => (None, None),
+    };
     snapshot.hamming = hamming;
     snapshot.retain_rates = retain;
     snapshot.readout_nearest = nearest;
-    write(out, &serde_json::to_vec(&snapshot)?)?;
+    // claude-336: the ask heads and the question carry ride beside the trunk snapshot under
+    // `hamming_ask`, which `fbs-export` serves; without them the JSON is byte for byte as before.
+    let json = match asks {
+        None => serde_json::to_vec(&snapshot)?,
+        Some(asks) => {
+            let mut value = serde_json::to_value(&snapshot)?;
+            value
+                .as_object_mut()
+                .expect("a snapshot is a JSON object")
+                .insert(FBS_HAMMING_ASK_KEY.to_owned(), serde_json::to_value(asks)?);
+            serde_json::to_vec(&value)?
+        }
+    };
+    write(out, &json)?;
     // The readouts are the float model with its Hamming reads (claude-200): `StackModel::hidden`
     // applies the reads set on this thread, here on the trunk's GPU.
     set_hamming_reads(HammingReads::load(dir, &device)?);

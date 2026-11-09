@@ -29,6 +29,9 @@ pub struct HammingReadImage {
     pub margin: Vec<i32>,
     /// `2 * width` at `2^weight_exp`: row 0 the copy heads' weights, row 1 the type heads'.
     pub weight: Vec<i32>,
+    /// The read's ask heads and, on the readout read, its question carry (claude-336), or `None`
+    /// for a read whose type heads ask from the hook's input.
+    pub ask: Option<AskImage>,
 }
 
 /// A stack's Hamming reads: the header record and one image per depth, in depth order.
@@ -72,6 +75,22 @@ pub(crate) fn hamming_image(artifact: &Container<'_>) -> Result<Option<HammingIm
                 "hamming.d{depth}.margin: a margin is not positive"
             )));
         }
+        // claude-336: a read's ask sections are present exactly when its record says it asks, and
+        // its carry exactly when it is the readout read with `carry_rows`.
+        let r = reads.len();
+        fn present<T>(found: Result<Vec<T>, StackError>, name: String, wanted: bool, why: &str) -> Result<Option<Vec<T>>, StackError> {
+            match found {
+                Ok(values) if wanted => Ok(Some(values)),
+                Ok(_) => Err(StackError::Numerics(format!("{name}: present, but {why}"))),
+                Err(StackError::MissingSection(_)) if !wanted => Ok(None),
+                Err(e) => Err(e),
+            }
+        }
+        let ask_name = format!("hamming.d{depth}.ask");
+        let carry_name = format!("hamming.d{depth}.carry");
+        let ask_table = present(artifact.table_i16(&ask_name), ask_name, record.read_asks(r), "the record says the read does not ask")?;
+        let carry_gains = present(artifact.table_i32(&carry_name), carry_name, record.read_carry(r).is_some(), "the record names no carry at this read")?;
+        let carry = record.read_carry(r).zip(carry_gains);
         reads.push(HammingReadImage {
             depth,
             query_rotation: section("query_rotation", width)?,
@@ -79,6 +98,7 @@ pub(crate) fn hamming_image(artifact: &Container<'_>) -> Result<Option<HammingIm
             value_rotation: section("value_rotation", width)?,
             margin,
             weight: section("weight", 2 * width)?,
+            ask: AskImage::checked(ask_table, carry, artifact.shape.vocab, width)?,
         });
     }
     Ok(Some(HammingImage { record, reads }))
@@ -355,6 +375,59 @@ mod candidate_range_tests {
     }
 }
 
+/// The exponent of a carry gain `c`: Q16.
+pub const ASK_CARRY_GAIN_EXP: i32 = crate::fbs_snapshot::HAMMING_CARRY_GAIN_EXP;
+
+/// The longest carry reach served: with `|table + a| ≤ 2^16` at Q12 and `|c| < 2^31` at Q16, each
+/// carried term is below `2^47` at Q28, so `2^12` of them and the row's own point stay below
+/// `2^60` and the asked point is exact in `i64`.
+pub const ASK_CARRY_MAX: usize = 1 << 12;
+
+/// A read's ask heads (claude-330) and, on the readout read, its question carry (claude-335), as
+/// the integer engine serves them (claude-336).
+///
+/// The question table `a` is stored at the token table's own scale, Q12 in `i16`, so `table + a`
+/// is an exact Q12 sum; a gain `c` is Q16 in `i32`, so a carried term `c · (table + a)` is an
+/// exact Q28 product, and the asked point is summed at Q28 with nothing rounded before the sign.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AskImage {
+    /// `vocab * width` question entries at Q12.
+    pub table: Vec<i16>,
+    /// The carry's reach `h` (`1 ≤ h ≤ ASK_CARRY_MAX`) and its `vocab` gains at Q16, or `None`.
+    pub carry: Option<(usize, Vec<i32>)>,
+}
+
+impl AskImage {
+    /// The ask heads of a read over `vocab` rows of `width`, refusing a question table or a carry
+    /// at the wrong length, a carry with no reach or past [`ASK_CARRY_MAX`], and a carry with no
+    /// question table: a gain multiplies `table + a`, which a read without `a` does not ask with.
+    pub fn checked(
+        table: Option<Vec<i16>>,
+        carry: Option<(usize, Vec<i32>)>,
+        vocab: usize,
+        width: usize,
+    ) -> Result<Option<Self>, StackError> {
+        let Some(table) = table else {
+            return match carry {
+                None => Ok(None),
+                Some(_) => Err(StackError::Numerics("hamming.ask.carry: a carry gain needs the question table".into())),
+            };
+        };
+        if table.len() != vocab * width {
+            return Err(StackError::TableLength { name: "hamming.ask.table".into(), len: table.len(), expected: vocab * width });
+        }
+        if let Some((reach, gains)) = &carry {
+            if *reach == 0 || *reach > ASK_CARRY_MAX {
+                return Err(StackError::Numerics(format!("hamming.ask.carry: reach {reach} is outside 1..={ASK_CARRY_MAX}")));
+            }
+            if gains.len() != vocab {
+                return Err(StackError::TableLength { name: "hamming.ask.carry".into(), len: gains.len(), expected: vocab });
+            }
+        }
+        Ok(Some(Self { table, carry }))
+    }
+}
+
 /// One read's type heads, built for serving (claude-195): the float read's heads `h ≥ heads / 2`.
 ///
 /// A type head asks with the code of the hook's input `p_t` through the query rotation, and its
@@ -373,6 +446,10 @@ pub struct TypeHeads {
     margins: Vec<i32>,
     query: Vec<[i64; 4]>,
     value: Vec<[i64; 4]>,
+    /// The key rotation, through which an ask head asks (claude-336).
+    key: Vec<[i64; 4]>,
+    /// The ask heads' question table and carry, or `None` for a read that asks from `p_t`.
+    ask: Option<AskImage>,
 }
 
 impl TypeHeads {
@@ -389,7 +466,46 @@ impl TypeHeads {
             margins: read.margin[copy..].to_vec(),
             query: units(&read.query_rotation),
             value: units(&read.value_rotation),
+            key: units(&read.key_rotation),
+            ask: None,
         }
+    }
+
+    /// These type heads asking with `ask`'s question table and, if it has one, its carry.
+    pub fn with_ask(mut self, ask: AskImage) -> Self {
+        self.ask = Some(ask);
+        self
+    }
+
+    /// The ask heads' point at row `t` of `tokens`, whose window starts at row `start`, at Q28:
+    /// `(table + a)[x_t]`, plus `Σ_{s=1..min(h, t − start)} c[x_{t−s}] · (table + a)[x_{t−s}]`
+    /// with the carry. Exact: [`ASK_CARRY_MAX`] bounds it below `2^60`. `None` without ask heads.
+    pub fn asked_point(&self, table: &[i16], tokens: &[u32], t: usize, start: usize) -> Option<Vec<i64>> {
+        let ask = self.ask.as_ref()?;
+        let width = self.width;
+        let asked = |v: u32, i: usize| -> i64 {
+            let at = v as usize * width + i;
+            i64::from(table[at]) + i64::from(ask.table[at])
+        };
+        let mut point: Vec<i64> = (0..width).map(|i| asked(tokens[t], i) << 16).collect();
+        if let Some((reach, gains)) = &ask.carry {
+            for s in 1..=(*reach).min(t - start) {
+                let v = tokens[t - s];
+                let gain = i64::from(gains[v as usize]);
+                for (i, p) in point.iter_mut().enumerate() {
+                    *p += gain * asked(v, i);
+                }
+            }
+        }
+        Some(point)
+    }
+
+    /// Each ask head's question code at row `t` (window from `start`): the sign code of
+    /// [`Self::asked_point`] through the key rotation, or `None` without ask heads.
+    pub fn ask_queries(&self, table: &[i16], tokens: &[u32], t: usize, start: usize) -> Option<Vec<u64>> {
+        let point = self.asked_point(table, tokens, t, start)?;
+        let head_width = self.width / self.heads;
+        Some((self.copy..self.heads).map(|h| head_code(&self.key, &point, h, head_width)).collect())
     }
 
     /// Type head `j`'s key code for vocabulary entry `token`.
@@ -640,7 +756,13 @@ impl ServedHamming {
                 depth: read.depth,
                 copy: CopyHeads::new(&image.record, read, table, vocab, width),
                 copy_weight: copy_weight.to_vec(),
-                types: typed.then(|| TypeHeads::new(&image.record, read, table, vocab, width)),
+                types: typed.then(|| {
+                    let heads = TypeHeads::new(&image.record, read, table, vocab, width);
+                    match &read.ask {
+                        Some(ask) => heads.with_ask(ask.clone()),
+                        None => heads,
+                    }
+                }),
                 type_weight: type_weight.to_vec(),
             });
         }
@@ -707,20 +829,28 @@ impl ServedHamming {
         Ok(reads)
     }
 
+    /// The type heads' query codes at row `t` of `tokens`: the ask heads' question codes
+    /// ([`TypeHeads::ask_queries`]) where the read asks (claude-336), else the codes of the hook's
+    /// input `point`. The session's `tokens` are its whole window, from row 0, so the carry sums
+    /// back to row 0 at most.
+    fn type_queries(types: &TypeHeads, point: &[i64], table: &[i16], tokens: &[u32], t: usize) -> Vec<u64> {
+        types.ask_queries(table, tokens, t, 0).unwrap_or_else(|| types.queries(point))
+    }
+
     /// The type mean at the last row `t` of `tokens` for the read `i`, with the hook's input
     /// `point`: `point`'s payload is kept at row `t` first, for the rows after it. A `force`
     /// replaces the codes it names (claude-249).
-    fn type_mean(&self, i: usize, point: &[i64], tokens: &[u32], payloads: &mut [Vec<i64>], force: Option<&ReadForce>) -> Option<Vec<i128>> {
+    fn type_mean(&self, i: usize, point: &[i64], tokens: &[u32], table: &[i16], payloads: &mut [Vec<i64>], force: Option<&ReadForce>) -> Option<Vec<i128>> {
         let types = self.reads[i].types.as_ref()?;
         let t = tokens.len().checked_sub(1)?;
         let cache = &mut payloads[i];
         types.payload(point, &mut cache[t * self.width..][..self.width]);
         let payloads = &cache[..(t + 1) * self.width];
         let Some(force) = force else {
-            return types.mean(&types.queries(point), tokens, payloads);
+            return types.mean(&Self::type_queries(types, point, table, tokens, t), tokens, payloads);
         };
         let heads = &force.heads[self.reads[i].copy.copy..];
-        let mut queries = types.queries(point);
+        let mut queries = Self::type_queries(types, point, table, tokens, t);
         for (query, head) in queries.iter_mut().zip(heads) {
             if let Some(forced) = head.query(t) {
                 *query = forced;
@@ -734,7 +864,7 @@ impl ServedHamming {
     /// (claude-249). It recomputes what the read's means choose, so the served sums are
     /// untouched by it.
     #[inline(never)]
-    fn record(&self, i: usize, point: &[i64], tokens: &[u32], force: Option<&ReadForce>) -> HammingStepRead {
+    fn record(&self, i: usize, point: &[i64], tokens: &[u32], table: &[i16], force: Option<&ReadForce>) -> HammingStepRead {
         let read = &self.reads[i];
         let (Some(_), t) = (tokens.last(), tokens.len().saturating_sub(1)) else {
             return HammingStepRead { depth: read.depth, heads: Vec::new() };
@@ -750,7 +880,7 @@ impl ServedHamming {
             })
             .collect();
         if let Some(types) = &read.types {
-            for (j, query) in types.queries(point).into_iter().enumerate() {
+            for (j, query) in Self::type_queries(types, point, table, tokens, t).into_iter().enumerate() {
                 let head = forced(read.copy.copy + j);
                 let query = head.query(t).unwrap_or(query);
                 heads.push(HammingStepHead {
@@ -782,7 +912,7 @@ impl ServedHamming {
         let force = force.and_then(|f| f.get(i));
         if let Some(trace) = trace {
             let point: Vec<i64> = x.iter().map(|&v| i64::from(v)).collect();
-            trace.push(self.record(i, &point, tokens, force));
+            trace.push(self.record(i, &point, tokens, table, force));
         }
         let read = &self.reads[i];
         let copy = match force {
@@ -792,7 +922,7 @@ impl ServedHamming {
         let typed = match read.types {
             Some(_) => {
                 let point: Vec<i64> = x.iter().map(|&v| i64::from(v)).collect();
-                self.type_mean(i, &point, tokens, payloads, force)
+                self.type_mean(i, &point, tokens, table, payloads, force)
             }
             None => None,
         };
@@ -819,14 +949,14 @@ impl ServedHamming {
         };
         let force = force.and_then(|f| f.get(i));
         if let Some(trace) = trace {
-            trace.push(self.record(i, n, tokens, force));
+            trace.push(self.record(i, n, tokens, table, force));
         }
         let read = &self.reads[i];
         let copy = match force {
             None => read.copy.mean(tokens, table),
             Some(f) => read.copy.mean_by(tokens, table, |h| read.copy.choose_forced(h, tokens, &f.heads[h])),
         };
-        let typed = self.type_mean(i, n, tokens, payloads, force);
+        let typed = self.type_mean(i, n, tokens, table, payloads, force);
         if copy.is_none() && typed.is_none() {
             return;
         }

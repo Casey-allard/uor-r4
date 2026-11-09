@@ -4919,8 +4919,9 @@ mod tests {
         let table = Tensor::zeros((16, 256), DType::F32, cpu)?;
         let err = reads.reads[1].apply_readout_last(&x, &[1, 2, 3, 4], &table).err().map(|e| e.to_string());
         assert!(err.as_deref().is_some_and(|e| e.contains("carried question (--hamming-carry-question")), "{err:?}");
-        let err = crate::fbs_export::round_hamming_as_exported(&reads).err().map(|e| e.to_string());
-        assert!(err.as_deref().is_some_and(|e| e.contains("--hamming-carry-question")), "{err:?}");
+        // claude-336: the carry now has an exported form, so it rounds; the plain snapshot still
+        // refuses it by name, and `fbs_hamming_snapshot_with_ask` exports it.
+        crate::fbs_export::round_hamming_as_exported(&reads.clone())?;
         let err = crate::fbs_export::fbs_hamming_snapshot(&reads, 6, 256).err().map(|e| e.to_string());
         assert!(err.as_deref().is_some_and(|e| e.contains("--hamming-carry-question")), "{err:?}");
         Ok(())

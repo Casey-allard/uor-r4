@@ -190,6 +190,18 @@ pub struct StackHamming {
     /// field refuses a mixed one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub copy_keys: Option<Vec<usize>>,
+    /// Which reads' type heads ask (claude-330, served by claude-336): one flag per read, in depth
+    /// order, not all off. A read that asks has a `hamming.d{depth}.ask` section (i16, `vocab *
+    /// width`, Q12). Left out of the header when no read asks, so such an artifact is byte for
+    /// byte as before, and an engine without the field refuses one with ask heads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asks: Option<Vec<bool>>,
+    /// The readout read's question carry (claude-335, served by claude-336): its reach `h`, the
+    /// rows before a position whose question it sums, from 1 to [`super::ASK_CARRY_MAX`]. Only the
+    /// readout read (the last, at the layer count) carries, and only when it asks; its gains are
+    /// the `hamming.d{depth}.carry` section (i32, `vocab`, Q16). Left out without a carry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carry_rows: Option<usize>,
 }
 
 impl StackHamming {
@@ -204,6 +216,8 @@ impl StackHamming {
             weight_exp: HAMMING_WEIGHT_EXP,
             copy_key: 1,
             copy_keys: None,
+            asks: None,
+            carry_rows: None,
         }
     }
 
@@ -211,6 +225,16 @@ impl StackHamming {
     /// `copy_key`.
     pub fn head_copy_key(&self, head: usize) -> usize {
         self.copy_keys.as_ref().map_or(self.copy_key, |keys| keys[head])
+    }
+
+    /// Whether read `read` (an index into `depths`) asks with ask heads (claude-336).
+    pub fn read_asks(&self, read: usize) -> bool {
+        self.asks.as_ref().is_some_and(|asks| asks.get(read) == Some(&true))
+    }
+
+    /// Read `read`'s question carry reach: the record's `carry_rows` at the last read, else `None`.
+    pub fn read_carry(&self, read: usize) -> Option<usize> {
+        self.carry_rows.filter(|_| read + 1 == self.depths.len())
     }
 
     /// Refuse a record the stack `shape` cannot carry: a non-FBS stack; an odd head count, or one
@@ -263,6 +287,28 @@ impl StackHamming {
         }
         if self.kept == 0 {
             return Err(StackError::Shape("a Hamming read keeps at least one position"));
+        }
+        if let Some(asks) = &self.asks {
+            if asks.len() != self.depths.len() || !asks.contains(&true) {
+                return Err(StackError::Shape(
+                    "Hamming ask heads name one flag per read, not all off",
+                ));
+            }
+        }
+        if let Some(reach) = self.carry_rows {
+            if self.depths.last() != Some(&shape.layers()) {
+                return Err(StackError::Shape(
+                    "a Hamming question carry is served on the readout read only",
+                ));
+            }
+            if !self.read_asks(self.depths.len() - 1) {
+                return Err(StackError::Shape("a Hamming question carry needs its read to ask"));
+            }
+            if reach == 0 || reach > super::ASK_CARRY_MAX {
+                return Err(StackError::Shape(
+                    "a Hamming question carry reaches from 1 to ASK_CARRY_MAX rows",
+                ));
+            }
         }
         let exps = (self.rotation_exp, self.margin_exp, self.weight_exp);
         if exps != (HAMMING_ROTATION_EXP, HAMMING_MARGIN_EXP, HAMMING_WEIGHT_EXP) {
@@ -1974,6 +2020,63 @@ pub fn add_point_key_uorlut01(artifact: &[u8], image: &super::PointKeyImage) -> 
     out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
     out.extend_from_slice(&b.data);
     super::point_key::point_image(&Container::parse(&out)?)?;
+    Ok(out)
+}
+
+/// A Hamming stack with its reads' ask heads added (claude-336): every section of `artifact` byte
+/// for byte, then, for each read whose entry of `asks` (one per depth, in depth order) is `Some`,
+/// `hamming.d{depth}.ask` (i16, `vocab * width`, Q12) and, on the readout read with a carry,
+/// `hamming.d{depth}.carry` (i32, `vocab`, Q16 at [`super::ASK_CARRY_GAIN_EXP`]); the record's
+/// `asks` and `carry_rows` name them, and the schema is unchanged. The ask tables are integers
+/// already, so they are added to an exported stack, as the point key is. The result is read back
+/// before it is returned.
+pub fn add_hamming_ask_uorlut01(artifact: &[u8], asks: &[Option<super::AskImage>]) -> Result<Vec<u8>, StackError> {
+    let container = Container::parse(artifact)?;
+    let Some(mut record) = container.hamming.clone() else {
+        return Err(StackError::Shape("ask heads are added to a stack with Hamming reads"));
+    };
+    if record.asks.is_some() || record.carry_rows.is_some() {
+        return Err(StackError::Shape("ask heads are added to a stack without them"));
+    }
+    if asks.len() != record.depths.len() {
+        return Err(StackError::TableLength { name: "hamming.asks".to_owned(), len: asks.len(), expected: record.depths.len() });
+    }
+    let (vocab, width) = (container.shape.vocab, container.shape.width);
+    let declared = u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
+    let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
+    let data_start = header_end.div_ceil(ALIGN) * ALIGN;
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+    let mut b = ExportBuilder::new();
+    b.data = artifact[data_start..].to_vec();
+    for (r, (depth, ask)) in record.depths.iter().zip(asks).enumerate() {
+        let Some(ask) = ask else { continue };
+        let ask = super::AskImage::checked(Some(ask.table.clone()), ask.carry.clone(), vocab, width)?
+            .ok_or(StackError::MissingData)?;
+        if ask.carry.is_some() && r + 1 != record.depths.len() {
+            return Err(StackError::Shape("a Hamming question carry is served on the readout read only"));
+        }
+        b.push_i16(&format!("hamming.d{depth}.ask"), &ask.table);
+        if let Some((reach, gains)) = &ask.carry {
+            b.push_i32(&format!("hamming.d{depth}.carry"), gains);
+            record.carry_rows = Some(*reach);
+        }
+    }
+    record.asks = Some(asks.iter().map(Option::is_some).collect());
+    record.check(&container.shape)?;
+    header["tables"]
+        .as_array_mut()
+        .ok_or(StackError::MissingData)?
+        .extend(b.tables);
+    header["hamming"] = json!(record);
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&b.data);
+    super::hamming::hamming_image(&Container::parse(&out)?)?;
     Ok(out)
 }
 

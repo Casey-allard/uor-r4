@@ -4411,6 +4411,7 @@ fn copy_control(vocab: usize, width: usize, heads: usize, seed: u64) -> (super::
         value_rotation: fixed(&read.value_rotation, super::HAMMING_ROTATION_EXP),
         margin: fixed(&read.margin, super::HAMMING_MARGIN_EXP),
         weight: fixed(&read.weight, super::HAMMING_WEIGHT_EXP),
+        ask: None,
     };
     (super::StackHamming::new(heads, vec![1, 2]), image, table)
 }
@@ -7264,4 +7265,245 @@ fn the_decision_trace_refuses_what_is_off_rs_path() {
     let model = IntegerStackModel::parse(&no_reads).expect("no reads");
     assert!(model.session().set_decision_trace(&none).is_ok(), "no read, no code: a trace");
     refused(&no_reads, &with(vec![], vec![code(0, 1, 0, CodeRole::Query)]), "a code on a model without reads");
+}
+
+/// claude-336: a synthetic read's ask heads, with a random question table and, if `reach > 0`,
+/// random carry gains over `vocab` tokens.
+fn ask_control(vocab: usize, width: usize, seed: u64, reach: usize) -> (super::TypeHeads, Vec<i16>, super::AskImage) {
+    let (record, read, table) = copy_control(vocab, width, 4, seed);
+    let mut rng = Lcg(seed ^ 0xa5c);
+    let a: Vec<i16> = (0..vocab * width).map(|_| ((rng.next() % 8192) as i32 - 4096) as i16).collect();
+    let carry = (reach > 0).then(|| (reach, (0..vocab).map(|_| (rng.next() % 131_072) as i32 - 65_536).collect()));
+    let ask = super::AskImage::checked(Some(a), carry, vocab, width).unwrap().unwrap();
+    let heads = super::TypeHeads::new(&record, &read, &table, vocab, width).with_ask(ask.clone());
+    (heads, table, ask)
+}
+
+#[test]
+fn ask_head_queries_match_the_f64_question() {
+    let (vocab, width) = (64, 64);
+    for (seed, reach) in [(336u64, 0usize), (337, 0), (338, 3), (339, 5)] {
+        let (record, read, _) = copy_control(vocab, width, 4, seed);
+        let (heads, table, ask) = ask_control(vocab, width, seed, reach);
+        let mut rng = Lcg(seed ^ 0x9);
+        let tokens: Vec<u32> = (0..24).map(|_| (rng.next() % vocab as u64) as u32).collect();
+        let asked = |v: u32, i: usize| f64::from(table[v as usize * width + i]) + f64::from(ask.table[v as usize * width + i]);
+        let (start, head_width) = (4, width / record.heads);
+        for t in start..tokens.len() {
+            let mut point: Vec<f64> = (0..width).map(|i| asked(tokens[t], i) / 4096.0).collect();
+            if let Some((h, gains)) = &ask.carry {
+                for s in 1..=(*h).min(t - start) {
+                    let (v, g) = (tokens[t - s], f64::from(gains[tokens[t - s] as usize]) / 65_536.0);
+                    for (i, p) in point.iter_mut().enumerate() {
+                        *p += g * asked(v, i) / 4096.0;
+                    }
+                }
+            }
+            let expected: Vec<u64> = (2..4).map(|h| f64_code(&read.key_rotation, &point, h, head_width)).collect();
+            assert_eq!(heads.ask_queries(&table, &tokens, t, start).unwrap(), expected, "seed {seed}, reach {reach}, row {t}");
+        }
+    }
+}
+
+#[test]
+fn a_carried_term_reaches_the_next_rows_of_its_window_only() {
+    let (vocab, width, reach, start) = (64, 64, 3, 3);
+    let (_, table, ask) = ask_control(vocab, width, 340, reach);
+    let (record, read, _) = copy_control(vocab, width, 4, 340);
+    // Only token 7 carries, at gain 1; it sits at row 1 (before the window) and row 5 (inside).
+    let mut gains = vec![0i32; vocab];
+    gains[7] = 1 << 16;
+    let carried = super::AskImage { table: ask.table.clone(), carry: Some((reach, gains)) };
+    let plain = super::AskImage { table: ask.table.clone(), carry: None };
+    let heads = super::TypeHeads::new(&record, &read, &table, vocab, width).with_ask(carried);
+    let bare = super::TypeHeads::new(&record, &read, &table, vocab, width).with_ask(plain);
+    let tokens: Vec<u32> = vec![1, 7, 2, 3, 4, 7, 5, 6, 8, 9, 10, 11];
+    let seven: Vec<i64> = (0..width).map(|i| (i64::from(table[7 * width + i]) + i64::from(ask.table[7 * width + i])) << 16).collect();
+    for t in start..tokens.len() {
+        let with = heads.asked_point(&table, &tokens, t, start).unwrap();
+        let without = bare.asked_point(&table, &tokens, t, start).unwrap();
+        let diff: Vec<i64> = with.iter().zip(&without).map(|(a, b)| a - b).collect();
+        let reached = (6..=5 + reach).contains(&t);
+        let expected = if reached { seven.clone() } else { vec![0; width] };
+        assert_eq!(diff, expected, "row {t}: carried {reached}");
+    }
+}
+
+#[test]
+fn malformed_ask_heads_are_refused() {
+    let (vocab, width) = (8, 8);
+    let a = || Some(vec![0i16; vocab * width]);
+    let refused = |table: Option<Vec<i16>>, carry: Option<(usize, Vec<i32>)>| super::AskImage::checked(table, carry, vocab, width).is_err();
+    assert!(super::AskImage::checked(None, None, vocab, width).unwrap().is_none());
+    assert!(super::AskImage::checked(a(), Some((2, vec![1; vocab])), vocab, width).unwrap().is_some());
+    assert!(refused(Some(vec![0; vocab * width - 1]), None), "short question table");
+    assert!(refused(a(), Some((2, vec![1; vocab + 1]))), "long gains");
+    assert!(refused(a(), Some((0, vec![1; vocab]))), "no reach");
+    assert!(refused(a(), Some((super::ASK_CARRY_MAX + 1, vec![1; vocab]))), "reach past the bound");
+    assert!(refused(None, Some((2, vec![1; vocab]))), "gains without a question table");
+}
+
+/// claude-336: the ask heads of reads at layer 1 and on the readout (layer 3) of the served-read
+/// trunk, with the readout's carry of reach `reach` if `Some`, as [`super::add_hamming_ask_uorlut01`]
+/// takes them; the trunk's bytes without them, and with them.
+fn ask_trunk(reach: Option<usize>) -> (Vec<u8>, Vec<Option<super::AskImage>>, Vec<u8>) {
+    let (snap, _, bytes) = served_read_trunk(&[1, 3], 1.0, 1.0);
+    let (vocab, width) = (snap.vocab, snap.width);
+    let mut rng = Lcg(336);
+    let mut ask = |carry: Option<usize>| {
+        let table: Vec<i16> = (0..vocab * width).map(|_| ((rng.next() % 8192) as i32 - 4096) as i16).collect();
+        let gains = carry.map(|h| (h, (0..vocab).map(|_| (rng.next() % 131_072) as i32 - 65_536).collect()));
+        Some(super::AskImage { table, carry: gains })
+    };
+    let asks = vec![ask(None), ask(reach)];
+    let added = super::add_hamming_ask_uorlut01(&bytes, &asks).expect("the ask heads are added");
+    (bytes, asks, added)
+}
+
+/// claude-336: ask heads round-trip. Without them the record serializes exactly as
+/// `StackHamming::new`'s, the header holds neither field, and every read has no ask; added, the
+/// loaded reads' ask heads (and the readout's carry) are the ones written, under the same schema.
+#[test]
+fn hamming_ask_heads_round_trip() {
+    for reach in [None, Some(3)] {
+        let (bytes, asks, added) = ask_trunk(reach);
+        let plain = super::read_hamming_uorlut01(&bytes).expect("parse").expect("reads");
+        assert_eq!(serde_json::to_vec(&plain.record).unwrap(), serde_json::to_vec(&super::StackHamming::new(4, vec![1, 3])).unwrap());
+        let _ = with_header(&bytes, |h| {
+            assert!(h["hamming"].get("asks").is_none() && h["hamming"].get("carry_rows").is_none());
+        });
+        assert!(plain.reads.iter().all(|r| r.ask.is_none()));
+        let image = super::read_hamming_uorlut01(&added).expect("parse").expect("reads");
+        assert_eq!(image.record.asks, Some(vec![true, true]));
+        assert_eq!(image.record.carry_rows, reach);
+        let got: Vec<_> = image.reads.iter().map(|r| r.ask.clone()).collect();
+        assert_eq!(got, asks, "reach {reach:?}");
+        let _ = with_header(&added, |h| assert_eq!(h["schema"], super::STACK_FBS_HAMMING_SCHEMA));
+        assert!(super::add_hamming_ask_uorlut01(&added, &asks).is_err(), "ask heads are added once");
+    }
+}
+
+/// claude-336: a session on an ask artifact records, at every step and read, type-head queries
+/// equal to `TypeHeads::ask_queries` over the window's tokens from row 0, with and without the
+/// readout's carry; at layer 1, whose input is the same as the read-free trunk's, they differ
+/// from the ask-free model's `queries(point)` on at least one head.
+#[test]
+fn a_session_serves_the_ask_heads_queries() {
+    let tokens = repeating_tokens();
+    let trace = |bytes: &[u8]| {
+        let model = IntegerStackModel::parse(bytes).expect("served");
+        let mut session = model.session();
+        session.set_hamming_trace(true);
+        for &token in &tokens {
+            session.step_native(token).expect("step");
+        }
+        session.take_hamming_trace().expect("the trace is on")
+    };
+    for reach in [None, Some(3)] {
+        let (bytes, _, added) = ask_trunk(reach);
+        let served = super::served_copy_codes_uorlut01(&added).expect("parse").expect("reads");
+        let (image, table, vocab, width) = (&served.image, &served.table, served.vocab, served.width);
+        let copy = image.record.heads / 2;
+        let heads: Vec<super::TypeHeads> = image
+            .reads
+            .iter()
+            .map(|r| super::TypeHeads::new(&image.record, r, table, vocab, width).with_ask(r.ask.clone().expect("asks")))
+            .collect();
+        let (asked, plain) = (trace(&added), trace(&bytes));
+        assert_eq!(asked.len(), 2 * tokens.len());
+        let mut differs = 0;
+        for (k, (step, free)) in asked.iter().zip(&plain).enumerate() {
+            let (t, r) = (k / 2, k % 2);
+            let want = heads[r].ask_queries(table, &tokens[..=t], t, 0).expect("asks");
+            let got: Vec<u64> = step.heads[copy..].iter().map(|h| h.query).collect();
+            assert_eq!(got, want, "reach {reach:?}, row {t}, read {r}");
+            if r == 0 {
+                differs += got.iter().zip(&free.heads[copy..]).filter(|(a, b)| **a != b.query).count();
+            }
+        }
+        assert!(differs > 0, "the ask heads ask other than p_t");
+    }
+}
+
+/// claude-336: malformed ask heads are refused, each by name: an ask section where the record
+/// says the read does not ask, a missing one, a carry off the readout read, a carry where the
+/// readout does not ask, all flags off or the wrong count, a carry of no reach, and a question
+/// table or carry gains at the wrong length.
+#[test]
+fn malformed_hamming_ask_heads_are_refused() {
+    let err = |bytes: &[u8]| super::read_hamming_uorlut01(bytes).err().map(|e| e.to_string()).unwrap_or_default();
+    let (bytes, asks, added) = ask_trunk(None);
+    let (_, carried_asks, carried) = ask_trunk(Some(3));
+    let cases: Vec<(&str, Vec<u8>, &str)> = vec![
+        ("an ask section, no ask", with_header(&added, |h| h["hamming"]["asks"] = serde_json::json!([false, true])), "present, but the record says"),
+        ("no asks key", with_header(&added, |h| { h["hamming"].as_object_mut().unwrap().remove("asks"); }), "present, but the record says"),
+        ("a carry section, no carry", with_header(&carried, |h| { h["hamming"].as_object_mut().unwrap().remove("carry_rows"); }), "present, but the record names no carry"),
+        ("all off", with_header(&added, |h| h["hamming"]["asks"] = serde_json::json!([false, false])), "not all off"),
+        ("one flag", with_header(&added, |h| h["hamming"]["asks"] = serde_json::json!([true])), "one flag per read"),
+        ("a carry, no ask", with_header(&carried, |h| h["hamming"]["asks"] = serde_json::json!([true, false])), "needs its read to ask"),
+        ("a carry of no reach", with_header(&carried, |h| h["hamming"]["carry_rows"] = serde_json::json!(0)), "from 1 to ASK_CARRY_MAX"),
+        ("a carry past the max", with_header(&carried, |h| h["hamming"]["carry_rows"] = serde_json::json!(super::ASK_CARRY_MAX + 1)), "from 1 to ASK_CARRY_MAX"),
+    ];
+    for (what, bytes, named) in cases {
+        let e = err(&bytes);
+        assert!(e.contains(named), "{what}: {e:?}");
+    }
+    // A missing ask section: the first read asks by the record, but only the readout's was added.
+    let one = super::add_hamming_ask_uorlut01(&bytes, &[None, asks[1].clone()]).expect("one read asks");
+    let missing = with_header(&one, |h| h["hamming"]["asks"] = serde_json::json!([true, true]));
+    assert!(err(&missing).contains("hamming.d1.ask"), "{}", err(&missing));
+    // A missing carry section: the readout's carry is named but its gains were not written.
+    let uncarried = with_header(&added, |h| h["hamming"]["carry_rows"] = serde_json::json!(3));
+    assert!(err(&uncarried).contains("hamming.d3.carry"), "{}", err(&uncarried));
+    // A carry on a read that is not the readout's: refused by the record and by the adder.
+    // A trunk whose one read is at layer 1, before the readout (layer 3).
+    let (_, _, inner) = served_read_trunk(&[1], 1.0, 1.0);
+    let ask = |carry| Some(super::AskImage { table: asks[0].clone().unwrap().table, carry });
+    let gains = carried_asks[1].clone().unwrap().carry;
+    let inner_added = super::add_hamming_ask_uorlut01(&inner, &[ask(None)]).expect("asks");
+    let inner_carry = with_header(&inner_added, |h| h["hamming"]["carry_rows"] = serde_json::json!(3));
+    assert!(err(&inner_carry).contains("on the readout read only"), "{}", err(&inner_carry));
+    let adder = |asks: &[Option<super::AskImage>]| super::add_hamming_ask_uorlut01(&bytes, asks).err().map(|e| e.to_string()).unwrap_or_default();
+    assert!(adder(&[ask(gains.clone()), ask(None)]).contains("on the readout read only"));
+    assert!(super::add_hamming_ask_uorlut01(&inner, &[ask(gains.clone())]).unwrap_err().to_string().contains("on the readout read only"));
+    // Wrong lengths.
+    let mut short = asks[0].clone().unwrap();
+    short.table.pop();
+    assert!(adder(&[Some(short), None]).contains("hamming.ask.table"));
+    let (h, mut g) = gains.clone().unwrap();
+    g.pop();
+    assert!(adder(&[None, ask(Some((h, g)))]).contains("hamming.ask.carry"));
+    assert!(adder(&[None]).contains("hamming.asks"));
+    assert!(adder(&[None, None]).contains("not all off"));
+}
+
+/// claude-336: `quantize_hamming_ask` stores a question table at Q12 in i16 and a carry's gains
+/// at Q16 in i32, half away from zero as `fixed_value` rounds, and refuses by name a value that
+/// does not fit or is not finite; its integers are what `AskImage::checked` takes.
+#[test]
+fn hamming_ask_tables_quantize_as_stored() {
+    use crate::fbs_snapshot::{fixed_value, quantize_hamming_ask, FbsHammingAskRead, FbsHammingCarry};
+    let (vocab, width) = (2, 4);
+    let half = 2f32.powi(-13);
+    let table = vec![half, -half, 1.0, -8.0, 0.3, 7.999, 0.0, -0.25];
+    let gain = vec![1.5 * 2f32.powi(-16), -2.75];
+    let ask = FbsHammingAskRead { table: table.clone(), carry: Some(FbsHammingCarry { rows: 3, gain: gain.clone() }) };
+    let (q, carry) = quantize_hamming_ask(6, &ask).expect("fits");
+    assert_eq!(&q[..4], &[1, -1, 4096, -32768], "half a step rounds away from zero");
+    for (&k, &v) in q.iter().zip(&table) {
+        assert_eq!(f64::from(k) / 4096.0, fixed_value(v, -12), "{v}");
+    }
+    let (rows, gains) = carry.clone().expect("carries");
+    assert_eq!((rows, gains.clone()), (3, vec![2, -180_224]));
+    let image = super::AskImage::checked(Some(q), carry, vocab, width).expect("checked").expect("asks");
+    assert_eq!(image.carry, Some((3, gains)));
+    for (what, table, gain, named) in [
+        ("past i16", vec![8.0], None, "hamming_read.d6.ask[0] = 8"),
+        ("not finite", vec![0.0, f32::NAN], None, "hamming_read.d6.ask[1]"),
+        ("past i32", vec![0.0], Some(vec![0.0, 0.0, 40_000.0]), "hamming_read.d6.carry_gain[2]"),
+    ] {
+        let ask = FbsHammingAskRead { table, carry: gain.map(|gain| FbsHammingCarry { rows: 1, gain }) };
+        let e = quantize_hamming_ask(6, &ask).expect_err(what);
+        assert!(e.contains(named), "{what}: {e}");
+    }
 }
