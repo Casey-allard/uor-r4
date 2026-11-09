@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
+mod ask_head;
 mod content_readout;
 mod checkpoint_grade;
 mod continuation_closure;
@@ -45,6 +46,7 @@ mod suffix_fallback;
 mod suffix_memory;
 mod train;
 
+pub use ask_head::{AskCellBits, AskHeadKept, AskHeadOracle, AskKeptPosition, AskOffsetFit};
 pub use content_readout::{
     audit_content_stop_phase_content_prefix, audit_content_stop_trajectory_content_prefix,
     content_continuation_gate_fires, content_continuation_gate_prediction,

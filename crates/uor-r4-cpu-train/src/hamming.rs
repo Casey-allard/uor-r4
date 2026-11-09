@@ -509,7 +509,7 @@ fn units(raw: &[i32]) -> impl Iterator<Item = [i64; 4]> + '_ {
         .map(|raw| unit_rotation([raw[0], raw[1], raw[2], raw[3]]))
 }
 
-fn unit_rotations(raw: &[i32]) -> Vec<[i64; 4]> {
+pub(crate) fn unit_rotations(raw: &[i32]) -> Vec<[i64; 4]> {
     units(raw).collect()
 }
 
@@ -533,7 +533,7 @@ fn unit_rotation(raw: [i32; 4]) -> [i64; 4] {
     })
 }
 
-fn head_code(units: &[[i64; 4]], point: &[i64], head: usize, head_width: usize) -> u64 {
+pub(crate) fn head_code(units: &[[i64; 4]], point: &[i64], head: usize, head_width: usize) -> u64 {
     let mut word = 0u64;
     for coordinate in (0..head_width).step_by(4) {
         let at = head * head_width + coordinate;

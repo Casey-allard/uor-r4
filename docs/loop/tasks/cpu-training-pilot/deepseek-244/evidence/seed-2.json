@@ -1,0 +1,3037 @@
+{
+  "artifact_sha256": "8838cd1044ae7152934d8ec09016e268f2dabb0c702dd45e6ab06d7b5198bdae",
+  "claim": "CPU ask-query/found-copy geometry oracle at the B2 query row only; not a B2, carried-value, capability or serving result",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "executable_sha256": "1620773790737878288e753900ae1e808553cc9820ebd6326c6a352b2de449db",
+    "rayon_threads": 16
+  },
+  "relations": [
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 6144,
+      "fitted_bits": 17,
+      "fitted_cell_bits": [
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 5,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 5,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 6,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 66,
+      "question": 32,
+      "relation": 16,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 146,
+      "start_cell_bits": [
+        {
+          "bits": 40,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 37,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 40,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 29,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 528,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4608,
+      "fitted_bits": 109,
+      "fitted_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 31,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 1,
+      "question": 33,
+      "relation": 17,
+      "retained_before": [
+        {
+          "depth": 2,
+          "head": 3
+        }
+      ],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 3
+        }
+      ],
+      "start_bits": 110,
+      "start_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 32,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 1,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 1,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 1,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 1,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 0,
+      "type_margin_weighted_before": [
+        {
+          "depth": 2,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 3
+        }
+      ],
+      "value": 529,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": []
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 5632,
+      "fitted_bits": 19,
+      "fitted_cell_bits": [
+        {
+          "bits": 5,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 7,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 3,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 66,
+      "question": 34,
+      "relation": 18,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 138,
+      "start_cell_bits": [
+        {
+          "bits": 35,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 38,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 35,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 30,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 530,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 6144,
+      "fitted_bits": 19,
+      "fitted_cell_bits": [
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 6,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 7,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 7,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 60,
+      "question": 35,
+      "relation": 19,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 129,
+      "start_cell_bits": [
+        {
+          "bits": 39,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 26,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 32,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 32,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 531,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4608,
+      "fitted_bits": 92,
+      "fitted_cell_bits": [
+        {
+          "bits": 17,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 28,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 15,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 33,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 21,
+      "question": 36,
+      "relation": 20,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 2
+        }
+      ],
+      "start_bits": 127,
+      "start_cell_bits": [
+        {
+          "bits": 33,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 28,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 33,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 33,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 2,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 2,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 1,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 2
+        }
+      ],
+      "value": 532,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 6,
+          "head": 2
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 6144,
+      "fitted_bits": 16,
+      "fitted_cell_bits": [
+        {
+          "bits": 3,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 6,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 4,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 5,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 61,
+      "question": 37,
+      "relation": 21,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 150,
+      "start_cell_bits": [
+        {
+          "bits": 37,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 35,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 40,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 38,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 533,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4608,
+      "fitted_bits": 42,
+      "fitted_cell_bits": [
+        {
+          "bits": 5,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 14,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 6,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 12,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 44,
+      "question": 38,
+      "relation": 22,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 133,
+      "start_cell_bits": [
+        {
+          "bits": 35,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 28,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 38,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 32,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 534,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 7168,
+      "fitted_bits": 18,
+      "fitted_cell_bits": [
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 9,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 3,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 9,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 61,
+      "question": 39,
+      "relation": 23,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 116,
+      "start_cell_bits": [
+        {
+          "bits": 28,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 31,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 25,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 32,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 535,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 5632,
+      "fitted_bits": 12,
+      "fitted_cell_bits": [
+        {
+          "bits": 3,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 4,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 2,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 61,
+      "question": 40,
+      "relation": 24,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 139,
+      "start_cell_bits": [
+        {
+          "bits": 37,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 32,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 36,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 34,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 536,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4608,
+      "fitted_bits": 51,
+      "fitted_cell_bits": [
+        {
+          "bits": 8,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 15,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 7,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 17,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 52,
+      "question": 41,
+      "relation": 25,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 144,
+      "start_cell_bits": [
+        {
+          "bits": 39,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 27,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 44,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 34,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 3,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 537,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 5632,
+      "fitted_bits": 12,
+      "fitted_cell_bits": [
+        {
+          "bits": 4,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 6,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 1,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 8,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 57,
+      "question": 42,
+      "relation": 26,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 125,
+      "start_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 33,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 27,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 35,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 538,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 6144,
+      "fitted_bits": 14,
+      "fitted_cell_bits": [
+        {
+          "bits": 3,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 6,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 4,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 3,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 65,
+      "question": 43,
+      "relation": 27,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 132,
+      "start_cell_bits": [
+        {
+          "bits": 33,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 32,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 34,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 33,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 4,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 539,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ]
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4096,
+      "fitted_bits": 99,
+      "fitted_cell_bits": [
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 25,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 26,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 0,
+      "question": 44,
+      "relation": 28,
+      "retained_before": [
+        {
+          "depth": 2,
+          "head": 2
+        }
+      ],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        }
+      ],
+      "start_bits": 99,
+      "start_cell_bits": [
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 25,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 26,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 1,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 1,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 1,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 1,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 0,
+      "type_margin_weighted_before": [
+        {
+          "depth": 2,
+          "head": 2
+        }
+      ],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        }
+      ],
+      "value": 540,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": []
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4096,
+      "fitted_bits": 116,
+      "fitted_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 29,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 27,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 0,
+      "question": 45,
+      "relation": 29,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [],
+      "start_bits": 116,
+      "start_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 29,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 27,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 0,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 0,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 0,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [],
+      "value": 541,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": []
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4608,
+      "fitted_bits": 77,
+      "fitted_cell_bits": [
+        {
+          "bits": 16,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 18,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 21,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 20,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 17,
+      "question": 46,
+      "relation": 30,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "start_bits": 110,
+      "start_cell_bits": [
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 22,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 33,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 25,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 4,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 4,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 0,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "value": 542,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": []
+    },
+    {
+      "ask_cells": 4,
+      "distance": 97,
+      "exact_bits": 0,
+      "exact_cell_bits": [
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 0,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fit_budget_exhausted": false,
+      "fit_evaluations": 4096,
+      "fitted_bits": 111,
+      "fitted_cell_bits": [
+        {
+          "bits": 27,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 30,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "fitted_coordinates": 0,
+      "question": 47,
+      "relation": 31,
+      "retained_before": [],
+      "retained_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "retained_fitted": [],
+      "start_bits": 111,
+      "start_cell_bits": [
+        {
+          "bits": 27,
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "bits": 30,
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "bits": 30,
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "bits": 24,
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "target_kept_before_cells": 0,
+      "target_kept_exact_cells": 4,
+      "target_kept_fitted_cells": 0,
+      "target_position": 89,
+      "target_type_margin_weighted_before_cells": 0,
+      "target_type_margin_weighted_exact_cells": 4,
+      "target_type_margin_weighted_fitted_cells": 0,
+      "target_weighted_before_cells": 0,
+      "target_weighted_exact_cells": 4,
+      "target_weighted_fitted_cells": 0,
+      "type_margin_weighted_before": [],
+      "type_margin_weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "type_margin_weighted_fitted": [],
+      "value": 543,
+      "weighted_before": [],
+      "weighted_exact": [
+        {
+          "depth": 2,
+          "head": 2
+        },
+        {
+          "depth": 2,
+          "head": 3
+        },
+        {
+          "depth": 6,
+          "head": 2
+        },
+        {
+          "depth": 6,
+          "head": 3
+        }
+      ],
+      "weighted_fitted": []
+    }
+  ],
+  "schema": "uor-r4.cpu-ask-head-oracle/1",
+  "settings": {
+    "ask_heads": 2,
+    "context": 192,
+    "distance": 97,
+    "header": [
+      48,
+      49,
+      50,
+      51
+    ],
+    "kept": 16,
+    "key_position": 88,
+    "max_fit_evaluations": 200000,
+    "question_row": 186,
+    "scored_position": 190,
+    "value_position": 89,
+    "width": 256
+  },
+  "summary": {
+    "ask_cells": 64,
+    "exact_zero_bit_relations": 16,
+    "fit_budget_exhausted_relations": 0,
+    "fit_evaluations": 83968,
+    "fitted_zero_bit_relations": 0,
+    "relations": 16,
+    "relations_with_target_before": 2,
+    "relations_with_target_exact": 16,
+    "relations_with_target_fitted": 14,
+    "target_kept_before_cells": 2,
+    "target_kept_exact_cells": 64,
+    "target_kept_fitted_cells": 48,
+    "target_type_margin_weighted_before_cells": 2,
+    "target_type_margin_weighted_exact_cells": 64,
+    "target_type_margin_weighted_fitted_cells": 48,
+    "target_weighted_before_cells": 0,
+    "target_weighted_exact_cells": 64,
+    "target_weighted_fitted_cells": 40
+  }
+}

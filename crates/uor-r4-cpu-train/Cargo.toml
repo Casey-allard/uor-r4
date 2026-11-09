@@ -164,5 +164,9 @@ name = "cpu-first-reply-hamming-trace"
 path = "src/bin/cpu-first-reply-hamming-trace.rs"
 
 [[bin]]
+name = "cpu-ask-head-oracle"
+path = "src/bin/cpu-ask-head-oracle.rs"
+
+[[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"
