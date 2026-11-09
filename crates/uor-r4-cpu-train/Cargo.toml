@@ -176,5 +176,9 @@ name = "cpu-ask-offset-solver"
 path = "src/bin/cpu-ask-offset-solver.rs"
 
 [[bin]]
+name = "cpu-ask-arm-regression"
+path = "src/bin/cpu-ask-arm-regression.rs"
+
+[[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"

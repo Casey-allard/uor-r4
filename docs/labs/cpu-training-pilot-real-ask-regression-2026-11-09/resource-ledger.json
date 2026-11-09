@@ -1,0 +1,102 @@
+{
+  "schema": "uor-r4.cpu-ask-arm-regression-resource/1",
+  "status": "COMPLETE",
+  "experiment": "hash-pinned real-checkpoint ask-selection regression",
+  "updated_utc": "2026-11-09T04:36:38Z",
+  "previous_ledger": "cpu-training-pilot-ask-offset-solver-2026-11-09/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 107567.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 1800,
+  "admitted_increment_seconds": 1800,
+  "complete_projection_seconds": 1800,
+  "cumulative_projected_seconds": 109367.677487699,
+  "admitted_cumulative_projection_seconds": 109367.677487699,
+  "lab_cumulative_projection_seconds": 109367.677487699,
+  "projection": {
+    "measured_real_regression_seconds": 0.10,
+    "measured_library_tests_seconds": 42.32,
+    "builds_and_checks_allowance_seconds": 900,
+    "review_and_delivery_allowance_seconds": 300,
+    "retry_and_setup_allowance_seconds": 557.58,
+    "wall_limit_seconds": 1800
+  },
+  "measured": {
+    "archives": 2,
+    "arms": 8,
+    "arms_passed": 8,
+    "workers": 8,
+    "real_regression_wall_ms": 100,
+    "real_regression_cpu_percent": 221,
+    "real_regression_peak_rss_kib": 183260,
+    "library_tests_passed": 478,
+    "library_tests_ignored": 5,
+    "library_tests_seconds": 42.23,
+    "library_tests_cpu_percent": 2408,
+    "library_tests_peak_rss_kib": 692448,
+    "one_worker_arm_content_matches": true,
+    "repeat_8_worker_report_byte_identical": true,
+    "missing_checkpoint_source_failures": 1,
+    "missing_checkpoint_regression_failures": 0,
+    "missing_checkpoint_exit": 1,
+    "mutated_expected_source_failures": 0,
+    "mutated_expected_regression_failures": 1,
+    "mutated_expected_value_exit": 2,
+    "target_nearest": {
+      "b1-a-s1": 64,
+      "b1-a-s2": 64,
+      "b1-a0-s1": 9,
+      "b1-a0-s2": 1,
+      "b2-a-s1": 0,
+      "b2-a-s2": 3,
+      "b2-aq-s1": 64,
+      "b2-aq-s2": 64
+    }
+  },
+  "artifacts": {
+    "manifest_sha256": "5a5ad55c7759942b82ff5b94d658453433faa22fdf3bd8000c67b6933766b136",
+    "report_sha256": "3f497f58059c152954599433b8ccc860a89e7bb74e327b3472873b9be4dbbc9b",
+    "release_executable_sha256": "2b53623d48b15ce9b8fa0ab4f0bee4863a6d9364ca22914ce9fe942b28bb92b6",
+    "archive_sha256": {
+      "s1": "e2e67a8ea0dd5fedd6392666cf35a14cc9df775854bdaf303d593e4ab9d5f2d8",
+      "s2": "2e8ec2b3e10831f7ce8e2006a4a9b9ca7e20ec73611da2138affd198fda3f862"
+    }
+  },
+  "storage": {
+    "task_and_ledger_bytes": 49783,
+    "downloaded_archive_bytes": 178013963,
+    "extracted_checkpoint_tree_bytes": 378392745,
+    "downloaded_store_metadata_bytes": 18191,
+    "temporary_input_bytes": 556424899,
+    "worktree_build_target_bytes": 5800592549,
+    "free_bytes_at_measurement": 149043666944,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-247/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-247/REPORT.md",
+    "manifest": "docs/loop/tasks/cpu-training-pilot/deepseek-247/real-checkpoint-regression.json",
+    "evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-247/evidence/real-eight-arm-report.json"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree target and downloaded checkpoint scratch after delivery; retain text manifest, hashes and report"
+  }
+}
