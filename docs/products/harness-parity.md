@@ -4,6 +4,18 @@ Target: a UOR-branded Claude Desktop Cowork/Code-style harness using the separat
 
 Reference: [Claude Desktop](https://docs.anthropic.com/en/docs/claude-code/desktop), [Cowork surfaces](https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile), [projects](https://support.claude.com/en/articles/14116274-organize-your-tasks-with-projects-in-claude-cowork), and [Dispatch](https://support.claude.com/en/articles/13947068-assign-tasks-from-anywhere-in-claude-cowork). The approved design is `docs/superpowers/specs/2026-11-08-claude-cowork-parity-design.md`.
 
+## Cursor hosted-experience target (planning only, 2026-11-09)
+
+The owner's current direction is the Cursor hosted experience, not further Cowork polish. The corrected research report is [Cursor hosted experience](../research/reports/Cursor%20hosted%20experience.md); the design is [2026-11-09-cursor-hosted-studio-upgrade-design.md](../superpowers/specs/2026-11-09-cursor-hosted-studio-upgrade-design.md); the staged executable plan is [2026-11-09-cursor-hosted-studio-upgrade.md](../superpowers/plans/2026-11-09-cursor-hosted-studio-upgrade.md).
+
+This section is a target/plan linkage only. **No row below changes status in this planning unit.** The existing matrix remains the executed-evidence record for the earlier Cowork target and for every current row; the Cursor design's §14 feature-family coverage matrix is the authoritative mapping of Cursor families to stages, planned tests and `NOT_RUN`/`UNVERIFIED` rows. The Cursor work does not claim full parity, hosted production, a real R4 adapter or useful conversation, and it does not promote desktop Agents Window or IDE controls into web behavior.
+
+| Document | Role | Status at this unit |
+|---|---|---|
+| Cursor report | Corrected public-source research, 2026-11-09 | Reference; authenticated UI unverified |
+| Cursor design | Browser-owned task runtime and IndexedDB store; optional tool-only companion; two builder REVISE rounds and agent-94/95 CHANGES corrections applied | **Design only; fresh exact-head delivery review, owner approval and owner acceptance-item choice pending** |
+| Cursor plan | 23 tasks in 6 executable stages, plus checkbox-free gated appendices | **Not started; implementation not authorized** |
+
 ## Baseline findings, 8 November 2026
 
 - Original typed shell: sparse green/black generic controls; source and retained screenshots confirm the visual regression.
