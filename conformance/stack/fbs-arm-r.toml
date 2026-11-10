@@ -3,7 +3,7 @@ id = "fbs-arm-r"
 title = "FBS arm r: latest-exact copy with reply-worded memory"
 lane = "fbs"
 state = "current"
-revision = 2
+revision = 3
 decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-r-at-seeds-1-2-and-3-replicated"
 source_pin = "fd71a02785f951fb7f07c93051a0722eee7b76e6"
 summary = "The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path."
@@ -21,6 +21,8 @@ serving = "integer UORLUT01 artifact; Q12 writer points and branch-free table ar
 
 [artifact]
 family = "uor-r4.lut-stack"
+provenance = "legacy-grandfathered"
+grandfathered_by = "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration"
 schema = "uor-r4.lut-stack/7"
 
 [[artifact.sections]]
@@ -287,7 +289,7 @@ timeout_seconds = 7200
 id = "export"
 role = "export"
 program = "fbs-export"
-args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-arm-r.toml", "--tokenizer", "tokenizer.json", "--context", "8256", "SNAPSHOT_JSON", "r.uorlut"]
+args = ["--legacy-artifact", "--raw-gates", "--raw-transition", "--run-config", "config.json", "--context", "8256", "SNAPSHOT_JSON", "r.uorlut"]
 env = []
 inputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
 outputs = ["r.uorlut"]

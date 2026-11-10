@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use repo_model::stack::{self, Probe, StackContract};
+use repo_model::stack::{self, ArtifactProvenance, Probe, StackContract};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -711,7 +711,7 @@ fn audit_artifact(
         Value::String("exporter provenance object".to_owned()),
         artifact.source.clone(),
         path.display().to_string(),
-        "provenance is diagnostic; the serving arithmetic never reads it",
+        "the source object identifies the exporter; serving arithmetic never reads it",
     );
     match artifact.source.get("stack_contract") {
         Some(provenance) => {
@@ -725,17 +725,46 @@ fn audit_artifact(
                 Value::String(expected),
                 provenance.get("sha256").cloned().unwrap_or(Value::Null),
                 path,
-                "optional diagnostic provenance names this exact contract source",
+                "the artifact's bound contract sha256 matches its source bytes",
+            );
+            let expected_semantic =
+                blake3::hash(&serde_json::to_vec(contract).expect("contract serializes"))
+                    .to_hex()
+                    .to_string();
+            report.compare(
+                "artifact-stack-contract-semantic-blake3",
+                Value::String(expected_semantic),
+                provenance
+                    .get("semantic_blake3")
+                    .cloned()
+                    .unwrap_or(Value::Null),
+                path,
+                "the artifact binds this exact parsed contract",
             );
         }
-        None => report.record(
-            "artifact-stack-contract-sha256",
-            AuditStatus::NotRun,
-            Value::String("optional diagnostic provenance".to_owned()),
-            Value::Null,
-            path.display().to_string(),
-            "the artifact was exported without --stack-contract; serving does not require it",
-        ),
+        None => {
+            let required = contract.artifact.provenance == Some(ArtifactProvenance::Required);
+            report.record(
+                "artifact-stack-contract-sha256",
+                if required {
+                    AuditStatus::Mismatch
+                } else {
+                    AuditStatus::NotRun
+                },
+                Value::String(if required {
+                    "required stack contract provenance".to_owned()
+                } else {
+                    "a legacy artifact without stack-contract provenance".to_owned()
+                }),
+                Value::Null,
+                path.display().to_string(),
+                if required {
+                    "the contract requires stack-contract provenance"
+                } else {
+                    "a legacy artifact has no stack-contract binding"
+                },
+            )
+        }
     }
     match artifact.source.get("tokenizer_sha256") {
         Some(tokenizer) => report.compare(
@@ -743,16 +772,31 @@ fn audit_artifact(
             Value::String(contract.model.tokenizer_sha256.clone()),
             tokenizer.clone(),
             path,
-            "optional diagnostic provenance binds the artifact to the contract tokenizer",
+            "the artifact's bound tokenizer matches the contract tokenizer",
         ),
-        None => report.record(
-            "artifact-tokenizer-sha256",
-            AuditStatus::NotRun,
-            Value::String("optional diagnostic provenance".to_owned()),
-            Value::Null,
-            path.display().to_string(),
-            "the artifact predates tokenizer provenance; its shape is still audited",
-        ),
+        None => {
+            let required = contract.artifact.provenance == Some(ArtifactProvenance::Required);
+            report.record(
+                "artifact-tokenizer-sha256",
+                if required {
+                    AuditStatus::Mismatch
+                } else {
+                    AuditStatus::NotRun
+                },
+                Value::String(if required {
+                    "required tokenizer provenance".to_owned()
+                } else {
+                    "a legacy artifact without tokenizer provenance".to_owned()
+                }),
+                Value::Null,
+                path.display().to_string(),
+                if required {
+                    "the contract requires tokenizer provenance"
+                } else {
+                    "the artifact predates tokenizer provenance"
+                },
+            )
+        }
     }
 }
 

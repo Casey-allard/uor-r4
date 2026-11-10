@@ -11,6 +11,15 @@ evidence, exact mechanism flags and dependencies, checkpoint sidecars,
 load/cleanup orders, reading units and bars, and hashed executable probe
 fixtures. Schema `/1` remains readable for historical records.
 
+Artifact provenance is now declared explicitly:
+
+- `required` means a new artifact must use `uor-r4.lut-stack/10` and bind the
+  contract source SHA-256, contract semantic BLAKE3 and tokenizer SHA-256.
+- `legacy-grandfathered` identifies a `/6`–`/9` artifact retained as exact
+  evidence, including current or candidate decisions made before this policy.
+  It cannot authorize a new export; reproduction requires
+  `--legacy-artifact`.
+
 The checked-in [model view](../../docs/model/STACK-CONTRACT.md) and
 [machine view](../generated/stack-contracts.json) are generated. Do not edit
 them by hand.
@@ -51,10 +60,25 @@ never promoted to `MATCH`. With a chat binary, the audit runs the actual
 `uor-chat --script` product path; with the artifact path it also checks every
 registered probe fixture through that path.
 
-New artifacts can bind the exact contract and tokenizer with
-`fbs-export --stack-contract <TOML> --tokenizer <tokenizer.json>`. Both values
-are diagnostic source metadata; serving arithmetic does not read them. Older
-artifacts report that optional binding as `NOT_RUN`.
+New exports require all three identities:
+
+```sh
+cargo run -q -p xtask -- stack-contract-hash conformance/stack/example.toml
+
+fbs-export \
+  --stack-contract conformance/stack/example.toml \
+  --stack-contract-semantic-blake3 <BLAKE3> \
+  --tokenizer tokenizer.json \
+  SNAPSHOT_JSON MODEL.uorlut
+```
+
+The resulting `uor-r4.lut-stack/10` artifact is refused by `uor-chat` when the
+supplied tokenizer hash differs. Historical `/6`–`/9` artifacts remain
+servable. Reproducing one is explicit:
+
+```sh
+fbs-export --legacy-artifact SNAPSHOT_JSON HISTORICAL.uorlut
+```
 
 Adding a contract:
 

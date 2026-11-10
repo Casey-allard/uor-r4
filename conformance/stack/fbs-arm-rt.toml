@@ -3,7 +3,7 @@ id = "fbs-arm-rt"
 title = "FBS arm rt: three-key turn memory"
 lane = "fbs"
 state = "candidate"
-revision = 1
+revision = 2
 decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rt-the-three-key-turn-memory-reads-row-1-and-costs-recall-where-a-value-is-copied"
 source_pin = "05e50006b9b1dcd1799166df478e08139c0a9e48"
 summary = "Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut-stack/9 reply table asks ends, tail and head. It reads row 1 at three seeds but makes copied values wrong more often than arm r."
@@ -21,6 +21,8 @@ serving = "integer UORLUT01 artifact with the memory chain served by the product
 
 [artifact]
 family = "uor-r4.lut-stack"
+provenance = "legacy-grandfathered"
+grandfathered_by = "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration"
 schema = "uor-r4.lut-stack/9"
 
 [[artifact.sections]]
@@ -279,7 +281,7 @@ timeout_seconds = 7200
 id = "export"
 role = "export"
 program = "fbs-export"
-args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-arm-rt.toml", "--tokenizer", "tokenizer.json", "--context", "8256", "SNAPSHOT_JSON", "rt.uorlut"]
+args = ["--legacy-artifact", "--raw-gates", "--raw-transition", "--run-config", "config.json", "--context", "8256", "SNAPSHOT_JSON", "rt.uorlut"]
 env = []
 inputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
 outputs = ["rt.uorlut"]

@@ -98,7 +98,8 @@ pub use format::{
     FbsWriterOutput, Fixed, FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence,
     FloatTrunkSnapshot, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,
     FbsExportProvenance, StackArtifactMetadata, StackContractProvenance, StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA,
-    STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA, STACK_SCHEMA,
+    STACK_FBS_BOUND_SCHEMA, STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA,
+    STACK_SCHEMA,
 };
 pub use format::{
     FbsHammingRead, FbsHammingSnapshot, StackHamming, HAMMING_KEPT, HAMMING_MARGIN_EXP,
@@ -216,6 +217,10 @@ pub enum StackError {
     ContentReadout(String),
     /// A prompt-reply retrieval sidecar is malformed, foreign or unsafe.
     PromptReply(String),
+    /// A bound artifact was presented with a different tokenizer.
+    TokenizerBinding { expected: String, actual: String },
+    /// A `/10` artifact's mandatory identity fields are missing or malformed.
+    ArtifactBinding(String),
 }
 
 impl fmt::Display for StackError {
@@ -292,6 +297,11 @@ impl fmt::Display for StackError {
             Self::Threads(reason) => write!(f, "stack engine threads: {reason}"),
             Self::ContentReadout(reason) => write!(f, "stack content readout: {reason}"),
             Self::PromptReply(reason) => write!(f, "stack prompt reply: {reason}"),
+            Self::TokenizerBinding { expected, actual } => write!(
+                f,
+                "bound artifact names tokenizer {expected}, supplied tokenizer is {actual}"
+            ),
+            Self::ArtifactBinding(reason) => write!(f, "stack artifact binding: {reason}"),
         }
     }
 }

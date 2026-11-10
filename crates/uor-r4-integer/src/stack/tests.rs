@@ -4159,7 +4159,7 @@ fn artifact_metadata_reports_validated_identity_and_sections() {
 }
 
 #[test]
-fn optional_contract_provenance_changes_only_the_source_object() {
+fn contract_provenance_binds_identity_and_preserves_feature_bytes() {
     let snap = synthetic_fbs_trunk(345);
     let base = super::export_fbs_trunk_uorlut01_with(&snap, super::FbsExportSnaps::SNAPPED)
         .expect("base export");
@@ -4174,11 +4174,12 @@ fn optional_contract_provenance_changes_only_the_source_object() {
     assert_eq!(without, base);
 
     let provenance = super::FbsExportProvenance {
-        stack_contract: Some(super::StackContractProvenance {
+        stack_contract: super::StackContractProvenance {
             source: "conformance/stack/fbs-arm-r.toml".to_owned(),
             sha256: "a".repeat(64),
-        }),
-        tokenizer_sha256: Some("b".repeat(64)),
+            semantic_blake3: "c".repeat(64),
+        },
+        tokenizer_sha256: "b".repeat(64),
     };
     let with = super::export_fbs_trunk_uorlut01_with_provenance(
         &snap,
@@ -4190,6 +4191,7 @@ fn optional_contract_provenance_changes_only_the_source_object() {
     .expect("provenance export");
     assert_ne!(with, base);
     let metadata = super::inspect_uorlut01(&with).expect("provenance metadata");
+    assert_eq!(metadata.schema, super::STACK_FBS_BOUND_SCHEMA);
     assert_eq!(
         metadata.source["stack_contract"]["source"],
         "conformance/stack/fbs-arm-r.toml"
@@ -4197,6 +4199,10 @@ fn optional_contract_provenance_changes_only_the_source_object() {
     assert_eq!(
         metadata.source["stack_contract"]["sha256"],
         "a".repeat(64)
+    );
+    assert_eq!(
+        metadata.source["stack_contract"]["semantic_blake3"],
+        "c".repeat(64)
     );
     assert_eq!(metadata.source["tokenizer_sha256"], "b".repeat(64));
     assert_eq!(
@@ -4207,6 +4213,91 @@ fn optional_contract_provenance_changes_only_the_source_object() {
         metadata.sections,
         super::inspect_uorlut01(&base).expect("base metadata").sections
     );
+    assert!(super::IntegerStackModel::parse(&with)
+        .expect("bound model")
+        .require_tokenizer_sha256(&"b".repeat(64))
+        .is_ok());
+    assert!(matches!(
+        super::IntegerStackModel::parse(&with)
+            .expect("bound model")
+            .require_tokenizer_sha256(&"d".repeat(64)),
+        Err(StackError::TokenizerBinding { .. })
+    ));
+
+    for (field, value) in [
+        ("source", serde_json::json!("")),
+        ("sha256", serde_json::json!("a")),
+        ("semantic_blake3", serde_json::json!(7)),
+    ] {
+        let broken = with.clone();
+        let header_len =
+            u64::from_le_bytes(broken[8..16].try_into().expect("header length")) as usize;
+        let mut header: Value =
+            serde_json::from_slice(&broken[16..16 + header_len]).expect("header");
+        header["source"]["stack_contract"][field] = value;
+        let replacement = serde_json::to_vec(&header).expect("header");
+        let mut candidate = Vec::new();
+        candidate.extend_from_slice(&broken[..8]);
+        candidate.extend_from_slice(&(replacement.len() as u64).to_le_bytes());
+        candidate.extend_from_slice(&replacement);
+        candidate.resize(candidate.len().div_ceil(64) * 64, 0);
+        candidate.extend_from_slice(&broken[((16 + header_len).div_ceil(64)) * 64..]);
+        assert!(super::inspect_uorlut01(&candidate).is_err());
+    }
+    assert!(
+        super::inspect_uorlut01(&with_header(&with, |header| {
+            header["source"].as_object_mut().unwrap().remove("stack_contract");
+        }))
+        .is_err(),
+        "a partial binding is refused"
+    );
+    assert!(
+        super::inspect_uorlut01(&with_header(&with, |header| {
+            header["source"]["tokenizer_sha256"] = json!("b");
+        }))
+        .is_err(),
+        "a malformed tokenizer binding is refused"
+    );
+}
+
+#[test]
+fn a_bound_point_key_stays_on_uor_r4_lut_stack_10() {
+    let bytes = point_key_test_stack(false);
+    let legacy_with_note = with_header(&bytes, |header| {
+        header["source"]["tokenizer_sha256"] = json!("b".repeat(64));
+    });
+    assert_eq!(
+        IntegerStackModel::parse(&legacy_with_note)
+            .expect("legacy provenance remains readable")
+            .tokenizer_sha256(),
+        None
+    );
+    let bound = with_header(&bytes, |header| {
+        header["schema"] = json!(super::STACK_FBS_BOUND_SCHEMA);
+        header["source"]["stack_contract"] = json!({
+            "source": "conformance/stack/fbs-arm-r.toml",
+            "sha256": "a".repeat(64),
+            "semantic_blake3": "c".repeat(64),
+        });
+        header["source"]["tokenizer_sha256"] = json!("b".repeat(64));
+    });
+    let image = synthetic_point_key(&bound, 5);
+    let with_point = super::add_point_key_uorlut01(&bound, &image).expect("bound point key");
+    let (header, _) = header_and_data(&with_point);
+    assert_eq!(header["schema"], super::STACK_FBS_BOUND_SCHEMA);
+    assert_eq!(
+        header["source"]["stack_contract"]["semantic_blake3"],
+        "c".repeat(64)
+    );
+    assert_eq!(header["source"]["tokenizer_sha256"], "b".repeat(64));
+    let model = IntegerStackModel::parse(&with_point).expect("bound point-key model");
+    model
+        .require_tokenizer_sha256(&"b".repeat(64))
+        .expect("matching tokenizer");
+    assert!(matches!(
+        model.require_tokenizer_sha256(&"d".repeat(64)),
+        Err(StackError::TokenizerBinding { .. })
+    ));
 }
 
 /// claude-188: the exporter refuses a Hamming read the trunk cannot carry.

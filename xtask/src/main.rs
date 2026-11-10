@@ -48,6 +48,12 @@ fn main() -> ExitCode {
     let result = match task.as_str() {
         "check-model" => check_model(&root, write),
         "stack-contract" => stack_contract::run(&root, write),
+        "stack-contract-hash" => {
+            let Some(path) = std::env::args().nth(2) else {
+                return ExitCode::from(2);
+            };
+            stack_contract::hash(&root, &path)
+        }
         "stack-audit" => {
             stack_audit::run(&root, &std::env::args().skip(2).collect::<Vec<String>>())
         }
@@ -130,6 +136,7 @@ fn main() -> ExitCode {
                  \n\
                  check-model       R1: conformance/*.toml is the single source; regenerate and diff\n\
                  stack-contract    validate conformance/stack/*.toml and regenerate its model views\n\
+                 stack-contract-hash <TOML>  print a validated contract's semantic BLAKE3\n\
                  stack-audit       compare one contract with its run config, checkpoint, artifact, tokenizer and chat path\n\
                  audit-limits      R5:  no bound that cannot be traced to a parameter\n\
                  audit-deferral    R4: no deferral marker, no stub, no capability behind a flag\n\

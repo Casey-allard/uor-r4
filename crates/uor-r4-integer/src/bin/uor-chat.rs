@@ -315,7 +315,9 @@ fn print_usage() {
     eprintln!("                              directly by the D11 integer stack engine");
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
     eprintln!("                              raw-token serving through IntegerDiscreteModel");
-    eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
+    eprintln!(
+        "      --tokenizer <PATH>      tokenizer.json for --stack (required; /10 artifacts bind its SHA-256)"
+    );
     eprintln!("      --content-readout <P>   artifact-bound content-readout sidecar for --stack");
     eprintln!("      --prompt-reply <P>      complete prompt/reply readout for --serve");
     eprintln!(
@@ -1916,6 +1918,8 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     }
     #[cfg_attr(target_arch = "wasm32", allow(unused_mut))]
     let mut model = IntegerStackModel::load(artifact)?;
+    let tokenizer_bytes = std::fs::read(tokenizer_path)?;
+    model.require_tokenizer_sha256(&hex::encode(Sha256::digest(&tokenizer_bytes)))?;
     #[cfg(not(target_arch = "wasm32"))]
     model.set_threads(cli.threads)?;
     #[cfg(target_arch = "wasm32")]
@@ -1969,7 +1973,6 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         let port = port
             .parse::<u16>()
             .map_err(|_| StackCliError::Usage("--serve port must be a u16".into()))?;
-        let tokenizer_bytes = std::fs::read(tokenizer_path)?;
         let prompt_reply = if let Some(path) = cli.prompt_reply_path.as_deref() {
             let path_string = path
                 .to_str()

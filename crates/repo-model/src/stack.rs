@@ -66,6 +66,27 @@ pub enum ContractState {
     Historical,
 }
 
+/// Whether a contract promises a self-bound artifact or identifies existing
+/// pre-binding evidence retained for compatibility.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ArtifactProvenance {
+    /// New exports must use `uor-r4.lut-stack/10` and carry all bindings.
+    Required,
+    /// An existing artifact made before schema `/10` is retained as evidence.
+    LegacyGrandfathered,
+}
+
+impl ArtifactProvenance {
+    /// The kebab-case spelling used in TOML and generated documents.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Required => "required",
+            Self::LegacyGrandfathered => "legacy-grandfathered",
+        }
+    }
+}
+
 impl ContractState {
     /// The kebab-case spelling used in TOML and generated documents.
     pub const fn as_str(self) -> &'static str {
@@ -370,6 +391,12 @@ pub struct ModelShape {
 pub struct Artifact {
     /// The artifact family, without claiming one exact schema revision.
     pub family: String,
+    /// Whether contract and tokenizer identity are mandatory for this artifact.
+    #[serde(default)]
+    pub provenance: Option<ArtifactProvenance>,
+    /// Decision or review that explicitly retained a pre-`/10` artifact.
+    #[serde(default)]
+    pub grandfathered_by: Option<String>,
     /// The exact exported schema revision.
     #[serde(default)]
     pub schema: Option<String>,
@@ -664,7 +691,61 @@ impl StackContract {
         }
         check_text("artifact.family", &self.artifact.family)?;
         if v2 {
+            if self.artifact.provenance.is_none() {
+                return Err(bad(format!("{}: artifact.provenance is required", self.id)));
+            }
             check_required_text("artifact.schema", self.artifact.schema.as_deref())?;
+        }
+        if let (Some(provenance), Some(schema)) =
+            (self.artifact.provenance, self.artifact.schema.as_deref())
+        {
+            let bound = schema == "uor-r4.lut-stack/10";
+            if provenance == ArtifactProvenance::Required && !bound {
+                return Err(bad(format!(
+                    "{}: a binding-required artifact must use uor-r4.lut-stack/10",
+                    self.id
+                )));
+            }
+            if provenance == ArtifactProvenance::LegacyGrandfathered && bound {
+                return Err(bad(format!(
+                    "{}: a legacy-grandfathered artifact cannot use uor-r4.lut-stack/10",
+                    self.id
+                )));
+            }
+            if provenance == ArtifactProvenance::LegacyGrandfathered
+                && !matches!(
+                    schema,
+                    "uor-r4.lut-stack/6"
+                        | "uor-r4.lut-stack/7"
+                        | "uor-r4.lut-stack/8"
+                        | "uor-r4.lut-stack/9"
+                )
+            {
+                return Err(bad(format!(
+                    "{}: a legacy-grandfathered artifact must use uor-r4.lut-stack/6 through /9",
+                    self.id
+                )));
+            }
+            if provenance == ArtifactProvenance::LegacyGrandfathered
+                && self
+                    .artifact
+                    .grandfathered_by
+                    .as_deref()
+                    .is_none_or(str::is_empty)
+            {
+                return Err(bad(format!(
+                    "{}: a legacy-grandfathered artifact names the decision that retained it",
+                    self.id
+                )));
+            }
+            if provenance == ArtifactProvenance::Required
+                && self.artifact.grandfathered_by.is_some()
+            {
+                return Err(bad(format!(
+                    "{}: a binding-required artifact cannot name a grandfather",
+                    self.id
+                )));
+            }
         }
         if self.artifact.sections.is_empty() {
             return Err(bad(format!("{}: artifact has no section", self.id)));
@@ -1662,6 +1743,63 @@ statement = "This contract is not a proof of language capability."
     }
 
     #[test]
+    fn binding_policy_and_artifact_schema_must_agree() {
+        let mut required = parsed();
+        required.spec = SPEC.to_owned();
+        required.model.training = Some("float32".to_owned());
+        required.model.serving = Some("integer".to_owned());
+        required.model.training_context = Some(192);
+        required.artifact.provenance = Some(ArtifactProvenance::Required);
+        required.artifact.schema = Some("uor-r4.lut-stack/9".to_owned());
+        for section in &mut required.artifact.sections {
+            section.owner = Some("trunk".to_owned());
+            section.format = Some("integer".to_owned());
+        }
+        required.probes[0].fixture =
+            Some("conformance/stack/fixtures/context-boundary.v2.json".to_owned());
+        required.probes[0].fixture_sha256 =
+            Some("8b89092c838c0191fd4e257d7e884cb0990d66be2434d99c63beef28744b3830".to_owned());
+        required.probes[0].layers = vec![ExecutionLayer::Chat];
+        required.probes[0].cases = vec!["inside window".to_owned(), "oversize turn".to_owned()];
+        required.mechanisms[0].evidence_ids = vec!["proof".to_owned()];
+        required.evidence.push(Evidence {
+            id: "proof".to_owned(),
+            kind: EvidenceKind::Report,
+            locator: "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md".to_owned(),
+            sha256: None,
+            result: EvidenceResult::Pass,
+            scope: "binding policy test".to_owned(),
+            mechanisms: vec!["trunk".to_owned()],
+            statement: "The synthetic contract exercises the binding policy.".to_owned(),
+        });
+        let error = required.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("must use uor-r4.lut-stack/10"), "{error}");
+
+        required.artifact.schema = Some("uor-r4.lut-stack/10".to_owned());
+        required
+            .check(&root())
+            .expect("binding-required /10 contract checks");
+
+        required.artifact.provenance = Some(ArtifactProvenance::LegacyGrandfathered);
+        let error = required.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("cannot use uor-r4.lut-stack/10"), "{error}");
+
+        required.artifact.schema = Some("uor-r4.lut-stack/9".to_owned());
+        let error = required.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("names the decision"), "{error}");
+
+        required.artifact.grandfathered_by =
+            Some("docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md".to_owned());
+        required
+            .check(&root())
+            .expect("explicitly grandfathered /9 contract checks");
+
+        required.artifact.schema = Some("uor-r4.lut-stack/5".to_owned());
+        let error = required.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("must use uor-r4.lut-stack/6 through /9"), "{error}");
+    }
+
+    #[test]
     fn v2_requires_exact_training_serving_and_artifact_metadata() {
         let mut contract = parsed();
         contract.spec = SPEC.to_owned();
@@ -1671,6 +1809,12 @@ statement = "This contract is not a proof of language capability."
 
         contract.model.training = Some("float32".to_owned());
         contract.model.serving = Some("integer".to_owned());
+        let error = contract.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("artifact.provenance is required"), "{error}");
+
+        contract.artifact.provenance = Some(ArtifactProvenance::LegacyGrandfathered);
+        contract.artifact.grandfathered_by =
+            Some("docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md".to_owned());
         let error = contract.check(&root()).unwrap_err().to_string();
         assert!(error.contains("artifact.schema is required"), "{error}");
 

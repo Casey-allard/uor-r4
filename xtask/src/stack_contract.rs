@@ -34,6 +34,15 @@ pub fn run(root: &Path, write: bool) -> Result<(), Fail> {
     Ok(())
 }
 
+/// Print the semantic BLAKE3 hash of one contract after validating it.
+pub fn hash(root: &Path, path: &str) -> Result<(), Fail> {
+    let path = root.join(path);
+    let contract: repo_model::stack::StackContract = toml::from_str(&fs::read_to_string(&path)?)?;
+    contract.check(root)?;
+    println!("{}", semantic_digest(&contract)?);
+    Ok(())
+}
+
 fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, Fail> {
     let mut out = String::new();
     let w = &mut out;
@@ -147,6 +156,20 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         writeln!(w, "### Artifact")?;
         writeln!(w)?;
         writeln!(w, "Family: `{}`", contract.artifact.family)?;
+        writeln!(
+            w,
+            "Provenance: {}",
+            contract
+                .artifact
+                .provenance
+                .map_or("--".to_owned(), |provenance| format!(
+                    "`{}`",
+                    provenance.as_str()
+                ))
+        )?;
+        if let Some(decision) = &contract.artifact.grandfathered_by {
+            writeln!(w, "Grandfathered by: {}", cell(decision))?;
+        }
         writeln!(
             w,
             "Schema: {}",

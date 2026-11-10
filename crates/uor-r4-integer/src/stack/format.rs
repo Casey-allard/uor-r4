@@ -70,6 +70,9 @@ pub const STACK_FBS_POINT_SCHEMA: &str = "uor-r4.lut-stack/8";
 /// forms (claude-345), with or without a point key: an engine that asks the head key alone
 /// refuses it by its schema instead of serving the tail and ends keys as misses.
 pub const STACK_FBS_CHAIN_SCHEMA: &str = "uor-r4.lut-stack/9";
+/// Header schema of a SpiralCore/FBS artifact whose contract and tokenizer
+/// identity are mandatory. It may carry any `/6`–`/9` feature record.
+pub const STACK_FBS_BOUND_SCHEMA: &str = "uor-r4.lut-stack/10";
 /// The memory's move weights at `2^MEMORY_WEIGHT_EXP`.
 pub const MEMORY_WEIGHT_EXP: i32 = -24;
 /// The point key's points at `2^POINT_KEY_EXP`: the writer query's Q12.
@@ -1001,6 +1004,43 @@ fn range(span: Span, len: usize) -> Option<std::ops::Range<usize>> {
     (end <= len).then_some(start..end)
 }
 
+fn check_artifact_binding(source: &serde_json::Value) -> Result<(), StackError> {
+    let contract = source
+        .get("stack_contract")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| {
+            StackError::ArtifactBinding("a bound artifact needs stack_contract".to_owned())
+        })?;
+    for field in ["source", "sha256", "semantic_blake3", "tokenizer_sha256"] {
+        let value = if field == "tokenizer_sha256" {
+            source.get(field)
+        } else {
+            contract.get(field)
+        }
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| {
+            let name = if field == "tokenizer_sha256" {
+                field.to_owned()
+            } else {
+                format!("stack_contract.{field}")
+            };
+            StackError::ArtifactBinding(format!("a bound artifact needs {name}"))
+        })?;
+        if field == "source" {
+            if value.trim().is_empty() {
+                return Err(StackError::ArtifactBinding(
+                    "a bound artifact's contract source is empty".to_owned(),
+                ));
+            }
+        } else if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(StackError::ArtifactBinding(format!(
+                "a bound artifact's {field} is not a SHA-256/BLAKE3 hex value"
+            )));
+        }
+    }
+    Ok(())
+}
+
 impl<'a> Container<'a> {
     /// Parse the container: magic, header length, JSON header, schema, group,
     /// shape and the bounds and sizes of every section. Names must be unique.
@@ -1022,15 +1062,20 @@ impl<'a> Container<'a> {
             })?;
         let header: Header =
             serde_json::from_slice(&bytes[16..header_end]).map_err(StackError::Header)?;
-        // A stack with the point key is `lut-stack/8`, one with a turn memory `/7`, one with
-        // Hamming reads alone `/6`; any other is the schema its shape implies. A memory chain
-        // (claude-345) makes any of them `/9`.
-        let expected = match (&header.point, &header.memory, &header.hamming) {
-            _ if header.memory_chain.is_some() => STACK_FBS_CHAIN_SCHEMA,
-            (Some(_), _, _) => STACK_FBS_POINT_SCHEMA,
-            (None, Some(_), _) => STACK_FBS_MEMORY_SCHEMA,
-            (None, None, Some(_)) => STACK_FBS_HAMMING_SCHEMA,
-            (None, None, None) => stack_schema_for(&header.shape),
+        // `/10` requires the complete binding. Historical stacks retain their
+        // `/6`–`/9` schema even if they carry optional provenance from before
+        // binding became an admission rule.
+        let expected = if header.schema == STACK_FBS_BOUND_SCHEMA {
+            check_artifact_binding(&header.source)?;
+            STACK_FBS_BOUND_SCHEMA
+        } else {
+            match (&header.point, &header.memory, &header.hamming) {
+                _ if header.memory_chain.is_some() => STACK_FBS_CHAIN_SCHEMA,
+                (Some(_), _, _) => STACK_FBS_POINT_SCHEMA,
+                (None, Some(_), _) => STACK_FBS_MEMORY_SCHEMA,
+                (None, None, Some(_)) => STACK_FBS_HAMMING_SCHEMA,
+                (None, None, None) => stack_schema_for(&header.shape),
+            }
         };
         if header.schema != expected {
             return Err(StackError::Schema(header.schema));
@@ -1776,27 +1821,28 @@ pub struct FbsExportSnaps {
     pub transition: bool,
 }
 
-/// Optional diagnostic identity of the stack contract that produced an
-/// artifact. It is stored under the artifact header's provenance object and is
-/// never read by serving arithmetic.
+/// Identity of the stack contract that produced an artifact. It is stored under
+/// the artifact header's `stack_contract` object and checked by the stack audit.
+/// Serving arithmetic does not read it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct StackContractProvenance {
     /// Repository-relative path or caller-supplied immutable locator.
     pub source: String,
     /// SHA-256 of the contract source bytes.
     pub sha256: String,
+    /// BLAKE3 of the parsed contract document.
+    pub semantic_blake3: String,
 }
 
-/// Optional diagnostic provenance written beside the serving source object.
-/// Neither field is read by serving arithmetic.
+/// Mandatory provenance written beside the serving source object for `/10`.
+/// The interaction runtime enforces the tokenizer identity before generation;
+/// serving arithmetic does not read either field.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct FbsExportProvenance {
     /// The exact stack contract that produced the export.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stack_contract: Option<StackContractProvenance>,
+    pub stack_contract: StackContractProvenance,
     /// SHA-256 of the tokenizer paired with the artifact.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tokenizer_sha256: Option<String>,
+    pub tokenizer_sha256: String,
 }
 
 impl FbsExportSnaps {
@@ -1866,8 +1912,8 @@ pub fn export_fbs_trunk_uorlut01_chain(
     export_fbs_trunk(snap, snaps, context, Some(tail), None)
 }
 
-/// Export with optional stack-contract provenance. With no provenance this is
-/// byte-for-byte the corresponding existing export.
+/// Export with stack-contract provenance. With no provenance this reproduces
+/// the corresponding legacy `/6`–`/9` export byte for byte.
 pub fn export_fbs_trunk_uorlut01_with_provenance(
     snap: &FbsTrunkSnapshot,
     snaps: FbsExportSnaps,
@@ -2123,11 +2169,15 @@ fn export_fbs_trunk(
         roots: 120,
         roots_sha256: super::ICOSIAN_ROOTS_SHA256.to_owned(),
     };
-    let schema = match (&memory, &hamming) {
-        _ if chain.is_some() => STACK_FBS_CHAIN_SCHEMA,
-        (Some(_), _) => STACK_FBS_MEMORY_SCHEMA,
-        (None, Some(_)) => STACK_FBS_HAMMING_SCHEMA,
-        (None, None) => stack_schema_for(&shape),
+    let schema = if provenance.is_some() {
+        STACK_FBS_BOUND_SCHEMA
+    } else {
+        match (&memory, &hamming) {
+            _ if chain.is_some() => STACK_FBS_CHAIN_SCHEMA,
+            (Some(_), _) => STACK_FBS_MEMORY_SCHEMA,
+            (None, Some(_)) => STACK_FBS_HAMMING_SCHEMA,
+            (None, None) => stack_schema_for(&shape),
+        }
     };
     let mut header = json!({
         "schema": schema,
@@ -2164,12 +2214,8 @@ fn export_fbs_trunk(
         header["source"]["trained_context"] = json!(snap.context);
     }
     if let Some(provenance) = provenance {
-        if let Some(contract) = &provenance.stack_contract {
-            header["source"]["stack_contract"] = json!(contract);
-        }
-        if let Some(tokenizer_sha256) = &provenance.tokenizer_sha256 {
-            header["source"]["tokenizer_sha256"] = json!(tokenizer_sha256);
-        }
+        header["source"]["stack_contract"] = json!(provenance.stack_contract);
+        header["source"]["tokenizer_sha256"] = json!(provenance.tokenizer_sha256);
     }
     let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
     let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
@@ -2221,7 +2267,9 @@ pub fn add_point_key_uorlut01(artifact: &[u8], image: &super::PointKeyImage) -> 
         .ok_or(StackError::MissingData)?
         .extend(b.tables);
     // A memory chain's schema (claude-345) covers a stack with or without a point key: it stays.
-    if header.get("memory_chain").is_none_or(serde_json::Value::is_null) {
+    if container.schema == STACK_FBS_BOUND_SCHEMA {
+        header["schema"] = json!(STACK_FBS_BOUND_SCHEMA);
+    } else if header.get("memory_chain").is_none_or(serde_json::Value::is_null) {
         header["schema"] = json!(STACK_FBS_POINT_SCHEMA);
     }
     header["point"] = json!(image.record());

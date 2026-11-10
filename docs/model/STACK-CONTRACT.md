@@ -18,11 +18,11 @@ A stack contract makes one model composition explicit across source, configurati
 
 The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path.
 
-- Source: `conformance/stack/fbs-arm-r.toml` (BLAKE3 `f07398d9b88f6525833254d3f46f476609234d5aa4617465d373759c41a78674`)
-- Semantic hash: `6a3052a4aad786f0aac6e89f2057b99d6e316424bbdbfa1c9738698fc55700ae`
+- Source: `conformance/stack/fbs-arm-r.toml` (BLAKE3 `646380e16ed0593e26f5f270b2eb9011a39c2f04bb0253aa8125d3acf9bafa80`)
+- Semantic hash: `299a9a2f3297eede06376dab952f0330352531ec20bb56c5cc393f3368dbcf6f`
 - Lane: `fbs`
 - State: `current`
-- Revision: 2
+- Revision: 3
 - Source pin: `fd71a02785f951fb7f07c93051a0722eee7b76e6`
 - Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-r-at-seeds-1-2-and-3-replicated
 
@@ -43,6 +43,8 @@ The replicated three-seed configuration: float training of the SpiralCore/FBS tr
 ### Artifact
 
 Family: `uor-r4.lut-stack`
+Provenance: `legacy-grandfathered`
+Grandfathered by: docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration
 Schema: `uor-r4.lut-stack/7`
 
 | Section | Required | Owner | Format | Exponent | Description |
@@ -109,7 +111,7 @@ Schema: `uor-r4.lut-stack/7`
   - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
 - **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
   - env --; inputs `line-panel`<br>`no-line-panel`; outputs `score.json`; timeout 7200s
-- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-r.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON r.uorlut`
+- **export (`export`)**: `fbs-export --legacy-artifact --raw-gates --raw-transition --run-config config.json --context 8256 SNAPSHOT_JSON r.uorlut`
   - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `r.uorlut`; timeout 1800s
 - **serve (`serve`)**: `uor-chat --stack r.uorlut --tokenizer tokenizer.json --protocol 2 --max-tokens 48`
   - env --; inputs `r.uorlut`<br>`tokenizer`; outputs `chat.json`; timeout 300s
@@ -126,11 +128,11 @@ Schema: `uor-r4.lut-stack/7`
 
 Arm r at seed 2 with copy head 0 on one-token keys and copy head 1 on two-token keys. It closed this configuration as a measured negative while leaving two-token keys themselves unretired.
 
-- Source: `conformance/stack/fbs-arm-rk.toml` (BLAKE3 `5d348f8c1b21e14f32bc831bd87d1f4f20373cf04037479dede7e75ff1b7bad6`)
-- Semantic hash: `6a3823fd6cba399be2686fd6b88ad71b3081d52b6c4e40a949207419db2e951d`
+- Source: `conformance/stack/fbs-arm-rk.toml` (BLAKE3 `32356f5841583b0857b24f85a38b963085fec26764e422b9c1f7924ed6859aa9`)
+- Semantic hash: `a90e3cd4af3e80acfa0ec181b22a20922712cfef51fa8ea5f4e1d547d154cde0`
 - Lane: `fbs`
 - State: `historical`
-- Revision: 1
+- Revision: 2
 - Source pin: `312880e2bd81da2f0d0f7148c7251c4f9a7cb30e`
 - Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rk-a-two-token-copy-key-lost-recall
 
@@ -151,6 +153,8 @@ Arm r at seed 2 with copy head 0 on one-token keys and copy head 1 on two-token 
 ### Artifact
 
 Family: `uor-r4.lut-stack`
+Provenance: `legacy-grandfathered`
+Grandfathered by: docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration
 Schema: `uor-r4.lut-stack/7`
 
 | Section | Required | Owner | Format | Exponent | Description |
@@ -209,7 +213,7 @@ Schema: `uor-r4.lut-stack/7`
   - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
 - **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
   - env --; inputs `train-tokens`; outputs `score.json`; timeout 7200s
-- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-rk.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON rk.uorlut`
+- **export (`export`)**: `fbs-export --legacy-artifact --raw-gates --raw-transition --run-config config.json --context 8256 SNAPSHOT_JSON rk.uorlut`
   - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `rk.uorlut`; timeout 1800s
 - **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-arm-rk.toml`
   - env --; inputs `fbs-arm-rk.toml`; outputs `stack-audit.json`; timeout 300s
@@ -224,11 +228,11 @@ Schema: `uor-r4.lut-stack/7`
 
 Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut-stack/9 reply table asks ends, tail and head. It reads row 1 at three seeds but makes copied values wrong more often than arm r.
 
-- Source: `conformance/stack/fbs-arm-rt.toml` (BLAKE3 `fc21e7b6714ce21b83b9dc41e512bc64dc6892941b5fb85ae391f549e03f67ec`)
-- Semantic hash: `84fe99e77673ff487602a20da2c270f856cfb549d58986b8a265a4730cb4a931`
+- Source: `conformance/stack/fbs-arm-rt.toml` (BLAKE3 `d72cd7bf4453ea0bf261ec35ffa3116a6ba39eb1f08f26fc941d54f405fea984`)
+- Semantic hash: `156e7de00c4334d16dd0e9ca81c652e3ea4e4bce0b03e7081d04c7456bac8450`
 - Lane: `fbs`
 - State: `candidate`
-- Revision: 1
+- Revision: 2
 - Source pin: `05e50006b9b1dcd1799166df478e08139c0a9e48`
 - Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rt-the-three-key-turn-memory-reads-row-1-and-costs-recall-where-a-value-is-copied
 
@@ -249,6 +253,8 @@ Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut
 ### Artifact
 
 Family: `uor-r4.lut-stack`
+Provenance: `legacy-grandfathered`
+Grandfathered by: docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration
 Schema: `uor-r4.lut-stack/9`
 
 | Section | Required | Owner | Format | Exponent | Description |
@@ -311,7 +317,7 @@ Schema: `uor-r4.lut-stack/9`
   - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
 - **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
   - env --; inputs `train-tokens`; outputs `score.json`; timeout 7200s
-- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-rt.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON rt.uorlut`
+- **export (`export`)**: `fbs-export --legacy-artifact --raw-gates --raw-transition --run-config config.json --context 8256 SNAPSHOT_JSON rt.uorlut`
   - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `rt.uorlut`; timeout 1800s
 - **serve (`serve`)**: `uor-chat --stack rt.uorlut --tokenizer tokenizer.json --protocol 2 --max-tokens 48`
   - env --; inputs `rt.uorlut`<br>`tokenizer`; outputs `chat.json`; timeout 300s
@@ -328,11 +334,11 @@ Schema: `uor-r4.lut-stack/9`
 
 The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest. The sealed checkpoints were not exported.
 
-- Source: `conformance/stack/fbs-b64l-baseline.toml` (BLAKE3 `9a0ca1e160b901df40ff33bcd66aebb3c05134387663638029792e36d02e79b9`)
-- Semantic hash: `8c226476f656e7f0711a482bea07bed1278f7813f72284d22a71145051f195b9`
+- Source: `conformance/stack/fbs-b64l-baseline.toml` (BLAKE3 `15ad0b2d8c4ed2d76f7789596eb5875e3dbfd4253d6c14f09ea26375b0813477`)
+- Semantic hash: `0c8eb61d7f2af17e86a909167123574724e96d49ad7aa4884d97e6656c1b2d78`
 - Lane: `fbs`
 - State: `historical`
-- Revision: 2
+- Revision: 3
 - Source pin: `6fcf57f7822286e5b6bd7bcfe42d668116b23afa`
 - Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0
 
@@ -353,6 +359,8 @@ The T0 memorize configuration: the float-trained FBS trunk with four Hamming rea
 ### Artifact
 
 Family: `uor-r4.lut-stack`
+Provenance: `legacy-grandfathered`
+Grandfathered by: docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration
 Schema: `uor-r4.lut-stack/6`
 
 | Section | Required | Owner | Format | Exponent | Description |
@@ -409,7 +417,7 @@ Schema: `uor-r4.lut-stack/6`
   - env --; inputs `train-tokens`<br>`train-mask`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`config.json`; timeout 7200s
 - **score (`score`)**: `train-in-space --score-rows CHECKPOINT --context 192 --reply-tokens 48 --samples 1200 --retain-rates 1`
   - env --; inputs `dev-tokens`<br>`dev-mask`; outputs `score.json`; timeout 1800s
-- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-b64l-baseline.toml --tokenizer tokenizer.json --context 192 SNAPSHOT_JSON t0.uorlut`
+- **export (`export`)**: `fbs-export --legacy-artifact --raw-gates --raw-transition --run-config config.json --context 192 SNAPSHOT_JSON t0.uorlut`
   - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`config.json`; outputs `t0.uorlut`; timeout 1800s
 - **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-b64l-baseline.toml`
   - env --; inputs `fbs-b64l-baseline.toml`; outputs `stack-audit.json`; timeout 300s

@@ -3,7 +3,7 @@ id = "fbs-b64l-baseline"
 title = "FBS b64L complete-reply baseline"
 lane = "fbs"
 state = "historical"
-revision = 2
+revision = 3
 decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0"
 source_pin = "6fcf57f7822286e5b6bd7bcfe42d668116b23afa"
 summary = "The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest. The sealed checkpoints were not exported."
@@ -21,6 +21,8 @@ serving = "intended integer UORLUT01 path; no T0 artifact was exported"
 
 [artifact]
 family = "uor-r4.lut-stack"
+provenance = "legacy-grandfathered"
+grandfathered_by = "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration"
 schema = "uor-r4.lut-stack/6"
 
 [[artifact.sections]]
@@ -199,7 +201,7 @@ timeout_seconds = 1800
 id = "export"
 role = "export"
 program = "fbs-export"
-args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-b64l-baseline.toml", "--tokenizer", "tokenizer.json", "--context", "192", "SNAPSHOT_JSON", "t0.uorlut"]
+args = ["--legacy-artifact", "--raw-gates", "--raw-transition", "--run-config", "config.json", "--context", "192", "SNAPSHOT_JSON", "t0.uorlut"]
 env = []
 inputs = ["model.safetensors", "hamming_read.safetensors", "config.json"]
 outputs = ["t0.uorlut"]

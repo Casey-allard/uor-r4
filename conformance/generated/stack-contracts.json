@@ -4,6 +4,8 @@
       "contract": {
         "artifact": {
           "family": "uor-r4.lut-stack",
+          "grandfathered_by": "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration",
+          "provenance": "legacy-grandfathered",
           "schema": "uor-r4.lut-stack/7",
           "sections": [
             {
@@ -142,14 +144,11 @@
           },
           {
             "args": [
+              "--legacy-artifact",
               "--raw-gates",
               "--raw-transition",
               "--run-config",
               "config.json",
-              "--stack-contract",
-              "conformance/stack/fbs-arm-r.toml",
-              "--tokenizer",
-              "tokenizer.json",
               "--context",
               "8256",
               "SNAPSHOT_JSON",
@@ -745,21 +744,23 @@
             "unit": "tokens/second"
           }
         ],
-        "revision": 2,
+        "revision": 3,
         "source_pin": "fd71a02785f951fb7f07c93051a0722eee7b76e6",
         "spec": "uor-r4.stack-contract/2",
         "state": "current",
         "summary": "The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path.",
         "title": "FBS arm r: latest-exact copy with reply-worded memory"
       },
-      "semantic_blake3": "6a3052a4aad786f0aac6e89f2057b99d6e316424bbdbfa1c9738698fc55700ae",
+      "semantic_blake3": "299a9a2f3297eede06376dab952f0330352531ec20bb56c5cc393f3368dbcf6f",
       "source": "conformance/stack/fbs-arm-r.toml",
-      "source_blake3": "f07398d9b88f6525833254d3f46f476609234d5aa4617465d373759c41a78674"
+      "source_blake3": "646380e16ed0593e26f5f270b2eb9011a39c2f04bb0253aa8125d3acf9bafa80"
     },
     {
       "contract": {
         "artifact": {
           "family": "uor-r4.lut-stack",
+          "grandfathered_by": "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration",
+          "provenance": "legacy-grandfathered",
           "schema": "uor-r4.lut-stack/7",
           "sections": [
             {
@@ -899,14 +900,11 @@
           },
           {
             "args": [
+              "--legacy-artifact",
               "--raw-gates",
               "--raw-transition",
               "--run-config",
               "config.json",
-              "--stack-contract",
-              "conformance/stack/fbs-arm-rk.toml",
-              "--tokenizer",
-              "tokenizer.json",
               "--context",
               "8256",
               "SNAPSHOT_JSON",
@@ -1356,21 +1354,23 @@
             "unit": "count"
           }
         ],
-        "revision": 1,
+        "revision": 2,
         "source_pin": "312880e2bd81da2f0d0f7148c7251c4f9a7cb30e",
         "spec": "uor-r4.stack-contract/2",
         "state": "historical",
         "summary": "Arm r at seed 2 with copy head 0 on one-token keys and copy head 1 on two-token keys. It closed this configuration as a measured negative while leaving two-token keys themselves unretired.",
         "title": "FBS arm rk: mixed one- and two-token copy keys"
       },
-      "semantic_blake3": "6a3823fd6cba399be2686fd6b88ad71b3081d52b6c4e40a949207419db2e951d",
+      "semantic_blake3": "a90e3cd4af3e80acfa0ec181b22a20922712cfef51fa8ea5f4e1d547d154cde0",
       "source": "conformance/stack/fbs-arm-rk.toml",
-      "source_blake3": "5d348f8c1b21e14f32bc831bd87d1f4f20373cf04037479dede7e75ff1b7bad6"
+      "source_blake3": "32356f5841583b0857b24f85a38b963085fec26764e422b9c1f7924ed6859aa9"
     },
     {
       "contract": {
         "artifact": {
           "family": "uor-r4.lut-stack",
+          "grandfathered_by": "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration",
+          "provenance": "legacy-grandfathered",
           "schema": "uor-r4.lut-stack/9",
           "sections": [
             {
@@ -1519,14 +1519,11 @@
           },
           {
             "args": [
+              "--legacy-artifact",
               "--raw-gates",
               "--raw-transition",
               "--run-config",
               "config.json",
-              "--stack-contract",
-              "conformance/stack/fbs-arm-rt.toml",
-              "--tokenizer",
-              "tokenizer.json",
               "--context",
               "8256",
               "SNAPSHOT_JSON",
@@ -2071,21 +2068,23 @@
             "unit": "count"
           }
         ],
-        "revision": 1,
+        "revision": 2,
         "source_pin": "05e50006b9b1dcd1799166df478e08139c0a9e48",
         "spec": "uor-r4.stack-contract/2",
         "state": "candidate",
         "summary": "Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut-stack/9 reply table asks ends, tail and head. It reads row 1 at three seeds but makes copied values wrong more often than arm r.",
         "title": "FBS arm rt: three-key turn memory"
       },
-      "semantic_blake3": "84fe99e77673ff487602a20da2c270f856cfb549d58986b8a265a4730cb4a931",
+      "semantic_blake3": "156e7de00c4334d16dd0e9ca81c652e3ea4e4bce0b03e7081d04c7456bac8450",
       "source": "conformance/stack/fbs-arm-rt.toml",
-      "source_blake3": "fc21e7b6714ce21b83b9dc41e512bc64dc6892941b5fb85ae391f549e03f67ec"
+      "source_blake3": "d72cd7bf4453ea0bf261ec35ffa3116a6ba39eb1f08f26fc941d54f405fea984"
     },
     {
       "contract": {
         "artifact": {
           "family": "uor-r4.lut-stack",
+          "grandfathered_by": "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration",
+          "provenance": "legacy-grandfathered",
           "schema": "uor-r4.lut-stack/6",
           "sections": [
             {
@@ -2198,14 +2197,11 @@
           },
           {
             "args": [
+              "--legacy-artifact",
               "--raw-gates",
               "--raw-transition",
               "--run-config",
               "config.json",
-              "--stack-contract",
-              "conformance/stack/fbs-b64l-baseline.toml",
-              "--tokenizer",
-              "tokenizer.json",
               "--context",
               "192",
               "SNAPSHOT_JSON",
@@ -2571,16 +2567,16 @@
             "unit": "count"
           }
         ],
-        "revision": 2,
+        "revision": 3,
         "source_pin": "6fcf57f7822286e5b6bd7bcfe42d668116b23afa",
         "spec": "uor-r4.stack-contract/2",
         "state": "historical",
         "summary": "The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest. The sealed checkpoints were not exported.",
         "title": "FBS b64L complete-reply baseline"
       },
-      "semantic_blake3": "8c226476f656e7f0711a482bea07bed1278f7813f72284d22a71145051f195b9",
+      "semantic_blake3": "0c8eb61d7f2af17e86a909167123574724e96d49ad7aa4884d97e6656c1b2d78",
       "source": "conformance/stack/fbs-b64l-baseline.toml",
-      "source_blake3": "9a0ca1e160b901df40ff33bcd66aebb3c05134387663638029792e36d02e79b9"
+      "source_blake3": "15ad0b2d8c4ed2d76f7789596eb5875e3dbfd4253d6c14f09ea26375b0813477"
     }
   ],
   "schema": "uor-r4.stack-contract.generated/2",

@@ -3,7 +3,7 @@ id = "fbs-arm-rk"
 title = "FBS arm rk: mixed one- and two-token copy keys"
 lane = "fbs"
 state = "historical"
-revision = 1
+revision = 2
 decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rk-a-two-token-copy-key-lost-recall"
 source_pin = "312880e2bd81da2f0d0f7148c7251c4f9a7cb30e"
 summary = "Arm r at seed 2 with copy head 0 on one-token keys and copy head 1 on two-token keys. It closed this configuration as a measured negative while leaving two-token keys themselves unretired."
@@ -21,6 +21,8 @@ serving = "integer UORLUT01 artifact; no exported artifact is available for this
 
 [artifact]
 family = "uor-r4.lut-stack"
+provenance = "legacy-grandfathered"
+grandfathered_by = "docs/loop/tasks/infra-loop-harness/deepseek-118/ORDER.md#legacy-migration"
 schema = "uor-r4.lut-stack/7"
 
 [[artifact.sections]]
@@ -256,7 +258,7 @@ timeout_seconds = 7200
 id = "export"
 role = "export"
 program = "fbs-export"
-args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-arm-rk.toml", "--tokenizer", "tokenizer.json", "--context", "8256", "SNAPSHOT_JSON", "rk.uorlut"]
+args = ["--legacy-artifact", "--raw-gates", "--raw-transition", "--run-config", "config.json", "--context", "8256", "SNAPSHOT_JSON", "rk.uorlut"]
 env = []
 inputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
 outputs = ["rk.uorlut"]
