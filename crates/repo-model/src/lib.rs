@@ -14,6 +14,7 @@
 pub mod codegen;
 pub mod empirical;
 pub mod registry;
+pub mod stack;
 
 pub use empirical::EmpiricalStatus;
 pub use registry::{

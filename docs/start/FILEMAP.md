@@ -42,6 +42,8 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `archive/transformerless/` | Retired transformerless-line records |
 | `archive/vendor-snapshots/` | Vendor state snapshots |
 | `conformance/` | Conformance fixtures |
+| `conformance/generated/` | Generated machine-readable views of registered contracts |
+| `conformance/stack/` | Authoritative model stack contracts |
 | `crates/` | The Rust workspace |
 | `crates/repo-conformance/` | Repository conformance checks |
 | `crates/repo-model/` | The repository model crate |

@@ -1,0 +1,225 @@
+spec = "uor-r4.stack-contract/1"
+id = "fbs-b64l-baseline"
+title = "FBS b64L complete-reply baseline"
+lane = "fbs"
+state = "historical"
+source_pin = "6fcf57f7822286e5b6bd7bcfe42d668116b23afa"
+summary = "The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest."
+
+[model]
+tokenizer_sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+vocab = 4096
+width = 256
+layers = 6
+context = 192
+objective = "nearest"
+
+[artifact]
+family = "uor-r4.lut-stack"
+
+[[artifact.sections]]
+id = "trunk"
+required = true
+description = "The FBS recurrence and routed feed-forward trunk."
+
+[[artifact.sections]]
+id = "hamming-reads"
+required = true
+description = "The trained Hamming copy and type reads."
+
+[[inputs]]
+id = "train-tokens"
+source = "store:results/claude/one-model-end-to-end-memorize-2026-11-09/t0-set/train/tokens.u16"
+sha256 = "c1c779611d4f6c571579fca39778880020c5f1e4df699f1fcd5c32671c5a6f90"
+
+[[inputs]]
+id = "train-mask"
+source = "store:results/claude/one-model-end-to-end-memorize-2026-11-09/t0-set/train/response_mask.u8"
+sha256 = "3658e61246a124db19d95b7a254bbea00bdad25924920aeb613049856fe4cea9"
+
+[[inputs]]
+id = "dev-tokens"
+source = "store:w2-inputs/2026-10-25/driver-data/ft/dev/tokens.u16"
+sha256 = "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+
+[[inputs]]
+id = "dev-mask"
+source = "store:w2-inputs/2026-10-25/driver-data/ft/dev/response_mask.u8"
+sha256 = "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+
+[[mechanisms]]
+id = "tokenizer"
+status = "integrated"
+implementation = "crates/uor-r4-tokenizer/src/lib.rs"
+evidence = ["crates/uor-r4-tokenizer/src/lib.rs", "docs/model/data-and-tokenizer.md"]
+sections = []
+invariants = [
+  "The tokenizer maps UTF-8 bytes to token ids below 4096.",
+  "A different tokenizer hash names a different corpus and model input.",
+]
+non_claims = ["The tokenizer is not evidence of language capability."]
+
+[[mechanisms]]
+id = "fbs-trunk"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/geometric_stack_native.rs"
+evidence = ["crates/uor-r4-float-train/src/geometric_stack_native.rs", "crates/uor-r4-float-train/src/hamilton_sheet.rs"]
+sections = ["trunk"]
+invariants = [
+  "The trunk returns one width-256 state for every position.",
+  "SpiralCore/FBS projections and the Hamilton recurrence remain exact routes and rotations.",
+]
+non_claims = ["The trunk alone does not establish a working language model."]
+
+[[mechanisms]]
+id = "hamming-copy-read"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/flock_read_hamming.rs"
+evidence = ["crates/uor-r4-float-train/src/flock_read_hamming.rs", "docs/mechanisms/flock-read.md"]
+sections = ["hamming-reads"]
+invariants = [
+  "Each copy head keeps at most its declared number of earlier positions.",
+  "The trainer and artifact use the same copy-key length and kept count.",
+]
+non_claims = [
+  "A copy read that finds a source does not by itself preserve the source's content at the readout.",
+  "The mean-copy rule in this historical contract is not the latest-exact rule."
+]
+
+[[mechanisms]]
+id = "whole-table-readout"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/in_space_long.rs"
+evidence = ["crates/uor-r4-float-train/src/in_space_long.rs", "docs/model/pipeline-map.md"]
+sections = ["trunk"]
+invariants = ["The decoded next token is the nearest table point by the declared objective."]
+non_claims = ["Nearest-token scoring is not the same as a free-running complete reply."]
+
+[[mechanisms]]
+id = "integer-export"
+status = "implemented"
+implementation = "crates/uor-r4-float-train/src/fbs_export.rs"
+evidence = ["crates/uor-r4-float-train/src/fbs_export.rs", "crates/uor-r4-integer/src/bin/fbs-export.rs"]
+sections = ["trunk", "hamming-reads"]
+invariants = [
+  "Every required logical section has a declared integer representation.",
+  "An artifact omits no section required by an enabled mechanism.",
+]
+non_claims = ["The T0 checkpoints were not exported in that run."]
+
+[[mechanisms]]
+id = "short-cycle-stop"
+status = "implemented"
+implementation = "crates/uor-r4-integer/src/generation.rs"
+evidence = ["crates/uor-r4-integer/src/generation.rs", "crates/uor-r4-integer/src/stack/chat.rs"]
+sections = []
+invariants = ["A terminal cycle of period one through four repeated three times ends a reply."]
+non_claims = ["Stopping a cycle does not recover the content that the cycle displaced."]
+
+[[commands]]
+id = "verify-contract"
+role = "verify"
+program = "cargo"
+args = ["xtask", "stack-contract", "--check"]
+
+[[commands]]
+id = "train"
+role = "train"
+program = "cargo"
+args = [
+  "run", "--release", "--locked", "-p", "uor-r4-float-train", "--bin", "train-in-space", "--",
+  "--objective", "nearest",
+  "--retain-rates", "1",
+  "--decay-mult", "1",
+  "--lr", "0.001",
+  "--lr-end", "0",
+  "--train-as-served", "1",
+  "--context", "192",
+  "--width", "256",
+  "--hamming-read", "4",
+  "--batch", "64",
+  "--micro-batch", "16",
+  "--steps", "4096",
+  "--eval-every", "512",
+]
+
+[[commands]]
+id = "score"
+role = "score"
+program = "train-in-space"
+args = ["--score-rows", "CHECKPOINT", "--context", "192", "--reply-tokens", "48", "--samples", "1200", "--retain-rates", "1"]
+
+[[readings]]
+id = "exact-replies"
+class = "surface"
+description = "Decoded ids equal each complete reference reply through its end marker."
+mechanism = "whole-table-readout"
+
+[[readings]]
+id = "teacher-token-fit"
+class = "semantic"
+description = "The nearest token equals the target under teacher forcing."
+mechanism = "whole-table-readout"
+
+[[readings]]
+id = "complete-samples"
+class = "structural"
+description = "The number of decoded references that contain an end marker."
+
+[[readings]]
+id = "float-integer-parity"
+class = "parity"
+description = "Float, exported integer and chat decisions agree on the same probes."
+mechanism = "integer-export"
+
+[[probes]]
+id = "context-boundary"
+class = "boundary"
+mechanism = "fbs-trunk"
+axis = "context length"
+expectation = "The final trained position is retained, and exhaustion at the declared boundary is explicit."
+cases = ["191 tokens", "192 tokens", "193 tokens"]
+
+[[probes]]
+id = "hamming-kept-boundary"
+class = "boundary"
+mechanism = "hamming-copy-read"
+axis = "candidate count"
+expectation = "The declared kept set is exact and tie order is stable."
+cases = ["15 candidates", "16 candidates", "17 candidates"]
+
+[[probes]]
+id = "memory-line-toggle"
+class = "metamorphic"
+mechanism = "whole-table-readout"
+axis = "memory line presence"
+expectation = "Only the line-bearing arm is read as a memory-use result."
+cases = ["line absent", "line present with the true value", "line present with a competing value"]
+
+[[probes]]
+id = "float-integer-boundary"
+class = "parity"
+mechanism = "integer-export"
+axis = "execution layer"
+expectation = "The same token decisions and stop reasons are produced by every required layer."
+cases = ["float scorer", "checkpoint scorer", "exported artifact", "integer session", "uor-chat"]
+
+[[probes]]
+id = "cycle-period-boundary"
+class = "boundary"
+mechanism = "short-cycle-stop"
+axis = "cycle period"
+expectation = "Periods one through four stop after the declared repetition; period five does not use that rule."
+cases = ["period 1", "period 2", "period 3", "period 4", "period 5"]
+
+[[non_claims]]
+id = "not-capability"
+statement = "This historical contract does not establish useful conversation."
+
+[[non_claims]]
+id = "not-integer-result"
+statement = "T0 did not export or serve its sealed checkpoints, so this contract does not establish an integer result."
+
+[[non_claims]]
+id = "not-mechanism-retirement"
+statement = "A miss in this configuration does not retire a mechanism named here."

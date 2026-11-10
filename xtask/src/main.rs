@@ -35,6 +35,7 @@ mod kappa;
 mod qubo_codec;
 mod roadmap;
 mod roadmap_sync;
+mod stack_contract;
 
 fn main() -> ExitCode {
     let task = std::env::args()
@@ -45,6 +46,7 @@ fn main() -> ExitCode {
 
     let result = match task.as_str() {
         "check-model" => check_model(&root, write),
+        "stack-contract" => stack_contract::run(&root, write),
         "audit-limits" => audit::audit_limits(&root),
         "audit-deferral" => audit::audit_deferral(&root),
         "gates" => gate::gate(&root, None),
@@ -123,6 +125,7 @@ fn main() -> ExitCode {
                 "cargo xtask <task>\n\
                  \n\
                  check-model       R1: conformance/*.toml is the single source; regenerate and diff\n\
+                 stack-contract    validate conformance/stack/*.toml and regenerate its model views\n\
                  audit-limits      R5:  no bound that cannot be traced to a parameter\n\
                  audit-deferral    R4: no deferral marker, no stub, no capability behind a flag\n\
                  gates             #515: list every dormant claim's activation gate and status\n\
