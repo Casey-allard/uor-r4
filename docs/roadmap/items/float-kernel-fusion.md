@@ -25,7 +25,7 @@ Why these two kernels first:
   - Each has a one-line backward: the gradient times the in-range mask.
 - **Scoring has the same floor.** [claude-279](../../loop/tasks/one-model-end-to-end/claude-279/REPORT.md) put scoring's decode on the exact cache. A cached step is then estimated at 8–9 ms for (L) at both 192 and 2,048 tokens. A step computes one position, so most of that is a fixed cost per forward, and the forward runs the same quantizer chains.
 
-## State and remaining work
+## What is missing
 
 1. **One kernel list, generated and enforced.** `KERNEL_ENTRY_POINTS` (`src/lib.rs:55`) is the generated stack list, with no separate `EXPECTED_KERNELS` copy. The test rescans each module's sources (`tests/no_training_crate_dep.rs:91-127`), and `admit_launch` (`src/cuda_stack_kernels.rs:61`) refuses a name outside its module's list. `dispatch_module` rejects `HISTORICAL_KERNELS` (`:93`) before that admission check (`:421-428`) and PTX load (`:442`).
 2. **A measured share.** Measured in [claude-283](../../loop/tasks/float-kernel-fusion/claude-283/REPORT.md), on one RTX 5090 at P2b's recipe with `--train-as-served 1`. Skipping both chains on alternate pairs of steps inside one run shortened a step by 7.5% at (S), 192 × 16 (noise 0.46%), and by 2.6% at (L), 2,048 × 4. The cancel rule did not fire, so done-whens 2 and 3 start.
