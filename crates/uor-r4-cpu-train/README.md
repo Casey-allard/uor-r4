@@ -6,6 +6,26 @@ The first unit provides `CpuWriterCore`, an independent implementation of exact 
 
 `CpuFbsForward` executes the SpiralCore/FBS trunk and reproduces the serving query at Q12 with both whole-table nearest and native-cell writer heads. It supports snapped and raw Hamilton gates/transitions. `from_artifact` loads Hamming copy/type reads, `/7` opening/reply memory and the `/8` point-key fallback; `mark_reply_start`, `clear_reply_start` and `reset` control the memory path. `from_model` remains the no-read, no-memory entry point.
 
+`cpu-fbs-export` converts a saved FBS checkpoint and its run config to the
+integer snapshot and `UORLUT01` artifact without opening CUDA. It recompiles and
+checks every SpiralCore/FBS route plan, preserves retention and nearest-readout
+semantics, and carries the Hamming copy/type reads together with the ask heads
+and readout question carry. The ask and carry tensors are parsed from
+`hamming_read.safetensors`, validated at the checkpoint vocabulary and width,
+emitted under the snapshot's `hamming_ask` key, quantized to the serving Q12/Q16
+scales, attached to the artifact with `add_hamming_ask_uorlut01`, and parsed
+back before either output is written. A checkpoint without ask heads keeps the
+previous snapshot and artifact bytes exactly. Held ask writes and the type-spin
+form remain refused because neither has an integer serving representation.
+
+```sh
+cpu-fbs-export --checkpoint RUN/models/step-016384 \
+  --run-config RUN/config.json \
+  --snapshot-out NEW_SNAPSHOT.json \
+  --out NEW_ARTIFACT.uorlut \
+  --raw-gates --raw-transition
+```
+
 `CpuRankMarginTrainer` is the first finite learning unit on that path. It applies a deterministic frozen-query Q12 subgradient coordinate step to the target and hardest admitted rival rows of the single tied token table, reparses the patched artifact immediately to refresh Hamming codes, reports exact admission/top-1/top-8/rank readings, and round-trips a versioned checkpoint. Routes, gates and normalization remain unchanged; this is not yet a complete end-to-end trainer.
 
 `CpuCounterfactualTrainer` extends the same exact full-forward acceptance loop

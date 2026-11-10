@@ -2,8 +2,8 @@
 //!
 //! This is deliberately a data converter, not a CPU model forward. It reads the saved F32
 //! tensors, reconstructs the deterministic SpiralCore/FBS route plans, verifies their pinned
-//! fingerprints, decodes the learned route selections, carries the saved Hamming read, and
-//! applies the run's served contract. No CUDA device is opened.
+//! fingerprints, decodes the learned route selections, carries the saved Hamming read with its
+//! ask heads and question carry, and applies the run's served contract. No CUDA device is opened.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
@@ -17,11 +17,12 @@ use uor_r4_core::spiralcore_operator::{
     cl06_bivectors, cl06_finite_composition_table, SignedMatrix8,
 };
 use uor_r4_integer::fbs_snapshot::{
-    run_readout_nearest, write_new_file, FbsHammingRead, FbsHammingSnapshot, FbsTrunkLayer,
-    FbsTrunkSnapshot,
+    quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead, FbsHammingCarry,
+    FbsHammingRead, FbsHammingSnapshot, FbsTrunkLayer, FbsTrunkSnapshot, FBS_HAMMING_ASK_KEY,
 };
 use uor_r4_integer::stack::{
-    export_fbs_trunk_uorlut01_with, FbsExportSnaps, FbsRoutes, IntegerStackModel,
+    add_hamming_ask_uorlut01, export_fbs_trunk_uorlut01_with, AskImage, FbsExportSnaps, FbsRoutes,
+    IntegerStackModel,
 };
 
 const SCHEMA: &str = "spiralcore-fbs-projection/1";
@@ -43,6 +44,7 @@ const NATIVE_VECTOR_IDENTITY_PARTITION: &str = "token-id-modulo-256; quotient is
 const NATIVE_VECTOR_QUERY_PORTS: &str = "first-and-last-whole-8D-block; alias at width8";
 const NATIVE_VECTOR_SCORE: &str = "negative-mean-L1-displacement; raw";
 const NATIVE_VECTOR_ADDRESS_CREDIT: &str = "target-cell-versus-admitted-cell-margin; surrogate";
+type HammingAsks = Option<Vec<Option<FbsHammingAskRead>>>;
 
 fn invalid(message: impl Into<String>) -> String {
     message.into()
@@ -768,9 +770,10 @@ fn routes_for_queries(plan: &RoutePlan, queries: &[f32]) -> Result<FbsRoutes, St
 fn parse_hamming(
     bytes: &[u8],
     width: usize,
+    vocab: usize,
     expected_heads: usize,
     layers: usize,
-) -> Result<FbsHammingSnapshot, String> {
+) -> Result<(FbsHammingSnapshot, HammingAsks), String> {
     if layers != HAMMING_READOUT_DEPTH {
         return Err(invalid(format!(
             "Hamming readout runs at depth {HAMMING_READOUT_DEPTH}, but the trunk has {layers} layers"
@@ -778,6 +781,20 @@ fn parse_hamming(
     }
     let tensors = SafeTensors::deserialize(bytes)
         .map_err(|error| invalid(format!("Hamming read: {error}")))?;
+    let names: BTreeSet<String> = tensors.names().into_iter().map(str::to_owned).collect();
+    if names
+        .iter()
+        .any(|name| name == "hold_rows" || name.ends_with(".hold"))
+    {
+        return Err(invalid(
+            "Hamming holds its ask write, but the held-write form has no integer export",
+        ));
+    }
+    if let Some(name) = names.iter().find(|name| name.ends_with(".step_rotation")) {
+        return Err(invalid(format!(
+            "Hamming tensor {name} is the type-spin form, which the integer engine does not serve"
+        )));
+    }
     let heads = *u32_tensor(&tensors, "heads", &[1])?
         .first()
         .ok_or_else(|| invalid("Hamming head count is empty"))? as usize;
@@ -815,6 +832,21 @@ fn parse_hamming(
     if copy_keys.is_some() {
         expected.insert("copy_keys".to_owned());
     }
+    let any_ask = HAMMING_DEPTHS
+        .iter()
+        .any(|depth| names.contains(&format!("d{depth}.ask")));
+    if any_ask {
+        for depth in HAMMING_DEPTHS {
+            expected.insert(format!("d{depth}.ask"));
+        }
+    }
+    if names.contains("carry_rows") {
+        expected.insert("carry_rows".to_owned());
+    }
+    let readout_carry = format!("d{HAMMING_READOUT_DEPTH}.carry");
+    if names.contains(&readout_carry) {
+        expected.insert(readout_carry.clone());
+    }
     let quaternions = [width / 4, 4];
     let mut reads = Vec::with_capacity(HAMMING_DEPTHS.len());
     for depth in HAMMING_DEPTHS {
@@ -849,10 +881,9 @@ fn parse_hamming(
             weight: f32_tensor(&tensors, &format!("d{depth}.weight"), &[2, width])?,
         });
     }
-    let actual: BTreeSet<String> = tensors.names().into_iter().map(str::to_owned).collect();
-    if actual != expected {
-        let missing: Vec<_> = expected.difference(&actual).cloned().collect();
-        let extra: Vec<_> = actual.difference(&expected).cloned().collect();
+    if names != expected {
+        let missing: Vec<_> = expected.difference(&names).cloned().collect();
+        let extra: Vec<_> = names.difference(&expected).cloned().collect();
         return Err(invalid(format!(
             "Hamming tensor inventory differs; missing={missing:?}, extra={extra:?}"
         )));
@@ -875,13 +906,55 @@ fn parse_hamming(
                 .collect::<Result<_, _>>()
         })
         .transpose()?;
-    Ok(FbsHammingSnapshot {
-        heads,
-        depths: HAMMING_DEPTHS.to_vec(),
-        reads,
-        copy_key,
-        copy_keys,
-    })
+    let carry_rows = if names.contains("carry_rows") {
+        *u32_tensor(&tensors, "carry_rows", &[1])?
+            .first()
+            .ok_or_else(|| invalid("Hamming carry row count is empty"))? as usize
+    } else {
+        0
+    };
+    if carry_rows == 0 && names.contains(&readout_carry) {
+        return Err(invalid(
+            "Hamming readout carry gains are present without a positive carry_rows",
+        ));
+    }
+    if carry_rows > 0 && !names.contains(&readout_carry) {
+        return Err(invalid(
+            "Hamming carry_rows is present without the readout carry gains",
+        ));
+    }
+    let asks = if any_ask {
+        let mut asks = Vec::with_capacity(HAMMING_DEPTHS.len());
+        for depth in HAMMING_DEPTHS {
+            let name = format!("d{depth}.ask");
+            let table = f32_tensor(&tensors, &name, &[vocab, width])?;
+            let carry = if depth == HAMMING_READOUT_DEPTH && carry_rows > 0 {
+                Some(FbsHammingCarry {
+                    rows: carry_rows,
+                    gain: f32_tensor(&tensors, &readout_carry, &[vocab])?,
+                })
+            } else {
+                None
+            };
+            asks.push(Some(FbsHammingAskRead { table, carry }));
+        }
+        Some(asks)
+    } else {
+        if carry_rows > 0 {
+            return Err(invalid("Hamming carry_rows is present without ask heads"));
+        }
+        None
+    };
+    Ok((
+        FbsHammingSnapshot {
+            heads,
+            depths: HAMMING_DEPTHS.to_vec(),
+            reads,
+            copy_key,
+            copy_keys,
+        },
+        asks,
+    ))
 }
 
 fn validate_run_config(
@@ -927,11 +1000,11 @@ fn validate_run_config(
 }
 
 /// Convert a saved FBS checkpoint without opening CUDA.
-pub fn snapshot_from_saved_checkpoint(
+fn snapshot_and_asks_from_saved_checkpoint(
     checkpoint: &Path,
     run_config: &Path,
     snaps: FbsExportSnaps,
-) -> Result<FbsTrunkSnapshot, String> {
+) -> Result<(FbsTrunkSnapshot, HammingAsks), String> {
     let entries: BTreeSet<String> = std::fs::read_dir(checkpoint)
         .map_err(|error| invalid(format!("{}: {error}", checkpoint.display())))?
         .map(|entry| {
@@ -1013,7 +1086,14 @@ pub fn snapshot_from_saved_checkpoint(
             decay: f32_tensor(&tensors, &format!("{prefix}.rec.decay"), &[lanes])?,
         });
     }
-    Ok(FbsTrunkSnapshot {
+    let (hamming, asks) = parse_hamming(
+        &hamming_bytes,
+        width,
+        config.vocab_size,
+        config.heads,
+        config.pattern.len(),
+    )?;
+    let snapshot = FbsTrunkSnapshot {
         vocab: config.vocab_size,
         width,
         mlp: config.mlp_hidden,
@@ -1023,16 +1103,86 @@ pub fn snapshot_from_saved_checkpoint(
         embed: f32_tensor(&tensors, "embedding.weight", &[config.vocab_size, width])?,
         final_norm: f32_tensor(&tensors, "final_norm.weight", &[width])?,
         layers,
-        hamming: Some(parse_hamming(
-            &hamming_bytes,
-            width,
-            config.heads,
-            config.pattern.len(),
-        )?),
+        hamming: Some(hamming),
         memory: None,
         retain_rates,
         readout_nearest,
-    })
+    };
+    Ok((snapshot, asks))
+}
+
+/// Convert a saved FBS checkpoint that has no ask heads. A checkpoint with
+/// ask heads is refused because this return type cannot represent them; use
+/// [`export_saved_checkpoint`] for the complete artifact.
+pub fn snapshot_from_saved_checkpoint(
+    checkpoint: &Path,
+    run_config: &Path,
+    snaps: FbsExportSnaps,
+) -> Result<FbsTrunkSnapshot, String> {
+    let (snapshot, asks) = snapshot_and_asks_from_saved_checkpoint(checkpoint, run_config, snaps)?;
+    if asks.is_some() {
+        return Err(invalid(
+            "checkpoint has Hamming ask heads; use export_saved_checkpoint so they are not dropped",
+        ));
+    }
+    Ok(snapshot)
+}
+
+fn snapshot_and_artifact_bytes(
+    snapshot: &FbsTrunkSnapshot,
+    asks: Option<&[Option<FbsHammingAskRead>]>,
+    snaps: FbsExportSnaps,
+) -> Result<(Vec<u8>, Vec<u8>), String> {
+    let snapshot_bytes = match asks {
+        None => serde_json::to_vec(snapshot),
+        Some(asks) => {
+            let mut value =
+                serde_json::to_value(snapshot).map_err(|error| invalid(error.to_string()))?;
+            value
+                .as_object_mut()
+                .ok_or_else(|| invalid("FBS snapshot is not a JSON object"))?
+                .insert(
+                    FBS_HAMMING_ASK_KEY.to_owned(),
+                    serde_json::to_value(asks).map_err(|error| invalid(error.to_string()))?,
+                );
+            serde_json::to_vec(&value)
+        }
+    }
+    .map_err(|error| invalid(error.to_string()))?;
+    let mut artifact = export_fbs_trunk_uorlut01_with(snapshot, snaps)
+        .map_err(|error| invalid(error.to_string()))?;
+    if let Some(asks) = asks {
+        let depths = &snapshot
+            .hamming
+            .as_ref()
+            .ok_or_else(|| invalid("ask heads are present without Hamming reads"))?
+            .depths;
+        if asks.len() != depths.len() {
+            return Err(invalid(format!(
+                "{} Hamming ask entries for {} reads",
+                asks.len(),
+                depths.len()
+            )));
+        }
+        let images = asks
+            .iter()
+            .zip(depths.iter().copied())
+            .map(|(ask, depth)| {
+                ask.as_ref()
+                    .map(|ask| {
+                        let (table, carry) = quantize_hamming_ask(depth, ask)?;
+                        AskImage::checked(Some(table), carry, snapshot.vocab, snapshot.width)
+                            .map_err(|error| error.to_string())
+                    })
+                    .transpose()
+                    .map(Option::flatten)
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        artifact = add_hamming_ask_uorlut01(&artifact, &images)
+            .map_err(|error| invalid(error.to_string()))?;
+    }
+    IntegerStackModel::parse(&artifact).map_err(|error| invalid(error.to_string()))?;
+    Ok((snapshot_bytes, artifact))
 }
 
 /// Build and validate the snapshot, then export the integer artifact.
@@ -1043,17 +1193,17 @@ pub fn export_saved_checkpoint(
     artifact_out: &Path,
     snaps: FbsExportSnaps,
 ) -> Result<(String, String), String> {
+    if snapshot_out == artifact_out {
+        return Err(invalid("snapshot and artifact output paths must differ"));
+    }
     if snapshot_out.exists() || artifact_out.exists() {
         return Err(invalid("snapshot or artifact output already exists"));
     }
-    let snapshot = snapshot_from_saved_checkpoint(checkpoint, run_config, snaps)?;
-    let snapshot_bytes =
-        serde_json::to_vec(&snapshot).map_err(|error| invalid(error.to_string()))?;
+    let (snapshot, asks) = snapshot_and_asks_from_saved_checkpoint(checkpoint, run_config, snaps)?;
+    let (snapshot_bytes, artifact) =
+        snapshot_and_artifact_bytes(&snapshot, asks.as_deref(), snaps)?;
     let snapshot_sha256 = sha256_hex(&snapshot_bytes);
-    let artifact = export_fbs_trunk_uorlut01_with(&snapshot, snaps)
-        .map_err(|error| invalid(error.to_string()))?;
     let artifact_sha256 = sha256_hex(&artifact);
-    IntegerStackModel::parse(&artifact).map_err(|error| invalid(error.to_string()))?;
     write_new_file(snapshot_out, &snapshot_bytes)
         .map_err(|error| invalid(format!("{}: {error}", snapshot_out.display())))?;
     write_new_file(artifact_out, &artifact)
@@ -1092,15 +1242,21 @@ mod tests {
     }
 
     fn tensor_file(tensors: Vec<(&str, Dtype, Vec<usize>, Vec<u8>)>) -> Vec<u8> {
-        let tensors: Vec<_> = tensors
-            .into_iter()
-            .map(|(name, dtype, shape, data)| (name.to_owned(), dtype, shape, data))
-            .collect();
+        tensor_file_owned(
+            tensors
+                .into_iter()
+                .map(|(name, dtype, shape, data)| (name.to_owned(), dtype, shape, data))
+                .collect(),
+        )
+    }
+
+    fn tensor_file_owned(tensors: Vec<(String, Dtype, Vec<usize>, Vec<u8>)>) -> Vec<u8> {
+        let tensors: Vec<_> = tensors.into_iter().collect();
         let views: Vec<_> = tensors
             .iter()
             .map(|(name, dtype, shape, data)| {
                 (
-                    name.clone(),
+                    name.as_str(),
                     TensorView::new(*dtype, shape.clone(), data).unwrap(),
                 )
             })
@@ -1245,6 +1401,324 @@ mod tests {
         tensors
     }
 
+    fn hamming_ask_tensor_map(
+        width: usize,
+        heads: usize,
+        vocab: usize,
+        depths: &[usize],
+        carry: bool,
+    ) -> Vec<(&'static str, Dtype, Vec<usize>, Vec<u8>)> {
+        let mut tensors = hamming_tensor_map(width, heads, false);
+        for depth in depths {
+            let name = match depth {
+                2 => "d2.ask",
+                6 => "d6.ask",
+                _ => unreachable!(),
+            };
+            tensors.push((
+                name,
+                Dtype::F32,
+                vec![vocab, width],
+                f32_bytes(vec![0.125; vocab * width]),
+            ));
+        }
+        if carry {
+            tensors.push((
+                "carry_rows",
+                Dtype::U32,
+                vec![1],
+                32u32.to_le_bytes().to_vec(),
+            ));
+            tensors.push((
+                "d6.carry",
+                Dtype::F32,
+                vec![vocab],
+                f32_bytes(vec![0.25; vocab]),
+            ));
+        }
+        tensors
+    }
+
+    #[test]
+    fn hamming_ask_heads_and_question_carry_are_read() {
+        let width = 32;
+        let vocab = 256;
+        let bytes = tensor_file(hamming_ask_tensor_map(
+            width,
+            2,
+            vocab,
+            &HAMMING_DEPTHS,
+            true,
+        ));
+        let (snapshot, asks) = parse_hamming(&bytes, width, vocab, 2, 6).unwrap();
+        assert_eq!(snapshot.depths, HAMMING_DEPTHS);
+        let asks = asks.expect("ask heads are present");
+        assert_eq!(asks.len(), 2);
+        let d2 = asks[0].as_ref().expect("d2 asks");
+        assert_eq!(d2.table.len(), vocab * width);
+        assert!(d2.carry.is_none());
+        let d6 = asks[1].as_ref().expect("d6 asks");
+        assert_eq!(d6.table.len(), vocab * width);
+        let carry = d6.carry.as_ref().expect("d6 carries the question");
+        assert_eq!(carry.rows, 32);
+        assert_eq!(carry.gain, vec![0.25; vocab]);
+    }
+
+    #[test]
+    fn hamming_ask_heads_are_all_or_nothing() {
+        let bytes = tensor_file(hamming_ask_tensor_map(32, 2, 256, &[2], false));
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(error.contains("d6.ask"), "{error}");
+    }
+
+    #[test]
+    fn hamming_carry_requires_ask_heads() {
+        let mut tensors = hamming_tensor_map(32, 2, false);
+        tensors.push((
+            "carry_rows",
+            Dtype::U32,
+            vec![1],
+            32u32.to_le_bytes().to_vec(),
+        ));
+        tensors.push((
+            "d6.carry",
+            Dtype::F32,
+            vec![256],
+            f32_bytes(vec![0.25; 256]),
+        ));
+        let bytes = tensor_file(tensors);
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(
+            error.contains("carry_rows is present without ask heads"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn hamming_carry_is_readout_only() {
+        let mut tensors = hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, false);
+        tensors.push((
+            "carry_rows",
+            Dtype::U32,
+            vec![1],
+            32u32.to_le_bytes().to_vec(),
+        ));
+        tensors.push((
+            "d2.carry",
+            Dtype::F32,
+            vec![256],
+            f32_bytes(vec![0.25; 256]),
+        ));
+        let bytes = tensor_file(tensors);
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(error.contains("extra=[\"d2.carry\"]"), "{error}");
+    }
+
+    #[test]
+    fn hamming_carry_rows_and_gains_must_be_present_together() {
+        let mut tensors = hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, false);
+        tensors.push((
+            "carry_rows",
+            Dtype::U32,
+            vec![1],
+            32u32.to_le_bytes().to_vec(),
+        ));
+        let bytes = tensor_file(tensors);
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(error.contains("without the readout carry gains"), "{error}");
+    }
+
+    #[test]
+    fn hamming_ask_and_carry_shapes_are_checked_against_the_model() {
+        let mut ask = hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, true);
+        ask.retain(|(name, ..)| *name != "d2.ask");
+        ask.push((
+            "d2.ask",
+            Dtype::F32,
+            vec![255, 32],
+            f32_bytes(vec![0.125; 255 * 32]),
+        ));
+        let error = parse_hamming(&tensor_file(ask), 32, 256, 2, 6).unwrap_err();
+        assert!(error.contains("d2.ask"), "{error}");
+
+        let mut carry = hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, true);
+        carry.retain(|(name, ..)| *name != "d6.carry");
+        carry.push((
+            "d6.carry",
+            Dtype::F32,
+            vec![255],
+            f32_bytes(vec![0.25; 255]),
+        ));
+        let error = parse_hamming(&tensor_file(carry), 32, 256, 2, 6).unwrap_err();
+        assert!(error.contains("d6.carry"), "{error}");
+    }
+
+    #[test]
+    fn held_ask_write_is_refused_by_name() {
+        let mut tensors = hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, false);
+        tensors.push((
+            "hold_rows",
+            Dtype::U32,
+            vec![1],
+            8u32.to_le_bytes().to_vec(),
+        ));
+        tensors.push(("d2.hold", Dtype::F32, vec![256], f32_bytes(vec![0.0; 256])));
+        let bytes = tensor_file(tensors);
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(
+            error.contains("held-write form has no integer export"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn type_spin_is_refused_by_name() {
+        let mut tensors = hamming_tensor_map(32, 2, false);
+        tensors.push((
+            "d2.step_rotation",
+            Dtype::F32,
+            vec![8, 4],
+            f32_bytes(vec![0.0; 32]),
+        ));
+        let bytes = tensor_file(tensors);
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
+        assert!(
+            error.contains("d2.step_rotation is the type-spin form"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn complete_cpu_export_attaches_ask_heads_and_readout_carry() {
+        use uor_r4_integer::stack::{
+            read_hamming_uorlut01,
+            synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth, FBS_SYNTH_SMALL},
+        };
+
+        let mut trunk = synthetic_fbs_trunk_with(
+            266,
+            FbsSynth {
+                layers: HAMMING_READOUT_DEPTH,
+                ..FBS_SYNTH_SMALL
+            },
+        );
+        let mut hamming = synthetic_hamming(trunk.width, trunk.layers.len(), 2, 266);
+        hamming.depths = HAMMING_DEPTHS.to_vec();
+        trunk.hamming = Some(hamming);
+        let asks = HAMMING_DEPTHS
+            .iter()
+            .map(|&depth| {
+                Some(FbsHammingAskRead {
+                    table: vec![0.125; trunk.vocab * trunk.width],
+                    carry: (depth == HAMMING_READOUT_DEPTH).then(|| FbsHammingCarry {
+                        rows: 32,
+                        gain: vec![0.25; trunk.vocab],
+                    }),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let (snapshot, artifact) =
+            snapshot_and_artifact_bytes(&trunk, Some(&asks), FbsExportSnaps::SNAPPED).unwrap();
+        let snapshot: Value = serde_json::from_slice(&snapshot).unwrap();
+        assert_eq!(snapshot[FBS_HAMMING_ASK_KEY].as_array().unwrap().len(), 2);
+        let hamming = read_hamming_uorlut01(&artifact).unwrap().unwrap();
+        assert_eq!(hamming.record.asks, Some(vec![true, true]));
+        assert_eq!(hamming.record.carry_rows, Some(32));
+        assert!(hamming.reads.iter().all(|read| read.ask.is_some()));
+        assert!(hamming.reads[1]
+            .ask
+            .as_ref()
+            .and_then(|ask| ask.carry.as_ref())
+            .is_some());
+    }
+
+    #[test]
+    fn no_ask_export_keeps_the_existing_snapshot_and_artifact_bytes() {
+        use uor_r4_integer::stack::synthetic::{
+            synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth, FBS_SYNTH_SMALL,
+        };
+
+        let mut trunk = synthetic_fbs_trunk_with(
+            267,
+            FbsSynth {
+                layers: HAMMING_READOUT_DEPTH,
+                ..FBS_SYNTH_SMALL
+            },
+        );
+        let mut hamming = synthetic_hamming(trunk.width, trunk.layers.len(), 2, 267);
+        hamming.depths = HAMMING_DEPTHS.to_vec();
+        trunk.hamming = Some(hamming);
+
+        let expected_artifact =
+            export_fbs_trunk_uorlut01_with(&trunk, FbsExportSnaps::SNAPPED).unwrap();
+        let (snapshot, artifact) =
+            snapshot_and_artifact_bytes(&trunk, None, FbsExportSnaps::SNAPPED).unwrap();
+        assert_eq!(snapshot, serde_json::to_vec(&trunk).unwrap());
+        assert_eq!(artifact, expected_artifact);
+    }
+
+    #[test]
+    fn saved_checkpoint_exports_ask_heads_in_one_command() {
+        use uor_r4_integer::stack::read_hamming_uorlut01;
+
+        let root = TestDir::new("saved-ask-checkpoint");
+        let checkpoint = root.0.join("step-000001");
+        std::fs::create_dir(&checkpoint).unwrap();
+        let mut config_value = model_config_value();
+        config_value["pattern"] = json!("rrrrrr");
+        let config = parse_model_config(&serde_json::to_vec(&config_value).unwrap()).unwrap();
+        let plans = build_plans(&config).unwrap();
+        let shapes = expected_trunk_shapes(&config, &plans);
+        let tensors = shapes
+            .into_iter()
+            .map(|(name, shape)| {
+                let values = shape.iter().product::<usize>();
+                (name, Dtype::F32, shape, f32_bytes(vec![0.0; values]))
+            })
+            .collect();
+        std::fs::write(
+            checkpoint.join("model.safetensors"),
+            tensor_file_owned(tensors),
+        )
+        .unwrap();
+        std::fs::write(
+            checkpoint.join("config.json"),
+            serde_json::to_vec_pretty(&config_value).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(
+            checkpoint.join("hamming_read.safetensors"),
+            tensor_file(hamming_ask_tensor_map(32, 2, 256, &HAMMING_DEPTHS, true)),
+        )
+        .unwrap();
+        let run_config = root.0.join("run-config.json");
+        std::fs::write(
+            &run_config,
+            br#"{"width":32,"seed":1,"hamming_read":2,"objective":"nearest"}"#,
+        )
+        .unwrap();
+        let snapshot = root.0.join("snapshot.json");
+        let artifact = root.0.join("artifact.uorlut");
+
+        export_saved_checkpoint(
+            &checkpoint,
+            &run_config,
+            &snapshot,
+            &artifact,
+            FbsExportSnaps::SNAPPED,
+        )
+        .unwrap();
+
+        let snapshot: Value = serde_json::from_slice(&std::fs::read(snapshot).unwrap()).unwrap();
+        assert_eq!(snapshot[FBS_HAMMING_ASK_KEY].as_array().unwrap().len(), 2);
+        let hamming = read_hamming_uorlut01(&std::fs::read(artifact).unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(hamming.record.asks, Some(vec![true, true]));
+        assert_eq!(hamming.record.carry_rows, Some(32));
+    }
+
     #[test]
     fn b64l_projection_fingerprints_match_the_trained_binding() {
         let plans = [
@@ -1383,23 +1857,23 @@ mod tests {
     #[test]
     fn hamming_inventory_rejects_missing_and_extra_tensors() {
         let complete = tensor_file(hamming_tensor_map(32, 2, false));
-        parse_hamming(&complete, 32, 2, 6).unwrap();
+        parse_hamming(&complete, 32, 256, 2, 6).unwrap();
 
         let mut missing = hamming_tensor_map(32, 2, false);
         missing.retain(|(name, ..)| *name != "d6.weight");
         let missing = tensor_file(missing);
-        let error = parse_hamming(&missing, 32, 2, 6).unwrap_err();
+        let error = parse_hamming(&missing, 32, 256, 2, 6).unwrap_err();
         assert!(error.contains("d6.weight"), "{error}");
 
         let extra = tensor_file(hamming_tensor_map(32, 2, true));
-        let error = parse_hamming(&extra, 32, 2, 6).unwrap_err();
+        let error = parse_hamming(&extra, 32, 256, 2, 6).unwrap_err();
         assert!(error.contains("extra=[\"foreign\"]"), "{error}");
     }
 
     #[test]
     fn hamming_read_rejects_a_head_count_that_differs_from_the_checkpoint() {
         let bytes = tensor_file(hamming_tensor_map(32, 4, false));
-        let error = parse_hamming(&bytes, 32, 2, 6).unwrap_err();
+        let error = parse_hamming(&bytes, 32, 256, 2, 6).unwrap_err();
         assert!(
             error.contains("Hamming head count 4 differs from checkpoint head count 2"),
             "{error}"
@@ -1409,7 +1883,7 @@ mod tests {
     #[test]
     fn hamming_read_rejects_a_trunk_that_is_not_the_six_layer_readout_shape() {
         let bytes = tensor_file(hamming_tensor_map(32, 2, false));
-        let error = parse_hamming(&bytes, 32, 2, 7).unwrap_err();
+        let error = parse_hamming(&bytes, 32, 256, 2, 7).unwrap_err();
         assert!(
             error.contains("Hamming readout runs at depth 6, but the trunk has 7 layers"),
             "{error}"
@@ -1479,5 +1953,22 @@ mod tests {
         assert!(error.contains("output already exists"), "{error}");
         assert_eq!(std::fs::read(&snapshot).unwrap(), b"occupied");
         assert!(!artifact.exists());
+    }
+
+    #[test]
+    fn export_refuses_identical_output_paths_before_reading_the_checkpoint() {
+        let root = TestDir::new("same-output");
+        let output = root.0.join("model.out");
+
+        let error = export_saved_checkpoint(
+            &root.0.join("absent-checkpoint"),
+            &root.0.join("absent-run-config.json"),
+            &output,
+            &output,
+            FbsExportSnaps::SNAPPED,
+        )
+        .unwrap_err();
+        assert!(error.contains("output paths must differ"), "{error}");
+        assert!(!output.exists());
     }
 }
