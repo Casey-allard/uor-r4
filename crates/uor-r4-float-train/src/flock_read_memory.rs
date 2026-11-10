@@ -44,11 +44,15 @@ const REPLY_FILE: &str = "turn_memory_reply.safetensors";
 pub const MAX_REPLY_KEY: usize = MAX_KEY + 4;
 /// Pads a saved key shorter than `k`; never a token id.
 const PAD: u32 = u32::MAX;
+/// Joins the candidates of a chained reply key (claude-345): never a token id, and not [`PAD`].
+/// A stored key never holds it; [`TurnMemory::reply_stored`] asks the candidates in order.
+pub const CHAIN: u32 = u32::MAX - 1;
 
 thread_local! {
     static ACTIVE: RefCell<Option<TurnMemory>> = const { RefCell::new(None) };
     static ROWS: RefCell<Option<Vec<usize>>> = const { RefCell::new(None) };
     static REPLY_ROWS: RefCell<Option<ReplyRows>> = const { RefCell::new(None) };
+    static REPLY_TAIL: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 /// Reply rows named for a forward: each a `batch · time` row index and its reply key.
@@ -90,14 +94,56 @@ pub fn build_reply_table(rows: &[(Vec<u32>, u32)], min_share: f64) -> HashMap<Ve
         .collect()
 }
 
+/// The keys the copy read owns (claude-345): of `rows`, each a table key and whether the copy
+/// read's latest exact match already names that row's target, the keys where it does on more
+/// than half of the key's rows. A table that leaves these keys out stores what the context cannot
+/// supply. The count is over all of a key's rows, so a key's other rows never take the key over
+/// once the copied ones are set aside.
+pub fn copy_owned_keys(rows: &[(Vec<u32>, bool)]) -> std::collections::HashSet<Vec<u32>> {
+    copy_owned_keys_of(rows.iter().map(|(key, copied)| (key.as_slice(), *copied)))
+}
+
+/// [`copy_owned_keys`] over borrowed keys, for a caller whose rows hold several keys each.
+pub fn copy_owned_keys_of<'a>(
+    rows: impl Iterator<Item = (&'a [u32], bool)>,
+) -> std::collections::HashSet<Vec<u32>> {
+    let mut counts: HashMap<&[u32], (usize, usize)> = HashMap::new();
+    for (key, copied) in rows {
+        let (named, total) = counts.entry(key).or_default();
+        *named += usize::from(copied);
+        *total += 1;
+    }
+    counts
+        .into_iter()
+        .filter(|(_, (named, total))| 2 * named > *total)
+        .map(|(key, _)| key.to_vec())
+        .collect()
+}
+
 /// Whether `key` is one a reply table can hold and save: 1 to [`MAX_REPLY_KEY`] ids, the last a
 /// token id rather than the pad, so a padded saved key reads back exactly.
 fn reply_key_ok(key: &[u32]) -> bool {
-    !key.is_empty() && key.len() <= MAX_REPLY_KEY && key.last() != Some(&PAD)
+    !key.is_empty()
+        && key.len() <= MAX_REPLY_KEY
+        && key.last() != Some(&PAD)
+        && !key.contains(&CHAIN)
+}
+
+/// How many of a turn's last ids the reply keys formed on this thread hold (claude-345): 0 keys
+/// a reply on the turn's first ids alone, as before. Set before the reply table is built, and by
+/// [`set_turn_memory`] from the memory it activates.
+pub fn set_reply_tail(tail: usize) {
+    REPLY_TAIL.with(|cell| cell.set(tail));
+}
+
+/// The tail length reply keys are formed with on this thread ([`set_reply_tail`]).
+pub fn reply_tail() -> usize {
+    REPLY_TAIL.with(std::cell::Cell::get)
 }
 
 /// Make `memory` the turn memory read on this thread, or none.
 pub fn set_turn_memory(memory: Option<TurnMemory>) {
+    set_reply_tail(memory.as_ref().map_or(0, TurnMemory::reply_tail));
     ACTIVE.with(|cell| *cell.borrow_mut() = memory);
 }
 
@@ -170,6 +216,9 @@ pub(crate) struct ReplyTable {
     table: Arc<HashMap<Vec<u32>, u32>>,
     /// `(width,)`.
     pub(crate) weight: Var,
+    /// How many of a turn's last ids the table's tail keys hold (claude-345); 0 when the table
+    /// keys on the turn's first ids alone.
+    tail: usize,
 }
 
 impl TurnMemory {
@@ -210,8 +259,31 @@ impl TurnMemory {
         self.reply = Some(ReplyTable {
             table: Arc::new(table),
             weight,
+            tail: 0,
         });
         Ok(self)
+    }
+
+    /// This memory with its reply table's tail keys holding a turn's last `tail` ids
+    /// (claude-345). The longest tail key is the form's mark, the ids, two separators, a position
+    /// and one id, so `tail` is 1 to `MAX_REPLY_KEY - 5`. Refused without a reply table.
+    pub fn with_reply_tail(mut self, tail: usize) -> Result<Self> {
+        let Some(reply) = self.reply.as_mut() else {
+            return Err(invalid("a reply tail needs a reply table"));
+        };
+        if !(1..=MAX_REPLY_KEY - 5).contains(&tail) {
+            return Err(invalid(format!(
+                "a reply tail holds 1 to {} ids",
+                MAX_REPLY_KEY - 5
+            )));
+        }
+        reply.tail = tail;
+        Ok(self)
+    }
+
+    /// The reply table's tail length ([`with_reply_tail`](Self::with_reply_tail)); 0 without one.
+    pub fn reply_tail(&self) -> usize {
+        self.reply.as_ref().map_or(0, |reply| reply.tail)
     }
 
     pub fn k(&self) -> usize {
@@ -223,9 +295,25 @@ impl TurnMemory {
         self.reply.as_ref().map(|reply| reply.table.len())
     }
 
-    /// The reply table's stored token for `key`, if it holds the key.
+    /// The reply table's stored token for `key`, if it holds the key. A chained key (claude-345)
+    /// is its candidates joined by [`CHAIN`], asked in order: the first the table holds names the
+    /// token. A key without the join is one candidate, read as before.
     pub fn reply_stored(&self, key: &[u32]) -> Option<u32> {
-        self.reply.as_ref()?.table.get(key).copied()
+        self.reply_lookup(key).1
+    }
+
+    /// The candidate of `key` the reply table holds and its stored token; where it holds none,
+    /// the last candidate (the key on the turn's first ids) and nothing.
+    pub fn reply_lookup<'a>(&self, key: &'a [u32]) -> (&'a [u32], Option<u32>) {
+        let mut last = key;
+        for candidate in key.split(|&id| id == CHAIN) {
+            last = candidate;
+            let stored = self.reply.as_ref().and_then(|reply| reply.table.get(candidate));
+            if let Some(&token) = stored {
+                return (candidate, Some(token));
+            }
+        }
+        (last, None)
     }
 
     /// How many keys the table holds.
@@ -328,8 +416,9 @@ impl TurnMemory {
                         "reply row {r} is outside the {total} rows of this forward"
                     )));
                 }
-                let stored = self.reply_stored(key);
-                lookups[*r] = Some(MemoryLookup { key: key.clone(), stored, opening: false });
+                // The candidate that was held, as the integer session reports its move's key.
+                let (key, stored) = self.reply_lookup(key);
+                lookups[*r] = Some(MemoryLookup { key: key.to_vec(), stored, opening: false });
             }
         }
         Ok(lookups)
@@ -519,13 +608,16 @@ impl TurnMemory {
         memory.weight = weight;
         let reply_path = directory.join(REPLY_FILE);
         if reply_path.exists() {
-            let (table, reply_weight) = load_reply(&reply_path, device)?;
+            let (table, reply_weight, tail) = load_reply(&reply_path, device)?;
             if reply_weight.dim(0)? != memory.weight.dim(0)? {
                 return Err(invalid(
                     "the saved reply table's weight differs in width from the memory's",
                 ));
             }
             memory = memory.with_reply(table)?;
+            if tail > 0 {
+                memory = memory.with_reply_tail(tail)?;
+            }
             if let Some(reply) = memory.reply.as_mut() {
                 reply.weight = reply_weight;
             }
@@ -573,13 +665,17 @@ fn save_reply(reply: &ReplyTable, path: &Path) -> Result<()> {
         Tensor::from_vec(keys, (rows, MAX_REPLY_KEY), device)?,
     );
     tensors.insert("values".to_owned(), Tensor::from_vec(values, rows, device)?);
+    // Written only with a tail, so a table without one saves the file it saved before.
+    if reply.tail > 0 {
+        tensors.insert("tail".to_owned(), Tensor::new(&[reply.tail as u32], device)?);
+    }
     candle_core::safetensors::save(&tensors, path)?;
     Ok(())
 }
 
 /// The reply table and weight saved at `path` by [`save_reply`]. A key's trailing pads are cut;
 /// a key ends in a token id, so this reads back exactly what was saved.
-fn load_reply(path: &Path, device: &Device) -> Result<(HashMap<Vec<u32>, u32>, Var)> {
+fn load_reply(path: &Path, device: &Device) -> Result<(HashMap<Vec<u32>, u32>, Var, usize)> {
     let tensors = candle_core::safetensors::load(path, device)?;
     let get = |name: &str| -> Result<&Tensor> {
         tensors
@@ -615,7 +711,11 @@ fn load_reply(path: &Path, device: &Device) -> Result<(HashMap<Vec<u32>, u32>, V
     if table.len() != count {
         return Err(invalid("the saved reply table repeats a key"));
     }
-    Ok((table, Var::from_tensor(get("weight")?)?))
+    let tail = match tensors.get("tail") {
+        Some(tail) => tail.to_vec1::<u32>()?.first().map_or(0, |&v| v as usize),
+        None => 0,
+    };
+    Ok((table, Var::from_tensor(get("weight")?)?, tail))
 }
 
 #[cfg(test)]
@@ -750,6 +850,57 @@ mod tests {
             .unwrap()
             .expect("saved");
         assert!(loaded.reply.is_none());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// claude-345: a chained key is its candidates asked in order; the tail is saved with the
+    /// reply table, and a table without one saves the file it saved before.
+    #[test]
+    fn a_reply_tail_is_saved_with_the_table_and_a_chained_key_is_asked_in_order() {
+        let device = Device::Cpu;
+        let dir = std::env::temp_dir().join(format!("claude-345-tail-{}", std::process::id()));
+        let mut openings = HashMap::new();
+        openings.insert(vec![3, 4], 6u32);
+        let plain = TurnMemory::new(2, openings, 4, &device).unwrap();
+        let ends = vec![3, 4, 5, 6, PAD, 1, PAD, 6];
+        let tail = vec![PAD, 5, 6, PAD, 1, PAD, 6];
+        let head = vec![3, 4, PAD, 1, PAD, 6];
+        let mut table = HashMap::new();
+        table.insert(tail.clone(), 8u32);
+        table.insert(head.clone(), 9u32);
+        let without = plain.clone().with_reply(table.clone()).unwrap();
+        let with = without.clone().with_reply_tail(2).unwrap();
+        assert_eq!((without.reply_tail(), with.reply_tail()), (0, 2));
+        // A tail needs a reply table and a length a key can hold.
+        assert!(plain.clone().with_reply_tail(2).is_err());
+        assert!(without.clone().with_reply_tail(0).is_err());
+        assert!(without.clone().with_reply_tail(MAX_REPLY_KEY - 4).is_err());
+        // The first candidate the table holds names the token; one candidate reads as before.
+        let wide = [&ends[..], &[CHAIN], &tail, &[CHAIN], &head].concat();
+        assert_eq!(with.reply_lookup(&wide), (&tail[..], Some(8)));
+        assert_eq!(with.reply_stored(&[&ends[..], &[CHAIN], &head].concat()), Some(9));
+        assert_eq!(with.reply_lookup(&ends), (&ends[..], None));
+        assert_eq!(with.reply_stored(&head), Some(9));
+        // A table cannot hold the mark that joins candidates.
+        let mut marked = HashMap::new();
+        marked.insert(vec![3, CHAIN, 4], 1u32);
+        assert!(plain.clone().with_reply(marked).is_err());
+        // Saved and loaded, the tail and the table come back, and the thread keys by them.
+        with.save(&dir.join("with")).unwrap();
+        without.save(&dir.join("without")).unwrap();
+        let loaded = TurnMemory::load(&dir.join("with"), &device).unwrap().expect("saved");
+        assert_eq!(loaded.reply_tail(), 2);
+        assert_eq!(*loaded.reply.as_ref().expect("a reply table").table, table);
+        set_turn_memory(Some(loaded));
+        assert_eq!(reply_tail(), 2);
+        let loaded = TurnMemory::load(&dir.join("without"), &device).unwrap().expect("saved");
+        assert_eq!(loaded.reply_tail(), 0);
+        set_turn_memory(Some(loaded));
+        assert_eq!(reply_tail(), 0);
+        set_turn_memory(None);
+        let file = dir.join("without").join(REPLY_FILE);
+        let saved = candle_core::safetensors::load(&file, &device).unwrap();
+        assert!(!saved.contains_key("tail"), "a table without a tail saves no tail");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -1057,5 +1208,31 @@ mod tests {
             .unwrap()
             .is_none());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod copy_owned_tests {
+    use super::copy_owned_keys;
+
+    /// claude-345: a key is the copy read's when it names the target on more than half of the
+    /// key's rows; an even split or a minority leaves the key with the table.
+    #[test]
+    fn the_copy_read_owns_a_key_it_names_on_most_rows() {
+        let row = |key: u32, copied: bool| (vec![key, 7], copied);
+        let rows = vec![
+            row(1, true),
+            row(1, true),
+            row(1, false),
+            row(2, true),
+            row(2, false),
+            row(3, false),
+            row(4, true),
+        ];
+        let owned = copy_owned_keys(&rows);
+        assert!(owned.contains(&vec![1, 7]) && owned.contains(&vec![4, 7]));
+        assert!(!owned.contains(&vec![2, 7]) && !owned.contains(&vec![3, 7]));
+        assert_eq!(owned.len(), 2);
+        assert!(copy_owned_keys(&[]).is_empty());
     }
 }

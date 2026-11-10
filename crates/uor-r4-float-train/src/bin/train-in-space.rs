@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -69,6 +69,10 @@
 //! checkpoint's `hamming_read.safetensors` records it, so scoring and the export read it there.
 //! `--hamming-copy-keys K0,K1` gives each copy head its own key, 1 or 2, one per copy head
 //! (`HammingReads::with_copy_keys`, claude-268); the checkpoint records the list when they differ.
+//! `--hamming-copy-latest 1` (needs `--hamming-read`) has each copy head read its latest exact
+//! match in place of the mean of its nearest sixteen (`HammingReads::with_copy_latest`,
+//! claude-345), the rule the integer session serves as `CopyRule::LatestExact`; the checkpoint
+//! records it, so scoring and the export read it there.
 //! `--hamming-ask 1` (needs `--hamming-read`) turns the type heads into ask heads, which ask with
 //! their token's point plus a learned question row against the copy key (`HammingReads::with_ask`,
 //! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
@@ -134,7 +138,10 @@
 //! empty table, the no-memory control. `--turn-memory-reply 1` (with `--turn-memory 8`) adds its
 //! reply table (turn-memory-reply, claude-193): the rows past each opening, keyed as the
 //! `--reply-bound` probe's `turn-8 + position + reply-last-1` at stored share 0.5, with their own
-//! weight; with `--turn-memory-empty 1` both tables are empty.
+//! weight; with `--turn-memory-empty 1` both tables are empty. `--turn-memory-leave-copied 1`
+//! (with `--hamming-copy-latest 1`) stores in neither table a key where the copy read's latest
+//! exact match already names the target on more than half of the key's TRAIN rows (claude-345),
+//! so the memory holds what the context cannot supply.
 //!
 //! `train-in-space --data-root DIR --inspect RUN [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--seed S]`
 //!
@@ -299,7 +306,8 @@ use uor_r4_float_train::flock_read_opening::OpeningAnchor;
 use uor_r4_float_train::flock_read_register::RegisterSelect;
 use uor_r4_float_train::in_space_long::{
     cell_grade, cells_ok, census, context_reach, controls, cut_grade, cycle_grade, decode_speed, key_grade, keyed_grade, served_grade, integer_grade, panel_prompts, fbs_arm_named, grade,
-    gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound, root_separation,
+    gradient_norms, inspect_run, opening_bound, overturn, read_grade, reply_bound,
+    reply_bound_dirs, reply_chain_dirs, root_separation,
     run_long, run_recall, score_rows, scopes_ok, set_decode_cache, take_decode_forwards,
     DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, RecallForm, TrainSplit, TrainTargets, DEFAULT_REGISTER_PICKS,
     MEMORY_DROPOUT_MAX,
@@ -346,6 +354,8 @@ fn main() -> Result<()> {
     let mut decode = None;
     let mut bound = false;
     let mut reply = false;
+    let mut reply_dirs: (Option<PathBuf>, Option<PathBuf>) = (None, None);
+    let mut reply_chain_tail: usize = 0;
     let mut census_on = false;
     let mut fresh_v2 = None;
     let mut extra_panels: Vec<(String, PathBuf)> = Vec::new();
@@ -421,6 +431,7 @@ fn main() -> Result<()> {
         type_spin: false,
         hamming_copy_key: 1,
         hamming_copy_keys: None,
+        hamming_copy_latest: false,
         hamming_ask: false,
         hamming_attract: 0.0,
         hamming_attract_at_question: false,
@@ -435,6 +446,8 @@ fn main() -> Result<()> {
         turn_memory: 0,
         turn_memory_empty: false,
         turn_memory_reply: false,
+        turn_memory_leave_copied: false,
+        turn_memory_tail: 0,
         turn_memory_dropout: 0,
         fbs_arm: uor_r4_float_train::spiralcore_fbs_arms::FbsArm::OneAtomActive,
         reply_read_train: None,
@@ -475,6 +488,9 @@ fn main() -> Result<()> {
             "--decode-speed" => decode = Some(PathBuf::from(&value)),
             "--opening-bound" => bound = switch(&value)?,
             "--reply-bound" => reply = switch(&value)?,
+            "--reply-bound-train" => reply_dirs.0 = Some(PathBuf::from(&value)),
+            "--reply-bound-dev" => reply_dirs.1 = Some(PathBuf::from(&value)),
+            "--reply-chain-tail" => reply_chain_tail = number(&value)?,
             "--census" => census_on = switch(&value)?,
             "--score-rows" => score = Some(PathBuf::from(&value)),
             "--overturn" => overturn_on = switch(&value)?,
@@ -604,6 +620,8 @@ fn main() -> Result<()> {
             "--turn-memory" => config.turn_memory = number(&value)?,
             "--turn-memory-empty" => config.turn_memory_empty = switch(&value)?,
             "--turn-memory-reply" => config.turn_memory_reply = switch(&value)?,
+            "--turn-memory-leave-copied" => config.turn_memory_leave_copied = switch(&value)?,
+            "--turn-memory-tail" => config.turn_memory_tail = number(&value)?,
             "--turn-memory-dropout" => {
                 config.turn_memory_dropout = u32::try_from(number(&value)?)
                     .ok()
@@ -656,6 +674,7 @@ fn main() -> Result<()> {
             "--content-read" => config.content_read = number(&value)?,
             "--hamming-read" => config.hamming_read = number(&value)?,
             "--hamming-copy-key" => config.hamming_copy_key = number(&value)?,
+            "--hamming-copy-latest" => config.hamming_copy_latest = switch(&value)?,
             "--hamming-copy-keys" => {
                 config.hamming_copy_keys = Some(
                     value
@@ -907,6 +926,14 @@ fn main() -> Result<()> {
         }
         (None, None) => None,
     };
+    // claude-345: the chain count is part of the reply bound and reads both folders, so a tail
+    // given without them would be ignored in silence.
+    if reply_chain_tail > 0 && (!reply || reply_dirs.0.is_none() || reply_dirs.1.is_none()) {
+        return Err(FloatTrainError::Invalid(
+            "--reply-chain-tail needs --reply-bound 1, --reply-bound-train and --reply-bound-dev"
+                .to_owned(),
+        ));
+    }
     if past_window.is_some() && score.is_none() {
         return Err(FloatTrainError::Invalid(
             "--past-window applies to --score-rows only".to_owned(),
@@ -1243,7 +1270,34 @@ fn main() -> Result<()> {
         return Ok(());
     }
     if reply {
-        for row in reply_bound(&data_root)? {
+        let rows = match &reply_dirs {
+            (Some(train), Some(dev)) => {
+                // claude-345: the trainer's own table, without a tail and with this one.
+                if reply_chain_tail > 0 {
+                    let keys = config
+                        .hamming_copy_keys
+                        .clone()
+                        .unwrap_or_else(|| vec![config.hamming_copy_key]);
+                    for row in reply_chain_dirs(train, dev, &[0, reply_chain_tail], &keys)? {
+                        println!("{}", serde_json::to_string(&row)?);
+                    }
+                    return Ok(());
+                }
+                let (train_sha, dev_sha, rows) = reply_bound_dirs(train, dev)?;
+                println!(
+                    "{}",
+                    serde_json::json!({"train_tokens_sha256": train_sha, "dev_tokens_sha256": dev_sha})
+                );
+                rows
+            }
+            (None, None) => reply_bound(&data_root)?,
+            _ => {
+                return Err(FloatTrainError::Invalid(
+                    "give both --reply-bound-train and --reply-bound-dev, or neither".to_owned(),
+                ))
+            }
+        };
+        for row in rows {
             println!("{}", serde_json::to_string(&row)?);
         }
         return Ok(());

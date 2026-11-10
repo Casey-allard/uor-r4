@@ -5,7 +5,7 @@
 //! [`super::IntegerStackModel::parse`] builds the served tables ([ServedTurnMemory]); the session
 //! forms the keys and applies the moves (units 2-3 of `turn-memory-integer`).
 
-use super::format::{Container, StackTurnMemory, MEMORY_PAD, MEMORY_REPLY_KEY_LEN, MEMORY_WEIGHT_EXP};
+use super::format::{Container, StackMemoryChain, StackTurnMemory, MEMORY_PAD, MEMORY_REPLY_KEY_LEN, MEMORY_WEIGHT_EXP};
 use super::hamming::round_shift;
 use super::kernels::NORM_FINE_EXP;
 use super::point_key::{point_image, PointKeyImage, ServedPointKey};
@@ -37,8 +37,11 @@ pub fn read_memory_uorlut01(bytes: &[u8]) -> Result<Option<MemoryImage>, StackEr
     memory_image(&Container::parse(bytes)?)
 }
 
-/// The turn memory of a parsed container, as [`read_memory_uorlut01`].
+/// The turn memory of a parsed container, as [`read_memory_uorlut01`]: its reply keys of the
+/// forms the container's memory chain record (claude-345) admits, or the head form alone without
+/// one.
 pub(crate) fn memory_image(artifact: &Container<'_>) -> Result<Option<MemoryImage>, StackError> {
+    let chain_tail = artifact.memory_chain.as_ref().map(|chain| chain.tail);
     let Some(record) = artifact.memory.clone() else {
         return Ok(None);
     };
@@ -56,7 +59,7 @@ pub(crate) fn memory_image(artifact: &Container<'_>) -> Result<Option<MemoryImag
             MEMORY_REPLY_KEY_LEN,
             width,
             vocab,
-            &|key| reply_key_ok(key, turn, window, vocab),
+            &|key| reply_key_ok(key, turn, window, vocab, chain_tail),
         )?),
         _ => None,
     };
@@ -80,8 +83,10 @@ fn turn_ok(ids: &[u32], k: usize, vocab: usize) -> bool {
 
 /// A reply key, `turn ids, MEMORY_PAD, length, MEMORY_PAD, last id` (the float memory's
 /// `ReplyKey::TurnPosition(1)`): 0 to `turn` turn ids (the record's `reply_turn`, not `k`), a reply
-/// length from 1 to the key window, and a last id that is a token id.
-fn reply_key_ok(key: &[u32], turn_len: usize, window: usize, vocab: usize) -> bool {
+/// length from 1 to the key window, and a last id that is a token id. With the memory chain's
+/// tail `chain_tail` (claude-345) the turn part is instead at most `2 * turn` ids (a head or ends
+/// key) or `MEMORY_PAD` and at most `chain_tail` ids (a tail key).
+fn reply_key_ok(key: &[u32], turn_len: usize, window: usize, vocab: usize, chain_tail: Option<usize>) -> bool {
     let n = key.len();
     if n < 4 {
         return false;
@@ -92,7 +97,13 @@ fn reply_key_ok(key: &[u32], turn_len: usize, window: usize, vocab: usize) -> bo
         && tail[2] == MEMORY_PAD
         && (1..=window).contains(&length)
         && last < vocab
-        && turn_ok(turn, turn_len, vocab)
+        && match chain_tail {
+            None => turn_ok(turn, turn_len, vocab),
+            Some(tail) => match turn.split_first() {
+                Some((&MEMORY_PAD, ids)) => turn_ok(ids, tail, vocab),
+                _ => turn_ok(turn, 2 * turn_len, vocab),
+            },
+        }
 }
 
 /// One table's sections `memory.{kind}.{keys,values,weight}`: `count` keys of `row` ids each
@@ -211,6 +222,9 @@ pub(crate) struct ServedTurnMemory {
     pub(crate) key_window: usize,
     /// The most turn ids a reply key holds (the record's `reply_turn`), with the reply table.
     pub(crate) reply_turn: Option<usize>,
+    /// The memory chain's tail (claude-345): with it a reply row asks the ends, tail and head
+    /// keys in that order; without it the head key alone.
+    pub(crate) chain_tail: Option<usize>,
     opening: ServedMemoryTable,
     reply: Option<ServedMemoryTable>,
     /// The served point key (claude-222): it names a reply's first token where the opening
@@ -226,6 +240,11 @@ pub(crate) struct MemoryAnchors {
     pub(crate) opening: Vec<u32>,
     /// The reply anchor's ids at the prompt's last token, at most `reply_turn`.
     pub(crate) reply: Vec<u32>,
+    /// With the memory chain (claude-345): the turn's last ids, at most the chain's tail.
+    pub(crate) tail: Vec<u32>,
+    /// With the memory chain: the turn's first `reply_turn` ids, then the last `reply_turn` of
+    /// the rest (the head's ids where the turn has no more).
+    pub(crate) ends: Vec<u32>,
 }
 
 /// One row's memory move: the key formed and the id it named.
@@ -246,13 +265,14 @@ const WRITER_EXP: i32 = -12;
 const MEMORY_POINT_RAISE: i32 = WRITER_EXP - NORM_FINE_EXP;
 
 impl ServedTurnMemory {
-    /// The served tables of a checked image.
-    pub(crate) fn new(image: MemoryImage) -> Self {
+    /// The served tables of a checked image, with the container's memory chain record.
+    pub(crate) fn new(image: MemoryImage, chain: Option<&StackMemoryChain>) -> Self {
         Self {
             record: image.record.clone(),
             k: image.record.k,
             key_window: image.record.key_window,
             reply_turn: image.record.reply_turn,
+            chain_tail: chain.map(|c| c.tail),
             opening: ServedMemoryTable::new(&image.opening),
             reply: image.reply.as_ref().map(ServedMemoryTable::new),
             point: image.point.map(ServedPointKey::new),
@@ -310,9 +330,24 @@ impl ServedTurnMemory {
         reply_start: usize,
         turn: &[u32],
     ) -> Vec<u32> {
+        self.chain_key(tokens, row, reply_start, &[], turn)
+    }
+
+    /// A reply key with `lead` before the turn's ids (`[MEMORY_PAD]` for the memory chain's tail
+    /// key, `[]` for the head and ends keys): `lead`, the turn's ids while the prompt is in the
+    /// row's block, `MAX`, the reply length, `MAX`, the row's id.
+    fn chain_key(
+        &self,
+        tokens: &[u32],
+        row: usize,
+        reply_start: usize,
+        lead: &[u32],
+        turn: &[u32],
+    ) -> Vec<u32> {
         let block_start = self.block_start(row);
         let prompt_last = reply_start.saturating_sub(1);
-        let mut key = Vec::with_capacity(turn.len() + 4);
+        let mut key = Vec::with_capacity(lead.len() + turn.len() + 4);
+        key.extend_from_slice(lead);
         if reply_start > 0 && prompt_last >= block_start {
             key.extend_from_slice(turn);
         }
@@ -343,6 +378,17 @@ impl ServedTurnMemory {
                 Some(turn) => self.turn_ids(tokens, row, turn),
                 None => Vec::new(),
             };
+            (anchors.tail, anchors.ends) = match (self.chain_tail, self.reply_turn) {
+                (Some(tail), Some(turn)) => {
+                    let all = self.turn_ids(tokens, row, usize::MAX);
+                    let n = all.len();
+                    let (head, rest) = all.split_at(turn.min(n));
+                    let mut ends = head.to_vec();
+                    ends.extend_from_slice(&rest[rest.len() - turn.min(rest.len())..]);
+                    (all[n - tail.min(n)..].to_vec(), ends)
+                }
+                _ => (Vec::new(), Vec::new()),
+            };
             let key = anchors.opening.clone();
             let stored = self.opening.stored(&key);
             if let Some(id) = stored {
@@ -358,8 +404,8 @@ impl ServedTurnMemory {
             return None;
         }
         let reply = self.reply.as_ref()?;
-        let key = self.reply_key(tokens, row, reply_start, &anchors.reply);
-        let stored = reply.stored(&key);
+        let head = self.reply_key(tokens, row, reply_start, &anchors.reply);
+        let (key, stored) = self.chain_lookup(reply, tokens, row, reply_start, anchors, head);
         if let Some(id) = stored {
             self.move_point(reply, id, writer, n);
         }
@@ -368,6 +414,31 @@ impl ServedTurnMemory {
             stored,
             opening: false,
         })
+    }
+
+    /// The reply row's key and the id it names: with the memory chain (claude-345), the first of
+    /// the ends, tail and head keys the table stores, or the head key where none is; without it,
+    /// the head key alone.
+    fn chain_lookup(
+        &self,
+        reply: &ServedMemoryTable,
+        tokens: &[u32],
+        row: usize,
+        reply_start: usize,
+        anchors: &MemoryAnchors,
+        head: Vec<u32>,
+    ) -> (Vec<u32>, Option<u32>) {
+        if self.chain_tail.is_some() {
+            let ends = self.chain_key(tokens, row, reply_start, &[], &anchors.ends);
+            let tail = self.chain_key(tokens, row, reply_start, &[MEMORY_PAD], &anchors.tail);
+            for key in [ends, tail] {
+                if let Some(id) = reply.stored(&key) {
+                    return (key, Some(id));
+                }
+            }
+        }
+        let stored = reply.stored(&head);
+        (head, stored)
     }
 
     /// The move `n + w ⊙ (c − n)` at a hit, `c` the stored token's writer-table row at

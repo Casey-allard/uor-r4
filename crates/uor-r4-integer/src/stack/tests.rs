@@ -4177,6 +4177,44 @@ fn snapshots_without_hamming_reads_are_unchanged() {
 /// claude-261: the copy key in the snapshot and the artifact. At 1 the record serializes exactly
 /// as before the field, and neither the snapshot nor the artifact's header holds it; at 2 both
 /// hold it, and the parsed record and the session carry it; any other key is refused at export.
+/// claude-345: the copy rule is in the header only when it is the latest exact match, so an
+/// artifact under the mean is byte for byte as before, and the session serves the recorded rule.
+#[test]
+fn the_copy_rule_is_recorded_only_when_latest() {
+    use super::synthetic::synthetic_hamming;
+    use super::CopyRule;
+    let mut snap = synthetic_fbs_trunk(20261110);
+    snap.hamming = Some(synthetic_hamming(snap.width, snap.layers.len(), 4, 345));
+    let mean = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    // The exporter sets the rule from the run's config (`fbs-export --run-config`); the snapshot
+    // does not carry it.
+    let latest = super::set_hamming_copy_latest_uorlut01(&mean).expect("the rule is set");
+    for (bytes, copy_latest, rule) in [(&mean, false, CopyRule::Mean), (&latest, true, CopyRule::LatestExact)] {
+        let image = super::read_hamming_uorlut01(bytes).expect("parse").expect("the reads");
+        assert_eq!(image.record.copy_latest, copy_latest);
+        let _ = with_header(bytes, |h| {
+            let field = h["hamming"].get("copy_latest").cloned();
+            assert_eq!(field, copy_latest.then(|| serde_json::json!(true)));
+        });
+        let mut model = IntegerStackModel::parse(bytes).expect("the session serves it");
+        assert_eq!(model.copy_rule(), Some(rule));
+        // The serving switch still overrides the artifact's own rule.
+        assert!(model.set_copy_rule(CopyRule::LatestNearest));
+        assert_eq!(model.copy_rule(), Some(CopyRule::LatestNearest));
+        // The mean is a rule to switch to like the others: on the latest artifact it is not its
+        // own rule, and the switch must take it (`uor-chat --copy-rule mean`).
+        assert!(model.set_copy_rule(CopyRule::Mean));
+        assert_eq!(model.copy_rule(), Some(CopyRule::Mean));
+    }
+    // Only the header changed: the artifact equals the mean one with that one header field set.
+    let by_hand = with_header(&mean, |h| h["hamming"]["copy_latest"] = serde_json::json!(true));
+    assert_eq!(latest, by_hand);
+    // A stack without Hamming reads has no copy rule to set.
+    snap.hamming = None;
+    let plain = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    assert!(super::set_hamming_copy_latest_uorlut01(&plain).is_err());
+}
+
 #[test]
 fn the_copy_key_is_recorded_only_when_two() {
     use super::synthetic::synthetic_hamming;
@@ -7641,5 +7679,205 @@ fn hamming_ask_tables_quantize_as_stored() {
         let ask = FbsHammingAskRead { table, carry: gain.map(|gain| FbsHammingCarry { rows: 1, gain }) };
         let e = quantize_hamming_ask(6, &ask).expect_err(what);
         assert!(e.contains(named), "{what}: {e}");
+    }
+}
+
+/// claude-345: a turn-memory artifact whose reply table holds exactly `entries`, the plain export
+/// without the memory chain's record.
+fn chain_memory_artifact(entries: &[(Vec<u32>, u32)], reply_turn: usize) -> Vec<u8> {
+    super::export_fbs_trunk_uorlut01(&chain_memory_snap(entries, reply_turn)).expect("export")
+}
+
+/// claude-345: the same memory exported with the memory chain's record at `tail`.
+fn chain_export(entries: &[(Vec<u32>, u32)], reply_turn: usize, tail: usize) -> Result<Vec<u8>, StackError> {
+    super::export_fbs_trunk_uorlut01_chain(&chain_memory_snap(entries, reply_turn), super::FbsExportSnaps::SNAPPED, None, tail)
+}
+
+/// claude-345: a turn-memory snapshot whose reply table holds exactly `entries` (sorted here).
+fn chain_memory_snap(entries: &[(Vec<u32>, u32)], reply_turn: usize) -> super::FbsTrunkSnapshot {
+    let mut snap = synthetic_fbs_trunk(20261110);
+    let mut memory = synthetic_memory(snap.vocab, snap.width, 8, true, 345);
+    let reply = memory.reply.as_mut().expect("a reply table");
+    reply.turn = reply_turn;
+    reply.entries = entries
+        .iter()
+        .map(|(key, value)| super::FbsMemoryEntry { key: key.clone(), value: *value })
+        .collect();
+    reply.entries.sort();
+    snap.memory = Some(memory);
+    snap
+}
+
+/// claude-345: serve `tokens` through the artifact's memory, stepping the opening row (the
+/// prompt's last token, `reply_start - 1`) and then the reply row `row`: the anchors and the
+/// reply row's move.
+fn chain_serve(
+    bytes: &[u8],
+    tokens: &[u32],
+    reply_start: usize,
+    row: usize,
+) -> (super::memory::MemoryAnchors, super::memory::MemoryMove) {
+    let artifact = super::format::Container::parse(bytes).expect("parse");
+    let image = super::memory::memory_image(&artifact).expect("read").expect("a memory");
+    let served = super::memory::ServedTurnMemory::new(image, artifact.memory_chain.as_ref());
+    let mut anchors = super::memory::MemoryAnchors::default();
+    let mut n = vec![0i64; artifact.shape.width];
+    served.apply(tokens, reply_start - 1, reply_start, &mut anchors, &[], &mut n).expect("the opening row");
+    let moved = served.apply(tokens, row, reply_start, &mut anchors, &[], &mut n).expect("a reply row");
+    (anchors, moved)
+}
+
+/// claude-345's long turn: `<|bos|>`, 18 prompt ids 10..=27, then the reply 100, 101, 102. The
+/// reply row 20 shows length 2 and id 101, and its head, tail (9) and ends keys.
+fn chain_long_turn() -> (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u32>) {
+    use super::MEMORY_PAD;
+    let mut tokens = vec![0u32];
+    tokens.extend(10..=27u32);
+    tokens.extend([100, 101, 102]);
+    let end = [MEMORY_PAD, 2, MEMORY_PAD, 101];
+    let head: Vec<u32> = (10..=17).chain(end).collect();
+    let tail: Vec<u32> = std::iter::once(MEMORY_PAD).chain(19..=27).chain(end).collect();
+    let ends: Vec<u32> = (10..=17).chain(20..=27).chain(end).collect();
+    (tokens, head, tail, ends)
+}
+
+/// claude-345: with the memory chain's record a reply row asks the ends key, then the tail key,
+/// then the head key, and the first one the reply table stores names the id.
+#[test]
+fn a_memory_chain_asks_ends_then_tail_then_head() {
+    let (tokens, head, tail, ends) = chain_long_turn();
+    assert_eq!((head.len(), tail.len(), ends.len()), (12, 14, 20));
+    let cases = [
+        ("all three stored", vec![(ends.clone(), 11), (tail.clone(), 12), (head.clone(), 13)], &ends, Some(11)),
+        ("tail and head stored", vec![(tail.clone(), 12), (head.clone(), 13)], &tail, Some(12)),
+        ("head stored", vec![(head.clone(), 13)], &head, Some(13)),
+        ("none stored", vec![(vec![super::MEMORY_PAD, 2, super::MEMORY_PAD, 7], 14)], &head, None),
+    ];
+    for (what, entries, key, stored) in cases {
+        let bytes = chain_export(&entries, 8, 9).expect(what);
+        let (anchors, moved) = chain_serve(&bytes, &tokens, 19, 20);
+        assert_eq!(anchors.reply, (10..=17).collect::<Vec<u32>>(), "{what}");
+        assert_eq!(anchors.tail, (19..=27).collect::<Vec<u32>>(), "{what}");
+        assert_eq!(moved.key, *key, "{what}");
+        assert_eq!(moved.stored, stored, "{what}");
+        assert!(!moved.opening, "{what}");
+        // The served model reads the same artifact.
+        IntegerStackModel::parse(&bytes).expect(what);
+    }
+}
+
+/// claude-345: the plain exporter refuses a tail or ends key as not a key this engine reads, the
+/// chain exporter at the right tail writes and serves the same memory, and an artifact of head
+/// keys alone reads and serves the same with the record and without it.
+#[test]
+fn without_a_memory_chain_record_chain_keys_are_refused_and_head_keys_serve_unchanged() {
+    let (tokens, head, tail, ends) = chain_long_turn();
+    for (what, key, stored) in [("a tail key", &tail, 12), ("an ends key", &ends, 11)] {
+        let entries = [(key.clone(), stored), (head.clone(), 13)];
+        match super::export_fbs_trunk_uorlut01(&chain_memory_snap(&entries, 8)) {
+            Err(StackError::Numerics(e)) => assert!(e.contains("is not a key this engine reads"), "{what}: {e}"),
+            other => panic!("{what}: {other:?}"),
+        }
+        let chained = chain_export(&entries, 8, 9).expect(what);
+        assert!(super::read_memory_uorlut01(&chained).is_ok(), "{what}");
+        IntegerStackModel::parse(&chained).expect(what);
+        let (_, moved) = chain_serve(&chained, &tokens, 19, 20);
+        assert_eq!((&moved.key, moved.stored), (key, Some(stored)), "{what}");
+    }
+    let plain = chain_memory_artifact(&[(head.clone(), 13)], 8);
+    assert_eq!(header_and_data(&plain).0["schema"], super::STACK_FBS_MEMORY_SCHEMA);
+    let chained = chain_export(&[(head.clone(), 13)], 8, 9).expect("chain");
+    assert_eq!(
+        super::read_memory_uorlut01(&plain).expect("read"),
+        super::read_memory_uorlut01(&chained).expect("read")
+    );
+    for row in [19, 20, 21] {
+        let (_, without) = chain_serve(&plain, &tokens, 19, row);
+        let (_, with) = chain_serve(&chained, &tokens, 19, row);
+        assert_eq!(without, with, "row {row}");
+    }
+    assert_eq!(chain_serve(&plain, &tokens, 19, 20).1.stored, Some(13));
+}
+
+/// claude-345: the record round-trips as a `/9` header over the same data, and the chain exporter
+/// and the parser refuse a chain without a reply table, a bad tail, a turn whose ends key does not
+/// fit, and a schema that disagrees with the record.
+#[test]
+fn a_memory_chain_record_round_trips_in_lut_stack_9_and_bad_records_are_refused() {
+    let (_, head, _, _) = chain_long_turn();
+    let plain = chain_memory_artifact(&[(head.clone(), 13)], 8);
+    let chained = chain_export(&[(head.clone(), 13)], 8, 9).expect("chain");
+    assert_eq!(chain_export(&[(head.clone(), 13)], 8, 9).expect("chain"), chained);
+    let (header, data) = header_and_data(&chained);
+    assert_eq!(header["schema"], super::STACK_FBS_CHAIN_SCHEMA);
+    assert_eq!(header["memory_chain"], json!({ "tail": 9 }));
+    assert_eq!(data, header_and_data(&plain).1);
+    let parsed = super::format::Container::parse(&chained).expect("parse");
+    assert_eq!(parsed.memory_chain, Some(super::StackMemoryChain { tail: 9 }));
+    assert!(super::format::Container::parse(&plain).expect("parse").memory_chain.is_none());
+    chain_export(&[(head.clone(), 13)], 8, 15).expect("a tail of 15 fits the row");
+    let refused = |what: &str, snap: &super::FbsTrunkSnapshot, tail: usize| {
+        let out = super::export_fbs_trunk_uorlut01_chain(snap, super::FbsExportSnaps::SNAPPED, None, tail);
+        assert!(matches!(out, Err(StackError::Shape(_))), "{what}");
+    };
+    let snap = chain_memory_snap(&[(head.clone(), 13)], 8);
+    refused("a tail of 0", &snap, 0);
+    refused("a tail past the row", &snap, 16);
+    refused("an ends key past the row", &chain_memory_snap(&[(head.clone(), 13)], 9), 9);
+    let mut snap = synthetic_fbs_trunk(20261110);
+    snap.memory = Some(synthetic_memory(snap.vocab, snap.width, 8, false, 345));
+    refused("no reply table", &snap, 9);
+    snap.memory = None;
+    refused("no turn memory", &snap, 9);
+    let schema_refused = |what: &str, bytes: &[u8]| {
+        assert!(matches!(super::format::Container::parse(bytes), Err(StackError::Schema(_))), "{what}");
+    };
+    schema_refused("a chain under /7", &with_header(&chained, |h| h["schema"] = json!(super::STACK_FBS_MEMORY_SCHEMA)));
+    schema_refused("a chain under /8", &with_header(&chained, |h| h["schema"] = json!(super::STACK_FBS_POINT_SCHEMA)));
+    schema_refused("/9 without a chain", &with_header(&plain, |h| h["schema"] = json!(super::STACK_FBS_CHAIN_SCHEMA)));
+    // The largest tail a header can name is refused, not added to until it wraps.
+    let bad_records = [
+        ("a tail of 0", json!({ "tail": 0 })),
+        ("an unknown field", json!({ "tail": 9, "x": 1 })),
+        ("the largest tail", json!({ "tail": u64::MAX })),
+    ];
+    for (what, record) in bad_records {
+        let bad = with_header(&chained, |h| h["memory_chain"] = record);
+        assert!(super::format::Container::parse(&bad).is_err(), "{what}");
+    }
+}
+
+/// claude-345: a turn of no more than `reply_turn` ids has an ends key equal to its head key, and
+/// a reply row whose block the prompt has left keys every form with no turn ids.
+#[test]
+fn a_memory_chain_short_turn_ends_as_head_and_a_left_block_empties_every_chain_form() {
+    use super::MEMORY_PAD;
+    let mut short = vec![0u32];
+    short.extend(10..=14u32);
+    short.extend([100, 101]);
+    let head: Vec<u32> = (10..=14).chain([MEMORY_PAD, 2, MEMORY_PAD, 101]).collect();
+    let bytes = chain_export(&[(head.clone(), 13)], 8, 9).expect("chain");
+    let (anchors, moved) = chain_serve(&bytes, &short, 6, 7);
+    assert_eq!(anchors.ends, anchors.reply);
+    assert_eq!(anchors.tail, anchors.reply);
+    assert_eq!(anchors.reply, (10..=14).collect::<Vec<u32>>());
+    assert_eq!((moved.key, moved.stored), (head, Some(13)));
+    // The reply runs past the first 192-token block: row 193 shows length 2 and no turn ids.
+    let mut long = vec![0u32];
+    long.extend(10..=27u32);
+    long.extend((19..196u32).map(|i| 100 + i % 50));
+    let x = long[193];
+    let empty_head = vec![MEMORY_PAD, 2, MEMORY_PAD, x];
+    let empty_tail = vec![MEMORY_PAD, MEMORY_PAD, 2, MEMORY_PAD, x];
+    let cases = [
+        ("tail stored", vec![(empty_tail.clone(), 12)], &empty_tail, 12),
+        ("tail and head stored", vec![(empty_tail.clone(), 12), (empty_head.clone(), 13)], &empty_head, 13),
+    ];
+    for (what, entries, key, stored) in cases {
+        let bytes = chain_export(&entries, 8, 9).expect(what);
+        let (anchors, moved) = chain_serve(&bytes, &long, 19, 193);
+        assert_eq!(anchors.tail.len(), 9, "{what}: the anchors keep the turn");
+        assert_eq!(moved.key, *key, "{what}");
+        assert_eq!(moved.stored, Some(stored), "{what}");
     }
 }

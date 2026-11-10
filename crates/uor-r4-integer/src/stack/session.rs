@@ -39,7 +39,7 @@ use super::format::{
     Container, Fixed, MatrixView, StackNumerics, StackPointer, StackShape, StackTransportSnap,
     StackTurnMemory,
 };
-use super::hamming::{hamming_image, HammingStepRead, ReadForce, ServedHamming};
+use super::hamming::{hamming_image, CopyRule, HammingStepRead, ReadForce, ServedHamming};
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_argmax, stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv,
@@ -741,7 +741,7 @@ impl IntegerStackModel {
         // session, which forms its keys and applies its moves (units 2-3 of
         // `turn-memory-integer`). Dropping it would serve a trunk the float model depends on.
         let memory = match memory_image(&artifact)? {
-            Some(image) => Some(Box::new(ServedTurnMemory::new(image))),
+            Some(image) => Some(Box::new(ServedTurnMemory::new(image, artifact.memory_chain.as_ref()))),
             None => None,
         };
         if artifact.shape.read_binary() && artifact.shape.head_dim() > BITCODE_LANES {
@@ -1122,6 +1122,37 @@ impl IntegerStackModel {
             fbs.hamming = None;
         }
         self
+    }
+
+    /// Serve the Hamming reads' copy heads under `rule` in place of the artifact's own mean
+    /// (claude-345: one artifact read under another rule, on the laptop). Returns whether the
+    /// model has a Hamming read to set it on. Under a rule other than [`CopyRule::Mean`] the
+    /// session no longer serves what the artifact was exported and scored as.
+    pub fn set_copy_rule(&mut self, rule: CopyRule) -> bool {
+        match self.fbs.as_mut().and_then(|fbs| fbs.hamming.as_mut()) {
+            Some(hamming) => {
+                hamming.set_copy_rule(rule);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The rule this session's copy heads are served under (claude-345): the artifact's own,
+    /// `LatestExact` when its record sets `copy_latest`, unless [`Self::set_copy_rule`] changed
+    /// it. `None` without a Hamming read.
+    pub fn copy_rule(&self) -> Option<CopyRule> {
+        self.fbs
+            .as_ref()
+            .and_then(|fbs| fbs.hamming.as_ref())
+            .map(|hamming| hamming.copy_rule())
+    }
+
+    /// Serve without the artifact's turn memory (claude-345: one artifact read with and without
+    /// it, on the laptop, as the float scorer's no-memory pass). Returns whether there was one to
+    /// drop. Without it the session no longer serves what the artifact was exported as.
+    pub fn drop_turn_memory(&mut self) -> bool {
+        self.memory.take().is_some()
     }
 
     /// The turn memory the artifact carries, if any (`uor-r4.lut-stack/7`): its recorded key

@@ -78,7 +78,7 @@ pub use content_readout::{
 };
 pub use dialogue_memory::{
     is_query as is_dialogue_query, recall as recall_from_dialogue,
-    recall_value as recall_value_from_dialogue, SieveRecall,
+    recall_value as recall_value_from_dialogue, SieveLine, SieveRecall,
 };
 
 pub use flock::{
@@ -88,10 +88,11 @@ pub use flock::{
 };
 pub use format::{
     add_hamming_ask_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
-    StackPointKey, POINT_KEY_EXP, STACK_FBS_POINT_SCHEMA,
+    set_hamming_copy_latest_uorlut01,
+    StackMemoryChain, StackPointKey, POINT_KEY_EXP, STACK_FBS_CHAIN_SCHEMA, STACK_FBS_POINT_SCHEMA,
 };
 pub use format::{
-    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry,
+    decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_chain,
     export_fbs_trunk_uorlut01_with, export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps,
     FbsQuatMode, FbsReferenceSnaps, FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot,
     FbsWriterOutput, Fixed, FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence,
@@ -109,7 +110,7 @@ pub use format::{
 };
 pub use hamming::{
     copy_weight_q31, AskImage, ASK_CARRY_GAIN_EXP, ASK_CARRY_MAX, hamming_trace_window, read_hamming_uorlut01, served_copy_codes_uorlut01,
-    CopyHeads, HammingImage, HammingReadImage, HammingStepHead, HammingStepRead, ServedCopyCodes,
+    CopyHeads, CopyRule, HammingImage, HammingReadImage, HammingStepHead, HammingStepRead, ServedCopyCodes,
     TypeHeads, COPY_MEAN_EXP,
 };
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};

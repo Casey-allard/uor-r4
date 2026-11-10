@@ -20,8 +20,8 @@ use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
-    is_dialogue_query, recall_from_dialogue, ContentReadout, IntegerStackModel, PromptReplyReadout,
-    SieveRecall, StackChat, StackChatError, StackError, StackReply,
+    is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
+    PromptReplyReadout, SieveLine, StackChat, StackChatError, StackError, StackReply,
 };
 
 /// How the stack path picks each token: `IntegerStackSession::serve_step`.
@@ -55,6 +55,11 @@ struct CliArgs {
     /// Literal-role dialogue version for the stack artifact (default 2).
     protocol: u8,
     threads: usize,
+    /// The rule the stack's copy heads read under in place of the artifact's own (`--copy-rule`);
+    /// `None` serves the artifact's own rule.
+    copy_rule: Option<CopyRule>,
+    /// Serve the stack without its turn memory (`--no-turn-memory`).
+    no_turn_memory: bool,
     /// One-shot turn: answer this message, print the record and exit.
     say: Option<String>,
     /// One-shot raw token-ID prompt (`--prompt-ids 0,7,19,31`) for `--stack` parity verification.
@@ -114,6 +119,8 @@ impl PendingMemory {
 struct ConversationMemory {
     pending: PendingMemory,
     sieve: bool,
+    /// How the sieve words its line; it follows the artifact's copy rule.
+    line: SieveLine,
     user_turns: Vec<String>,
 }
 
@@ -122,8 +129,19 @@ impl ConversationMemory {
         Self {
             pending: PendingMemory::new(pending),
             sieve,
+            line: SieveLine::Value,
             user_turns: Vec::new(),
         }
+    }
+
+    /// Word the sieve's line for the copy rule the session serves under: a
+    /// latest-exact copy read follows a reply sentence, the mean reads a value.
+    fn worded_for(mut self, rule: Option<CopyRule>) -> Self {
+        self.line = match rule {
+            Some(CopyRule::LatestExact) => SieveLine::Reply,
+            _ => SieveLine::Value,
+        };
+        self
     }
 
     fn value_for(&self, user: &str) -> (Option<String>, bool) {
@@ -134,12 +152,7 @@ impl ConversationMemory {
             return (None, false);
         }
         let history: Vec<&str> = self.user_turns.iter().map(String::as_str).collect();
-        let value = match recall_from_dialogue(&history, user) {
-            SieveRecall::Value(value) => Some(value),
-            SieveRecall::Absent => Some("none".to_owned()),
-            SieveRecall::NotRequested => None,
-        };
-        (value, false)
+        (recall_from_dialogue(&history, user).line(self.line), false)
     }
 
     fn finish_turn(&mut self, user: &str, explicit_memory: bool) {
@@ -197,6 +210,8 @@ impl Default for CliArgs {
             prompt_reply_path: None,
             protocol: 2,
             threads: 1,
+            copy_rule: None,
+            no_turn_memory: false,
             say: None,
             prompt_ids: None,
             save_session: None,
@@ -426,6 +441,21 @@ fn parse_cli_args() -> CliArgs {
                     None => {
                         eprintln!(
                             "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--protocol'"
+                        );
+                        process::exit(1);
+                    }
+                }
+            }
+            "--no-turn-memory" => {
+                args.no_turn_memory = true;
+            }
+            "--copy-rule" => {
+                idx += 1;
+                match raw.get(idx).map(String::as_str).and_then(CopyRule::parse) {
+                    Some(rule) => args.copy_rule = Some(rule),
+                    None => {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--copy-rule' takes mean, latest-exact or latest-nearest"
                         );
                         process::exit(1);
                     }
@@ -1230,6 +1260,32 @@ mod tests {
         assert!(!explicit);
         memory.finish_turn("What did we name the new puppy?", explicit);
 
+        // Under a latest-exact copy rule the sieve writes a reply sentence; a
+        // typed value and every other rule keep the bare value.
+        let mut worded = ConversationMemory::new(None, true).worded_for(Some(CopyRule::LatestExact));
+        worded.finish_turn("The new puppy at our house is named Pickle.", false);
+        assert_eq!(
+            worded.value_for("What did we name the new puppy?").0.as_deref(),
+            Some("It's Pickle")
+        );
+        assert_eq!(
+            worded.value_for("What is my lucky number?").0.as_deref(),
+            Some("You haven't told me that yet")
+        );
+        assert_eq!(worded.value_for("Hello!").0, None);
+        for rule in [None, Some(CopyRule::Mean), Some(CopyRule::LatestNearest)] {
+            let mut plain = ConversationMemory::new(None, true).worded_for(rule);
+            plain.finish_turn("The new puppy at our house is named Pickle.", false);
+            assert_eq!(
+                plain.value_for("What did we name the new puppy?").0.as_deref(),
+                Some("Pickle")
+            );
+            assert_eq!(
+                plain.value_for("What is my lucky number?").0.as_deref(),
+                Some("none")
+            );
+        }
+
         handle_memory_command(&mut memory, "/memory Goldie").unwrap();
         let (override_value, explicit) = memory.value_for("What did we name the new puppy?");
         assert_eq!(override_value.as_deref(), Some("Goldie"));
@@ -1682,6 +1738,33 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     model.set_threads(cli.threads)?;
     #[cfg(target_arch = "wasm32")]
     let _ = cli.threads;
+    if cli.no_turn_memory {
+        if !model.drop_turn_memory() {
+            return Err(StackCliError::Usage(
+                "--no-turn-memory needs a stack artifact with a turn memory".into(),
+            ));
+        }
+        println!(
+            "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} Serving without the artifact's turn memory, not as it was exported and scored."
+        );
+    }
+    // The artifact's own rule, read before any switch: the sieve words its line for the rule the
+    // model was trained under, whatever rule this run serves.
+    let own_copy_rule = model.copy_rule();
+    if let Some(rule) = cli.copy_rule {
+        if !model.set_copy_rule(rule) {
+            return Err(StackCliError::Usage(
+                "--copy-rule needs a stack artifact with Hamming reads".into(),
+            ));
+        }
+        if own_copy_rule != Some(rule) {
+            println!(
+                "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} Copy heads read under '{}', not the '{}' this artifact was exported and scored under.",
+                rule.name(),
+                own_copy_rule.map_or("mean", CopyRule::name)
+            );
+        }
+    }
     let content_readout_identity = if let Some(path) = cli.content_readout_path.as_deref() {
         let path_string = path
             .to_str()
@@ -1865,7 +1948,8 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     let stdin = io::stdin();
     let mut reader = stdin.lock();
     let mut turns = 0usize;
-    let mut memory = ConversationMemory::new(cli.memory.clone(), cli.memory_sieve);
+    let mut memory = ConversationMemory::new(cli.memory.clone(), cli.memory_sieve)
+        .worded_for(own_copy_rule);
     loop {
         print!("{ANSI_CYAN_BOLD}User>{ANSI_RESET} ");
         if io::stdout().flush().is_err() {

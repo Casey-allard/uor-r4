@@ -84,6 +84,10 @@ name = "m-world-recall-corpus"
 path = "src/bin/m-world-recall-corpus.rs"
 
 [[bin]]
+name = "recall-pairs"
+path = "src/bin/recall-pairs.rs"
+
+[[bin]]
 name = "mix-chat-corpus"
 path = "src/bin/mix-chat-corpus.rs"
 

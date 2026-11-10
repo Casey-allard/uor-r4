@@ -10,7 +10,7 @@
 //! m-world-recall-corpus out=NEW_ROOT tokenizer=TOKENIZER.json \
 //!   [world=v2|v2c] [conversations=5600] [seed=1] \
 //!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] \
-//!   [other_share=0.25] [closed_share=0.20] [recall=off|oracle] \
+//!   [other_share=0.25] [closed_share=0.20] [recall=off|oracle|reply] \
 //!   [recall_at=reply|query] [context=384] [protocol=1|2] [exclude=PANEL.json] \
 //!   [chain=0]
 //! ```
@@ -69,6 +69,7 @@ const ALLOWED: &[&str] = &[
 enum Recall {
     Off,
     Oracle,
+    Reply,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,7 +140,8 @@ impl Options {
         let recall = match optional("recall") {
             None | Some("off") => Recall::Off,
             Some("oracle") => Recall::Oracle,
-            Some(other) => return Err(format!("unknown recall={other}: off or oracle")),
+            Some("reply") => Recall::Reply,
+            Some(other) => return Err(format!("unknown recall={other}: off, oracle or reply")),
         };
         let recall_at = match optional("recall_at") {
             None | Some("reply") => RecallAt::Reply,
@@ -289,7 +291,12 @@ fn lines_for(conversation: &Conversation2, recall: Recall) -> (Vec<Option<String
             } else {
                 none += 1;
             }
-            Some(recall_line(value))
+            // recall=reply (claude-345): the line is the reply itself, abstentions included,
+            // so on every recall turn the reply is a copy of its memory line.
+            Some(match recall {
+                Recall::Reply => format!("Memory: {}", turn.reply),
+                _ => recall_line(value),
+            })
         })
         .collect();
     (lines, values, none)
@@ -475,8 +482,13 @@ fn generate(options: &Options) -> Result<Receipt> {
     // census's `redraws.dropped`, not here.
     rejected += redraws.excluded;
 
-    if options.recall == Recall::Oracle && recall_value_lines == 0 {
-        return Err("recall=oracle emitted no value-bearing memory lines".to_owned());
+    let mode = match options.recall {
+        Recall::Off => "off",
+        Recall::Oracle => "oracle",
+        Recall::Reply => "reply",
+    };
+    if options.recall != Recall::Off && recall_value_lines == 0 {
+        return Err(format!("recall={mode} emitted no value-bearing memory lines"));
     }
 
     let train = options.out.join("train");
@@ -501,9 +513,9 @@ fn generate(options: &Options) -> Result<Receipt> {
             ))
             .collect::<BTreeMap<_, _>>())
     };
-    let recall = (options.recall == Recall::Oracle).then(|| {
+    let recall = (options.recall != Recall::Off).then(|| {
         json!({
-            "mode": "oracle",
+            "mode": mode,
             "at": match options.recall_at {
                 RecallAt::Reply => "reply",
                 RecallAt::Query => "query",
@@ -512,7 +524,10 @@ fn generate(options: &Options) -> Result<Receipt> {
             "value_lines": recall_value_lines,
             "none_lines": recall_none_lines,
             "context": options.context,
-            "rule": "one system turn per MQAR and relation query, \"Memory: {value}.\" or \"Memory: none.\"; the plain episode is the one MWorld2 meters",
+            "rule": match options.recall {
+                Recall::Reply => "one system turn per MQAR and relation query, \"Memory: {reply}\", the turn's own reply, abstentions included; the plain episode is the one MWorld2 meters",
+                _ => "one system turn per MQAR and relation query, \"Memory: {value}.\" or \"Memory: none.\"; the plain episode is the one MWorld2 meters",
+            },
         })
     });
     let excluded_record = options.exclude.as_ref().map(|path| {
@@ -827,6 +842,34 @@ mod tests {
             .values()
             .map(|row| row[field].as_u64().expect("integer count"))
             .sum()
+    }
+
+    /// claude-345: under recall=reply every memory line is its turn's own reply, so the same
+    /// turns take a line as under recall=oracle and each line is followed by the same words.
+    #[test]
+    fn reply_lines_are_the_turns_own_replies() {
+        let root = clean("reply");
+        let receipt = generate(&options(&root, Recall::Reply)).expect("reply corpus");
+        let oracle_root = clean("reply-oracle");
+        let oracle = generate(&options(&oracle_root, Recall::Oracle)).expect("oracle corpus");
+        assert_eq!(receipt.recall_lines, oracle.recall_lines);
+        assert_eq!(receipt.recall_value_lines, oracle.recall_value_lines);
+        assert_eq!(receipt.recall_none_lines, oracle.recall_none_lines);
+        let (_, _, manifest, text) = read(&root);
+        assert_eq!(text.matches("System: Memory: ").count(), receipt.recall_lines);
+        assert!(!text.contains("Memory: none."));
+        let mut lines = 0;
+        for part in text.split("System: Memory: ").skip(1) {
+            let (line, rest) = part.split_once('\n').expect("a turn after the line");
+            let reply = rest.strip_prefix("Assistant: ").expect("the reply follows its line");
+            assert!(reply.starts_with(line), "{line:?} then {reply:?}");
+            lines += 1;
+        }
+        assert_eq!(lines, receipt.recall_lines);
+        let manifest: Value = serde_json::from_slice(&manifest).expect("JSON");
+        assert_eq!(manifest["composition"]["m_world"]["recall"]["mode"], json!("reply"));
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&oracle_root);
     }
 
     #[test]

@@ -153,6 +153,11 @@ pub struct LongConfig {
     /// (`HammingReads::with_copy_keys`, claude-268). Left out of `config.json` when none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hamming_copy_keys: Option<Vec<usize>>,
+    /// The Hamming read's copy heads read their latest exact match in place of the mean of their
+    /// nearest sixteen (`HammingReads::with_copy_latest`, claude-345): the rule the integer
+    /// session serves as `CopyRule::LatestExact`. Left out of `config.json` when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hamming_copy_latest: bool,
     /// The Hamming read's type heads as ask heads (`HammingReads::with_ask`, claude-330): each
     /// asks with its token's point plus a learned question row, against the copy key. Off by
     /// default, and left out of `config.json` when off.
@@ -216,6 +221,20 @@ pub struct LongConfig {
     /// out when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub turn_memory_reply: bool,
+    /// The turn memory leaves to the copy read every key the copy read owns (claude-345): a key
+    /// of either table where the Hamming read's latest exact match ([`copy_names`]) already names
+    /// the target on more than half of the key's TRAIN rows is stored in neither table, so the
+    /// memory holds what the context cannot supply. Needs `turn_memory` and `hamming_copy_latest`.
+    /// Left out when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub turn_memory_leave_copied: bool,
+    /// The reply table's tail (claude-345): with `N` above 0 the table stores each TRAIN row under
+    /// three keys and the read asks them in order: both ends of the turn (its first 8 ids and the
+    /// last 8 of the rest), its last `N` ids, then its first 8 as before. The first 8 end before
+    /// the second operand of a sum and before the word of "What is the opposite of tall?"; the
+    /// tail holds them. Needs `turn_memory_reply`. 0 is off, and left out of `config.json`.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub turn_memory_tail: usize,
     /// Memory dropout (one-model-end-to-end protocol I-B, claude-207), in thousandths: each
     /// training window is dropped with this chance ([`memory_dropped`]), and in a dropped window
     /// the turn memory names no row, so the trunk also learns those windows without it. Training
@@ -1137,6 +1156,9 @@ fn start_hamming(
         if config.hamming_copy_key != 1 || config.hamming_copy_keys.is_some() {
             return Err(invalid("--hamming-copy-key and --hamming-copy-keys key the Hamming read's copy heads; turn the read on with --hamming-read"));
         }
+        if config.hamming_copy_latest {
+            return Err(invalid("--hamming-copy-latest sets the Hamming read's copy rule; turn the read on with --hamming-read"));
+        }
         return Ok(None);
     }
     if let Some(keys) = &config.hamming_copy_keys {
@@ -1154,6 +1176,9 @@ fn start_hamming(
             .with_copy_key(config.hamming_copy_key)?;
     if let Some(keys) = &config.hamming_copy_keys {
         reads = reads.with_copy_keys(keys)?;
+    }
+    if config.hamming_copy_latest {
+        reads = reads.with_copy_latest();
     }
     if config.type_spin {
         reads = reads.with_type_spin()?;
@@ -1275,10 +1300,27 @@ fn start_memory(
         if config.turn_memory_reply {
             return Err(invalid("--turn-memory-reply needs --turn-memory K"));
         }
+        if config.turn_memory_leave_copied {
+            return Err(invalid("--turn-memory-leave-copied needs --turn-memory K"));
+        }
         if config.turn_memory_dropout > 0 {
             return Err(invalid("--turn-memory-dropout needs --turn-memory K"));
         }
+        if config.turn_memory_tail > 0 {
+            return Err(invalid("--turn-memory-tail needs --turn-memory K"));
+        }
         return Ok((None, Vec::new(), Vec::new()));
+    }
+    if config.turn_memory_tail > 0 && !config.turn_memory_reply {
+        return Err(invalid(
+            "--turn-memory-tail keys the reply table: it needs --turn-memory-reply 1",
+        ));
+    }
+    if config.turn_memory_tail > crate::flock_read_memory::MAX_REPLY_KEY - 5 {
+        return Err(invalid(format!(
+            "--turn-memory-tail holds 1 to {} ids of the turn",
+            crate::flock_read_memory::MAX_REPLY_KEY - 5
+        )));
     }
     if config.turn_memory_reply && config.turn_memory != TURN_KEY {
         return Err(invalid(format!(
@@ -1289,13 +1331,40 @@ fn start_memory(
         None => load_train_split(data_root)?,
         Some(split) => load_named_split(split)?,
     };
+    if config.turn_memory_leave_copied && !config.hamming_copy_latest {
+        return Err(invalid(
+            "--turn-memory-leave-copied leaves keys to the copy read's latest exact match: it needs --hamming-copy-latest 1",
+        ));
+    }
     let (windows, _) = hs::build_document_windows(&tokens, &mask, config.context, hs::SHEET_BOS_ID)?;
+    // Each copy head's key, as the run's Hamming read is built: the leave rule asks every head.
+    let leave_keys: Vec<usize> =
+        config.hamming_copy_keys.clone().unwrap_or_else(|| vec![config.hamming_copy_key]);
     let train = openings(&windows, &mask);
-    let table = if config.turn_memory_empty {
+    let mut table = if config.turn_memory_empty {
         std::collections::HashMap::new()
     } else {
         crate::flock_read_memory::build_table(&train, config.turn_memory)
     };
+    // claude-345: the opening keys the copy read owns are left to it.
+    if config.turn_memory_leave_copied {
+        let rows: Vec<(Vec<u32>, bool)> = opening_rows(&windows, &mask)
+            .into_iter()
+            .filter(|row| !row.prompt.is_empty())
+            .map(|row| {
+                let copied = copy_names_by(&leave_keys, &windows[row.window].input_ids, row.offset, row.target);
+                let key = row.prompt[..config.turn_memory.min(row.prompt.len())].to_vec();
+                (key, copied)
+            })
+            .collect();
+        let owned = crate::flock_read_memory::copy_owned_keys(&rows);
+        let before = table.len();
+        table.retain(|key, _| !owned.contains(key));
+        println!(
+            "[memory] opening keys left to the copy read {} of {before}",
+            before - table.len()
+        );
+    }
     println!(
         "[memory] key {} ids; TRAIN openings {}; table keys {}{}",
         config.turn_memory,
@@ -1312,22 +1381,51 @@ fn start_memory(
     // The reply table (claude-193): TRAIN's rows past their openings, at the probe's key and share.
     let mut replies = Vec::new();
     if config.turn_memory_reply {
-        let rows: Vec<(Vec<u32>, u32)> = reply_rows(&windows, &mask)
+        // Before any reply key is formed: the table's rows and the read's rows key alike.
+        crate::flock_read_memory::set_reply_tail(config.turn_memory_tail);
+        let later: Vec<ReplyRow> = reply_rows(&windows, &mask)
             .into_iter()
             .filter(|row| !row.opening)
-            .map(|row| (reply_key(&row), row.target))
             .collect();
-        let table = if config.turn_memory_empty {
-            std::collections::HashMap::new()
+        // claude-345: likewise the reply keys the copy read owns.
+        let copied: Option<Vec<bool>> = config.turn_memory_leave_copied.then(|| {
+            later
+                .iter()
+                .map(|row| {
+                    let ids = &windows[row.window].input_ids;
+                    copy_names_by(&leave_keys, ids, row.offset, row.target)
+                })
+                .collect()
+        });
+        let tail = config.turn_memory_tail;
+        let built = if config.turn_memory_empty {
+            ChainTable::default()
         } else {
-            crate::flock_read_memory::build_reply_table(&rows, REPLY_MEMORY_SHARE)
+            chain_reply_table(&later, tail, REPLY_MEMORY_SHARE, copied.as_deref())
         };
+        if copied.is_some() {
+            println!(
+                "[memory] reply keys left to the copy read {} of {}",
+                built.left, built.built
+            );
+        }
+        if tail > 0 {
+            println!(
+                "[memory] reply key chain: tail {tail}; keys that yield to a copied key {}; TRAIN rows named right {} of {}",
+                built.yielded,
+                built.named,
+                later.len()
+            );
+        }
         println!(
             "[memory] reply table: TRAIN rows past their openings {}; keys at share {REPLY_MEMORY_SHARE} {}",
-            rows.len(),
-            table.len()
+            later.len(),
+            built.table.len()
         );
-        memory = memory.with_reply(table)?;
+        memory = memory.with_reply(built.table)?;
+        if tail > 0 {
+            memory = memory.with_reply_tail(tail)?;
+        }
         replies = reply_offsets(usable, &mask);
     }
     crate::flock_read_memory::set_turn_memory(Some(memory.clone()));
@@ -5455,10 +5553,153 @@ struct ReplyRow {
     copy: bool,
 }
 
-/// The reply table's key for `row` (claude-193): the probe's `turn-8 + position + reply-last-1`,
-/// so the read keys exactly as the probe counted.
+/// Whether the copy read's latest exact match names `target` for the row predicted from window
+/// position `offset` of `ids` (claude-345): the latest position `s` in `1..offset` whose previous
+/// token is the row's own input token holds `target`. This is the choice the Hamming read's copy
+/// heads make under `HammingReads::with_copy_latest` and the integer session under
+/// `CopyRule::LatestExact`, read off the tokens.
+fn copy_names(ids: &[u32], offset: usize, target: u32) -> bool {
+    (1..offset)
+        .rev()
+        .find(|&s| ids[s - 1] == ids[offset])
+        .is_some_and(|s| ids[s] == target)
+}
+
+/// Whether every copy head's latest exact match names `target` (claude-345), `keys` holding each
+/// copy head's key. A one-token head is [`copy_names`]. A two-token head (claude-261) takes the
+/// latest `s` in `2..offset` whose two previous tokens are the row's previous and own tokens, in
+/// order. The turn memory leaves a key to the copy read only where the whole copy read names the
+/// target: under `--hamming-copy-keys 1,2` a row only the one-token head gets right stays in the
+/// table. With one-token keys alone this is [`copy_names`].
+fn copy_names_by(keys: &[usize], ids: &[u32], offset: usize, target: u32) -> bool {
+    keys.iter().all(|&key| match key {
+        2 => {
+            offset >= 1
+                && (2..offset)
+                    .rev()
+                    .find(|&s| ids[s - 2] == ids[offset - 1] && ids[s - 1] == ids[offset])
+                    .is_some_and(|s| ids[s] == target)
+        }
+        _ => copy_names(ids, offset, target),
+    })
+}
+
+/// The forms a reply key holds, in the order the read asks them. Without a tail (claude-193),
+/// the probe's `turn-8 + position + reply-last-1` alone. With a tail of `tail` ids (claude-345):
+/// both ends of the turn, then its last `tail` ids, then its first 8, each with the position and
+/// the reply's last token, as `--reply-bound` counted them.
+fn reply_key_forms(tail: usize) -> Vec<ReplyKey> {
+    let head = ReplyKey::TurnPosition(1);
+    match tail {
+        0 => vec![head],
+        tail => vec![ReplyKey::HeadTail(TURN_KEY), ReplyKey::TailPosition(tail), head],
+    }
+}
+
+/// A reply row's key from its turn's ids and its reply so far: each of [`reply_key_forms`],
+/// joined by the memory's chain mark, which its lookup splits on. One form is that form's key.
+fn chained_key(prompt: &[u32], reply: &[u32], tail: usize) -> Vec<u32> {
+    let keys: Vec<Vec<u32>> = reply_key_forms(tail)
+        .iter()
+        .map(|form| form.of_parts(prompt, reply))
+        .collect();
+    keys.join(&crate::flock_read_memory::CHAIN)
+}
+
+/// The reply table's key for `row`, formed with the tail this thread's memory keys on
+/// ([`crate::flock_read_memory::reply_tail`]), so the read keys exactly as the table was built.
 fn reply_key(row: &ReplyRow) -> Vec<u32> {
-    ReplyKey::TurnPosition(1).of(row)
+    chained_key(&row.prompt, &row.reply, crate::flock_read_memory::reply_tail())
+}
+
+/// What [`chain_reply_table`] built (claude-345): the table and its counts.
+#[derive(Default)]
+struct ChainTable {
+    table: std::collections::HashMap<Vec<u32>, u32>,
+    /// Keys at the share, before any is left out.
+    built: usize,
+    /// Keys the copy read owns, left out.
+    left: usize,
+    /// Keys left out because a row whose more exact key the copy read owns fell through to them.
+    yielded: usize,
+    /// Rows the finished table names with their own target, asked as the read asks.
+    named: usize,
+}
+
+/// One reply table over every key form of `tail` (claude-345). Each of `rows` counts its target
+/// once under each distinct key it has, so a key's count is over every row holding that key in
+/// any form, and `share` keeps a key as [`crate::flock_read_memory::build_reply_table`] does.
+/// `copied`, given, says per row whether the copy read names its target. The keys the copy read
+/// owns are left out, and so is every key a row falls through to past a key the copy read owns:
+/// a wider key never writes over a position its more exact key gave to the copy read. Without a
+/// tail there is one form, nothing to fall through to, and the table is the one built before.
+fn chain_reply_table(
+    rows: &[ReplyRow],
+    tail: usize,
+    share: f64,
+    copied: Option<&[bool]>,
+) -> ChainTable {
+    use std::collections::HashSet;
+    let forms = reply_key_forms(tail);
+    // Every row's distinct keys, in the order the read asks them, flat; `spans` is each row's.
+    let mut pairs: Vec<(Vec<u32>, u32)> = Vec::with_capacity(rows.len() * forms.len());
+    let mut spans: Vec<std::ops::Range<usize>> = Vec::with_capacity(rows.len());
+    for row in rows {
+        let start = pairs.len();
+        for form in &forms {
+            let key = form.of(row);
+            if pairs[start..].iter().all(|(seen, _)| *seen != key) {
+                pairs.push((key, row.target));
+            }
+        }
+        spans.push(start..pairs.len());
+    }
+    let mut table = crate::flock_read_memory::build_reply_table(&pairs, share);
+    let built = table.len();
+    let owned: HashSet<Vec<u32>> = match copied {
+        Some(copied) => crate::flock_read_memory::copy_owned_keys_of(
+            spans
+                .iter()
+                .zip(copied)
+                .flat_map(|(span, &copied)| pairs[span.clone()].iter().map(move |(key, _)| (key.as_slice(), copied))),
+        ),
+        None => HashSet::new(),
+    };
+    table.retain(|key, _| !owned.contains(key));
+    let left = built - table.len();
+    // A removal can uncover a still wider key, so repeat until no row falls through.
+    let mut yielded = 0;
+    while !owned.is_empty() {
+        let mut yields: HashSet<&[u32]> = HashSet::new();
+        for span in &spans {
+            let mut past_owned = false;
+            for (key, _) in &pairs[span.clone()] {
+                if table.contains_key(key) {
+                    if past_owned {
+                        yields.insert(key);
+                    }
+                    break;
+                }
+                past_owned |= owned.contains(key);
+            }
+        }
+        if yields.is_empty() {
+            break;
+        }
+        yielded += yields.len();
+        table.retain(|key, _| !yields.contains(key.as_slice()));
+    }
+    let named = spans
+        .iter()
+        .zip(rows)
+        .filter(|(span, row)| {
+            pairs[(*span).clone()]
+                .iter()
+                .find_map(|(key, _)| table.get(key))
+                .is_some_and(|&token| token == row.target)
+        })
+        .count();
+    ChainTable { table, built, left, yielded, named }
 }
 
 /// The reply table's rows in one forward of `windows`, each `time` positions long: every row
@@ -5493,13 +5734,11 @@ fn reply_offsets(windows: &[CausalWindow], mask: &[u8]) -> ReplyOffsets {
 /// is the step's window and `opening` the window index of the prompt's last token.
 fn greedy_reply_key(window: &[u32], opening: usize, reply: &[u32]) -> Option<Vec<u32>> {
     use crate::flock_read_opening::{opening_slots, OpeningAnchor};
-    let last = *reply.last()?;
-    let slots = opening_slots(&window[..=opening], TURN_KEY, OpeningAnchor::Turn);
-    let turn = slots[opening].iter().map(|&s| window[s]);
-    Some(
-        turn.chain([u32::MAX, reply.len() as u32, u32::MAX, last])
-            .collect(),
-    )
+    reply.last()?;
+    // The whole turn at the prompt's last token: the anchor's slots, uncut.
+    let slots = opening_slots(&window[..=opening], opening + 1, OpeningAnchor::Turn);
+    let turn: Vec<u32> = slots[opening].iter().map(|&s| window[s]).collect();
+    Some(chained_key(&turn, reply, crate::flock_read_memory::reply_tail()))
 }
 
 fn reply_rows(windows: &[CausalWindow], mask: &[u8]) -> Vec<ReplyRow> {
@@ -5557,20 +5796,41 @@ enum ReplyKey {
     /// The turn's first 8 tokens, the reply position, and the reply's last `j`. At position 0
     /// this is claude-161's opening key.
     TurnPosition(usize),
+    /// The turn's last `n` prompt tokens, the reply position, and the reply's last token
+    /// (claude-345). The first 8 tokens end before the second operand of a sum and before the
+    /// word of "What is the opposite of tall?"; the tail holds them.
+    TailPosition(usize),
+    /// The turn's first 8 prompt tokens and, of the tokens after them, the last `n`; then the
+    /// reply position and the reply's last token (claude-345). A sum's first operand is in the
+    /// first 8 and its second in the tail; a prompt of at most `8 + n` tokens is keyed whole.
+    HeadTail(usize),
 }
 
 impl ReplyKey {
     fn of(self, row: &ReplyRow) -> Vec<u32> {
-        let last = |j: usize| &row.reply[row.reply.len() - j.min(row.reply.len())..];
-        let turn = &row.prompt[..TURN_KEY.min(row.prompt.len())];
+        self.of_parts(&row.prompt, &row.reply)
+    }
+
+    /// The key of a reply row from its turn's ids and its reply tokens so far.
+    fn of_parts(self, prompt: &[u32], reply: &[u32]) -> Vec<u32> {
+        let last = |j: usize| &reply[reply.len() - j.min(reply.len())..];
+        let turn = &prompt[..TURN_KEY.min(prompt.len())];
+        let tail = |n: usize| &prompt[prompt.len() - n.min(prompt.len())..];
+        let position = [u32::MAX, reply.len() as u32, u32::MAX];
         // The parts are joined by `u32::MAX`, which no token id takes.
         match self {
             ReplyKey::None => Vec::new(),
             ReplyKey::Reply(j) => last(j).to_vec(),
             ReplyKey::Turn(j) => [turn, &[u32::MAX], last(j)].concat(),
-            ReplyKey::TurnPosition(j) => {
-                [turn, &[u32::MAX, row.reply.len() as u32, u32::MAX], last(j)].concat()
+            ReplyKey::TurnPosition(j) => [turn, &position, last(j)].concat(),
+            ReplyKey::HeadTail(n) => {
+                let rest = &prompt[turn.len()..];
+                let end = &rest[rest.len() - n.min(rest.len())..];
+                [turn, end, &position, last(1)].concat()
             }
+            // A leading `u32::MAX` marks the form: a key on the turn's first ids never opens
+            // with one unless the turn is empty, and then it is four ids long, this one five.
+            ReplyKey::TailPosition(n) => [&[u32::MAX], tail(n), &position, last(1)].concat(),
         }
     }
 
@@ -5580,6 +5840,8 @@ impl ReplyKey {
             ReplyKey::Reply(j) => format!("reply-last-{j}"),
             ReplyKey::Turn(j) => format!("turn-{TURN_KEY}+reply-last-{j}"),
             ReplyKey::TurnPosition(j) => format!("turn-{TURN_KEY}+position+reply-last-{j}"),
+            ReplyKey::TailPosition(n) => format!("tail-{n}+position+reply-last-1"),
+            ReplyKey::HeadTail(n) => format!("turn-{TURN_KEY}+tail-{n}+position+reply-last-1"),
         }
     }
 }
@@ -5701,6 +5963,64 @@ fn reply_bound_rows(
         .collect()
 }
 
+/// [`ReplyBound`] for tables asked in order (claude-345): the first of `chain` whose table keeps
+/// the row's key names it. A specific key answers where TRAIN holds the question; the general key
+/// after it keeps the wording of a turn whose value TRAIN never held.
+fn reply_bound_backoff_rows(
+    chain: &[ReplyKey],
+    train: &[ReplyRow],
+    dev: &[ReplyRow],
+    shares: &[f64],
+) -> Vec<ReplyBound> {
+    let tables: Vec<ReplyTableCounts> = chain.iter().map(|key| reply_table(*key, train)).collect();
+    let names: Vec<String> = chain.iter().map(|key| key.name()).collect();
+    shares
+        .iter()
+        .map(|&min_share| {
+            let kept = |stored: &&(u32, usize, usize)| table_keeps(stored, min_share);
+            let mut out = ReplyBound {
+                key: names.join(", else "),
+                min_share,
+                train_rows: train.len(),
+                train_keys: tables.iter().map(|t| t.values().filter(kept).count()).sum(),
+                all: KindCount::default(),
+                openings: KindCount::default(),
+                copies: KindCount::default(),
+                rest: KindCount::default(),
+                opening_hits_with_fallback: 0,
+            };
+            for row in dev {
+                let named = chain
+                    .iter()
+                    .zip(&tables)
+                    .find_map(|(key, table)| table.get(&key.of(row)).filter(kept))
+                    .map(|s| s.0);
+                let kinds = [
+                    (true, &mut out.all),
+                    (row.opening, &mut out.openings),
+                    (row.copy, &mut out.copies),
+                    (!row.opening && !row.copy, &mut out.rest),
+                ];
+                for (_, kind) in kinds.into_iter().filter(|(of, _)| *of) {
+                    kind.rows += 1;
+                    kind.named += usize::from(named.is_some());
+                    kind.hits += usize::from(named == Some(row.target));
+                }
+            }
+            out
+        })
+        .collect()
+}
+
+/// The tail lengths `--reply-bound` tries for [`ReplyKey::TailPosition`]. The role line and the
+/// question mark before it take 7 tokens, so 8 holds the question's last token and 9 its last
+/// two. The float memory's
+/// longest key is 16 ids.
+const REPLY_BOUND_TAILS: [usize; 6] = [7, 8, 9, 10, 12, 16];
+/// The tail lengths `--reply-bound` tries after the first 8 tokens ([`ReplyKey::HeadTail`]): 8
+/// fills the float memory's 16-id key; 14 holds 8 tokens before the 6-token role line.
+const REPLY_BOUND_ENDS: [usize; 3] = [8, 12, 14];
+
 /// The stored-share thresholds `--reply-bound` reports.
 const REPLY_BOUND_SHARES: [f64; 4] = [0.0, 0.5, 0.8, 0.95];
 
@@ -5712,15 +6032,131 @@ pub fn reply_bound(data_root: &Path) -> Result<Vec<ReplyBound>> {
     let (train_windows, _) =
         hs::build_document_windows(&train_tokens, &train_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
-    let train = reply_rows(&train_windows, &train_mask);
-    let dev = reply_rows(&dev_windows, &dev_mask);
+    Ok(reply_bound_of(
+        &reply_rows(&train_windows, &train_mask),
+        &reply_rows(&dev_windows, &dev_mask),
+    ))
+}
+
+/// [`reply_bound`] over two named folders instead of the pinned TRAIN and DEV (claude-345): each
+/// holds `tokens.u16` and `response_mask.u8`, `train` the table's rows and `dev` the rows it is
+/// asked about. The first two values are the folders' token hashes, so a reader can say which
+/// files were counted.
+pub fn reply_bound_dirs(train: &Path, dev: &Path) -> Result<(String, String, Vec<ReplyBound>)> {
+    let rows = |dir: &Path| -> Result<(Vec<ReplyRow>, String)> {
+        let (tokens, mask, sha) = load_unpinned_uort(dir)?;
+        let (windows, _) =
+            hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+        Ok((reply_rows(&windows, &mask), sha))
+    };
+    let ((train, train_sha), (dev, dev_sha)) = (rows(train)?, rows(dev)?);
+    Ok((train_sha, dev_sha, reply_bound_of(&train, &dev)))
+}
+
+/// What the trainer's reply table names on other rows (claude-345): the table of `tail` built
+/// from one folder's rows past their openings as [`chain_reply_table`] builds it, the keys the
+/// copy read owns left out, then asked about another folder's rows as the read asks. A `copied`
+/// row is one the copy read's latest exact match names; a table that names it writes over the
+/// copy. The `rest` are the rows only the table can name.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct ReplyChainCount {
+    pub tail: usize,
+    pub copy_keys: Vec<usize>,
+    pub train_rows: usize,
+    pub keys_at_share: usize,
+    pub keys_left_to_copy: usize,
+    pub keys_yielded: usize,
+    pub keys: usize,
+    pub train_named_right: usize,
+    pub dev_rows: usize,
+    pub dev_copied: usize,
+    pub dev_copied_named: usize,
+    pub dev_copied_named_right: usize,
+    pub dev_rest: usize,
+    pub dev_rest_named: usize,
+    pub dev_rest_right: usize,
+}
+
+/// [`ReplyChainCount`] for each of `tails` (0 is the table without a tail), the table from
+/// `train` and the rows asked from `dev`, the copy read's heads keyed by `copy_keys`. Needs no
+/// GPU: it counts what a run's table would hold before the run.
+pub fn reply_chain_dirs(
+    train: &Path,
+    dev: &Path,
+    tails: &[usize],
+    copy_keys: &[usize],
+) -> Result<Vec<ReplyChainCount>> {
+    let load = |dir: &Path| -> Result<(Vec<ReplyRow>, Vec<bool>)> {
+        let (tokens, mask, _) = load_unpinned_uort(dir)?;
+        let (windows, _) =
+            hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
+        let rows: Vec<ReplyRow> =
+            reply_rows(&windows, &mask).into_iter().filter(|row| !row.opening).collect();
+        let copied = rows
+            .iter()
+            .map(|row| {
+                let ids = &windows[row.window].input_ids;
+                copy_names_by(copy_keys, ids, row.offset, row.target)
+            })
+            .collect();
+        Ok((rows, copied))
+    };
+    let ((train, train_copied), (dev, dev_copied)) = (load(train)?, load(dev)?);
+    let count = |&tail: &usize| {
+        let built = chain_reply_table(&train, tail, REPLY_MEMORY_SHARE, Some(&train_copied));
+        let forms = reply_key_forms(tail);
+        let mut count = ReplyChainCount {
+            tail,
+            copy_keys: copy_keys.to_vec(),
+            train_rows: train.len(),
+            keys_at_share: built.built,
+            keys_left_to_copy: built.left,
+            keys_yielded: built.yielded,
+            keys: built.table.len(),
+            train_named_right: built.named,
+            dev_rows: dev.len(),
+            ..ReplyChainCount::default()
+        };
+        for (row, &copied) in dev.iter().zip(&dev_copied) {
+            let stored = forms.iter().find_map(|form| built.table.get(&form.of(row)));
+            let (named, right) = (usize::from(stored.is_some()), usize::from(stored == Some(&row.target)));
+            if copied {
+                count.dev_copied += 1;
+                count.dev_copied_named += named;
+                count.dev_copied_named_right += right;
+            } else {
+                count.dev_rest += 1;
+                count.dev_rest_named += named;
+                count.dev_rest_right += right;
+            }
+        }
+        count
+    };
+    Ok(tails.iter().map(count).collect())
+}
+
+/// Every key [`reply_bound`] reports, over `train`'s table and `dev`'s rows.
+fn reply_bound_of(train: &[ReplyRow], dev: &[ReplyRow]) -> Vec<ReplyBound> {
     let keys = std::iter::once(ReplyKey::None)
         .chain((1..=4).map(ReplyKey::Reply))
         .chain((0..=4).map(ReplyKey::Turn))
-        .chain((0..=1).map(ReplyKey::TurnPosition));
-    Ok(keys
-        .flat_map(|key| reply_bound_rows(key, &train, &dev, &REPLY_BOUND_SHARES))
-        .collect())
+        .chain((0..=1).map(ReplyKey::TurnPosition))
+        .chain(REPLY_BOUND_TAILS.map(ReplyKey::TailPosition));
+    let mut out: Vec<ReplyBound> = keys
+        .flat_map(|key| reply_bound_rows(key, train, dev, &REPLY_BOUND_SHARES))
+        .collect();
+    let specific = REPLY_BOUND_TAILS
+        .map(ReplyKey::TailPosition)
+        .into_iter()
+        .chain(REPLY_BOUND_ENDS.map(ReplyKey::HeadTail));
+    let general = ReplyKey::TurnPosition(1);
+    for first in specific {
+        out.extend(reply_bound_backoff_rows(&[first, general], train, dev, &REPLY_BOUND_SHARES));
+    }
+    // Both ends of the question, then its end, then its start: a sum needs both operands.
+    let chain = [ReplyKey::HeadTail(8), ReplyKey::TailPosition(9), general];
+    out.extend(reply_bound_backoff_rows(&chain, train, dev, &REPLY_BOUND_SHARES));
+    out
 }
 
 /// Pinned SHA-256 of the sealed Fresh V2 panel's `tokens.u16`, opened once for M1 bar (e)
@@ -10966,9 +11402,10 @@ pub fn grade(
             .and_then(|at| greedy_reply_key(&ids[..=row.offset], at, &row.reply));
         hit_keys[0] += 1;
         hit_keys[1] += usize::from(decoded.as_ref() == Some(&key));
+        // `reply` holds the first-8 form alone, whatever tail this thread's memory keys on.
         hit_keys[2] += usize::from(
             reply
-                .get(&key)
+                .get(&ReplyKey::TurnPosition(1).of(row))
                 .is_some_and(|s| table_keeps(s, REPLY_MEMORY_SHARE)),
         );
     }
@@ -16015,6 +16452,7 @@ mod tests {
             type_spin: false,
             hamming_copy_key: 1,
             hamming_copy_keys: None,
+            hamming_copy_latest: false,
             hamming_ask: false,
             hamming_attract: 0.0,
             hamming_attract_at_question: false,
@@ -16032,6 +16470,8 @@ mod tests {
             turn_memory: 0,
             turn_memory_empty: false,
             turn_memory_reply: false,
+            turn_memory_leave_copied: false,
+            turn_memory_tail: 0,
             turn_memory_dropout: 0,
             fbs_arm: FbsArm::OneAtomActive,
             reply_read_train: None,
@@ -17519,6 +17959,204 @@ mod tests {
         }
         // The opening step has no reply yet, so no reply key.
         assert_eq!(greedy_reply_key(&tokens[..4], 3, &[]), None);
+    }
+
+    #[test]
+    fn a_tail_key_names_what_the_first_eight_tokens_end_before() {
+        // Questions with the same first 8 tokens and different last words, each answered by its
+        // own token: the first-8 key cannot tell them apart, the tail key can.
+        let row = |end: u32, target: u32| ReplyRow {
+            window: 0,
+            offset: 0,
+            prompt: [&[1u32, 2, 3, 4, 5, 6, 7, 8][..], &[end, 9]].concat(),
+            reply: vec![30],
+            target,
+            opening: false,
+            copy: false,
+        };
+        let train = [row(40, 50), row(41, 51), row(41, 51)];
+        // DEV: both held questions, and one whose last word TRAIN never held.
+        let dev = [row(40, 50), row(41, 51), row(42, 51)];
+        // The first-8 key keeps its commonest target, 51 (2 of 3 rows), for every question.
+        let head = &reply_bound_rows(ReplyKey::TurnPosition(1), &train, &dev, &[0.5])[0];
+        assert_eq!((head.rest.named, head.rest.hits), (3, 2));
+        // The tail key names each held question right and the unseen one not at all.
+        let tail = &reply_bound_rows(ReplyKey::TailPosition(8), &train, &dev, &[0.5])[0];
+        assert_eq!((tail.rest.named, tail.rest.hits), (2, 2));
+        // Asked in order, the tail names the held two and the first-8 key the unseen one.
+        let chain = [ReplyKey::TailPosition(8), ReplyKey::TurnPosition(1)];
+        let both = &reply_bound_backoff_rows(&chain, &train, &dev, &[0.5])[0];
+        assert_eq!((both.rest.named, both.rest.hits), (3, 3));
+        assert_eq!(
+            both.key,
+            "tail-8+position+reply-last-1, else turn-8+position+reply-last-1"
+        );
+        // The first 8 and the last 8 of a 10-token prompt are the whole prompt, each token once.
+        let whole = ReplyKey::HeadTail(8).of(&dev[0]);
+        assert_eq!(whole[..10], dev[0].prompt[..]);
+        assert_eq!(whole[10..], [u32::MAX, 1, u32::MAX, 30]);
+    }
+
+    /// A reply row whose turn is the eight ids 1 to 8, then `middle` and `end`, one token into
+    /// its reply (claude-345).
+    fn chain_row(middle: u32, end: [u32; 2], target: u32) -> ReplyRow {
+        ReplyRow {
+            window: 0,
+            offset: 0,
+            prompt: [&[1u32, 2, 3, 4, 5, 6, 7, 8][..], &[middle], &end].concat(),
+            reply: vec![30],
+            target,
+            opening: false,
+            copy: false,
+        }
+    }
+
+    /// claude-345: with a tail, one table holds each row under its three keys, the read asks
+    /// both ends, then the tail, then the first 8, and the trainer's key is the three joined.
+    #[test]
+    fn a_chain_table_holds_three_forms_and_the_read_asks_them_in_order() {
+        use crate::flock_read_memory::{reply_tail, set_turn_memory, TurnMemory, CHAIN};
+        // One question answered 50; another with the same first 8 and last 2 tokens, twice, 51.
+        let train = [
+            chain_row(40, [60, 61], 50),
+            chain_row(41, [60, 61], 51),
+            chain_row(41, [60, 61], 51),
+        ];
+        let built = chain_reply_table(&train, 2, 0.5, None);
+        // Two both-ends keys, one tail key, one first-8 key; every row named by its own.
+        assert_eq!((built.built, built.left, built.yielded, built.named), (4, 0, 0, 3));
+        let mut openings = std::collections::HashMap::new();
+        openings.insert(vec![1u32, 2], 30u32);
+        let memory = TurnMemory::new(2, openings, 4, &Device::Cpu)
+            .unwrap()
+            .with_reply(built.table.clone())
+            .unwrap()
+            .with_reply_tail(2)
+            .unwrap();
+        set_turn_memory(Some(memory.clone()));
+        assert_eq!(reply_tail(), 2);
+        // The key the trainer asks with is the three forms joined, in the read's order.
+        let wide = reply_key(&train[0]);
+        let forms: Vec<&[u32]> = wide.split(|&id| id == CHAIN).collect();
+        assert_eq!(forms.len(), 3);
+        assert_eq!(forms[0], ReplyKey::HeadTail(TURN_KEY).of(&train[0]));
+        assert_eq!(forms[1], ReplyKey::TailPosition(2).of(&train[0]));
+        assert_eq!(forms[2], ReplyKey::TurnPosition(1).of(&train[0]));
+        assert_eq!(forms[1][0], u32::MAX, "the tail form opens with its mark");
+        // The held question: both ends name 50, where the tail and the first 8 alone say 51.
+        assert_eq!(memory.reply_lookup(&wide), (forms[0], Some(50)));
+        assert_eq!(memory.reply_stored(forms[1]), Some(51));
+        assert_eq!(memory.reply_stored(forms[2]), Some(51));
+        // A new middle with a held ending: the tail names it. A new ending: the first 8.
+        let by_tail = reply_key(&chain_row(42, [60, 61], 0));
+        assert_eq!(memory.reply_lookup(&by_tail), (forms[1], Some(51)));
+        let by_head = reply_key(&chain_row(42, [70, 71], 0));
+        assert_eq!(memory.reply_lookup(&by_head), (forms[2], Some(51)));
+        // A new start: nothing, and the lookup reports the first-8 key it asked last.
+        let mut other = chain_row(42, [70, 71], 0);
+        other.prompt[0] = 9;
+        let missed = reply_key(&other);
+        let last = ReplyKey::TurnPosition(1).of(&other);
+        assert_eq!(memory.reply_lookup(&missed), (&last[..], None));
+        // With no memory set there is no tail, and the key is the first-8 form alone, as before.
+        set_turn_memory(None);
+        assert_eq!(reply_tail(), 0);
+        assert_eq!(reply_key(&train[0]), ReplyKey::TurnPosition(1).of(&train[0]));
+    }
+
+    /// claude-345: a key the copy read owns stops the chain. The table leaves it out, and with
+    /// it every wider key its rows would fall through to, so no stored row writes over the copy.
+    #[test]
+    fn a_wider_key_yields_where_the_copy_read_owns_the_exact_key() {
+        // Two recall rows the copy read names, their values differing; three rows of another
+        // question with the same first 8 and last 2 tokens, answered 51.
+        let rows = [
+            chain_row(40, [60, 61], 70),
+            chain_row(40, [60, 61], 71),
+            chain_row(41, [60, 61], 51),
+            chain_row(41, [60, 61], 51),
+            chain_row(41, [60, 61], 51),
+        ];
+        let copied = [true, true, false, false, false];
+        let built = chain_reply_table(&rows, 2, 0.5, Some(&copied));
+        // Four keys at the share. The recall question's own key is the copy read's; the tail
+        // and the first-8 key, which its rows would fall through to, yield.
+        assert_eq!((built.built, built.left, built.yielded), (4, 1, 2));
+        assert_eq!(built.table.len(), 1);
+        assert_eq!(built.table.get(&ReplyKey::HeadTail(TURN_KEY).of(&rows[2])), Some(&51));
+        assert_eq!(built.named, 3);
+        // One form has nothing to fall through to: the table is the one built before the chain,
+        // the first-8 keys at their share less the keys the copy read owns. Here it stores 51
+        // under the key the two recall rows also read.
+        let one = chain_reply_table(&rows, 0, 0.5, Some(&copied));
+        let pairs: Vec<(Vec<u32>, u32)> = rows
+            .iter()
+            .map(|row| (ReplyKey::TurnPosition(1).of(row), row.target))
+            .collect();
+        let named: Vec<(Vec<u32>, bool)> = pairs
+            .iter()
+            .zip(&copied)
+            .map(|((key, _), &copied)| (key.clone(), copied))
+            .collect();
+        let owned = crate::flock_read_memory::copy_owned_keys(&named);
+        let mut before = crate::flock_read_memory::build_reply_table(&pairs, 0.5);
+        before.retain(|key, _| !owned.contains(key));
+        assert_eq!(one.table, before);
+        assert_eq!((one.left, one.yielded, one.table.len()), (0, 0, 1));
+    }
+
+    /// claude-345: with a tail, the key the decoder forms at each later step of a reply is
+    /// still the row's key, so the tail reads the turn's end as the table's rows were keyed.
+    #[test]
+    fn the_greedy_reply_key_is_the_rows_key_under_a_tail() {
+        use crate::flock_read_memory::{set_reply_tail, CHAIN};
+        // BOS, a prompt (10 11 12), a reply (11 12 30), a prompt (13), a reply (31).
+        let tokens = [0u32, 10, 11, 12, 11, 12, 30, 13, 31];
+        let mask = [0u8, 0, 0, 0, 1, 1, 1, 0, 1];
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 16, 0).unwrap();
+        set_reply_tail(2);
+        let rows = reply_rows(&windows, &mask);
+        let later: Vec<&ReplyRow> = rows.iter().filter(|r| !r.opening).collect();
+        assert_eq!(later.len(), 2);
+        for row in &later {
+            let ids = &windows[row.window].input_ids;
+            let opening = row.offset - row.reply.len();
+            let key = greedy_reply_key(&ids[..=row.offset], opening, &row.reply).unwrap();
+            assert_eq!(key, reply_key(row), "row at offset {}", row.offset);
+            assert_eq!(key.iter().filter(|&&id| id == CHAIN).count(), 2);
+        }
+        set_reply_tail(0);
+    }
+
+    /// claude-345: on a turn longer than both cuts the decoder's key is still the row's key, and
+    /// its ids are the three forms as the serving engine forms them: the turn's first 8 ids with
+    /// the last 8 of the rest, its last `tail` ids behind a pad, and its first 8 alone.
+    #[test]
+    fn the_greedy_reply_key_reads_the_end_of_a_long_turn() {
+        use crate::flock_read_memory::{set_reply_tail, CHAIN};
+        const PAD: u32 = u32::MAX;
+        // BOS, a prompt of 19 ids (10..=28), a reply (11 12 30).
+        let mut tokens = vec![0u32];
+        tokens.extend(10..=28);
+        tokens.extend([11, 12, 30]);
+        let mut mask = vec![0u8; 20];
+        mask.extend([1, 1, 1]);
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 32, 0).unwrap();
+        set_reply_tail(2);
+        let rows = reply_rows(&windows, &mask);
+        let row = rows.iter().find(|r| r.reply == [11]).unwrap();
+        let ids = &windows[row.window].input_ids;
+        let opening = row.offset - row.reply.len();
+        let key = greedy_reply_key(&ids[..=row.offset], opening, &row.reply).unwrap();
+        let of_row = reply_key(row);
+        set_reply_tail(0);
+        let stem = [PAD, 1, PAD, 11];
+        let head: Vec<u32> = (10..=17).chain(stem).collect();
+        let tail: Vec<u32> = [PAD, 27, 28].into_iter().chain(stem).collect();
+        let ends: Vec<u32> = (10..=17).chain(21..=28).chain(stem).collect();
+        let expected = [ends, tail, head].join(&CHAIN);
+        assert_eq!(key, expected);
+        assert_eq!(of_row, expected);
     }
 
     #[test]
@@ -23060,5 +23698,51 @@ mod tests {
             }
         }
         crate::flock_read_hamming::set_hamming_reads(None);
+    }
+}
+
+#[cfg(test)]
+mod copy_names_tests {
+    use super::{copy_names, copy_names_by};
+
+    /// claude-345: the latest earlier position after the row's own token decides, as the copy
+    /// read's latest exact match does; the row's own position and position 0 are no candidates.
+    #[test]
+    fn the_latest_earlier_copy_of_the_rows_token_names_its_follower() {
+        // ids: 5 7 5 9 5; the row at offset 4 holds token 5, last seen at 2, followed by 9.
+        let ids = [5u32, 7, 5, 9, 5];
+        assert!(copy_names(&ids, 4, 9));
+        assert!(!copy_names(&ids, 4, 7), "the earlier follower is not the latest");
+        // At offset 2 the only earlier copy of 5 is at 0, followed by 7.
+        assert!(copy_names(&ids, 2, 7));
+        // No earlier copy of the row's token: 7 at offset 1, 9 at offset 3.
+        assert!(!copy_names(&ids, 1, 5) && !copy_names(&ids, 3, 5));
+        // A token repeated in place is not its own earlier copy: 5 5 at offsets 1 and 2.
+        assert!(!copy_names(&[3, 5, 5], 2, 5));
+        assert!(!copy_names(&[5], 0, 5));
+    }
+
+    /// claude-345: under per-head keys every copy head must name the target. ids: 3 5 9 4 5 7 3 5;
+    /// the row at offset 7 holds 5 after 3. The one-token head's latest 5 is at 4, followed by 7;
+    /// the two-token head's latest `3 5` is at 0-1, followed by 9. So no target is named by both,
+    /// each is named by its own head, and one-token keys alone are `copy_names`.
+    #[test]
+    fn copy_names_by_asks_every_head_by_its_own_key() {
+        let ids = [3u32, 5, 9, 4, 5, 7, 3, 5];
+        assert!(copy_names_by(&[1], &ids, 7, 7) && copy_names(&ids, 7, 7));
+        assert!(copy_names_by(&[2], &ids, 7, 9) && !copy_names_by(&[2], &ids, 7, 7));
+        assert!(!copy_names_by(&[1, 2], &ids, 7, 7) && !copy_names_by(&[1, 2], &ids, 7, 9));
+        // Both heads agree where the pair's latest match is also the token's latest: 3 5 9 3 5.
+        let agree = [3u32, 5, 9, 3, 5];
+        assert!(copy_names_by(&[1, 2], &agree, 4, 9) && copy_names_by(&[2, 2], &agree, 4, 9));
+        // A pair the window never held names nothing, and neither does a row with no previous token.
+        assert!(!copy_names_by(&[2], &[4, 5, 9, 3, 5], 4, 9));
+        assert!(!copy_names_by(&[2], &[5, 9, 5], 0, 9) && !copy_names_by(&[1, 2], &[5], 0, 5));
+        for offset in 0..ids.len() {
+            for target in [3u32, 4, 5, 7, 9] {
+                assert_eq!(copy_names_by(&[1], &ids, offset, target), copy_names(&ids, offset, target));
+                assert_eq!(copy_names_by(&[1, 1], &ids, offset, target), copy_names(&ids, offset, target));
+            }
+        }
     }
 }

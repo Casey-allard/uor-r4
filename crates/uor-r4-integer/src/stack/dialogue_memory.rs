@@ -18,6 +18,34 @@ pub enum SieveRecall {
     Value(String),
 }
 
+/// How a sieve result is worded on the memory line.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SieveLine {
+    /// The bare value, or `none`: the line artifacts under the mean copy rule
+    /// were trained on.
+    Value,
+    /// A reply sentence around the value: the line a latest-exact copy read
+    /// follows word for word (claude-345, `recall=reply`).
+    Reply,
+}
+
+/// The reply sentence the sieve writes for an absence, without its full stop.
+const ABSENT_REPLY: &str = "You haven't told me that yet";
+
+impl SieveRecall {
+    /// The text after `Memory: `, without the closing full stop the chat layer
+    /// adds; `None` when the turn asked for nothing.
+    pub fn line(&self, form: SieveLine) -> Option<String> {
+        match (self, form) {
+            (Self::NotRequested, _) => None,
+            (Self::Absent, SieveLine::Value) => Some("none".to_owned()),
+            (Self::Absent, SieveLine::Reply) => Some(ABSENT_REPLY.to_owned()),
+            (Self::Value(value), SieveLine::Value) => Some(value.clone()),
+            (Self::Value(value), SieveLine::Reply) => Some(format!("It's {value}")),
+        }
+    }
+}
+
 const QUERY_STOP_WORDS: &[&str] = &[
     "a", "about", "am", "an", "and", "are", "be", "been", "being", "but", "by", "can", "could",
     "did", "do", "does", "for", "from", "had", "has", "have", "he", "her", "hers", "him", "his",
@@ -151,6 +179,16 @@ fn answer_kind(query: &[String]) -> AnswerKind {
     }
 }
 
+/// The stems that name the kind of answer a question wants, not its subject.
+fn relation_atoms(kind: AnswerKind) -> &'static [&'static str] {
+    match kind {
+        AnswerKind::Name => &["name", "call"],
+        AnswerKind::When => &["day", "date", "time"],
+        AnswerKind::Age => &["old"],
+        AnswerKind::Where | AnswerKind::Value => &[],
+    }
+}
+
 fn trim_answer(words: &[String], kind: AnswerKind) -> Option<String> {
     let mut start = 0;
     if words
@@ -263,8 +301,20 @@ pub fn recall_value(history: &[&str], query: &str) -> Option<String> {
     }
 
     let kind = answer_kind(&query_words);
+    // The words that say what kind of answer is wanted are not what the
+    // question is about: when the question names a subject as well, a clause
+    // has to share it ("my cat called" is not answered by "a dog called Rex").
+    let subject: BTreeSet<&String> = atoms
+        .iter()
+        .filter(|atom| !relation_atoms(kind).contains(&atom.as_str()))
+        .collect();
     let mut best: Option<((usize, usize, usize), String)> = None;
     for (turn_index, turn) in history.iter().enumerate() {
+        // A request to the model states no fact: "Give me the opposite of fast." says nothing
+        // about what the opposite of anything is.
+        if is_request(turn) {
+            continue;
+        }
         for (clause_index, clause) in clauses(turn).into_iter().enumerate() {
             let shared: Vec<usize> = clause
                 .iter()
@@ -272,6 +322,13 @@ pub fn recall_value(history: &[&str], query: &str) -> Option<String> {
                 .filter_map(|(index, word)| atoms.contains(&stem(word)).then_some(index))
                 .collect();
             if shared.is_empty() {
+                continue;
+            }
+            if !subject.is_empty()
+                && !shared
+                    .iter()
+                    .any(|&index| subject.contains(&stem(&clause[index])))
+            {
                 continue;
             }
             let rank = (shared.len(), turn_index, clause_index);
@@ -286,21 +343,122 @@ pub fn recall_value(history: &[&str], query: &str) -> Option<String> {
     best.map(|(_, value)| value)
 }
 
-/// The serving recall decision. A question with no matching prior clause is an
-/// explicit absence; ordinary non-question text requests no memory line.
+/// Whether a turn asks the model to do something, by its first word. Such a turn is a request,
+/// not a fact the user stated, so it answers no later question.
+fn is_request(turn: &str) -> bool {
+    words(turn).first().is_some_and(|word| {
+        matches!(
+            word.to_lowercase().as_str(),
+            "give" | "tell" | "make" | "repeat" | "say" | "add" | "sum" | "count" | "list" | "show" | "write" | "spell"
+        )
+    })
+}
+
+/// Whether a question speaks of the user: only then is "you have not told me" an answer to it.
+/// "me" and "us" alone do not count: "Can you tell me what day it is?" is not about the user.
+fn speaks_of_user(query: &str) -> bool {
+    words(query).iter().any(|word| {
+        matches!(
+            word.to_lowercase().as_str(),
+            "i" | "i'm" | "i've" | "i'd" | "i'll" | "my" | "mine" | "myself" | "we" | "our" | "ours"
+        )
+    })
+}
+
+/// The serving recall decision. A question about the user with no matching prior clause is an
+/// explicit absence. Ordinary non-question text requests no memory line, and neither does a
+/// question that is not about the user and that nothing stored answers ("Do cats bark?"): the
+/// model answers it by itself, as on the turns it was trained on without a line.
 pub fn recall(history: &[&str], query: &str) -> SieveRecall {
     if !is_query(query) {
         SieveRecall::NotRequested
     } else if let Some(value) = recall_value(history, query) {
         SieveRecall::Value(value)
-    } else {
+    } else if speaks_of_user(query) {
         SieveRecall::Absent
+    } else {
+        SieveRecall::NotRequested
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_line_is_worded_by_its_form() {
+        let value = SieveRecall::Value("Maya".to_owned());
+        assert_eq!(value.line(SieveLine::Value).as_deref(), Some("Maya"));
+        assert_eq!(value.line(SieveLine::Reply).as_deref(), Some("It's Maya"));
+        assert_eq!(
+            SieveRecall::Absent.line(SieveLine::Value).as_deref(),
+            Some("none")
+        );
+        assert_eq!(
+            SieveRecall::Absent.line(SieveLine::Reply).as_deref(),
+            Some("You haven't told me that yet")
+        );
+        for form in [SieveLine::Value, SieveLine::Reply] {
+            assert_eq!(SieveRecall::NotRequested.line(form), None);
+        }
+    }
+
+    #[test]
+    fn a_kind_word_alone_does_not_answer_a_question_about_another_subject() {
+        let history = ["I have a dog called Rex.", "My name is Sam."];
+        // The question names a cat; only "called" is shared, so nothing answers it.
+        assert_eq!(recall(&history, "What is my cat called?"), SieveRecall::Absent);
+        assert_eq!(
+            recall(&history, "What is my dog called?"),
+            SieveRecall::Value("Rex".to_owned())
+        );
+        // With no subject beside the kind word, the kind word still matches.
+        assert_eq!(
+            recall(&history, "What is my name?"),
+            SieveRecall::Value("Sam".to_owned())
+        );
+        // A question that is not about the user, with nothing stored, asks for no line.
+        assert_eq!(
+            recall(&["My dog is old."], "How old is Tom?"),
+            SieveRecall::NotRequested
+        );
+    }
+
+    /// claude-345: general questions get no line. Before this, "Do cats bark?" was given the
+    /// absent line and "What is the opposite of hard?" the words after an earlier "opposite".
+    #[test]
+    fn a_general_question_gets_no_line_and_a_request_is_no_fact() {
+        let history = [
+            "My lucky number is 47.",
+            "My best friend is Maya.",
+            "Give me the opposite of fast.",
+        ];
+        for general in [
+            "Do cats bark?",
+            "What is 2 plus 3?",
+            "What color is a lemon?",
+            "What is the opposite of hard?",
+            "How many legs does a spider have?",
+        ] {
+            assert_eq!(recall(&history, general), SieveRecall::NotRequested, "{general}");
+        }
+        // About the user: a stored fact answers, and nothing stored is an explicit absence.
+        assert_eq!(
+            recall(&history, "What is my lucky number?"),
+            SieveRecall::Value("47".to_owned())
+        );
+        assert_eq!(
+            recall(&history, "Who is my friend?"),
+            SieveRecall::Value("Maya".to_owned())
+        );
+        assert_eq!(recall(&history, "What is my cat called?"), SieveRecall::Absent);
+        assert_eq!(recall(&history, "Where am I from?"), SieveRecall::Absent);
+        // Not about the user, but stored: the fact still answers.
+        assert_eq!(
+            recall(&["The red key is under the mat."], "Where is the red key?"),
+            SieveRecall::Value("mat".to_owned())
+        );
+    }
 
     #[test]
     fn extracts_name_and_action_values() {

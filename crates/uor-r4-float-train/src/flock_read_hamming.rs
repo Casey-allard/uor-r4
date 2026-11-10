@@ -618,6 +618,9 @@ pub struct HammingRead {
     /// two-token key ([`HammingReads::with_copy_key`], claude-261), one entry per copy head
     /// ([`HammingReads::with_copy_keys`], claude-268).
     copy_keys: Vec<usize>,
+    /// Whether each copy head reads its latest exact match in place of the mean of its nearest
+    /// [`HAMMING_KEPT`] ([`HammingReads::with_copy_latest`], claude-345).
+    copy_latest: bool,
     /// The ask heads' question table, when on ([`HammingReads::with_ask`], claude-330): one
     /// learned point per token, `(vocab, width)`, starting at zero. The type heads then ask with
     /// the current token's point plus its row, through the key's rotation, and bring back the
@@ -1209,6 +1212,24 @@ impl HammingReads {
         }
     }
 
+    /// The same reads with each copy head reading its latest exact match (claude-345): of the
+    /// earlier positions whose key is the query's own code, bit for bit, the latest one, at full
+    /// weight, and nothing when there is none. It replaces the mean over the nearest
+    /// [`HAMMING_KEPT`], which blends what followed each earlier occurrence of a token; the
+    /// integer session serves the same choice as `CopyRule::LatestExact`. Type heads are
+    /// untouched.
+    pub fn with_copy_latest(mut self) -> Self {
+        for read in &mut self.reads {
+            read.copy_latest = true;
+        }
+        self
+    }
+
+    /// Whether the copy heads read their latest exact match ([`Self::with_copy_latest`]).
+    pub fn copy_latest(&self) -> bool {
+        self.reads.first().is_some_and(|read| read.copy_latest)
+    }
+
     /// The read's head count when it has one; a saved checkpoint always does.
     pub fn heads(&self) -> Option<usize> {
         self.reads.first().map(HammingRead::heads)
@@ -1358,6 +1379,10 @@ impl HammingReads {
             let copy_key = self.copy_key() as u32;
             tensors.insert("copy_key".to_owned(), Tensor::new(&[copy_key], device)?);
         }
+        // claude-345: only a read under the latest-exact rule records it.
+        if self.copy_latest() {
+            tensors.insert("copy_latest".to_owned(), Tensor::new(&[1u32], device)?);
+        }
         // claude-333: only a held read records its rows, so every other file is as before.
         if self.hold_rows() > 0 {
             let rows = self.hold_rows() as u32;
@@ -1413,6 +1438,7 @@ impl HammingReads {
                     .map(Var::from_tensor)
                     .transpose()?,
                 copy_keys: Vec::new(),
+                copy_latest: false,
                 // Present only when the read was trained with the ask heads (claude-330).
                 ask: tensors
                     .get(&format!("d{depth}.ask"))
@@ -1511,6 +1537,12 @@ impl HammingReads {
             )));
         }
         let reads = Self { reads }.with_copy_key(copy_key)?;
+        // A read saved before claude-345, or under the mean, records no rule.
+        let reads = if tensors.contains_key("copy_latest") {
+            reads.with_copy_latest()
+        } else {
+            reads
+        };
         match tensors.get("copy_keys") {
             None => Ok(Some(reads)),
             Some(_) if tensors.contains_key("copy_key") => Err(invalid(
@@ -1571,6 +1603,7 @@ impl HammingRead {
             weight: Var::zeros((2, width), DType::F32, device)?,
             step_rotation: None,
             copy_keys: vec![1; heads / 2],
+            copy_latest: false,
             ask: None,
             hold: None,
             carry: None,
@@ -2019,8 +2052,13 @@ impl HammingRead {
             // A window's first position has no previous token, so its key names nothing: the
             // candidates start at 1.
             let limits = row_limits(cut, row_cut.as_ref(), h, self.copy_heads(), time, asking);
+            // claude-345: a copy head under the latest-exact rule keeps one position, the latest
+            // of its nearest, and below weighs it only at distance 0.
+            let latest = self.copy_latest && h < self.copy_heads();
             // A whole window keeps the call it made before the step existed (claude-279).
-            let (picks, real) = if from == 0 {
+            let (picks, real) = if latest {
+                choose_latest_from(&q, &k, batch, time, from, 1, &limits)?
+            } else if from == 0 {
                 choose_sorted(&q, &k, batch, time, HAMMING_KEPT, 1, &limits, tie)?
             } else {
                 choose_sorted_from(&q, &k, batch, time, from, HAMMING_KEPT, 1, &limits, tie)?
@@ -2066,6 +2104,12 @@ impl HammingRead {
                 .relu()?
                 .broadcast_div(&margin.maximum(1.0)?)?
                 .mul(&real.to_dtype(DType::F32)?)?;
+            // The latest-exact rule reads an exact match only.
+            let weights = if latest {
+                weights.mul(&bits.detach().eq(0.0)?.to_dtype(DType::F32)?)?
+            } else {
+                weights
+            };
             let count = weights
                 .gt(0.0)?
                 .to_dtype(DType::F32)?
@@ -2318,6 +2362,7 @@ pub(crate) fn choose_sorted_from(
         first,
         limits,
         tie,
+        false,
         DISTANCE_CHUNK_BYTES,
     )
 }
@@ -2413,11 +2458,43 @@ fn choose_sorted_in(
         first,
         limits,
         tie,
+        false,
         chunk_bytes,
     )
 }
 
+/// The latest-exact rule's choice (claude-345) for the query positions `from..time` of each
+/// window: the one earlier position nearest each row in whole bits, and among equal distances the
+/// latest, so where a row has an exact match the pick is its latest one. The caller weighs the
+/// pick only at distance 0. The sort is [`choose_sorted_from`]'s, under the tie key with the
+/// position reversed.
+pub(crate) fn choose_latest_from(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    from: usize,
+    first: usize,
+    limits: &[usize],
+) -> Result<(Tensor, Tensor)> {
+    choose_sorted_asking(
+        query,
+        key,
+        batch,
+        time,
+        from,
+        1,
+        first,
+        limits,
+        true,
+        true,
+        DISTANCE_CHUNK_BYTES,
+    )
+}
+
 /// [`choose_sorted_in`] for the query positions `from..time` of each window ([`choose_sorted_from`]).
+/// With `latest` (which needs `tie`), equal distances go to the later position
+/// ([`choose_latest_from`]).
 #[allow(clippy::too_many_arguments)]
 fn choose_sorted_asking(
     query: &Tensor,
@@ -2429,6 +2506,7 @@ fn choose_sorted_asking(
     first: usize,
     limits: &[usize],
     tie: bool,
+    latest: bool,
     chunk_bytes: usize,
 ) -> Result<(Tensor, Tensor)> {
     if from >= time {
@@ -2461,7 +2539,10 @@ fn choose_sorted_asking(
                 "the read's tie keys for {width} coordinates over {time} positions pass 2^24"
             )));
         }
-        let positions: Vec<f32> = (0..time).map(|s| tie_key(0, s, time)).collect();
+        // The tie key orders equal distances by position, earliest first; reversed, latest first.
+        let positions: Vec<f32> = (0..time)
+            .map(|s| tie_key(0, if latest { time - 1 - s } else { s }, time))
+            .collect();
         distance
             .affine(width as f64 / 2.0, 0.0)?
             .round()?
@@ -3669,6 +3750,126 @@ mod tests {
         // Positions 0 and 1 have no candidate (1 ≤ s < t) and read nothing in any head.
         for r in [0usize, 1, 3, 4, 6, 7] {
             assert!(added[r].iter().all(|&v| v == 0.0), "row {r}");
+        }
+    }
+
+    /// claude-345: of two exact matches the latest-exact choice takes the later, where the tie
+    /// rule takes the earlier; with no exact match it still returns its nearest, which the read
+    /// then weighs at zero; a row with no earlier position has no real pick.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_latest_choice_takes_the_later_of_two_exact_matches() {
+        let device = Device::new_cuda(0).unwrap();
+        let x = [1.0f32; 8];
+        let a = [1.0f32, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0];
+        let b = [-1.0f32, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0];
+        let c = [-1.0f32, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0];
+        // Rows X A B A C A: row 5 matches rows 1 and 3 exactly; row 4 is 4 bits from each.
+        let flat: Vec<f32> = [x, a, b, a, c, a].concat();
+        let points = Tensor::from_vec(flat, (6, 8), &device).unwrap();
+        let limits = vec![6; 6];
+        let (latest, real) = choose_latest_from(&points, &points, 1, 6, 0, 1, &limits).unwrap();
+        let (latest, real) = (latest.to_vec2::<u32>().unwrap(), real.to_vec2::<u8>().unwrap());
+        assert_eq!((latest[5][0], real[5][0]), (3, 1));
+        assert_eq!((latest[4][0], real[4][0]), (3, 1));
+        assert_eq!((latest[3][0], real[3][0]), (1, 1));
+        assert_eq!(real[1][0], 0, "row 1 has no earlier position");
+        let (earliest, _) = choose_sorted(&points, &points, 1, 6, 1, 1, &limits, true).unwrap();
+        assert_eq!(earliest.to_vec2::<u32>().unwrap()[5][0], 1);
+    }
+
+    /// claude-345: only a read under the latest-exact rule records it, and it loads back.
+    #[test]
+    fn the_latest_rule_is_saved_only_when_on() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("uor-copy-latest-{}", std::process::id()));
+        for on in [false, true] {
+            let dir = root.join(on.to_string());
+            let reads = HammingReads::new(4, 256, &Device::Cpu)?;
+            let reads = if on { reads.with_copy_latest() } else { reads };
+            assert_eq!(reads.copy_latest(), on);
+            reads.save(&dir)?;
+            let tensors = candle_core::safetensors::load(dir.join(FILE), &Device::Cpu)?;
+            assert_eq!(tensors.contains_key("copy_latest"), on);
+            let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("a saved read");
+            assert_eq!(loaded.copy_latest(), on);
+        }
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// claude-345: a token seen twice before, each time followed by another token. The mean
+    /// blends the two followers; the latest-exact rule reads the later one alone, in full.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_copy_head_under_the_latest_rule_reads_what_followed_the_latest_copy() {
+        let device = Device::new_cuda(0).unwrap();
+        let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
+        // One window, [5 7 5 9 5]: at t = 4 the keys of s = 1 and s = 3 both name token 5.
+        let ids = [5u32, 7, 5, 9, 5];
+        let x = residual(1, 5, 256, &device);
+        let table = table(16, 256, &device);
+        let points = table.to_vec2::<f32>().unwrap();
+        let added = |latest: bool| -> Vec<Vec<f32>> {
+            let reads = HammingReads::new(4, 256, &device).unwrap();
+            let reads = if latest { reads.with_copy_latest() } else { reads };
+            let read = &reads.reads[0];
+            read.weight
+                .set(&Tensor::from_vec(copy_only.clone(), (2, 256), &device).unwrap())
+                .unwrap();
+            let out = read.apply(&x, &ids, &table).unwrap().sub(&x).unwrap();
+            out.reshape((5, 256)).unwrap().to_vec2::<f32>().unwrap()
+        };
+        let (mean, latest) = (added(false), added(true));
+        for c in 0..256 {
+            let blend = (points[7][c] + points[9][c]) / 2.0;
+            assert!((mean[4][c] - blend).abs() < 1e-6, "mean, {c}");
+            assert!((latest[4][c] - points[9][c]).abs() < 1e-6, "latest, {c}");
+            // One exact match reads the same under either rule.
+            assert!((latest[2][c] - points[7][c]).abs() < 1e-6, "one match, {c}");
+        }
+    }
+
+    /// claude-345: the latest-exact rule under copy key 2 needs both tokens. The window holds
+    /// `C X Q`, then `B X P`, and asks at `C X`: the latest position after an `X` is `P`'s, which
+    /// the one-token key reads; copy key 2 reads `Q`, the position after the latest `C X`. Asked
+    /// at `D X`, a pair the window never held, copy key 2 reads nothing.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_latest_rule_under_copy_key_two_needs_both_tokens() {
+        let device = Device::new_cuda(0).unwrap();
+        let (b, x, p, c, q, d) = (2u32, 3, 4, 5, 6, 8);
+        let table = table(16, 256, &device);
+        let points = table.to_vec2::<f32>().unwrap();
+        let added = |copy_keys: &[usize], last: u32| -> Vec<f32> {
+            let ids = [1u32, c, x, q, b, x, p, 7, last, x];
+            let x0 = residual(1, ids.len(), 256, &device);
+            let reads = HammingReads::new(4, 256, &device)
+                .unwrap()
+                .with_copy_keys(copy_keys)
+                .unwrap()
+                .with_copy_latest();
+            let read = &reads.reads[0];
+            let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
+            read.weight
+                .set(&Tensor::from_vec(copy_only, (2, 256), &device).unwrap())
+                .unwrap();
+            let rows = read
+                .apply(&x0, &ids, &table)
+                .unwrap()
+                .sub(&x0)
+                .unwrap()
+                .reshape((ids.len(), 256))
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+            rows[ids.len() - 1].clone()
+        };
+        let (one, two, absent) = (added(&[1, 1], c), added(&[2, 2], c), added(&[2, 2], d));
+        let (p, q) = (&points[p as usize], &points[q as usize]);
+        for col in 0..256 {
+            assert!((one[col] - p[col]).abs() < 1e-6, "copy key 1, {col}: the latest X");
+            assert!((two[col] - q[col]).abs() < 1e-6, "copy key 2, {col}: the latest C X");
+            assert!(absent[col].abs() < 1e-6, "copy key 2, {col}: no D X before");
         }
     }
 

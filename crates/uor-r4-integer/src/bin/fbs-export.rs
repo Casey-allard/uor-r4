@@ -30,7 +30,11 @@
 //! nearest token (`head = "native_vector_nearest"`), for a snapshot taken before `fbs-snapshot`
 //! recorded it. A run with `train_as_served: true` requires both raw flags. It also refuses a
 //! config whose `retain_rates` disagrees with the snapshot's, or whose objective reads the writer
-//! for a snapshot that reads nearest.
+//! for a snapshot that reads nearest. A config with `hamming_copy_latest: true` (claude-345) sets
+//! the Hamming record's `copy_latest`, so the copy heads serve their latest exact match; the
+//! snapshot does not carry that rule, so such a run is exported with its config. A config with a
+//! `turn_memory_tail` above 0 (claude-345) exports the memory chain with tail keys of that many
+//! turn ids, and one without the key or with 0 exports none.
 //!
 //! It parses the artifact back before writing it, never replaces or leaves a
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
@@ -56,8 +60,9 @@ use uor_r4_integer::fbs_snapshot::{
     FBS_HAMMING_ASK_KEY,
 };
 use uor_r4_integer::stack::{
-    add_hamming_ask_uorlut01, add_point_key_uorlut01, AskImage, build_point_key, check_point_key_read_back,
-    export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_with, point_key_windows,
+    add_hamming_ask_uorlut01, add_point_key_uorlut01, set_hamming_copy_latest_uorlut01, AskImage, build_point_key,
+    check_point_key_read_back,
+    export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_chain, export_fbs_trunk_uorlut01_with, point_key_windows,
     FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
@@ -153,6 +158,10 @@ fn run() -> Result<(), String> {
     }
     let mut snaps = FbsExportSnaps::SNAPPED;
     let (mut paths, mut run_config) = (Vec::new(), None::<String>);
+    // The copy rule the run trained (claude-345), read from its config below.
+    let mut copy_latest = false;
+    // The memory chain's tail the run trained (claude-345), 0 for none, read from its config below.
+    let mut chain_tail = 0usize;
     let mut carry = None::<usize>;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
@@ -248,15 +257,43 @@ fn run() -> Result<(), String> {
             ));
         }
         snap.readout_nearest = nearest;
+        copy_latest = serde_json::from_str::<serde_json::Value>(&text)
+            .map_err(|e| format!("{config}: {e}"))?
+            .get("hamming_copy_latest")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        let tail = serde_json::from_str::<serde_json::Value>(&text)
+            .map_err(|e| format!("{config}: {e}"))?
+            .get("turn_memory_tail")
+            .map_or(Ok(0), |value| {
+                // A tail that is not a whole number is refused: read as 0 it would export no chain.
+                value
+                    .as_u64()
+                    .ok_or_else(|| format!("{config}: turn_memory_tail {value} is not a whole number"))
+            })?;
+        chain_tail = usize::try_from(tail).map_err(|_| format!("{config}: turn_memory_tail {tail} is too large"))?;
     }
-    let artifact = match carry {
-        Some(context) => export_fbs_trunk_uorlut01_carry(&snap, snaps, context),
-        None => export_fbs_trunk_uorlut01_with(&snap, snaps),
-    }
-    .map_err(|e| format!("export: {e}"))?;
+    // A run trained with a memory chain (claude-345) writes its record with the export, so the
+    // export reads its reply keys back at that exact tail.
+    let artifact = if chain_tail > 0 {
+        export_fbs_trunk_uorlut01_chain(&snap, snaps, carry, chain_tail).map_err(|e| format!("the memory chain: {e}"))?
+    } else {
+        match carry {
+            Some(context) => export_fbs_trunk_uorlut01_carry(&snap, snaps, context),
+            None => export_fbs_trunk_uorlut01_with(&snap, snaps),
+        }
+        .map_err(|e| format!("export: {e}"))?
+    };
     let artifact = match asks {
         None => artifact,
         Some(asks) => add_hamming_ask_uorlut01(&artifact, &asks).map_err(|e| format!("the ask heads: {e}"))?,
+    };
+    // A run trained with `--hamming-copy-latest` serves the latest exact match: the rule is in
+    // its config, not in the snapshot, and goes into the Hamming record here.
+    let artifact = if copy_latest {
+        set_hamming_copy_latest_uorlut01(&artifact).map_err(|e| format!("the copy rule: {e}"))?
+    } else {
+        artifact
     };
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;
