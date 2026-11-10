@@ -68,6 +68,7 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `crates/uor-r4-router/` | The router crate |
 | `crates/uor-r4-simd/` | SIMD helpers |
 | `crates/uor-r4-source-interface/` | The source-interface crate |
+| `crates/uor-r4-studio-agent/` | Studio agent event schema, canonical JSON, cursor and approval contracts |
 | `crates/uor-r4-tokenizer/` | The byte-level BPE tokenizer and trainer |
 | `crates/uor-r4-training/` | Training driver, grader and evaluation tooling |
 | `crates/uor-r4-vision/` | Deterministic integer RGBA-to-R4 patch decomposition |
