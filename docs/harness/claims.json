@@ -580,13 +580,6 @@
     "lab": "deepseek",
     "note": ""
   },
-  "deepseek/stack-contract": {
-    "branch": "deepseek/stack-contract",
-    "claimed_at": "2026-11-10T15:13:08-05:00",
-    "head": "8a5bd5278",
-    "lab": "deepseek",
-    "note": ""
-  },
   "deepseek/stop-density": {
     "branch": "deepseek/stop-density",
     "claimed_at": "2026-11-04T15:40:21-05:00",
