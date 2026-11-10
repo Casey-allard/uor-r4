@@ -53,10 +53,38 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         w,
         "A stack contract makes one model composition explicit across source, configuration, artifact sections, commands, readings and probes. It is not a capability claim."
     )?;
+    writeln!(w)?;
+    writeln!(w, "## Evidence status")?;
+    writeln!(w)?;
+    writeln!(
+        w,
+        "| Contract | State | Schema | Mechanisms | Evidence | Probes |"
+    )?;
+    writeln!(w, "| --- | --- | --- | --- | --- | --- |")?;
+    for file in files {
+        let contract = &file.contract;
+        let mechanisms = status_counts(contract.mechanisms.iter().map(|row| row.status.as_str()));
+        let evidence = status_counts(contract.evidence.iter().map(|row| row.result.as_str()));
+        writeln!(
+            w,
+            "| `{}` | `{}` | {} | {} | {} | {} |",
+            contract.id,
+            contract.state.as_str(),
+            contract
+                .artifact
+                .schema
+                .as_deref()
+                .map_or("--".to_owned(), |schema| format!("`{schema}`")),
+            mechanisms,
+            evidence,
+            contract.probes.len()
+        )?;
+    }
 
     for file in files {
         let source = relative(root, &file.path);
         let digest = source_digest(&file.path)?;
+        let semantic = semantic_digest(&file.contract)?;
         let contract = &file.contract;
         writeln!(w)?;
         writeln!(w, "## `{}`", contract.id)?;
@@ -64,9 +92,14 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         writeln!(w, "{}", contract.summary)?;
         writeln!(w)?;
         writeln!(w, "- Source: `{source}` (BLAKE3 `{digest}`)")?;
+        writeln!(w, "- Semantic hash: `{semantic}`")?;
         writeln!(w, "- Lane: `{}`", contract.lane.as_str())?;
         writeln!(w, "- State: `{}`", contract.state.as_str())?;
+        writeln!(w, "- Revision: {}", contract.revision)?;
         writeln!(w, "- Source pin: `{}`", contract.source_pin)?;
+        if let Some(decision) = &contract.decision {
+            writeln!(w, "- Decision: {}", cell(decision))?;
+        }
 
         writeln!(w)?;
         writeln!(w, "### Model")?;
@@ -82,21 +115,67 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         writeln!(w, "| Width | {} |", contract.model.width)?;
         writeln!(w, "| Layers | {} |", contract.model.layers)?;
         writeln!(w, "| Context | {} |", contract.model.context)?;
+        writeln!(
+            w,
+            "| Training context | {} |",
+            contract
+                .model
+                .training_context
+                .map_or("--".to_owned(), |context| context.to_string())
+        )?;
         writeln!(w, "| Objective | `{}` |", cell(&contract.model.objective))?;
+        writeln!(
+            w,
+            "| Training | {} |",
+            contract
+                .model
+                .training
+                .as_deref()
+                .map_or("--".to_owned(), cell)
+        )?;
+        writeln!(
+            w,
+            "| Serving | {} |",
+            contract
+                .model
+                .serving
+                .as_deref()
+                .map_or("--".to_owned(), cell)
+        )?;
 
         writeln!(w)?;
         writeln!(w, "### Artifact")?;
         writeln!(w)?;
         writeln!(w, "Family: `{}`", contract.artifact.family)?;
+        writeln!(
+            w,
+            "Schema: {}",
+            contract
+                .artifact
+                .schema
+                .as_deref()
+                .map_or("--".to_owned(), |schema| format!("`{schema}`"))
+        )?;
         writeln!(w)?;
-        writeln!(w, "| Section | Required | Description |")?;
-        writeln!(w, "| --- | --- | --- |")?;
+        writeln!(
+            w,
+            "| Section | Required | Owner | Format | Exponent | Description |"
+        )?;
+        writeln!(w, "| --- | --- | --- | --- | --- | --- |")?;
         for section in &contract.artifact.sections {
             writeln!(
                 w,
-                "| `{}` | {} | {} |",
+                "| `{}` | {} | {} | {} | {} | {} |",
                 section.id,
                 if section.required { "yes" } else { "no" },
+                section
+                    .owner
+                    .as_deref()
+                    .map_or("--".to_owned(), |owner| format!("`{owner}`")),
+                section.format.as_deref().map_or("--".to_owned(), cell),
+                section
+                    .exponent
+                    .map_or("--".to_owned(), |exponent| exponent.to_string()),
                 cell(&section.description)
             )?;
         }
@@ -121,37 +200,102 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         writeln!(w)?;
         writeln!(
             w,
-            "| ID | Status | Implementation | Evidence | Invariants | Non-claims |"
+            "| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |"
         )?;
-        writeln!(w, "| --- | --- | --- | --- | --- | --- |")?;
+        writeln!(
+            w,
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+        )?;
         for mechanism in &contract.mechanisms {
+            let flags = mechanism
+                .flags
+                .iter()
+                .map(|flag| {
+                    format!(
+                        "{}={}{}",
+                        cell(&flag.name),
+                        cell(&flag.value),
+                        if flag.required { "" } else { "?" }
+                    )
+                })
+                .collect::<Vec<_>>();
+            let lifecycle = format!(
+                "{} / {}",
+                mechanism
+                    .load_order
+                    .map_or("--".to_owned(), |order| order.to_string()),
+                mechanism
+                    .cleanup_order
+                    .map_or("--".to_owned(), |order| order.to_string())
+            );
             writeln!(
                 w,
-                "| `{}` | `{}` | `{}` | {} | {} | {} |",
+                "| `{}` | `{}` | `{}` | {} | {} | {} | {} | {} | {} | {} | {} |",
                 mechanism.id,
                 mechanism.status.as_str(),
                 cell(&mechanism.implementation),
+                list(&flags),
                 list(&mechanism.evidence),
+                list(&mechanism.depends_on),
+                list(&mechanism.conflicts_with),
+                list(&mechanism.sidecars),
+                lifecycle,
                 list(&mechanism.invariants),
                 list(&mechanism.non_claims)
             )?;
         }
 
+        if !contract.evidence.is_empty() {
+            writeln!(w)?;
+            writeln!(w, "### Evidence")?;
+            writeln!(w)?;
+            writeln!(
+                w,
+                "| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |"
+            )?;
+            writeln!(w, "| --- | --- | --- | --- | --- | --- | --- | --- |")?;
+            for evidence in &contract.evidence {
+                writeln!(
+                    w,
+                    "| `{}` | `{}` | `{}` | {} | `{}` | {} | {} | {} |",
+                    evidence.id,
+                    evidence.kind.as_str(),
+                    evidence.result.as_str(),
+                    cell(&evidence.scope),
+                    cell(&evidence.locator),
+                    evidence
+                        .sha256
+                        .as_deref()
+                        .map_or("--".to_owned(), |sha| format!("`{sha}`")),
+                    list(&evidence.mechanisms),
+                    cell(&evidence.statement)
+                )?;
+            }
+        }
+
         writeln!(w)?;
         writeln!(w, "### Readings")?;
         writeln!(w)?;
-        writeln!(w, "| ID | Class | Mechanism | Description |")?;
-        writeln!(w, "| --- | --- | --- | --- |")?;
+        writeln!(
+            w,
+            "| ID | Class | Mechanism | Unit | Better | Bar | Description |"
+        )?;
+        writeln!(w, "| --- | --- | --- | --- | --- | --- | --- |")?;
         for reading in &contract.readings {
             writeln!(
                 w,
-                "| `{}` | `{}` | {} | {} |",
+                "| `{}` | `{}` | {} | {} | {} | {} | {} |",
                 reading.id,
                 reading.class.as_str(),
                 reading
                     .mechanism
                     .as_deref()
                     .map_or("--".to_owned(), |id| format!("`{id}`")),
+                reading.unit.as_deref().map_or("--".to_owned(), cell),
+                reading
+                    .better
+                    .map_or("--".to_owned(), |direction| direction.as_str().to_owned()),
+                reading.bar.map_or("--".to_owned(), |bar| bar.to_string()),
                 cell(&reading.description)
             )?;
         }
@@ -159,15 +303,28 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
         writeln!(w)?;
         writeln!(w, "### Probes")?;
         writeln!(w)?;
-        writeln!(w, "| ID | Class | Mechanism | Axis | Expectation | Cases |")?;
-        writeln!(w, "| --- | --- | --- | --- | --- | --- |")?;
+        writeln!(
+            w,
+            "| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |"
+        )?;
+        writeln!(w, "| --- | --- | --- | --- | --- | --- | --- | --- |")?;
         for probe in &contract.probes {
             writeln!(
                 w,
-                "| `{}` | `{}` | `{}` | {} | {} | {} |",
+                "| `{}` | `{}` | `{}` | {} | {} | {} | {} | {} |",
                 probe.id,
                 probe.class.as_str(),
                 probe.mechanism,
+                probe
+                    .fixture
+                    .as_deref()
+                    .map_or("--".to_owned(), |fixture| format!("`{fixture}`")),
+                probe
+                    .layers
+                    .iter()
+                    .map(|layer| layer.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", "),
                 cell(&probe.axis),
                 cell(&probe.expectation),
                 list(&probe.cases)
@@ -186,6 +343,19 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
                 command.program,
                 shell_words(&command.args)
             )?;
+            if !command.env.is_empty() || !command.inputs.is_empty() || !command.outputs.is_empty()
+            {
+                writeln!(
+                    w,
+                    "  - env {}; inputs {}; outputs {}; timeout {}",
+                    list(&command.env),
+                    list(&command.inputs),
+                    list(&command.outputs),
+                    command
+                        .timeout_seconds
+                        .map_or("--".to_owned(), |seconds| format!("{seconds}s"))
+                )?;
+            }
         }
 
         writeln!(w)?;
@@ -204,11 +374,12 @@ fn render_json(root: &Path, files: &[StackContractFile]) -> Result<String, Fail>
         contracts.push(serde_json::json!({
             "source": relative(root, &file.path),
             "source_blake3": source_digest(&file.path)?,
+            "semantic_blake3": semantic_digest(&file.contract)?,
             "contract": &file.contract,
         }));
     }
     let document = serde_json::json!({
-        "schema": "uor-r4.stack-contract.generated/1",
+        "schema": "uor-r4.stack-contract.generated/2",
         "source_directory": stack::DIRECTORY,
         "contracts": contracts,
     });
@@ -218,6 +389,12 @@ fn render_json(root: &Path, files: &[StackContractFile]) -> Result<String, Fail>
 fn source_digest(path: &Path) -> Result<String, Fail> {
     let bytes = fs::read(path)?;
     Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
+fn semantic_digest(contract: &repo_model::stack::StackContract) -> Result<String, Fail> {
+    Ok(blake3::hash(&serde_json::to_vec(contract)?)
+        .to_hex()
+        .to_string())
 }
 
 fn emit(root: &Path, relative_path: &str, contents: &str, write: bool) -> Result<(), Fail> {
@@ -269,6 +446,21 @@ fn list(values: &[String]) -> String {
     }
 }
 
+fn status_counts<'a>(values: impl Iterator<Item = &'a str>) -> String {
+    let mut counts = std::collections::BTreeMap::new();
+    for value in values {
+        *counts.entry(value).or_insert(0usize) += 1;
+    }
+    if counts.is_empty() {
+        return "--".to_owned();
+    }
+    counts
+        .into_iter()
+        .map(|(status, count)| format!("`{status}` {count}"))
+        .collect::<Vec<_>>()
+        .join("<br>")
+}
+
 fn shell_words(values: &[String]) -> String {
     values
         .iter()
@@ -318,8 +510,10 @@ mod tests {
             fs::read_to_string(root.join(JSON_PATH)).expect("committed json"),
             json
         );
-        assert!(json.contains("\"schema\": \"uor-r4.stack-contract.generated/1\""));
+        assert!(json.contains("\"schema\": \"uor-r4.stack-contract.generated/2\""));
         assert!(json.contains("\"source_blake3\""));
+        assert!(json.contains("\"semantic_blake3\""));
+        assert!(markdown.contains("## Evidence status"));
     }
 
     #[test]

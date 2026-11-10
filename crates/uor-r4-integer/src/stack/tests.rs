@@ -3,6 +3,7 @@
 //! depends on both engines.
 
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 
 use super::format::MAX_READ_CACHE_BYTES;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
@@ -4125,6 +4126,87 @@ fn hamming_reads_round_trip_in_lut_stack_6() {
         assert!(super::read_hamming_uorlut01(&plain).expect("parse").is_none());
         IntegerStackModel::parse(&plain).expect("a read-free trunk is served");
     }
+}
+
+#[test]
+fn artifact_metadata_reports_validated_identity_and_sections() {
+    let mut snap = synthetic_fbs_trunk(3894);
+    snap.hamming = Some(synthetic_hamming(
+        snap.width,
+        snap.layers.len(),
+        4,
+        3894,
+    ));
+    let bytes = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    let metadata = super::inspect_uorlut01(&bytes).expect("metadata");
+    assert_eq!(metadata.family, "uor-r4.lut-stack");
+    assert_eq!(metadata.schema, super::STACK_FBS_HAMMING_SCHEMA);
+    assert_eq!(metadata.sha256, hex::encode(Sha256::digest(&bytes)));
+    assert_eq!(metadata.bytes, bytes.len());
+    assert_eq!(
+        metadata.shape,
+        IntegerStackModel::parse(&bytes)
+            .expect("served model")
+            .shape()
+            .clone()
+    );
+    assert!(metadata.sections.iter().any(|name| name == "writer.table"));
+    assert!(metadata.hamming.is_some());
+    assert!(metadata.memory.is_none());
+    let mut sorted = metadata.sections.clone();
+    sorted.sort();
+    assert_eq!(metadata.sections, sorted);
+}
+
+#[test]
+fn optional_contract_provenance_changes_only_the_source_object() {
+    let snap = synthetic_fbs_trunk(345);
+    let base = super::export_fbs_trunk_uorlut01_with(&snap, super::FbsExportSnaps::SNAPPED)
+        .expect("base export");
+    let without = super::export_fbs_trunk_uorlut01_with_provenance(
+        &snap,
+        super::FbsExportSnaps::SNAPPED,
+        None,
+        0,
+        None,
+    )
+    .expect("no-provenance export");
+    assert_eq!(without, base);
+
+    let provenance = super::FbsExportProvenance {
+        stack_contract: Some(super::StackContractProvenance {
+            source: "conformance/stack/fbs-arm-r.toml".to_owned(),
+            sha256: "a".repeat(64),
+        }),
+        tokenizer_sha256: Some("b".repeat(64)),
+    };
+    let with = super::export_fbs_trunk_uorlut01_with_provenance(
+        &snap,
+        super::FbsExportSnaps::SNAPPED,
+        None,
+        0,
+        Some(&provenance),
+    )
+    .expect("provenance export");
+    assert_ne!(with, base);
+    let metadata = super::inspect_uorlut01(&with).expect("provenance metadata");
+    assert_eq!(
+        metadata.source["stack_contract"]["source"],
+        "conformance/stack/fbs-arm-r.toml"
+    );
+    assert_eq!(
+        metadata.source["stack_contract"]["sha256"],
+        "a".repeat(64)
+    );
+    assert_eq!(metadata.source["tokenizer_sha256"], "b".repeat(64));
+    assert_eq!(
+        metadata.shape,
+        super::inspect_uorlut01(&base).expect("base metadata").shape
+    );
+    assert_eq!(
+        metadata.sections,
+        super::inspect_uorlut01(&base).expect("base metadata").sections
+    );
 }
 
 /// claude-188: the exporter refuses a Hamming read the trunk cannot carry.

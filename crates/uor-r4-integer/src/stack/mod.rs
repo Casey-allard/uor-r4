@@ -93,11 +93,11 @@ pub use format::{
 };
 pub use format::{
     decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_chain,
-    export_fbs_trunk_uorlut01_with, export_float_trunk_uorlut01, stack_schema_for, FbsExportSnaps,
+    export_fbs_trunk_uorlut01_with, export_fbs_trunk_uorlut01_with_provenance, export_float_trunk_uorlut01, inspect_uorlut01, stack_schema_for, FbsExportSnaps,
     FbsQuatMode, FbsReferenceSnaps, FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot,
     FbsWriterOutput, Fixed, FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence,
     FloatTrunkSnapshot, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,
-    StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA,
+    FbsExportProvenance, StackArtifactMetadata, StackContractProvenance, StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_FBS_RAW_SCHEMA,
     STACK_FBS_SCHEMA, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA, STACK_SCHEMA,
 };
 pub use format::{

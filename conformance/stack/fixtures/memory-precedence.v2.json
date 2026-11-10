@@ -1,0 +1,93 @@
+{
+  "schema": "uor-r4.stack-probe/1",
+  "probe": "memory-precedence",
+  "axis": "explicit, sieve and absent memory",
+  "cases": [
+    {
+      "id": "automatic",
+      "description": "The sieve supplies a value derived from earlier user turns.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "My dog is called Rex.",
+            "memory_auto": true
+          },
+          {
+            "user": "What is my dog called?"
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "24"
+      ],
+      "expect": {
+        "turns": 2,
+        "all_reply_ids_nonempty": true,
+        "memory": [
+          "none",
+          "sieve"
+        ]
+      }
+    },
+    {
+      "id": "explicit-overrides",
+      "description": "A typed memory value wins over the automatic sieve for that turn.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "My dog is called Rex.",
+            "memory_auto": true
+          },
+          {
+            "user": "What is my dog called?",
+            "memory": "Pickle",
+            "memory_auto": false
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "24"
+      ],
+      "expect": {
+        "turns": 2,
+        "all_reply_ids_nonempty": true,
+        "memory": [
+          "none",
+          "explicit"
+        ]
+      }
+    },
+    {
+      "id": "absent",
+      "description": "Without a stated or typed value, no memory line is emitted.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "Hello",
+            "memory_auto": false
+          },
+          {
+            "user": "What is my dog called?"
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "24"
+      ],
+      "expect": {
+        "turns": 2,
+        "all_reply_ids_nonempty": true,
+        "memory": [
+          "none",
+          "none"
+        ]
+      }
+    }
+  ]
+}

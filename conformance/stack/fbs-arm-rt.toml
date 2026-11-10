@@ -1,0 +1,397 @@
+spec = "uor-r4.stack-contract/2"
+id = "fbs-arm-rt"
+title = "FBS arm rt: three-key turn memory"
+lane = "fbs"
+state = "candidate"
+revision = 1
+decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rt-the-three-key-turn-memory-reads-row-1-and-costs-recall-where-a-value-is-copied"
+source_pin = "05e50006b9b1dcd1799166df478e08139c0a9e48"
+summary = "Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut-stack/9 reply table asks ends, tail and head. It reads row 1 at three seeds but makes copied values wrong more often than arm r."
+
+[model]
+tokenizer_sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+vocab = 4096
+width = 256
+layers = 6
+training_context = 192
+context = 8256
+objective = "cell"
+training = "float32 on CUDA with train-as-served rounding"
+serving = "integer UORLUT01 artifact with the memory chain served by the product chat path"
+
+[artifact]
+family = "uor-r4.lut-stack"
+schema = "uor-r4.lut-stack/9"
+
+[[artifact.sections]]
+id = "trunk"
+required = true
+owner = "fbs-trunk"
+format = "4-bit matrices, scales and integer tables"
+description = "The SpiralCore/FBS trunk and serving tables."
+
+[[artifact.sections]]
+id = "hamming-reads"
+required = true
+owner = "hamming-copy-read"
+format = "Q24 rotations and weights, Q16 margins"
+exponent = -24
+description = "The latest-exact Hamming copy and type reads."
+
+[[artifact.sections]]
+id = "turn-memory"
+required = true
+owner = "turn-memory"
+format = "u32 keys and values, i32 Q24 weights"
+exponent = -24
+description = "The opening and reply tables."
+
+[[artifact.sections]]
+id = "memory-chain"
+required = true
+owner = "memory-chain"
+format = "header record; three key forms in the shared reply table"
+description = "The tail-nine memory chain record under schema /9."
+
+[[artifact.sections]]
+id = "writer"
+required = true
+owner = "whole-table-readout"
+format = "native writer cells and Q12 i16 token points"
+exponent = -12
+description = "The native vector writer and nearest-token readout."
+
+[[inputs]]
+id = "tokenizer"
+source = "store:w2-inputs/2026-10-25/driver-data/tokenizer.json"
+sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+
+[[inputs]]
+id = "train-tokens"
+source = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/tokens.u16"
+sha256 = "9681a1270dd0125da1fb8ab22bb6925e9811d4a882f5c46614c9bbc5576db16e"
+
+[[inputs]]
+id = "train-mask"
+source = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/response_mask.u8"
+sha256 = "d046f92d8fcc338adb2b80d3dafabf6e067f00ebee936e91385cb8956414c4e3"
+
+[[evidence]]
+id = "source"
+kind = "authority"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md"
+result = "pass"
+scope = "source and run identity"
+mechanisms = ["tokenizer", "fbs-trunk", "hamming-copy-read", "turn-memory", "memory-chain", "whole-table-readout", "integer-export"]
+statement = "The report pins arm rt at 05e50006b and records the same data and training steps as arm r."
+
+[[evidence]]
+id = "result"
+kind = "report"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md"
+result = "pass"
+scope = "three seeds, line panel and laptop scripts"
+mechanisms = ["hamming-copy-read", "turn-memory", "memory-chain", "whole-table-readout"]
+statement = "Arm rt read row 1 at all seeds: E 0.707, 0.712 and 0.692; L 4 of 4; general questions 9, 10 and 9 of 10."
+
+[[evidence]]
+id = "artifact-seed-2"
+kind = "artifact"
+locator = "store:results/claude/one-model-end-to-end-memory-chain-2026-11-10/run/rt-s2/try-2/"
+sha256 = "39672ffaad41051b87b81dec2e1f7c859cf8230939628056828486f19fd86d01"
+result = "pass"
+scope = "seed 2 integer artifact"
+mechanisms = ["fbs-trunk", "hamming-copy-read", "turn-memory", "memory-chain", "whole-table-readout", "integer-export"]
+statement = "The seed-2 artifact is 55,424,640 bytes, schema /9, with memory_chain tail 9, and loads in uor-chat."
+
+[[mechanisms]]
+id = "tokenizer"
+status = "integrated"
+implementation = "crates/uor-r4-tokenizer/src/lib.rs"
+evidence = ["crates/uor-r4-tokenizer/src/lib.rs"]
+evidence_ids = ["source"]
+flags = []
+conflicts_with = []
+depends_on = []
+sidecars = []
+load_order = 10
+cleanup_order = 80
+sections = []
+invariants = ["The tokenizer hash is d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89."]
+non_claims = ["Tokenizer agreement is not language capability."]
+
+[[mechanisms]]
+id = "fbs-trunk"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/geometric_stack_native.rs"
+evidence = ["crates/uor-r4-float-train/src/geometric_stack_native.rs"]
+evidence_ids = ["source", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["tokenizer"]
+sidecars = ["model.safetensors", "config.json"]
+load_order = 20
+cleanup_order = 70
+sections = ["trunk"]
+invariants = ["All projections are SpiralCore/FBS route maps."]
+non_claims = ["The trunk alone does not establish conversation."]
+
+[[mechanisms.flags]]
+name = "--objective"
+value = "cell"
+required = true
+
+[[mechanisms]]
+id = "hamming-copy-read"
+status = "measured-positive"
+implementation = "crates/uor-r4-float-train/src/flock_read_hamming.rs"
+evidence = ["crates/uor-r4-float-train/src/flock_read_hamming.rs"]
+evidence_ids = ["source", "result", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = ["hamming_read.safetensors"]
+load_order = 30
+cleanup_order = 60
+sections = ["hamming-reads"]
+invariants = ["Copy heads use latest exact and one-token keys."]
+non_claims = ["A copy hit does not guarantee the readout preserves the value."]
+
+[[mechanisms.flags]]
+name = "--hamming-read"
+value = "4"
+required = true
+
+[[mechanisms.flags]]
+name = "--hamming-copy-latest"
+value = "true"
+required = true
+
+[[mechanisms]]
+id = "turn-memory"
+status = "measured-positive"
+implementation = "crates/uor-r4-float-train/src/flock_read_memory.rs"
+evidence = ["crates/uor-r4-float-train/src/flock_read_memory.rs"]
+evidence_ids = ["source", "result", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["hamming-copy-read"]
+sidecars = ["turn_memory.safetensors", "turn_memory_reply.safetensors"]
+load_order = 40
+cleanup_order = 50
+sections = ["turn-memory"]
+invariants = ["A key owned by the copy read is left to it."]
+non_claims = ["The turn memory's general-question gain does not remove its copied-value losses."]
+
+[[mechanisms.flags]]
+name = "--turn-memory"
+value = "8"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-reply"
+value = "true"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-dropout"
+value = "500"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-leave-copied"
+value = "true"
+required = true
+
+[[mechanisms]]
+id = "memory-chain"
+status = "measured-positive"
+implementation = "crates/uor-r4-integer/src/stack/memory.rs"
+evidence = ["crates/uor-r4-integer/src/stack/memory.rs", "crates/uor-r4-integer/src/stack/format.rs"]
+evidence_ids = ["source", "result", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["turn-memory"]
+sidecars = []
+load_order = 45
+cleanup_order = 45
+sections = ["memory-chain", "turn-memory"]
+invariants = ["The reply table asks ends, then tail, then head.", "The memory_chain tail is exactly 9."]
+non_claims = ["Tail-nine keying does not eliminate copied-value write-overs."]
+
+[[mechanisms.flags]]
+name = "--turn-memory-tail"
+value = "9"
+required = true
+
+[[mechanisms]]
+id = "whole-table-readout"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/in_space_long.rs"
+evidence = ["crates/uor-r4-float-train/src/in_space_long.rs"]
+evidence_ids = ["source", "result", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = []
+load_order = 50
+cleanup_order = 40
+sections = ["writer"]
+invariants = ["The cell objective decodes through the whole-table nearest token."]
+non_claims = ["Panel accuracy is not a complete-reply capability pass."]
+
+[[mechanisms]]
+id = "integer-export"
+status = "measured-positive"
+implementation = "crates/uor-r4-integer/src/bin/fbs-export.rs"
+evidence = ["crates/uor-r4-integer/src/bin/fbs-export.rs", "crates/uor-r4-integer/src/stack/format.rs"]
+evidence_ids = ["source", "artifact-seed-2"]
+conflicts_with = []
+depends_on = ["fbs-trunk", "hamming-copy-read", "memory-chain", "whole-table-readout"]
+sidecars = ["artifact:memory", "artifact:hamming", "artifact:writer"]
+load_order = 60
+cleanup_order = 30
+sections = ["trunk", "hamming-reads", "turn-memory", "memory-chain", "writer"]
+invariants = ["The artifact schema is exactly uor-r4.lut-stack/9.", "The integer session loads the artifact and serves its declared memory chain."]
+non_claims = ["Successful load is not response-quality evidence."]
+
+[[mechanisms.flags]]
+name = "--run-config"
+value = "config.json"
+required = true
+
+[[commands]]
+id = "train"
+role = "train"
+program = "cargo"
+args = ["run", "--release", "--locked", "-p", "uor-r4-float-train", "--bin", "train-in-space", "--", "--objective", "cell", "--retain-rates", "1", "--decay-mult", "1", "--lr", "0.001", "--lr-end", "0", "--context", "192", "--width", "256", "--hamming-read", "4", "--batch", "16", "--turn-memory", "8", "--turn-memory-reply", "1", "--turn-memory-dropout", "500", "--samples", "6", "--reply-tokens", "48", "--steps", "16384", "--eval-every", "2048", "--hamming-copy-latest", "1", "--turn-memory-leave-copied", "1", "--turn-memory-tail", "9"]
+env = []
+inputs = ["train-tokens", "train-mask", "tokenizer"]
+outputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
+timeout_seconds = 21600
+
+[[commands]]
+id = "score"
+role = "score"
+program = "train-in-space"
+args = ["--score-rows", "CHECKPOINT", "--panel", "line", "--sample-opening", "last", "--samples", "1200", "--context", "192", "--reply-tokens", "48", "--retain-rates", "1"]
+env = []
+inputs = ["train-tokens"]
+outputs = ["score.json"]
+timeout_seconds = 7200
+
+[[commands]]
+id = "export"
+role = "export"
+program = "fbs-export"
+args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-arm-rt.toml", "--tokenizer", "tokenizer.json", "--context", "8256", "SNAPSHOT_JSON", "rt.uorlut"]
+env = []
+inputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
+outputs = ["rt.uorlut"]
+timeout_seconds = 1800
+
+[[commands]]
+id = "serve"
+role = "serve"
+program = "uor-chat"
+args = ["--stack", "rt.uorlut", "--tokenizer", "tokenizer.json", "--protocol", "2", "--max-tokens", "48"]
+env = []
+inputs = ["rt.uorlut", "tokenizer"]
+outputs = ["chat.json"]
+timeout_seconds = 300
+
+[[commands]]
+id = "audit"
+role = "verify"
+program = "cargo"
+args = ["xtask", "stack-audit", "--contract", "conformance/stack/fbs-arm-rt.toml"]
+env = []
+inputs = ["fbs-arm-rt.toml"]
+outputs = ["stack-audit.json"]
+timeout_seconds = 300
+
+[[readings]]
+id = "exact-recall"
+class = "semantic"
+description = "Exact replies over matched line-panel pairs."
+mechanism = "memory-chain"
+unit = "share"
+better = "higher"
+bar = 0.60
+
+[[readings]]
+id = "general-replies"
+class = "semantic"
+description = "Exact non-recall replies of 579."
+mechanism = "turn-memory"
+unit = "count"
+better = "higher"
+bar = 244.0
+
+[[readings]]
+id = "laptop-lines"
+class = "surface"
+description = "Correct values in the twelve-line laptop script."
+mechanism = "memory-chain"
+unit = "count of 4"
+better = "higher"
+bar = 3.0
+
+[[readings]]
+id = "copied-value-regressions"
+class = "semantic"
+description = "Copied-value replies made wrong by the turn memory against its memory-off control."
+mechanism = "turn-memory"
+unit = "count"
+better = "lower"
+
+[[probes]]
+id = "context-boundary"
+class = "boundary"
+mechanism = "fbs-trunk"
+axis = "context length"
+expectation = "Short input serves and oversized input is refused."
+cases = ["inside window", "oversize turn"]
+fixture = "conformance/stack/fixtures/context-boundary.v2.json"
+fixture_sha256 = "8b89092c838c0191fd4e257d7e884cb0990d66be2434d99c63beef28744b3830"
+layers = ["chat"]
+
+[[probes]]
+id = "copy-boundary"
+class = "boundary"
+mechanism = "hamming-copy-read"
+axis = "candidate count and tie order"
+expectation = "A source is available and rerun is deterministic."
+cases = ["source present", "kept-set order"]
+fixture = "conformance/stack/fixtures/copy-boundary.v2.json"
+fixture_sha256 = "b418f3b7fe72b457eab34ecdb703279125747f81a39eeca3e315af9aae84b479"
+layers = ["chat"]
+
+[[probes]]
+id = "memory-precedence"
+class = "metamorphic"
+mechanism = "memory-chain"
+axis = "explicit, sieve and absent memory"
+expectation = "Explicit memory overrides the sieve and absent memory emits none."
+cases = ["automatic", "explicit overrides", "absent"]
+fixture = "conformance/stack/fixtures/memory-precedence.v2.json"
+fixture_sha256 = "409e782ef2d63e55f7ccd6a5c495d3269ee274b0f9825b030d3340d00263d6d7"
+layers = ["chat"]
+
+[[probes]]
+id = "float-integer-boundary"
+class = "parity"
+mechanism = "integer-export"
+axis = "execution layer"
+expectation = "The product path identifies and serves the artifact."
+cases = ["chat script"]
+fixture = "conformance/stack/fixtures/representation-parity.v2.json"
+fixture_sha256 = "d0fc311df673ba2d5ecb4352c72a90c9f41e9d59b0d498ad094b7ca2c1ca5751"
+layers = ["chat"]
+
+[[non_claims]]
+id = "not-complete-chat"
+statement = "Arm rt is a candidate configuration, not a completed chat model."
+
+[[non_claims]]
+id = "not-mixed-key-retirement"
+statement = "This contract does not reopen or retire the mixed-key configuration."
+
+[[non_claims]]
+id = "not-contract-pass"
+statement = "A matching artifact identity is not a capability claim."

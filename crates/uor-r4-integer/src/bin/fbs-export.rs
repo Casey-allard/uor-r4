@@ -6,7 +6,7 @@
 //! build, and this serving-build binary turns it into the artifact.
 //!
 //! ```text
-//! fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C]
+//! fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--stack-contract TOML] [--context C]
 //!     SNAPSHOT_JSON OUT_PATH
 //! ```
 //!
@@ -38,6 +38,10 @@
 //!
 //! It parses the artifact back before writing it, never replaces or leaves a
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
+//! `--stack-contract` is optional diagnostic provenance: the artifact records
+//! the contract source and its SHA-256 under `source.stack_contract`. Serving
+//! arithmetic never reads that object, and omitting the flag leaves the
+//! artifact byte-for-byte unchanged.
 //!
 //! ```text
 //! fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH
@@ -60,13 +64,13 @@ use uor_r4_integer::fbs_snapshot::{
     FBS_HAMMING_ASK_KEY,
 };
 use uor_r4_integer::stack::{
-    add_hamming_ask_uorlut01, add_point_key_uorlut01, set_hamming_copy_latest_uorlut01, AskImage, build_point_key,
-    check_point_key_read_back,
-    export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_chain, export_fbs_trunk_uorlut01_with, point_key_windows,
-    FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel, POINT_KEY_BOS, POINT_KEY_WINDOW,
+    add_hamming_ask_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
+    export_fbs_trunk_uorlut01_with_provenance, point_key_windows, set_hamming_copy_latest_uorlut01,
+    AskImage, FbsExportProvenance, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
+    StackContractProvenance, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
-const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--stack-contract TOML] [--tokenizer TOKENIZER_JSON] [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
 
 fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
     let value: serde_json::Value =
@@ -163,6 +167,8 @@ fn run() -> Result<(), String> {
     // The memory chain's tail the run trained (claude-345), 0 for none, read from its config below.
     let mut chain_tail = 0usize;
     let mut carry = None::<usize>;
+    let mut stack_contract = None::<String>;
+    let mut provenance_tokenizer = None::<String>;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -183,8 +189,9 @@ fn run() -> Result<(), String> {
             }
             "--context" if carry.is_some() => return Err("--context given twice".to_owned()),
             "--context" => {
-                let value =
-                    args.next().ok_or_else(|| format!("--context needs a value: {USAGE}"))?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| format!("--context needs a value: {USAGE}"))?;
                 carry = Some(
                     value
                         .parse()
@@ -192,6 +199,24 @@ fn run() -> Result<(), String> {
                         .filter(|&c: &usize| c > 0)
                         .ok_or_else(|| format!("--context needs a positive integer: {value}"))?,
                 );
+            }
+            "--stack-contract" if stack_contract.is_some() => {
+                return Err("--stack-contract given twice".to_owned())
+            }
+            "--stack-contract" => {
+                stack_contract = Some(
+                    args.next()
+                        .ok_or_else(|| format!("--stack-contract needs a path: {USAGE}"))?,
+                )
+            }
+            "--tokenizer" if provenance_tokenizer.is_some() => {
+                return Err("--tokenizer given twice".to_owned())
+            }
+            "--tokenizer" => {
+                provenance_tokenizer = Some(
+                    args.next()
+                        .ok_or_else(|| format!("--tokenizer needs a path: {USAGE}"))?,
+                )
             }
             flag if flag.starts_with("--") => return Err(format!("{flag}: {USAGE}")),
             _ => paths.push(arg),
@@ -205,9 +230,15 @@ fn run() -> Result<(), String> {
     // must be a trunk snapshot, which refuses any other field.
     let mut value: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|e| format!("{snapshot}: {e}"))?;
-    let asks: Option<Vec<Option<FbsHammingAskRead>>> = match value.as_object_mut().and_then(|o| o.remove(FBS_HAMMING_ASK_KEY)) {
+    let asks: Option<Vec<Option<FbsHammingAskRead>>> = match value
+        .as_object_mut()
+        .and_then(|o| o.remove(FBS_HAMMING_ASK_KEY))
+    {
         None => None,
-        Some(asks) => Some(serde_json::from_value(asks).map_err(|e| format!("{snapshot}: {FBS_HAMMING_ASK_KEY}: {e}"))?),
+        Some(asks) => Some(
+            serde_json::from_value(asks)
+                .map_err(|e| format!("{snapshot}: {FBS_HAMMING_ASK_KEY}: {e}"))?,
+        ),
     };
     let mut snap: FbsTrunkSnapshot =
         serde_json::from_value(value).map_err(|e| format!("{snapshot}: {e}"))?;
@@ -216,16 +247,27 @@ fn run() -> Result<(), String> {
         None => None,
         Some(asks) if asks.iter().all(Option::is_none) => None,
         Some(asks) => {
-            let hamming = snap.hamming.as_ref().ok_or_else(|| format!("{snapshot}: {FBS_HAMMING_ASK_KEY} without Hamming reads"))?;
+            let hamming = snap.hamming.as_ref().ok_or_else(|| {
+                format!("{snapshot}: {FBS_HAMMING_ASK_KEY} without Hamming reads")
+            })?;
             if asks.len() != hamming.depths.len() {
-                return Err(format!("{snapshot}: {FBS_HAMMING_ASK_KEY} has {} entries for {} Hamming reads", asks.len(), hamming.depths.len()));
+                return Err(format!(
+                    "{snapshot}: {FBS_HAMMING_ASK_KEY} has {} entries for {} Hamming reads",
+                    asks.len(),
+                    hamming.depths.len()
+                ));
             }
             let images = asks
                 .iter()
                 .zip(&hamming.depths)
                 .map(|(ask, &depth)| {
                     ask.as_ref()
-                        .map(|ask| quantize_hamming_ask(depth, ask).and_then(|(table, carry)| AskImage::checked(Some(table), carry, snap.vocab, snap.width).map_err(|e| e.to_string())))
+                        .map(|ask| {
+                            quantize_hamming_ask(depth, ask).and_then(|(table, carry)| {
+                                AskImage::checked(Some(table), carry, snap.vocab, snap.width)
+                                    .map_err(|e| e.to_string())
+                            })
+                        })
                         .transpose()
                         .map(Option::flatten)
                 })
@@ -267,26 +309,53 @@ fn run() -> Result<(), String> {
             .get("turn_memory_tail")
             .map_or(Ok(0), |value| {
                 // A tail that is not a whole number is refused: read as 0 it would export no chain.
-                value
-                    .as_u64()
-                    .ok_or_else(|| format!("{config}: turn_memory_tail {value} is not a whole number"))
+                value.as_u64().ok_or_else(|| {
+                    format!("{config}: turn_memory_tail {value} is not a whole number")
+                })
             })?;
-        chain_tail = usize::try_from(tail).map_err(|_| format!("{config}: turn_memory_tail {tail} is too large"))?;
+        chain_tail = usize::try_from(tail)
+            .map_err(|_| format!("{config}: turn_memory_tail {tail} is too large"))?;
     }
     // A run trained with a memory chain (claude-345) writes its record with the export, so the
     // export reads its reply keys back at that exact tail.
-    let artifact = if chain_tail > 0 {
-        export_fbs_trunk_uorlut01_chain(&snap, snaps, carry, chain_tail).map_err(|e| format!("the memory chain: {e}"))?
-    } else {
-        match carry {
-            Some(context) => export_fbs_trunk_uorlut01_carry(&snap, snaps, context),
-            None => export_fbs_trunk_uorlut01_with(&snap, snaps),
+    let stack_contract = match stack_contract {
+        None => None,
+        Some(path) => {
+            let bytes = std::fs::read(&path).map_err(|e| format!("{path}: {e}"))?;
+            if bytes.len() > 1 << 20 {
+                return Err(format!("{path}: stack contract is larger than 1 MiB"));
+            }
+            Some(StackContractProvenance {
+                source: path,
+                sha256: hex::encode(Sha256::digest(&bytes)),
+            })
         }
-        .map_err(|e| format!("export: {e}"))?
     };
+    let tokenizer_sha256 = match provenance_tokenizer {
+        None => None,
+        Some(path) => {
+            let bytes = std::fs::read(&path).map_err(|e| format!("{path}: {e}"))?;
+            Some(hex::encode(Sha256::digest(&bytes)))
+        }
+    };
+    let provenance =
+        (stack_contract.is_some() || tokenizer_sha256.is_some()).then_some(FbsExportProvenance {
+            stack_contract,
+            tokenizer_sha256,
+        });
+    let artifact = export_fbs_trunk_uorlut01_with_provenance(
+        &snap,
+        snaps,
+        carry,
+        chain_tail,
+        provenance.as_ref(),
+    )
+    .map_err(|e| format!("export: {e}"))?;
     let artifact = match asks {
         None => artifact,
-        Some(asks) => add_hamming_ask_uorlut01(&artifact, &asks).map_err(|e| format!("the ask heads: {e}"))?,
+        Some(asks) => {
+            add_hamming_ask_uorlut01(&artifact, &asks).map_err(|e| format!("the ask heads: {e}"))?
+        }
     };
     // A run trained with `--hamming-copy-latest` serves the latest exact match: the rule is in
     // its config, not in the snapshot, and goes into the Hamming record here.

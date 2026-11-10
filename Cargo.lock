@@ -1640,6 +1640,8 @@ name = "repo-model"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
+ "sha2",
  "toml",
 ]
 
@@ -2934,8 +2936,10 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "repo-model",
+ "serde",
  "serde_json",
  "sha2",
+ "toml",
 ]
 
 [[package]]

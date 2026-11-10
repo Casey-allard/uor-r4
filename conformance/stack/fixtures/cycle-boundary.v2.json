@@ -1,0 +1,61 @@
+{
+  "schema": "uor-r4.stack-probe/1",
+  "probe": "cycle-period-boundary",
+  "axis": "cycle period",
+  "cases": [
+    {
+      "id": "recorded-stop",
+      "description": "Every generated reply reports a terminal stop rather than silently exhausting.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "What is the opposite of hot?",
+            "memory_auto": false
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "8"
+      ],
+      "expect": {
+        "turns": 1,
+        "all_reply_ids_nonempty": true,
+        "stops": [
+          "short_cycle"
+        ],
+        "memory": [
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "no-unreported-exhaustion",
+      "description": "The product path always emits ids, a stop and a history position for a served turn.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "Give me the opposite of fast.",
+            "memory_auto": false
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "8"
+      ],
+      "expect": {
+        "turns": 1,
+        "all_reply_ids_nonempty": true,
+        "stops": [
+          "short_cycle"
+        ],
+        "memory": [
+          "none"
+        ]
+      }
+    }
+  ]
+}

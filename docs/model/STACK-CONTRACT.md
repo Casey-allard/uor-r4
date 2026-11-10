@@ -5,14 +5,336 @@
 
 A stack contract makes one model composition explicit across source, configuration, artifact sections, commands, readings and probes. It is not a capability claim.
 
-## `fbs-b64l-baseline`
+## Evidence status
 
-The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest.
+| Contract | State | Schema | Mechanisms | Evidence | Probes |
+| --- | --- | --- | --- | --- | --- |
+| `fbs-arm-r` | `current` | `uor-r4.lut-stack/7` | `integrated` 4<br>`measured-positive` 3 | `pass` 4 | 5 |
+| `fbs-arm-rk` | `historical` | `uor-r4.lut-stack/7` | `integrated` 3<br>`measured-negative` 2<br>`not-run` 1 | `fail` 1<br>`not-run` 1<br>`pass` 1 | 3 |
+| `fbs-arm-rt` | `candidate` | `uor-r4.lut-stack/9` | `integrated` 3<br>`measured-positive` 4 | `pass` 3 | 4 |
+| `fbs-b64l-baseline` | `historical` | `uor-r4.lut-stack/6` | `integrated` 2<br>`measured-negative` 2<br>`not-run` 1 | `fail` 1<br>`not-run` 1 | 3 |
 
-- Source: `conformance/stack/fbs-b64l-baseline.toml` (BLAKE3 `3f962c194a824ea1efbf1ea1fe1842d759ba179d4978d94e0a36d93d7de566f5`)
+## `fbs-arm-r`
+
+The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path.
+
+- Source: `conformance/stack/fbs-arm-r.toml` (BLAKE3 `8188da7fa8552c5426445eb451b08f87c1e970c6eb6f08d4ce0359cb1289c411`)
+- Semantic hash: `ff21c29111a7acb0f2b6b12f84aaa4a3000bcff79c16f4c12baa2f8764f796da`
+- Lane: `fbs`
+- State: `current`
+- Revision: 2
+- Source pin: `fd71a02785f951fb7f07c93051a0722eee7b76e6`
+- Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-r-at-seeds-1-2-and-3-replicated
+
+### Model
+
+| Field | Value |
+| --- | --- |
+| Tokenizer SHA-256 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| Vocabulary | 4096 |
+| Width | 256 |
+| Layers | 6 |
+| Context | 8256 |
+| Training context | 192 |
+| Objective | `cell` |
+| Training | float32 on CUDA; train-as-served rounding is applied before each forward |
+| Serving | integer UORLUT01 artifact; Q12 writer points and branch-free table arithmetic |
+
+### Artifact
+
+Family: `uor-r4.lut-stack`
+Schema: `uor-r4.lut-stack/7`
+
+| Section | Required | Owner | Format | Exponent | Description |
+| --- | --- | --- | --- | --- | --- |
+| `trunk` | yes | `fbs-trunk` | 4-bit matrices, group scales, i16/i32/u32 tables | -- | The SpiralCore/FBS recurrence, route maps, Hamilton gates and serving tables. |
+| `hamming-reads` | yes | `hamming-copy-read` | Q24 rotations and weights, Q16 margins, i16 ask tables when present | -24 | The trained copy and type reads, including the latest-exact copy rule. |
+| `turn-memory` | yes | `turn-memory` | u32 keys and values, i32 Q24 move weights | -24 | The opening and reply tables that carry stated facts across turns. |
+| `writer` | yes | `whole-table-readout` | native vector writer cells and Q12 i16 token points | -12 | The native writer and whole-table nearest-token readout. |
+
+### Inputs
+
+| ID | Source | SHA-256 |
+| --- | --- | --- |
+| `tokenizer` | `store:w2-inputs/2026-10-25/driver-data/tokenizer.json` | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| `train-tokens` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/tokens.u16` | `9681a1270dd0125da1fb8ab22bb6925e9811d4a882f5c46614c9bbc5576db16e` |
+| `train-mask` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/response_mask.u8` | `d046f92d8fcc338adb2b80d3dafabf6e067f00ebee936e91385cb8956414c4e3` |
+| `line-panel` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/panel-line/train/` | `db48d045b8e4c80b65cf8022080ccfc969e9bcde2713eef1ee3de50bb55964f9` |
+| `no-line-panel` | `store:results/claude/one-model-end-to-end-memory-line-2026-11-10/panel-noline/train/` | `b8ad9fe401226b6df8677d06b3f2ad60ea4ffdf6a0b8092970c69e57c4355fe4` |
+
+### Mechanisms
+
+| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | -- | `crates/uor-r4-tokenizer/src/lib.rs`<br>`docs/model/data-and-tokenizer.md` | -- | -- | -- | 10 / 90 | `The tokenizer bytes hash to d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.`<br>`Every token id is below the artifact vocabulary of 4096.` | `The tokenizer is not evidence of language capability.` |
+| `fbs-trunk` | `integrated` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/geometric_stack_native.rs`<br>`crates/uor-r4-float-train/src/hamilton_sheet.rs` | `tokenizer` | -- | `model.safetensors`<br>`config.json` | 20 / 80 | `Every projection is a SpiralCore/FBS route table.`<br>`The recurrence and Hamilton gates preserve the declared geometric arithmetic.`<br>`The writer produces one width-256 query for every served position.` | `The trunk alone does not establish useful conversation.` |
+| `hamming-copy-read` | `measured-positive` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `--hamming-read=4` | `crates/uor-r4-float-train/src/flock_read_hamming.rs`<br>`docs/mechanisms/flock-read.md` | `fbs-trunk` | -- | `hamming_read.safetensors` | 30 / 70 | `Each copy head reads its latest exact earlier match at full weight.`<br>`The trainer and artifact use one-token copy keys and the same latest-exact rule.`<br>`A missing exact match reads no copied value.` | `A copy hit does not by itself preserve the copied value through the writer.` |
+| `turn-memory` | `measured-positive` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `--turn-memory=8`<br>`--turn-memory-reply=true`<br>`--turn-memory-dropout=500`<br>`--turn-memory-leave-copied=true` | `crates/uor-r4-float-train/src/flock_read_memory.rs`<br>`crates/uor-r4-integer/src/stack/memory.rs` | `hamming-copy-read` | -- | `turn_memory.safetensors`<br>`turn_memory_reply.safetensors` | 40 / 60 | `The opening and reply tables are addressed by exact integer keys.`<br>`A key owned by the latest-exact copy read is left out of the turn memory.`<br>`Training dropout changes training only; serving uses the stored table at every row.` | `The arm-r memory does not recover values from the end of the question.` |
+| `whole-table-readout` | `integrated` | `crates/uor-r4-float-train/src/in_space_long.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/in_space_long.rs`<br>`docs/model/pipeline-map.md` | `fbs-trunk` | -- | -- | 50 / 50 | `The decoded token is the whole table's nearest point to the served query.`<br>`Cell and nearest objectives decode through the same whole-table readout.` | `Teacher-forced token fit is not free-running complete-reply capability.` |
+| `integer-export` | `measured-positive` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `--run-config=config.json` | `crates/uor-r4-integer/src/bin/fbs-export.rs`<br>`crates/uor-r4-integer/src/stack/format.rs` | `fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | -- | `artifact:writer`<br>`artifact:hamming`<br>`artifact:memory` | 60 / 40 | `The exported schema is exactly uor-r4.lut-stack/7.`<br>`The artifact records the latest-exact copy rule used by training.`<br>`The integer session loads and serves the artifact without floating-point arithmetic.` | `Float-to-integer export agreement does not establish language capability.` |
+| `short-cycle-stop` | `integrated` | `crates/uor-r4-integer/src/stack/chat.rs` | -- | `crates/uor-r4-integer/src/stack/chat.rs`<br>`crates/uor-r4-integer/src/generation.rs` | `integer-export` | -- | -- | 70 / 30 | `A repeated cycle of period one through four ends the reply after the declared repetition.`<br>`Cycle stopping is deterministic and does not sample.` | `Cycle stopping does not recover content displaced by the cycle.` |
+
+### Evidence
+
+| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `source-pin` | `authority` | `pass` | source identity | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `tokenizer`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout`<br>`integer-export`<br>`short-cycle-stop` | The report pins the trainer at fd71a0278 and records the exact source and artifact identities used here. |
+| `arm-r-replicated` | `report` | `pass` | three seeds, line panel and laptop scripts | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | Arm r read row 1 at seeds 1, 2 and 3: E 0.749, 0.759 and 0.782; L 3, 4 and 4 of 4. |
+| `integer-artifacts` | `artifact` | `pass` | seed 2 integer artifact | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/run/r-s2/try-1/` | `707dfdc3b564df95497d57303decccebe42ac382045d7a0aae461137fec18ad0` | `integer-export`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | The seed-2 artifact is 14,186,496 bytes and loads in uor-chat under schema uor-r4.lut-stack/7. |
+| `laptop-chat` | `transcript` | `pass` | integer chat path | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#the-three-fixed-scripts-through-each-seed` | -- | `integer-export`<br>`short-cycle-stop` | The recorded product-chat transcripts loaded the integer artifacts and emitted terminal stops. |
+
+### Readings
+
+| ID | Class | Mechanism | Unit | Better | Bar | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `exact-recall` | `semantic` | `turn-memory` | share | higher | 0.6 | Exact replies over matched line-panel pairs. |
+| `line-gain` | `semantic` | `turn-memory` | share | higher | 0.1 | Exact recall minus the no-line model's exact recall. |
+| `laptop-lines` | `surface` | `integer-export` | count of 4 | higher | 3 | Correct values in the twelve-line laptop script. |
+| `float-integer-parity` | `parity` | `integer-export` | share | higher | 1 | Float, artifact and product-chat decisions agree on the probe set. |
+| `served-tokens-per-second` | `performance` | `integer-export` | tokens/second | higher | -- | Generated integer tokens per second through uor-chat. |
+
+### Probes
+
+| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `context-boundary` | `boundary` | `fbs-trunk` | `conformance/stack/fixtures/context-boundary.v2.json` | chat | context length | A short turn is served and an oversized turn is refused with an explicit context error. | `inside window`<br>`oversize turn` |
+| `copy-boundary` | `boundary` | `hamming-copy-read` | `conformance/stack/fixtures/copy-boundary.v2.json` | chat | candidate count and tie order | A source is available to a later question and a fresh rerun is deterministic. | `source present`<br>`kept-set order` |
+| `memory-precedence` | `metamorphic` | `turn-memory` | `conformance/stack/fixtures/memory-precedence.v2.json` | chat | explicit, sieve and absent memory | Explicit memory overrides the sieve, the sieve derives a value, and an absent value emits no line. | `automatic`<br>`explicit overrides`<br>`absent` |
+| `cycle-period-boundary` | `boundary` | `short-cycle-stop` | `conformance/stack/fixtures/cycle-boundary.v2.json` | chat | cycle period | Every served reply reports a terminal EOS, cap or short-cycle stop. | `recorded stop`<br>`no unreported exhaustion` |
+| `float-integer-boundary` | `parity` | `integer-export` | `conformance/stack/fixtures/representation-parity.v2.json` | chat | execution layer | The artifact and tokenizer identities reach the product chat path and one integer token is generated. | `chat script` |
+
+### Commands
+
+- **train (`train`)**: `cargo run --release --locked -p uor-r4-float-train --bin train-in-space -- --objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --context 192 --width 256 --hamming-read 4 --batch 16 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --samples 6 --reply-tokens 48 --steps 16384 --eval-every 2048 --hamming-copy-latest 1 --turn-memory-leave-copied 1`
+  - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
+- **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
+  - env --; inputs `line-panel`<br>`no-line-panel`; outputs `score.json`; timeout 7200s
+- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-r.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON r.uorlut`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `r.uorlut`; timeout 1800s
+- **serve (`serve`)**: `uor-chat --stack r.uorlut --tokenizer tokenizer.json --protocol 2 --max-tokens 48`
+  - env --; inputs `r.uorlut`<br>`tokenizer`; outputs `chat.json`; timeout 300s
+- **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-arm-r.toml`
+  - env --; inputs `fbs-arm-r.toml`; outputs `stack-audit.json`; timeout 300s
+
+### Non-claims
+
+- **`not-general-chat`**: Arm r does not answer general questions reliably and is not a completed frontier-capable chat model.
+- **`not-mechanism-retirement`**: Any miss in this configuration closes that configuration, not the named mechanism.
+- **`not-board-capability`**: Contract validation and probe execution are structural evidence, not a capability pass.
+
+## `fbs-arm-rk`
+
+Arm r at seed 2 with copy head 0 on one-token keys and copy head 1 on two-token keys. It closed this configuration as a measured negative while leaving two-token keys themselves unretired.
+
+- Source: `conformance/stack/fbs-arm-rk.toml` (BLAKE3 `5d348f8c1b21e14f32bc831bd87d1f4f20373cf04037479dede7e75ff1b7bad6`)
+- Semantic hash: `6a3823fd6cba399be2686fd6b88ad71b3081d52b6c4e40a949207419db2e951d`
 - Lane: `fbs`
 - State: `historical`
+- Revision: 1
+- Source pin: `312880e2bd81da2f0d0f7148c7251c4f9a7cb30e`
+- Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rk-a-two-token-copy-key-lost-recall
+
+### Model
+
+| Field | Value |
+| --- | --- |
+| Tokenizer SHA-256 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| Vocabulary | 4096 |
+| Width | 256 |
+| Layers | 6 |
+| Context | 8256 |
+| Training context | 192 |
+| Objective | `cell` |
+| Training | float32 on CUDA with train-as-served rounding |
+| Serving | integer UORLUT01 artifact; no exported artifact is available for this historical arm |
+
+### Artifact
+
+Family: `uor-r4.lut-stack`
+Schema: `uor-r4.lut-stack/7`
+
+| Section | Required | Owner | Format | Exponent | Description |
+| --- | --- | --- | --- | --- | --- |
+| `trunk` | yes | `fbs-trunk` | 4-bit matrices, scales and integer tables | -- | The SpiralCore/FBS trunk. |
+| `hamming-reads` | yes | `hamming-copy-read` | Q24 rotations and weights, Q16 margins | -24 | The mixed one- and two-token copy reads. |
+| `turn-memory` | yes | `turn-memory` | u32 keys and values, i32 Q24 weights | -24 | The arm-r opening and reply tables with copied keys left to the read. |
+| `writer` | yes | `whole-table-readout` | native writer cells and Q12 i16 token points | -12 | The native writer and whole-table nearest-token readout. |
+
+### Inputs
+
+| ID | Source | SHA-256 |
+| --- | --- | --- |
+| `tokenizer` | `store:w2-inputs/2026-10-25/driver-data/tokenizer.json` | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| `train-tokens` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/tokens.u16` | `9681a1270dd0125da1fb8ab22bb6925e9811d4a882f5c46614c9bbc5576db16e` |
+| `train-mask` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/response_mask.u8` | `d046f92d8fcc338adb2b80d3dafabf6e067f00ebee936e91385cb8956414c4e3` |
+
+### Mechanisms
+
+| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | -- | `crates/uor-r4-tokenizer/src/lib.rs` | -- | -- | -- | 10 / 80 | `The tokenizer hash is d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.` | `Tokenizer agreement is not capability.` |
+| `fbs-trunk` | `integrated` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `tokenizer` | -- | `model.safetensors`<br>`config.json` | 20 / 70 | `All projections are SpiralCore/FBS route maps.` | `The negative closes this configuration, not the trunk.` |
+| `hamming-copy-read` | `measured-negative` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `--hamming-read=4`<br>`--hamming-copy-latest=true`<br>`--hamming-copy-keys=1,2` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `fbs-trunk` | -- | `hamming_read.safetensors` | 30 / 60 | `Copy head 0 uses a one-token key and copy head 1 uses a two-token key.`<br>`Both heads use latest-exact selection.` | `This negative does not close two-token keys by themselves.` |
+| `turn-memory` | `measured-negative` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `--turn-memory=8`<br>`--turn-memory-reply=true`<br>`--turn-memory-dropout=500`<br>`--turn-memory-leave-copied=true` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `hamming-copy-read` | -- | `turn_memory.safetensors`<br>`turn_memory_reply.safetensors` | 40 / 50 | `A key is left to the read only when both copy heads' latest exact matches name the target on the key's rows.` | `The memory key remains the diagnosed cause; this is not a retirement of turn memory.` |
+| `whole-table-readout` | `integrated` | `crates/uor-r4-float-train/src/in_space_long.rs` | -- | `crates/uor-r4-float-train/src/in_space_long.rs` | `fbs-trunk` | -- | -- | 50 / 40 | `The cell objective decodes through the whole-table nearest token.` | `A poor read result is not a failure of whole-table nearest decoding.` |
+| `integer-export` | `not-run` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `--run-config=config.json` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | -- | `artifact:memory`<br>`artifact:hamming`<br>`artifact:writer` | 60 / 30 | `The intended artifact schema is uor-r4.lut-stack/7.` | `No arm-rk integer artifact was exported, so this contract makes no integer-serving claim.` |
+
+### Evidence
+
+| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `source` | `authority` | `pass` | source and run identity | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `tokenizer`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout`<br>`integer-export` | The report pins arm rk at 312880e2b and records the exact mixed-key configuration. |
+| `negative` | `report` | `fail` | seed 2 panel and laptop scripts | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | The mixed-key configuration read row 3: E 0.406, L 0 of 4, C4 recall 0 of 4 and general questions 1 of 10. |
+| `artifact-not-exported` | `artifact` | `not-run` | integer artifact | `store:results/claude/one-model-end-to-end-mixed-keys-2026-11-10/run/rk-s2/try-1/` | -- | `integer-export` | The sealed run contains checkpoints but the report records no exported arm-rk artifact hash or byte size. |
+
+### Readings
+
+| ID | Class | Mechanism | Unit | Better | Bar | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `exact-recall` | `semantic` | `hamming-copy-read` | share | higher | 0.6 | Exact replies over matched line-panel pairs. |
+| `laptop-lines` | `surface` | `turn-memory` | count of 4 | higher | 3 | Correct values in the twelve-line laptop script. |
+| `general-replies` | `semantic` | `turn-memory` | count | higher | 244 | Exact non-recall replies of 579. |
+
+### Probes
+
+| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `context-boundary` | `boundary` | `fbs-trunk` | `conformance/stack/fixtures/context-boundary.v2.json` | chat | context length | Short input serves and oversized input is refused. | `inside window`<br>`oversize turn` |
+| `copy-boundary` | `boundary` | `hamming-copy-read` | `conformance/stack/fixtures/copy-boundary.v2.json` | chat | candidate count and tie order | A source is available and rerun is deterministic. | `source present`<br>`kept-set order` |
+| `memory-precedence` | `metamorphic` | `turn-memory` | `conformance/stack/fixtures/memory-precedence.v2.json` | chat | explicit, sieve and absent memory | Explicit memory overrides the sieve and absent memory emits none. | `automatic`<br>`explicit overrides`<br>`absent` |
+
+### Commands
+
+- **train (`train`)**: `cargo run --release --locked -p uor-r4-float-train --bin train-in-space -- --objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --context 192 --width 256 --hamming-read 4 --batch 16 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --samples 6 --reply-tokens 48 --steps 16384 --eval-every 2048 --hamming-copy-latest 1 --hamming-copy-keys '1,2' --turn-memory-leave-copied 1`
+  - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
+- **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
+  - env --; inputs `train-tokens`; outputs `score.json`; timeout 7200s
+- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-rk.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON rk.uorlut`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `rk.uorlut`; timeout 1800s
+- **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-arm-rk.toml`
+  - env --; inputs `fbs-arm-rk.toml`; outputs `stack-audit.json`; timeout 300s
+
+### Non-claims
+
+- **`not-two-token-retirement`**: The mixed-key miss does not retire two-token keys or the memory mechanism.
+- **`not-integer-result`**: No arm-rk exported artifact exists in the report, so there is no integer result for this configuration.
+- **`not-capability`**: This historical contract is not a chat-capability claim.
+
+## `fbs-arm-rt`
+
+Arm r's replicated configuration plus a turn-memory tail of nine: the uor-r4.lut-stack/9 reply table asks ends, tail and head. It reads row 1 at three seeds but makes copied values wrong more often than arm r.
+
+- Source: `conformance/stack/fbs-arm-rt.toml` (BLAKE3 `fc21e7b6714ce21b83b9dc41e512bc64dc6892941b5fb85ae391f549e03f67ec`)
+- Semantic hash: `84fe99e77673ff487602a20da2c270f856cfb549d58986b8a265a4730cb4a931`
+- Lane: `fbs`
+- State: `candidate`
+- Revision: 1
+- Source pin: `05e50006b9b1dcd1799166df478e08139c0a9e48`
+- Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-rt-the-three-key-turn-memory-reads-row-1-and-costs-recall-where-a-value-is-copied
+
+### Model
+
+| Field | Value |
+| --- | --- |
+| Tokenizer SHA-256 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| Vocabulary | 4096 |
+| Width | 256 |
+| Layers | 6 |
+| Context | 8256 |
+| Training context | 192 |
+| Objective | `cell` |
+| Training | float32 on CUDA with train-as-served rounding |
+| Serving | integer UORLUT01 artifact with the memory chain served by the product chat path |
+
+### Artifact
+
+Family: `uor-r4.lut-stack`
+Schema: `uor-r4.lut-stack/9`
+
+| Section | Required | Owner | Format | Exponent | Description |
+| --- | --- | --- | --- | --- | --- |
+| `trunk` | yes | `fbs-trunk` | 4-bit matrices, scales and integer tables | -- | The SpiralCore/FBS trunk and serving tables. |
+| `hamming-reads` | yes | `hamming-copy-read` | Q24 rotations and weights, Q16 margins | -24 | The latest-exact Hamming copy and type reads. |
+| `turn-memory` | yes | `turn-memory` | u32 keys and values, i32 Q24 weights | -24 | The opening and reply tables. |
+| `memory-chain` | yes | `memory-chain` | header record; three key forms in the shared reply table | -- | The tail-nine memory chain record under schema /9. |
+| `writer` | yes | `whole-table-readout` | native writer cells and Q12 i16 token points | -12 | The native vector writer and nearest-token readout. |
+
+### Inputs
+
+| ID | Source | SHA-256 |
+| --- | --- | --- |
+| `tokenizer` | `store:w2-inputs/2026-10-25/driver-data/tokenizer.json` | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| `train-tokens` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/tokens.u16` | `9681a1270dd0125da1fb8ab22bb6925e9811d4a882f5c46614c9bbc5576db16e` |
+| `train-mask` | `store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/response_mask.u8` | `d046f92d8fcc338adb2b80d3dafabf6e067f00ebee936e91385cb8956414c4e3` |
+
+### Mechanisms
+
+| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | -- | `crates/uor-r4-tokenizer/src/lib.rs` | -- | -- | -- | 10 / 80 | `The tokenizer hash is d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.` | `Tokenizer agreement is not language capability.` |
+| `fbs-trunk` | `integrated` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `tokenizer` | -- | `model.safetensors`<br>`config.json` | 20 / 70 | `All projections are SpiralCore/FBS route maps.` | `The trunk alone does not establish conversation.` |
+| `hamming-copy-read` | `measured-positive` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `--hamming-read=4`<br>`--hamming-copy-latest=true` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `fbs-trunk` | -- | `hamming_read.safetensors` | 30 / 60 | `Copy heads use latest exact and one-token keys.` | `A copy hit does not guarantee the readout preserves the value.` |
+| `turn-memory` | `measured-positive` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `--turn-memory=8`<br>`--turn-memory-reply=true`<br>`--turn-memory-dropout=500`<br>`--turn-memory-leave-copied=true` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `hamming-copy-read` | -- | `turn_memory.safetensors`<br>`turn_memory_reply.safetensors` | 40 / 50 | `A key owned by the copy read is left to it.` | `The turn memory's general-question gain does not remove its copied-value losses.` |
+| `memory-chain` | `measured-positive` | `crates/uor-r4-integer/src/stack/memory.rs` | `--turn-memory-tail=9` | `crates/uor-r4-integer/src/stack/memory.rs`<br>`crates/uor-r4-integer/src/stack/format.rs` | `turn-memory` | -- | -- | 45 / 45 | `The reply table asks ends, then tail, then head.`<br>`The memory_chain tail is exactly 9.` | `Tail-nine keying does not eliminate copied-value write-overs.` |
+| `whole-table-readout` | `integrated` | `crates/uor-r4-float-train/src/in_space_long.rs` | -- | `crates/uor-r4-float-train/src/in_space_long.rs` | `fbs-trunk` | -- | -- | 50 / 40 | `The cell objective decodes through the whole-table nearest token.` | `Panel accuracy is not a complete-reply capability pass.` |
+| `integer-export` | `measured-positive` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `--run-config=config.json` | `crates/uor-r4-integer/src/bin/fbs-export.rs`<br>`crates/uor-r4-integer/src/stack/format.rs` | `fbs-trunk`<br>`hamming-copy-read`<br>`memory-chain`<br>`whole-table-readout` | -- | `artifact:memory`<br>`artifact:hamming`<br>`artifact:writer` | 60 / 30 | `The artifact schema is exactly uor-r4.lut-stack/9.`<br>`The integer session loads the artifact and serves its declared memory chain.` | `Successful load is not response-quality evidence.` |
+
+### Evidence
+
+| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `source` | `authority` | `pass` | source and run identity | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `tokenizer`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`memory-chain`<br>`whole-table-readout`<br>`integer-export` | The report pins arm rt at 05e50006b and records the same data and training steps as arm r. |
+| `result` | `report` | `pass` | three seeds, line panel and laptop scripts | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md` | -- | `hamming-copy-read`<br>`turn-memory`<br>`memory-chain`<br>`whole-table-readout` | Arm rt read row 1 at all seeds: E 0.707, 0.712 and 0.692; L 4 of 4; general questions 9, 10 and 9 of 10. |
+| `artifact-seed-2` | `artifact` | `pass` | seed 2 integer artifact | `store:results/claude/one-model-end-to-end-memory-chain-2026-11-10/run/rt-s2/try-2/` | `39672ffaad41051b87b81dec2e1f7c859cf8230939628056828486f19fd86d01` | `fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`memory-chain`<br>`whole-table-readout`<br>`integer-export` | The seed-2 artifact is 55,424,640 bytes, schema /9, with memory_chain tail 9, and loads in uor-chat. |
+
+### Readings
+
+| ID | Class | Mechanism | Unit | Better | Bar | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `exact-recall` | `semantic` | `memory-chain` | share | higher | 0.6 | Exact replies over matched line-panel pairs. |
+| `general-replies` | `semantic` | `turn-memory` | count | higher | 244 | Exact non-recall replies of 579. |
+| `laptop-lines` | `surface` | `memory-chain` | count of 4 | higher | 3 | Correct values in the twelve-line laptop script. |
+| `copied-value-regressions` | `semantic` | `turn-memory` | count | lower | -- | Copied-value replies made wrong by the turn memory against its memory-off control. |
+
+### Probes
+
+| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `context-boundary` | `boundary` | `fbs-trunk` | `conformance/stack/fixtures/context-boundary.v2.json` | chat | context length | Short input serves and oversized input is refused. | `inside window`<br>`oversize turn` |
+| `copy-boundary` | `boundary` | `hamming-copy-read` | `conformance/stack/fixtures/copy-boundary.v2.json` | chat | candidate count and tie order | A source is available and rerun is deterministic. | `source present`<br>`kept-set order` |
+| `memory-precedence` | `metamorphic` | `memory-chain` | `conformance/stack/fixtures/memory-precedence.v2.json` | chat | explicit, sieve and absent memory | Explicit memory overrides the sieve and absent memory emits none. | `automatic`<br>`explicit overrides`<br>`absent` |
+| `float-integer-boundary` | `parity` | `integer-export` | `conformance/stack/fixtures/representation-parity.v2.json` | chat | execution layer | The product path identifies and serves the artifact. | `chat script` |
+
+### Commands
+
+- **train (`train`)**: `cargo run --release --locked -p uor-r4-float-train --bin train-in-space -- --objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --context 192 --width 256 --hamming-read 4 --batch 16 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --samples 6 --reply-tokens 48 --steps 16384 --eval-every 2048 --hamming-copy-latest 1 --turn-memory-leave-copied 1 --turn-memory-tail 9`
+  - env --; inputs `train-tokens`<br>`train-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 21600s
+- **score (`score`)**: `train-in-space --score-rows CHECKPOINT --panel line --sample-opening last --samples 1200 --context 192 --reply-tokens 48 --retain-rates 1`
+  - env --; inputs `train-tokens`; outputs `score.json`; timeout 7200s
+- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-arm-rt.toml --tokenizer tokenizer.json --context 8256 SNAPSHOT_JSON rt.uorlut`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `rt.uorlut`; timeout 1800s
+- **serve (`serve`)**: `uor-chat --stack rt.uorlut --tokenizer tokenizer.json --protocol 2 --max-tokens 48`
+  - env --; inputs `rt.uorlut`<br>`tokenizer`; outputs `chat.json`; timeout 300s
+- **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-arm-rt.toml`
+  - env --; inputs `fbs-arm-rt.toml`; outputs `stack-audit.json`; timeout 300s
+
+### Non-claims
+
+- **`not-complete-chat`**: Arm rt is a candidate configuration, not a completed chat model.
+- **`not-mixed-key-retirement`**: This contract does not reopen or retire the mixed-key configuration.
+- **`not-contract-pass`**: A matching artifact identity is not a capability claim.
+
+## `fbs-b64l-baseline`
+
+The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest. The sealed checkpoints were not exported.
+
+- Source: `conformance/stack/fbs-b64l-baseline.toml` (BLAKE3 `9a0ca1e160b901df40ff33bcd66aebb3c05134387663638029792e36d02e79b9`)
+- Semantic hash: `8c226476f656e7f0711a482bea07bed1278f7813f72284d22a71145051f195b9`
+- Lane: `fbs`
+- State: `historical`
+- Revision: 2
 - Source pin: `6fcf57f7822286e5b6bd7bcfe42d668116b23afa`
+- Decision: docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0
 
 ### Model
 
@@ -23,16 +345,21 @@ The T0 memorize configuration: the float-trained FBS trunk with four Hamming rea
 | Width | 256 |
 | Layers | 6 |
 | Context | 192 |
+| Training context | 192 |
 | Objective | `nearest` |
+| Training | float32 on CUDA with train-as-served rounding |
+| Serving | intended integer UORLUT01 path; no T0 artifact was exported |
 
 ### Artifact
 
 Family: `uor-r4.lut-stack`
+Schema: `uor-r4.lut-stack/6`
 
-| Section | Required | Description |
-| --- | --- | --- |
-| `trunk` | yes | The FBS recurrence and routed feed-forward trunk. |
-| `hamming-reads` | yes | The trained Hamming copy and type reads. |
+| Section | Required | Owner | Format | Exponent | Description |
+| --- | --- | --- | --- | --- | --- |
+| `trunk` | yes | `fbs-trunk` | 4-bit matrices, scales and integer tables | -- | The FBS recurrence and routed feed-forward trunk. |
+| `hamming-reads` | yes | `hamming-copy-read` | Q24 rotations and weights, Q16 margins | -24 | The trained Hamming copy and type reads. |
+| `writer` | yes | `whole-table-readout` | native writer cells and Q12 i16 token points | -12 | The native writer and whole-table nearest-token readout. |
 
 ### Inputs
 
@@ -45,42 +372,50 @@ Family: `uor-r4.lut-stack`
 
 ### Mechanisms
 
-| ID | Status | Implementation | Evidence | Invariants | Non-claims |
-| --- | --- | --- | --- | --- | --- |
-| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | `crates/uor-r4-tokenizer/src/lib.rs`<br>`docs/model/data-and-tokenizer.md` | `The tokenizer maps UTF-8 bytes to token ids below 4096.`<br>`A different tokenizer hash names a different corpus and model input.` | `The tokenizer is not evidence of language capability.` |
-| `fbs-trunk` | `integrated` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `crates/uor-r4-float-train/src/geometric_stack_native.rs`<br>`crates/uor-r4-float-train/src/hamilton_sheet.rs` | `The trunk returns one width-256 state for every position.`<br>`SpiralCore/FBS projections and the Hamilton recurrence remain exact routes and rotations.` | `The trunk alone does not establish a working language model.` |
-| `hamming-copy-read` | `integrated` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `crates/uor-r4-float-train/src/flock_read_hamming.rs`<br>`docs/mechanisms/flock-read.md` | `Each copy head keeps at most its declared number of earlier positions.`<br>`The trainer and artifact use the same copy-key length and kept count.` | `A copy read that finds a source does not by itself preserve the source's content at the readout.`<br>`The mean-copy rule in this historical contract is not the latest-exact rule.` |
-| `whole-table-readout` | `integrated` | `crates/uor-r4-float-train/src/in_space_long.rs` | `crates/uor-r4-float-train/src/in_space_long.rs`<br>`docs/model/pipeline-map.md` | `The decoded next token is the nearest table point by the declared objective.` | `Nearest-token scoring is not the same as a free-running complete reply.` |
-| `integer-export` | `implemented` | `crates/uor-r4-float-train/src/fbs_export.rs` | `crates/uor-r4-float-train/src/fbs_export.rs`<br>`crates/uor-r4-integer/src/bin/fbs-export.rs` | `Every required logical section has a declared integer representation.`<br>`An artifact omits no section required by an enabled mechanism.` | `The T0 checkpoints were not exported in that run.` |
-| `short-cycle-stop` | `implemented` | `crates/uor-r4-integer/src/generation.rs` | `crates/uor-r4-integer/src/generation.rs`<br>`crates/uor-r4-integer/src/stack/chat.rs` | `A terminal cycle of period one through four repeated three times ends a reply.` | `Stopping a cycle does not recover the content that the cycle displaced.` |
+| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | -- | `crates/uor-r4-tokenizer/src/lib.rs` | -- | -- | -- | 10 / 70 | `The tokenizer maps UTF-8 bytes to ids below 4096.` | `The tokenizer is not capability evidence.` |
+| `fbs-trunk` | `measured-negative` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `--objective=nearest` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `tokenizer` | -- | `model.safetensors`<br>`config.json` | 20 / 60 | `The trunk returns one width-256 state for every position.` | `T0 closes this 4,096-step recipe only.` |
+| `hamming-copy-read` | `integrated` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `--hamming-read=4` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `fbs-trunk` | -- | `hamming_read.safetensors` | 30 / 50 | `Each head keeps at most sixteen earlier positions.`<br>`Trainer and artifact use the same copy key.` | `A copy read finding a source does not preserve it through the writer.` |
+| `whole-table-readout` | `measured-negative` | `crates/uor-r4-float-train/src/in_space_long.rs` | -- | `crates/uor-r4-float-train/src/in_space_long.rs` | `fbs-trunk` | -- | -- | 40 / 40 | `The decoded next token is the nearest table point.` | `Nearest-token fit is not complete free-running reply.` |
+| `integer-export` | `not-run` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `--run-config=config.json` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `fbs-trunk`<br>`hamming-copy-read`<br>`whole-table-readout` | -- | `artifact:writer`<br>`artifact:hamming` | 50 / 30 | `The intended integer exporter preserves every required section.` | `No T0 integer artifact was exported, so this contract cannot claim integer parity.` |
+
+### Evidence
+
+| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `t0-report` | `report` | `fail` | two seeds, T0 memorize panel | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0` | -- | `tokenizer`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`whole-table-readout` | T0 read row 3 at both seeds: exact complete replies were 0, teacher-forced token fit was 0.602 and 0.607, and complete replies under teacher forcing were 0. |
+| `no-artifact` | `artifact` | `not-run` | integer artifact | `docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0` | -- | `integer-export` | The report records that the T0 checkpoints were not exported or served. |
 
 ### Readings
 
-| ID | Class | Mechanism | Description |
-| --- | --- | --- | --- |
-| `exact-replies` | `surface` | `whole-table-readout` | Decoded ids equal each complete reference reply through its end marker. |
-| `teacher-token-fit` | `semantic` | `whole-table-readout` | The nearest token equals the target under teacher forcing. |
-| `complete-samples` | `structural` | -- | The number of decoded references that contain an end marker. |
-| `float-integer-parity` | `parity` | `integer-export` | Float, exported integer and chat decisions agree on the same probes. |
+| ID | Class | Mechanism | Unit | Better | Bar | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `exact-replies` | `surface` | `whole-table-readout` | share | higher | 0.9 | Exact complete replies over complete samples. |
+| `teacher-token-fit` | `semantic` | `whole-table-readout` | share | higher | 0.95 | Nearest token equals the target under teacher forcing. |
+| `complete-samples` | `structural` | -- | count | higher | 800 | Decoded references containing an end marker. |
 
 ### Probes
 
-| ID | Class | Mechanism | Axis | Expectation | Cases |
-| --- | --- | --- | --- | --- | --- |
-| `context-boundary` | `boundary` | `fbs-trunk` | context length | The final trained position is retained, and exhaustion at the declared boundary is explicit. | `191 tokens`<br>`192 tokens`<br>`193 tokens` |
-| `hamming-kept-boundary` | `boundary` | `hamming-copy-read` | candidate count | The declared kept set is exact and tie order is stable. | `15 candidates`<br>`16 candidates`<br>`17 candidates` |
-| `memory-line-toggle` | `metamorphic` | `whole-table-readout` | memory line presence | Only the line-bearing arm is read as a memory-use result. | `line absent`<br>`line present with the true value`<br>`line present with a competing value` |
-| `float-integer-boundary` | `parity` | `integer-export` | execution layer | The same token decisions and stop reasons are produced by every required layer. | `float scorer`<br>`checkpoint scorer`<br>`exported artifact`<br>`integer session`<br>`uor-chat` |
-| `cycle-period-boundary` | `boundary` | `short-cycle-stop` | cycle period | Periods one through four stop after the declared repetition; period five does not use that rule. | `period 1`<br>`period 2`<br>`period 3`<br>`period 4`<br>`period 5` |
+| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `context-boundary` | `boundary` | `fbs-trunk` | `conformance/stack/fixtures/context-boundary.v2.json` | chat | context length | The declared boundary is explicit. | `inside window`<br>`oversize turn` |
+| `copy-boundary` | `boundary` | `hamming-copy-read` | `conformance/stack/fixtures/copy-boundary.v2.json` | chat | candidate count and tie order | The kept set and tie order are stable. | `source present`<br>`kept-set order` |
+| `float-integer-boundary` | `parity` | `integer-export` | `conformance/stack/fixtures/representation-parity.v2.json` | chat | execution layer | The parity fixture is available for a later exported T0 checkpoint. | `chat script` |
 
 ### Commands
 
-- **verify-contract (`verify`)**: `cargo xtask stack-contract --check`
 - **train (`train`)**: `cargo run --release --locked -p uor-r4-float-train --bin train-in-space -- --objective nearest --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --train-as-served 1 --context 192 --width 256 --hamming-read 4 --batch 64 --micro-batch 16 --steps 4096 --eval-every 512`
+  - env --; inputs `train-tokens`<br>`train-mask`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`config.json`; timeout 7200s
 - **score (`score`)**: `train-in-space --score-rows CHECKPOINT --context 192 --reply-tokens 48 --samples 1200 --retain-rates 1`
+  - env --; inputs `dev-tokens`<br>`dev-mask`; outputs `score.json`; timeout 1800s
+- **export (`export`)**: `fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-b64l-baseline.toml --tokenizer tokenizer.json --context 192 SNAPSHOT_JSON t0.uorlut`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`config.json`; outputs `t0.uorlut`; timeout 1800s
+- **audit (`verify`)**: `cargo xtask stack-audit --contract conformance/stack/fbs-b64l-baseline.toml`
+  - env --; inputs `fbs-b64l-baseline.toml`; outputs `stack-audit.json`; timeout 300s
 
 ### Non-claims
 
 - **`not-capability`**: This historical contract does not establish useful conversation.
-- **`not-integer-result`**: T0 did not export or serve its sealed checkpoints, so this contract does not establish an integer result.
-- **`not-mechanism-retirement`**: A miss in this configuration does not retire a mechanism named here.
+- **`not-integer-result`**: T0 did not export or serve its checkpoints.
+- **`not-mechanism-retirement`**: A miss in this recipe does not retire a mechanism named here.

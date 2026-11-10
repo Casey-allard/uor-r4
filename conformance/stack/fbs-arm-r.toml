@@ -1,0 +1,425 @@
+spec = "uor-r4.stack-contract/2"
+id = "fbs-arm-r"
+title = "FBS arm r: latest-exact copy with reply-worded memory"
+lane = "fbs"
+state = "current"
+revision = 2
+decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#arm-r-at-seeds-1-2-and-3-replicated"
+source_pin = "fd71a02785f951fb7f07c93051a0722eee7b76e6"
+summary = "The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path."
+
+[model]
+tokenizer_sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+vocab = 4096
+width = 256
+layers = 6
+training_context = 192
+context = 8256
+objective = "cell"
+training = "float32 on CUDA; train-as-served rounding is applied before each forward"
+serving = "integer UORLUT01 artifact; Q12 writer points and branch-free table arithmetic"
+
+[artifact]
+family = "uor-r4.lut-stack"
+schema = "uor-r4.lut-stack/7"
+
+[[artifact.sections]]
+id = "trunk"
+required = true
+owner = "fbs-trunk"
+format = "4-bit matrices, group scales, i16/i32/u32 tables"
+description = "The SpiralCore/FBS recurrence, route maps, Hamilton gates and serving tables."
+
+[[artifact.sections]]
+id = "hamming-reads"
+required = true
+owner = "hamming-copy-read"
+format = "Q24 rotations and weights, Q16 margins, i16 ask tables when present"
+exponent = -24
+description = "The trained copy and type reads, including the latest-exact copy rule."
+
+[[artifact.sections]]
+id = "turn-memory"
+required = true
+owner = "turn-memory"
+format = "u32 keys and values, i32 Q24 move weights"
+exponent = -24
+description = "The opening and reply tables that carry stated facts across turns."
+
+[[artifact.sections]]
+id = "writer"
+required = true
+owner = "whole-table-readout"
+format = "native vector writer cells and Q12 i16 token points"
+exponent = -12
+description = "The native writer and whole-table nearest-token readout."
+
+[[inputs]]
+id = "tokenizer"
+source = "store:w2-inputs/2026-10-25/driver-data/tokenizer.json"
+sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+
+[[inputs]]
+id = "train-tokens"
+source = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/tokens.u16"
+sha256 = "9681a1270dd0125da1fb8ab22bb6925e9811d4a882f5c46614c9bbc5576db16e"
+
+[[inputs]]
+id = "train-mask"
+source = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/corpus/train/response_mask.u8"
+sha256 = "d046f92d8fcc338adb2b80d3dafabf6e067f00ebee936e91385cb8956414c4e3"
+
+[[inputs]]
+id = "line-panel"
+source = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/panel-line/train/"
+sha256 = "db48d045b8e4c80b65cf8022080ccfc969e9bcde2713eef1ee3de50bb55964f9"
+
+[[inputs]]
+id = "no-line-panel"
+source = "store:results/claude/one-model-end-to-end-memory-line-2026-11-10/panel-noline/train/"
+sha256 = "b8ad9fe401226b6df8677d06b3f2ad60ea4ffdf6a0b8092970c69e57c4355fe4"
+
+[[evidence]]
+id = "source-pin"
+kind = "authority"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md"
+result = "pass"
+scope = "source identity"
+mechanisms = ["tokenizer", "fbs-trunk", "hamming-copy-read", "turn-memory", "whole-table-readout", "integer-export", "short-cycle-stop"]
+statement = "The report pins the trainer at fd71a0278 and records the exact source and artifact identities used here."
+
+[[evidence]]
+id = "arm-r-replicated"
+kind = "report"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md"
+result = "pass"
+scope = "three seeds, line panel and laptop scripts"
+mechanisms = ["hamming-copy-read", "turn-memory", "whole-table-readout"]
+statement = "Arm r read row 1 at seeds 1, 2 and 3: E 0.749, 0.759 and 0.782; L 3, 4 and 4 of 4."
+
+[[evidence]]
+id = "integer-artifacts"
+kind = "artifact"
+locator = "store:results/claude/one-model-end-to-end-reply-line-2026-11-10/run/r-s2/try-1/"
+sha256 = "707dfdc3b564df95497d57303decccebe42ac382045d7a0aae461137fec18ad0"
+result = "pass"
+scope = "seed 2 integer artifact"
+mechanisms = ["integer-export", "fbs-trunk", "hamming-copy-read", "turn-memory", "whole-table-readout"]
+statement = "The seed-2 artifact is 14,186,496 bytes and loads in uor-chat under schema uor-r4.lut-stack/7."
+
+[[evidence]]
+id = "laptop-chat"
+kind = "transcript"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#the-three-fixed-scripts-through-each-seed"
+result = "pass"
+scope = "integer chat path"
+mechanisms = ["integer-export", "short-cycle-stop"]
+statement = "The recorded product-chat transcripts loaded the integer artifacts and emitted terminal stops."
+
+[[mechanisms]]
+id = "tokenizer"
+status = "integrated"
+implementation = "crates/uor-r4-tokenizer/src/lib.rs"
+evidence = ["crates/uor-r4-tokenizer/src/lib.rs", "docs/model/data-and-tokenizer.md"]
+evidence_ids = ["source-pin"]
+flags = []
+conflicts_with = []
+depends_on = []
+sidecars = []
+load_order = 10
+cleanup_order = 90
+sections = []
+invariants = ["The tokenizer bytes hash to d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.", "Every token id is below the artifact vocabulary of 4096."]
+non_claims = ["The tokenizer is not evidence of language capability."]
+
+[[mechanisms]]
+id = "fbs-trunk"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/geometric_stack_native.rs"
+evidence = ["crates/uor-r4-float-train/src/geometric_stack_native.rs", "crates/uor-r4-float-train/src/hamilton_sheet.rs"]
+evidence_ids = ["source-pin", "integer-artifacts"]
+conflicts_with = []
+depends_on = ["tokenizer"]
+sidecars = ["model.safetensors", "config.json"]
+load_order = 20
+cleanup_order = 80
+sections = ["trunk", "writer"]
+invariants = ["Every projection is a SpiralCore/FBS route table.", "The recurrence and Hamilton gates preserve the declared geometric arithmetic.", "The writer produces one width-256 query for every served position."]
+non_claims = ["The trunk alone does not establish useful conversation."]
+
+[[mechanisms.flags]]
+name = "--objective"
+value = "cell"
+required = true
+
+[[mechanisms]]
+id = "hamming-copy-read"
+status = "measured-positive"
+implementation = "crates/uor-r4-float-train/src/flock_read_hamming.rs"
+evidence = ["crates/uor-r4-float-train/src/flock_read_hamming.rs", "docs/mechanisms/flock-read.md"]
+evidence_ids = ["source-pin", "arm-r-replicated", "integer-artifacts"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = ["hamming_read.safetensors"]
+load_order = 30
+cleanup_order = 70
+sections = ["hamming-reads"]
+invariants = ["Each copy head reads its latest exact earlier match at full weight.", "The trainer and artifact use one-token copy keys and the same latest-exact rule.", "A missing exact match reads no copied value."]
+non_claims = ["A copy hit does not by itself preserve the copied value through the writer."]
+
+[[mechanisms.flags]]
+name = "--hamming-read"
+value = "4"
+required = true
+
+[[mechanisms]]
+id = "turn-memory"
+status = "measured-positive"
+implementation = "crates/uor-r4-float-train/src/flock_read_memory.rs"
+evidence = ["crates/uor-r4-float-train/src/flock_read_memory.rs", "crates/uor-r4-integer/src/stack/memory.rs"]
+evidence_ids = ["source-pin", "arm-r-replicated", "integer-artifacts"]
+conflicts_with = []
+depends_on = ["hamming-copy-read"]
+sidecars = ["turn_memory.safetensors", "turn_memory_reply.safetensors"]
+load_order = 40
+cleanup_order = 60
+sections = ["turn-memory"]
+invariants = ["The opening and reply tables are addressed by exact integer keys.", "A key owned by the latest-exact copy read is left out of the turn memory.", "Training dropout changes training only; serving uses the stored table at every row."]
+non_claims = ["The arm-r memory does not recover values from the end of the question."]
+
+[[mechanisms.flags]]
+name = "--turn-memory"
+value = "8"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-reply"
+value = "true"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-dropout"
+value = "500"
+required = true
+
+[[mechanisms.flags]]
+name = "--turn-memory-leave-copied"
+value = "true"
+required = true
+
+[[mechanisms]]
+id = "whole-table-readout"
+status = "integrated"
+implementation = "crates/uor-r4-float-train/src/in_space_long.rs"
+evidence = ["crates/uor-r4-float-train/src/in_space_long.rs", "docs/model/pipeline-map.md"]
+evidence_ids = ["source-pin", "integer-artifacts"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = []
+load_order = 50
+cleanup_order = 50
+sections = ["writer"]
+invariants = ["The decoded token is the whole table's nearest point to the served query.", "Cell and nearest objectives decode through the same whole-table readout."]
+non_claims = ["Teacher-forced token fit is not free-running complete-reply capability."]
+
+[[mechanisms.flags]]
+name = "--objective"
+value = "cell"
+required = true
+
+[[mechanisms]]
+id = "integer-export"
+status = "measured-positive"
+implementation = "crates/uor-r4-integer/src/bin/fbs-export.rs"
+evidence = ["crates/uor-r4-integer/src/bin/fbs-export.rs", "crates/uor-r4-integer/src/stack/format.rs"]
+evidence_ids = ["source-pin", "integer-artifacts", "laptop-chat"]
+conflicts_with = []
+depends_on = ["fbs-trunk", "hamming-copy-read", "turn-memory", "whole-table-readout"]
+sidecars = ["artifact:writer", "artifact:hamming", "artifact:memory"]
+load_order = 60
+cleanup_order = 40
+sections = ["trunk", "hamming-reads", "turn-memory", "writer"]
+invariants = ["The exported schema is exactly uor-r4.lut-stack/7.", "The artifact records the latest-exact copy rule used by training.", "The integer session loads and serves the artifact without floating-point arithmetic."]
+non_claims = ["Float-to-integer export agreement does not establish language capability."]
+
+[[mechanisms.flags]]
+name = "--run-config"
+value = "config.json"
+required = true
+
+[[mechanisms]]
+id = "short-cycle-stop"
+status = "integrated"
+implementation = "crates/uor-r4-integer/src/stack/chat.rs"
+evidence = ["crates/uor-r4-integer/src/stack/chat.rs", "crates/uor-r4-integer/src/generation.rs"]
+evidence_ids = ["source-pin", "laptop-chat"]
+flags = []
+conflicts_with = []
+depends_on = ["integer-export"]
+sidecars = []
+load_order = 70
+cleanup_order = 30
+sections = []
+invariants = ["A repeated cycle of period one through four ends the reply after the declared repetition.", "Cycle stopping is deterministic and does not sample."]
+non_claims = ["Cycle stopping does not recover content displaced by the cycle."]
+
+[[commands]]
+id = "train"
+role = "train"
+program = "cargo"
+args = ["run", "--release", "--locked", "-p", "uor-r4-float-train", "--bin", "train-in-space", "--", "--objective", "cell", "--retain-rates", "1", "--decay-mult", "1", "--lr", "0.001", "--lr-end", "0", "--context", "192", "--width", "256", "--hamming-read", "4", "--batch", "16", "--turn-memory", "8", "--turn-memory-reply", "1", "--turn-memory-dropout", "500", "--samples", "6", "--reply-tokens", "48", "--steps", "16384", "--eval-every", "2048", "--hamming-copy-latest", "1", "--turn-memory-leave-copied", "1"]
+env = []
+inputs = ["train-tokens", "train-mask", "tokenizer"]
+outputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
+timeout_seconds = 21600
+
+[[commands]]
+id = "score"
+role = "score"
+program = "train-in-space"
+args = ["--score-rows", "CHECKPOINT", "--panel", "line", "--sample-opening", "last", "--samples", "1200", "--context", "192", "--reply-tokens", "48", "--retain-rates", "1"]
+env = []
+inputs = ["line-panel", "no-line-panel"]
+outputs = ["score.json"]
+timeout_seconds = 7200
+
+[[commands]]
+id = "export"
+role = "export"
+program = "fbs-export"
+args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-arm-r.toml", "--tokenizer", "tokenizer.json", "--context", "8256", "SNAPSHOT_JSON", "r.uorlut"]
+env = []
+inputs = ["model.safetensors", "hamming_read.safetensors", "turn_memory.safetensors", "turn_memory_reply.safetensors", "config.json"]
+outputs = ["r.uorlut"]
+timeout_seconds = 1800
+
+[[commands]]
+id = "serve"
+role = "serve"
+program = "uor-chat"
+args = ["--stack", "r.uorlut", "--tokenizer", "tokenizer.json", "--protocol", "2", "--max-tokens", "48"]
+env = []
+inputs = ["r.uorlut", "tokenizer"]
+outputs = ["chat.json"]
+timeout_seconds = 300
+
+[[commands]]
+id = "audit"
+role = "verify"
+program = "cargo"
+args = ["xtask", "stack-audit", "--contract", "conformance/stack/fbs-arm-r.toml"]
+env = []
+inputs = ["fbs-arm-r.toml"]
+outputs = ["stack-audit.json"]
+timeout_seconds = 300
+
+[[readings]]
+id = "exact-recall"
+class = "semantic"
+description = "Exact replies over matched line-panel pairs."
+mechanism = "turn-memory"
+unit = "share"
+better = "higher"
+bar = 0.60
+
+[[readings]]
+id = "line-gain"
+class = "semantic"
+description = "Exact recall minus the no-line model's exact recall."
+mechanism = "turn-memory"
+unit = "share"
+better = "higher"
+bar = 0.10
+
+[[readings]]
+id = "laptop-lines"
+class = "surface"
+description = "Correct values in the twelve-line laptop script."
+mechanism = "integer-export"
+unit = "count of 4"
+better = "higher"
+bar = 3.0
+
+[[readings]]
+id = "float-integer-parity"
+class = "parity"
+description = "Float, artifact and product-chat decisions agree on the probe set."
+mechanism = "integer-export"
+unit = "share"
+better = "higher"
+bar = 1.0
+
+[[readings]]
+id = "served-tokens-per-second"
+class = "performance"
+description = "Generated integer tokens per second through uor-chat."
+mechanism = "integer-export"
+unit = "tokens/second"
+better = "higher"
+
+[[probes]]
+id = "context-boundary"
+class = "boundary"
+mechanism = "fbs-trunk"
+axis = "context length"
+expectation = "A short turn is served and an oversized turn is refused with an explicit context error."
+cases = ["inside window", "oversize turn"]
+fixture = "conformance/stack/fixtures/context-boundary.v2.json"
+fixture_sha256 = "8b89092c838c0191fd4e257d7e884cb0990d66be2434d99c63beef28744b3830"
+layers = ["chat"]
+
+[[probes]]
+id = "copy-boundary"
+class = "boundary"
+mechanism = "hamming-copy-read"
+axis = "candidate count and tie order"
+expectation = "A source is available to a later question and a fresh rerun is deterministic."
+cases = ["source present", "kept-set order"]
+fixture = "conformance/stack/fixtures/copy-boundary.v2.json"
+fixture_sha256 = "b418f3b7fe72b457eab34ecdb703279125747f81a39eeca3e315af9aae84b479"
+layers = ["chat"]
+
+[[probes]]
+id = "memory-precedence"
+class = "metamorphic"
+mechanism = "turn-memory"
+axis = "explicit, sieve and absent memory"
+expectation = "Explicit memory overrides the sieve, the sieve derives a value, and an absent value emits no line."
+cases = ["automatic", "explicit overrides", "absent"]
+fixture = "conformance/stack/fixtures/memory-precedence.v2.json"
+fixture_sha256 = "409e782ef2d63e55f7ccd6a5c495d3269ee274b0f9825b030d3340d00263d6d7"
+layers = ["chat"]
+
+[[probes]]
+id = "cycle-period-boundary"
+class = "boundary"
+mechanism = "short-cycle-stop"
+axis = "cycle period"
+expectation = "Every served reply reports a terminal EOS, cap or short-cycle stop."
+cases = ["recorded stop", "no unreported exhaustion"]
+fixture = "conformance/stack/fixtures/cycle-boundary.v2.json"
+fixture_sha256 = "fecbc0dd034dbcc660ed2005249c5efe8f70f72aec31c26132d7b0cae33d4997"
+layers = ["chat"]
+
+[[probes]]
+id = "float-integer-boundary"
+class = "parity"
+mechanism = "integer-export"
+axis = "execution layer"
+expectation = "The artifact and tokenizer identities reach the product chat path and one integer token is generated."
+cases = ["chat script"]
+fixture = "conformance/stack/fixtures/representation-parity.v2.json"
+fixture_sha256 = "d0fc311df673ba2d5ecb4352c72a90c9f41e9d59b0d498ad094b7ca2c1ca5751"
+layers = ["chat"]
+
+[[non_claims]]
+id = "not-general-chat"
+statement = "Arm r does not answer general questions reliably and is not a completed frontier-capable chat model."
+
+[[non_claims]]
+id = "not-mechanism-retirement"
+statement = "Any miss in this configuration closes that configuration, not the named mechanism."
+
+[[non_claims]]
+id = "not-board-capability"
+statement = "Contract validation and probe execution are structural evidence, not a capability pass."

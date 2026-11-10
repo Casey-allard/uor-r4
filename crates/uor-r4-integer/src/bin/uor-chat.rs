@@ -4,6 +4,7 @@
 //! Executes with strictly zero transformers and zero hardware matrix multiplication in the served runtime.
 //! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::io::{self, BufRead, Read as IoRead, Write};
 use std::path::{Path, PathBuf};
@@ -32,6 +33,8 @@ use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 const VERSION: &str = "0.1.0";
+const CHAT_SCRIPT_SCHEMA: &str = "uor-r4.chat-script/1";
+const MAX_CHAT_SCRIPT_BYTES: usize = 1 << 20;
 
 const ANSI_CYAN_BOLD: &str = "\x1b[1;36m";
 const ANSI_GREEN_BOLD: &str = "\x1b[1;32m";
@@ -64,6 +67,8 @@ struct CliArgs {
     say: Option<String>,
     /// One-shot raw token-ID prompt (`--prompt-ids 0,7,19,31`) for `--stack` parity verification.
     prompt_ids: Option<Vec<u32>>,
+    /// JSON script of dialogue turns for one artifact, written as one JSON record.
+    script_path: Option<PathBuf>,
     /// Path to write a `UR4SESS1` binary session snapshot (`UR4SESS2` with a content readout) after a `--stack` step batch.
     save_session: Option<PathBuf>,
     /// Path to read a `UR4SESS1` binary session snapshot (`UR4SESS2` with a content readout) before a `--stack` step batch.
@@ -122,6 +127,67 @@ struct ConversationMemory {
     /// How the sieve words its line; it follows the artifact's copy rule.
     line: SieveLine,
     user_turns: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChatScript {
+    schema: String,
+    turns: Vec<ScriptTurn>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ScriptTurn {
+    user: String,
+    #[serde(default)]
+    memory: Option<String>,
+    #[serde(default)]
+    memory_auto: Option<bool>,
+}
+
+fn parse_chat_script(bytes: &[u8], source: &Path) -> std::result::Result<ChatScript, String> {
+    if bytes.len() > MAX_CHAT_SCRIPT_BYTES {
+        return Err(format!(
+            "{}: script is {} bytes; the limit is {MAX_CHAT_SCRIPT_BYTES}",
+            source.display(),
+            bytes.len()
+        ));
+    }
+    let script: ChatScript =
+        serde_json::from_slice(bytes).map_err(|error| format!("{}: {error}", source.display()))?;
+    if script.schema != CHAT_SCRIPT_SCHEMA {
+        return Err(format!(
+            "{}: schema {:?} is not {CHAT_SCRIPT_SCHEMA:?}",
+            source.display(),
+            script.schema
+        ));
+    }
+    if script.turns.is_empty() || script.turns.len() > 256 {
+        return Err(format!(
+            "{}: a script needs 1 to 256 turns",
+            source.display()
+        ));
+    }
+    for (index, turn) in script.turns.iter().enumerate() {
+        if turn.user.trim().is_empty() {
+            return Err(format!(
+                "{}: turn {} has empty user text",
+                source.display(),
+                index + 1
+            ));
+        }
+        if let Some(memory) = turn.memory.as_deref() {
+            StackChat::memory_content(memory).map_err(|error| {
+                format!(
+                    "{}: turn {} has invalid memory: {error}",
+                    source.display(),
+                    index + 1
+                )
+            })?;
+        }
+    }
+    Ok(script)
 }
 
 impl ConversationMemory {
@@ -214,6 +280,7 @@ impl Default for CliArgs {
             no_turn_memory: false,
             say: None,
             prompt_ids: None,
+            script_path: None,
             save_session: None,
             restore_session: None,
             serve: None,
@@ -258,6 +325,10 @@ fn print_usage() {
     eprintln!("      --say <TEXT>            answer one turn, print a JSON record and exit");
     eprintln!(
         "      --prompt-ids <CSV>      step comma-separated token IDs on --stack or --discrete,"
+    );
+    eprintln!("                              print a JSON record and exit");
+    eprintln!(
+        "      --script <PATH>         run a JSON dialogue script on --stack and print a record"
     );
     eprintln!("                              print JSON and exit");
     eprintln!(
@@ -515,6 +586,15 @@ fn parse_cli_args() -> CliArgs {
                     process::exit(1);
                 }
             }
+            "--script" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.script_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--script'");
+                    process::exit(1);
+                }
+            }
             "--save-session" => {
                 idx += 1;
                 if idx < raw.len() {
@@ -672,6 +752,7 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.serve.is_some()
         && (args.say.is_some()
+            || args.script_path.is_some()
             || args.prompt_ids.is_some()
             || args.save_session.is_some()
             || args.restore_session.is_some()
@@ -742,6 +823,12 @@ fn parse_cli_args() -> CliArgs {
             "{ANSI_RED_BOLD}error:{ANSI_RESET} '--say' and '--prompt-ids' are mutually exclusive; pass one"
         );
         process::exit(1);
+    }
+    if args.script_path.is_some() && (args.say.is_some() || args.prompt_ids.is_some()) {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--script' is mutually exclusive with '--say' and '--prompt-ids'"
+        );
+        process::exit(2);
     }
     if args.discrete_path.is_some() && args.say.is_some() {
         eprintln!(
@@ -1204,6 +1291,94 @@ mod tests {
     }
 
     #[test]
+    fn chat_script_parser_accepts_multi_turn_memory_controls_only_with_the_schema() {
+        let script = parse_chat_script(
+            br#"{
+                "schema": "uor-r4.chat-script/1",
+                "turns": [
+                    {"user": "My lucky number is 47.", "memory_auto": true},
+                    {"user": "What is my lucky number?", "memory": "47", "memory_auto": false},
+                    {"user": "Hello", "memory_auto": true}
+                ]
+            }"#,
+            Path::new("fixture.json"),
+        )
+        .expect("script parses");
+        assert_eq!(script.turns.len(), 3);
+        assert_eq!(script.turns[0].memory_auto, Some(true));
+        assert_eq!(script.turns[1].memory.as_deref(), Some("47"));
+        assert_eq!(script.turns[1].memory_auto, Some(false));
+
+        let error = parse_chat_script(
+            br#"{"schema":"uor-r4.chat-script/2","turns":[{"user":"Hello"}]}"#,
+            Path::new("fixture.json"),
+        )
+        .expect_err("wrong schema is refused");
+        assert!(error.contains("schema"), "{error}");
+    }
+
+    #[test]
+    fn chat_script_parser_refuses_empty_oversized_and_invalid_turns() {
+        let empty = parse_chat_script(
+            br#"{"schema":"uor-r4.chat-script/1","turns":[]}"#,
+            Path::new("fixture.json"),
+        )
+        .expect_err("empty script is refused");
+        assert!(empty.contains("1 to 256"), "{empty}");
+
+        let invalid = parse_chat_script(
+            br#"{"schema":"uor-r4.chat-script/1","turns":[{"user":"  ","memory":"two\nlines"}]}"#,
+            Path::new("fixture.json"),
+        )
+        .expect_err("invalid script is refused");
+        assert!(invalid.contains("empty user text"), "{invalid}");
+
+        let bytes = vec![b'x'; MAX_CHAT_SCRIPT_BYTES + 1];
+        let oversized =
+            parse_chat_script(&bytes, Path::new("fixture.json")).expect_err("oversize is refused");
+        assert!(oversized.contains("limit"), "{oversized}");
+    }
+
+    #[test]
+    fn chat_script_memory_controls_change_precedence_per_turn() {
+        let script = parse_chat_script(
+            br#"{
+                "schema": "uor-r4.chat-script/1",
+                "turns": [
+                    {"user": "My lucky number is 47.", "memory_auto": true},
+                    {"user": "What is my lucky number?"},
+                    {"user": "What did I just say?", "memory": "a typed value", "memory_auto": false},
+                    {"user": "What is my lucky number?", "memory_auto": true}
+                ]
+            }"#,
+            Path::new("fixture.json"),
+        )
+        .expect("script parses");
+        let mut memory = ConversationMemory::new(None, false);
+        let mut observed = Vec::new();
+        for turn in &script.turns {
+            if let Some(memory_auto) = turn.memory_auto {
+                memory.sieve = memory_auto;
+            }
+            if let Some(explicit) = turn.memory.as_deref() {
+                memory.pending.set(explicit).expect("valid script memory");
+            }
+            let (value, explicit) = memory.value_for(&turn.user);
+            observed.push((value, explicit, memory.sieve));
+            memory.finish_turn(&turn.user, explicit);
+        }
+        assert_eq!(observed[0].0, None);
+        assert!(observed[0].2);
+        assert_eq!(observed[1].0.as_deref(), Some("47"));
+        assert!(!observed[1].1);
+        assert_eq!(observed[2].0.as_deref(), Some("a typed value"));
+        assert!(observed[2].1);
+        assert!(!observed[2].2);
+        assert_eq!(observed[3].0.as_deref(), Some("47"));
+        assert!(observed[3].2);
+    }
+
+    #[test]
     fn dialogue_memory_commands_and_turn_lifecycle_are_exact() {
         let mut memory = ConversationMemory::new(None, false);
         assert_eq!(
@@ -1262,10 +1437,14 @@ mod tests {
 
         // Under a latest-exact copy rule the sieve writes a reply sentence; a
         // typed value and every other rule keep the bare value.
-        let mut worded = ConversationMemory::new(None, true).worded_for(Some(CopyRule::LatestExact));
+        let mut worded =
+            ConversationMemory::new(None, true).worded_for(Some(CopyRule::LatestExact));
         worded.finish_turn("The new puppy at our house is named Pickle.", false);
         assert_eq!(
-            worded.value_for("What did we name the new puppy?").0.as_deref(),
+            worded
+                .value_for("What did we name the new puppy?")
+                .0
+                .as_deref(),
             Some("It's Pickle")
         );
         assert_eq!(
@@ -1277,7 +1456,10 @@ mod tests {
             let mut plain = ConversationMemory::new(None, true).worded_for(rule);
             plain.finish_turn("The new puppy at our house is named Pickle.", false);
             assert_eq!(
-                plain.value_for("What did we name the new puppy?").0.as_deref(),
+                plain
+                    .value_for("What did we name the new puppy?")
+                    .0
+                    .as_deref(),
                 Some("Pickle")
             );
             assert_eq!(
@@ -1944,12 +2126,73 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         return Ok(());
     }
 
+    if let Some(path) = cli.script_path.as_deref() {
+        let bytes = std::fs::read(path)?;
+        let script = parse_chat_script(&bytes, path).map_err(StackCliError::Usage)?;
+        let mut memory =
+            ConversationMemory::new(cli.memory.clone(), cli.memory_sieve).worded_for(own_copy_rule);
+        let mut transcript = Vec::with_capacity(script.turns.len());
+        for turn in &script.turns {
+            if let Some(memory_auto) = turn.memory_auto {
+                memory.sieve = memory_auto;
+            }
+            if let Some(explicit) = turn.memory.as_deref() {
+                memory.pending.set(explicit)?;
+            }
+            let (turn_memory, explicit_memory) = memory.value_for(&turn.user);
+            let started = std::time::Instant::now();
+            let reply = stack_reply(
+                &mut chat,
+                &initial,
+                &turn.user,
+                turn_memory.as_deref(),
+                cli.max_tokens,
+            )?;
+            let seconds = started.elapsed().as_secs_f64();
+            let memory_source = if turn_memory.is_none() {
+                "none"
+            } else if explicit_memory {
+                "explicit"
+            } else {
+                "sieve"
+            };
+            transcript.push(serde_json::json!({
+                "user": turn.user,
+                "memory": memory_source,
+                "memory_text": turn_memory
+                    .as_deref()
+                    .map(StackChat::memory_content)
+                    .transpose()?,
+                "reply_text": reply.text,
+                "reply_ids": reply.ids,
+                "stop": reply.stop.name(),
+                "history_tokens": chat.tokens().len(),
+                "seconds": seconds,
+            }));
+            memory.finish_turn(&turn.user, explicit_memory);
+        }
+        let record = serde_json::json!({
+            "schema": "uor-r4.uor-chat-stack-script/1",
+            "script": path,
+            "artifact": artifact,
+            "artifact_sha256": model.artifact_sha256(),
+            "tokenizer": tokenizer_path,
+            "tokenizer_cid": chat.protocol().tokenizer_cid,
+            "protocol": chat.protocol(),
+            "context": chat.context(),
+            "decoding": STACK_DECODING,
+            "transcript": transcript,
+        });
+        println!("{}", serde_json::to_string_pretty(&record)?);
+        return Ok(());
+    }
+
     print_stack_banner(&chat, artifact, tokenizer_path, cli.threads);
     let stdin = io::stdin();
     let mut reader = stdin.lock();
     let mut turns = 0usize;
-    let mut memory = ConversationMemory::new(cli.memory.clone(), cli.memory_sieve)
-        .worded_for(own_copy_rule);
+    let mut memory =
+        ConversationMemory::new(cli.memory.clone(), cli.memory_sieve).worded_for(own_copy_rule);
     loop {
         print!("{ANSI_CYAN_BOLD}User>{ANSI_RESET} ");
         if io::stdout().flush().is_err() {

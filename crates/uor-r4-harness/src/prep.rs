@@ -521,6 +521,9 @@ pub struct NewSheet {
     pub steps: String,
     pub stop: String,
     pub cost: String,
+    /// The stack contract this run composes, as a repository-relative path and
+    /// revision.
+    pub stack_contract: String,
     pub seeds: Option<u32>,
     pub rows: Option<u32>,
 }
@@ -695,6 +698,10 @@ pub fn render_sheet(
 
     out.push(String::new());
     out.push("## Base artifact".into());
+    out.push(format!(
+        "- stack contract: {}",
+        missing(&sheet.stack_contract)
+    ));
     let base = if !sheet.base.trim().is_empty() {
         sheet.base.trim().to_string()
     } else if !milestone.base_artifact.is_empty() {

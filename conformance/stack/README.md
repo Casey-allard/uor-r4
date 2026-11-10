@@ -5,6 +5,12 @@ composition. A contract records the model shape, inputs, mechanisms, artifact
 sections, reproduction commands, readings, boundary probes and explicit
 non-claims.
 
+Schema `/2` adds exact training and serving domains, the trained and served
+contexts, the exported artifact schema, section owners and formats, structured
+evidence, exact mechanism flags and dependencies, checkpoint sidecars,
+load/cleanup orders, reading units and bars, and hashed executable probe
+fixtures. Schema `/1` remains readable for historical records.
+
 The checked-in [model view](../../docs/model/STACK-CONTRACT.md) and
 [machine view](../generated/stack-contracts.json) are generated. Do not edit
 them by hand.
@@ -14,19 +20,52 @@ cargo xtask stack-contract --write
 cargo xtask stack-contract --check
 ```
 
+The repository's package binary is also callable as:
+
+```sh
+cargo run -q -p xtask -- stack-contract --check
+```
+
 `--write` regenerates both views. `--check` fails when either committed view is
 stale, when a contract is malformed, when a path does not resolve, when an
-identifier is duplicated, or when a reading or probe names an unknown mechanism.
+identifier is duplicated, when a reading or probe names an unknown mechanism,
+when a required flag does not match a command exactly, when dependency or
+load/cleanup order is ambiguous, or when a fixture hash or fixture schema is
+wrong.
+
+Audit one contract end to end against whatever evidence is locally available:
+
+```sh
+cargo run -q -p xtask -- stack-audit \
+  --contract conformance/stack/fbs-arm-r.toml \
+  --config RUN/config.json \
+  --checkpoint RUN/models/step-016384 \
+  --artifact MODEL.uorlut \
+  --tokenizer tokenizer.json \
+  --chat-bin target/release/uor-chat \
+  --out local/stack-audit.json
+```
+
+A check is `MATCH`, `MISMATCH`, `UNAVAILABLE` or `NOT_RUN`. A missing input is
+never promoted to `MATCH`. With a chat binary, the audit runs the actual
+`uor-chat --script` product path; with the artifact path it also checks every
+registered probe fixture through that path.
+
+New artifacts can bind the exact contract and tokenizer with
+`fbs-export --stack-contract <TOML> --tokenizer <tokenizer.json>`. Both values
+are diagnostic source metadata; serving arithmetic does not read them. Older
+artifacts report that optional binding as `NOT_RUN`.
 
 Adding a contract:
 
 1. Copy an existing `.toml` file and give it a new lower-kebab-case `id`.
-2. Pin the source and every input by commit or SHA-256.
+2. Pin the source and every input by commit or SHA-256, and name both contexts,
+   the training/serving domains and the exact artifact schema.
 3. Name an implementation and at least one evidence path for every mechanism.
 4. State what each mechanism must preserve and what it does not establish.
 5. Add semantic, surface, structural and parity readings separately.
 6. Add boundary, metamorphic, parity, malformed and abstention probes where
-   they apply.
+   they apply, each with a hashed JSON fixture and required execution layers.
 7. Run `cargo xtask stack-contract --write`, inspect the generated diff, then
    run `cargo xtask stack-contract --check`.
 

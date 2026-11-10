@@ -2,6 +2,38 @@
   "version": 1,
   "gates": [
     {
+      "id": "stack-contract",
+      "proves": "Every registered stack contract resolves its source, evidence and probe fixtures; v2 contracts carry exact model, artifact, mechanism, command and reading identities; and generated Markdown/JSON views are current. The planted fault introduces a mechanism dependency cycle.",
+      "command": [
+        "cargo",
+        "run",
+        "-q",
+        "--locked",
+        "-p",
+        "xtask",
+        "--",
+        "stack-contract",
+        "--check"
+      ],
+      "reads": [
+        "conformance/stack/**/*.toml",
+        "conformance/stack/fixtures/**/*.json",
+        "conformance/generated/stack-contracts.json",
+        "docs/model/STACK-CONTRACT.md",
+        "crates/repo-model/src/stack.rs",
+        "xtask/src/stack_contract.rs"
+      ],
+      "quick": true,
+      "break": {
+        "file": "conformance/stack/fbs-arm-r.toml",
+        "replace": {
+          "from": "depends_on = [\"tokenizer\"]",
+          "to": "depends_on = [\"whole-table-readout\"]"
+        },
+        "expect": "dependency cycle"
+      }
+    },
+    {
       "id": "fmt-claim-wording",
       "proves": "The claim-wording crate is rustfmt-clean.",
       "command": [

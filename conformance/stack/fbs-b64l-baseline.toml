@@ -1,31 +1,50 @@
-spec = "uor-r4.stack-contract/1"
+spec = "uor-r4.stack-contract/2"
 id = "fbs-b64l-baseline"
 title = "FBS b64L complete-reply baseline"
 lane = "fbs"
 state = "historical"
+revision = 2
+decision = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0"
 source_pin = "6fcf57f7822286e5b6bd7bcfe42d668116b23afa"
-summary = "The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest."
+summary = "The T0 memorize configuration: the float-trained FBS trunk with four Hamming read heads, trained as served on the pinned tokenizer and scored by whole-table nearest. The sealed checkpoints were not exported."
 
 [model]
 tokenizer_sha256 = "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
 vocab = 4096
 width = 256
 layers = 6
+training_context = 192
 context = 192
 objective = "nearest"
+training = "float32 on CUDA with train-as-served rounding"
+serving = "intended integer UORLUT01 path; no T0 artifact was exported"
 
 [artifact]
 family = "uor-r4.lut-stack"
+schema = "uor-r4.lut-stack/6"
 
 [[artifact.sections]]
 id = "trunk"
 required = true
+owner = "fbs-trunk"
+format = "4-bit matrices, scales and integer tables"
 description = "The FBS recurrence and routed feed-forward trunk."
 
 [[artifact.sections]]
 id = "hamming-reads"
 required = true
+owner = "hamming-copy-read"
+format = "Q24 rotations and weights, Q16 margins"
+exponent = -24
 description = "The trained Hamming copy and type reads."
+
+[[artifact.sections]]
+id = "writer"
+required = true
+owner = "whole-table-readout"
+format = "native writer cells and Q12 i16 token points"
+exponent = -12
+description = "The native writer and whole-table nearest-token readout."
 
 [[inputs]]
 id = "train-tokens"
@@ -47,170 +66,213 @@ id = "dev-mask"
 source = "store:w2-inputs/2026-10-25/driver-data/ft/dev/response_mask.u8"
 sha256 = "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
 
+[[evidence]]
+id = "t0-report"
+kind = "report"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0"
+result = "fail"
+scope = "two seeds, T0 memorize panel"
+mechanisms = ["tokenizer", "fbs-trunk", "hamming-copy-read", "whole-table-readout"]
+statement = "T0 read row 3 at both seeds: exact complete replies were 0, teacher-forced token fit was 0.602 and 0.607, and complete replies under teacher forcing were 0."
+
+[[evidence]]
+id = "no-artifact"
+kind = "artifact"
+locator = "docs/loop/tasks/one-model-end-to-end/claude-345/REPORT.md#t0"
+result = "not-run"
+scope = "integer artifact"
+mechanisms = ["integer-export"]
+statement = "The report records that the T0 checkpoints were not exported or served."
+
 [[mechanisms]]
 id = "tokenizer"
 status = "integrated"
 implementation = "crates/uor-r4-tokenizer/src/lib.rs"
-evidence = ["crates/uor-r4-tokenizer/src/lib.rs", "docs/model/data-and-tokenizer.md"]
+evidence = ["crates/uor-r4-tokenizer/src/lib.rs"]
+evidence_ids = ["t0-report"]
+flags = []
+conflicts_with = []
+depends_on = []
+sidecars = []
+load_order = 10
+cleanup_order = 70
 sections = []
-invariants = [
-  "The tokenizer maps UTF-8 bytes to token ids below 4096.",
-  "A different tokenizer hash names a different corpus and model input.",
-]
-non_claims = ["The tokenizer is not evidence of language capability."]
+invariants = ["The tokenizer maps UTF-8 bytes to ids below 4096."]
+non_claims = ["The tokenizer is not capability evidence."]
 
 [[mechanisms]]
 id = "fbs-trunk"
-status = "integrated"
+status = "measured-negative"
 implementation = "crates/uor-r4-float-train/src/geometric_stack_native.rs"
-evidence = ["crates/uor-r4-float-train/src/geometric_stack_native.rs", "crates/uor-r4-float-train/src/hamilton_sheet.rs"]
+evidence = ["crates/uor-r4-float-train/src/geometric_stack_native.rs"]
+evidence_ids = ["t0-report"]
+conflicts_with = []
+depends_on = ["tokenizer"]
+sidecars = ["model.safetensors", "config.json"]
+load_order = 20
+cleanup_order = 60
 sections = ["trunk"]
-invariants = [
-  "The trunk returns one width-256 state for every position.",
-  "SpiralCore/FBS projections and the Hamilton recurrence remain exact routes and rotations.",
-]
-non_claims = ["The trunk alone does not establish a working language model."]
+invariants = ["The trunk returns one width-256 state for every position."]
+non_claims = ["T0 closes this 4,096-step recipe only."]
+
+[[mechanisms.flags]]
+name = "--objective"
+value = "nearest"
+required = true
 
 [[mechanisms]]
 id = "hamming-copy-read"
 status = "integrated"
 implementation = "crates/uor-r4-float-train/src/flock_read_hamming.rs"
-evidence = ["crates/uor-r4-float-train/src/flock_read_hamming.rs", "docs/mechanisms/flock-read.md"]
+evidence = ["crates/uor-r4-float-train/src/flock_read_hamming.rs"]
+evidence_ids = ["t0-report"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = ["hamming_read.safetensors"]
+load_order = 30
+cleanup_order = 50
 sections = ["hamming-reads"]
-invariants = [
-  "Each copy head keeps at most its declared number of earlier positions.",
-  "The trainer and artifact use the same copy-key length and kept count.",
-]
-non_claims = [
-  "A copy read that finds a source does not by itself preserve the source's content at the readout.",
-  "The mean-copy rule in this historical contract is not the latest-exact rule."
-]
+invariants = ["Each head keeps at most sixteen earlier positions.", "Trainer and artifact use the same copy key."]
+non_claims = ["A copy read finding a source does not preserve it through the writer."]
+
+[[mechanisms.flags]]
+name = "--hamming-read"
+value = "4"
+required = true
 
 [[mechanisms]]
 id = "whole-table-readout"
-status = "integrated"
+status = "measured-negative"
 implementation = "crates/uor-r4-float-train/src/in_space_long.rs"
-evidence = ["crates/uor-r4-float-train/src/in_space_long.rs", "docs/model/pipeline-map.md"]
-sections = ["trunk"]
-invariants = ["The decoded next token is the nearest table point by the declared objective."]
-non_claims = ["Nearest-token scoring is not the same as a free-running complete reply."]
+evidence = ["crates/uor-r4-float-train/src/in_space_long.rs"]
+evidence_ids = ["t0-report"]
+conflicts_with = []
+depends_on = ["fbs-trunk"]
+sidecars = []
+load_order = 40
+cleanup_order = 40
+sections = ["writer"]
+invariants = ["The decoded next token is the nearest table point."]
+non_claims = ["Nearest-token fit is not complete free-running reply."]
 
 [[mechanisms]]
 id = "integer-export"
-status = "implemented"
-implementation = "crates/uor-r4-float-train/src/fbs_export.rs"
-evidence = ["crates/uor-r4-float-train/src/fbs_export.rs", "crates/uor-r4-integer/src/bin/fbs-export.rs"]
-sections = ["trunk", "hamming-reads"]
-invariants = [
-  "Every required logical section has a declared integer representation.",
-  "An artifact omits no section required by an enabled mechanism.",
-]
-non_claims = ["The T0 checkpoints were not exported in that run."]
+status = "not-run"
+implementation = "crates/uor-r4-integer/src/bin/fbs-export.rs"
+evidence = ["crates/uor-r4-integer/src/bin/fbs-export.rs"]
+evidence_ids = ["no-artifact"]
+conflicts_with = []
+depends_on = ["fbs-trunk", "hamming-copy-read", "whole-table-readout"]
+sidecars = ["artifact:writer", "artifact:hamming"]
+load_order = 50
+cleanup_order = 30
+sections = ["trunk", "hamming-reads", "writer"]
+invariants = ["The intended integer exporter preserves every required section."]
+non_claims = ["No T0 integer artifact was exported, so this contract cannot claim integer parity."]
 
-[[mechanisms]]
-id = "short-cycle-stop"
-status = "implemented"
-implementation = "crates/uor-r4-integer/src/generation.rs"
-evidence = ["crates/uor-r4-integer/src/generation.rs", "crates/uor-r4-integer/src/stack/chat.rs"]
-sections = []
-invariants = ["A terminal cycle of period one through four repeated three times ends a reply."]
-non_claims = ["Stopping a cycle does not recover the content that the cycle displaced."]
-
-[[commands]]
-id = "verify-contract"
-role = "verify"
-program = "cargo"
-args = ["xtask", "stack-contract", "--check"]
+[[mechanisms.flags]]
+name = "--run-config"
+value = "config.json"
+required = true
 
 [[commands]]
 id = "train"
 role = "train"
 program = "cargo"
-args = [
-  "run", "--release", "--locked", "-p", "uor-r4-float-train", "--bin", "train-in-space", "--",
-  "--objective", "nearest",
-  "--retain-rates", "1",
-  "--decay-mult", "1",
-  "--lr", "0.001",
-  "--lr-end", "0",
-  "--train-as-served", "1",
-  "--context", "192",
-  "--width", "256",
-  "--hamming-read", "4",
-  "--batch", "64",
-  "--micro-batch", "16",
-  "--steps", "4096",
-  "--eval-every", "512",
-]
+args = ["run", "--release", "--locked", "-p", "uor-r4-float-train", "--bin", "train-in-space", "--", "--objective", "nearest", "--retain-rates", "1", "--decay-mult", "1", "--lr", "0.001", "--lr-end", "0", "--train-as-served", "1", "--context", "192", "--width", "256", "--hamming-read", "4", "--batch", "64", "--micro-batch", "16", "--steps", "4096", "--eval-every", "512"]
+env = []
+inputs = ["train-tokens", "train-mask"]
+outputs = ["model.safetensors", "hamming_read.safetensors", "config.json"]
+timeout_seconds = 7200
 
 [[commands]]
 id = "score"
 role = "score"
 program = "train-in-space"
 args = ["--score-rows", "CHECKPOINT", "--context", "192", "--reply-tokens", "48", "--samples", "1200", "--retain-rates", "1"]
+env = []
+inputs = ["dev-tokens", "dev-mask"]
+outputs = ["score.json"]
+timeout_seconds = 1800
+
+[[commands]]
+id = "export"
+role = "export"
+program = "fbs-export"
+args = ["--raw-gates", "--raw-transition", "--run-config", "config.json", "--stack-contract", "conformance/stack/fbs-b64l-baseline.toml", "--tokenizer", "tokenizer.json", "--context", "192", "SNAPSHOT_JSON", "t0.uorlut"]
+env = []
+inputs = ["model.safetensors", "hamming_read.safetensors", "config.json"]
+outputs = ["t0.uorlut"]
+timeout_seconds = 1800
+
+[[commands]]
+id = "audit"
+role = "verify"
+program = "cargo"
+args = ["xtask", "stack-audit", "--contract", "conformance/stack/fbs-b64l-baseline.toml"]
+env = []
+inputs = ["fbs-b64l-baseline.toml"]
+outputs = ["stack-audit.json"]
+timeout_seconds = 300
 
 [[readings]]
 id = "exact-replies"
 class = "surface"
-description = "Decoded ids equal each complete reference reply through its end marker."
+description = "Exact complete replies over complete samples."
 mechanism = "whole-table-readout"
+unit = "share"
+better = "higher"
+bar = 0.90
 
 [[readings]]
 id = "teacher-token-fit"
 class = "semantic"
-description = "The nearest token equals the target under teacher forcing."
+description = "Nearest token equals the target under teacher forcing."
 mechanism = "whole-table-readout"
+unit = "share"
+better = "higher"
+bar = 0.95
 
 [[readings]]
 id = "complete-samples"
 class = "structural"
-description = "The number of decoded references that contain an end marker."
-
-[[readings]]
-id = "float-integer-parity"
-class = "parity"
-description = "Float, exported integer and chat decisions agree on the same probes."
-mechanism = "integer-export"
+description = "Decoded references containing an end marker."
+unit = "count"
+better = "higher"
+bar = 800.0
 
 [[probes]]
 id = "context-boundary"
 class = "boundary"
 mechanism = "fbs-trunk"
 axis = "context length"
-expectation = "The final trained position is retained, and exhaustion at the declared boundary is explicit."
-cases = ["191 tokens", "192 tokens", "193 tokens"]
+expectation = "The declared boundary is explicit."
+cases = ["inside window", "oversize turn"]
+fixture = "conformance/stack/fixtures/context-boundary.v2.json"
+fixture_sha256 = "8b89092c838c0191fd4e257d7e884cb0990d66be2434d99c63beef28744b3830"
+layers = ["chat"]
 
 [[probes]]
-id = "hamming-kept-boundary"
+id = "copy-boundary"
 class = "boundary"
 mechanism = "hamming-copy-read"
-axis = "candidate count"
-expectation = "The declared kept set is exact and tie order is stable."
-cases = ["15 candidates", "16 candidates", "17 candidates"]
-
-[[probes]]
-id = "memory-line-toggle"
-class = "metamorphic"
-mechanism = "whole-table-readout"
-axis = "memory line presence"
-expectation = "Only the line-bearing arm is read as a memory-use result."
-cases = ["line absent", "line present with the true value", "line present with a competing value"]
+axis = "candidate count and tie order"
+expectation = "The kept set and tie order are stable."
+cases = ["source present", "kept-set order"]
+fixture = "conformance/stack/fixtures/copy-boundary.v2.json"
+fixture_sha256 = "b418f3b7fe72b457eab34ecdb703279125747f81a39eeca3e315af9aae84b479"
+layers = ["chat"]
 
 [[probes]]
 id = "float-integer-boundary"
 class = "parity"
 mechanism = "integer-export"
 axis = "execution layer"
-expectation = "The same token decisions and stop reasons are produced by every required layer."
-cases = ["float scorer", "checkpoint scorer", "exported artifact", "integer session", "uor-chat"]
-
-[[probes]]
-id = "cycle-period-boundary"
-class = "boundary"
-mechanism = "short-cycle-stop"
-axis = "cycle period"
-expectation = "Periods one through four stop after the declared repetition; period five does not use that rule."
-cases = ["period 1", "period 2", "period 3", "period 4", "period 5"]
+expectation = "The parity fixture is available for a later exported T0 checkpoint."
+cases = ["chat script"]
+fixture = "conformance/stack/fixtures/representation-parity.v2.json"
+fixture_sha256 = "d0fc311df673ba2d5ecb4352c72a90c9f41e9d59b0d498ad094b7ca2c1ca5751"
+layers = ["chat"]
 
 [[non_claims]]
 id = "not-capability"
@@ -218,8 +280,8 @@ statement = "This historical contract does not establish useful conversation."
 
 [[non_claims]]
 id = "not-integer-result"
-statement = "T0 did not export or serve its sealed checkpoints, so this contract does not establish an integer result."
+statement = "T0 did not export or serve its checkpoints."
 
 [[non_claims]]
 id = "not-mechanism-retirement"
-statement = "A miss in this configuration does not retire a mechanism named here."
+statement = "A miss in this recipe does not retire a mechanism named here."

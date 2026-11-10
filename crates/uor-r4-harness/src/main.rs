@@ -1356,6 +1356,7 @@ fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 steps: flag_value(args, "--steps").unwrap_or_default(),
                 stop: flag_value(args, "--stop").unwrap_or_default(),
                 cost: flag_value(args, "--cost").unwrap_or_default(),
+                stack_contract: flag_value(args, "--stack-contract").unwrap_or_default(),
                 seeds: flag_value(args, "--seeds").and_then(|v| v.parse().ok()),
                 rows: flag_value(args, "--rows").and_then(|v| v.parse().ok()),
             };
@@ -3064,6 +3065,7 @@ fn cmd_prep_render(repo: &Path, args: &[String]) -> ExitCode {
         steps: flag_value(args, "--steps").unwrap_or_default(),
         stop: flag_value(args, "--stop").unwrap_or_default(),
         cost: flag_value(args, "--cost").unwrap_or_default(),
+        stack_contract: flag_value(args, "--stack-contract").unwrap_or_default(),
         seeds: flag_value(args, "--seeds").and_then(|v| v.parse().ok()),
         rows: flag_value(args, "--rows").and_then(|v| v.parse().ok()),
     };

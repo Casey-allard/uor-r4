@@ -922,9 +922,12 @@ pub(crate) struct MatrixView<'a> {
 
 /// A parsed and structurally validated stack container.
 pub(crate) struct Container<'a> {
+    pub schema: String,
     pub shape: StackShape,
+    pub source: serde_json::Value,
     pub numerics: StackNumerics,
     pub sha256: String,
+    pub sections: Vec<String>,
     /// The validated transport snap record, if the header carries one.
     pub transport_snap: Option<StackTransportSnap>,
     /// The validated Hamming read record, if the header carries one.
@@ -939,6 +942,55 @@ pub(crate) struct Container<'a> {
     /// Sections by name (unique within each kind).
     matrices: HashMap<String, MatrixEntry>,
     tables: HashMap<String, TableEntry>,
+}
+
+/// Validated identity and mechanism metadata from one `UORLUT01` artifact.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct StackArtifactMetadata {
+    /// Artifact format family.
+    pub family: &'static str,
+    /// Header schema.
+    pub schema: String,
+    /// SHA-256 of the complete artifact bytes.
+    pub sha256: String,
+    /// Complete artifact length in bytes.
+    pub bytes: usize,
+    /// Serving shape.
+    pub shape: StackShape,
+    /// Exporter provenance. Serving never reads it as arithmetic.
+    pub source: serde_json::Value,
+    /// Sorted union of matrix and table section names.
+    pub sections: Vec<String>,
+    /// Validated transport snap.
+    pub transport_snap: Option<StackTransportSnap>,
+    /// Validated Hamming reads.
+    pub hamming: Option<StackHamming>,
+    /// Validated turn memory.
+    pub memory: Option<StackTurnMemory>,
+    /// Validated point key.
+    pub point: Option<StackPointKey>,
+    /// Validated memory chain.
+    pub memory_chain: Option<StackMemoryChain>,
+}
+
+/// Parse and validate an artifact, then return the metadata an external audit
+/// needs without exposing the container's internal tables.
+pub fn inspect_uorlut01(bytes: &[u8]) -> Result<StackArtifactMetadata, StackError> {
+    let artifact = Container::parse(bytes)?;
+    Ok(StackArtifactMetadata {
+        family: "uor-r4.lut-stack",
+        schema: artifact.schema,
+        sha256: artifact.sha256,
+        bytes: bytes.len(),
+        shape: artifact.shape,
+        source: artifact.source,
+        sections: artifact.sections,
+        transport_snap: artifact.transport_snap,
+        hamming: artifact.hamming,
+        memory: artifact.memory,
+        point: artifact.point,
+        memory_chain: artifact.memory_chain,
+    })
 }
 
 /// The data range `offset..offset + bytes`, if it lies inside `len` bytes.
@@ -1049,6 +1101,7 @@ impl<'a> Container<'a> {
         let data = &bytes[data_start..];
         // Sections are indexed by name as they are checked, which finds a
         // duplicate in one pass.
+        let mut sections = Vec::with_capacity(header.matrices.len() + header.tables.len());
         let mut matrices = HashMap::with_capacity(header.matrices.len());
         for m in header.matrices {
             if matrices.contains_key(&m.name) {
@@ -1068,6 +1121,7 @@ impl<'a> Container<'a> {
             {
                 return Err(StackError::MatrixSection(m.name));
             }
+            sections.push(m.name.clone());
             matrices.insert(m.name.clone(), m);
         }
         let mut tables = HashMap::with_capacity(header.tables.len());
@@ -1082,12 +1136,17 @@ impl<'a> Container<'a> {
             if !sized || range(t.span, data.len()).is_none() {
                 return Err(StackError::TableSection(t.name));
             }
+            sections.push(t.name.clone());
             tables.insert(t.name.clone(), t);
         }
+        sections.sort();
         Ok(Self {
+            schema: header.schema,
             shape: header.shape,
+            source: header.source,
             numerics: header.numerics,
             sha256: hex::encode(Sha256::digest(bytes)),
+            sections,
             transport_snap: header.transport_snap,
             hamming: header.hamming,
             memory: header.memory,
@@ -1717,6 +1776,29 @@ pub struct FbsExportSnaps {
     pub transition: bool,
 }
 
+/// Optional diagnostic identity of the stack contract that produced an
+/// artifact. It is stored under the artifact header's provenance object and is
+/// never read by serving arithmetic.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct StackContractProvenance {
+    /// Repository-relative path or caller-supplied immutable locator.
+    pub source: String,
+    /// SHA-256 of the contract source bytes.
+    pub sha256: String,
+}
+
+/// Optional diagnostic provenance written beside the serving source object.
+/// Neither field is read by serving arithmetic.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct FbsExportProvenance {
+    /// The exact stack contract that produced the export.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stack_contract: Option<StackContractProvenance>,
+    /// SHA-256 of the tokenizer paired with the artifact.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tokenizer_sha256: Option<String>,
+}
+
 impl FbsExportSnaps {
     /// Everything snapped, the `uor-r4.lut-stack/4` contract.
     pub const SNAPPED: Self = Self {
@@ -1748,7 +1830,7 @@ pub fn export_fbs_trunk_uorlut01_with(
     snap: &FbsTrunkSnapshot,
     snaps: FbsExportSnaps,
 ) -> Result<Vec<u8>, StackError> {
-    export_fbs_trunk(snap, snaps, None, None)
+    export_fbs_trunk(snap, snaps, None, None, None)
 }
 
 /// [`export_fbs_trunk_uorlut01_with`] served past the trained window (claude-288): the shape's
@@ -1761,7 +1843,7 @@ pub fn export_fbs_trunk_uorlut01_carry(
     context: usize,
 ) -> Result<Vec<u8>, StackError> {
     check_carry_context(snap, context)?;
-    export_fbs_trunk(snap, snaps, Some(context), None)
+    export_fbs_trunk(snap, snaps, Some(context), None, None)
 }
 
 /// [`export_fbs_trunk_uorlut01_with`] (`context: None`) or [`export_fbs_trunk_uorlut01_carry`]
@@ -1781,7 +1863,33 @@ pub fn export_fbs_trunk_uorlut01_chain(
     if let Some(context) = context {
         check_carry_context(snap, context)?;
     }
-    export_fbs_trunk(snap, snaps, context, Some(tail))
+    export_fbs_trunk(snap, snaps, context, Some(tail), None)
+}
+
+/// Export with optional stack-contract provenance. With no provenance this is
+/// byte-for-byte the corresponding existing export.
+pub fn export_fbs_trunk_uorlut01_with_provenance(
+    snap: &FbsTrunkSnapshot,
+    snaps: FbsExportSnaps,
+    context: Option<usize>,
+    tail: usize,
+    provenance: Option<&FbsExportProvenance>,
+) -> Result<Vec<u8>, StackError> {
+    if tail > 0 && snap.memory.as_ref().and_then(|memory| memory.reply.as_ref()).is_none() {
+        return Err(StackError::Shape(
+            "a memory chain needs a snapshot with a reply table",
+        ));
+    }
+    if let Some(context) = context {
+        check_carry_context(snap, context)?;
+    }
+    export_fbs_trunk(
+        snap,
+        snaps,
+        context,
+        (tail > 0).then_some(tail),
+        provenance,
+    )
 }
 
 /// A carry context runs from the trained context to [`MAX_CONTEXT`].
@@ -1802,6 +1910,7 @@ fn export_fbs_trunk(
     snaps: FbsExportSnaps,
     carry: Option<usize>,
     chain: Option<usize>,
+    provenance: Option<&FbsExportProvenance>,
 ) -> Result<Vec<u8>, StackError> {
     let shape = StackShape {
         vocab: snap.vocab,
@@ -2053,6 +2162,14 @@ fn export_fbs_trunk(
     // And only a carry export records its trained window (claude-288).
     if carry.is_some() {
         header["source"]["trained_context"] = json!(snap.context);
+    }
+    if let Some(provenance) = provenance {
+        if let Some(contract) = &provenance.stack_contract {
+            header["source"]["stack_contract"] = json!(contract);
+        }
+        if let Some(tokenizer_sha256) = &provenance.tokenizer_sha256 {
+            header["source"]["tokenizer_sha256"] = json!(tokenizer_sha256);
+        }
     }
     let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
     let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());

@@ -1,0 +1,31 @@
+{
+  "schema": "uor-r4.stack-probe/1",
+  "probe": "float-integer-boundary",
+  "axis": "execution layer",
+  "cases": [
+    {
+      "id": "chat-script",
+      "description": "The chat layer emits the artifact and tokenizer identities used by the audit.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "Hello",
+            "memory_auto": false
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "1"
+      ],
+      "expect": {
+        "turns": 1,
+        "all_reply_ids_nonempty": true,
+        "memory": [
+          "none"
+        ]
+      }
+    }
+  ]
+}

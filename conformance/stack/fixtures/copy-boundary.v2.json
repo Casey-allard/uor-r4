@@ -1,0 +1,82 @@
+{
+  "schema": "uor-r4.stack-probe/1",
+  "probe": "copy-boundary",
+  "axis": "candidate count and tie order",
+  "cases": [
+    {
+      "id": "source-present",
+      "description": "A stated value is available to a later question.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "My lucky number is 47.",
+            "memory_auto": true
+          },
+          {
+            "user": "What is my lucky number?"
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "24"
+      ],
+      "expect": {
+        "turns": 2,
+        "all_reply_ids_nonempty": true,
+        "stops": [
+          "eos",
+          "max_new_tokens",
+          "short_cycle"
+        ],
+        "memory": [
+          "none",
+          "sieve"
+        ],
+        "reply_text_contains": [
+          "",
+          "47"
+        ]
+      }
+    },
+    {
+      "id": "kept-set-order",
+      "description": "The same script rerun through a fresh session is deterministic.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "My lucky number is 47.",
+            "memory_auto": true
+          },
+          {
+            "user": "What is my lucky number?"
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "24"
+      ],
+      "expect": {
+        "same_as": "source-present",
+        "turns": 2,
+        "all_reply_ids_nonempty": true,
+        "stops": [
+          "eos",
+          "max_new_tokens",
+          "short_cycle"
+        ],
+        "memory": [
+          "none",
+          "sieve"
+        ],
+        "reply_text_contains": [
+          "",
+          "47"
+        ]
+      }
+    }
+  ]
+}

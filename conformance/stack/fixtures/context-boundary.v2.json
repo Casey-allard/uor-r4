@@ -1,0 +1,51 @@
+{
+  "schema": "uor-r4.stack-probe/1",
+  "probe": "context-boundary",
+  "axis": "context length",
+  "cases": [
+    {
+      "id": "inside-window",
+      "description": "A short turn is served inside the artifact's declared context.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "Hello",
+            "memory_auto": false
+          }
+        ]
+      },
+      "args": [
+        "--max-tokens",
+        "1"
+      ],
+      "expect": {
+        "turns": 1,
+        "all_reply_ids_nonempty": true,
+        "memory": [
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "oversize-turn",
+      "description": "A turn that cannot fit the declared context is refused before serving.",
+      "script": {
+        "schema": "uor-r4.chat-script/1",
+        "turns": [
+          {
+            "user": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word"
+          }
+        ]
+      },
+      "repeat_user": {
+        "text": "word ",
+        "count": 9000
+      },
+      "expect": {
+        "status": "error",
+        "stderr_contains": "context"
+      }
+    }
+  ]
+}
