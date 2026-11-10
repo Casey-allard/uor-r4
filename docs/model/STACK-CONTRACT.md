@@ -18,8 +18,8 @@ A stack contract makes one model composition explicit across source, configurati
 
 The replicated three-seed configuration: float training of the SpiralCore/FBS trunk, latest-exact Hamming copy reads, a reply-worded turn memory, and the uor-r4.lut-stack/7 integer artifact served by the product chat path.
 
-- Source: `conformance/stack/fbs-arm-r.toml` (BLAKE3 `8188da7fa8552c5426445eb451b08f87c1e970c6eb6f08d4ce0359cb1289c411`)
-- Semantic hash: `ff21c29111a7acb0f2b6b12f84aaa4a3000bcff79c16f4c12baa2f8764f796da`
+- Source: `conformance/stack/fbs-arm-r.toml` (BLAKE3 `f07398d9b88f6525833254d3f46f476609234d5aa4617465d373759c41a78674`)
+- Semantic hash: `6a3052a4aad786f0aac6e89f2057b99d6e316424bbdbfa1c9738698fc55700ae`
 - Lane: `fbs`
 - State: `current`
 - Revision: 2

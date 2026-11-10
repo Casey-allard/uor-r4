@@ -398,7 +398,7 @@ axis = "cycle period"
 expectation = "Every served reply reports a terminal EOS, cap or short-cycle stop."
 cases = ["recorded stop", "no unreported exhaustion"]
 fixture = "conformance/stack/fixtures/cycle-boundary.v2.json"
-fixture_sha256 = "fecbc0dd034dbcc660ed2005249c5efe8f70f72aec31c26132d7b0cae33d4997"
+fixture_sha256 = "ac70c4a9594db51b90485ce488e74c988aa0085ca8cd7fa2e982ee7342941a4f"
 layers = ["chat"]
 
 [[probes]]

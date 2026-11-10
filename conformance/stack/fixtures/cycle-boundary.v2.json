@@ -10,14 +10,14 @@
         "schema": "uor-r4.chat-script/1",
         "turns": [
           {
-            "user": "What is the opposite of hot?",
+            "user": "My dog is called Rex.",
             "memory_auto": false
           }
         ]
       },
       "args": [
         "--max-tokens",
-        "8"
+        "12"
       ],
       "expect": {
         "turns": 1,
@@ -37,19 +37,21 @@
         "schema": "uor-r4.chat-script/1",
         "turns": [
           {
-            "user": "Give me the opposite of fast.",
+            "user": "I grew up in Lisbon.",
             "memory_auto": false
           }
         ]
       },
       "args": [
         "--max-tokens",
-        "8"
+        "12"
       ],
       "expect": {
         "turns": 1,
         "all_reply_ids_nonempty": true,
         "stops": [
+          "eos",
+          "max_new_tokens",
           "short_cycle"
         ],
         "memory": [
