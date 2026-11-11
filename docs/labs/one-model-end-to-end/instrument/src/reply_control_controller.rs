@@ -1,7 +1,8 @@
-//! Deliberately dumb bake-off control: copy every supplied row.
+//! Active product rule picked by the V3 bake-off: keep every served token,
+//! stop on served EOS or the existing terminal short-cycle rule.
 
-use crate::TraceRow;
+use crate::{apply_flow, Decision, TraceRow};
 
 pub fn control_reply(rows: &[TraceRow]) -> Vec<u32> {
-    rows.iter().map(|row| row.token).collect()
+    apply_flow(rows, true, |_, _| Decision::Keep)
 }

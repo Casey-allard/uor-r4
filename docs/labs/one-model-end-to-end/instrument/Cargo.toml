@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 description = "M-world v2 held-out-phrasing panels and the CPU-only stratified evidence lane for one-model-end-to-end"
+autotests = false
 
 # A standalone instrument, outside the repository's workspace, like
 # docs/labs/m2-fresh-heldout-panel/instrument.
@@ -57,6 +58,10 @@ required-features = ["cpu-parity"]
 name = "raw-id-replies"
 path = "src/bin/raw-id-replies.rs"
 required-features = ["integer-reader"]
+
+[[test]]
+name = "reply_control_bakeoff_v3_rules"
+path = "tests/reply_control_bakeoff_v3_rules.rs"
 
 [dependencies]
 uor-r4-training = { path = "../../../../crates/uor-r4-training", optional = true }
