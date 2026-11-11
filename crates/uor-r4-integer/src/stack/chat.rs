@@ -138,7 +138,9 @@ pub struct StackChat<'m> {
     /// Exact token history, including ids generated but not stepped yet.
     history: Vec<u32>,
     /// `history[..fed]` has been stepped into `session`; `pick` is the token
-    /// [`IntegerStackSession::serve_step`] served at position `fed`.
+    /// [`IntegerStackSession::serve_step`] served at position `fed`. It is
+    /// `None` before the first step, and after a feed that stopped on an error
+    /// past a token it only read.
     fed: usize,
     pick: Option<u32>,
 }
@@ -388,6 +390,11 @@ impl<'m> StackChat<'m> {
     /// and set before that last token, so the reply's rows are the only reply
     /// rows. A model with a turn memory whose prompt was already stepped
     /// unmarked (a seed) steps the history again, so its opening row is keyed.
+    ///
+    /// Only the history's last token is served with a choice
+    /// ([`IntegerStackSession::serve_step`]); the tokens before it are read
+    /// ([`IntegerStackSession::read_step`], claude-348), because the next
+    /// token after each of them is already in the history.
     fn feed(&mut self, history: &[u32], prompt: bool) -> Result<(), StackChatError> {
         if !history.starts_with(&self.history[..]) {
             self.reset();
@@ -395,15 +402,26 @@ impl<'m> StackChat<'m> {
         if prompt && self.fed == history.len() && self.session.has_turn_memory() {
             self.reset();
         }
+        // Only a feed that stopped on an error leaves its last stepped token
+        // without a pick: step the history again so that token is served.
+        if self.fed == history.len() && self.fed > 0 && self.pick.is_none() {
+            self.reset();
+        }
         if prompt {
             self.session.clear_reply_start();
         }
         for index in self.fed..history.len() {
             let token = history[index];
-            if prompt && index + 1 == history.len() {
+            let last = index + 1 == history.len();
+            if prompt && last {
                 self.session.mark_reply_start();
             }
-            self.pick = Some(self.session.serve_step(token)?.0);
+            self.pick = if last {
+                Some(self.session.serve_step(token)?.0)
+            } else {
+                self.session.read_step(token)?;
+                None
+            };
             // A pending generated id is already in the history: keep one copy.
             if index == self.history.len() {
                 self.history.push(token);

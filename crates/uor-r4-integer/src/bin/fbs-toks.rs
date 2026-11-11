@@ -2,7 +2,7 @@
 //! (d11-exporter-float-trunk Stage 4b, claude-126).
 //!
 //! ```text
-//! fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]
+//! fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts] [--read]
 //! ```
 //!
 //! The protocol follows the step-6 one (`docs/labs/m1-d11-artifact-scorer`,
@@ -31,6 +31,11 @@
 //! which splits each layer's two blocks into nine parts. It adds `parts`: the
 //! same profile by part, and under `against_blocks` each block's parts summed
 //! against that block's median from the `--stages` run, per mille.
+//!
+//! `--read` (claude-348) runs the protocol once more with the prefill stepped as the chat feeds
+//! a prompt: every token but the last through `IntegerStackSession::read_step`, which chooses
+//! no token, and the last through `step_native`. It adds `read_prefill`: that run's timing and
+//! whether its reply is the plain protocol's. The plain protocol's numbers are unchanged.
 //!
 //! The Hamming read's trace (integer-hamming-read, claude-235):
 //! - `--hamming-trace D11_READOUT_JSON TRACE_JSON` steps a fresh session over each sequence of
@@ -111,7 +116,7 @@ use uor_r4_integer::stack::{
     served_copy_codes_uorlut01, IntegerStackModel, ReplyEnd,
 };
 
-const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --drop-hamming-carry --out FILE\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]\n       fbs-toks --decision-deciles TRACE_JSON OUT_JSON\n       fbs-toks --decision-check TRACE_JSON --table TABLE --out OUT_JSON\n       fbs-toks --decision-grade REFERENCE_TRACE OTHER_TRACE --deciles DECILES_JSON --g10 G --reference-table TABLE --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON\n       fbs-toks ARTIFACT --decision-replay REFERENCE_TRACE --prompts PROMPTS_JSON --deciles DECILES_JSON --g10 G --reference-table TABLE [--at POSITION:OFFSET]... --out OUT_JSON";
+const USAGE: &str = "usage: fbs-toks ARTIFACT [--prompt ID,ID,...] [--stages] [--parts] [--read]\n       fbs-toks ARTIFACT --replies PROMPTS_JSON --out FILE [--reply-tokens N]\n       fbs-toks ARTIFACT --forced PROMPTS_JSON --out FILE [--decision-trace TRACE_JSON] [--force FORCE_JSON]\n       fbs-toks ARTIFACT --hamming-trace D11_READOUT_JSON TRACE_JSON\n       fbs-toks --hamming-trace-compare FIRST_TRACE SECOND_TRACE\n       fbs-toks ARTIFACT --copy-codes FLOAT_TRACE INTEGER_TRACE OUT_JSON\n       fbs-toks ARTIFACT --drop-hamming-carry --out FILE\n       fbs-toks ARTIFACT --context-sweep [--tokens TOKENS_U16]\n       fbs-toks --decision-deciles TRACE_JSON OUT_JSON\n       fbs-toks --decision-check TRACE_JSON --table TABLE --out OUT_JSON\n       fbs-toks --decision-grade REFERENCE_TRACE OTHER_TRACE --deciles DECILES_JSON --g10 G --reference-table TABLE --other-table TABLE [--force FORCE_JSON] [--at POSITION:OFFSET]... --out OUT_JSON\n       fbs-toks ARTIFACT --decision-replay REFERENCE_TRACE --prompts PROMPTS_JSON --deciles DECILES_JSON --g10 G --reference-table TABLE [--at POSITION:OFFSET]... --out OUT_JSON";
 
 /// The prefills `--context-sweep` times, each followed by `DECODE` steps (claude-235).
 const SWEEP_PREFILLS: [usize; 4] = [32, 64, 96, 128];
@@ -1481,6 +1486,27 @@ impl Stepper for uor_r4_integer::stack::IntegerStackSession<'_> {
     }
 }
 
+/// A session whose first `reads` steps are read steps (claude-348): the prefill as the chat
+/// feeds a prompt, every token but the last read without a choice. A read step returns token 0,
+/// which the protocol never feeds: it keeps only the prefill's last choice.
+struct ReadPrefill<'m> {
+    session: uor_r4_integer::stack::IntegerStackSession<'m>,
+    reads: usize,
+}
+
+impl Stepper for ReadPrefill<'_> {
+    fn step(&mut self, token: u32) -> Result<u32, String> {
+        if self.reads == 0 {
+            return Stepper::step(&mut self.session, token);
+        }
+        self.reads -= 1;
+        self.session
+            .read_step(token)
+            .map(|()| 0)
+            .map_err(|e| e.to_string())
+    }
+}
+
 /// One timed run in a fresh session: the prefill over `prompt` and `decode`
 /// greedy steps after it, as `(prefill_ns, decode_ns, reply)`. The reply is
 /// the prefill's last choice followed by each decode step's.
@@ -1869,9 +1895,10 @@ fn run() -> Result<(), String> {
         .collect();
     let parts = args.iter().any(|a| a == "--parts");
     let stages = parts || args.iter().any(|a| a == "--stages");
+    let read = args.iter().any(|a| a == "--read");
     let args: Vec<String> = args
         .into_iter()
-        .filter(|a| a != "--stages" && a != "--parts")
+        .filter(|a| a != "--stages" && a != "--parts" && a != "--read")
         .collect();
     let (path, prompt_arg, tokens_arg) = match args.as_slice() {
         [path] => (path, None, None),
@@ -1987,6 +2014,16 @@ fn run() -> Result<(), String> {
             parted["against_blocks"] = blocks_against_parts(&report["stages"], &parted)?;
             report["parts"] = parted;
         }
+    }
+    if read {
+        let reads = prompt.len().saturating_sub(1);
+        let fresh = || ReadPrefill {
+            session: model.session(),
+            reads,
+        };
+        let read_timing = protocol(fresh, &prompt)?;
+        let same = read_timing["reply"] == report["timing"]["reply"];
+        report["read_prefill"] = json!({ "timing": read_timing, "replies_match": same });
     }
     println!("{report}");
     Ok(())

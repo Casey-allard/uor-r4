@@ -1928,6 +1928,11 @@ const FBS_CHAT_CONTEXT: usize = 32;
 /// with a tokenizer of its vocabulary. Also returns the opening keys a turn can open with: the
 /// stored keys holding no `<|bos|>` or `<|eos|>`, which would move the turn's anchor.
 fn fbs_chat(seed: u64) -> Result<(IntegerStackModel, Vec<u8>, Vec<Vec<u32>>), StackError> {
+    fbs_chat_with(seed, false)
+}
+
+/// [`fbs_chat`]'s model with either head: `nearest` reads the whole table's nearest token.
+fn fbs_chat_with(seed: u64, nearest: bool) -> Result<(IntegerStackModel, Vec<u8>, Vec<Vec<u32>>), StackError> {
     let mut snap = synthetic_fbs_trunk_with(
         seed,
         FbsSynth {
@@ -1935,6 +1940,7 @@ fn fbs_chat(seed: u64) -> Result<(IntegerStackModel, Vec<u8>, Vec<Vec<u32>>), St
             ..FBS_SYNTH_SMALL
         },
     );
+    snap.readout_nearest = nearest;
     let memory = synthetic_turn_memory(snap.vocab, snap.width, 8, 192, true, 40, seed ^ 0x5eed);
     let keys = memory
         .opening
@@ -2046,6 +2052,110 @@ fn stack_chat_marks_each_turn_of_an_fbs_conversation() -> ChatTest {
         chat.position() - steps_before <= second_history.len() - first_history.len() + second.ids.len(),
         "the session replayed the history"
     );
+    Ok(())
+}
+
+/// claude-348: the chat reads every prompt token but the last without choosing a token
+/// ([`super::IntegerStackSession::read_step`]). Under the nearest head, where that skips the
+/// whole-table scan, two turns still serve what sessions stepped in full serve.
+#[test]
+fn stack_chat_reads_the_prompt_without_choosing_under_the_nearest_head() -> ChatTest {
+    let (model, json, keys) = fbs_chat_with(43, true)?;
+    assert!(model.shape().head_nearest() && model.turn_memory().is_some());
+    let mut chat = open_chat(&model, &json)?;
+    let (bos, eos) = (chat.protocol().bos_id, chat.protocol().eos_id);
+    let mut replies = std::collections::BTreeSet::new();
+    for pair in keys.windows(2) {
+        chat.seed(&[bos])?;
+        let first_history = [&[bos][..], &pair[0]].concat();
+        let first = chat.reply_history(&first_history, 6)?;
+        assert_eq!(first.ids, served_reference(&model, &first_history, 6, eos, true)?, "first turn");
+        let mut second_history = [first_history.as_slice(), &first.ids].concat();
+        if first.stop != super::StackStop::Eos {
+            second_history.push(eos);
+        }
+        second_history.extend_from_slice(&pair[1]);
+        let second = chat.reply_history(&second_history, 6)?;
+        assert_eq!(second.ids, served_reference(&model, &second_history, 6, eos, true)?, "second turn");
+        replies.insert(first.ids);
+        replies.insert(second.ids);
+    }
+    assert!(replies.len() > 1, "every reply is the same: the test cannot see a changed state");
+    Ok(())
+}
+
+/// claude-348: a read step leaves the session where a choosing step leaves it. Under the nearest
+/// head it names no token; the query and every later choice are the same. Under the writer head
+/// it is a full step.
+#[test]
+fn a_read_step_leaves_the_session_as_a_choosing_step_does() {
+    let synth = FbsSynth {
+        context: 32,
+        ..FBS_SYNTH_SMALL
+    };
+    let mut snap = synthetic_fbs_trunk_with(20261110, synth);
+    snap.readout_nearest = true;
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export")).expect("parse");
+    assert!(model.shape().head_nearest());
+    let vocab = model.shape().vocab as u32;
+    let (mut full, mut read) = (model.session(), model.session());
+    let mut picks = std::collections::BTreeSet::new();
+    let mut token = 3u32;
+    for t in 0..24u32 {
+        let (pick, _) = full.serve_step(token).expect("a full step");
+        if t % 3 == 2 {
+            assert_eq!(read.serve_step(token).expect("a choosing step"), (pick, 0), "step {t}");
+            assert_eq!(read.last_native_token(), Some(pick), "step {t}");
+        } else {
+            read.read_step(token).expect("a read step");
+            assert_eq!(read.last_native_token(), None, "step {t}: a read step names no token");
+        }
+        assert_eq!(read.last_query_q12(), full.last_query_q12(), "step {t}: the same query");
+        picks.insert(pick);
+        token = (pick + t) % vocab;
+    }
+    assert!(picks.len() > 1, "one pick throughout: the test cannot see a changed state");
+    snap.readout_nearest = false;
+    let writer = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export")).expect("parse");
+    let (mut full, mut read) = (writer.session(), writer.session());
+    let (pick, _) = full.serve_step(3).expect("a full step");
+    read.read_step(3).expect("a read step");
+    assert_eq!(read.last_native_token(), Some(pick), "the writer head still chooses");
+}
+
+/// claude-348: a read step that is refused clears its mark, so the next step chooses again.
+#[test]
+fn a_refused_read_step_leaves_the_next_step_choosing() {
+    let mut snap = synthetic_fbs_trunk(20261110);
+    snap.readout_nearest = true;
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export")).expect("parse");
+    let vocab = model.shape().vocab as u32;
+    let (mut fresh, mut refused) = (model.session(), model.session());
+    assert!(refused.read_step(vocab).is_err(), "an id outside the vocabulary is refused");
+    assert_eq!(refused.serve_step(3).expect("a choosing step"), fresh.serve_step(3).expect("a choosing step"));
+    assert!(refused.last_native_token().is_some(), "the step after a refused read step chooses");
+}
+
+/// claude-348: a feed that stops on an id outside the vocabulary has read its last stepped token
+/// without a choice. Asking for a reply to the history up to that token steps it again, and the
+/// reply is what a session stepped in full serves. The model has no turn memory, whose own reset
+/// would hide this.
+#[test]
+fn stack_chat_serves_the_last_token_after_a_feed_that_stopped_on_an_error() -> ChatTest {
+    let (model, json) = chat(7)?;
+    assert!(model.turn_memory().is_none());
+    let mut chat = open_chat(&model, &json)?;
+    let (bos, eos) = (chat.protocol().bos_id, chat.protocol().eos_id);
+    let vocab = model.shape().vocab as u32;
+    // The fixture's context is six tokens: two read, the refused id, and two of reply fit.
+    let good = [bos, 5 % vocab];
+    let bad = [&good[..], &[vocab]].concat();
+    assert!(
+        matches!(chat.reply_history(&bad, 2), Err(super::StackChatError::Stack(_))),
+        "the engine refuses an id outside the vocabulary after reading the two before it"
+    );
+    let reply = chat.reply_history(&good, 2)?;
+    assert_eq!(reply.ids, served_reference(&model, &good, 2, eos, false)?);
     Ok(())
 }
 
@@ -6901,6 +7011,40 @@ fn a_nearest_stack_serves_the_whole_tables_nearest_token() {
         }
     }
     assert!(differ > 0, "the writer's pick and the nearest token differ somewhere");
+}
+
+/// claude-348: the nearest scan stops reading a row once its partial distance passes the best so
+/// far. With every table row present twice, each query's nearest distance is tied between an id
+/// and its copy, and the served token is still the smaller id of the tied nearest rows, as a scan
+/// that reads every value finds it.
+#[test]
+fn the_early_stopping_nearest_scan_keeps_the_smaller_id_on_a_tie() {
+    let mut snap = synthetic_fbs_trunk(20261110);
+    snap.readout_nearest = true;
+    let (vocab, d) = (snap.vocab, snap.width);
+    let half = vocab / 2;
+    let (low, high) = snap.embed.split_at_mut(half * d);
+    high[..half * d].copy_from_slice(low);
+    let model = IntegerStackModel::parse(&super::export_fbs_trunk_uorlut01(&snap).expect("export")).expect("parse");
+    let table = model.fbs_image().expect("an FBS model").writer_table.to_vec();
+    assert!(table[..half * d] == table[half * d..2 * half * d], "every row is in the table twice");
+    let mut ties = 0usize;
+    for run in 0..4usize {
+        let mut session = model.session();
+        for step in 0..model.shape().context {
+            let token = ((step * 5 + run * 13 + 1) % vocab) as u32;
+            let near = session.step_native(token).expect("nearest step");
+            let distances: Vec<i64> = table
+                .chunks_exact(d)
+                .map(|row| near.query_q12.iter().zip(row).map(|(&x, &v)| (i64::from(x) - i64::from(v)).abs()).sum())
+                .collect();
+            let least = *distances.iter().min().expect("a table");
+            let first = distances.iter().position(|&l1| l1 == least).expect("the least") as u32;
+            ties += usize::from(distances.iter().filter(|&&l1| l1 == least).count() > 1);
+            assert_eq!(near.token, first, "run {run} step {step}: the smaller id of the tied nearest rows");
+        }
+    }
+    assert_eq!(ties, 4 * model.shape().context, "every query's nearest distance is tied");
 }
 
 /// claude-231: the point key's override of a missed opening holds under the nearest head, and the
