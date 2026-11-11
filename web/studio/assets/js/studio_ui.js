@@ -9,7 +9,7 @@
     var UI_KEY = 'uor.studio.ui.v2';
     var ATTACH_KEY = 'uor.studio.attachments.v1';
     var IMAGE_RECALL_KEY = 'uor.studio.attachments.images.v1';
-    var MAX_ATTACHMENT_TOTAL_BYTES = 4 * 1024 * 1024;
+    var MAX_ATTACHMENT_TOTAL_BYTES = 25 * 1024 * 1024;
     var MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
     var MAX_IMAGES = 4;
     var THEME_KEY = 'uor.studio.theme';
@@ -579,7 +579,7 @@
             recalledImages = 0;
         } else {
             var total = next.filter(function (item) { return item.kind !== 'image'; }).reduce(function (sum, item) { return sum + (Number.isFinite(item.size) ? item.size : new TextEncoder().encode(String(item.content || '')).byteLength); }, size);
-            if (total > MAX_ATTACHMENT_TOTAL_BYTES) { toast('Attachments exceed the 4 MiB total limit; remove a file first.', 'error'); return; }
+            if (total > MAX_ATTACHMENT_TOTAL_BYTES) { toast('Attachments exceed the 25 MiB total limit; remove a file first.', 'error'); return; }
         }
         attachments = next;
         attachments.push(Object.assign({}, entry, { name: name, kind: entry.kind || 'text', content: content, source: entry.source || 'file', size: size }));

@@ -233,7 +233,7 @@ export function TerminalPanel({ actions, files, idPrefix = '' }: DesktopPanelPro
 
     return <section aria-label="Terminal" class="desktop-panel terminal-panel">
         <header class="panel-heading"><div><h1>Terminal</h1><p>Persistent PTY with direct input and live output.</p></div><span class="panel-icon"><Icon name="terminal" /></span></header>
-        <p id={id('terminalConsentState')} role="status" aria-live="polite" class="panel-summary">{consent || (actions.available ? 'Open a shell for a persistent interactive PTY.' : 'Interactive PTY is unavailable in this browser build.')}</p>
+        <p id={id('terminalConsentState')} role="status" aria-live="polite" class="panel-summary">{consent || (actions.available ? 'Open a shell for a persistent interactive PTY.' : 'Interactive terminal requires the local companion. This browser build cannot start a shell.')}</p>
         <label>Working directory<input id={id('terminalCwd')} aria-label="Working directory" value={path} disabled={Boolean(session) || opening} onInput={(event) => {
             workspaceRevision.current += 1;
             closeSession();

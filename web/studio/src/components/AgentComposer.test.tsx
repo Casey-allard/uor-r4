@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
 import type { GenerationAdapter } from '../adapters/generation.js';
 import type { Attachment, SessionApi, StudioSettings, StudioUiApi, WorkspaceApi } from '../adapters/workflow.js';
+import { AgentClient } from '../agent/client.js';
+import { FixtureTransport } from '../agent/fixtureTransport.js';
 import { AgentComposer } from './AgentComposer.js';
 
 let host: HTMLDivElement;
@@ -112,6 +114,10 @@ function prompt(value: string) {
         input.setSelectionRange(value.length, value.length);
         input.dispatchEvent(new Event('input', { bubbles: true }));
     });
+}
+
+async function flushAsync() {
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 }
 
 describe('AgentComposer', () => {
@@ -247,9 +253,10 @@ describe('AgentComposer', () => {
         expect(host.textContent).not.toContain('API chat');
     });
 
-    it('supports current-file, pasted, remove, and clear attachments plus six templates', () => {
+    it('supports current-file, pasted, remove, and clear attachments plus six templates', async () => {
         const { uiApi } = mount();
         act(() => { button('Attach current file').click(); });
+        await flushAsync();
         expect(uiApi.api.addAttachment).toHaveBeenCalledWith({ name: 'notes.md', content: 'context text', source: 'editor' });
         act(() => {
             const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Pasted context"]')!;
@@ -257,6 +264,7 @@ describe('AgentComposer', () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
         });
         act(() => { button('Attach pasted text').click(); });
+        await flushAsync();
         expect(uiApi.api.addAttachment).toHaveBeenCalledWith({ name: 'pasted-context.txt', content: 'pasted text', source: 'paste' });
         act(() => { button('Remove notes.md').click(); });
         expect(uiApi.api.removeAttachment).toHaveBeenCalledWith('notes.md');
@@ -420,13 +428,20 @@ describe('composer interactions', () => {
         expect(host.querySelector('[role="listbox"]')).toBeNull();
         pressKey(textarea, 'Enter');
         expect(generation.send).toHaveBeenCalledWith('/unknown');
+        act(() => {
+            store.dispatch({
+                type: 'generation/finished',
+                outcome: 'complete',
+                generationId: store.getState().session.activeGeneration!.generationId,
+            });
+        });
         prompt('@unknown');
         expect(host.querySelector('[role="listbox"]')).toBeNull();
         pressKey(textarea, 'Enter');
         expect(generation.send).toHaveBeenCalledWith('@unknown');
     });
 
-    it('inserts mentions with complete keyboard, mouse, focus, and empty-state behavior', () => {
+    it('inserts mentions with complete keyboard, mouse, focus, and empty-state behavior', async () => {
         const { store, generation, fileApi, uiApi } = mount();
         store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
         const textarea = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
@@ -447,6 +462,7 @@ describe('composer interactions', () => {
         pressKey(textarea, 'ArrowDown');
         expect(textarea.getAttribute('aria-activedescendant')).toBe(options[0].id);
         pressKey(textarea, 'Enter');
+        await flushAsync();
         expect(textarea.value).toBe('@notes.md');
         expect(document.activeElement).toBe(textarea);
         expect(uiApi.api.addAttachment).toHaveBeenCalledTimes(1);
@@ -560,7 +576,7 @@ describe('composer interactions', () => {
         expect(onPastedChange).not.toHaveBeenCalled();
     });
 
-    it('splices mentions into the visible recalled prompt without losing surrounding text', () => {
+    it('splices mentions into the visible recalled prompt without losing surrounding text', async () => {
         const { store, generation } = mount();
         store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
         const textarea = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
@@ -573,6 +589,7 @@ describe('composer interactions', () => {
         const option = host.querySelector<HTMLElement>('[role="option"][data-attachment="notes.md"]')!;
         expect(option).not.toBeNull();
         act(() => { option.click(); });
+        await flushAsync();
         expect(textarea.value).toBe('old @notes.md');
         expect(generation.send).toHaveBeenCalledTimes(1);
     });
@@ -609,18 +626,76 @@ describe('composer interactions', () => {
         });
     });
 
-    it('does not count retained images against the picked text-file budget', async () => {
+    it('counts retained images in the shared attachment budget', async () => {
         const { uiApi } = mount();
-        uiApi.attachments.push({ name: 'photo.png', kind: 'image', content: '', size: 4_194_305 });
+        uiApi.attachments.push({ name: 'photo.png', kind: 'image', content: '', size: 26_214_393 });
         const picker = host.querySelector<HTMLInputElement>('input[type="file"]')!;
         const file = new File(['contents'], 'note.txt', { type: 'text/plain' });
         Object.defineProperty(picker, 'files', { value: [file], configurable: true });
         await act(async () => {
             picker.dispatchEvent(new Event('change', { bubbles: true }));
             await vi.waitFor(() => {
-                expect(uiApi.api.addAttachment).toHaveBeenCalledWith({ name: 'note.txt', kind: 'text', content: 'contents', source: 'file', size: 8 });
+                expect(uiApi.api.toast).toHaveBeenCalledWith('note.txt exceeds the 26214400-byte total attachment limit (26214401 bytes).', 'error');
             });
         });
-        expect(uiApi.api.toast).not.toHaveBeenCalled();
+        expect(uiApi.api.addAttachment).not.toHaveBeenCalled();
+    });
+});
+
+describe('AgentComposer runtime-owned empty task list', () => {
+    it('empty_runtime_list_send_creates_a_task_and_never_calls_legacy_generation', async () => {
+        const store = new LifecycleStore();
+        store.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        const sessionApi = sessions();
+        const fileApi = workspace();
+        const uiApi = ui();
+        const generation: GenerationAdapter = {
+            send: vi.fn(() => true),
+            stop: vi.fn(),
+            dispose: vi.fn(),
+        };
+        const transport = new FixtureTransport();
+        const client = new AgentClient({ transport });
+        const onCreateTask = vi.fn(async () => {
+            const task = await client.createTask({ title: 'Composer-created task' });
+            client.store.selectTask(task.taskId);
+            return task.taskId;
+        });
+        act(() => {
+            render(
+                <AgentComposer
+                    store={store}
+                    sessions={sessionApi}
+                    files={fileApi}
+                    ui={uiApi.api}
+                    generation={generation}
+                    copy={vi.fn(async () => undefined)}
+                    download={vi.fn()}
+                    agentClient={client}
+                    agentTask={null}
+                    runtimeTasksReady
+                    runtimeTaskCount={0}
+                    onCreateTask={onCreateTask}
+                />,
+                host,
+            );
+        });
+        const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => {
+            input.value = 'first runtime prompt';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await act(async () => {
+            button('Send').click();
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+        await vi.waitFor(() =>
+            expect(transport.calls.some((call) => call.method === 'startRun')).toBe(true),
+        );
+        expect(onCreateTask).toHaveBeenCalledOnce();
+        expect(transport.calls.some((call) => call.method === 'createTask')).toBe(true);
+        expect(generation.send).not.toHaveBeenCalled();
+        expect(client.store.snapshot().selectedTask?.title).toBe('Composer-created task');
     });
 });

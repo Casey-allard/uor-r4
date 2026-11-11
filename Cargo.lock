@@ -2578,6 +2578,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-studio-agent"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "uor-r4-tokenizer"
 version = "0.1.0"
 dependencies = [

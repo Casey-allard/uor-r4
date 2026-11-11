@@ -2,6 +2,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
+import { AgentClient, type TaskSummary } from '../agent/client.js';
+import { FixtureTransport } from '../agent/fixtureTransport.js';
+import { canonicalJson } from '../agent/generated/agentCanonical.js';
+import { createAgentStore, type AgentIncomingEvent } from '../state/agent.js';
 import type { Attachment } from '../adapters/workflow.js';
 import { createDesktopActions } from '../adapters/desktopActions.js';
 import { StudioApp } from './StudioApp.js';
@@ -62,9 +66,9 @@ describe('StudioApp', () => {
         const paletteInput = host.querySelector<HTMLInputElement>('input[aria-label="Search commands"]')!;
         act(() => { paletteInput.value = 'Go to Changes'; paletteInput.dispatchEvent(new Event('input', { bubbles: true })); });
         act(() => { paletteInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
-        expect(host.textContent).toContain('Native Git is unavailable in this browser build; use the desktop build.');
+        expect(host.textContent).toContain('Git requires the local companion. Uploaded files can still be reviewed locally.');
         act(() => { destination('Terminal').click(); });
-        expect(host.textContent).toContain('Interactive PTY is unavailable in this browser build.');
+        expect(host.textContent).toContain('Interactive terminal requires the local companion. This browser build cannot start a shell.');
         act(() => { destination('Agent').click(); });
         expect(host.textContent).toContain('No messages yet');
         act(() => { button('Inspector').click(); });
@@ -720,5 +724,492 @@ describe('navigation command grouping', () => {
         for (const id of ['agent', 'workspace', 'changes', 'terminal', 'models', 'guide']) {
             expect(host.querySelector(`button[data-command-id="${id}"]`), `missing Navigation command ${id}`).not.toBeNull();
         }
+    });
+});
+
+const RUNTIME_PROJECT = 'prj_0000000000000001';
+const RUNTIME_TASK = 'tsk_0000000000000001';
+const RUNTIME_RUN = 'run_0000000000000001';
+
+function runtimeEvent(sequence: number, type: string, data: Record<string, unknown>): AgentIncomingEvent {
+    return {
+        schema: 'uor-r4.studio.agent-event/1',
+        event_id: `evt_${RUNTIME_RUN}_1_${sequence.toString().padStart(12, '0')}`,
+        project_id: RUNTIME_PROJECT,
+        task_id: RUNTIME_TASK,
+        run_id: RUNTIME_RUN,
+        generation: 1,
+        sequence,
+        recorded_at_ms: 1_794_283_200_000 + sequence,
+        type,
+        data,
+    } as unknown as AgentIncomingEvent;
+}
+
+function runtimeClientFixture(): { client: AgentClient; transport: FixtureTransport } {
+    const store = createAgentStore();
+    expect(store.apply(runtimeEvent(0, 'run.queued', { queued_at_ms: 1_794_283_200_000 })).status).toBe('applied');
+    expect(store.apply(runtimeEvent(1, 'run.started', {
+        started_at_ms: 1_794_283_200_001,
+        model: { id: 'synthetic-replay', kind: 'synthetic-replay' },
+        mode: 'agent',
+        environment: { kind: 'browser-runtime' },
+        retry_of_run_id: null,
+    })).status).toBe('applied');
+    store.upsertTask({
+        taskId: RUNTIME_TASK,
+        projectId: RUNTIME_PROJECT,
+        title: 'Runtime detail task',
+        repo: 'uor-r4',
+        branch: 'main',
+        createdAtMs: 1_794_283_200_000,
+        latestRunId: RUNTIME_RUN,
+    });
+    const transport = new FixtureTransport();
+    return { client: new AgentClient({ store, transport }), transport };
+}
+
+function runtimeClient(): AgentClient {
+    return runtimeClientFixture().client;
+}
+
+class PendingListTransport extends FixtureTransport {
+    private resolveList!: (tasks: TaskSummary[]) => void;
+    private readonly pending = new Promise<TaskSummary[]>((resolve) => { this.resolveList = resolve; });
+    override listTasks(): Promise<TaskSummary[]> {
+        return this.pending;
+    }
+    resolve(tasks: TaskSummary[] = []): void {
+        this.resolveList(tasks);
+    }
+}
+
+class RejectingListTransport extends FixtureTransport {
+    override async listTasks(): Promise<TaskSummary[]> {
+        throw new Error('task list failed');
+    }
+}
+
+function runtimeClientWithStatus(status: 'finished' | 'cancelling'): AgentClient {
+    const store = createAgentStore();
+    store.apply(runtimeEvent(0, 'run.queued', { queued_at_ms: 1_794_283_200_000 }));
+    store.apply(runtimeEvent(1, 'run.started', {
+        started_at_ms: 1_794_283_200_001,
+        model: { id: 'synthetic-replay', kind: 'synthetic-replay' },
+        mode: 'agent',
+        environment: { kind: 'browser-runtime' },
+        retry_of_run_id: null,
+    }));
+    store.apply(runtimeEvent(2, 'run.status', { status }));
+    store.upsertTask({
+        taskId: RUNTIME_TASK,
+        projectId: RUNTIME_PROJECT,
+        title: `Status ${status} task`,
+        createdAtMs: 1_794_283_200_000,
+        latestRunId: RUNTIME_RUN,
+    });
+    return new AgentClient({ store, transport: new FixtureTransport() });
+}
+
+describe('StudioApp runtime task detail', () => {
+    it('opens the selected runtime task in the transcript-first detail and returns to the shell', async () => {
+        const client = runtimeClient();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        const row = host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!;
+        expect(row).not.toBeNull();
+        await act(async () => { row.click(); await Promise.resolve(); });
+        expect(host.querySelector('[data-task-detail-header]')).not.toBeNull();
+        expect(host.querySelector('.agent-transcript')).not.toBeNull();
+        expect(host.querySelector('.agent-composer')).not.toBeNull();
+        expect(host.querySelectorAll('h1')).toHaveLength(1);
+        expect(host.textContent).toContain('Runtime detail task');
+        expect(host.textContent).toContain('Synthetic replay');
+        expect(host.textContent).not.toContain('Restore Checkpoint');
+
+        await act(async () => { button('Back to tasks').click(); await Promise.resolve(); });
+        expect(host.querySelector('[data-task-detail-header]')).toBeNull();
+        expect(host.textContent).toContain('No messages yet');
+        expect(host.querySelector('h1')?.textContent).toBe('Agent');
+    });
+
+    it('re-renders the detail from the runtime subscription without a reload', async () => {
+        const client = runtimeClient();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        expect(host.textContent).not.toContain('Streamed reply');
+        const delta = runtimeEvent(2, 'assistant.delta', { message_id: 'msg_1f2e3d4c5b6a7988', text_delta: 'Streamed reply' });
+        await act(async () => { await client.ingestWireEvent(canonicalJson(delta)); await Promise.resolve(); });
+        await vi.waitFor(() => expect(host.textContent).toContain('Streamed reply'));
+    });
+
+    it('keeps the legacy shell and local sessions usable when the task runtime is unavailable', async () => {
+        const client = new AgentClient({ store: createAgentStore() });
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(host.textContent).toContain('The task runtime is not initialized. Reload the page.'));
+        expect(host.textContent).toContain('Local sessions');
+        expect(host.querySelector('.agent-composer')).not.toBeNull();
+        expect(host.querySelector('textarea[aria-label="Prompt"]')).not.toBeNull();
+    });
+
+    it('clears the real selection on Back, restores row focus and cannot start a hidden run', async () => {
+        const { client, transport } = runtimeClientFixture();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        expect(host.querySelector('[data-task-detail-header]')).not.toBeNull();
+        await act(async () => { button('Back to tasks').click(); await Promise.resolve(); });
+        expect(client.store.snapshot().selectedTaskId).toBeNull();
+        expect(client.store.snapshot().selectedTask).toBeNull();
+        await vi.waitFor(() => expect((document.activeElement as HTMLElement | null)?.className ?? '').toContain('task-select'));
+        const startsBefore = transport.calls.filter((call) => call.method === 'startRun').length;
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { prompt.value = 'back then send'; prompt.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(button('Send').disabled, 'runtime tasks without a selection disable Send').toBe(true);
+        await act(async () => { button('Send').click(); await Promise.resolve(); });
+        expect(transport.calls.filter((call) => call.method === 'startRun')).toHaveLength(startsBefore);
+        expect(prompt.value).toBe('back then send');
+    });
+
+    it('disables Send while the runtime task list is loading and uses legacy readiness when it is empty', async () => {
+        const store = new LifecycleStore();
+        vi.spyOn(store, 'canRun').mockReturnValue(true);
+        const transport = new PendingListTransport();
+        const client = new AgentClient({ transport });
+        await act(async () => {
+            render(<StudioApp store={store} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { prompt.value = 'ready check'; prompt.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(button('Send').disabled, 'Send must wait for the task list').toBe(true);
+
+        await act(async () => { transport.resolve([]); await new Promise((resolve) => setTimeout(resolve, 0)); });
+        await vi.waitFor(() => expect(host.textContent).toContain('No tasks yet'));
+        expect(button('Send').disabled, 'an empty runtime list falls back to lifecycle readiness').toBe(false);
+    });
+
+    it('keeps Send disabled for an unresolved restored run without starting another path', async () => {
+        const store = createAgentStore();
+        store.upsertTask({
+            taskId: RUNTIME_TASK,
+            projectId: RUNTIME_PROJECT,
+            title: 'Unresolved restore task',
+            createdAtMs: 1_794_283_200_000,
+            latestRunId: RUNTIME_RUN,
+        });
+        const transport = new FixtureTransport();
+        const client = new AgentClient({ store, transport });
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { prompt.value = 'unresolved send'; prompt.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(button('Send').disabled).toBe(true);
+        const startsBefore = transport.calls.filter((call) => call.method === 'startRun').length;
+        await act(async () => { button('Send').click(); await Promise.resolve(); });
+        expect(transport.calls.filter((call) => call.method === 'startRun')).toHaveLength(startsBefore);
+    });
+
+    it('hides the legacy lifecycle Stop while the runtime detail is active', async () => {
+        const client = runtimeClient();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        const composerStops = Array.from(host.querySelectorAll<HTMLButtonElement>('.agent-composer .composer-footer button'))
+            .filter((node) => (node.textContent ?? '').trim() === 'Stop');
+        expect(composerStops).toHaveLength(0);
+        expect(host.querySelector('.run-status .run-stop')).not.toBeNull();
+    });
+
+    it('keeps the labelled Local sessions group available when runtime tasks exist', async () => {
+        const client = runtimeClient();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(host.querySelector(`[data-task-id="${RUNTIME_TASK}"]`)).not.toBeNull());
+        const heading = host.querySelector<HTMLElement>('nav[aria-label="Tasks and local sessions"] h3#task-rail-local-sessions');
+        expect(heading).not.toBeNull();
+        const group = heading!.closest('details[data-task-group="local-sessions"]') as HTMLDetailsElement | null;
+        expect(group).not.toBeNull();
+        expect(group!.open).toBe(false);
+    });
+
+    it('shows cancelling in the rail and ignores a false terminal projection', async () => {
+        const cancelling = runtimeClientWithStatus('cancelling');
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={cancelling} />, host);
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(host.querySelector(`[data-task-id="${RUNTIME_TASK}"] .task-state`)?.textContent).toBe('Cancelling'));
+        expect(cancelling.store.snapshot().tasks[0]?.state).toBe('cancelling');
+
+        const falseFinished = runtimeClientWithStatus('finished');
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={falseFinished} />, host);
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(host.querySelector(`[data-task-id="${RUNTIME_TASK}"] .task-state`)?.textContent).toBe('Running'));
+        expect(falseFinished.store.snapshot().tasks[0]?.state).toBe('running');
+    });
+
+    it('disables Send instead of falling back to legacy generation when the task list errors with runtime tasks', async () => {
+        const store = createAgentStore();
+        store.apply(runtimeEvent(0, 'run.queued', { queued_at_ms: 1_794_283_200_000 }));
+        store.apply(runtimeEvent(1, 'run.started', {
+            started_at_ms: 1_794_283_200_001,
+            model: { id: 'synthetic-replay', kind: 'synthetic-replay' },
+            mode: 'agent',
+            environment: { kind: 'browser-runtime' },
+            retry_of_run_id: null,
+        }));
+        store.upsertTask({
+            taskId: RUNTIME_TASK,
+            projectId: RUNTIME_PROJECT,
+            title: 'List error task',
+            createdAtMs: 1_794_283_200_000,
+            latestRunId: RUNTIME_RUN,
+        });
+        const transport = new RejectingListTransport();
+        const client = new AgentClient({ store, transport });
+        const lifecycle = new LifecycleStore();
+        lifecycle.dispatch({ type: 'api/selected', sourceId: 'api-a', endpoint: 'https://api.example.com/v1' });
+        const sessionsApi = makeSessions();
+        await act(async () => {
+            render(<StudioApp store={lifecycle} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={sessionsApi} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        await vi.waitFor(() => expect(host.querySelector(`[data-task-id="${RUNTIME_TASK}"]`)).not.toBeNull());
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { prompt.value = 'must not leak to legacy'; prompt.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(button('Send').disabled, 'a task-list error must block Send while runtime tasks exist').toBe(true);
+        const startsBefore = transport.calls.filter((call) => call.method === 'startRun').length;
+        await act(async () => { button('Send').click(); await Promise.resolve(); });
+        expect(transport.calls.filter((call) => call.method === 'startRun')).toHaveLength(startsBefore);
+        expect(sessionsApi.sendPrompt).not.toHaveBeenCalled();
+    });
+
+    it('opens a collapsed containing task group before restoring Back focus', async () => {
+        const store = createAgentStore();
+        store.upsertTask({
+            taskId: RUNTIME_TASK,
+            projectId: RUNTIME_PROJECT,
+            title: 'Older task',
+            createdAtMs: Date.now() - 30 * 24 * 60 * 60 * 1000,
+            latestRunId: RUNTIME_RUN,
+        });
+        store.apply(runtimeEvent(0, 'run.queued', { queued_at_ms: 1_794_283_200_000 }));
+        store.apply(runtimeEvent(1, 'run.started', {
+            started_at_ms: 1_794_283_200_001,
+            model: { id: 'synthetic-replay', kind: 'synthetic-replay' },
+            mode: 'agent',
+            environment: { kind: 'browser-runtime' },
+            retry_of_run_id: null,
+        }));
+        const client = new AgentClient({ store, transport: new FixtureTransport() });
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        const group = host.querySelector<HTMLDetailsElement>('details[data-task-group="older"]')!;
+        expect(group).not.toBeNull();
+        expect(group.open).toBe(false);
+        act(() => { group.open = true; });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        act(() => { group.open = false; });
+        await act(async () => { button('Back to tasks').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(group.open).toBe(true));
+        await vi.waitFor(() => expect((document.activeElement as HTMLElement | null)?.className ?? '').toContain('task-select'));
+    });
+
+    it('clears the runtime detail when a Local session is selected', async () => {
+        const { client, transport } = runtimeClientFixture();
+        const sessionsApi = makeSessions();
+        sessionsApi.newSession();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={sessionsApi} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        expect(host.querySelector('[data-task-detail-header]')).not.toBeNull();
+        const localGroup = host.querySelector<HTMLDetailsElement>('details[data-task-group="local-sessions"]')!;
+        localGroup.open = true;
+        const startsBefore = transport.calls.filter((call) => call.method === 'startRun').length;
+        await act(async () => { host.querySelector<HTMLButtonElement>('[data-task-group="local-sessions"] [data-action="resume-session"]')!.click(); await Promise.resolve(); });
+        expect(client.store.snapshot().selectedTaskId).toBeNull();
+        expect(client.store.snapshot().selectedTask).toBeNull();
+        expect(host.querySelector('[data-task-detail-header]')).toBeNull();
+        expect(host.querySelector('h1')?.textContent).toBe('Agent');
+        expect(host.textContent).toContain('No messages yet');
+        expect(sessionsApi.selectSession).toHaveBeenCalledWith('session-new-1');
+        expect(transport.calls.filter((call) => call.method === 'startRun')).toHaveLength(startsBefore);
+    });
+
+    it('clears the runtime detail for a Local new session, rename and delete', async () => {
+        const { client } = runtimeClientFixture();
+        const sessionsApi = makeSessions();
+        sessionsApi.newSession();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={sessionsApi} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        const openRuntime = async () => {
+            await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+            expect(host.querySelector('[data-task-detail-header]')).not.toBeNull();
+            const group = host.querySelector<HTMLDetailsElement>('details[data-task-group="local-sessions"]')!;
+            group.open = true;
+        };
+
+        await openRuntime();
+        await act(async () => { host.querySelector<HTMLButtonElement>('[data-task-group="local-sessions"] [data-action="new-session"]')!.click(); await Promise.resolve(); });
+        expect(client.store.snapshot().selectedTaskId).toBeNull();
+        expect(host.querySelector('[data-task-detail-header]')).toBeNull();
+        expect(sessionsApi.newSession).toHaveBeenCalled();
+
+        await openRuntime();
+        await act(async () => {
+            host.querySelector<HTMLButtonElement>('[data-task-group="local-sessions"] summary[aria-label^="Actions for"]')!.click();
+            await Promise.resolve();
+        });
+        await act(async () => {
+            const rename = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-task-group="local-sessions"] button'))
+                .find((node) => node.textContent?.startsWith('Rename '))!;
+            rename.click();
+            await Promise.resolve();
+        });
+        const title = host.querySelector<HTMLInputElement>('dialog input[aria-label="Session title"]')!;
+        act(() => { title.value = 'Renamed local'; title.dispatchEvent(new Event('input', { bubbles: true })); });
+        await act(async () => {
+            host.querySelector<HTMLButtonElement>('dialog button[type="submit"]')!.click();
+            await Promise.resolve();
+        });
+        expect(client.store.snapshot().selectedTaskId).toBeNull();
+        expect(host.querySelector('[data-task-detail-header]')).toBeNull();
+        expect(sessionsApi.renameSession).toHaveBeenCalled();
+
+        await openRuntime();
+        await act(async () => {
+            host.querySelector<HTMLButtonElement>('[data-task-group="local-sessions"] summary[aria-label^="Actions for"]')!.click();
+            await Promise.resolve();
+        });
+        await act(async () => {
+            const remove = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-task-group="local-sessions"] button'))
+                .find((node) => node.textContent?.startsWith('Delete '))!;
+            remove.click();
+            await Promise.resolve();
+        });
+        await act(async () => { button('Confirm delete').click(); await Promise.resolve(); });
+        expect(client.store.snapshot().selectedTaskId).toBeNull();
+        expect(host.querySelector('[data-task-detail-header]')).toBeNull();
+        expect(sessionsApi.deleteSession).toHaveBeenCalled();
+    });
+
+    it('disables Send when runtime tasks exist but no runtime task is selected', async () => {
+        const { client, transport } = runtimeClientFixture();
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        await vi.waitFor(() => expect(host.querySelector(`[data-task-id="${RUNTIME_TASK}"]`)).not.toBeNull());
+        await vi.waitFor(() => expect(host.querySelector('.task-loading')).toBeNull());
+        const prompt = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { prompt.value = 'no selected runtime task'; prompt.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(button('Send').disabled).toBe(true);
+        const startsBefore = transport.calls.filter((call) => call.method === 'startRun').length;
+        await act(async () => { button('Send').click(); await Promise.resolve(); });
+        expect(transport.calls.filter((call) => call.method === 'startRun')).toHaveLength(startsBefore);
+        expect(prompt.value).toBe('no selected runtime task');
+    });
+
+    it('focuses the group summary when the selected row is hidden', async () => {
+        const store = createAgentStore();
+        store.upsertTask({
+            taskId: RUNTIME_TASK,
+            projectId: RUNTIME_PROJECT,
+            title: 'Hidden older task',
+            createdAtMs: Date.now() - 30 * 24 * 60 * 60 * 1000,
+            latestRunId: RUNTIME_RUN,
+        });
+        store.apply(runtimeEvent(0, 'run.queued', { queued_at_ms: 1_794_283_200_000 }));
+        store.apply(runtimeEvent(1, 'run.started', {
+            started_at_ms: 1_794_283_200_001,
+            model: { id: 'synthetic-replay', kind: 'synthetic-replay' },
+            mode: 'agent',
+            environment: { kind: 'browser-runtime' },
+            retry_of_run_id: null,
+        }));
+        const client = new AgentClient({ store, transport: new FixtureTransport() });
+        await act(async () => {
+            render(<StudioApp store={new LifecycleStore()} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={makeSessions()} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+            await Promise.resolve();
+        });
+        const initialGroup = host.querySelector<HTMLDetailsElement>('details[data-task-group="older"]')!;
+        initialGroup.open = true;
+        await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); await Promise.resolve(); });
+        const group = host.querySelector<HTMLDetailsElement>('details[data-task-group="older"]')!;
+        const row = host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!;
+        group.open = false;
+        row.disabled = true;
+        await act(async () => { button('Back to tasks').click(); await Promise.resolve(); });
+        await vi.waitFor(() => expect(group.open).toBe(true));
+        await vi.waitFor(() => expect(document.activeElement).toBe(group.querySelector('summary')));
+    });
+});
+
+describe('StudioApp runtime task creation', () => {
+    it('creates_and_selects_a_first_task_through_the_existing_agent_owner', async () => {
+        const transport = new FixtureTransport();
+        const client = new AgentClient({ transport });
+        const store = new LifecycleStore();
+        act(() => {
+            render(
+                <StudioApp
+                    store={store}
+                    adapter={makeModelAdapter()}
+                    sources={makeSources()}
+                    files={makeFiles()}
+                    sessions={makeSessions()}
+                    ui={makeUi()}
+                    download={vi.fn()}
+                    agentClient={client}
+                />,
+                host,
+            );
+        });
+        await vi.waitFor(() => expect(host.querySelector('[data-action="new-task"]')).not.toBeNull());
+        const action = host.querySelector<HTMLButtonElement>('[data-action="new-task"]')!;
+        await act(async () => {
+            action.click();
+            await Promise.resolve();
+        });
+        expect(transport.calls.filter((call) => call.method === 'createTask')).toHaveLength(1);
+        expect(transport.calls.find((call) => call.method === 'createTask')?.payload).toMatchObject({
+            title: 'New task',
+        });
+        await vi.waitFor(() =>
+            expect(client.store.snapshot().selectedTask?.title).toBe('New task'),
+        );
+        expect(host.querySelector('#studio-typed-root [data-task-detail-header]')).toBeNull();
+        expect(host.querySelector('textarea[aria-label="Prompt"]')).not.toBeNull();
+        await vi.waitFor(() =>
+            expect(host.querySelector<HTMLButtonElement>('.send-button')?.disabled).toBe(true),
+        );
+        expect(host.textContent).not.toContain('Select a task before sending');
     });
 });

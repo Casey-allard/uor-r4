@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleStore } from '../state/lifecycle.js';
 import { createOperationGate } from '../adapters/operations.js';
 import type { StudioFile, StudioSettings, WorkspaceApi, WorkspaceSummary } from '../adapters/workflow.js';
+import type { AgentClient } from '../agent/client.js';
 import { WorkspaceEditor } from './WorkspaceEditor.js';
 
 let host: HTMLDivElement;
@@ -165,7 +166,7 @@ describe('WorkspaceEditor', () => {
         fileApi.summary.mode = 'directory';
         fileApi.summary.rootName = 'project';
         fileApi.summary.activePath = 'a.md';
-        fileApi.summary.tabs = [{ path: 'a.md', dirty: true }];
+        fileApi.summary.tabs = [{ path: 'a.md', dirty: false }];
         fileApi.setActive({ path: 'a.md', name: 'a.md', content: 'alpha', mode: 'directory' });
         act(() => { emit(fileApi); });
         button('Save as').click();
@@ -203,5 +204,97 @@ describe('WorkspaceEditor', () => {
         await act(async () => { finishFirst(); await Promise.resolve(); });
         expect(onError).toHaveBeenCalledWith('newer failure', 'workspace:open-folder');
         expect(onSuccess).not.toHaveBeenCalled();
+    });
+});
+
+describe('WorkspaceEditor host grants', () => {
+    const GRANT_A = 'gr_9a3c5e7b1d2f4a60';
+    const GRANT_B = 'gr_0b1d2f4a6c8e9a30';
+
+    function hostClient(
+        grants: Array<{ grantId: string; path: string }>,
+        calls: Array<Record<string, unknown>>,
+    ): AgentClient {
+        return {
+            hostCapabilities: vi.fn(async () => ({
+                tree: true,
+                changes: true,
+                readArtifact: false,
+                terminal: false,
+                git: true,
+                mcp: false,
+                approvals: false,
+            })),
+            hostSupportsGrants: () => true,
+            grants: vi.fn(async () => grants),
+            treePage: vi.fn(async (input: Record<string, unknown>) => {
+                calls.push(input);
+                return {
+                    entries: [{ path: 'src', kind: 'directory' }, { path: 'src/a.ts', kind: 'file', sizeBytes: 5 }],
+                    truncated: false,
+                    truncatedReported: false,
+                    symlinksSkipped: 0,
+                    readErrors: 0,
+                };
+            }),
+            registerLocalFile: vi.fn(),
+        } as unknown as AgentClient;
+    }
+
+    function mountWith(client: AgentClient): { onError: ReturnType<typeof vi.fn> } {
+        const store = new LifecycleStore();
+        const fileApi = files();
+        const onError = vi.fn();
+        act(() => {
+            render(
+                <WorkspaceEditor
+                    store={store}
+                    files={fileApi.api}
+                    operations={createOperationGate()}
+                    onError={onError}
+                    onSuccess={vi.fn()}
+                    agentClient={client}
+                />,
+                host,
+            );
+        });
+        return { onError };
+    }
+
+    it('single_grant_is_auto_selected_and_passed_to_the_host_tree', async () => {
+        const calls: Array<Record<string, unknown>> = [];
+        mountWith(hostClient([{ grantId: GRANT_A, path: '/granted/project' }], calls));
+        await vi.waitFor(() => expect(calls).toHaveLength(1));
+        expect(calls[0]).toMatchObject({ source: 'host', grantId: GRANT_A });
+        expect(host.textContent).toContain('/granted/project');
+        expect(host.querySelector('select[aria-label="Approved folder"]')).toBeNull();
+    });
+
+    it('multiple_grants_require_a_labelled_selection_before_the_host_tree', async () => {
+        const calls: Array<Record<string, unknown>> = [];
+        mountWith(hostClient([
+            { grantId: GRANT_A, path: '/granted/project' },
+            { grantId: GRANT_B, path: '/other/project' },
+        ], calls));
+        await vi.waitFor(() =>
+            expect(host.querySelector('select[aria-label="Approved folder"]')).not.toBeNull(),
+        );
+        expect(calls).toHaveLength(0);
+        const select = host.querySelector<HTMLSelectElement>('select[aria-label="Approved folder"]')!;
+        expect(select.options).toHaveLength(3);
+        expect(select.value).toBe('');
+        act(() => {
+            select.value = GRANT_B;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        await vi.waitFor(() => expect(calls).toHaveLength(1));
+        expect(calls[0]).toMatchObject({ source: 'host', grantId: GRANT_B });
+    });
+
+    it('no_grants_reports_unavailable_instead_of_listing_a_page_path', async () => {
+        const calls: Array<Record<string, unknown>> = [];
+        mountWith(hostClient([], calls));
+        await vi.waitFor(() => expect(host.textContent).toContain('reports no approved folders'));
+        expect(calls).toHaveLength(0);
     });
 });

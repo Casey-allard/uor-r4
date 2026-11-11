@@ -18,6 +18,8 @@ const targets: Array<{ id: StudioSection | 'browser'; pane: string; label: strin
     { id: 'agent', pane: 'chat', label: 'Chat', icon: 'agent' },
     { id: 'workspace', pane: 'editor', label: 'Editor', icon: 'workspace' },
     { id: 'changes', pane: 'diff', label: 'Diff', icon: 'changes' },
+    { id: 'pr', pane: 'pr', label: 'PR', icon: 'guide' },
+    { id: 'artifacts', pane: 'artifacts', label: 'Artifacts', icon: 'models' },
     { id: 'terminal', pane: 'terminal', label: 'Terminal', icon: 'terminal' },
     { id: 'browser', pane: 'browser', label: 'Browser', icon: 'browser' },
 ];
@@ -34,7 +36,7 @@ export function PaneDock({ activeSection, onSection, onSplit, onCloseSplit, chil
     const split = Boolean(secondarySection);
     return <div class="workspace-grid" data-split={split ? 'true' : 'false'}>
         <div class="pane-dock" role="toolbar" aria-label="Workspace panes">
-            <div class="pane-tabs">{targets.map((target) => <button type="button" data-pane-target={target.pane} aria-pressed={activeSection === target.id ? 'true' : 'false'} onClick={() => onSection(target.id)}><Icon name={target.icon} /><span>{target.label}</span></button>)}</div>
+            <div class="pane-tabs">{targets.map((target) => <button type="button" data-pane-target={target.pane} aria-label={target.label} aria-pressed={activeSection === target.id ? 'true' : 'false'} onClick={() => onSection(target.id)}><Icon name={target.icon} /><span>{target.label}</span></button>)}</div>
             <div class="pane-actions">{split ? <button type="button" data-action="close-split" aria-label="Close split pane" onClick={onCloseSplit}><Icon name="close" /></button> : <button type="button" data-action="split-pane" aria-label="Split pane" onClick={onSplit}><Icon name="split" /><span>Split</span></button>}</div>
         </div>
         <div class="pane-columns">

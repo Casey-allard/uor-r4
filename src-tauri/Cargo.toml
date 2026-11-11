@@ -25,6 +25,7 @@ gui = ["dep:tauri", "dep:tauri-build", "dep:tauri-plugin-dialog"]
 [dependencies]
 uor-r4-integer = { path = "../crates/uor-r4-integer", features = ["serving-wasm"] }
 uor-r4-object-store = { path = "../crates/uor-r4-object-store" }
+uor-r4-studio-agent = { path = "../crates/uor-r4-studio-agent" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.8"

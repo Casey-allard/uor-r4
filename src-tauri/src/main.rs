@@ -10,13 +10,13 @@
 //!   driving [`DesktopBackend`].
 #![forbid(unsafe_code)]
 
-use std::io::{self, BufRead, Read, Write};
-use std::net::TcpListener;
+use std::io::{self, BufRead, Write};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use uor_r4_desktop_client::{
-    generate_launch_token, handle_rpc_line, handle_studio_http_request, run_self_test_receipt,
-    DesktopBackend, PinRegistry,
+    agent_host::AgentHost, agent_server::StudioServer, generate_launch_token,
+    handle_rpc_line_with_host, run_self_test_receipt, DesktopBackend, PinRegistry,
 };
 
 fn apply_cli_grants(args: &[String], backend: &mut DesktopBackend) -> Result<(), String> {
@@ -91,75 +91,15 @@ fn studio_root(args: &[String]) -> Result<std::path::PathBuf, String> {
 }
 
 fn run_serve_studio(addr: &str, studio_root: &Path, args: &[String]) -> Result<(), String> {
-    let listener = TcpListener::bind(addr).map_err(|e| format!("bind {addr}: {e}"))?;
-    let local_addr = listener.local_addr().map_err(|e| e.to_string())?;
-    if !local_addr.ip().is_loopback() {
-        return Err(format!(
-            "refusing non-loopback bind address {local_addr}; use 127.0.0.1:<port>"
-        ));
-    }
-    let bound_host = local_addr.to_string();
+    let mut host = AgentHost::new(DesktopBackend::new(PinRegistry::with_synthetic_standin()))?;
+    apply_cli_grants(args, host.backend_mut())?;
     let launch_token = generate_launch_token();
-    println!("UOR-R4 Desktop Studio loopback host listening on http://{bound_host}/");
-    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
-    apply_cli_grants(args, &mut backend)?;
-
-    for stream in listener.incoming() {
-        let Ok(mut stream) = stream else { continue };
-        let mut buf = [0u8; 65536];
-        let Ok(n) = stream.read(&mut buf) else {
-            continue;
-        };
-        if n == 0 {
-            continue;
-        }
-        let raw = &buf[..n];
-        let header_end = raw
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
-            .map(|p| p + 4)
-            .unwrap_or(n);
-        let head_str = String::from_utf8_lossy(&raw[..header_end]);
-        let mut lines = head_str.lines();
-        let req_line = lines.next().unwrap_or("GET / HTTP/1.1");
-        let mut parts = req_line.split_whitespace();
-        let method = parts.next().unwrap_or("GET");
-        let path = parts.next().unwrap_or("/");
-        let mut headers = Vec::new();
-        for hdr_line in lines {
-            let trimmed = hdr_line.trim();
-            if trimmed.is_empty() {
-                break;
-            }
-            if let Some((k, v)) = trimmed.split_once(':') {
-                headers.push((k.trim().to_string(), v.trim().to_string()));
-            }
-        }
-        let body = &raw[header_end..];
-        let (status, content_type, resp_body) = handle_studio_http_request(
-            &mut backend,
-            studio_root,
-            &bound_host,
-            &launch_token,
-            method,
-            path,
-            &headers,
-            body,
-        );
-        let status_text = match status {
-            200 => "OK",
-            403 => "Forbidden",
-            404 => "Not Found",
-            _ => "Method Not Allowed",
-        };
-        let header = format!(
-            "HTTP/1.1 {status} {status_text}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            resp_body.len()
-        );
-        let _ = stream.write_all(header.as_bytes());
-        let _ = stream.write_all(&resp_body);
-        let _ = stream.flush();
-    }
+    let server = StudioServer::start(addr, studio_root, Arc::new(Mutex::new(host)), launch_token)?;
+    println!(
+        "UOR-R4 Desktop Studio loopback host listening on http://{}/",
+        server.bound_host()
+    );
+    server.serve();
     Ok(())
 }
 
@@ -210,12 +150,19 @@ fn main() {
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
+    let mut host = match AgentHost::new(backend) {
+        Ok(host) => host,
+        Err(error) => {
+            eprintln!("host startup error: {error}");
+            std::process::exit(1);
+        }
+    };
     for line in stdin.lock().lines() {
         let Ok(line) = line else { break };
         if line.trim().is_empty() {
             continue;
         }
-        let resp = handle_rpc_line(&mut backend, &line);
+        let resp = handle_rpc_line_with_host(&mut host, &line);
         let _ = writeln!(stdout, "{resp}");
         let _ = stdout.flush();
     }

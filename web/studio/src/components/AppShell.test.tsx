@@ -48,6 +48,77 @@ describe('AppShell', () => {
         expect(host.textContent).toContain('Session list');
     });
 
+    it('renders the task workspace with rail, detail and work-surface regions', () => {
+        act(() => {
+            render(<AppShell
+                activeSection="agent"
+                onSection={vi.fn()}
+                status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }}
+                secondarySection="workspace"
+                secondaryChildren={<p>Work surface content</p>}
+                primary={<h1>Agent</h1>}
+            ><p>Overlays</p></AppShell>, host);
+        });
+        const shell = host.querySelector<HTMLElement>('.harness-shell')!;
+        expect(shell.classList.contains('studio-shell')).toBe(true);
+        expect(shell.classList.contains('task-workspace')).toBe(true);
+        expect(host.querySelector('[data-region="task-rail"]')).not.toBeNull();
+        expect(host.querySelector('main[data-region="task-detail"]')).not.toBeNull();
+        const workSurface = host.querySelector('[data-region="work-surface"]');
+        expect(workSurface).not.toBeNull();
+        expect(workSurface?.closest('.pane-secondary')).not.toBeNull();
+        expect(host.querySelectorAll('h1')).toHaveLength(1);
+    });
+
+    it('places main before the task rail in document order', () => {
+        act(() => { render(<AppShell activeSection="agent" onSection={vi.fn()} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }} primary={<h1>Agent</h1>}><p>Overlays</p></AppShell>, host); });
+        const body = host.querySelector<HTMLElement>('.harness-body')!;
+        const main = body.querySelector<HTMLElement>('main[data-region="task-detail"]')!;
+        const rail = body.querySelector<HTMLElement>('[data-region="task-rail"]')!;
+        expect(Array.from(body.children).indexOf(main)).toBeLessThan(Array.from(body.children).indexOf(rail));
+    });
+
+    it('keeps the rail open for scoped Escape and still closes it from plain page focus', () => {
+        act(() => { render(<AppShell activeSection="agent" onSection={vi.fn()} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }} primary={<h1>Agent</h1>}><p>Overlays</p></AppShell>, host); });
+        const rail = host.querySelector<HTMLElement>('[data-region="task-rail"]')!;
+        expect(rail.hidden).toBe(false);
+        const composer = document.createElement('div');
+        composer.className = 'agent-composer';
+        const textarea = document.createElement('textarea');
+        composer.appendChild(textarea);
+        host.appendChild(composer);
+        act(() => { textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+        expect(rail.hidden).toBe(false);
+        const dialog = document.createElement('dialog');
+        dialog.setAttribute('open', '');
+        host.appendChild(dialog);
+        act(() => { dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+        expect(rail.hidden).toBe(false);
+        dialog.remove();
+        const prevented = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        prevented.preventDefault();
+        act(() => { document.dispatchEvent(prevented); });
+        expect(rail.hidden).toBe(false);
+        act(() => { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+        expect(rail.hidden).toBe(true);
+    });
+
+    it('does not render a green placeholder treatment for the task workspace', () => {
+        act(() => { render(<AppShell activeSection="agent" onSection={vi.fn()} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }}><p>Content</p></AppShell>, host); });
+        const shell = host.querySelector<HTMLElement>('.harness-shell')!;
+        expect(shell.className.split(/\s+/)).toEqual(['harness-shell', 'studio-shell', 'task-workspace']);
+        expect(shell.outerHTML.toLowerCase()).not.toMatch(/green|placeholder/);
+    });
+
+    it('shows the actual project name and environment with a normal empty task state', () => {
+        act(() => { render(<AppShell activeSection="agent" onSection={vi.fn()} status={{ source: 'none', artifact: 'none', privacy: 'local', file: 'none', session: 'new' }}><p>Content</p></AppShell>, host); });
+        const rail = host.querySelector<HTMLElement>('[data-region="task-rail"]')!;
+        expect(rail.textContent).toContain('uor-r4');
+        expect(rail.textContent).toContain('Local browser');
+        expect(rail.textContent).toContain('No tasks yet');
+        expect(rail.textContent).not.toMatch(/runtime_unavailable|runtime is not initialized|hosted|connected/i);
+    });
+
     it('creates a project through the real folder callback and enters its workspace', async () => {
         Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.open = true; } });
         Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.open = false; this.dispatchEvent(new Event('close')); } });

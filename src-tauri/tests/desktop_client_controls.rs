@@ -1832,7 +1832,7 @@ fn native_picker_grants_share_project_model_and_git_state() {
     assert!(init.status.success());
 
     let backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
-    let state = TauriDesktopState::new(backend);
+    let state = TauriDesktopState::new(backend).expect("host");
     state
         .grant_project_folder(&project)
         .expect("project picker grant");
@@ -1881,7 +1881,7 @@ fn tauri_gui_command_wrappers_and_builder_dispatch_through_shared_state() {
     backend
         .native_grant_folder(&granted_dir)
         .expect("grant folder");
-    let state = TauriDesktopState::new(backend);
+    let state = TauriDesktopState::new(backend).expect("host");
 
     // 1. Verify Tauri Builder constructs cleanly with managed state and all registered #[tauri::command] handlers:
     let _builder = build_tauri_app_builder(state.clone());

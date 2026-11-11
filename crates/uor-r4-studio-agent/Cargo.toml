@@ -1,0 +1,20 @@
+[package]
+name = "uor-r4-studio-agent"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Browser-owned Studio agent event contract, canonical JSON and schema export (issue #3917)."
+
+[lib]
+name = "uor_r4_studio_agent"
+path = "src/lib.rs"
+
+[[bin]]
+name = "export-contract"
+path = "src/bin/export-contract.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

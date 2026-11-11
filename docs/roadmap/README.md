@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 25 |
+| ready | 24 |
 | held | 11 |
 | decision | 1 |
-| done | 106 |
+| done | 107 |
 | total | 143 |
 
 ## Start here
@@ -123,9 +123,8 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Repair Studio model identity and share exact geometric arithmetic](items/m7-lexlean-studio-tools.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md), [infra-desktop-client-tauri](items/infra-desktop-client-tauri.md) | not yet synced |
+| [Repair Studio model identity and share exact geometric arithmetic](items/m7-lexlean-studio-tools.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md), [infra-desktop-client-tauri](items/infra-desktop-client-tauri.md) | [#3704](https://github.com/UOR-Foundation/uor-r4/issues/3704) |
 | [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
-| [Deliver the Cursor-style browser-owned Studio task workspace](items/studio-cursor-hosted.md) | ready | a lab | no | none | not yet synced |
 | [Deliver the native-style Studio IDE harness and real connection workflows](items/studio-ide-harness.md) | ready | a lab | no | [studio-typed-shell-upgrade](items/studio-typed-shell-upgrade.md) | [#3569](https://github.com/UOR-Foundation/uor-r4/issues/3569) |
 | [Migrate the Studio to a typed lifecycle shell without changing its engine](items/studio-typed-shell-upgrade.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md) | [#3500](https://github.com/UOR-Foundation/uor-r4/issues/3500) |
 | [Decompose images into bounded integer R4 patches for native Studio input](items/geometric-image-input.md) | done | a lab | no | [studio-conversational-composer](items/studio-conversational-composer.md) | [#3619](https://github.com/UOR-Foundation/uor-r4/issues/3619) |
@@ -133,6 +132,7 @@ These items are ready and open to anyone.
 | [Publish the fixed Studio with working WASM and selectable model sources](items/m7-studio-live-model-sources.md) | done | a lab | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m7-studio-self-host-page-assets](items/m7-studio-self-host-page-assets.md) | [#3440](https://github.com/UOR-Foundation/uor-r4/issues/3440) |
 | [Verify the Studio's offline claim, retire the demo CDNs, bundle tokenizer](items/m7-studio-self-host-page-assets.md) | done | anyone | no | none | [#3075](https://github.com/UOR-Foundation/uor-r4/issues/3075) |
 | [Give Studio a conversational composer, text attachments, and native metrics](items/studio-conversational-composer.md) | done | a lab | no | [uor-chat-openai-loopback](items/uor-chat-openai-loopback.md) | [#3608](https://github.com/UOR-Foundation/uor-r4/issues/3608) |
+| [Deliver the Cursor-style browser-owned Studio task workspace](items/studio-cursor-hosted.md) | done | a lab | no | none | [#3917](https://github.com/UOR-Foundation/uor-r4/issues/3917) |
 | [Serve the native uor-chat engine through a secure OpenAI-compatible loopback API](items/uor-chat-openai-loopback.md) | done | a lab | no | none | [#3595](https://github.com/UOR-Foundation/uor-r4/issues/3595) |
 
 ## M8

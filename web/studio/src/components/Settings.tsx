@@ -86,6 +86,10 @@ export function Settings({ ui, onClose, onChange, onSuccess, onError, onSettings
                 <label>Tab size<input aria-label="Tab size" type="number" min="1" max="8" value={tabSizeDraft} onInput={(event) => setTabSizeDraft(event.currentTarget.value)} onBlur={(event) => commitNumber('tabSize', event.currentTarget.value)} /></label>
                 <label><input aria-label="Word wrap" type="checkbox" checked={settings.wordWrap} onChange={(event) => update('wordWrap', event.currentTarget.checked)} /> Word wrap</label>
             </section>
+            <section aria-label="Account and team">
+                <h3>Account</h3>
+                <p>Accounts and team settings require an optional service. Local settings are stored on this device.</p>
+            </section>
             <section aria-label="Data controls">
                 <h3>Data</h3>
                 <p>Clearing uses the existing session and editor stores. Provider settings are not included.</p>

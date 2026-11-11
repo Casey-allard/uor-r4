@@ -55,7 +55,7 @@ describe('ChangesPanel', () => {
         const gitStatus = vi.spyOn(actions, 'gitStatus');
         act(() => { render(<ChangesPanel actions={actions} files={workspace()} copy={vi.fn()} />, host); });
         expect((document.getElementById('btnRefreshChanges') as HTMLButtonElement).disabled).toBe(true);
-        expect(document.getElementById('gitStatusSummary')?.textContent).toContain('unavailable in this browser build');
+        expect(document.getElementById('gitStatusSummary')?.textContent).toContain('Git requires the local companion. Uploaded files can still be reviewed locally.');
         act(() => { (document.getElementById('btnRefreshChanges') as HTMLButtonElement).click(); });
         expect(gitStatus).not.toHaveBeenCalled();
     });

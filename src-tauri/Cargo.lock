@@ -4107,6 +4107,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "uor-r4-integer",
  "uor-r4-object-store",
+ "uor-r4-studio-agent",
 ]
 
 [[package]]
@@ -4132,6 +4133,15 @@ dependencies = [
  "serde_json",
  "sha2",
  "uor-r4-tokenizer",
+]
+
+[[package]]
+name = "uor-r4-studio-agent"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

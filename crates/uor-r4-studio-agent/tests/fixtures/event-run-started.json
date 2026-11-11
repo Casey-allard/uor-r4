@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.studio.agent-event/1",
+  "event_id": "evt_run_7f3a2c1b9d4e6a80_1_000000000001",
+  "project_id": "prj_4b1d9e0c7a2f6e51",
+  "task_id": "tsk_9a3c5e7b1d2f4a60",
+  "run_id": "run_7f3a2c1b9d4e6a80",
+  "generation": 1,
+  "sequence": 1,
+  "recorded_at_ms": 1794283200123,
+  "type": "run.started",
+  "data": {
+    "started_at_ms": 1794283200123,
+    "model": { "id": "replay", "kind": "fixture" },
+    "mode": "agent",
+    "environment": { "kind": "local-browser" },
+    "retry_of_run_id": null
+  }
+}

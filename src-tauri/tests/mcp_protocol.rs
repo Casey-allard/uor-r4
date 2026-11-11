@@ -400,7 +400,8 @@ fn stdio_handles_approval_paths_frames_stderr_timeout_and_cleanup() {
 fn native_remote_command_survives_async_runtime_on_connection_error() {
     use uor_r4_desktop_client::tauri_gui::{connect_mcp_remote_on_worker, TauriDesktopState};
     use uor_r4_desktop_client::{DesktopBackend, PinRegistry};
-    let state = TauriDesktopState::new(DesktopBackend::new(PinRegistry::with_synthetic_standin()));
+    let state = TauriDesktopState::new(DesktopBackend::new(PinRegistry::with_synthetic_standin()))
+        .expect("host");
     let runtime = tauri::async_runtime::handle();
     let result = runtime.block_on(connect_mcp_remote_on_worker(
         state,

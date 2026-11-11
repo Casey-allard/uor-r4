@@ -6,9 +6,9 @@ import { useLifecycle } from '../state/useLifecycle.js';
 import { Modal } from './Modal.js';
 import { Icon } from './ui/Icon.js';
 
-interface SessionListProps { store: LifecycleStore; agent: AgentSessionController; download(name: string, content: string): void; onError(message: string, operation: string): void; onChange?(operation: string): void; onSuccess?(operation: string): void }
+interface SessionListProps { store: LifecycleStore; agent: AgentSessionController; download(name: string, content: string): void; onError(message: string, operation: string): void; onChange?(operation: string): void; onSuccess?(operation: string): void; onBeforeActivate?(operation: string): void; showHeader?: boolean; showEmpty?: boolean; labelId?: string }
 
-export function SessionList({ store, agent, download, onError, onChange, onSuccess }: SessionListProps) {
+export function SessionList({ store, agent, download, onError, onChange, onSuccess, onBeforeActivate, showHeader = true, showEmpty = true, labelId }: SessionListProps) {
     const state = useLifecycle(store);
     const [, setRevision] = useState(0);
     const [renaming, setRenaming] = useState<SessionSummary | null>(null);
@@ -22,20 +22,26 @@ export function SessionList({ store, agent, download, onError, onChange, onSucce
     const reportError = (message: string, operation: string) => { if (operation.startsWith('session:rename:') || operation.startsWith('session:delete:')) setError({ message, operation }); onError(message, operation); };
     const items = state.session.items;
     function rename(session: SessionSummary) { setError(null); setRenaming(session); setTitle(session.title); }
-    return <section aria-label="Sessions" class="session-list">
-        <div class="session-list-header"><h2>Sessions</h2><button type="button" data-action="new-session" disabled={generating} onClick={() => { if (agent.create()) activate('session:new'); else reportError('Could not create a session.', 'session:new'); }}><Icon name="plus" /><span>New session</span></button></div>
-        {items.length === 0 && <p class="session-empty">No sessions yet</p>}
+    const grouped = !showHeader && labelId !== undefined;
+    return <section
+        aria-label={showHeader ? 'Sessions' : undefined}
+        aria-labelledby={grouped ? labelId : undefined}
+        role={grouped ? 'group' : undefined}
+        class="session-list"
+    >
+        <div class={`session-list-header${showHeader ? '' : ' session-list-header-grouped'}`}>{showHeader && <h2>Sessions</h2>}<button type="button" data-action="new-session" disabled={generating} onClick={() => { onBeforeActivate?.('session:new'); if (agent.create()) activate('session:new'); else reportError('Could not create a session.', 'session:new'); }}><Icon name="plus" /><span>New session</span></button></div>
+        {showEmpty && items.length === 0 && <p class="session-empty">No sessions yet</p>}
         <ul>{items.map((session) => <li data-session-id={session.id} aria-current={session.id === state.session.activeId ? 'true' : undefined}>
             <strong aria-hidden="true" class="visually-hidden">{session.title}</strong>
-            <button type="button" class="session-resume" data-action="resume-session" data-title={session.title} data-meta={`${session.messageCount} messages`} data-preview={session.preview || 'No messages yet'} disabled={generating} onClick={() => { if (agent.resume(session.id)) activate(`session:select:${session.id}`); else reportError('Could not select that session.', `session:select:${session.id}`); }}>{`Select ${session.title}`}</button>
+            <button type="button" class="session-resume" data-action="resume-session" data-title={session.title} data-meta={`${session.messageCount} messages`} data-preview={session.preview || 'No messages yet'} disabled={generating} onClick={() => { onBeforeActivate?.(`session:select:${session.id}`); if (agent.resume(session.id)) activate(`session:select:${session.id}`); else reportError('Could not select that session.', `session:select:${session.id}`); }}>{`Select ${session.title}`}</button>
             <details class="session-actions"><summary aria-label={`Actions for ${session.title}`}>•••</summary><div>
                 <button type="button" disabled={generating} onClick={() => rename(session)}>{`Rename ${session.title}`}</button>
-                <button type="button" disabled={generating} onClick={() => { if (agent.duplicate(session.id)) succeed(`session:duplicate:${session.id}`, onChange); else reportError('Could not duplicate that session.', `session:duplicate:${session.id}`); }}>{`Duplicate ${session.title}`}</button>
+                <button type="button" disabled={generating} onClick={() => { onBeforeActivate?.(`session:duplicate:${session.id}`); if (agent.duplicate(session.id)) succeed(`session:duplicate:${session.id}`, onChange); else reportError('Could not duplicate that session.', `session:duplicate:${session.id}`); }}>{`Duplicate ${session.title}`}</button>
                 <button type="button" onClick={() => { const operation = `session:export:${session.id}`; const exported = agent.export(session.id); if (exported) { download(exported.name, exported.content); succeed(operation, onSuccess); } else reportError('Session export is unavailable.', operation); }}>{`Export ${session.title}`}</button>
                 <button type="button" disabled={generating} onClick={() => { setError(null); setDeleting(session); }}>{`Delete ${session.title}`}</button>
             </div></details>
         </li>)}</ul>
-        {renaming && <Modal title="Rename session" onClose={() => setRenaming(null)}>{error && <p role="alert">{error.message}</p>}<form onSubmit={(event) => { event.preventDefault(); if (title.trim() && agent.rename(renaming.id, title.trim())) { setRenaming(null); succeed(`session:rename:${renaming.id}`, onChange); } else reportError('Could not rename that session.', `session:rename:${renaming.id}`); }}><label>Session title<input aria-label="Session title" autofocus maxlength={80} value={title} onInput={(event) => setTitle(event.currentTarget.value)} /></label><button type="submit">Save title</button></form></Modal>}
-        {deleting && <Modal title="Delete session" onClose={() => setDeleting(null)}>{error && <p role="alert">{error.message}</p>}<p>Delete {deleting.title}? This affects only the selected local session.</p><button type="button" autofocus onClick={() => setDeleting(null)}>Keep session</button><button type="button" onClick={() => { if (agent.remove(deleting.id)) { setDeleting(null); activate(`session:delete:${deleting.id}`); } else reportError(generating ? 'Could not delete that session. Stop the current reply first.' : 'Could not delete that session or verify its result.', `session:delete:${deleting.id}`); }}>Confirm delete</button></Modal>}
+        {renaming && <Modal title="Rename session" onClose={() => setRenaming(null)}>{error && <p role="alert">{error.message}</p>}<form onSubmit={(event) => { event.preventDefault(); onBeforeActivate?.(`session:rename:${renaming.id}`); if (title.trim() && agent.rename(renaming.id, title.trim())) { setRenaming(null); succeed(`session:rename:${renaming.id}`, onChange); } else reportError('Could not rename that session.', `session:rename:${renaming.id}`); }}><label>Session title<input aria-label="Session title" autofocus maxlength={80} value={title} onInput={(event) => setTitle(event.currentTarget.value)} /></label><button type="submit">Save title</button></form></Modal>}
+        {deleting && <Modal title="Delete session" onClose={() => setDeleting(null)}>{error && <p role="alert">{error.message}</p>}<p>Delete {deleting.title}? This affects only the selected local session.</p><button type="button" autofocus onClick={() => setDeleting(null)}>Keep session</button><button type="button" onClick={() => { onBeforeActivate?.(`session:delete:${deleting.id}`); if (agent.remove(deleting.id)) { setDeleting(null); activate(`session:delete:${deleting.id}`); } else reportError(generating ? 'Could not delete that session. Stop the current reply first.' : 'Could not delete that session or verify its result.', `session:delete:${deleting.id}`); }}>Confirm delete</button></Modal>}
     </section>;
 }

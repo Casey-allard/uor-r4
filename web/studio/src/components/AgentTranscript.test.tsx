@@ -18,4 +18,13 @@ describe('AgentTranscript', () => {
         act(() => { buttons.find((button) => button.textContent === 'Save as file')!.click(); }); expect(download).toHaveBeenCalledWith('Inspect this');
         act(() => { buttons.find((button) => button.textContent === 'Retry')!.click(); }); expect(retry).toHaveBeenCalledWith('Inspect this');
     });
+
+    it('exposes a polite live region with the actual busy state', () => {
+        const handlers = { copy: vi.fn(), insert: vi.fn(), download: vi.fn(), retry: vi.fn() };
+        act(() => { render(<AgentTranscript messages={[]} canRun={false} busy={false} {...handlers} />, host); });
+        expect(host.querySelector('.agent-transcript')?.getAttribute('aria-live')).toBe('polite');
+        expect(host.querySelector('.agent-transcript')?.getAttribute('aria-busy')).toBe('false');
+        act(() => { render(<AgentTranscript messages={[]} canRun={false} busy={true} {...handlers} />, host); });
+        expect(host.querySelector('.agent-transcript')?.getAttribute('aria-busy')).toBe('true');
+    });
 });

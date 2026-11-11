@@ -2,10 +2,10 @@ import type { ChatMessage } from '../adapters/workflow.js';
 import { RichMessage } from './RichMessage.js';
 import { Icon } from './ui/Icon.js';
 
-interface AgentTranscriptProps { messages: ChatMessage[]; canRun: boolean; copy(text: string): void | Promise<void>; insert(text: string): void; download(text: string): void; retry(text: string): void }
+interface AgentTranscriptProps { messages: ChatMessage[]; canRun: boolean; busy?: boolean; copy(text: string): void | Promise<void>; insert(text: string): void; download(text: string): void; retry(text: string): void }
 
-export function AgentTranscript({ messages, canRun, copy, insert, download, retry }: AgentTranscriptProps) {
-    return <div class="agent-transcript" aria-label="Conversation messages">
+export function AgentTranscript({ messages, canRun, busy = false, copy, insert, download, retry }: AgentTranscriptProps) {
+    return <div class="agent-transcript" aria-label="Conversation messages" aria-live="polite" aria-busy={busy ? 'true' : 'false'}>
         {messages.length === 0 && <div class="agent-empty"><span class="agent-empty-mark" aria-hidden="true">U</span><h2>What should we work on?</h2><p>No messages yet</p><p>Ask a question, inspect a workspace, or choose a build task. Model and tool activity will appear here with its actual capability and privacy state.</p></div>}
         {messages.map((message, index) => {
             const previous = message.role === 'assistant' ? messages.slice(0, index + 1).reverse().find((item) => item.role === 'user') : undefined;

@@ -3,7 +3,7 @@ id: studio-cursor-hosted
 title: Deliver the Cursor-style browser-owned Studio task workspace
 milestone: M7
 area: serving
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

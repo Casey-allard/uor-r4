@@ -42,6 +42,17 @@ describe('Settings', () => {
         expect(onSettingsChange).toHaveBeenLastCalledWith({ theme: 'light', reduceMotion: true, fontSize: 16, tabSize: 2, wordWrap: true });
     });
 
+    it('labels accounts and team settings as an optional service while keeping local settings on device', () => {
+        act(() => { render(<Settings ui={makeUi()} onClose={vi.fn()} />, host); });
+        const account = host.querySelector('section[aria-label="Account and team"]');
+        expect(account).not.toBeNull();
+        expect(account!.textContent).toContain('Local settings');
+        expect(account!.textContent).toContain(
+            'Accounts and team settings require an optional service. Local settings are stored on this device.',
+        );
+        expect(account!.querySelector('input, button, a')).toBeNull();
+    });
+
     it('reports partial session clearing through the typed error channel', () => {
         const ui = makeUi();
         ui.clearSessions = vi.fn(() => ({ cleared: 1, total: 2 }));

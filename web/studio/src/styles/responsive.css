@@ -1,0 +1,78 @@
+@media (min-width: 801px) and (max-width: 1023px) {
+    .task-workspace [data-region="task-rail"] {
+        position: fixed;
+        z-index: 40;
+        inset-block: 50px 0;
+        inset-inline-start: 0;
+        inline-size: var(--uor-rail-width);
+        box-shadow: 12px 0 34px rgb(0 0 0 / .28);
+    }
+    .task-workspace .harness-body,
+    .task-workspace .harness-body[data-rail-open="true"] { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 800px) {
+    .task-workspace [data-region="task-rail"] {
+        position: fixed;
+        z-index: 40;
+        inset-block: 50px 0;
+        inset-inline-start: 0;
+        inline-size: min(310px, 86vw);
+        box-shadow: 12px 0 34px rgb(0 0 0 / .32);
+    }
+    .task-workspace [data-region="task-rail"] .project-sidebar {
+        position: relative;
+        inset: auto;
+        inline-size: 100%;
+        min-block-size: 100%;
+        box-shadow: none;
+    }
+    .task-workspace .harness-body,
+    .task-workspace .harness-body[data-rail-open="true"] { grid-template-columns: minmax(0, 1fr); }
+    .task-workspace .project-home { padding: .55rem .65rem; }
+}
+
+@media (max-width: 800px) {
+    .task-workspace .task-rail { padding: .45rem; }
+    .task-workspace .task-row { padding: .35rem; }
+}
+
+@media (max-width: 800px) {
+    .composer-picker-row { gap: .3rem; }
+    .composer-model-button { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .composer-attachment-name { max-inline-size: 9rem; }
+}
+
+@media (max-width: 1023px) {
+    .task-workspace .harness-body > main,
+    .task-workspace .harness-body[data-rail-open="true"] > main { grid-column: 1; }
+}
+
+.task-workspace summary { min-block-size: 24px; }
+.task-workspace input[type="file"] { min-block-size: 24px; }
+.task-workspace :is([role="option"], [role="menuitem"], [role="tab"]) { min-block-size: 24px; }
+.task-workspace .pane-splitter {
+    flex: 0 0 24px;
+    inline-size: 24px;
+    min-inline-size: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.task-workspace .pane-splitter span { inline-size: 2px; }
+
+@media (max-width: 800px) {
+    .task-workspace :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea) { font-size: 16px; }
+    .task-workspace .code-gutter { font-size: max(16px, var(--editor-font-size, 13px)); line-height: 1.65; }
+    .task-workspace .code-input textarea { font-size: max(16px, var(--editor-font-size, 13px)) !important; line-height: 1.65; }
+}
+
+@media (pointer: coarse) {
+    .task-workspace :is(button, select, summary, a[href]) { min-block-size: 44px; min-inline-size: 44px; }
+    .task-workspace :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea) { min-block-size: 44px; }
+    .task-workspace input[type="file"] { min-block-size: 44px; }
+    .task-workspace :is([role="option"], [role="menuitem"], [role="tab"]) { min-block-size: 44px; }
+    .task-workspace label:has(input[type="checkbox"]),
+    .task-workspace label:has(input[type="radio"]) { min-block-size: 44px; align-items: center; }
+    .task-workspace .pane-splitter { flex-basis: 44px; inline-size: 44px; min-inline-size: 44px; }
+}
