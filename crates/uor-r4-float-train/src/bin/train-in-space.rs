@@ -299,11 +299,13 @@
 //! candidate where it has one and copy key 1's elsewhere. Needs no GPU; one header line, then one
 //! `copy-key-oracle` line per rule.
 //!
-//! `train-in-space --data-root DIR --turn-census TRAIN PANEL LINED` (claude-349): on
-//! conversations written without memory lines, how often a reply's own words point at one earlier
-//! user turn, whether that turn holds the value, and whether the copy read names the value when
-//! it looks only inside it (`uor_r4_float_train::turn_census`). Each argument is a folder with
-//! `tokens.u16` and `response_mask.u8`; LINED is the panel written `recall=oracle`. Needs no GPU.
+//! `train-in-space --data-root DIR --turn-census TRAIN PANEL LINED TRAIN-LINED` (claude-349,
+//! claude-350): on conversations written without memory lines, how often a reply's own words
+//! point at one earlier user turn, whether that turn holds the value, and whether the copy read
+//! names the value when it looks only inside it (`uor_r4_float_train::turn_census`); then what a
+//! read could do that finds the place where the value starts and reads on from it
+//! (`place_census`). Each argument is a folder with `tokens.u16` and `response_mask.u8`; LINED
+//! and TRAIN-LINED are the panel and TRAIN written `recall=oracle`. Needs no GPU.
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -353,7 +355,7 @@ fn pull_applies(attract: f64, other_mode: bool) -> Result<()> {
 fn main() -> Result<()> {
     let mut data_root = None;
     let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
-    let mut turn_census: Option<[PathBuf; 3]> = None;
+    let mut turn_census: Option<[PathBuf; 4]> = None;
     let mut out = None;
     let mut inspect = None;
     let mut reach = None;
@@ -492,11 +494,12 @@ fn main() -> Result<()> {
                 let mut folder = || {
                     args.next().map(PathBuf::from).ok_or_else(|| {
                         FloatTrainError::Invalid(
-                            "--turn-census wants TRAIN, PANEL and LINED folders".to_owned(),
+                            "--turn-census wants TRAIN, PANEL, LINED and TRAIN-LINED folders"
+                                .to_owned(),
                         )
                     })
                 };
-                turn_census = Some([PathBuf::from(&value), folder()?, folder()?]);
+                turn_census = Some([PathBuf::from(&value), folder()?, folder()?, folder()?]);
             }
             "--out" => out = Some(PathBuf::from(&value)),
             "--inspect" => inspect = Some(PathBuf::from(&value)),
@@ -1083,8 +1086,8 @@ fn main() -> Result<()> {
     if let Some((tokens, mask)) = &key_oracle {
         return copy_key_oracle(&data_root, tokens, mask);
     }
-    if let Some([train, panel, lined]) = &turn_census {
-        return turn_census_run(&data_root, train, panel, lined);
+    if let Some(folders) = &turn_census {
+        return turn_census_run(&data_root, folders);
     }
     if flock_end && score.is_none() && !grade_on {
         return Err(FloatTrainError::Invalid(
@@ -1595,13 +1598,16 @@ fn copy_key_oracle(data_root: &Path, tokens_path: &Path, mask_path: &Path) -> Re
     Ok(())
 }
 
-/// `--turn-census` (claude-349): the counts of `uor_r4_float_train::turn_census` on three
-/// unpinned UORT splits (TRAIN and the panel without memory lines, the panel with them), read
-/// with the pinned tokenizer. The registered stop list is TRAIN's 64 most frequent tokens.
-fn turn_census_run(data_root: &Path, train: &Path, panel: &Path, lined: &Path) -> Result<()> {
+/// `--turn-census` (claude-349, claude-350): the counts of `uor_r4_float_train::turn_census` on
+/// four unpinned UORT splits (TRAIN and the panel without memory lines, then the panel and TRAIN
+/// with them), read with the pinned tokenizer. The turn census's registered stop list is TRAIN's
+/// 64 most frequent tokens; the place census's label reads TRAIN's 16 (`place_census`).
+fn turn_census_run(data_root: &Path, folders: &[PathBuf; 4]) -> Result<()> {
     use sha2::{Digest, Sha256};
     use uor_r4_float_train::hamilton_sheet as hs;
-    use uor_r4_float_train::turn_census::{turn_census, Codec, Marks, Stops};
+    use uor_r4_float_train::turn_census::{
+        place_census, turn_census, Codec, Corpora, Marks, Stops,
+    };
     let bytes = std::fs::read(data_root.join("tokenizer.json"))?;
     if hex::encode(Sha256::digest(&bytes)) != hs::PINNED_TOKENIZER_SHA256 {
         return Err(FloatTrainError::Invalid(
@@ -1625,18 +1631,21 @@ fn turn_census_run(data_root: &Path, train: &Path, panel: &Path, lined: &Path) -
         assistant: tokenizer.encode("Assistant:"),
     };
     let split = |dir: &Path| read_uort_pair(&dir.join("tokens.u16"), &dir.join("response_mask.u8"));
-    let (train, panel, lined) = (split(train)?, split(panel)?, split(lined)?);
+    let [train, panel, lined, twin] = folders;
+    let (train, panel) = (split(train)?, split(panel)?);
+    let (lined, twin) = (split(lined)?, split(twin)?);
     let decode = |ids: &[u32]| tokenizer.decode(ids);
     let encode = |text: &str| tokenizer.encode(text);
+    let codec = Codec {
+        decode: &decode,
+        encode: &encode,
+    };
     let lines = turn_census(
         (&train.0, &train.1),
         (&panel.0, &panel.1),
         (&lined.0, &lined.1),
         &marks,
-        &Codec {
-            decode: &decode,
-            encode: &encode,
-        },
+        &codec,
         &Stops {
             tops: &[0, 16, 64, 256],
             registered: 2,
@@ -1644,6 +1653,21 @@ fn turn_census_run(data_root: &Path, train: &Path, panel: &Path, lined: &Path) -
         20,
     )
     .map_err(|what| invalid(&what))?;
+    for line in lines {
+        println!("{line}");
+    }
+    let corpora = Corpora {
+        train: (&train.0, &train.1),
+        train_lined: (&twin.0, &twin.1),
+        panel: (&panel.0, &panel.1),
+        lined: (&lined.0, &lined.1),
+    };
+    let stops = Stops {
+        tops: &[0, 16, 64, 256],
+        registered: 1,
+    };
+    let lines =
+        place_census(&corpora, &marks, &codec, &stops, 200).map_err(|what| invalid(&what))?;
     for line in lines {
         println!("{line}");
     }
