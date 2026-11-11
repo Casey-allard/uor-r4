@@ -51,6 +51,10 @@ uor-r4-cpu-train = { path = "../uor-r4-cpu-train" }
 name = "mix_chat_corpus_manifest"
 path = "tests/mix_chat_corpus_manifest.rs"
 
+[[test]]
+name = "scenario_corpus"
+path = "tests/scenario_corpus.rs"
+
 [[bin]]
 name = "uor-r4-training"
 path = "src/main.rs"
@@ -90,6 +94,10 @@ path = "src/bin/recall-pairs.rs"
 [[bin]]
 name = "mix-chat-corpus"
 path = "src/bin/mix-chat-corpus.rs"
+
+[[bin]]
+name = "scenario-corpus"
+path = "src/bin/scenario-corpus.rs"
 
 [[example]]
 name = "geometric-stack"
