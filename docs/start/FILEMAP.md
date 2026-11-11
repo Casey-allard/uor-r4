@@ -41,6 +41,10 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `archive/tools/` | Retired tooling |
 | `archive/transformerless/` | Retired transformerless-line records |
 | `archive/vendor-snapshots/` | Vendor state snapshots |
+| `bake-off/` | Frozen bake-off sockets, rules, candidate records, scoreboards and picks |
+| `bake-off/reply-control/` | First reply-control socket, retained as rule-development history |
+| `bake-off/reply-control-v2/` | Second reply-control socket, control and rule-history correction |
+| `bake-off/reply-control-v3/` | Scored reply-control socket, control, scoreboard and pick |
 | `conformance/` | Conformance fixtures |
 | `conformance/generated/` | Generated machine-readable views of registered contracts |
 | `conformance/stack/` | Authoritative model stack contracts |

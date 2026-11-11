@@ -1,0 +1,199 @@
+{
+  "name": "reply-control-v3",
+  "socket": {
+    "commit": "96fb32409",
+    "files": ["bake-off/reply-control-v3/SOCKET.md"],
+    "takes": "ordered online reply-control trace rows plus post-decision references",
+    "hands_out": "a reply prefix ending at served EOS, injected EOS, cycle or cap"
+  },
+  "rules": {
+    "commit": "35563a780",
+    "files": ["docs/labs/one-model-end-to-end/instrument/tests/reply_control_bakeoff_v3_rules.rs"],
+    "tests": [
+      "empty_input_has_empty_output",
+      "served_eos_is_kept_and_terminal",
+      "injected_eos_is_terminal",
+      "current_cycle_stop_uses_the_observed_cycle_mark",
+      "output_is_only_served_tokens_or_eos",
+      "output_never_exceeds_the_reply_cap",
+      "flow_emits_nothing_after_a_stop",
+      "controller_receives_only_trace_features"
+    ]
+  },
+  "control": {
+    "commit": "cb5e3dc1a",
+    "name": "copy every row",
+    "results": {
+      "empty_input_has_empty_output": "pass",
+      "served_eos_is_kept_and_terminal": "fail",
+      "injected_eos_is_terminal": "pass",
+      "current_cycle_stop_uses_the_observed_cycle_mark": "fail",
+      "output_is_only_served_tokens_or_eos": "pass",
+      "output_never_exceeds_the_reply_cap": "fail",
+      "flow_emits_nothing_after_a_stop": "fail",
+      "controller_receives_only_trace_features": "pass"
+    },
+    "too_weak": [
+      "empty_input_has_empty_output",
+      "injected_eos_is_terminal",
+      "output_is_only_served_tokens_or_eos",
+      "controller_receives_only_trace_features"
+    ]
+  },
+  "candidates": [
+    {
+      "name": "current",
+      "branch": "try-reply-current-v3",
+      "commit": "ced6fd32f",
+      "kill_line": {
+        "text": "current-greedy-cycle is dead if exact complete replies are below 607 or it truncates more than 294 references.",
+        "hit": false,
+        "commit": "1d996ab8c",
+        "written_at": "2026-11-10T23:02:18-05:00"
+      },
+      "first_run_at": "2026-11-11T04:02:38Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    },
+    {
+      "name": "fixed",
+      "branch": "try-reply-fixed-v3",
+      "commit": "8a6ec99b7",
+      "kill_line": {
+        "text": "fixed-eos-rank-2 is dead if exact complete replies are at most 607 or it truncates more than 290 references.",
+        "hit": true,
+        "commit": "370497117",
+        "written_at": "2026-11-10T23:02:47-05:00"
+      },
+      "first_run_at": "2026-11-11T04:03:06Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    },
+    {
+      "name": "stability",
+      "branch": "try-reply-stability-v3",
+      "commit": "2e6d73867",
+      "kill_line": {
+        "text": "stability-tension-16 is dead if exact complete replies are at most 607 or it truncates more than 290 references.",
+        "hit": false,
+        "commit": "b4873bedb",
+        "written_at": "2026-11-10T23:03:14-05:00"
+      },
+      "first_run_at": "2026-11-11T04:03:38Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    },
+    {
+      "name": "permeability",
+      "branch": "try-reply-permeability-v3",
+      "commit": "98ef28509",
+      "kill_line": {
+        "text": "permeability-aware is dead if exact complete replies are at most 607 or it truncates more than 290 references.",
+        "hit": true,
+        "commit": "2e07319f2",
+        "written_at": "2026-11-10T23:03:47-05:00"
+      },
+      "first_run_at": "2026-11-11T04:04:07Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    },
+    {
+      "name": "shuffled",
+      "branch": "try-reply-shuffled-v3",
+      "commit": "0aa37605b",
+      "kill_line": {
+        "text": "shuffled-feature control is dead if it beats the current 607 exact complete replies, because shuffled EOS evidence would then be doing real work.",
+        "hit": false,
+        "commit": "1167760ac",
+        "written_at": "2026-11-10T23:04:17-05:00"
+      },
+      "first_run_at": "2026-11-11T04:04:37Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    },
+    {
+      "name": "random",
+      "branch": "try-reply-random-v3",
+      "commit": "a0da9c222",
+      "kill_line": {
+        "text": "seeded-random control is dead if it beats the current 607 exact complete replies, because random stopping would then be doing real work.",
+        "hit": false,
+        "commit": "3a6c91668",
+        "written_at": "2026-11-10T23:04:47-05:00"
+      },
+      "first_run_at": "2026-11-11T04:05:06Z",
+      "results": {
+        "empty_input_has_empty_output": "pass",
+        "served_eos_is_kept_and_terminal": "pass",
+        "injected_eos_is_terminal": "pass",
+        "current_cycle_stop_uses_the_observed_cycle_mark": "pass",
+        "output_is_only_served_tokens_or_eos": "pass",
+        "output_never_exceeds_the_reply_cap": "pass",
+        "flow_emits_nothing_after_a_stop": "pass",
+        "controller_receives_only_trace_features": "pass"
+      }
+    }
+  ],
+  "scoreboard": {
+    "commit": "54282bb4b",
+    "other_changes": [
+      {
+        "part": "exact complete replies",
+        "case": "real arm-r panel",
+        "before": "607 copy-all control",
+        "after": "607 current; fixed 577; permeability 558; shuffled 271; random 606"
+      },
+      {
+        "part": "truncated references",
+        "case": "real arm-r panel",
+        "before": "294 copy-all control",
+        "after": "290 current; fixed 342; permeability 363; shuffled 712; random 291"
+      }
+    ]
+  },
+  "pick": {
+    "candidate": "current",
+    "reason": "retains the best exact-complete and truncation scores because no live candidate improves them",
+    "commit": "eba11ebc6"
+  }
+}
