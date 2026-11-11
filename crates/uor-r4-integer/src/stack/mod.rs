@@ -131,9 +131,9 @@ pub use session::{
     sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
     validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text, FbsImage,
     FbsLayerImage, FbsMapImage, IntegerStackModel, IntegerStackSession, NativeStep,
-    ProtocolV3ValidationError, SerializedStackLayerState, SerializedStackSession, SnapTraceEntry,
-    StackParameterBreakdown, StackPhaseParameters, StepPhaseTimingNs, CONVOLUTION_WIDTH,
-    STACK_SESSION_SCHEMA,
+    MemoryMoveState, ProtocolV3ValidationError, SerializedStackLayerState, SerializedStackSession,
+    SnapTraceEntry, StackParameterBreakdown, StackPhaseParameters, StepPhaseTimingNs,
+    CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
 };
 
 /// SHA-256 of the 120 unit icosians of 2I (the transport snap's roots) as

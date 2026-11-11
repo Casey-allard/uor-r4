@@ -6300,6 +6300,10 @@ fn turn_memory_moves_the_readout_point() {
         let mv = mv.expect("a keyed row").clone();
         let (stored, weight) = if opening_hit { (42u32, 0.5f32) } else { (43, 0.25) };
         assert_eq!(mv.stored, Some(stored), "row {row}");
+        let observed = session.last_memory_move_state().expect("public move state");
+        assert_eq!(observed.key, mv.key);
+        assert_eq!(observed.stored, mv.stored);
+        assert_eq!(observed.opening, mv.opening);
         assert_eq!(session.fbs_norm_output_before_memory().len(), width);
         let target = session.fbs_writer_row(stored).expect("writer row");
         let expected = moved(session.fbs_norm_output_before_memory(), target, weight);

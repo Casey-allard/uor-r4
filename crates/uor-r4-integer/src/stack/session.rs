@@ -1785,6 +1785,17 @@ pub struct SnapTraceEntry {
     pub root: usize,
 }
 
+/// One step's turn-memory move, exposed for observation only.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MemoryMoveState {
+    /// The key formed for this row.
+    pub key: Vec<u32>,
+    /// The token the row stored or read, when it named one.
+    pub stored: Option<u32>,
+    /// Whether this was the reply's opening row.
+    pub opening: bool,
+}
+
 /// The trace buffer: one root index per (position, recurrence layer, lane),
 /// in step order. Writes are plain stores — no allocation in a step.
 struct SnapTrace {
@@ -2179,6 +2190,17 @@ impl IntegerStackSession<'_> {
     /// (claude-224), or `None` where it did not serve. Read-only, for the panel decode.
     pub fn last_point_key(&self) -> Option<(u32, i64)> {
         self.memory.last_point
+    }
+
+    /// The latest FBS step's turn-memory move, copied for diagnostic readers.
+    /// Like [`Self::last_point_key`], it is read after the step and is never
+    /// consulted by serving.
+    pub fn last_memory_move_state(&self) -> Option<MemoryMoveState> {
+        self.memory.last_move.as_ref().map(|moved| MemoryMoveState {
+            key: moved.key.clone(),
+            stored: moved.stored,
+            opening: moved.opening,
+        })
     }
 
     /// Clear the reply start: no row is keyed or moved, and the turn memory's moves are off.

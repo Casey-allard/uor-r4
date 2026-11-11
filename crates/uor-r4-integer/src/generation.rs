@@ -561,7 +561,11 @@ fn validate_generation_budget(existing: usize, generate: usize, capacity: usize)
     }
     Ok(())
 }
-pub(crate) fn short_cycle(tokens: &[u32]) -> Option<usize> {
+/// The shortest period `1..=4` repeated three times at the end of `tokens`.
+///
+/// This is the serving stop rule shared by the product chat path and diagnostic
+/// instruments; it observes generated ids only.
+pub fn short_cycle(tokens: &[u32]) -> Option<usize> {
     for period in 1..=4 {
         let twice = period << 1;
         let span = twice + period;
