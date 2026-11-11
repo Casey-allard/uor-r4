@@ -366,7 +366,10 @@ fn render_markdown(root: &Path, files: &[StackContractFile]) -> Result<String, F
                 command.program,
                 shell_words(&command.args)
             )?;
-            if !command.env.is_empty() || !command.inputs.is_empty() || !command.outputs.is_empty()
+            if !command.env.is_empty()
+                || !command.inputs.is_empty()
+                || !command.outputs.is_empty()
+                || command.timeout_seconds.is_some()
             {
                 writeln!(
                     w,

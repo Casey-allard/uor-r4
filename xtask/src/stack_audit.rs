@@ -177,6 +177,7 @@ struct AuditCheck {
 struct Report {
     schema: &'static str,
     contract: String,
+    source_pin: String,
     contract_semantic_blake3: String,
     artifact: Option<String>,
     artifact_sha256: Option<String>,
@@ -189,6 +190,7 @@ impl Report {
         Self {
             schema: SCHEMA,
             contract: contract.id.clone(),
+            source_pin: contract.source_pin.clone(),
             contract_semantic_blake3: blake3::hash(
                 &serde_json::to_vec(contract).expect("contract serializes"),
             )

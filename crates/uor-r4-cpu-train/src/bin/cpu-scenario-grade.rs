@@ -4,7 +4,8 @@ use uor_r4_cpu_train::{grade_scenarios, ScenarioGradeConfig};
 use uor_r4_integer::fbs_snapshot::write_new_file;
 
 const USAGE: &str = "usage: cpu-scenario-grade ARTIFACT CORPUS_ROOT TOKENIZER \
---split train|development|fresh [--max-cases N] [--reply-tokens N] [--out FILE]";
+--split train|development|fresh [--max-cases N] [--reply-tokens N] [--table-baseline 0|1] \
+[--out FILE]";
 
 #[derive(Debug)]
 struct Config {
@@ -53,6 +54,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Config, String> {
     let mut split = None;
     let mut max_cases = 256;
     let mut reply_tokens = 64;
+    let mut table_baseline = false;
     let mut out = None;
     let mut args = args;
     while let Some(argument) = args.next() {
@@ -60,6 +62,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Config, String> {
             "--split" => split = Some(value(&mut args, "--split")?),
             "--max-cases" => max_cases = number(&mut args, "--max-cases")?,
             "--reply-tokens" => reply_tokens = number(&mut args, "--reply-tokens")?,
+            "--table-baseline" => table_baseline = switch(&mut args, "--table-baseline")?,
             "--out" => out = Some(PathBuf::from(value(&mut args, "--out")?)),
             "--help" | "-h" => {
                 println!("{USAGE}");
@@ -83,6 +86,7 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Config, String> {
             split: split.ok_or_else(|| format!("--split is required\n{USAGE}"))?,
             max_cases,
             reply_tokens,
+            table_baseline,
         },
     })
 }
@@ -95,6 +99,14 @@ fn number(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<usize, 
     value(args, flag)?
         .parse()
         .map_err(|_| format!("{flag} needs a positive integer"))
+}
+
+fn switch(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<bool, String> {
+    match value(args, flag)?.as_str() {
+        "0" => Ok(false),
+        "1" => Ok(true),
+        other => Err(format!("{flag} wants 0 or 1, not {other}")),
+    }
 }
 
 #[cfg(test)]
@@ -122,10 +134,13 @@ mod tests {
             "16",
             "--reply-tokens",
             "8",
+            "--table-baseline",
+            "1",
         ]))
         .unwrap();
         assert_eq!(parsed.grade.max_cases, 16);
         assert_eq!(parsed.grade.reply_tokens, 8);
+        assert!(parsed.grade.table_baseline);
     }
 
     #[test]
@@ -141,5 +156,20 @@ mod tests {
         ]))
         .unwrap_err();
         assert!(error.contains("unknown argument --guess"));
+    }
+
+    #[test]
+    fn parser_refuses_a_non_boolean_table_baseline() {
+        let error = parse_args(args(&[
+            "model",
+            "corpus",
+            "tokenizer",
+            "--split",
+            "fresh",
+            "--table-baseline",
+            "yes",
+        ]))
+        .unwrap_err();
+        assert!(error.contains("wants 0 or 1"));
     }
 }

@@ -244,8 +244,8 @@ pub use reply_eval::{
 };
 pub use scenario_grade::{
     grade_scenarios, ScenarioCase, ScenarioCorpusIdentity, ScenarioGradeConfig,
-    ScenarioGradeCounts, ScenarioGradeReport, ScenarioGradeRow, ScenarioTurn,
-    SCENARIO_GRADE_SCHEMA,
+    ScenarioGradeCounts, ScenarioGradeReport, ScenarioGradeRow, ScenarioTableBaseline,
+    ScenarioTurn, SCENARIO_GRADE_SCHEMA, SCENARIO_GRADE_TABLE_SCHEMA,
 };
 pub use self_prefix::{
     audit_self_prefix_generated, audit_self_prefix_target_permutation, evaluate_self_prefix,

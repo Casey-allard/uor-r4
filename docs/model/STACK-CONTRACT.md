@@ -13,6 +13,7 @@ A stack contract makes one model composition explicit across source, configurati
 | `fbs-arm-rk` | `historical` | `uor-r4.lut-stack/7` | `integrated` 3<br>`measured-negative` 2<br>`not-run` 1 | `fail` 1<br>`not-run` 1<br>`pass` 1 | 3 |
 | `fbs-arm-rt` | `candidate` | `uor-r4.lut-stack/9` | `integrated` 3<br>`measured-positive` 4 | `pass` 3 | 4 |
 | `fbs-b64l-baseline` | `historical` | `uor-r4.lut-stack/6` | `integrated` 2<br>`measured-negative` 2<br>`not-run` 1 | `fail` 1<br>`not-run` 1 | 3 |
+| `fbs-deepseek-scenario-smoke` | `experimental` | `uor-r4.lut-stack/10` | `integrated` 6<br>`not-run` 1 | `not-run` 1<br>`pass` 3 | 5 |
 
 ## `fbs-arm-r`
 
@@ -427,3 +428,151 @@ Schema: `uor-r4.lut-stack/6`
 - **`not-capability`**: This historical contract does not establish useful conversation.
 - **`not-integer-result`**: T0 did not export or serve its checkpoints.
 - **`not-mechanism-retirement`**: A miss in this recipe does not retire a mechanism named here.
+
+## `fbs-deepseek-scenario-smoke`
+
+One fresh-start 1,024-step training of the current FBS/Hamming geometric path on the aligned scenario corpus, exported as a bound uor-r4.lut-stack/10 artifact and scored against the same-evaluator previous-token count table.
+
+- Source: `conformance/stack/fbs-deepseek-scenario-smoke.toml` (BLAKE3 `093a572aaaad78889d8d3ae95bd56f50ca009498546dd91f87672347758f0cd8`)
+- Semantic hash: `40518eae6d71d1482b238f3dd650e4858ef4f1434e485943ae360eb7821bb421`
+- Lane: `fbs`
+- State: `experimental`
+- Revision: 1
+- Source pin: `4add144ebdc9087e47fe3fa830fb21116278644e`
+- Decision: docs/harness/prep/one-model-end-to-end-scenario-gpu-smoke-2026-11-11.md
+
+### Model
+
+| Field | Value |
+| --- | --- |
+| Tokenizer SHA-256 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| Vocabulary | 4096 |
+| Width | 256 |
+| Layers | 6 |
+| Context | 192 |
+| Training context | 192 |
+| Objective | `cell` |
+| Training | float32 on CUDA; train-as-served rounding is applied before each forward |
+| Serving | bound integer UORLUT01 artifact; Q12 writer points and branch-free table arithmetic |
+
+### Artifact
+
+Family: `uor-r4.lut-stack`
+Provenance: `required`
+Schema: `uor-r4.lut-stack/10`
+
+| Section | Required | Owner | Format | Exponent | Description |
+| --- | --- | --- | --- | --- | --- |
+| `trunk` | yes | `fbs-trunk` | 4-bit matrices, group scales, i16/i32/u32 tables | -- | The SpiralCore/FBS recurrence, route maps, Hamilton gates and serving tables. |
+| `hamming-reads` | yes | `hamming-copy-read` | Q24 rotations and weights, Q16 margins, i16 ask tables when present | -24 | The trained copy and type reads, including the latest-exact copy rule. |
+| `turn-memory` | yes | `turn-memory` | u32 keys and values, i32 Q24 move weights | -24 | The opening and reply tables that carry stated facts across turns. |
+| `writer` | yes | `whole-table-readout` | native vector writer cells and Q12 i16 token points | -12 | The native writer and whole-table nearest-token readout. |
+
+### Inputs
+
+| ID | Source | SHA-256 |
+| --- | --- | --- |
+| `tokenizer` | `store:w2-inputs/2026-10-25/driver-data/tokenizer.json` | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+| `scenario-receipt` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/scenario-manifest.json` | `4991326286c3ebe2f3a3e975c23e633fe4bb2662e6f6746333535cdff9f68604` |
+| `trainer-dev-tokens` | `store:w2-inputs/2026-10-25/driver-data/ft/dev/tokens.u16` | `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` |
+| `trainer-dev-mask` | `store:w2-inputs/2026-10-25/driver-data/ft/dev/response_mask.u8` | `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078` |
+| `base-artifact` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/arm-r-s2-c8256-bound.uorlut` | `a1d705586b35d7da282913b1e21b242a74c0661b32d73e2ec89f56310a8140e8` |
+| `preflight-development` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/preflight-v3/arm-r-development.json` | `a7ec4f34981b9f07906a0e2523964b205df3700aa2afa2e139c0d67a3eacb15c` |
+| `preflight-fresh` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/preflight-v3/arm-r-fresh.json` | `7429e6c4e4fe887d52ac58a0cc750d4fdb06d22ae83b3e6e492a4fb0c635c3f9` |
+| `train-tokens` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/tokens.u16` | `3412e1b6ccb46db986959aa08b60490d46b3a2a3524fad476cf1fedd838259d8` |
+| `train-mask` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/response_mask.u8` | `b0f745fbea8c11f7e9c2993ca03a4eb3ae5ee101b2b0ca0c23e544cac9cb92e0` |
+| `train-manifest` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/manifest.json` | `d660f4e695363bbf121391841d17b147e8aec30071d5e59de4008b646c57ae57` |
+| `train-scenarios` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/scenarios.jsonl` | `9799855ae6aaa5dcfdff514ca68bd142b11226be449538035a3576a2902d9c43` |
+| `development-tokens` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/tokens.u16` | `612638bba7213f1960cc118a41e6e51ff36074953bb3c7a22f8a9445f1b11777` |
+| `development-mask` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/response_mask.u8` | `b42518ff047712e7966dbd2619ea314cd0c21dd460b79b1d9cf05491ec54de92` |
+| `development-manifest` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/manifest.json` | `42dfd893ec4defd6f6a53539b5c7c564dc886fe1fe430179716757111447baae` |
+| `development-scenarios` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/scenarios.jsonl` | `2d49834d597aed75bf452b1f4469eea29b7a1ad6f42838da366f26efd7b4a299` |
+| `fresh-tokens` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/tokens.u16` | `574558344f9626d665112183a62ec6d9ce703fd51d6dc5b1ead6328accdc178d` |
+| `fresh-mask` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/response_mask.u8` | `8517e0aed1e0f6d695e63cd3d5ab10427911947296213b1b7670265de8df6667` |
+| `fresh-manifest` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/manifest.json` | `a6b671bb48db8fec737a247e43e2b421d09ad2f9cebd6dbbafb177060b43f735` |
+| `fresh-scenarios` | `store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/scenarios.jsonl` | `43b6dc81d480270013b467dbafc4281cc17e764b321b341b919ed4625719faae` |
+
+### Mechanisms
+
+| ID | Status | Implementation | Flags | Evidence | Depends on | Conflicts | Sidecars | Load / cleanup | Invariants | Non-claims |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `tokenizer` | `integrated` | `crates/uor-r4-tokenizer/src/lib.rs` | -- | `crates/uor-r4-tokenizer/src/lib.rs`<br>`docs/model/data-and-tokenizer.md` | -- | -- | -- | 10 / 90 | `The tokenizer bytes hash to d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.`<br>`Every token id is below the artifact vocabulary of 4096.` | `The tokenizer is not evidence of language capability.` |
+| `fbs-trunk` | `integrated` | `crates/uor-r4-float-train/src/geometric_stack_native.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/geometric_stack_native.rs`<br>`crates/uor-r4-float-train/src/hamilton_sheet.rs` | `tokenizer` | -- | `model.safetensors`<br>`config.json` | 20 / 80 | `Every projection is a SpiralCore/FBS route table.`<br>`The recurrence and Hamilton gates preserve the declared geometric arithmetic.`<br>`The writer produces one width-256 query for every served position.` | `The trunk alone does not establish useful conversation.` |
+| `hamming-copy-read` | `integrated` | `crates/uor-r4-float-train/src/flock_read_hamming.rs` | `--hamming-read=4` | `crates/uor-r4-float-train/src/flock_read_hamming.rs`<br>`docs/mechanisms/flock-read.md` | `fbs-trunk` | -- | `hamming_read.safetensors` | 30 / 70 | `Each copy head reads its latest exact earlier match at full weight.`<br>`The trainer and artifact use one-token copy keys and the same latest-exact rule.`<br>`A missing exact match reads no copied value.` | `A copy hit does not by itself preserve the copied value through the writer.` |
+| `turn-memory` | `integrated` | `crates/uor-r4-float-train/src/flock_read_memory.rs` | `--turn-memory=8`<br>`--turn-memory-reply=true`<br>`--turn-memory-dropout=500`<br>`--turn-memory-leave-copied=true` | `crates/uor-r4-float-train/src/flock_read_memory.rs`<br>`crates/uor-r4-integer/src/stack/memory.rs` | `hamming-copy-read` | -- | `turn_memory.safetensors`<br>`turn_memory_reply.safetensors` | 40 / 60 | `The opening and reply tables are addressed by exact integer keys.`<br>`A key owned by the latest-exact copy read is left out of the turn memory.`<br>`Training dropout changes training only; serving uses the stored table at every row.` | `The memory is not shown to recover values from the end of the question.` |
+| `whole-table-readout` | `integrated` | `crates/uor-r4-float-train/src/in_space_long.rs` | `--objective=cell` | `crates/uor-r4-float-train/src/in_space_long.rs`<br>`docs/model/pipeline-map.md` | `fbs-trunk` | -- | -- | 50 / 50 | `The decoded token is the whole table's nearest point to the served query.`<br>`Cell and nearest objectives decode through the same whole-table readout.` | `Teacher-forced token fit is not free-running complete-reply capability.` |
+| `integer-export` | `not-run` | `crates/uor-r4-integer/src/bin/fbs-export.rs` | `--run-config=config.json` | `crates/uor-r4-integer/src/bin/fbs-export.rs`<br>`crates/uor-r4-integer/src/stack/format.rs` | `fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout` | -- | `artifact:writer`<br>`artifact:hamming`<br>`artifact:memory` | 60 / 40 | `The exported schema is exactly uor-r4.lut-stack/10.`<br>`The artifact records the stack-contract and tokenizer identities.`<br>`The artifact records the latest-exact copy rule used by training.`<br>`The integer session loads and serves the artifact without floating-point arithmetic.` | `Float-to-integer export agreement does not establish language capability.` |
+| `short-cycle-stop` | `integrated` | `crates/uor-r4-integer/src/stack/chat.rs` | -- | `crates/uor-r4-integer/src/stack/chat.rs`<br>`crates/uor-r4-integer/src/generation.rs` | `integer-export` | -- | -- | 70 / 30 | `A repeated cycle of period one through four ends the reply after the declared repetition.`<br>`Cycle stopping is deterministic and does not sample.` | `Cycle stopping does not recover content displaced by the cycle.` |
+
+### Evidence
+
+| ID | Kind | Result | Scope | Locator | SHA-256 | Mechanisms | Statement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `source-pin` | `authority` | `pass` | source identity | `docs/loop/tasks/one-model-end-to-end/deepseek-273/ORDER.md` | -- | `tokenizer`<br>`fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout`<br>`integer-export`<br>`short-cycle-stop` | The runnable implementation, including the table-baseline scorer and exclusive store claim, is the code at 4add144e; later contract and documentation bytes are bound by this contract's semantic hash. |
+| `aligned-corpus` | `report` | `pass` | aligned scenario corpus construction | `docs/loop/tasks/one-model-end-to-end/deepseek-268/REPORT.md` | -- | `tokenizer`<br>`fbs-trunk`<br>`whole-table-readout` | The scenario corpus receipt binds 20,000 TRAIN rows and disjoint development and Fresh panels by content hashes. |
+| `scenario-baseline` | `report` | `pass` | arm-r and count-table behavior on the aligned panels | `docs/loop/tasks/one-model-end-to-end/deepseek-272/REPORT.md` | -- | `hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout`<br>`integer-export` | Arm r copied 10 of 110 development and 11 of 110 Fresh copy prompts; the previous-token table answered no grounded archetype. |
+| `run-pending` | `report` | `not-run` | planned 1,024-step aligned-corpus smoke | `docs/loop/tasks/one-model-end-to-end/deepseek-273/REPORT.md` | -- | `fbs-trunk`<br>`hamming-copy-read`<br>`turn-memory`<br>`whole-table-readout`<br>`integer-export`<br>`short-cycle-stop` | No later checkpoint, artifact or held-out result exists when this contract is registered. |
+
+### Readings
+
+| ID | Class | Mechanism | Unit | Better | Bar | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `grounded-asked-value` | `semantic` | `whole-table-readout` | count of 441 | higher | 20 | Fresh asked-value hits over memorize, paraphrase, selection and update. |
+| `each-grounded-family` | `semantic` | `hamming-copy-read` | count of about 110 | higher | 5 | Each of the four grounded archetypes independently reaches at least five asked-value hits. |
+| `control-abstention` | `semantic` | `turn-memory` | count of 220 | higher | 10 | Fresh wrong-memory and no-memory controls abstain correctly. |
+| `copy-positive-control` | `semantic` | `integer-export` | count of 110 | higher | 11 | Fresh direct-copy prompts still name the asked value. |
+| `distractor-safety` | `semantic` | `integer-export` | count of 882 | lower | 10 | Fresh non-copy rows do not emit a distractor value. |
+| `complete-replies` | `structural` | `short-cycle-stop` | count of 1024 | higher | -- | Fresh replies stop on EOS. |
+
+### Probes
+
+| ID | Class | Mechanism | Fixture | Layers | Axis | Expectation | Cases |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `context-boundary` | `boundary` | `fbs-trunk` | `conformance/stack/fixtures/context-boundary.v2.json` | chat | context length | A short turn is served and an oversized turn is refused with an explicit context error. | `inside window`<br>`oversize turn` |
+| `copy-boundary` | `boundary` | `hamming-copy-read` | `conformance/stack/fixtures/copy-boundary.v2.json` | chat | candidate count and tie order | A source is available to a later question and a fresh rerun is deterministic. | `source present`<br>`kept-set order` |
+| `memory-precedence` | `metamorphic` | `turn-memory` | `conformance/stack/fixtures/memory-precedence.v2.json` | chat | explicit, sieve and absent memory | Explicit memory overrides the sieve, the sieve derives a value, and an absent value emits no line. | `automatic`<br>`explicit overrides`<br>`absent` |
+| `cycle-period-boundary` | `boundary` | `short-cycle-stop` | `conformance/stack/fixtures/cycle-boundary.v2.json` | chat | cycle period | Every served reply reports a terminal EOS, cap or short-cycle stop. | `recorded stop`<br>`no unreported exhaustion` |
+| `float-integer-boundary` | `parity` | `integer-export` | `conformance/stack/fixtures/representation-parity.v2.json` | chat | execution layer | The artifact and tokenizer identities reach the product chat path and one integer token is generated. | `chat script` |
+
+### Commands
+
+- **preflight (`verify`)**: `bash conformance/stack/preflight-check.sh BASE_SHA256 preflight-development PREFLIGHT_DEVELOPMENT_SHA256 preflight-fresh PREFLIGHT_FRESH_SHA256`
+  - env --; inputs `preflight-check.sh`<br>`scenario-preflight-gate.jq`<br>`preflight-development`<br>`preflight-fresh`; outputs --; timeout 300s
+- **gpu-tests (`verify`)**: `cargo test --release --locked -p uor-r4-float-train --features cuda --lib -- hamming`
+  - env --; inputs --; outputs --; timeout 1200s
+- **build-float (`verify`)**: `cargo build --release --locked -p uor-r4-float-train --features cuda --bin train-in-space --bin fbs-snapshot`
+  - env --; inputs --; outputs `target/release/train-in-space`<br>`target/release/fbs-snapshot`; timeout 1800s
+- **build-export (`verify`)**: `cargo build --release --locked -p uor-r4-integer --bin fbs-export --features serving-wasm`
+  - env --; inputs --; outputs `target/release/fbs-export`; timeout 900s
+- **train (`train`)**: `target/release/train-in-space --data-root DATA_ROOT --train-split TRAIN_SPLIT --train-sha256 TRAIN_SHA256 --train-mask-sha256 TRAIN_MASK_SHA256 --objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --train-as-served 1 --context 192 --width 256 --hamming-read 4 --hamming-copy-latest 1 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --turn-memory-leave-copied 1 --batch 16 --seed 273 --out TRAIN_OUT --steps 1024 --eval-every 256 --samples 6 --reply-tokens 48`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`train-scenarios`<br>`trainer-dev-tokens`<br>`trainer-dev-mask`<br>`tokenizer`; outputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; timeout 10800s
+- **smoke-train (`train`)**: `target/release/train-in-space --data-root DATA_ROOT --train-split TRAIN_SPLIT --train-sha256 TRAIN_SHA256 --train-mask-sha256 TRAIN_MASK_SHA256 --objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --train-as-served 1 --context 192 --width 256 --hamming-read 4 --hamming-copy-latest 1 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --turn-memory-leave-copied 1 --batch 16 --seed 273 --out SMOKE_OUT --steps 64 --eval-every 64 --samples 8 --reply-tokens 48`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`train-scenarios`<br>`trainer-dev-tokens`<br>`trainer-dev-mask`<br>`tokenizer`; outputs `SMOKE_CHECKPOINT`; timeout 1800s
+- **smoke-score (`score`)**: `target/release/train-in-space --data-root DATA_ROOT --train-split TRAIN_SPLIT --train-sha256 TRAIN_SHA256 --train-mask-sha256 TRAIN_MASK_SHA256 --score-rows SMOKE_CHECKPOINT --out SMOKE_SCORE_OUT --context 192 --samples 8 --reply-tokens 48 --retain-rates 1 --seed 273`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`trainer-dev-tokens`<br>`trainer-dev-mask`<br>`tokenizer`<br>`SMOKE_CHECKPOINT`; outputs `SMOKE_SCORE_OUT`; timeout 1200s
+- **build-scorer (`verify`)**: `cargo build --offline --release --locked -p uor-r4-cpu-train --bin cpu-scenario-grade`
+  - env `CARGO_TARGET_DIR`; inputs --; outputs `SCORE_TARGET_DIR/release/cpu-scenario-grade`; timeout 1800s
+- **score-base-development (`score`)**: `local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade BASE_ARTIFACT CORPUS_ROOT TOKENIZER --split development --max-cases 1024 --reply-tokens 64 --table-baseline 1 --out SCORE_DIR/base-development.json`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`development-tokens`<br>`development-mask`<br>`development-manifest`<br>`development-scenarios`<br>`tokenizer`<br>`base-artifact`; outputs `SCORE_DIR/base-development.json`; timeout 1800s
+- **score-model-development (`score`)**: `local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade ARTIFACT_OUT CORPUS_ROOT TOKENIZER --split development --max-cases 1024 --reply-tokens 64 --table-baseline 1 --out SCORE_DIR/model-development.json`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`development-tokens`<br>`development-mask`<br>`development-manifest`<br>`development-scenarios`<br>`tokenizer`<br>`ARTIFACT_OUT`; outputs `SCORE_DIR/model-development.json`; timeout 1800s
+- **score-base-fresh (`score`)**: `local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade BASE_ARTIFACT CORPUS_ROOT TOKENIZER --split fresh --max-cases 1024 --reply-tokens 64 --table-baseline 1 --out SCORE_DIR/base-fresh.json`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`fresh-tokens`<br>`fresh-mask`<br>`fresh-manifest`<br>`fresh-scenarios`<br>`tokenizer`<br>`base-artifact`; outputs `SCORE_DIR/base-fresh.json`; timeout 1800s
+- **score-model-fresh (`score`)**: `local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade ARTIFACT_OUT CORPUS_ROOT TOKENIZER --split fresh --max-cases 1024 --reply-tokens 64 --table-baseline 1 --out SCORE_DIR/model-fresh.json`
+  - env --; inputs `scenario-receipt`<br>`train-tokens`<br>`train-mask`<br>`train-manifest`<br>`fresh-tokens`<br>`fresh-mask`<br>`fresh-manifest`<br>`fresh-scenarios`<br>`tokenizer`<br>`ARTIFACT_OUT`; outputs `SCORE_DIR/model-fresh.json`; timeout 1800s
+- **classify (`verify`)**: `jq -n -f conformance/stack/scenario-decision.jq --arg run_id RUN_ID --arg source_head REVIEWED_HEAD --arg code_pin CODE_PIN --arg implementation_source IMPLEMENTATION_SOURCE --arg job_sha256 JOB_SHA256 --arg launcher_sha256 LAUNCHER_SHA256 --arg watcher_sha256 WATCHER_SHA256 --arg scorer_sha256 SCORER_SHA256 --arg review_sha256 REVIEW_SHA256 --arg input_manifest_sha256 INPUT_MANIFEST_SHA256 --arg bundle_sha256 BUNDLE_SHA256 --arg base_artifact_sha256 BASE_SHA256 --arg scenario_receipt_sha256 SCENARIO_RECEIPT_SHA256 --arg preflight_development_sha256 PREFLIGHT_DEVELOPMENT_SHA256 --arg preflight_fresh_sha256 PREFLIGHT_FRESH_SHA256 --arg contract_semantic_blake3 CONTRACT_SEMANTIC_BLAKE3 --arg artifact_sha256 MODEL_ARTIFACT_SHA256 --slurpfile base-development SCORE_DIR/base-development.json --slurpfile model-development SCORE_DIR/model-development.json --slurpfile base-fresh SCORE_DIR/base-fresh.json --slurpfile model-fresh SCORE_DIR/model-fresh.json`
+  - env --; inputs `scenario-decision.jq`<br>`scenario-receipt`<br>`preflight-development`<br>`preflight-fresh`<br>`SCORE_DIR/base-development.json`<br>`SCORE_DIR/model-development.json`<br>`SCORE_DIR/base-fresh.json`<br>`SCORE_DIR/model-fresh.json`; outputs `SCORE_DIR/decision.json`; timeout 300s
+- **snapshot (`export`)**: `target/release/fbs-snapshot CHECKPOINT_DIR SNAPSHOT_OUT`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`; outputs `SNAPSHOT_OUT`; timeout 1800s
+- **export (`export`)**: `target/release/fbs-export --raw-gates --raw-transition --run-config config.json --stack-contract conformance/stack/fbs-deepseek-scenario-smoke.toml --stack-contract-semantic-blake3 SEMANTIC_BLAKE3 --tokenizer tokenizer.json SNAPSHOT_OUT ARTIFACT_OUT`
+  - env --; inputs `model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`<br>`config.json`<br>`tokenizer`<br>`SNAPSHOT_OUT`<br>`fbs-deepseek-scenario-smoke.toml`; outputs `ARTIFACT_OUT`; timeout 900s
+- **serve (`serve`)**: `uor-chat --stack step-001024.uorlut --tokenizer tokenizer.json --protocol 2 --max-tokens 64`
+  - env --; inputs `step-001024.uorlut`<br>`tokenizer`; outputs `chat.json`; timeout 300s
+- **audit (`verify`)**: `cargo run --offline --release --locked -q -p xtask -- stack-audit --contract conformance/stack/fbs-deepseek-scenario-smoke.toml --artifact ARTIFACT_OUT --tokenizer tokenizer.json --config config.json --checkpoint CHECKPOINT_DIR --out AUDIT_OUT`
+  - env --; inputs `fbs-deepseek-scenario-smoke.toml`<br>`ARTIFACT_OUT`<br>`tokenizer`<br>`config.json`<br>`model.safetensors`<br>`hamming_read.safetensors`<br>`turn_memory.safetensors`<br>`turn_memory_reply.safetensors`; outputs `AUDIT_OUT`; timeout 600s
+
+### Non-claims
+
+- **`not-general-chat`**: This smoke does not answer general questions reliably and is not a completed frontier-capable chat model.
+- **`not-mechanism-retirement`**: A provisional miss routes the next step; it does not retire the named mechanism.
+- **`not-board-capability`**: Contract validation and probe execution are structural evidence, not a capability pass.

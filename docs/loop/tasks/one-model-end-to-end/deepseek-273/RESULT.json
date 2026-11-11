@@ -1,0 +1,56 @@
+{
+  "schema": "uor-r4.aligned-corpus-smoke-result/1",
+  "run_id": "smoke-20261111t094608z-cee5a565d23347403b49eaeefab7507f",
+  "source_head": "4caebd7f7d8cfd360b982cc355d5d3ea64d99b6b",
+  "code_pin": "f44afe7a973039fd4b28d69b6050a65ca6680d4d",
+  "artifact_sha256": "98e42e3a60501312c86360f3d362e450456507bf02d67bc5d19ece55174f1d90",
+  "original_status": "NOT_RUN",
+  "instrument_failure": "the on-pod stack audit used --offline before its Cargo cache contained serde_spanned v0.6.9",
+  "recovery": "laptop stack audit had no mismatches; cpu-scenario-grade parsed and served the sealed artifact",
+  "development": {
+    "complete": 1017,
+    "eos_stops": 1017,
+    "short_cycle_stops": 7,
+    "cap_stops": 0,
+    "grounded_asked_value": 0,
+    "grounded_cases": 441,
+    "control_abstentions": 4,
+    "control_cases": 220,
+    "non_copy_distractors": 0,
+    "non_copy_cases": 882,
+    "copy_asked_value": 0,
+    "copy_cases": 110,
+    "distinct_replies": 793
+  },
+  "fresh": {
+    "complete": 1019,
+    "eos_stops": 1019,
+    "short_cycle_stops": 5,
+    "cap_stops": 0,
+    "grounded_asked_value": 0,
+    "grounded_cases": 441,
+    "control_abstentions": 14,
+    "control_cases": 220,
+    "non_copy_distractors": 0,
+    "non_copy_cases": 882,
+    "copy_asked_value": 0,
+    "copy_cases": 110,
+    "distinct_replies": 825
+  },
+  "by_grounded_family_fresh": {
+    "memorize": 0,
+    "paraphrase": 0,
+    "selection": 0,
+    "update": 0
+  },
+  "p1_grounded": false,
+  "p2_controls": true,
+  "p3_copy_positive": false,
+  "outcome_row": 0,
+  "classification": "underfit/instrument; not a mechanism result",
+  "total_cost_usd": 0.246,
+  "store": {
+    "sealed_run": "results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/smoke-20261111t094608z-cee5a565d23347403b49eaeefab7507f/",
+    "verified_recovery": "results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/smoke-20261111t094608z-cee5a565d23347403b49eaeefab7507f-salvage/"
+  }
+}

@@ -2577,6 +2577,1342 @@
       "semantic_blake3": "0c8eb61d7f2af17e86a909167123574724e96d49ad7aa4884d97e6656c1b2d78",
       "source": "conformance/stack/fbs-b64l-baseline.toml",
       "source_blake3": "15ad0b2d8c4ed2d76f7789596eb5875e3dbfd4253d6c14f09ea26375b0813477"
+    },
+    {
+      "contract": {
+        "artifact": {
+          "family": "uor-r4.lut-stack",
+          "grandfathered_by": null,
+          "provenance": "required",
+          "schema": "uor-r4.lut-stack/10",
+          "sections": [
+            {
+              "description": "The SpiralCore/FBS recurrence, route maps, Hamilton gates and serving tables.",
+              "exponent": null,
+              "format": "4-bit matrices, group scales, i16/i32/u32 tables",
+              "id": "trunk",
+              "optional_reason": null,
+              "owner": "fbs-trunk",
+              "required": true
+            },
+            {
+              "description": "The trained copy and type reads, including the latest-exact copy rule.",
+              "exponent": -24,
+              "format": "Q24 rotations and weights, Q16 margins, i16 ask tables when present",
+              "id": "hamming-reads",
+              "optional_reason": null,
+              "owner": "hamming-copy-read",
+              "required": true
+            },
+            {
+              "description": "The opening and reply tables that carry stated facts across turns.",
+              "exponent": -24,
+              "format": "u32 keys and values, i32 Q24 move weights",
+              "id": "turn-memory",
+              "optional_reason": null,
+              "owner": "turn-memory",
+              "required": true
+            },
+            {
+              "description": "The native writer and whole-table nearest-token readout.",
+              "exponent": -12,
+              "format": "native vector writer cells and Q12 i16 token points",
+              "id": "writer",
+              "optional_reason": null,
+              "owner": "whole-table-readout",
+              "required": true
+            }
+          ]
+        },
+        "commands": [
+          {
+            "args": [
+              "conformance/stack/preflight-check.sh",
+              "BASE_SHA256",
+              "preflight-development",
+              "PREFLIGHT_DEVELOPMENT_SHA256",
+              "preflight-fresh",
+              "PREFLIGHT_FRESH_SHA256"
+            ],
+            "env": [],
+            "id": "preflight",
+            "inputs": [
+              "preflight-check.sh",
+              "scenario-preflight-gate.jq",
+              "preflight-development",
+              "preflight-fresh"
+            ],
+            "outputs": [],
+            "program": "bash",
+            "role": "verify",
+            "timeout_seconds": 300
+          },
+          {
+            "args": [
+              "test",
+              "--release",
+              "--locked",
+              "-p",
+              "uor-r4-float-train",
+              "--features",
+              "cuda",
+              "--lib",
+              "--",
+              "hamming"
+            ],
+            "env": [],
+            "id": "gpu-tests",
+            "inputs": [],
+            "outputs": [],
+            "program": "cargo",
+            "role": "verify",
+            "timeout_seconds": 1200
+          },
+          {
+            "args": [
+              "build",
+              "--release",
+              "--locked",
+              "-p",
+              "uor-r4-float-train",
+              "--features",
+              "cuda",
+              "--bin",
+              "train-in-space",
+              "--bin",
+              "fbs-snapshot"
+            ],
+            "env": [],
+            "id": "build-float",
+            "inputs": [],
+            "outputs": [
+              "target/release/train-in-space",
+              "target/release/fbs-snapshot"
+            ],
+            "program": "cargo",
+            "role": "verify",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "build",
+              "--release",
+              "--locked",
+              "-p",
+              "uor-r4-integer",
+              "--bin",
+              "fbs-export",
+              "--features",
+              "serving-wasm"
+            ],
+            "env": [],
+            "id": "build-export",
+            "inputs": [],
+            "outputs": [
+              "target/release/fbs-export"
+            ],
+            "program": "cargo",
+            "role": "verify",
+            "timeout_seconds": 900
+          },
+          {
+            "args": [
+              "--data-root",
+              "DATA_ROOT",
+              "--train-split",
+              "TRAIN_SPLIT",
+              "--train-sha256",
+              "TRAIN_SHA256",
+              "--train-mask-sha256",
+              "TRAIN_MASK_SHA256",
+              "--objective",
+              "cell",
+              "--retain-rates",
+              "1",
+              "--decay-mult",
+              "1",
+              "--lr",
+              "0.001",
+              "--lr-end",
+              "0",
+              "--train-as-served",
+              "1",
+              "--context",
+              "192",
+              "--width",
+              "256",
+              "--hamming-read",
+              "4",
+              "--hamming-copy-latest",
+              "1",
+              "--turn-memory",
+              "8",
+              "--turn-memory-reply",
+              "1",
+              "--turn-memory-dropout",
+              "500",
+              "--turn-memory-leave-copied",
+              "1",
+              "--batch",
+              "16",
+              "--seed",
+              "273",
+              "--out",
+              "TRAIN_OUT",
+              "--steps",
+              "1024",
+              "--eval-every",
+              "256",
+              "--samples",
+              "6",
+              "--reply-tokens",
+              "48"
+            ],
+            "env": [],
+            "id": "train",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "train-scenarios",
+              "trainer-dev-tokens",
+              "trainer-dev-mask",
+              "tokenizer"
+            ],
+            "outputs": [
+              "model.safetensors",
+              "hamming_read.safetensors",
+              "turn_memory.safetensors",
+              "turn_memory_reply.safetensors",
+              "config.json"
+            ],
+            "program": "target/release/train-in-space",
+            "role": "train",
+            "timeout_seconds": 10800
+          },
+          {
+            "args": [
+              "--data-root",
+              "DATA_ROOT",
+              "--train-split",
+              "TRAIN_SPLIT",
+              "--train-sha256",
+              "TRAIN_SHA256",
+              "--train-mask-sha256",
+              "TRAIN_MASK_SHA256",
+              "--objective",
+              "cell",
+              "--retain-rates",
+              "1",
+              "--decay-mult",
+              "1",
+              "--lr",
+              "0.001",
+              "--lr-end",
+              "0",
+              "--train-as-served",
+              "1",
+              "--context",
+              "192",
+              "--width",
+              "256",
+              "--hamming-read",
+              "4",
+              "--hamming-copy-latest",
+              "1",
+              "--turn-memory",
+              "8",
+              "--turn-memory-reply",
+              "1",
+              "--turn-memory-dropout",
+              "500",
+              "--turn-memory-leave-copied",
+              "1",
+              "--batch",
+              "16",
+              "--seed",
+              "273",
+              "--out",
+              "SMOKE_OUT",
+              "--steps",
+              "64",
+              "--eval-every",
+              "64",
+              "--samples",
+              "8",
+              "--reply-tokens",
+              "48"
+            ],
+            "env": [],
+            "id": "smoke-train",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "train-scenarios",
+              "trainer-dev-tokens",
+              "trainer-dev-mask",
+              "tokenizer"
+            ],
+            "outputs": [
+              "SMOKE_CHECKPOINT"
+            ],
+            "program": "target/release/train-in-space",
+            "role": "train",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "--data-root",
+              "DATA_ROOT",
+              "--train-split",
+              "TRAIN_SPLIT",
+              "--train-sha256",
+              "TRAIN_SHA256",
+              "--train-mask-sha256",
+              "TRAIN_MASK_SHA256",
+              "--score-rows",
+              "SMOKE_CHECKPOINT",
+              "--out",
+              "SMOKE_SCORE_OUT",
+              "--context",
+              "192",
+              "--samples",
+              "8",
+              "--reply-tokens",
+              "48",
+              "--retain-rates",
+              "1",
+              "--seed",
+              "273"
+            ],
+            "env": [],
+            "id": "smoke-score",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "trainer-dev-tokens",
+              "trainer-dev-mask",
+              "tokenizer",
+              "SMOKE_CHECKPOINT"
+            ],
+            "outputs": [
+              "SMOKE_SCORE_OUT"
+            ],
+            "program": "target/release/train-in-space",
+            "role": "score",
+            "timeout_seconds": 1200
+          },
+          {
+            "args": [
+              "build",
+              "--offline",
+              "--release",
+              "--locked",
+              "-p",
+              "uor-r4-cpu-train",
+              "--bin",
+              "cpu-scenario-grade"
+            ],
+            "env": [
+              "CARGO_TARGET_DIR"
+            ],
+            "id": "build-scorer",
+            "inputs": [],
+            "outputs": [
+              "SCORE_TARGET_DIR/release/cpu-scenario-grade"
+            ],
+            "program": "cargo",
+            "role": "verify",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "BASE_ARTIFACT",
+              "CORPUS_ROOT",
+              "TOKENIZER",
+              "--split",
+              "development",
+              "--max-cases",
+              "1024",
+              "--reply-tokens",
+              "64",
+              "--table-baseline",
+              "1",
+              "--out",
+              "SCORE_DIR/base-development.json"
+            ],
+            "env": [],
+            "id": "score-base-development",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "development-tokens",
+              "development-mask",
+              "development-manifest",
+              "development-scenarios",
+              "tokenizer",
+              "base-artifact"
+            ],
+            "outputs": [
+              "SCORE_DIR/base-development.json"
+            ],
+            "program": "local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade",
+            "role": "score",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "ARTIFACT_OUT",
+              "CORPUS_ROOT",
+              "TOKENIZER",
+              "--split",
+              "development",
+              "--max-cases",
+              "1024",
+              "--reply-tokens",
+              "64",
+              "--table-baseline",
+              "1",
+              "--out",
+              "SCORE_DIR/model-development.json"
+            ],
+            "env": [],
+            "id": "score-model-development",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "development-tokens",
+              "development-mask",
+              "development-manifest",
+              "development-scenarios",
+              "tokenizer",
+              "ARTIFACT_OUT"
+            ],
+            "outputs": [
+              "SCORE_DIR/model-development.json"
+            ],
+            "program": "local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade",
+            "role": "score",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "BASE_ARTIFACT",
+              "CORPUS_ROOT",
+              "TOKENIZER",
+              "--split",
+              "fresh",
+              "--max-cases",
+              "1024",
+              "--reply-tokens",
+              "64",
+              "--table-baseline",
+              "1",
+              "--out",
+              "SCORE_DIR/base-fresh.json"
+            ],
+            "env": [],
+            "id": "score-base-fresh",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "fresh-tokens",
+              "fresh-mask",
+              "fresh-manifest",
+              "fresh-scenarios",
+              "tokenizer",
+              "base-artifact"
+            ],
+            "outputs": [
+              "SCORE_DIR/base-fresh.json"
+            ],
+            "program": "local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade",
+            "role": "score",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "ARTIFACT_OUT",
+              "CORPUS_ROOT",
+              "TOKENIZER",
+              "--split",
+              "fresh",
+              "--max-cases",
+              "1024",
+              "--reply-tokens",
+              "64",
+              "--table-baseline",
+              "1",
+              "--out",
+              "SCORE_DIR/model-fresh.json"
+            ],
+            "env": [],
+            "id": "score-model-fresh",
+            "inputs": [
+              "scenario-receipt",
+              "train-tokens",
+              "train-mask",
+              "train-manifest",
+              "fresh-tokens",
+              "fresh-mask",
+              "fresh-manifest",
+              "fresh-scenarios",
+              "tokenizer",
+              "ARTIFACT_OUT"
+            ],
+            "outputs": [
+              "SCORE_DIR/model-fresh.json"
+            ],
+            "program": "local/deepseek/scenario-gpu-smoke-2026-11-11/local-target/release/cpu-scenario-grade",
+            "role": "score",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "-n",
+              "-f",
+              "conformance/stack/scenario-decision.jq",
+              "--arg",
+              "run_id",
+              "RUN_ID",
+              "--arg",
+              "source_head",
+              "REVIEWED_HEAD",
+              "--arg",
+              "code_pin",
+              "CODE_PIN",
+              "--arg",
+              "implementation_source",
+              "IMPLEMENTATION_SOURCE",
+              "--arg",
+              "job_sha256",
+              "JOB_SHA256",
+              "--arg",
+              "launcher_sha256",
+              "LAUNCHER_SHA256",
+              "--arg",
+              "watcher_sha256",
+              "WATCHER_SHA256",
+              "--arg",
+              "scorer_sha256",
+              "SCORER_SHA256",
+              "--arg",
+              "review_sha256",
+              "REVIEW_SHA256",
+              "--arg",
+              "input_manifest_sha256",
+              "INPUT_MANIFEST_SHA256",
+              "--arg",
+              "bundle_sha256",
+              "BUNDLE_SHA256",
+              "--arg",
+              "base_artifact_sha256",
+              "BASE_SHA256",
+              "--arg",
+              "scenario_receipt_sha256",
+              "SCENARIO_RECEIPT_SHA256",
+              "--arg",
+              "preflight_development_sha256",
+              "PREFLIGHT_DEVELOPMENT_SHA256",
+              "--arg",
+              "preflight_fresh_sha256",
+              "PREFLIGHT_FRESH_SHA256",
+              "--arg",
+              "contract_semantic_blake3",
+              "CONTRACT_SEMANTIC_BLAKE3",
+              "--arg",
+              "artifact_sha256",
+              "MODEL_ARTIFACT_SHA256",
+              "--slurpfile",
+              "base-development",
+              "SCORE_DIR/base-development.json",
+              "--slurpfile",
+              "model-development",
+              "SCORE_DIR/model-development.json",
+              "--slurpfile",
+              "base-fresh",
+              "SCORE_DIR/base-fresh.json",
+              "--slurpfile",
+              "model-fresh",
+              "SCORE_DIR/model-fresh.json"
+            ],
+            "env": [],
+            "id": "classify",
+            "inputs": [
+              "scenario-decision.jq",
+              "scenario-receipt",
+              "preflight-development",
+              "preflight-fresh",
+              "SCORE_DIR/base-development.json",
+              "SCORE_DIR/model-development.json",
+              "SCORE_DIR/base-fresh.json",
+              "SCORE_DIR/model-fresh.json"
+            ],
+            "outputs": [
+              "SCORE_DIR/decision.json"
+            ],
+            "program": "jq",
+            "role": "verify",
+            "timeout_seconds": 300
+          },
+          {
+            "args": [
+              "CHECKPOINT_DIR",
+              "SNAPSHOT_OUT"
+            ],
+            "env": [],
+            "id": "snapshot",
+            "inputs": [
+              "model.safetensors",
+              "hamming_read.safetensors",
+              "turn_memory.safetensors",
+              "turn_memory_reply.safetensors",
+              "config.json"
+            ],
+            "outputs": [
+              "SNAPSHOT_OUT"
+            ],
+            "program": "target/release/fbs-snapshot",
+            "role": "export",
+            "timeout_seconds": 1800
+          },
+          {
+            "args": [
+              "--raw-gates",
+              "--raw-transition",
+              "--run-config",
+              "config.json",
+              "--stack-contract",
+              "conformance/stack/fbs-deepseek-scenario-smoke.toml",
+              "--stack-contract-semantic-blake3",
+              "SEMANTIC_BLAKE3",
+              "--tokenizer",
+              "tokenizer.json",
+              "SNAPSHOT_OUT",
+              "ARTIFACT_OUT"
+            ],
+            "env": [],
+            "id": "export",
+            "inputs": [
+              "model.safetensors",
+              "hamming_read.safetensors",
+              "turn_memory.safetensors",
+              "turn_memory_reply.safetensors",
+              "config.json",
+              "tokenizer",
+              "SNAPSHOT_OUT",
+              "fbs-deepseek-scenario-smoke.toml"
+            ],
+            "outputs": [
+              "ARTIFACT_OUT"
+            ],
+            "program": "target/release/fbs-export",
+            "role": "export",
+            "timeout_seconds": 900
+          },
+          {
+            "args": [
+              "--stack",
+              "step-001024.uorlut",
+              "--tokenizer",
+              "tokenizer.json",
+              "--protocol",
+              "2",
+              "--max-tokens",
+              "64"
+            ],
+            "env": [],
+            "id": "serve",
+            "inputs": [
+              "step-001024.uorlut",
+              "tokenizer"
+            ],
+            "outputs": [
+              "chat.json"
+            ],
+            "program": "uor-chat",
+            "role": "serve",
+            "timeout_seconds": 300
+          },
+          {
+            "args": [
+              "run",
+              "--offline",
+              "--release",
+              "--locked",
+              "-q",
+              "-p",
+              "xtask",
+              "--",
+              "stack-audit",
+              "--contract",
+              "conformance/stack/fbs-deepseek-scenario-smoke.toml",
+              "--artifact",
+              "ARTIFACT_OUT",
+              "--tokenizer",
+              "tokenizer.json",
+              "--config",
+              "config.json",
+              "--checkpoint",
+              "CHECKPOINT_DIR",
+              "--out",
+              "AUDIT_OUT"
+            ],
+            "env": [],
+            "id": "audit",
+            "inputs": [
+              "fbs-deepseek-scenario-smoke.toml",
+              "ARTIFACT_OUT",
+              "tokenizer",
+              "config.json",
+              "model.safetensors",
+              "hamming_read.safetensors",
+              "turn_memory.safetensors",
+              "turn_memory_reply.safetensors"
+            ],
+            "outputs": [
+              "AUDIT_OUT"
+            ],
+            "program": "cargo",
+            "role": "verify",
+            "timeout_seconds": 600
+          }
+        ],
+        "decision": "docs/harness/prep/one-model-end-to-end-scenario-gpu-smoke-2026-11-11.md",
+        "evidence": [
+          {
+            "id": "source-pin",
+            "kind": "authority",
+            "locator": "docs/loop/tasks/one-model-end-to-end/deepseek-273/ORDER.md",
+            "mechanisms": [
+              "tokenizer",
+              "fbs-trunk",
+              "hamming-copy-read",
+              "turn-memory",
+              "whole-table-readout",
+              "integer-export",
+              "short-cycle-stop"
+            ],
+            "result": "pass",
+            "scope": "source identity",
+            "sha256": null,
+            "statement": "The runnable implementation, including the table-baseline scorer and exclusive store claim, is the code at 4add144e; later contract and documentation bytes are bound by this contract's semantic hash."
+          },
+          {
+            "id": "aligned-corpus",
+            "kind": "report",
+            "locator": "docs/loop/tasks/one-model-end-to-end/deepseek-268/REPORT.md",
+            "mechanisms": [
+              "tokenizer",
+              "fbs-trunk",
+              "whole-table-readout"
+            ],
+            "result": "pass",
+            "scope": "aligned scenario corpus construction",
+            "sha256": null,
+            "statement": "The scenario corpus receipt binds 20,000 TRAIN rows and disjoint development and Fresh panels by content hashes."
+          },
+          {
+            "id": "scenario-baseline",
+            "kind": "report",
+            "locator": "docs/loop/tasks/one-model-end-to-end/deepseek-272/REPORT.md",
+            "mechanisms": [
+              "hamming-copy-read",
+              "turn-memory",
+              "whole-table-readout",
+              "integer-export"
+            ],
+            "result": "pass",
+            "scope": "arm-r and count-table behavior on the aligned panels",
+            "sha256": null,
+            "statement": "Arm r copied 10 of 110 development and 11 of 110 Fresh copy prompts; the previous-token table answered no grounded archetype."
+          },
+          {
+            "id": "run-pending",
+            "kind": "report",
+            "locator": "docs/loop/tasks/one-model-end-to-end/deepseek-273/REPORT.md",
+            "mechanisms": [
+              "fbs-trunk",
+              "hamming-copy-read",
+              "turn-memory",
+              "whole-table-readout",
+              "integer-export",
+              "short-cycle-stop"
+            ],
+            "result": "not-run",
+            "scope": "planned 1,024-step aligned-corpus smoke",
+            "sha256": null,
+            "statement": "No later checkpoint, artifact or held-out result exists when this contract is registered."
+          }
+        ],
+        "id": "fbs-deepseek-scenario-smoke",
+        "inputs": [
+          {
+            "id": "tokenizer",
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+            "source": "store:w2-inputs/2026-10-25/driver-data/tokenizer.json"
+          },
+          {
+            "id": "scenario-receipt",
+            "sha256": "4991326286c3ebe2f3a3e975c23e633fe4bb2662e6f6746333535cdff9f68604",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/scenario-manifest.json"
+          },
+          {
+            "id": "trainer-dev-tokens",
+            "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+            "source": "store:w2-inputs/2026-10-25/driver-data/ft/dev/tokens.u16"
+          },
+          {
+            "id": "trainer-dev-mask",
+            "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+            "source": "store:w2-inputs/2026-10-25/driver-data/ft/dev/response_mask.u8"
+          },
+          {
+            "id": "base-artifact",
+            "sha256": "a1d705586b35d7da282913b1e21b242a74c0661b32d73e2ec89f56310a8140e8",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/arm-r-s2-c8256-bound.uorlut"
+          },
+          {
+            "id": "preflight-development",
+            "sha256": "a7ec4f34981b9f07906a0e2523964b205df3700aa2afa2e139c0d67a3eacb15c",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/preflight-v3/arm-r-development.json"
+          },
+          {
+            "id": "preflight-fresh",
+            "sha256": "7429e6c4e4fe887d52ac58a0cc750d4fdb06d22ae83b3e6e492a4fb0c635c3f9",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/preflight-v3/arm-r-fresh.json"
+          },
+          {
+            "id": "train-tokens",
+            "sha256": "3412e1b6ccb46db986959aa08b60490d46b3a2a3524fad476cf1fedd838259d8",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/tokens.u16"
+          },
+          {
+            "id": "train-mask",
+            "sha256": "b0f745fbea8c11f7e9c2993ca03a4eb3ae5ee101b2b0ca0c23e544cac9cb92e0",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/response_mask.u8"
+          },
+          {
+            "id": "train-manifest",
+            "sha256": "d660f4e695363bbf121391841d17b147e8aec30071d5e59de4008b646c57ae57",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/manifest.json"
+          },
+          {
+            "id": "train-scenarios",
+            "sha256": "9799855ae6aaa5dcfdff514ca68bd142b11226be449538035a3576a2902d9c43",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/train/scenarios.jsonl"
+          },
+          {
+            "id": "development-tokens",
+            "sha256": "612638bba7213f1960cc118a41e6e51ff36074953bb3c7a22f8a9445f1b11777",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/tokens.u16"
+          },
+          {
+            "id": "development-mask",
+            "sha256": "b42518ff047712e7966dbd2619ea314cd0c21dd460b79b1d9cf05491ec54de92",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/response_mask.u8"
+          },
+          {
+            "id": "development-manifest",
+            "sha256": "42dfd893ec4defd6f6a53539b5c7c564dc886fe1fe430179716757111447baae",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/manifest.json"
+          },
+          {
+            "id": "development-scenarios",
+            "sha256": "2d49834d597aed75bf452b1f4469eea29b7a1ad6f42838da366f26efd7b4a299",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/development/scenarios.jsonl"
+          },
+          {
+            "id": "fresh-tokens",
+            "sha256": "574558344f9626d665112183a62ec6d9ce703fd51d6dc5b1ead6328accdc178d",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/tokens.u16"
+          },
+          {
+            "id": "fresh-mask",
+            "sha256": "8517e0aed1e0f6d695e63cd3d5ab10427911947296213b1b7670265de8df6667",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/response_mask.u8"
+          },
+          {
+            "id": "fresh-manifest",
+            "sha256": "a6b671bb48db8fec737a247e43e2b421d09ad2f9cebd6dbbafb177060b43f735",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/manifest.json"
+          },
+          {
+            "id": "fresh-scenarios",
+            "sha256": "43b6dc81d480270013b467dbafc4281cc17e764b321b341b919ed4625719faae",
+            "source": "store:results/deepseek/one-model-end-to-end-scenario-gpu-smoke-2026-11-11/input/scenario-corpus-v1/fresh/scenarios.jsonl"
+          }
+        ],
+        "lane": "fbs",
+        "mechanisms": [
+          {
+            "cleanup_order": 90,
+            "conflicts_with": [],
+            "depends_on": [],
+            "evidence": [
+              "crates/uor-r4-tokenizer/src/lib.rs",
+              "docs/model/data-and-tokenizer.md"
+            ],
+            "evidence_ids": [
+              "source-pin"
+            ],
+            "flags": [],
+            "id": "tokenizer",
+            "implementation": "crates/uor-r4-tokenizer/src/lib.rs",
+            "invariants": [
+              "The tokenizer bytes hash to d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89.",
+              "Every token id is below the artifact vocabulary of 4096."
+            ],
+            "load_order": 10,
+            "non_claims": [
+              "The tokenizer is not evidence of language capability."
+            ],
+            "sections": [],
+            "sidecars": [],
+            "status": "integrated"
+          },
+          {
+            "cleanup_order": 80,
+            "conflicts_with": [],
+            "depends_on": [
+              "tokenizer"
+            ],
+            "evidence": [
+              "crates/uor-r4-float-train/src/geometric_stack_native.rs",
+              "crates/uor-r4-float-train/src/hamilton_sheet.rs"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "aligned-corpus",
+              "run-pending"
+            ],
+            "flags": [
+              {
+                "name": "--objective",
+                "required": true,
+                "value": "cell"
+              }
+            ],
+            "id": "fbs-trunk",
+            "implementation": "crates/uor-r4-float-train/src/geometric_stack_native.rs",
+            "invariants": [
+              "Every projection is a SpiralCore/FBS route table.",
+              "The recurrence and Hamilton gates preserve the declared geometric arithmetic.",
+              "The writer produces one width-256 query for every served position."
+            ],
+            "load_order": 20,
+            "non_claims": [
+              "The trunk alone does not establish useful conversation."
+            ],
+            "sections": [
+              "trunk",
+              "writer"
+            ],
+            "sidecars": [
+              "model.safetensors",
+              "config.json"
+            ],
+            "status": "integrated"
+          },
+          {
+            "cleanup_order": 70,
+            "conflicts_with": [],
+            "depends_on": [
+              "fbs-trunk"
+            ],
+            "evidence": [
+              "crates/uor-r4-float-train/src/flock_read_hamming.rs",
+              "docs/mechanisms/flock-read.md"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "scenario-baseline",
+              "run-pending"
+            ],
+            "flags": [
+              {
+                "name": "--hamming-read",
+                "required": true,
+                "value": "4"
+              }
+            ],
+            "id": "hamming-copy-read",
+            "implementation": "crates/uor-r4-float-train/src/flock_read_hamming.rs",
+            "invariants": [
+              "Each copy head reads its latest exact earlier match at full weight.",
+              "The trainer and artifact use one-token copy keys and the same latest-exact rule.",
+              "A missing exact match reads no copied value."
+            ],
+            "load_order": 30,
+            "non_claims": [
+              "A copy hit does not by itself preserve the copied value through the writer."
+            ],
+            "sections": [
+              "hamming-reads"
+            ],
+            "sidecars": [
+              "hamming_read.safetensors"
+            ],
+            "status": "integrated"
+          },
+          {
+            "cleanup_order": 60,
+            "conflicts_with": [],
+            "depends_on": [
+              "hamming-copy-read"
+            ],
+            "evidence": [
+              "crates/uor-r4-float-train/src/flock_read_memory.rs",
+              "crates/uor-r4-integer/src/stack/memory.rs"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "scenario-baseline",
+              "run-pending"
+            ],
+            "flags": [
+              {
+                "name": "--turn-memory",
+                "required": true,
+                "value": "8"
+              },
+              {
+                "name": "--turn-memory-reply",
+                "required": true,
+                "value": "true"
+              },
+              {
+                "name": "--turn-memory-dropout",
+                "required": true,
+                "value": "500"
+              },
+              {
+                "name": "--turn-memory-leave-copied",
+                "required": true,
+                "value": "true"
+              }
+            ],
+            "id": "turn-memory",
+            "implementation": "crates/uor-r4-float-train/src/flock_read_memory.rs",
+            "invariants": [
+              "The opening and reply tables are addressed by exact integer keys.",
+              "A key owned by the latest-exact copy read is left out of the turn memory.",
+              "Training dropout changes training only; serving uses the stored table at every row."
+            ],
+            "load_order": 40,
+            "non_claims": [
+              "The memory is not shown to recover values from the end of the question."
+            ],
+            "sections": [
+              "turn-memory"
+            ],
+            "sidecars": [
+              "turn_memory.safetensors",
+              "turn_memory_reply.safetensors"
+            ],
+            "status": "integrated"
+          },
+          {
+            "cleanup_order": 50,
+            "conflicts_with": [],
+            "depends_on": [
+              "fbs-trunk"
+            ],
+            "evidence": [
+              "crates/uor-r4-float-train/src/in_space_long.rs",
+              "docs/model/pipeline-map.md"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "aligned-corpus",
+              "run-pending"
+            ],
+            "flags": [
+              {
+                "name": "--objective",
+                "required": true,
+                "value": "cell"
+              }
+            ],
+            "id": "whole-table-readout",
+            "implementation": "crates/uor-r4-float-train/src/in_space_long.rs",
+            "invariants": [
+              "The decoded token is the whole table's nearest point to the served query.",
+              "Cell and nearest objectives decode through the same whole-table readout."
+            ],
+            "load_order": 50,
+            "non_claims": [
+              "Teacher-forced token fit is not free-running complete-reply capability."
+            ],
+            "sections": [
+              "writer"
+            ],
+            "sidecars": [],
+            "status": "integrated"
+          },
+          {
+            "cleanup_order": 40,
+            "conflicts_with": [],
+            "depends_on": [
+              "fbs-trunk",
+              "hamming-copy-read",
+              "turn-memory",
+              "whole-table-readout"
+            ],
+            "evidence": [
+              "crates/uor-r4-integer/src/bin/fbs-export.rs",
+              "crates/uor-r4-integer/src/stack/format.rs"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "run-pending"
+            ],
+            "flags": [
+              {
+                "name": "--run-config",
+                "required": true,
+                "value": "config.json"
+              }
+            ],
+            "id": "integer-export",
+            "implementation": "crates/uor-r4-integer/src/bin/fbs-export.rs",
+            "invariants": [
+              "The exported schema is exactly uor-r4.lut-stack/10.",
+              "The artifact records the stack-contract and tokenizer identities.",
+              "The artifact records the latest-exact copy rule used by training.",
+              "The integer session loads and serves the artifact without floating-point arithmetic."
+            ],
+            "load_order": 60,
+            "non_claims": [
+              "Float-to-integer export agreement does not establish language capability."
+            ],
+            "sections": [
+              "trunk",
+              "hamming-reads",
+              "turn-memory",
+              "writer"
+            ],
+            "sidecars": [
+              "artifact:writer",
+              "artifact:hamming",
+              "artifact:memory"
+            ],
+            "status": "not-run"
+          },
+          {
+            "cleanup_order": 30,
+            "conflicts_with": [],
+            "depends_on": [
+              "integer-export"
+            ],
+            "evidence": [
+              "crates/uor-r4-integer/src/stack/chat.rs",
+              "crates/uor-r4-integer/src/generation.rs"
+            ],
+            "evidence_ids": [
+              "source-pin",
+              "run-pending"
+            ],
+            "flags": [],
+            "id": "short-cycle-stop",
+            "implementation": "crates/uor-r4-integer/src/stack/chat.rs",
+            "invariants": [
+              "A repeated cycle of period one through four ends the reply after the declared repetition.",
+              "Cycle stopping is deterministic and does not sample."
+            ],
+            "load_order": 70,
+            "non_claims": [
+              "Cycle stopping does not recover content displaced by the cycle."
+            ],
+            "sections": [],
+            "sidecars": [],
+            "status": "integrated"
+          }
+        ],
+        "model": {
+          "context": 192,
+          "layers": 6,
+          "objective": "cell",
+          "serving": "bound integer UORLUT01 artifact; Q12 writer points and branch-free table arithmetic",
+          "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+          "training": "float32 on CUDA; train-as-served rounding is applied before each forward",
+          "training_context": 192,
+          "vocab": 4096,
+          "width": 256
+        },
+        "non_claims": [
+          {
+            "id": "not-general-chat",
+            "statement": "This smoke does not answer general questions reliably and is not a completed frontier-capable chat model."
+          },
+          {
+            "id": "not-mechanism-retirement",
+            "statement": "A provisional miss routes the next step; it does not retire the named mechanism."
+          },
+          {
+            "id": "not-board-capability",
+            "statement": "Contract validation and probe execution are structural evidence, not a capability pass."
+          }
+        ],
+        "probes": [
+          {
+            "axis": "context length",
+            "cases": [
+              "inside window",
+              "oversize turn"
+            ],
+            "class": "boundary",
+            "expectation": "A short turn is served and an oversized turn is refused with an explicit context error.",
+            "fixture": "conformance/stack/fixtures/context-boundary.v2.json",
+            "fixture_sha256": "8b89092c838c0191fd4e257d7e884cb0990d66be2434d99c63beef28744b3830",
+            "id": "context-boundary",
+            "layers": [
+              "chat"
+            ],
+            "mechanism": "fbs-trunk"
+          },
+          {
+            "axis": "candidate count and tie order",
+            "cases": [
+              "source present",
+              "kept-set order"
+            ],
+            "class": "boundary",
+            "expectation": "A source is available to a later question and a fresh rerun is deterministic.",
+            "fixture": "conformance/stack/fixtures/copy-boundary.v2.json",
+            "fixture_sha256": "b418f3b7fe72b457eab34ecdb703279125747f81a39eeca3e315af9aae84b479",
+            "id": "copy-boundary",
+            "layers": [
+              "chat"
+            ],
+            "mechanism": "hamming-copy-read"
+          },
+          {
+            "axis": "explicit, sieve and absent memory",
+            "cases": [
+              "automatic",
+              "explicit overrides",
+              "absent"
+            ],
+            "class": "metamorphic",
+            "expectation": "Explicit memory overrides the sieve, the sieve derives a value, and an absent value emits no line.",
+            "fixture": "conformance/stack/fixtures/memory-precedence.v2.json",
+            "fixture_sha256": "409e782ef2d63e55f7ccd6a5c495d3269ee274b0f9825b030d3340d00263d6d7",
+            "id": "memory-precedence",
+            "layers": [
+              "chat"
+            ],
+            "mechanism": "turn-memory"
+          },
+          {
+            "axis": "cycle period",
+            "cases": [
+              "recorded stop",
+              "no unreported exhaustion"
+            ],
+            "class": "boundary",
+            "expectation": "Every served reply reports a terminal EOS, cap or short-cycle stop.",
+            "fixture": "conformance/stack/fixtures/cycle-boundary.v2.json",
+            "fixture_sha256": "ac70c4a9594db51b90485ce488e74c988aa0085ca8cd7fa2e982ee7342941a4f",
+            "id": "cycle-period-boundary",
+            "layers": [
+              "chat"
+            ],
+            "mechanism": "short-cycle-stop"
+          },
+          {
+            "axis": "execution layer",
+            "cases": [
+              "chat script"
+            ],
+            "class": "parity",
+            "expectation": "The artifact and tokenizer identities reach the product chat path and one integer token is generated.",
+            "fixture": "conformance/stack/fixtures/representation-parity.v2.json",
+            "fixture_sha256": "d0fc311df673ba2d5ecb4352c72a90c9f41e9d59b0d498ad094b7ca2c1ca5751",
+            "id": "float-integer-boundary",
+            "layers": [
+              "chat"
+            ],
+            "mechanism": "integer-export"
+          }
+        ],
+        "readings": [
+          {
+            "bar": 20.0,
+            "better": "higher",
+            "class": "semantic",
+            "description": "Fresh asked-value hits over memorize, paraphrase, selection and update.",
+            "id": "grounded-asked-value",
+            "mechanism": "whole-table-readout",
+            "unit": "count of 441"
+          },
+          {
+            "bar": 5.0,
+            "better": "higher",
+            "class": "semantic",
+            "description": "Each of the four grounded archetypes independently reaches at least five asked-value hits.",
+            "id": "each-grounded-family",
+            "mechanism": "hamming-copy-read",
+            "unit": "count of about 110"
+          },
+          {
+            "bar": 10.0,
+            "better": "higher",
+            "class": "semantic",
+            "description": "Fresh wrong-memory and no-memory controls abstain correctly.",
+            "id": "control-abstention",
+            "mechanism": "turn-memory",
+            "unit": "count of 220"
+          },
+          {
+            "bar": 11.0,
+            "better": "higher",
+            "class": "semantic",
+            "description": "Fresh direct-copy prompts still name the asked value.",
+            "id": "copy-positive-control",
+            "mechanism": "integer-export",
+            "unit": "count of 110"
+          },
+          {
+            "bar": 10.0,
+            "better": "lower",
+            "class": "semantic",
+            "description": "Fresh non-copy rows do not emit a distractor value.",
+            "id": "distractor-safety",
+            "mechanism": "integer-export",
+            "unit": "count of 882"
+          },
+          {
+            "bar": null,
+            "better": "higher",
+            "class": "structural",
+            "description": "Fresh replies stop on EOS.",
+            "id": "complete-replies",
+            "mechanism": "short-cycle-stop",
+            "unit": "count of 1024"
+          }
+        ],
+        "revision": 1,
+        "source_pin": "4add144ebdc9087e47fe3fa830fb21116278644e",
+        "spec": "uor-r4.stack-contract/2",
+        "state": "experimental",
+        "summary": "One fresh-start 1,024-step training of the current FBS/Hamming geometric path on the aligned scenario corpus, exported as a bound uor-r4.lut-stack/10 artifact and scored against the same-evaluator previous-token count table.",
+        "title": "FBS aligned-scenario 1,024-step GPU smoke"
+      },
+      "semantic_blake3": "40518eae6d71d1482b238f3dd650e4858ef4f1434e485943ae360eb7821bb421",
+      "source": "conformance/stack/fbs-deepseek-scenario-smoke.toml",
+      "source_blake3": "093a572aaaad78889d8d3ae95bd56f50ca009498546dd91f87672347758f0cd8"
     }
   ],
   "schema": "uor-r4.stack-contract.generated/2",

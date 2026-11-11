@@ -3,21 +3,24 @@
 //! This is development research under D84. It binds the generated scenario
 //! labels back to the tokenizer and corpus receipt, then generates responses
 //! through the same CPU/artifact path used by the other development drivers.
+//! The optional previous-token count table is a §4.4 control, not a model.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use std::time::Instant;
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use uor_r4_discrete::corpus::sha256;
-use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackReply};
+use uor_r4_integer::generation::short_cycle;
+use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackReply, StackStop};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
-use crate::{invalid, validate_corpus_manifest, CpuCorpusIdentity, CpuTrainError};
+use crate::{invalid, validate_corpus_manifest, CpuCorpusIdentity, CpuMaskedCorpus, CpuTrainError};
 
 pub const SCENARIO_GRADE_SCHEMA: &str = "uor-r4.cpu-scenario-grade/1";
+pub const SCENARIO_GRADE_TABLE_SCHEMA: &str = "uor-r4.cpu-scenario-grade/2";
 const SCENARIO_SCHEMA: &str = "uor-r4.scenario-corpus/1";
 const MAX_REPLY_TOKENS: usize = 64;
 
@@ -26,6 +29,7 @@ pub struct ScenarioGradeConfig {
     pub split: String,
     pub max_cases: usize,
     pub reply_tokens: usize,
+    pub table_baseline: bool,
 }
 
 impl ScenarioGradeConfig {
@@ -211,6 +215,17 @@ pub struct ScenarioGradeReport {
     pub counts: ScenarioGradeCounts,
     pub by_archetype: BTreeMap<String, ScenarioGradeCounts>,
     pub rows: Vec<ScenarioGradeRow>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub table_baseline: Option<ScenarioTableBaseline>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScenarioTableBaseline {
+    pub train_tokens_sha256: String,
+    pub train_mask_sha256: String,
+    pub counts: ScenarioGradeCounts,
+    pub by_archetype: BTreeMap<String, ScenarioGradeCounts>,
+    pub rows: Vec<ScenarioGradeRow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -231,6 +246,7 @@ struct ReceiptTokenizer {
     sha256: String,
     vocab_size: usize,
     bos_id: u32,
+    eos_id: u32,
     dialogue_schema: String,
 }
 
@@ -374,6 +390,20 @@ pub fn grade_scenarios(
             Ok(score_row(&candidate.case, &candidate.prompt, &reply))
         })
         .collect::<Result<Vec<_>, CpuTrainError>>()?;
+    let table_baseline = if config.table_baseline {
+        Some(grade_table_baseline(
+            corpus_root,
+            &receipt,
+            &tokenizer,
+            &protocol,
+            &candidates,
+            &selected,
+            model.shape().context,
+            config.reply_tokens,
+        )?)
+    } else {
+        None
+    };
 
     let mut counts = ScenarioGradeCounts::empty();
     let mut by_archetype = BTreeMap::<String, Vec<ScenarioGradeRow>>::new();
@@ -406,7 +436,12 @@ pub fn grade_scenarios(
         .collect();
 
     Ok(ScenarioGradeReport {
-        schema: SCENARIO_GRADE_SCHEMA.to_owned(),
+        schema: if table_baseline.is_some() {
+            SCENARIO_GRADE_TABLE_SCHEMA
+        } else {
+            SCENARIO_GRADE_SCHEMA
+        }
+        .to_owned(),
         substrate: "cpu-development-research".to_owned(),
         qualification: "gpu-required".to_owned(),
         claim: "aligned scenario diagnostic over the exact StackChat CPU served-reply path; not GPU qualification, useful-chat evidence or a capability bar".to_owned(),
@@ -425,6 +460,179 @@ pub fn grade_scenarios(
         counts,
         by_archetype,
         rows,
+        table_baseline,
+    })
+}
+
+/// The §4.4 previous-token count table, generated through the same selected
+/// cases and scored by the same value, distractor and abstention rules as the
+/// artifact. It is a control, never a serving model.
+fn grade_table_baseline(
+    corpus_root: &Path,
+    receipt: &ScenarioReceipt,
+    tokenizer: &ByteBpeTokenizer,
+    protocol: &DialogueProtocol,
+    candidates: &[ScenarioCandidate],
+    selected: &[usize],
+    context: usize,
+    reply_tokens: usize,
+) -> Result<ScenarioTableBaseline, CpuTrainError> {
+    let train_root = corpus_root.join("train");
+    let token_bytes = read_path(&train_root.join("tokens.u16"))?;
+    let mask = read_path(&train_root.join("response_mask.u8"))?;
+    let manifest_bytes = read_path(&train_root.join("manifest.json"))?;
+    let train = validate_corpus_manifest(&manifest_bytes, &token_bytes, &mask)?;
+    validate_train_identity(&train, receipt, &manifest_bytes)?;
+    let corpus = CpuMaskedCorpus::from_bytes(&token_bytes, &mask, train.vocab, context, train.bos)?;
+    let mut unigram = HashMap::<u32, u64>::new();
+    let mut pair_counts = HashMap::<(u32, u32), u64>::new();
+    for position in 1..corpus.tokens().len() {
+        if corpus.mask()[position] != 1 || corpus.tokens()[position] == receipt.tokenizer.bos_id {
+            continue;
+        }
+        let target = corpus.tokens()[position];
+        *unigram.entry(target).or_default() += 1;
+        *pair_counts
+            .entry((corpus.tokens()[position - 1], target))
+            .or_default() += 1;
+    }
+    let mut next = HashMap::<u32, (u32, u64)>::new();
+    for ((previous, target), count) in pair_counts {
+        let entry = next.entry(previous).or_insert((target, count));
+        if count > entry.1 || (count == entry.1 && target < entry.0) {
+            *entry = (target, count);
+        }
+    }
+    let fallback = most_frequent_token(&unigram)
+        .ok_or_else(|| invalid("scenario TRAIN has no response token for the count table"))?;
+    let rows = selected
+        .iter()
+        .map(|&index| {
+            let candidate = &candidates[index];
+            let reply = table_reply(
+                &candidate.prompt,
+                context,
+                reply_tokens,
+                fallback,
+                receipt.tokenizer.eos_id,
+                &next,
+                tokenizer,
+                protocol,
+            )?;
+            Ok(score_row(&candidate.case, &candidate.prompt, &reply))
+        })
+        .collect::<Result<Vec<_>, CpuTrainError>>()?;
+    let mut counts = ScenarioGradeCounts::empty();
+    let mut by_archetype = BTreeMap::<String, Vec<ScenarioGradeRow>>::new();
+    for row in &rows {
+        counts.add(row);
+        by_archetype
+            .entry(row.archetype.clone())
+            .or_default()
+            .push(row.clone());
+    }
+    counts.finish(&rows);
+    let by_archetype = by_archetype
+        .into_iter()
+        .map(|(archetype, rows)| {
+            let mut counts = ScenarioGradeCounts::empty();
+            for row in &rows {
+                counts.add(row);
+            }
+            counts.finish(&rows);
+            (archetype, counts)
+        })
+        .collect();
+    Ok(ScenarioTableBaseline {
+        train_tokens_sha256: train.tokens_sha256,
+        train_mask_sha256: train.mask_sha256,
+        counts,
+        by_archetype,
+        rows,
+    })
+}
+
+fn validate_train_identity(
+    train: &CpuCorpusIdentity,
+    receipt: &ScenarioReceipt,
+    manifest_bytes: &[u8],
+) -> Result<(), CpuTrainError> {
+    let split_receipt = receipt
+        .splits
+        .get("train")
+        .ok_or_else(|| invalid("scenario receipt has no TRAIN split"))?;
+    if train.split != "train"
+        || train.vocab != receipt.tokenizer.vocab_size
+        || train.bos != receipt.tokenizer.bos_id
+        || train.tokenizer_sha256 != receipt.tokenizer.sha256
+        || train.max_tokens != receipt.config.context
+        || train.tokens_sha256 != split_receipt.tokens_sha256
+        || train.mask_sha256 != split_receipt.mask_sha256
+        || sha256(manifest_bytes) != split_receipt.manifest_sha256
+    {
+        return Err(invalid("scenario TRAIN identity differs from its receipt"));
+    }
+    Ok(())
+}
+
+fn most_frequent_token(counts: &HashMap<u32, u64>) -> Option<u32> {
+    counts
+        .iter()
+        .fold(None, |best, (&token, &count)| match best {
+            None => Some((token, count)),
+            Some((best_token, best_count))
+                if count > best_count || (count == best_count && token < best_token) =>
+            {
+                Some((token, count))
+            }
+            Some(_) => best,
+        })
+        .map(|(token, _)| token)
+}
+
+fn table_reply(
+    prompt: &[u32],
+    context: usize,
+    reply_tokens: usize,
+    fallback: u32,
+    eos_id: u32,
+    next: &HashMap<u32, (u32, u64)>,
+    tokenizer: &ByteBpeTokenizer,
+    protocol: &DialogueProtocol,
+) -> Result<StackReply, CpuTrainError> {
+    let cap = reply_tokens.min(
+        context
+            .checked_sub(prompt.len())
+            .ok_or_else(|| invalid("scenario prompt exceeds the count-table context"))?,
+    );
+    let mut current = *prompt
+        .last()
+        .ok_or_else(|| invalid("count-table baseline has an empty prompt"))?;
+    let mut ids = Vec::with_capacity(cap);
+    let stop = loop {
+        if ids.len() == cap {
+            break StackStop::MaximumNewTokens;
+        }
+        let token = next.get(&current).map_or(fallback, |(token, _)| *token);
+        ids.push(token);
+        if token == eos_id {
+            break StackStop::Eos;
+        }
+        if let Some(period) = short_cycle(&ids) {
+            break StackStop::ShortCycle { period };
+        }
+        current = token;
+    };
+    let text_ids = if stop == StackStop::Eos {
+        &ids[..ids.len().saturating_sub(1)]
+    } else {
+        ids.as_slice()
+    };
+    let decoded = tokenizer.decode(text_ids);
+    Ok(StackReply {
+        text: protocol.reply_text(&decoded).to_owned(),
+        ids,
+        stop,
     })
 }
 
@@ -653,7 +861,9 @@ mod tests {
             std::process::id()
         ));
         let split = root.join("development");
+        let train_split = root.join("train");
         fs::create_dir_all(&split).unwrap();
+        fs::create_dir_all(&train_split).unwrap();
 
         let tokenizer = fixture_tokenizer();
         let tokenizer_path = root.join("tokenizer.json");
@@ -664,6 +874,10 @@ mod tests {
         let mask = vec![0, 0, 0, 1];
         fs::write(split.join("tokens.u16"), &tokens).unwrap();
         fs::write(split.join("response_mask.u8"), &mask).unwrap();
+        let train_tokens = uort(&[0, 5, 6, 1], 4096);
+        let train_mask = vec![0, 0, 1, 1];
+        fs::write(train_split.join("tokens.u16"), &train_tokens).unwrap();
+        fs::write(train_split.join("response_mask.u8"), &train_mask).unwrap();
 
         let case = serde_json::to_vec(&serde_json::json!({
             "scenario_id": "dv-test-copy",
@@ -706,6 +920,25 @@ mod tests {
         }))
         .unwrap();
         fs::write(split.join("manifest.json"), &manifest).unwrap();
+        let train_manifest = serde_json::to_vec(&serde_json::json!({
+            "schema": "uor-r4-chat-corpus/v1",
+            "mask_schema": "uor-r4-response-mask/u8/v1",
+            "split": "train",
+            "tokenizer": {
+                "sha256": tokenizer_sha256,
+                "vocab_size": 4096,
+                "bos_id": 0
+            },
+            "tokens": 4,
+            "tokens_bytes": train_tokens.len(),
+            "mask_bytes": train_mask.len(),
+            "response_tokens": 2,
+            "max_tokens": 64,
+            "tokens_sha256": sha256(&train_tokens),
+            "mask_sha256": sha256(&train_mask)
+        }))
+        .unwrap();
+        fs::write(train_split.join("manifest.json"), &train_manifest).unwrap();
 
         let receipt = serde_json::to_vec(&serde_json::json!({
             "schema": SCENARIO_SCHEMA,
@@ -714,9 +947,17 @@ mod tests {
                 "sha256": tokenizer_sha256,
                 "vocab_size": 4096,
                 "bos_id": 0,
+                "eos_id": 1,
                 "dialogue_schema": "uor-r4.literal-role-dialogue/2"
             },
             "splits": {
+                "train": {
+                    "rows": 1,
+                    "tokens_sha256": sha256(&train_tokens),
+                    "mask_sha256": sha256(&train_mask),
+                    "manifest_sha256": sha256(&train_manifest),
+                    "scenarios_sha256": sha256(&case)
+                },
                 "development": {
                     "rows": 1,
                     "tokens_sha256": sha256(&tokens),
@@ -773,15 +1014,74 @@ mod tests {
                 split: "development".to_owned(),
                 max_cases: 1,
                 reply_tokens: 4,
+                table_baseline: false,
             },
         )
         .unwrap();
         assert_eq!(report.source_rows, 1);
         assert_eq!(report.eligible_rows, 1);
         assert_eq!(report.selected_rows, 1);
+        assert_eq!(report.schema, SCENARIO_GRADE_SCHEMA);
+        assert!(report.table_baseline.is_none());
         assert_eq!(report.rows.len(), 1);
         assert!(report.rows[0].prompt_tokens > 0);
         assert!(report.rows[0].generated_tokens > 0);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn table_baseline_uses_the_same_selected_cases_and_scores() {
+        let (root, tokenizer_path) = scenario_root();
+        let tokenizer_sha256 = sha256(&fs::read(&tokenizer_path).unwrap());
+        let snapshot = synthetic_fbs_trunk_with(
+            273,
+            FbsSynth {
+                vocab: 4096,
+                d: 64,
+                mlp: 64,
+                layers: 1,
+                context: 64,
+                kept: 8,
+                gain_lo: 0.75,
+                gain_span: 1.5,
+                table: 0.25,
+                decay_step: 0.0625,
+            },
+        );
+        let artifact = export_fbs_trunk_uorlut01_with_provenance(
+            &snapshot,
+            FbsExportSnaps::SNAPPED,
+            None,
+            0,
+            Some(&FbsExportProvenance {
+                stack_contract: StackContractProvenance {
+                    source: "scenario-grade-test".to_owned(),
+                    sha256: "0".repeat(64),
+                    semantic_blake3: "0".repeat(64),
+                },
+                tokenizer_sha256,
+            }),
+        )
+        .unwrap();
+        let report = grade_scenarios(
+            &artifact,
+            &root,
+            &tokenizer_path,
+            ScenarioGradeConfig {
+                split: "development".to_owned(),
+                max_cases: 1,
+                reply_tokens: 4,
+                table_baseline: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(report.schema, SCENARIO_GRADE_TABLE_SCHEMA);
+        let baseline = report.table_baseline.expect("table baseline");
+        assert_eq!(baseline.rows.len(), report.rows.len());
+        assert_eq!(baseline.rows[0].scenario_id, report.rows[0].scenario_id);
+        assert!(baseline.rows[0].generated_tokens > 0);
+        assert!(!baseline.rows[0].reply_text.starts_with(' '));
+        assert_eq!(baseline.counts.cases, 1);
         let _ = fs::remove_dir_all(root);
     }
 
@@ -858,6 +1158,31 @@ mod tests {
     }
 
     #[test]
+    fn count_table_frequency_ties_choose_the_lower_token() {
+        let counts = HashMap::from([(9, 3), (4, 3), (7, 1)]);
+        assert_eq!(most_frequent_token(&counts), Some(4));
+    }
+
+    #[test]
+    fn train_identity_refuses_a_context_that_differs_from_the_receipt() {
+        let (root, _) = scenario_root();
+        let train_root = root.join("train");
+        let token_bytes = fs::read(train_root.join("tokens.u16")).unwrap();
+        let mask = fs::read(train_root.join("response_mask.u8")).unwrap();
+        let manifest = fs::read(train_root.join("manifest.json")).unwrap();
+        let mut train = validate_corpus_manifest(&manifest, &token_bytes, &mask).unwrap();
+        let receipt =
+            parse_receipt(&fs::read(root.join("scenario-manifest.json")).unwrap()).unwrap();
+        train.max_tokens += 1;
+        let error = validate_train_identity(&train, &receipt, &manifest).unwrap_err();
+        assert!(
+            error.to_string().contains("TRAIN identity"),
+            "unexpected error: {error}"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn selection_is_deterministic_and_bounded() {
         let selected = (0..5)
             .map(|rank| even_rank(rank, 11, 5))
@@ -883,6 +1208,7 @@ mod tests {
                 "sha256": "0".repeat(64),
                 "vocab_size": 4096,
                 "bos_id": 0,
+                "eos_id": 1,
                 "dialogue_schema": "uor-r4.literal-role-dialogue/2"
             },
             "splits": {
