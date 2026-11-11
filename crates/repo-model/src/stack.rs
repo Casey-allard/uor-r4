@@ -650,6 +650,9 @@ impl StackContract {
         check_text("title", &self.title)?;
         check_text("summary", &self.summary)?;
         check_commit("source_pin", &self.source_pin)?;
+        if let Some(decision) = &self.decision {
+            check_repo_path(root, "decision", decision)?;
+        }
         if self.revision == 0 {
             return Err(bad(format!("{}: revision must be positive", self.id)));
         }
@@ -746,6 +749,9 @@ impl StackContract {
                     self.id
                 )));
             }
+        }
+        if let Some(grandfathered_by) = &self.artifact.grandfathered_by {
+            check_repo_path(root, "artifact.grandfathered_by", grandfathered_by)?;
         }
         if self.artifact.sections.is_empty() {
             return Err(bad(format!("{}: artifact has no section", self.id)));
@@ -1705,6 +1711,21 @@ statement = "This contract is not a proof of language capability."
     }
 
     #[test]
+    fn contract_lifecycle_locators_must_resolve() {
+        let mut decision = parsed();
+        decision.decision = Some("docs/no-such-decision.md#accepted".to_owned());
+        let error = decision.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("decision"), "{error}");
+
+        let mut grandfathered = parsed();
+        grandfathered.artifact.provenance = Some(ArtifactProvenance::LegacyGrandfathered);
+        grandfathered.artifact.schema = Some("uor-r4.lut-stack/7".to_owned());
+        grandfathered.artifact.grandfathered_by = Some("../../outside.md#legacy".to_owned());
+        let error = grandfathered.check(&root()).unwrap_err().to_string();
+        assert!(error.contains("grandfathered_by"), "{error}");
+    }
+
+    #[test]
     fn required_contract_collections_cannot_be_empty() {
         for clear in [
             |c: &mut StackContract| c.artifact.sections.clear(),
@@ -1796,7 +1817,10 @@ statement = "This contract is not a proof of language capability."
 
         required.artifact.schema = Some("uor-r4.lut-stack/5".to_owned());
         let error = required.check(&root()).unwrap_err().to_string();
-        assert!(error.contains("must use uor-r4.lut-stack/6 through /9"), "{error}");
+        assert!(
+            error.contains("must use uor-r4.lut-stack/6 through /9"),
+            "{error}"
+        );
     }
 
     #[test]
