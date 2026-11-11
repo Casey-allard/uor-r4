@@ -41,6 +41,7 @@ mod query_cache_eval;
 mod readout_refit;
 mod reply_boundary;
 mod reply_eval;
+pub mod scenario_grade;
 mod self_prefix;
 mod served_forward;
 mod stop_signature;
@@ -240,6 +241,11 @@ pub use reply_eval::{
     TerminationOrbitCell, TerminationOrbitGate, TerminationOrbitReplyReading,
     TerminationOrbitTraining, TerminationPointGate, TerminationReading, TerminationStepReading,
     TimedReplyReading, TimedTerminationReading,
+};
+pub use scenario_grade::{
+    grade_scenarios, ScenarioCase, ScenarioCorpusIdentity, ScenarioGradeConfig,
+    ScenarioGradeCounts, ScenarioGradeReport, ScenarioGradeRow, ScenarioTurn,
+    SCENARIO_GRADE_SCHEMA,
 };
 pub use self_prefix::{
     audit_self_prefix_generated, audit_self_prefix_target_permutation, evaluate_self_prefix,

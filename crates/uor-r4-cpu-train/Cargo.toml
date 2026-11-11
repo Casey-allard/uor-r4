@@ -186,3 +186,7 @@ path = "src/bin/cpu-carry-hold-audit.rs"
 [[bin]]
 name = "cpu-checkpoint-grade"
 path = "src/bin/cpu-checkpoint-grade.rs"
+
+[[bin]]
+name = "cpu-scenario-grade"
+path = "src/bin/cpu-scenario-grade.rs"
