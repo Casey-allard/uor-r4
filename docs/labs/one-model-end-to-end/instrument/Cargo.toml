@@ -13,6 +13,7 @@ resolver = "2"
 [features]
 panel-writer = ["dep:uor-r4-training", "dep:uor-r4-core"]
 cpu-parity = ["dep:uor-r4-integer", "dep:uor-r4-cpu-train", "dep:uor-r4-core"]
+integer-reader = ["dep:uor-r4-integer"]
 
 [[bin]]
 name = "heldout-panel"
@@ -51,6 +52,11 @@ path = "src/bin/m2-sft-exclusions.rs"
 name = "corpus-panel-overlap"
 path = "src/bin/corpus-panel-overlap.rs"
 required-features = ["cpu-parity"]
+
+[[bin]]
+name = "raw-id-replies"
+path = "src/bin/raw-id-replies.rs"
+required-features = ["integer-reader"]
 
 [dependencies]
 uor-r4-training = { path = "../../../../crates/uor-r4-training", optional = true }
