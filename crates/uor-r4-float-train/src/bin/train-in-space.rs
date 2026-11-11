@@ -298,6 +298,12 @@
 //! rarest of the four tokens ending at it (`window_atoms`). A third, `k2>k1`, takes copy key 2's
 //! candidate where it has one and copy key 1's elsewhere. Needs no GPU; one header line, then one
 //! `copy-key-oracle` line per rule.
+//!
+//! `train-in-space --data-root DIR --turn-census TRAIN PANEL LINED` (claude-349): on
+//! conversations written without memory lines, how often a reply's own words point at one earlier
+//! user turn, whether that turn holds the value, and whether the copy read names the value when
+//! it looks only inside it (`uor_r4_float_train::turn_census`). Each argument is a folder with
+//! `tokens.u16` and `response_mask.u8`; LINED is the panel written `recall=oracle`. Needs no GPU.
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -347,6 +353,7 @@ fn pull_applies(attract: f64, other_mode: bool) -> Result<()> {
 fn main() -> Result<()> {
     let mut data_root = None;
     let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
+    let mut turn_census: Option<[PathBuf; 3]> = None;
     let mut out = None;
     let mut inspect = None;
     let mut reach = None;
@@ -480,6 +487,16 @@ fn main() -> Result<()> {
                     )
                 })?;
                 key_oracle = Some((PathBuf::from(&value), PathBuf::from(mask)));
+            }
+            "--turn-census" => {
+                let mut folder = || {
+                    args.next().map(PathBuf::from).ok_or_else(|| {
+                        FloatTrainError::Invalid(
+                            "--turn-census wants TRAIN, PANEL and LINED folders".to_owned(),
+                        )
+                    })
+                };
+                turn_census = Some([PathBuf::from(&value), folder()?, folder()?]);
             }
             "--out" => out = Some(PathBuf::from(&value)),
             "--inspect" => inspect = Some(PathBuf::from(&value)),
@@ -865,10 +882,11 @@ fn main() -> Result<()> {
         panel_prompts_on,
         integer_grade_on,
         key_oracle.is_some(),
+        turn_census.is_some(),
     ];
     if modes.iter().filter(|&&m| m).count() > 1 {
         return Err(FloatTrainError::Invalid(
-            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1, --integer-grade 1 or --copy-key-oracle"
+            "give one of --out, --inspect, --reach, --grad-norms 1, --decode-speed, --opening-bound 1, --reply-bound 1, --census 1, --score-rows, --overturn 1, --controls 1, --grade 1, --cell-grade 1, --read-grade 1, --cut-grade 1, --cycle-grade 1, --key-grade 1, --keyed-grade 1, --served-grade 1, --panel-prompts 1, --integer-grade 1, --copy-key-oracle or --turn-census"
                 .to_owned(),
         ));
     }
@@ -1037,6 +1055,7 @@ fn main() -> Result<()> {
             || config.reply_read_train.is_some()
             || !scopes.is_empty()
             || key_oracle.is_some()
+            || turn_census.is_some()
         {
             return Err(FloatTrainError::Invalid(
                 "--recall trains; it takes --out and no other mode".to_owned(),
@@ -1055,7 +1074,7 @@ fn main() -> Result<()> {
         data_root.ok_or_else(|| FloatTrainError::Invalid("--data-root is required".to_owned()))?;
     // claude-337: past --recall, the pull trains only in run_long; every other mode below returns
     // before it, so a pull given to one of them would be recorded and never run.
-    let other_mode = key_oracle.is_some() || cycle_grade_on || key_grade_on || panel_prompts_on
+    let other_mode = key_oracle.is_some() || turn_census.is_some() || cycle_grade_on || key_grade_on || panel_prompts_on
         || integer_grade_on || served_grade_on || keyed_grade_on || !key_levels.is_empty() || keys_runs.is_some()
         || cut_grade_on || read_grade_on || cell_grade_on || grade_on || controls_on || overturn_on
         || census_on || reply || bound || score.is_some() || decode.is_some() || grad_norms
@@ -1063,6 +1082,9 @@ fn main() -> Result<()> {
     pull_applies(config.hamming_attract, other_mode)?;
     if let Some((tokens, mask)) = &key_oracle {
         return copy_key_oracle(&data_root, tokens, mask);
+    }
+    if let Some([train, panel, lined]) = &turn_census {
+        return turn_census_run(&data_root, train, panel, lined);
     }
     if flock_end && score.is_none() && !grade_on {
         return Err(FloatTrainError::Invalid(
@@ -1569,6 +1591,61 @@ fn copy_key_oracle(data_root: &Path, tokens_path: &Path, mask_path: &Path) -> Re
         println!(
             "copy-key-oracle {rule} copyable={copyable} with_exact={with_exact} right={right} purity={purity:.4}"
         );
+    }
+    Ok(())
+}
+
+/// `--turn-census` (claude-349): the counts of `uor_r4_float_train::turn_census` on three
+/// unpinned UORT splits (TRAIN and the panel without memory lines, the panel with them), read
+/// with the pinned tokenizer. The registered stop list is TRAIN's 64 most frequent tokens.
+fn turn_census_run(data_root: &Path, train: &Path, panel: &Path, lined: &Path) -> Result<()> {
+    use sha2::{Digest, Sha256};
+    use uor_r4_float_train::hamilton_sheet as hs;
+    use uor_r4_float_train::turn_census::{turn_census, Codec, Marks, Stops};
+    let bytes = std::fs::read(data_root.join("tokenizer.json"))?;
+    if hex::encode(Sha256::digest(&bytes)) != hs::PINNED_TOKENIZER_SHA256 {
+        return Err(FloatTrainError::Invalid(
+            "tokenizer.json differs from the pinned tokenizer".to_owned(),
+        ));
+    }
+    let invalid = |what: &str| FloatTrainError::Invalid(format!("--turn-census: {what}"));
+    let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("tokenizer.json does not parse"))?;
+    let mark = |surface: &str| {
+        tokenizer
+            .token_id(surface)
+            .ok_or_else(|| invalid("the tokenizer lacks a document mark"))
+    };
+    let marks = Marks {
+        bos: mark("<|bos|>")?,
+        eos: mark("<|eos|>")?,
+        sep: tokenizer.encode("\n"),
+        system: tokenizer.encode("System:"),
+        user: tokenizer.encode("User:"),
+        assistant: tokenizer.encode("Assistant:"),
+    };
+    let split = |dir: &Path| read_uort_pair(&dir.join("tokens.u16"), &dir.join("response_mask.u8"));
+    let (train, panel, lined) = (split(train)?, split(panel)?, split(lined)?);
+    let decode = |ids: &[u32]| tokenizer.decode(ids);
+    let encode = |text: &str| tokenizer.encode(text);
+    let lines = turn_census(
+        (&train.0, &train.1),
+        (&panel.0, &panel.1),
+        (&lined.0, &lined.1),
+        &marks,
+        &Codec {
+            decode: &decode,
+            encode: &encode,
+        },
+        &Stops {
+            tops: &[0, 16, 64, 256],
+            registered: 2,
+        },
+        20,
+    )
+    .map_err(|what| invalid(&what))?;
+    for line in lines {
+        println!("{line}");
     }
     Ok(())
 }
