@@ -22,6 +22,8 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 
+use uor_r4_integer::fbs_snapshot::{PlaceImage, PlaceMarks, PlaceState, PLACE_ARM, PLACE_OPEN, PLACE_STOP};
+
 /// Errors are sentences; the binary wraps them.
 pub type Result<T> = std::result::Result<T, String>;
 
@@ -315,8 +317,16 @@ pub fn clauses(x: &[u32], content: &Range<usize>, punct: &HashSet<u32>) -> Vec<R
     parts
 }
 
+/// The user turn the reply at `reply` answers, and the user turns before that one. A reply
+/// answers the latest user turn once, as the place register reads a conversation (claude-351):
+/// a model turn that follows another model turn, with no user turn between, answers nothing.
 fn user_turns_before(doc: &[Turn], reply: usize) -> Option<(usize, Vec<usize>)> {
-    let asked = (0..reply).rev().find(|&i| doc[i].role == Role::User)?;
+    let asked = (0..reply)
+        .rev()
+        .find(|&i| matches!(doc[i].role, Role::User | Role::Assistant))?;
+    if doc[asked].role == Role::Assistant {
+        return None;
+    }
     Some((
         asked,
         (0..asked).filter(|&i| doc[i].role == Role::User).collect(),
@@ -1123,9 +1133,9 @@ pub fn place_census(
             .filter(|&t| test(&(codec.decode)(&[t])))
             .collect()
     };
-    let punct = class(&|s| !s.chars().any(char::is_alphanumeric));
+    let punct = class(&no_letter_or_digit);
     let space = class(&|s| !s.is_empty() && s.chars().all(char::is_whitespace));
-    let new_word = class(&|s| s.starts_with(char::is_whitespace));
+    let new_word = class(&starts_a_word);
     let text = |range: &Range<usize>| (codec.decode)(&x[range.clone()]).replace('\n', " ");
 
     // A: the instrument.
@@ -1449,6 +1459,7 @@ pub fn place_census(
 
     // E: the open rule, with the register as each arming rule sets it. The Open row reads the
     // chosen rule's line; the other two are printed beside it.
+    let mut voted = None;
     for (k, &(name, fx, fit_cases)) in fits.iter().enumerate() {
         let (fires, fit_found, panel_found) = &armed[k];
         for (arm, arm_name) in ARMS {
@@ -1486,6 +1497,9 @@ pub fn place_census(
                 "place-census E fit={name} arm={arm_name} right={right} of={right_of} wrong_recall={} of_rows={} wrong_general={} of_rows={} wrong_abstain={} of_rows={} value_start_is_the_first_open={first} of={n}",
                 wrong[0], rows[0], wrong[1], rows[1], wrong[2], rows[2]
             ));
+            if k == 0 && arm == Arm::Voted {
+                voted = Some((opens.clone(), [right, right_of, wrong[0], wrong[1], wrong[2], first]));
+            }
             if k == 0 && arm == rule {
                 let fine = at_least(right, right_of, 95, 100)
                     && (0..3).all(|i| wrong[i] * 100 <= rows[i] * 2);
@@ -1604,6 +1618,241 @@ pub fn place_census(
         "512"
     };
     out.push(format!("place-census decide window: {window}"));
+    // claude-351: the register the trainer and the session run, on the panel, driven by the same
+    // finds and the TRAIN fit's majority rules, with D3's two lines above to stand beside.
+    if let Some((opens, open_counts)) = voted {
+        let vocab = seen.iter().max().map_or(0, |&t| t as usize + 1);
+        let bit = |on: bool, bit: i16| if on { bit } else { 0 };
+        let class: Vec<i16> = (0..vocab as u32)
+            .map(|t| {
+                bit(punct.contains(&t) || new_word.contains(&t), PLACE_STOP)
+                    | bit(armed[0].0.contains(&(t, 0)), PLACE_ARM)
+                    | bit(opens.contains(&t), PLACE_OPEN)
+            })
+            .collect();
+        let s = count_sets(0, Arm::Voted);
+        let counted = Counted {
+            sets: [s.right, s.wrong_place, s.general, s.abstain],
+            opens: open_counts,
+        };
+        let panel = PanelFinds {
+            x,
+            mask: corpora.panel.1,
+            cases: &panel_cases,
+            found: &armed[0].2,
+        };
+        out.extend(place_program(&panel, marks, class, &counted, codec)?);
+    }
+    Ok(out)
+}
+
+/// The place read's two stop classes (B1), by a token's text: no letter or digit, and the start
+/// of a new word. The place census's classes and the kit's stop list both read them here, so the
+/// register the census ran and the one a trainer runs stop at the same tokens.
+fn no_letter_or_digit(text: &str) -> bool {
+    !text.chars().any(char::is_alphanumeric)
+}
+
+fn starts_a_word(text: &str) -> bool {
+    text.starts_with(char::is_whitespace)
+}
+
+/// The labels a trainer of the place read learns from (claude-351), read from a split written
+/// without memory lines and its twin written `recall=oracle`: every recall reply with a place,
+/// as `[reply start, place, value start, value length]` in the split's positions, in ascending
+/// reply start; the marks; and the tokens a read stops at (B1) over all `vocab` tokens, those
+/// whose text has no letter or digit or starts a new word, as the census classes them.
+/// `tokens_sha256` names the split: the hash of its `tokens.u16` file, header included, which is
+/// the hash a training run checks its corpus by, so it is the caller's to read from that file.
+pub fn place_kit(
+    split: (&[u32], &[u8]),
+    twin: (&[u32], &[u8]),
+    marks: &Marks,
+    codec: &Codec<'_>,
+    vocab: usize,
+    tokens_sha256: String,
+) -> Result<crate::flock_read_hamming::PlaceKit> {
+    let docs = documents(split.0, split.1, marks)?;
+    let twin_docs = documents(twin.0, twin.1, marks)?;
+    let lines = pair_lines(split.0, &docs, twin.0, &twin_docs)?;
+    let (found, _) = cases(split.0, &docs, twin.0, &lines, codec)?;
+    let at = |i: usize| u32::try_from(i).map_err(|_| "a corpus position is past 32 bits".to_owned());
+    let mut places = Vec::new();
+    for case in found.iter().filter(|c| c.kind == Kind::Recall) {
+        if let Some(place) = case.place {
+            places.push([at(case.reply.start)?, at(place.s)?, at(place.p)?, at(place.len)?]);
+        }
+    }
+    places.sort_unstable();
+    let stop = (0..vocab as u32)
+        .filter(|&t| {
+            let text = (codec.decode)(&[t]);
+            no_letter_or_digit(&text) || starts_a_word(&text)
+        })
+        .collect();
+    let kit = crate::flock_read_hamming::PlaceKit {
+        tokens_sha256,
+        marks: PlaceMarks {
+            bos: marks.bos,
+            eos: marks.eos,
+            sep: marks.sep.clone(),
+            system: marks.system.clone(),
+            user: marks.user.clone(),
+            assistant: marks.assistant.clone(),
+        },
+        stop,
+        places,
+    };
+    kit.check().map_err(|e| e.to_string())?;
+    // The marks a trainer's tables would refuse are refused here, before the kit is written.
+    kit.marks.check(vocab).map_err(|e| e.to_string())?;
+    Ok(kit)
+}
+
+/// What the place census counted on the panel for D3 with the TRAIN fit, for [`place_program`]
+/// to stand its own counts beside: the D line's true place, wrong place, general and abstention
+/// sets, and the E line's right, of, wrong rows by kind (recall, general, abstention) and first
+/// opens.
+pub struct Counted {
+    pub sets: [usize; 4],
+    pub opens: [usize; 6],
+}
+
+/// The panel as [`place_program`] reads it: its tokens and response mask, the replies the census
+/// counts, and each reply's finds, one a question row ([`rows`]).
+pub struct PanelFinds<'a> {
+    pub x: &'a [u32],
+    pub mask: &'a [u8],
+    pub cases: &'a [Case],
+    pub found: &'a [Vec<Find>],
+}
+
+/// The place program on the panel (claude-351): `PlaceState`, the one register the float trainer
+/// and the integer session run, read over every document from its start mark, one pass a
+/// document, as a session reads a conversation. Its questions are answered by the census's own
+/// finds, and `class` gives each token its stop (B1), arm and open bits. Nothing here reads a
+/// model: the lines check the program, not the find.
+///
+/// The census counts each reply row against the register as the reply's start left it. The
+/// program's register also steps and stops, so beside each count that can differ for that reason
+/// the line names it: `moved`, replies whose register had left the true place by the value-start
+/// row. `read` is what the census did not count: of the replies opened right, those where the
+/// steps then offer every value token and the stop clears the register at the value's end
+/// (`whole`), those where the stop comes before it (`short`), and those where the register is
+/// still set after it (`long`).
+pub fn place_program(
+    panel: &PanelFinds<'_>,
+    marks: &Marks,
+    class: Vec<i16>,
+    counted: &Counted,
+    codec: &Codec<'_>,
+) -> Result<Vec<String>> {
+    let (x, cases) = (panel.x, panel.cases);
+    let docs = documents(x, panel.mask, marks)?;
+    let vocab = class.len();
+    let frame = PlaceMarks {
+        bos: marks.bos,
+        eos: marks.eos,
+        sep: marks.sep.clone(),
+        system: marks.system.clone(),
+        user: marks.user.clone(),
+        assistant: marks.assistant.clone(),
+    };
+    let image = PlaceImage::checked(frame, class, vocab)?;
+    let asks: HashMap<usize, usize> = panel
+        .found
+        .iter()
+        .flatten()
+        .map(|f| (f.t, f.pos))
+        .collect();
+    let starts: Vec<usize> = (0..x.len()).filter(|&i| x[i] == marks.bos).collect();
+    if starts.len() != docs.len() {
+        return Err("the start marks and the documents differ in number".to_owned());
+    }
+    // Each row's register, offer and whether the step opened it, at corpus positions.
+    let mut read: Vec<(Option<usize>, Option<usize>, bool)> = vec![(None, None, false); x.len()];
+    let mut same_turns = 0usize;
+    for (d, &lo) in starts.iter().enumerate() {
+        let hi = starts.get(d + 1).copied().unwrap_or(x.len());
+        let mut state = PlaceState::default();
+        for t in lo..hi {
+            let row = state.advance(&x[lo..=t], &image, |_| asks.get(&t).map(|&pos| pos - lo));
+            let at = |place: Option<usize>| place.map(|p| p + lo);
+            read[t] = (at(row.held), at(row.offer), row.stepped);
+        }
+        // The user turns the program closed, read from the stream alone, against the census's.
+        let closed = docs[d].iter().enumerate().filter(|&(i, turn)| turn.role == Role::User && i + 1 < docs[d].len());
+        let want: Vec<Range<usize>> = closed.map(|(_, turn)| turn.content.clone()).collect();
+        let got: Vec<Range<usize>> = state.turns().users().iter().map(|r| r.start + lo..r.end + lo).collect();
+        same_turns += usize::from(want == got);
+    }
+    let (mut sets, mut opens) = ([0usize; 4], [0usize; 6]);
+    let (mut whole, mut short, mut long) = (0usize, 0usize, 0usize);
+    let mut moved = Vec::new();
+    for case in cases {
+        let kind = case.kind as usize;
+        let reg = read[case.reply.start - 1].0;
+        let s = case.place.map(|place| place.s);
+        let at_place = reg.is_some() && reg == s;
+        match case.kind {
+            Kind::Recall => {
+                sets[0] += usize::from(at_place);
+                sets[1] += usize::from(reg.is_some() && reg != s);
+            }
+            Kind::General => sets[2] += usize::from(reg.is_some()),
+            Kind::Abstain => sets[3] += usize::from(reg.is_some()),
+        }
+        opens[1] += usize::from(at_place);
+        // The census's rows: up to the value-start row when the register is at the true place,
+        // the whole reply otherwise; a row counts when its token opens it.
+        let value_row = case.place.filter(|_| at_place).map(|place| place.p - 1);
+        let end = value_row.map_or(case.reply.end, |row| row + 1);
+        let (mut early, mut opened) = (false, false);
+        let rows = read.iter().enumerate().take(end).skip(case.reply.start - 1);
+        for (t, &(_, offer, stepped)) in rows {
+            if value_row == Some(t) {
+                if offer == s && !stepped {
+                    opens[0] += 1;
+                    opened = true;
+                } else if offer.is_some() {
+                    moved.push(case);
+                }
+            } else if offer.is_some() && !stepped {
+                opens[2 + kind] += 1;
+                early = true;
+            }
+        }
+        opens[5] += usize::from(opened && !early);
+        if let (true, Some(place)) = (opened, case.place) {
+            let offered = (0..place.len).take_while(|&i| read[place.p - 1 + i].1 == Some(place.s + i));
+            if offered.count() < place.len {
+                short += 1;
+            } else if read.get(place.p - 1 + place.len).is_some_and(|row| row.1.is_some()) {
+                long += 1;
+            } else {
+                whole += 1;
+            }
+        }
+    }
+    let text = |range: &Range<usize>| (codec.decode)(&x[range.clone()]).replace('\n', " ");
+    let mut out = vec![
+        format!(
+            "place-program turns documents={} user_turns_as_the_census={same_turns}",
+            docs.len()
+        ),
+        format!(
+            "place-program D rule=D3 true_place={} wrong_place={} general_set={} abstain_set={} census={:?} equal={}",
+            sets[0], sets[1], sets[2], sets[3], counted.sets, sets == counted.sets
+        ),
+        format!(
+            "place-program E arm=D3 right={} of={} wrong_recall={} wrong_general={} wrong_abstain={} value_start_is_the_first_open={} moved={} census={:?} equal={}",
+            opens[0], opens[1], opens[2], opens[3], opens[4], opens[5], moved.len(), counted.opens, opens == counted.opens
+        ),
+        format!("place-program read whole={whole} short={short} long={long} of={}", opens[0]),
+    ];
+    for case in moved {
+        out.push(format!("place-program moved | reply={}", text(&case.reply)));
+    }
     Ok(out)
 }
 
@@ -1997,6 +2246,36 @@ mod tests {
         assert!(has("decide label: labels from the tokens"), "{out:#?}");
         assert!(has("G split=panel within_192=1 to_256=0"), "{out:#?}");
         assert!(has("decide window: 192"), "{out:#?}");
+        // The trainer's kit from the same twins (claude-351): one labelled reply, whose place
+        // and value are both "maya"; the stop tokens are the ones with no letter or digit; and
+        // a window from the corpus's start is labelled at the row before the reply.
+        let sha = "the split's hash".to_owned();
+        let kit = place_kit((&plain, &plain_mask), (&lined, &lined_mask), &marks(), &codec, WORDS.len(), sha)
+            .expect("a kit");
+        let [[reply, s, p, len]] = kit.places[..] else {
+            panic!("{:?}", kit.places)
+        };
+        let word = |i: u32| WORDS[plain[i as usize] as usize];
+        assert_eq!((word(reply), word(s), word(p), len), ("it's", "maya", "maya", 1));
+        assert_eq!((kit.stop.clone(), kit.tokens_sha256.as_str()), (ids("\n : ."), "the split's hash"));
+        // A token whose text starts a new word stops a read too: with "who" written " who", the
+        // same twins give the same place and one more stop token.
+        let who = ids("who");
+        let spaced = |tokens: &[u32]| if tokens == who { " who".to_owned() } else { decode(tokens) };
+        let spaced = Codec {
+            decode: &spaced,
+            encode: &encode,
+        };
+        let sha = "the split's hash".to_owned();
+        let other = place_kit((&plain, &plain_mask), (&lined, &lined_mask), &marks(), &spaced, WORDS.len(), sha)
+            .expect("a kit");
+        assert_eq!((other.stop, other.places), (ids("\n : who ."), kit.places.clone()));
+        let labels = kit.labels(&[Some(0)], plain.len());
+        let want = crate::flock_read_hamming::PlaceLabel::At {
+            place: s as usize,
+            value_row: p as usize - 1,
+        };
+        assert_eq!((labels.get(&(reply as usize - 1)), labels.len()), (Some(&want), 1));
     }
 
     #[test]
@@ -2175,12 +2454,106 @@ mod tests {
             // "it's" opens: right on three replies, early on the doubled one, wrong on the last.
             "E fit=train arm=D1 right=3 of=3 wrong_recall=2",
             "value_start_is_the_first_open=2 of=4",
+            // The register program reads every document's user turns from the stream alone.
+            "place-program turns documents=4 user_turns_as_the_census=4",
         ];
         let missing: Vec<&str> = expected
             .into_iter()
             .filter(|needle| !out.iter().any(|line| line.contains(needle)))
             .collect();
         assert!(missing.is_empty(), "missing {missing:#?} in {out:#?}");
+        // The register program, run token by token, counts what the census counted for its rule.
+        let program: Vec<&String> = out
+            .iter()
+            .filter(|line| {
+                line.starts_with("place-program D") || line.starts_with("place-program E")
+            })
+            .collect();
+        assert_eq!(program.len(), 2, "{out:#?}");
+        for line in program {
+            assert!(line.ends_with("equal=true"), "{line}");
+        }
+        // The same four replies through the program, by hand. The register is at the true place
+        // on the first three and at "ok" on the last. "it's" opens right on those three, early
+        // on the doubled one and wrong on the last. Each of the three reads its one-token value,
+        // and the "." after "maya" in the user's turn stops it.
+        for needle in [
+            "place-program D rule=D3 true_place=3 wrong_place=1 general_set=0 abstain_set=0",
+            "place-program E arm=D3 right=3 of=3 wrong_recall=2 wrong_general=0 wrong_abstain=0 value_start_is_the_first_open=2 moved=0",
+            "place-program read whole=3 short=0 long=0 of=3",
+        ] {
+            assert!(out.iter().any(|line| line.contains(needle)), "missing {needle} in {out:#?}");
+        }
+    }
+
+    #[test]
+    fn the_place_program_steps_through_a_two_token_value_and_stops_after_it() {
+        // The value is "maya ok". The read opens at "it's" and offers "maya"; the step carries
+        // it on to "ok"; the "." after "ok" in the user's turn stops it. A program whose step
+        // does nothing reads this value short, and one that does not stop reads it long.
+        let turns = [
+            "User|my friend is maya ok .",
+            "Assistant|ok .",
+            "User|who is my friend",
+            "Assistant|it's maya ok .",
+        ];
+        let [(plain, plain_mask), (lined, lined_mask)] = twins(&turns, "System|Memory : maya ok .");
+        let decode = |ids: &[u32]| words(ids).replace(" :", ":").replace(" .", ".");
+        let encode = |text: &str| ids(text);
+        let codec = Codec {
+            decode: &decode,
+            encode: &encode,
+        };
+        let corpora = Corpora {
+            train: (&plain, &plain_mask),
+            train_lined: (&lined, &lined_mask),
+            panel: (&plain, &plain_mask),
+            lined: (&lined, &lined_mask),
+        };
+        let lists = Stops {
+            tops: &[0],
+            registered: 0,
+        };
+        let out = place_census(&corpora, &marks(), &codec, &lists, 4).expect("a census");
+        for needle in [
+            "place-program D rule=D3 true_place=1 wrong_place=0 general_set=0 abstain_set=0",
+            "place-program E arm=D3 right=1 of=1 wrong_recall=0 wrong_general=0 wrong_abstain=0 value_start_is_the_first_open=1 moved=0",
+            "place-program read whole=1 short=0 long=0 of=1",
+        ] {
+            assert!(out.iter().any(|line| line.contains(needle)), "missing {needle} in {out:#?}");
+        }
+    }
+
+    #[test]
+    fn a_second_model_turn_with_no_user_turn_between_answers_nothing() {
+        // A reply answers the latest user turn once, as the register reads it. The memory line
+        // stands before the second of two model turns, so that turn is the recall reply; the
+        // register arms nothing there, so the census counts no case and the kit labels no place.
+        let turns = [
+            "User|my friend is maya .",
+            "Assistant|ok .",
+            "User|who is my friend",
+            "Assistant|ok .",
+            "Assistant|it's maya .",
+        ];
+        let [(plain, plain_mask), (lined, lined_mask)] = twins(&turns, "System|Memory : maya .");
+        let decode = |ids: &[u32]| words(ids).replace(" :", ":").replace(" .", ".");
+        let encode = |text: &str| ids(text);
+        let codec = Codec {
+            decode: &decode,
+            encode: &encode,
+        };
+        let docs = documents(&plain, &plain_mask, &marks()).expect("corpus");
+        let lined_docs = documents(&lined, &lined_mask, &marks()).expect("corpus");
+        let lines = pair_lines(&plain, &docs, &lined, &lined_docs).expect("twins");
+        let (replies, _) = cases(&plain, &docs, &lined, &lines, &codec).expect("cases");
+        // The one case is the "ok" that answers "who is my friend", a general reply.
+        let kinds: Vec<Kind> = replies.iter().map(|r| r.kind).collect();
+        assert_eq!(kinds, [Kind::General]);
+        let sha = "the split's hash".to_owned();
+        let kit = place_kit((&plain, &plain_mask), (&lined, &lined_mask), &marks(), &codec, WORDS.len(), sha)
+            .expect("a kit");
+        assert!(kit.places.is_empty(), "{:?}", kit.places);
     }
 
     #[test]

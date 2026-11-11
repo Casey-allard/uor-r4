@@ -26,6 +26,10 @@
 //! the artifact's `hamming.d{depth}.ask` and `.carry` sections (claude-336): the question table
 //! at Q12, the gains at Q16. A snapshot without the key exports byte for byte as before.
 //!
+//! A snapshot of a model with the place read (claude-351) holds its marks and each token's class
+//! under `hamming_place`. They are served from the readout read's `hamming.d{depth}.place`
+//! section and the Hamming record's `place`, added after the ask heads the read sits on.
+//!
 //! `--run-config` reads the run's `config.json` for its readout (integer-nearest-readout,
 //! claude-231) and served contract. A `cell` or `nearest` objective serves the whole table's
 //! nearest token (`head = "native_vector_nearest"`), for a snapshot taken before `fbs-snapshot`
@@ -65,11 +69,11 @@ use std::process::ExitCode;
 
 use sha2::{Digest, Sha256};
 use uor_r4_integer::fbs_snapshot::{
-    quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead,
-    FBS_HAMMING_ASK_KEY,
+    quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead, PlaceImage,
+    FBS_HAMMING_ASK_KEY, FBS_HAMMING_PLACE_KEY,
 };
 use uor_r4_integer::stack::{
-    add_hamming_ask_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
+    add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
     export_fbs_trunk_uorlut01_with_provenance, point_key_windows, set_hamming_copy_latest_uorlut01,
     AskImage, FbsExportProvenance, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
     StackContractProvenance, POINT_KEY_BOS, POINT_KEY_WINDOW,
@@ -302,6 +306,17 @@ fn run() -> Result<(), String> {
                 .map_err(|e| format!("{snapshot}: {FBS_HAMMING_ASK_KEY}: {e}"))?,
         ),
     };
+    // The place read (claude-351) rides beside the trunk snapshot the same way.
+    let place: Option<PlaceImage> = match value
+        .as_object_mut()
+        .and_then(|o| o.remove(FBS_HAMMING_PLACE_KEY))
+    {
+        None => None,
+        Some(place) => Some(
+            serde_json::from_value(place)
+                .map_err(|e| format!("{snapshot}: {FBS_HAMMING_PLACE_KEY}: {e}"))?,
+        ),
+    };
     let mut snap: FbsTrunkSnapshot =
         serde_json::from_value(value).map_err(|e| format!("{snapshot}: {e}"))?;
     // A block in which no read asks is the plain snapshot (claude-336 review).
@@ -436,6 +451,12 @@ fn run() -> Result<(), String> {
         Some(asks) => {
             add_hamming_ask_uorlut01(&artifact, &asks).map_err(|e| format!("the ask heads: {e}"))?
         }
+    };
+    // claude-351: the place read sits on the readout read's ask heads, so it is added after them.
+    let artifact = match place {
+        None => artifact,
+        Some(place) => add_hamming_place_uorlut01(&artifact, &place)
+            .map_err(|e| format!("the place read: {e}"))?,
     };
     // A run trained with `--hamming-copy-latest` serves the latest exact match: the rule is in
     // its config, not in the snapshot, and goes into the Hamming record here.

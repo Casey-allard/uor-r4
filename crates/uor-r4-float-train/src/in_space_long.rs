@@ -184,6 +184,16 @@ pub struct LongConfig {
     /// and left out of `config.json`.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub hamming_carry_question: usize,
+    /// claude-351: the place read (`HammingReads::with_place`), named by the kit it trains from:
+    /// the labels, marks and stop tokens `--turn-census ... --places-out` writes from the corpus
+    /// this run trains on. It needs the ask heads and refuses the question carry. Left out of
+    /// `config.json` when off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hamming_place: Option<PathBuf>,
+    /// The place pull's weight λ in the loss (`HammingReads::place_step`); it needs the place
+    /// read. 0, the default, is off and left out of `config.json`.
+    #[serde(default, skip_serializing_if = "is_zero_f64")]
+    pub hamming_place_pull: f64,
     /// Pass no gradient from the input encoding into the shared table
     /// (`geometric_stack::set_input_table_fixed`); it changes training only, never a forward.
     pub fix_input_table: bool,
@@ -1124,9 +1134,52 @@ fn checkpoint_hamming(
             config.hamming_carry_question
         )));
     }
+    let reads = start_place(config, reads)?;
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
+}
+
+/// claude-351: `reads` with the place read `config` names, and its kit set as what the training
+/// step teaches from on this thread. Reads that carry a place read already, a checkpoint's, keep
+/// its counts, and must be framed as the kit is; reads without one start it at zero. The kit
+/// must name the corpus the run trains on. Without `--hamming-place` the thread's kit is
+/// cleared, and reads that carry a place read are refused.
+fn start_place(
+    config: &LongConfig,
+    reads: crate::flock_read_hamming::HammingReads,
+) -> Result<crate::flock_read_hamming::HammingReads> {
+    use crate::flock_read_hamming::{set_place_teach, PlaceKit};
+    let Some(path) = &config.hamming_place else {
+        set_place_teach(None);
+        if reads.place().is_some() {
+            return Err(invalid("--init-from checkpoint has the place read; name its kit with --hamming-place"));
+        }
+        return Ok(reads);
+    };
+    let kit = PlaceKit::load(path)?;
+    let corpus = config
+        .train_split
+        .as_ref()
+        .map_or(hs::PINNED_TRAIN_TOKENS_SHA256, |split| split.tokens_sha256.as_str());
+    if kit.tokens_sha256 != corpus {
+        return Err(invalid(format!(
+            "--hamming-place {} was read from another corpus than the one this run trains on",
+            path.display()
+        )));
+    }
+    let reads = match reads.place() {
+        Some(place) if place.framed_as(&kit.marks, &kit.stop) => reads,
+        Some(_) => {
+            return Err(invalid(format!(
+                "--init-from checkpoint's place read has other marks or stop tokens than --hamming-place {}",
+                path.display()
+            )))
+        }
+        None => reads.with_place(kit.marks.clone(), &kit.stop)?,
+    };
+    set_place_teach(Some((kit, config.hamming_place_pull)));
+    Ok(reads)
 }
 
 /// The Hamming reads `config` asks for, set on this thread, with their optimizer; none when off.
@@ -1195,6 +1248,7 @@ fn start_hamming(
         // claude-335: one carry gain per token of the same shared table.
         reads = reads.with_carry(config.hamming_carry_question, hs::SHEET_VOCAB)?;
     }
+    let reads = start_place(config, reads)?;
     crate::flock_read_hamming::set_hamming_reads(Some(reads.clone()));
     let opt = crate::flock_read::FlockAdamW::for_vars(&reads.variables())?;
     Ok(Some((reads, opt)))
@@ -2105,6 +2159,24 @@ fn step_gradient(
         }
         _ => None,
     };
+    // claude-351: the place read's reads, what the step teaches it from and the shared table,
+    // when it trains: every forward runs its register over the forward's windows, casts the two
+    // gains' votes and adds the place pull.
+    let placing = match (
+        crate::flock_read_hamming::place_teach(),
+        crate::flock_read_hamming::hamming_reads().filter(|reads| reads.place().is_some()),
+    ) {
+        (Some(teach), Some(reads)) => {
+            let table = model
+                .variables()
+                .get("embedding.weight")
+                .ok_or_else(|| invalid("the model has no shared vector table"))?
+                .as_tensor()
+                .clone();
+            Some((reads, teach, table))
+        }
+        _ => None,
+    };
     let mut pulled: Vec<Tensor> = Vec::new();
     let mut grads: Option<candle_core::backprop::GradStore> = None;
     let mut losses = Vec::new();
@@ -2153,6 +2225,21 @@ fn step_gradient(
                 }
                 None => loss,
             };
+            // claude-351: the place step, weighted by this forward's share of the step's windows.
+            let loss = match &placing {
+                Some((reads, teach, table)) => {
+                    let plain = assemble(&windows[lo..hi]).0;
+                    let starts = window_starts(&windows[lo..hi]);
+                    match reads.place_step(&plain, context, table, &teach.kit, &starts)? {
+                        Some(distance) if teach.pull > 0.0 => {
+                            let weight = teach.pull * (hi - lo) as f64 / windows.len() as f64;
+                            loss.add(&distance.affine(weight, 0.0)?)?
+                        }
+                        _ => loss,
+                    }
+                }
+                None => loss,
+            };
             let grads = variables_only(&loss, loss.backward()?)?;
             stage_clock::mark("backward");
             Ok((detached, share.unwrap_or(1.0), grads))
@@ -2184,6 +2271,19 @@ fn step_gradient(
         tally.record(distance, *all);
     }
     Ok((value, grads))
+}
+
+/// claude-351: each window's corpus start, its first scored target, less one, less that row's
+/// offset ([`window_input_mask`]); none for a window with no scored row, which is labelled with
+/// nothing.
+fn window_starts(windows: &[&CausalWindow]) -> Vec<Option<usize>> {
+    windows
+        .iter()
+        .map(|w| match (w.scored_corpus_positions.first(), w.scored_offsets.first()) {
+            (Some(&p), Some(&o)) if p > o => Some(p - 1 - o),
+            _ => None,
+        })
+        .collect()
 }
 
 /// claude-337: the found-copy pull's record over the steps since the last checkpoint, on a
@@ -3326,6 +3426,21 @@ fn check_pull_flags(config: &LongConfig) -> Result<()> {
     }
     if config.hamming_attract_at_both && config.hamming_attract_at_question {
         return Err(invalid("--hamming-attract-at takes one placement: scored, question or both"));
+    }
+    // claude-351: the place read and its pull.
+    if config.hamming_place_pull < 0.0 || !config.hamming_place_pull.is_finite() {
+        return Err(invalid("--hamming-place-pull is a weight of at least 0"));
+    }
+    if config.hamming_place_pull > 0.0 && config.hamming_place.is_none() {
+        return Err(invalid("--hamming-place-pull pulls the place read's questions; turn it on with --hamming-place"));
+    }
+    if config.hamming_place.is_some() && !config.hamming_ask {
+        return Err(invalid("--hamming-place finds with the ask heads; turn them on with --hamming-ask 1"));
+    }
+    if config.hamming_place.is_some() && config.hamming_carry_question > 0 {
+        return Err(invalid(
+            "--hamming-place and --hamming-carry-question both change the readout read's question; one is on at a time",
+        ));
     }
     Ok(())
 }
@@ -15047,9 +15162,28 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             if let Some(tally) = pull_tally.as_mut() {
                 append_line(&out.join("pull.jsonl"), &serde_json::to_string(&tally.line(step + 1))?)?;
             }
+            // claude-351: the place read's reading for this checkpoint, on a run with it.
+            if let Some(line) = place_line(step + 1)? {
+                append_line(&out.join("place.jsonl"), &serde_json::to_string(&line)?)?;
+            }
         }
     }
     Ok(())
+}
+
+/// claude-351: a checkpoint's `place.jsonl` line on a language run with the place read
+/// (`run_long` under `--hamming-place`): the step, and the place read's gains and, since the
+/// line before, its votes and mean pull (`PlaceRead::reading`, which starts the next tally).
+/// None on a run without the place read, which writes no such file.
+fn place_line(step: usize) -> Result<Option<serde_json::Value>> {
+    let Some(reads) = crate::flock_read_hamming::hamming_reads() else {
+        return Ok(None);
+    };
+    let Some(place) = reads.place() else {
+        return Ok(None);
+    };
+    let line = place.line(step)?;
+    Ok(Some(line))
 }
 
 #[cfg(test)]
@@ -16459,6 +16593,8 @@ mod tests {
             hamming_hold: 0,
             hamming_attract_at_both: false,
             hamming_carry_question: 0,
+            hamming_place: None,
+            hamming_place_pull: 0.0,
             fix_input_table: false,
             train_split: None,
             opening_weight: 1,

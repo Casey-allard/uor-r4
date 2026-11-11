@@ -40,6 +40,7 @@ use super::format::{
     StackTurnMemory,
 };
 use super::hamming::{hamming_image, CopyRule, HammingStepRead, ReadForce, ServedHamming};
+use crate::fbs_snapshot::PlaceState;
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_argmax, stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv,
@@ -1527,6 +1528,7 @@ impl IntegerStackModel {
                 .as_ref()
                 .and_then(|f| f.hamming.as_ref())
                 .map_or_else(Vec::new, |h| h.payload_caches(context)),
+            place: PlaceState::default(),
             hamming_trace: None,
             decision: None,
             pointer_keys: vec![0; pointer_dim * context],
@@ -1987,6 +1989,9 @@ pub struct IntegerStackSession<'m> {
     /// For each Hamming read with type heads, the payload of every position stepped so far,
     /// `context * width` (claude-195); empty for a read without them.
     hamming_payloads: Vec<Vec<i64>>,
+    /// The place read's register and the turns it has read (claude-351); idle without a place
+    /// read.
+    place: PlaceState,
     /// While `Some`, each Hamming read's choices at every step (claude-235's trace).
     hamming_trace: Option<Vec<HammingStepRead>>,
     /// While `Some`, Q5's decision trace and its forced set (claude-249).
@@ -2279,6 +2284,13 @@ impl IntegerStackSession<'_> {
         &self.tokens
     }
 
+    /// The place read's register after the last step (claude-351): the place it holds, if it is
+    /// set, and the place whose token that step's readout was offered, if its row was open. Both
+    /// `None` without a place read.
+    pub fn last_place(&self) -> (Option<usize>, Option<usize>) {
+        (self.place.held(), self.place.offered())
+    }
+
     /// Set the pointer copy scale in Q16 (`scale * 2^-16`).
     ///
     /// When greater than zero, normalized attention weights from head 0 of the final
@@ -2330,6 +2342,7 @@ impl IntegerStackSession<'_> {
         self.lift_at = 0;
         self.pointer_at = 0;
         self.tokens.clear();
+        self.place = PlaceState::default();
         self.pointer_keys.fill(0);
         self.pointer_lifts.fill(0);
         self.b.logits.fill(0);
@@ -2500,6 +2513,15 @@ impl IntegerStackSession<'_> {
         {
             return Err(StackError::Shape(
                 "a session of a Hamming read with type heads cannot be restored yet: its per-position payloads are not saved",
+            ));
+        }
+        // The place read's register and turns are not saved either (claude-351).
+        if fbs
+            .and_then(|f| f.hamming.as_ref())
+            .is_some_and(|h| h.has_place())
+        {
+            return Err(StackError::Shape(
+                "a session of a place read cannot be restored yet: its register and turns are not saved",
             ));
         }
         if saved.schema != STACK_SESSION_SCHEMA {
@@ -3646,6 +3668,11 @@ fn stack_step_fbs(
     }
     // The Hamming read at this row needs `x_0..=x_t`.
     session.tokens.push(token);
+    // The place read's register moves on this token, before the row's readout (claude-351).
+    let offer = fbs
+        .hamming
+        .as_ref()
+        .and_then(|h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
     for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
@@ -3749,6 +3776,7 @@ fn stack_step_fbs(
             &mut b.scratch[..d],
             trace,
             force,
+            offer,
         );
     }
     if let (Some(step), Some(decision)) = (traced.as_mut(), session.decision.as_deref_mut()) {
@@ -3923,6 +3951,11 @@ fn stack_step_fbs_timed(
         return Err(StackError::ContextFull { context: s.context });
     }
     session.tokens.push(token);
+    // The place read's register moves on this token, before the row's readout (claude-351).
+    let offer = fbs
+        .hamming
+        .as_ref()
+        .and_then(|h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
     for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
@@ -3995,6 +4028,7 @@ fn stack_step_fbs_timed(
             &mut b.scratch[..d],
             session.hamming_trace.as_mut(),
             None,
+            offer,
         );
     }
     // The turn memory's move (units 2-3), after the Hamming readout as in the float trunk: the

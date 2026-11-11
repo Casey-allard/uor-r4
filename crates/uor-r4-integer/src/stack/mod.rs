@@ -87,7 +87,7 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    add_hamming_ask_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
+    add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
     set_hamming_copy_latest_uorlut01,
     StackMemoryChain, StackPointKey, POINT_KEY_EXP, STACK_FBS_CHAIN_SCHEMA, STACK_FBS_POINT_SCHEMA,
 };
@@ -114,6 +114,7 @@ pub use hamming::{
     CopyHeads, CopyRule, HammingImage, HammingReadImage, HammingStepHead, HammingStepRead, ServedCopyCodes,
     TypeHeads, COPY_MEAN_EXP,
 };
+pub use crate::fbs_snapshot::{place_find, place_first, place_pick, PlaceImage, PlaceMarks, PlaceRole, PlaceRow, PlaceState, PlaceTurns, PLACE_ARM, PLACE_OPEN, PLACE_STOP};
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
 pub use memory::{read_memory_uorlut01, MemoryImage, MemoryTableImage};
 pub use point_key::{

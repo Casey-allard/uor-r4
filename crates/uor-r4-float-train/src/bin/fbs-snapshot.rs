@@ -117,7 +117,7 @@ use uor_r4_float_train::spiralcore_fbs_sheet::PARITY_WINDOW_STRIDE;
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_snapshot::{
     run_readout_nearest, write_new_file, FbsFloatReadout, FbsReadoutMode, HammingTrace,
-    FBS_HAMMING_ASK_KEY, HAMMING_TRACE_SCHEMA,
+    FBS_HAMMING_ASK_KEY, FBS_HAMMING_PLACE_KEY, HAMMING_TRACE_SCHEMA,
 };
 
 fn write(path: &str, json: &[u8]) -> Result<()> {
@@ -732,7 +732,14 @@ fn main() -> Result<()> {
     snapshot.memory = TurnMemory::load(dir, &device)?
         .map(|memory| fbs_memory_snapshot(&memory, SHEET_CONTEXT))
         .transpose()?;
-    let hamming = HammingReads::load(dir, &Device::Cpu)?
+    let reads = HammingReads::load(dir, &Device::Cpu)?;
+    // claude-351: the place read's marks and classes, as the artifact carries them.
+    let place = reads
+        .as_ref()
+        .and_then(HammingReads::place)
+        .map(|place| place.image())
+        .transpose()?;
+    let hamming = reads
         .map(|reads| fbs_hamming_snapshot_with_ask(&reads, snapshot.layers.len(), snapshot.width))
         .transpose()?;
     let (hamming, asks) = match hamming {
@@ -744,14 +751,19 @@ fn main() -> Result<()> {
     snapshot.readout_nearest = nearest;
     // claude-336: the ask heads and the question carry ride beside the trunk snapshot under
     // `hamming_ask`, which `fbs-export` serves; without them the JSON is byte for byte as before.
-    let json = match asks {
-        None => serde_json::to_vec(&snapshot)?,
-        Some(asks) => {
+    // claude-351: the place read rides the same way under `hamming_place`; it sits on the ask
+    // heads, so a snapshot with it has both keys.
+    let json = match (asks, place) {
+        (None, None) => serde_json::to_vec(&snapshot)?,
+        (asks, place) => {
             let mut value = serde_json::to_value(&snapshot)?;
-            value
-                .as_object_mut()
-                .expect("a snapshot is a JSON object")
-                .insert(FBS_HAMMING_ASK_KEY.to_owned(), serde_json::to_value(asks)?);
+            let object = value.as_object_mut().expect("a snapshot is a JSON object");
+            if let Some(asks) = asks {
+                object.insert(FBS_HAMMING_ASK_KEY.to_owned(), serde_json::to_value(asks)?);
+            }
+            if let Some(place) = place {
+                object.insert(FBS_HAMMING_PLACE_KEY.to_owned(), serde_json::to_value(place)?);
+            }
             serde_json::to_vec(&value)?
         }
     };

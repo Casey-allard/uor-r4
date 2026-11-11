@@ -9,6 +9,10 @@
 use crate::bitcode::popcount_swar;
 use crate::fbs_snapshot::{CodeRole, ForcedCode, HammingTraceHead, HammingTraceRead, HammingTraceWindow};
 
+use core::ops::Range;
+
+use crate::fbs_snapshot::{place_find, place_first, PlaceImage, PlaceState};
+
 use super::format::{Container, StackHamming, HAMMING_WEIGHT_EXP};
 use super::kernels::{stack_div_u64, stack_hamilton, NORM_FINE_EXP, RESIDUAL_EXP};
 use super::session::{stack_rotation, GATE_EPSILON};
@@ -39,6 +43,8 @@ pub struct HammingReadImage {
 pub struct HammingImage {
     pub record: StackHamming,
     pub reads: Vec<HammingReadImage>,
+    /// The readout read's place read (claude-351), or `None` for a stack without one.
+    pub place: Option<PlaceImage>,
 }
 
 /// The Hamming reads of a `UORLUT01` stack artifact, with every section at the length its shape
@@ -101,7 +107,18 @@ pub(crate) fn hamming_image(artifact: &Container<'_>) -> Result<Option<HammingIm
             ask: AskImage::checked(ask_table, carry, artifact.shape.vocab, width)?,
         });
     }
-    Ok(Some(HammingImage { record, reads }))
+    // claude-351: the place section is present exactly when the record carries the marks.
+    let place_name = record.depths.last().map(|depth| format!("hamming.d{depth}.place"));
+    let place = match (&record.place, place_name) {
+        (Some(marks), Some(name)) => Some(PlaceImage::checked(marks.clone(), artifact.table_i16(&name)?, artifact.shape.vocab).map_err(StackError::Numerics)?),
+        (None, Some(name)) => match artifact.table_i16(&name) {
+            Err(StackError::MissingSection(_)) => None,
+            Ok(_) => return Err(StackError::Numerics(format!("{name}: present, but the record names no place read"))),
+            Err(e) => return Err(e),
+        },
+        _ => None,
+    };
+    Ok(Some(HammingImage { record, reads, place }))
 }
 
 /// What the copy-code check (claude-237) takes from a stack artifact: its Hamming reads, its Q12
@@ -934,6 +951,33 @@ pub(crate) struct ServedHamming {
     reads: Vec<ServedRead>,
     layers: usize,
     width: usize,
+    /// The place read (claude-351), when the artifact has one.
+    place: Option<ServedPlace>,
+}
+
+/// The place read on the served path (claude-351): the readout read's ask heads, which find a
+/// place and bring nothing back themselves, and the read's tables.
+struct ServedPlace {
+    heads: TypeHeads,
+    image: PlaceImage,
+    /// The low half of a head's bits: the half its learned question fills. The other half is the
+    /// token before, plainly.
+    first: u64,
+}
+
+impl ServedPlace {
+    /// The place the question at the last row `t` of `tokens` finds among `users`, the contents
+    /// of the finished user turns: [`place_find`], the two-token question the float trainer
+    /// asks too, on this artifact's question and key codes.
+    fn find(&self, table: &[i16], tokens: &[u32], users: &[Range<usize>]) -> Option<usize> {
+        let t = tokens.len().checked_sub(1).filter(|&t| t >= 1)?;
+        let heads = &self.heads;
+        let asks = heads.ask_queries(table, tokens, t, 0)?;
+        if asks.len() != heads.margins.len() {
+            return None;
+        }
+        place_find(self.first, &heads.margins, users, t, |j| asks[j], |j, p| heads.key(tokens[p], j))
+    }
 }
 
 /// Refuse a payload cache of `typed` reads over `context` positions of `width` past
@@ -970,9 +1014,21 @@ impl ServedHamming {
     /// weights is not zero; at `w_y = 0` they add nothing, as in the float read.
     pub(crate) fn new(image: &HammingImage, table: &[i16], vocab: usize, width: usize, layers: usize, context: usize) -> Result<Self, StackError> {
         let mut reads = Vec::with_capacity(image.reads.len());
+        let mut place = None;
         for read in &image.reads {
             let (copy_weight, type_weight) = read.weight.split_at(width);
-            let typed = type_weight.iter().any(|&w| w != 0);
+            // The place read's ask heads find and bring nothing back (claude-351): the readout
+            // read then serves no type heads, whatever its type weights are.
+            let places = image.place.as_ref().filter(|_| read.depth == layers);
+            if let Some(tables) = places {
+                let ask = read.ask.clone().ok_or(StackError::Shape("the place read needs the readout read's ask heads"))?;
+                place = Some(ServedPlace {
+                    heads: TypeHeads::new(&image.record, read, table, vocab, width).with_ask(ask),
+                    image: tables.clone(),
+                    first: place_first(width / image.record.heads),
+                });
+            }
+            let typed = places.is_none() && type_weight.iter().any(|&w| w != 0);
             reads.push(ServedRead {
                 depth: read.depth,
                 copy: CopyHeads::new(&image.record, read, table, vocab, width),
@@ -989,7 +1045,23 @@ impl ServedHamming {
         }
         let typed = reads.iter().filter(|r| r.types.is_some()).count();
         check_payload_cache(typed, context, width)?;
-        Ok(Self { reads, layers, width })
+        if image.place.is_some() && place.is_none() {
+            return Err(StackError::Shape("the place read needs a read at the readout"));
+        }
+        Ok(Self { reads, layers, width, place })
+    }
+
+    /// Whether the artifact has a place read, whose register a session keeps (claude-351).
+    pub(crate) fn has_place(&self) -> bool {
+        self.place.is_some()
+    }
+
+    /// The place register's step at the last row of `tokens` ([`PlaceState::advance`]), its
+    /// questions asked by the readout read's ask heads: the place whose token the readout is
+    /// offered at this row, if the row is open. `None` without a place read.
+    pub(crate) fn place_advance(&self, state: &mut PlaceState, tokens: &[u32], table: &[i16]) -> Option<usize> {
+        let place = self.place.as_ref()?;
+        state.advance(tokens, &place.image, |users| place.find(table, tokens, users)).offer
     }
 
     /// Whether any read serves type heads, whose per-position payloads a session keeps.
@@ -1010,8 +1082,12 @@ impl ServedHamming {
     /// served order, from `codes` over a window of at most `context` steps. Refused: a depth no
     /// read runs at (0, past the layer count, or a second read at a depth), a head the read does
     /// not serve, a step past the context, a key at step 0 (it names no candidate), and a code
-    /// forced twice.
+    /// forced twice. An artifact with a place read (claude-351) refuses every forced code: at an
+    /// open row the readout takes the place, and a forced copy code there would change nothing.
     pub(crate) fn forcing(&self, codes: &[ForcedCode], context: usize) -> Result<Vec<ReadForce>, StackError> {
+        if self.place.is_some() && !codes.is_empty() {
+            return Err(StackError::Shape("forced codes are not served with a place read"));
+        }
         let mut reads: Vec<ReadForce> = self
             .reads
             .iter()
@@ -1163,8 +1239,12 @@ impl ServedHamming {
     /// below `n`'s grid ([`readout_sum`]), and the sum then rounded once to `n`'s exponent. Not
     /// rounded to Q16, as the float trunk does not round the readout read. A `trace` receives the
     /// read's choices (claude-235), and `force` replaces the codes it names (claude-249).
+    ///
+    /// At a row the place read opens (claude-351), `offer` is the place: the table's point of the
+    /// token there is `c`, in place of the copy heads' mean, at the weight of one whole candidate.
     #[inline(never)]
-    pub(crate) fn readout(&self, tokens: &[u32], table: &[i16], payloads: &mut [Vec<i64>], n: &mut [i64], trace: Option<&mut Vec<HammingStepRead>>, force: Option<&[ReadForce]>) {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn readout(&self, tokens: &[u32], table: &[i16], payloads: &mut [Vec<i64>], n: &mut [i64], trace: Option<&mut Vec<HammingStepRead>>, force: Option<&[ReadForce]>, offer: Option<usize>) {
         let Some(i) = self.reads.iter().position(|r| r.depth == self.layers) else {
             return;
         };
@@ -1173,9 +1253,14 @@ impl ServedHamming {
             trace.push(self.record(i, n, tokens, table, force));
         }
         let read = &self.reads[i];
-        let copy = match force {
-            None => read.copy.mean(tokens, table),
-            Some(f) => read.copy.mean_by(tokens, table, |h| read.copy.choose_forced(h, tokens, &f.heads[h])),
+        let copy = match (offer, force) {
+            (Some(place), _) => {
+                let at = tokens[place] as usize * self.width;
+                // A Q12 point at a Q31 weight of 1: `2^COPY_MEAN_EXP`, as a mean's sum is.
+                Some(table[at..at + self.width].iter().map(|&v| i128::from(v) << 31).collect())
+            }
+            (None, None) => read.copy.mean(tokens, table),
+            (None, Some(f)) => read.copy.mean_by(tokens, table, |h| read.copy.choose_forced(h, tokens, &f.heads[h])),
         };
         let typed = self.type_mean(i, n, tokens, table, payloads, force);
         if copy.is_none() && typed.is_none() {

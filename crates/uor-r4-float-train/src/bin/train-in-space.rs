@@ -87,6 +87,15 @@
 //! `--hamming-carry-question H` (needs `--hamming-ask 1`) adds, at the readout read's ask heads,
 //! the question points of the H rows before each row in its window, each scaled by a learned gain
 //! per token, starting at zero (`HammingReads::with_carry`, claude-335).
+//! `--hamming-place KIT` (needs `--hamming-ask 1`, refuses `--hamming-carry-question`) turns on
+//! the place read at the readout read (`HammingReads::with_place`, claude-351): a register a
+//! conversation, set by the ask heads' two-token find over the earlier user turns, and at an open
+//! reply row the token at the place as the copy mix's source. KIT is the file
+//! `--turn-census ... --places-out KIT` writes from the corpus the run trains on: the labels,
+//! marks and stop tokens. `--hamming-place-pull λ` adds λ times the place pull to the loss
+//! (`HammingReads::place_step`). A run with the place read appends one line a checkpoint to
+//! `place.jsonl` in its output folder: the step, how many tokens arm and open, and the votes and
+//! mean pull since the line before. `--places-out` refuses a path that exists.
 //! `--score-rows` additionally accepts `[--batched-decode 0|1]`.
 //!
 //! `--score-rows` decodes equal-length prompts together on the full-scope nearest arms, except
@@ -305,7 +314,8 @@
 //! names the value when it looks only inside it (`uor_r4_float_train::turn_census`); then what a
 //! read could do that finds the place where the value starts and reads on from it
 //! (`place_census`). Each argument is a folder with `tokens.u16` and `response_mask.u8`; LINED
-//! and TRAIN-LINED are the panel and TRAIN written `recall=oracle`. Needs no GPU.
+//! and TRAIN-LINED are the panel and TRAIN written `recall=oracle`. Needs no GPU. With
+//! `--places-out KIT` it also writes the place read's kit from TRAIN and TRAIN-LINED (claude-351).
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -356,6 +366,7 @@ fn main() -> Result<()> {
     let mut data_root = None;
     let mut key_oracle: Option<(PathBuf, PathBuf)> = None;
     let mut turn_census: Option<[PathBuf; 4]> = None;
+    let mut places_out: Option<PathBuf> = None;
     let mut out = None;
     let mut inspect = None;
     let mut reach = None;
@@ -447,6 +458,8 @@ fn main() -> Result<()> {
         hamming_hold: 0,
         hamming_attract_at_both: false,
         hamming_carry_question: 0,
+        hamming_place: None,
+        hamming_place_pull: 0.0,
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
@@ -756,6 +769,13 @@ fn main() -> Result<()> {
             }
             "--type-spin" => config.type_spin = switch(&value)?,
             "--hamming-ask" => config.hamming_ask = switch(&value)?,
+            "--hamming-place" => config.hamming_place = Some(PathBuf::from(&value)),
+            "--hamming-place-pull" => {
+                config.hamming_place_pull = value.parse().map_err(|_| {
+                    FloatTrainError::Invalid("--hamming-place-pull wants a number".to_owned())
+                })?;
+            }
+            "--places-out" => places_out = Some(PathBuf::from(&value)),
             "--hamming-attract" => {
                 config.hamming_attract = value.parse().map_err(|_| {
                     FloatTrainError::Invalid("--hamming-attract wants a number".to_owned())
@@ -1086,8 +1106,24 @@ fn main() -> Result<()> {
     if let Some((tokens, mask)) = &key_oracle {
         return copy_key_oracle(&data_root, tokens, mask);
     }
+    if places_out.is_some() && turn_census.is_none() {
+        return Err(FloatTrainError::Invalid(
+            "--places-out writes the place read's kit from --turn-census's TRAIN; give --turn-census".to_owned(),
+        ));
+    }
+    // claude-351: like the pull, the place read trains only in run_long.
+    if other_mode && (config.hamming_place.is_some() || config.hamming_place_pull != 0.0) {
+        return Err(FloatTrainError::Invalid(
+            "--hamming-place trains a run; this mode trains nothing".to_owned(),
+        ));
+    }
+    if recall > 0 && config.hamming_place.is_some() {
+        return Err(FloatTrainError::Invalid(
+            "--hamming-place trains on a corpus of conversations; --recall has none".to_owned(),
+        ));
+    }
     if let Some(folders) = &turn_census {
-        return turn_census_run(&data_root, folders);
+        return turn_census_run(&data_root, folders, places_out.as_deref());
     }
     if flock_end && score.is_none() && !grade_on {
         return Err(FloatTrainError::Invalid(
@@ -1602,11 +1638,11 @@ fn copy_key_oracle(data_root: &Path, tokens_path: &Path, mask_path: &Path) -> Re
 /// four unpinned UORT splits (TRAIN and the panel without memory lines, then the panel and TRAIN
 /// with them), read with the pinned tokenizer. The turn census's registered stop list is TRAIN's
 /// 64 most frequent tokens; the place census's label reads TRAIN's 16 (`place_census`).
-fn turn_census_run(data_root: &Path, folders: &[PathBuf; 4]) -> Result<()> {
+fn turn_census_run(data_root: &Path, folders: &[PathBuf; 4], places_out: Option<&Path>) -> Result<()> {
     use sha2::{Digest, Sha256};
     use uor_r4_float_train::hamilton_sheet as hs;
     use uor_r4_float_train::turn_census::{
-        place_census, turn_census, Codec, Corpora, Marks, Stops,
+        place_census, place_kit, turn_census, Codec, Corpora, Marks, Stops,
     };
     let bytes = std::fs::read(data_root.join("tokenizer.json"))?;
     if hex::encode(Sha256::digest(&bytes)) != hs::PINNED_TOKENIZER_SHA256 {
@@ -1632,6 +1668,7 @@ fn turn_census_run(data_root: &Path, folders: &[PathBuf; 4]) -> Result<()> {
     };
     let split = |dir: &Path| read_uort_pair(&dir.join("tokens.u16"), &dir.join("response_mask.u8"));
     let [train, panel, lined, twin] = folders;
+    let train_sha256 = hex::encode(Sha256::digest(std::fs::read(train.join("tokens.u16"))?));
     let (train, panel) = (split(train)?, split(panel)?);
     let (lined, twin) = (split(lined)?, split(twin)?);
     let decode = |ids: &[u32]| tokenizer.decode(ids);
@@ -1670,6 +1707,36 @@ fn turn_census_run(data_root: &Path, folders: &[PathBuf; 4]) -> Result<()> {
         place_census(&corpora, &marks, &codec, &stops, 200).map_err(|what| invalid(&what))?;
     for line in lines {
         println!("{line}");
+    }
+    // claude-351: the kit a trainer of the place read learns from, read from TRAIN and its twin.
+    if let Some(path) = places_out {
+        let kit = place_kit(
+            (&train.0, &train.1),
+            (&twin.0, &twin.1),
+            &marks,
+            &codec,
+            hs::SHEET_VOCAB,
+            train_sha256,
+        )
+        .map_err(|what| invalid(&what))?;
+        let bytes = serde_json::to_vec(&kit)
+            .map_err(|e| invalid(&format!("the place kit does not serialize: {e}")))?;
+        // A new file only: the path is never one of the run's inputs, or an earlier kit.
+        use std::io::Write as _;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|e| invalid(&format!("--places-out {}: {e}", path.display())))?;
+        file.write_all(&bytes)?;
+        println!(
+            "place-kit places={} stop={} tokens_sha256={} sha256={} file={}",
+            kit.places.len(),
+            kit.stop.len(),
+            kit.tokens_sha256,
+            hex::encode(Sha256::digest(&bytes)),
+            path.display()
+        );
     }
     Ok(())
 }

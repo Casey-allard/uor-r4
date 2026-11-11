@@ -246,6 +246,14 @@ pub struct StackHamming {
     /// the `hamming.d{depth}.carry` section (i32, `vocab`, Q16). Left out without a carry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carry_rows: Option<usize>,
+    /// The readout read's place read (claude-351): the ids that frame a conversation, by which
+    /// the engine tells turns apart in the token stream. With it the readout read's ask heads
+    /// find a place and do not read, and the read has a `hamming.d{depth}.place` section (i16,
+    /// `vocab`: bit 0 the stop, bit 1 the arm, bit 2 the open). Left out without a place read, so
+    /// such an artifact is byte for byte as before, and an engine without the field refuses one
+    /// that sets it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place: Option<crate::fbs_snapshot::PlaceMarks>,
 }
 
 impl StackHamming {
@@ -263,6 +271,7 @@ impl StackHamming {
             copy_latest: false,
             asks: None,
             carry_rows: None,
+            place: None,
         }
     }
 
@@ -354,6 +363,19 @@ impl StackHamming {
                     "a Hamming question carry reaches from 1 to ASK_CARRY_MAX rows",
                 ));
             }
+        }
+        if let Some(marks) = &self.place {
+            if self.depths.last() != Some(&shape.layers()) || !self.read_asks(self.depths.len() - 1) {
+                return Err(StackError::Shape(
+                    "a Hamming place read is served on a readout read that asks",
+                ));
+            }
+            if !head_width.is_multiple_of(8) {
+                return Err(StackError::Shape(
+                    "a Hamming place read needs heads of whole 8-coordinate blocks, so each half is whole lanes",
+                ));
+            }
+            marks.check(shape.vocab).map_err(StackError::Shape)?;
         }
         let exps = (self.rotation_exp, self.margin_exp, self.weight_exp);
         if exps != (HAMMING_ROTATION_EXP, HAMMING_MARGIN_EXP, HAMMING_WEIGHT_EXP) {
@@ -2324,6 +2346,47 @@ pub fn add_hamming_ask_uorlut01(artifact: &[u8], asks: &[Option<super::AskImage>
         }
     }
     record.asks = Some(asks.iter().map(Option::is_some).collect());
+    record.check(&container.shape)?;
+    header["tables"]
+        .as_array_mut()
+        .ok_or(StackError::MissingData)?
+        .extend(b.tables);
+    header["hamming"] = json!(record);
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&b.data);
+    super::hamming::hamming_image(&Container::parse(&out)?)?;
+    Ok(out)
+}
+
+/// A Hamming stack whose readout read asks, with the place read added (claude-351): every section
+/// of `artifact` byte for byte, then `hamming.d{depth}.place` (i16, `vocab`: bit 0 the stop, bit 1
+/// the arm, bit 2 the open) on the readout read; the record's `place` carries the marks, and the
+/// schema is unchanged. The classes are integers already, so they are added to an exported stack,
+/// as the ask heads are. The result is read back before it is returned.
+pub fn add_hamming_place_uorlut01(artifact: &[u8], place: &super::PlaceImage) -> Result<Vec<u8>, StackError> {
+    let container = Container::parse(artifact)?;
+    let Some(mut record) = container.hamming.clone() else {
+        return Err(StackError::Shape("a place read is added to a stack with Hamming reads"));
+    };
+    if record.place.is_some() {
+        return Err(StackError::Shape("a place read is added to a stack without one"));
+    }
+    let place = super::PlaceImage::checked(place.marks.clone(), place.class.clone(), container.shape.vocab).map_err(StackError::Numerics)?;
+    let depth = *record.depths.last().ok_or(StackError::MissingData)?;
+    let declared = u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
+    let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
+    let data_start = header_end.div_ceil(ALIGN) * ALIGN;
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+    let mut b = ExportBuilder::new();
+    b.data = artifact[data_start..].to_vec();
+    b.push_i16(&format!("hamming.d{depth}.place"), &place.class);
+    record.place = Some(place.marks);
     record.check(&container.shape)?;
     header["tables"]
         .as_array_mut()

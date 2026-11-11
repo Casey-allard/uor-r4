@@ -8202,3 +8202,232 @@ fn a_memory_chain_short_turn_ends_as_head_and_a_left_block_empties_every_chain_f
         assert_eq!(moved.stored, Some(stored), "{what}");
     }
 }
+
+/// claude-351: the ids the place-read tests frame a conversation with, in the synthetic trunk's
+/// vocabulary of 512, and the tokens of one: a user turn that states a value of two tokens after
+/// `PLACE_BEFORE`, a reply, a question ending in `PLACE_ASK`, and a reply that says `PLACE_OPENS`
+/// and then the value.
+const PLACE_BOS: u32 = 500;
+const PLACE_EOS: u32 = 501;
+const PLACE_SEP: u32 = 502;
+const PLACE_USER: u32 = 504;
+const PLACE_MODEL: u32 = 505;
+const PLACE_BEFORE: u32 = 21;
+const PLACE_ASK: u32 = 50;
+const PLACE_OPENS: u32 = 60;
+const PLACE_DOT: u32 = 32;
+const PLACE_TALK: [u32; 22] = [
+    PLACE_BOS, PLACE_USER, 20, PLACE_BEFORE, 30, 31, PLACE_DOT, PLACE_EOS, PLACE_SEP, PLACE_MODEL, 40, PLACE_EOS, PLACE_SEP, PLACE_USER, 20, PLACE_ASK, PLACE_SEP, PLACE_MODEL, PLACE_OPENS, 30, 31, PLACE_DOT,
+];
+
+/// claude-351: the served-read trunk with reads at layer 1 and on the readout, its type weights
+/// at 0, whose readout read asks; and the same with the place read added. The readout's question
+/// table moves `PLACE_ASK`'s point onto `PLACE_BEFORE`'s, so the question `20 PLACE_ASK` asks for
+/// the place after `20 PLACE_BEFORE` exactly; `PLACE_DOT` stops, `PLACE_ASK` arms and
+/// `PLACE_OPENS` opens.
+fn place_trunk() -> (Vec<u8>, Vec<u8>, super::PlaceImage) {
+    let (snap, _, bytes) = served_read_trunk(&[1, 3], 1.0, 0.0);
+    let (vocab, width) = (snap.vocab, snap.width);
+    let table = super::served_copy_codes_uorlut01(&bytes).expect("parse").expect("reads").table;
+    let row = |v: u32| &table[v as usize * width..][..width];
+    let mut ask = vec![0i16; vocab * width];
+    for (k, a) in ask[PLACE_ASK as usize * width..][..width].iter_mut().enumerate() {
+        *a = row(PLACE_BEFORE)[k] - row(PLACE_ASK)[k];
+    }
+    let asks = [None, Some(super::AskImage { table: ask, carry: None })];
+    let asked = super::add_hamming_ask_uorlut01(&bytes, &asks).expect("the readout read asks");
+    let marks = super::PlaceMarks {
+        bos: PLACE_BOS,
+        eos: PLACE_EOS,
+        sep: vec![PLACE_SEP],
+        system: vec![503],
+        user: vec![PLACE_USER],
+        assistant: vec![PLACE_MODEL],
+    };
+    let mut class = vec![0i16; vocab];
+    class[PLACE_DOT as usize] = super::PLACE_STOP;
+    class[PLACE_ASK as usize] = super::PLACE_ARM;
+    class[PLACE_OPENS as usize] = super::PLACE_OPEN;
+    let place = super::PlaceImage::checked(marks, class, vocab).expect("the classes");
+    let placed = super::add_hamming_place_uorlut01(&asked, &place).expect("the place read is added");
+    (asked, placed, place)
+}
+
+/// claude-351: the place read round-trips. Without it the header has no `place` and the image
+/// none; added, the loaded image is the one written under the same schema, every earlier section
+/// keeps its bytes, and it is added once, to a readout read that asks.
+#[test]
+fn hamming_place_read_round_trips() {
+    let (asked, placed, place) = place_trunk();
+    let _ = with_header(&asked, |h| assert!(h["hamming"].get("place").is_none()));
+    assert!(super::read_hamming_uorlut01(&asked).expect("parse").expect("reads").place.is_none());
+    let image = super::read_hamming_uorlut01(&placed).expect("parse").expect("reads");
+    assert_eq!(image.place.as_ref(), Some(&place));
+    assert_eq!(image.record.place.as_ref(), Some(&place.marks));
+    let _ = with_header(&placed, |h| assert_eq!(h["schema"], super::STACK_FBS_HAMMING_SCHEMA));
+    let data = |bytes: &[u8]| {
+        let declared = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
+        bytes[(16 + declared).div_ceil(64) * 64..].to_vec()
+    };
+    let (before, after) = (data(&asked), data(&placed));
+    assert_eq!(after[..before.len()], before[..], "every earlier section keeps its bytes");
+    assert!(super::add_hamming_place_uorlut01(&placed, &place).is_err(), "a place read is added once");
+    let (_, _, plain) = served_read_trunk(&[1, 3], 1.0, 0.0);
+    let err = super::add_hamming_place_uorlut01(&plain, &place).unwrap_err().to_string();
+    assert!(err.contains("a readout read that asks"), "{err}");
+    let inner = super::add_hamming_ask_uorlut01(&plain, &[Some(super::AskImage { table: vec![0; place.class.len() * 64], carry: None }), None]).expect("the inner read asks");
+    assert!(super::add_hamming_place_uorlut01(&inner, &place).is_err(), "the readout read must ask");
+    // A class table without its record, and a record without its table, are refused by name.
+    let orphan = with_header(&placed, |h| {
+        h["hamming"].as_object_mut().unwrap().remove("place");
+    });
+    let err = super::read_hamming_uorlut01(&orphan).unwrap_err().to_string();
+    assert!(err.contains("names no place read"), "{err}");
+    let bare = with_header(&asked, |h| h["hamming"]["place"] = serde_json::to_value(&place.marks).unwrap());
+    assert!(super::read_hamming_uorlut01(&bare).is_err(), "a place record needs its class table");
+    let outside = with_header(&placed, |h| h["hamming"]["place"]["bos"] = 512.into());
+    assert!(super::read_hamming_uorlut01(&outside).is_err(), "a mark is a vocabulary id");
+    // Marks the turn reader cannot tell apart are refused when read and when added: no
+    // separator, one marker for two roles, one token for the start and the end mark.
+    let refused = |why: &str, change: &dyn Fn(&mut super::PlaceMarks)| {
+        let mut marks = place.marks.clone();
+        change(&mut marks);
+        let written = with_header(&placed, |h| h["hamming"]["place"] = serde_json::to_value(&marks).unwrap());
+        let err = super::read_hamming_uorlut01(&written).unwrap_err().to_string();
+        assert!(err.contains(why), "{why}: {err}");
+        let image = super::PlaceImage { marks, class: place.class.clone() };
+        assert!(super::add_hamming_place_uorlut01(&asked, &image).is_err(), "{why}: refused when added");
+    };
+    refused("a separator", &|m| m.sep.clear());
+    refused("ends with another", &|m| m.assistant = m.user.clone());
+    refused("one token", &|m| m.eos = m.bos);
+    // The export's road: the image as the snapshot JSON carries it under its key gives the same
+    // artifact, byte for byte; a field the exporter does not know, a class table at another
+    // length and a class bit outside the three are each refused.
+    let key = crate::fbs_snapshot::FBS_HAMMING_PLACE_KEY;
+    let snapshot = serde_json::to_vec(&serde_json::json!({ key: place })).unwrap();
+    let mut value: serde_json::Value = serde_json::from_slice(&snapshot).unwrap();
+    let carried: super::PlaceImage = serde_json::from_value(value[key].take()).expect("a place image");
+    assert_eq!(super::add_hamming_place_uorlut01(&asked, &carried).expect("the place read"), placed);
+    let mut unknown = serde_json::to_value(&place).unwrap();
+    unknown["gain"] = 1.into();
+    assert!(serde_json::from_value::<super::PlaceImage>(unknown).is_err(), "an unknown field is refused");
+    let short = super::PlaceImage { marks: place.marks.clone(), class: place.class[1..].to_vec() };
+    assert!(super::add_hamming_place_uorlut01(&asked, &short).is_err(), "one class a token");
+    let mut wide = place.clone();
+    wide.class[0] = 8;
+    assert!(super::add_hamming_place_uorlut01(&asked, &wide).is_err(), "a class is stop, arm and open");
+}
+
+/// claude-351: a session serves the place read. The register is armed at the reply's start by
+/// the question's find, the row of `PLACE_OPENS` is offered the value's first token and the row
+/// after it the second, and the step onto `PLACE_DOT` clears it. Against the same artifact
+/// without the place read, the query differs at the two open rows and at no other.
+#[test]
+fn a_session_serves_the_place_read() {
+    let (asked, placed, _) = place_trunk();
+    let run = |bytes: &[u8], tokens: &[u32]| {
+        let model = IntegerStackModel::parse(bytes).expect("served");
+        let mut session = model.session();
+        let mut rows = Vec::new();
+        for &token in tokens {
+            session.step_native(token).expect("step");
+            rows.push((session.last_place(), session.last_query_q12().map(<[i32]>::to_vec)));
+        }
+        rows
+    };
+    let (plain, read) = (run(&asked, &PLACE_TALK), run(&placed, &PLACE_TALK));
+    assert!(plain.iter().all(|(place, _)| *place == (None, None)));
+    for (t, ((place, query), (_, free))) in read.iter().zip(&plain).enumerate() {
+        let want = match t {
+            17 => (Some(4), None),
+            18 => (Some(4), Some(4)),
+            19 => (Some(5), Some(5)),
+            _ => (None, None),
+        };
+        assert_eq!(*place, want, "row {t}");
+        assert_eq!(query != free, want.1.is_some(), "row {t}: the readout moves at an open row only");
+    }
+    // A reply that says another token after `PLACE_OPENS` is offered nothing at that row, and
+    // the register stays where it is.
+    let mut miss = PLACE_TALK[..19].to_vec();
+    miss.extend([40, PLACE_OPENS, 30]);
+    let read = run(&placed, &miss);
+    let places: Vec<_> = read[18..].iter().map(|(place, _)| *place).collect();
+    assert_eq!(places, [(Some(4), Some(4)), (Some(4), None), (Some(4), Some(4)), (Some(5), Some(5))]);
+    // A reset forgets the conversation: the same tokens from the reply on arm nothing.
+    let model = IntegerStackModel::parse(&placed).expect("served");
+    let mut session = model.session();
+    for &token in &PLACE_TALK[..18] {
+        session.step_native(token).expect("step");
+    }
+    assert_eq!(session.last_place(), (Some(4), None));
+    session.reset();
+    for &token in &PLACE_TALK[13..19] {
+        session.step_native(token).expect("step");
+    }
+    assert_eq!(session.last_place(), (None, None));
+    // The register and the turns are not saved, so a restore is refused by name.
+    let saved = session.save_state();
+    let err = session.restore_state(&saved).unwrap_err().to_string();
+    assert!(err.contains("place read"), "{err}");
+}
+
+/// claude-351: at an open row the readout is `n + w_c ⊙ (table[x_place] − n)`, exactly
+/// [`super::hamming::readout_sum`] with the token's Q12 point at a weight of one, and within
+/// half a step of the float form.
+#[test]
+fn the_place_read_offers_the_tokens_point_through_the_copy_mix() {
+    use super::hamming::{readout_sum, ServedHamming};
+    let (_, placed, _) = place_trunk();
+    let served = super::served_copy_codes_uorlut01(&placed).expect("parse").expect("reads");
+    let (image, table, vocab, width) = (&served.image, &served.table, served.vocab, served.width);
+    let hamming = ServedHamming::new(image, table, vocab, width, 3, 40).expect("the reads");
+    assert!(hamming.has_place() && !hamming.has_type_heads());
+    // A forced code is refused by name, since an open row's readout takes the place and would
+    // pass over it; no forced code is no refusal.
+    use crate::fbs_snapshot::{CodeRole, ForcedCode};
+    assert!(hamming.forcing(&[], 40).is_ok(), "no forced code");
+    let code = ForcedCode { step: 1, depth: 1, head: 0, role: CodeRole::Query, code: 1 };
+    let Err(err) = hamming.forcing(&[code], 40) else {
+        panic!("a forced code is refused with a place read");
+    };
+    assert!(err.to_string().contains("place read"), "{err}");
+    let weight = &image.reads[1].weight[..width];
+    let mut rng = Lcg(351);
+    let n: Vec<i64> = (0..width).map(|_| (rng.next() % (1 << 40)) as i64 - (1 << 39)).collect();
+    let tokens = &PLACE_TALK[..19];
+    let mut payloads = hamming.payload_caches(40);
+    let mut got = n.clone();
+    hamming.readout(tokens, table, &mut payloads, &mut got, None, None, Some(4));
+    let point = &table[PLACE_TALK[4] as usize * width..][..width];
+    let mut moved = 0;
+    for k in 0..width {
+        assert_eq!(got[k], readout_sum(n[k], weight[k], Some(i128::from(point[k]) << 31), 0, 0), "coordinate {k}");
+        // The float form: `n` at `2^NORM_FINE_EXP`, the point at Q12, the weight at its exponent.
+        let unit = 2f64.powi(super::kernels::NORM_FINE_EXP);
+        let w = f64::from(weight[k]) * 2f64.powi(super::HAMMING_WEIGHT_EXP);
+        let (nf, c) = (n[k] as f64 * unit, f64::from(point[k]) / 4096.0);
+        let want = (nf + w * (c - nf)) / unit;
+        assert!((got[k] as f64 - want).abs() <= 0.5 + want.abs() * 1e-12, "coordinate {k}: {} against {want}", got[k]);
+        moved += usize::from(got[k] != n[k]);
+    }
+    assert!(moved > 0, "the mix moves the readout");
+    // Without an offer the row reads its copy heads as before.
+    let mut free = n.clone();
+    hamming.readout(tokens, table, &mut payloads, &mut free, None, None, None);
+    assert_ne!(free, got);
+}
+
+/// claude-351: a place is inside a head's margin exactly where the served copy weight is above
+/// zero, the test `fbs_snapshot::place_pick` makes without the division.
+#[test]
+#[allow(clippy::single_range_in_vec_init)] // one user turn, as a slice of ranges
+fn a_place_pick_is_inside_its_margin_exactly_when_the_copy_weight_is_positive() {
+    for margin in [0, 1, 65_535, 65_536, 65_537, 3 << 16, (9 << 16) + 77, i32::MAX] {
+        for d in 0..=64u32 {
+            let inside = super::place_pick(&[0], &[margin], &[2..3], |_, _| if d == 64 { u64::MAX } else { (1u64 << d) - 1 }).is_some();
+            assert_eq!(inside, super::copy_weight_q31(margin, d) > 0, "margin {margin}, distance {d}");
+        }
+    }
+}
