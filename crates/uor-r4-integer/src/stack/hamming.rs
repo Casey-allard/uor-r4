@@ -660,6 +660,10 @@ impl AskImage {
 /// is, so the keys are built once per vocabulary entry. What a kept position brings back is the
 /// full-width `p_s` through the value rotation: its payload, which the session keeps for every
 /// position ([`Self::payload`]).
+///
+/// An ask head (claude-336) asks from its question table instead, and brings back what a copy
+/// head does (claude-353, the float read's claude-330): the table's point of the kept position's
+/// own token, so a read that asks keeps no payloads ([`Brought::Points`]).
 pub struct TypeHeads {
     copy: usize,
     heads: usize,
@@ -700,6 +704,12 @@ impl TypeHeads {
     pub fn with_ask(mut self, ask: AskImage) -> Self {
         self.ask = Some(ask);
         self
+    }
+
+    /// Whether these heads ask from a question table: they then bring back the kept token's
+    /// table point and no payload (claude-353).
+    pub fn asks(&self) -> bool {
+        self.ask.is_some()
     }
 
     /// The ask heads' point at row `t` of `tokens`, whose window starts at row `start`, at Q28:
@@ -783,13 +793,22 @@ impl TypeHeads {
     /// as the copy mean: each head's `Σ w_s · v_s / max(1, #{w_s > 0})`, then the mean over the
     /// heads that found a candidate, both truncating toward zero.
     pub fn mean(&self, queries: &[u64], tokens: &[u32], payloads: &[i64]) -> Option<Vec<i128>> {
-        self.mean_by(queries, tokens, payloads, None)
+        self.mean_by(queries, tokens, Brought::Payloads(payloads), None)
     }
 
-    /// [`Self::mean`], with each head `j`'s kept positions from [`Self::choose_forced`] under
-    /// `force[j]` when `force` is given, else from [`Self::choose`]. It takes no `choose` closure:
-    /// its captures were copied through a SIMD register (`fmov`), which the audit refuses (claude-255).
-    fn mean_by(&self, queries: &[u64], tokens: &[u32], payloads: &[i64], force: Option<&[HeadForce]>) -> Option<Vec<i128>> {
+    /// The ask heads' mean at the last row of `tokens`, at [`COPY_MEAN_EXP`] (claude-353), or
+    /// `None` when no ask head kept a candidate inside its margin: [`Self::mean`]'s quotients
+    /// over the Q12 `table`'s point of each kept position's own token, as the copy mean's sum
+    /// is, for the question codes `queries` ([`Self::ask_queries`]).
+    pub fn ask_mean(&self, queries: &[u64], tokens: &[u32], table: &[i16]) -> Option<Vec<i128>> {
+        self.mean_by(queries, tokens, Brought::Points(table), None)
+    }
+
+    /// [`Self::mean`] over what `brought` names, with each head `j`'s kept positions from
+    /// [`Self::choose_forced`] under `force[j]` when `force` is given, else from [`Self::choose`].
+    /// It takes no `choose` closure: its captures were copied through a SIMD register (`fmov`),
+    /// which the audit refuses (claude-255).
+    fn mean_by(&self, queries: &[u64], tokens: &[u32], brought: Brought<'_>, force: Option<&[HeadForce]>) -> Option<Vec<i128>> {
         let width = self.width;
         let mut sum = vec![0i128; width];
         let mut found = 0i128;
@@ -806,9 +825,18 @@ impl TypeHeads {
                     continue;
                 }
                 count += 1;
-                for (acc, &v) in head.iter_mut().zip(&payloads[s * width..][..width]) {
-                    // Behind `black_box`, as the copy mean's points (claude-194).
-                    *acc += i128::from(core::hint::black_box(v)) * i128::from(weight);
+                match brought {
+                    Brought::Payloads(payloads) => {
+                        for (acc, &v) in head.iter_mut().zip(&payloads[s * width..][..width]) {
+                            // Behind `black_box`, as the copy mean's points (claude-194).
+                            *acc += i128::from(core::hint::black_box(v)) * i128::from(weight);
+                        }
+                    }
+                    Brought::Points(table) => {
+                        for (acc, &p) in head.iter_mut().zip(&table[tokens[s] as usize * width..][..width]) {
+                            *acc += i128::from(core::hint::black_box(p)) * i128::from(weight);
+                        }
+                    }
                 }
             }
             if count == 0 {
@@ -821,6 +849,17 @@ impl TypeHeads {
         }
         (found > 0).then(|| sum.into_iter().map(|value| value / found).collect())
     }
+}
+
+/// What a type head's kept position brings back into its mean.
+#[derive(Clone, Copy)]
+enum Brought<'a> {
+    /// The hook's input there through the value rotation, `width` values a position
+    /// ([`TypeHeads::payload`]): the mean is at the payloads' exponent minus 31.
+    Payloads(&'a [i64]),
+    /// The Q12 table's point of the position's own token, as a copy head brings (an ask head,
+    /// claude-353): the mean is at [`COPY_MEAN_EXP`].
+    Points(&'a [i16]),
 }
 
 /// From `w_c ⊙ c`'s exponent (`2^HAMMING_WEIGHT_EXP` times `2^COPY_MEAN_EXP`) to the residual's Q16.
@@ -1069,12 +1108,12 @@ impl ServedHamming {
         self.reads.iter().any(|r| r.types.is_some())
     }
 
-    /// A session's payload caches: for each read, `context * width` zeros if it has type heads,
-    /// and nothing otherwise.
+    /// A session's payload caches: for each read, `context * width` zeros if it has type heads
+    /// that bring a payload back, and nothing otherwise (a read that asks brings table points).
     pub(crate) fn payload_caches(&self, context: usize) -> Vec<Vec<i64>> {
         self.reads
             .iter()
-            .map(|r| if r.types.is_some() { vec![0; context * self.width] } else { Vec::new() })
+            .map(|r| if r.types.as_ref().is_some_and(|t| !t.asks()) { vec![0; context * self.width] } else { Vec::new() })
             .collect()
     }
 
@@ -1137,23 +1176,30 @@ impl ServedHamming {
     /// The type mean at the last row `t` of `tokens` for the read `i`, with the hook's input
     /// `point`: `point`'s payload is kept at row `t` first, for the rows after it. A `force`
     /// replaces the codes it names (claude-249).
+    ///
+    /// A read that asks (claude-353) keeps no payload: its heads bring back the table's point of
+    /// each kept position's own token, and the mean is at [`COPY_MEAN_EXP`], as the copy mean.
     fn type_mean(&self, i: usize, point: &[i64], tokens: &[u32], table: &[i16], payloads: &mut [Vec<i64>], force: Option<&ReadForce>) -> Option<Vec<i128>> {
         let types = self.reads[i].types.as_ref()?;
         let t = tokens.len().checked_sub(1)?;
-        let cache = &mut payloads[i];
-        types.payload(point, &mut cache[t * self.width..][..self.width]);
-        let payloads = &cache[..(t + 1) * self.width];
+        let brought = if types.asks() {
+            Brought::Points(table)
+        } else {
+            let cache = &mut payloads[i];
+            types.payload(point, &mut cache[t * self.width..][..self.width]);
+            Brought::Payloads(&cache[..(t + 1) * self.width])
+        };
+        let mut queries = Self::type_queries(types, point, table, tokens, t);
         let Some(force) = force else {
-            return types.mean(&Self::type_queries(types, point, table, tokens, t), tokens, payloads);
+            return types.mean_by(&queries, tokens, brought, None);
         };
         let heads = &force.heads[self.reads[i].copy.copy..];
-        let mut queries = Self::type_queries(types, point, table, tokens, t);
         for (query, head) in queries.iter_mut().zip(heads) {
             if let Some(forced) = head.query(t) {
                 *query = forced;
             }
         }
-        types.mean_by(&queries, tokens, payloads, Some(heads))
+        types.mean_by(&queries, tokens, brought, Some(heads))
     }
 
     /// Read `i`'s choices at the last row `t` of `tokens`, its type heads asking with the hook's
@@ -1194,7 +1240,8 @@ impl ServedHamming {
     /// `x = q16(read.apply(&x, ids, &table))`: `x + w_c ⊙ c + w_y ⊙ y` at the last row of
     /// `tokens`, each sum formed exactly and rounded once to the residual's Q16, half away from
     /// zero, as `q16` rounds the sum. A kind of head that found no candidate adds nothing, as the
-    /// float's `sums / max(found, 1)` is 0 there. A depth with no read, or the layer count (the
+    /// float's `sums / max(found, 1)` is 0 there. Where the read asks (claude-353), `y` is the ask
+    /// heads' mean of the kept tokens' table points. A depth with no read, or the layer count (the
     /// readout's), is left alone. A `trace` receives the read's choices (claude-235), and
     /// `force`, each read's from [`Self::forcing`], replaces the codes it names (claude-249).
     #[inline(never)]
@@ -1216,10 +1263,16 @@ impl ServedHamming {
             None => read.copy.mean(tokens, table),
             Some(f) => read.copy.mean_by(tokens, table, |h| read.copy.choose_forced(h, tokens, &f.heads[h])),
         };
-        let typed = match read.types {
-            Some(_) => {
+        let typed = match &read.types {
+            Some(types) => {
                 let point: Vec<i64> = x.iter().map(|&v| i64::from(v)).collect();
-                self.type_mean(i, &point, tokens, table, payloads, force)
+                let mean = self.type_mean(i, &point, tokens, table, payloads, force);
+                // claude-353: an ask mean is at the copy mean's exponent, raised here to the
+                // type term's, exactly. `|y| < 2^46`, so the raised mean is far inside the sum's bound.
+                match (mean, types.asks()) {
+                    (Some(y), true) => Some(y.into_iter().map(|v| v << STREAM_COPY_RAISE).collect()),
+                    (mean, _) => mean,
+                }
             }
             None => None,
         };
@@ -1239,6 +1292,10 @@ impl ServedHamming {
     /// below `n`'s grid ([`readout_sum`]), and the sum then rounded once to `n`'s exponent. Not
     /// rounded to Q16, as the float trunk does not round the readout read. A `trace` receives the
     /// read's choices (claude-235), and `force` replaces the codes it names (claude-249).
+    ///
+    /// A read that asks (claude-353) mixes its ask mean in the copy form instead, as the float
+    /// read does (claude-330): `w_y ⊙ (y − n)` where an ask head found a candidate, `y` the mean
+    /// of the kept tokens' table points ([`readout_ask_sum`]).
     ///
     /// At a row the place read opens (claude-351), `offer` is the place: the table's point of the
     /// token there is `c`, in place of the copy heads' mean, at the weight of one whole candidate.
@@ -1266,10 +1323,17 @@ impl ServedHamming {
         if copy.is_none() && typed.is_none() {
             return;
         }
+        // claude-353: a read that asks mixes its ask mean in the copy form, as the float read
+        // (claude-330): `w_y ⊙ (y − n)` where an ask head found a candidate.
+        let asks = read.types.as_ref().is_some_and(TypeHeads::asks);
         for (k, n) in n.iter_mut().enumerate() {
             let c = copy.as_ref().map(|c| c[k]);
-            let y = typed.as_ref().map_or(0, |y| y[k]);
-            *n = readout_sum(*n, read.copy_weight[k], c, read.type_weight[k], y);
+            *n = if asks {
+                readout_ask_sum(*n, read.copy_weight[k], c, read.type_weight[k], typed.as_ref().map(|y| y[k]))
+            } else {
+                let y = typed.as_ref().map_or(0, |y| y[k]);
+                readout_sum(*n, read.copy_weight[k], c, read.type_weight[k], y)
+            };
         }
     }
 }
@@ -1296,6 +1360,19 @@ pub(super) fn readout_sum(n: i64, w_c: i32, c: Option<i128>, w_y: i32, y: i128) 
     let moved = c.map_or(0, |c| i128::from(w_c) * (c - (i128::from(n) << NORM_RAISE)));
     let typed = round_shift(i128::from(w_y) * y, READOUT_TYPE_DROP);
     let sum = round_shift((i128::from(n) << READOUT_SHIFT) + moved + typed, READOUT_SHIFT);
+    sum.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
+}
+
+/// One coordinate of the readout move of a read that asks (claude-353):
+/// `n + w_c · (c − n) + w_y · (y − n)`, each move present where a head of its kind matched (`n`
+/// at `NORM_FINE_EXP`, `c` and `y` both at `2^COPY_MEAN_EXP`), the sum formed exactly and rounded
+/// once to `n`'s exponent, half away from zero.
+pub(super) fn readout_ask_sum(n: i64, w_c: i32, c: Option<i128>, w_y: i32, y: Option<i128>) -> i64 {
+    // As [`readout_sum`]: `n · 2^43 < 2^106` and each move `< 2^114`, so the sum fits an i128.
+    let raised = i128::from(n) << NORM_RAISE;
+    let copied = c.map_or(0, |c| i128::from(w_c) * (c - raised));
+    let asked = y.map_or(0, |y| i128::from(w_y) * (y - raised));
+    let sum = round_shift((i128::from(n) << READOUT_SHIFT) + copied + asked, READOUT_SHIFT);
     sum.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
 }
 

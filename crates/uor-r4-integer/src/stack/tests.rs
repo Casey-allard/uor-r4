@@ -7994,6 +7994,100 @@ fn a_session_serves_the_ask_heads_queries() {
     }
 }
 
+/// claude-353: an asking read's heads bring back the table's point of each kept position's own
+/// token, as the float read's ask heads do (claude-330), and no payload. In the stream the read
+/// is `x + w_c ⊙ c + w_y ⊙ y`, and on the readout `n + w_c ⊙ (c − n) + w_y ⊙ (y − n)`, each
+/// term where a head of its kind found a candidate, `y` the ask heads' mean of those points.
+/// Both are checked against that form in f64, built from the heads' own choices, on random
+/// question tables and on zero ones, where an ask head asks as a copy head and finds every repeat.
+#[test]
+fn an_asking_read_brings_back_the_kept_tokens_points() {
+    use super::hamming::ServedHamming;
+    let (bytes, _, random) = ask_trunk(None);
+    let (snap, _, _) = served_read_trunk(&[1, 3], 1.0, 1.0);
+    let zero = Some(super::AskImage { table: vec![0; snap.vocab * snap.width], carry: None });
+    let zeros = super::add_hamming_ask_uorlut01(&bytes, &[zero.clone(), zero]).expect("the ask heads are added");
+    let tokens = repeating_tokens();
+    let mut rng = Lcg(353);
+    // The served weights floor at Q31, which moves a mean of Q12 points by less than a tenth
+    // of the readout's step; a payload of the wrong kind is off by thousands of steps.
+    let near = 0.6;
+    for (name, added) in [("random", random), ("zero", zeros)] {
+        let served = super::served_copy_codes_uorlut01(&added).expect("parse").expect("reads");
+        let (image, table, vocab, width) = (&served.image, &served.table, served.vocab, served.width);
+        let hamming = ServedHamming::new(image, table, vocab, width, 3, 40).expect("the reads");
+        assert!(hamming.has_type_heads());
+        let copy = image.record.heads / 2;
+        let mut payloads = hamming.payload_caches(40);
+        let mut found = [0usize; 2];
+        for t in 1..tokens.len() {
+            let window = &tokens[..=t];
+            for (r, read) in image.reads.iter().enumerate() {
+                let heads = super::TypeHeads::new(&image.record, read, table, vocab, width).with_ask(read.ask.clone().expect("asks"));
+                // The ask heads' mean in f64: each head's mean of its kept tokens' points, each
+                // weighed `max(0, m − d) / max(m, 1)`, then the mean over the heads that found one.
+                let mut sum = vec![0f64; width];
+                let mut finders = 0f64;
+                for (j, &query) in heads.ask_queries(table, window, t, 0).expect("asks").iter().enumerate() {
+                    let margin = f64::from(read.margin[copy + j]) / 65536.0;
+                    let mut head = vec![0f64; width];
+                    let mut count = 0f64;
+                    for (s, d) in heads.choose(j, query, window) {
+                        let weight = (margin - f64::from(d)).max(0.0) / margin.max(1.0);
+                        if weight == 0.0 {
+                            continue;
+                        }
+                        count += 1.0;
+                        let point = &table[window[s] as usize * width..][..width];
+                        for (acc, &p) in head.iter_mut().zip(point) {
+                            *acc += weight * f64::from(p) / 4096.0;
+                        }
+                    }
+                    if count > 0.0 {
+                        finders += 1.0;
+                        for (acc, value) in sum.iter_mut().zip(head) {
+                            *acc += value / count;
+                        }
+                    }
+                }
+                let y: Option<Vec<f64>> = (finders > 0.0).then(|| sum.iter().map(|v| v / finders).collect());
+                found[r] += usize::from(y.is_some());
+                // The copy mean: Q12 points at Q31 weights.
+                let c: Option<Vec<f64>> = super::CopyHeads::new(&image.record, read, table, vocab, width)
+                    .mean(window, table)
+                    .map(|c| c.iter().map(|&v| v as f64 * 2f64.powi(-43)).collect());
+                let (w_c, w_y) = read.weight.split_at(width);
+                let real = |w: i32| f64::from(w) * 2f64.powi(super::HAMMING_WEIGHT_EXP);
+                if r == 0 {
+                    let x: Vec<i32> = (0..width).map(|_| (rng.next() % (1 << 20)) as i32 - (1 << 19)).collect();
+                    let mut got = x.clone();
+                    hamming.stream(1, window, table, &mut payloads, &mut got, None, None);
+                    for k in 0..width {
+                        let added = real(w_c[k]) * c.as_ref().map_or(0.0, |c| c[k]) + real(w_y[k]) * y.as_ref().map_or(0.0, |y| y[k]);
+                        let want = f64::from(x[k]) + 65536.0 * added;
+                        assert!((f64::from(got[k]) - want).abs() <= near, "{name}, stream row {t}, coordinate {k}: {} against {want}", got[k]);
+                    }
+                } else {
+                    let unit = 2f64.powi(super::kernels::NORM_FINE_EXP);
+                    let n: Vec<i64> = (0..width).map(|_| (rng.next() % (1 << 40)) as i64 - (1 << 39)).collect();
+                    let mut got = n.clone();
+                    hamming.readout(window, table, &mut payloads, &mut got, None, None, None);
+                    for k in 0..width {
+                        let nf = n[k] as f64 * unit;
+                        let moved = |w: i32, mean: &Option<Vec<f64>>| mean.as_ref().map_or(0.0, |m| real(w) * (m[k] - nf));
+                        let want = (nf + moved(w_c[k], &c) + moved(w_y[k], &y)) / unit;
+                        assert!((got[k] as f64 - want).abs() <= near, "{name}, readout row {t}, coordinate {k}: {} against {want}", got[k]);
+                    }
+                }
+            }
+        }
+        if name == "zero" {
+            assert!(found[0] > 0 && found[1] > 0, "an ask head that asks as a copy head finds the repeats: {found:?}");
+        }
+        assert!(payloads.iter().all(Vec::is_empty), "{name}: an asking read keeps no payloads");
+    }
+}
+
 /// claude-336: malformed ask heads are refused, each by name: an ask section where the record
 /// says the read does not ask, a missing one, a carry off the readout read, a carry where the
 /// readout does not ask, all flags off or the wrong count, a carry of no reach, and a question
