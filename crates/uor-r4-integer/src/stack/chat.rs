@@ -143,6 +143,10 @@ pub struct StackChat<'m> {
     /// past a token it only read.
     fed: usize,
     pick: Option<u32>,
+    /// The place read's register after each step that chose a token of the
+    /// reply produced last ([`IntegerStackSession::last_place`]): pair `r` is
+    /// the register right after the step that chose reply token `r`.
+    reply_places: Vec<(Option<usize>, Option<usize>)>,
 }
 
 impl<'m> StackChat<'m> {
@@ -172,6 +176,7 @@ impl<'m> StackChat<'m> {
             history: Vec::new(),
             fed: 0,
             pick: None,
+            reply_places: Vec::new(),
         })
     }
 
@@ -224,6 +229,14 @@ impl<'m> StackChat<'m> {
     /// Finished steps of the current session (diagnostic).
     pub fn position(&self) -> usize {
         self.session.position()
+    }
+
+    /// The place read's register after each step that chose a token of the
+    /// reply produced last, one pair per reply id (diagnostic). Every pair is
+    /// `(None, None)` without a place read. A position is an index into
+    /// [`Self::tokens`].
+    pub fn last_reply_places(&self) -> &[(Option<usize>, Option<usize>)] {
+        &self.reply_places
     }
 
     /// Whether the artifact's declared context is the chat profile's 256.
@@ -332,6 +345,7 @@ impl<'m> StackChat<'m> {
     where
         F: FnMut(u32, &[u8]) -> Result<(), StackChatError>,
     {
+        self.reply_places.clear();
         if history.is_empty() {
             return Err(StackChatError::EmptyHistory);
         }
@@ -354,6 +368,7 @@ impl<'m> StackChat<'m> {
         for _ in 0..max_new_tokens {
             let next = self.pick.ok_or(StackChatError::EmptyHistory)?;
             ids.push(next);
+            self.reply_places.push(self.session.last_place());
             self.history.push(next);
             let token_bytes = self.tokenizer.decode_bytes(&[next]);
             emit(next, &token_bytes)?;

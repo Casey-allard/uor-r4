@@ -86,6 +86,8 @@ struct CliArgs {
     memory: Option<String>,
     /// Derive the next memory value from prior user turns.
     memory_sieve: bool,
+    /// Print the place read's register beside each `--stack` reply (`--print-place`).
+    print_place: bool,
     temperature: f64,
     top_k: usize,
     seed: u64,
@@ -290,6 +292,7 @@ impl Default for CliArgs {
             system_prompt: None,
             memory: None,
             memory_sieve: false,
+            print_place: false,
             temperature: 0.0,
             top_k: 16,
             seed: 0,
@@ -350,6 +353,9 @@ fn print_usage() {
     );
     eprintln!(
         "      --memory-sieve          Derive System: Memory from prior user turns in the REPL"
+    );
+    eprintln!(
+        "      --print-place           print the place read's register after each --stack reply:\n                              in the REPL on stdout under the reply; with --say or --script on\n                              stderr, so stdout stays the replies' JSON"
     );
     eprintln!(
         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
@@ -446,6 +452,9 @@ fn parse_cli_args() -> CliArgs {
             }
             "--memory-sieve" => {
                 args.memory_sieve = true;
+            }
+            "--print-place" => {
+                args.print_place = true;
             }
             "--stack" => {
                 idx += 1;
@@ -811,6 +820,12 @@ fn parse_cli_args() -> CliArgs {
     if args.memory_sieve && args.stack_path.is_none() {
         eprintln!(
             "{ANSI_RED_BOLD}error:{ANSI_RESET} '--memory-sieve' requires text chat with '--stack'"
+        );
+        process::exit(1);
+    }
+    if args.print_place && (args.stack_path.is_none() || args.prompt_ids.is_some() || args.serve.is_some()) {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--print-place' requires text replies on '--stack' (the REPL, '--say' or '--script')"
         );
         process::exit(1);
     }
@@ -1866,6 +1881,29 @@ fn print_stack_reply(reply: &StackReply, positions: usize, seconds: f64) {
     );
 }
 
+/// `--print-place`: the place read's register for the reply just served. Pair 0 is the
+/// register after the step that chose the reply's first id; a held place is a position in
+/// the chat's token history, whose token is decoded. Without a place read every pair is empty.
+fn place_line(chat: &StackChat<'_>, reply: &StackReply) -> String {
+    let places = chat.last_reply_places();
+    let (held, offered) = places.first().copied().unwrap_or((None, None));
+    let name = |place: Option<usize>| place.map_or_else(|| "none".to_owned(), |p| p.to_string());
+    let token = match held {
+        Some(at) => match chat.tokens().get(at) {
+            Some(&id) => chat.tokenizer().decode(&[id]),
+            None => "?".to_owned(),
+        },
+        None => "-".to_owned(),
+    };
+    let open = places.iter().filter(|(_, offered)| offered.is_some()).count();
+    format!(
+        "{ANSI_MAGENTA_BOLD}[place]{ANSI_RESET} first: held={} offered={} token={token:?}; open: {open} of {}",
+        name(held),
+        name(offered),
+        reply.ids.len()
+    )
+}
+
 fn stack_help() {
     println!("{ANSI_YELLOW_BOLD}[uor-chat]{ANSI_RESET} Available Slash Commands (stack path):");
     println!("  /reset, /clear        Reset dialogue history and start a fresh conversation");
@@ -2101,6 +2139,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             cli.max_tokens,
         )?;
         let seconds = started.elapsed().as_secs_f64();
+        if cli.print_place {
+            eprintln!("{}", place_line(&chat, &reply));
+        }
         let memory = cli
             .memory
             .as_deref()
@@ -2152,6 +2193,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                 cli.max_tokens,
             )?;
             let seconds = started.elapsed().as_secs_f64();
+            if cli.print_place {
+                eprintln!("{}", place_line(&chat, &reply));
+            }
             let memory_source = if turn_memory.is_none() {
                 "none"
             } else if explicit_memory {
@@ -2274,6 +2318,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                     Ok(reply) => {
                         let seconds = started.elapsed().as_secs_f64();
                         print_stack_reply(&reply, chat.tokens().len(), seconds);
+                        if cli.print_place {
+                            println!("{}", place_line(&chat, &reply));
+                        }
                         memory.finish_turn(trimmed, explicit_memory);
                         turns += 1;
                     }

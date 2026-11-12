@@ -59,6 +59,10 @@ name = "raw-id-replies"
 path = "src/bin/raw-id-replies.rs"
 required-features = ["integer-reader"]
 
+[[bin]]
+name = "whole-word-recall"
+path = "src/bin/whole-word-recall.rs"
+
 [[test]]
 name = "reply_control_bakeoff_v3_rules"
 path = "tests/reply_control_bakeoff_v3_rules.rs"

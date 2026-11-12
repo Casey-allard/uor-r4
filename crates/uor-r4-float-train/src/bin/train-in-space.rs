@@ -263,7 +263,7 @@
 //! as used, and refuses a run in which one was not taken; that split's memory-pass rows are the
 //! forced forward's. Refused, before any forward: a position that is not traced and R's refusals.
 //!
-//! `train-in-space --data-root DIR --panel-prompts 1 --out DIR [--panel NAME=DIR ...] [--runs DIR] --samples 1536 --reply-tokens 64`
+//! `train-in-space --data-root DIR --panel-prompts 1 --out DIR [--panel NAME=DIR ...] [--runs DIR] --samples 1536 --reply-tokens 64 [--context N] [--sample-opening first|last]`
 //! (point-key-integer, claude-224) writes, with no model, the prompts a `--score-rows` run decodes on
 //! DEV and each panel (`prompts-{split}.json`), for `fbs-toks --replies`. With `--runs` (claude-220's
 //! `out`), it also writes each seed's prompts with its float served names, refusing a served sample
@@ -944,7 +944,7 @@ fn main() -> Result<()> {
         decode.is_some(),
         score.is_some(),
     )?;
-    context_applies(config.context, modes[7] && recall == 0, grad_norms, score.is_some())?;
+    context_applies(config.context, modes[7] && recall == 0, grad_norms, score.is_some() || panel_prompts_on)?;
     time_without_quantizers_applies(
         time_quantizers,
         modes[7] && recall == 0,
@@ -980,11 +980,7 @@ fn main() -> Result<()> {
             "--past-window applies to --score-rows only".to_owned(),
         ));
     }
-    if last_opening.is_some() && score.is_none() {
-        return Err(FloatTrainError::Invalid(
-            "--sample-opening applies to --score-rows only".to_owned(),
-        ));
-    }
+    prompt_cut_applies(config.context, last_opening, score.is_some(), panel_prompts_on, runs.is_some())?;
     if !panel_queries.is_empty() && score.is_none() && !census_on {
         return Err(FloatTrainError::Invalid(
             "--panel-queries applies to --score-rows and --census only".to_owned(),
@@ -1192,7 +1188,17 @@ fn main() -> Result<()> {
     if panel_prompts_on {
         let out = out
             .ok_or_else(|| FloatTrainError::Invalid("--panel-prompts needs --out DIR".to_owned()))?;
-        for (file, rows) in panel_prompts(&data_root, &extra_panels, config.samples, config.reply_tokens, runs.as_deref(), &out)? {
+        let prompts = panel_prompts(
+            &data_root,
+            &extra_panels,
+            config.samples,
+            config.reply_tokens,
+            config.context,
+            last_opening.unwrap_or(false),
+            runs.as_deref(),
+            &out,
+        )?;
+        for (file, rows) in prompts {
             println!("{}", serde_json::json!({ "file": file, "rows": rows }));
         }
         return Ok(());
@@ -1871,14 +1877,41 @@ fn served_forward_applies(
 
 /// `--context` sets the window training cuts TRAIN at and builds its model to read (claude-273),
 /// `--grad-norms 1` reads TRAIN the same way, and `--score-rows` cuts its panels at it
-/// (claude-274). Every other mode, `--recall` among them, reads 192-token windows, so another
+/// (claude-274), as `--panel-prompts` does for the prompts it writes (claude-352; `scoring` is
+/// true for either). Every other mode, `--recall` among them, reads 192-token windows, so another
 /// window there would be ignored: it is refused.
 fn context_applies(context: usize, training: bool, grad_norms: bool, scoring: bool) -> Result<()> {
     if context != uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT
         && !(training || grad_norms || scoring)
     {
         return Err(FloatTrainError::Invalid(
-            "--context applies to training with --out, --grad-norms 1 and --score-rows only"
+            "--context applies to training with --out, --grad-norms 1, --score-rows and --panel-prompts only"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+/// claude-352: `--panel-prompts` writes the prompts `--score-rows` decodes, so it takes that
+/// mode's `--context` and `--sample-opening`, and `--sample-opening` applies to those two modes
+/// only. With `--runs DIR` each prompt is also named by a run decoded at the sheet's window and
+/// first opening, so there another window or the last opening is refused by name.
+fn prompt_cut_applies(
+    context: usize,
+    last_opening: Option<bool>,
+    scoring: bool,
+    panel_prompts: bool,
+    runs: bool,
+) -> Result<()> {
+    if last_opening.is_some() && !scoring && !panel_prompts {
+        return Err(FloatTrainError::Invalid(
+            "--sample-opening applies to --score-rows and --panel-prompts only".to_owned(),
+        ));
+    }
+    let sheet = uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT;
+    if panel_prompts && runs && (context != sheet || last_opening == Some(true)) {
+        return Err(FloatTrainError::Invalid(
+            "--panel-prompts --runs DIR names each prompt by a run decoded at the sheet's window and first opening: --context and --sample-opening last do not apply"
                 .to_owned(),
         ));
     }
@@ -2024,6 +2057,23 @@ mod tests {
         assert!(context_applies(2048, false, false, true).is_ok(), "claude-274: scoring at a window");
         assert!(context_applies(2048, false, false, false).is_err());
         assert!(context_applies(sheet + 1, false, false, false).is_err());
+    }
+
+    /// claude-352: the prompt builder takes the scorer's window and opening. The opening alone,
+    /// and either of them beside a served run, is refused by name.
+    #[test]
+    fn the_prompt_builder_takes_the_scorers_window_and_opening() {
+        let sheet = uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT;
+        assert!(prompt_cut_applies(sheet, None, false, false, false).is_ok());
+        assert!(prompt_cut_applies(256, Some(true), false, true, false).is_ok(), "the 256 retake's prompts");
+        assert!(prompt_cut_applies(256, Some(true), true, false, false).is_ok(), "scoring");
+        assert!(prompt_cut_applies(sheet, Some(false), false, true, true).is_ok(), "the sheet's cut, named by a run");
+        let alone = prompt_cut_applies(sheet, Some(false), false, false, false).unwrap_err().to_string();
+        assert!(alone.contains("--sample-opening applies"), "{alone}");
+        for (context, opening) in [(256, None), (sheet, Some(true))] {
+            let named = prompt_cut_applies(context, opening, false, true, true).unwrap_err().to_string();
+            assert!(named.contains("--panel-prompts --runs DIR"), "{named}");
+        }
     }
 
     #[test]

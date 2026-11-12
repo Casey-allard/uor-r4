@@ -5358,21 +5358,29 @@ pub struct PanelPrompt {
 }
 
 /// The prompts [`score_rows`] decodes on a split (claude-224):
-/// - the windows are [`sample_windows`]';
+/// - the windows are [`sample_windows`]', or [`last_openings`]' with `last_opening` (claude-352);
 /// - each prompt is its window's input through its first scored offset;
 /// - each reference is its [`reference_reply`].
 ///
 /// No model is involved.
-fn split_prompts(windows: &[CausalWindow], mask: &[u8], samples: usize, reply_tokens: usize) -> Vec<PanelPrompt> {
-    sample_windows(windows, mask, samples)
-        .into_iter()
-        .map(|window| PanelPrompt {
-            position: window.scored_corpus_positions[0],
-            prompt: window.input_ids[..=window.scored_offsets[0]].to_vec(),
-            reference: reference_reply(window, reply_tokens),
-            float_keyed: None,
-        })
-        .collect()
+fn split_prompts(
+    windows: &[CausalWindow],
+    mask: &[u8],
+    samples: usize,
+    reply_tokens: usize,
+    last_opening: bool,
+) -> Vec<PanelPrompt> {
+    let prompt = |window: &CausalWindow| PanelPrompt {
+        position: window.scored_corpus_positions[0],
+        prompt: window.input_ids[..=window.scored_offsets[0]].to_vec(),
+        reference: reference_reply(window, reply_tokens),
+        float_keyed: None,
+    };
+    if last_opening {
+        last_openings(windows, mask, samples).iter().map(prompt).collect()
+    } else {
+        sample_windows(windows, mask, samples).into_iter().map(prompt).collect()
+    }
 }
 
 /// `--panel-prompts` (claude-224): DEV's and each panel's prompts, as [`score_rows`] decodes them,
@@ -5383,26 +5391,38 @@ fn split_prompts(windows: &[CausalWindow], mask: &[u8], samples: usize, reply_to
 /// name. A served sample whose position, prompt or reference is not its prompt's is refused: the
 /// float arms decoded these prompts, so the two lists are one.
 ///
+/// `context` cuts each panel's windows as `--score-rows --context` cuts them, and DEV keeps
+/// [`SHEET_CONTEXT`]; with `last_opening` every split's prompts are [`last_openings`]', as
+/// `--score-rows --sample-opening last` decodes them (claude-352). At [`SHEET_CONTEXT`] and the
+/// first opening the files are the ones written before.
+///
 /// It returns each written file's name and rows.
+#[allow(clippy::too_many_arguments)]
 pub fn panel_prompts(
     data_root: &Path,
     panels: &[(String, PathBuf)],
     samples: usize,
     reply_tokens: usize,
+    context: usize,
+    last_opening: bool,
     served_runs: Option<&Path>,
     out: &Path,
 ) -> Result<Vec<(String, usize)>> {
     let windows_of = |tokens: &[u32], mask: &[u8]| -> Result<Vec<CausalWindow>> {
-        Ok(hs::build_document_windows(tokens, mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?.0)
+        Ok(hs::build_document_windows(tokens, mask, context, hs::SHEET_BOS_ID)?.0)
     };
     let (dev_windows, dev_mask) = load_dev(data_root)?;
-    let mut splits = vec![("dev".to_owned(), split_prompts(&dev_windows, &dev_mask, samples, reply_tokens))];
+    let mut splits =
+        vec![("dev".to_owned(), split_prompts(&dev_windows, &dev_mask, samples, reply_tokens, last_opening))];
     for (name, dir) in panels {
         if !panel_name_ok(name) || splits.iter().any(|(n, _)| n == name) {
             return Err(invalid(format!("--panel {name}: a panel name is one word, not dev")));
         }
         let (tokens, mask, _) = load_unpinned_uort(dir)?;
-        splits.push((name.clone(), split_prompts(&windows_of(&tokens, &mask)?, &mask, samples, reply_tokens)));
+        splits.push((
+            name.clone(),
+            split_prompts(&windows_of(&tokens, &mask)?, &mask, samples, reply_tokens, last_opening),
+        ));
     }
     fs::create_dir_all(out)?;
     let mut written = Vec::new();
@@ -20521,9 +20541,9 @@ mod tests {
         let windows = hs::build_document_windows(&tokens, &mask, SHEET_CONTEXT, bos).unwrap().0;
         let prompt = |doc: u32| std::iter::once(bos).chain((0..20).map(|i| 10 + i + doc)).collect::<Vec<u32>>();
         let row = |position: usize, doc: u32| PanelPrompt { position, prompt: prompt(doc), reference: vec![5, 6, 7], float_keyed: None };
-        assert_eq!(split_prompts(&windows, &mask, 2, 64), [row(21, 0), row(45, 1)]);
-        assert_eq!(split_prompts(&windows, &mask, 2, 2)[0].reference, [5, 6], "at most the reply tokens");
-        assert_eq!(split_prompts(&windows, &mask, 1, 64), [row(21, 0)], "the stride takes the first");
+        assert_eq!(split_prompts(&windows, &mask, 2, 64, false), [row(21, 0), row(45, 1)]);
+        assert_eq!(split_prompts(&windows, &mask, 2, 2, false)[0].reference, [5, 6], "at most the reply tokens");
+        assert_eq!(split_prompts(&windows, &mask, 1, 64, false), [row(21, 0)], "the stride takes the first");
     }
 
     fn integer_sample(keyed: Option<u32>, reply: Vec<u32>, reference: Vec<u32>) -> IntegerSample {
@@ -22369,6 +22389,32 @@ mod tests {
             window_input_mask(&[&windows[0]], &mask).unwrap(),
             "the input flags are the window's own"
         );
+    }
+
+    /// claude-352: `--panel-prompts` writes the prompts the scorer decodes. With
+    /// `--sample-opening last` each is its window's input through the last reply opening, with
+    /// that reply as its reference; without it, the first opening's, as before.
+    #[test]
+    fn the_panel_prompts_follow_the_sample_opening() {
+        // BOS, a 20-token prompt, a reply (3), a 5-token prompt, a reply (3).
+        let mut tokens = vec![0u32];
+        tokens.extend(100..120);
+        tokens.extend([200, 201, 202]);
+        tokens.extend(300..305);
+        tokens.extend([400, 401, 402]);
+        let mask: Vec<u8> =
+            tokens.iter().map(|&t| u8::from((200..203).contains(&t) || (400..403).contains(&t))).collect();
+        let (windows, _) = hs::build_document_windows(&tokens, &mask, 2048, 0).unwrap();
+        let first = split_prompts(&windows, &mask, 4, 64, false);
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].position, 21);
+        assert_eq!(first[0].prompt, tokens[..21]);
+        assert_eq!(first[0].reference, [200, 201, 202]);
+        let last = split_prompts(&windows, &mask, 4, 64, true);
+        assert_eq!(last.len(), 1);
+        assert_eq!(last[0].position, 29);
+        assert_eq!(last[0].prompt, tokens[..29]);
+        assert_eq!(last[0].reference, [400, 401, 402]);
     }
 
     /// claude-274: a scored file at 192 writes no `context`, so a 192 manifest is as before; at
