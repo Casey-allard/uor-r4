@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.chat-script/1",
+  "turns": [
+    {"user": "Please remember: hurkwaiklais is 836, plolkouk is veettrokplik, hindzak is 45."},
+    {"user": "What day comes after Thursday?"},
+    {"user": "Tell me what plolkouk was."},
+    {"user": "What does a pig say?"},
+    {"user": "Say exactly this: wushodeer buldreestwend zeschai ploldrul"},
+    {"user": "What is hurkwaiklais?"},
+    {"user": "I feel lonely today."},
+    {"user": "What is hindzak?"},
+    {"user": "What's my lucky number?"}
+  ]
+}

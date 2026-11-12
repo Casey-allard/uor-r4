@@ -1,0 +1,54 @@
+reader 27d4219efb261612db389c6f905b0f5afe3700c71ff7893ed25cf95f05628221
+n-s2 192 own: exit 0 rows 1108 sha e3843d0cbf7a4885c2043590987e3e6a18360b568c61a0c8da4129591af1de98
+p-s3 192 own: exit 0 rows 1108 sha bbd7388b8e1579f087f43fe797cccca2dc6f4d8e8c7fbff022eebec87a524e16
+p-s2 192 own: exit 0 rows 1108 sha 09476870e1d850181c4f9b05fcd1f73eb73dad15245d07b42ed0ce8ed8e1820b
+p-s1 192 own: exit 0 rows 1108 sha 539135ec73553270559940303a1c0bc02cd5e3a3ee7aaa25a4fee11070c10679
+p-s3 192 longest: exit 0 rows 1108 sha 01cc7c75f648b6d17fba08ba5558b7760c0a0efce16564241320ed8baa445a35
+p-s2 192 longest: exit 0 rows 1108 sha 15a5d5e19d537f7ab8efdbbb4ee55565842762eb296185dfacd6e9d7cd8dcf7b
+n-s2 192 longest: exit 0 rows 1108 sha 03ee2dbd5158fd733bfa333490a9c848b88514cfdecde219d070a7f0f591ff42
+p-s1 192 longest: exit 0 rows 1108 sha ff7494f47da297e4cbb91043b063d36fd4c7f1555a0ec2aaf7a9cf9e55edada5
+p-s2 256 own: exit 0 rows 990 sha 4057761934a224a38ca746f511b49e6b9e14cea6fa85a10692680200f2cc295b
+n-s2 256 own: exit 0 rows 990 sha 8753d3445cd512a8f5f1486512236644eb0a591182839978a6e358320f3291f2
+p-s3 256 own: exit 0 rows 990 sha 4b0bcceefd716d0e296dcea5bc56e3a54917767493514e9b528dc440ef68c0fc
+p-s1 256 own: exit 0 rows 990 sha b80d66284b0f3eceb7545d8f14f971e1c107da1bcc6ee6c1d7d6460488a1a150
+p-s2 256 longest: exit 0 rows 990 sha 25ed575e16ba4b9df59c88496942dfadacf071f9cb1dfab1d45c386bcc5cac37
+p-s3 256 longest: exit 0 rows 990 sha 3d1ccb61b5952afea39188a43249bf836ec825cb639ea5540f098bd97f918594
+n-s2 256 longest: exit 0 rows 990 sha e44dd268e3ef03fa3ec09f213c2db6423ab4e3f2ac76e401ef517a1bcd1b9e6e
+p-s1 256 longest: exit 0 rows 990 sha 644ff998f90e407bcddad5e1798cec27780607c94a83e2e8b4f4d1198d19f87a
+done
+
+second run, by a build of the source with the three tests added after review; every reply file compared with the first run (cmp)
+reader c52325848f6185422517463232fa241c68910a94bf2a5619685102035d0d0dd2
+n-s2 192 own: exit 0 rows 1108 sha e3843d0cbf7a4885c2043590987e3e6a18360b568c61a0c8da4129591af1de98
+p-s3 192 own: exit 0 rows 1108 sha bbd7388b8e1579f087f43fe797cccca2dc6f4d8e8c7fbff022eebec87a524e16
+p-s2 192 own: exit 0 rows 1108 sha 09476870e1d850181c4f9b05fcd1f73eb73dad15245d07b42ed0ce8ed8e1820b
+p-s1 192 own: exit 0 rows 1108 sha 539135ec73553270559940303a1c0bc02cd5e3a3ee7aaa25a4fee11070c10679
+p-s3 192 longest: exit 0 rows 1108 sha 01cc7c75f648b6d17fba08ba5558b7760c0a0efce16564241320ed8baa445a35
+p-s2 192 longest: exit 0 rows 1108 sha 15a5d5e19d537f7ab8efdbbb4ee55565842762eb296185dfacd6e9d7cd8dcf7b
+n-s2 192 longest: exit 0 rows 1108 sha 03ee2dbd5158fd733bfa333490a9c848b88514cfdecde219d070a7f0f591ff42
+p-s1 192 longest: exit 0 rows 1108 sha ff7494f47da297e4cbb91043b063d36fd4c7f1555a0ec2aaf7a9cf9e55edada5
+n-s2 256 own: exit 0 rows 990 sha 8753d3445cd512a8f5f1486512236644eb0a591182839978a6e358320f3291f2
+p-s2 256 own: exit 0 rows 990 sha 4057761934a224a38ca746f511b49e6b9e14cea6fa85a10692680200f2cc295b
+p-s3 256 own: exit 0 rows 990 sha 4b0bcceefd716d0e296dcea5bc56e3a54917767493514e9b528dc440ef68c0fc
+p-s1 256 own: exit 0 rows 990 sha b80d66284b0f3eceb7545d8f14f971e1c107da1bcc6ee6c1d7d6460488a1a150
+p-s3 256 longest: exit 0 rows 990 sha 3d1ccb61b5952afea39188a43249bf836ec825cb639ea5540f098bd97f918594
+n-s2 256 longest: exit 0 rows 990 sha e44dd268e3ef03fa3ec09f213c2db6423ab4e3f2ac76e401ef517a1bcd1b9e6e
+p-s2 256 longest: exit 0 rows 990 sha 25ed575e16ba4b9df59c88496942dfadacf071f9cb1dfab1d45c386bcc5cac37
+p-s1 256 longest: exit 0 rows 990 sha 644ff998f90e407bcddad5e1798cec27780607c94a83e2e8b4f4d1198d19f87a
+done
+same n-s2-192.own.jsonl
+same n-s2-256.own.jsonl
+same p-s1-192.own.jsonl
+same p-s1-256.own.jsonl
+same p-s2-192.own.jsonl
+same p-s2-256.own.jsonl
+same p-s3-192.own.jsonl
+same p-s3-256.own.jsonl
+same n-s2-192.longest.jsonl
+same n-s2-256.longest.jsonl
+same p-s1-192.longest.jsonl
+same p-s1-256.longest.jsonl
+same p-s2-192.longest.jsonl
+same p-s2-256.longest.jsonl
+same p-s3-192.longest.jsonl
+same p-s3-256.longest.jsonl

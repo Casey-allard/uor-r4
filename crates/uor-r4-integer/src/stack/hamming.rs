@@ -184,15 +184,22 @@ pub enum CopyRule {
     /// The latest of the positions at the smallest distance, when that distance is inside the
     /// margin: hard top-1 (the 26 Sep retrieval head), with ties to the later position.
     LatestNearest,
+    /// The longest match (claude-355): among the positions whose key equals the query exactly,
+    /// the latest whose token before the key also equals the token before the row's query
+    /// tokens, by the head's code; with no such position, [`Self::LatestExact`]'s. Under copy
+    /// key 1 that is a match of two tokens, else of one. A head with no exact match reads nothing.
+    LongestExact,
 }
 
 impl CopyRule {
-    /// The rule `name` names (`mean`, `latest-exact`, `latest-nearest`), or `None`.
+    /// The rule `name` names (`mean`, `latest-exact`, `latest-nearest`, `longest-exact`), or
+    /// `None`.
     pub fn parse(name: &str) -> Option<Self> {
         match name {
             "mean" => Some(Self::Mean),
             "latest-exact" => Some(Self::LatestExact),
             "latest-nearest" => Some(Self::LatestNearest),
+            "longest-exact" => Some(Self::LongestExact),
             _ => None,
         }
     }
@@ -203,6 +210,7 @@ impl CopyRule {
             Self::Mean => "mean",
             Self::LatestExact => "latest-exact",
             Self::LatestNearest => "latest-nearest",
+            Self::LongestExact => "longest-exact",
         }
     }
 }
@@ -291,12 +299,29 @@ impl CopyHeads {
         latest_of(self.query_at(tokens, t, h), t, exact, |s| self.key_at(tokens, s, h))
     }
 
+    /// Whether, at position `s`, one token more than copy head `h`'s key matches row `t` of
+    /// `tokens` (claude-355): the token before the key (`x_{s−2}` under copy key 1, `x_{s−3}`
+    /// under copy key 2) equals, by the head's code, the token before the row's query tokens
+    /// (`x_{t−1}`, `x_{t−2}`). A position with no token before its key has no longer match.
+    /// It is asked for `1 ≤ s < t` only, so `t` is at least 2 and the row has that token.
+    fn longer_at(&self, tokens: &[u32], s: usize, t: usize, h: usize) -> bool {
+        let key = if self.pair[h].is_some() { 2 } else { 1 };
+        s > key && self.code(tokens[s - 1 - key], h) == self.code(tokens[t - key], h)
+    }
+
     /// The positions [`Self::mean`] reads for head `h`, by the head's [`CopyRule`].
     fn choose_ruled(&self, h: usize, tokens: &[u32]) -> Vec<(usize, u32)> {
         match self.rule {
             CopyRule::Mean => self.choose(h, tokens),
             CopyRule::LatestExact => self.latest(h, tokens, true),
             CopyRule::LatestNearest => self.latest(h, tokens, false),
+            CopyRule::LongestExact => {
+                let Some(t) = tokens.len().checked_sub(1) else {
+                    return Vec::new();
+                };
+                let key = |s: usize| self.key_at(tokens, s, h);
+                longest_of(self.query_at(tokens, t, h), t, key, |s| self.longer_at(tokens, s, t, h))
+            }
         }
     }
 
@@ -353,6 +378,8 @@ impl CopyHeads {
             CopyRule::Mean => nearest(query, t, self.kept, key),
             CopyRule::LatestExact => latest_of(query, t, true, key),
             CopyRule::LatestNearest => latest_of(query, t, false, key),
+            // The longer test reads the tokens, which a replay does not force.
+            CopyRule::LongestExact => longest_of(query, t, key, |s| self.longer_at(tokens, s, t, h)),
         }
     }
 
@@ -461,6 +488,23 @@ fn latest_of(query: u64, t: usize, exact: bool, key: impl Fn(usize) -> u64) -> V
     best.into_iter().collect()
 }
 
+/// The one position the longest rule reads at row `t` (claude-355): over every `1 ≤ s < t` whose
+/// key equals `query`, the latest `s` at which `longer` holds; with none, the latest such `s`.
+/// Empty when no key equals the query.
+fn longest_of(query: u64, t: usize, key: impl Fn(usize) -> u64, longer: impl Fn(usize) -> bool) -> Vec<(usize, u32)> {
+    let (mut exact, mut long) = (None, None);
+    for s in 1..t {
+        if key(s) != query {
+            continue;
+        }
+        exact = Some(s);
+        if longer(s) {
+            long = Some(s);
+        }
+    }
+    long.or(exact).map(|s| (s, 0)).into_iter().collect()
+}
+
 /// The `min(kept, t − 1)` positions `1 ≤ s < t` nearest to `query` by `popcount(query XOR key(s))`,
 /// with their distances, in ascending distance and then ascending `s` (the design's tie rule).
 fn nearest(query: u64, t: usize, kept: usize, key: impl Fn(usize) -> u64) -> Vec<(usize, u32)> {
@@ -515,7 +559,7 @@ mod copy_rule_tests {
 
     #[test]
     fn the_names_round_trip() {
-        for rule in [CopyRule::Mean, CopyRule::LatestExact, CopyRule::LatestNearest] {
+        for rule in [CopyRule::Mean, CopyRule::LatestExact, CopyRule::LatestNearest, CopyRule::LongestExact] {
             assert_eq!(CopyRule::parse(rule.name()), Some(rule));
         }
         assert_eq!(CopyRule::parse("latest"), None);
@@ -564,12 +608,85 @@ mod copy_rule_tests {
         }
     }
 
+    /// Token 1 was followed by 3 after a 2 and later by 2 after a 0, and the row's 1 comes after
+    /// a 2. The latest rule brings back the last follower; the longest rule the follower of the
+    /// match of two tokens, though it is the earlier one (claude-355).
+    #[test]
+    fn the_longest_rule_takes_the_match_of_two_tokens_before_a_later_match_of_one() {
+        let tokens = [2, 1, 3, 0, 1, 2, 2, 1];
+        let (latest, table) = heads(16, CopyRule::LatestExact);
+        assert_eq!(latest.mean(&tokens, &table), row(2, FULL));
+        let (longest, _) = heads(16, CopyRule::LongestExact);
+        assert_eq!(longest.choose_ruled(0, &tokens), vec![(2, 0)]);
+        assert_eq!(longest.mean(&tokens, &table), row(3, FULL));
+    }
+
+    /// Of two matches of two tokens the longest rule takes the later, past a still later match
+    /// of one token: s = 5 (row 0), not s = 2 (row 3) and not the latest rule's s = 8 (row 2).
+    #[test]
+    fn the_longest_rule_takes_the_latest_of_its_longer_matches() {
+        let tokens = [2, 1, 3, 2, 1, 0, 0, 1, 2, 2, 1];
+        let (latest, table) = heads(16, CopyRule::LatestExact);
+        assert_eq!(latest.mean(&tokens, &table), row(2, FULL));
+        let (longest, _) = heads(16, CopyRule::LongestExact);
+        assert_eq!(longest.choose_ruled(0, &tokens), vec![(5, 0)]);
+        assert_eq!(longest.mean(&tokens, &table), row(0, FULL));
+    }
+
+    /// With no match of two tokens the longest rule is the latest rule, with no exact match it
+    /// reads nothing, and position 1, whose key has no token before it, is no longer match.
+    #[test]
+    fn the_longest_rule_falls_back_to_the_latest_exact_match() {
+        let (latest, table) = heads(16, CopyRule::LatestExact);
+        let (longest, _) = heads(16, CopyRule::LongestExact);
+        // The 1s at 1 and 4 come after 0s, the row's 1 after a 2: one token matches, never two.
+        let one = [0, 1, 3, 0, 1, 2, 2, 1];
+        assert_eq!(longest.choose_ruled(0, &one), vec![(5, 0)]);
+        assert_eq!(longest.mean(&one, &table), latest.mean(&one, &table));
+        assert_eq!(longest.mean(&[2, 0, 2, 3, 1], &table), None);
+        // The only match is s = 1: the key is `x_0` and nothing stands before it.
+        let first = [1, 3, 0, 1];
+        assert_eq!(longest.choose_ruled(0, &first), vec![(1, 0)]);
+        assert_eq!(longest.mean(&first, &table), row(3, FULL));
+    }
+
+    /// Under copy key 2 the key is already two tokens, and the longer match is of three: the
+    /// pair `1 3` stands at 1-2 after a 0 and at 5-6 after a 2, and the row's pair after a 0.
+    #[test]
+    fn under_copy_key_two_the_longer_match_is_of_three_tokens() {
+        let tokens = [0, 1, 3, 2, 2, 1, 3, 0, 0, 1, 3];
+        let pair = |rule| {
+            let (mut heads, table) = heads(16, rule);
+            heads.pair = vec![Some(0b0011)];
+            (heads, table)
+        };
+        let (latest, table) = pair(CopyRule::LatestExact);
+        assert_eq!(latest.choose_ruled(0, &tokens), vec![(7, 0)]);
+        let (longest, _) = pair(CopyRule::LongestExact);
+        assert_eq!(longest.choose_ruled(0, &tokens), vec![(3, 0)]);
+        assert_eq!(longest.mean(&tokens, &table), row(2, FULL));
+        // A pair match at 2 has no token before its key: it is the latest exact match, no more.
+        assert_eq!(longest.choose_ruled(0, &[1, 3, 0, 1, 3]), vec![(2, 0)]);
+    }
+
+    /// The longer test is by the head's code, not by the token: once tokens 2 and 3 share a
+    /// code, the 3 before the key at 2 matches the 2 before the row's token.
+    #[test]
+    fn the_longer_match_is_by_the_heads_code() {
+        let tokens = [3, 1, 0, 0, 1, 3, 2, 1];
+        let (mut longest, table) = heads(16, CopyRule::LongestExact);
+        assert_eq!(longest.choose_ruled(0, &tokens), vec![(5, 0)]);
+        longest.codes[3] = longest.codes[2];
+        assert_eq!(longest.choose_ruled(0, &tokens), vec![(2, 0)]);
+        assert_eq!(longest.mean(&tokens, &table), row(0, FULL));
+    }
+
     /// A replay that forces no code is the served read under every rule, and a forced query is
     /// read by the rule in force: under the exact rule a query no key equals reads nothing.
     #[test]
     fn a_forced_replay_picks_its_positions_by_the_rule_in_force() {
         let tokens = [1, 2, 0, 1, 3, 0, 1];
-        for rule in [CopyRule::Mean, CopyRule::LatestExact, CopyRule::LatestNearest] {
+        for rule in [CopyRule::Mean, CopyRule::LatestExact, CopyRule::LatestNearest, CopyRule::LongestExact] {
             let (heads, table) = heads(16, rule);
             let free = HeadForce::default();
             let replay = heads.mean_by(&tokens, &table, |h| heads.choose_forced(h, &tokens, &free));
@@ -591,7 +708,7 @@ mod copy_rule_tests {
 
     #[test]
     fn a_row_with_no_earlier_position_reads_nothing() {
-        for rule in [CopyRule::LatestExact, CopyRule::LatestNearest] {
+        for rule in [CopyRule::LatestExact, CopyRule::LatestNearest, CopyRule::LongestExact] {
             let (latest, table) = heads(16, rule);
             assert_eq!(latest.mean(&[1], &table), None);
             assert_eq!(latest.mean(&[1, 1], &table), None);

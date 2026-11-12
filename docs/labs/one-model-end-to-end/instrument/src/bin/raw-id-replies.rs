@@ -47,6 +47,12 @@
 //! file's SHA-256 must be the hash the kit names, and each row's `reference` must be the file's
 //! ids at the row's `position`, or the run is refused before anything is written.
 //!
+//! `--copy-rule NAME` (claude-355) serves the artifact's copy heads under another rule than its
+//! own: `mean`, `latest-exact`, `latest-nearest` or `longest-exact`. It needs an artifact with a
+//! Hamming read. The replies are then no longer what the artifact was exported as; the receipt
+//! gains `copy_rule` with the rule served and the artifact's own. Without the flag the artifact's
+//! own rule is served and the receipt is as before.
+//!
 //! Every argument is a `--name value` pair; a name with no value is refused.
 //!
 //! It is an instrument: it trains nothing, changes no artifact and moves no bar.
@@ -55,7 +61,8 @@
 //! raw-id-replies --stack ART.uorlut --samples ROWS.json --out REPLIES.jsonl \
 //!   --mark-reply 0|1 [--max-tokens 48] [--count-visits 0|1] [--time-steps 0|1] \
 //!   [--trace-control 0|1 --trace-out TRACE.jsonl] \
-//!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]]
+//!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]] \
+//!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact]
 //! ```
 //!
 //! `ROWS.json` is a JSON array of objects with a `prompt` array of token ids (a float score's
@@ -72,12 +79,12 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use uor_r4_integer::generation::short_cycle;
 use uor_r4_integer::stack::{
-    read_hamming_uorlut01, HammingStepRead, IntegerStackModel, IntegerStackSession,
+    read_hamming_uorlut01, CopyRule, HammingStepRead, IntegerStackModel, IntegerStackSession,
 };
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -651,10 +658,24 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     if kit_tokens_path.is_some() && places_path.is_none() {
         return Err("--kit-tokens needs --places".to_owned());
     }
+    let copy_rule = match flag(&args, "--copy-rule") {
+        Some(name) => Some(CopyRule::parse(&name).ok_or_else(|| {
+            format!("--copy-rule takes mean, latest-exact, latest-nearest or longest-exact, not {name}")
+        })?),
+        None => None,
+    };
 
     let artifact = fs::read(&stack_path).map_err(|e| format!("{stack_path}: {e}"))?;
     let samples = fs::read(&samples_path).map_err(|e| format!("{samples_path}: {e}"))?;
-    let model = IntegerStackModel::parse(&artifact).map_err(|e| format!("artifact: {e}"))?;
+    let mut model = IntegerStackModel::parse(&artifact).map_err(|e| format!("artifact: {e}"))?;
+    // The artifact's own rule, read before any switch.
+    let own_copy_rule = model.copy_rule();
+    if let Some(rule) = copy_rule {
+        if !model.set_copy_rule(rule) {
+            // Without a Hamming read there is no copy head to set: the run would be a plain one.
+            return Err("--copy-rule needs an artifact with a Hamming read".to_owned());
+        }
+    }
     let has_turn_memory = model.session().has_turn_memory();
     if mark && !has_turn_memory {
         // A marked run on a model without a turn memory would be an unmarked run by another name.
@@ -872,6 +893,13 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
         "stack_sha256": sha256_hex(&artifact),
         "samples_sha256": sha256_hex(&samples),
     });
+    if copy_rule.is_some() {
+        // What the session serves after the switch, beside the artifact's own rule.
+        receipt["copy_rule"] = json!({
+            "served": model.copy_rule().map(CopyRule::name),
+            "own": own_copy_rule.map(CopyRule::name),
+        });
+    }
     if count_visits {
         receipt["nearest_visit"] = json!({
             "block": BLOCK,
@@ -1122,6 +1150,70 @@ mod tests {
                 assert!(row.get(field).is_some(), "missing {field}: {row}");
             }
         }
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// claude-355: `--copy-rule` sets the copy heads' rule by name and the receipt records what
+    /// is served; the artifact's own rule by name changes no reply; an unknown name and an
+    /// artifact with no Hamming read are refused.
+    #[test]
+    fn the_copy_rule_is_set_by_name_and_recorded() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-reply-rule-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&root).expect("temp directory");
+        let stack = root.join("synthetic.uorlut");
+        let bare = root.join("bare.uorlut");
+        let samples = root.join("samples.json");
+        fs::write(&stack, trace_artifact()).expect("artifact");
+        let mut snap = synthetic_fbs_trunk(17);
+        snap.readout_nearest = true;
+        fs::write(&bare, export_fbs_trunk_uorlut01(&snap).expect("bare artifact")).expect("bare");
+        fs::write(&samples, r#"[{"prompt":[2,3,2,3,2]}]"#).expect("samples");
+        let run = |stack: &Path, out: &str, mark: &str, rule: Option<&str>| {
+            let mut args = vec![
+                "--stack".to_owned(),
+                stack.display().to_string(),
+                "--samples".to_owned(),
+                samples.display().to_string(),
+                "--out".to_owned(),
+                root.join(out).display().to_string(),
+                "--mark-reply".to_owned(),
+                mark.to_owned(),
+                "--max-tokens".to_owned(),
+                "4".to_owned(),
+            ];
+            if let Some(rule) = rule {
+                args.extend(["--copy-rule".to_owned(), rule.to_owned()]);
+            }
+            run_with_args(args.into_iter())
+        };
+
+        let plain = run(&stack, "plain.jsonl", "1", None).expect("plain run");
+        assert!(plain.get("copy_rule").is_none(), "{plain}");
+        let own = IntegerStackModel::parse(&trace_artifact())
+            .expect("artifact")
+            .copy_rule()
+            .expect("a Hamming read")
+            .name();
+        let same = run(&stack, "own.jsonl", "1", Some(own)).expect("own rule");
+        assert_eq!(same["copy_rule"], json!({"served": own, "own": own}));
+        assert_eq!(
+            fs::read(root.join("plain.jsonl")).expect("plain replies"),
+            fs::read(root.join("own.jsonl")).expect("own-rule replies")
+        );
+        let longest = run(&stack, "longest.jsonl", "1", Some("longest-exact")).expect("longest");
+        assert_eq!(longest["copy_rule"], json!({"served": "longest-exact", "own": own}));
+
+        let error = run(&stack, "bad.jsonl", "1", Some("longest")).unwrap_err();
+        assert!(error.contains("--copy-rule takes mean, latest-exact"), "{error}");
+        assert!(!root.join("bad.jsonl").exists());
+        let error = run(&bare, "bare.jsonl", "0", Some("longest-exact")).unwrap_err();
+        assert!(error.contains("--copy-rule needs an artifact with a Hamming read"), "{error}");
+        assert!(!root.join("bare.jsonl").exists());
         let _ = fs::remove_dir_all(root);
     }
 

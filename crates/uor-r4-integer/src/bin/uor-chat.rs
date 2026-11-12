@@ -537,7 +537,7 @@ fn parse_cli_args() -> CliArgs {
                     Some(rule) => args.copy_rule = Some(rule),
                     None => {
                         eprintln!(
-                            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--copy-rule' takes mean, latest-exact or latest-nearest"
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--copy-rule' takes mean, latest-exact, latest-nearest or longest-exact"
                         );
                         process::exit(1);
                     }
