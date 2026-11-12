@@ -73,6 +73,14 @@
 //! match in place of the mean of its nearest sixteen (`HammingReads::with_copy_latest`,
 //! claude-345), the rule the integer session serves as `CopyRule::LatestExact`; the checkpoint
 //! records it, so scoring and the export read it there.
+//! `--hamming-copy-longest A,B` (needs `--hamming-copy-latest 1` and one-token copy keys) names
+//! the reply marker, the two token ids that stand before a reply's first token, and has each copy
+//! head read the latest exact match whose token before it also agrees, the latest exact match at
+//! a reply's opening row (`HammingReads::with_copy_longest`, claude-357): the rule the integer
+//! session serves as `CopyRule::LongestAfterOpening`. The run refuses a TRAIN or DEV split, and
+//! the scoring pass a `--panel`, where the marker and the reply mask disagree at any position;
+//! the turn memory's leave rule asks the copy read by the same rule. The checkpoint records the
+//! marker, and `config.json` carries it to the export.
 //! `--hamming-ask 1` (needs `--hamming-read`) turns the type heads into ask heads, which ask with
 //! their token's point plus a learned question row against the copy key (`HammingReads::with_ask`,
 //! claude-330). With `--recall`, `--hamming-attract λ` adds λ times the found-copy pull to the loss
@@ -452,6 +460,7 @@ fn main() -> Result<()> {
         hamming_copy_key: 1,
         hamming_copy_keys: None,
         hamming_copy_latest: false,
+        hamming_copy_longest: None,
         hamming_ask: false,
         hamming_attract: 0.0,
         hamming_attract_at_question: false,
@@ -708,6 +717,22 @@ fn main() -> Result<()> {
             "--hamming-read" => config.hamming_read = number(&value)?,
             "--hamming-copy-key" => config.hamming_copy_key = number(&value)?,
             "--hamming-copy-latest" => config.hamming_copy_latest = switch(&value)?,
+            "--hamming-copy-longest" => {
+                let ids: Vec<usize> = value.split(',').map(number).collect::<Result<_>>()?;
+                config.hamming_copy_longest = match ids[..] {
+                    [first, second] => u32::try_from(first)
+                        .ok()
+                        .zip(u32::try_from(second).ok())
+                        .map(|(first, second)| [first, second]),
+                    _ => None,
+                };
+                if config.hamming_copy_longest.is_none() {
+                    return Err(FloatTrainError::Invalid(
+                        "--hamming-copy-longest wants the reply marker's two token ids, as A,B"
+                            .to_owned(),
+                    ));
+                }
+            }
             "--hamming-copy-keys" => {
                 config.hamming_copy_keys = Some(
                     value

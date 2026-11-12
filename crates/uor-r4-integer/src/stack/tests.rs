@@ -4572,6 +4572,98 @@ fn the_copy_rule_is_recorded_only_when_latest() {
     assert!(super::set_hamming_copy_latest_uorlut01(&plain).is_err());
 }
 
+/// claude-357: the longest rule's reply marker is in the header only when set, so an artifact
+/// without it is byte for byte as before; it needs the latest exact rule and vocabulary ids; and
+/// the session serves `longest-after-opening` as such an artifact's own rule.
+#[test]
+fn the_longest_rule_is_recorded_only_when_set() {
+    use super::synthetic::synthetic_hamming;
+    use super::CopyRule;
+    let mut snap = synthetic_fbs_trunk(20261112);
+    snap.hamming = Some(synthetic_hamming(snap.width, snap.layers.len(), 4, 357));
+    let mean = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    let latest = super::set_hamming_copy_latest_uorlut01(&mean).expect("the rule is set");
+    let _ = with_header(&latest, |h| assert!(h["hamming"].get("copy_longest").is_none()));
+    // The marker orders the latest exact matches: an artifact under the mean has none to order.
+    assert!(super::set_hamming_copy_longest_uorlut01(&mean, [2, 3]).is_err());
+    assert!(super::set_hamming_copy_longest_uorlut01(&latest, [2, u32::MAX]).is_err(), "not a vocabulary id");
+    let longest = super::set_hamming_copy_longest_uorlut01(&latest, [2, 3]).expect("the marker is set");
+    let image = super::read_hamming_uorlut01(&longest).expect("parse").expect("the reads");
+    assert_eq!(image.record.copy_longest, Some([2, 3]));
+    assert!(image.record.copy_latest);
+    // Only the header changed: the artifact equals the latest one with that one field set.
+    let by_hand = with_header(&latest, |h| h["hamming"]["copy_longest"] = serde_json::json!([2, 3]));
+    assert_eq!(longest, by_hand);
+    // The artifact's own rule, and the serving switch still overrides it.
+    let mut model = IntegerStackModel::parse(&longest).expect("the session serves it");
+    assert_eq!(model.copy_rule(), Some(CopyRule::LongestAfterOpening));
+    assert!(model.set_copy_rule(CopyRule::LatestExact));
+    assert_eq!(model.copy_rule(), Some(CopyRule::LatestExact));
+    let other = IntegerStackModel::parse(&latest).expect("the session serves it");
+    assert_eq!(other.copy_rule(), Some(CopyRule::LatestExact));
+    // A marker by hand on an artifact under the mean is refused when read.
+    let bad = with_header(&mean, |h| h["hamming"]["copy_longest"] = serde_json::json!([2, 3]));
+    assert!(IntegerStackModel::parse(&bad).is_err());
+    // A stack without Hamming reads has no copy rule to set.
+    snap.hamming = None;
+    let plain = super::export_fbs_trunk_uorlut01(&snap).expect("export");
+    assert!(super::set_hamming_copy_longest_uorlut01(&plain, [2, 3]).is_err());
+}
+
+/// claude-357: an artifact whose record names a reply marker finds the opening row from the
+/// tokens. With no reply mark, the row whose previous and own tokens are the marker keeps the
+/// latest match, as a marked session of the artifact without a marker does under
+/// `longest-after-opening`; a marker that stands nowhere leaves every row to the longest rule,
+/// whatever the session marks. The tokens are claude-356's: the two rules differ at the last row.
+#[test]
+fn the_reply_marker_finds_the_opening_row_without_a_mark() {
+    use super::CopyRule;
+    let tokens: [u32; 8] = [4, 9, 6, 5, 9, 7, 4, 9];
+    let last = tokens.len() - 1;
+    let layers = served_read_trunk(&[1], 1.0, 1.0).0.layers.len();
+    for depth in [1, layers] {
+        let (_, _, bytes) = served_read_trunk(&[depth], 1.0, 1.0);
+        let latest = super::set_hamming_copy_latest_uorlut01(&bytes).expect("the latest rule");
+        // The last row's kept positions of the two copy heads, and the query served there.
+        let last_row = |bytes: &[u8], rule: Option<CopyRule>, mark: bool| {
+            let mut model = IntegerStackModel::parse(bytes).expect("the read is served");
+            if let Some(rule) = rule {
+                assert!(model.set_copy_rule(rule));
+            }
+            let mut session = model.session();
+            for &token in &tokens[..last] {
+                session.step_native(token).expect("step");
+            }
+            if mark {
+                session.mark_reply_start();
+            }
+            session.set_hamming_trace(true);
+            let step = session.step_native(tokens[last]).expect("the last step");
+            let trace = session.take_hamming_trace().expect("the trace is on");
+            let kept: Vec<Vec<u32>> =
+                trace.iter().flat_map(|r| r.heads.iter().take(2)).map(|h| h.kept.clone()).collect();
+            (kept, step.query_q12)
+        };
+        let marked = last_row(&latest, Some(CopyRule::LongestAfterOpening), true);
+        let longest = last_row(&latest, Some(CopyRule::LongestExact), false);
+        assert_ne!(marked, longest, "depth {depth}: the two rules differ at the last row");
+        let here = super::set_hamming_copy_longest_uorlut01(&latest, [tokens[last - 1], tokens[last]])
+            .expect("the marker is set");
+        assert_eq!(last_row(&here, None, false), marked, "depth {depth}: the marker names the opening row");
+        assert_eq!(
+            last_row(&here, Some(CopyRule::LongestExact), false),
+            longest,
+            "depth {depth}: a caller's rule stands over the artifact's own"
+        );
+        let nowhere = super::set_hamming_copy_longest_uorlut01(&latest, [0, 0]).expect("the marker is set");
+        assert_eq!(
+            last_row(&nowhere, None, true),
+            longest,
+            "depth {depth}: no marker at the row: the longest rule, whatever the session marks"
+        );
+    }
+}
+
 /// claude-356: the session passes its reply mark to the copy heads, in the stream read and in
 /// the readout read, by the plain step and by the timed one. The last row's token 9 comes after
 /// a 4; 9 was followed by 6 after a 4 and later by 7 after a 5, so the latest exact match and the

@@ -624,6 +624,9 @@ pub struct HammingRead {
     /// Whether each copy head reads its latest exact match in place of the mean of its nearest
     /// [`HAMMING_KEPT`] ([`HammingReads::with_copy_latest`], claude-345).
     copy_latest: bool,
+    /// The reply marker under the longest rule ([`HammingReads::with_copy_longest`], claude-357):
+    /// the two token ids that end every prompt. `None`, the default, reads as before.
+    copy_longest: Option<[u32; 2]>,
     /// The ask heads' question table, when on ([`HammingReads::with_ask`], claude-330): one
     /// learned point per token, `(vocab, width)`, starting at zero. The type heads then ask with
     /// the current token's point plus its row, through the key's rotation, and bring back the
@@ -1187,6 +1190,9 @@ impl HammingReads {
     /// The same reads with their copy heads keyed on `copy_key` tokens before a position: 1, the
     /// default, or 2, the ordered two-token key (claude-261). Type heads are untouched.
     pub fn with_copy_key(mut self, copy_key: usize) -> Result<Self> {
+        if self.copy_longest().is_some() && copy_key != 1 {
+            return Err(invalid("the longest rule needs one-token copy keys"));
+        }
         for read in &mut self.reads {
             check_copy_key(copy_key, read.heads, read.weight.dim(1)?)?;
             read.copy_keys = vec![copy_key; read.copy_heads()];
@@ -1197,6 +1203,9 @@ impl HammingReads {
     /// The same reads with copy head `h` keyed on `copy_keys[h]` tokens before a position, each
     /// 1 or 2 (claude-268), one entry per copy head. Type heads are untouched.
     pub fn with_copy_keys(mut self, copy_keys: &[usize]) -> Result<Self> {
+        if self.copy_longest().is_some() && copy_keys.iter().any(|&k| k != 1) {
+            return Err(invalid("the longest rule needs one-token copy keys"));
+        }
         for read in &mut self.reads {
             check_copy_keys(copy_keys, read.heads, read.weight.dim(1)?)?;
             read.copy_keys = copy_keys.to_vec();
@@ -1241,6 +1250,36 @@ impl HammingReads {
     /// Whether the copy heads read their latest exact match ([`Self::with_copy_latest`]).
     pub fn copy_latest(&self) -> bool {
         self.reads.first().is_some_and(|read| read.copy_latest)
+    }
+
+    /// The same reads with each copy head under the latest-exact rule reading its longest match
+    /// after a reply's opening (claude-357). Of the earlier positions whose key is the query's
+    /// own code, a head keeps the latest one whose token before the key is also the row's
+    /// previous token, by the head's code; with none, the latest one, as
+    /// [`Self::with_copy_latest`] does. A row whose own token and the one before it are
+    /// `marker`, the two ids that end every prompt, chooses a reply's first token and keeps the
+    /// latest one. The integer session serves the same choice, `CopyRule::LongestAfterOpening`,
+    /// for an artifact whose record holds the marker. It needs [`Self::with_copy_latest`] and
+    /// one-token copy keys.
+    pub fn with_copy_longest(mut self, marker: [u32; 2]) -> Result<Self> {
+        if !self.copy_latest() {
+            return Err(invalid(
+                "the longest rule needs the latest-exact rule (with_copy_latest)",
+            ));
+        }
+        if self.copy_keys().iter().any(|&k| k != 1) {
+            return Err(invalid("the longest rule needs one-token copy keys"));
+        }
+        for read in &mut self.reads {
+            read.copy_longest = Some(marker);
+        }
+        Ok(self)
+    }
+
+    /// The reply marker the copy heads read their longest match under
+    /// ([`Self::with_copy_longest`]).
+    pub fn copy_longest(&self) -> Option<[u32; 2]> {
+        self.reads.first().and_then(|read| read.copy_longest)
     }
 
     /// The read's head count when it has one; a saved checkpoint always does.
@@ -1396,6 +1435,10 @@ impl HammingReads {
         if self.copy_latest() {
             tensors.insert("copy_latest".to_owned(), Tensor::new(&[1u32], device)?);
         }
+        // claude-357: only a read under the longest rule records its marker.
+        if let Some([first, second]) = self.copy_longest() {
+            tensors.insert("copy_longest".to_owned(), Tensor::new(&[first, second], device)?);
+        }
         // claude-333: only a held read records its rows, so every other file is as before.
         if self.hold_rows() > 0 {
             let rows = self.hold_rows() as u32;
@@ -1466,6 +1509,7 @@ impl HammingReads {
                     .transpose()?,
                 copy_keys: Vec::new(),
                 copy_latest: false,
+                copy_longest: None,
                 // Present only when the read was trained with the ask heads (claude-330).
                 ask: tensors
                     .get(&format!("d{depth}.ask"))
@@ -1588,6 +1632,19 @@ impl HammingReads {
                 reads.with_copy_keys(&keys)?
             }
         };
+        // claude-357: a read saved under the longest rule records its marker; it is set after
+        // the copy keys, which it checks.
+        let reads = match tensors.get("copy_longest") {
+            None => reads,
+            Some(tensor) => match tensor.to_vec1::<u32>()?[..] {
+                [first, second] => reads.with_copy_longest([first, second])?,
+                _ => {
+                    return Err(invalid(
+                        "the saved Hamming read's longest rule is not two token ids",
+                    ));
+                }
+            },
+        };
         // claude-351: the place read's host state is saved beside the tensors, and only by a
         // read that has it.
         Ok(Some(reads.with_saved_place(directory)?))
@@ -1637,6 +1694,7 @@ impl HammingRead {
             step_rotation: None,
             copy_keys: vec![1; heads / 2],
             copy_latest: false,
+            copy_longest: None,
             ask: None,
             hold: None,
             carry: None,
@@ -2087,6 +2145,8 @@ impl HammingRead {
         // rule is on by default and the trace off.
         let tie = TIE.with(|t| t.get());
         let mut traced = Vec::new();
+        // claude-357: under the longest rule, the asking rows that are not a reply's opening.
+        let longer_rows = self.copy_longest.map(|marker| longer_rows(ids, time, from, marker));
         for h in 0..self.heads {
             let q = query.narrow(1, h * head_width, head_width)?.contiguous()?;
             let k = key.narrow(1, h * head_width, head_width)?.contiguous()?;
@@ -2098,7 +2158,13 @@ impl HammingRead {
             let latest = self.copy_latest && h < self.copy_heads();
             // A whole window keeps the call it made before the step existed (claude-279).
             let (picks, real) = if latest {
-                choose_latest_from(&q, &k, batch, time, from, 1, &limits)?
+                match &longer_rows {
+                    // claude-357: among its exact matches the head keeps a longer one first.
+                    Some(rows) => {
+                        choose_longest_from(&q, &k, batch, time, from, 1, &limits, rows)?
+                    }
+                    None => choose_latest_from(&q, &k, batch, time, from, 1, &limits)?,
+                }
             } else if from == 0 {
                 choose_sorted(&q, &k, batch, time, HAMMING_KEPT, 1, &limits, tie)?
             } else {
@@ -3081,6 +3147,7 @@ pub(crate) fn choose_sorted_from(
         limits,
         tie,
         false,
+        None,
         DISTANCE_CHUNK_BYTES,
     )
 }
@@ -3177,6 +3244,7 @@ fn choose_sorted_in(
         limits,
         tie,
         false,
+        None,
         chunk_bytes,
     )
 }
@@ -3206,13 +3274,107 @@ pub(crate) fn choose_latest_from(
         limits,
         true,
         true,
+        None,
+        DISTANCE_CHUNK_BYTES,
+    )
+}
+
+/// For each row that asks (positions `from..time` of each window of `time` ids), whether the
+/// longest rule may keep a longer match (claude-357): 1 at every row but a reply's opening, the
+/// row whose own token and the one before it are `marker`; 0 there. A window's first position
+/// has no token before it and is never an opening.
+fn longer_rows(ids: &[u32], time: usize, from: usize, marker: [u32; 2]) -> Vec<f32> {
+    ids.chunks(time.max(1))
+        .flat_map(|window| {
+            (from..window.len()).map(move |t| {
+                let opening = t >= 1 && window[t - 1] == marker[0] && window[t] == marker[1];
+                f32::from(u8::from(!opening))
+            })
+        })
+        .collect()
+}
+
+/// The longest rule's choice (claude-357) for the query positions `from..time` of each window:
+/// [`choose_latest_from`]'s, except that among a row's equal distances a position with the
+/// longer match goes before the others, latest first, where `longer_rows` ([`longer_rows`], one
+/// entry per asking row) holds 1 for the row. The key at `s` names token `s − 1`, so the token
+/// before a match at `s` is named by `key[s − 1]` and the row's previous token by `key[t]`: the
+/// longer match is `key[s − 1] = key[t]`, bit for bit, for `s ≥ 2` (a position below 2 has no
+/// token before its key). The caller weighs the pick only at distance 0.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn choose_longest_from(
+    query: &Tensor,
+    key: &Tensor,
+    batch: usize,
+    time: usize,
+    from: usize,
+    first: usize,
+    limits: &[usize],
+    longer_rows: &[f32],
+) -> Result<(Tensor, Tensor)> {
+    if from >= time {
+        return Err(invalid(format!(
+            "the read asks from position {from} of a window of {time}"
+        )));
+    }
+    let asks = time - from;
+    let rows = batch * asks;
+    if longer_rows.len() != rows {
+        return Err(invalid("the longest rule names every asking row"));
+    }
+    // A window of one position has no key before another.
+    if time < 2 {
+        return choose_latest_from(query, key, batch, time, from, first, limits);
+    }
+    let device = query.device();
+    let width = key.dim(1)?;
+    let chunk = distance_chunk(batch, time, width, DISTANCE_CHUNK_BYTES).min(asks);
+    if !launch_fits(&[rows, time]) || !launch_fits(&[batch, chunk, time, width]) {
+        return Err(invalid(format!(
+            "the read over {batch} windows of {time} positions builds a tensor of 2^32 elements \
+             or more, past candle's 32-bit launch size"
+        )));
+    }
+    let keys = key.detach().reshape((batch, time, width))?;
+    let own = keys
+        .narrow(1, from, asks)?
+        .contiguous()?
+        .reshape((batch, asks, 1, width))?;
+    // Position `s` holds `key[s − 1]`; position 0 holds its own key and is masked below.
+    let before = Tensor::cat(&[&keys.narrow(1, 0, 1)?, &keys.narrow(1, 0, time - 1)?], 1)?
+        .contiguous()?
+        .reshape((batch, 1, time, width))?;
+    // Between ±1 codes the mean of `|a − b|` is `2h / width`: 0 bits is an equal code.
+    let agree = mean_l1_rows(&own, &before, batch, time, chunk)?
+        .affine(width as f64 / 2.0, 0.0)?
+        .round()?
+        .eq(0.0)?
+        .to_dtype(DType::F32)?;
+    let has_before: Vec<f32> = (0..time).map(|s| f32::from(u8::from(s >= 2))).collect();
+    let longer = agree
+        .broadcast_mul(&Tensor::from_vec(has_before, (1, time), device)?)?
+        .broadcast_mul(&Tensor::from_vec(longer_rows.to_vec(), (rows, 1), device)?)?;
+    choose_sorted_asking(
+        query,
+        key,
+        batch,
+        time,
+        from,
+        1,
+        first,
+        limits,
+        true,
+        true,
+        Some(&longer),
         DISTANCE_CHUNK_BYTES,
     )
 }
 
 /// [`choose_sorted_in`] for the query positions `from..time` of each window ([`choose_sorted_from`]).
 /// With `latest` (which needs `tie`), equal distances go to the later position
-/// ([`choose_latest_from`]).
+/// ([`choose_latest_from`]). With `longer` (which needs `latest`), a `(rows, time)` table of 0
+/// and 1, equal distances go first to the positions it marks and then to the later
+/// ([`choose_longest_from`]).
 #[allow(clippy::too_many_arguments)]
 fn choose_sorted_asking(
     query: &Tensor,
@@ -3225,12 +3387,18 @@ fn choose_sorted_asking(
     limits: &[usize],
     tie: bool,
     latest: bool,
+    longer: Option<&Tensor>,
     chunk_bytes: usize,
 ) -> Result<(Tensor, Tensor)> {
     if from >= time {
         return Err(invalid(format!(
             "the read asks from position {from} of a window of {time}"
         )));
+    }
+    if longer.is_some() && !(tie && latest) {
+        return Err(invalid(
+            "the longest rule orders the latest-exact choice (an instrument fault)",
+        ));
     }
     let device = query.device();
     let kept = neighbours.min(time.saturating_sub(1)).max(1);
@@ -3252,20 +3420,29 @@ fn choose_sorted_asking(
     // Between ±1 codes the mean of `|q − k|` is `2h / width`, so `h` is that times `width / 2`,
     // rounded off the codes' last-bit noise.
     let distance = if tie {
-        if !tie_keys_exact(width, time) {
+        // claude-357: the longest rule's keys order (bits, no longer match, position), so each
+        // bit takes twice the room ([`longest_key`]).
+        let room = if longer.is_some() { 2 * time } else { time };
+        if !tie_keys_exact(width, room) {
             return Err(invalid(format!(
-                "the read's tie keys for {width} coordinates over {time} positions pass 2^24"
+                "the read's tie keys for {width} coordinates over {room} key positions ({time} rows) pass 2^24"
             )));
         }
         // The tie key orders equal distances by position, earliest first; reversed, latest first.
         let positions: Vec<f32> = (0..time)
             .map(|s| tie_key(0, if latest { time - 1 - s } else { s }, time))
             .collect();
-        distance
+        let keys = distance
             .affine(width as f64 / 2.0, 0.0)?
             .round()?
-            .affine(time as f64, 0.0)?
-            .broadcast_add(&Tensor::from_vec(positions, (1, time), device)?)?
+            .affine(room as f64, 0.0)?
+            .broadcast_add(&Tensor::from_vec(positions, (1, time), device)?)?;
+        match longer {
+            // A position without the longer match sorts after every position with it:
+            // `time · (1 − longer)`.
+            Some(longer) => keys.add(&longer.affine(-(time as f64), time as f64)?)?,
+            None => keys,
+        }
     } else {
         distance
     };
@@ -3284,6 +3461,16 @@ fn choose_sorted_asking(
 /// window of `time` positions: `bits · time + s`, which orders as `(bits, s)`.
 fn tie_key(bits: usize, s: usize, time: usize) -> f32 {
     (bits * time + s) as f32
+}
+
+/// The longest rule's sort key (claude-357) for a candidate at bit distance `bits` and window
+/// position `s`, with or without the longer match, in a window of `time` positions:
+/// `bits · 2·time`, plus `time` without the longer match, plus the position reversed. It orders
+/// as (bits, no longer match, latest first), and is what [`choose_sorted_asking`] builds on the
+/// device under `longer`; the tests hold the two together.
+#[cfg(test)]
+fn longest_key(bits: usize, longer: bool, s: usize, time: usize) -> f32 {
+    (bits * 2 * time + usize::from(!longer) * time + (time - 1 - s)) as f32
 }
 
 /// Whether every tie key of a head of `width` coordinates over `time` positions is an exact
@@ -4515,6 +4702,91 @@ mod tests {
         Ok(())
     }
 
+    /// claude-357: only a read under the longest rule records its marker, and it loads back with
+    /// the latest-exact rule it stands on. The rule is refused without that rule and with a
+    /// two-token copy key, whichever is set first.
+    #[test]
+    fn the_longest_rule_is_saved_only_when_on() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("uor-copy-longest-{}", std::process::id()));
+        for marker in [None, Some([714u32, 28])] {
+            let dir = root.join(marker.is_some().to_string());
+            let reads = HammingReads::new(4, 256, &Device::Cpu)?.with_copy_latest();
+            let reads = match marker {
+                Some(marker) => reads.with_copy_longest(marker)?,
+                None => reads,
+            };
+            assert_eq!(reads.copy_longest(), marker);
+            reads.save(&dir)?;
+            let tensors = candle_core::safetensors::load(dir.join(FILE), &Device::Cpu)?;
+            assert_eq!(tensors.contains_key("copy_longest"), marker.is_some());
+            let loaded = HammingReads::load(&dir, &Device::Cpu)?.expect("a saved read");
+            assert_eq!(loaded.copy_longest(), marker);
+            assert!(loaded.copy_latest());
+        }
+        std::fs::remove_dir_all(&root)?;
+        let plain = HammingReads::new(4, 256, &Device::Cpu)?;
+        assert!(plain.with_copy_longest([714, 28]).is_err(), "without the latest-exact rule");
+        let two = HammingReads::new(4, 256, &Device::Cpu)?.with_copy_key(2)?.with_copy_latest();
+        assert!(two.with_copy_longest([714, 28]).is_err(), "over a two-token key");
+        let on = || -> Result<HammingReads> {
+            HammingReads::new(4, 256, &Device::Cpu)?
+                .with_copy_latest()
+                .with_copy_longest([714, 28])
+        };
+        assert!(on()?.with_copy_key(2).is_err(), "a two-token key set after");
+        assert!(on()?.with_copy_keys(&[1, 2]).is_err(), "mixed keys set after");
+        assert_eq!(on()?.with_copy_keys(&[1, 1])?.copy_longest(), Some([714, 28]));
+        Ok(())
+    }
+
+    /// claude-357: every asking row but a reply's opening may keep a longer match. The opening is
+    /// the row whose own token and the one before it are the marker, in that order, found in
+    /// each window on its own; a decode step names only the rows it asks.
+    #[test]
+    fn the_longer_rows_are_every_row_but_a_reply_opening() {
+        // Two windows of five ids; the first ends with the marker's first id and the second
+        // begins with its second, which opens nothing.
+        let ids = [7u32, 9, 3, 9, 7, 9, 7, 9, 7, 7];
+        assert_eq!(
+            longer_rows(&ids, 5, 0, [7, 9]),
+            [1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0]
+        );
+        assert_eq!(longer_rows(&ids, 5, 2, [7, 9]), [1.0, 1.0, 1.0, 0.0, 1.0, 1.0]);
+        // The marker is ordered: (9, 7) opens other rows.
+        assert_eq!(
+            longer_rows(&ids, 5, 0, [9, 7]),
+            [1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+        );
+    }
+
+    /// claude-357: the longest rule's key orders a row's candidates as the integer reader chooses
+    /// (`longest_of`): among the exact matches the latest with the longer match, with none the
+    /// latest exact one, and never an inexact candidate before an exact one. Every assignment of
+    /// (exact, longer) to the seven candidates of a window's ninth row.
+    #[test]
+    fn the_longest_key_orders_as_the_integer_reader_chooses() {
+        let time = 9;
+        let t = time - 1;
+        for pattern in 0u32..1 << (2 * (t - 1)) {
+            let exact = |s: usize| pattern >> (2 * (s - 1)) & 1 == 1;
+            let longer = |s: usize| pattern >> (2 * (s - 1) + 1) & 1 == 1;
+            let key = |s: usize| longest_key(if exact(s) { 0 } else { 3 }, longer(s), s, time);
+            let best = (1..t)
+                .min_by(|&a, &b| key(a).partial_cmp(&key(b)).unwrap())
+                .unwrap();
+            let wanted = (1..t)
+                .rev()
+                .find(|&s| exact(s) && longer(s))
+                .or_else(|| (1..t).rev().find(|&s| exact(s)));
+            match wanted {
+                Some(s) => assert_eq!(best, s, "pattern {pattern:b}"),
+                None => assert!(!exact(best), "pattern {pattern:b}"),
+            }
+        }
+        // The keys stay exact `f32`s for a 64-coordinate head over 2,048 rows, the doubled room included.
+        assert!(tie_keys_exact(64, 2 * 2048));
+    }
+
     /// claude-345: a token seen twice before, each time followed by another token. The mean
     /// blends the two followers; the latest-exact rule reads the later one alone, in full.
     #[cfg(feature = "cuda")]
@@ -4588,6 +4860,111 @@ mod tests {
             assert!((one[col] - p[col]).abs() < 1e-6, "copy key 1, {col}: the latest X");
             assert!((two[col] - q[col]).abs() < 1e-6, "copy key 2, {col}: the latest C X");
             assert!(absent[col].abs() < 1e-6, "copy key 2, {col}: no D X before");
+        }
+    }
+
+    /// claude-357: the longest choice on the device. Tokens `C X Q B X P C X`, a key naming the
+    /// token before its position: row 7 (an `X` after a `C`) has exact matches at 2 and 5, and
+    /// only position 2 follows a `C X`. The longest rule takes 2 where the latest rule takes 5,
+    /// and takes 5 when row 7 is a reply's opening. Then every row of a longer window, some of
+    /// them openings, is held to the host's choice under [`longest_key`].
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_longest_choice_takes_the_longer_match_except_at_an_opening() {
+        let device = Device::new_cuda(0).unwrap();
+        // A token's code is its low eight bits as ±1.
+        let code = |token: u32| -> [f32; 8] {
+            std::array::from_fn(|bit| if token >> bit & 1 == 1 { 1.0 } else { -1.0 })
+        };
+        let run = |tokens: &[u32], longer_rows: &[f32]| -> (Vec<Vec<u32>>, Vec<Vec<u8>>) {
+            let time = tokens.len();
+            let query: Vec<f32> = tokens.iter().flat_map(|&t| code(t)).collect();
+            // The key at `s` is the code of token `s − 1`; position 0's names no token (255).
+            let key: Vec<f32> = (0..time)
+                .flat_map(|s| code(if s == 0 { 255 } else { tokens[s - 1] }))
+                .collect();
+            let query = Tensor::from_vec(query, (time, 8), &device).unwrap();
+            let key = Tensor::from_vec(key, (time, 8), &device).unwrap();
+            let limits = vec![time; time];
+            let (picks, real) =
+                choose_longest_from(&query, &key, 1, time, 0, 1, &limits, longer_rows).unwrap();
+            (picks.to_vec2::<u32>().unwrap(), real.to_vec2::<u8>().unwrap())
+        };
+        let (c, x, q, b, p) = (1u32, 2, 3, 4, 5);
+        let tokens = [c, x, q, b, x, p, c, x];
+        let (picks, real) = run(&tokens, &[1.0; 8]);
+        assert_eq!((picks[7][0], real[7][0]), (2, 1), "the match after C X");
+        assert_eq!((picks[4][0], real[4][0]), (2, 1), "one exact match");
+        assert_eq!(real[1][0], 0, "row 1 has no earlier position");
+        let mut opening = [1.0f32; 8];
+        opening[7] = 0.0;
+        assert_eq!(run(&tokens, &opening).0[7][0], 5, "an opening keeps the latest");
+        // A longer window over five tokens, every seventh row an opening.
+        let mut state = 12_345u32;
+        let tokens: Vec<u32> = (0..48)
+            .map(|_| {
+                state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                (state >> 24) % 5 + 1
+            })
+            .collect();
+        let time = tokens.len();
+        let rows: Vec<f32> = (0..time).map(|t| f32::from(u8::from(t % 7 != 3))).collect();
+        let (picks, real) = run(&tokens, &rows);
+        for t in 2..time {
+            let key = |s: usize| {
+                let bits = (tokens[t] ^ tokens[s - 1]).count_ones() as usize;
+                let longer = rows[t] == 1.0 && s >= 2 && tokens[s - 2] == tokens[t - 1];
+                longest_key(bits, longer, s, time)
+            };
+            let best = (1..t)
+                .min_by(|&a, &b| key(a).partial_cmp(&key(b)).unwrap())
+                .unwrap();
+            assert_eq!((picks[t][0] as usize, real[t][0]), (best, 1), "row {t}");
+        }
+    }
+
+    /// claude-357: the longest rule through the read. The window holds `C X Q`, then `B X P`,
+    /// and asks at `C X`. The latest rule reads `P`, what followed the latest `X`; the longest
+    /// rule reads `Q`, what followed the latest `C X`; and with `C X` as the reply marker the
+    /// row is an opening and reads `P` again.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_longest_rule_reads_what_followed_the_longer_match_except_at_an_opening() {
+        let device = Device::new_cuda(0).unwrap();
+        let (b, x, p, c, q) = (2u32, 3, 4, 5, 6);
+        let table = table(16, 256, &device);
+        let points = table.to_vec2::<f32>().unwrap();
+        let ids = [1u32, c, x, q, b, x, p, 7, c, x];
+        let added = |marker: Option<[u32; 2]>| -> Vec<f32> {
+            let x0 = residual(1, ids.len(), 256, &device);
+            let reads = HammingReads::new(4, 256, &device).unwrap().with_copy_latest();
+            let reads = match marker {
+                Some(marker) => reads.with_copy_longest(marker).unwrap(),
+                None => reads,
+            };
+            let read = &reads.reads[0];
+            let copy_only: Vec<f32> = (0..512).map(|i| f32::from(u8::from(i < 256))).collect();
+            read.weight
+                .set(&Tensor::from_vec(copy_only, (2, 256), &device).unwrap())
+                .unwrap();
+            let rows = read
+                .apply(&x0, &ids, &table)
+                .unwrap()
+                .sub(&x0)
+                .unwrap()
+                .reshape((ids.len(), 256))
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+            rows[ids.len() - 1].clone()
+        };
+        // (8, 9) is a marker the window never holds.
+        let (latest, longest, opening) = (added(None), added(Some([8, 9])), added(Some([c, x])));
+        let (p, q) = (&points[p as usize], &points[q as usize]);
+        for col in 0..256 {
+            assert!((latest[col] - p[col]).abs() < 1e-6, "latest, {col}: the latest X");
+            assert!((longest[col] - q[col]).abs() < 1e-6, "longest, {col}: the latest C X");
+            assert!((opening[col] - p[col]).abs() < 1e-6, "opening, {col}: the latest X");
         }
     }
 

@@ -37,7 +37,10 @@
 //! config whose `retain_rates` disagrees with the snapshot's, or whose objective reads the writer
 //! for a snapshot that reads nearest. A config with `hamming_copy_latest: true` (claude-345) sets
 //! the Hamming record's `copy_latest`, so the copy heads serve their latest exact match; the
-//! snapshot does not carry that rule, so such a run is exported with its config. A config with a
+//! snapshot does not carry that rule, so such a run is exported with its config. A config with
+//! `hamming_copy_longest: [A, B]` (claude-357) sets the record's `copy_longest`, the reply
+//! marker, so the copy heads serve the longest match after a reply's opening and find the opening
+//! row from the tokens; it needs `hamming_copy_latest: true`. A config with a
 //! `turn_memory_tail` above 0 (claude-345) exports the memory chain with tail keys of that many
 //! turn ids, and one without the key or with 0 exports none.
 //!
@@ -75,6 +78,7 @@ use uor_r4_integer::fbs_snapshot::{
 use uor_r4_integer::stack::{
     add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
     export_fbs_trunk_uorlut01_with_provenance, point_key_windows, set_hamming_copy_latest_uorlut01,
+    set_hamming_copy_longest_uorlut01,
     AskImage, FbsExportProvenance, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
     StackContractProvenance, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
@@ -216,6 +220,8 @@ fn run() -> Result<(), String> {
     let (mut paths, mut run_config) = (Vec::new(), None::<String>);
     // The copy rule the run trained (claude-345), read from its config below.
     let mut copy_latest = false;
+    // The longest rule's reply marker the run trained with (claude-357), read from its config.
+    let mut copy_longest = None::<[u32; 2]>;
     // The memory chain's tail the run trained (claude-345), 0 for none, read from its config below.
     let mut chain_tail = 0usize;
     let mut carry = None::<usize>;
@@ -381,6 +387,16 @@ fn run() -> Result<(), String> {
             .get("hamming_copy_latest")
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
+        copy_longest = match serde_json::from_str::<serde_json::Value>(&text)
+            .map_err(|e| format!("{config}: {e}"))?
+            .get("hamming_copy_longest")
+        {
+            None | Some(serde_json::Value::Null) => None,
+            Some(marker) => Some(
+                serde_json::from_value::<[u32; 2]>(marker.clone())
+                    .map_err(|e| format!("{config}: hamming_copy_longest: {e}"))?,
+            ),
+        };
         let tail = serde_json::from_str::<serde_json::Value>(&text)
             .map_err(|e| format!("{config}: {e}"))?
             .get("turn_memory_tail")
@@ -464,6 +480,14 @@ fn run() -> Result<(), String> {
         set_hamming_copy_latest_uorlut01(&artifact).map_err(|e| format!("the copy rule: {e}"))?
     } else {
         artifact
+    };
+    // A run trained with `--hamming-copy-longest` (claude-357) serves the longest match after a
+    // reply's opening, the opening row found by the run's marker. The record refuses a marker
+    // without the latest exact rule.
+    let artifact = match copy_longest {
+        Some(marker) => set_hamming_copy_longest_uorlut01(&artifact, marker)
+            .map_err(|e| format!("the longest rule: {e}"))?,
+        None => artifact,
     };
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;

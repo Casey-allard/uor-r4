@@ -192,7 +192,8 @@ pub enum CopyRule {
     /// The longest match after a reply's opening (claude-356): at the row that chooses a reply's
     /// first token, [`Self::LatestExact`]'s position; at every other row, [`Self::LongestExact`]'s.
     /// The session names the opening row by its reply mark; with no mark every row reads as
-    /// [`Self::LongestExact`].
+    /// [`Self::LongestExact`]. An artifact whose record names a reply marker (`copy_longest`,
+    /// claude-357) serves this rule as its own and finds the opening row from the tokens.
     LongestAfterOpening,
 }
 
@@ -272,6 +273,9 @@ pub struct CopyHeads {
     pair: Vec<Option<u64>>,
     /// Which positions [`Self::mean`] reads; [`CopyRule::Mean`] unless a caller sets another.
     rule: CopyRule,
+    /// The artifact's reply marker (claude-357), when its record names one: a row opens a reply
+    /// when its previous and own tokens are these two, whatever the caller's mark says.
+    marker: Option<[u32; 2]>,
 }
 
 impl CopyHeads {
@@ -290,8 +294,25 @@ impl CopyHeads {
                     (record.head_copy_key(h) == 2).then(|| (1u64 << (width / record.heads / 2)) - 1)
                 })
                 .collect(),
-            // The artifact's own rule (claude-345): latest-exact when its record says so.
-            rule: if record.copy_latest { CopyRule::LatestExact } else { CopyRule::Mean },
+            // The artifact's own rule: latest-exact when its record says so (claude-345), and
+            // the longest match after a reply's opening when it names a marker (claude-357).
+            rule: match (record.copy_longest, record.copy_latest) {
+                (Some(_), _) => CopyRule::LongestAfterOpening,
+                (None, true) => CopyRule::LatestExact,
+                (None, false) => CopyRule::Mean,
+            },
+            marker: record.copy_longest,
+        }
+    }
+
+    /// Whether the last row of `tokens` opens a reply (claude-357). An artifact that names its
+    /// reply marker finds the row from the tokens, as its float read was trained: the row's
+    /// previous and own tokens are the marker. Without a marker it is the caller's `opening`,
+    /// the session's reply mark (claude-356).
+    fn opens(&self, tokens: &[u32], opening: bool) -> bool {
+        match self.marker {
+            Some([first, second]) => matches!(tokens, [.., a, b] if *a == first && *b == second),
+            None => opening,
         }
     }
 
@@ -330,7 +351,7 @@ impl CopyHeads {
     /// The positions [`Self::mean_at`] reads for head `h`, by the head's [`CopyRule`] at a row
     /// that is a reply's `opening` or not.
     fn choose_ruled(&self, h: usize, tokens: &[u32], opening: bool) -> Vec<(usize, u32)> {
-        match self.rule.at(opening) {
+        match self.rule.at(self.opens(tokens, opening)) {
             CopyRule::Mean => self.choose(h, tokens),
             CopyRule::LatestExact => self.latest(h, tokens, true),
             CopyRule::LatestNearest => self.latest(h, tokens, false),
@@ -395,7 +416,7 @@ impl CopyHeads {
         };
         let query = force.query(t).unwrap_or_else(|| self.query_at(tokens, t, h));
         let key = |s: usize| force.key(s).unwrap_or_else(|| self.key_at(tokens, s, h));
-        match self.rule.at(opening) {
+        match self.rule.at(self.opens(tokens, opening)) {
             CopyRule::Mean => nearest(query, t, self.kept, key),
             CopyRule::LatestExact => latest_of(query, t, true, key),
             CopyRule::LatestNearest => latest_of(query, t, false, key),
@@ -575,6 +596,7 @@ mod copy_rule_tests {
             margins: vec![4 << 16],
             pair: vec![None],
             rule,
+            marker: None,
         };
         (heads, (0..4i16).flat_map(|v| [10 * v + 1; 4]).collect())
     }
@@ -715,6 +737,30 @@ mod copy_rule_tests {
         longest.codes[3] = longest.codes[2];
         assert_eq!(longest.choose_ruled(0, &tokens, false), vec![(2, 0)]);
         assert_eq!(longest.mean(&tokens, &table), row(0, FULL));
+    }
+
+    /// claude-357: copy heads that hold a reply marker find the opening row from the tokens and
+    /// not from the caller. The row's previous and own tokens, 2 and 1, are the marker: the
+    /// latest exact match, s = 5, whatever the caller names. Under another marker the row is no
+    /// opening, whatever the caller names: the longest match, s = 2.
+    #[test]
+    fn the_marker_names_the_opening_row_in_place_of_the_caller() {
+        let tokens = [2, 1, 3, 0, 1, 2, 2, 1];
+        let (mut heads, table) = heads(16, CopyRule::LongestAfterOpening);
+        let free = HeadForce::default();
+        heads.marker = Some([2, 1]);
+        for caller in [false, true] {
+            assert_eq!(heads.choose_ruled(0, &tokens, caller), vec![(5, 0)]);
+            assert_eq!(heads.choose_forced(0, &tokens, &free, caller), vec![(5, 0)]);
+            assert_eq!(heads.mean_at(&tokens, &table, caller), row(2, FULL));
+        }
+        assert_eq!(heads.mean(&tokens, &table), row(2, FULL));
+        heads.marker = Some([3, 1]);
+        for caller in [false, true] {
+            assert_eq!(heads.choose_ruled(0, &tokens, caller), vec![(2, 0)]);
+            assert_eq!(heads.choose_forced(0, &tokens, &free, caller), vec![(2, 0)]);
+            assert_eq!(heads.mean_at(&tokens, &table, caller), row(3, FULL));
+        }
     }
 
     /// claude-356: the rule that spares a reply's opening. Token 1 was followed by 3 after a 2

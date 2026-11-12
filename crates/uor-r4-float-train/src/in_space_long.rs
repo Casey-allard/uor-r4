@@ -158,6 +158,14 @@ pub struct LongConfig {
     /// session serves as `CopyRule::LatestExact`. Left out of `config.json` when false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub hamming_copy_latest: bool,
+    /// The longest rule (`HammingReads::with_copy_longest`, claude-357), named by the reply
+    /// marker: the two token ids that stand before a reply's first token. A copy head then reads
+    /// the latest exact match whose token before it also agrees, and the latest exact match at a
+    /// reply's opening row, the rule the integer session serves as
+    /// `CopyRule::LongestAfterOpening`. Needs `hamming_copy_latest` and one-token copy keys.
+    /// Left out of `config.json` when not set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hamming_copy_longest: Option<[u32; 2]>,
     /// The Hamming read's type heads as ask heads (`HammingReads::with_ask`, claude-330): each
     /// asks with its token's point plus a learned question row, against the copy key. Off by
     /// default, and left out of `config.json` when off.
@@ -1065,6 +1073,9 @@ fn checkpoint_hamming(
                 "--hamming-copy-key and --hamming-copy-keys need the checkpoint's --hamming-read",
             ));
         }
+        if config.hamming_copy_longest.is_some() {
+            return Err(invalid("--hamming-copy-longest needs the checkpoint's --hamming-read"));
+        }
         return Ok(None);
     }
     let reads = crate::flock_read_hamming::HammingReads::load(directory, device)?.ok_or_else(
@@ -1132,6 +1143,14 @@ fn checkpoint_hamming(
             "--init-from checkpoint carries the Hamming question from {} rows back, but this run names {}",
             reads.carry_rows(),
             config.hamming_carry_question
+        )));
+    }
+    // claude-357: the leave rule and the marker check read the run's marker, so the two agree.
+    if reads.copy_longest() != config.hamming_copy_longest {
+        return Err(invalid(format!(
+            "--init-from checkpoint's longest-rule marker is {:?}, but this run names {:?}",
+            reads.copy_longest(),
+            config.hamming_copy_longest
         )));
     }
     let reads = start_place(config, reads)?;
@@ -1212,6 +1231,9 @@ fn start_hamming(
         if config.hamming_copy_latest {
             return Err(invalid("--hamming-copy-latest sets the Hamming read's copy rule; turn the read on with --hamming-read"));
         }
+        if config.hamming_copy_longest.is_some() {
+            return Err(invalid("--hamming-copy-longest sets the Hamming read's copy rule; turn the read on with --hamming-read"));
+        }
         return Ok(None);
     }
     if let Some(keys) = &config.hamming_copy_keys {
@@ -1232,6 +1254,12 @@ fn start_hamming(
     }
     if config.hamming_copy_latest {
         reads = reads.with_copy_latest();
+    }
+    if let Some(marker) = config.hamming_copy_longest {
+        if !config.hamming_copy_latest {
+            return Err(invalid("--hamming-copy-longest orders the latest exact matches: it needs --hamming-copy-latest 1"));
+        }
+        reads = reads.with_copy_longest(marker)?;
     }
     if config.type_spin {
         reads = reads.with_type_spin()?;
@@ -1406,7 +1434,13 @@ fn start_memory(
             .into_iter()
             .filter(|row| !row.prompt.is_empty())
             .map(|row| {
-                let copied = copy_names_by(&leave_keys, &windows[row.window].input_ids, row.offset, row.target);
+                let copied = copy_names_ruled(
+                    &leave_keys,
+                    config.hamming_copy_longest,
+                    &windows[row.window].input_ids,
+                    row.offset,
+                    row.target,
+                );
                 let key = row.prompt[..config.turn_memory.min(row.prompt.len())].to_vec();
                 (key, copied)
             })
@@ -1447,7 +1481,7 @@ fn start_memory(
                 .iter()
                 .map(|row| {
                     let ids = &windows[row.window].input_ids;
-                    copy_names_by(&leave_keys, ids, row.offset, row.target)
+                    copy_names_ruled(&leave_keys, config.hamming_copy_longest, ids, row.offset, row.target)
                 })
                 .collect()
         });
@@ -5719,6 +5753,90 @@ fn copy_names_by(keys: &[usize], ids: &[u32], offset: usize, target: u32) -> boo
     })
 }
 
+/// Whether the copy read names `target` under the run's copy rule (claude-357): the turn memory's
+/// leave rule asks the copy read as it is built. Without the longest rule this is
+/// [`copy_names_by`]. With it, `longest` holding the reply marker: a row that opens a reply (its
+/// previous and own tokens are the marker) reads its latest exact match, as before; every other
+/// row reads the latest position `s` in `2..offset` whose two previous tokens are the row's
+/// previous and own tokens, and with none its latest exact match. This is the choice of
+/// `HammingReads::with_copy_longest` and of the integer session's
+/// `CopyRule::LongestAfterOpening`, read off the tokens.
+fn copy_names_ruled(
+    keys: &[usize],
+    longest: Option<[u32; 2]>,
+    ids: &[u32],
+    offset: usize,
+    target: u32,
+) -> bool {
+    let Some(marker) = longest else {
+        return copy_names_by(keys, ids, offset, target);
+    };
+    if offset >= 1 && ids[offset - 1] == marker[0] && ids[offset] == marker[1] {
+        return copy_names_by(keys, ids, offset, target);
+    }
+    let exact = |s: &usize| ids[*s - 1] == ids[offset];
+    (2..offset)
+        .rev()
+        .find(|s| exact(s) && ids[*s - 2] == ids[offset - 1])
+        .or_else(|| (1..offset).rev().find(exact))
+        .is_some_and(|s| ids[s] == target)
+}
+
+/// The reply marker against a split's reply mask (claude-357). Under the longest rule the copy
+/// read finds the row that chooses a reply's first token by the marker, the two token ids before
+/// it, and not by the mask. Refused unless the marker stands before every reply's first token of
+/// `tokens` and nowhere else; returns how many replies open.
+fn check_reply_marker(name: &str, tokens: &[u32], mask: &[u8], marker: [u32; 2]) -> Result<usize> {
+    if tokens.len() != mask.len() {
+        return Err(invalid(format!(
+            "{name}: {} tokens and {} mask bytes",
+            tokens.len(),
+            mask.len()
+        )));
+    }
+    let mut openings = 0;
+    for position in 1..tokens.len() {
+        let opens = mask[position] != 0 && mask[position - 1] == 0;
+        let marked = position >= 2
+            && tokens[position - 2] == marker[0]
+            && tokens[position - 1] == marker[1];
+        if opens != marked {
+            return Err(invalid(format!(
+                "--hamming-copy-longest {},{}: in {name}, the token at {position} {}",
+                marker[0],
+                marker[1],
+                if opens {
+                    "opens a reply without the marker before it"
+                } else {
+                    "follows the marker and opens no reply"
+                }
+            )));
+        }
+        openings += usize::from(opens);
+    }
+    Ok(openings)
+}
+
+/// [`check_reply_marker`] on the run's TRAIN and DEV splits, before anything is built; nothing
+/// without `--hamming-copy-longest`.
+fn check_run_markers(data_root: &Path, config: &LongConfig) -> Result<()> {
+    let Some(marker) = config.hamming_copy_longest else {
+        return Ok(());
+    };
+    let (tokens, mask) = match config.train_split.as_ref() {
+        None => load_train_split(data_root)?,
+        Some(split) => load_named_split(split)?,
+    };
+    let train = check_reply_marker("TRAIN", &tokens, &mask, marker)?;
+    let (tokens, mask) = load_dev_split(data_root)?;
+    let dev = check_reply_marker("DEV", &tokens, &mask, marker)?;
+    println!(
+        "[hamming] the longest rule's marker {},{} stands before every reply opening and nowhere else: TRAIN {train}, DEV {dev}",
+        marker[0], marker[1]
+    );
+    Ok(())
+}
+
 /// The forms a reply key holds, in the order the read asks them. Without a tail (claude-193),
 /// the probe's `turn-8 + position + reply-last-1` alone. With a tail of `tail` ids (claude-345):
 /// both ends of the turn, then its last `tail` ids, then its first 8, each with the position and
@@ -8558,8 +8676,8 @@ pub fn root_separation() -> Result<(f64, f64)> {
 }
 
 /// The pinned DEV panel's windows and its response mask.
-fn load_dev(data_root: &Path) -> Result<(Vec<CausalWindow>, Vec<u8>)> {
-    let (dev_tokens, dev_mask) = hs::load_pinned_uort_split(
+fn load_dev_split(data_root: &Path) -> Result<(Vec<u32>, Vec<u8>)> {
+    hs::load_pinned_uort_split(
         &data_root.join("ft/dev/tokens.u16"),
         &data_root.join("ft/dev/response_mask.u8"),
         hs::PINNED_DEV_TOKENS_SHA256,
@@ -8568,7 +8686,11 @@ fn load_dev(data_root: &Path) -> Result<(Vec<CausalWindow>, Vec<u8>)> {
         hs::EXPECTED_DEV_ELIGIBLE_TARGETS,
         hs::SHEET_VOCAB,
         hs::SHEET_BOS_ID,
-    )?;
+    )
+}
+
+fn load_dev(data_root: &Path) -> Result<(Vec<CausalWindow>, Vec<u8>)> {
+    let (dev_tokens, dev_mask) = load_dev_split(data_root)?;
     let (dev_windows, _) =
         hs::build_document_windows(&dev_tokens, &dev_mask, SHEET_CONTEXT, hs::SHEET_BOS_ID)?;
     Ok((dev_windows, dev_mask))
@@ -9376,6 +9498,11 @@ pub fn score_rows(
             return Err(invalid(format!("--panel-queries {name} needs --panel {name}=DIR")));
         }
     }
+    let panel_marker = match panels.is_empty() {
+        true => None,
+        false => crate::flock_read_hamming::HammingReads::load(checkpoint, device)?
+            .and_then(|reads| reads.copy_longest()),
+    };
     for (name, dir) in panels {
         if !panel_name_ok(name) || splits.iter().any(|s| s.name == *name) {
             return Err(invalid(format!(
@@ -9383,6 +9510,14 @@ pub fn score_rows(
             )));
         }
         let (tokens, mask, sha) = load_unpinned_uort(dir)?;
+        // claude-357: a checkpoint under the longest rule finds reply openings by its marker.
+        if let Some(marker) = panel_marker {
+            let openings = check_reply_marker(name, &tokens, &mask, marker)?;
+            println!(
+                "[longest] the checkpoint reads by the marker {},{}: {name} has it before every reply opening and nowhere else: {openings}",
+                marker[0], marker[1]
+            );
+        }
         // claude-287: the rule's cut, and the context its windows and decodes run at.
         let (runs_at, windows) = match past_window {
             Some(rule) => past_window_cut(rule, &tokens, &mask, context)?,
@@ -14731,6 +14866,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             config.train_targets,
         )?;
     let (dev_windows, dev_mask) = load_dev(data_root)?;
+    check_run_markers(data_root, config)?;
     let prompts = sample_windows(&dev_windows, &dev_mask, config.samples);
     println!(
         "[in-space] usable TRAIN windows {} (batch {}, {} steps = {:.2} epochs), DEV windows {}",
@@ -16607,6 +16743,7 @@ mod tests {
             hamming_copy_key: 1,
             hamming_copy_keys: None,
             hamming_copy_latest: false,
+            hamming_copy_longest: None,
             hamming_ask: false,
             hamming_attract: 0.0,
             hamming_attract_at_question: false,
@@ -23606,6 +23743,59 @@ mod tests {
         assert!(RECALL_ABLATIONS.iter().all(|a| *a == Ablation::CopyAtQuery || a.row_scope().is_none()));
     }
 
+    /// claude-357: the longest rule's marker stays out of `config.json` when not set, needs the
+    /// read, the latest-exact rule and one-token keys, and reaches the reads the run builds.
+    #[test]
+    fn the_longest_flag_is_off_by_default_and_checked() {
+        let plain = serde_json::to_string(&config(0, None)).unwrap();
+        assert!(!plain.contains("hamming_copy_longest"));
+        let on = LongConfig {
+            hamming_read: 4,
+            hamming_copy_latest: true,
+            hamming_copy_longest: Some([714, 28]),
+            ..config(0, None)
+        };
+        let json = serde_json::to_string(&on).unwrap();
+        assert!(json.contains("\"hamming_copy_longest\":[714,28]"));
+        let refused = |c: LongConfig| start_hamming(&c, &Device::Cpu).err().map(|e| e.to_string());
+        let no_read = LongConfig { hamming_read: 0, hamming_copy_latest: false, ..on.clone() };
+        assert!(refused(no_read).unwrap().contains("--hamming-copy-longest sets"));
+        let no_latest = LongConfig { hamming_copy_latest: false, ..on.clone() };
+        assert!(refused(no_latest).unwrap().contains("it needs --hamming-copy-latest 1"));
+        let two_token = LongConfig { hamming_copy_key: 2, ..on.clone() };
+        assert!(refused(two_token).unwrap().contains("one-token copy keys"));
+        let (reads, _) = start_hamming(&on, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!(reads.copy_longest(), Some([714, 28]));
+        let off = LongConfig { hamming_copy_longest: None, ..on.clone() };
+        let (plain_reads, _) = start_hamming(&off, &Device::Cpu).unwrap().expect("a read");
+        assert_eq!(plain_reads.copy_longest(), None);
+        // A resumed run's marker must be its checkpoint's, both ways and by value.
+        let other = LongConfig { hamming_copy_longest: Some([714, 29]), ..on.clone() };
+        crate::flock_read_hamming::set_hamming_reads(None);
+        let dir = std::env::temp_dir().join(format!(
+            "longest-checkpoint-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        for (saved, run, fits) in [
+            (&reads, &on, true),
+            (&plain_reads, &off, true),
+            (&reads, &off, false),
+            (&plain_reads, &on, false),
+            (&reads, &other, false),
+        ] {
+            std::fs::create_dir(&dir).unwrap();
+            saved.save(&dir).unwrap();
+            let got = checkpoint_hamming(run, &dir, &Device::Cpu).map(|r| r.map(|(r, _)| r.copy_longest()));
+            std::fs::remove_dir_all(&dir).unwrap();
+            match got {
+                Ok(marker) => assert!(fits && marker == Some(run.hamming_copy_longest), "{marker:?}"),
+                Err(e) => assert!(!fits && e.to_string().contains("longest-rule marker"), "{e}"),
+            }
+        }
+        crate::flock_read_hamming::set_hamming_reads(None);
+    }
+
     /// claude-334: `−aS` drops the stream read's ask (type) class alone and keeps the hold on;
     /// `−H` drops no class and turns the hold off; neither cuts rows.
     #[test]
@@ -23926,5 +24116,81 @@ mod copy_names_tests {
                 assert_eq!(copy_names_by(&[1, 1], &ids, offset, target), copy_names(&ids, offset, target));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod copy_longest_tests {
+    use super::{check_reply_marker, copy_names, copy_names_ruled};
+
+    /// claude-357: under the longest rule the leave rule asks the copy read as it is built. A row
+    /// reads the latest match whose token before it also agrees, and with none the latest match;
+    /// a row whose previous and own tokens are the marker reads the latest, as before.
+    #[test]
+    fn the_leave_rule_reads_the_longer_match_except_at_an_opening() {
+        let (c, x, q, b, p) = (11, 12, 13, 14, 15);
+        let ids = [c, x, q, b, x, p, c, x];
+        let absent = Some([98, 99]);
+        assert!(copy_names(&ids, 7, p) && !copy_names(&ids, 7, q), "the latest X is followed by P");
+        assert!(copy_names_ruled(&[1], None, &ids, 7, p), "without the rule: the latest");
+        assert!(copy_names_ruled(&[1], absent, &ids, 7, q), "the X after C is followed by Q");
+        assert!(!copy_names_ruled(&[1], absent, &ids, 7, p));
+        assert!(copy_names_ruled(&[1], Some([c, x]), &ids, 7, p), "an opening row: the latest");
+        assert!(!copy_names_ruled(&[1], Some([c, x]), &ids, 7, q));
+        assert!(copy_names_ruled(&[1], absent, &ids, 4, q), "no longer match: the latest");
+        assert!(!copy_names_ruled(&[1], absent, &ids, 0, x));
+        assert!(!copy_names_ruled(&[1], absent, &ids, 1, q));
+        // Every six-token window over three tokens, against the rule spelled out position by
+        // position as the integer reader walks it (`longest_of`).
+        let spelled = |ids: &[u32], t: usize, target: u32, marker: [u32; 2]| {
+            let opening = t >= 1 && ids[t - 1] == marker[0] && ids[t] == marker[1];
+            let (mut exact, mut long) = (None, None);
+            for s in 1..t {
+                if ids[s - 1] == ids[t] {
+                    exact = Some(s);
+                    if !opening && s >= 2 && ids[s - 2] == ids[t - 1] {
+                        long = Some(s);
+                    }
+                }
+            }
+            long.or(exact).is_some_and(|s| ids[s] == target)
+        };
+        let mut differ = 0;
+        for code in 0..729u32 {
+            let ids: Vec<u32> = (0..6).map(|i| code / 3u32.pow(i) % 3).collect();
+            for marker in [[0, 1], [2, 2], [98, 99]] {
+                for offset in 0..6 {
+                    for target in 0..3 {
+                        let ruled = copy_names_ruled(&[1], Some(marker), &ids, offset, target);
+                        assert_eq!(
+                            ruled,
+                            spelled(&ids, offset, target, marker),
+                            "{ids:?} {offset} {target} {marker:?}"
+                        );
+                        differ += usize::from(ruled != copy_names(&ids, offset, target));
+                    }
+                }
+            }
+        }
+        assert!(differ > 0, "the rule changes some row");
+    }
+
+    /// claude-357: the marker stands before every reply's first token and nowhere else, or the
+    /// split is refused with the position.
+    #[test]
+    fn the_marker_check_refuses_a_missing_and_a_stray_marker() {
+        let tokens = [1, 3, 7, 8, 5, 5, 4, 7, 8, 6];
+        let mask = [0, 0, 0, 0, 1, 1, 0, 0, 0, 1];
+        assert_eq!(check_reply_marker("toy", &tokens, &mask, [7, 8]).unwrap(), 2);
+        let stray = check_reply_marker("toy", &tokens, &mask, [3, 7]).unwrap_err().to_string();
+        assert!(stray.contains("the token at 3 follows the marker and opens no reply"), "{stray}");
+        let other = [1, 3, 7, 9, 5, 5, 4, 7, 8, 6];
+        let missing = check_reply_marker("toy", &other, &mask, [7, 8]).unwrap_err().to_string();
+        assert!(
+            missing.contains("the token at 4 opens a reply without the marker before it"),
+            "{missing}"
+        );
+        assert!(check_reply_marker("toy", &tokens, &mask[..9], [7, 8]).is_err(), "lengths differ");
+        assert_eq!(check_reply_marker("toy", &[1, 2], &[0, 0], [7, 8]).unwrap(), 0);
     }
 }

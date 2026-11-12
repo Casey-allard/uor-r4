@@ -1171,8 +1171,9 @@ impl IntegerStackModel {
     }
 
     /// The rule this session's copy heads are served under (claude-345): the artifact's own,
-    /// `LatestExact` when its record sets `copy_latest`, unless [`Self::set_copy_rule`] changed
-    /// it. `None` without a Hamming read.
+    /// `LatestExact` when its record sets `copy_latest`, `LongestAfterOpening` when it names a
+    /// reply marker (`copy_longest`, claude-357), unless [`Self::set_copy_rule`] changed it.
+    /// `None` without a Hamming read.
     pub fn copy_rule(&self) -> Option<CopyRule> {
         self.fbs
             .as_ref()

@@ -1,0 +1,11 @@
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -3440,7 +3440,7 @@
+         match longer {
+             // A position without the longer match sorts after every position with it:
+             // `time · (1 − longer)`.
+-            Some(longer) => keys.add(&longer.affine(-(time as f64), time as f64)?)?,
++            Some(_) => keys,
+             None => keys,
+         }
+     } else {

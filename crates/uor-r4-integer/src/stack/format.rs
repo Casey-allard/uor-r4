@@ -234,6 +234,16 @@ pub struct StackHamming {
     /// one that sets it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub copy_latest: bool,
+    /// The longest rule's reply marker (claude-357): the two token ids that stand before a
+    /// reply's first token. When set, each copy head reads the latest exact match whose token
+    /// before the key also agrees, and the latest exact match at the row whose previous and own
+    /// tokens are the marker (`CopyRule::LongestAfterOpening`, the opening row found from the
+    /// tokens), as the float read's `HammingReads::with_copy_longest` trains. Needs
+    /// `copy_latest` and one-token copy keys. Left out of the header when not set, so such an
+    /// artifact is byte for byte as before, and an engine without the field refuses one that
+    /// sets it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copy_longest: Option<[u32; 2]>,
     /// Which reads' type heads ask (claude-330, served by claude-336): one flag per read, in depth
     /// order, not all off. A read that asks has a `hamming.d{depth}.ask` section (i16, `vocab *
     /// width`, Q12). Left out of the header when no read asks, so such an artifact is byte for
@@ -269,6 +279,7 @@ impl StackHamming {
             copy_key: 1,
             copy_keys: None,
             copy_latest: false,
+            copy_longest: None,
             asks: None,
             carry_rows: None,
             place: None,
@@ -331,6 +342,16 @@ impl StackHamming {
             return Err(StackError::Shape(
                 "copy key 2 needs heads of whole 8-coordinate blocks, so each half is whole lanes",
             ));
+        }
+        if let Some(marker) = self.copy_longest {
+            let one_token = (0..heads / 2).all(|h| self.head_copy_key(h) == 1);
+            let in_vocab = marker.iter().all(|&id| (id as usize) < shape.vocab);
+            if !self.copy_latest || !one_token || !in_vocab {
+                return Err(StackError::Shape(
+                    "the longest rule needs the latest exact rule, one-token copy keys and a \
+                     marker of two vocabulary ids",
+                ));
+            }
         }
         let ordered = self.depths.windows(2).all(|w| w[0] < w[1]);
         let inside = self.depths.iter().all(|&d| (1..=shape.layers()).contains(&d));
@@ -2411,11 +2432,26 @@ pub fn add_hamming_place_uorlut01(artifact: &[u8], place: &super::PlaceImage) ->
 /// data start. An artifact without Hamming reads is refused, and the result is read back before
 /// it is returned.
 pub fn set_hamming_copy_latest_uorlut01(artifact: &[u8]) -> Result<Vec<u8>, StackError> {
+    set_hamming_copy_rule(artifact, |record| record.copy_latest = true)
+}
+
+/// The same artifact with its Hamming record's longest rule set to `marker` (`copy_longest`,
+/// claude-357): the rule a run trained with `--hamming-copy-longest` serves, its reply openings
+/// found by the marker. The record must already hold the latest exact rule
+/// ([`set_hamming_copy_latest_uorlut01`]) and one-token copy keys. Only the header changes, as
+/// there; an artifact without Hamming reads is refused, and the result is read back before it is
+/// returned.
+pub fn set_hamming_copy_longest_uorlut01(artifact: &[u8], marker: [u32; 2]) -> Result<Vec<u8>, StackError> {
+    set_hamming_copy_rule(artifact, |record| record.copy_longest = Some(marker))
+}
+
+/// `artifact` with `set` applied to its Hamming record: the header alone changes.
+fn set_hamming_copy_rule(artifact: &[u8], set: impl FnOnce(&mut StackHamming)) -> Result<Vec<u8>, StackError> {
     let container = Container::parse(artifact)?;
     let Some(mut record) = container.hamming.clone() else {
         return Err(StackError::Shape("the copy rule is set on a stack with Hamming reads"));
     };
-    record.copy_latest = true;
+    set(&mut record);
     record.check(&container.shape)?;
     let declared = u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
     let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
