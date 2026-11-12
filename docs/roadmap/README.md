@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 24 |
+| ready | 25 |
 | held | 11 |
 | decision | 1 |
 | done | 107 |
-| total | 143 |
+| total | 144 |
 
 ## Start here
 
@@ -126,6 +126,7 @@ These items are ready and open to anyone.
 | [Repair Studio model identity and share exact geometric arithmetic](items/m7-lexlean-studio-tools.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md), [infra-desktop-client-tauri](items/infra-desktop-client-tauri.md) | [#3704](https://github.com/UOR-Foundation/uor-r4/issues/3704) |
 | [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
 | [Deliver the native-style Studio IDE harness and real connection workflows](items/studio-ide-harness.md) | ready | a lab | no | [studio-typed-shell-upgrade](items/studio-typed-shell-upgrade.md) | [#3569](https://github.com/UOR-Foundation/uor-r4/issues/3569) |
+| [Import the LexLean MVM workbench and approved GitHub workflow](items/studio-lexlean-mvm-workbench.md) | ready | a lab | no | [studio-cursor-hosted](items/studio-cursor-hosted.md) | [#3939](https://github.com/UOR-Foundation/uor-r4/issues/3939) |
 | [Migrate the Studio to a typed lifecycle shell without changing its engine](items/studio-typed-shell-upgrade.md) | ready | a lab | no | [m7-studio-live-model-sources](items/m7-studio-live-model-sources.md) | [#3500](https://github.com/UOR-Foundation/uor-r4/issues/3500) |
 | [Decompose images into bounded integer R4 patches for native Studio input](items/geometric-image-input.md) | done | a lab | no | [studio-conversational-composer](items/studio-conversational-composer.md) | [#3619](https://github.com/UOR-Foundation/uor-r4/issues/3619) |
 | [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | done | anyone | no | none | [#2868](https://github.com/UOR-Foundation/uor-r4/issues/2868) |
@@ -348,7 +349,9 @@ flowchart LR
   n_scale_probe["scale-probe"]
   n_spiralcore_fbs_offline_float_sheet["spiralcore-fbs-offline-float-sheet"]
   n_studio_conversational_composer["studio-conversational-composer"]
+  n_studio_cursor_hosted["studio-cursor-hosted"]
   n_studio_ide_harness["studio-ide-harness"]
+  n_studio_lexlean_mvm_workbench["studio-lexlean-mvm-workbench"]
   n_studio_typed_shell_upgrade["studio-typed-shell-upgrade"]
   n_training_step_cost["training-step-cost"]
   n_turn_memory_integer["turn-memory-integer"]
@@ -501,6 +504,7 @@ flowchart LR
   n_spiralcore_fbs_offline_float_sheet --> n_in_space_trunk_to_text
   n_spiralcore_fbs_offline_float_sheet --> n_integer_hamming_read
   n_studio_conversational_composer --> n_geometric_image_input
+  n_studio_cursor_hosted --> n_studio_lexlean_mvm_workbench
   n_studio_typed_shell_upgrade --> n_studio_ide_harness
   n_turn_memory_integer --> n_point_key_integer
   n_turn_memory_reply --> n_one_model_end_to_end
