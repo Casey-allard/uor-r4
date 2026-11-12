@@ -60,6 +60,11 @@ path = "src/bin/raw-id-replies.rs"
 required-features = ["integer-reader"]
 
 [[bin]]
+name = "row-picks"
+path = "src/bin/row-picks.rs"
+required-features = ["integer-reader"]
+
+[[bin]]
 name = "whole-word-recall"
 path = "src/bin/whole-word-recall.rs"
 
