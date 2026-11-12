@@ -1,0 +1,14 @@
+{
+  "schema": "uor-r4.chat-script/1",
+  "turns": [
+    {"user": "Keep these in mind: druvalk is 73, mibtorn is felsharp, quonzet is 18."},
+    {"user": "What is mibtorn?"},
+    {"user": "What does a cow say?"},
+    {"user": "Say exactly this: trelvon dask pimmerholt zane"},
+    {"user": "What is druvalk?"},
+    {"user": "I'm tired today."},
+    {"user": "Tell me what quonzet was."},
+    {"user": "What is two plus three?"},
+    {"user": "What is my name?"}
+  ]
+}

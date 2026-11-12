@@ -48,8 +48,10 @@
 //! ids at the row's `position`, or the run is refused before anything is written.
 //!
 //! `--copy-rule NAME` (claude-355) serves the artifact's copy heads under another rule than its
-//! own: `mean`, `latest-exact`, `latest-nearest` or `longest-exact`. It needs an artifact with a
-//! Hamming read. The replies are then no longer what the artifact was exported as; the receipt
+//! own: `mean`, `latest-exact`, `latest-nearest`, `longest-exact` or `longest-after-opening`
+//! (claude-356: the latest exact match at the row that chooses a reply's first token, the longest
+//! match at every other row; with `--mark-reply 0` no row is marked and it is `longest-exact`).
+//! It needs an artifact with a Hamming read. The replies are then no longer what the artifact was exported as; the receipt
 //! gains `copy_rule` with the rule served and the artifact's own. Without the flag the artifact's
 //! own rule is served and the receipt is as before.
 //!
@@ -62,7 +64,7 @@
 //!   --mark-reply 0|1 [--max-tokens 48] [--count-visits 0|1] [--time-steps 0|1] \
 //!   [--trace-control 0|1 --trace-out TRACE.jsonl] \
 //!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]] \
-//!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact]
+//!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening]
 //! ```
 //!
 //! `ROWS.json` is a JSON array of objects with a `prompt` array of token ids (a float score's
@@ -84,7 +86,7 @@ use uor_r4_integer::stack::{
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -660,7 +662,7 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     }
     let copy_rule = match flag(&args, "--copy-rule") {
         Some(name) => Some(CopyRule::parse(&name).ok_or_else(|| {
-            format!("--copy-rule takes mean, latest-exact, latest-nearest or longest-exact, not {name}")
+            format!("--copy-rule takes mean, latest-exact, latest-nearest, longest-exact or longest-after-opening, not {name}")
         })?),
         None => None,
     };
@@ -1207,6 +1209,16 @@ mod tests {
         );
         let longest = run(&stack, "longest.jsonl", "1", Some("longest-exact")).expect("longest");
         assert_eq!(longest["copy_rule"], json!({"served": "longest-exact", "own": own}));
+        // claude-356: the rule that spares a reply's opening is served by its name, and with no
+        // reply marked it reads every row as the longest rule does.
+        let spared = run(&stack, "spared.jsonl", "1", Some("longest-after-opening")).expect("spared");
+        assert_eq!(spared["copy_rule"], json!({"served": "longest-after-opening", "own": own}));
+        run(&stack, "longest-unmarked.jsonl", "0", Some("longest-exact")).expect("longest, unmarked");
+        run(&stack, "spared-unmarked.jsonl", "0", Some("longest-after-opening")).expect("spared, unmarked");
+        assert_eq!(
+            fs::read(root.join("longest-unmarked.jsonl")).expect("longest replies"),
+            fs::read(root.join("spared-unmarked.jsonl")).expect("spared replies")
+        );
 
         let error = run(&stack, "bad.jsonl", "1", Some("longest")).unwrap_err();
         assert!(error.contains("--copy-rule takes mean, latest-exact"), "{error}");

@@ -1,0 +1,91 @@
+claude-356 runs, 12 Nov 2026. Laptop only: no pod, nothing trained. Kit (uncommitted): local/claude/claude-356/
+
+programs, release builds of this branch's source (scorer: claude-352's pinned)
+88de21628ce21639d6bfa1af4d1237498508387f90a6c47c3f750e1edd10fd46 raw-id-replies
+b76b1f73687db81cc103875c154d6a2a38b5b327fb2e0e3214e52f83f75190d0 uor-chat
+3974e5d5a952d4aaaf5fd1e64f1009bbf0f6725cb2e9972309b32cd88c13e97f m-world-recall-corpus
+fd7b888cc7995870d3237f4e2a913167a755851c8c09e1c229f134baa2a3b069 train-in-space
+6844852f0bda7d1cd7b0212c5f04a515aa11c0e300d832429d2acf38b134489a whole-word-recall-dcd87899c
+
+old panel remade, seed 14 (gate G3; panel-356.sh 14). Each file against the old panel's (cmp): identical.
+  tokens, mask, oracle tokens: local/claude/claude-349/{panel-off,panel-oracle}/train; kit: claude-352/panel-kit; prompts: claude-352/retake/prompts-{256,192}
+b8ad9fe401226b6df8677d06b3f2ad60ea4ffdf6a0b8092970c69e57c4355fe4 panel-off/train/tokens.u16
+67eed533b50fb685d75875050cdd88205a34033d51f491ce19b36795ea75674b panel-off/train/response_mask.u8
+12d7e9dfc0c34778556f34ee2c811b8388e90e84bf137bf0cfffdf00aed6d61d panel-oracle/train/tokens.u16
+882b4b8f93a8947eadf6fd4d2bb877314a63422dffc6243122dcf16d5a130f79 panel-places.json
+b5bdafe3f319589982132d464b87aa9d663a0ed0232bbcb3673fa9805e6cc6c5 prompts-256/prompts-p.json
+2b50be63dc3fb0ea81614999db1c32e7828535d6fcfb5bd125ec0153d802fb49 prompts-192/prompts-p.json
+turn-census panel documents=1000 general=2945 abstain=79 value=562 punctuation_ids=11 train_tokens=121894 general_with_a_prior_user_turn=1945 abstain_with_a_prior_user_turn=79
+
+fresh panel, seed 15 (panel-356.sh 15)
+fa21807047bac402c32766815f4e45738ff8cc5b0397f5c90bfb7e51bda972c5 panel-off/train/tokens.u16
+f95bd1f2cd875a651f57df84f128deb0466433b97561c25d44df8d50e1588d3b panel-off/train/response_mask.u8
+868e3efe4fd4f6d62b4f0ca82f3079e170f8d84378d0fa937c1e64038bfeac54 panel-oracle/train/tokens.u16
+8c60464682503db17078fb5ea0392a41654779d01345d6d202498252c0fc9f6e panel-places.json
+3016a4b6969271f60e7296a8a948ca915e9e6043747a8094952078d69b6481da prompts-256/prompts-p.json
+08444d542b8615badef5c40ffad0911caa830470b70e5597c8ecd6e86d9df970 prompts-192/prompts-p.json
+turn-census panel documents=1000 general=2912 abstain=81 value=560 punctuation_ids=11 train_tokens=121528 general_with_a_prior_user_turn=1912 abstain_with_a_prior_user_turn=81
+prompts: 984 at the 256 window, 1106 at the 192 window; equal to an old-panel prompt at either window (equal-356.jq): 0 and 0
+
+old panel (seed 14) reads: run-356.sh; own = no rule set, longest = --copy-rule longest-exact, spared = --copy-rule longest-after-opening
+reader 88de21628ce21639d6bfa1af4d1237498508387f90a6c47c3f750e1edd10fd46
+p-s3 256 own: exit 0 rows 990 sha 4b0bcceefd716d0e296dcea5bc56e3a54917767493514e9b528dc440ef68c0fc
+p-s2 256 own: exit 0 rows 990 sha 4057761934a224a38ca746f511b49e6b9e14cea6fa85a10692680200f2cc295b
+n-s2 256 own: exit 0 rows 990 sha 8753d3445cd512a8f5f1486512236644eb0a591182839978a6e358320f3291f2
+p-s1 256 own: exit 0 rows 990 sha b80d66284b0f3eceb7545d8f14f971e1c107da1bcc6ee6c1d7d6460488a1a150
+p-s3 256 longest: exit 0 rows 990 sha 3d1ccb61b5952afea39188a43249bf836ec825cb639ea5540f098bd97f918594
+p-s2 256 longest: exit 0 rows 990 sha 25ed575e16ba4b9df59c88496942dfadacf071f9cb1dfab1d45c386bcc5cac37
+p-s1 256 longest: exit 0 rows 990 sha 644ff998f90e407bcddad5e1798cec27780607c94a83e2e8b4f4d1198d19f87a
+n-s2 256 longest: exit 0 rows 990 sha e44dd268e3ef03fa3ec09f213c2db6423ab4e3f2ac76e401ef517a1bcd1b9e6e
+p-s2 256 spared: exit 0 rows 990 sha d34a3ffef8cc7df17e29b22cac992968c4e4bc2d4f91f67d46c06fa10992f94a
+p-s3 256 spared: exit 0 rows 990 sha a3c48bd4940b4732ae4341e90d2ba11af1e13d26bbd8dbbbaf38548f2b387d96
+p-s1 256 spared: exit 0 rows 990 sha 856c1d3d2388b3c989f4bd3567635ae7c17dab4f89798aa186675bfb4bbbfa7b
+n-s2 256 spared: exit 0 rows 990 sha a12f1e474aa74064bb4436fa3b6485ec834ab8d0975cb15d985396e84988ba04
+p-s3 192 own: exit 0 rows 1108 sha bbd7388b8e1579f087f43fe797cccca2dc6f4d8e8c7fbff022eebec87a524e16
+n-s2 192 own: exit 0 rows 1108 sha e3843d0cbf7a4885c2043590987e3e6a18360b568c61a0c8da4129591af1de98
+p-s2 192 own: exit 0 rows 1108 sha 09476870e1d850181c4f9b05fcd1f73eb73dad15245d07b42ed0ce8ed8e1820b
+p-s1 192 own: exit 0 rows 1108 sha 539135ec73553270559940303a1c0bc02cd5e3a3ee7aaa25a4fee11070c10679
+p-s3 192 longest: exit 0 rows 1108 sha 01cc7c75f648b6d17fba08ba5558b7760c0a0efce16564241320ed8baa445a35
+p-s2 192 longest: exit 0 rows 1108 sha 15a5d5e19d537f7ab8efdbbb4ee55565842762eb296185dfacd6e9d7cd8dcf7b
+n-s2 192 longest: exit 0 rows 1108 sha 03ee2dbd5158fd733bfa333490a9c848b88514cfdecde219d070a7f0f591ff42
+p-s1 192 longest: exit 0 rows 1108 sha ff7494f47da297e4cbb91043b063d36fd4c7f1555a0ec2aaf7a9cf9e55edada5
+p-s3 192 spared: exit 0 rows 1108 sha 022b75799da3b7a7c3957977b414bbba8f1a46ce66b2bc7d7db8377a3d502946
+p-s2 192 spared: exit 0 rows 1108 sha 5eee508536331ffb1d1b33354e54e27d44d9ad27d3fdfea0e380985202a13b4d
+n-s2 192 spared: exit 0 rows 1108 sha de7761d5811917bb2a21aa8a7d0683a59e6885d8c81cee7a477bcfd5ff66e236
+p-s1 192 spared: exit 0 rows 1108 sha ed14ceb25160aa5526e0846f59693b245d7754ea612ca13214b78407a734b1fe
+done
+G2: the 16 own and longest reply files against claude-355's (cmp): identical, all 16
+
+fresh panel (seed 15) reads
+reader 88de21628ce21639d6bfa1af4d1237498508387f90a6c47c3f750e1edd10fd46
+p-s2 256 own: exit 0 rows 984 sha ed71da1dddcda739b837e494cadd1b0ad3513185b1b23b882c617200a06c5f55
+n-s2 256 own: exit 0 rows 984 sha 7365ec775d89f186d34ef9ca23504617db8c070983f1d94ddc355fa67d358f5a
+p-s3 256 own: exit 0 rows 984 sha b5855b5e4682a9c190b49d7c0e26e6d913d7ae4e2cb4d9ad7c975bd1e56a3a52
+p-s1 256 own: exit 0 rows 984 sha 669f3546a426d127871db2af19204456eb79095155b772521030c6a26d343555
+p-s2 256 longest: exit 0 rows 984 sha 9f31158d9a0c5e358750da6f619f36b79e3fcd5f8b60e8518d3ec5ae32dccf3d
+p-s3 256 longest: exit 0 rows 984 sha 64e0a164b908289935f994fa7fccff4aa0564d2039599e75ff17a47dc2c325d8
+n-s2 256 longest: exit 0 rows 984 sha 5511cae343779c2af9aa2617c5969fb5c4b91e51504d19471b68daa2c606aae7
+p-s1 256 longest: exit 0 rows 984 sha 0fe3630dc53709b269dd60e4bbeb4798909450dcc48e6a9f89031b2728520e3d
+p-s2 256 spared: exit 0 rows 984 sha 8ff2e40b58de06c607daf7b08c01f6c1959bc5da97c98a7ebc4ab0ce4a3ebf03
+p-s3 256 spared: exit 0 rows 984 sha 98a24e2d5a58edf260f91677420527f4203f2648f35488d25f419d66f1a06aff
+n-s2 256 spared: exit 0 rows 984 sha 173a42bda60e35b91e634c89dcaf9b36d49f839f1445b70c463953cc533fdb3a
+p-s1 256 spared: exit 0 rows 984 sha e126eda872ce751419df36e405d15dde4ef31a483ed819c83973fa89c57e742a
+n-s2 192 own: exit 0 rows 1106 sha f7c5a407a88160a5afb39b4b479f6a6f0996928d22dfa9119cf5e22c6168fce8
+p-s2 192 own: exit 0 rows 1106 sha d839218671516b1398985062edb5d7a0ae7ab6a7f463dbef7f4689e752624ca3
+p-s3 192 own: exit 0 rows 1106 sha 163fa99f5009627d405984799f9789573ae57e0a30837ace57a4ebb5cef0228e
+p-s1 192 own: exit 0 rows 1106 sha 55e04968f14c85eee0c266b98e091a5a64f346abef512a74bb45dbb78ae109c9
+p-s2 192 longest: exit 0 rows 1106 sha ddf7b7212b417d5a77b4d2b8b6adf2e1f4b775a28b01cf46835d21f1b0fc486b
+p-s3 192 longest: exit 0 rows 1106 sha 88c478cf3b95e11eb34d1993f86259116c55e0170ec93a60a23df747b9e8f3d1
+n-s2 192 longest: exit 0 rows 1106 sha b5fe6a32429475f0e1a683bdec2e4cf94da124151c13ce4acf27fcec8eea3844
+p-s1 192 longest: exit 0 rows 1106 sha 1a2beeebad7eeb2752909d6f4910a3b74b65569c158cb593894603900b61bd05
+p-s2 192 spared: exit 0 rows 1106 sha aa68eb2b6f5bc4bdeceffd0ae730bb0ad24c3d3a1f7505753280d71bd2fd42b5
+p-s3 192 spared: exit 0 rows 1106 sha 2207e9e9541afd304aeb21f3e8f06e9f11234bf7c9c8724a85490235f84d1398
+n-s2 192 spared: exit 0 rows 1106 sha 01188a31d0d7040ec56395183b953a62c535a7c9472022f52173dde492161a09
+p-s1 192 spared: exit 0 rows 1106 sha 62f5c81e95638ac9ab56f59dc87575443d7386b61d4d8381fd367a2f84b04b44
+done
+
+scripted conversation, p-s2 (uor-chat --script chat-script.json --max-tokens 48; then --copy-rule longest-exact; then --copy-rule longest-after-opening)
+check: claude-355's script with no rule gives claude-355's reply ids again: identical, nine turns (jq -c -f chatids-356.jq | shasum -a 256, both records: 4838541b01c5da0bfa54bf2bf68be4df7db989cc618f4ff9f57b0485aa4e2bee)
+1ae29e522a4ca01da08499f011ce39570ad6a3f43beded13cf4a5396545984bd chat-p-s2.own.json
+a07f33963c4a9b1130c7611a639cd04d46a8d8aa007b09ff2a5df49a1542aa34 chat-p-s2.longest.json
+0617d403019f4a38a367f566dd04a142aa58b583d35d239cf4a7fadabeb0f243 chat-p-s2.spared.json

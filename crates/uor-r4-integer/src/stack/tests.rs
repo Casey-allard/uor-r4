@@ -4572,6 +4572,109 @@ fn the_copy_rule_is_recorded_only_when_latest() {
     assert!(super::set_hamming_copy_latest_uorlut01(&plain).is_err());
 }
 
+/// claude-356: the session passes its reply mark to the copy heads, in the stream read and in
+/// the readout read, by the plain step and by the timed one. The last row's token 9 comes after
+/// a 4; 9 was followed by 6 after a 4 and later by 7 after a 5, so the latest exact match and the
+/// longest differ at that row and at no earlier one. Under `longest-after-opening` a session
+/// marked at that row keeps the latest rule's positions and serves another query than an unmarked
+/// one, which is the longest rule's session at every row.
+#[test]
+fn the_reply_mark_reaches_the_copy_heads_under_the_opening_rule() {
+    use super::CopyRule;
+    let tokens: [u32; 8] = [4, 9, 6, 5, 9, 7, 4, 9];
+    let last = tokens.len() - 1;
+    let layers = served_read_trunk(&[1], 1.0, 1.0).0.layers.len();
+    for depth in [1, layers] {
+        let (_, _, bytes) = served_read_trunk(&[depth], 1.0, 1.0);
+        // The last row's kept positions of the two copy heads, and the query served there.
+        let last_row = |rule: CopyRule, mark: bool, timed: bool| {
+            let mut model = IntegerStackModel::parse(&bytes).expect("the read is served");
+            assert!(model.set_copy_rule(rule));
+            let mut session = model.session();
+            for &token in &tokens[..last] {
+                session.step_native(token).expect("step");
+            }
+            if mark {
+                session.mark_reply_start();
+            }
+            session.set_hamming_trace(true);
+            let step = if timed {
+                session.measure_fbs_step_stages(tokens[last], &mut Vec::new()).expect("the timed step").0
+            } else {
+                session.step_native(tokens[last]).expect("the last step")
+            };
+            let trace = session.take_hamming_trace().expect("the trace is on");
+            let kept: Vec<Vec<u32>> = trace.iter().flat_map(|r| r.heads.iter().take(2)).map(|h| h.kept.clone()).collect();
+            (kept, step.query_q12)
+        };
+        let latest = last_row(CopyRule::LatestExact, true, false);
+        let longest = last_row(CopyRule::LongestExact, false, false);
+        assert_ne!(latest.0, longest.0, "depth {depth}: the two rules keep different positions");
+        let marked = last_row(CopyRule::LongestAfterOpening, true, false);
+        assert_eq!(marked.0, latest.0, "depth {depth}: the opening row keeps the latest match");
+        let unmarked = last_row(CopyRule::LongestAfterOpening, false, false);
+        assert_eq!(unmarked, longest, "depth {depth}: with no mark the rule is the longest rule");
+        assert_ne!(marked.1, unmarked.1, "depth {depth}: the mark moves the served query");
+        let timed = last_row(CopyRule::LongestAfterOpening, true, true);
+        assert_eq!(timed, marked, "depth {depth}: the timed step reads the mark as the plain step");
+        // A mark at another row is no opening at this one.
+        let early = {
+            let mut model = IntegerStackModel::parse(&bytes).expect("the read is served");
+            assert!(model.set_copy_rule(CopyRule::LongestAfterOpening));
+            let mut session = model.session();
+            session.step_native(tokens[0]).expect("step");
+            session.mark_reply_start();
+            for &token in &tokens[1..] {
+                session.step_native(token).expect("step");
+            }
+            session.last_query_q12().expect("the last step's query").to_vec()
+        };
+        assert_eq!(early, unmarked.1, "depth {depth}: a mark at row 1 leaves the last row to the longest rule");
+    }
+    // A forced replay that forces nothing reads the mark as the served step does, in the stream
+    // read and in the readout read. The replay needs an unsnapped artifact (claude-249).
+    let none = crate::fbs_snapshot::DecisionForceWindow::default();
+    let (mut depths, mut layers) = (Vec::new(), 0);
+    let _ = decision_stack(DECISION_RAW, |snap| {
+        depths.clone_from(&snap.hamming.as_ref().expect("the reads").depths);
+        layers = snap.layers.len();
+    });
+    assert!(depths[0] < layers && depths.contains(&layers), "a stream read and a readout read: {depths:?}");
+    for depth in [depths[0], layers] {
+        let bytes = decision_stack(DECISION_RAW, |snap| {
+            snap.memory = None;
+            let read = snap.hamming.as_mut().expect("the reads");
+            let all = std::mem::take(&mut read.depths);
+            read.reads = all
+                .iter()
+                .zip(std::mem::take(&mut read.reads))
+                .filter(|(d, _)| **d == depth)
+                .map(|(_, r)| r)
+                .collect();
+            read.depths = vec![depth];
+        });
+        let mut model = IntegerStackModel::parse(&bytes).expect("the read is served");
+        assert!(model.set_copy_rule(CopyRule::LongestAfterOpening));
+        let last_query = |mark: bool, replay: bool| {
+            let mut session = model.session();
+            if replay {
+                session.set_decision_trace(&none).expect("a trace");
+            }
+            for &token in &tokens[..last] {
+                session.step_native(token).expect("step");
+            }
+            if mark {
+                session.mark_reply_start();
+            }
+            session.step_native(tokens[last]).expect("the last step").query_q12
+        };
+        let served = last_query(true, false);
+        assert_ne!(served, last_query(false, false), "depth {depth}: the mark moves the served query");
+        assert_eq!(last_query(true, true), served, "depth {depth}: a replay that forces nothing is the served read");
+        assert_eq!(last_query(false, true), last_query(false, false), "depth {depth}: and so with no mark");
+    }
+}
+
 #[test]
 fn the_copy_key_is_recorded_only_when_two() {
     use super::synthetic::synthetic_hamming;
@@ -8061,7 +8164,7 @@ fn an_asking_read_brings_back_the_kept_tokens_points() {
                 if r == 0 {
                     let x: Vec<i32> = (0..width).map(|_| (rng.next() % (1 << 20)) as i32 - (1 << 19)).collect();
                     let mut got = x.clone();
-                    hamming.stream(1, window, table, &mut payloads, &mut got, None, None);
+                    hamming.stream(1, window, table, &mut payloads, &mut got, None, None, false);
                     for k in 0..width {
                         let added = real(w_c[k]) * c.as_ref().map_or(0.0, |c| c[k]) + real(w_y[k]) * y.as_ref().map_or(0.0, |y| y[k]);
                         let want = f64::from(x[k]) + 65536.0 * added;
@@ -8071,7 +8174,7 @@ fn an_asking_read_brings_back_the_kept_tokens_points() {
                     let unit = 2f64.powi(super::kernels::NORM_FINE_EXP);
                     let n: Vec<i64> = (0..width).map(|_| (rng.next() % (1 << 40)) as i64 - (1 << 39)).collect();
                     let mut got = n.clone();
-                    hamming.readout(window, table, &mut payloads, &mut got, None, None, None);
+                    hamming.readout(window, table, &mut payloads, &mut got, None, None, None, false);
                     for k in 0..width {
                         let nf = n[k] as f64 * unit;
                         let moved = |w: i32, mean: &Option<Vec<f64>>| mean.as_ref().map_or(0.0, |m| real(w) * (m[k] - nf));
@@ -8567,7 +8670,7 @@ fn the_place_read_offers_the_tokens_point_through_the_copy_mix() {
     let tokens = &PLACE_TALK[..19];
     let mut payloads = hamming.payload_caches(40);
     let mut got = n.clone();
-    hamming.readout(tokens, table, &mut payloads, &mut got, None, None, Some(4));
+    hamming.readout(tokens, table, &mut payloads, &mut got, None, None, Some(4), false);
     let point = &table[PLACE_TALK[4] as usize * width..][..width];
     let mut moved = 0;
     for k in 0..width {
@@ -8583,7 +8686,7 @@ fn the_place_read_offers_the_tokens_point_through_the_copy_mix() {
     assert!(moved > 0, "the mix moves the readout");
     // Without an offer the row reads its copy heads as before.
     let mut free = n.clone();
-    hamming.readout(tokens, table, &mut payloads, &mut free, None, None, None);
+    hamming.readout(tokens, table, &mut payloads, &mut free, None, None, None, false);
     assert_ne!(free, got);
 }
 

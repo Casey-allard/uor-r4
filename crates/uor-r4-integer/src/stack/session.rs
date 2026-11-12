@@ -2191,6 +2191,13 @@ impl IntegerStackSession<'_> {
         self.memory.reply_start = Some(self.position + 1);
     }
 
+    /// Whether the row this session steps next chooses a reply's first token (claude-356): the
+    /// row before the marked reply start, the prompt's last token's. False with no mark. The copy
+    /// heads read it under [`CopyRule::LongestAfterOpening`] only.
+    fn at_reply_opening(&self) -> bool {
+        self.memory.reply_start == Some(self.position + 1)
+    }
+
     /// The token the served point key named at the last step, and its least L1 distance at Q12
     /// (claude-224), or `None` where it did not serve. Read-only, for the panel decode.
     pub fn last_point_key(&self) -> Option<(u32, i64)> {
@@ -3668,6 +3675,7 @@ fn stack_step_fbs(
     }
     // The Hamming read at this row needs `x_0..=x_t`.
     session.tokens.push(token);
+    let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
     let offer = fbs
         .hamming
@@ -3740,6 +3748,7 @@ fn stack_step_fbs(
                 &mut b.x,
                 trace,
                 force,
+                opening,
             );
         }
         if let (Some(step), Some(decision), Some(buckets)) =
@@ -3777,6 +3786,7 @@ fn stack_step_fbs(
             trace,
             force,
             offer,
+            opening,
         );
     }
     if let (Some(step), Some(decision)) = (traced.as_mut(), session.decision.as_deref_mut()) {
@@ -3951,6 +3961,7 @@ fn stack_step_fbs_timed(
         return Err(StackError::ContextFull { context: s.context });
     }
     session.tokens.push(token);
+    let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
     let offer = fbs
         .hamming
@@ -4014,6 +4025,7 @@ fn stack_step_fbs_timed(
                 &mut b.x,
                 session.hamming_trace.as_mut(),
                 None,
+                opening,
             );
         }
         lap(&mut since, ns);
@@ -4029,6 +4041,7 @@ fn stack_step_fbs_timed(
             session.hamming_trace.as_mut(),
             None,
             offer,
+            opening,
         );
     }
     // The turn memory's move (units 2-3), after the Hamming readout as in the float trunk: the
