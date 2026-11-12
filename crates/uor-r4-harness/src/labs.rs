@@ -128,7 +128,7 @@ pub fn resolve_lab(
 mod tests {
     use super::*;
 
-    const FOUR: [&str; 4] = ["antigravity", "claude", "deepseek", "kimi"];
+    const FIVE: [&str; 5] = ["antigravity", "claude", "codex", "deepseek", "kimi"];
 
     fn repo() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -145,16 +145,15 @@ mod tests {
     }
 
     /// The planted fault the loop ORDER requires: an unregistered lab is refused by the check and
-    /// by the resolver every recording command uses, and the refusal lists the four.
+    /// by the resolver every recording command uses, and the refusal lists the five.
     #[test]
     fn an_unregistered_lab_is_refused() {
         let err = check_lab(&repo(), "gemini").expect_err("gemini is not registered");
         assert!(err.contains("\"gemini\""), "{err}");
-        assert!(err.contains("antigravity, claude, deepseek, kimi"), "{err}");
-        // Codex left the loop on 26 Oct 2026 (claude-138): its name is refused like any other.
-        let err = check_lab(&repo(), "codex").expect_err("codex is not registered");
-        assert!(err.contains("\"codex\""), "{err}");
-        assert!(resolve_lab(&repo(), None, Some("codex".into())).is_err());
+        assert!(
+            err.contains("antigravity, claude, codex, deepseek, kimi"),
+            "{err}"
+        );
         let err = resolve_lab(&repo(), None, Some("gemini".into()))
             .expect_err("the resolver refuses it too");
         assert!(err.contains("\"gemini\""), "{err}");
@@ -163,7 +162,7 @@ mod tests {
 
     #[test]
     fn each_registered_lab_is_accepted() {
-        for lab in FOUR {
+        for lab in FIVE {
             check_lab(&repo(), lab).unwrap_or_else(|e| panic!("{lab}: {e}"));
             assert_eq!(
                 resolve_lab(&repo(), Some(lab.into()), None).as_deref(),
@@ -185,9 +184,9 @@ mod tests {
     }
 
     #[test]
-    fn the_real_registry_lists_exactly_the_four() {
+    fn the_real_registry_lists_exactly_the_five() {
         let labs = load_labs(&repo()).expect("labs.json loads");
-        assert_eq!(labs.keys().map(String::as_str).collect::<Vec<_>>(), FOUR);
+        assert_eq!(labs.keys().map(String::as_str).collect::<Vec<_>>(), FIVE);
         assert_eq!(labs["kimi"].role.as_deref(), Some("pm"));
         assert!(labs.values().filter(|l| l.role.is_some()).count() == 1);
     }

@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-const FOUR: [&str; 4] = ["antigravity", "claude", "deepseek", "kimi"];
+const FIVE: [&str; 5] = ["antigravity", "claude", "codex", "deepseek", "kimi"];
 
 fn bin() -> &'static str {
     env!("CARGO_BIN_EXE_uor-harness")
@@ -136,7 +136,7 @@ fn a_read_only_command_works_with_any_lab_name() {
     }
 }
 
-/// The CLI contract of a refusal: exit 2, all four labs named, and nothing written anywhere.
+/// The CLI contract of a refusal: exit 2, all five labs named, and nothing written anywhere.
 #[test]
 fn an_unregistered_lab_is_refused_by_heartbeat_with_nothing_written() {
     let s = Scratch::new();
@@ -149,16 +149,13 @@ fn an_unregistered_lab_is_refused_by_heartbeat_with_nothing_written() {
 
     let out = s.run_in(&s.repo, "gemini", &["heartbeat", "-m", "m1"]);
     assert_eq!(out.status.code(), Some(2), "stderr: {}", stderr(&out));
-    for lab in FOUR {
+    for lab in FIVE {
         assert!(
             stderr(&out).contains(lab),
             "{lab} missing: {}",
             stderr(&out)
         );
     }
-    // Codex left the loop (claude-138): its name is refused the same way.
-    let out = s.run_in(&s.repo, "codex", &["heartbeat", "-m", "m1"]);
-    assert_eq!(out.status.code(), Some(2), "stderr: {}", stderr(&out));
 
     let mut after = Vec::new();
     files_under(&s.repo, &mut after);
@@ -179,11 +176,11 @@ fn the_no_identity_hints_list_the_registered_labs() {
             HEARTBEAT_UNATTRIBUTED_WARNING,
         ),
     ] {
-        for lab in FOUR {
+        for lab in FIVE {
             assert!(text.contains(lab), "{name} omits {lab}");
         }
         assert!(
-            text.contains(&format!("export UOR_LAB=<{}>", FOUR.join("|"))),
+            text.contains(&format!("export UOR_LAB=<{}>", FIVE.join("|"))),
             "{name} must name exactly the registered labs: {text}"
         );
     }

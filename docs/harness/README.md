@@ -349,7 +349,7 @@ uor-harness loop copyright [--zip <path>]
   - `antigravity`: `~/.gemini/config/plugins/uor-r4-loop/plugin.json`, `~/.gemini/config/plugins/uor-r4-loop/hooks.json`, `~/.gemini/config/skills/<6 skills>/SKILL.md`
   - `deepseek`: `~/.dsh/hooks.json`, `~/.dsh/profiles/headless/cordis.patch.yml`, `~/.dsh/skills/<6 skills>/SKILL.md`, and `local/deepseek/headless-overlay.yml`
   Inside the repository it writes only under gitignored `local/` (`local/deepseek/headless-overlay.yml` and `local/loop/install-backups/`). Differing existing files are refused unless `--replace` is given, which backs them up to `local/loop/install-backups/` first.
-- `loop onboard --client <C>` prints `PASS`, `FAIL`, `REFUSED` or `N/A` for `rules`, `skills`, `hooks`, `canary` (evaluated in-process on `loop guard`), `identity` and `binary`, followed by `lane:` and `pickup:`. `--write-receipt` writes `docs/harness/onboarding/<client>.json`, and `--check-receipts` verifies the committed receipt of every lab in `docs/harness/labs.json` and re-runs each one's in-process canary write refusal check (a lab that has left keeps its adapter, and its receipt stays as unchecked history: codex, 26 Oct 2026).
+- `loop onboard --client <C>` prints `PASS`, `FAIL`, `REFUSED` or `N/A` for `rules`, `skills`, `hooks`, `canary` (evaluated in-process on `loop guard`), `identity` and `binary`, followed by `lane:` and `pickup:`. `--write-receipt` writes `docs/harness/onboarding/<client>.json`, and `--check-receipts` verifies the committed receipt of every lab in `docs/harness/labs.json` and re-runs each one's in-process canary write refusal check.
 - `loop copyright` compares tracked repository markdown and text files against the owner's private Loop Kit archive (`--zip <path>` or `~/Downloads/LoopKit*.zip`) using 8-word windows in memory. It runs on the laptop only and never stores kit text or hashes in the repository.
 
 ## Where it sits against what already exists
@@ -412,7 +412,7 @@ the tool fails loudly rather than guessing.
 
 ## Working in a multi-lab project
 
-Three labs work this repository, plus this one. Each runs its own copy of the CLI, and **nothing here is a
+Four other labs work this repository, plus this one. Each runs its own copy of the CLI, and **nothing here is a
 socket or a daemon** — GitHub is the bus and `main` is the truth. What the harness adds is the
 part GitHub alone does not give: a committed record of who holds what, and what each lab is
 doing between merges.
@@ -520,7 +520,7 @@ why it is now one file per lab per month. `multilab migrate-ledger` moves any ol
 receipts across without losing a line.
 
 **Why claims moved into the committed tree.** They used to live in a gitignored
-`.harness/claims.json`, which is right for one checkout and useless for four: a claim nobody else
+`.harness/claims.json`, which is right for one checkout and useless across concurrent labs: a claim nobody else
 can read cannot prevent the collision it exists to prevent. **The shared tier is read through git**
 — `git show origin/main:docs/harness/claims.json` — and not from the shared checkout's working copy:
 that checkout is frozen by R10 and falls behind, and reading it reported a released claim as held

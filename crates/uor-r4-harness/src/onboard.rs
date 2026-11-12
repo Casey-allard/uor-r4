@@ -479,11 +479,9 @@ mod tests {
             .find(|f| f.name == "identity")
             .expect("identity");
         assert_eq!(identity.level, Level::Fail);
-        for lab in ["antigravity", "claude", "deepseek", "kimi"] {
+        for lab in ["antigravity", "claude", "codex", "deepseek", "kimi"] {
             assert!(identity.detail.contains(lab), "{lab}: {}", identity.detail);
         }
-        // Codex left the loop (claude-138), so the roster in the refusal no longer names it.
-        assert!(!identity.detail.contains("codex"), "{}", identity.detail);
         assert!(!r.ready(), "an unregistered lab is not ready to work");
     }
 

@@ -12,7 +12,7 @@ scope: [PLAN.md, docs/roadmap/items/*.md, conformance/stack/**, conformance/gene
 
 ## Why it matters
 
-Four labs from four vendors work on UOR-R4 at once, with nobody watching each step. There were five until Codex left on 26 Oct 2026; see `docs/harness/labs.json`. Records that drifted out of date have cost the project more than any other failure.
+Five labs from five vendors work on UOR-R4 at once, with nobody watching each step. Codex left on 26 Oct 2026 and was re-registered on 11 Nov 2026; see `docs/harness/labs.json`. Records that drifted out of date have cost the project more than any other failure.
 
 The loop gives every unit of work:
 - a written order with a clear scope;
@@ -28,7 +28,7 @@ It also renders the shared status pages from committed inputs, so nobody edits t
 - So are `docs/harness/labs.json`, `gates.json`, the rendered STATE and HANDOFF, and the policy job.
 - Items carry `scope:` and "Cancel if".
 - Each build-plan PR's planted fault is held by a test that passes on `main`. Row 5's "one fixture per rule" is shown by test names.
-- The four labs each have a committed onboarding receipt and a merged, verified loop unit.
+- The five labs each have a committed onboarding receipt and a merged, verified loop unit.
 
 See `docs/loop/tasks/infra-loop-harness/claude-139/REPORT.md`.
 
@@ -38,7 +38,7 @@ The policy gate stays advisory on GitHub, because there is no org admin to add a
 
 ## Done when
 
-Every PR in the build plan on [the loop page](../../loop/README.md#build-plan) is merged, each with its planted fault turning its gate red. The four labs (Kimi, Claude, DeepSeek, Antigravity) are onboarded, each with a committed onboarding receipt. Each lab has completed one loop task end to end: claim, probe, work, gates, report, review by another vendor, queue, and verify on fresh `main`.
+Every PR in the build plan on [the loop page](../../loop/README.md#build-plan) is merged, each with its planted fault turning its gate red. The five labs (Kimi, Claude, Codex, DeepSeek, Antigravity) are onboarded, each with a committed onboarding receipt. Each lab has completed one loop task end to end: claim, probe, work, gates, report, review by its own fresh-context reviewer or another vendor's (D66), queue, and verify on fresh `main`.
 
 ## How to start
 

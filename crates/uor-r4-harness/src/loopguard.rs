@@ -141,7 +141,7 @@ pub fn check_client(client: &str) -> Result<String, String> {
 pub fn client_lane(client: &str) -> &'static str {
     match client {
         "claude" => "loop architecture, core gates and setup reviews (D52, D59)",
-        "codex" => "item validator, gates runner, policy check and review records (PRs 2, 4, 5, 6)",
+        "codex" => "builder and reviewer; current work from PLAN.md",
         "kimi" => "PM, rendered views, notes migration and render refresh (PRs 3, 8, 10)",
         "antigravity" => "client adapters: loop guard, install, onboard and copyright (PR 9)",
         "deepseek" => {
@@ -4305,8 +4305,8 @@ pub fn write_onboarding_receipt(
 /// Verify the committed onboarding receipt `docs/harness/onboarding/<lab>.json` of every lab in
 /// `docs/harness/labs.json`, and re-run each one's live canary write refusal check.
 ///
-/// The registry, not [`CLIENTS`], says which labs must hold a receipt. A lab that has left keeps its
-/// adapter, and its committed receipt stays as unchecked history (codex, 26 Oct 2026, claude-138).
+/// The registry, not [`CLIENTS`], says which labs must hold a receipt. A lab that has left keeps
+/// its adapter and committed receipt as history, but its receipt is unchecked until it returns.
 /// A registered lab with no client adapter is refused.
 pub fn check_all_receipts(repo: &Path) -> Result<Vec<String>, String> {
     let labs = crate::labs::load_labs(repo)?;
