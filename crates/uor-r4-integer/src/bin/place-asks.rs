@@ -7,7 +7,13 @@
 //! place-asks ablate --tokens TRAIN/tokens.u16 --kit train-places.json \
 //!                   --held PANEL/tokens.u16 --held-kit panel-places.json [--held .. --held-kit ..] \
 //!                   [--slots 1,2,3|none] [--question-last N] [--open-reply-start 0|1]
+//! place-asks repeat --tokens TRAIN/tokens.u16 --kit train-places.json --asks asks.json --out with-pairs.json
 //! ```
+//!
+//! `repeat` (claude-364) counts the lead-in pairs on the tokens a written table was fitted on:
+//! the pairs of neighbouring tokens in a user turn after which the rest of the turn is the
+//! reply. It prints each pair it counted at least four times and writes a copy of the table
+//! with the kept pairs; the table it read is left as it is.
 //!
 //! `--open-reply-start 1` (claude-362) sets the pair of the model marker's last two tokens open
 //! in the fitted table, before the table is counted or written, and prints what the pair was: a
@@ -31,7 +37,7 @@ use std::process::ExitCode;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use uor_r4_integer::fbs_snapshot::PlaceMarks;
-use uor_r4_integer::place_asks::{census, fit, fit_cut, AsksIndex, Cut, PlaceAsks, ASKS_FRAME};
+use uor_r4_integer::place_asks::{census, fit, fit_cut, fit_repeat, AsksIndex, Cut, PlaceAsks, ASKS_FRAME};
 
 const HEADER: usize = 64;
 
@@ -168,7 +174,7 @@ fn open_start(asks: &mut PlaceAsks, open: bool) -> Result<(), String> {
 }
 
 fn run(args: &[String]) -> Result<(), String> {
-    let mode = args.first().map(String::as_str).ok_or("usage: place-asks fit|census|ablate ...")?;
+    let mode = args.first().map(String::as_str).ok_or("usage: place-asks fit|census|ablate|repeat ...")?;
     let open = open_reply_start(args)?;
     let (tokens, vocab, kit) = split(&flag(args, "--tokens")?, &flag(args, "--kit")?)?;
     match mode {
@@ -246,7 +252,38 @@ fn run(args: &[String]) -> Result<(), String> {
                 println!("{line}");
             }
         }
-        other => return Err(format!("unknown mode {other}: fit, census or ablate")),
+        "repeat" => {
+            if open {
+                return Err("repeat reads a written table: --open-reply-start 1 is for fit or ablate".to_owned());
+            }
+            let out = flag(args, "--out")?;
+            if out.exists() {
+                return Err(format!("{}: exists; a table is never written over", out.display()));
+            }
+            let mut asks: PlaceAsks = read_json(&flag(args, "--asks")?)?;
+            if asks.marks != kit.marks || asks.vocab != vocab {
+                return Err("the asks were fitted with other marks or another vocabulary than this split's".to_owned());
+            }
+            // The pairs are counted on the tokens the table was fitted on, or not at all.
+            if asks.tokens_sha256 != kit.tokens_sha256 {
+                return Err(format!("the asks were fitted on tokens {} and --tokens holds {}", asks.tokens_sha256, kit.tokens_sha256));
+            }
+            if !asks.repeat.is_empty() || !asks.repeat3.is_empty() {
+                return Err(format!("the asks already hold {} lead-in pairs and {} triples", asks.repeat.len(), asks.repeat3.len()));
+            }
+            let (pairs, triples, lines) = fit_repeat(&tokens, &kit.marks, vocab)?;
+            for line in &lines {
+                println!("{line}");
+            }
+            asks.repeat = pairs;
+            asks.repeat3 = triples;
+            AsksIndex::new(&asks)?;
+            let text = serde_json::to_string(&asks).map_err(|e| e.to_string())?;
+            let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&out).map_err(|e| format!("{}: {e}; a table is never written over", out.display()))?;
+            file.write_all(text.as_bytes()).map_err(|e| format!("{}: {e}", out.display()))?;
+            println!("asks-repeat wrote {} pairs={} triples={} fitted_on={}", out.display(), asks.repeat.len(), asks.repeat3.len(), asks.tokens_sha256);
+        }
+        other => return Err(format!("unknown mode {other}: fit, census, ablate or repeat")),
     }
     Ok(())
 }

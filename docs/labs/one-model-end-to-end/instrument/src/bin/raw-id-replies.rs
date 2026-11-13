@@ -1823,6 +1823,8 @@ mod tests {
             asking_floor: 5,
             not_told: vec![41, 42, PLACE_EOS],
             forms: vec![vec![41, 42, PLACE_EOS]],
+            repeat: Vec::new(),
+            repeat3: Vec::new(),
         };
         let table_bytes = serde_json::to_vec(&asks).expect("the asks");
         let table = file("asks.json", &table_bytes);

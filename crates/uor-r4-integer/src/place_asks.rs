@@ -89,6 +89,13 @@ const LIM: i32 = 16_384;
 const OPEN_MIN: u32 = 3;
 /// The margins the fit chooses among, in [`lg`] units (16 is one bit).
 const MARGINS: [i32; 10] = [0, 8, 16, 24, 32, 48, 64, 96, 128, 192];
+/// A lead-in pair is kept when at least this many replies are the rest of their turn after it.
+const REPEAT_MIN: u32 = 16;
+/// A kept lead-in pair is answered so in at least `REPEAT_KEEP.0` of every `REPEAT_KEEP.1` turns
+/// that hold it.
+const REPEAT_KEEP: (u64, u64) = (7, 8);
+/// The fit's account names each pair counted at least this often, kept or not.
+const REPEAT_SHOWN: u32 = 4;
 
 /// A multiply-and-rotate hasher for the packed integer keys of the count tables.
 #[derive(Clone, Copy, Default)]
@@ -144,6 +151,16 @@ fn key2(j: usize, c: u32) -> u64 {
     ((j as u64) << 16) | u64::from(c)
 }
 
+/// The key of two neighbouring tokens, each under a vocabulary that fits the keys.
+fn pair_key(before: u32, token: u32) -> u64 {
+    (u64::from(before) << 16) | u64::from(token)
+}
+
+/// The key of three neighbouring tokens, each under a vocabulary that fits the keys.
+fn triple_key(first: u32, before: u32, token: u32) -> u64 {
+    (u64::from(first) << 32) | pair_key(before, token)
+}
+
 fn key3(q: u32, j: usize, c: u32) -> u64 {
     (u64::from(q) << 24) | key2(j, c)
 }
@@ -185,6 +202,16 @@ pub struct PlaceAsks {
     pub not_told: Vec<u32>,
     /// Every form the fitted split gives that reply in, the stored one first.
     pub forms: Vec<Vec<u32>>,
+    /// `[token before, token]`: a pair after which, in the turn being answered, the rest of the
+    /// turn is the reply asked for (claude-364), ascending. A table fitted before that holds
+    /// none, and a table that holds none is written without the list.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub repeat: Vec<[u32; 2]>,
+    /// `[token two before, token before, token]`: three tokens that lead in a phrase to repeat
+    /// where the pair they end on does not (claude-364's addendum), ascending. Absent, like
+    /// `repeat`, from a table that holds none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub repeat3: Vec<[u32; 3]>,
 }
 
 impl PlaceAsks {
@@ -219,6 +246,9 @@ pub enum Asked {
     Place(usize, usize),
     /// The question asks for a stored fact and no place holds it.
     NotTold,
+    /// The turn asks to have its own rest repeated (claude-364): that rest, as the positions
+    /// of its first token and of the turn content's end.
+    Repeat(usize, usize),
     Nothing,
 }
 
@@ -238,6 +268,10 @@ pub struct AsksIndex {
     asking_prior: i32,
     asking_floor: i32,
     not_told: Vec<u32>,
+    /// The keys of the lead-in pairs, ascending.
+    repeat: Vec<u64>,
+    /// The kept lead-in triples as [`triple_key`]s, ascending.
+    repeat3: Vec<u64>,
     /// What of a frame and a question the read uses: all of both but in a census's cut.
     cut: Cut,
 }
@@ -317,6 +351,24 @@ impl AsksIndex {
         if asks.not_told.last().is_some_and(|&t| t != asks.marks.eos) {
             return Err("the asks' stored reply does not end at the end mark".to_owned());
         }
+        let mut repeat = Vec::with_capacity(asks.repeat.len());
+        for &[before, token] in &asks.repeat {
+            if before >= vocab || token >= vocab {
+                return Err(format!("the asks name the lead-in pair {before} {token} past a vocabulary of {vocab}"));
+            }
+            repeat.push(pair_key(before, token));
+        }
+        repeat.sort_unstable();
+        repeat.dedup();
+        let mut repeat3 = Vec::with_capacity(asks.repeat3.len());
+        for &[first, before, token] in &asks.repeat3 {
+            if first >= vocab || before >= vocab || token >= vocab {
+                return Err(format!("the asks name the lead-in triple {first} {before} {token} past a vocabulary of {vocab}"));
+            }
+            repeat3.push(triple_key(first, before, token));
+        }
+        repeat3.sort_unstable();
+        repeat3.dedup();
         let mut unseen = [[0i32; 2]; ASKS_FRAME];
         unseen.copy_from_slice(&asks.unseen);
         Ok(Self {
@@ -333,6 +385,8 @@ impl AsksIndex {
             asking_prior: asks.asking_prior,
             asking_floor: asks.asking_floor,
             not_told: asks.not_told.clone(),
+            repeat,
+            repeat3,
             cut: Cut::ALL,
         })
     }
@@ -421,8 +475,32 @@ impl AsksIndex {
         question(tokens, asked, self.cut)
     }
 
-    /// What the question in `asked` finds among the finished user turns `prior`.
+    /// Where the phrase starts that the turn in `asked` asks to have repeated (claude-364): the
+    /// token after the first lead-in in the turn, when a token of the turn stands there. A
+    /// lead-in is a kept pair or a kept triple, and the first is the one that ends first.
+    /// `None` with no lead-in in the turn, with nothing after the first one, or with tables
+    /// that hold none.
+    pub fn repeated(&self, tokens: &[u32], asked: &Range<usize>) -> Option<usize> {
+        if self.repeat.is_empty() && self.repeat3.is_empty() {
+            return None;
+        }
+        let turn = tokens.get(asked.clone())?;
+        // A value past the vocabulary is no token, and its key would be another lead-in's.
+        let token = |w: &[u32]| w.iter().all(|&t| t < self.start);
+        let pair = |w: &[u32]| token(w) && self.repeat.binary_search(&pair_key(w[0], w[1])).is_ok();
+        let triple = |w: &[u32]| token(w) && self.repeat3.binary_search(&triple_key(w[0], w[1], w[2])).is_ok();
+        // `last` is the lead-in's last token: a pair starts one before it, a triple two.
+        let last = (1..turn.len()).find(|&last| pair(&turn[last - 1..=last]) || (last >= 2 && triple(&turn[last - 2..=last])))?;
+        Some(asked.start + last + 1).filter(|&start| start < asked.end)
+    }
+
+    /// What the question in `asked` finds among the finished user turns `prior`. A turn that asks
+    /// to have its own rest repeated finds that rest, before any place is looked for: the answer
+    /// is in the turn itself.
     pub fn find(&self, tokens: &[u32], prior: &[Range<usize>], asked: &Range<usize>) -> Asked {
+        if let Some(start) = self.repeated(tokens, asked) {
+            return Asked::Repeat(start, asked.end);
+        }
         let q = self.asked(tokens, asked);
         let mut scored: Vec<(i32, (usize, usize))> = Vec::new();
         self.candidates(tokens, prior, &q, |s, end, score| scored.push((score, (s, end))));
@@ -514,12 +592,16 @@ pub struct AskCensus {
     /// Replies with a place, by the row before their value: a fitted pair opens it, a fitted
     /// pair does not, no fitted pair; and the replies where a fitted pair opens an earlier row.
     pub opens: [usize; 4],
+    /// Replies whose turn the find answers with a repeat (claude-364): among the replies with a
+    /// place, those that say a fact was not told, and every other. Each is also counted under
+    /// "nothing" above: a repeat sets no place and raises no "not told".
+    pub repeat: [usize; 3],
 }
 
 impl AskCensus {
     pub fn lines(&self, split: &str) -> Vec<String> {
         let (r, a, g) = (self.recall, self.abstain, self.general);
-        vec![
+        let mut lines = vec![
             format!("asks-census split={split} recall={} true_place={} wrong_place={} not_told={} nothing={}", r.iter().sum::<usize>(), r[0], r[1], r[2], r[3]),
             format!("asks-census split={split} abstain={} place_set={} not_told={} nothing={}", a.iter().sum::<usize>(), a[0], a[1], a[2]),
             format!("asks-census split={split} general={} place_set={} not_told={} nothing={}", g.iter().sum::<usize>(), g[0], g[1], g[2]),
@@ -527,7 +609,12 @@ impl AskCensus {
                 "asks-census split={split} value_row_open={} value_row_not_open={} value_row_no_pair={} an_earlier_row_open={}",
                 self.opens[0], self.opens[1], self.opens[2], self.opens[3]
             ),
-        ]
+        ];
+        // Tables with no lead-in pair print the lines they always did.
+        if self.repeat != [0; 3] {
+            lines.push(format!("asks-census split={split} repeat recall={} abstain={} general={}", self.repeat[0], self.repeat[1], self.repeat[2]));
+        }
+        lines
     }
 }
 
@@ -560,9 +647,10 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
                     Asked::Place(s, _) if s == place => 0,
                     Asked::Place(..) => 1,
                     Asked::NotTold => 2,
-                    Asked::Nothing => 3,
+                    Asked::Nothing | Asked::Repeat(..) => 3,
                 };
                 out.recall[slot] += 1;
+                out.repeat[0] += usize::from(matches!(found, Asked::Repeat(..)));
                 if slot != 0 && missed.len() < show {
                     let stated = case.prior.iter().find(|turn| turn.contains(&place)).cloned().unwrap_or(place..place);
                     let at = index.score(tokens, stated.start, stated.end, place, &index.asked(tokens, &case.asked));
@@ -581,9 +669,11 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
                 let slot = match found {
                     Asked::Place(..) => 0,
                     Asked::NotTold => 1,
-                    Asked::Nothing => 2,
+                    Asked::Nothing | Asked::Repeat(..) => 2,
                 };
-                if reply_form(tokens, case.reply, marks).is_some_and(|form| forms.contains(form)) {
+                let says_not_told = reply_form(tokens, case.reply, marks).is_some_and(|form| forms.contains(form));
+                out.repeat[if says_not_told { 1 } else { 2 }] += usize::from(matches!(found, Asked::Repeat(..)));
+                if says_not_told {
                     out.abstain[slot] += 1;
                     // A place set where the reply says the fact was never told: the turn it
                     // was taken from, in the same line form as a missed place.
@@ -605,6 +695,89 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
         }
     }
     (out, missed)
+}
+
+/// Count the lead-ins of a split (claude-364): the pairs and the triples of neighbouring tokens
+/// in a user turn after which the rest of the turn is the reply. Each is counted once in each
+/// turn that holds it with a token after it, at its first place there: `turns` such turns, and
+/// `replies` of them answered with exactly the rest of the turn from that place and the end
+/// mark. A pair is kept when `replies` is at least [`REPEAT_MIN`] and at least
+/// [`REPEAT_KEEP`]`.0` in every `REPEAT_KEEP.1` of `turns`; a triple by the same two counts
+/// when the pair it ends on is not kept. Returns the kept pairs and the kept triples, each
+/// ascending, and the count's own account, line by line.
+#[allow(clippy::type_complexity)]
+pub fn fit_repeat(tokens: &[u32], marks: &PlaceMarks, vocab: u32) -> Result<(Vec<[u32; 2]>, Vec<[u32; 3]>, Vec<String>), String> {
+    if !fits_the_keys(vocab) {
+        return Err(format!("a vocabulary of {vocab} does not fit the asks' keys"));
+    }
+    if let Some(&t) = tokens.iter().find(|&&t| t >= vocab) {
+        return Err(format!("token {t} is past a vocabulary of {vocab}"));
+    }
+    let cases = ask_cases(tokens, marks);
+    // For each pair and each triple: the turns that hold it with a token after it, and those
+    // answered so.
+    let mut counts: Map<u64, [u32; 2]> = Map::default();
+    let mut counts3: Map<u64, [u32; 2]> = Map::default();
+    let mut met: HashSet<u64> = HashSet::new();
+    let mut met3: HashSet<u64> = HashSet::new();
+    for case in &cases {
+        let turn = &tokens[case.asked.clone()];
+        // The reply without its end mark; a reply with none in reach is no repeat of anything.
+        let said = reply_form(tokens, case.reply, marks).map(|form| &form[..form.len() - 1]);
+        met.clear();
+        met3.clear();
+        for at in 0..turn.len().saturating_sub(2) {
+            let rest = said == Some(&turn[at + 2..]);
+            if met.insert(pair_key(turn[at], turn[at + 1])) {
+                let n = counts.entry(pair_key(turn[at], turn[at + 1])).or_default();
+                bump(&mut n[0]);
+                if rest {
+                    bump(&mut n[1]);
+                }
+            }
+            // The triple that ends on this pair, when the turn holds a token before it.
+            if at >= 1 && met3.insert(triple_key(turn[at - 1], turn[at], turn[at + 1])) {
+                let n = counts3.entry(triple_key(turn[at - 1], turn[at], turn[at + 1])).or_default();
+                bump(&mut n[0]);
+                if rest {
+                    bump(&mut n[1]);
+                }
+            }
+        }
+    }
+    let keep = |n: &[u32; 2]| n[1] >= REPEAT_MIN && u64::from(n[1]) * REPEAT_KEEP.1 >= u64::from(n[0]) * REPEAT_KEEP.0;
+    let mut shown: Vec<(u64, [u32; 2])> = counts.iter().filter(|(_, n)| n[1] >= REPEAT_SHOWN).map(|(&key, &n)| (key, n)).collect();
+    shown.sort_unstable();
+    let kept: Vec<[u32; 2]> = shown.iter().filter(|(_, n)| keep(n)).map(|&(key, _)| [(key >> 16) as u32, (key & 0xffff) as u32]).collect();
+    let mut lines = vec![format!("asks-repeat replies={} pairs_counted={} kept={}", cases.len(), counts.len(), kept.len())];
+    for (key, n) in &shown {
+        lines.push(format!(
+            "asks-repeat pair before={} token={} turns={} replies_the_rest={} kept={}",
+            key >> 16,
+            key & 0xffff,
+            n[0],
+            n[1],
+            u8::from(keep(n))
+        ));
+    }
+    // A triple is for the table only where the pair it ends on is not kept.
+    let pair_kept = |key: u64| counts.get(&(key & 0xffff_ffff)).is_some_and(|n| keep(n));
+    let mut shown3: Vec<(u64, [u32; 2])> = counts3.iter().filter(|(&key, n)| n[1] >= REPEAT_SHOWN && !pair_kept(key)).map(|(&key, &n)| (key, n)).collect();
+    shown3.sort_unstable();
+    let kept3: Vec<[u32; 3]> = shown3.iter().filter(|(_, n)| keep(n)).map(|&(key, _)| [(key >> 32) as u32, ((key >> 16) & 0xffff) as u32, (key & 0xffff) as u32]).collect();
+    lines.push(format!("asks-repeat triples_counted={} kept={}", counts3.len(), kept3.len()));
+    for (key, n) in &shown3 {
+        lines.push(format!(
+            "asks-repeat triple first={} before={} token={} turns={} replies_the_rest={} kept={}",
+            key >> 32,
+            (key >> 16) & 0xffff,
+            key & 0xffff,
+            n[0],
+            n[1],
+            u8::from(keep(n))
+        ));
+    }
+    Ok((kept, kept3, lines))
 }
 
 /// Fit the asks on a split by counting: `places` are its true places, `[reply start, place, ..]`
@@ -807,6 +980,8 @@ pub fn fit_cut(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4
         asking_floor: 0,
         not_told: kept.first().cloned().unwrap_or_default(),
         forms: kept,
+        repeat: Vec::new(),
+        repeat3: Vec::new(),
     };
 
     // First, which questions ask for a stored fact: the asking floor, from every reply's
@@ -1157,5 +1332,226 @@ mod tests {
         assert!(one.open_reply_start().is_err());
         one.marks.assistant = asks.marks.assistant.clone();
         assert_eq!(one, asks);
+    }
+
+    // claude-364: the lead-in pair of the tests, "say" and ":".
+    const SAY: u32 = 50;
+    const COLON: u32 = 51;
+
+    /// A table written by hand: a question that holds `WHAT` asks for a stored fact and finds
+    /// the position after `IS` in an earlier user turn (a pair weight of 100 over a floor of 50).
+    fn hand_table(repeat: Vec<[u32; 2]>) -> PlaceAsks {
+        hand_table3(repeat, Vec::new())
+    }
+
+    /// [`hand_table`] with the lead-in triples `repeat3` beside its pairs.
+    fn hand_table3(repeat: Vec<[u32; 2]>, repeat3: Vec<[u32; 3]>) -> PlaceAsks {
+        PlaceAsks {
+            tokens_sha256: "test".to_owned(),
+            marks: marks(),
+            vocab: VOCAB,
+            link: vec![IS],
+            shared: Vec::new(),
+            unseen: vec![[0, 0]; ASKS_FRAME],
+            pairs: vec![[WHAT as i32, 1, IS as i32, 100]],
+            floor: 50,
+            floor_other: 50,
+            margin: 0,
+            opens: Vec::new(),
+            asking: vec![[WHAT as i32, 10]],
+            asking_prior: 0,
+            asking_floor: 5,
+            not_told: vec![NOT, TOLD, EOS],
+            forms: vec![vec![NOT, TOLD, EOS]],
+            repeat,
+            repeat3,
+        }
+    }
+
+    /// What the last reply's turn finds in `x` with the lead-in pairs `repeat`.
+    fn found(x: &[u32], repeat: Vec<[u32; 2]>) -> (Asked, AskCase) {
+        let index = AsksIndex::new(&hand_table(repeat)).expect("the index");
+        let case = ask_cases(x, &marks()).pop().expect("a reply");
+        (index.find(x, &case.prior, &case.asked), case)
+    }
+
+    #[test]
+    fn a_turn_with_a_lead_in_pair_finds_its_own_rest_before_any_place() {
+        // "<u> says K is V <sep> <m> ok </s> <sep> <u> what K say : A B <sep> <m>"
+        let x = [BOS, USER, SAYS, 20, IS, 30, SEP, MODEL, OK, EOS, SEP, USER, WHAT, 20, SAY, COLON, 40, 41, SEP, MODEL];
+        let (got, case) = found(&x, vec![[SAY, COLON]]);
+        assert_eq!(case.asked, 12..18);
+        assert_eq!(got, Asked::Repeat(16, 18));
+        // With no pair the same turn asks for the stored value, and finds it.
+        assert_eq!(found(&x, Vec::new()).0, Asked::Place(5, 6));
+        // Another pair, and a pair only an earlier turn holds, change nothing.
+        assert_eq!(found(&x, vec![[COLON, SAY]]).0, Asked::Place(5, 6));
+        assert_eq!(found(&x, vec![[SAYS, 20]]).0, Asked::Place(5, 6));
+        // The first pair in the turn is the lead-in: the phrase may hold the pair again.
+        let twice = [BOS, USER, SAY, COLON, 40, SAY, COLON, 41, SEP, MODEL];
+        assert_eq!(found(&twice, vec![[SAY, COLON]]).0, Asked::Repeat(4, 8));
+        // A pair that ends the turn leads in nothing.
+        let bare = [BOS, USER, WHAT, 20, SAY, COLON, SEP, MODEL];
+        assert_eq!(found(&bare, vec![[SAY, COLON]]).0, Asked::NotTold);
+    }
+
+    #[test]
+    fn a_table_with_no_lead_in_pair_is_written_and_read_as_before() {
+        let plain = hand_table(Vec::new());
+        let text = written(&plain);
+        assert!(!text.contains("repeat"), "{text}");
+        assert_eq!(serde_json::from_str::<PlaceAsks>(&text).expect("read"), plain);
+        let with = hand_table(vec![[SAY, COLON]]);
+        let text = written(&with);
+        assert!(text.ends_with(",\"repeat\":[[50,51]]}"), "{text}");
+        assert_eq!(serde_json::from_str::<PlaceAsks>(&text).expect("read"), with);
+        // A pair past the vocabulary is no pair of tokens.
+        assert!(AsksIndex::new(&hand_table(vec![[SAY, VOCAB]])).is_err());
+        assert!(AsksIndex::new(&hand_table(vec![[VOCAB, COLON]])).is_err());
+    }
+
+    /// `repeats` documents whose user turn is "say : A B" answered "A B", then `others` whose
+    /// turn holds the same pair and is answered "ok".
+    fn lead_in_corpus(repeats: usize, others: usize) -> Vec<u32> {
+        let mut x = Vec::new();
+        for d in 0..repeats + others {
+            let (a, b) = (30 + (d % 7) as u32, 40 + (d % 3) as u32);
+            x.extend([BOS, USER, WHAT, SAY, COLON, a, b, SEP, MODEL]);
+            if d < repeats {
+                x.extend([a, b, EOS, SEP]);
+            } else {
+                x.extend([OK, EOS, SEP]);
+            }
+        }
+        x
+    }
+
+    #[test]
+    fn the_lead_in_count_keeps_a_pair_by_both_of_its_counts() {
+        let kept = |repeats, others| fit_repeat(&lead_in_corpus(repeats, others), &marks(), VOCAB).expect("the count");
+        // 16 replies that are the rest of their turn, of 18 turns with the pair: 7 in 8 or more.
+        let (pairs, triples, lines) = kept(16, 2);
+        assert_eq!(pairs, vec![[SAY, COLON]], "{lines:#?}");
+        // A triple that ends on a kept pair is not written beside it.
+        assert_eq!(triples, Vec::<[u32; 3]>::new(), "{lines:#?}");
+        // "what say", "say :" and ": A" for each of seven A.
+        assert_eq!(lines[0], "asks-repeat replies=18 pairs_counted=9 kept=1");
+        assert!(lines.contains(&"asks-repeat pair before=50 token=51 turns=18 replies_the_rest=16 kept=1".to_owned()), "{lines:#?}");
+        // One reply fewer is under the least count.
+        assert_eq!(kept(15, 0).0, Vec::<[u32; 2]>::new());
+        // 16 of 19 is under 7 in 8.
+        let (pairs, triples, lines) = kept(16, 3);
+        assert_eq!(pairs, Vec::<[u32; 2]>::new());
+        // Every turn holds the same token before the pair, so the triple has the pair's counts.
+        assert_eq!(triples, Vec::<[u32; 3]>::new());
+        assert!(lines.contains(&"asks-repeat triple first=12 before=50 token=51 turns=19 replies_the_rest=16 kept=0".to_owned()), "{lines:#?}");
+        assert!(lines.contains(&"asks-repeat pair before=50 token=51 turns=19 replies_the_rest=16 kept=0".to_owned()), "{lines:#?}");
+        // The pair before it, "what say", is never followed by the reply alone: ": A B" is not it.
+        assert!(!lines.iter().any(|line| line.contains("before=12 token=50")), "{lines:#?}");
+        // The kept pair, in a table, finds the phrase in a turn the count never saw.
+        let x = [BOS, USER, 16, SAY, COLON, 44, 45, 46, SEP, MODEL];
+        assert_eq!(found(&x, kept(16, 2).0).0, Asked::Repeat(5, 8));
+    }
+
+    /// What the last reply's turn finds in `x` with the lead-in pairs and triples given.
+    fn found3(x: &[u32], repeat: Vec<[u32; 2]>, repeat3: Vec<[u32; 3]>) -> Asked {
+        let index = AsksIndex::new(&hand_table3(repeat, repeat3)).expect("the index");
+        let case = ask_cases(x, &marks()).pop().expect("a reply");
+        index.find(x, &case.prior, &case.asked)
+    }
+
+    #[test]
+    fn a_kept_triple_finds_the_rest_where_its_pair_is_not_kept() {
+        let triple = || vec![[WHAT, SAY, COLON]];
+        // "<u> what say : A B <sep> <m>": the triple leads in the two tokens after it.
+        let x = [BOS, USER, WHAT, SAY, COLON, 40, 41, SEP, MODEL];
+        assert_eq!(found3(&x, Vec::new(), triple()), Asked::Repeat(5, 7));
+        // The same pair after another token is no lead-in: only the triple is kept.
+        let other = [BOS, USER, 16, SAY, COLON, 40, 41, SEP, MODEL];
+        assert!(!matches!(found3(&other, Vec::new(), triple()), Asked::Repeat(..)));
+        // The lead-in that ends first is the one read, pair or triple.
+        let both = [BOS, USER, WHAT, SAY, COLON, 40, 44, 45, 41, SEP, MODEL];
+        assert_eq!(found3(&both, vec![[44, 45]], triple()), Asked::Repeat(5, 9));
+        assert_eq!(found3(&both, vec![[44, 45]], Vec::new()), Asked::Repeat(8, 9));
+        let pair_first = [BOS, USER, 44, 45, 40, WHAT, SAY, COLON, 41, SEP, MODEL];
+        assert_eq!(found3(&pair_first, vec![[44, 45]], triple()), Asked::Repeat(4, 9));
+        // A triple that ends the turn leads in nothing.
+        let bare = [BOS, USER, WHAT, SAY, COLON, SEP, MODEL];
+        assert!(!matches!(found3(&bare, Vec::new(), triple()), Asked::Repeat(..)));
+        // The list is written last, only when it holds a triple, and read back the same.
+        let with = hand_table3(Vec::new(), triple());
+        let text = written(&with);
+        assert!(text.ends_with(",\"repeat3\":[[12,50,51]]}") && !text.contains("\"repeat\""), "{text}");
+        assert_eq!(serde_json::from_str::<PlaceAsks>(&text).expect("read"), with);
+        // A triple past the vocabulary is no triple of tokens.
+        assert!(AsksIndex::new(&hand_table3(Vec::new(), vec![[WHAT, SAY, VOCAB]])).is_err());
+        assert!(AsksIndex::new(&hand_table3(Vec::new(), vec![[VOCAB, SAY, COLON]])).is_err());
+    }
+
+    #[test]
+    fn a_lead_in_is_counted_once_in_a_turn_at_its_first_place() {
+        // "<u> what say : what say : A B" answered "A B": the pair and the triple stand twice
+        // in the turn, and the rest after their first place is not the reply.
+        let mut x = Vec::new();
+        for d in 0..16u32 {
+            let (a, b) = (30 + d % 7, 40 + d % 3);
+            x.extend([BOS, USER, WHAT, SAY, COLON, WHAT, SAY, COLON, a, b, SEP, MODEL, a, b, EOS, SEP]);
+        }
+        let (pairs, triples, lines) = fit_repeat(&x, &marks(), VOCAB).expect("the count");
+        assert_eq!((pairs, triples), (Vec::new(), Vec::new()), "{lines:#?}");
+        // Counted at every place, each would be answered by the rest in 16 of 32 and be named.
+        assert!(!lines.iter().any(|line| line.contains("before=50 token=51")), "{lines:#?}");
+    }
+
+    /// `repeats` documents whose user turn is "what say : A B" answered "A B", `strays` with
+    /// the same turn answered "ok", and `others` whose turn is "16 say : A B" answered "ok".
+    fn longer_corpus(repeats: usize, strays: usize, others: usize) -> Vec<u32> {
+        let mut x = Vec::new();
+        for d in 0..repeats + strays + others {
+            let (a, b) = (30 + (d % 7) as u32, 40 + (d % 3) as u32);
+            let first = if d < repeats + strays { WHAT } else { 16 };
+            x.extend([BOS, USER, first, SAY, COLON, a, b, SEP, MODEL]);
+            if d < repeats {
+                x.extend([a, b, EOS, SEP]);
+            } else {
+                x.extend([OK, EOS, SEP]);
+            }
+        }
+        x
+    }
+
+    #[test]
+    fn the_lead_in_count_keeps_a_triple_where_its_pair_fails_its_share() {
+        let kept = |repeats, strays, others| fit_repeat(&longer_corpus(repeats, strays, others), &marks(), VOCAB).expect("the count");
+        // The pair is answered by the rest in 16 of 26 turns; the triple in 16 of its 18.
+        let (pairs, triples, lines) = kept(16, 2, 8);
+        assert_eq!(pairs, Vec::<[u32; 2]>::new(), "{lines:#?}");
+        assert_eq!(triples, vec![[WHAT, SAY, COLON]], "{lines:#?}");
+        assert!(lines.contains(&"asks-repeat pair before=50 token=51 turns=26 replies_the_rest=16 kept=0".to_owned()), "{lines:#?}");
+        // "what say :", "16 say :" and "say : A" for each of seven A.
+        assert!(lines.contains(&"asks-repeat triples_counted=9 kept=1".to_owned()), "{lines:#?}");
+        assert!(lines.contains(&"asks-repeat triple first=12 before=50 token=51 turns=18 replies_the_rest=16 kept=1".to_owned()), "{lines:#?}");
+        // One reply fewer is under the least count, and 16 of 19 is under 7 in 8.
+        assert_eq!(kept(15, 0, 8).1, Vec::<[u32; 3]>::new());
+        assert_eq!(kept(16, 3, 8).1, Vec::<[u32; 3]>::new());
+        // The kept triple, in a table, finds the phrase in a turn the count never saw.
+        let x = [BOS, USER, WHAT, SAY, COLON, 44, 45, 46, SEP, MODEL];
+        assert_eq!(found3(&x, pairs, triples), Asked::Repeat(5, 8));
+    }
+
+    #[test]
+    fn the_census_counts_a_repeat_apart_and_prints_it_only_when_there_is_one() {
+        let x = [BOS, USER, 16, SAY, COLON, 44, 45, SEP, MODEL, 44, 45, EOS, SEP];
+        let count = |repeat| {
+            let table = hand_table(repeat);
+            census(&x, &marks(), &[], &AsksIndex::new(&table).expect("the index"), &table.forms, 0).0
+        };
+        let with = count(vec![[SAY, COLON]]);
+        assert_eq!((with.general, with.repeat), ([0, 0, 1], [0, 0, 1]));
+        assert_eq!(with.lines("held").len(), 5);
+        assert_eq!(with.lines("held")[4], "asks-census split=held repeat recall=0 abstain=0 general=1");
+        let without = count(Vec::new());
+        assert_eq!((without.general, without.repeat), ([0, 0, 1], [0; 3]));
+        assert_eq!(without.lines("held").len(), 4);
     }
 }

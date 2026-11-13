@@ -2910,6 +2910,10 @@ pub struct PlaceState {
     answered: bool,
     /// The stored reply being read: the index of its token the next row is to be (claude-359).
     told: Option<usize>,
+    /// The phrase being repeated (claude-364): the position of its token the next row is to
+    /// be, and the end of the turn content it stands in. At that end the row is to be the
+    /// end mark.
+    echo: Option<(usize, usize)>,
     /// The token the row read last was told to speak.
     said: Option<u32>,
 }
@@ -2974,6 +2978,11 @@ impl PlaceState {
         if let Some(i) = self.told {
             self.told = Some(i + 1).filter(|_| said == Some(token));
         }
+        // So does a repeated phrase. Past its last token the row before was told the end mark,
+        // and nothing follows that.
+        if let Some((at, end)) = self.echo {
+            self.echo = Some((at + 1, end)).filter(|_| at < end && said == Some(token));
+        }
         // The step: the row before was offered the token at the place, and this token is it.
         if let (Some(at), Some((place, end))) = (self.offer.take(), self.place) {
             if at == place && token == tokens[place] {
@@ -2990,6 +2999,7 @@ impl PlaceState {
             self.finds.clear();
             self.place = None;
             self.told = None;
+            self.echo = None;
             self.answered = false;
         }
         match self.turns.push(tokens, &image.marks) {
@@ -2997,6 +3007,7 @@ impl PlaceState {
                 self.finds.clear();
                 self.place = None;
                 self.told = None;
+                self.echo = None;
                 self.answered = false;
             }
             Some(PlaceRole::Assistant) => {
@@ -3004,6 +3015,7 @@ impl PlaceState {
                 start = true;
                 self.place = None;
                 self.told = None;
+                self.echo = None;
                 let asked = self.turns.users.split_last().filter(|_| !self.answered);
                 self.answered = true;
                 if let Some((content, prior)) = asked {
@@ -3012,6 +3024,7 @@ impl PlaceState {
                         Some((asks, _, _)) => match asks.find(tokens, prior, content) {
                             Asked::Place(pos, end) => self.place = Some((pos, end)),
                             Asked::NotTold => self.told = Some(0),
+                            Asked::Repeat(from, end) => self.echo = Some((from, end)),
                             Asked::Nothing => {}
                         },
                         None => {
@@ -3035,6 +3048,7 @@ impl PlaceState {
                     self.over = true;
                     self.place = None;
                     self.told = None;
+                    self.echo = None;
                 }
                 if t + 1 >= a && !self.over {
                     row.held = self.place.map(|(place, _)| place);
@@ -3048,9 +3062,12 @@ impl PlaceState {
                     let open = opened || fitted.unwrap_or_else(|| image.has(token, PLACE_OPEN));
                     row.offer = row.held.filter(|_| row.stepped || open);
                     if let Some((asks, speak, _)) = asks {
-                        row.speak = match self.told {
-                            Some(i) => asks.not_told().get(i).copied(),
-                            None => row.offer.filter(|_| speak).map(|place| tokens[place]),
+                        row.speak = match (self.told, self.echo) {
+                            (Some(i), _) => asks.not_told().get(i).copied(),
+                            // The phrase's next token, read from the turn being answered; the
+                            // end mark once the phrase is said.
+                            (None, Some((at, end))) => Some(if at < end { tokens[at] } else { image.marks.eos }),
+                            (None, None) => row.offer.filter(|_| speak).map(|place| tokens[place]),
                         };
                     }
                 }
@@ -3060,6 +3077,7 @@ impl PlaceState {
         // A stored reply read to its end, or left by a row that is no reply row, is over.
         if row.speak.is_none() {
             self.told = None;
+            self.echo = None;
         }
         self.offer = row.offer;
         self.said = row.speak;
@@ -5151,7 +5169,63 @@ mod place_asked_tests {
             asking_floor: 5,
             not_told: vec![17, 18, EOS],
             forms: vec![vec![17, 18, EOS]],
+            repeat: Vec::new(),
+            repeat3: Vec::new(),
         }
+    }
+
+    /// The rows of `tokens` with the lead-in pairs `repeat` in the table (claude-364).
+    fn rows_repeating(tokens: &[u32], repeat: Vec<[u32; 2]>) -> Vec<PlaceRow> {
+        let mut table = table(Vec::new());
+        table.repeat = repeat;
+        let (image, asks, mut state) = (image(), AsksIndex::new(&table).expect("the asks"), PlaceState::default());
+        (0..tokens.len()).map(|t| state.advance_asked(&tokens[..=t], &image, &asks, true)).collect()
+    }
+
+    // "<u> name is V1 . <sep> <m> ok </s> <sep> <u> what ? else ok V1 V2 <sep> <m> V1 V2 </s>": the
+    // pair "else ok" leads in the phrase "V1 V2", and the question also asks for the stored value.
+    const SAY: [u32; 23] = [BOS, USER, 9, IS, 11, DOT, SEP, MODEL, 16, EOS, SEP, USER, WHAT, ASK, 19, 16, 11, 12, SEP, MODEL, 11, 12, EOS];
+
+    #[test]
+    fn a_turn_that_asks_for_its_own_rest_is_repeated_to_the_end_mark() {
+        let said = rows_repeating(&SAY, vec![[19, 16]]);
+        // The phrase is spoken from the marker's row, then the end mark, then nothing.
+        assert_eq!(said[19..].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(11), Some(12), Some(EOS), None]);
+        // No place is set: the repeat is found before any stored value is looked for.
+        assert!(said.iter().all(|row| row.held.is_none() && row.offer.is_none()));
+        assert!(said[..19].iter().all(|row| row.speak.is_none()));
+        // The same turn with no pair in the table asks for the stored value and holds its place.
+        let plain = rows_repeating(&SAY, Vec::new());
+        assert_eq!(plain[19].held, Some(4));
+        assert_eq!(plain, rows(&SAY, true), "a table with no pair reads as it did");
+        // A pair that only the first turn holds leads in that turn's own reply (its rest is "V1 ."),
+        // which the reply "ok" leaves at once; the later turn, which does not hold the pair, is
+        // read as with no pair: the phrase is looked for in the turn being answered only.
+        let earlier = rows_repeating(&SAY, vec![[9, IS]]);
+        assert_eq!(earlier[7..11].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(11), None, None, None]);
+        assert_eq!(earlier[11..], plain[11..]);
+    }
+
+    #[test]
+    fn a_reply_that_leaves_the_phrase_is_told_nothing_more() {
+        let mut tokens = SAY.to_vec();
+        // The reply says V1, then "ok" where the phrase has V2.
+        tokens.splice(20.., [11, 16, 12, EOS]);
+        let rows = rows_repeating(&tokens, vec![[19, 16]]);
+        assert_eq!(rows[19..].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(11), Some(12), None, None, None]);
+    }
+
+    #[test]
+    fn a_phrase_is_repeated_once_and_a_new_turn_starts_none() {
+        // After the repeated phrase a new user turn asks a plain question: nothing is spoken.
+        let mut tokens = SAY.to_vec();
+        tokens.extend([SEP, USER, 19, 19, SEP, MODEL, 16, EOS]);
+        let rows = rows_repeating(&tokens, vec![[19, 16]]);
+        assert_eq!(rows[19..23].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(11), Some(12), Some(EOS), None]);
+        assert!(rows[23..].iter().all(|row| row.speak.is_none()));
+        // A pair with nothing after it in the turn starts no repeat: "else else" ends the turn.
+        let ends = rows_repeating(&tokens, vec![[19, 19]]);
+        assert!(ends[23..].iter().all(|row| row.speak.is_none()));
     }
 
     fn rows(tokens: &[u32], speak: bool) -> Vec<PlaceRow> {
