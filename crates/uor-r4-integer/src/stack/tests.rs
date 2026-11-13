@@ -8759,6 +8759,7 @@ fn place_asks(place: &super::PlaceImage, link: u32) -> crate::place_asks::PlaceA
         forms: vec![vec![41, 42, PLACE_EOS]],
         repeat: Vec::new(),
         repeat3: Vec::new(),
+        ask_floors: Vec::new(),
     }
 }
 

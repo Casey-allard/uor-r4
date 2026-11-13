@@ -212,6 +212,12 @@ pub struct PlaceAsks {
     /// `repeat`, from a table that holds none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub repeat3: Vec<[u32; 3]>,
+    /// A floor for each question form counted apart ([`fit_forms`], claude-365): the form's
+    /// distinct tokens, ascending, and its floor; the rows ascending by form. A question in a
+    /// form listed here is read with that floor, any other with `floor` or `floor_other`.
+    /// Absent, like `repeat`, from a table that holds none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ask_floors: Vec<(Vec<u32>, i32)>,
 }
 
 impl PlaceAsks {
@@ -274,6 +280,69 @@ pub struct AsksIndex {
     repeat3: Vec<u64>,
     /// What of a frame and a question the read uses: all of both but in a census's cut.
     cut: Cut,
+    /// A floor for each question form counted apart (claude-365): the table's, or a census's
+    /// own ([`AsksIndex::with_form_floors`]). `None` when the table holds none.
+    form_floors: Option<FormFloors>,
+}
+
+/// A question form is given its own floor when at least this many reply cases of the fitted
+/// corpus ask in it and have a candidate.
+pub const FORM_MIN: usize = 16;
+/// Under [`FormRule::Frequent`] a form keeps a token when at least this many reply cases'
+/// questions of the fitted corpus hold it.
+pub const FORM_TOKEN_MIN: u32 = 64;
+
+/// How a question's form is read from its distinct tokens.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FormRule {
+    /// The distinct tokens themselves.
+    Tokens,
+    /// The distinct tokens that stand in at least [`FORM_TOKEN_MIN`] questions.
+    Frequent,
+}
+
+/// A floor for each question form (claude-365): a table's (`PlaceAsks::ask_floors`), or a
+/// census's own count before any is written.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FormFloors {
+    /// Under [`FormRule::Frequent`], the tokens a form keeps, ascending; `None` keeps them all.
+    kept: Option<Vec<u32>>,
+    floors: HashMap<Vec<u32>, i32>,
+}
+
+impl FormFloors {
+    /// The form of a question of the distinct tokens `q`.
+    pub fn form(&self, q: &[u32]) -> Vec<u32> {
+        match &self.kept {
+            None => q.to_vec(),
+            Some(kept) => q.iter().copied().filter(|t| kept.binary_search(t).is_ok()).collect(),
+        }
+    }
+
+    /// The floor of the form of `q`, when that form has one.
+    pub fn floor(&self, q: &[u32]) -> Option<i32> {
+        self.floors.get(&self.form(q)).copied()
+    }
+
+    /// The floors as a table holds them (`PlaceAsks::ask_floors`), ascending by form. `None`
+    /// under [`FormRule::Frequent`]: a table holds no list of kept tokens.
+    pub fn rows(&self) -> Option<Vec<(Vec<u32>, i32)>> {
+        if self.kept.is_some() {
+            return None;
+        }
+        let mut rows: Vec<(Vec<u32>, i32)> = self.floors.iter().map(|(form, &floor)| (form.clone(), floor)).collect();
+        rows.sort_unstable();
+        Some(rows)
+    }
+
+    /// How many forms have a floor.
+    pub fn len(&self) -> usize {
+        self.floors.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.floors.is_empty()
+    }
 }
 
 /// The frame of a candidate place `s` in a turn whose content is `lo..hi`. First the token at
@@ -369,6 +438,17 @@ impl AsksIndex {
         }
         repeat3.sort_unstable();
         repeat3.dedup();
+        let mut floors = HashMap::with_capacity(asks.ask_floors.len());
+        for (form, floor) in &asks.ask_floors {
+            // A form is a question's distinct tokens, ascending: any other matches no question.
+            if form.iter().any(|&t| t >= vocab) || form.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err(format!("the asks name the question form {form:?}, which is not ascending tokens of a vocabulary of {vocab}"));
+            }
+            if floors.insert(form.clone(), *floor).is_some() {
+                return Err(format!("the asks give the question form {form:?} two floors"));
+            }
+        }
+        let form_floors = (!floors.is_empty()).then_some(FormFloors { kept: None, floors });
         let mut unseen = [[0i32; 2]; ASKS_FRAME];
         unseen.copy_from_slice(&asks.unseen);
         Ok(Self {
@@ -388,7 +468,15 @@ impl AsksIndex {
             repeat,
             repeat3,
             cut: Cut::ALL,
+            form_floors,
         })
+    }
+
+    /// The same tables with a floor for each question form ([`fit_forms`]): a census's reader.
+    /// A question whose form has no floor is read with the table's floor.
+    pub fn with_form_floors(mut self, floors: FormFloors) -> Self {
+        self.form_floors = Some(floors);
+        self
     }
 
     /// The same tables read under `cut`, for tables fitted under it ([`fit_cut`]): a census's
@@ -505,7 +593,9 @@ impl AsksIndex {
         let mut scored: Vec<(i32, (usize, usize))> = Vec::new();
         self.candidates(tokens, prior, &q, |s, end, score| scored.push((score, (s, end))));
         let asking = self.asks_a_fact(&q);
-        match self.pick(&scored, if asking { self.floor } else { self.floor_other }) {
+        let floor = if asking { self.floor } else { self.floor_other };
+        let floor = self.form_floors.as_ref().and_then(|f| f.floor(&q)).unwrap_or(floor);
+        match self.pick(&scored, floor) {
             Some((s, end)) => Asked::Place(s, end),
             None if asking && !self.not_told.is_empty() => Asked::NotTold,
             None => Asked::Nothing,
@@ -982,6 +1072,7 @@ pub fn fit_cut(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4
         forms: kept,
         repeat: Vec::new(),
         repeat3: Vec::new(),
+        ask_floors: Vec::new(),
     };
 
     // First, which questions ask for a stored fact: the asking floor, from every reply's
@@ -1037,6 +1128,85 @@ pub fn fit_cut(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4
     asks.floor_other = decided.2;
     lines.push(format!("asks-fit decide margin={} floor={} floor_other={}", asks.margin, asks.floor, asks.floor_other));
     Ok((asks, lines))
+}
+
+/// A floor for each question form of a split (claude-365): `places` are its true places, as for
+/// [`fit`]. The reply cases are grouped by the form `rule` reads from each question, and a form
+/// with at least [`FORM_MIN`] cases that have a candidate gets the floor [`fit_cut`] would give
+/// those cases alone: the same bins, the same pick at the index's margin, and a pick right only
+/// at the reply's true place. The second value is the count's account, line by line.
+pub fn fit_forms(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &AsksIndex, rule: FormRule) -> (FormFloors, Vec<String>) {
+    let truth: Map<usize, usize> = places.iter().map(|p| (p[0] as usize, p[1] as usize)).collect();
+    let cases = ask_cases(tokens, marks);
+    let questions: Vec<Vec<u32>> = cases.iter().map(|case| index.asked(tokens, &case.asked)).collect();
+    let mut out = FormFloors::default();
+    if rule == FormRule::Frequent {
+        // Each question's tokens are distinct: a token is counted once in each question.
+        let mut held: Map<u32, u32> = Map::default();
+        for &t in questions.iter().flatten() {
+            bump(held.entry(t).or_default());
+        }
+        let mut kept: Vec<u32> = held.iter().filter(|(_, &n)| n >= FORM_TOKEN_MIN).map(|(&t, _)| t).collect();
+        kept.sort_unstable();
+        out.kept = Some(kept);
+    }
+    // For each form, each case with a candidate: its best score, whether the pick is right, and
+    // the floor the table reads it with.
+    let mut by_form: HashMap<Vec<u32>, Vec<(i32, bool, i32)>> = HashMap::new();
+    let mut scored: Vec<(i32, bool)> = Vec::new();
+    for (case, q) in cases.iter().zip(&questions) {
+        let place = truth.get(&case.reply).copied();
+        scored.clear();
+        index.candidates(tokens, &case.prior, q, |s, _, score| scored.push((score, place == Some(s))));
+        let Some(best) = scored.iter().map(|c| c.0).max() else { continue };
+        // The latest candidate within the margin of the best, as the find takes it.
+        let right = scored.iter().rev().find(|c| c.0 >= best.saturating_sub(index.margin)).is_some_and(|c| c.1);
+        let one = if index.asks_a_fact(q) { index.floor } else { index.floor_other };
+        by_form.entry(out.form(q)).or_default().push((best, right, one));
+    }
+    let bins = 2 * LIM as usize + 2;
+    let (mut right_hist, mut wrong_hist) = (vec![0i64; bins], vec![0i64; bins]);
+    let mut shown: Vec<(usize, Vec<u32>, i32, [usize; 4])> = Vec::new();
+    for (form, picks) in &by_form {
+        if picks.len() < FORM_MIN {
+            continue;
+        }
+        right_hist.iter_mut().chain(wrong_hist.iter_mut()).for_each(|n| *n = 0);
+        for &(best, right, _) in picks {
+            let hist = if right { &mut right_hist } else { &mut wrong_hist };
+            hist[0] += 1;
+            hist[bin(best) + 1] -= 1;
+        }
+        let (floor, _, _) = best_floor(&right_hist, &wrong_hist);
+        out.floors.insert(form.clone(), floor);
+        // Right and wrong picks kept under the table's floor, then under the form's own.
+        let mut kept = [0usize; 4];
+        for &(best, right, one) in picks {
+            let side = usize::from(!right);
+            kept[side] += usize::from(best >= one);
+            kept[2 + side] += usize::from(best >= floor);
+        }
+        shown.push((picks.len(), form.clone(), floor, kept));
+    }
+    shown.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    let tokens_kept = out.kept.as_ref().map_or("all".to_owned(), |kept| kept.len().to_string());
+    let mut lines = vec![format!(
+        "asks-forms rule={} cases={} forms_counted={} kept={} tokens_kept={tokens_kept}",
+        match rule {
+            FormRule::Tokens => "tokens",
+            FormRule::Frequent => "frequent",
+        },
+        cases.len(),
+        by_form.len(),
+        out.floors.len()
+    )];
+    for (n, form, floor, kept) in shown.iter().take(12) {
+        lines.push(format!(
+            "asks-forms form={form:?} cases={n} floor={floor} one_floor right={} wrong={} own_floor right={} wrong={}",
+            kept[0], kept[1], kept[2], kept[3]
+        ));
+    }
+    (out, lines)
 }
 
 #[cfg(test)]
@@ -1365,6 +1535,7 @@ mod tests {
             forms: vec![vec![NOT, TOLD, EOS]],
             repeat,
             repeat3,
+            ask_floors: Vec::new(),
         }
     }
 
@@ -1553,5 +1724,167 @@ mod tests {
         let without = count(Vec::new());
         assert_eq!((without.general, without.repeat), ([0, 0, 1], [0; 3]));
         assert_eq!(without.lines("held").len(), 4);
+    }
+
+    /// The corpus's table with its floor for questions that ask a fact set so low that it takes
+    /// the stated value of another key for a key never told, and that table's index.
+    fn low_floor() -> (Vec<u32>, Vec<[u32; 4]>, PlaceAsks, AsksIndex) {
+        let (x, places) = corpus(240);
+        let (mut asks, _) = fit(&x, &marks(), VOCAB, &places, "test".to_owned()).expect("the fit");
+        asks.floor = -LIM;
+        let index = AsksIndex::new(&asks).expect("the index");
+        (x, places, asks, index)
+    }
+
+    /// `docs` documents after `x` that state two values and ask for the first key's with the
+    /// extra token 19 in the question: a question form no other document has.
+    fn rare_docs(x: &mut Vec<u32>, places: &mut Vec<[u32; 4]>, docs: usize) {
+        for d in 0..docs {
+            x.extend([BOS, USER, SAYS, 20, IS]);
+            let at = x.len();
+            x.extend([30 + (d % 7) as u32, SEP, MODEL, OK, EOS, SEP, USER, SAYS, 22, IS, 40, SEP, MODEL, OK, EOS, SEP]);
+            x.extend([USER, WHAT, 19, 20, SEP, MODEL]);
+            places.push([x.len() as u32, at as u32, x.len() as u32, 1]);
+            x.extend([30 + (d % 7) as u32, EOS, SEP]);
+        }
+    }
+
+    #[test]
+    fn a_form_floor_raises_not_told_where_the_one_floor_takes_another_keys_value() {
+        let (x, places, asks, index) = low_floor();
+        let (floors, lines) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        let with = index.clone().with_form_floors(floors.clone());
+        let (held, held_places) = corpus_from(240, 60);
+        let (one, _) = census(&held, &marks(), &held_places, &index, &asks.forms, 0);
+        let (counts, _) = census(&held, &marks(), &held_places, &with, &asks.forms, 0);
+        // The one floor sets a place for every never-told key; each form's own floor sets none.
+        assert_eq!(one.abstain, [15, 0, 0], "{lines:#?}");
+        assert_eq!(counts.abstain, [0, 15, 0], "{lines:#?}");
+        assert_eq!(counts.recall, [30, 0, 0, 0], "{lines:#?}");
+        // Each never-told case's best candidate is under its form's floor.
+        let truth: HashSet<usize> = held_places.iter().map(|p| p[0] as usize).collect();
+        let mut never_told = 0;
+        for case in ask_cases(&held, &marks()).iter().filter(|c| !truth.contains(&c.reply)) {
+            let q = index.asked(&held, &case.asked);
+            if !index.asks_a_fact(&q) {
+                continue;
+            }
+            let mut best = i32::MIN;
+            index.candidates(&held, &case.prior, &q, |_, _, score| best = best.max(score));
+            assert!(floors.floor(&q).is_some_and(|floor| floor > best), "{q:?} {best} {lines:#?}");
+            never_told += 1;
+        }
+        assert_eq!(never_told, 15);
+    }
+
+    #[test]
+    fn a_form_under_the_least_count_gets_no_floor_and_is_found_as_before() {
+        let (mut x, mut places, _, index) = low_floor();
+        rare_docs(&mut x, &mut places, FORM_MIN - 1);
+        let (floors, lines) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        let with = index.clone().with_form_floors(floors.clone());
+        let truth: HashSet<usize> = places.iter().map(|p| p[0] as usize).collect();
+        let rare: Vec<AskCase> = ask_cases(&x, &marks()).into_iter().filter(|c| truth.contains(&c.reply) && x[c.asked.clone()].contains(&19)).collect();
+        assert_eq!(rare.len(), FORM_MIN - 1);
+        for case in &rare {
+            assert_eq!(floors.floor(&index.asked(&x, &case.asked)), None, "{lines:#?}");
+            assert_eq!(with.find(&x, &case.prior, &case.asked), index.find(&x, &case.prior, &case.asked));
+        }
+        // The forms of the corpus's own questions still have theirs.
+        assert!(!floors.is_empty(), "{lines:#?}");
+    }
+
+    #[test]
+    fn a_form_at_the_least_count_gets_a_floor() {
+        let (mut x, mut places, _, index) = low_floor();
+        rare_docs(&mut x, &mut places, FORM_MIN);
+        let (floors, lines) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        let truth: HashSet<usize> = places.iter().map(|p| p[0] as usize).collect();
+        let rare: Vec<AskCase> = ask_cases(&x, &marks()).into_iter().filter(|c| truth.contains(&c.reply) && x[c.asked.clone()].contains(&19)).collect();
+        assert_eq!(rare.len(), FORM_MIN);
+        for case in &rare {
+            assert!(floors.floor(&index.asked(&x, &case.asked)).is_some(), "{lines:#?}");
+        }
+    }
+
+    #[test]
+    fn a_form_floor_is_read_for_its_own_form_only() {
+        let (x, places, _, index) = low_floor();
+        let (mut floors, _) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        let kept = vec![WHAT, 20];
+        floors.floors.retain(|form, _| *form == kept);
+        assert_eq!(floors.len(), 1);
+        let with = index.clone().with_form_floors(floors);
+        let (held, _) = corpus_from(240, 60);
+        let (mut changed, mut same) = (0, 0);
+        for case in ask_cases(&held, &marks()) {
+            let (got, before) = (with.find(&held, &case.prior, &case.asked), index.find(&held, &case.prior, &case.asked));
+            if index.asked(&held, &case.asked) == kept {
+                changed += usize::from(got != before);
+            } else {
+                assert_eq!(got, before);
+                same += 1;
+            }
+        }
+        // The kept form's never-told keys now raise "not told"; every other question is as it was.
+        assert_eq!(changed, 3);
+        assert!(same > 0);
+    }
+
+    #[test]
+    fn the_frequent_rule_reads_two_questions_that_differ_in_a_rare_token_as_one_form() {
+        let (mut x, mut places, _, index) = low_floor();
+        rare_docs(&mut x, &mut places, 4);
+        let (with_19, without_19) = (vec![WHAT, 19, 20], vec![WHAT, 20]);
+        let (frequent, _) = fit_forms(&x, &marks(), &places, &index, FormRule::Frequent);
+        assert_eq!(frequent.form(&with_19), frequent.form(&without_19));
+        assert!(frequent.form(&with_19).contains(&WHAT));
+        let (tokens, _) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        assert_ne!(tokens.form(&with_19), tokens.form(&without_19));
+    }
+
+    #[test]
+    fn a_table_holds_the_form_floors_and_finds_as_the_count_did() {
+        let (x, places, mut asks, index) = low_floor();
+        let (floors, _) = fit_forms(&x, &marks(), &places, &index, FormRule::Tokens);
+        let counted = index.clone().with_form_floors(floors.clone());
+        asks.ask_floors = floors.rows().expect("the token rule's rows");
+        assert!(asks.ask_floors.windows(2).all(|pair| pair[0].0 < pair[1].0));
+        // Written and read back, the table is the same and finds as the count's own reader did.
+        let text = serde_json::to_string(&asks).expect("written");
+        let read: PlaceAsks = serde_json::from_str(&text).expect("read");
+        assert_eq!(read, asks);
+        let table = AsksIndex::new(&read).expect("the index");
+        let (held, held_places) = corpus_from(240, 60);
+        for case in ask_cases(&held, &marks()) {
+            assert_eq!(table.find(&held, &case.prior, &case.asked), counted.find(&held, &case.prior, &case.asked));
+        }
+        let (counts, _) = census(&held, &marks(), &held_places, &table, &asks.forms, 0);
+        assert_eq!(counts.abstain, [0, 15, 0]);
+        assert_eq!(counts.recall, [30, 0, 0, 0]);
+        // The frequent rule's floors need its list of kept tokens, which no table holds.
+        let (frequent, _) = fit_forms(&x, &marks(), &places, &index, FormRule::Frequent);
+        assert_eq!(frequent.rows(), None);
+    }
+
+    #[test]
+    fn a_table_with_no_form_floors_is_written_as_before() {
+        let (_, _, asks, _) = low_floor();
+        let text = serde_json::to_string(&asks).expect("written");
+        assert!(!text.contains("ask_floors"));
+        let read: PlaceAsks = serde_json::from_str(&text).expect("read");
+        assert!(read.ask_floors.is_empty());
+        assert_eq!(serde_json::to_string(&read).expect("written"), text);
+    }
+
+    #[test]
+    fn a_table_refuses_a_form_named_twice_out_of_order_or_past_the_vocabulary() {
+        let (_, _, mut asks, _) = low_floor();
+        asks.ask_floors = vec![(vec![WHAT, 20], 10)];
+        assert!(AsksIndex::new(&asks).is_ok());
+        for rows in [vec![(vec![WHAT, 20], 10), (vec![WHAT, 20], 12)], vec![(vec![20, WHAT], 10)], vec![(vec![20, 20], 10)], vec![(vec![VOCAB], 10)]] {
+            asks.ask_floors = rows;
+            assert!(AsksIndex::new(&asks).is_err(), "{:?}", asks.ask_floors);
+        }
     }
 }

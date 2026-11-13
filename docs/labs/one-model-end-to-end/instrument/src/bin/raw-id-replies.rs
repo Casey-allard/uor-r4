@@ -1825,6 +1825,7 @@ mod tests {
             forms: vec![vec![41, 42, PLACE_EOS]],
             repeat: Vec::new(),
             repeat3: Vec::new(),
+            ask_floors: Vec::new(),
         };
         let table_bytes = serde_json::to_vec(&asks).expect("the asks");
         let table = file("asks.json", &table_bytes);
