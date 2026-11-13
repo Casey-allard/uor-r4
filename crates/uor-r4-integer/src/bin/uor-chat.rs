@@ -66,6 +66,10 @@ struct CliArgs {
     /// Whether an open row speaks the token at its place (`--place-speak 0|1`, default 1); only
     /// with `--place-asks`.
     place_speak: Option<bool>,
+    /// Whether a reply whose asks found a place that no row was offered is started over from
+    /// that place (`--place-serve-again 0|1`, default 0, claude-363); only with `--place-asks`
+    /// and text replies.
+    place_serve_again: Option<bool>,
     /// Serve the stack without its turn memory (`--no-turn-memory`).
     no_turn_memory: bool,
     /// One-shot turn: answer this message, print the record and exit.
@@ -286,6 +290,7 @@ impl Default for CliArgs {
             copy_rule: None,
             place_asks: None,
             place_speak: None,
+            place_serve_again: None,
             no_turn_memory: false,
             say: None,
             prompt_ids: None,
@@ -567,6 +572,17 @@ fn parse_cli_args() -> CliArgs {
                     Some("1") => args.place_speak = Some(true),
                     _ => {
                         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-speak' takes 0 or 1");
+                        process::exit(1);
+                    }
+                }
+            }
+            "--place-serve-again" => {
+                idx += 1;
+                match raw.get(idx).map(String::as_str) {
+                    Some("0") => args.place_serve_again = Some(false),
+                    Some("1") => args.place_serve_again = Some(true),
+                    _ => {
+                        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-serve-again' takes 0 or 1");
                         process::exit(1);
                     }
                 }
@@ -854,6 +870,12 @@ fn parse_cli_args() -> CliArgs {
     if args.print_place && (args.stack_path.is_none() || args.prompt_ids.is_some() || args.serve.is_some()) {
         eprintln!(
             "{ANSI_RED_BOLD}error:{ANSI_RESET} '--print-place' requires text replies on '--stack' (the REPL, '--say' or '--script')"
+        );
+        process::exit(1);
+    }
+    if args.place_serve_again.is_some() && (args.place_asks.is_none() || args.prompt_ids.is_some() || args.serve.is_some()) {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-serve-again' requires '--place-asks' and text replies on '--stack' (the REPL, '--say' or '--script')"
         );
         process::exit(1);
     }
@@ -2104,6 +2126,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         return serve_loopback(config).map_err(|error| StackCliError::Usage(error.to_string()));
     }
     let mut chat = StackChat::from_tokenizer_path(&model, tokenizer_path, cli.protocol)?;
+    // Serve again (claude-363): a reply whose found place no row was offered starts over from it.
+    let serve_again = cli.place_serve_again == Some(true);
+    chat.set_serve_again(serve_again);
     if cli.read_mode == ReadMode::NoRead {
         eprintln!(
             "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} --read-mode is fixed by the artifact's own read \
@@ -2196,7 +2221,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             .as_deref()
             .map(StackChat::memory_content)
             .transpose()?;
-        let record = serde_json::json!({
+        let mut record = serde_json::json!({
             "schema": "uor-r4.uor-chat-stack-reply/1",
             "artifact": artifact,
             "artifact_sha256": model.artifact_sha256(),
@@ -2215,6 +2240,10 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "history_tokens": chat.tokens().len(),
             "seconds": seconds,
         });
+        // Only with `--place-serve-again 1`: without it the record is as it always was.
+        if serve_again {
+            record["served_again"] = serde_json::json!(chat.last_reply_served_again());
+        }
         println!("{}", serde_json::to_string_pretty(&record)?);
         return Ok(());
     }
@@ -2252,7 +2281,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             } else {
                 "sieve"
             };
-            transcript.push(serde_json::json!({
+            let mut turn_record = serde_json::json!({
                 "user": turn.user,
                 "memory": memory_source,
                 "memory_text": turn_memory
@@ -2264,7 +2293,11 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                 "stop": reply.stop.name(),
                 "history_tokens": chat.tokens().len(),
                 "seconds": seconds,
-            }));
+            });
+            if serve_again {
+                turn_record["served_again"] = serde_json::json!(chat.last_reply_served_again());
+            }
+            transcript.push(turn_record);
             memory.finish_turn(&turn.user, explicit_memory);
         }
         let record = serde_json::json!({
@@ -2367,6 +2400,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                     Ok(reply) => {
                         let seconds = started.elapsed().as_secs_f64();
                         print_stack_reply(&reply, chat.tokens().len(), seconds);
+                        if chat.last_reply_served_again() {
+                            println!("{ANSI_MAGENTA_BOLD}[again]{ANSI_RESET} the asks found a place no row was offered; the reply was started over from it");
+                        }
                         if cli.print_place {
                             println!("{}", place_line(&chat, &reply));
                         }

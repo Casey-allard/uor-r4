@@ -1553,6 +1553,7 @@ impl IntegerStackModel {
                 .map_or_else(Vec::new, |h| h.payload_caches(context)),
             place: PlaceState::default(),
             spoken: None,
+            open_reply_start: false,
             hamming_trace: None,
             decision: None,
             pointer_keys: vec![0; pointer_dim * context],
@@ -2019,6 +2020,9 @@ pub struct IntegerStackSession<'m> {
     /// The token the place read told the last step's row to speak (claude-359): that step's
     /// choice. `None` unless a caller set the asks.
     spoken: Option<u32>,
+    /// Whether the asked place read opens the reply's first row (claude-363); a caller's
+    /// setting, off by default ([`Self::set_open_reply_start`]).
+    open_reply_start: bool,
     /// While `Some`, each Hamming read's choices at every step (claude-235's trace).
     hamming_trace: Option<Vec<HammingStepRead>>,
     /// While `Some`, Q5's decision trace and its forced set (claude-249).
@@ -2331,6 +2335,15 @@ impl IntegerStackSession<'_> {
     /// always unless [`IntegerStackModel::set_place_asks`] set the asks.
     pub fn last_spoken(&self) -> Option<(u32, Option<usize>)> {
         self.spoken.map(|token| (token, self.place.told()))
+    }
+
+    /// Have the asked place read open the reply's first row, the row of the role marker's last
+    /// token, whatever its pair or class says (claude-363,
+    /// [`PlaceState::advance_asked_opening`]): a place the asks find there is offered, and with
+    /// speak spoken, at once. Off by default; nothing without the asks set. Like the copy scale it
+    /// is a caller's setting, so [`Self::reset`] keeps it: a caller that turns it on turns it off.
+    pub fn set_open_reply_start(&mut self, on: bool) {
+        self.open_reply_start = on;
     }
 
     /// Set the pointer copy scale in Q16 (`scale * 2^-16`).
@@ -3719,7 +3732,7 @@ fn stack_step_fbs(
     let (offer, spoken) = fbs
         .hamming
         .as_ref()
-        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table, session.open_reply_start));
     session.spoken = spoken;
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
@@ -4011,7 +4024,7 @@ fn stack_step_fbs_timed(
     let (offer, spoken) = fbs
         .hamming
         .as_ref()
-        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table, session.open_reply_start));
     session.spoken = spoken;
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;

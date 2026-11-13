@@ -63,6 +63,16 @@
 //! `place_asks`: the file's SHA-256, `speak`, how many ids a row's place spoke, and how many
 //! replies started on the stored reply. Without the flag the receipt is as before.
 //!
+//! `--serve-again 0|1` (claude-363, default 0, needs `--place-asks`) serves a reply again when
+//! the register held a place right after the step that chose its first id and no step that
+//! chose a reply id was offered a place: a fresh session reads the same prompt, the reply start
+//! is opened (`IntegerStackSession::set_open_reply_start`) before the prompt's last token, and
+//! the reply is served with the same loop and limits. The second reply stands: its line gains
+//! `"again": true` and `"first"`, the first reply's ids, and the row's counters count it alone.
+//! The receipt gains `serve_again` with `replies_served_again`. It is refused with
+//! `--place-rows 1`, `--time-steps 1`, `--count-visits 1` and `--trace-control 1`, which read a
+//! row's one serve. With the flag 0 the replies and the receipt are as before.
+//!
 //! `--whole-prompt TOKENS.u16 --bos ID` (claude-359) reads each row's prompt as a chat session
 //! holds it: the whole conversation up to the reply. A float score's row holds only the model's
 //! window, so a fact told before the window is not in the row at all, while a session keeps
@@ -108,7 +118,7 @@ use uor_r4_integer::stack::{
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1]] [--whole-prompt FILE --bos ID]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1] [--serve-again 0|1]] [--whole-prompt FILE --bos ID]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -165,6 +175,32 @@ struct StepClock {
     read_ns: u128,
     serve_steps: u64,
     serve_ns: u128,
+}
+
+/// One serve of a row: the reply and the row's counter increments, added to the run's only for
+/// the serve that stands.
+#[derive(Default)]
+struct Served {
+    ids: Vec<u32>,
+    /// One `[held, offered]` a generated id, kept with `--place-rows 1`.
+    registers: Vec<(Option<usize>, Option<usize>)>,
+    /// The reply ended on the end mark.
+    on_eos: bool,
+    /// Reply ids a row's place spoke.
+    spoke_place: u64,
+    /// Replies that started the stored reply.
+    told_replies: u64,
+    /// The register held a place right after the step that chose the reply's first id.
+    first_held: bool,
+    /// Some step that chose a reply id was offered a place: its row was open.
+    any_offered: bool,
+}
+
+/// `--serve-again 1` (claude-363): a reply is served again with its start open when the
+/// register held a place after the step that chose its first id and no step that chose a reply
+/// id was offered one: the asks found a place the reply never opened to.
+fn serve_again_due(first_held: bool, any_offered: bool) -> bool {
+    first_held && !any_offered
 }
 
 /// The count `--count-visits 1` keeps over every choosing step.
@@ -725,6 +761,29 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
         })?),
         None => None,
     };
+    // claude-363: a reply served again with its start open, when the asks found a place the
+    // reply never opened to.
+    let serve_again = match flag(&args, "--serve-again").as_deref() {
+        None | Some("0") => false,
+        Some("1") => true,
+        Some(other) => return Err(format!("--serve-again takes 0 or 1, not {other}")),
+    };
+    if serve_again {
+        if flag(&args, "--place-asks").is_none() {
+            return Err("--serve-again 1 needs --place-asks".to_owned());
+        }
+        let one_serve = [
+            (place_rows, "--place-rows"),
+            (time_steps, "--time-steps"),
+            (count_visits, "--count-visits"),
+            (trace_control, "--trace-control"),
+        ];
+        if let Some((_, name)) = one_serve.iter().find(|(on, _)| *on) {
+            return Err(format!(
+                "--serve-again 1 is refused with {name} 1: it reads a row's one serve"
+            ));
+        }
+    }
 
     let artifact = fs::read(&stack_path).map_err(|e| format!("{stack_path}: {e}"))?;
     let samples = fs::read(&samples_path).map_err(|e| format!("{samples_path}: {e}"))?;
@@ -830,26 +889,31 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     let mut clock = StepClock::default();
     let mut trace_tally = TraceTally::default();
     let mut stopped_on_eos = 0usize;
-    for (index, row) in rows.iter().enumerate() {
-        let prompt = prompt_ids(row, index)?;
-        let prompt = match &whole {
-            Some((path, bytes, bos)) => {
-                let all = whole_prompt(bytes, path, *bos, row, index, &prompt)?;
-                lengthened += usize::from(all.len() > prompt.len());
-                shortened += usize::from(all.len() < prompt.len());
-                all
-            }
-            None => prompt,
-        };
-        longest_prompt = longest_prompt.max(prompt.len());
+    // Rows whose reply was served again with its start open (`--serve-again 1`).
+    let mut replies_served_again = 0usize;
+    // One serve of a row: a fresh session reads the prompt and serves the reply. The second
+    // serve of `--serve-again 1` runs this same code with `open_start` on. The row's counters
+    // come back in `Served` and are added once it is known which serve stands; the clock, the
+    // visit count and the trace are refused with `--serve-again 1`, so a row's one serve is all
+    // that reaches them.
+    let serve = |open_start: bool,
+                 prompt: &[u32],
+                 index: usize,
+                 clock: &mut StepClock,
+                 visits: &mut Visits,
+                 trace_tally: &mut TraceTally,
+                 trace: &mut Option<fs::File>|
+     -> Result<Served> {
         let mut session = model.session();
         session.clear_reply_start();
         let mut pick = EOS;
-        // One `[held, offered]` a generated id, taken after the step that chose it.
-        let mut registers = Vec::new();
+        let mut reply = Served { ids: Vec::with_capacity(max_tokens), ..Served::default() };
         for (at, &token) in prompt.iter().enumerate() {
             if mark && at + 1 == prompt.len() {
                 session.mark_reply_start();
+            }
+            if open_start && at + 1 == prompt.len() {
+                session.set_open_reply_start(true);
             }
             // As `StackChat::feed` steps a prompt since claude-348: every id but the last is
             // read without a choice, and the last is served.
@@ -874,21 +938,24 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             clock.serve_ns += started.elapsed().as_nanos();
             clock.serve_steps += 1;
             pick = served;
+            let (held, offered) = session.last_place();
+            // This step chose the reply's first id.
+            reply.first_held = held.is_some();
+            reply.any_offered |= offered.is_some();
             if place_rows {
-                registers.push(session.last_place());
+                reply.registers.push((held, offered));
             }
             match session.last_spoken() {
-                Some((_, None)) => spoke_place += 1,
-                Some((_, Some(0))) => told_replies += 1,
+                Some((_, None)) => reply.spoke_place += 1,
+                Some((_, Some(0))) => reply.told_replies += 1,
                 _ => {}
             }
             if let (Some(table), Some(query)) = (table, session.last_query_q12()) {
                 visits.count(table, query, session.last_native_token());
             }
         }
-        let mut ids = Vec::with_capacity(max_tokens);
         loop {
-            ids.push(pick);
+            reply.ids.push(pick);
             if trace_control {
                 let table = table.ok_or("--trace-control 1 needs the writer table")?;
                 let reads = session
@@ -900,10 +967,10 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
                     table,
                     ControlStep {
                         case: index,
-                        reply_position: ids.len() - 1,
+                        reply_position: reply.ids.len() - 1,
                         served: pick,
                         hamming: reads,
-                        ids: &ids,
+                        ids: &reply.ids,
                     },
                 )?;
                 trace_tally.rows += 1;
@@ -924,25 +991,27 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
                     .map_err(|e| format!("{}: {e}", trace_path.as_deref().unwrap_or("trace")))?;
             }
             if pick == EOS {
-                stopped_on_eos += 1;
+                reply.on_eos = true;
                 break;
             }
-            if ids.len() == max_tokens {
+            if reply.ids.len() == max_tokens {
                 break;
             }
             let started = Instant::now();
             let (served, _) = session
                 .serve_step(pick)
-                .map_err(|e| format!("row {index}, reply id {}: {e}", ids.len()))?;
+                .map_err(|e| format!("row {index}, reply id {}: {e}", reply.ids.len()))?;
             clock.serve_ns += started.elapsed().as_nanos();
             clock.serve_steps += 1;
             pick = served;
+            let (held, offered) = session.last_place();
+            reply.any_offered |= offered.is_some();
             if place_rows {
-                registers.push(session.last_place());
+                reply.registers.push((held, offered));
             }
             match session.last_spoken() {
-                Some((_, None)) => spoke_place += 1,
-                Some((_, Some(0))) => told_replies += 1,
+                Some((_, None)) => reply.spoke_place += 1,
+                Some((_, Some(0))) => reply.told_replies += 1,
                 _ => {}
             }
             if let (Some(table), Some(query)) = (table, session.last_query_q12()) {
@@ -950,14 +1019,45 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             }
         }
         if trace_control {
-            let replay = replay_reply(&model, &prompt, mark, max_tokens)?;
-            if replay != ids {
+            let replay = replay_reply(&model, prompt, mark, max_tokens)?;
+            if replay != reply.ids {
                 return Err(format!(
                     "row {index}: traced reply differs from untraced product replay"
                 ));
             }
         }
+        Ok(reply)
+    };
+    for (index, row) in rows.iter().enumerate() {
+        let prompt = prompt_ids(row, index)?;
+        let prompt = match &whole {
+            Some((path, bytes, bos)) => {
+                let all = whole_prompt(bytes, path, *bos, row, index, &prompt)?;
+                lengthened += usize::from(all.len() > prompt.len());
+                shortened += usize::from(all.len() < prompt.len());
+                all
+            }
+            None => prompt,
+        };
+        longest_prompt = longest_prompt.max(prompt.len());
+        let first = serve(false, &prompt, index, &mut clock, &mut visits, &mut trace_tally, &mut trace)?;
+        // The reply that stands, and the first reply's ids when it was served again.
+        let (reply, first_ids) = if serve_again && serve_again_due(first.first_held, first.any_offered) {
+            let again = serve(true, &prompt, index, &mut clock, &mut visits, &mut trace_tally, &mut trace)?;
+            replies_served_again += 1;
+            (again, Some(first.ids))
+        } else {
+            (first, None)
+        };
+        stopped_on_eos += usize::from(reply.on_eos);
+        spoke_place += reply.spoke_place;
+        told_replies += reply.told_replies;
+        let (ids, registers) = (reply.ids, reply.registers);
         let mut line = json!({"i": index, "ids": ids});
+        if let Some(first_ids) = first_ids {
+            line["again"] = json!(true);
+            line["first"] = json!(first_ids);
+        }
         if place_rows {
             let pairs: Vec<Value> =
                 registers.iter().map(|(held, offered)| json!([held, offered])).collect();
@@ -1017,6 +1117,9 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             "ids_spoken_from_a_place": spoke_place,
             "replies_started_on_the_stored_reply": told_replies,
         });
+    }
+    if serve_again {
+        receipt["serve_again"] = json!({"replies_served_again": replies_served_again});
     }
     if let Some((_, bytes, bos)) = &whole {
         receipt["whole_prompt"] = json!({
@@ -1597,6 +1700,42 @@ mod tests {
         let stray = ["--stack", "a", "b", "--samples"];
         let error = run_with_args(stray.iter().map(|arg| (*arg).to_owned())).unwrap_err();
         assert!(error.contains("b: every argument"), "{error}");
+    }
+
+    /// claude-363: a reply is served again only when the register held a place after its first
+    /// id was chosen and no choosing step was offered one.
+    #[test]
+    fn a_reply_is_served_again_only_on_a_held_place_never_offered() {
+        assert!(serve_again_due(true, false));
+        assert!(!serve_again_due(true, true));
+        assert!(!serve_again_due(false, false));
+        assert!(!serve_again_due(false, true));
+    }
+
+    /// claude-363: `--serve-again` takes 0 or 1, needs `--place-asks`, and is refused with each
+    /// flag that reads a row's one serve; all before any file is read.
+    #[test]
+    fn serve_again_is_parsed_and_refused_by_name() {
+        let run = |extra: &[&str]| {
+            let fixed = ["--stack", "/nonexistent/a", "--samples", "b", "--out", "c", "--mark-reply", "0"];
+            run_with_args(fixed.iter().chain(extra).map(|arg| (*arg).to_owned())).unwrap_err()
+        };
+        let asks = ["--place-asks", "/nonexistent/asks.json", "--serve-again", "1"];
+        let with = |more: [&'static str; 2]| -> Vec<&str> { asks.iter().copied().chain(more).collect() };
+        assert!(run(&["--serve-again", "2"]).contains("--serve-again takes 0 or 1, not 2"));
+        assert!(run(&["--serve-again", "1"]).contains("--serve-again 1 needs --place-asks"));
+        for name in ["--place-rows", "--time-steps", "--count-visits"] {
+            let error = run(&with([name, "1"]));
+            assert!(error.contains(&format!("--serve-again 1 is refused with {name} 1")), "{error}");
+        }
+        let traced: Vec<&str> = with(["--trace-control", "1"]).into_iter().chain(["--trace-out", "t"]).collect();
+        let error = run(&traced);
+        assert!(error.contains("--serve-again 1 is refused with --trace-control 1"), "{error}");
+        // Past the flags the run goes on to read the artifact.
+        for extra in [&asks[..], &["--serve-again", "0"][..]] {
+            let error = run(extra);
+            assert!(error.starts_with("/nonexistent/a:"), "{error}");
+        }
     }
 
     /// claude-359: `--whole-prompt` gives the conversation from its start mark, and refuses a

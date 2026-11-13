@@ -147,6 +147,11 @@ pub struct StackChat<'m> {
     /// reply produced last ([`IntegerStackSession::last_place`]): pair `r` is
     /// the register right after the step that chose reply token `r`.
     reply_places: Vec<(Option<usize>, Option<usize>)>,
+    /// Whether a reply whose found place no row was offered is served again from it
+    /// (claude-363, [`Self::set_serve_again`]); off by default.
+    serve_again: bool,
+    /// Whether the reply produced last was served again.
+    served_again: bool,
 }
 
 impl<'m> StackChat<'m> {
@@ -177,6 +182,8 @@ impl<'m> StackChat<'m> {
             fed: 0,
             pick: None,
             reply_places: Vec::new(),
+            serve_again: false,
+            served_again: false,
         })
     }
 
@@ -237,6 +244,29 @@ impl<'m> StackChat<'m> {
     /// [`Self::tokens`].
     pub fn last_reply_places(&self) -> &[(Option<usize>, Option<usize>)] {
         &self.reply_places
+    }
+
+    /// Serve a reply again when the asks found a place that no row of it was offered
+    /// (claude-363). The reply is first served as the model words it. If the place read's
+    /// register held a place right after the step that chose the reply's first id and no step
+    /// of the reply was offered a place, the conversation starts over at the same prompt with
+    /// the reply's first row open ([`IntegerStackSession::set_open_reply_start`]), and that
+    /// second reply stands: the history, the pending pick and
+    /// [`Self::last_reply_places`] are its. There is never a third serve. Off by default; it
+    /// changes nothing unless [`IntegerStackModel::set_place_asks`] set the asks.
+    ///
+    /// While it is on, [`Self::reply_history_with`] emits nothing until the reply that stands
+    /// is known, then emits its ids in order. The whole reply is in the history by then, so an
+    /// emission error does not stop the reply part-way as it does with this off. If the second
+    /// serve fails, its error is returned, the first reply is gone, and the history is what the
+    /// failed serve left.
+    pub fn set_serve_again(&mut self, on: bool) {
+        self.serve_again = on;
+    }
+
+    /// Whether the reply produced last was served again ([`Self::set_serve_again`]).
+    pub fn last_reply_served_again(&self) -> bool {
+        self.served_again
     }
 
     /// Whether the artifact's declared context is the chat profile's 256.
@@ -345,6 +375,38 @@ impl<'m> StackChat<'m> {
     where
         F: FnMut(u32, &[u8]) -> Result<(), StackChatError>,
     {
+        self.served_again = false;
+        if !self.serve_again {
+            return self.serve_reply(history, max_new_tokens, &mut emit);
+        }
+        // Serve again (claude-363): nothing is emitted until it is known which reply stands.
+        let mut quiet = |_: u32, _: &[u8]| -> Result<(), StackChatError> { Ok(()) };
+        let mut reply = self.serve_reply(history, max_new_tokens, &mut quiet)?;
+        if serve_again_due(&self.reply_places) {
+            // The first reply is in the history, so this prompt no longer extends it: the feed
+            // starts the session over, and the session's reset keeps the switch.
+            self.session.set_open_reply_start(true);
+            let again = self.serve_reply(history, max_new_tokens, &mut quiet);
+            self.session.set_open_reply_start(false);
+            reply = again?;
+            self.served_again = true;
+        }
+        for &id in &reply.ids {
+            emit(id, &self.tokenizer.decode_bytes(&[id]))?;
+        }
+        Ok(reply)
+    }
+
+    /// One serve of [`Self::reply_history_with`]: step the history and choose the reply's ids.
+    fn serve_reply<F>(
+        &mut self,
+        history: &[u32],
+        max_new_tokens: usize,
+        emit: &mut F,
+    ) -> Result<StackReply, StackChatError>
+    where
+        F: FnMut(u32, &[u8]) -> Result<(), StackChatError>,
+    {
         self.reply_places.clear();
         if history.is_empty() {
             return Err(StackChatError::EmptyHistory);
@@ -447,5 +509,31 @@ impl<'m> StackChat<'m> {
             return Err(StackChatError::EmptyHistory);
         }
         Ok(())
+    }
+}
+
+/// Whether a reply is served again (claude-363): the register held a place right after the
+/// step that chose the reply's first id, and no step of the reply was offered a place. `places`
+/// is [`StackChat::last_reply_places`].
+fn serve_again_due(places: &[(Option<usize>, Option<usize>)]) -> bool {
+    places.first().is_some_and(|(held, _)| held.is_some()) && places.iter().all(|(_, offered)| offered.is_none())
+}
+
+#[cfg(test)]
+mod serve_again_tests {
+    use super::serve_again_due;
+
+    #[test]
+    fn a_reply_is_served_again_only_when_its_held_place_was_never_offered() {
+        // Held at the first step and offered at no step: the found value was never said.
+        assert!(serve_again_due(&[(Some(4), None), (Some(4), None), (None, None)]));
+        // Offered at any step: the reply is left as the model worded it.
+        assert!(!serve_again_due(&[(Some(4), None), (Some(4), Some(4)), (Some(5), Some(5))]));
+        assert!(!serve_again_due(&[(Some(4), Some(4))]));
+        // Nothing held at the first step: the asks found no place.
+        assert!(!serve_again_due(&[(None, None), (None, None)]));
+        // A place held only later is not the asks' find at the reply's start.
+        assert!(!serve_again_due(&[(None, None), (Some(4), None)]));
+        assert!(!serve_again_due(&[]));
     }
 }

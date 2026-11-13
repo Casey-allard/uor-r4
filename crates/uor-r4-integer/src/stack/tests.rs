@@ -8847,6 +8847,55 @@ fn a_session_with_the_asks_answers_an_untold_fact_with_the_stored_reply() {
     assert_ne!([own[0].0, own[1].0, own[2].0], [41, 42, PLACE_EOS], "the artifact's own reply is not the stored one");
 }
 
+/// claude-363: a chat told to serve again starts a reply over from its found place when the asks
+/// set the register at the reply's first step and no step of the reply was offered it. The
+/// second reply stands: it is the only one emitted, the history holds it, and the session's
+/// switch is off again afterwards. A reply that was offered its place is left as it is.
+#[test]
+fn stack_chat_serves_a_reply_again_when_its_found_place_was_never_offered() -> ChatTest {
+    let (_, placed, place) = place_trunk();
+    let mut model = IntegerStackModel::parse(&placed)?;
+    model.set_place_asks(&place_asks(&place, 30), true).expect("the asks are set");
+    let json = merged_tokenizer_json(model.shape().vocab);
+    // The history ends on the role marker: the asks find place 5 there, and that row is not open.
+    let asked = &PLACE_TALK[..18];
+    let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let first = plain.reply_history(asked, 4)?;
+    assert!(!plain.last_reply_served_again());
+    assert_eq!(plain.last_reply_places()[0], (Some(5), None));
+    assert!(plain.last_reply_places().iter().all(|place| place.1.is_none()), "no row was offered the place");
+    assert_ne!(first.ids[0], 31, "the reply as the model words it does not start on the found token");
+
+    let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    chat.set_serve_again(true);
+    let mut emitted = Vec::new();
+    let again = chat.reply_history_with(asked, 4, |id, _| {
+        emitted.push(id);
+        Ok(())
+    })?;
+    assert!(chat.last_reply_served_again());
+    assert_eq!(again.ids[0], 31, "the reply starts on the token at the found place");
+    assert_eq!(chat.last_reply_places()[0], (Some(5), Some(5)));
+    assert_eq!(emitted, again.ids, "only the reply that stands is emitted");
+    let mut want = asked.to_vec();
+    want.extend_from_slice(&again.ids);
+    assert_eq!(chat.tokens(), want, "the history holds the reply served last");
+
+    // The session's switch is off again: the same prompt served once is the first reply.
+    chat.set_serve_again(false);
+    assert_eq!(chat.reply_history(asked, 4)?.ids, first.ids);
+    assert!(!chat.last_reply_served_again());
+
+    // A reply offered its place is left as it is: this history's last row is an open row.
+    let offered = &PLACE_TALK[..19];
+    let once = plain.reply_history(offered, 3)?;
+    assert_eq!(plain.last_reply_places()[0], (Some(5), Some(5)));
+    chat.set_serve_again(true);
+    assert_eq!(chat.reply_history(offered, 3)?.ids, once.ids);
+    assert!(!chat.last_reply_served_again());
+    Ok(())
+}
+
 /// claude-359: the asks are refused by a model with no place read, and when they were fitted
 /// with other marks or another vocabulary than the place read's. A refusal sets nothing.
 #[test]

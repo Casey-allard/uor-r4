@@ -1355,12 +1355,14 @@ impl ServedHamming {
     /// offered at this row, if the row is open, and the token the row is told to speak. With
     /// the asks set ([`Self::set_place_asks`]) the step is [`PlaceState::advance_asked`] and the
     /// ask heads are not asked; only then is a row told to speak. Neither without a place read.
-    pub(crate) fn place_advance(&self, state: &mut PlaceState, tokens: &[u32], table: &[i16]) -> (Option<usize>, Option<u32>) {
+    /// With `open_start` the asked step opens the reply's first row
+    /// ([`PlaceState::advance_asked_opening`], claude-363).
+    pub(crate) fn place_advance(&self, state: &mut PlaceState, tokens: &[u32], table: &[i16], open_start: bool) -> (Option<usize>, Option<u32>) {
         let Some(place) = self.place.as_ref() else {
             return (None, None);
         };
         let row = match &place.asks {
-            Some((asks, speak)) => state.advance_asked(tokens, &place.image, asks, *speak),
+            Some((asks, speak)) => state.advance_asked_opening(tokens, &place.image, asks, *speak, open_start),
             None => state.advance(tokens, &place.image, |users| place.find(table, tokens, users)),
         };
         (row.offer, row.speak)
