@@ -32,6 +32,43 @@ const ASKS_TAIL: usize = 3;
 /// A frame's offsets: 1 to [`ASKS_BEFORE`] count back from the place, the rest count back from
 /// the turn's end.
 pub const ASKS_FRAME: usize = ASKS_BEFORE + ASKS_TAIL;
+// A cut keeps a frame's offsets as the bits of one byte.
+const _: () = assert!(ASKS_FRAME <= 8);
+
+/// Which frame offsets, and how much of a question, a fit and its reader use (claude-360): a
+/// census's cut, to measure what the find needs. A table file and a session never carry one:
+/// both read every offset and the whole question.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Cut {
+    /// Bit `j` keeps frame offset `j + 1`.
+    pub slots: u8,
+    /// How many of a question's last tokens are read; 0 reads them all.
+    pub question_last: usize,
+}
+
+impl Cut {
+    /// Every offset and the whole question: no cut.
+    pub const ALL: Cut = Cut { slots: u8::MAX, question_last: 0 };
+
+    /// The frame with each offset the cut drops filled as an offset with no token is, so it is
+    /// the same at every candidate and tells none from another.
+    fn frame(self, mut f: [u32; ASKS_FRAME], start: u32) -> [u32; ASKS_FRAME] {
+        for (j, slot) in f.iter_mut().enumerate() {
+            if self.slots & (1 << j) == 0 {
+                *slot = start + 1;
+            }
+        }
+        f
+    }
+
+    /// The part of a question the cut reads.
+    fn asked(self, asked: &Range<usize>) -> Range<usize> {
+        match self.question_last {
+            0 => asked.clone(),
+            n => asked.end.saturating_sub(n).max(asked.start)..asked.end,
+        }
+    }
+}
 /// A token may stand before a place when it did so at least this often in the fitted split.
 const LINK_MIN: u32 = 3;
 /// A frame token has its own weights when it was counted at least this often.
@@ -176,6 +213,8 @@ pub struct AsksIndex {
     asking_prior: i32,
     asking_floor: i32,
     not_told: Vec<u32>,
+    /// What of a frame and a question the read uses: all of both but in a census's cut.
+    cut: Cut,
 }
 
 /// The frame of a candidate place `s` in a turn whose content is `lo..hi`. First the token at
@@ -205,9 +244,10 @@ fn frame(tokens: &[u32], lo: usize, hi: usize, s: usize, start: u32) -> ([u32; A
     (out, ASKS_FRAME)
 }
 
-/// A question's distinct tokens, ascending; none when the range is not inside the tokens.
-fn question(tokens: &[u32], asked: &Range<usize>) -> Vec<u32> {
-    let mut q = tokens.get(asked.clone()).unwrap_or(&[]).to_vec();
+/// The distinct tokens of the part of a question `cut` reads, ascending; none when the range is
+/// not inside the tokens.
+fn question(tokens: &[u32], asked: &Range<usize>, cut: Cut) -> Vec<u32> {
+    let mut q = tokens.get(cut.asked(asked)).unwrap_or(&[]).to_vec();
     q.sort_unstable();
     q.dedup();
     q
@@ -268,7 +308,15 @@ impl AsksIndex {
             asking_prior: asks.asking_prior,
             asking_floor: asks.asking_floor,
             not_told: asks.not_told.clone(),
+            cut: Cut::ALL,
         })
+    }
+
+    /// The same tables read under `cut`, for tables fitted under it ([`fit_cut`]): a census's
+    /// reader. A session never calls this.
+    pub fn with_cut(mut self, cut: Cut) -> Self {
+        self.cut = cut;
+        self
     }
 
     /// The stored reply for a fact never told; empty when the tables hold none.
@@ -309,6 +357,7 @@ impl AsksIndex {
         if !self.link.get(f[0] as usize).copied().unwrap_or(false) {
             return None;
         }
+        let f = self.cut.frame(f, self.start);
         // The weights are a file's: the sum stops at the type's ends and never wraps.
         let mut score = 0i32;
         for (j, &c) in f[..n].iter().enumerate() {
@@ -342,9 +391,14 @@ impl AsksIndex {
         }
     }
 
+    /// The distinct tokens this reader reads of the question in `asked`.
+    fn asked(&self, tokens: &[u32], asked: &Range<usize>) -> Vec<u32> {
+        question(tokens, asked, self.cut)
+    }
+
     /// What the question in `asked` finds among the finished user turns `prior`.
     pub fn find(&self, tokens: &[u32], prior: &[Range<usize>], asked: &Range<usize>) -> Asked {
-        let q = question(tokens, asked);
+        let q = self.asked(tokens, asked);
         let mut scored: Vec<(i32, (usize, usize))> = Vec::new();
         self.candidates(tokens, prior, &q, |s, end, score| scored.push((score, (s, end))));
         let asking = self.asks_a_fact(&q);
@@ -486,7 +540,7 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
                 out.recall[slot] += 1;
                 if slot != 0 && missed.len() < show {
                     let stated = case.prior.iter().find(|turn| turn.contains(&place)).cloned().unwrap_or(place..place);
-                    let at = index.score(tokens, stated.start, stated.end, place, &question(tokens, &case.asked));
+                    let at = index.score(tokens, stated.start, stated.end, place, &index.asked(tokens, &case.asked));
                     missed.push(format!(
                         "asks-miss {} | asked={:?} | stated={:?} | place_offset={} | got={found:?} | place_score={at:?} floor={}",
                         ["right", "wrong", "not_told", "nothing"][slot],
@@ -510,7 +564,7 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
                     // was taken from, in the same line form as a missed place.
                     if let (Asked::Place(s, _), true) = (found, missed.len() < show) {
                         let taken = case.prior.iter().find(|turn| turn.contains(&s)).cloned().unwrap_or(s..s);
-                        let at = index.score(tokens, taken.start, taken.end, s, &question(tokens, &case.asked));
+                        let at = index.score(tokens, taken.start, taken.end, s, &index.asked(tokens, &case.asked));
                         missed.push(format!(
                             "asks-miss invented | asked={:?} | stated={:?} | place_offset={} | got={found:?} | place_score={at:?} floor={}",
                             &tokens[case.asked.clone()],
@@ -531,6 +585,13 @@ pub fn census(tokens: &[u32], marks: &PlaceMarks, places: &[[u32; 4]], index: &A
 /// Fit the asks on a split by counting: `places` are its true places, `[reply start, place, ..]`
 /// in the split's positions. The second value is the fit's own account, line by line.
 pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], tokens_sha256: String) -> Result<(PlaceAsks, Vec<String>), String> {
+    fit_cut(tokens, marks, vocab, places, tokens_sha256, Cut::ALL)
+}
+
+/// [`fit`] under `cut`: the counts, the weights, the floors and the margin are all taken from
+/// what the cut leaves of each frame and each question. The tables are for a reader under the
+/// same cut ([`AsksIndex::with_cut`]) and for a census; they are not a session's.
+pub fn fit_cut(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], tokens_sha256: String, cut: Cut) -> Result<(PlaceAsks, Vec<String>), String> {
     if !fits_the_keys(vocab) {
         return Err(format!("a vocabulary of {vocab} does not fit the asks' keys"));
     }
@@ -593,7 +654,8 @@ pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], 
         if !link[f[0] as usize] {
             continue;
         }
-        let q = question(tokens, &case.asked);
+        let f = cut.frame(f, start);
+        let q = question(tokens, &case.asked, cut);
         for (j, &c) in f[..n].iter().enumerate() {
             for &qt in &q {
                 if qt != c {
@@ -612,7 +674,7 @@ pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], 
     let mut forms: HashMap<&[u32], u32> = HashMap::new();
     let asks_a_fact = |case: &AskCase| truth.contains_key(&case.reply) || recall_questions.contains(&tokens[case.asked.clone()]);
     for case in &cases {
-        let q = question(tokens, &case.asked);
+        let q = question(tokens, &case.asked, cut);
         let place = truth.get(&case.reply).copied();
         let side = usize::from(!asks_a_fact(case));
         asking_total[side] += 1;
@@ -630,6 +692,7 @@ pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], 
                 if !link[f[0] as usize] {
                     continue;
                 }
+                let f = cut.frame(f, start);
                 let is_true = place == Some(s);
                 if is_true {
                     true_total += 1;
@@ -723,13 +786,13 @@ pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], 
 
     // First, which questions ask for a stored fact: the asking floor, from every reply's
     // question scored with the asking weights.
-    let index = AsksIndex::new(&asks)?;
+    let index = AsksIndex::new(&asks)?.with_cut(cut);
     let bins = 2 * LIM as usize + 2;
     let mut asked_hist = [vec![0i64; bins], vec![0i64; bins]];
     for case in &cases {
         let side = usize::from(!asks_a_fact(case));
         asked_hist[side][0] += 1;
-        asked_hist[side][bin(index.asking(&question(tokens, &case.asked))) + 1] -= 1;
+        asked_hist[side][bin(index.asking(&index.asked(tokens, &case.asked))) + 1] -= 1;
     }
     let (asking_at, asks_right, asks_wrong) = best_floor(&asked_hist[0], &asked_hist[1]);
     asks.asking_floor = asking_at;
@@ -744,7 +807,7 @@ pub fn fit(tokens: &[u32], marks: &PlaceMarks, vocab: u32, places: &[[u32; 4]], 
     let mut picked = vec![[[vec![0i64; bins], vec![0i64; bins]], [vec![0i64; bins], vec![0i64; bins]]]; MARGINS.len()];
     let mut scored: Vec<(i32, bool)> = Vec::new();
     for case in &cases {
-        let q = question(tokens, &case.asked);
+        let q = index.asked(tokens, &case.asked);
         let place = truth.get(&case.reply).copied();
         let group = usize::from(index.asking(&q) < asking_at);
         scored.clear();
@@ -864,6 +927,83 @@ mod tests {
         assert_eq!(counts.general, [0, 0, 15 + 120]);
     }
 
+    fn written(asks: &PlaceAsks) -> String {
+        serde_json::to_string(asks).expect("written")
+    }
+
+    /// The first reply of the corpus that has a place, and its question's key.
+    fn a_recall(x: &[u32], places: &[[u32; 4]]) -> (AskCase, u32) {
+        let case = ask_cases(x, &marks()).into_iter().find(|c| places.iter().any(|p| p[0] as usize == c.reply)).expect("a reply with a place");
+        let key = x[case.asked.end - 1];
+        (case, key)
+    }
+
+    #[test]
+    fn a_cut_that_keeps_everything_writes_the_table_of_the_fit() {
+        let (x, places) = corpus(240);
+        let whole = fit(&x, &marks(), VOCAB, &places, "test".to_owned()).expect("the fit").0;
+        // More last tokens than a question has is the whole question.
+        let cut = Cut { slots: u8::MAX, question_last: 64 };
+        let kept = fit_cut(&x, &marks(), VOCAB, &places, "test".to_owned(), cut).expect("the fit").0;
+        assert_eq!(written(&kept), written(&whole));
+    }
+
+    #[test]
+    fn a_cut_fit_counts_no_token_at_an_offset_it_drops_and_no_question_token_it_does_not_read() {
+        let (x, places) = corpus(240);
+        let table = |cut: Cut| fit_cut(&x, &marks(), VOCAB, &places, "test".to_owned(), cut).expect("the fit").0;
+        // A row at an offset past the second that holds a token and not the filler.
+        let holds = |offset: i32, token: i32| offset > 2 && token != VOCAB as i32 + 1;
+        let past_two = |asks: &PlaceAsks| asks.shared.iter().filter(|row| holds(row[0], row[1])).count() + asks.pairs.iter().filter(|row| holds(row[1], row[2])).count();
+        let whole = table(Cut::ALL);
+        assert_ne!(past_two(&whole), 0);
+        assert_eq!(past_two(&table(Cut { slots: 0b11, question_last: 0 })), 0);
+        // The last token of a question is its key: the word before it is not read.
+        let reads_what = |asks: &PlaceAsks| asks.pairs.iter().any(|row| row[0] == WHAT as i32) || asks.asking.iter().any(|row| row[0] == WHAT as i32);
+        assert!(reads_what(&whole));
+        assert!(!reads_what(&table(Cut { slots: u8::MAX, question_last: 1 })));
+    }
+
+    #[test]
+    fn a_cut_reader_reads_no_offset_it_drops_and_no_question_token_past_its_count() {
+        let (x, places) = corpus(240);
+        let (asks, _) = fit(&x, &marks(), VOCAB, &places, "test".to_owned()).expect("the fit");
+        let (case, key) = a_recall(&x, &places);
+        let reader = |cut: Cut| AsksIndex::new(&asks).expect("the index").with_cut(cut);
+        // The scores of the candidates of the two statements before the question.
+        let scores = |cut: Cut| {
+            let index = reader(cut);
+            let q = index.asked(&x, &case.asked);
+            let mut out = Vec::new();
+            index.candidates(&x, &case.prior, &q, |_, _, score| out.push(score));
+            out
+        };
+        let whole = scores(Cut::ALL);
+        assert_eq!(whole.len(), 2, "one candidate in each statement");
+        assert_ne!(whole[0], whole[1], "the key two tokens before a value tells the two apart");
+        // The token before both values is the same one.
+        let cut = scores(Cut { slots: 0b1, question_last: 0 });
+        assert_eq!(cut[0], cut[1]);
+        let mut all = vec![WHAT, key];
+        all.sort_unstable();
+        assert_eq!(reader(Cut::ALL).asked(&x, &case.asked), all);
+        assert_eq!(reader(Cut { slots: u8::MAX, question_last: 1 }).asked(&x, &case.asked), vec![key]);
+    }
+
+    #[test]
+    fn a_cut_census_finds_the_places_only_with_the_offset_that_holds_the_key() {
+        let (x, places) = corpus(240);
+        let (held, held_places) = corpus_from(240, 60);
+        let found = |slots: u8| {
+            let cut = Cut { slots, question_last: 0 };
+            let (asks, _) = fit_cut(&x, &marks(), VOCAB, &places, "test".to_owned(), cut).expect("the fit");
+            let index = AsksIndex::new(&asks).expect("the index").with_cut(cut);
+            census(&held, &marks(), &held_places, &index, &asks.forms, 0).0.recall
+        };
+        assert_eq!(found(0b11), [30, 0, 0, 0]);
+        assert!(found(0b1)[0] < 30, "{:?}", found(0b1));
+    }
+
     #[test]
     fn a_fit_writes_the_same_bytes_twice() {
         let (x, places) = corpus(240);
@@ -902,7 +1042,7 @@ mod tests {
         heavy.asking = vec![[SAYS as i32, i32::MAX], [WHAT as i32, i32::MAX]];
         let index = AsksIndex::new(&heavy).expect("the index");
         let case = ask_cases(&x, &marks()).into_iter().find(|c| !c.prior.is_empty()).expect("a reply with an earlier turn");
-        assert_eq!(index.asking(&question(&x, &case.asked)), i32::MAX);
+        assert_eq!(index.asking(&question(&x, &case.asked, Cut::ALL)), i32::MAX);
         assert!(matches!(index.find(&x, &case.prior, &case.asked), Asked::Place(..)));
         // Ranges past the tokens, and one that runs backwards: no place is found and nothing is
         // read past the end.
@@ -912,7 +1052,7 @@ mod tests {
         assert_eq!(index.score(&x[..3], 0, 9, 4, &[]), None);
         // A candidate place of the whole tokens is none when the tokens end just before it: the
         // token before it is still a link token, and the place itself is not there to be read.
-        let q = question(&x, &case.asked);
+        let q = question(&x, &case.asked, Cut::ALL);
         let (turn, p) = case
             .prior
             .iter()
