@@ -1,12 +1,18 @@
 //! place-asks (claude-359): fit the asks on a split by counting, and count what they find.
 //!
 //! ```text
-//! place-asks fit    --tokens TRAIN/tokens.u16 --kit train-places.json --out asks.json
+//! place-asks fit    --tokens TRAIN/tokens.u16 --kit train-places.json --out asks.json \
+//!                   [--open-reply-start 0|1]
 //! place-asks census --tokens PANEL/tokens.u16 --kit panel-places.json --asks asks.json [--show N]
 //! place-asks ablate --tokens TRAIN/tokens.u16 --kit train-places.json \
 //!                   --held PANEL/tokens.u16 --held-kit panel-places.json [--held .. --held-kit ..] \
-//!                   [--slots 1,2,3|none] [--question-last N]
+//!                   [--slots 1,2,3|none] [--question-last N] [--open-reply-start 0|1]
 //! ```
+//!
+//! `--open-reply-start 1` (claude-362) sets the pair of the model marker's last two tokens open
+//! in the fitted table, before the table is counted or written, and prints what the pair was: a
+//! reply then starts on the value its asks find. 0, the default, leaves the fit's table as it is.
+//! `census` reads a written table and takes only 0.
 //!
 //! `ablate` (claude-360) fits under a cut, which keeps the named frame offsets (1 to 5 before a
 //! place, nearest first; 6 to 8 the turn's last tokens, the last first) and the last N tokens
@@ -136,14 +142,41 @@ fn slots(cut: Cut) -> String {
     }
 }
 
+/// Whether `--open-reply-start` is 1; 0 when it is not given.
+fn open_reply_start(args: &[String]) -> Result<bool, String> {
+    match args.iter().position(|a| a == "--open-reply-start").map(|i| args.get(i + 1).map(String::as_str)) {
+        None => Ok(false),
+        Some(Some("0")) => Ok(false),
+        Some(Some("1")) => Ok(true),
+        Some(_) => Err("--open-reply-start takes 0 or 1".to_owned()),
+    }
+}
+
+/// With `open`, set the fitted table's reply start pair open and print what it was.
+fn open_start(asks: &mut PlaceAsks, open: bool) -> Result<(), String> {
+    if !open {
+        return Ok(());
+    }
+    let was = match asks.open_reply_start()? {
+        Some(true) => "open",
+        Some(false) => "not_open",
+        None => "not_counted",
+    };
+    let pair = &asks.marks.assistant[asks.marks.assistant.len() - 2..];
+    println!("asks-fit open_reply_start before={} token={} was={was}", pair[0], pair[1]);
+    Ok(())
+}
+
 fn run(args: &[String]) -> Result<(), String> {
     let mode = args.first().map(String::as_str).ok_or("usage: place-asks fit|census|ablate ...")?;
+    let open = open_reply_start(args)?;
     let (tokens, vocab, kit) = split(&flag(args, "--tokens")?, &flag(args, "--kit")?)?;
     match mode {
         "ablate" => {
             let cut = cut(args)?;
             let held = held(args)?;
-            let (asks, _) = fit_cut(&tokens, &kit.marks, vocab, &kit.places, kit.tokens_sha256.clone(), cut)?;
+            let (mut asks, _) = fit_cut(&tokens, &kit.marks, vocab, &kit.places, kit.tokens_sha256.clone(), cut)?;
+            open_start(&mut asks, open)?;
             let index = AsksIndex::new(&asks)?.with_cut(cut);
             println!(
                 "asks-ablate slots={} question_last={} fitted_on={} shared={} pairs={} margin={} floor={} floor_other={} asking_floor={}",
@@ -171,10 +204,11 @@ fn run(args: &[String]) -> Result<(), String> {
             if out.exists() {
                 return Err(format!("{}: exists; a fit never writes over a table", out.display()));
             }
-            let (asks, lines) = fit(&tokens, &kit.marks, vocab, &kit.places, kit.tokens_sha256.clone())?;
+            let (mut asks, lines) = fit(&tokens, &kit.marks, vocab, &kit.places, kit.tokens_sha256.clone())?;
             for line in &lines {
                 println!("{line}");
             }
+            open_start(&mut asks, open)?;
             let index = AsksIndex::new(&asks)?;
             let (counts, _) = census(&tokens, &kit.marks, &kit.places, &index, &asks.forms, 0);
             for line in counts.lines("fitted") {
@@ -188,6 +222,9 @@ fn run(args: &[String]) -> Result<(), String> {
             println!("asks-fit wrote {} fitted_on={}", out.display(), asks.tokens_sha256);
         }
         "census" => {
+            if open {
+                return Err("census reads a written table: --open-reply-start 1 is for fit or ablate".to_owned());
+            }
             let asks: PlaceAsks = read_json(&flag(args, "--asks")?)?;
             if asks.marks != kit.marks || asks.vocab != vocab {
                 return Err("the asks were fitted with other marks or another vocabulary than this split's".to_owned());
@@ -242,6 +279,17 @@ mod tests {
             assert!(cut(&args(refused)).is_err(), "{refused}");
         }
         assert_eq!(flags(&args("ablate --held a --held-kit k --held b"), "--held"), vec![PathBuf::from("a"), PathBuf::from("b")]);
+    }
+
+    #[test]
+    fn the_open_reply_start_flag_is_0_unless_given_1() {
+        let args = |text: &str| text.split(' ').map(str::to_owned).collect::<Vec<String>>();
+        assert_eq!(open_reply_start(&args("fit --out a")), Ok(false));
+        assert_eq!(open_reply_start(&args("fit --open-reply-start 0")), Ok(false));
+        assert_eq!(open_reply_start(&args("fit --open-reply-start 1")), Ok(true));
+        for refused in ["fit --open-reply-start", "fit --open-reply-start 2", "fit --open-reply-start yes"] {
+            assert!(open_reply_start(&args(refused)).is_err(), "{refused}");
+        }
     }
 
     #[test]

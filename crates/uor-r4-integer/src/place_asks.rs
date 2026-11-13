@@ -187,6 +187,31 @@ pub struct PlaceAsks {
     pub forms: Vec<Vec<u32>>,
 }
 
+impl PlaceAsks {
+    /// Set the pair of the model marker's last two tokens open (claude-362): a reply's first row
+    /// is the marker's last token, so a place the asks find is offered, and spoken, from it. The
+    /// row of that pair is replaced or put in its sorted place. Returns what the pair was before:
+    /// counted open, counted not open, or not counted. A marker of fewer than two tokens has no
+    /// such pair and is an error.
+    pub fn open_reply_start(&mut self) -> Result<Option<bool>, String> {
+        let marker = &self.marks.assistant;
+        let [a, b] = match marker.len().checked_sub(2) {
+            Some(n) => [marker[n], marker[n + 1]],
+            None => return Err(format!("the model marker has {} tokens and a reply start pair needs two", marker.len())),
+        };
+        let id = |t: u32| i32::try_from(t).map_err(|_| format!("the model marker names token {t}"));
+        let key = [id(a)?, id(b)?];
+        if let Some(row) = self.opens.iter_mut().find(|row| row[..2] == key) {
+            let before = row[2] != 0;
+            row[2] = 1;
+            return Ok(Some(before));
+        }
+        let at = self.opens.partition_point(|row| row[..2] < key[..]);
+        self.opens.insert(at, [key[0], key[1], 1]);
+        Ok(None)
+    }
+}
+
 /// What a question finds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Asked {
@@ -1096,5 +1121,41 @@ mod tests {
         let mut bad = asks;
         bad.not_told = vec![NOT, TOLD];
         assert!(AsksIndex::new(&bad).is_err());
+    }
+
+    #[test]
+    fn the_reply_start_pair_is_set_open_once_and_nothing_else_moves() {
+        let (x, places) = corpus(240);
+        let (mut asks, _) = fit(&x, &marks(), VOCAB, &places, "test".to_owned()).expect("the fit");
+        asks.marks.assistant = vec![SEP, MODEL];
+        let pair = [SEP as i32, MODEL as i32];
+        // Three rows around the pair's sorted place, the pair counted not open among them.
+        asks.opens = vec![[1, 7, 1], [pair[0], pair[1], 0], [pair[0], pair[1] + 1, 0]];
+        let mut once = asks.clone();
+        assert_eq!(once.open_reply_start(), Ok(Some(false)));
+        assert_eq!(once.opens, vec![[1, 7, 1], [pair[0], pair[1], 1], [pair[0], pair[1] + 1, 0]]);
+        let mut twice = once.clone();
+        assert_eq!(twice.open_reply_start(), Ok(Some(true)));
+        assert_eq!(twice, once);
+        // Every other field is the fit's.
+        let mut back = once.clone();
+        back.opens = asks.opens.clone();
+        assert_eq!(back, asks);
+        assert_eq!(AsksIndex::new(&once).expect("the index").opens(SEP, MODEL), Some(true));
+        // A pair the fit never counted is put in its sorted place.
+        let mut missing = asks.clone();
+        missing.opens.remove(1);
+        assert_eq!(missing.open_reply_start(), Ok(None));
+        assert_eq!(missing.opens, once.opens);
+        let mut last = asks.clone();
+        last.opens = vec![[1, 7, 1]];
+        assert_eq!(last.open_reply_start(), Ok(None));
+        assert_eq!(last.opens, vec![[1, 7, 1], [pair[0], pair[1], 1]]);
+        // A marker of one token has no pair, and the table is left as it was.
+        let mut one = asks.clone();
+        one.marks.assistant = vec![MODEL];
+        assert!(one.open_reply_start().is_err());
+        one.marks.assistant = asks.marks.assistant.clone();
+        assert_eq!(one, asks);
     }
 }

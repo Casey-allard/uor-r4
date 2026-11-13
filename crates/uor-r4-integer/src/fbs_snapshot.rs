@@ -5117,7 +5117,12 @@ mod place_asked_tests {
 
     /// The same asks with fitted open pairs: `[token before, token, 1 or 0]`.
     fn asks_with(opens: Vec<[i32; 3]>) -> AsksIndex {
-        AsksIndex::new(&PlaceAsks {
+        AsksIndex::new(&table(opens)).expect("the asks")
+    }
+
+    /// The table of [`asks_with`].
+    fn table(opens: Vec<[i32; 3]>) -> PlaceAsks {
+        PlaceAsks {
             tokens_sha256: "test".to_owned(),
             marks: marks(),
             vocab: 20,
@@ -5134,8 +5139,7 @@ mod place_asked_tests {
             asking_floor: 5,
             not_told: vec![17, 18, EOS],
             forms: vec![vec![17, 18, EOS]],
-        })
-        .expect("the asks")
+        }
     }
 
     fn rows(tokens: &[u32], speak: bool) -> Vec<PlaceRow> {
@@ -5218,5 +5222,63 @@ mod place_asked_tests {
         let (image, mut state) = (image(), PlaceState::default());
         let rows: Vec<PlaceRow> = (0..TOLD.len()).map(|t| state.advance(&TOLD[..=t], &image, |_| (t == 15).then_some(4))).collect();
         assert!(rows.iter().all(|row| row.speak.is_none() && row.held.is_none()));
+    }
+
+    /// The first token of a two-token model marker, as a real marker is several (claude-362).
+    const LEAD: u32 = 6;
+
+    /// The rows of `tokens` read with the model marker "6 <m>", and with its last two tokens set
+    /// open in the asks when `open`.
+    fn rows_led(tokens: &[u32], open: bool) -> Vec<PlaceRow> {
+        let mut image = image();
+        image.marks.assistant = vec![LEAD, MODEL];
+        let mut table = table(Vec::new());
+        table.marks = image.marks.clone();
+        if open {
+            assert_eq!(table.open_reply_start(), Ok(None));
+        }
+        let (asks, mut state) = (AsksIndex::new(&table).expect("the asks"), PlaceState::default());
+        (0..tokens.len()).map(|t| state.advance_asked(&tokens[..=t], &image, &asks, true)).collect()
+    }
+
+    // "<u> name is V1 V2 . </s> <sep> 6 <m> ok </s> <sep> <u> what ? <sep> 6 <m> V1 V2 . </s>"
+    const LED: [u32; 24] = [BOS, USER, 9, IS, 11, 12, DOT, EOS, SEP, LEAD, MODEL, 16, EOS, SEP, USER, WHAT, ASK, SEP, LEAD, MODEL, 11, 12, DOT, EOS];
+
+    #[test]
+    fn an_open_reply_start_speaks_the_found_value_from_the_markers_last_row() {
+        let rows = rows_led(&LED, true);
+        // The marker's last row holds the place and, its pair open, is offered and speaks it.
+        assert_eq!(rows[19].held, Some(4));
+        assert_eq!((rows[19].offer, rows[19].speak), (rows[19].held, Some(LED[4])));
+        // The reply's value follows it, and the read steps on to the value's next token.
+        assert_eq!((rows[20].offer, rows[20].speak), (Some(5), Some(12)));
+        assert!(rows[21..].iter().all(|row| row.speak.is_none()));
+        // The first reply answers a statement: its marker's row holds and speaks nothing.
+        assert!(rows[..19].iter().all(|row| row.held.is_none() && row.speak.is_none()));
+    }
+
+    #[test]
+    fn an_open_reply_start_speaks_nothing_when_the_asks_find_nothing() {
+        // "<u> name is V1 . <sep> 6 <m> ok </s> <sep> <u> else else <sep> 6 <m> ok </s>"
+        let tokens = [BOS, USER, 9, IS, 11, DOT, SEP, LEAD, MODEL, 16, EOS, SEP, USER, 19, 19, SEP, LEAD, MODEL, 16, EOS];
+        let rows = rows_led(&tokens, true);
+        assert_eq!((rows[17].held, rows[17].offer, rows[17].speak), (None, None, None));
+        assert!(rows.iter().all(|row| row.speak.is_none() && row.held.is_none()));
+    }
+
+    #[test]
+    fn an_open_reply_start_leaves_the_stored_reply_as_it_was() {
+        // "<u> name is V1 . <sep> 6 <m> ok </s> <sep> <u> what else <sep> 6 <m> S1 S2 </s>"
+        let tokens = [BOS, USER, 9, IS, 11, DOT, SEP, LEAD, MODEL, 16, EOS, SEP, USER, WHAT, 19, SEP, LEAD, MODEL, 17, 18, EOS];
+        let (open, shut) = (rows_led(&tokens, true), rows_led(&tokens, false));
+        assert_eq!(open[17..].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(17), Some(18), Some(EOS), None]);
+        assert_eq!(open, shut);
+    }
+
+    #[test]
+    fn without_the_open_pair_the_markers_last_row_offers_nothing() {
+        let rows = rows_led(&LED, false);
+        assert_eq!((rows[19].held, rows[19].offer, rows[19].speak), (Some(4), None, None));
+        assert!(rows.iter().all(|row| row.speak.is_none()));
     }
 }
