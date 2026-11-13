@@ -1203,6 +1203,16 @@ impl IntegerStackModel {
             .and_then(|hamming| hamming.place_asks())
     }
 
+    /// The counted table [`Self::set_place_asks`] set, as the place register reads it (the same
+    /// index object), and the place read's marks it was checked against (claude-367). `None`
+    /// with no table set.
+    pub fn place_asks_index(&self) -> Option<(&crate::place_asks::AsksIndex, &crate::fbs_snapshot::PlaceMarks)> {
+        self.fbs
+            .as_ref()
+            .and_then(|fbs| fbs.hamming.as_ref())
+            .and_then(|hamming| hamming.place_asks_index())
+    }
+
     /// The rule this session's copy heads are served under (claude-345): the artifact's own,
     /// `LatestExact` when its record sets `copy_latest`, `LongestAfterOpening` when it names a
     /// reply marker (`copy_longest`, claude-357), unless [`Self::set_copy_rule`] changed it.

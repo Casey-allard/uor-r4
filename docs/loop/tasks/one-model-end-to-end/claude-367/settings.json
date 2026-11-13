@@ -1,0 +1,13 @@
+{
+  "unit": "claude-367",
+  "cap": 4294967295,
+  "keep": "1/32",
+  "floor": 1500,
+  "note": "cap 4294967295 is the type's largest value: no pair is refused for being common. floor is in thousandths of one expert's whole vote.",
+  "set_on": "the seed-23 panel, read by claude-366; hold-out on; grids in grid23-caps.tsv and grid23.tsv beside this file",
+  "table_file_sha256": "21d458fc374a88cb8b367a4edcf0c524ba73562bb420e6e7ba11271a714a6ad0",
+  "table_counted_on_tokens_sha256": "e25775f3aad4548e238736e02a3185e6c57062b8962a4147aafb655a6d865f32",
+  "counted_asks_sha256": "420e71c3b4a6fe0c1f958131f9c42f4b5064b90b49af19cb1bbc0860c33b53da",
+  "form_rule_sha256": "1208bca4e0b32f9a84e4ece553c00df6a7f0b921bc9a09a0b809c3793247d569",
+  "seed_23_good_everyday_replies_of_235_held_out": {"p-s1": [145, 185], "p-s2": [144, 182], "p-s3": [142, 183]}
+}

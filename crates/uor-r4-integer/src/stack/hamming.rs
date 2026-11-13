@@ -1388,6 +1388,12 @@ impl ServedHamming {
         self.place.as_ref().and_then(|place| place.asks.as_ref()).map(|&(_, speak)| speak)
     }
 
+    /// The asks' index the place register reads, and the place read's marks, which the asks
+    /// were checked to equal when they were set (claude-367). `None` with no asks set.
+    pub(crate) fn place_asks_index(&self) -> Option<(&AsksIndex, &crate::fbs_snapshot::PlaceMarks)> {
+        self.place.as_ref().and_then(|place| place.asks.as_ref().map(|(asks, _)| (asks, &place.image.marks)))
+    }
+
     /// Whether any read serves type heads, whose per-position payloads a session keeps.
     pub(crate) fn has_type_heads(&self) -> bool {
         self.reads.iter().any(|r| r.types.is_some())

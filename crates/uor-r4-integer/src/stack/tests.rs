@@ -8899,6 +8899,196 @@ fn stack_chat_serves_a_reply_again_when_its_found_place_was_never_offered() -> C
     Ok(())
 }
 
+/// claude-367: pair experts counted on the place trunk's vocabulary of 512, each turn answered
+/// by the reply `44 45`, and the check's setting: experts seen up to 8 times vote, a reply keeps
+/// half the top vote to stand, no hold-out.
+fn pair_experts(turns: &[&[u32]]) -> (crate::pair_experts::PairExperts, crate::pair_experts::Setting) {
+    let occurrences: Vec<_> = turns.iter().map(|turn| crate::pair_experts::Occurrence { turn, reply: &[44, 45] }).collect();
+    let table = crate::pair_experts::PairExperts::count(512, [0; 32], &occurrences).expect("the experts are counted");
+    let setting = crate::pair_experts::Setting { cap: 8, keep: crate::pair_experts::Ratio { num: 1, den: 2 }, hold_out: false, floor: 0 };
+    (table, setting)
+}
+
+/// claude-367: a reply to `history` and the ids its chat emitted, with the pair experts set when
+/// given.
+fn pair_reply(chat: &mut super::StackChat<'_>, history: &[u32], max: usize) -> Result<(super::StackReply, Vec<u32>), super::StackChatError> {
+    let mut emitted = Vec::new();
+    let reply = chat.reply_history_with(history, max, |id, _| {
+        emitted.push(id);
+        Ok(())
+    })?;
+    Ok((reply, emitted))
+}
+
+/// claude-367: a user turn the counted table finds nothing for, after the first user turn of
+/// `PLACE_TALK`: `20 22`, then the role marker.
+fn pair_untold() -> Vec<u32> {
+    let mut history = PLACE_TALK[..14].to_vec();
+    history.extend([20, 22, PLACE_SEP, PLACE_MODEL]);
+    history
+}
+
+/// claude-367: with the pair experts off, turned off again, or holding no expert for the turn,
+/// the chat's reply, its history and its emitted ids are the plain chat's, id for id.
+#[test]
+fn stack_chat_pair_experts_off_or_without_an_expert_leave_the_reply_as_served() -> ChatTest {
+    let (_, placed, place) = place_trunk();
+    let mut model = IntegerStackModel::parse(&placed)?;
+    model.set_place_asks(&place_asks(&place, 30), true).expect("the asks are set");
+    let json = merged_tokenizer_json(model.shape().vocab);
+    let history = pair_untold();
+    let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let (want, want_emitted) = pair_reply(&mut plain, &history, 4)?;
+    assert_eq!(plain.pair_verdict(), None);
+    assert_eq!(want_emitted, want.ids);
+
+    let mut off = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    off.set_pair_experts(Some(pair_experts(&[&[20, 22]])))?;
+    off.set_pair_experts(None)?;
+    let (got, emitted) = pair_reply(&mut off, &history, 4)?;
+    assert_eq!(off.pair_verdict(), None, "turned off, the check gives no verdict");
+    assert_eq!((got.ids, got.text, got.stop, emitted), (want.ids.clone(), want.text.clone(), want.stop, want_emitted.clone()));
+    assert_eq!(off.tokens(), plain.tokens());
+
+    let mut none = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    none.set_pair_experts(Some(pair_experts(&[&[70, 71]])))?;
+    let (got, emitted) = pair_reply(&mut none, &history, 4)?;
+    assert_eq!(none.pair_verdict(), Some(crate::pair_experts::Verdict::Checked(crate::pair_experts::Check::NoExpert)));
+    assert_eq!((got.ids, got.text, got.stop, emitted), (want.ids, want.text, want.stop, want_emitted));
+    assert_eq!(none.tokens(), plain.tokens());
+    assert_eq!(none.last_reply_places(), plain.last_reply_places());
+    Ok(())
+}
+
+/// claude-367: a turn whose experts hold another reply is given that reply and the end id. It is
+/// the only thing emitted, the history holds it, no place is recorded for it, and the next turn
+/// on that history is served as a fresh chat serves the same history.
+#[test]
+fn stack_chat_pair_experts_replace_a_reply_their_turn_holds_another_for() -> ChatTest {
+    let (_, placed, place) = place_trunk();
+    let mut model = IntegerStackModel::parse(&placed)?;
+    model.set_place_asks(&place_asks(&place, 30), true).expect("the asks are set");
+    let json = merged_tokenizer_json(model.shape().vocab);
+    let history = pair_untold();
+    let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let served = plain.reply_history(&history, 4)?;
+    let eos = plain.protocol().eos_id;
+    assert_ne!(served.ids, [44, 45, eos], "the model's own reply is another");
+
+    let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    // Experts counted on another vocabulary than the model's 512 tokens are refused.
+    let (_, setting) = pair_experts(&[&[20, 22]]);
+    let other = crate::pair_experts::PairExperts::count(513, [0; 32], &[]).expect("the experts are counted");
+    let err = chat.set_pair_experts(Some((other, setting))).unwrap_err();
+    assert!(err.contains("a vocabulary of 513 tokens; the model's is 512"), "{err}");
+    chat.set_pair_experts(Some(pair_experts(&[&[20, 22]])))?;
+    let (given, emitted) = pair_reply(&mut chat, &history, 4)?;
+    assert!(matches!(chat.pair_verdict(), Some(crate::pair_experts::Verdict::Checked(crate::pair_experts::Check::Replaced { reply: 0, .. }))), "{:?}", chat.pair_verdict());
+    assert_eq!(given.ids, [44, 45, eos]);
+    assert_eq!(given.stop, super::StackStop::Eos);
+    assert_eq!(given.text, chat.protocol().reply_text(&chat.tokenizer().decode(&[44, 45])));
+    assert_eq!(emitted, given.ids, "the reply given is emitted once");
+    let mut want = history.clone();
+    want.extend_from_slice(&given.ids);
+    assert_eq!(chat.tokens(), want, "the history holds the reply given");
+    assert!(chat.last_reply_places().is_empty());
+
+    // The next turn, a told-value ask the check leaves alone, is served on that history as a
+    // fresh chat serves it.
+    let mut next = want.clone();
+    next.extend([PLACE_SEP, PLACE_USER, 20, PLACE_ASK, PLACE_SEP, PLACE_MODEL]);
+    let after = chat.reply_history(&next, 3)?;
+    assert_eq!(chat.pair_verdict(), Some(crate::pair_experts::Verdict::LeftAlone));
+    let mut fresh = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    assert_eq!(after.ids, fresh.reply_history(&next, 3)?.ids);
+    assert_eq!(chat.tokens(), fresh.tokens());
+    Ok(())
+}
+
+/// claude-367: a turn the counted table finds a told value for, and a turn that asks to have its
+/// own rest repeated, are left alone: the reply is the plain chat's although the experts hold
+/// another reply for that turn.
+#[test]
+fn stack_chat_pair_experts_leave_a_told_or_repeat_ask_alone() -> ChatTest {
+    let (_, placed, place) = place_trunk();
+    let told = PLACE_TALK[..18].to_vec();
+    let mut repeat = PLACE_TALK[..14].to_vec();
+    repeat.extend([20, 22, 23, 24, PLACE_SEP, PLACE_MODEL]);
+    let mut repeat_asks = place_asks(&place, 30);
+    repeat_asks.repeat = vec![[20, 22]];
+    for (what, asks, history, turn) in [("told", place_asks(&place, 30), told, &[20, PLACE_ASK][..]), ("repeat", repeat_asks, repeat, &[20, 22, 23, 24][..])] {
+        let mut model = IntegerStackModel::parse(&placed)?;
+        model.set_place_asks(&asks, true).expect("the asks are set");
+        let json = merged_tokenizer_json(model.shape().vocab);
+        let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+        let (want, want_emitted) = pair_reply(&mut plain, &history, 4)?;
+        let (table, setting) = pair_experts(&[turn]);
+        // Asked without the counted table, the experts would replace the reply.
+        let eos = plain.protocol().eos_id;
+        let words: Vec<u32> = want.ids.iter().copied().filter(|&id| id != eos).collect();
+        let (_, marks) = model.place_asks_index().expect("the counted table");
+        assert!(matches!(table.check_prompt(None, marks, &history, &words, setting), crate::pair_experts::Verdict::Checked(crate::pair_experts::Check::Replaced { .. })), "{what}");
+
+        let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+        chat.set_pair_experts(Some((table, setting)))?;
+        let (got, emitted) = pair_reply(&mut chat, &history, 4)?;
+        assert_eq!(chat.pair_verdict(), Some(crate::pair_experts::Verdict::LeftAlone), "{what}");
+        assert_eq!((got.ids, emitted), (want.ids, want_emitted), "{what}");
+        assert_eq!(chat.tokens(), plain.tokens(), "{what}");
+    }
+    Ok(())
+}
+
+/// claude-367: the experts' reply is given only when it and the end mark fit in the tokens the
+/// caller asked for. At two tokens the reply `44 45` and its end mark do not: the model's own
+/// reply stands id for id, the history is the plain chat's, and the verdict says there was no
+/// room. At three tokens it fits and is given.
+#[test]
+fn stack_chat_pair_experts_reply_that_does_not_fit_is_not_given() -> ChatTest {
+    let (_, placed, place) = place_trunk();
+    let mut model = IntegerStackModel::parse(&placed)?;
+    model.set_place_asks(&place_asks(&place, 30), true).expect("the asks are set");
+    let json = merged_tokenizer_json(model.shape().vocab);
+    let history = pair_untold();
+    let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let (want, want_emitted) = pair_reply(&mut plain, &history, 2)?;
+    let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    chat.set_pair_experts(Some(pair_experts(&[&[20, 22]])))?;
+    let (got, emitted) = pair_reply(&mut chat, &history, 2)?;
+    assert_eq!(chat.pair_verdict(), Some(crate::pair_experts::Verdict::NoRoom));
+    assert_eq!((got.ids, emitted), (want.ids, want_emitted));
+    assert_eq!(chat.tokens(), plain.tokens());
+
+    let mut roomy = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    roomy.set_pair_experts(Some(pair_experts(&[&[20, 22]])))?;
+    let eos = roomy.protocol().eos_id;
+    let (given, emitted) = pair_reply(&mut roomy, &history, 3)?;
+    assert_eq!(given.ids, [44, 45, eos]);
+    assert_eq!(emitted, [44, 45, eos]);
+    Ok(())
+}
+
+/// claude-367: a model with no counted table refuses the pair experts, and the refusal changes
+/// nothing: the chat serves and emits the plain chat's reply with no verdict.
+#[test]
+fn stack_chat_pair_experts_are_refused_without_a_counted_table() -> ChatTest {
+    let (_, placed, _) = place_trunk();
+    let model = IntegerStackModel::parse(&placed)?;
+    assert!(model.place_asks_index().is_none());
+    let json = merged_tokenizer_json(model.shape().vocab);
+    let history = pair_untold();
+    let mut plain = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let (want, want_emitted) = pair_reply(&mut plain, &history, 4)?;
+    let mut chat = super::StackChat::from_tokenizer_json(&model, &json, 2)?;
+    let err = chat.set_pair_experts(Some(pair_experts(&[&[20, 22]]))).unwrap_err();
+    assert!(err.contains("no counted table"), "{err}");
+    let (got, emitted) = pair_reply(&mut chat, &history, 4)?;
+    assert_eq!(chat.pair_verdict(), None);
+    assert_eq!((got.ids, emitted), (want.ids, want_emitted));
+    assert_eq!(chat.tokens(), plain.tokens());
+    Ok(())
+}
+
 /// claude-359: the asks are refused by a model with no place read, and when they were fitted
 /// with other marks or another vocabulary than the place read's. A refusal sets nothing.
 #[test]

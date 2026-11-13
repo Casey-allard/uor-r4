@@ -1,0 +1,5 @@
+model	G off	G held	D	G served	told off	told held	never-told off	never-told held	A off	A held	no end off	no end held	guards
+p-s1	137	170	+33	191	548	548	78	78	104	101	30	10	hold
+p-s2	135	171	+36	193	548	548	78	78	104	102	32	8	hold
+p-s3	134	170	+36	194	548	548	78	78	104	103	18	10	hold
+sum of D +105 over 3 models; M = +35.0; guards missed on 0 models; the bar reads: Adds

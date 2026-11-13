@@ -1,0 +1,7 @@
+model	setting	cap	keep	floor	general	good_before	good_after	newly_good	lost	noturn	alone	noexpert	stands	unsure	replaced	recall_replaced	nevertold_replaced	repeat_replaced
+p-s1	held	4294967295	1/32	1500	239	137	170	37	4	0	4	0	146	31	58	1	0	0
+p-s1	served	4294967295	1/32	1500	239	137	191	54	0	0	4	0	156	17	62	1	0	0
+p-s2	held	4294967295	1/32	1500	239	135	171	40	4	0	4	0	144	29	62	1	0	0
+p-s2	served	4294967295	1/32	1500	239	135	193	58	0	0	4	0	153	16	66	1	0	0
+p-s3	held	4294967295	1/32	1500	239	134	170	40	4	0	4	0	139	32	64	1	0	0
+p-s3	served	4294967295	1/32	1500	239	134	194	60	0	0	4	0	149	18	68	1	0	0

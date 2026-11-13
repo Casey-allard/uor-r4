@@ -27,6 +27,8 @@ pub mod fbs_snapshot;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod place_asks;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod pair_experts;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod geometric_potential;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod geometric_span;

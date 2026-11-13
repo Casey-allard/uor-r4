@@ -1,0 +1,18 @@
+# claude-367: the seed-24 panel, written 2026-11-13T19:29:42Z by claude-356's writer, after the settings commit and before any served reply is read
+settings commit dab9e1160c140bcf872e044cc2b5f82a946462cf
+settings {"unit":"claude-367","cap":4294967295,"keep":"1/32","floor":1500,"note":"cap 4294967295 is the type's largest value: no pair is refused for being common. floor is in thousandths of one expert's whole vote.","set_on":"the seed-23 panel, read by claude-366; hold-out on; grids in grid23-caps.tsv and grid23.tsv beside this file","table_file_sha256":"21d458fc374a88cb8b367a4edcf0c524ba73562bb420e6e7ba11271a714a6ad0","table_counted_on_tokens_sha256":"e25775f3aad4548e238736e02a3185e6c57062b8962a4147aafb655a6d865f32","counted_asks_sha256":"420e71c3b4a6fe0c1f958131f9c42f4b5064b90b49af19cb1bbc0860c33b53da","form_rule_sha256":"1208bca4e0b32f9a84e4ece553c00df6a7f0b921bc9a09a0b809c3793247d569","seed_23_good_everyday_replies_of_235_held_out":{"p-s1":[145,185],"p-s2":[144,182],"p-s3":[142,183]}}
+generator 3974e5d5a952d4aaaf5fd1e64f1009bbf0f6725cb2e9972309b32cd88c13e97f
+builder fd7b888cc7995870d3237f4e2a913167a755851c8c09e1c229f134baa2a3b069
+1b44a8dcbd5acc404931ea9af1b4a423d360a600e83ed9c20a2fa476cf3362a6 panel-off/train/tokens.u16
+74469f11fc0f92e1096c7f24e1d2a613c747697073bb37d186023ec54869095e panel-off/train/response_mask.u8
+0fe36be93c99bb48f2c4ca699ce7cb67bc57030ee91560a3d7065f570cdcd2d6 panel-oracle/train/tokens.u16
+c7d6d46f13dfa986e2c08f584c6e949c8fd05d272185a79bad0767524055738e panel-places.json
+1ca517bafa4cb472eb872510203eb1791a42af68ffe9073ee6f698616396a9d1 prompts-256/prompts-p.json
+fd8e85d73d37886abcb3c28bacf4714fe1a0ed95e293c29f3d3adc21556d3eea prompts-192/prompts-p.json
+f3d4099b5f195a4287776e4f62abecb9f32c7f808e1636e676159759f8f5c268 panel-24-samples-read.json
+rows written 990; equal to an older panel's 8; read 982
+prompts that start at the start mark and hold no other: 982
+420e71c3b4a6fe0c1f958131f9c42f4b5064b90b49af19cb1bbc0860c33b53da asks-floors.json
+21d458fc374a88cb8b367a4edcf0c524ba73562bb420e6e7ba11271a714a6ad0 pairs-train.uorpex
+1208bca4e0b32f9a84e4ece553c00df6a7f0b921bc9a09a0b809c3793247d569 form-367.sh
+e53a9ef3dcc3b2ef29fcb3533e4074149785adf818a2f307fe07b030ef8f4774 bin/place-asks

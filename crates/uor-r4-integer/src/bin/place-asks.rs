@@ -11,7 +11,27 @@
 //! place-asks forms  --tokens TRAIN/tokens.u16 --kit train-places.json --asks asks.json \
 //!                   --rule tokens|frequent [--panel NAME=PANEL/tokens.u16,panel-places.json]... \
 //!                   [--out with-floors.json]
+//! place-asks experts --tokens TRAIN/tokens.u16 --kit train-places.json --out pairs.uorpex
+//! place-asks experts-check --tokens TRAIN/tokens.u16 --kit train-places.json --experts pairs.uorpex \
+//!                   --asks asks.json --prompts samples.json --rows rows.tsv --hold-out 0|1 \
+//!                   --caps 300,2000 --keeps 1/2,1/4 --floors 0,1500 [--out PREFIX]
 //! ```
+//!
+//! `experts` (claude-367) counts the pair experts' table on a split: each reply the place
+//! register sees answer a user turn, taken up to (not including) its end mark, with that turn's
+//! content. A reply that meets a start mark or the end of the tokens first is dropped, as is an
+//! empty turn or reply. The table is tagged with the kit's tokens and never written over a file.
+//!
+//! `experts-check` (claude-367) replays a panel's finished replies through the one check the
+//! served chat applies, under each cap and keep share of the grid, and prints how many general
+//! replies end and are the reference or a reply their exact turn was counted with, before and
+//! after the check. The table must be counted on `--tokens`; the asks are read whole, as the
+//! served model reads them. `--rows` holds six columns: the prompt's index in `--prompts`, the
+//! kind (general, recall, nevertold or repeat), the last user turn's ids, the reply's ids without
+//! its end mark, whether it ends (1 or 0) and the reference's ids. With one cap, one keep and
+//! `--out` it writes `PREFIX.jsonl`, each final reply's ids with the end mark when it ends, and
+//! `PREFIX.rows.tsv`, the rows with the final reply and three more columns: the verdict, the
+//! reply's vote and the top vote (0 and 0 when the experts were not asked).
 //!
 //! `repeat` (claude-364) counts the lead-in pairs on the tokens a written table was fitted on:
 //! the pairs of neighbouring tokens in a user turn after which the rest of the turn is the
@@ -49,7 +69,8 @@ use std::process::ExitCode;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use uor_r4_integer::fbs_snapshot::PlaceMarks;
-use uor_r4_integer::place_asks::{census, fit, fit_cut, fit_forms, fit_repeat, AsksIndex, Cut, FormRule, PlaceAsks, ASKS_FRAME};
+use uor_r4_integer::pair_experts::{asked_turn, Check, Occurrence, PairExperts, Ratio, Setting, Verdict};
+use uor_r4_integer::place_asks::{ask_cases, census, fit, fit_cut, fit_forms, fit_repeat, AsksIndex, Cut, FormRule, PlaceAsks, ASKS_FRAME};
 
 const HEADER: usize = 64;
 
@@ -185,8 +206,300 @@ fn open_start(asks: &mut PlaceAsks, open: bool) -> Result<(), String> {
     Ok(())
 }
 
+/// The 32 bytes a kit's `tokens_sha256` names.
+fn tokens_tag(text: &str) -> Result<[u8; 32], String> {
+    hex::decode(text).ok().and_then(|bytes| <[u8; 32]>::try_from(bytes).ok()).ok_or_else(|| format!("tokens_sha256 {text}: not 32 bytes of hex"))
+}
+
+/// The cases `ask_cases` finds and the training replies `experts` counts: each case's turn
+/// content and its reply up to, not including, the end mark. A reply that meets a start mark or
+/// the end of the tokens before its end mark is dropped, as is an empty turn or reply.
+fn occurrences<'a>(tokens: &'a [u32], marks: &PlaceMarks) -> (usize, Vec<Occurrence<'a>>) {
+    let cases = ask_cases(tokens, marks);
+    let mut kept = Vec::new();
+    for case in &cases {
+        let turn = &tokens[case.asked.clone()];
+        let rest = &tokens[case.reply..];
+        let Some(end) = rest.iter().position(|&x| x == marks.eos || x == marks.bos) else {
+            continue;
+        };
+        let reply = &rest[..end];
+        if rest[end] != marks.eos || turn.is_empty() || reply.is_empty() {
+            continue;
+        }
+        kept.push(Occurrence { turn, reply });
+    }
+    (cases.len(), kept)
+}
+
+/// The kind of a panel row.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Kind {
+    General,
+    Recall,
+    NeverTold,
+    Repeat,
+}
+
+/// One line of `--rows`: a panel prompt's finished reply.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Row {
+    /// The six columns as read.
+    columns: Vec<String>,
+    i: usize,
+    kind: Kind,
+    turn: Vec<u32>,
+    reply: Vec<u32>,
+    ends: bool,
+    reference: Vec<u32>,
+}
+
+fn parse_ids(text: &str, what: &str) -> Result<Vec<u32>, String> {
+    if text.is_empty() {
+        return Ok(Vec::new());
+    }
+    text.split(' ').map(|id| id.parse().map_err(|_| format!("{what}: {id:?} is not a token id"))).collect()
+}
+
+/// Line `n` (from 1) of `--rows`.
+fn parse_row(line: &str, n: usize) -> Result<Row, String> {
+    let columns: Vec<&str> = line.split('\t').collect();
+    if columns.len() != 6 {
+        return Err(format!("rows line {n}: {} columns, not 6", columns.len()));
+    }
+    let what = |c: usize| format!("rows line {n} column {c}");
+    let i = columns[0].parse().map_err(|_| format!("{}: {:?} is not a prompt index", what(1), columns[0]))?;
+    let kind = match columns[1] {
+        "general" => Kind::General,
+        "recall" => Kind::Recall,
+        "nevertold" => Kind::NeverTold,
+        "repeat" => Kind::Repeat,
+        other => return Err(format!("{}: kind {other:?} is not general, recall, nevertold or repeat", what(2))),
+    };
+    let ends = match columns[4] {
+        "1" => true,
+        "0" => false,
+        other => return Err(format!("{}: ends {other:?} is not 1 or 0", what(5))),
+    };
+    Ok(Row {
+        i,
+        kind,
+        turn: parse_ids(columns[2], &what(3))?,
+        reply: parse_ids(columns[3], &what(4))?,
+        ends,
+        reference: parse_ids(columns[5], &what(6))?,
+        columns: columns.iter().map(|c| (*c).to_owned()).collect(),
+    })
+}
+
+/// Every row names a prompt, and where the prompt opens a model turn its last user turn is the
+/// row's turn column: the first row that breaks either is refused.
+fn check_rows(rows: &[Row], prompts: &[Vec<u32>], marks: &PlaceMarks) -> Result<(), String> {
+    let mut named = std::collections::BTreeSet::new();
+    for (n, row) in rows.iter().enumerate() {
+        let prompt = prompts.get(row.i).ok_or_else(|| format!("rows line {}: prompt {} of {}", n + 1, row.i, prompts.len()))?;
+        if !named.insert(row.i) {
+            return Err(format!("rows line {}: prompt {} is named twice", n + 1, row.i));
+        }
+        if let Some((asked, _)) = asked_turn(prompt, marks) {
+            if prompt[asked] != row.turn[..] {
+                return Err(format!("rows line {} (prompt {}): the turn column is not the prompt's last user turn", n + 1, row.i));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The reply a row ends with under a verdict: the table's top reply, which ends, when the
+/// experts replace the row's reply, and otherwise the row's own.
+fn final_reply(table: &PairExperts, verdict: Verdict, reply: &[u32], ends: bool) -> (Vec<u32>, bool) {
+    match verdict {
+        Verdict::Checked(Check::Replaced { reply: r, .. }) => (table.reply(r).expect("a replacing reply is one of the table's").to_vec(), true),
+        _ => (reply.to_vec(), ends),
+    }
+}
+
+fn verdict_name(verdict: Verdict) -> &'static str {
+    match verdict {
+        Verdict::NoTurn => "noturn",
+        Verdict::LeftAlone => "alone",
+        Verdict::Checked(Check::NoExpert) => "noexpert",
+        Verdict::Checked(Check::Stands { .. }) => "stands",
+        Verdict::Checked(Check::Unsure { .. }) => "unsure",
+        Verdict::Checked(Check::Replaced { .. }) => "replaced",
+        Verdict::NoRoom => "noroom",
+    }
+}
+
+/// The reply's vote and the top vote of a checked row; 0 and 0 when the experts were not asked
+/// or the turn has none.
+fn votes_of(verdict: Verdict) -> (u64, u64) {
+    match verdict {
+        Verdict::Checked(Check::Stands { vote, top }) | Verdict::Checked(Check::Unsure { vote, top }) | Verdict::Checked(Check::Replaced { vote, top, .. }) => (vote, top),
+        _ => (0, 0),
+    }
+}
+
+/// A general reply is good when it ends and is the reference or a reply its exact turn was
+/// counted with.
+fn good(table: &PairExperts, row: &Row, reply: &[u32], ends: bool) -> bool {
+    ends && (reply == row.reference.as_slice() || table.turn_holds(&row.turn, reply))
+}
+
+/// What one setting of the grid does to the rows.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct Tally {
+    general: usize,
+    good_before: usize,
+    good_after: usize,
+    newly_good: usize,
+    lost: usize,
+    noturn: usize,
+    alone: usize,
+    noexpert: usize,
+    stands: usize,
+    unsure: usize,
+    replaced: usize,
+    recall_replaced: usize,
+    nevertold_replaced: usize,
+    repeat_replaced: usize,
+}
+
+const GRID_HEADER: &str = "cap\tkeep\tfloor\tgeneral\tgood_before\tgood_after\tnewly_good\tlost\tnoturn\talone\tnoexpert\tstands\tunsure\treplaced\trecall_replaced\tnevertold_replaced\trepeat_replaced";
+
+impl Tally {
+    fn line(&self, setting: Setting) -> String {
+        let counts = [
+            self.general,
+            self.good_before,
+            self.good_after,
+            self.newly_good,
+            self.lost,
+            self.noturn,
+            self.alone,
+            self.noexpert,
+            self.stands,
+            self.unsure,
+            self.replaced,
+            self.recall_replaced,
+            self.nevertold_replaced,
+            self.repeat_replaced,
+        ];
+        let counts: Vec<String> = counts.iter().map(usize::to_string).collect();
+        format!("{}\t{}/{}\t{}\t{}", setting.cap, setting.keep.num, setting.keep.den, setting.floor, counts.join("\t"))
+    }
+}
+
+/// One row's verdict and the reply it ends with.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Outcome {
+    verdict: Verdict,
+    reply: Vec<u32>,
+    ends: bool,
+}
+
+/// Replays every row through the check under one setting. The rows were checked against the
+/// prompts first (`check_rows`).
+fn replay(table: &PairExperts, asks: Option<&AsksIndex>, marks: &PlaceMarks, prompts: &[Vec<u32>], rows: &[Row], setting: Setting) -> (Tally, Vec<Outcome>) {
+    let mut tally = Tally::default();
+    let mut outcomes = Vec::with_capacity(rows.len());
+    for row in rows {
+        let verdict = table.check_prompt(asks, marks, &prompts[row.i], &row.reply, setting);
+        let (reply, ends) = final_reply(table, verdict, &row.reply, row.ends);
+        let replaced = matches!(verdict, Verdict::Checked(Check::Replaced { .. }));
+        match row.kind {
+            Kind::General => {
+                tally.general += 1;
+                let before = good(table, row, &row.reply, row.ends);
+                let after = good(table, row, &reply, ends);
+                tally.good_before += usize::from(before);
+                tally.good_after += usize::from(after);
+                tally.newly_good += usize::from(after && !before);
+                tally.lost += usize::from(before && !after);
+                match verdict {
+                    Verdict::NoTurn => tally.noturn += 1,
+                    Verdict::LeftAlone => tally.alone += 1,
+                    Verdict::Checked(Check::NoExpert) => tally.noexpert += 1,
+                    Verdict::Checked(Check::Stands { .. }) | Verdict::NoRoom => tally.stands += 1,
+                    Verdict::Checked(Check::Unsure { .. }) => tally.unsure += 1,
+                    Verdict::Checked(Check::Replaced { .. }) => tally.replaced += 1,
+                }
+            }
+            Kind::Recall => tally.recall_replaced += usize::from(replaced),
+            Kind::NeverTold => tally.nevertold_replaced += usize::from(replaced),
+            Kind::Repeat => tally.repeat_replaced += usize::from(replaced),
+        }
+        outcomes.push(Outcome { verdict, reply, ends });
+    }
+    (tally, outcomes)
+}
+
+/// The text of `PREFIX.jsonl` and `PREFIX.rows.tsv` for one setting's outcomes.
+fn outputs(rows: &[Row], outcomes: &[Outcome], eos: u32) -> (String, String) {
+    let (mut jsonl, mut tsv) = (String::new(), String::new());
+    for (row, outcome) in rows.iter().zip(outcomes) {
+        let mut ids: Vec<String> = outcome.reply.iter().map(u32::to_string).collect();
+        let reply = ids.join(" ");
+        if outcome.ends {
+            ids.push(eos.to_string());
+        }
+        jsonl.push_str(&format!("{{\"i\":{},\"ids\":[{}]}}\n", row.i, ids.join(",")));
+        let ends = if outcome.ends { "1" } else { "0" };
+        let c = &row.columns;
+        let (vote, top) = votes_of(outcome.verdict);
+        tsv.push_str(&format!("{}\t{}\t{}\t{reply}\t{ends}\t{}\t{}\t{vote}\t{top}\n", c[0], c[1], c[2], c[5], verdict_name(outcome.verdict)));
+    }
+    (jsonl, tsv)
+}
+
+/// The grid of `experts-check`: `--caps`, `--keeps`, `--floors` and `--hold-out`. A floor is in
+/// thousandths of one expert's whole vote.
+fn grid(args: &[String]) -> Result<(Vec<u32>, Vec<Ratio>, Vec<u32>, bool), String> {
+    let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str).ok_or_else(|| format!("{name} takes a value"));
+    let caps = value("--caps")?.split(',').map(|cap| cap.parse().map_err(|_| format!("--caps {cap}: not a count"))).collect::<Result<Vec<u32>, String>>()?;
+    let keeps = value("--keeps")?
+        .split(',')
+        .map(|keep| {
+            let (num, den) = keep.split_once('/').ok_or_else(|| format!("--keeps {keep}: NUM/DEN"))?;
+            match (num.parse(), den.parse()) {
+                (Ok(num), Ok(den)) if den > 0 && num <= den => Ok(Ratio { num, den }),
+                _ => Err(format!("--keeps {keep}: NUM/DEN with DEN at least 1 and NUM at most DEN")),
+            }
+        })
+        .collect::<Result<Vec<Ratio>, String>>()?;
+    let hold_out = match value("--hold-out")? {
+        "0" => false,
+        "1" => true,
+        other => return Err(format!("--hold-out {other}: 0 or 1")),
+    };
+    let floors = value("--floors")?.split(',').map(|floor| floor.parse().map_err(|_| format!("--floors {floor}: not a count of thousandths"))).collect::<Result<Vec<u32>, String>>()?;
+    Ok((caps, keeps, floors, hold_out))
+}
+
+/// The file made from `path` with `suffix` added, refused when one is there.
+fn new_file(path: &Path, suffix: &str) -> Result<PathBuf, String> {
+    let mut name = path.as_os_str().to_owned();
+    name.push(suffix);
+    let path = PathBuf::from(name);
+    if path.exists() {
+        return Err(format!("{}: exists; a replay never writes over a file", path.display()));
+    }
+    Ok(path)
+}
+
+fn write_new(path: &Path, text: &[u8]) -> Result<(), String> {
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(|e| format!("{}: {e}; a file is never written over", path.display()))?;
+    file.write_all(text).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// A panel sample; keys other than the prompt are not read.
+#[derive(Deserialize)]
+struct Sample {
+    prompt: Vec<u32>,
+}
+
 fn run(args: &[String]) -> Result<(), String> {
-    let mode = args.first().map(String::as_str).ok_or("usage: place-asks fit|census|ablate|repeat|forms ...")?;
+    let mode = args.first().map(String::as_str).ok_or("usage: place-asks fit|census|ablate|repeat|forms|experts|experts-check ...")?;
     let open = open_reply_start(args)?;
     let (tokens, vocab, kit) = split(&flag(args, "--tokens")?, &flag(args, "--kit")?)?;
     match mode {
@@ -363,7 +676,80 @@ fn run(args: &[String]) -> Result<(), String> {
                 println!("asks-forms wrote {} floors={} fitted_on={}", out.display(), asks.ask_floors.len(), asks.tokens_sha256);
             }
         }
-        other => return Err(format!("unknown mode {other}: fit, census, ablate, repeat or forms")),
+        "experts" => {
+            if open {
+                return Err("experts reads no asks: --open-reply-start 1 is for fit or ablate".to_owned());
+            }
+            let out = flag(args, "--out")?;
+            if out.exists() {
+                return Err(format!("{}: exists; a table is never written over", out.display()));
+            }
+            let tag = tokens_tag(&kit.tokens_sha256)?;
+            let (cases, kept) = occurrences(&tokens, &kit.marks);
+            let table = PairExperts::count(vocab, tag, &kept)?;
+            let bytes = table.to_bytes();
+            write_new(&out, &bytes)?;
+            println!(
+                "pair-experts wrote {} cases={cases} dropped={} counted={} experts={} replies={} turns={} entries={} bytes={} sha256={} tokens={}",
+                out.display(),
+                cases - kept.len(),
+                kept.len(),
+                table.experts(),
+                table.replies(),
+                table.turns(),
+                table.entries(),
+                bytes.len(),
+                table.sha256(),
+                kit.tokens_sha256
+            );
+        }
+        "experts-check" => {
+            if open {
+                return Err("experts-check reads a written table: --open-reply-start 1 is for fit or ablate".to_owned());
+            }
+            let path = flag(args, "--experts")?;
+            let table = PairExperts::from_bytes(&std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?).map_err(|e| format!("{}: {e}", path.display()))?;
+            table.expect(vocab, &tokens_tag(&kit.tokens_sha256)?)?;
+            let asks: PlaceAsks = read_json(&flag(args, "--asks")?)?;
+            if asks.marks != kit.marks || asks.vocab != vocab {
+                return Err("the asks were fitted with other marks or another vocabulary than this split's".to_owned());
+            }
+            // As the served model reads a table (`set_place_asks`): the whole table, no cut.
+            let index = AsksIndex::new(&asks)?;
+            let samples: Vec<Sample> = read_json(&flag(args, "--prompts")?)?;
+            let prompts: Vec<Vec<u32>> = samples.into_iter().map(|s| s.prompt).collect();
+            let rows_path = flag(args, "--rows")?;
+            let text = std::fs::read_to_string(&rows_path).map_err(|e| format!("{}: {e}", rows_path.display()))?;
+            let rows = text.lines().enumerate().map(|(n, line)| parse_row(line, n + 1)).collect::<Result<Vec<Row>, String>>().map_err(|e| format!("{}: {e}", rows_path.display()))?;
+            check_rows(&rows, &prompts, &kit.marks).map_err(|e| format!("{}: {e}", rows_path.display()))?;
+            let (caps, keeps, floors, hold_out) = grid(args)?;
+            let out = match args.iter().position(|a| a == "--out") {
+                Some(_) => {
+                    if caps.len() != 1 || keeps.len() != 1 || floors.len() != 1 {
+                        return Err("--out writes one setting's replies: give one cap, one keep and one floor".to_owned());
+                    }
+                    let prefix = flag(args, "--out")?;
+                    Some((new_file(&prefix, ".jsonl")?, new_file(&prefix, ".rows.tsv")?))
+                }
+                None => None,
+            };
+            println!("{GRID_HEADER}");
+            for &cap in &caps {
+                for &keep in &keeps {
+                    for &floor in &floors {
+                        let setting = Setting { cap, keep, hold_out, floor };
+                        let (tally, outcomes) = replay(&table, Some(&index), &kit.marks, &prompts, &rows, setting);
+                        println!("{}", tally.line(setting));
+                        if let Some((jsonl_path, tsv_path)) = &out {
+                            let (jsonl, tsv) = outputs(&rows, &outcomes, kit.marks.eos);
+                            write_new(jsonl_path, jsonl.as_bytes())?;
+                            write_new(tsv_path, tsv.as_bytes())?;
+                        }
+                    }
+                }
+            }
+        }
+        other => return Err(format!("unknown mode {other}: fit, census, ablate, repeat, forms, experts or experts-check")),
     }
     Ok(())
 }
@@ -455,5 +841,104 @@ mod tests {
         let mut other = file(3, &[4, 5, 6]);
         other[0] = b'X';
         assert!(parse_tokens(&other, "t").is_err());
+    }
+
+    /// Start 0, end 1, separator 2, system 3, user 4, model 5; words from 6 in a vocabulary of 16.
+    fn chat_marks() -> PlaceMarks {
+        serde_json::from_str(r#"{"bos":0,"eos":1,"sep":[2],"system":[3],"user":[4],"assistant":[5]}"#).expect("marks")
+    }
+
+    #[test]
+    fn experts_count_each_reply_up_to_its_end_mark_and_drop_a_reply_that_never_ends() {
+        let m = chat_marks();
+        let tokens = [
+            0, 4, 6, 7, 2, 5, 8, 9, 1, 2, // a reply that ends: [8, 9]
+            4, 7, 6, 2, 5, 10, // a reply that meets the next start mark
+            0, 4, 6, 2, 5, 11, 1, 2, // a reply that ends: [11]
+            4, 9, 2, 5, 12, // a reply that meets the end of the tokens
+        ];
+        let (cases, kept) = occurrences(&tokens, &m);
+        assert_eq!(cases, 4);
+        let pairs: Vec<(Vec<u32>, Vec<u32>)> = kept.iter().map(|o| (o.turn.to_vec(), o.reply.to_vec())).collect();
+        assert_eq!(pairs, vec![(vec![6, 7], vec![8, 9]), (vec![6], vec![11])]);
+        let table = PairExperts::count(16, [3; 32], &kept).expect("count");
+        assert_eq!((table.turns(), table.replies(), table.experts()), (2, 2, 1));
+        assert!(table.turn_holds(&[6, 7], &[8, 9]));
+        assert!(table.turn_holds(&[6], &[11]));
+        assert!(!table.turn_holds(&[6, 7], &[8, 9, 1]));
+        assert!(!table.turn_holds(&[7, 6], &[10]));
+        assert_eq!(tokens_tag(&hex::encode([3u8; 32])), Ok([3; 32]));
+        assert!(tokens_tag("abc").is_err());
+        assert!(tokens_tag(&hex::encode([3u8; 31])).is_err());
+    }
+
+    /// Turn [6, 7, 8] counted twice with [9]; turn [6, 7] once with [10].
+    fn replay_table() -> PairExperts {
+        let occurrences = [Occurrence { turn: &[6, 7, 8], reply: &[9] }, Occurrence { turn: &[6, 7, 8], reply: &[9] }, Occurrence { turn: &[6, 7], reply: &[10] }];
+        PairExperts::count(16, [3; 32], &occurrences).expect("count")
+    }
+
+    /// Prompts 0, 2, 3 and 4 ask turn [6, 7, 8]; prompt 1 opens no model turn.
+    fn replay_prompts() -> Vec<Vec<u32>> {
+        let ask = vec![0, 4, 6, 7, 8, 2, 5];
+        vec![ask.clone(), vec![0, 4, 6, 7], ask.clone(), ask.clone(), ask]
+    }
+
+    fn rows(lines: &[&str]) -> Vec<Row> {
+        lines.iter().enumerate().map(|(n, line)| parse_row(line, n + 1).expect("row")).collect()
+    }
+
+    const KEEP_HALF: Setting = Setting { cap: 100, keep: Ratio { num: 1, den: 2 }, hold_out: false, floor: 0 };
+
+    #[test]
+    fn the_replay_replaces_a_reply_the_turns_experts_do_not_hold_and_counts_it_newly_good() {
+        let (table, m, prompts) = (replay_table(), chat_marks(), replay_prompts());
+        let rows = rows(&[
+            "0\tgeneral\t6 7 8\t11\t1\t13", // replaced by [9], which the turn holds
+            "2\tgeneral\t6 7 8\t9\t1\t9",   // good, and stands
+            "1\tgeneral\t6 7\t10\t1\t10",   // no model turn: left as it is, good
+            "3\trecall\t6 7 8\t11\t0\t12",  // replaced
+            "4\tnevertold\t6 7 8\t9\t1\t9", // stands
+        ]);
+        assert_eq!(check_rows(&rows, &prompts, &m), Ok(()));
+        let (tally, outcomes) = replay(&table, None, &m, &prompts, &rows, KEEP_HALF);
+        let want = Tally { general: 3, good_before: 2, good_after: 3, newly_good: 1, lost: 0, noturn: 1, alone: 0, noexpert: 0, stands: 1, unsure: 0, replaced: 1, recall_replaced: 1, nevertold_replaced: 0, repeat_replaced: 0 };
+        assert_eq!(tally, want);
+        assert_eq!(tally.general, tally.noturn + tally.alone + tally.noexpert + tally.stands + tally.unsure + tally.replaced);
+        assert_eq!(tally.good_after + tally.lost, tally.good_before + tally.newly_good);
+        assert_eq!((outcomes[0].reply.clone(), outcomes[0].ends), (vec![9], true));
+        assert_eq!((outcomes[2].reply.clone(), outcomes[2].verdict), (vec![10], Verdict::NoTurn));
+        assert_eq!((outcomes[3].reply.clone(), outcomes[3].ends), (vec![9], true));
+        let (jsonl, tsv) = outputs(&rows, &outcomes, m.eos);
+        assert_eq!(jsonl.lines().next(), Some(r#"{"i":0,"ids":[9,1]}"#));
+        assert_eq!(tsv.lines().next(), Some("0\tgeneral\t6 7 8\t9\t1\t13\treplaced\t0\t2796202"));
+        assert_eq!(tsv.lines().nth(2), Some("1\tgeneral\t6 7\t10\t1\t10\tnoturn\t0\t0"));
+        assert_eq!(tally.line(KEEP_HALF), "100\t1/2\t0\t3\t2\t3\t1\t0\t1\t0\t0\t1\t0\t1\t1\t0\t0");
+    }
+
+    #[test]
+    fn hold_out_turns_a_standing_reply_counted_only_with_its_own_turn_into_a_replaced_one() {
+        let (table, m, prompts) = (replay_table(), chat_marks(), replay_prompts());
+        let rows = rows(&["0\tgeneral\t6 7 8\t9\t1\t9"]);
+        let (_, kept) = replay(&table, None, &m, &prompts, &rows, KEEP_HALF);
+        assert!(matches!(kept[0].verdict, Verdict::Checked(Check::Stands { .. })));
+        // With the turn's own two counts out, only turn [6, 7]'s reply [10] is left to vote.
+        let (tally, held) = replay(&table, None, &m, &prompts, &rows, Setting { hold_out: true, ..KEEP_HALF });
+        assert!(matches!(held[0].verdict, Verdict::Checked(Check::Replaced { .. })));
+        assert_eq!(held[0].reply, vec![10]);
+        assert_eq!((tally.replaced, tally.good_before, tally.lost), (1, 1, 1));
+    }
+
+    #[test]
+    fn a_row_whose_turn_is_not_its_prompts_last_user_turn_is_refused() {
+        let (m, prompts) = (chat_marks(), replay_prompts());
+        let refused = check_rows(&rows(&["1\tgeneral\t6 7\t10\t1\t10", "0\tgeneral\t6 7\t9\t1\t9", "0\tgeneral\t6 8\t9\t1\t9"]), &prompts, &m).expect_err("refused");
+        assert!(refused.contains("rows line 2 (prompt 0)"), "{refused}");
+        assert!(check_rows(&rows(&["5\tgeneral\t6 7\t10\t1\t10"]), &prompts, &m).is_err());
+        let twice = check_rows(&rows(&["0\tgeneral\t6 7 8\t9\t1\t9", "0\tgeneral\t6 7 8\t9\t1\t9"]), &prompts, &m).expect_err("refused");
+        assert!(twice.contains("rows line 2: prompt 0 is named twice"), "{twice}");
+        for bad in ["0\tgeneral\t6 7 8\t9\t1", "0\tother\t6 7 8\t9\t1\t9", "0\tgeneral\t6 7 8\t9\t2\t9", "0\tgeneral\t6 x\t9\t1\t9", "x\tgeneral\t6\t9\t1\t9"] {
+            assert!(parse_row(bad, 1).is_err(), "{bad}");
+        }
     }
 }

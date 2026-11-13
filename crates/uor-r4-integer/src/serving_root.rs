@@ -15,6 +15,7 @@ pub mod discrete_d11;
 pub mod fbs_address;
 pub mod fbs_snapshot;
 pub mod place_asks;
+pub mod pair_experts;
 pub mod format;
 pub mod m6_ablation;
 pub mod m6_exact_arithmetic;

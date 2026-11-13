@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.chat-script/1",
+  "turns": [
+    {"user": "How are you?"},
+    {"user": "Do you know the capital of Greece?"},
+    {"user": "What day comes after Thursday?"},
+    {"user": "Give me the opposite of loud."},
+    {"user": "What colour is a lemon?"},
+    {"user": "What is the first letter of water?"},
+    {"user": "What does a duck say?"},
+    {"user": "Which city is the capital of Japan?"},
+    {"user": "Spell the word milk."},
+    {"user": "How many legs does a spider have?"},
+    {"user": "What is 4 + 6?"},
+    {"user": "Thanks for the help."},
+    {"user": "Goodbye."}
+  ]
+}
