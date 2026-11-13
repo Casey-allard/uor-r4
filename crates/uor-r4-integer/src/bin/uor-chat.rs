@@ -61,6 +61,11 @@ struct CliArgs {
     /// The rule the stack's copy heads read under in place of the artifact's own (`--copy-rule`);
     /// `None` serves the artifact's own rule.
     copy_rule: Option<CopyRule>,
+    /// A fitted asks table the place read is served from (`--place-asks FILE`, claude-359).
+    place_asks: Option<PathBuf>,
+    /// Whether an open row speaks the token at its place (`--place-speak 0|1`, default 1); only
+    /// with `--place-asks`.
+    place_speak: Option<bool>,
     /// Serve the stack without its turn memory (`--no-turn-memory`).
     no_turn_memory: bool,
     /// One-shot turn: answer this message, print the record and exit.
@@ -279,6 +284,8 @@ impl Default for CliArgs {
             protocol: 2,
             threads: 1,
             copy_rule: None,
+            place_asks: None,
+            place_speak: None,
             no_turn_memory: false,
             say: None,
             prompt_ids: None,
@@ -539,6 +546,27 @@ fn parse_cli_args() -> CliArgs {
                         eprintln!(
                             "{ANSI_RED_BOLD}error:{ANSI_RESET} '--copy-rule' takes mean, latest-exact, latest-nearest, longest-exact or longest-after-opening"
                         );
+                        process::exit(1);
+                    }
+                }
+            }
+            "--place-asks" => {
+                idx += 1;
+                match raw.get(idx) {
+                    Some(path) => args.place_asks = Some(PathBuf::from(path)),
+                    None => {
+                        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-asks' takes the path of a fitted asks table");
+                        process::exit(1);
+                    }
+                }
+            }
+            "--place-speak" => {
+                idx += 1;
+                match raw.get(idx).map(String::as_str) {
+                    Some("0") => args.place_speak = Some(false),
+                    Some("1") => args.place_speak = Some(true),
+                    _ => {
+                        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-speak' takes 0 or 1");
                         process::exit(1);
                     }
                 }
@@ -1988,6 +2016,27 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                 own_copy_rule.map_or("mean", CopyRule::name)
             );
         }
+    }
+    // The asks (claude-359): a fitted table the place read is served from, set only here.
+    match (cli.place_asks.as_deref(), cli.place_speak) {
+        (Some(path), speak) => {
+            let asks: uor_r4_integer::place_asks::PlaceAsks = std::fs::read_to_string(path)
+                .map_err(|e| e.to_string())
+                .and_then(|text| serde_json::from_str(&text).map_err(|e| e.to_string()))
+                .map_err(|e| StackCliError::Usage(format!("--place-asks {}: {e}", path.display())))?;
+            let speak = speak.unwrap_or(true);
+            model
+                .set_place_asks(&asks, speak)
+                .map_err(|e| StackCliError::Usage(format!("--place-asks: {e}")))?;
+            println!(
+                "{ANSI_YELLOW_BOLD}[notice]{ANSI_RESET} The place read is served from a fitted asks table (speak={}), not as this artifact was exported and scored.",
+                u8::from(speak)
+            );
+        }
+        (None, Some(_)) => {
+            return Err(StackCliError::Usage("--place-speak needs --place-asks".into()));
+        }
+        (None, None) => {}
     }
     let content_readout_identity = if let Some(path) = cli.content_readout_path.as_deref() {
         let path_string = path

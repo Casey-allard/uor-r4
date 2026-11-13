@@ -12,6 +12,7 @@ use crate::fbs_snapshot::{CodeRole, ForcedCode, HammingTraceHead, HammingTraceRe
 use core::ops::Range;
 
 use crate::fbs_snapshot::{place_find, place_first, PlaceImage, PlaceState};
+use crate::place_asks::{AsksIndex, PlaceAsks};
 
 use super::format::{Container, StackHamming, HAMMING_WEIGHT_EXP};
 use super::kernels::{stack_div_u64, stack_hamilton, NORM_FINE_EXP, RESIDUAL_EXP};
@@ -1252,6 +1253,9 @@ struct ServedPlace {
     /// The low half of a head's bits: the half its learned question fills. The other half is the
     /// token before, plainly.
     first: u64,
+    /// The asks a caller set (claude-359) and whether an open row speaks its offer. No artifact
+    /// carries them: unset, the read is the artifact's own.
+    asks: Option<(AsksIndex, bool)>,
 }
 
 impl ServedPlace {
@@ -1315,6 +1319,7 @@ impl ServedHamming {
                     heads: TypeHeads::new(&image.record, read, table, vocab, width).with_ask(ask),
                     image: tables.clone(),
                     first: place_first(width / image.record.heads),
+                    asks: None,
                 });
             }
             let typed = places.is_none() && type_weight.iter().any(|&w| w != 0);
@@ -1347,10 +1352,38 @@ impl ServedHamming {
 
     /// The place register's step at the last row of `tokens` ([`PlaceState::advance`]), its
     /// questions asked by the readout read's ask heads: the place whose token the readout is
-    /// offered at this row, if the row is open. `None` without a place read.
-    pub(crate) fn place_advance(&self, state: &mut PlaceState, tokens: &[u32], table: &[i16]) -> Option<usize> {
-        let place = self.place.as_ref()?;
-        state.advance(tokens, &place.image, |users| place.find(table, tokens, users)).offer
+    /// offered at this row, if the row is open, and the token the row is told to speak. With
+    /// the asks set ([`Self::set_place_asks`]) the step is [`PlaceState::advance_asked`] and the
+    /// ask heads are not asked; only then is a row told to speak. Neither without a place read.
+    pub(crate) fn place_advance(&self, state: &mut PlaceState, tokens: &[u32], table: &[i16]) -> (Option<usize>, Option<u32>) {
+        let Some(place) = self.place.as_ref() else {
+            return (None, None);
+        };
+        let row = match &place.asks {
+            Some((asks, speak)) => state.advance_asked(tokens, &place.image, asks, *speak),
+            None => state.advance(tokens, &place.image, |users| place.find(table, tokens, users)),
+        };
+        (row.offer, row.speak)
+    }
+
+    /// Read the place register from `asks` in place of the ask heads' finds, and with `speak`
+    /// have an open row speak the token at its place (claude-359). Refused: an artifact with no
+    /// place read, and asks fitted with other marks or another vocabulary than its place read's.
+    pub(crate) fn set_place_asks(&mut self, asks: &PlaceAsks, speak: bool) -> Result<(), String> {
+        let place = self.place.as_mut().ok_or("the artifact has no place read for the asks to set")?;
+        if asks.marks != place.image.marks {
+            return Err("the asks were fitted with other marks than the artifact's place read".to_owned());
+        }
+        if asks.vocab as usize != place.image.class.len() {
+            return Err(format!("the asks were fitted on a vocabulary of {} and the artifact's place read has {}", asks.vocab, place.image.class.len()));
+        }
+        place.asks = Some((AsksIndex::new(asks)?, speak));
+        Ok(())
+    }
+
+    /// Whether the asks are set, and if so whether an open row speaks its offer (claude-359).
+    pub(crate) fn place_asks(&self) -> Option<bool> {
+        self.place.as_ref().and_then(|place| place.asks.as_ref()).map(|&(_, speak)| speak)
     }
 
     /// Whether any read serves type heads, whose per-position payloads a session keeps.

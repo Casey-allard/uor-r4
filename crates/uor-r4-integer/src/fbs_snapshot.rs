@@ -15,6 +15,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::place_asks::{Asked, AsksIndex};
+
 /// The fixed-point exponent the exporter stores biases and decay offsets at
 /// (`stack::kernels::RESIDUAL_EXP`, held equal by a stack test).
 pub const FBS_FIXED_EXP: i32 = -16;
@@ -2866,6 +2868,10 @@ pub struct PlaceRow {
     pub stepped: bool,
     /// At the row a reply starts: the user turn it answers.
     pub asked: Option<PlaceAsked>,
+    /// The token a caller that speaks the read takes as the next token outright (claude-359):
+    /// the stored reply's next token, or the token at an offered place. Only
+    /// [`PlaceState::advance_asked`] sets it.
+    pub speak: Option<u32>,
 }
 
 /// A user turn as the reply that answers it sees it: its content, and its finds, each a row with
@@ -2902,6 +2908,10 @@ pub struct PlaceState {
     /// Whether a reply has started since the last user turn did. A reply answers the latest user
     /// turn once: a second model turn with no user turn between asks nothing.
     answered: bool,
+    /// The stored reply being read: the index of its token the next row is to be (claude-359).
+    told: Option<usize>,
+    /// The token the row read last was told to speak.
+    said: Option<u32>,
 }
 
 impl PlaceState {
@@ -2920,15 +2930,40 @@ impl PlaceState {
         &self.turns
     }
 
+    /// When the row read last spoke a token of the stored reply: that token's index in it
+    /// (claude-359). `None` at a row that spoke a place's token or nothing.
+    pub fn told(&self) -> Option<usize> {
+        self.told
+    }
+
     /// Read the last token of `tokens` (`x_0..=x_t`), every earlier one read before it. `find` is
     /// asked at a row of a user turn's content, with the contents of the finished user turns: the
     /// place that row's question finds among them, if any.
     pub fn advance(&mut self, tokens: &[u32], image: &PlaceImage, find: impl FnOnce(&[Range<usize>]) -> Option<usize>) -> PlaceRow {
+        self.read(tokens, image, find, None)
+    }
+
+    /// [`Self::advance`] with the asks in place of the rows' finds (claude-359). When a reply
+    /// starts, the asks are asked once with the user turn it answers: a place they find sets the
+    /// register, with no arm rule; a fact they find was never told starts the stored reply, whose
+    /// tokens the rows are told to speak one by one, from the role marker's last token, for as
+    /// long as the reply follows them. With `speak`, an open row is also told to speak the token
+    /// at its offered place. Hold, open, step and stop are [`Self::advance`]'s.
+    pub fn advance_asked(&mut self, tokens: &[u32], image: &PlaceImage, asks: &AsksIndex, speak: bool) -> PlaceRow {
+        self.read(tokens, image, |_| None, Some((asks, speak)))
+    }
+
+    fn read(&mut self, tokens: &[u32], image: &PlaceImage, find: impl FnOnce(&[Range<usize>]) -> Option<usize>, asks: Option<(&AsksIndex, bool)>) -> PlaceRow {
         let Some(t) = tokens.len().checked_sub(1) else {
             return PlaceRow::default();
         };
         let token = tokens[t];
         let mut row = PlaceRow::default();
+        // The stored reply moves on when this token is the one the row before was told to speak.
+        let said = self.said.take();
+        if let Some(i) = self.told {
+            self.told = Some(i + 1).filter(|_| said == Some(token));
+        }
         // The step: the row before was offered the token at the place, and this token is it.
         if let (Some(at), Some((place, end))) = (self.offer.take(), self.place) {
             if at == place && token == tokens[place] {
@@ -2944,23 +2979,35 @@ impl PlaceState {
         if token == image.marks.bos {
             self.finds.clear();
             self.place = None;
+            self.told = None;
             self.answered = false;
         }
         match self.turns.push(tokens, &image.marks) {
             Some(PlaceRole::User) => {
                 self.finds.clear();
                 self.place = None;
+                self.told = None;
                 self.answered = false;
             }
             Some(PlaceRole::Assistant) => {
                 self.over = false;
                 self.place = None;
+                self.told = None;
                 let asked = self.turns.users.split_last().filter(|_| !self.answered);
                 self.answered = true;
                 if let Some((content, prior)) = asked {
                     let found: Vec<(usize, usize)> = self.finds.drain(..).filter(|(at, _)| content.contains(at)).collect();
-                    let armed = found.iter().rev().find(|&&(at, _)| image.has(tokens[at], PLACE_ARM));
-                    self.place = armed.and_then(|&(_, pos)| prior.iter().find(|turn| turn.contains(&pos)).map(|turn| (pos, turn.end)));
+                    match asks {
+                        Some((asks, _)) => match asks.find(tokens, prior, content) {
+                            Asked::Place(pos, end) => self.place = Some((pos, end)),
+                            Asked::NotTold => self.told = Some(0),
+                            Asked::Nothing => {}
+                        },
+                        None => {
+                            let armed = found.iter().rev().find(|&&(at, _)| image.has(tokens[at], PLACE_ARM));
+                            self.place = armed.and_then(|&(_, pos)| prior.iter().find(|turn| turn.contains(&pos)).map(|turn| (pos, turn.end)));
+                        }
+                    }
                     row.asked = Some((content.clone(), found));
                 }
             }
@@ -2976,15 +3023,34 @@ impl PlaceState {
                 if token == image.marks.eos && t >= a {
                     self.over = true;
                     self.place = None;
+                    self.told = None;
                 }
                 if t + 1 >= a && !self.over {
                     row.held = self.place.map(|(place, _)| place);
-                    row.offer = row.held.filter(|_| row.stepped || image.has(token, PLACE_OPEN));
+                    // Where the asks fitted this pair of tokens, the pair says whether the value
+                    // starts next; a pair they never counted falls back to the class.
+                    let fitted = match (asks, t.checked_sub(1)) {
+                        (Some((asks, _)), Some(before)) => asks.opens(tokens[before], token),
+                        _ => None,
+                    };
+                    let open = fitted.unwrap_or_else(|| image.has(token, PLACE_OPEN));
+                    row.offer = row.held.filter(|_| row.stepped || open);
+                    if let Some((asks, speak)) = asks {
+                        row.speak = match self.told {
+                            Some(i) => asks.not_told().get(i).copied(),
+                            None => row.offer.filter(|_| speak).map(|place| tokens[place]),
+                        };
+                    }
                 }
             }
             _ => {}
         }
+        // A stored reply read to its end, or left by a row that is no reply row, is over.
+        if row.speak.is_none() {
+            self.told = None;
+        }
         self.offer = row.offer;
+        self.said = row.speak;
         row
     }
 }
@@ -5012,5 +5078,145 @@ mod tests {
         // And a pass that fails is the pass's error.
         let err = g_replay(&p, |_: &DecisionForceWindow| Err("no GPU".to_owned())).unwrap_err();
         assert_eq!(err, "pass 0: no GPU");
+    }
+}
+
+#[cfg(test)]
+mod place_asked_tests {
+    use super::*;
+    use crate::place_asks::PlaceAsks;
+
+    const BOS: u32 = 0;
+    const EOS: u32 = 1;
+    const SEP: u32 = 2;
+    const USER: u32 = 4;
+    const MODEL: u32 = 5;
+    // Words: 9 "name", 10 "is", 11 and 12 the value's two tokens, 13 ".", 14 "what", 15 "?",
+    // 16 "ok", 17 and 18 the stored reply's two words, 19 "else".
+    const IS: u32 = 10;
+    const DOT: u32 = 13;
+    const WHAT: u32 = 14;
+    const ASK: u32 = 15;
+
+    fn marks() -> PlaceMarks {
+        PlaceMarks { bos: BOS, eos: EOS, sep: vec![SEP], system: vec![3], user: vec![USER], assistant: vec![MODEL] }
+    }
+
+    fn image() -> PlaceImage {
+        let mut class = vec![0i16; 20];
+        class[DOT as usize] = PLACE_STOP;
+        class[IS as usize] = PLACE_STOP | PLACE_OPEN;
+        PlaceImage::checked(marks(), class, 20).expect("a class table of the vocabulary's length")
+    }
+
+    /// Asks that find the position after "is" when the question holds "?", and take a question
+    /// that holds "what" to ask for a stored fact.
+    fn asks() -> AsksIndex {
+        asks_with(Vec::new())
+    }
+
+    /// The same asks with fitted open pairs: `[token before, token, 1 or 0]`.
+    fn asks_with(opens: Vec<[i32; 3]>) -> AsksIndex {
+        AsksIndex::new(&PlaceAsks {
+            tokens_sha256: "test".to_owned(),
+            marks: marks(),
+            vocab: 20,
+            link: vec![IS],
+            shared: Vec::new(),
+            unseen: vec![[0, 0]; crate::place_asks::ASKS_FRAME],
+            pairs: vec![[ASK as i32, 1, IS as i32, 100]],
+            floor: 50,
+            floor_other: 50,
+            margin: 0,
+            opens,
+            asking: vec![[WHAT as i32, 10]],
+            asking_prior: 0,
+            asking_floor: 5,
+            not_told: vec![17, 18, EOS],
+            forms: vec![vec![17, 18, EOS]],
+        })
+        .expect("the asks")
+    }
+
+    fn rows(tokens: &[u32], speak: bool) -> Vec<PlaceRow> {
+        let (image, asks, mut state) = (image(), asks(), PlaceState::default());
+        (0..tokens.len()).map(|t| state.advance_asked(&tokens[..=t], &image, &asks, speak)).collect()
+    }
+
+    // "<u> name is V1 V2 . </s> <sep> <m> ok </s> <sep> <u> what ? <sep> <m> is V1 V2 . </s>"
+    const TOLD: [u32; 23] = [BOS, USER, 9, IS, 11, 12, DOT, EOS, SEP, MODEL, 16, EOS, SEP, USER, WHAT, ASK, SEP, MODEL, IS, 11, 12, DOT, EOS];
+
+    #[test]
+    fn the_asks_set_the_register_with_no_arm_rule_and_the_rows_speak_the_value() {
+        let rows = rows(&TOLD, true);
+        // No class has the arm bit: the asks alone set the register when the reply starts.
+        assert_eq!(rows[17].held, Some(4));
+        assert_eq!(rows[17].speak, None, "the marker's row is not open");
+        assert_eq!((rows[18].offer, rows[18].speak), (Some(4), Some(11)));
+        assert_eq!((rows[19].offer, rows[19].speak), (Some(5), Some(12)));
+        // The step onto "." stops the read.
+        assert_eq!((rows[20].held, rows[20].speak), (None, None));
+        assert!(rows[21..].iter().all(|row| row.speak.is_none()));
+    }
+
+    #[test]
+    fn a_fitted_pair_decides_whether_a_row_opens_over_the_class() {
+        let read = |tokens: &[u32], opens: Vec<[i32; 3]>| -> Vec<PlaceRow> {
+            let (image, asks, mut state) = (image(), asks_with(opens), PlaceState::default());
+            (0..tokens.len()).map(|t| state.advance_asked(&tokens[..=t], &image, &asks, true)).collect()
+        };
+        // "is" after the marker has the open bit; the fitted pair says the value does not start
+        // there, so the row holds the place and speaks nothing, and no later row steps.
+        let shut = read(&TOLD, vec![[MODEL as i32, IS as i32, 0]]);
+        assert_eq!((shut[18].held, shut[18].offer), (Some(4), None));
+        assert!(shut.iter().all(|row| row.speak.is_none()));
+        // "ok" has no open bit; the fitted pair opens its row, and the read steps on from it.
+        let mut ok = TOLD;
+        ok[18] = 16;
+        let opened = read(&ok, vec![[MODEL as i32, 16, 1]]);
+        assert_eq!((opened[18].offer, opened[18].speak), (Some(4), Some(11)));
+        assert_eq!((opened[19].offer, opened[19].speak), (Some(5), Some(12)));
+        // Without the pair the same row stays shut: the class decides.
+        assert!(read(&ok, Vec::new()).iter().all(|row| row.speak.is_none()));
+    }
+
+    #[test]
+    fn without_speak_the_rows_are_offered_the_place_and_told_nothing() {
+        let rows = rows(&TOLD, false);
+        assert_eq!((rows[18].offer, rows[19].offer), (Some(4), Some(5)));
+        assert!(rows.iter().all(|row| row.speak.is_none()));
+    }
+
+    #[test]
+    fn a_fact_never_told_reads_the_stored_reply_to_its_end_mark() {
+        // "<u> name is V1 . <sep> <m> ok </s> <sep> <u> what else <sep> <m> S1 S2 </s>"
+        let tokens = [BOS, USER, 9, IS, 11, DOT, SEP, MODEL, 16, EOS, SEP, USER, WHAT, 19, SEP, MODEL, 17, 18, EOS];
+        let rows = rows(&tokens, true);
+        assert_eq!(rows[15].held, None);
+        assert_eq!(rows[15..].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(17), Some(18), Some(EOS), None]);
+        // The first reply answers a statement: nothing is found and nothing is asked for.
+        assert!(rows[..15].iter().all(|row| row.speak.is_none()));
+    }
+
+    #[test]
+    fn a_reply_that_leaves_the_stored_reply_is_told_nothing_more() {
+        let tokens = [BOS, USER, 9, IS, 11, DOT, SEP, MODEL, 16, EOS, SEP, USER, WHAT, 19, SEP, MODEL, 17, 16, 18, EOS];
+        let rows = rows(&tokens, true);
+        assert_eq!(rows[15..].iter().map(|row| row.speak).collect::<Vec<_>>(), [Some(17), Some(18), None, None, None]);
+    }
+
+    #[test]
+    fn a_question_that_asks_for_no_stored_fact_finds_nothing() {
+        let tokens = [BOS, USER, 9, IS, 11, DOT, SEP, MODEL, 16, EOS, SEP, USER, 19, 19, SEP, MODEL, 16, EOS];
+        let rows = rows(&tokens, true);
+        assert!(rows.iter().all(|row| row.speak.is_none() && row.held.is_none()));
+    }
+
+    #[test]
+    fn the_rows_finds_are_the_same_program_with_no_asks() {
+        // `advance` never speaks, and its arm rule still needs the arm bit.
+        let (image, mut state) = (image(), PlaceState::default());
+        let rows: Vec<PlaceRow> = (0..TOLD.len()).map(|t| state.advance(&TOLD[..=t], &image, |_| (t == 15).then_some(4))).collect();
+        assert!(rows.iter().all(|row| row.speak.is_none() && row.held.is_none()));
     }
 }

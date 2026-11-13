@@ -8736,6 +8736,140 @@ fn a_session_serves_the_place_read() {
     assert!(err.contains("place read"), "{err}");
 }
 
+/// claude-359: asks over the place-read tests' vocabulary. A question that holds `PLACE_ASK`
+/// finds the position after the token `link` (a pair weight of 100 over a floor of 50) and asks
+/// for a stored fact; with no such position it is answered with the stored reply `41 42 </s>`.
+fn place_asks(place: &super::PlaceImage, link: u32) -> crate::place_asks::PlaceAsks {
+    crate::place_asks::PlaceAsks {
+        tokens_sha256: "test".to_owned(),
+        marks: place.marks.clone(),
+        vocab: place.class.len() as u32,
+        link: vec![link],
+        shared: Vec::new(),
+        unseen: vec![[0, 0]; crate::place_asks::ASKS_FRAME],
+        pairs: vec![[PLACE_ASK as i32, 1, link as i32, 100]],
+        floor: 50,
+        floor_other: 50,
+        margin: 0,
+        opens: Vec::new(),
+        asking: vec![[PLACE_ASK as i32, 10]],
+        asking_prior: 0,
+        asking_floor: 5,
+        not_told: vec![41, 42, PLACE_EOS],
+        forms: vec![vec![41, 42, PLACE_EOS]],
+    }
+}
+
+/// claude-359: with the asks set, the asks set the register and the ask heads do not, and with
+/// `speak` an open row serves the token at its place. The asks here find the position after
+/// token 30 (place 5) where the artifact's own find is the position after `PLACE_BEFORE`
+/// (place 4), so the row of `PLACE_OPENS` serves 31.
+#[test]
+fn a_session_with_the_asks_serves_the_token_at_the_asked_place() {
+    let (_, placed, place) = place_trunk();
+    let mut talk = PLACE_TALK[..19].to_vec();
+    talk.push(31);
+    let run = |asks: Option<bool>| {
+        let mut model = IntegerStackModel::parse(&placed).expect("served");
+        if let Some(speak) = asks {
+            model.set_place_asks(&place_asks(&place, 30), speak).expect("the asks are set");
+        }
+        assert_eq!(model.place_asks(), asks);
+        let mut session = model.session();
+        let mut rows = Vec::new();
+        for &token in &talk {
+            let step = session.step_native(token).expect("step");
+            rows.push((step.token, session.last_place(), session.last_spoken()));
+        }
+        rows
+    };
+    let (own, offered, spoken) = (run(None), run(Some(false)), run(Some(true)));
+    // The artifact's own read: the ask heads' find arms place 4, and no row speaks.
+    assert_eq!(own[18].1, (Some(4), Some(4)));
+    assert!(own.iter().all(|row| row.2.is_none()));
+    // The asks without `speak`: the register holds the asked place and offers it; no row speaks.
+    assert_eq!(offered[17].1, (Some(5), None));
+    assert_eq!(offered[18].1, (Some(5), Some(5)));
+    assert!(offered.iter().all(|row| row.2.is_none()));
+    // The offer alone does not choose the place's token on that row, so the 31 served below is
+    // the speak's doing and not the vote's.
+    assert_ne!(offered[18].0, 31);
+    // With `speak` the open row serves the token at the place, and only that row speaks: the
+    // step onto it reaches `PLACE_DOT`, which stops the read.
+    assert_eq!(spoken[18], (31, (Some(5), Some(5)), Some((31, None))));
+    assert_eq!((spoken[19].1, spoken[19].2), ((None, None), None));
+    assert!(spoken[..18].iter().all(|row| row.2.is_none()));
+    // Every caller of a step is served the spoken token: the browser's step and the timed step
+    // choose what the plain step chose, row by row.
+    let mut model = IntegerStackModel::parse(&placed).expect("served");
+    model.set_place_asks(&place_asks(&place, 30), true).expect("the asks are set");
+    let (mut browser, mut timed, mut ns) = (model.session(), model.session(), Vec::new());
+    for (t, &token) in talk.iter().enumerate() {
+        assert_eq!(browser.serve_step(token).expect("serve").0, spoken[t].0, "step {t}: the browser's step");
+        assert_eq!(timed.measure_fbs_step_stages(token, &mut ns).expect("timed").0.token, spoken[t].0, "step {t}: the timed step");
+    }
+}
+
+/// claude-359: a question that asks for a fact no finished user turn states is answered with the
+/// asks' stored reply. Each row from the role marker's serves the reply's next token through
+/// its end mark, with or without `speak`; the artifact's own reply there is another.
+#[test]
+fn a_session_with_the_asks_answers_an_untold_fact_with_the_stored_reply() {
+    let (_, placed, place) = place_trunk();
+    // The first user turn has no `PLACE_BEFORE`: the asks have no position to find.
+    let history = [PLACE_BOS, PLACE_USER, 20, 22, 23, PLACE_DOT, PLACE_EOS, PLACE_SEP, PLACE_MODEL, 40, PLACE_EOS, PLACE_SEP, PLACE_USER, 20, PLACE_ASK, PLACE_SEP, PLACE_MODEL];
+    let reply = |asks: Option<bool>| {
+        let mut model = IntegerStackModel::parse(&placed).expect("served");
+        if let Some(speak) = asks {
+            model.set_place_asks(&place_asks(&place, PLACE_BEFORE), speak).expect("the asks are set");
+        }
+        let mut session = model.session();
+        let (last, read) = history.split_last().expect("a history");
+        for &token in read {
+            session.read_step(token).expect("read");
+        }
+        let mut pick = session.serve_step(*last).expect("serve").0;
+        let mut said = vec![(pick, session.last_spoken())];
+        for _ in 0..3 {
+            pick = session.serve_step(pick).expect("serve").0;
+            said.push((pick, session.last_spoken()));
+        }
+        said
+    };
+    let stored = [(41, Some((41, Some(0)))), (42, Some((42, Some(1)))), (PLACE_EOS, Some((PLACE_EOS, Some(2))))];
+    for speak in [false, true] {
+        let said = reply(Some(speak));
+        assert_eq!(said[..3], stored, "speak {speak}");
+        assert_eq!(said[3].1, None, "after the end mark no row speaks");
+    }
+    let own = reply(None);
+    assert!(own.iter().all(|row| row.1.is_none()));
+    assert_ne!([own[0].0, own[1].0, own[2].0], [41, 42, PLACE_EOS], "the artifact's own reply is not the stored one");
+}
+
+/// claude-359: the asks are refused by a model with no place read, and when they were fitted
+/// with other marks or another vocabulary than the place read's. A refusal sets nothing.
+#[test]
+fn the_asks_are_refused_without_a_place_read_or_with_other_marks_or_vocabulary() {
+    let (asked, placed, place) = place_trunk();
+    let asks = place_asks(&place, PLACE_BEFORE);
+    let mut bare = IntegerStackModel::parse(&asked).expect("served");
+    let err = bare.set_place_asks(&asks, true).unwrap_err();
+    assert!(err.contains("no place read"), "{err}");
+    let mut model = IntegerStackModel::parse(&placed).expect("served");
+    let mut other = asks.clone();
+    other.marks.sep = vec![503];
+    let err = model.set_place_asks(&other, true).unwrap_err();
+    assert!(err.contains("other marks"), "{err}");
+    let mut short = asks.clone();
+    short.vocab -= 1;
+    let err = model.set_place_asks(&short, true).unwrap_err();
+    assert!(err.contains("vocabulary"), "{err}");
+    assert_eq!(model.place_asks(), None);
+    model.set_place_asks(&asks, false).expect("the asks are set");
+    assert_eq!(model.place_asks(), Some(false));
+}
+
 /// claude-351: at an open row the readout is `n + w_c ⊙ (table[x_place] − n)`, exactly
 /// [`super::hamming::readout_sum`] with the token's Q12 point at a weight of one, and within
 /// half a step of the float form.

@@ -41,6 +41,7 @@ use super::format::{
 };
 use super::hamming::{hamming_image, CopyRule, HammingStepRead, ReadForce, ServedHamming};
 use crate::fbs_snapshot::PlaceState;
+use crate::place_asks::PlaceAsks;
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_argmax, stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv,
@@ -1170,6 +1171,27 @@ impl IntegerStackModel {
         }
     }
 
+    /// Read the place register from `asks`, a table fitted by counting, in place of the ask
+    /// heads' finds (claude-359), and with `speak` serve the token at an open row's place as that
+    /// row's choice outright. A fact the asks find was never told is answered with their stored
+    /// reply, token by token, with or without `speak`. Refused: a model with no place read, and
+    /// asks fitted with other marks or another vocabulary than the place read's. With the asks
+    /// set the session no longer serves what the artifact was exported and scored as.
+    pub fn set_place_asks(&mut self, asks: &PlaceAsks, speak: bool) -> Result<(), String> {
+        match self.fbs.as_mut().and_then(|fbs| fbs.hamming.as_mut()) {
+            Some(hamming) => hamming.set_place_asks(asks, speak),
+            None => Err("the model has no place read for the asks to set".to_owned()),
+        }
+    }
+
+    /// Whether [`Self::set_place_asks`] set the asks, and if so whether an open row speaks.
+    pub fn place_asks(&self) -> Option<bool> {
+        self.fbs
+            .as_ref()
+            .and_then(|fbs| fbs.hamming.as_ref())
+            .and_then(|hamming| hamming.place_asks())
+    }
+
     /// The rule this session's copy heads are served under (claude-345): the artifact's own,
     /// `LatestExact` when its record sets `copy_latest`, `LongestAfterOpening` when it names a
     /// reply marker (`copy_longest`, claude-357), unless [`Self::set_copy_rule`] changed it.
@@ -1530,6 +1552,7 @@ impl IntegerStackModel {
                 .and_then(|f| f.hamming.as_ref())
                 .map_or_else(Vec::new, |h| h.payload_caches(context)),
             place: PlaceState::default(),
+            spoken: None,
             hamming_trace: None,
             decision: None,
             pointer_keys: vec![0; pointer_dim * context],
@@ -1993,6 +2016,9 @@ pub struct IntegerStackSession<'m> {
     /// The place read's register and the turns it has read (claude-351); idle without a place
     /// read.
     place: PlaceState,
+    /// The token the place read told the last step's row to speak (claude-359): that step's
+    /// choice. `None` unless a caller set the asks.
+    spoken: Option<u32>,
     /// While `Some`, each Hamming read's choices at every step (claude-235's trace).
     hamming_trace: Option<Vec<HammingStepRead>>,
     /// While `Some`, Q5's decision trace and its forced set (claude-249).
@@ -2299,6 +2325,14 @@ impl IntegerStackSession<'_> {
         (self.place.held(), self.place.offered())
     }
 
+    /// What the place read told the last step's row to speak (claude-359): the token, which that
+    /// step served as its choice, and its index in the stored reply when it is one of the stored
+    /// reply's tokens (`None` for the token at a place). `None` at a row told nothing, and
+    /// always unless [`IntegerStackModel::set_place_asks`] set the asks.
+    pub fn last_spoken(&self) -> Option<(u32, Option<usize>)> {
+        self.spoken.map(|token| (token, self.place.told()))
+    }
+
     /// Set the pointer copy scale in Q16 (`scale * 2^-16`).
     ///
     /// When greater than zero, normalized attention weights from head 0 of the final
@@ -2351,6 +2385,7 @@ impl IntegerStackSession<'_> {
         self.pointer_at = 0;
         self.tokens.clear();
         self.place = PlaceState::default();
+        self.spoken = None;
         self.pointer_keys.fill(0);
         self.pointer_lifts.fill(0);
         self.b.logits.fill(0);
@@ -2770,6 +2805,8 @@ impl IntegerStackSession<'_> {
         // Restore tokens
         self.tokens.clear();
         self.tokens.extend_from_slice(&saved.tokens);
+        // No step of the restored session has spoken yet.
+        self.spoken = None;
 
         // Restore snap trace
         if let Some(ref trace_entries) = saved.snap_trace {
@@ -3005,7 +3042,8 @@ impl IntegerStackSession<'_> {
         if self.model.fbs.is_some() {
             self.step(token)?;
             let mut next = self.b.native_token;
-            if let Some(readout) = self.model.content_readout.as_deref() {
+            // A row the place read speaks is served that token: the content readout leaves it.
+            if let Some(readout) = self.model.content_readout.as_deref().filter(|_| self.spoken.is_none()) {
                 next = readout
                     .select_into(
                         &self.b.query_q12,
@@ -3678,10 +3716,11 @@ fn stack_step_fbs(
     session.tokens.push(token);
     let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
-    let offer = fbs
+    let (offer, spoken) = fbs
         .hamming
         .as_ref()
-        .and_then(|h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+    session.spoken = spoken;
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
     for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
@@ -3863,6 +3902,11 @@ fn stack_step_fbs(
         }
     }
     session.memory.last_point = served;
+    // A row the place read speaks (claude-359) serves that token outright, whatever the head
+    // and the point key chose. A read step that chose nothing still chooses nothing.
+    if let Some(token) = spoken.filter(|_| b.native_token != NO_CHOICE) {
+        b.native_token = token;
+    }
     session.position += 1;
     session.cache_at += d;
     session.lift_at += heads;
@@ -3964,10 +4008,11 @@ fn stack_step_fbs_timed(
     session.tokens.push(token);
     let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
-    let offer = fbs
+    let (offer, spoken) = fbs
         .hamming
         .as_ref()
-        .and_then(|h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+        .map_or((None, None), |h| h.place_advance(&mut session.place, &session.tokens, &fbs.writer_table));
+    session.spoken = spoken;
     let b = &mut session.b;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
     for (x, &t) in b.x.iter_mut().zip(&fbs.writer_table[at..at + d]) {
@@ -4095,6 +4140,11 @@ fn stack_step_fbs_timed(
         }
     }
     session.memory.last_point = served;
+    // A row the place read speaks (claude-359) serves that token outright, whatever the head
+    // and the point key chose. A read step that chose nothing still chooses nothing.
+    if let Some(token) = spoken.filter(|_| b.native_token != NO_CHOICE) {
+        b.native_token = token;
+    }
     lap(&mut since, ns);
     session.position += 1;
     session.cache_at += d;

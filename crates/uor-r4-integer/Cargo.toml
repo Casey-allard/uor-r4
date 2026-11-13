@@ -87,3 +87,8 @@ required-features = ["serving-wasm"]
 name = "fbs-toks"
 path = "src/bin/fbs-toks.rs"
 required-features = ["serving-wasm"]
+
+[[bin]]
+name = "place-asks"
+path = "src/bin/place-asks.rs"
+required-features = ["serving-wasm"]

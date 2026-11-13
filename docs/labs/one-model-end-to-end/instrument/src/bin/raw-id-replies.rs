@@ -55,6 +55,25 @@
 //! gains `copy_rule` with the rule served and the artifact's own. Without the flag the artifact's
 //! own rule is served and the receipt is as before.
 //!
+//! `--place-asks FILE` (claude-359) serves the artifact's place read from a fitted asks table
+//! (`place-asks fit`) in place of its ask heads' finds: a place the asks find sets the register,
+//! and a fact they find was never told is answered with their stored reply. `--place-speak 0|1`
+//! (default 1) says whether an open row serves the token at its place outright. It needs an
+//! artifact with a place read, fitted marks and vocabulary equal to its own. The receipt gains
+//! `place_asks`: the file's SHA-256, `speak`, how many ids a row's place spoke, and how many
+//! replies started on the stored reply. Without the flag the receipt is as before.
+//!
+//! `--whole-prompt TOKENS.u16 --bos ID` (claude-359) reads each row's prompt as a chat session
+//! holds it: the whole conversation up to the reply. A float score's row holds only the model's
+//! window, so a fact told before the window is not in the row at all, while a session keeps
+//! every token and the place read looks through all of them. `TOKENS.u16` is the corpus the
+//! rows were cut from; each row needs a `position`, and its own prompt must be the corpus ids
+//! that end there. The prompt served is the corpus from the latest `ID` before the position up
+//! to it: longer than the row's when the window had lost the conversation's start, and shorter
+//! when the window began in the text before it. The receipt gains `whole_prompt`: the corpus's
+//! SHA-256, `bos`, how many rows were lengthened, how many were shortened and the longest
+//! prompt. It is refused with `--place-rows 1`, whose places are read as rows of the window.
+//!
 //! Every argument is a `--name value` pair; a name with no value is refused.
 //!
 //! It is an instrument: it trains nothing, changes no artifact and moves no bar.
@@ -64,7 +83,9 @@
 //!   --mark-reply 0|1 [--max-tokens 48] [--count-visits 0|1] [--time-steps 0|1] \
 //!   [--trace-control 0|1 --trace-out TRACE.jsonl] \
 //!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]] \
-//!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening]
+//!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] \
+//!   [--place-asks ASKS.json [--place-speak 0|1]] \
+//!   [--whole-prompt TOKENS.u16 --bos ID]
 //! ```
 //!
 //! `ROWS.json` is a JSON array of objects with a `prompt` array of token ids (a float score's
@@ -80,13 +101,14 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use uor_r4_integer::generation::short_cycle;
+use uor_r4_integer::place_asks::PlaceAsks;
 use uor_r4_integer::stack::{
     read_hamming_uorlut01, CopyRule, HammingStepRead, IntegerStackModel, IntegerStackSession,
 };
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1]] [--whole-prompt FILE --bos ID]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -575,6 +597,43 @@ fn check_kit_tokens(bytes: &[u8], path: &str, kit_sha256: &str, rows: &[Value]) 
     Ok(())
 }
 
+/// `--whole-prompt` (claude-359): a row's prompt as a chat session holds it.
+/// - `bytes` is the corpus the rows were cut from, a `UORT` file.
+/// - `own` is the row's prompt; it must be the corpus ids that end at the row's `position`, or
+///   the row is another corpus's and the longer prompt would be other text.
+/// - The result is the corpus from the latest `bos` before `position` up to it: the whole
+///   conversation. `own` is its end when the window lost the start, and holds the end of the
+///   text before the conversation when the window began there, which the result leaves out.
+fn whole_prompt(bytes: &[u8], path: &str, bos: u32, row: &Value, index: usize, own: &[u32]) -> Result<Vec<u32>> {
+    if bytes.len() < 64 || !bytes.starts_with(b"UORT") {
+        return Err(format!("{path}: not a UORT corpus file"));
+    }
+    let id_at = |position: usize| {
+        let at = position.checked_mul(2)?.checked_add(64)?;
+        let pair = bytes.get(at..at.checked_add(2)?)?;
+        Some(u32::from(u16::from_le_bytes([pair[0], pair[1]])))
+    };
+    let position = row
+        .get("position")
+        .and_then(Value::as_u64)
+        .and_then(|p| usize::try_from(p).ok())
+        .ok_or_else(|| format!("row {index}: --whole-prompt needs a position on every row"))?;
+    // A position past the corpus names no reply of it, and the search back from it would not end.
+    if position > (bytes.len() - 64) / 2 {
+        return Err(format!("{path}: row {index}: position {position} is past the corpus"));
+    }
+    let start = position.checked_sub(own.len());
+    let cut_here = start.is_some_and(|start| own.iter().enumerate().all(|(j, &id)| id_at(start + j) == Some(id)));
+    if !cut_here {
+        return Err(format!("{path}: row {index}'s prompt is not the corpus up to position {position}: the rows are not this corpus's"));
+    }
+    let from = (0..position)
+        .rev()
+        .find(|&at| id_at(at) == Some(bos))
+        .ok_or_else(|| format!("{path}: row {index}: no id {bos} before position {position}"))?;
+    Ok((from..position).filter_map(id_at).collect())
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
@@ -678,6 +737,42 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             return Err("--copy-rule needs an artifact with a Hamming read".to_owned());
         }
     }
+    // The asks (claude-359): a fitted table the place read is served from, set only here.
+    let place_speak = match flag(&args, "--place-speak").as_deref() {
+        None => None,
+        Some("0") => Some(false),
+        Some("1") => Some(true),
+        Some(other) => return Err(format!("--place-speak takes 0 or 1, not {other}")),
+    };
+    let place_asks = match (flag(&args, "--place-asks"), place_speak) {
+        (Some(path), speak) => {
+            let bytes = fs::read(&path).map_err(|e| format!("{path}: {e}"))?;
+            let asks: PlaceAsks = serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))?;
+            let speak = speak.unwrap_or(true);
+            model.set_place_asks(&asks, speak).map_err(|e| format!("--place-asks: {e}"))?;
+            Some((sha256_hex(&bytes), speak))
+        }
+        (None, Some(_)) => return Err("--place-speak needs --place-asks".to_owned()),
+        (None, None) => None,
+    };
+    // The whole conversation as each row's prompt (claude-359): the corpus and its start mark.
+    let whole = match (flag(&args, "--whole-prompt"), flag(&args, "--bos")) {
+        (Some(_), _) if place_rows => {
+            return Err("--whole-prompt is refused with --place-rows 1: its places are rows of the window".to_owned())
+        }
+        (Some(path), Some(bos)) => {
+            let bos: u32 = bos.parse().map_err(|_| format!("--bos takes a token id, not {bos}"))?;
+            let bytes = fs::read(&path).map_err(|e| format!("{path}: {e}"))?;
+            Some((path, bytes, bos))
+        }
+        (Some(_), None) => return Err("--whole-prompt needs --bos".to_owned()),
+        (None, Some(_)) => return Err("--bos needs --whole-prompt".to_owned()),
+        (None, None) => None,
+    };
+    // Rows whose prompt grew, rows whose prompt shrank, and the longest prompt served.
+    let (mut lengthened, mut shortened, mut longest_prompt) = (0usize, 0usize, 0usize);
+    // Reply ids a row's place spoke, and replies that started the stored reply.
+    let (mut spoke_place, mut told_replies) = (0u64, 0u64);
     let has_turn_memory = model.session().has_turn_memory();
     if mark && !has_turn_memory {
         // A marked run on a model without a turn memory would be an unmarked run by another name.
@@ -737,6 +832,16 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     let mut stopped_on_eos = 0usize;
     for (index, row) in rows.iter().enumerate() {
         let prompt = prompt_ids(row, index)?;
+        let prompt = match &whole {
+            Some((path, bytes, bos)) => {
+                let all = whole_prompt(bytes, path, *bos, row, index, &prompt)?;
+                lengthened += usize::from(all.len() > prompt.len());
+                shortened += usize::from(all.len() < prompt.len());
+                all
+            }
+            None => prompt,
+        };
+        longest_prompt = longest_prompt.max(prompt.len());
         let mut session = model.session();
         session.clear_reply_start();
         let mut pick = EOS;
@@ -771,6 +876,11 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             pick = served;
             if place_rows {
                 registers.push(session.last_place());
+            }
+            match session.last_spoken() {
+                Some((_, None)) => spoke_place += 1,
+                Some((_, Some(0))) => told_replies += 1,
+                _ => {}
             }
             if let (Some(table), Some(query)) = (table, session.last_query_q12()) {
                 visits.count(table, query, session.last_native_token());
@@ -829,6 +939,11 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             pick = served;
             if place_rows {
                 registers.push(session.last_place());
+            }
+            match session.last_spoken() {
+                Some((_, None)) => spoke_place += 1,
+                Some((_, Some(0))) => told_replies += 1,
+                _ => {}
             }
             if let (Some(table), Some(query)) = (table, session.last_query_q12()) {
                 visits.count(table, query, session.last_native_token());
@@ -895,6 +1010,23 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
         "stack_sha256": sha256_hex(&artifact),
         "samples_sha256": sha256_hex(&samples),
     });
+    if let Some((sha256, speak)) = &place_asks {
+        receipt["place_asks"] = json!({
+            "sha256": sha256,
+            "speak": speak,
+            "ids_spoken_from_a_place": spoke_place,
+            "replies_started_on_the_stored_reply": told_replies,
+        });
+    }
+    if let Some((_, bytes, bos)) = &whole {
+        receipt["whole_prompt"] = json!({
+            "tokens_sha256": sha256_hex(bytes),
+            "bos": bos,
+            "rows_lengthened": lengthened,
+            "rows_shortened": shortened,
+            "longest_prompt": longest_prompt,
+        });
+    }
     if copy_rule.is_some() {
         // What the session serves after the switch, beside the artifact's own rule.
         receipt["copy_rule"] = json!({
@@ -1253,6 +1385,13 @@ mod tests {
     /// (`PLACE_DOT`), arm (`PLACE_ASK`) and open (`PLACE_OPENS`). Returned with the artifact it
     /// was built on, which asks and has no place read.
     fn place_artifacts() -> (Vec<u8>, Vec<u8>) {
+        let (asked, placed, _) = place_artifacts_with_image();
+        (asked, placed)
+    }
+
+    /// [`place_artifacts`] with the place image the second artifact carries: its marks and its
+    /// vocabulary are what a table for it must name.
+    fn place_artifacts_with_image() -> (Vec<u8>, Vec<u8>, uor_r4_integer::stack::PlaceImage) {
         use uor_r4_integer::stack::synthetic::{
             synthetic_fbs_trunk_with, FbsSynth, FBS_SYNTH_NON_SQUARE,
         };
@@ -1307,7 +1446,7 @@ mod tests {
         class[PLACE_OPENS as usize] = PLACE_OPEN;
         let place = PlaceImage::checked(marks, class, vocab).expect("the classes");
         let placed = add_hamming_place_uorlut01(&asked, &place).expect("the place read is added");
-        (asked, placed)
+        (asked, placed, place)
     }
 
     /// claude-352, check I-l: `--place-rows 1` prints the register after each step that chose a
@@ -1458,6 +1597,141 @@ mod tests {
         let stray = ["--stack", "a", "b", "--samples"];
         let error = run_with_args(stray.iter().map(|arg| (*arg).to_owned())).unwrap_err();
         assert!(error.contains("b: every argument"), "{error}");
+    }
+
+    /// claude-359: `--whole-prompt` gives the conversation from its start mark, and refuses a
+    /// row cut from other text, a row with no position and a corpus with no start mark.
+    #[test]
+    fn the_whole_prompt_is_the_conversation_from_its_start_mark() {
+        // Two conversations: ids 7 20 21 22 | 7 30 31 32 33, start mark 7.
+        let mut corpus = b"UORT".to_vec();
+        corpus.resize(64, 0);
+        for id in [7u16, 20, 21, 22, 7, 30, 31, 32, 33] {
+            corpus.extend(id.to_le_bytes());
+        }
+        let row = json!({"position": 8, "prompt": [31, 32]});
+        assert_eq!(whole_prompt(&corpus, "tokens", 7, &row, 0, &[31, 32]).unwrap(), [7, 30, 31, 32]);
+        // A window that already holds the start comes back as it is.
+        let all = json!({"position": 3, "prompt": [7, 20, 21]});
+        assert_eq!(whole_prompt(&corpus, "tokens", 7, &all, 0, &[7, 20, 21]).unwrap(), [7, 20, 21]);
+        let error = whole_prompt(&corpus, "tokens", 7, &row, 0, &[30, 32]).unwrap_err();
+        assert!(error.contains("not the corpus"), "{error}");
+        let error = whole_prompt(&corpus, "tokens", 7, &json!({"prompt": [31, 32]}), 0, &[31, 32]).unwrap_err();
+        assert!(error.contains("position"), "{error}");
+        let error = whole_prompt(&corpus, "tokens", 9, &row, 0, &[31, 32]).unwrap_err();
+        assert!(error.contains("no id 9"), "{error}");
+        assert!(whole_prompt(&corpus[..40], "tokens", 7, &row, 0, &[31, 32]).is_err(), "a file with no header");
+        // A window that began in the text before the conversation comes back without that text.
+        let early = json!({"position": 6, "prompt": [22, 7, 30]});
+        assert_eq!(whole_prompt(&corpus, "tokens", 7, &early, 0, &[22, 7, 30]).unwrap(), [7, 30]);
+        // A position past the corpus is refused, whatever the prompt: an empty one would pass
+        // the check of the row and leave a search with no end.
+        let far = json!({"position": u64::MAX, "prompt": []});
+        let error = whole_prompt(&corpus, "tokens", 7, &far, 0, &[]).unwrap_err();
+        assert!(error.contains("past the corpus"), "{error}");
+    }
+
+    /// claude-359, review round 1: the asks and the whole prompt through the run. The receipt
+    /// says what was served, and each flag that needs another is refused by name.
+    #[test]
+    fn the_asks_and_the_whole_prompt_are_served_and_told_in_the_receipt() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("uor-asks-run-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&root).expect("temp directory");
+        let file = |name: &str, bytes: &[u8]| {
+            let path = root.join(name);
+            fs::write(&path, bytes).expect("a file of the test");
+            path.display().to_string()
+        };
+        let (_, placed, place) = place_artifacts_with_image();
+        let stack = file("placed.uorlut", &placed);
+        // A corpus of 1,100 ids with the conversation from position 1000.
+        let mut corpus = b"UORT".to_vec();
+        corpus.resize(64, 0);
+        for at in 0..1100usize {
+            let id = at.checked_sub(1000).and_then(|k| PLACE_TALK.get(k)).copied().unwrap_or(0);
+            corpus.extend(u16::try_from(id).expect("an id of the test").to_le_bytes());
+        }
+        let tokens = file("tokens.u16", &corpus);
+        // Three rows that end at the reply's first row: the conversation as it is, a window that
+        // lost its first four ids, and a window that holds two ids of the text before it.
+        let before: Vec<u32> = [0, 0].into_iter().chain(PLACE_TALK[..18].iter().copied()).collect();
+        let rows = json!([
+            {"prompt": PLACE_TALK[..18].to_vec(), "position": 1018},
+            {"prompt": PLACE_TALK[4..18].to_vec(), "position": 1018},
+            {"prompt": before, "position": 1018},
+        ]);
+        let samples = file("samples.json", &serde_json::to_vec(&rows).expect("rows"));
+        // A table that finds the position after id 30 for a question holding `PLACE_ASK`, and
+        // opens the role marker's row, so a reply's first id is the id at that place, 31.
+        let asks = PlaceAsks {
+            tokens_sha256: "test".to_owned(),
+            marks: place.marks.clone(),
+            vocab: place.class.len() as u32,
+            link: vec![30],
+            shared: Vec::new(),
+            unseen: vec![[0, 0]; 8],
+            pairs: vec![[PLACE_ASK as i32, 1, 30, 100]],
+            floor: 50,
+            floor_other: 50,
+            margin: 0,
+            opens: vec![[PLACE_SEP as i32, PLACE_MODEL as i32, 1]],
+            asking: vec![[PLACE_ASK as i32, 10]],
+            asking_prior: 0,
+            asking_floor: 5,
+            not_told: vec![41, 42, PLACE_EOS],
+            forms: vec![vec![41, 42, PLACE_EOS]],
+        };
+        let table_bytes = serde_json::to_vec(&asks).expect("the asks");
+        let table = file("asks.json", &table_bytes);
+        let run = |name: &str, extra: &[&str]| {
+            let out = root.join(name).display().to_string();
+            let fixed = [
+                "--stack", stack.as_str(), "--samples", samples.as_str(), "--out", out.as_str(),
+                "--mark-reply", "0", "--max-tokens", "3",
+            ];
+            run_with_args(fixed.iter().chain(extra).map(|arg| (*arg).to_owned()))
+        };
+        let (asks_flag, whole_flag) = (["--place-asks", table.as_str()], ["--whole-prompt", tokens.as_str(), "--bos", "500"]);
+        let both: Vec<&str> = asks_flag.iter().chain(&whole_flag).copied().collect();
+        let quiet: Vec<&str> = asks_flag.iter().copied().chain(["--place-speak", "0"]).collect();
+        let rows_too: Vec<&str> = whole_flag.iter().copied().chain(["--place-rows", "1"]).collect();
+        let plain = run("plain.jsonl", &[]).expect("no new flag");
+        let served = run("served.jsonl", &both).expect("the asks on the whole prompt");
+        let unspoken = run("unspoken.jsonl", &quiet).expect("the asks with speak off");
+        let first_ids = |name: &str| -> Vec<Value> {
+            let text = fs::read_to_string(root.join(name)).expect("reply rows");
+            text.lines().map(|line| serde_json::from_str::<Value>(line).expect("a row")["ids"][0].clone()).collect()
+        };
+        let (served_first, unspoken_first) = (first_ids("served.jsonl"), first_ids("unspoken.jsonl"));
+        let refused = [
+            run("a.jsonl", &["--bos", "500"]).unwrap_err(),
+            run("b.jsonl", &["--whole-prompt", tokens.as_str()]).unwrap_err(),
+            run("c.jsonl", &rows_too).unwrap_err(),
+            run("d.jsonl", &["--place-speak", "1"]).unwrap_err(),
+        ];
+        let _ = fs::remove_dir_all(&root);
+        assert!(plain.get("place_asks").is_none() && plain.get("whole_prompt").is_none(), "{plain}");
+        // Every row is served the one conversation, and the open row speaks the id at the place.
+        assert_eq!(served_first, vec![json!(31); 3]);
+        assert_eq!(
+            served["place_asks"],
+            json!({"sha256": sha256_hex(&table_bytes), "speak": true, "ids_spoken_from_a_place": 3, "replies_started_on_the_stored_reply": 0})
+        );
+        assert_eq!(
+            served["whole_prompt"],
+            json!({"tokens_sha256": sha256_hex(&corpus), "bos": 500, "rows_lengthened": 1, "rows_shortened": 1, "longest_prompt": 18})
+        );
+        // With speak off no id is spoken, and the receipt says so.
+        assert_eq!(unspoken["place_asks"]["speak"], false);
+        assert_eq!(unspoken["place_asks"]["ids_spoken_from_a_place"], 0);
+        assert_ne!(unspoken_first, served_first);
+        for (error, want) in refused.iter().zip(["--bos needs --whole-prompt", "--whole-prompt needs --bos", "refused with --place-rows 1", "--place-speak needs --place-asks"]) {
+            assert!(error.contains(want), "{error}");
+        }
     }
 
     /// claude-352's review: `--kit-tokens` refuses a kit written from another corpus and rows
