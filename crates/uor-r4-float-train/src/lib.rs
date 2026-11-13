@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub mod cuda_stack_kernels;
+pub mod e8_address;
 pub mod fbs_export;
 pub mod flock_read;
 pub mod flock_read_content;

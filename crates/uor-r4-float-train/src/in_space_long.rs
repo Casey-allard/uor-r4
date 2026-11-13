@@ -302,6 +302,14 @@ pub struct LongConfig {
     /// schedule start fresh. Left out of `config.json` when absent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub init_from: Option<PathBuf>,
+    /// The address memory's arm (claude-346, [`crate::e8_address`]): a learned table inside the
+    /// trunk, read by each state's own address. Left out of `config.json` when absent, so a run
+    /// without it writes the same file as before.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_memory: Option<crate::e8_address::AddressArm>,
+    /// The address memory's band `τ`; the arm's default when absent. Needs `address_memory`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_band: Option<f64>,
 }
 
 /// What TRAIN's scored targets are ([`LongConfig::train_targets`], claude-296).
@@ -371,7 +379,15 @@ impl ServedValues {
         reads: Option<&crate::flock_read_hamming::HammingReads>,
         memory: Option<&crate::flock_read_memory::TurnMemory>,
     ) -> Result<Self> {
+        // The address memory set on this thread (claude-346), which shares its variables with
+        // the run's own copy: its rows are rounded to the served 16 bits with the rest.
+        let address = crate::e8_address::address_memory();
         let mut vars: Vec<&candle_core::Var> = model.variables().values().collect();
+        if let Some(address) = address.as_ref() {
+            // Before the float copies, as for the ask weights below.
+            address.hold_in_exported_range()?;
+            vars.extend(address.variables());
+        }
         if let Some(reads) = reads {
             // claude-339: before the float copies, so the float master stays at the range's
             // end too and cannot run on past what the export can hold.
@@ -396,6 +412,9 @@ impl ServedValues {
             }
             if let Some(memory) = memory {
                 crate::fbs_export::round_memory_as_exported(memory)?;
+            }
+            if let Some(address) = address.as_ref() {
+                address.round_as_exported()?;
             }
             Ok(())
         })();
@@ -689,6 +708,7 @@ impl Drop for ArmGuard {
         crate::flock_read_memory::set_turn_memory(None);
         crate::flock_read_memory::set_memory_rows(None);
         crate::flock_read_memory::set_reply_rows(None);
+        crate::e8_address::set_address_memory(None);
         set_trained_cut(None);
         crate::flock_read_hamming::set_row_cut(None);
     }
@@ -778,12 +798,16 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::flock_read_memory::set_turn_memory(crate::flock_read_memory::TurnMemory::load(
         directory, device,
     )?);
+    crate::e8_address::set_address_memory(crate::e8_address::AddressMemory::load(
+        directory, device,
+    )?);
     Ok(())
 }
 
 const INIT_RECORD_SCHEMA: &str = "uor-r4.train-in-space-init/1";
 const HAMMING_SIDECAR: &str = "hamming_read.safetensors";
-const UNSUPPORTED_INIT_SIDECARS: [&str; 6] = [
+const UNSUPPORTED_INIT_SIDECARS: [&str; 7] = [
+    "address_memory.safetensors",
     "flock_read.safetensors",
     "content_read.safetensors",
     "opening_read.safetensors",
@@ -872,6 +896,13 @@ fn validate_checkpoint_selection(config: &LongConfig) -> Result<()> {
     let Some(checkpoint) = &config.init_from else {
         return Ok(());
     };
+    // claude-346: the address memory starts at zero rows beside a fresh trunk; adding one to a
+    // loaded trunk is a run of its own, not yet built.
+    if config.address_memory.is_some() {
+        return Err(invalid(
+            "--init-from does not start an address memory; --address-memory trains from a fresh start",
+        ));
+    }
     if !checkpoint.is_dir() {
         return Err(invalid(format!(
             "--init-from wants a saved checkpoint directory, not {}",
@@ -3372,6 +3403,9 @@ fn unserved_reads() -> Vec<&'static str> {
     }
     if crate::flock_read_register::prompt_register().is_some() {
         set.push("the prompt register");
+    }
+    if crate::e8_address::address_memory().is_some() {
+        set.push("the address memory");
     }
     set
 }
@@ -13896,6 +13930,11 @@ pub fn run_recall(
     if form.eval_windows == 0 {
         return Err(invalid("a recall run scores at least one held-out window"));
     }
+    if config.address_memory.is_some() || config.address_band.is_some() {
+        return Err(invalid(
+            "the address memory trains with --out's long run, not under --recall",
+        ));
+    }
     if form.query && pairs_per_bucket != RECALL_QUERY_EPISODES {
         return Err(invalid(format!(
             "the two-class task holds {RECALL_QUERY_EPISODES} episodes a window, not {pairs_per_bucket}"
@@ -14826,9 +14865,16 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
              TRAIN's own targets",
         ));
     }
+    if config.address_band.is_some() && config.address_memory.is_none() {
+        return Err(invalid(
+            "--address-band sets the address memory's band; turn the memory on with --address-memory",
+        ));
+    }
     // Training as served (claude-258) rounds what the export carries: the trunk, the Hamming
     // read and the turn memory. A read it does not carry would train at values no artifact holds,
     // and a run with folded or reflected rate scores has no export at all (`run_rate_reading`).
+    // The address memory (claude-346) is rounded to its served 16 bits with them; the export's
+    // section for it is a later unit's, and until then the export refuses its checkpoint.
     if config.train_as_served
         && (config.flock_read > 0
             || config.content_read > 0
@@ -14924,6 +14970,34 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     };
     // The Hamming reads, when on: their own optimizer, applied inside the trunk.
     let mut hamming = start_hamming(config, device)?;
+    // The address memory (claude-346), when on: zero rows, its own optimizer, applied inside the
+    // trunk after every layer.
+    let mut address = match config.address_memory {
+        Some(arm) => {
+            let memory = crate::e8_address::AddressMemory::new(
+                arm,
+                model.config.layers(),
+                config.width,
+                config.address_band,
+                config.seed,
+                device,
+            )?;
+            crate::e8_address::set_address_memory(Some(memory.clone()));
+            println!(
+                "[address] {} arm: {} layers of {} cells a block, band {}, rows step at lr x {}",
+                arm.name(),
+                memory.layers(),
+                arm.cells(),
+                memory.band(),
+                memory.rate()
+            );
+            let opt = crate::flock_read::FlockAdamW::for_vars(&memory.variables())?;
+            Some((memory, opt))
+        }
+        None => None,
+    };
+    // The address memory's cells on the same TRAIN windows, checkpoint after checkpoint.
+    let address_census = std::cell::RefCell::new(crate::e8_address::Census::default());
     // claude-337: the found-copy pull's record since the last checkpoint, when the pull is on.
     let mut pull_tally = (config.hamming_attract > 0.0).then(|| PullTally::new(config.hamming_attract));
     write_initialization_record(out, config)?;
@@ -15127,6 +15201,46 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if let Some(memory) = crate::flock_read_memory::turn_memory() {
             memory.save(&directory)?;
         }
+        // The address memory (claude-346), at the values this checkpoint holds: the cells its
+        // rows are read by on the first TRAIN windows, then the rows.
+        if let Some(address) = crate::e8_address::address_memory() {
+            let windows = usable.len().min(crate::e8_address::CENSUS_WINDOWS);
+            let layers = address_census.borrow_mut().read(&address, || {
+                with_eval_forward(config.train_as_served, config.seed, step, || {
+                    for window in &usable[..windows] {
+                        model.hidden(&window.input_ids, 1, window.input_ids.len())?;
+                    }
+                    Ok(())
+                })
+            })?;
+            let mean = |of: &dyn Fn(&crate::e8_address::LayerCensus) -> f64| {
+                layers.iter().map(of).sum::<f64>() / layers.len().max(1) as f64
+            };
+            println!(
+                "[address] step {step}: cells in use a block {:.1}, largest cell share {:.3}, moved {}, in band {:.3}, mean |row| {:.6}",
+                mean(&|layer| layer.cells_used_mean),
+                mean(&|layer| layer.largest_cell_share),
+                layers
+                    .iter()
+                    .map(|layer| layer.moved_share)
+                    .sum::<Option<f64>>()
+                    .map_or("-".to_owned(), |sum| format!(
+                        "{:.3}",
+                        sum / layers.len().max(1) as f64
+                    )),
+                mean(&|layer| layer.in_band_share),
+                mean(&|layer| layer.row_mean_abs),
+            );
+            let line = serde_json::json!({
+                "step": step,
+                "arm": address.arm().name(),
+                "band": address.band(),
+                "windows": windows,
+                "layers": layers,
+            });
+            append_line(&out.join("address.jsonl"), &serde_json::to_string(&line)?)?;
+            address.save(&directory)?;
+        }
         if let Some(served) = served {
             served.restore()?;
         }
@@ -15254,6 +15368,11 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         }
         if let Some((mem, opt)) = memory.as_mut() {
             opt.step_vars(&mem.variables(), &grads, lr)?;
+        }
+        // The address memory's rows (claude-346): a position's rows, one per block, take the
+        // same gradient, so each steps at the rate over the block count.
+        if let Some((address, opt)) = address.as_mut() {
+            opt.step_vars(&address.variables(), &grads, lr * address.rate())?;
         }
         crate::flock_read_memory::set_memory_rows(None);
         crate::flock_read_memory::set_reply_rows(None);
@@ -16773,6 +16892,8 @@ mod tests {
             context: hs::SHEET_CONTEXT,
             train_targets: TrainTargets::Observed,
             init_from: None,
+            address_memory: None,
+            address_band: None,
         }
     }
 

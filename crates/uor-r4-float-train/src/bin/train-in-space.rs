@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -55,6 +55,16 @@
 //! vocabulary and vector head must match the run. Flock, content, opening, prompt-register and
 //! turn-memory reads are refused until their checkpoint restore is implemented, so no read is
 //! silently recreated from new parameters.
+//!
+//! `--address-memory e8|sign|collapse|token` (claude-346) adds the address memory to a training
+//! run with `--out`: a learned table inside the trunk, one row per 8-coordinate block and layer,
+//! read by the state's nearest E8 root (`e8`), by the block's signs (`sign`), with no address
+//! (`collapse`), or by a hash of the position's own token (`token`). `--address-band X` sets the
+//! band inside which a state takes a gradient through its address; the arm's default when left
+//! out, and 0 for none. The rows start at zero, train at the rate over the block count, and under
+//! `--train-as-served 1` are rounded to 16 bits on the residual stream's 2^-16 grid. Each
+//! checkpoint saves them as `address_memory.safetensors`, which scoring loads and the export
+//! refuses, and adds a line to `DIR/address.jsonl`. `--init-from` and `--recall` refuse the flag.
 //!
 //! `--writer-anchor 1` anchors the writer's ports (claude-290): the shared table's first and last
 //! 8D blocks hold exactly the SpiralCore roots of each token's own cell, re-set after every main
@@ -359,6 +369,17 @@ fn init_from_applies(init_from: bool, training_with_out: bool) -> Result<()> {
     Ok(())
 }
 
+/// claude-346: the address memory is built by a training run; scoring reads it from the
+/// checkpoint, so a mode that trains nothing refuses the flags rather than ignore them.
+fn address_applies(address: bool, training_with_out: bool) -> Result<()> {
+    if address && !training_with_out {
+        return Err(FloatTrainError::Invalid(
+            "--address-memory and --address-band apply to training with --out only".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 /// claude-337: the found-copy pull trains a run (`run_long`, or `run_recall` under `--recall`), so a
 /// mode that trains nothing refuses a nonzero `--hamming-attract` rather than record it.
 fn pull_applies(attract: f64, other_mode: bool) -> Result<()> {
@@ -487,6 +508,8 @@ fn main() -> Result<()> {
         context: uor_r4_float_train::hamilton_sheet::SHEET_CONTEXT,
         train_targets: TrainTargets::Observed,
         init_from: None,
+        address_memory: None,
+        address_band: None,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -684,6 +707,15 @@ fn main() -> Result<()> {
             "--train-as-served" => config.train_as_served = switch(&value)?,
             "--writer-anchor" => config.writer_anchor = switch(&value)?,
             "--init-from" => config.init_from = Some(PathBuf::from(value)),
+            "--address-memory" => {
+                config.address_memory =
+                    Some(uor_r4_float_train::e8_address::AddressArm::parse(&value)?)
+            }
+            "--address-band" => {
+                config.address_band = Some(value.parse().map_err(|_| {
+                    FloatTrainError::Invalid("--address-band wants a number".to_owned())
+                })?)
+            }
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -958,6 +990,10 @@ fn main() -> Result<()> {
         ));
     }
     init_from_applies(config.init_from.is_some(), modes[7] && recall == 0)?;
+    address_applies(
+        config.address_memory.is_some() || config.address_band.is_some(),
+        modes[7] && recall == 0,
+    )?;
     fast_rivals_applies(
         config.fast_rivals,
         modes[7] && recall == 0,
@@ -2152,6 +2188,14 @@ mod tests {
         assert!(init_from_applies(false, false).is_ok());
         assert!(init_from_applies(true, true).is_ok());
         let error = init_from_applies(true, false).unwrap_err().to_string();
+        assert!(error.contains("training with --out only"), "{error}");
+    }
+
+    #[test]
+    fn the_address_memory_is_a_training_only_switch() {
+        assert!(address_applies(false, false).is_ok());
+        assert!(address_applies(true, true).is_ok());
+        let error = address_applies(true, false).unwrap_err().to_string();
         assert!(error.contains("training with --out only"), "{error}");
     }
 }

@@ -332,9 +332,11 @@ impl FlockAdamW {
 
     /// One update of `vars` (the list [`FlockAdamW::for_vars`] was built with) from `grads`.
     pub fn step_vars(&mut self, vars: &[&Var], grads: &GradStore, lr: f64) -> Result<()> {
+        // Each gradient is cut from any graph first. The running means outlive the step, and a
+        // gradient that still had an op would keep its whole forward pass alive in them.
         let present: Vec<Option<Tensor>> = vars
             .iter()
-            .map(|var| grads.get(var.as_tensor()).cloned())
+            .map(|var| grads.get(var.as_tensor()).map(Tensor::detach))
             .collect();
         let mut squared = 0.0f64;
         for grad in present.iter().flatten() {
@@ -534,5 +536,26 @@ mod tests {
         assert!((w[1] - 0.1).abs() < 1e-6, "{w:?}");
         assert_eq!(w[2], 0.0);
         assert_eq!(w[3], 0.0);
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_running_means_keep_no_history_of_an_address_memory_gradient() {
+        let device = Device::new_cuda(0).unwrap();
+        let rows = Var::zeros((4, 2), DType::F32, &device).unwrap();
+        let state = Var::new(&[1.0f32, 3.0], &device).unwrap();
+        // An index computed from a tracked tensor has an op, and candle's `index_add` then gives
+        // the rows' gradient one: the shape of the address memory's fault of 13 Nov 2026.
+        let index = state.as_tensor().to_dtype(DType::U32).unwrap();
+        let read = rows.as_tensor().index_select(&index, 0).unwrap();
+        let grads = read.sum_all().unwrap().backward().unwrap();
+        assert!(
+            grads.get(rows.as_tensor()).unwrap().track_op(),
+            "the test needs a gradient that carries an op"
+        );
+        let mut optimizer = FlockAdamW::for_vars(&[&rows]).unwrap();
+        optimizer.step_vars(&[&rows], &grads, 0.1).unwrap();
+        assert!(!optimizer.first[0].track_op());
+        assert!(!optimizer.second[0].track_op());
     }
 }

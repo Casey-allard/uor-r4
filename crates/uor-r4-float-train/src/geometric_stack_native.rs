@@ -1674,6 +1674,13 @@ impl StackModel {
             stage_clock::mark_with(|| format!("layer{layer}.recurrence"));
             x = q16(x.add(&self.mlp(&p, layer, &x)?)?)?;
             stage_clock::mark_with(|| format!("layer{layer}.mlp"));
+            // The address memory (claude-346), when one is set on this thread: after every
+            // layer's Hamilton block, each position adds the rows its own state's blocks name.
+            // It reads nothing of another position, so a cached step needs no carry for it.
+            if let Some(memory) = crate::e8_address::address_memory() {
+                x = q16(memory.apply(layer, &x, ids)?)?;
+                stage_clock::mark_with(|| format!("layer{layer}.address"));
+            }
             // The content read (claude-145), when one is set on this thread: after layer 3, keyed
             // on the input tokens' own points.
             if layer + 1 == crate::flock_read_content::CONTENT_AFTER_LAYER {
@@ -3900,6 +3907,41 @@ mod decode_cache_tests {
             flipped_read > 0,
             "a flipped bit in a carried read residual went unseen"
         );
+        Ok(())
+    }
+
+    /// claude-346: the address memory reads each position's own state and token and nothing
+    /// else, so a cached step adds the rows the whole-window forward adds at that position, bit
+    /// for bit, under every arm, with nothing carried for it.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_address_memory_steps_as_the_whole_window_does() -> Result<()> {
+        use crate::e8_address::{set_address_memory, AddressArm, AddressMemory};
+        struct Clear;
+        impl Drop for Clear {
+            fn drop(&mut self) {
+                set_address_memory(None);
+            }
+        }
+        let _clear = Clear;
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 64)?;
+        let mut rng = Lcg(346);
+        let rows: Vec<Vec<u32>> = (0..2)
+            .map(|_| (0..20).map(|_| (rng.next() % 4096) as u32).collect())
+            .collect();
+        let none = |_: &mut DecodeCache| -> Result<()> { Ok(()) };
+        let plain = bits(&model.hidden(&windows(&rows, 10), 2, 10)?)?;
+        for arm in AddressArm::ALL {
+            let memory =
+                AddressMemory::new(arm, model.config.layers(), model.config.width, None, 346, &device)?
+                    .randomized(346)?;
+            set_address_memory(Some(memory));
+            // The rows are in the forward the steps are compared with.
+            assert_ne!(bits(&model.hidden(&windows(&rows, 10), 2, 10)?)?, plain, "{arm:?}");
+            let (differing, first) = compare_steps(&model, &rows, 7, 3, None, &none)?;
+            assert_eq!(differing, 0, "{arm:?}: first {first:?}");
+        }
         Ok(())
     }
 
