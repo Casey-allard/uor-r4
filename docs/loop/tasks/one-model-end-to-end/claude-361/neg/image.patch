@@ -1,0 +1,13 @@
+diff --git a/crates/uor-r4-float-train/src/flock_read_hamming.rs b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+index 62bbaf505..7b1cabbde 100644
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -2465,7 +2465,7 @@ impl PlaceRead {
+                 bit(self.stop[v], PLACE_STOP)
+                     | bit(counts.arm[v] > 0, PLACE_ARM)
+                     | bit(counts.open[v] > 0, PLACE_OPEN)
+-                    | bit(self.link[v], PLACE_LINK)
++                    | bit(false, PLACE_LINK)
+             })
+             .collect();
+         PlaceImage::checked(self.marks.clone(), class, self.stop.len()).map_err(invalid)

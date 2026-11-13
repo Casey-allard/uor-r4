@@ -1,0 +1,13 @@
+diff --git a/crates/uor-r4-float-train/src/flock_read_hamming.rs b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+index 62bbaf505..a6b76ade2 100644
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -2619,7 +2619,7 @@ impl PlaceKit {
+     /// [`Outside`]: PlaceLabel::Outside
+     pub fn labels(&self, starts: &[Option<usize>], time: usize) -> PlaceLabels {
+         let mut out = PlaceLabels::new();
+-        let before = if self.link.is_empty() { 2 } else { 3 };
++        let before = 2;
+         for (b, start) in starts.iter().enumerate() {
+             // A window with no corpus start is labelled with nothing.
+             let Some(start) = *start else { continue };

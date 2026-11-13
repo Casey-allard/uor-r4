@@ -1,0 +1,15 @@
+diff --git a/crates/uor-r4-float-train/src/flock_read_hamming.rs b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+index 62bbaf505..37b48183d 100644
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -2962,8 +2962,8 @@ impl HammingRead {
+         let asking: Vec<u32> = pairs.iter().map(|&(t, _)| t).collect();
+         let before = |by: usize| -> Vec<u32> { pairs.iter().map(|&(_, s)| ids[s as usize - by]).collect() };
+         let every = table.index_select(&Tensor::from_vec(ids.to_vec(), ids.len(), device)?, 0)?;
+-        let near = table.index_select(&tokens(before(2))?, 0)?;
+-        let far = table.index_select(&tokens(before(3))?, 0)?;
++        let near = table.index_select(&tokens(before(1))?, 0)?;
++        let far = table.index_select(&tokens(before(2))?, 0)?;
+         let rotation = self.key_rotation.as_tensor().detach();
+         let (query, near, far) = as_trained(|| {
+             let question = self.asked(&every, ask, ids, time)?.index_select(&tokens(asking)?, 0)?;

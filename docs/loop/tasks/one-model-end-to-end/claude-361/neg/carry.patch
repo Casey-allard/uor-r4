@@ -1,0 +1,13 @@
+diff --git a/crates/uor-r4-float-train/src/flock_read_hamming.rs b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+index 62bbaf505..731032038 100644
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -3051,7 +3051,7 @@ impl HammingReads {
+         if !self.has_ask() {
+             return Err(invalid("the place read finds with the ask heads; turn them on with --hamming-ask 1"));
+         }
+-        if self.carry_rows() > 0 && !linked {
++        if self.carry_rows() > 0 && (!linked || linked) {
+             return Err(invalid(
+                 "the place read with no link tokens and the question carry both change the readout read's question; \
+                  one is on at a time (a kit with link tokens takes the carry)",

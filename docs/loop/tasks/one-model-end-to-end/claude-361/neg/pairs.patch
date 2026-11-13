@@ -1,0 +1,13 @@
+diff --git a/crates/uor-r4-float-train/src/flock_read_hamming.rs b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+index 62bbaf505..440cf05a3 100644
+--- a/crates/uor-r4-float-train/src/flock_read_hamming.rs
++++ b/crates/uor-r4-float-train/src/flock_read_hamming.rs
+@@ -2773,7 +2773,7 @@ fn place_learn(
+                             vote(&mut counts.arm, 0, ids[base + at], pos == place);
+                         }
+                         let pair = |at: usize| ((base + at) as u32, (base + place) as u32);
+-                        if linked {
++                        if linked && false {
+                             let before = place.checked_sub(1).map(|p| ids[base + p] as usize);
+                             let after_link = before.is_some_and(|v| link.get(v).copied().unwrap_or(false));
+                             let last = content.clone().last().filter(|&at| at >= 1);
