@@ -363,15 +363,45 @@ impl AddressMemory {
     /// (`hamilton_sheet::q16_residual`): `floor(v × 2¹⁶ + ½) / 2¹⁶`, held to 16 bits.
     pub fn round_as_exported(&self) -> Result<()> {
         for rows in &self.rows {
-            let steps = rows
-                .as_tensor()
-                .detach()
-                .affine(ROW_SCALE, 0.5)?
-                .floor()?
-                .clamp(-ROW_STEPS, ROW_STEPS)?;
-            rows.set(&steps.affine(1.0 / ROW_SCALE, 0.0)?)?;
+            rows.set(&Self::steps(rows)?.affine(1.0 / ROW_SCALE, 0.0)?)?;
         }
         Ok(())
+    }
+
+    /// One layer's rows in whole steps of the served grid: `floor(v × 2¹⁶ + ½)`, held to 16 bits.
+    fn steps(rows: &Var) -> Result<Tensor> {
+        Ok(rows
+            .as_tensor()
+            .detach()
+            .affine(ROW_SCALE, 0.5)?
+            .floor()?
+            .clamp(-ROW_STEPS, ROW_STEPS)?)
+    }
+
+    /// The table as a served stack holds it (claude-366): every row in the whole steps
+    /// [`Self::round_as_exported`] puts it on, taken by the same arithmetic, so the artifact's
+    /// rows are the rows the served evaluation read. The memory itself is left as it is. Only
+    /// the `e8` and `token` arms have a served form. The band is not carried: it shapes the
+    /// gradient at a wall and adds nothing to the value `apply` returns, so the served read has
+    /// none.
+    pub fn image(&self) -> Result<uor_r4_integer::fbs_address::AddressImage> {
+        use uor_r4_integer::fbs_address as served;
+        let arm = match self.arm {
+            AddressArm::E8 => served::AddressArm::E8,
+            AddressArm::Token => served::AddressArm::Token,
+            other => {
+                return Err(invalid(format!(
+                    "the {} arm has no served form",
+                    other.name()
+                )))
+            }
+        };
+        let mut layers = Vec::with_capacity(self.rows.len());
+        for rows in &self.rows {
+            let steps = Self::steps(rows)?.flatten_all()?.to_vec1::<f32>()?;
+            layers.push(steps.into_iter().map(|step| step as i16).collect());
+        }
+        served::AddressImage::checked(arm, self.seed, self.width, layers).map_err(invalid)
     }
 
     /// Write the memory to `directory/address_memory.safetensors`: each layer's table as
@@ -1671,6 +1701,153 @@ mod tests {
                 plain,
                 "{arm:?}: trained rows left the trunk as it was"
             );
+        }
+    }
+
+    /// claude-366: on the served grid the tensor decode names the cell the served reader names
+    /// (`uor_r4_integer::fbs_address::e8_cell`), block for block: the shared blocks, which hold
+    /// the zero block and the planted ties, and drawn blocks at four scales. At the smallest
+    /// scale most blocks hold equal magnitudes or a tie between the two families of roots, so
+    /// the tie rules are compared, not only the clear blocks. Every value and every sum of a
+    /// block's magnitudes is below 2²⁴ steps, where the trainer's 32-bit sums are exact.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_tensor_decode_names_the_served_cell() {
+        use uor_r4_integer::fbs_address::{e8_cell, ADDRESS_SHARED_BLOCKS};
+        let device = device();
+        let mut grid: Vec<[i32; BLOCK]> = ADDRESS_SHARED_BLOCKS.to_vec();
+        let mut state = 366u64;
+        for n in 0..16_384usize {
+            let reach = [3i64, 40, 70_000, 2_000_000][n % 4];
+            let mut block = [0i32; BLOCK];
+            for value in &mut block {
+                state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+                *value = ((mix(state) >> 11) as i64 % (2 * reach + 1) - reach) as i32;
+            }
+            grid.push(block);
+        }
+        let values: Vec<f32> = grid
+            .iter()
+            .flatten()
+            .map(|step| *step as f32 / ROW_SCALE as f32)
+            .collect();
+        let blocks = Tensor::from_vec(values, (grid.len(), BLOCK), &device).unwrap();
+        let cells = whole(&e8_address(&blocks).unwrap().cell);
+        let mut seen = std::collections::BTreeSet::new();
+        for (n, block) in grid.iter().enumerate() {
+            assert_eq!(cells[n], e8_cell(block) as usize, "block {n}: {block:?}");
+            seen.insert(cells[n]);
+        }
+        assert!(seen.len() > 200, "the blocks named {} cells", seen.len());
+    }
+
+    /// claude-366: the token arm's cells are the served reader's hash, token, layer and block.
+    #[test]
+    fn the_token_cells_are_the_served_hash() {
+        use uor_r4_integer::fbs_address::token_cell;
+        let ids = [0u32, 5, 9, 4_095, 65_535];
+        for (seed, layer) in [(0u64, 0usize), (11, 3), (0x0123_4567_89AB_CDEF, 5)] {
+            let cells = whole(&token_cells(seed, layer, &ids, 32, &Device::Cpu).unwrap());
+            assert_eq!(cells.len(), ids.len() * 32);
+            for (place, id) in ids.iter().enumerate() {
+                for block in 0..32 {
+                    assert_eq!(
+                        cells[place * 32 + block],
+                        token_cell(seed, layer, block, *id) as usize,
+                        "seed {seed}, layer {layer}, token {id}, block {block}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// claude-366: the served table holds the rows `round_as_exported` leaves, step for step,
+    /// with the memory's arm, seed and width; taking it leaves the memory as it was. The drawn
+    /// rows are multiples of 2⁻²⁰ up to ±1, so they hold exact half steps, values between
+    /// steps and values past the 16-bit bound, and the plain rule below is exact for them.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn the_served_image_holds_the_rounded_rows() {
+        let device = device();
+        for (arm, served) in [
+            (AddressArm::E8, uor_r4_integer::fbs_address::AddressArm::E8),
+            (
+                AddressArm::Token,
+                uor_r4_integer::fbs_address::AddressArm::Token,
+            ),
+        ] {
+            let seed = 0x0366_0000_0000_0007u64;
+            let memory = AddressMemory::new(arm, 2, 16, None, seed, &device).unwrap();
+            let shape = (16 / BLOCK * E8_CELLS, 16);
+            let mut state = 366u64;
+            let mut drawn = Vec::new();
+            for rows in &memory.rows {
+                let values: Vec<f32> = (0..shape.0 * shape.1)
+                    .map(|_| {
+                        state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+                        let k = (mix(state) >> 11) as i64 % (2 * (1 << 20) + 1) - (1 << 20);
+                        k as f32 / (1u32 << 20) as f32
+                    })
+                    .collect();
+                rows.set(&Tensor::from_vec(values.clone(), shape, &device).unwrap())
+                    .unwrap();
+                drawn.push(values);
+            }
+            let image = memory.image().unwrap();
+            assert_eq!(
+                (image.arm(), image.seed(), image.width(), image.layers()),
+                (served, seed, 16, 2)
+            );
+            let (mut halves, mut held) = (0, 0);
+            for (layer, values) in drawn.iter().enumerate() {
+                let unchanged = memory.rows[layer]
+                    .as_tensor()
+                    .flatten_all()
+                    .unwrap()
+                    .to_vec1::<f32>()
+                    .unwrap();
+                assert_eq!(
+                    &unchanged, values,
+                    "{arm:?}: taking the image moved the memory"
+                );
+                for (n, value) in values.iter().enumerate() {
+                    let scaled = f64::from(*value) * ROW_SCALE;
+                    let want = (scaled + 0.5).floor().clamp(-ROW_STEPS, ROW_STEPS) as i16;
+                    assert_eq!(
+                        image.layer(layer)[n],
+                        want,
+                        "{arm:?} layer {layer} value {n}: {value}"
+                    );
+                    halves += usize::from((scaled - scaled.floor() - 0.5).abs() < 1e-12);
+                    held += usize::from(scaled.abs() > ROW_STEPS + 1.0);
+                }
+            }
+            assert!(
+                halves > 100 && held > 1_000,
+                "{halves} half steps, {held} held values"
+            );
+            memory.round_as_exported().unwrap();
+            for layer in 0..2 {
+                let rounded = memory.rows[layer]
+                    .as_tensor()
+                    .flatten_all()
+                    .unwrap()
+                    .to_vec1::<f32>()
+                    .unwrap();
+                for (n, value) in rounded.iter().enumerate() {
+                    assert_eq!(
+                        f64::from(*value) * ROW_SCALE,
+                        f64::from(image.layer(layer)[n]),
+                        "{arm:?} layer {layer} value {n}"
+                    );
+                }
+            }
+        }
+        // The other arms have no served form.
+        for arm in [AddressArm::Sign, AddressArm::Collapse] {
+            let memory = AddressMemory::new(arm, 1, 16, None, 1, &device).unwrap();
+            let message = memory.image().expect_err("no served form").to_string();
+            assert!(message.contains("no served form"), "{message}");
         }
     }
 }

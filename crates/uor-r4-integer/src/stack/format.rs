@@ -73,6 +73,10 @@ pub const STACK_FBS_CHAIN_SCHEMA: &str = "uor-r4.lut-stack/9";
 /// Header schema of a SpiralCore/FBS artifact whose contract and tokenizer
 /// identity are mandatory. It may carry any `/6`–`/9` feature record.
 pub const STACK_FBS_BOUND_SCHEMA: &str = "uor-r4.lut-stack/10";
+/// A SpiralCore/FBS stack that serves an address table (claude-366): an unbound stack of schema
+/// `/6` to `/9` with the `address` record and one `address.l{layer}` table a layer, read after
+/// each layer's Hamilton block. A research schema: no stack contract names it yet.
+pub const STACK_FBS_ADDRESS_SCHEMA: &str = "uor-r4.lut-stack/11";
 /// The memory's move weights at `2^MEMORY_WEIGHT_EXP`.
 pub const MEMORY_WEIGHT_EXP: i32 = -24;
 /// The point key's points at `2^POINT_KEY_EXP`: the writer query's Q12.
@@ -955,6 +959,9 @@ struct Header {
     /// The memory chain, under [`STACK_FBS_CHAIN_SCHEMA`]; absent on a stack without one.
     #[serde(default)]
     memory_chain: Option<StackMemoryChain>,
+    /// The address table, under [`STACK_FBS_ADDRESS_SCHEMA`]; absent on a stack without one.
+    #[serde(default)]
+    address: Option<super::StackAddress>,
 }
 
 /// One 4-bit matrix of a parsed container, borrowed from its bytes.
@@ -984,6 +991,8 @@ pub(crate) struct Container<'a> {
     pub point: Option<StackPointKey>,
     /// The validated memory chain record, if the header carries one.
     pub memory_chain: Option<StackMemoryChain>,
+    /// The validated address table record, if the header carries one.
+    pub address: Option<super::StackAddress>,
     data: &'a [u8],
     /// Sections by name (unique within each kind).
     matrices: HashMap<String, MatrixEntry>,
@@ -1017,6 +1026,10 @@ pub struct StackArtifactMetadata {
     pub point: Option<StackPointKey>,
     /// Validated memory chain.
     pub memory_chain: Option<StackMemoryChain>,
+    /// Validated address table. Left out of the written metadata when the stack has none, so a
+    /// stack without one inspects as it did before the table existed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<super::StackAddress>,
 }
 
 /// Parse and validate an artifact, then return the metadata an external audit
@@ -1036,6 +1049,7 @@ pub fn inspect_uorlut01(bytes: &[u8]) -> Result<StackArtifactMetadata, StackErro
         memory: artifact.memory,
         point: artifact.point,
         memory_chain: artifact.memory_chain,
+        address: artifact.address,
     })
 }
 
@@ -1108,7 +1122,11 @@ impl<'a> Container<'a> {
         // `/10` requires the complete binding. Historical stacks retain their
         // `/6`–`/9` schema even if they carry optional provenance from before
         // binding became an admission rule.
-        let expected = if header.schema == STACK_FBS_BOUND_SCHEMA {
+        // An address table has its own schema, so a reader from before the table refuses the
+        // stack by its schema; it would otherwise pass over the record and serve without the rows.
+        let expected = if header.address.is_some() {
+            STACK_FBS_ADDRESS_SCHEMA
+        } else if header.schema == STACK_FBS_BOUND_SCHEMA {
             check_artifact_binding(&header.source)?;
             STACK_FBS_BOUND_SCHEMA
         } else {
@@ -1156,6 +1174,9 @@ impl<'a> Container<'a> {
         }
         if let Some(chain) = &header.memory_chain {
             chain.check(header.memory.as_ref())?;
+        }
+        if let Some(address) = &header.address {
+            address.check(&header.shape)?;
         }
         if let Some(snap) = &header.transport_snap {
             let known = snap.name == "icosian"
@@ -1240,6 +1261,7 @@ impl<'a> Container<'a> {
             memory: header.memory,
             point: header.point,
             memory_chain: header.memory_chain,
+            address: header.address,
             data,
             matrices,
             tables,
@@ -2422,6 +2444,53 @@ pub fn add_hamming_place_uorlut01(artifact: &[u8], place: &super::PlaceImage) ->
     out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
     out.extend_from_slice(&b.data);
     super::hamming::hamming_image(&Container::parse(&out)?)?;
+    Ok(out)
+}
+
+/// A SpiralCore/FBS stack with the address table added (claude-366): every section of `artifact`
+/// byte for byte, then `address.l{layer}` for every layer (i16, `(width / 8) * 240` rows of
+/// `width` values at 2^-16); the header gains the `address` record and takes
+/// [`STACK_FBS_ADDRESS_SCHEMA`]. The trainer rounds the rows to this grid, so they are integers
+/// already and are added to an exported stack, as the ask heads and the place read are. It is
+/// the last addition: the others write their own schema. A bound stack is refused, because its
+/// contract names no address table. The result is read back before it is returned.
+pub fn add_address_uorlut01(artifact: &[u8], image: &super::AddressImage) -> Result<Vec<u8>, StackError> {
+    let container = Container::parse(artifact)?;
+    if container.address.is_some() {
+        return Err(StackError::Shape("an address table is added to a stack without one"));
+    }
+    if container.schema == STACK_FBS_BOUND_SCHEMA {
+        return Err(StackError::Shape("an address table is not added to a bound stack"));
+    }
+    let record = image.record();
+    record.check(&container.shape)?;
+    if image.width() != container.shape.width {
+        return Err(StackError::Shape("an address table's rows are as wide as the stack"));
+    }
+    let declared = u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
+    let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
+    let data_start = header_end.div_ceil(ALIGN) * ALIGN;
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+    let mut b = ExportBuilder::new();
+    b.data = artifact[data_start..].to_vec();
+    for layer in 0..image.layers() {
+        b.push_i16(&super::address::address_table_name(layer), image.layer(layer));
+    }
+    header["tables"]
+        .as_array_mut()
+        .ok_or(StackError::MissingData)?
+        .extend(b.tables);
+    header["address"] = json!(record);
+    header["schema"] = json!(STACK_FBS_ADDRESS_SCHEMA);
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&b.data);
+    super::address::address_image(&Container::parse(&out)?)?;
     Ok(out)
 }
 

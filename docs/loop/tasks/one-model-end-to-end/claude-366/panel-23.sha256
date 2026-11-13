@@ -1,0 +1,12 @@
+# claude-366: the seed-23 panel, written 2026-11-13T15:53:47Z by claude-356's writer, before any served reply is read
+generator 3974e5d5a952d4aaaf5fd1e64f1009bbf0f6725cb2e9972309b32cd88c13e97f
+builder fd7b888cc7995870d3237f4e2a913167a755851c8c09e1c229f134baa2a3b069
+d2da2c2c46ce69c13a6ed06107b7511b448578a5997b3aa6e70070816b1b440d panel-off/train/tokens.u16
+b40477356a820f48c7a69d2251b77e79a928f1dc752560a351adba3ddff03e05 panel-off/train/response_mask.u8
+b2f582ea58248f50bd764ef06820bffe18cb5a99df5b634fb3e30eb55ff1fcfe panel-oracle/train/tokens.u16
+f2782939f08a0656fe870a95535920b641c9036dd764d67b8eed737a9bf17815 panel-places.json
+49176974da5fddb63a7b82fe2289e13e5f7db75ae0445b08c8f1e3e52b7363af prompts-256/prompts-p.json
+964f0ed049bdf3efa494188df2e1fde0e7e9790825d700c23d073c0e1dbc9d56 prompts-192/prompts-p.json
+3b901b28bf0165af79df7b47424e583350e7b415d8f43bb8c15065658e0abd08 panel-23-samples-read.json
+rows written 984; equal to an older panel's 8; read 976
+420e71c3b4a6fe0c1f958131f9c42f4b5064b90b49af19cb1bbc0860c33b53da asks-floors.json (the counted table, as claude-365 fitted it)

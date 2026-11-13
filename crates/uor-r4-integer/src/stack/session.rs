@@ -31,6 +31,7 @@ use sha2::{Digest, Sha256};
 
 use crate::bitcode::{BitCode, BITCODE_LANES};
 
+use super::address::{address_image, AddressImage};
 use super::content_readout::{ContentReadout, CONTENT_CODE_SIGNATURE_BITS};
 use super::flock::{
     flock_select_integer, rank_table_q31, FlockScratch, FlockSelect, MAX_FLOCK_CONTEXT,
@@ -342,6 +343,9 @@ struct FbsModel {
     kept_cells: usize,
     /// claude-146's Hamming reads (`lut-stack/6`), their copy heads served (claude-194).
     hamming: Option<ServedHamming>,
+    /// The address table's rows (`lut-stack/11`, claude-366), read after each layer's Hamilton
+    /// block.
+    address: Option<AddressImage>,
 }
 
 /// A read-only, zero-copy view of a parsed SpiralCore/FBS model's integers,
@@ -674,6 +678,7 @@ fn fbs_model(artifact: &Container, shape: &StackShape) -> Result<FbsModel, Stack
     };
     Ok(FbsModel {
         hamming,
+        address: address_image(artifact)?,
         layers,
         final_gain: codes("final_norm_gain", d)?,
         writer_table,
@@ -1082,8 +1087,14 @@ impl IntegerStackModel {
     /// [`Self::fbs_image`], this view may accompany an artifact with either facility; an
     /// evaluator that executes this trunk alone would serve a different model. The CPU
     /// development crate uses it with the public Hamming and memory image readers.
+    ///
+    /// `None` for a stack with an address table (claude-366): its rows are added inside every
+    /// layer, so no evaluator of this view can add them afterwards.
     pub fn fbs_trunk_image(&self) -> Option<FbsImage<'_>> {
         let fbs = self.fbs.as_deref()?;
+        if fbs.address.is_some() {
+            return None;
+        }
         let layers = fbs
             .layers
             .iter()
@@ -3785,6 +3796,11 @@ fn stack_step_fbs(
         for (x, p) in b.x.iter_mut().zip(&b.proj) {
             *x = x.saturating_add(*p);
         }
+        // The address table's rows (claude-366): after the Hamilton block and before the Hamming
+        // read, where the float trunk adds them. The projection's buffer is free here.
+        if let Some(address) = &fbs.address {
+            address.read(l, token, &mut b.x, &mut b.proj);
+        }
         if let Some(hamming) = &fbs.hamming {
             let (trace, force) = match session.decision.as_deref_mut() {
                 Some(decision) => (
@@ -4073,6 +4089,10 @@ fn stack_step_fbs_timed(
         stack_fbs_gather(&layer.mlp_down, &b.act[..mlp], act_exp, &mut b.proj);
         for (x, p) in b.x.iter_mut().zip(&b.proj) {
             *x = x.saturating_add(*p);
+        }
+        // The address table's rows, as in `stack_step_fbs`; timed inside the block they follow.
+        if let Some(address) = &fbs.address {
+            address.read(l, token, &mut b.x, &mut b.proj);
         }
         // A Hamming read is timed inside the block it follows, so the stage list is unchanged.
         if let Some(hamming) = &fbs.hamming {
@@ -5677,6 +5697,7 @@ mod fbs_stage_tests {
             roots_q12: [[0; 8]; 16],
             kept_cells: 1,
             hamming: None,
+            address: None,
         };
         // Rows 0 and 2 both lie 2 from the origin; rows 0 and 1 both lie 2 from (2, 2).
         assert_eq!(stack_whole_table_nearest(&fbs, 3, &[0, 0]), 0);

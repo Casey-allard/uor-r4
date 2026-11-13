@@ -328,6 +328,17 @@ const CHECKPOINT_ACCOUNTED: [&str; 5] = [
 /// `TurnMemory::load` reads neither without the opening file. A macOS `._*.safetensors` copy
 /// artifact is refused like any unknown file, which is the safe direction.
 pub fn check_checkpoint_reads(directory: &Path) -> Result<()> {
+    check_checkpoint_reads_carrying(directory, &[])
+}
+
+/// The address memory's file in a checkpoint directory (claude-366). The trunk snapshot does not
+/// hold its rows: `fbs-snapshot` carries them in a rows file beside the snapshot, and names it
+/// to [`check_checkpoint_reads_carrying`].
+pub const CHECKPOINT_ADDRESS: &str = "address_memory.safetensors";
+
+/// [`check_checkpoint_reads`] for a caller that carries the files `carried` itself, beside the
+/// snapshot. Every other read is refused as before.
+pub fn check_checkpoint_reads_carrying(directory: &Path, carried: &[&str]) -> Result<()> {
     if directory.join("turn_memory_reply.safetensors").exists()
         && !directory.join("turn_memory.safetensors").exists()
     {
@@ -338,7 +349,10 @@ pub fn check_checkpoint_reads(directory: &Path) -> Result<()> {
     let mut refused = Vec::new();
     for entry in std::fs::read_dir(directory)? {
         let name = entry?.file_name().to_string_lossy().into_owned();
-        if name.ends_with(".safetensors") && !CHECKPOINT_ACCOUNTED.contains(&name.as_str()) {
+        if name.ends_with(".safetensors")
+            && !CHECKPOINT_ACCOUNTED.contains(&name.as_str())
+            && !carried.contains(&name.as_str())
+        {
             refused.push(name);
         }
     }
@@ -360,6 +374,13 @@ pub fn check_readout_reads(directory: &Path, readouts: usize) -> Result<()> {
     if readouts > 0 && directory.join("turn_memory.safetensors").exists() {
         return Err(invalid(
             "the float readouts do not apply the turn memory, whose moves need the caller's rows; write the snapshot alone, without readouts",
+        ));
+    }
+    // claude-366: nor the address table, which `fbs-snapshot` does not set on the trunk: its
+    // readouts would be the trunk without the rows.
+    if readouts > 0 && directory.join(CHECKPOINT_ADDRESS).exists() {
+        return Err(invalid(
+            "the float readouts do not apply the address table; write the snapshot alone, without readouts",
         ));
     }
     Ok(())
@@ -2274,6 +2295,32 @@ mod tests {
             .expect_err("a reply table alone")
             .to_string();
         assert!(message.contains("without turn_memory.safetensors"), "{message}");
+        // claude-366: the address memory is a read the export does not carry, unless the caller
+        // carries it itself; a caller that carries it still refuses every other read, and
+        // readouts beside it are refused.
+        let scratch = Scratch::new("claude-366-address");
+        std::fs::create_dir_all(&scratch.0)?;
+        for file in ["model.safetensors", CHECKPOINT_ADDRESS] {
+            std::fs::write(scratch.0.join(file), b"")?;
+        }
+        let message = check_checkpoint_reads(&scratch.0)
+            .expect_err("an address memory")
+            .to_string();
+        assert!(message.contains(CHECKPOINT_ADDRESS), "{message}");
+        check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])?;
+        check_readout_reads(&scratch.0, 0)?;
+        let message = check_readout_reads(&scratch.0, 1)
+            .expect_err("readouts beside an address memory")
+            .to_string();
+        assert!(message.contains("do not apply the address table"), "{message}");
+        std::fs::write(scratch.0.join("flock_read.safetensors"), b"")?;
+        let message = check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])
+            .expect_err("another read beside the address memory")
+            .to_string();
+        assert!(
+            message.contains("flock_read.safetensors") && !message.contains(CHECKPOINT_ADDRESS),
+            "{message}"
+        );
         Ok(())
     }
 

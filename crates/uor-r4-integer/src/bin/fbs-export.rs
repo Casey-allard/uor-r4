@@ -44,6 +44,14 @@
 //! `turn_memory_tail` above 0 (claude-345) exports the memory chain with tail keys of that many
 //! turn ids, and one without the key or with 0 exports none.
 //!
+//! `--address-rows ROWS` (claude-366) adds the address table of a run trained with
+//! `--address-memory`. `fbs-snapshot` writes the rows file beside the snapshot and records its
+//! SHA-256 and the table's record in the snapshot under `address_rows`. A snapshot with that note
+//! is refused without the option, the option is refused for a snapshot without the note, and the
+//! file must be the one the note names. The table is added last and the artifact is then
+//! `uor-r4.lut-stack/11`, a research schema with no stack contract: it is exported with
+//! `--legacy-artifact` only.
+//!
 //! It parses the artifact back before writing it, never replaces or leaves a
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
 //! New exports bind the exact artifact identity under schema
@@ -71,19 +79,20 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use sha2::{Digest, Sha256};
+use uor_r4_integer::fbs_address::{AddressImage, FbsAddressNote, FBS_ADDRESS_KEY};
 use uor_r4_integer::fbs_snapshot::{
     quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead, PlaceImage,
     FBS_HAMMING_ASK_KEY, FBS_HAMMING_PLACE_KEY,
 };
 use uor_r4_integer::stack::{
-    add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
+    add_address_uorlut01, add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
     export_fbs_trunk_uorlut01_with_provenance, point_key_windows, set_hamming_copy_latest_uorlut01,
     set_hamming_copy_longest_uorlut01,
     AskImage, FbsExportProvenance, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
     StackContractProvenance, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
-const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] --stack-contract TOML --stack-contract-semantic-blake3 HEX --tokenizer TOKENIZER_JSON [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --legacy-artifact [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--legacy-artifact] [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] --stack-contract TOML --stack-contract-semantic-blake3 HEX --tokenizer TOKENIZER_JSON [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --legacy-artifact [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] [--address-rows ROWS] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--legacy-artifact] [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
 
 fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
     let value: serde_json::Value =
@@ -196,6 +205,31 @@ fn point_key(paths: &[String], vote_k: usize, legacy: bool) -> Result<(), String
     Ok(())
 }
 
+/// The address table a snapshot's note and the `--address-rows` file name together (claude-366).
+/// A snapshot with the note is not served without its rows, rows are not added to a snapshot
+/// that does not name them, and the file must be the one the note names.
+fn address_table(
+    note: Option<serde_json::Value>,
+    rows: Option<&[u8]>,
+) -> Result<Option<AddressImage>, String> {
+    match (note, rows) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(format!(
+            "the snapshot names an address table's rows ({FBS_ADDRESS_KEY}); give their file with --address-rows"
+        )),
+        (None, Some(_)) => Err(format!(
+            "--address-rows: the snapshot names no address table ({FBS_ADDRESS_KEY})"
+        )),
+        (Some(note), Some(rows)) => {
+            let note: FbsAddressNote = serde_json::from_value(note)
+                .map_err(|e| format!("{FBS_ADDRESS_KEY}: {e}"))?;
+            note.rows(rows)
+                .map(Some)
+                .map_err(|e| format!("--address-rows: {e}"))
+        }
+    }
+}
+
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--point-key") {
@@ -229,9 +263,20 @@ fn run() -> Result<(), String> {
     let mut stack_contract_semantic = None::<String>;
     let mut provenance_tokenizer = None::<String>;
     let mut legacy_artifact = false;
+    // The rows file of a run trained with an address table (claude-366).
+    let mut address_rows = None::<String>;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--address-rows" if address_rows.is_some() => {
+                return Err("--address-rows given twice".to_owned())
+            }
+            "--address-rows" => {
+                address_rows = Some(
+                    args.next()
+                        .ok_or_else(|| format!("--address-rows needs a path: {USAGE}"))?,
+                )
+            }
             "--raw-gates" if !snaps.gates => return Err("--raw-gates given twice".to_owned()),
             "--raw-transition" if !snaps.transition => {
                 return Err("--raw-transition given twice".to_owned())
@@ -323,6 +368,23 @@ fn run() -> Result<(), String> {
                 .map_err(|e| format!("{snapshot}: {FBS_HAMMING_PLACE_KEY}: {e}"))?,
         ),
     };
+    // The address table's note (claude-366) rides beside the trunk snapshot the same way; the
+    // rows themselves are in the file `--address-rows` names.
+    let address_note = value
+        .as_object_mut()
+        .and_then(|o| o.remove(FBS_ADDRESS_KEY));
+    let address_bytes = match &address_rows {
+        None => None,
+        Some(rows) => Some(std::fs::read(rows).map_err(|e| format!("{rows}: {e}"))?),
+    };
+    let address = address_table(address_note, address_bytes.as_deref())
+        .map_err(|e| format!("{snapshot}: {e}"))?;
+    if address.is_some() && !legacy_artifact {
+        return Err(
+            "an address table is exported with --legacy-artifact: lut-stack/11 has no stack contract"
+                .to_owned(),
+        );
+    }
     let mut snap: FbsTrunkSnapshot =
         serde_json::from_value(value).map_err(|e| format!("{snapshot}: {e}"))?;
     // A block in which no read asks is the plain snapshot (claude-336 review).
@@ -489,6 +551,13 @@ fn run() -> Result<(), String> {
             .map_err(|e| format!("the longest rule: {e}"))?,
         None => artifact,
     };
+    // claude-366: the address table is added last, so every step above works on the stack it
+    // has always had; the result is `lut-stack/11`.
+    let artifact = match address {
+        Some(image) => add_address_uorlut01(&artifact, &image)
+            .map_err(|e| format!("the address table: {e}"))?,
+        None => artifact,
+    };
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;
     write_new_file(Path::new(out), &artifact).map_err(|e| format!("{out}: {e}"))?;
@@ -608,5 +677,41 @@ mod tests {
         assert_eq!(validate_binding_flags(true, None, None, None), Ok(false));
         assert!(validate_binding_flags(true, Some("contract.toml"), None, None).is_err());
         assert!(validate_binding_flags(true, None, None, Some("tokenizer.json")).is_err());
+    }
+
+    /// claude-366: the note and the rows file come together, and the file is the one named.
+    #[test]
+    fn an_address_table_needs_its_note_and_its_own_rows() {
+        use uor_r4_integer::fbs_address::{AddressArm, ADDRESS_CELLS};
+        let values: Vec<i16> = (0..ADDRESS_CELLS * 8).map(|i| (i % 97) as i16 - 48).collect();
+        let image = AddressImage::checked(AddressArm::Token, 7, 8, vec![values]).expect("rows");
+        let (bytes, note) = (image.to_bytes(), serde_json::to_value(image.note()).expect("note"));
+        assert_eq!(address_table(None, None), Ok(None));
+        assert_eq!(address_table(Some(note.clone()), Some(&bytes)), Ok(Some(image)));
+        // A snapshot with the note is not served without its rows.
+        let error = address_table(Some(note.clone()), None).unwrap_err();
+        assert!(error.contains("--address-rows"), "{error}");
+        // Rows are not added to a snapshot that does not name them.
+        assert!(address_table(None, Some(&bytes)).is_err());
+        // Another file: one value changed, or one byte cut.
+        let mut other = bytes.clone();
+        *other.last_mut().unwrap() ^= 1;
+        let error = address_table(Some(note.clone()), Some(&other)).unwrap_err();
+        assert!(error.contains("SHA-256"), "{error}");
+        assert!(address_table(Some(note.clone()), Some(&bytes[..bytes.len() - 2])).is_err());
+        // The named file under a note that describes another table.
+        for (key, value) in [("layers", 2), ("cells", 239)] {
+            let mut wrong = note.clone();
+            wrong["record"][key] = value.into();
+            let error = address_table(Some(wrong), Some(&bytes)).unwrap_err();
+            assert!(error.contains("not the table"), "{key}: {error}");
+        }
+        let mut wrong = note.clone();
+        wrong["width"] = 16.into();
+        assert!(address_table(Some(wrong), Some(&bytes)).is_err());
+        // A note with a key this exporter does not know.
+        let mut wrong = note;
+        wrong["band"] = 1.into();
+        assert!(address_table(Some(wrong), Some(&bytes)).is_err());
     }
 }

@@ -51,6 +51,7 @@
 //! checks the step and every kernel for multiply, divide and floating-point
 //! instructions.
 
+mod address;
 mod chat;
 mod content_readout;
 mod dialogue_memory;
@@ -71,6 +72,10 @@ mod tests;
 
 use std::fmt;
 
+pub use address::{
+    e8_cell, read_address_uorlut01, token_cell, AddressArm, AddressImage, StackAddress, ADDRESS_BLOCK, ADDRESS_CELLS,
+    ADDRESS_ROW_EXP, ADDRESS_ROW_STEPS, ADDRESS_SHARED_BLOCKS,
+};
 pub use chat::{StackChat, StackChatError, StackReply, StackStop, CHAT_CONTEXT, CYCLE_REPEATS};
 pub use content_readout::{
     ContentExample, ContentReadout, ContentSelection, ContentSignature, ContentSignatureMode,
@@ -86,6 +91,7 @@ pub use flock::{
     FlockScan, FlockScratch, FlockSelect, FlockSlot, FLOCK_INTEGER_SELECTOR_VERSION,
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
+pub use format::{add_address_uorlut01, STACK_FBS_ADDRESS_SCHEMA};
 pub use format::{
     add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
     set_hamming_copy_latest_uorlut01, set_hamming_copy_longest_uorlut01,
