@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/research/notebook/harness-governance.md,archive/catalog.jsonl -->
 # Research line: research tooling and rules
 
 This line is not about the model. It records the rules, checkers and command-line tools the project built to keep its own research honest: who may run what, how claims are worded, and which banned operations must never creep back in. It holds 185 records and not one is a model result. Most of the effort came in two days in mid-October, when the whole tool was ported from Python to Rust.

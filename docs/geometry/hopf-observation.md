@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/native_geometric/hopf_metric.rs,crates/uor-r4-core/src/prime_route_attention.rs -->
 # The Hopf map and the kept fibre
 
 In the project's quaternion designs, a rotation state is a point on a four-dimensional sphere (the current model M1 carries 8D integer blocks instead). The Hopf map takes a three-dimensional shadow of that point. The shadow forgets one angle, so many different states cast the same shadow. This chapter explains what the map does, what the forgotten angle is, and what the project does and does not do with it. Short version: the idea is built and unit-tested as a helper, it is not part of the current model's read, and nothing yet shows that keeping the forgotten angle helps language. The kept-fibre map is READY for a language test; the older sector-routing form is PARKED ([mechanism page](../mechanisms/hopf-observation.md)).

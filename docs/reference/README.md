@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md -->
 # Reference documents
 
 This page indexes the project's normative and reference documents: the ones that define terms, contracts and formats, rather than explain or report. Most sit in this folder. A few stay at their original paths because code compiles them in or an evidence table pins them by path and hash; moving them would break those records. The table says which.

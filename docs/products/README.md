@@ -1,3 +1,4 @@
+<!-- freshness: sources=.github/workflows/deploy.yml,.github/workflows/docs-site.yml,src-tauri -->
 # The three products
 
 UOR-R4 aims to ship one thing people can use: a small, fast language model that runs on your own

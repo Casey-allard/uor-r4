@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/attention_audited.rs,crates/uor-r4-discrete/src/attention_learning.rs,crates/uor-r4-discrete/src/attention_preflight.rs,crates/uor-r4-discrete/src/attention_transfer.rs,crates/uor-r4-discrete/src/discrete.cu,crates/uor-r4-discrete/src/lib.rs,crates/uor-r4-discrete/src/relation_qualification.rs,crates/uor-r4-discrete/src/training.rs -->
 # Relation read (finite relational head)
 
 **Status: ACTIVE.** It is built, passes 9 of 9 finite CUDA controls, and has trained three times. The first two runs stopped by loss of admission. Stage T's separate `T16_rel` run reached 4,096 batches at Q1 and committed 425 relation moves; its `relation_off` ablation dropped admission and top-1. There is no paired Route-control verdict, and M1's close is Flock + orbit-root pointer, not a Relation result ([A8 dose](../labs/a8-dose-2026-10-19/README.md), [Stage T](../labs/m1-bvg-k-stage-t-training/README.md)).

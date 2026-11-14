@@ -1,3 +1,4 @@
+<!-- freshness: sources=xtask/src/gnaf_*.rs -->
 # WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel
 
 This project tries to prove, with a proof assistant called Lean 4, that one specific small program is the best possible program of its kind. The program is a matrix-multiplication kernel (GEMM) written for WebAssembly, the portable code format that runs in browsers. "Best possible" has a precise meaning set by the project: lowest score on a fixed cost formula, among every program that does the same job. The proof is **not finished**. The project's own result today is the honest answer "incomplete". It is a side project: it does not train, serve or test the language model, and the model's own rules forbid dense matrix multiplication, so this work is unrelated to how the model computes. It is outside every model build and every loaded path; whether the model ratchet's scan scope covers this folder was not checked for this page.

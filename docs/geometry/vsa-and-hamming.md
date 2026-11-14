@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/native_geometric/learner/vsa_codes.rs,crates/uor-r4-discrete/src/discrete.cu -->
 # VSA and Hamming distance
 
 Give every word a very long string of 1s and 0s, 4,096 of them. To ask "are these two strings alike?", line them up and count the positions where they differ. That count is the Hamming distance, and it costs almost nothing on a computer: an exclusive-or (XOR) and a bit count. This chapter covers two uses of the idea. One is the older "hypervector" memory cue (VSA), which is research that was measured once and is not on the current path. The other is a Hamming tie-break that does run inside the current model's reads. In both cases the similarity is only a count of bits, and it is as meaningful as the way the codes were assigned. Terms are also defined in the [glossary](../start/glossary.md).

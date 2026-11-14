@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/loop/tasks/r-prime-zeta-vs-nulls/** -->
 # Notebook: prime and zeta starting codebook (M1)
 
 This notebook records tests of one idea: give every token a fixed starting vector built from numbers rather than from random noise. Each token gets a prime number by its rank, and the phases of the Riemann zeta zeros, read at the logarithm of that prime, turn the prime into an eight-dimensional integer vector. The one result so far shows that the vectors are distinct and the GPU code accepts them. It does not show that the vectors help the model read.

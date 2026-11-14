@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete,crates/uor-r4-integer,crates/uor-r4-integer/src/stack/format.rs -->
 # The language model
 
 The core product is a language model: a program that reads text and predicts what comes next, so it

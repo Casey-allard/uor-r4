@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/loop/tasks/cpu-discrete-writer-core/**,docs/loop/tasks/cpu-quantization-exact-memory/**,docs/loop/tasks/cpu-training-pilot/**,docs/loop/tasks/cpu-shared-vector-forward/**,docs/loop/tasks/cpu-training-program/**,docs/loop/tasks/cpu-whole-path-exact-updates/**,docs/loop/tasks/cpu-shared-vector-train/**,docs/loop/tasks/cpu-discrete-training-path/** -->
 # Notebook: CPU training research (`cpu-training`)
 
 This notebook records CPU training and evaluation research authorized by D84. CPU rows name the workstation hardware, the isolated module, the exact evaluator and the controls. GPU remains the qualification authority, so a CPU row is development evidence unless a later owner decision changes that boundary.

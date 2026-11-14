@@ -69,13 +69,13 @@ jobs:
           path: |
             ~/.cargo/bin/mdbook
             ~/.cargo/bin/mdbook-mermaid
-          key: mdbook-0.4.40-mermaid-0.13.0-${{ runner.os }}
+          key: mdbook-0.5.4-mermaid-0.17.1-${{ runner.os }}
 
       - name: Install mdBook and mdbook-mermaid
         run: |
           set -euo pipefail
-          command -v mdbook >/dev/null || cargo install --locked mdbook --version 0.4.40
-          command -v mdbook-mermaid >/dev/null || cargo install --locked mdbook-mermaid --version 0.13.0
+          command -v mdbook >/dev/null || cargo install --locked mdbook --version 0.5.4
+          command -v mdbook-mermaid >/dev/null || cargo install --locked mdbook-mermaid --version 0.17.1
 
       - name: Stage the book source
         run: |

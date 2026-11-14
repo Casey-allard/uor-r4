@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/catalog.jsonl -->
 # Research line: laptop energy and cost (M5)
 
 The project's goal is fast local AI that costs little energy. Milestone M5 asks for the proof: measured joules per token, memory use and tokens per second on an M1 laptop. This line has only four records, and the milestone is not started. The most useful record is a warning: an operation count of "90% fewer multiplies" did not become faster generation. It was 1.65 times slower.

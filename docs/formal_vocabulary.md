@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/repo-model/src/empirical.rs,crates/repo-model/src/registry.rs,crates/uor-r4-core,crates/uor-r4-graph-certify/src/holographic_encoding.rs,crates/uor-r4-graph-compiler,crates/uor-r4-graph-format,crates/uor-r4-proof-model/src/proof_matrix.rs,crates/uor-r4-training/src/geometric_stack_native.rs,scripts/check_claim_wording.py -->
 # Formal Vocabulary, Notation, and Claim Classes
 
 - **Version:** 0.1.35

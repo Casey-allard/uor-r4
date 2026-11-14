@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/transformerless/cd_space.rs,crates/uor-r4-discrete/src/discrete.cu,crates/uor-r4-discrete/src/normalization_mechanism.rs,crates/uor-r4-discrete/src/position_mechanism.rs,crates/uor-r4-training/src/geometric_stack.rs,crates/uor-r4-training/src/geometric_stack_native.rs -->
 # Quaternions and rotation
 
 A quaternion is a number with four parts. Multiplying by a unit quaternion (one of length 1) turns a point in four dimensions without stretching it, and a sandwich of two multiplications turns a point in ordinary three-dimensional space. That makes quaternions a natural way to say "turn this state" with exact, reversible steps instead of a grid of learned decimals. This chapter explains what a quaternion does, and why turning a state keeps its length while adding a new input to it does not. Terms are also defined in the [glossary](../start/glossary.md).

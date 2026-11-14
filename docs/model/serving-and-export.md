@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/d11_export.rs,crates/uor-r4-integer,crates/uor-r4-integer/src/discrete_d11.rs,crates/uor-r4-integer/src/stack/format.rs -->
 # Serving and export
 
 A finished model must leave the lab and run as an integer artifact on an ordinary device. D11 bans

@@ -1,3 +1,4 @@
+<!-- freshness: sources=.github/workflows/release.yml -->
 # Release pipeline (#741)
 
 > **Paused, 19 October 2026:** `.github/workflows/release.yml` skips all three jobs. The

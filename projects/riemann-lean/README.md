@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/riemann-lean/** checked=e2175455e79d377f724658ed2486e7f22a389f48 -->
 # Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain
 
 This project is an attempt to write a proof about prime numbers in a proof assistant called Lean 4, where a computer checks every step. The goal was to connect how primes are spread out to the Riemann hypothesis, a famous open problem about the zeros of the zeta function. The result is a scaffold: a chain of statements with the pieces needed to prove them, plus 185 Python scripts that probe whether the needed inequalities hold. **The Riemann hypothesis is not proved here, and nothing in this folder is evidence about the language model.**

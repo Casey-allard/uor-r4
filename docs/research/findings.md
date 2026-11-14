@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/research/notebook/*.md -->
 # What the project knows
 
 The project now has one measured milestone result beside its longer record of measurement lessons:

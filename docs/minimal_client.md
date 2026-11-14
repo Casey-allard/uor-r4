@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/legacy-cli/** -->
 # Minimalist R⁴ Terminal Client & Local Vendor API
 
 > **Preserved interface reference:** this page documents the existing terminal

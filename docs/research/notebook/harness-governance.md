@@ -1,3 +1,4 @@
+<!-- freshness: sources=none -->
 # Notebook: research tooling and governance
 
 This notebook is for results about how the project does research: the shared tooling (the harness), the rules and the process. It has no rows yet. Of the 155 records on this line dated 12 October 2026 or later, none reports a number against a bar. They are rule changes, tooling builds and process notes.

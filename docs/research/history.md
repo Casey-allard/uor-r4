@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/catalog.jsonl -->
 # How the project got here
 
 UOR-R4 began in June 2026 as an attempt to run a language model without a transformer or heavy arithmetic, using the geometry of primes, rotations and symmetry groups. Over four months it tried five broad approaches. Each was replaced when it hit a wall, and each left lessons. The 32 steps below are the audit's "eras", read from the GitHub archive (items [#1](https://github.com/UOR-Foundation/uor-r4/issues/1) to [#2495](https://github.com/UOR-Foundation/uor-r4/issues/2495)). The work has been careful and open about its failures, and it has not yet produced a model that holds a conversation.

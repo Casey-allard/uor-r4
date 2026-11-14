@@ -1,3 +1,4 @@
+<!-- freshness: sources=PLAN.md,docs/research/notebook/cpu-training.md,docs/research/notebook/data-tokenizer.md,docs/research/notebook/harness-governance.md,docs/research/notebook/m1-discrete-attention.md,docs/research/notebook/m1-prime-zeta.md,docs/research/notebook/m3-durable-memory.md,docs/research/notebook/m4-serving.md -->
 # Research notebooks
 
 A notebook is one page per line of research, and each page is a table with one row for every result. Instead of a new folder and a new status entry for every pull request, the project now adds one row to the right notebook when a run produces a number. You can read a page top to bottom and see what was tried, what it measured, what bar it had to clear and what was concluded.

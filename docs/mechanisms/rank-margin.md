@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/discrete.cu,crates/uor-r4-discrete/src/objective.rs,crates/uor-r4-discrete/src/redirect_admission.rs,crates/uor-r4-training/src/cuda_stack.cu,crates/uor-r4-training/src/geometric_stack.rs,crates/uor-r4-training/src/native_vector_writer.rs -->
 # Rank-margin hinge objective
 
 **Status: ACTIVE.** The integer form is the loss that the current discrete model trains on. A floating-point form is built and tested but has never been trained. The choice between the two integer objectives (objective A and objective R, described below) is open after the 19 October runs ([K16 outcome](../labs/k16-outcome-call-2026-10-19/README.md)).

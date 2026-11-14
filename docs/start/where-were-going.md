@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md,PLAN.md,docs/roadmap/items/point-key-integer.md -->
 # Where UOR-R4 is going
 
 **In one paragraph.** The goal is a fast language model that runs on your own laptop or browser,

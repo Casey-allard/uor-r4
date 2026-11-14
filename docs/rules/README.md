@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md,PLAN.md,docs/integration/DECISIONS.md,docs/rules/changes.md -->
 # The rules of the project, in plain language
 
 UOR-R4 is trying to build a fast language model that runs on an ordinary laptop and does not use the expensive machinery inside today's chat AIs. A short rulebook, the [charter](../../CHARTER.md), keeps every contributor pointed at that goal. This page explains what the charter says, why each rule exists, what the project's labs may and may not do, and who makes which decision. It is a guide to the charter, not a replacement: if the two ever disagree, the charter wins.

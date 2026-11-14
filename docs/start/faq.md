@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md,PLAN.md,docs/research/notebook/README.md -->
 # Frequently asked questions
 
 **In one paragraph.** These are the questions newcomers and would-be contributors ask most often, answered plainly. The short version: UOR-R4 is a pre-alpha research project that tries to build a fast language model out of geometry instead of a transformer's expensive arithmetic. **M1 is complete: the saved discrete model beats both count tables at two seeds through its integer export.** No model holds a useful conversation yet ([PLAN](../../PLAN.md)). Words in the answers are defined in the [glossary](./glossary.md).

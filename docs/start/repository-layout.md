@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-float-train,crates/uor-r4-wasm-router,scripts/pod,scripts/storage,tools/r4-softmax-trainer,web/studio -->
 # How the repository is laid out
 
 Every top-level folder has one job. This page lists them, says which ones are about to move, and explains three names that are easy to confuse. It describes the repository as of 20 October 2026; the owner approved a layout pass that day, and this page changes with each step of it.

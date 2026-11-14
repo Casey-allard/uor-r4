@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/** -->
 # Side projects
 
 This folder holds research projects that are related to UOR-R4 but are not part of the language model. Some feed ideas into the model (the model's prime and zeta-zero geometry draws on one of them). Others, like a network transport or a Lean proof of a matrix kernel, run alongside it. None of them is on the model's training or serving path, and none of them is evidence that the model works. The model itself is pre-alpha: **M1 is complete, 1 of 8 milestones**, and no model holds a useful conversation yet ([PLAN](../PLAN.md), [STATE](../STATE.md)).

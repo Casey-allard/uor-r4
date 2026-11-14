@@ -13,6 +13,7 @@ use repo_model::{codegen, Model};
 mod archive_verify;
 mod audit;
 mod book_check;
+mod book_fresh;
 mod book_stage;
 mod docs_catalog;
 mod docs_inventory;
@@ -107,6 +108,8 @@ fn main() -> ExitCode {
             .map_err(Into::into),
         "book-stage" => book_stage::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
             .map_err(Into::into),
+        "book-fresh" => book_fresh::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+            .map_err(Into::into),
         "archive-verify" => {
             archive_verify::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
                 .map_err(Into::into)
@@ -163,7 +166,8 @@ fn main() -> ExitCode {
                  roadmap sync      create or update one GitHub issue per roadmap item and the M1..M8 checklists through gh [--repo R] [--only ID] (dry run unless --apply)\n\
                  docs-stubs        pointer stubs at archive/ positions from --list FILE (dry run unless --apply)\n\
                  book-check        check that every relative link in the built book resolves [--dir DIR] (default book)\n\
-                 book-stage        stage the mdBook source from docs/SUMMARY.md: links out to GitHub, $…$ maths to MathJax [--out DIR] (default target/book-src)\n\
+                 book-stage        stage the mdBook source from docs/SUMMARY.md: links out to GitHub, $…$ maths to MathJax, a freshness banner per page [--out DIR] (default target/book-src)\n\
+                 book-fresh        advisory (D76): each book page's freshness record against git: stale, unchecked, unrecorded, broken [--json OUT]\n\
                  archive-verify    SHA256SUMS manifests vs the tree [--json OUT] [--baseline FILE]; archive/ immutability [--base REV]\n\
                  \n\
                  --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance/figures: rewrite the generated file instead of checking it"

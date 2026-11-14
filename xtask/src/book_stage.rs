@@ -24,9 +24,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::book_fresh;
 use crate::docs_links::{fence_marker, normalize};
 
-const REPO_URL: &str = "https://github.com/UOR-Foundation/uor-r4";
+pub(crate) const REPO_URL: &str = "https://github.com/UOR-Foundation/uor-r4";
 const FIGURES: &str = "docs/figures/";
 const IMAGE_EXTS: [&str; 6] = [".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"];
 
@@ -456,6 +457,32 @@ pub fn stage_markdown(text: &str, src: &str, book: &Book, is_dir: &dyn Fn(&str) 
     out
 }
 
+/// The staged copy of book page `src`: the freshness record line removed and
+/// a banner from [`book_fresh::banner`] in its place. SUMMARY.md is the table
+/// of contents, not a page, and gets neither. When git cannot assess the page
+/// (no history, say), the banner says the freshness is unknown and `unknown`
+/// counts it; staging never fails on it (D76: advisory).
+fn stage_page(
+    text: &str,
+    src: &str,
+    book: &Book,
+    is_dir: &dyn Fn(&str) -> bool,
+    git: &dyn book_fresh::Git,
+    unknown: &mut usize,
+) -> String {
+    if src == "docs/SUMMARY.md" {
+        return stage_markdown(text, src, book, is_dir);
+    }
+    let banner = match book_fresh::assess(src, text, git) {
+        Ok(a) => book_fresh::banner(&a),
+        Err(_) => {
+            *unknown += 1;
+            "<p class=\"page-freshness\"><small>Freshness unknown: git history was not available when the book was built.</small></p>\n\n".to_string()
+        }
+    };
+    banner + &stage_markdown(book_fresh::strip_record(text), src, book, is_dir)
+}
+
 fn copy_tree(from: &Path, to: &Path, count: &mut usize) -> Result<(), String> {
     fs::create_dir_all(to).map_err(|e| format!("create {}: {e}", to.display()))?;
     let entries = fs::read_dir(from).map_err(|e| format!("read {}: {e}", from.display()))?;
@@ -543,14 +570,26 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
         fs::remove_dir_all(&out).map_err(|e| format!("clear {}: {e}", out.display()))?;
     }
     let is_dir = |p: &str| root.join(p).is_dir();
+    let git = book_fresh::GitCli {
+        root: root.to_path_buf(),
+    };
+    let mut unknown = 0;
     for (repo, staged) in &book.pages {
         let text = fs::read_to_string(root.join(repo)).map_err(|e| format!("read {repo}: {e}"))?;
         let dest = out.join(staged);
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
         }
-        fs::write(&dest, stage_markdown(&text, repo, &book, &is_dir))
-            .map_err(|e| format!("write {}: {e}", dest.display()))?;
+        fs::write(
+            &dest,
+            stage_page(&text, repo, &book, &is_dir, &git, &mut unknown),
+        )
+        .map_err(|e| format!("write {}: {e}", dest.display()))?;
+    }
+    if unknown > 0 {
+        eprintln!(
+            "book-stage: warning: git could not assess {unknown} page(s); their banners say so"
+        );
     }
     let mut figures = 0;
     copy_tree(&root.join(FIGURES), &out.join("figures"), &mut figures)?;
@@ -788,6 +827,77 @@ mod tests {
             stage("$5 then $x$", "docs/start/a.md"),
             "$5 then \\\\(x\\\\)"
         );
+    }
+
+    /// A git that knows nothing, or fails every call.
+    struct NoGit {
+        fail: bool,
+    }
+
+    impl book_fresh::Git for NoGit {
+        fn matches_any(&self, _: &str) -> Result<bool, String> {
+            if self.fail {
+                Err("no git".into())
+            } else {
+                Ok(true)
+            }
+        }
+        fn is_ancestor_of_head(&self, _: &str) -> Result<bool, String> {
+            Err("no git".into())
+        }
+        fn commits_since(&self, _: &str, _: &[String], _: &str) -> Result<Vec<String>, String> {
+            Err("no git".into())
+        }
+        fn commit_date(&self, _: &str) -> Result<String, String> {
+            Err("no git".into())
+        }
+    }
+
+    #[test]
+    fn staged_pages_carry_a_banner_and_lose_the_record() {
+        let (b, mut unknown) = (book(), 0);
+        let text = "<!-- freshness: sources=crates/core/** -->\n# A\n\n[x](../../crates/core/src/lib.rs)\n";
+        let out = stage_page(
+            text,
+            "docs/start/a.md",
+            &b,
+            &dirs,
+            &NoGit { fail: false },
+            &mut unknown,
+        );
+        assert_eq!(
+            out,
+            "<p class=\"page-freshness\"><small>Not yet checked against its sources.</small></p>\n\n# A\n\n[x](https://github.com/UOR-Foundation/uor-r4/blob/main/crates/core/src/lib.rs)\n"
+        );
+        // The table of contents is not a page: no banner, nothing removed.
+        let summary = "# Summary\n";
+        assert_eq!(
+            stage_page(
+                summary,
+                "docs/SUMMARY.md",
+                &b,
+                &dirs,
+                &NoGit { fail: true },
+                &mut unknown
+            ),
+            summary
+        );
+        assert_eq!(unknown, 0);
+        // A git failure never fails staging; the banner says the freshness is unknown.
+        let out = stage_page(
+            text,
+            "docs/start/a.md",
+            &b,
+            &dirs,
+            &NoGit { fail: true },
+            &mut unknown,
+        );
+        assert!(
+            out.starts_with("<p class=\"page-freshness\"><small>Freshness unknown"),
+            "{out}"
+        );
+        assert!(!out.contains("<!-- freshness"));
+        assert_eq!(unknown, 1);
     }
 
     #[test]

@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/catalog.jsonl -->
 # Research line: compiling a teacher into tables (R4G1)
 
 This was the project's first idea. Watch an ordinary language model (the "teacher"), compile what it does into lookup tables and a graph, and run those on a laptop with no multiplications. It worked as a compiler: it copied the teacher's top choice about as often as the teacher's own tables did. It never wrote coherent text on its own, which is why the project moved on.

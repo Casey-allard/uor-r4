@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-training/examples/geometric-stack.rs,crates/uor-r4-training/src/bin/chat-grade.rs,crates/uor-r4-training/src/bin/dialogue-recall-corpus.rs,crates/uor-r4-training/src/geometric_stack.rs -->
 # Read binding (supervised value binding)
 
 **Status: PARKED.** In the one form tested, it met its own target and moved the memory score by a pooled 8 of 120 rows over three seeds (one seed was down 1 row, and only one seed was individually significant). But it was applied to a softmax attention read, which the project now bans, and it has never been tried on any read that is allowed. It stays open.

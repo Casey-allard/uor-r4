@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/loop/tasks/real-text-corpus/** -->
 # Notebook: data and tokenizer
 
 This notebook is for results about what text the model trains on and how that text is cut into tokens. Its first row is the deterministic scenario-corpus construction of 10 November 2026, followed by the real-text corpus of 5 November. The three records dated 19 October 2026 are preparation: an approved plan, a checker and a tokenizer trainer. None of them ran the model or produced a number against a bar.

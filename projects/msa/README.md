@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/msa/** -->
 # MSA: Modular Structural Arithmetic
 
 Modular Structural Arithmetic (MSA) is a small formal system for arithmetic with a few special numbers in it. It was written by Alex, a collaborator, and given to this project with his consent as source reading. The folder holds two short papers and nothing else: no code, no data, no experiments. It is a third-party idea that earlier route-attention and selector work in this repository pointed to. It is not part of the language model, and no result here measures anything about the model.

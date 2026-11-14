@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-integer/src/session_codec.rs,crates/uor-r4-object-store/PROTOCOL.md,crates/uor-r4-object-store/src/bin/objpeer.rs,crates/uor-r4-object-store/src/bindings.rs,crates/uor-r4-object-store/src/durable_consumer.rs,crates/uor-r4-object-store/src/manifest.rs,crates/uor-r4-object-store/src/peer.rs,crates/uor-r4-object-store/src/record.rs,crates/uor-r4-object-store/src/store.rs,crates/uor-r4-object-store/tests/durable_consumer.rs,crates/uor-r4-object-store/tools/cold_join.sh,crates/uor-r4-object-store/tools/fleet_maintenance.sh,crates/uor-r4-recon-dag/src/lib.rs -->
 # Exact byte object store
 
 **Status: READY.** It is built and byte-tested: 60 object-store tests pass, and a second-language client reads from it correctly. No model uses it yet, and the durable-memory acceptance bars for milestone M3 (remembering across sessions; see the [milestones](../start/glossary.md)) have not been run.

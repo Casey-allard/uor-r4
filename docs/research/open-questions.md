@@ -1,3 +1,4 @@
+<!-- freshness: sources=PLAN.md -->
 # What is still open
 
 M1 answered a narrow question: can a saved discrete geometric model beat two simple count tables on

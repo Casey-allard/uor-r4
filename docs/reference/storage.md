@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/storage/** -->
 # Storage indexes: where every stored file is
 
 The project keeps its bytes in three places outside git. The indexes in [`archive/storage/`](../../archive/storage/README.md) say what is in each one, so any stored or removed file can be found from the repository; this page says which index to open. Rules for where new files go are in [Workspace, storage and hygiene](../labs/workspace.md).

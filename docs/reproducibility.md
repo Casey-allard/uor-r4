@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-graph-compiler/**,crates/uor-r4-proof-model/** -->
 # Normative Specification: Canonical Artifact Byte Equality Under Compiler Parallelism
 
 > **Preserved graph-artifact contract.** The byte-equality rules below remain

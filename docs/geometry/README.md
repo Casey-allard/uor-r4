@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete,crates/uor-r4-discrete/build.rs,crates/uor-r4-integer/src/stack/kernels.rs -->
 # The geometry of UOR-R4
 
 Most chat AIs predict the next word by multiplying very large grids of decimal numbers. UOR-R4 is a bet that a different set of tools can do the same job more cheaply: rotations in a few dimensions, exact whole-number addresses built from primes, and lookup tables. This section explains those tools one chapter at a time, with pictures. It also says which ones the model uses today and which are research that has not yet been put to work. The project is pre-alpha: 1 of its 8 milestones is complete, and no model holds a useful conversation yet ([`PLAN.md`](../../PLAN.md) and rendered [`STATE.md`](../../STATE.md)).

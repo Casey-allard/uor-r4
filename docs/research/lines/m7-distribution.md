@@ -1,3 +1,4 @@
+<!-- freshness: sources=ROADMAP.md -->
 # Research line: API, browser runtime and Studio (M7)
 
 Milestone M7 asks that the finished model be reachable through a local API, a WebAssembly runtime and a web "Studio". This line holds the early design and review work for that surface and one cleanup of the Studio. The discrete M1 pair and separate FBS export exist, but there is no accepted conversational product bundle. Runtime and Studio checks pass on a synthetic stand-in, and the live Studio now serves the publicly released M1 trunk as top-8 next-token prediction—not chat. Accepted-model parity remains open.

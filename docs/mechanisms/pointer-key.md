@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs,crates/uor-r4-training/examples/bind-probe-exact.rs,crates/uor-r4-training/src/bin/heldout-memory-panel.rs,crates/uor-r4-training/src/copy_identity.rs,crates/uor-r4-training/src/geometric_stack.rs,crates/uor-r4-training/src/stack_prime_route.rs -->
 # Pointer copy with an exact identity key
 
 **Status: PARKED.** Every tested form is a softmax pointer inside a dense float model, and each missed its bar or cannot be served. A real prime-based key raised the pointer's hit rate from 0.377 to 0.545, yet the answers did not reach the pre-registered bar (one seed got 23 of 40 memory rows against a bar of 25, inside the noise). The version keyed by the slot's own name was never run, nor was the forced-copy test of it on a lawful pointer.

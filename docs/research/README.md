@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md,PLAN.md -->
 # How research is done now
 
 UOR-R4 is a research project, and for months it ran research the heavy way: one folder per pull request, a written plan before almost every step, and a review before each run. In the week of 12 to 18 October only 11% of the recorded lab work was a model result (see [history](./history.md)). Since 19 October 2026 the owner's charter keeps the rigour but drops the bulk. Each line of research has one notebook page with one row per result. A written plan is required only before a GPU run or a run that a milestone claim rests on. Old records are kept, untouched, in `archive/`.

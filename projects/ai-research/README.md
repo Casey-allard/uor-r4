@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/ai-research/** -->
 # AI-Research: the original root research workspace
 
 Before there was a Rust language model, there was a Python workspace called AI-Research. It held the first experiments on routing information by geometry instead of by dense attention, a benchmark for AI agents in a game world, and some small mathematics studies. This project is a snapshot of that workspace, kept so the history can be traced. The claims inside it are from the Python era and belong to that workspace; they are not claims about the current model, which is pre-alpha.

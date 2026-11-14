@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/native_geometric/anchors.rs,crates/uor-r4-discrete/build.rs,crates/uor-r4-discrete/src/normalization_mechanism.rs,crates/uor-r4-discrete/src/position_mechanism.rs -->
 # E8, H4 and the 600-cell
 
 There is a special set of 120 unit quaternions (each one a rotation) that are the corners of a regular solid in four dimensions called the 600-cell. Pairing that set with a golden-ratio-scaled copy of itself gives 240 points in eight dimensions, the roots of a famous lattice called E8. The project uses this structure because every rotation in it can be written with exact whole-number arithmetic, so a state can be turned and turned back with no rounding. The current model uses only a small, 16-root piece of E8, and this chapter is careful about the difference.

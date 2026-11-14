@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/address_cells.rs,crates/uor-r4-discrete/src/attention_anchor.rs,crates/uor-r4-discrete/src/attention_audit.rs,crates/uor-r4-discrete/src/attention_audited.rs,crates/uor-r4-discrete/src/bucket_source.rs,crates/uor-r4-discrete/src/coverage_census.rs,crates/uor-r4-discrete/src/discrete.cu,crates/uor-r4-discrete/src/objective.rs,crates/uor-r4-discrete/src/prime_zeta.rs,crates/uor-r4-discrete/src/rows_device.rs,crates/uor-r4-discrete/src/writer_bucket_device.rs,crates/uor-r4-discrete/src/writer_bucket_qualification.rs -->
 # Admission (cell shortlist before the token is chosen)
 
 **Status: ACTIVE.** It is the output step of the current model and the first measured binding limit, seen on rung 0 and for the top-8 bar (after K16, the cause of the weak ranking is open): the correct word often is not in the shortlist at all ([attention-state record](../labs/attention-state-2026-10-18/README.md)).

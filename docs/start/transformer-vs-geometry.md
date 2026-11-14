@@ -1,3 +1,4 @@
+<!-- freshness: sources=none -->
 # Transformer parts and their geometric replacements
 
 **In one paragraph.** A transformer is built from standard parts: a tokenizer, embedding table,

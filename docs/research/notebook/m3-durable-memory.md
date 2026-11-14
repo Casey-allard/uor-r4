@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/loop/tasks/m3-policy-precedence-and-sieve-tests/**,docs/loop/tasks/m3-qualify-memory/**,docs/loop/tasks/object-store-consumer-m3/**,docs/loop/tasks/m3-legacy-chatsession-persistence/** -->
 # Notebook: durable memory (M3)
 
 This notebook tracks whether conversation can be stored so that it lasts across sessions and comes back exactly as it went in. The idea is to fold text into a deduplicated store of small records and rebuild the bytes from them, with a hash check that proves nothing changed. The first result is a tested piece of source code, not a memory that the model uses. The second is a baseline: on a frozen panel, ordinary prose never compiles to a store write through a lawful exact-frame compiler, which also compiles no wording it was not built from.

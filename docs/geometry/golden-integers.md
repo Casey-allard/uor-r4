@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/native_geometric/anchors.rs,crates/uor-r4-core/src/prime_route_attention.rs,crates/uor-r4-discrete/build.rs -->
 # Golden integers
 
 The coordinates of the 120 icosian rotations contain the golden ratio, an irrational number, so a computer would normally round them. There is a way to avoid rounding altogether: keep every coordinate as a pair of whole numbers $(a, b)$ that stands for $a + b\varphi$. Adding and multiplying such pairs gives another pair, exactly. This chapter explains that arithmetic, called $\mathbb{Z}[\varphi]$, and says where the project uses it. Terms are also defined in the [glossary](../start/glossary.md).

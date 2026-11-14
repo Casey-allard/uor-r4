@@ -1,3 +1,4 @@
+<!-- freshness: sources=PLAN.md,docs/roadmap/items/point-key-integer.md -->
 # Where UOR-R4 is today
 
 **In one paragraph.** UOR-R4 is pre-alpha: **1 of 8 milestones is complete**, and no model holds a

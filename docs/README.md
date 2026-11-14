@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete,crates/uor-r4-discrete/README.md,crates/uor-r4-integer,crates/uor-r4-integer/README.md -->
 # UOR-R4 documentation
 
 Read online: <https://uor-foundation.github.io/uor-r4/>. Production publication is by manual dispatch; pushes to main update the preview site. The earlier Studio web app moves to <https://uor-foundation.github.io/uor-r4/studio/>.

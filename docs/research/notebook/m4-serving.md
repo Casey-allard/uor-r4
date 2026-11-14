@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/loop/tasks/fbs-serving-kernels/**,docs/loop/tasks/fbs-serving-vector-kernel/**,docs/loop/tasks/geometric-image-input/**,docs/loop/tasks/fbs-snap-sort/**,docs/loop/tasks/integer-long-context/**,docs/loop/tasks/integer-nearest-readout/**,docs/loop/tasks/integer-hamming-read/**,docs/loop/tasks/integer-mul-div-serving/**,docs/loop/tasks/m4-export-uorlut01-cli/**,docs/loop/tasks/integer-retention-rates/**,docs/loop/tasks/m4-lawful-likelihood-bpb/**,docs/loop/tasks/m7-studio-live-model-sources/**,docs/loop/tasks/m7-parity-library-cli-browser/**,docs/loop/tasks/m1-d11-artifact-scorer/**,docs/loop/tasks/m1-export-gap-and-toks/**,docs/loop/tasks/m7-lexlean-studio-tools/**,docs/loop/tasks/m5-laptop-full-path-measurement/**,docs/loop/tasks/turn-memory-integer/** -->
 # Notebook: integer serving (M4)
 
 This notebook records cheap integer serving with lookup tables. Float serving

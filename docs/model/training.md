@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/bvgk_source.rs,crates/uor-r4-discrete/src/device.rs,crates/uor-r4-discrete/src/rows_source.rs,crates/uor-r4-discrete/src/training.rs,scripts/pod/uor-pod -->
 # How the model learns
 
 The discrete model learns by trying every legal geometric move of a table entry and keeping a move

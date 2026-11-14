@@ -12,6 +12,11 @@ git-repository-url = "https://github.com/UOR-Foundation/uor-r4"
 site-url = "/uor-r4/"
 mathjax-support = true
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
+# mdBook 0.5 turns these on by default. The pages are written for GitHub's
+# renderer, which neither curls quotes nor turns `--` into a dash nor reads
+# definition lists, so the site keeps the text as GitHub shows it.
+smart-punctuation = false
+definition-lists = false
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"

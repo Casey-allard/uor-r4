@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/prime-analysis/** -->
 # Prime Analysis: the Prime Phase and Chebyshev psi spectral program
 
 Prime numbers look random, but their running count wobbles around a smooth curve in a way that has long been tied to the zeros of the Riemann zeta function. This project asked whether that wobble (the Chebyshev residual $\psi(x)-x$) carries a structure that can be recovered and used to predict where primes fall. It is a pile of research notes, slide decks, simulations and scripts. Its own README calls it a late, concluding collection of the prime-router studies; the ancestry runs from the AI-Research workspace to a Python prime router, to this program, to the Rust model. The model's ideas about prime addresses and zeta phases draw on it. It is **not a proof of the Riemann hypothesis, and not evidence that the language model works.**

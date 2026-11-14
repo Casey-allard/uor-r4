@@ -1,3 +1,4 @@
+<!-- freshness: sources=archive/catalog.jsonl -->
 # Research line: the geometric stack
 
 The "geometric stack" was a layered float model whose layers carried state with quaternion rotations. It was trained offline and then converted to 4-bit integers for serving. It matched an ordinary transformer on loss, served bit-exactly, and still wrote useless prose. It also used softmax, SiLU and matrix multiplication in training, so the owner's later bans made it a historical form. Some of its pieces now have trained descendants on the discrete M1 and FBS paths.

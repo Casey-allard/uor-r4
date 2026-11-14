@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete/src/d11_export.rs,crates/uor-r4-integer/src/bin/uor-r4-stack.rs,crates/uor-r4-integer/src/discrete_d11.rs,crates/uor-r4-integer/src/native_geometry.rs,crates/uor-r4-integer/src/session_codec.rs,crates/uor-r4-integer/src/stack/flock.rs,crates/uor-r4-integer/src/stack/format.rs,crates/uor-r4-integer/src/stack/kernels.rs,crates/uor-r4-integer/src/stack/session.rs,crates/uor-r4-integer/src/stack/simd.rs,crates/uor-r4-integer/src/wasm_serve.rs,crates/uor-r4-lut/src/format.rs,crates/uor-r4-lut/src/lib.rs,crates/uor-r4-simd/src/lib.rs,crates/uor-r4-training/src/stack_export.rs,scripts/audit_zero_matmul_serving.py,scripts/audit_zero_matmul_wasm.py -->
 # D11 integer table serving (UORLUT01)
 
 **Status: ACTIVE, by D72's own condition (recorded on 29 Oct 2026 by claude-183).** D72 (owner ruling, 24 Oct 2026) set it READY "until a lawful trained model is exported through it". The condition has been met on three artifact lines:

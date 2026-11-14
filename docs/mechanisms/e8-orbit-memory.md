@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/spiralcore_operator.rs,crates/uor-r4-training/src/e8_memory.rs,crates/uor-r4-training/src/stack_memory.rs,crates/uor-r4-training/src/whole_path_learning.rs -->
 # E8 orbit memory
 
 **Status: PARKED.** Replacing half of the feed-forward layers with this memory stayed inside its quality bar (+0.033 bits per byte), but a learned address book of the same size beat the fixed E8 addresses by 0.023. So the geometry earned no credit. The read weight also uses a sigmoid, which the project now bans.

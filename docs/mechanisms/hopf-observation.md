@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/helm_d_r4_attention.rs,crates/uor-r4-core/src/native_geometric/hopf_metric.rs,crates/uor-r4-core/src/prime_route_attention.rs,crates/uor-r4-integer/src/math.rs,crates/uor-r4-integer/src/model.rs,crates/uor-r4-router/tests/hopf_sector_occupancy.rs,crates/uor-r4-training/src/joint_model.rs -->
 # Hopf observation with a kept fibre
 
 **Status: split by owner ruling, 24 Oct 2026 (D72): the kept-fibre map is READY; sector routing is PARKED.** The map and the kept-fibre bookkeeping are built and unit-tested, but they run only as telemetry in the integer runtime, and the test that matters for language (does keeping the lost angle help?) has never been run. The forms that were tried for prediction failed or used banned parts: sector routing, softmax attention, and a curved-space read that came out neutral ([mechanism census](../labs/course-correction-2026-10-18/audits/mechanism-census.md)).

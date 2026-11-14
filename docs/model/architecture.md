@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-discrete,crates/uor-r4-discrete/README.md,crates/uor-r4-discrete/src/device.rs,crates/uor-r4-discrete/src/discrete.cu,crates/uor-r4-discrete/src/metadata.rs,crates/uor-r4-integer/src/discrete_d11.rs -->
 # The model, end to end
 
 UOR-R4 turns text into whole-number token ids, carries those ids through geometric state and exact

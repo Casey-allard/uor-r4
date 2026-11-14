@@ -1,3 +1,4 @@
+<!-- freshness: sources=projects/research-archives/** checked=e2175455e79d377f724658ed2486e7f22a389f48 -->
 # Research archives: the Gemini-era sandbox
 
 This folder is a time capsule. In an early stage of the project (the "r3/r4 era"), the owner built a development sandbox with an AI assistant: text corpora, small Python tools that generate and index them, a first "prime router" prototype, and an early Rust checkout of a WebAssembly router. It is kept because it shows how the ideas started. It is not a live project, it does not run the current model, and it contains no result that the current model relies on.

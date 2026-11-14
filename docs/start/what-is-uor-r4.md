@@ -1,3 +1,4 @@
+<!-- freshness: sources=CHARTER.md,PLAN.md -->
 # What UOR-R4 is
 
 **In one paragraph.** UOR-R4 is an attempt to build a language model, the kind of program behind chat assistants, that is cheap enough to train and run on an ordinary laptop or inside a web browser. Today's language models are *transformers*. They spend most of their effort multiplying very large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job for far less: rotations of a geometric object, exact whole-number addresses built from primes, small lookup tables, and an exact memory. This page explains that bet in about five minutes. It is a research project and it is **pre-alpha**. **M1 is complete: 1 of 8 milestones**, but no model built under its rules holds a useful conversation yet ([PLAN](../../PLAN.md), [STATE](../../STATE.md)).

@@ -1,3 +1,4 @@
+<!-- freshness: sources=crates/uor-r4-core/src/spiralcore_operator.rs -->
 # SpiralCore: networking protocols and compression
 
 SpiralCore is a set of geometry ideas (by Matthew) that the language model borrows: a fixed graph of rotations in eight dimensions, with exact bookkeeping of the path taken between two points. This project poses a different question about the same family of ideas: could they help move and shrink data across a network? That question is posed here, not yet tested: the code that exists uses plain zlib framing with no SpiralCore routing. The folder also keeps two SpiralCore references. It is a side project. It is not wired into the model's training or serving, and nothing here is evidence that the model works.

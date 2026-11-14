@@ -1,3 +1,4 @@
+<!-- freshness: sources=docs/research/notebook/data-tokenizer.md,archive/catalog.jsonl -->
 # Research line: data and tokenizer
 
 A language model never sees letters. It sees numbered pieces of text, and it learns from whatever text it is given. This line holds the small set of records about both choices: which tokenizer cuts the text, and where training text comes from. The project has used one 4,096-piece tokenizer for every current corpus, panel and model. A larger one is prepared as a tool but never trained. The newest records plan a one-time, owner-approved corpus written offline by a large open model.
