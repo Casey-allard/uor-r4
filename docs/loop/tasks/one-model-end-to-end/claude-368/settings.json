@@ -1,0 +1,20 @@
+{
+  "unit": "claude-368",
+  "table_file_sha256": "21d458fc374a88cb8b367a4edcf0c524ba73562bb420e6e7ba11271a714a6ad0",
+  "base": {
+    "cap": 4294967295,
+    "keep": "1/32",
+    "floor": 1500,
+    "weigh": "even",
+    "refuse_from": 0
+  },
+  "picked": {
+    "cap": 4294967295,
+    "keep": "1/32",
+    "floor": 1500,
+    "weigh": "even",
+    "refuse_from": 0
+  },
+  "pick_is_base": true,
+  "set_on": "the seed-23 and seed-24 panels, held out, by the order's pick rule; one setting of 128 is inside the guards and it is claude-367's own"
+}

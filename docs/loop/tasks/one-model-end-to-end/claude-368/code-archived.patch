@@ -1,0 +1,1168 @@
+diff --git a/crates/uor-r4-integer/src/bin/place-asks.rs b/crates/uor-r4-integer/src/bin/place-asks.rs
+index 0d78ee8f2..73b8b1d6b 100644
+--- a/crates/uor-r4-integer/src/bin/place-asks.rs
++++ b/crates/uor-r4-integer/src/bin/place-asks.rs
+@@ -14,7 +14,8 @@
+ //! place-asks experts --tokens TRAIN/tokens.u16 --kit train-places.json --out pairs.uorpex
+ //! place-asks experts-check --tokens TRAIN/tokens.u16 --kit train-places.json --experts pairs.uorpex \
+ //!                   --asks asks.json --prompts samples.json --rows rows.tsv --hold-out 0|1 \
+-//!                   --caps 300,2000 --keeps 1/2,1/4 --floors 0,1500 [--out PREFIX]
++//!                   --caps 300,2000 --keeps 1/2,1/4 --floors 0,1500 \
++//!                   [--weighs even,sure] [--refusals 0,8] [--out PREFIX]
+ //! ```
+ //!
+ //! `experts` (claude-367) counts the pair experts' table on a split: each reply the place
+@@ -28,10 +29,17 @@
+ //! after the check. The table must be counted on `--tokens`; the asks are read whole, as the
+ //! served model reads them. `--rows` holds six columns: the prompt's index in `--prompts`, the
+ //! kind (general, recall, nevertold or repeat), the last user turn's ids, the reply's ids without
+-//! its end mark, whether it ends (1 or 0) and the reference's ids. With one cap, one keep and
++//! its end mark, whether it ends (1 or 0) and the reference's ids. With one setting and
+ //! `--out` it writes `PREFIX.jsonl`, each final reply's ids with the end mark when it ends, and
+ //! `PREFIX.rows.tsv`, the rows with the final reply and three more columns: the verdict, the
+-//! reply's vote and the top vote (0 and 0 when the experts were not asked).
++//! reply's vote and the top vote (0 and 0 when the experts were not asked). A replaced reply
++//! that kept its share and was refused has the verdict `refused`.
++//!
++//! `--weighs` and `--refusals` (claude-368) add two sides to the grid. `even` is the count over
++//! the expert's total; `sure` weighs that share by the expert's largest count over its total. A
++//! refusal `N` above 0 lets an expert seen at least `N` times, 7/8 of them with one reply, refuse
++//! a reply it never saw. Left out, they are `even` and 0: the check of claude-367. The last
++//! column of a grid line counts the general replies that kept their share and were refused.
+ //!
+ //! `repeat` (claude-364) counts the lead-in pairs on the tokens a written table was fitted on:
+ //! the pairs of neighbouring tokens in a user turn after which the rest of the turn is the
+@@ -69,7 +77,7 @@ use std::process::ExitCode;
+ use serde::Deserialize;
+ use sha2::{Digest, Sha256};
+ use uor_r4_integer::fbs_snapshot::PlaceMarks;
+-use uor_r4_integer::pair_experts::{asked_turn, Check, Occurrence, PairExperts, Ratio, Setting, Verdict};
++use uor_r4_integer::pair_experts::{asked_turn, Check, Occurrence, PairExperts, Ratio, Setting, Verdict, Weigh};
+ use uor_r4_integer::place_asks::{ask_cases, census, fit, fit_cut, fit_forms, fit_repeat, AsksIndex, Cut, FormRule, PlaceAsks, ASKS_FRAME};
+ 
+ const HEADER: usize = 64;
+@@ -326,6 +334,7 @@ fn verdict_name(verdict: Verdict) -> &'static str {
+         Verdict::Checked(Check::NoExpert) => "noexpert",
+         Verdict::Checked(Check::Stands { .. }) => "stands",
+         Verdict::Checked(Check::Unsure { .. }) => "unsure",
++        Verdict::Checked(Check::Replaced { refused: true, .. }) => "refused",
+         Verdict::Checked(Check::Replaced { .. }) => "replaced",
+         Verdict::NoRoom => "noroom",
+     }
+@@ -363,9 +372,19 @@ struct Tally {
+     recall_replaced: usize,
+     nevertold_replaced: usize,
+     repeat_replaced: usize,
++    /// General replies that kept their share of the top vote and were refused by a sure expert.
++    refused: usize,
+ }
+ 
+-const GRID_HEADER: &str = "cap\tkeep\tfloor\tgeneral\tgood_before\tgood_after\tnewly_good\tlost\tnoturn\talone\tnoexpert\tstands\tunsure\treplaced\trecall_replaced\tnevertold_replaced\trepeat_replaced";
++const GRID_HEADER: &str = "cap\tkeep\tfloor\tweigh\trefuse_from\tgeneral\tgood_before\tgood_after\tnewly_good\tlost\tnoturn\talone\tnoexpert\tstands\tunsure\treplaced\trecall_replaced\tnevertold_replaced\trepeat_replaced\trefused";
++
++/// A weighing as `--weighs` names it.
++fn weigh_name(weigh: Weigh) -> &'static str {
++    match weigh {
++        Weigh::Even => "even",
++        Weigh::Sure => "sure",
++    }
++}
+ 
+ impl Tally {
+     fn line(&self, setting: Setting) -> String {
+@@ -384,9 +403,10 @@ impl Tally {
+             self.recall_replaced,
+             self.nevertold_replaced,
+             self.repeat_replaced,
++            self.refused,
+         ];
+         let counts: Vec<String> = counts.iter().map(usize::to_string).collect();
+-        format!("{}\t{}/{}\t{}\t{}", setting.cap, setting.keep.num, setting.keep.den, setting.floor, counts.join("\t"))
++        format!("{}\t{}/{}\t{}\t{}\t{}\t{}", setting.cap, setting.keep.num, setting.keep.den, setting.floor, weigh_name(setting.weigh), setting.refuse_from, counts.join("\t"))
+     }
+ }
+ 
+@@ -422,7 +442,10 @@ fn replay(table: &PairExperts, asks: Option<&AsksIndex>, marks: &PlaceMarks, pro
+                     Verdict::Checked(Check::NoExpert) => tally.noexpert += 1,
+                     Verdict::Checked(Check::Stands { .. }) | Verdict::NoRoom => tally.stands += 1,
+                     Verdict::Checked(Check::Unsure { .. }) => tally.unsure += 1,
+-                    Verdict::Checked(Check::Replaced { .. }) => tally.replaced += 1,
++                    Verdict::Checked(Check::Replaced { refused, .. }) => {
++                        tally.replaced += 1;
++                        tally.refused += usize::from(refused);
++                    }
+                 }
+             }
+             Kind::Recall => tally.recall_replaced += usize::from(replaced),
+@@ -452,10 +475,57 @@ fn outputs(rows: &[Row], outcomes: &[Outcome], eos: u32) -> (String, String) {
+     (jsonl, tsv)
+ }
+ 
+-/// The grid of `experts-check`: `--caps`, `--keeps`, `--floors` and `--hold-out`. A floor is in
+-/// thousandths of one expert's whole vote.
+-fn grid(args: &[String]) -> Result<(Vec<u32>, Vec<Ratio>, Vec<u32>, bool), String> {
++/// The sides of the grid of `experts-check`.
++#[derive(Clone, Debug, PartialEq, Eq)]
++struct Grid {
++    caps: Vec<u32>,
++    keeps: Vec<Ratio>,
++    floors: Vec<u32>,
++    weighs: Vec<Weigh>,
++    refusals: Vec<u32>,
++    hold_out: bool,
++}
++
++impl Grid {
++    /// Every setting of the grid, in the order its lines are printed.
++    fn settings(&self) -> Vec<Setting> {
++        let mut settings = Vec::new();
++        for &cap in &self.caps {
++            for &keep in &self.keeps {
++                for &floor in &self.floors {
++                    for &weigh in &self.weighs {
++                        for &refuse_from in &self.refusals {
++                            settings.push(Setting { cap, keep, hold_out: self.hold_out, floor, weigh, refuse_from });
++                        }
++                    }
++                }
++            }
++        }
++        settings
++    }
++}
++
++/// The grid of `experts-check`: `--caps`, `--keeps`, `--floors` and `--hold-out`, and when they
++/// are given `--weighs` (left out: `even`) and `--refusals` (left out: 0, no refusal). A floor is
++/// in thousandths of one expert's whole vote.
++fn grid(args: &[String]) -> Result<Grid, String> {
++    let given = |name: &str| args.iter().any(|a| a == name);
+     let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str).ok_or_else(|| format!("{name} takes a value"));
++    let weighs = match given("--weighs") {
++        false => vec![Weigh::Even],
++        true => value("--weighs")?
++            .split(',')
++            .map(|weigh| match weigh {
++                "even" => Ok(Weigh::Even),
++                "sure" => Ok(Weigh::Sure),
++                other => Err(format!("--weighs {other}: even or sure")),
++            })
++            .collect::<Result<Vec<Weigh>, String>>()?,
++    };
++    let refusals = match given("--refusals") {
++        false => vec![0],
++        true => value("--refusals")?.split(',').map(|n| n.parse().map_err(|_| format!("--refusals {n}: not a count"))).collect::<Result<Vec<u32>, String>>()?,
++    };
+     let caps = value("--caps")?.split(',').map(|cap| cap.parse().map_err(|_| format!("--caps {cap}: not a count"))).collect::<Result<Vec<u32>, String>>()?;
+     let keeps = value("--keeps")?
+         .split(',')
+@@ -473,7 +543,7 @@ fn grid(args: &[String]) -> Result<(Vec<u32>, Vec<Ratio>, Vec<u32>, bool), Strin
+         other => return Err(format!("--hold-out {other}: 0 or 1")),
+     };
+     let floors = value("--floors")?.split(',').map(|floor| floor.parse().map_err(|_| format!("--floors {floor}: not a count of thousandths"))).collect::<Result<Vec<u32>, String>>()?;
+-    Ok((caps, keeps, floors, hold_out))
++    Ok(Grid { caps, keeps, floors, weighs, refusals, hold_out })
+ }
+ 
+ /// The file made from `path` with `suffix` added, refused when one is there.
+@@ -722,11 +792,11 @@ fn run(args: &[String]) -> Result<(), String> {
+             let text = std::fs::read_to_string(&rows_path).map_err(|e| format!("{}: {e}", rows_path.display()))?;
+             let rows = text.lines().enumerate().map(|(n, line)| parse_row(line, n + 1)).collect::<Result<Vec<Row>, String>>().map_err(|e| format!("{}: {e}", rows_path.display()))?;
+             check_rows(&rows, &prompts, &kit.marks).map_err(|e| format!("{}: {e}", rows_path.display()))?;
+-            let (caps, keeps, floors, hold_out) = grid(args)?;
++            let settings = grid(args)?.settings();
+             let out = match args.iter().position(|a| a == "--out") {
+                 Some(_) => {
+-                    if caps.len() != 1 || keeps.len() != 1 || floors.len() != 1 {
+-                        return Err("--out writes one setting's replies: give one cap, one keep and one floor".to_owned());
++                    if settings.len() != 1 {
++                        return Err("--out writes one setting's replies: give one cap, one keep, one floor, one weigh and one refusal".to_owned());
+                     }
+                     let prefix = flag(args, "--out")?;
+                     Some((new_file(&prefix, ".jsonl")?, new_file(&prefix, ".rows.tsv")?))
+@@ -734,18 +804,13 @@ fn run(args: &[String]) -> Result<(), String> {
+                 None => None,
+             };
+             println!("{GRID_HEADER}");
+-            for &cap in &caps {
+-                for &keep in &keeps {
+-                    for &floor in &floors {
+-                        let setting = Setting { cap, keep, hold_out, floor };
+-                        let (tally, outcomes) = replay(&table, Some(&index), &kit.marks, &prompts, &rows, setting);
+-                        println!("{}", tally.line(setting));
+-                        if let Some((jsonl_path, tsv_path)) = &out {
+-                            let (jsonl, tsv) = outputs(&rows, &outcomes, kit.marks.eos);
+-                            write_new(jsonl_path, jsonl.as_bytes())?;
+-                            write_new(tsv_path, tsv.as_bytes())?;
+-                        }
+-                    }
++            for setting in settings {
++                let (tally, outcomes) = replay(&table, Some(&index), &kit.marks, &prompts, &rows, setting);
++                println!("{}", tally.line(setting));
++                if let Some((jsonl_path, tsv_path)) = &out {
++                    let (jsonl, tsv) = outputs(&rows, &outcomes, kit.marks.eos);
++                    write_new(jsonl_path, jsonl.as_bytes())?;
++                    write_new(tsv_path, tsv.as_bytes())?;
+                 }
+             }
+         }
+@@ -888,7 +953,7 @@ mod tests {
+         lines.iter().enumerate().map(|(n, line)| parse_row(line, n + 1).expect("row")).collect()
+     }
+ 
+-    const KEEP_HALF: Setting = Setting { cap: 100, keep: Ratio { num: 1, den: 2 }, hold_out: false, floor: 0 };
++    const KEEP_HALF: Setting = Setting { cap: 100, keep: Ratio { num: 1, den: 2 }, hold_out: false, floor: 0, weigh: Weigh::Even, refuse_from: 0 };
+ 
+     #[test]
+     fn the_replay_replaces_a_reply_the_turns_experts_do_not_hold_and_counts_it_newly_good() {
+@@ -902,7 +967,7 @@ mod tests {
+         ]);
+         assert_eq!(check_rows(&rows, &prompts, &m), Ok(()));
+         let (tally, outcomes) = replay(&table, None, &m, &prompts, &rows, KEEP_HALF);
+-        let want = Tally { general: 3, good_before: 2, good_after: 3, newly_good: 1, lost: 0, noturn: 1, alone: 0, noexpert: 0, stands: 1, unsure: 0, replaced: 1, recall_replaced: 1, nevertold_replaced: 0, repeat_replaced: 0 };
++        let want = Tally { general: 3, good_before: 2, good_after: 3, newly_good: 1, lost: 0, noturn: 1, alone: 0, noexpert: 0, stands: 1, unsure: 0, replaced: 1, recall_replaced: 1, nevertold_replaced: 0, repeat_replaced: 0, refused: 0 };
+         assert_eq!(tally, want);
+         assert_eq!(tally.general, tally.noturn + tally.alone + tally.noexpert + tally.stands + tally.unsure + tally.replaced);
+         assert_eq!(tally.good_after + tally.lost, tally.good_before + tally.newly_good);
+@@ -913,7 +978,53 @@ mod tests {
+         assert_eq!(jsonl.lines().next(), Some(r#"{"i":0,"ids":[9,1]}"#));
+         assert_eq!(tsv.lines().next(), Some("0\tgeneral\t6 7 8\t9\t1\t13\treplaced\t0\t2796202"));
+         assert_eq!(tsv.lines().nth(2), Some("1\tgeneral\t6 7\t10\t1\t10\tnoturn\t0\t0"));
+-        assert_eq!(tally.line(KEEP_HALF), "100\t1/2\t0\t3\t2\t3\t1\t0\t1\t0\t0\t1\t0\t1\t1\t0\t0");
++        assert_eq!(tally.line(KEEP_HALF), "100\t1/2\t0\teven\t0\t3\t2\t3\t1\t0\t1\t0\t0\t1\t0\t1\t1\t0\t0\t0");
++        assert_eq!(GRID_HEADER.split('\t').count(), tally.line(KEEP_HALF).split('\t').count());
++    }
++
++    #[test]
++    fn the_replay_counts_a_reply_that_kept_its_share_and_was_refused() {
++        // Pair {6, 7} saw [9] 8 times and pair {6, 8} saw [10] twice: on turn [6, 7, 8] the two
++        // replies tie at one whole vote, so [10] keeps its share.
++        let mut occurrences = vec![Occurrence { turn: &[6, 7], reply: &[9] }; 8];
++        occurrences.extend(vec![Occurrence { turn: &[6, 8], reply: &[10] }; 2]);
++        let table = PairExperts::count(16, [3; 32], &occurrences).expect("count");
++        let (m, prompts) = (chat_marks(), replay_prompts());
++        let rows = rows(&["0\tgeneral\t6 7 8\t10\t1\t10"]);
++        let (tally, outcomes) = replay(&table, None, &m, &prompts, &rows, KEEP_HALF);
++        assert!(matches!(outcomes[0].verdict, Verdict::Checked(Check::Stands { .. })));
++        assert_eq!((tally.stands, tally.replaced, tally.refused), (1, 0, 0));
++        // From 8 on, pair {6, 7} is sure and never saw [10]: the reply is refused and [9] is given.
++        let refusing = Setting { refuse_from: 8, ..KEEP_HALF };
++        let (tally, outcomes) = replay(&table, None, &m, &prompts, &rows, refusing);
++        assert_eq!(outcomes[0].verdict, Verdict::Checked(Check::Replaced { reply: 0, vote: 1 << 20, top: 1 << 20, refused: true }));
++        assert_eq!(outcomes[0].reply, vec![9]);
++        assert_eq!(outputs(&rows, &outcomes, m.eos).1, "0\tgeneral\t6 7 8\t9\t1\t10\trefused\t1048576\t1048576\n");
++        assert_eq!((tally.stands, tally.replaced, tally.refused, tally.lost), (0, 1, 1, 1));
++        assert_eq!(tally.line(refusing), "100\t1/2\t0\teven\t8\t1\t1\t0\t0\t1\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1");
++        // The line names the weighing of its own setting.
++        assert!(tally.line(Setting { weigh: Weigh::Sure, ..refusing }).starts_with("100\t1/2\t0\tsure\t8\t"));
++        // A pair seen fewer than 9 times refuses nothing.
++        let (tally, _) = replay(&table, None, &m, &prompts, &rows, Setting { refuse_from: 9, ..KEEP_HALF });
++        assert_eq!((tally.stands, tally.refused), (1, 0));
++    }
++
++    #[test]
++    fn the_grid_takes_weighs_and_refusals_and_is_the_grid_of_before_without_them() {
++        let args = |text: &str| text.split(' ').map(str::to_owned).collect::<Vec<String>>();
++        let plain = grid(&args("experts-check --caps 7 --keeps 1/2,1/4 --floors 0,1500 --hold-out 1")).expect("grid");
++        assert_eq!((plain.weighs.clone(), plain.refusals.clone()), (vec![Weigh::Even], vec![0]));
++        let settings = plain.settings();
++        assert!(settings.iter().all(|s| s.weigh == Weigh::Even && s.refuse_from == 0 && s.hold_out && s.cap == 7));
++        // The lines keep their order: floors inside keeps.
++        assert_eq!(settings.iter().map(|s| (s.keep.den, s.floor)).collect::<Vec<_>>(), vec![(2, 0), (2, 1500), (4, 0), (4, 1500)]);
++        let wide = grid(&args("experts-check --caps 7 --keeps 1/2 --floors 0 --hold-out 0 --weighs even,sure --refusals 0,2,8")).expect("grid");
++        let sides: Vec<(Weigh, u32)> = wide.settings().iter().map(|s| (s.weigh, s.refuse_from)).collect();
++        assert_eq!(sides, vec![(Weigh::Even, 0), (Weigh::Even, 2), (Weigh::Even, 8), (Weigh::Sure, 0), (Weigh::Sure, 2), (Weigh::Sure, 8)]);
++        assert_eq!(wide.settings().iter().map(|s| weigh_name(s.weigh)).collect::<Vec<_>>(), vec!["even", "even", "even", "sure", "sure", "sure"]);
++        for refused in ["--weighs", "--weighs odd", "--weighs even,", "--refusals", "--refusals x", "--refusals 2,", "--refusals -1"] {
++            assert!(grid(&args(&format!("experts-check --caps 7 --keeps 1/2 --floors 0 --hold-out 0 {refused}"))).is_err(), "{refused}");
++        }
+     }
+ 
+     #[test]
+diff --git a/crates/uor-r4-integer/src/bin/uor-chat.rs b/crates/uor-r4-integer/src/bin/uor-chat.rs
+index 19ced92d5..14b587325 100644
+--- a/crates/uor-r4-integer/src/bin/uor-chat.rs
++++ b/crates/uor-r4-integer/src/bin/uor-chat.rs
+@@ -19,7 +19,7 @@ use uor_r4_integer::generation::Stop;
+ use uor_r4_integer::loopback::{serve_loopback, LoopbackConfig};
+ use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
+ use uor_r4_integer::openai::OpenAiServing;
+-use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict};
++use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict, Weigh};
+ use uor_r4_integer::sampling::SamplePolicy;
+ use uor_r4_integer::stack::{
+     is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
+@@ -82,6 +82,11 @@ struct CliArgs {
+     pair_floor: Option<u32>,
+     /// Whether a turn's own counts are taken out first (`--pair-hold-out 0|1`, default 0).
+     pair_hold_out: Option<bool>,
++    /// How an expert shares its vote (`--pair-weigh even|sure`, default even; claude-368).
++    pair_weigh: Option<Weigh>,
++    /// From how many sightings a sure expert refuses a reply it never saw (`--pair-refuse N`,
++    /// default 0: never; claude-368).
++    pair_refuse: Option<u32>,
+     /// Serve the stack without its turn memory (`--no-turn-memory`).
+     no_turn_memory: bool,
+     /// One-shot turn: answer this message, print the record and exit.
+@@ -308,6 +313,8 @@ impl Default for CliArgs {
+             pair_keep: None,
+             pair_floor: None,
+             pair_hold_out: None,
++            pair_weigh: None,
++            pair_refuse: None,
+             no_turn_memory: false,
+             say: None,
+             prompt_ids: None,
+@@ -397,6 +404,12 @@ fn print_usage() {
+     eprintln!(
+         "      --pair-hold-out <0|1>   take a turn's own counts out before the vote (default: 0)"
+     );
++    eprintln!(
++        "      --pair-weigh <even|sure> an expert's share of its vote: its count over its total, or\n                              that weighed by its largest count over its total (default: even)"
++    );
++    eprintln!(
++        "      --pair-refuse <INT>     an expert seen at least this many times, 7/8 of them with one\n                              reply, refuses a reply it never saw (default: 0, never)"
++    );
+     eprintln!(
+         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
+     );
+@@ -615,7 +628,7 @@ fn parse_cli_args() -> CliArgs {
+                     }
+                 }
+             }
+-            flag @ ("--pair-experts" | "--pair-cap" | "--pair-keep" | "--pair-floor" | "--pair-hold-out") => {
++            flag @ ("--pair-experts" | "--pair-cap" | "--pair-keep" | "--pair-floor" | "--pair-hold-out" | "--pair-weigh" | "--pair-refuse") => {
+                 idx += 1;
+                 if let Err(message) = parse_pair_flag(&mut args, flag, raw.get(idx).map(String::as_str)) {
+                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {message}");
+@@ -1000,6 +1013,16 @@ fn parse_pair_flag(args: &mut CliArgs, flag: &str, value: Option<&str>) -> std::
+                 _ => return Err("'--pair-hold-out' takes 0 or 1".into()),
+             });
+         }
++        "--pair-weigh" => {
++            args.pair_weigh = Some(match value {
++                Some("even") => Weigh::Even,
++                Some("sure") => Weigh::Sure,
++                _ => return Err("'--pair-weigh' takes even or sure".into()),
++            });
++        }
++        "--pair-refuse" => {
++            args.pair_refuse = Some(whole(value).ok_or("'--pair-refuse' takes a whole number")?);
++        }
+         _ => return Err(format!("'{flag}' is not a pair experts flag")),
+     }
+     Ok(())
+@@ -1013,6 +1036,8 @@ fn check_pair_args(args: &CliArgs) -> std::result::Result<(), String> {
+             (args.pair_keep.is_some(), "--pair-keep"),
+             (args.pair_floor.is_some(), "--pair-floor"),
+             (args.pair_hold_out.is_some(), "--pair-hold-out"),
++            (args.pair_weigh.is_some(), "--pair-weigh"),
++            (args.pair_refuse.is_some(), "--pair-refuse"),
+         ] {
+             if set {
+                 return Err(format!("'{flag}' requires '--pair-experts'"));
+@@ -1045,6 +1070,35 @@ fn check_pair_args(args: &CliArgs) -> std::result::Result<(), String> {
+     Ok(())
+ }
+ 
++/// The pair experts' setting the flags name: `None` without a cap, a keep share and a floor.
++/// The hold-out is off, the weighing even and the refusal off unless a flag says otherwise.
++fn pair_setting(cli: &CliArgs) -> Option<Setting> {
++    Some(Setting {
++        cap: cli.pair_cap?,
++        keep: cli.pair_keep?,
++        hold_out: cli.pair_hold_out == Some(true),
++        floor: cli.pair_floor?,
++        weigh: cli.pair_weigh.unwrap_or(Weigh::Even),
++        refuse_from: cli.pair_refuse.unwrap_or(0),
++    })
++}
++
++/// The pair experts' table and whole setting as a script transcript records them.
++fn pair_record(sha256: &impl serde::Serialize, setting: Setting) -> serde_json::Value {
++    serde_json::json!({
++        "sha256": sha256,
++        "cap": setting.cap,
++        "keep": format!("{}/{}", setting.keep.num, setting.keep.den),
++        "floor": setting.floor,
++        "hold_out": setting.hold_out,
++        "weigh": match setting.weigh {
++            Weigh::Even => "even",
++            Weigh::Sure => "sure",
++        },
++        "refuse_from": setting.refuse_from,
++    })
++}
++
+ /// The word a pair experts verdict is recorded as in a script transcript (claude-367).
+ fn pair_verdict_name(verdict: Verdict) -> &'static str {
+     match verdict {
+@@ -1053,6 +1107,7 @@ fn pair_verdict_name(verdict: Verdict) -> &'static str {
+         Verdict::Checked(Check::NoExpert) => "noexpert",
+         Verdict::Checked(Check::Stands { .. }) => "stands",
+         Verdict::Checked(Check::Unsure { .. }) => "unsure",
++        Verdict::Checked(Check::Replaced { refused: true, .. }) => "refused",
+         Verdict::Checked(Check::Replaced { .. }) => "replaced",
+         Verdict::NoRoom => "noroom",
+     }
+@@ -1526,6 +1581,52 @@ mod tests {
+         assert_eq!(none.pair_experts, None);
+     }
+ 
++    #[test]
++    fn pair_weigh_and_refuse_parse_and_are_even_and_never_when_left_out() {
++        let plain = pair_args(true, true, &PAIR_FLAGS).expect("accepted");
++        assert_eq!((plain.pair_weigh, plain.pair_refuse), (None, None));
++        let mut flags = PAIR_FLAGS.to_vec();
++        flags.extend([("--pair-weigh", "sure"), ("--pair-refuse", "4")]);
++        let set = pair_args(true, true, &flags).expect("the two flags are accepted");
++        assert_eq!((set.pair_weigh, set.pair_refuse), (Some(Weigh::Sure), Some(4)));
++        flags[5] = ("--pair-weigh", "even");
++        assert_eq!(pair_args(true, true, &flags).expect("accepted").pair_weigh, Some(Weigh::Even));
++
++        for (flag, bad, message) in [
++            ("--pair-weigh", "odd", "'--pair-weigh' takes even or sure"),
++            ("--pair-weigh", "Sure", "'--pair-weigh' takes even or sure"),
++            ("--pair-refuse", "x", "'--pair-refuse' takes a whole number"),
++            ("--pair-refuse", "-1", "'--pair-refuse' takes a whole number"),
++        ] {
++            let mut flags = PAIR_FLAGS.to_vec();
++            flags.push((flag, bad));
++            assert_eq!(pair_args(true, true, &flags).err().expect("refused"), message, "{flag} {bad}");
++        }
++        for flag in [("--pair-weigh", "sure"), ("--pair-refuse", "4")] {
++            let alone = pair_args(true, true, &[flag]).err().expect("needs the table");
++            assert_eq!(alone, format!("'{}' requires '--pair-experts'", flag.0));
++        }
++
++        // The flags reach the setting the chat is given, and the record names all of it.
++        let setting = Setting {
++            cap: 8,
++            keep: Ratio { num: 1, den: 32 },
++            hold_out: true,
++            floor: 250,
++            weigh: Weigh::Sure,
++            refuse_from: 4,
++        };
++        assert_eq!(pair_setting(&set), Some(setting));
++        assert_eq!(pair_setting(&plain), Some(Setting { weigh: Weigh::Even, refuse_from: 0, ..setting }));
++        let no_floor = pair_args(false, false, &[]).expect("no pair flags");
++        assert_eq!(pair_setting(&no_floor), None);
++        let record = pair_record(&"ab", setting);
++        let want = serde_json::json!({"sha256": "ab", "cap": 8, "keep": "1/32", "floor": 250, "hold_out": true, "weigh": "sure", "refuse_from": 4});
++        assert_eq!(record, want);
++        let even = pair_record(&"ab", Setting { weigh: Weigh::Even, refuse_from: 0, ..setting });
++        assert_eq!((&even["weigh"], &even["refuse_from"]), (&serde_json::json!("even"), &serde_json::json!(0)));
++    }
++
+     #[test]
+     fn pair_experts_flags_are_refused_without_what_they_need() {
+         let no_stack = pair_args(false, true, &PAIR_FLAGS).err().expect("refused without --stack");
+@@ -1569,7 +1670,8 @@ mod tests {
+             (Verdict::Checked(Check::NoExpert), "noexpert"),
+             (Verdict::Checked(Check::Stands { vote: 9, top: 9 }), "stands"),
+             (Verdict::Checked(Check::Unsure { vote: 1, top: 3 }), "unsure"),
+-            (Verdict::Checked(Check::Replaced { reply: 2, vote: 0, top: 5 }), "replaced"),
++            (Verdict::Checked(Check::Replaced { reply: 2, vote: 0, top: 5, refused: false }), "replaced"),
++            (Verdict::Checked(Check::Replaced { reply: 2, vote: 5, top: 5, refused: true }), "refused"),
+             (Verdict::NoRoom, "noroom"),
+         ];
+         for (verdict, name) in names {
+@@ -2376,15 +2478,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
+                 .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
+                 .ok_or_else(|| refused(format!("the asks name their tokens as {asks_tokens}, not a SHA-256")))?;
+             table.expect(*asks_vocab, &tag).map_err(refused)?;
+-            let (Some(cap), Some(keep), Some(floor)) = (cli.pair_cap, cli.pair_keep, cli.pair_floor) else {
++            let Some(setting) = pair_setting(cli) else {
+                 return Err(refused("needs --pair-cap, --pair-keep and --pair-floor".into()));
+             };
+-            let setting = Setting {
+-                cap,
+-                keep,
+-                hold_out: cli.pair_hold_out == Some(true),
+-                floor,
+-            };
+             let sha256 = table.sha256();
+             chat.set_pair_experts(Some((table, setting))).map_err(refused)?;
+             Some((sha256, setting))
+@@ -2579,13 +2675,7 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
+             "transcript": transcript,
+         });
+         if let Some((sha256, setting)) = &pair_identity {
+-            record["pair_experts"] = serde_json::json!({
+-                "sha256": sha256,
+-                "cap": setting.cap,
+-                "keep": format!("{}/{}", setting.keep.num, setting.keep.den),
+-                "floor": setting.floor,
+-                "hold_out": setting.hold_out,
+-            });
++            record["pair_experts"] = pair_record(sha256, *setting);
+         }
+         println!("{}", serde_json::to_string_pretty(&record)?);
+         return Ok(());
+diff --git a/crates/uor-r4-integer/src/pair_experts.rs b/crates/uor-r4-integer/src/pair_experts.rs
+index 0f1a93d73..70773adf0 100644
+--- a/crates/uor-r4-integer/src/pair_experts.rs
++++ b/crates/uor-r4-integer/src/pair_experts.rs
+@@ -11,6 +11,9 @@
+ //! is under a floor: then they do not know the turn, and the reply stands. With hold-out on, a turn's
+ //! own counts are taken out first, so a turn is checked as if it had never been counted.
+ //!
++//! A setting can also weigh each expert's shares by how sure it is, and let an expert that saw
++//! one reply nearly every time refuse the replies it never saw. By default it does neither.
++//!
+ //! A table file carries the SHA-256 of its body, and every structural rule is checked again
+ //! when a file is read.
+ 
+@@ -60,6 +63,20 @@ pub struct ReplyScore {
+     pub score: u64,
+ }
+ 
++/// How one expert shares its vote among the replies it holds.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum Weigh {
++    /// A reply gets its count over the expert's total: `(c << 20) / t`.
++    Even,
++    /// A reply's share is also weighed by how sure the expert is: `((c * m) << 20) / (t * t)`,
++    /// where `m` is the largest count the expert holds. An expert that saw one reply only still
++    /// gives it a whole vote; an expert split between replies gives each of them less.
++    Sure,
++}
++
++/// The share of its total an expert's largest count must reach for the expert to be sure.
++pub const SURE: Ratio = Ratio { num: 7, den: 8 };
++
+ /// What the experts of one turn gave.
+ #[derive(Clone, Debug, PartialEq, Eq)]
+ pub struct Votes {
+@@ -67,13 +84,22 @@ pub struct Votes {
+     pub experts: usize,
+     /// Every reply with a positive score, by reply index.
+     pub scores: Vec<ReplyScore>,
++    /// For each sure expert, the replies it holds a count for, by reply index. Empty when the
++    /// setting refuses nothing.
++    pub sure: Vec<Vec<u32>>,
+ }
+ 
+ impl Votes {
+     /// The reply with the largest score; a tie goes to the smaller reply index.
+     pub fn top(&self) -> Option<ReplyScore> {
++        self.top_of(|_| true)
++    }
++
++    /// The reply with the largest score among those `allowed` lets through; a tie goes to the
++    /// smaller reply index.
++    fn top_of(&self, allowed: impl Fn(u32) -> bool) -> Option<ReplyScore> {
+         let mut best: Option<ReplyScore> = None;
+-        for entry in &self.scores {
++        for entry in self.scores.iter().filter(|s| allowed(s.reply)) {
+             if best.map_or(true, |b| entry.score > b.score) {
+                 best = Some(*entry);
+             }
+@@ -81,6 +107,37 @@ impl Votes {
+         best
+     }
+ 
++    /// The replies every sure expert holds that have a score, by reply index. Empty when no
++    /// expert is sure or the sure experts share no such reply: then the refusal is void.
++    fn agreed(&self) -> Vec<u32> {
++        let Some((first, rest)) = self.sure.split_first() else {
++            return Vec::new();
++        };
++        first
++            .iter()
++            .copied()
++            .filter(|r| self.score(*r) > 0)
++            .filter(|r| rest.iter().all(|list| list.binary_search(r).is_ok()))
++            .collect()
++    }
++
++    /// Whether the sure experts let a reply through: every sure expert holds it. When the
++    /// refusal is void every reply is let through.
++    pub fn allows(&self, reply: u32) -> bool {
++        let agreed = self.agreed();
++        agreed.is_empty() || agreed.binary_search(&reply).is_ok()
++    }
++
++    /// The top reply among those the sure experts let through. It is [`Self::top`] when the
++    /// refusal is void.
++    pub fn top_allowed(&self) -> Option<ReplyScore> {
++        let agreed = self.agreed();
++        if agreed.is_empty() {
++            return self.top();
++        }
++        self.top_of(|r| agreed.binary_search(&r).is_ok())
++    }
++
+     /// The score of one reply; 0 when it has none.
+     pub fn score(&self, reply: u32) -> u64 {
+         self.scores
+@@ -117,6 +174,8 @@ pub enum Check {
+         vote: u64,
+         /// The top vote.
+         top: u64,
++        /// The model's reply kept its share of the top vote, but a sure expert never saw it.
++        refused: bool,
+     },
+ }
+ 
+@@ -341,8 +400,35 @@ impl PairExperts {
+     /// out of every total and count first. A pair is an expert when what is left of its total
+     /// is at least 1 and at most `cap`: the cap is read after the hold-out. A count is never
+     /// read as more than what is left of its expert's total, so one expert gives any one reply
+-    /// at most one whole vote whatever a file holds.
++    /// at most one whole vote whatever a file holds. Every expert shares its vote evenly and
++    /// none refuses a reply.
+     pub fn votes(&self, turn: &[u32], hold_out: bool, cap: u32) -> Votes {
++        self.vote(turn, hold_out, cap, Weigh::Even, 0)
++    }
++
++    /// The experts' votes for a turn under a whole setting: [`Self::votes`], with each expert's
++    /// share weighed as the setting says, and the sure experts listed when the setting refuses.
++    pub fn votes_setting(&self, turn: &[u32], setting: Setting) -> Votes {
++        self.vote(
++            turn,
++            setting.hold_out,
++            setting.cap,
++            setting.weigh,
++            setting.refuse_from,
++        )
++    }
++
++    /// The one vote both [`Self::votes`] and [`Self::votes_setting`] read. An expert is sure when
++    /// `refuse_from` is above 0, what is left of its total is at least `refuse_from`, and its
++    /// largest left count is at least [`SURE`] of that total.
++    fn vote(
++        &self,
++        turn: &[u32],
++        hold_out: bool,
++        cap: u32,
++        weigh: Weigh,
++        refuse_from: u32,
++    ) -> Votes {
+         let own: &[Count] = if hold_out {
+             self.turns
+                 .binary_search_by(|t| t.tokens.as_slice().cmp(turn))
+@@ -353,6 +439,8 @@ impl PairExperts {
+         let own_total: u64 = own.iter().map(|c| u64::from(c.count)).sum();
+         let mut experts = 0;
+         let mut scores: BTreeMap<u32, u64> = BTreeMap::new();
++        let mut sure: Vec<Vec<u32>> = Vec::new();
++        let mut left: Vec<(u32, u64)> = Vec::new();
+         for address in pairs(&self.primes, turn) {
+             let Ok(at) = self.experts.binary_search_by_key(&address, |e| e.address) else {
+                 continue;
+@@ -363,16 +451,34 @@ impl PairExperts {
+                 continue;
+             }
+             experts += 1;
++            left.clear();
+             for held in &expert.counts {
+                 let mine = own
+                     .binary_search_by_key(&held.reply, |c| c.reply)
+                     .map_or(0, |i| own[i].count);
+                 let c = u64::from(held.count.saturating_sub(mine)).min(t);
+                 if c > 0 {
+-                    let score = scores.entry(held.reply).or_insert(0);
+-                    *score = score.saturating_add((c << VOTE_SHIFT) / t);
++                    left.push((held.reply, c));
+                 }
+             }
++            let m = left.iter().map(|(_, c)| *c).max().unwrap_or(0);
++            for &(reply, c) in &left {
++                let share = match weigh {
++                    Weigh::Even => (c << VOTE_SHIFT) / t,
++                    Weigh::Sure => {
++                        (((u128::from(c) * u128::from(m)) << VOTE_SHIFT)
++                            / (u128::from(t) * u128::from(t))) as u64
++                    }
++                };
++                let score = scores.entry(reply).or_insert(0);
++                *score = score.saturating_add(share);
++            }
++            if refuse_from > 0
++                && t >= u64::from(refuse_from)
++                && m * u64::from(SURE.den) >= t * u64::from(SURE.num)
++            {
++                sure.push(left.iter().map(|(reply, _)| *reply).collect());
++            }
+         }
+         Votes {
+             experts,
+@@ -381,6 +487,7 @@ impl PairExperts {
+                 .filter(|(_, score)| *score > 0)
+                 .map(|(reply, score)| ReplyScore { reply, score })
+                 .collect(),
++            sure,
+         }
+     }
+ 
+@@ -395,26 +502,15 @@ impl PairExperts {
+         cap: u32,
+         keep: Ratio,
+     ) -> Check {
+-        let votes = self.votes(turn, hold_out, cap);
+-        let Some(top) = votes.top() else {
+-            return Check::NoExpert;
++        let setting = Setting {
++            cap,
++            keep,
++            hold_out,
++            floor: 0,
++            weigh: Weigh::Even,
++            refuse_from: 0,
+         };
+-        let vote = self.reply_index(reply).map_or(0, |r| votes.score(r));
+-        if vote > 0
+-            && u128::from(vote) * u128::from(keep.den)
+-                >= u128::from(top.score) * u128::from(keep.num)
+-        {
+-            Check::Stands {
+-                vote,
+-                top: top.score,
+-            }
+-        } else {
+-            Check::Replaced {
+-                reply: top.reply,
+-                vote,
+-                top: top.score,
+-            }
+-        }
++        self.check_setting(turn, reply, setting)
+     }
+ 
+     /// The tokens of reply `index`.
+@@ -757,6 +853,11 @@ pub struct Setting {
+     /// The top vote the experts need before they answer in the model's place, in thousandths
+     /// of one expert's whole vote. Under it they do not know the turn and the reply stands.
+     pub floor: u32,
++    /// How each expert shares its vote among its replies.
++    pub weigh: Weigh,
++    /// An expert seen at least this many times, after the hold-out, whose largest count is at
++    /// least [`SURE`] of its total, refuses every reply it never saw. 0 refuses nothing.
++    pub refuse_from: u32,
+ }
+ 
+ /// What the experts decide about the reply to a prompt.
+@@ -826,17 +927,41 @@ impl PairExperts {
+         Verdict::Checked(self.check_setting(&prompt[asked], reply, setting))
+     }
+ 
+-    /// [`Self::check`] under a whole setting: a reply the check would replace stands instead
+-    /// when the experts' top vote is under the setting's floor. One expert that saw only the top
+-    /// reply gives it a whole vote, `1 << 20`; the floor counts in thousandths of that.
++    /// Checks the model's reply against the experts of the turn under a whole setting. The top
++    /// is the top reply the sure experts let through. The reply stands when the sure experts
++    /// let it through, its vote is positive and it is at least `keep` of the top vote. Otherwise
++    /// the top reply replaces it, unless the top vote is under the floor: then the reply stands
++    /// as unsure. One expert that saw only the top reply gives it a whole vote, `1 << 20`; the
++    /// floor counts in thousandths of that. A reply that kept its share but was refused is
++    /// marked so.
+     pub fn check_setting(&self, turn: &[u32], reply: &[u32], setting: Setting) -> Check {
+-        match self.check(turn, reply, setting.hold_out, setting.cap, setting.keep) {
+-            Check::Replaced { vote, top, .. }
+-                if u128::from(top) * 1000 < u128::from(setting.floor) << VOTE_SHIFT =>
+-            {
+-                Check::Unsure { vote, top }
++        let votes = self.votes_setting(turn, setting);
++        let Some(top) = votes.top_allowed() else {
++            return Check::NoExpert;
++        };
++        let index = self.reply_index(reply);
++        let vote = index.map_or(0, |r| votes.score(r));
++        let allowed = index.is_some_and(|r| votes.allows(r));
++        let kept = vote > 0
++            && u128::from(vote) * u128::from(setting.keep.den)
++                >= u128::from(top.score) * u128::from(setting.keep.num);
++        if kept && allowed {
++            Check::Stands {
++                vote,
++                top: top.score,
++            }
++        } else if u128::from(top.score) * 1000 < u128::from(setting.floor) << VOTE_SHIFT {
++            Check::Unsure {
++                vote,
++                top: top.score,
++            }
++        } else {
++            Check::Replaced {
++                reply: top.reply,
++                vote,
++                top: top.score,
++                refused: kept && !allowed,
+             }
+-            other => other,
+         }
+     }
+ }
+@@ -995,7 +1120,8 @@ mod tests {
+             Check::Replaced {
+                 reply: 0,
+                 vote: 349_525,
+-                top: 2_796_202
++                top: 2_796_202,
++                refused: false
+             }
+         );
+         // A reply the table never saw has vote 0 and is replaced, even at a share of 0.
+@@ -1005,7 +1131,8 @@ mod tests {
+             Check::Replaced {
+                 reply: 0,
+                 vote: 0,
+-                top: 2_796_202
++                top: 2_796_202,
++                refused: false
+             }
+         );
+     }
+@@ -1232,6 +1359,8 @@ mod tests {
+             keep: Ratio { num: 1, den: 2 },
+             hold_out: false,
+             floor,
++            weigh: Weigh::Even,
++            refuse_from: 0,
+         };
+         // With no floor the setting's check is the check.
+         assert_eq!(
+@@ -1244,7 +1373,8 @@ mod tests {
+             Check::Replaced {
+                 reply: 0,
+                 vote,
+-                top
++                top,
++                refused: false
+             }
+         );
+         assert_eq!(
+@@ -1264,7 +1394,8 @@ mod tests {
+             Check::Replaced {
+                 reply: 0,
+                 vote: 0,
+-                top: whole
++                top: whole,
++                refused: false
+             }
+         );
+         assert_eq!(
+@@ -1276,6 +1407,300 @@ mod tests {
+         );
+     }
+ 
++    /// Reply `[7]` is index 2 when a table holds it with `A` and `B`.
++    const C: &[u32] = &[7];
++
++    fn with(weigh: Weigh, refuse_from: u32) -> Setting {
++        Setting {
++            cap: 100,
++            keep: Ratio { num: 1, den: 2 },
++            hold_out: false,
++            floor: 0,
++            weigh,
++            refuse_from,
++        }
++    }
++
++    fn times<'a>(n: usize, turn: &'a [u32], reply: &'a [u32]) -> Vec<Occurrence<'a>> {
++        vec![occ(turn, reply); n]
++    }
++
++    /// Expert 6 = {0, 1} saw A 7 times and C once; expert 35 = {2, 3} saw B twice.
++    fn seven_of_eight() -> PairExperts {
++        let mut all = times(7, &[0, 1], A);
++        all.push(occ(&[0, 1], C));
++        all.extend(times(2, &[2, 3], B));
++        table(&all)
++    }
++
++    #[test]
++    fn a_weighed_vote_is_each_share_times_the_experts_largest_count_over_its_total() {
++        // Expert 6 = {0, 1}: total 4, A 3, B 1, so m = 3. Expert 35 = {2, 3}: total 2, A 2 only.
++        let mut all = times(3, &[0, 1], A);
++        all.push(occ(&[0, 1], B));
++        all.extend(times(2, &[2, 3], A));
++        let t = table(&all);
++        let turn = [0, 1, 2, 3];
++        let sure = t.votes_setting(&turn, with(Weigh::Sure, 0));
++        assert_eq!(sure.experts, 2);
++        // A: ((3 * 3) << 20) / 16 from expert 6, and a whole vote from the one-reply expert 35.
++        // B: ((1 * 3) << 20) / 16.
++        let a = ((3u64 * 3) << 20) / 16 + ((2u64 * 2) << 20) / 4;
++        let b = (3u64 << 20) / 16;
++        assert_eq!((a, b), (589_824 + 1_048_576, 196_608));
++        assert_eq!(sure.scores, scores(&[[0, a], [1, b]]));
++        // The even vote of the same turn is the count over the total.
++        let even = t.votes_setting(&turn, with(Weigh::Even, 0));
++        let a = (3u64 << 20) / 4 + (1 << 20);
++        assert_eq!(even.scores, scores(&[[0, a], [1, (1u64 << 20) / 4]]));
++        assert_eq!(even, t.votes(&turn, false, 100));
++    }
++
++    #[test]
++    fn a_sure_expert_refuses_a_reply_it_never_saw() {
++        // Expert 6 = {0, 1} saw A 8 times; expert 35 = {2, 3} saw B twice. On {0, 1, 2, 3} A and
++        // B tie at one whole vote, so B keeps its share and stands under the even rule.
++        let mut all = times(8, &[0, 1], A);
++        all.extend(times(2, &[2, 3], B));
++        let t = table(&all);
++        let turn = [0, 1, 2, 3];
++        let whole = 1u64 << 20;
++        assert_eq!(
++            t.check_setting(&turn, B, with(Weigh::Even, 0)),
++            Check::Stands {
++                vote: whole,
++                top: whole
++            }
++        );
++        // From 8 on, expert 6 is sure and never saw B: B is replaced by A, the top it allows.
++        let votes = t.votes_setting(&turn, with(Weigh::Even, 8));
++        assert_eq!(votes.sure, vec![vec![0]]);
++        assert!(votes.allows(0) && !votes.allows(1));
++        assert_eq!(
++            votes.top_allowed(),
++            Some(ReplyScore {
++                reply: 0,
++                score: whole
++            })
++        );
++        assert_eq!(
++            t.check_setting(&turn, B, with(Weigh::Even, 8)),
++            Check::Replaced {
++                reply: 0,
++                vote: whole,
++                top: whole,
++                refused: true
++            }
++        );
++        assert_eq!(
++            t.check_setting(&turn, A, with(Weigh::Even, 8)),
++            Check::Stands {
++                vote: whole,
++                top: whole
++            }
++        );
++        // An expert seen fewer times than `refuse_from` refuses nothing.
++        let under = t.votes_setting(&turn, with(Weigh::Even, 9));
++        assert!(under.sure.is_empty() && under.allows(1));
++        assert_eq!(
++            t.check_setting(&turn, B, with(Weigh::Even, 9)),
++            Check::Stands {
++                vote: whole,
++                top: whole
++            }
++        );
++    }
++
++    #[test]
++    fn an_expert_is_sure_at_seven_eighths_and_not_below() {
++        // Expert 6 saw A 7 of 8 times: 8 * 7 == 7 * 8, so it is sure, and it never saw B.
++        let t = seven_of_eight();
++        let turn = [0, 1, 2, 3];
++        let votes = t.votes_setting(&turn, with(Weigh::Even, 8));
++        assert_eq!(votes.sure, vec![vec![0, 2]]);
++        assert!(votes.allows(0) && votes.allows(2) && !votes.allows(1));
++        // The plain top is B, a whole vote; the top it allows is A, 7/8 of one.
++        let a = (7u64 << 20) / 8;
++        assert_eq!(
++            votes.top(),
++            Some(ReplyScore {
++                reply: 1,
++                score: 1 << 20
++            })
++        );
++        assert_eq!(votes.top_allowed(), Some(ReplyScore { reply: 0, score: a }));
++        assert_eq!(
++            t.check_setting(&turn, B, with(Weigh::Even, 8)),
++            Check::Replaced {
++                reply: 0,
++                vote: 1 << 20,
++                top: a,
++                refused: true
++            }
++        );
++        // A count of 6 of 8 is under 7/8: the expert refuses nothing and B, the top, stands.
++        // From 3 on, expert 35 (seen twice) is under `refuse_from` and refuses nothing either.
++        let mut all = times(6, &[0, 1], A);
++        all.extend(times(2, &[0, 1], C));
++        all.extend(times(2, &[2, 3], B));
++        let below = table(&all);
++        assert!(below
++            .votes_setting(&turn, with(Weigh::Even, 3))
++            .sure
++            .is_empty());
++        assert_eq!(
++            below.check_setting(&turn, B, with(Weigh::Even, 3)),
++            Check::Stands {
++                vote: 1 << 20,
++                top: 1 << 20
++            }
++        );
++    }
++
++    #[test]
++    fn the_refusal_is_void_when_the_sure_experts_share_no_reply() {
++        // Expert 6 saw only A and expert 35 saw only B, 8 times each: both are sure.
++        let mut all = times(8, &[0, 1], A);
++        all.extend(times(8, &[2, 3], B));
++        let t = table(&all);
++        let turn = [0, 1, 2, 3];
++        let votes = t.votes_setting(&turn, with(Weigh::Even, 8));
++        assert_eq!(votes.sure, vec![vec![0], vec![1]]);
++        assert!(votes.allows(0) && votes.allows(1));
++        assert_eq!(votes.top_allowed(), votes.top());
++        assert_eq!(
++            t.check_setting(&turn, B, with(Weigh::Even, 8)),
++            t.check_setting(&turn, B, with(Weigh::Even, 0))
++        );
++        assert!(matches!(
++            t.check_setting(&turn, B, with(Weigh::Even, 8)),
++            Check::Stands { .. }
++        ));
++    }
++
++    #[test]
++    fn the_refusal_is_void_when_the_reply_the_sure_experts_share_has_no_vote() {
++        // A table no small count gives: experts 6 = {0, 1} and 35 = {2, 3} each saw their own
++        // reply 2^21 times and C once. Both are sure and C is the one reply they share, but one
++        // count in 2^21 + 1 is under a millionth of a vote: C has no score.
++        let mut all = vec![occ(&[0, 1], A), occ(&[0, 1], C)];
++        all.extend([occ(&[2, 3], B), occ(&[2, 3], C)]);
++        let mut t = table(&all);
++        let many = 1u32 << 21;
++        for (at, reply) in [(0, 0), (1, 1)] {
++            t.experts[at].total = many + 1;
++            t.experts[at].counts = vec![Count { reply, count: many }, Count { reply: 2, count: 1 }];
++        }
++        let setting = Setting {
++            cap: u32::MAX,
++            ..with(Weigh::Even, 8)
++        };
++        let turn = [0, 1, 2, 3];
++        let votes = t.votes_setting(&turn, setting);
++        assert_eq!(votes.sure, vec![vec![0, 2], vec![1, 2]]);
++        let nearly = (u64::from(many) << 20) / (u64::from(many) + 1);
++        assert_eq!(votes.scores, scores(&[[0, nearly], [1, nearly]]));
++        // Nothing is refused: A, the top, stands, and so does B at the same vote.
++        assert!(votes.allows(0) && votes.allows(1));
++        assert_eq!(votes.top_allowed(), votes.top());
++        for reply in [A, B] {
++            assert_eq!(
++                t.check_setting(&turn, reply, setting),
++                Check::Stands {
++                    vote: nearly,
++                    top: nearly
++                }
++            );
++        }
++    }
++
++    #[test]
++    fn the_floor_is_read_on_the_top_the_sure_experts_allow() {
++        // The plain top B is a whole vote (1000 thousandths); the allowed top A is 875.
++        let t = seven_of_eight();
++        let turn = [0, 1, 2, 3];
++        let a = (7u64 << 20) / 8;
++        assert_eq!(a * 1000 / (1 << 20), 875);
++        let at = |floor: u32| Setting {
++            floor,
++            ..with(Weigh::Even, 8)
++        };
++        assert_eq!(
++            t.check_setting(&turn, B, at(875)),
++            Check::Replaced {
++                reply: 0,
++                vote: 1 << 20,
++                top: a,
++                refused: true
++            }
++        );
++        // At 900 the plain top would answer, but the reply the experts would give does not.
++        assert_eq!(
++            t.check_setting(&turn, B, at(900)),
++            Check::Unsure {
++                vote: 1 << 20,
++                top: a
++            }
++        );
++    }
++
++    #[test]
++    fn the_even_setting_with_no_refusal_is_the_vote_and_the_verdicts_of_before() {
++        let t = table(&sample());
++        for turn in [
++            &[0u32, 1, 2][..],
++            &[0, 1],
++            &[1, 2, 3],
++            &[2, 3],
++            &[0, 2, 1],
++            &[4, 5],
++        ] {
++            for hold_out in [false, true] {
++                for cap in [1, 2, 3, 100] {
++                    let setting = Setting {
++                        cap,
++                        hold_out,
++                        ..with(Weigh::Even, 0)
++                    };
++                    let votes = t.votes_setting(turn, setting);
++                    assert_eq!(votes, t.votes(turn, hold_out, cap));
++                    assert!(votes.sure.is_empty());
++                    assert_eq!(votes.top_allowed(), votes.top());
++                }
++            }
++        }
++        // The verdicts the even check gave on the sample before the two rules.
++        let even = with(Weigh::Even, 0);
++        assert_eq!(
++            t.check_setting(&[0, 1, 2], A, even),
++            Check::Stands {
++                vote: 2_796_202,
++                top: 2_796_202
++            }
++        );
++        assert_eq!(
++            t.check_setting(&[0, 1, 2], B, even),
++            Check::Replaced {
++                reply: 0,
++                vote: 349_525,
++                top: 2_796_202,
++                refused: false
++            }
++        );
++        let held = Setting {
++            hold_out: true,
++            ..even
++        };
++        assert_eq!(
++            t.check_setting(&[0, 1, 2], B, held),
++            Check::Stands {
++                vote: 1 << 20,
++                top: 1 << 20
++            }
++        );
++        assert_eq!(t.check_setting(&[4, 5], B, even), Check::NoExpert);
++    }
++
+     const BOS: u32 = 100;
+     const EOS: u32 = 101;
+     const SEP: u32 = 102;
+@@ -1326,6 +1751,8 @@ mod tests {
+             keep: Ratio { num: 1, den: 2 },
+             hold_out: false,
+             floor: 0,
++            weigh: Weigh::Even,
++            refuse_from: 0,
+         };
+         // The earlier turn {0, 1} holds reply B; the asked turn {0, 1, 2} holds A three ways.
+         let prompt = [
+diff --git a/crates/uor-r4-integer/src/stack/tests.rs b/crates/uor-r4-integer/src/stack/tests.rs
+index a60afc4ce..ada10d140 100644
+--- a/crates/uor-r4-integer/src/stack/tests.rs
++++ b/crates/uor-r4-integer/src/stack/tests.rs
+@@ -8905,7 +8905,7 @@ fn stack_chat_serves_a_reply_again_when_its_found_place_was_never_offered() -> C
+ fn pair_experts(turns: &[&[u32]]) -> (crate::pair_experts::PairExperts, crate::pair_experts::Setting) {
+     let occurrences: Vec<_> = turns.iter().map(|turn| crate::pair_experts::Occurrence { turn, reply: &[44, 45] }).collect();
+     let table = crate::pair_experts::PairExperts::count(512, [0; 32], &occurrences).expect("the experts are counted");
+-    let setting = crate::pair_experts::Setting { cap: 8, keep: crate::pair_experts::Ratio { num: 1, den: 2 }, hold_out: false, floor: 0 };
++    let setting = crate::pair_experts::Setting { cap: 8, keep: crate::pair_experts::Ratio { num: 1, den: 2 }, hold_out: false, floor: 0, weigh: crate::pair_experts::Weigh::Even, refuse_from: 0 };
+     (table, setting)
+ }
+ 

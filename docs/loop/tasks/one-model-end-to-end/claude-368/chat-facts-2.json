@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.chat-script/1",
+  "turns": [
+    {"user": "Hello!"},
+    {"user": "Tell me the capital of China."},
+    {"user": "Which day is after Tuesday?"},
+    {"user": "What is the opposite of early?"},
+    {"user": "What is the color of a banana?"},
+    {"user": "What letter does dog start with?"},
+    {"user": "What sound does a cow make?"},
+    {"user": "How many legs has a bird got?"},
+    {"user": "How do you spell cat?"},
+    {"user": "Which is bigger, 4 or 11?"},
+    {"user": "Can birds fly?"},
+    {"user": "What is 7 + 9?"},
+    {"user": "Thank you so much!"}
+  ]
+}

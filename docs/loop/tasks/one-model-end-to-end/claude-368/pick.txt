@@ -1,0 +1,5 @@
+settings 128; inside the guards 1
+tag	weigh	keep	floor	refuse_from	sum of good (six readings)	...	| per reading: good(-lost), 23 p-s1 p-s2 p-s3 then 24
+rank 1	even	1/32	1500	0	good 1061 of before 837	lost 15	max told replaced 1	max never-told replaced 0	max lost 4	replaced 347	refused 0	unsure 172	| 185(-1) 182(-1) 183(-1) 170(-4) 171(-4) 170(-4)
+claude-367	even	1/32	1500	0	good 1061 of before 837	lost 15	max told replaced 1	max never-told replaced 0	max lost 4	replaced 347	refused 0	unsure 172	| 185(-1) 182(-1) 183(-1) 170(-4) 171(-4) 170(-4)
+PICK	even	1/32	1500	0	good 1061 of before 837	lost 15	max told replaced 1	max never-told replaced 0	max lost 4	replaced 347	refused 0	unsure 172	| 185(-1) 182(-1) 183(-1) 170(-4) 171(-4) 170(-4)

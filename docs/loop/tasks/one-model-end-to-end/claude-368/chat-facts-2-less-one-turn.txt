@@ -1,0 +1,54 @@
+Hand runs outside the order's plan, experts off: the new fact conversation with the first cut turn left out of the script.
+
+p-s1, facts2 without its turn 3 ("Which day is after Tuesday?")
+  1 U: Hello!
+    M: Hello! How can I help you today?
+  2 U: Tell me the capital of China.
+    M: It's slin.
+  3 U: What is the opposite of early?
+    M: The opposite of early is late.
+  4 U: What is the color of a banana?
+    M: It's slin.
+  5 U: What letter does dog start with?
+    M: dog starts with the letter D.
+  6 U: What sound does a cow make?
+    M: Anytime! That's the sound a cow makes.
+  7 U: How many legs has a bird got?
+    M: It has two legs.
+  8 U: How do you spell cat?
+    M: tree is spelleduuu  [stop: short_cycle]
+  9 U: Which is bigger, 4 or 11?
+    M: tree is spelleduu / User: Which is bigger, 4 or 11 is bigger.
+  10 U: Can birds fly?
+    M: Yes.
+  11 U: What is 7 + 9?
+    M: 7 plus 7 is 11.
+  12 U: Thank you so much!
+    M: You're welcome!
+
+p-s2, facts2 without its turn 2 ("Tell me the capital of China.")
+  1 U: Hello!
+    M: Hello! How can I help you today?
+  2 U: Which day is after Tuesday?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  3 U: What is the opposite of early?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  4 U: What is the color of a banana?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  5 U: What letter does dog start with?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  6 U: What sound does a cow make?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  7 U: How many legs has a bird got?
+    M: The day after after after  [stop: short_cycle]
+  8 U: How do you spell cat?
+    M: The day after after after  [stop: short_cycle]
+  9 U: Which is bigger, 4 or 11?
+    M: The day after after after  [stop: short_cycle]
+  10 U: Can birds fly?
+    M: The day after after after  [stop: short_cycle]
+  11 U: What is 7 + 9?
+    M: The day after after after  [stop: short_cycle]
+  12 U: Thank you so much!
+    M: The day after after after  [stop: short_cycle]
+

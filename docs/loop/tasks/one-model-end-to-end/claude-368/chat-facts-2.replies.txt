@@ -1,0 +1,252 @@
+p-s1 facts2 off (artifact 9a209883ff74cdeb)
+  1 U: Hello!
+    M: Hello! How can I help you today?
+  2 U: Tell me the capital of China.
+    M: It's slin.
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is after after after  [stop: short_cycle]
+  4 U: What is the opposite of early?
+    M: The day after Tuesday is is the opposite of of of  [stop: short_cycle]
+  5 U: What is the color of a banana?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  6 U: What letter does dog start with?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  7 U: What sound does a cow make?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  8 U: How many legs has a bird got?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  9 U: How do you spell cat?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  10 U: Which is bigger, 4 or 11?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  11 U: Can birds fly?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  12 U: What is 7 + 9?
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+  13 U: Thank you so much!
+    M: The day after Tuesday is is the color of of of  [stop: short_cycle]
+
+p-s1 facts2 base.served (artifact 9a209883ff74cdeb)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is Wednesday.  [experts: replaced]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: replaced]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A cow says moo.  [experts: replaced]
+  8 U: How many legs has a bird got?
+    M: It has two legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: cat is spelled c-a-t.  [experts: replaced]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: Yes.  [experts: stands]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
+p-s1 facts2 base.held (artifact 9a209883ff74cdeb)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: It's Wednesday.  [experts: replaced]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: replaced]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A cow says moo.  [experts: replaced]
+  8 U: How many legs has a bird got?
+    M: It has two legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: tree is spellednesday.  [experts: unsure]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: No.  [experts: replaced]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
+p-s2 facts2 off (artifact f4667934627e99d7)
+  1 U: Hello!
+    M: Hello! How can I help you today?
+  2 U: Tell me the capital of China.
+    M: It's le meanededed  [stop: short_cycle]
+  3 U: Which day is after Tuesday?
+    M: It's le meanededed  [stop: short_cycle]
+  4 U: What is the opposite of early?
+    M: It's le meanededed  [stop: short_cycle]
+  5 U: What is the color of a banana?
+    M: It's le meanededed  [stop: short_cycle]
+  6 U: What letter does dog start with?
+    M: It's le meanededed  [stop: short_cycle]
+  7 U: What sound does a cow make?
+    M: It's le meanededed  [stop: short_cycle]
+  8 U: How many legs has a bird got?
+    M: It's le meanededed  [stop: short_cycle]
+  9 U: How do you spell cat?
+    M: It's le meanededed  [stop: short_cycle]
+  10 U: Which is bigger, 4 or 11?
+    M: It's le meanededed  [stop: short_cycle]
+  11 U: Can birds fly?
+    M: It's le meanededed  [stop: short_cycle]
+  12 U: What is 7 + 9?
+    M: It's le meanededed  [stop: short_cycle]
+  13 U: Thank you so much!
+    M: It's le meanededed  [stop: short_cycle]
+
+p-s2 facts2 base.served (artifact f4667934627e99d7)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is Wednesday.  [experts: stands]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: replaced]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A dog says woof.  [experts: stands]
+  8 U: How many legs has a bird got?
+    M: It has four legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: cat is spelled c-a-t.  [experts: replaced]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: Yes.  [experts: stands]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
+p-s2 facts2 base.held (artifact f4667934627e99d7)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is Wednesday.  [experts: stands]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: replaced]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A dog says woof.  [experts: stands]
+  8 U: How many legs has a bird got?
+    M: It has four legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: tree is spellednesday.  [experts: unsure]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: No.  [experts: replaced]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
+p-s3 facts2 off (artifact 9615060f4db98a4c)
+  1 U: Hello!
+    M: Hello! How can I help you today?
+  2 U: Tell me the capital of China.
+    M: It'sat on.
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is after after Tuesday.
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.
+  5 U: What is the color of a banana?
+    M: It'sat on.
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.
+  7 U: What sound does a cow make?
+    M: Anytime! That's the sound a cow makes.
+  8 U: How many legs has a bird got?
+    M: It has two legs.
+  9 U: How do you spell cat?
+    M: tree is spelledimon.
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.
+  11 U: Can birds fly?
+    M: Yes.
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.
+  13 U: Thank you so much!
+    M: You're welcome!
+
+p-s3 facts2 base.served (artifact 9615060f4db98a4c)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: The day after Tuesday is Wednesday.  [experts: replaced]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: stands]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A cow says moo.  [experts: replaced]
+  8 U: How many legs has a bird got?
+    M: It has two legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: cat is spelled c-a-t.  [experts: replaced]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: Yes.  [experts: stands]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
+p-s3 facts2 base.held (artifact 9615060f4db98a4c)
+  1 U: Hello!
+    M: Hello! How can I help you today?  [experts: stands]
+  2 U: Tell me the capital of China.
+    M: The capital of China is Beijing.  [experts: replaced]
+  3 U: Which day is after Tuesday?
+    M: It's Wednesday.  [experts: replaced]
+  4 U: What is the opposite of early?
+    M: The opposite of early is late.  [experts: stands]
+  5 U: What is the color of a banana?
+    M: It's yellow.  [experts: replaced]
+  6 U: What letter does dog start with?
+    M: dog starts with the letter D.  [experts: stands]
+  7 U: What sound does a cow make?
+    M: A cow says moo.  [experts: replaced]
+  8 U: How many legs has a bird got?
+    M: It has two legs.  [experts: stands]
+  9 U: How do you spell cat?
+    M: tree is spellednesday.  [experts: unsure]
+  10 U: Which is bigger, 4 or 11?
+    M: 11 is bigger.  [experts: stands]
+  11 U: Can birds fly?
+    M: No.  [experts: replaced]
+  12 U: What is 7 + 9?
+    M: 7 plus 7 is 11.  [experts: unsure]
+  13 U: Thank you so much!
+    M: You're welcome!  [experts: stands]
+
