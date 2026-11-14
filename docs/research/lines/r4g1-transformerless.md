@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: compiling a teacher into tables (R4G1)
 
 This was the project's first idea. Watch an ordinary language model (the "teacher"), compile what it does into lookup tables and a graph, and run those on a laptop with no multiplications. It worked as a compiler: it copied the teacher's top choice about as often as the teacher's own tables did. It never wrote coherent text on its own, which is why the project moved on.
@@ -51,6 +51,6 @@ The teacher set the ceiling, not the store (lesson 5 in [what the project knows]
 
 ## Current state
 
-PARKED. The R4G1 graph never produced coherent free text and needs a transformer teacher, which the current rules ban. What happens to its crates is an open owner question (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/board.md`, D36 item 3). The integer runtime contract remains the model for D11 serving (the integer-only serving decision) ([M4 line](m4-serving.md)).
+PARKED. The R4G1 graph never produced coherent free text and needs a transformer teacher, which the current rules ban. The owner question the 19 Oct audit raised about its crates (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/board.md`, D36 item 3) was decided on 19 Oct: repair, not archive. Repair restores the build only; the mechanism stays PARKED ([R4G1 graph](../../mechanisms/r4g1-graph.md)). The integer runtime contract remains the model for D11 serving (the integer-only serving decision) ([M4 line](m4-serving.md)).
 
 **Go deeper:** the [generated catalog page](../../../archive/catalog/r4g1-transformerless.md) lists all 74 records.

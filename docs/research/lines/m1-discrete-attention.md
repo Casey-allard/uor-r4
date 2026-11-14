@@ -1,4 +1,4 @@
-<!-- freshness: sources=CHARTER.md -->
+<!-- freshness: sources=CHARTER.md,archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: discrete attention for the language base (M1)
 
 This line asked whether a model using integers and small geometric moves could learn to read earlier

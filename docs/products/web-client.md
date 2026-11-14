@@ -1,4 +1,4 @@
-<!-- freshness: sources=.github/workflows/deploy.yml,.github/workflows/docs-site.yml,crates/uor-r4-integer,crates/uor-r4-integer/src/wasm_bindgen_exports.rs,scripts/stage-studio-site.sh,scripts/studio/build-and-publish.sh,scripts/studio/catalog.mjs,web/studio,web/studio/index.html -->
+<!-- freshness: sources=.github/workflows/deploy.yml,.github/workflows/docs-site.yml,crates/uor-r4-integer,crates/uor-r4-integer/src/wasm_bindgen_exports.rs,scripts/stage-studio-site.sh,scripts/studio/build-and-publish.sh,scripts/studio/catalog.mjs,web/studio,web/studio/index.html checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # The web client
 
 **9 November 2026 neutral Studio default published live.** PR #3903 merged as `4160a5347717d7e6786848895b758bfc5dc663f7` after exact-head approval and required checks. Fresh-main typed verification passed **455/455** typed tests, **47/47** Playwright checks, **15/15** runtime contracts, **11/11** gates, both runtime routes/migration cases and direct **7/7** WASM checks. The typed publisher produced gh-pages `4a435ab8af9c1da6d49225c30f9dda0a4ad50b87`; Pages run `42714479496` succeeded. Previous typed-preview publish `6540e2717d3a606330dbd141e3642f3f13b87ecf` is the rollback head. Plain `/studio/` now renders the neutral UOR Harness workbench at desktop and mobile sizes; explicit `?legacy=1` and `?typed=0` retain the old interface, and Terminal explicitly reports `Interactive PTY is unavailable in this browser build.` The isolated public runtime reports **14 requests with zero external/raw-TypeScript/runtime errors**, one shell, `legacyMcp=0`, `typedMcp=1`, artifact readiness, exact `17 + 25 = 42`, and isolated/restored transcripts. Public index bytes match the staged file. Evidence is under `local/kimi/default-cutover/fresh-main/`. Static web still has no native terminal, background agent service or live R4 API contract; full Cowork parity is not claimed. See [kimi-17](../loop/tasks/studio-ide-harness/kimi-17/ORDER.md); [kimi-14](../loop/tasks/studio-ide-harness/kimi-14/ORDER.md) retains the earlier typed-preview publication.
@@ -76,7 +76,10 @@ Labels: **proof**, **measurement**, **hypothesis**. See [`docs/formal_vocabulary
 5. **Save and resume.** `saveSession` emits a `UR4SESS1` snapshot and `restoreSession` loads it.
 
 The real exports are `init`, `tickClock`, `loadStack`, `step`, `saveSession`, `restoreSession`,
-`weightsPerToken`, `allocEvents` and `leakedModels`
+`memoryInfo`, `markReplyStart`, `clearReplyStart`, `weightsPerToken`, `allocEvents` and
+`leakedModels` for the stack engine; `loadDiscrete`, `predictDiscrete` and `discreteInfo` for
+discrete next-token prediction; and `exactArithmetic`, which answers a strict decimal expression
+without a model
 ([`wasm_bindgen_exports.rs`](../../crates/uor-r4-integer/src/wasm_bindgen_exports.rs)). Serving an
 exported D11 artifact on a client device is allowed; the GPU-first research-compute rule does not
 apply to product serving ([charter](../../CHARTER.md), section 3.6). D84's CPU training program is

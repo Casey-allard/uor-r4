@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: grounded replies from exact memory (M2)
 
 This line tried to make the model answer a question from a fact it was told earlier, and to say "I don't know" when it was never told. Facts sit in an exact store, so storing and fetching are not the hard part. The hard part is getting a trained model to read the right fact and write it out. One model reached 437 of 512 correct replies on the rows the team had been tuning on, then 0 of 128 on fresh rows.

@@ -1,4 +1,4 @@
-<!-- freshness: sources=docs/research/notebook/m3-durable-memory.md,archive/catalog.jsonl -->
+<!-- freshness: sources=docs/research/notebook/m3-durable-memory.md,archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: durable memory and the object store (M3)
 
 Milestone M3 asks that a conversation's memory survive between sessions and that answers stay grounded in it. This line built the storage half: an exact object store that keeps bytes once in a hashed tree, can fetch any range with an integrity check, and can copy itself between machines. The store works and is well tested. The consumer is built, but the on-model M3 run awaits an M1-or-M2 model selection, so M3 has not been measured end to end.

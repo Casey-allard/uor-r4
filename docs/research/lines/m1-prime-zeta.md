@@ -1,4 +1,4 @@
-<!-- freshness: sources=docs/research/notebook/m1-prime-zeta.md,archive/catalog.jsonl -->
+<!-- freshness: sources=docs/research/notebook/m1-prime-zeta.md,archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: the prime-zeta codebook (M1)
 
 Every word needs a starting address. The discrete model had been starting from a seeded table that left 4,096 words sharing only 16 distinct addresses. This line built a fixed, repeatable table instead: each word gets a prime number, and the prime is turned into a vector through the phases of the Riemann zeta zeros. All 4,096 words now get unique addresses. The line has three catalog records, plus a later zero-update comparison that found no advantage for PrimeZeta over simple injective controls.

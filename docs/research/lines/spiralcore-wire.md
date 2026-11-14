@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: SpiralCore wire transport (side exploration)
 
 This line is a side road, not the model. SpiralCore is a set of exact geometric tools that the project also uses inside the model. Here, someone imported a separate use of it: compressing and routing network traffic between programs. All seven records are dated 18 October. They fix bugs, add tests and record loopback timings. None of them touches the language model, and none is a language result.

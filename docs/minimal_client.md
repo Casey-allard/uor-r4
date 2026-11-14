@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/legacy-cli/** -->
+<!-- freshness: sources=archive/legacy-cli/**,crates/uor-r4-wasm-router/src/chat.rs,crates/uor-r4-wasm-router/src/main.rs,crates/uor-r4-wasm-router/src/server.rs checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Minimalist R⁴ Terminal Client & Local Vendor API
 
 > **Preserved interface reference:** this page documents the existing terminal
@@ -9,7 +9,7 @@
 > before this interface can carry that claim. See the
 > [current programme](geometric_intelligence_programme.md).
 
-The interface exposes `r4 client` plus vendor-shaped endpoints such as
+The interface exposes the `client` subcommand plus vendor-shaped endpoints such as
 `POST /v1/chat/completions`, `GET /v1/models`, and `GET /uor/v1/status`.
 Provider, engine, and multiplication-free claims apply only to the exact
 legacy execution tier and artifact selected for a request; the existence of
@@ -17,15 +17,11 @@ the endpoint is not evidence about which mechanism produced its response.
 
 ---
 
-## 1. Single-Command Launcher (`./r4-app.sh`)
+## 1. The archived launcher (`archive/legacy-cli/r4-app.sh`)
 
-The simplest way to run R⁴ interactively is with the zero-dependency `./r4-app.sh` launcher:
+The zero-dependency launcher `r4-app.sh` and the `uor-r4-cli` script it starts are kept in `archive/legacy-cli/`. They no longer run as they are: `uor-r4-cli` calls `cargo run --bin r4`, and no crate in the workspace builds a binary named `r4` any more. The list below records what the launcher did.
 
-```bash
-./r4-app.sh
-```
-
-### What `./r4-app.sh` does automatically:
+### What `r4-app.sh` did automatically:
 1. **Model Selection Menu**: Presents an interactive choice between `smollm2-135m-instruct`, `smollm2-360m-instruct`, and `smollm2-1-7b-instruct`.
 2. **4-Stage Pipeline Compilation & Live Progress**: Automatically runs any missing compilation stages (download, corpus compilation, R4G1 graph scoring) while displaying `claude-code`-styled live progress bars (`[█████████████░░░░░░░░] 65% (18s)`).
 3. **Background Server**: Launches `r4 serve` in the background on port 8000 (or `$PORT`).
@@ -34,44 +30,33 @@ The simplest way to run R⁴ interactively is with the zero-dependency `./r4-app
 
 ---
 
-## 2. Interactive Terminal Client (`r4 client`)
+## 2. Interactive Terminal Client (`client`)
 
-You can also run the client against an existing local server instance:
+The client is the `client` subcommand of the `uor-r4-wasm-router` binary ([`crates/uor-r4-wasm-router/src/main.rs`](../crates/uor-r4-wasm-router/src/main.rs)). Run it against an existing local server instance:
 
 ```bash
-cargo run --release -- client --remote http://127.0.0.1:8000/v1
+cargo run --release -p uor-r4-wasm-router -- client --remote http://127.0.0.1:8000/v1
 ```
 
-### Rich Intro Banner & Slash Command Autocomplete
-Upon launching, `r4 client` displays an ANSI R⁴ ASCII banner and shortcuts guide:
+### Intro banner and slash commands
+Upon launching, the client prints an ANSI ASCII banner and then a shortcuts guide ([`chat.rs`](../crates/uor-r4-wasm-router/src/chat.rs)):
 
 ```text
-  ██████╗ ██╗  ██╗     ██████╗██╗     ██╗
-  ██╔══██╗██║  ██║    ██╔════╝██║     ██║
-  ██████╔╝███████║    ██║     ██║     ██║
-  ██╔══██╗╚════██║    ██║     ██║     ██║
-  ██║  ██║     ██║    ╚██████╗███████╗██║
-  ╚═╝  ╚═╝     ╚═╝     ╚═════╝╚══════╝╚═╝
-
-R⁴ Holographic Graph & Transformerless Engine v0.1.0
+UOR-R4 Holographic Graph & Transformerless Engine v0.1.0
 Zero-Multiply Local Intelligence Runtime • Pinned Multiplication-Free Execution
 
 Connected to local vendor endpoint: http://127.0.0.1:8000/v1/chat/completions
 Active teacher model             : smollm2-135m-instruct
+Active synthesis engine          : <engine>
 
 Commands & Shortcuts:
-  • Type /help to view available slash commands (/status, /models, /clear, /quit)
+  • Type /help to view available slash commands (/status, /models, /engine, /corpus, /export, /reset, /clear, /quit)
   • Type / for interactive slash command suggestions & autocomplete
   • Type exit or press Ctrl-D to quit session
 ```
 
-### Interactive Slash Command Completion
-Typing `/` triggers interactive command suggestions:
-- Typing `/` $\rightarrow$ Displays available commands list.
-- Typing `/m` or `/mo` $\rightarrow$ Auto-completes and runs `/models`.
-- Typing `/s` or `/st` $\rightarrow$ Auto-completes and runs `/status`.
-- Typing `/h` $\rightarrow$ Auto-completes and runs `/help`.
-- Typing `/q` $\rightarrow$ Auto-completes and runs `/quit`.
+### Slash command completion
+Typing `/` lists the slash commands: `/help`, `/status`, `/models`, `/switch`, `/engine`, `/corpus`, `/compile`, `/audit`, `/clear`, `/reset`, `/export`, `/quit` and `/exit` (another name for `/quit`). Typing more of a command narrows the list to the commands that start with what has been typed, for example `/mo` to `/models` and `/st` to `/status`.
 
 ---
 

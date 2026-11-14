@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: the August geometric intelligence programme
 
 In August the project asked a basic question: can the geometry it likes, rotations in four dimensions (R4/Spin coordinates) and hyperbolic (Lorentz) space, carry the work of attention in a language model? The programme (issue #973) reproduced ordinary attention exactly inside these coordinates, which is a useful parity check, but never found a case where the geometry did better than a plain control. This line holds its nine records. Its questions moved into the September native model.

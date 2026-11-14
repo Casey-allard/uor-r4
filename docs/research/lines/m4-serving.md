@@ -1,4 +1,4 @@
-<!-- freshness: sources=docs/integration/project-track.md -->
+<!-- freshness: sources=docs/integration/project-track.md checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: integer serving (M4)
 
 This line is about running a finished model on an ordinary laptop or in a browser using whole-number arithmetic and table lookups, with no floating point. The records below date from when multiplication was also banned (see 29 Oct 2026 at the end). In the records the engine reproduced its float models exactly on the old stack, and the multiply-free audits pass on the WASM serving symbols. The older models scored 1.20 to 1.24 bits per byte against a 0.90 target. Since then the discrete M1 pair and separate FBS `lut-stack/5` export have been served at their declared scopes; M4's accepted-model path remains open.

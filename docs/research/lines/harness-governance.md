@@ -1,15 +1,15 @@
-<!-- freshness: sources=docs/research/notebook/harness-governance.md,archive/catalog.jsonl -->
+<!-- freshness: sources=docs/research/notebook/harness-governance.md,archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: research tooling and rules
 
-This line is not about the model. It records the rules, checkers and command-line tools the project built to keep its own research honest: who may run what, how claims are worded, and which banned operations must never creep back in. It holds 185 records and not one is a model result. Most of the effort came in two days in mid-October, when the whole tool was ported from Python to Rust.
+This line is not about the model. It records the rules, checkers and command-line tools the project built to keep its own research honest: who may run what, how claims are worded, and which banned operations must never creep back in. It holds 187 records and not one is a model result. Most of the effort came in two days in mid-October, when the whole tool was ported from Python to Rust.
 
 | | |
 |---|---|
 | **Catalog id** | `harness-governance` |
-| **Time span** | 24 Jul to 19 Oct 2026 (10 records undated). 105 of the 185 are dated 13 or 14 Oct |
-| **Milestone** | None (175 of 185); the tooling serves every milestone |
-| **Records** | 185 |
-| **Outcomes** | tooling 115 · process 55 · review 9 · ops 4 · plan 2. No positive or negative model results |
+| **Time span** | 24 Jul to 22 Oct 2026 (10 records undated). 105 of the 187 are dated 13 or 14 Oct; the last two (22 Oct) are status snapshots |
+| **Milestone** | None (177 of 187); the tooling serves every milestone |
+| **Records** | 187 |
+| **Outcomes** | tooling 115 · process 55 · review 9 · ops 6 · plan 2. No positive or negative model results |
 | **State** | Active, but the 19 Oct charter cuts the bulk. The tool is a view over the real authorities, not a replacement for them |
 
 Source: `archive/catalog.jsonl`, counted with `jq`. Terms follow the [glossary](../../start/glossary.md); ACTIVE, READY and PARKED are defined on the [mechanism board](../../mechanisms/README.md).
@@ -54,4 +54,4 @@ Every checker needs a test that can fail (lesson 1 in [what the project knows](.
 
 Active but slimmer. The charter adopted on 19 October requires a written sheet only before GPU runs or milestone-claim runs, and keeps one notebook per line ([how research is done now](../README.md)). No record in this line is a model result.
 
-**Go deeper:** the [generated catalog page](../../../archive/catalog/harness-governance.md) lists all 185 records.
+**Go deeper:** the [generated catalog page](../../../archive/catalog/harness-governance.md) lists all 187 records.

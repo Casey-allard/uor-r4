@@ -51,6 +51,6 @@ The book has 104 pages (`docs/SUMMARY.md`). Nothing records when a page was last
 
 - Casey's words of 14 Nov 2026, quoted above.
 - `docs/SUMMARY.md`, `xtask/src/book_stage.rs`, `xtask/src/book_check.rs`, `book.toml`, `.github/workflows/docs-site.yml`.
-- `docs/roadmap/items/docs-status-refresh.md` (#3380). Its scope shares most of the book pages, for their content; this item adds only the one record line at the top of each page and never edits a page's text.
+- `docs/roadmap/items/docs-status-refresh.md` (#3380). Its scope shares most of the book pages, for their content; this item adds the one record line at the top of each page, and edits a page's text only to correct a claim its sources contradict before the page is checked (claude-379).
 - `docs/roadmap/items/m7-studio-live-model-sources.md` names a separate, still unapplied proposal to automate the Studio publish in `docs-site.yml`. This item does not take it on: its workflow edit is the toolchain versions and cache key only.
 - mdBook's `CHANGELOG.md`, the 0.5 migration guide.

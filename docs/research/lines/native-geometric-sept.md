@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: the September native geometric model
 
 This line was the project's first attempt to build a language model from scratch in Rust out of geometric parts. It gave the model an exact memory of what was said and small learned "readers" that choose what to look at. It produced many narrow wins on hand-written test panels and no model that writes prose. The ideas that survived went into the discrete model that now carries the project.

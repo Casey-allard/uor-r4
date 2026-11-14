@@ -1,4 +1,4 @@
-<!-- freshness: sources=docs/research/notebook/data-tokenizer.md,archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl,crates/uor-r4-tokenizer/tests/training.rs,docs/research/notebook/data-tokenizer.md checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: data and tokenizer
 
 A language model never sees letters. It sees numbered pieces of text, and it learns from whatever text it is given. This line holds the small set of records about both choices: which tokenizer cuts the text, and where training text comes from. The project has used one 4,096-piece tokenizer for every current corpus, panel and model. A larger one is prepared as a tool but never trained. The newest records plan a one-time, owner-approved corpus written offline by a large open model.
@@ -45,10 +45,10 @@ Fix a single text-to-piece mapping so every corpus, test panel and trained file 
 
 ## What it taught
 
-A tokenizer is a hidden hypothesis. The missing multi-digit pieces look like an obvious cause of the numeric-memory failures, but an untrained probe found that the number codec already stores two-digit values in order, so the failure sits in the learned read and emit path ([probe](../../../archive/labs/numeric-addressability-probe-2026-10-09/README.md)). A number-aware tokenizer was planned and never built or run (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/tokenizer.json`, field `never_tested`). A data source that is borrowed, such as a teacher, sets the ceiling (lesson 5 in [what the project knows](../findings.md)). Self-distilled numbers must stay apart from teacher-fidelity numbers.
+A tokenizer is a hidden hypothesis. The missing multi-digit pieces look like an obvious cause of the numeric-memory failures, but an untrained probe found that the number codec already stores two-digit values in order, so the failure sits in the learned read and emit path ([probe](../../../archive/labs/numeric-addressability-probe-2026-10-09/README.md)). A number-aware tokenizer was planned and, by 19 October, never built or run (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/tokenizer.json`, field `never_tested`). On 22 October a three-arm comparison built one and counted its pieces: with digits split off before byte-level BPE, all 100 two-digit pieces form (#2872, test `number_aware_three_arm_comparison_and_digit_piece_census` in `crates/uor-r4-tokenizer/tests/training.rs`). No model has been trained on it. A data source that is borrowed, such as a teacher, sets the ceiling (lesson 5 in [what the project knows](../findings.md)). Self-distilled numbers must stay apart from teacher-fidelity numbers.
 
 ## Current state
 
-Nothing has been trained on any tokenizer except `d36d3e87`. The never-run tests are 4,096 against 16,384 pieces, a number-aware tokenizer, and whether tokenizer choice interacts with the address placement of the discrete model. D41 releases no training hold: generating a corpus is not training the student ([scope note](../../labs/d41-scope-clarification-2026-10-19/README.md)).
+Nothing has been trained on any tokenizer except `d36d3e87`. The never-run tests are 4,096 against 16,384 pieces, training on the number-aware tokenizer, and whether tokenizer choice interacts with the address placement of the discrete model. D41 releases no training hold: generating a corpus is not training the student ([scope note](../../labs/d41-scope-clarification-2026-10-19/README.md)).
 
 **Go deeper:** the [generated catalog page](../../../archive/catalog/data-tokenizer.md) lists all 8 records.

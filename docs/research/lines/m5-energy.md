@@ -1,4 +1,4 @@
-<!-- freshness: sources=archive/catalog.jsonl -->
+<!-- freshness: sources=archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: laptop energy and cost (M5)
 
 The project's goal is fast local AI that costs little energy. Milestone M5 asks for the proof: measured joules per token, memory use and tokens per second on an M1 laptop. This line has only four records, and the milestone is not started. The most useful record is a warning: an operation count of "90% fewer multiplies" did not become faster generation. It was 1.65 times slower.
@@ -12,7 +12,7 @@ The project's goal is fast local AI that costs little energy. Milestone M5 asks 
 | **Outcomes** | negative 1 · plan 1 · process 1 · review 1 |
 | **State** | Not started. No joules per token has been measured for a model on the current path |
 
-Counts: `archive/catalog.jsonl`. M5's bar: measured J/token, memory and tokens/s on the M1 with the selected parameter access (`ROADMAP.md`). Terms follow the [glossary](../../start/glossary.md); ACTIVE, READY and PARKED are defined on the [mechanism board](../../mechanisms/README.md).
+Counts: `archive/catalog.jsonl`. M5's bar: measured J/token, memory and tokens/s on the M1 with the selected parameter access (`ROADMAP.md`, `STATE.md`). Terms follow the [glossary](../../start/glossary.md); ACTIVE, READY and PARKED are defined on the [mechanism board](../../mechanisms/README.md).
 
 ```mermaid
 flowchart LR
@@ -49,6 +49,6 @@ Savings counted on paper are not tokens per second (lesson 13 in [what the proje
 
 ## Current state
 
-Not started. M5 needs a lawful model to measure, and none has been exported ([serving line](m4-serving.md)). Product serving and its tokens per second and energy on the client device are allowed measurements (charter, item 6).
+Not started. Exported models now exist: the discrete M1 pair and the FBS `lut-stack` exports serve at their declared scopes ([serving line](m4-serving.md)). None has had its joules per token, memory or tokens per second measured on the M1 laptop, which is what M5 asks for. Product serving and its tokens per second and energy on the client device are allowed measurements (charter, item 6).
 
 **Go deeper:** the [generated catalog page](../../../archive/catalog/m5-energy.md) lists all 4 records.

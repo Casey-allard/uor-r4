@@ -1,4 +1,4 @@
-<!-- freshness: sources=CHARTER.md -->
+<!-- freshness: sources=CHARTER.md checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: evaluation panels and graders
 
 A model is only as well measured as its test. This line built and audited the project's test sets (panels) and the programs that mark them (graders). Its main finding is humbling: a single canned reply scored as well as the trained chat models on the abstention half of the test, so the early "reply" scores did not show what they seemed to show. The panels are now frozen and graded by deterministic code, not by a neural judge.

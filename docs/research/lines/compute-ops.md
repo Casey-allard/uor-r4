@@ -1,4 +1,4 @@
-<!-- freshness: sources=scripts/pod/uor-pod,archive/catalog.jsonl -->
+<!-- freshness: sources=scripts/pod/uor-pod,archive/catalog.jsonl checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # Research line: GPU and pod operations
 
 Training and scoring run on rented GPUs, and every rental has to be started, checked, paid for and shut down without losing results. This line is the plumbing: the pod tool, its tests, the switch to a cheaper provider, and the guards that stop a run on the wrong machine. It contains no model result. Its blocked records are the clearest example of a run that fails for operational reasons and says nothing about the model.

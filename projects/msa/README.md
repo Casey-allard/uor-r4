@@ -1,7 +1,7 @@
-<!-- freshness: sources=projects/msa/** -->
+<!-- freshness: sources=projects/msa/** checked=a70d6189df3368575e745d351ed692cb000e9388 -->
 # MSA: Modular Structural Arithmetic
 
-Modular Structural Arithmetic (MSA) is a small formal system for arithmetic with a few special numbers in it. It was written by Alex, a collaborator, and given to this project with his consent as source reading. The folder holds two short papers and nothing else: no code, no data, no experiments. It is a third-party idea that earlier route-attention and selector work in this repository pointed to. It is not part of the language model, and no result here measures anything about the model.
+Modular Structural Arithmetic (MSA) is a small formal system for arithmetic with a few special numbers in it. It was written by Alex, a collaborator, and given to this project with his consent as source reading. The project is two short papers and nothing else: no code, no data, no experiments. The papers stay in the private store (below); this folder holds this page and `code/README.md`, the original README. It is a third-party idea that earlier route-attention and selector work in this repository pointed to. It is not part of the language model, and no result here measures anything about the model.
 
 ```mermaid
 flowchart LR
@@ -29,20 +29,20 @@ The paper then states special cases as axioms. For example, mod 11 the constants
 
 ## Why it is here
 
-The repository's earlier route-attention and selector work referenced MSA as part of a modular-structure research direction (`research/msa/README.md`). This page claims no tie to the model's geometry, and none has been tested. Any such link would be a hypothesis needing its own experiment.
+The repository's earlier route-attention and selector work referenced MSA as part of a modular-structure research direction (the original README, now [`code/README.md`](code/README.md)). This page claims no tie to the model's geometry, and none has been tested. Any such link would be a hypothesis needing its own experiment.
 
 ## Where it stands
 
 | Statement | Kind | Evidence |
 |---|---|---|
-| The folder contains two PDFs (6 and 10 pages) and a README, 3 files in all | measurement | `files.sha256` |
+| The original folder (`msa.tar`) holds two PDFs (6 and 10 pages) and a README, 3 files in all | measurement | `files.sha256` |
 | The constants and special-modulus facts above are true arithmetic | proof (direct calculation) | shown above |
-| MSA is a conservative extension of SA, and the rest of its axiom claims | not checked here; the README asserts the extension property | `research/msa/README.md` |
+| MSA is a conservative extension of SA, and the rest of its axiom claims | not checked here; the README asserts the extension property | [`code/README.md`](code/README.md) |
 | MSA helps the model | hypothesis, untested | none |
 
 ## Permission and attribution
 
-Both papers are by Alex. The README states they are included "with the author's consent" and were contributed to the research archive by Casey Allard. The folder inventory flags that redistribution permission should be confirmed before the PDFs are committed to a public repository. Until the owner confirms it, the PDFs remain in the store and the folder holds the README and a hash-and-pointer file; once confirmed they can be committed with attribution (they total about 0.3 MB).
+Both papers are by Alex. The README states they are included "with the author's consent" and were contributed to the research archive by Casey Allard. The folder inventory flags that redistribution permission should be confirmed before the PDFs are committed to a public repository. Until the owner confirms it, the PDFs remain in the store and the folder holds this page and `code/README.md`; once confirmed they can be committed with attribution (they total about 0.3 MB).
 
 ## Where the originals are
 
