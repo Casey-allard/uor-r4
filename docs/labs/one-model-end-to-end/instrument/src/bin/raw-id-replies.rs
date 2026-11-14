@@ -84,6 +84,13 @@
 //! SHA-256, `bos`, how many rows were lengthened, how many were shortened and the longest
 //! prompt. It is refused with `--place-rows 1`, whose places are read as rows of the window.
 //!
+//! `--turn-memory 0|1` (claude-376, default 1) serves the artifact with its exact turn memory
+//! dropped (`IntegerStackModel::drop_turn_memory`, the call `uor-chat --no-turn-memory` makes)
+//! when 0. An artifact with no turn memory is refused. `--mark-reply 1` stays allowed, as
+//! `StackChat::feed` marks every reply and the copy heads read the reply opening. The receipt
+//! gains `"turn_memory_dropped": true` and says `"has_turn_memory": false`. With 1, or with no
+//! flag, the replies and the receipt are as before.
+//!
 //! Every argument is a `--name value` pair; a name with no value is refused.
 //!
 //! It is an instrument: it trains nothing, changes no artifact and moves no bar.
@@ -95,7 +102,7 @@
 //!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]] \
 //!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] \
 //!   [--place-asks ASKS.json [--place-speak 0|1]] \
-//!   [--whole-prompt TOKENS.u16 --bos ID]
+//!   [--whole-prompt TOKENS.u16 --bos ID] [--turn-memory 0|1]
 //! ```
 //!
 //! `ROWS.json` is a JSON array of objects with a `prompt` array of token ids (a float score's
@@ -118,7 +125,7 @@ use uor_r4_integer::stack::{
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1] [--serve-again 0|1]] [--whole-prompt FILE --bos ID]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1] [--serve-again 0|1]] [--whole-prompt FILE --bos ID] [--turn-memory 0|1]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -796,6 +803,16 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             return Err("--copy-rule needs an artifact with a Hamming read".to_owned());
         }
     }
+    // claude-376: the artifact served with its exact turn memory dropped, the call
+    // `uor-chat --no-turn-memory` makes. What is left is the vector state's own reply.
+    let turn_memory = match flag(&args, "--turn-memory").as_deref() {
+        None | Some("1") => true,
+        Some("0") => false,
+        Some(other) => return Err(format!("--turn-memory takes 0 or 1, not {other}")),
+    };
+    if !turn_memory && !model.drop_turn_memory() {
+        return Err("--turn-memory 0 needs an artifact with a turn memory".to_owned());
+    }
     // The asks (claude-359): a fitted table the place read is served from, set only here.
     let place_speak = match flag(&args, "--place-speak").as_deref() {
         None => None,
@@ -833,8 +850,10 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     // Reply ids a row's place spoke, and replies that started the stored reply.
     let (mut spoke_place, mut told_replies) = (0u64, 0u64);
     let has_turn_memory = model.session().has_turn_memory();
-    if mark && !has_turn_memory {
+    if mark && !has_turn_memory && turn_memory {
         // A marked run on a model without a turn memory would be an unmarked run by another name.
+        // With the memory dropped (`--turn-memory 0`) the mark stays, as `StackChat::feed` marks
+        // every reply: the copy heads read the reply opening (claude-356).
         return Err("--mark-reply 1 needs an artifact with a turn memory".to_owned());
     }
     if place_rows {
@@ -1117,6 +1136,9 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             "ids_spoken_from_a_place": spoke_place,
             "replies_started_on_the_stored_reply": told_replies,
         });
+    }
+    if !turn_memory {
+        receipt["turn_memory_dropped"] = json!(true);
     }
     if serve_again {
         receipt["serve_again"] = json!({"replies_served_again": replies_served_again});
@@ -1664,6 +1686,87 @@ mod tests {
             .collect();
         let error = run_with_args(without_rows.into_iter()).unwrap_err();
         assert!(error.contains("--places needs --place-rows 1"), "{error}");
+    }
+
+    #[test]
+    fn turn_memory_zero_serves_the_artifact_with_its_memory_dropped() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-turn-memory-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&root).expect("temp directory");
+        let stack = root.join("memory.uorlut");
+        let bare = root.join("bare.uorlut");
+        let samples = root.join("samples.json");
+        let artifact = trace_artifact();
+        fs::write(&stack, &artifact).expect("artifact");
+        let mut snap = synthetic_fbs_trunk(17);
+        snap.readout_nearest = true;
+        snap.memory = None;
+        fs::write(&bare, export_fbs_trunk_uorlut01(&snap).expect("bare artifact")).expect("bare");
+        // Each prompt is one of the memory's own opening keys (trace_artifact's memory, built
+        // again), so the opening table can answer it. The synthetic session holds 8 positions:
+        // a key of at most 4 ids and 4 reply ids fit.
+        let memory = synthetic_turn_memory(snap.vocab, snap.width, 4, 192, true, 40, 17 ^ 0x5eed);
+        let prompts: Vec<Vec<u32>> = memory.opening.iter().map(|entry| entry.key.clone()).collect();
+        assert!(!prompts.is_empty() && prompts.iter().all(|p| (1..=4).contains(&p.len())));
+        let rows: Vec<Value> = prompts.iter().map(|p| json!({"prompt": p})).collect();
+        fs::write(&samples, serde_json::to_vec(&rows).expect("rows")).expect("samples");
+        let run = |stack: &Path, out: &str, switch: Option<&str>| {
+            let mut args = vec![
+                "--stack".to_owned(),
+                stack.display().to_string(),
+                "--samples".to_owned(),
+                samples.display().to_string(),
+                "--out".to_owned(),
+                root.join(out).display().to_string(),
+                "--mark-reply".to_owned(),
+                "1".to_owned(),
+                "--max-tokens".to_owned(),
+                "4".to_owned(),
+            ];
+            if let Some(value) = switch {
+                args.extend(["--turn-memory".to_owned(), value.to_owned()]);
+            }
+            run_with_args(args.into_iter())
+        };
+        let ids = |out: &str| -> Vec<Vec<u32>> {
+            fs::read_to_string(root.join(out))
+                .expect("replies")
+                .lines()
+                .map(|line| {
+                    let line: Value = serde_json::from_str(line).expect("reply JSON");
+                    serde_json::from_value(line["ids"].clone()).expect("ids")
+                })
+                .collect()
+        };
+        let default_receipt = run(&stack, "default.jsonl", None).expect("default");
+        let kept_receipt = run(&stack, "kept.jsonl", Some("1")).expect("kept");
+        let dropped_receipt = run(&stack, "dropped.jsonl", Some("0")).expect("dropped");
+        let refused = run(&bare, "bare.jsonl", Some("0")).unwrap_err();
+        let odd = run(&stack, "odd.jsonl", Some("2")).unwrap_err();
+        let (default, kept, dropped) = (ids("default.jsonl"), ids("kept.jsonl"), ids("dropped.jsonl"));
+        let _ = fs::remove_dir_all(&root);
+        // 1 is the default: the same replies and the same receipt.
+        assert_eq!(kept, default);
+        assert_eq!(kept_receipt, default_receipt);
+        assert!(default_receipt.get("turn_memory_dropped").is_none());
+        assert_eq!(default_receipt["has_turn_memory"], json!(true));
+        // 0 serves each row as a session of the model with the memory dropped, marked.
+        let mut without = IntegerStackModel::parse(&artifact).expect("synthetic model");
+        assert!(without.drop_turn_memory());
+        for (prompt, served) in prompts.iter().zip(&dropped) {
+            assert_eq!(*served, replay_reply(&without, prompt, true, 4).expect("replay"));
+        }
+        assert_eq!(dropped_receipt["turn_memory_dropped"], json!(true));
+        assert_eq!(dropped_receipt["has_turn_memory"], json!(false));
+        // The memory answers somewhere in these rows, so dropping it is seen.
+        let moved = dropped.iter().zip(&default).filter(|(a, b)| a != b).count();
+        assert!(moved > 0, "no row's reply moved with the memory dropped");
+        assert!(refused.contains("--turn-memory 0 needs an artifact with a turn memory"), "{refused}");
+        assert!(odd.contains("--turn-memory takes 0 or 1, not 2"), "{odd}");
     }
 
     #[test]
