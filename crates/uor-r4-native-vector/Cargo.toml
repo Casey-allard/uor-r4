@@ -1,0 +1,9 @@
+[package]
+name = "uor-r4-native-vector"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Shared Q31 geometric vector state and operator for native UOR-R4"
+
+[lib]
+path = "src/lib.rs"

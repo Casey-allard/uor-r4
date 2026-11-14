@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
-scope: [AGENTS.md, CHARTER.md, PLAN.md, docs/harness/native-space.json, docs/loop/tasks/native-space-state-contract/**, docs/model/**, docs/mechanisms/**, docs/research/notebook/float-training.md, docs/roadmap/items/native-space-state-contract.md, crates/uor-r4-core/src/native_geometric/**, crates/uor-r4-discrete/**, crates/uor-r4-integer/src/stack/**, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-float-train/src/**, crates/uor-r4-harness/src/checkdispatch.rs, crates/uor-r4-harness/src/harnessrules.rs, crates/uor-r4-harness/src/ruleinventory.rs, crates/uor-r4-harness/rules/**, crates/uor-r4-harness/tests/**]
+scope: [AGENTS.md, CHARTER.md, PLAN.md, Cargo.lock, Cargo.toml, docs/harness/native-space.json, docs/loop/tasks/native-space-state-contract/**, docs/model/**, docs/mechanisms/**, docs/research/notebook/float-training.md, docs/roadmap/items/native-space-state-contract.md, crates/uor-r4-core/src/native_geometric/**, crates/uor-r4-discrete/**, crates/uor-r4-native-vector/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/stack/**, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-float-train/src/**, crates/uor-r4-harness/src/checkdispatch.rs, crates/uor-r4-harness/src/harnessrules.rs, crates/uor-r4-harness/src/ruleinventory.rs, crates/uor-r4-harness/rules/**, crates/uor-r4-harness/tests/**]
 ---
 
 ## Why it matters

@@ -78,6 +78,11 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 pub type Result<T> = std::result::Result<T, Error>;
+impl From<uor_r4_native_vector::Error> for Error {
+    fn from(error: uor_r4_native_vector::Error) -> Self {
+        Self::Invalid(error.to_string())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

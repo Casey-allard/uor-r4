@@ -67,6 +67,7 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `crates/uor-r4-lut/` | The UORLUT01 container format |
 | `crates/uor-r4-model-source/` | Model-source loading |
 | `crates/uor-r4-naf/` | The NAF crate |
+| `crates/uor-r4-native-vector/` | Dependency-free Q31 geometric vector state and shared Hamilton operators |
 | `crates/uor-r4-object-store/` | The exact object store and durable memory |
 | `crates/uor-r4-pod-provider/` | Pod provider bindings |
 | `crates/uor-r4-proof-model/` | The proof model |

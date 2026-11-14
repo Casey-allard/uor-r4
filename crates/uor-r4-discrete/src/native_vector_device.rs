@@ -141,7 +141,7 @@ impl NativeVectorEngine {
         gate: Q31Quaternion,
         value: Q31Quaternion,
     ) -> Result<Q31Transport> {
-        q31_hamilton_rotate(gate, value)
+        Ok(q31_hamilton_rotate(gate, value)?)
     }
 
     /// Apply one bounded Q31 Hamilton training step per item on CUDA.
@@ -256,7 +256,7 @@ impl NativeVectorEngine {
         target: Q31Quaternion,
         step_shift: u32,
     ) -> Result<Q31TrainingStep> {
-        q31_hamilton_train_step(gate, value, target, step_shift)
+        Ok(q31_hamilton_train_step(gate, value, target, step_shift)?)
     }
 
     /// Apply one shared Q31 model step: CUDA per-item credit, then deterministic aggregation.
@@ -273,7 +273,7 @@ impl NativeVectorEngine {
         }
         let gates = vec![model.gate(); values.len()];
         let records = self.hamilton_train_step(&gates, values, targets, model.step_shift())?;
-        model.step_from_records(&records, values, targets)
+        Ok(model.step_from_records(&records, values, targets)?)
     }
 
     /// Run the shared model step through the Rust oracle.
@@ -282,7 +282,7 @@ impl NativeVectorEngine {
         values: &[Q31Quaternion],
         targets: &[Q31Quaternion],
     ) -> Result<Q31ModelStep> {
-        model.step_reference(values, targets)
+        Ok(model.step_reference(values, targets)?)
     }
 }
 
