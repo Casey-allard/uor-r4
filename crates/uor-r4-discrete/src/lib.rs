@@ -32,6 +32,9 @@ pub mod driver_source_pin;
 #[cfg(feature = "cuda")]
 pub mod measurement;
 pub mod metadata;
+pub mod native_vector;
+#[cfg(feature = "cuda")]
+pub mod native_vector_device;
 pub mod normalization_mechanism;
 pub mod objective;
 pub mod order_slice;
