@@ -1739,6 +1739,173 @@ fn stack_chat_extends_the_session_instead_of_replaying_it() -> ChatTest {
     Ok(())
 }
 
+/// [`chat`] with a declared context of 128, room for a cut reply and the turn after it.
+fn long_chat(seed: u64) -> Result<(IntegerStackModel, Vec<u8>), StackError> {
+    Ok((
+        IntegerStackModel::parse(&artifact_with_context(seed, &[], 128))?,
+        chat_tokenizer_json(),
+    ))
+}
+
+/// claude-369: a seed of [`long_chat`] and a one-token turn after BOS whose reply, served with a
+/// cap of `cap` and the chat's default rule, stops as `want` says. Searched, so each test reads a
+/// stop the engine really gives.
+fn unended_turn(
+    want: fn(super::StackStop) -> bool,
+    cap: usize,
+) -> Result<(u64, Vec<u32>), Box<dyn std::error::Error>> {
+    for seed in 1..64 {
+        let (model, json) = long_chat(seed)?;
+        let mut probe = open_chat(&model, &json)?;
+        let bos = probe.protocol().bos_id;
+        for token in 3..40 {
+            probe.seed(&[bos])?;
+            if want(probe.reply_history(&[bos, token], cap)?.stop) {
+                return Ok((seed, vec![bos, token]));
+            }
+        }
+    }
+    Err("no seed and turn give the stop".into())
+}
+
+fn cut_by_cycle(stop: super::StackStop) -> bool {
+    matches!(stop, super::StackStop::ShortCycle { .. })
+}
+
+/// The turn after a cut one, served with the rule back on keep, and the same turn served by a
+/// fresh chat seeded with `seeded`: ids, history and session position agree.
+fn next_turn_is_a_fresh_chats(
+    chat: &mut super::StackChat<'_>,
+    model: &IntegerStackModel,
+    json: &[u8],
+    seeded: &[u32],
+) -> ChatTest {
+    chat.set_unended(super::Unended::Keep);
+    let next = [seeded, &[5]].concat();
+    let after = chat.reply_history(&next, 12)?;
+    let mut fresh = open_chat(model, json)?;
+    fresh.seed(seeded)?;
+    let want = fresh.reply_history(&next, 12)?;
+    assert_eq!((after.ids, after.stop), (want.ids, want.stop));
+    assert_eq!(chat.tokens(), fresh.tokens());
+    assert_eq!(chat.position(), fresh.position());
+    Ok(())
+}
+
+#[test]
+fn stack_chat_drops_a_cut_reply_and_its_turn() -> ChatTest {
+    let (seed, prompt) = unended_turn(cut_by_cycle, 12)?;
+    let (model, json) = long_chat(seed)?;
+    let bos = prompt[0];
+    let mut keep = open_chat(&model, &json)?;
+    keep.seed(&[bos])?;
+    let kept = keep.reply_history(&prompt, 12)?;
+    let mut chat = open_chat(&model, &json)?;
+    chat.set_unended(super::Unended::Drop);
+    chat.seed(&[bos])?;
+    let reply = chat.reply_history(&prompt, 12)?;
+    assert_eq!((&reply.ids, reply.stop, &reply.text), (&kept.ids, kept.stop, &kept.text));
+    assert_eq!(chat.tokens(), &[bos], "the turn and the reply both leave");
+    assert_eq!(chat.last_reply_unended(), Some(super::Unended::Drop));
+    next_turn_is_a_fresh_chats(&mut chat, &model, &json, &[bos])
+}
+
+#[test]
+fn stack_chat_drops_a_cut_reply_on_the_serve_again_path() -> ChatTest {
+    let (seed, prompt) = unended_turn(cut_by_cycle, 12)?;
+    let (model, json) = long_chat(seed)?;
+    let bos = prompt[0];
+    let mut keep = open_chat(&model, &json)?;
+    keep.seed(&[bos])?;
+    let kept = keep.reply_history(&prompt, 12)?;
+    let mut chat = open_chat(&model, &json)?;
+    chat.set_unended(super::Unended::Drop);
+    chat.set_serve_again(true);
+    chat.seed(&[bos])?;
+    let before = chat.tokens().to_vec();
+    let reply = chat.reply_history(&prompt, 12)?;
+    assert!(cut_by_cycle(reply.stop), "the reply still has its not-ended stop");
+    assert_eq!(reply.stop, kept.stop);
+    assert_eq!(chat.last_reply_unended(), Some(super::Unended::Drop));
+    assert_eq!(chat.tokens(), &before[..], "the turn and the reply both leave");
+    Ok(())
+}
+
+#[test]
+fn stack_chat_closes_a_cut_reply_with_one_pass_and_the_end_mark() -> ChatTest {
+    let (seed, prompt) = unended_turn(cut_by_cycle, 12)?;
+    let (model, json) = long_chat(seed)?;
+    let mut keep = open_chat(&model, &json)?;
+    keep.seed(&prompt[..1])?;
+    let kept = keep.reply_history(&prompt, 12)?;
+    let mut chat = open_chat(&model, &json)?;
+    let eos = chat.protocol().eos_id;
+    chat.set_unended(super::Unended::Close);
+    chat.seed(&prompt[..1])?;
+    let reply = chat.reply_history(&prompt, 12)?;
+    assert_eq!((&reply.ids, reply.stop), (&kept.ids, kept.stop));
+    let super::StackStop::ShortCycle { period } = reply.stop else {
+        return Err("the turn was searched for a cut reply".into());
+    };
+    let closed = [&prompt[..], &reply.ids[..reply.ids.len() - 2 * period], &[eos]].concat();
+    assert_eq!(chat.tokens(), &closed[..]);
+    assert_eq!(chat.last_reply_unended(), Some(super::Unended::Close));
+    next_turn_is_a_fresh_chats(&mut chat, &model, &json, &closed)
+}
+
+#[test]
+fn stack_chat_reply_that_ended_is_kept_under_every_rule() -> ChatTest {
+    let (seed, prompt) = unended_turn(|stop| stop == super::StackStop::Eos, 12)?;
+    let (model, json) = long_chat(seed)?;
+    let mut keep = open_chat(&model, &json)?;
+    keep.seed(&prompt[..1])?;
+    let kept = keep.reply_history(&prompt, 12)?;
+    for rule in [super::Unended::Keep, super::Unended::Drop, super::Unended::Close] {
+        let mut chat = open_chat(&model, &json)?;
+        chat.set_unended(rule);
+        chat.seed(&prompt[..1])?;
+        let reply = chat.reply_history(&prompt, 12)?;
+        assert_eq!((&reply.ids, reply.stop), (&kept.ids, kept.stop), "{rule:?}");
+        assert_eq!(chat.tokens(), keep.tokens(), "{rule:?}");
+        assert_eq!(chat.last_reply_unended(), None, "{rule:?}");
+    }
+    Ok(())
+}
+
+#[test]
+fn stack_chat_keeps_a_cut_reply_by_default() -> ChatTest {
+    let (seed, prompt) = unended_turn(cut_by_cycle, 12)?;
+    let (model, json) = long_chat(seed)?;
+    let mut chat = open_chat(&model, &json)?;
+    chat.seed(&prompt[..1])?;
+    let reply = chat.reply_history(&prompt, 12)?;
+    assert!(cut_by_cycle(reply.stop));
+    assert_eq!(chat.tokens(), &[&prompt[..], &reply.ids[..]].concat()[..]);
+    assert_eq!(chat.last_reply_unended(), None);
+    assert_eq!(super::Unended::default(), super::Unended::Keep);
+    Ok(())
+}
+
+#[test]
+fn stack_chat_drops_or_closes_a_reply_stopped_by_the_token_cap() -> ChatTest {
+    let (seed, prompt) = unended_turn(|stop| stop == super::StackStop::MaximumNewTokens, 2)?;
+    let (model, json) = long_chat(seed)?;
+    let mut chat = open_chat(&model, &json)?;
+    let eos = chat.protocol().eos_id;
+    chat.set_unended(super::Unended::Drop);
+    chat.seed(&prompt[..1])?;
+    let dropped = chat.reply_history(&prompt, 2)?;
+    assert_eq!(dropped.stop, super::StackStop::MaximumNewTokens);
+    assert_eq!(chat.tokens(), &prompt[..1]);
+    assert_eq!(chat.last_reply_unended(), Some(super::Unended::Drop));
+    chat.set_unended(super::Unended::Close);
+    let closed = chat.reply_history(&prompt, 2)?;
+    assert_eq!(closed.ids, dropped.ids);
+    assert_eq!(chat.tokens(), &[&prompt[..], &closed.ids[..], &[eos]].concat()[..]);
+    assert_eq!(chat.last_reply_unended(), Some(super::Unended::Close));
+    Ok(())
+}
+
 #[test]
 fn stack_chat_callback_stream_matches_batch_ids_text_and_history() -> ChatTest {
     let model = IntegerStackModel::parse(&artifact_with_context(19, &[], 16))?;

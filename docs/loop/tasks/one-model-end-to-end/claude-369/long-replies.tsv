@@ -1,0 +1,361 @@
+model	mode	arm	turn	stop	user	reply
+p-s1	off	keep	1	eos	Hi there!	I'm good, thanks for asking.
+p-s1	off	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s1	off	keep	3	eos	What is the capital of France?	The capital of France is the capital of France.
+p-s1	off	keep	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s1	off	keep	5	eos	What is tolvek?	42, 42, 42.
+p-s1	off	keep	6	eos	What does a dog say?	A dog says woof.
+p-s1	off	keep	7	eos	What colour is grass?	It's green.
+p-s1	off	keep	8	eos	What day comes after Monday?	It's green.
+p-s1	off	keep	9	eos	Which is bigger, 9 or 3?	4 is bigger.
+p-s1	off	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s1	off	keep	11	short_cycle	What is the first letter of apple?	fish starts with the letter of of of
+p-s1	off	keep	12	eos	What is brimsa?	corvane.
+p-s1	off	keep	13	short_cycle	Spell the word dog.	red is spelled r-e-e-e
+p-s1	off	keep	14	short_cycle	What is the capital of Italy?	red is spelled r-e-e-e
+p-s1	off	keep	15	short_cycle	What is the opposite of big?	red is spelled r-e-e-e
+p-s1	off	keep	16	short_cycle	What does a cat say?	red is spelled r-e-e-e
+p-s1	off	keep	17	short_cycle	What colour is the sky?	red is spelled r-e-e-e
+p-s1	off	keep	18	short_cycle	What day comes after Friday?	red is spelled r-e-e-e
+p-s1	off	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s1	off	keep	20	eos	Which is bigger, 2 or 8?	4 is bigger.
+p-s1	off	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s1	off	keep	22	eos	What is tolvek?	It's 42.
+p-s1	off	keep	23	eos	Thanks for the help.	You're welcome!
+p-s1	off	keep	24	eos	Goodbye.	Bye! Take care.
+p-s1	off	drop	1	eos	Hi there!	I'm good, thanks for asking.
+p-s1	off	drop	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s1	off	drop	3	eos	What is the capital of France?	The capital of France is the capital of France.
+p-s1	off	drop	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s1	off	drop	5	eos	What is tolvek?	It's 42.
+p-s1	off	drop	6	eos	What does a dog say?	A dog says woof.
+p-s1	off	drop	7	eos	What colour is grass?	It's green.
+p-s1	off	drop	8	eos	What day comes after Monday?	It's green.
+p-s1	off	drop	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s1	off	drop	10	eos	How many legs does a cat have?	It has four legs.
+p-s1	off	drop	11	eos	What is the first letter of apple?	fish starts with the letter ofde, 9.
+p-s1	off	drop	12	eos	What is brimsa?	That's corvane.
+p-s1	off	drop	13	short_cycle	Spell the word dog.	red is spelled r-e-e-e
+p-s1	off	drop	14	eos	What is the capital of Italy?	The capital of Italy is the capital of Ital
+p-s1	off	drop	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s1	off	drop	16	eos	What does a cat say?	A cat says meow.
+p-s1	off	drop	17	eos	What colour is the sky?	It's blue.
+p-s1	off	drop	18	eos	What day comes after Friday?	It's blue.
+p-s1	off	drop	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s1	off	drop	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s1	off	drop	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s1	off	drop	22	eos	What is tolvek?	It's 42.
+p-s1	off	drop	23	eos	Thanks for the help.	You're welcome!
+p-s1	off	drop	24	eos	Goodbye.	Bye! Take care.
+p-s1	off	close	1	eos	Hi there!	I'm good, thanks for asking.
+p-s1	off	close	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s1	off	close	3	eos	What is the capital of France?	The capital of France is the capital of France.
+p-s1	off	close	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s1	off	close	5	eos	What is tolvek?	It's 42.
+p-s1	off	close	6	eos	What does a dog say?	A dog says woof.
+p-s1	off	close	7	eos	What colour is grass?	It's green.
+p-s1	off	close	8	eos	What day comes after Monday?	It's green.
+p-s1	off	close	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s1	off	close	10	eos	How many legs does a cat have?	It has four legs.
+p-s1	off	close	11	short_cycle	What is the first letter of apple?	fish starts with the letter of apple???
+p-s1	off	close	12	eos	What is brimsa?	That's corvane.
+p-s1	off	close	13	short_cycle	Spell the word dog.	red is spelled r-e-e-e
+p-s1	off	close	14	eos	What is the capital of Italy?	The capital of Italy is the capital of Ital
+p-s1	off	close	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s1	off	close	16	eos	What does a cat say?	A cat says meow.
+p-s1	off	close	17	eos	What colour is the sky?	It's blue.
+p-s1	off	close	18	eos	What day comes after Friday?	It's blue.
+p-s1	off	close	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s1	off	close	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s1	off	close	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s1	off	close	22	eos	What is tolvek?	It's 42.
+p-s1	off	close	23	eos	Thanks for the help.	You're welcome!
+p-s1	off	close	24	eos	Goodbye.	Bye! Take care.
+p-s1	held	keep	1	eos	Hi there!	Hey! Nice to hear from you.
+p-s1	held	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s1	held	keep	3	eos	What is the capital of France?	It's Paris.
+p-s1	held	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s1	held	keep	5	eos	What is tolvek?	It's 42.
+p-s1	held	keep	6	eos	What does a dog say?	A dog says woof.
+p-s1	held	keep	7	eos	What colour is grass?	It's green.
+p-s1	held	keep	8	eos	What day comes after Monday?	The day after Monday is Tuesday.
+p-s1	held	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s1	held	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s1	held	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s1	held	keep	12	eos	What is brimsa?	That's corvane.
+p-s1	held	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s1	held	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s1	held	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s1	held	keep	16	eos	What does a cat say?	A cat says meow.
+p-s1	held	keep	17	eos	What colour is the sky?	It's blue.
+p-s1	held	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s1	held	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s1	held	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s1	held	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s1	held	keep	22	eos	What is tolvek?	It's 42.
+p-s1	held	keep	23	eos	Thanks for the help.	You're welcome!
+p-s1	held	keep	24	eos	Goodbye.	Bye! Take care.
+p-s1	served	keep	1	eos	Hi there!	Hey! Nice to hear from you.
+p-s1	served	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s1	served	keep	3	eos	What is the capital of France?	It's Paris.
+p-s1	served	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s1	served	keep	5	eos	What is tolvek?	It's 42.
+p-s1	served	keep	6	eos	What does a dog say?	A dog says woof.
+p-s1	served	keep	7	eos	What colour is grass?	It's green.
+p-s1	served	keep	8	eos	What day comes after Monday?	It's Tuesday.
+p-s1	served	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s1	served	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s1	served	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s1	served	keep	12	eos	What is brimsa?	That's corvane.
+p-s1	served	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s1	served	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s1	served	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s1	served	keep	16	eos	What does a cat say?	A cat says meow.
+p-s1	served	keep	17	eos	What colour is the sky?	It's blue.
+p-s1	served	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s1	served	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s1	served	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s1	served	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s1	served	keep	22	eos	What is tolvek?	It's 42.
+p-s1	served	keep	23	eos	Thanks for the help.	You're welcome!
+p-s1	served	keep	24	eos	Goodbye.	Bye! Take care.
+p-s2	off	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s2	off	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Here are twoing's'svane.
+p-s2	off	keep	3	eos	What is the capital of France?	The capital of France is the capital of France is the capital of France is the capital of France.
+p-s2	off	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s2	off	keep	5	eos	What is tolvek?	It's 42.
+p-s2	off	keep	6	eos	What does a dog say?	A dog says woof.
+p-s2	off	keep	7	eos	What colour is grass?	It's green.
+p-s2	off	keep	8	eos	What day comes after Monday?	It's green.
+p-s2	off	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s2	off	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s2	off	keep	11	eos	What is the first letter of apple?	fish starts with the letter P.
+p-s2	off	keep	12	eos	What is brimsa?	That's corvane.
+p-s2	off	keep	13	short_cycle	Spell the word dog.	red is spellededed
+p-s2	off	keep	14	short_cycle	What is the capital of Italy?	red is spellededed
+p-s2	off	keep	15	short_cycle	What is the opposite of big?	red is spellededed
+p-s2	off	keep	16	short_cycle	What does a cat say?	red is spellededed
+p-s2	off	keep	17	short_cycle	What colour is the sky?	red is spellededed
+p-s2	off	keep	18	short_cycle	What day comes after Friday?	red is spellededed
+p-s2	off	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s2	off	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s2	off	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s2	off	keep	22	eos	What is tolvek?	It's 42.
+p-s2	off	keep	23	eos	Thanks for the help.	You're welcome!
+p-s2	off	keep	24	eos	Goodbye.	Bye! Take care.
+p-s2	off	drop	1	eos	Hi there!	Hi there! What can I do for you?
+p-s2	off	drop	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Here are twoing's'svane.
+p-s2	off	drop	3	eos	What is the capital of France?	The capital of France is the capital of France is the capital of France is the capital of France.
+p-s2	off	drop	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s2	off	drop	5	eos	What is tolvek?	It's 42.
+p-s2	off	drop	6	eos	What does a dog say?	A dog says woof.
+p-s2	off	drop	7	eos	What colour is grass?	It's green.
+p-s2	off	drop	8	eos	What day comes after Monday?	It's green.
+p-s2	off	drop	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s2	off	drop	10	eos	How many legs does a cat have?	It has four legs.
+p-s2	off	drop	11	eos	What is the first letter of apple?	fish starts with the letter P.
+p-s2	off	drop	12	eos	What is brimsa?	That's corvane.
+p-s2	off	drop	13	short_cycle	Spell the word dog.	red is spellededed
+p-s2	off	drop	14	max_new_tokens	What is the capital of Italy?	The capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy is
+p-s2	off	drop	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s2	off	drop	16	eos	What does a cat say?	A cat says meow.
+p-s2	off	drop	17	eos	What colour is the sky?	It's blue.
+p-s2	off	drop	18	eos	What day comes after Friday?	It's blue.
+p-s2	off	drop	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s2	off	drop	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s2	off	drop	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s2	off	drop	22	eos	What is tolvek?	It's 42.
+p-s2	off	drop	23	eos	Thanks for the help.	You're welcome!
+p-s2	off	drop	24	eos	Goodbye.	Bye! Take care.
+p-s2	off	close	1	eos	Hi there!	Hi there! What can I do for you?
+p-s2	off	close	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Here are twoing's'svane.
+p-s2	off	close	3	eos	What is the capital of France?	The capital of France is the capital of France is the capital of France is the capital of France.
+p-s2	off	close	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s2	off	close	5	eos	What is tolvek?	It's 42.
+p-s2	off	close	6	eos	What does a dog say?	A dog says woof.
+p-s2	off	close	7	eos	What colour is grass?	It's green.
+p-s2	off	close	8	eos	What day comes after Monday?	It's green.
+p-s2	off	close	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s2	off	close	10	eos	How many legs does a cat have?	It has four legs.
+p-s2	off	close	11	eos	What is the first letter of apple?	fish starts with the letter P.
+p-s2	off	close	12	eos	What is brimsa?	That's corvane.
+p-s2	off	close	13	short_cycle	Spell the word dog.	red is spellededed
+p-s2	off	close	14	eos	What is the capital of Italy?	The capital of Italy is the capital of Italy is the capital of Italy is the capital of Italy.
+p-s2	off	close	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s2	off	close	16	eos	What does a cat say?	A cat says meow.
+p-s2	off	close	17	eos	What colour is the sky?	It's blue.
+p-s2	off	close	18	eos	What day comes after Friday?	It's blue.
+p-s2	off	close	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s2	off	close	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s2	off	close	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s2	off	close	22	eos	What is tolvek?	It's 42.
+p-s2	off	close	23	eos	Thanks for the help.	You're welcome!
+p-s2	off	close	24	eos	Goodbye.	Bye! Take care.
+p-s2	held	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s2	held	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s2	held	keep	3	eos	What is the capital of France?	It's Paris.
+p-s2	held	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s2	held	keep	5	eos	What is tolvek?	It's 42.
+p-s2	held	keep	6	eos	What does a dog say?	A dog says woof.
+p-s2	held	keep	7	eos	What colour is grass?	It's green.
+p-s2	held	keep	8	eos	What day comes after Monday?	The day after Monday is Tuesday.
+p-s2	held	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s2	held	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s2	held	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s2	held	keep	12	eos	What is brimsa?	That's corvane.
+p-s2	held	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s2	held	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s2	held	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s2	held	keep	16	eos	What does a cat say?	A cat says meow.
+p-s2	held	keep	17	eos	What colour is the sky?	It's blue.
+p-s2	held	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s2	held	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s2	held	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s2	held	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s2	held	keep	22	eos	What is tolvek?	It's 42.
+p-s2	held	keep	23	eos	Thanks for the help.	You're welcome!
+p-s2	held	keep	24	eos	Goodbye.	Bye! Take care.
+p-s2	served	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s2	served	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s2	served	keep	3	eos	What is the capital of France?	It's Paris.
+p-s2	served	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s2	served	keep	5	eos	What is tolvek?	It's 42.
+p-s2	served	keep	6	eos	What does a dog say?	A dog says woof.
+p-s2	served	keep	7	eos	What colour is grass?	It's green.
+p-s2	served	keep	8	eos	What day comes after Monday?	It's Tuesday.
+p-s2	served	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s2	served	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s2	served	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s2	served	keep	12	eos	What is brimsa?	That's corvane.
+p-s2	served	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s2	served	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s2	served	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s2	served	keep	16	eos	What does a cat say?	A cat says meow.
+p-s2	served	keep	17	eos	What colour is the sky?	It's blue.
+p-s2	served	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s2	served	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s2	served	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s2	served	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s2	served	keep	22	eos	What is tolvek?	It's 42.
+p-s2	served	keep	23	eos	Thanks for the help.	You're welcome!
+p-s2	served	keep	24	eos	Goodbye.	Bye! Take care.
+p-s3	off	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s3	off	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s3	off	keep	3	eos	What is the capital of France?	The capital of France is short.
+p-s3	off	keep	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s3	off	keep	5	eos	What is tolvek?	The opposite of of\nU tellven it I do for a 42.
+p-s3	off	keep	6	eos	What does a dog say?	A dog says woof.
+p-s3	off	keep	7	eos	What colour is grass?	It's green.
+p-s3	off	keep	8	eos	What day comes after Monday?	It's green.
+p-s3	off	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s3	off	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s3	off	keep	11	eos	What is the first letter of apple?	fish starts with the letter T.
+p-s3	off	keep	12	eos	What is brimsa?	That's corvane.
+p-s3	off	keep	13	eos	Spell the word dog.	red is spelledir.
+p-s3	off	keep	14	eos	What is the capital of Italy?	The capital of Italy is the capital of of\nUser: I do for a 42.
+p-s3	off	keep	15	eos	What is the opposite of big?	The opposite of big is
+p-s3	off	keep	16	eos	What does a cat say?	A cat says meow.
+p-s3	off	keep	17	eos	What colour is the sky?	It's blue.
+p-s3	off	keep	18	eos	What day comes after Friday?	It's blue.
+p-s3	off	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s3	off	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s3	off	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s3	off	keep	22	eos	What is tolvek?	It's 42.
+p-s3	off	keep	23	eos	Thanks for the help.	You're welcome!
+p-s3	off	keep	24	eos	Goodbye.	Bye! Take care.
+p-s3	off	drop	1	eos	Hi there!	Hi there! What can I do for you?
+p-s3	off	drop	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s3	off	drop	3	eos	What is the capital of France?	The capital of France is short.
+p-s3	off	drop	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s3	off	drop	5	eos	What is tolvek?	It's 42.
+p-s3	off	drop	6	eos	What does a dog say?	A dog says woof.
+p-s3	off	drop	7	eos	What colour is grass?	It's green.
+p-s3	off	drop	8	eos	What day comes after Monday?	It's green.
+p-s3	off	drop	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s3	off	drop	10	eos	How many legs does a cat have?	It has four legs.
+p-s3	off	drop	11	eos	What is the first letter of apple?	fish starts with the letter T.
+p-s3	off	drop	12	eos	What is brimsa?	That's corvane.
+p-s3	off	drop	13	eos	Spell the word dog.	red is spelledir.
+p-s3	off	drop	14	eos	What is the capital of Italy?	The capital of Italy is the capital of Italy.
+p-s3	off	drop	15	eos	What is the opposite of big?	The opposite of big is
+p-s3	off	drop	16	eos	What does a cat say?	A cat says meow.
+p-s3	off	drop	17	eos	What colour is the sky?	It's blue.
+p-s3	off	drop	18	eos	What day comes after Friday?	It's blue.
+p-s3	off	drop	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s3	off	drop	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s3	off	drop	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s3	off	drop	22	eos	What is tolvek?	It's 42.
+p-s3	off	drop	23	eos	Thanks for the help.	You're welcome!
+p-s3	off	drop	24	eos	Goodbye.	Bye! Take care.
+p-s3	off	close	1	eos	Hi there!	Hi there! What can I do for you?
+p-s3	off	close	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	tolvek is 42.
+p-s3	off	close	3	eos	What is the capital of France?	The capital of France is short.
+p-s3	off	close	4	short_cycle	What is the opposite of hot?	The opposite of hot is the opposite of of of
+p-s3	off	close	5	eos	What is tolvek?	It's 42.
+p-s3	off	close	6	eos	What does a dog say?	A dog says woof.
+p-s3	off	close	7	eos	What colour is grass?	It's green.
+p-s3	off	close	8	eos	What day comes after Monday?	It's green.
+p-s3	off	close	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s3	off	close	10	eos	How many legs does a cat have?	It has four legs.
+p-s3	off	close	11	eos	What is the first letter of apple?	fish starts with the letter T.
+p-s3	off	close	12	eos	What is brimsa?	That's corvane.
+p-s3	off	close	13	eos	Spell the word dog.	red is spelledir.
+p-s3	off	close	14	eos	What is the capital of Italy?	The capital of Italy is the capital of Italy.
+p-s3	off	close	15	eos	What is the opposite of big?	The opposite of big is
+p-s3	off	close	16	eos	What does a cat say?	A cat says meow.
+p-s3	off	close	17	eos	What colour is the sky?	It's blue.
+p-s3	off	close	18	eos	What day comes after Friday?	It's blue.
+p-s3	off	close	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s3	off	close	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s3	off	close	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s3	off	close	22	eos	What is tolvek?	It's 42.
+p-s3	off	close	23	eos	Thanks for the help.	You're welcome!
+p-s3	off	close	24	eos	Goodbye.	Bye! Take care.
+p-s3	held	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s3	held	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s3	held	keep	3	eos	What is the capital of France?	It's Paris.
+p-s3	held	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s3	held	keep	5	eos	What is tolvek?	It's 42.
+p-s3	held	keep	6	eos	What does a dog say?	A dog says woof.
+p-s3	held	keep	7	eos	What colour is grass?	It's green.
+p-s3	held	keep	8	eos	What day comes after Monday?	The day after Monday is Tuesday.
+p-s3	held	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s3	held	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s3	held	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s3	held	keep	12	eos	What is brimsa?	That's corvane.
+p-s3	held	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s3	held	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s3	held	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s3	held	keep	16	eos	What does a cat say?	A cat says meow.
+p-s3	held	keep	17	eos	What colour is the sky?	It's blue.
+p-s3	held	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s3	held	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s3	held	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s3	held	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s3	held	keep	22	eos	What is tolvek?	It's 42.
+p-s3	held	keep	23	eos	Thanks for the help.	You're welcome!
+p-s3	held	keep	24	eos	Goodbye.	Bye! Take care.
+p-s3	served	keep	1	eos	Hi there!	Hi there! What can I do for you?
+p-s3	served	keep	2	eos	Keep these in mind: tolvek is 42, brimsa is corvane.	Noted.
+p-s3	served	keep	3	eos	What is the capital of France?	It's Paris.
+p-s3	served	keep	4	eos	What is the opposite of hot?	The opposite of hot is cold.
+p-s3	served	keep	5	eos	What is tolvek?	It's 42.
+p-s3	served	keep	6	eos	What does a dog say?	A dog says woof.
+p-s3	served	keep	7	eos	What colour is grass?	It's green.
+p-s3	served	keep	8	eos	What day comes after Monday?	It's Tuesday.
+p-s3	served	keep	9	eos	Which is bigger, 9 or 3?	9 is bigger.
+p-s3	served	keep	10	eos	How many legs does a cat have?	It has four legs.
+p-s3	served	keep	11	eos	What is the first letter of apple?	apple starts with the letter A.
+p-s3	served	keep	12	eos	What is brimsa?	That's corvane.
+p-s3	served	keep	13	eos	Spell the word dog.	dog is spelled d-o-g.
+p-s3	served	keep	14	eos	What is the capital of Italy?	The capital of Italy is Rome.
+p-s3	served	keep	15	eos	What is the opposite of big?	The opposite of big is small.
+p-s3	served	keep	16	eos	What does a cat say?	A cat says meow.
+p-s3	served	keep	17	eos	What colour is the sky?	It's blue.
+p-s3	served	keep	18	eos	What day comes after Friday?	The day after Friday is Saturday.
+p-s3	served	keep	19	eos	Say exactly this: marlo venn tisk	marlo venn tisk
+p-s3	served	keep	20	eos	Which is bigger, 2 or 8?	9 is bigger.
+p-s3	served	keep	21	eos	What is my name?	I'm not sure, you didn't tell me.
+p-s3	served	keep	22	eos	What is tolvek?	It's 42.
+p-s3	served	keep	23	eos	Thanks for the help.	You're welcome!
+p-s3	served	keep	24	eos	Goodbye.	Bye! Take care.

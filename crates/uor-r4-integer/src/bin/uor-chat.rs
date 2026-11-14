@@ -23,7 +23,7 @@ use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict};
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
     is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
-    PromptReplyReadout, SieveLine, StackChat, StackChatError, StackError, StackReply,
+    PromptReplyReadout, SieveLine, StackChat, StackChatError, StackError, StackReply, Unended,
 };
 
 /// How the stack path picks each token: `IntegerStackSession::serve_step`.
@@ -71,6 +71,9 @@ struct CliArgs {
     /// that place (`--place-serve-again 0|1`, default 0, claude-363); only with `--place-asks`
     /// and text replies.
     place_serve_again: Option<bool>,
+    /// What the conversation keeps of a reply that did not end (`--unended keep|drop|close`,
+    /// claude-369); only with `--stack` and text replies. `None` when left out: keep.
+    unended: Option<Unended>,
     /// A pair experts table that checks every text reply (`--pair-experts FILE`, claude-367);
     /// only with `--stack` and `--place-asks`.
     pair_experts: Option<PathBuf>,
@@ -303,6 +306,7 @@ impl Default for CliArgs {
             place_asks: None,
             place_speak: None,
             place_serve_again: None,
+            unended: None,
             pair_experts: None,
             pair_cap: None,
             pair_keep: None,
@@ -385,6 +389,9 @@ fn print_usage() {
     );
     eprintln!(
         "      --print-place           print the place read's register after each --stack reply:\n                              in the REPL on stdout under the reply; with --say or --script on\n                              stderr, so stdout stays the replies' JSON"
+    );
+    eprintln!(
+        "      --unended <RULE>        what a --stack conversation keeps of a reply cut by the short\n                              cycle or the token cap: keep (default), drop or close"
     );
     eprintln!(
         "      --pair-experts <FILE>   pair experts table that checks each --stack text reply;\n                              needs --place-asks, --pair-cap, --pair-keep and --pair-floor"
@@ -611,6 +618,16 @@ fn parse_cli_args() -> CliArgs {
                     Some("1") => args.place_serve_again = Some(true),
                     _ => {
                         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--place-serve-again' takes 0 or 1");
+                        process::exit(1);
+                    }
+                }
+            }
+            "--unended" => {
+                idx += 1;
+                match parse_unended(raw.get(idx).map(String::as_str)) {
+                    Ok(rule) => args.unended = Some(rule),
+                    Err(message) => {
+                        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {message}");
                         process::exit(1);
                     }
                 }
@@ -914,6 +931,10 @@ fn parse_cli_args() -> CliArgs {
         );
         process::exit(1);
     }
+    if let Err(message) = check_unended_args(&args) {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {message}");
+        process::exit(1);
+    }
     if let Err(message) = check_pair_args(&args) {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {message}");
         process::exit(1);
@@ -969,6 +990,24 @@ fn parse_cli_args() -> CliArgs {
     }
 
     args
+}
+
+/// Read `--unended`'s value (claude-369).
+fn parse_unended(value: Option<&str>) -> std::result::Result<Unended, String> {
+    match value {
+        Some("keep") => Ok(Unended::Keep),
+        Some("drop") => Ok(Unended::Drop),
+        Some("close") => Ok(Unended::Close),
+        _ => Err("'--unended' takes keep, drop or close".into()),
+    }
+}
+
+/// Refuse `--unended` where no stack chat keeps a conversation (claude-369).
+fn check_unended_args(args: &CliArgs) -> std::result::Result<(), String> {
+    if args.unended.is_some() && (args.stack_path.is_none() || args.prompt_ids.is_some() || args.serve.is_some()) {
+        return Err("'--unended' requires text replies on '--stack' (the REPL, '--say' or '--script')".into());
+    }
+    Ok(())
 }
 
 /// Read one pair experts flag's value into `args` (claude-367).
@@ -1506,6 +1545,37 @@ mod tests {
         ("--pair-floor", "250"),
         ("--pair-hold-out", "1"),
     ];
+
+    /// claude-369: `--unended` reads keep, drop or close, refuses any other value, and needs text
+    /// replies on `--stack`; left out it is `None`, today's run.
+    #[test]
+    fn unended_flag_parses_and_is_refused_without_a_stack_chat() {
+        let read = |stack: bool, ids: bool, value: &str| -> std::result::Result<CliArgs, String> {
+            let mut args = CliArgs::default();
+            if stack {
+                args.stack_path = Some(PathBuf::from("model.lut"));
+            }
+            if ids {
+                args.prompt_ids = Some(vec![1, 2]);
+            }
+            args.unended = Some(parse_unended(Some(value))?);
+            check_unended_args(&args)?;
+            Ok(args)
+        };
+        assert_eq!(read(true, false, "drop").expect("drop is accepted").unended, Some(Unended::Drop));
+        assert_eq!(read(true, false, "close").expect("close is accepted").unended, Some(Unended::Close));
+        assert_eq!(read(true, false, "keep").expect("keep is accepted").unended, Some(Unended::Keep));
+        let wrong = read(true, false, "trim").err().expect("a wrong value is refused");
+        assert_eq!(wrong, "'--unended' takes keep, drop or close");
+        assert!(parse_unended(None).is_err(), "a missing value is refused");
+        let no_stack = read(false, false, "drop").err().expect("refused without --stack");
+        assert!(no_stack.contains("on '--stack'"), "{no_stack}");
+        let ids = read(true, true, "close").err().expect("refused with --prompt-ids");
+        assert!(ids.contains("text replies"), "{ids}");
+        let left_out = CliArgs::default();
+        assert_eq!(left_out.unended, None);
+        assert!(check_unended_args(&left_out).is_ok());
+    }
 
     #[test]
     fn pair_experts_flags_parse_into_the_arguments() {
@@ -2352,6 +2422,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     // Serve again (claude-363): a reply whose found place no row was offered starts over from it.
     let serve_again = cli.place_serve_again == Some(true);
     chat.set_serve_again(serve_again);
+    // A reply that did not end (claude-369): kept, dropped or closed in the history.
+    chat.set_unended(cli.unended.unwrap_or_default());
+    let unended_name = |chat: &StackChat<'_>| chat.last_reply_unended().map(Unended::name);
     // The pair experts (claude-367): set on the chat, which checks every text reply with them.
     let pair_identity = match cli.pair_experts.as_deref() {
         Some(path) => {
@@ -2506,6 +2579,10 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
         if serve_again {
             record["served_again"] = serde_json::json!(chat.last_reply_served_again());
         }
+        // Only with `--unended`: without it the record is as it always was.
+        if cli.unended.is_some() {
+            record["unended"] = serde_json::json!(unended_name(&chat));
+        }
         println!("{}", serde_json::to_string_pretty(&record)?);
         return Ok(());
     }
@@ -2559,6 +2636,10 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             if serve_again {
                 turn_record["served_again"] = serde_json::json!(chat.last_reply_served_again());
             }
+            // Only with `--unended`: without it the record is as it always was.
+            if cli.unended.is_some() {
+                turn_record["unended"] = serde_json::json!(unended_name(&chat));
+            }
             // Only with `--pair-experts`: without it the record is as it always was.
             if pair_identity.is_some() {
                 turn_record["pair"] = serde_json::json!(chat.pair_verdict().map(pair_verdict_name));
@@ -2578,6 +2659,9 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
             "decoding": STACK_DECODING,
             "transcript": transcript,
         });
+        if let Some(rule) = cli.unended {
+            record["unended"] = serde_json::json!(rule.name());
+        }
         if let Some((sha256, setting)) = &pair_identity {
             record["pair_experts"] = serde_json::json!({
                 "sha256": sha256,
@@ -2677,6 +2761,11 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
                         print_stack_reply(&reply, chat.tokens().len(), seconds);
                         if chat.last_reply_served_again() {
                             println!("{ANSI_MAGENTA_BOLD}[again]{ANSI_RESET} the asks found a place no row was offered; the reply was started over from it");
+                        }
+                        match chat.last_reply_unended() {
+                            Some(Unended::Drop) => println!("{ANSI_MAGENTA_BOLD}[unended]{ANSI_RESET} the reply did not end; the turn and the reply were dropped from the conversation"),
+                            Some(Unended::Close) => println!("{ANSI_MAGENTA_BOLD}[unended]{ANSI_RESET} the reply did not end; the conversation keeps it closed with the end mark"),
+                            _ => {}
                         }
                         if cli.print_place {
                             println!("{}", place_line(&chat, &reply));

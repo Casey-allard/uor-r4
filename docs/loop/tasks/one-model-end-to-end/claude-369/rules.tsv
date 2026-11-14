@@ -1,0 +1,61 @@
+# claude-369: the good-reply rule of every turn. A turn is good when its reply ended (stop is eos) and
+# the reply matches the turn's pattern, letter case ignored. Columns: script, turn, pattern (tab-separated).
+nine	1	^(got it|noted|okay|ok)
+nine	2	felsharp\.$
+nine	3	moo
+nine	4	^trelvon dask pimmerholt zane\.?$
+nine	5	73\.$
+nine	6	tired|rest|sorry
+nine	7	18\.$
+nine	8	(^|[^0-9a-z])(5|five)([^0-9a-z]|$)
+nine	9	didn't tell|not sure|haven't told
+facts	1	good|fine|well
+facts	2	athens
+facts	3	friday
+facts	4	quiet
+facts	5	yellow
+facts	6	letter w
+facts	7	quack
+facts	8	tokyo
+facts	9	m-i-l-k
+facts	10	eight
+facts	11	(^|[^0-9])10([^0-9]|$)
+facts	12	welcome
+facts	13	bye
+facts2	1	^(hello|hi)
+facts2	2	beijing
+facts2	3	wednesday
+facts2	4	late
+facts2	5	yellow
+facts2	6	letter d
+facts2	7	moo
+facts2	8	two
+facts2	9	c-a-t
+facts2	10	^11 is bigger
+facts2	11	^yes
+facts2	12	16
+facts2	13	welcome
+long	1	^(hello|hi)
+long	2	^(got it|noted|okay|ok)
+long	3	paris
+long	4	cold
+long	5	(^|[^0-9])42([^0-9]|$)
+long	6	woof
+long	7	green
+long	8	tuesday
+long	9	^9 is bigger
+long	10	four|(^|[^0-9])4([^0-9]|$)
+long	11	letter a([^a-z]|$)
+long	12	corvane
+long	13	d-o-g
+long	14	rome
+long	15	small|little
+long	16	meow
+long	17	blue
+long	18	saturday
+long	19	^marlo venn tisk\.?$
+long	20	^8 is bigger
+long	21	didn't tell|not sure|haven't told
+long	22	(^|[^0-9])42([^0-9]|$)
+long	23	welcome
+long	24	bye

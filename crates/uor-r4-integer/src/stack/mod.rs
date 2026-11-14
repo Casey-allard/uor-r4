@@ -76,7 +76,7 @@ pub use address::{
     e8_cell, read_address_uorlut01, token_cell, AddressArm, AddressImage, StackAddress, ADDRESS_BLOCK, ADDRESS_CELLS,
     ADDRESS_ROW_EXP, ADDRESS_ROW_STEPS, ADDRESS_SHARED_BLOCKS,
 };
-pub use chat::{StackChat, StackChatError, StackReply, StackStop, CHAT_CONTEXT, CYCLE_REPEATS};
+pub use chat::{StackChat, StackChatError, StackReply, StackStop, Unended, CHAT_CONTEXT, CYCLE_REPEATS};
 pub use content_readout::{
     ContentExample, ContentReadout, ContentSelection, ContentSignature, ContentSignatureMode,
     CONTENT_CODE_SIGNATURE_BITS, MAX_CONTENT_READOUT_BYTES, STACK_CONTENT_READOUT_SCHEMA,

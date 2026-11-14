@@ -121,6 +121,29 @@ impl StackStop {
     }
 }
 
+/// What the conversation keeps of a reply that did not end (claude-369): one stopped by the short
+/// cycle or by the token cap. `Keep` keeps it as served; `Drop` takes the user's turn and the
+/// reply out of the history; `Close` keeps the reply, one pass of a cycle, and the end mark.
+/// When the history a caller passes does not extend the chat's own, drop leaves the chat's
+/// history empty: that caller holds the conversation.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum Unended {
+    #[default]
+    Keep,
+    Drop,
+    Close,
+}
+
+impl Unended {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Keep => "keep",
+            Self::Drop => "drop",
+            Self::Close => "close",
+        }
+    }
+}
+
 /// One greedy reply. `ids` are the generated ids with the terminal token
 /// included, exactly as the float stack's reply record keeps them; `text` is
 /// the decoded reply without a terminal EOS.
@@ -160,6 +183,10 @@ pub struct StackChat<'m> {
     pair_check: Option<PairCheck<'m>>,
     /// The experts' verdict on the reply produced last; `None` with the check off.
     pair_verdict: Option<Verdict>,
+    /// What the history keeps of a reply that did not end (claude-369, [`Self::set_unended`]).
+    unended: Unended,
+    /// What was done with the reply produced last; `None` when it ended or the rule is keep.
+    last_unended: Option<Unended>,
 }
 
 /// The pair experts' check of a served reply (claude-367): the table, how it is applied, and
@@ -203,6 +230,8 @@ impl<'m> StackChat<'m> {
             served_again: false,
             pair_check: None,
             pair_verdict: None,
+            unended: Unended::Keep,
+            last_unended: None,
         })
     }
 
@@ -286,6 +315,21 @@ impl<'m> StackChat<'m> {
     /// Whether the reply produced last was served again ([`Self::set_serve_again`]).
     pub fn last_reply_served_again(&self) -> bool {
         self.served_again
+    }
+
+    /// What the conversation keeps of a reply that did not end (claude-369): one stopped by the
+    /// short cycle or the token cap. Keep (the default) leaves it in the history as served; drop
+    /// takes the turn's prompt and the reply out; close keeps the prompt, the reply without the
+    /// cycle's last two passes, and the end mark. After drop or close the next turn steps the
+    /// conversation again from its start. The reply returned and emitted is the same under each.
+    pub fn set_unended(&mut self, rule: Unended) {
+        self.unended = rule;
+    }
+
+    /// What was done with the reply produced last ([`Self::set_unended`]): `None` when it ended
+    /// or the rule is keep.
+    pub fn last_reply_unended(&self) -> Option<Unended> {
+        self.last_unended
     }
 
     /// Check each served reply against pair experts (claude-367), or with `None` stop checking.
@@ -440,8 +484,13 @@ impl<'m> StackChat<'m> {
     {
         self.served_again = false;
         self.pair_verdict = None;
+        self.last_unended = None;
+        // The conversation's length before this turn's prompt (claude-369).
+        let before = if history.starts_with(&self.history[..]) { self.history.len() } else { 0 };
         if !self.serve_again && self.pair_check.is_none() {
-            return self.serve_reply(history, max_new_tokens, &mut emit);
+            let reply = self.serve_reply(history, max_new_tokens, &mut emit)?;
+            self.settle_unended(history, before, &reply);
+            return Ok(reply);
         }
         // Serve again (claude-363) and the pair experts (claude-367): nothing is emitted until it
         // is known which reply is given.
@@ -495,10 +544,35 @@ impl<'m> StackChat<'m> {
                 self.reply_places.clear();
             }
         }
+        self.settle_unended(history, before, &reply);
         for &id in &reply.ids {
             emit(id, &self.tokenizer.decode_bytes(&[id]))?;
         }
         Ok(reply)
+    }
+
+    /// Apply [`Self::set_unended`]'s rule to the reply given, once it is final. `before` is the
+    /// conversation's length before the turn's prompt `history`; the history then holds `history`
+    /// and the reply's ids.
+    fn settle_unended(&mut self, history: &[u32], before: usize, reply: &StackReply) {
+        let kept = match (self.unended, reply.stop) {
+            (Unended::Keep, _) | (_, StackStop::Eos) => return,
+            (_, StackStop::ShortCycle { period }) => reply.ids.len().saturating_sub(2 * period),
+            (_, StackStop::MaximumNewTokens) => reply.ids.len(),
+        };
+        if self.unended == Unended::Drop {
+            self.history.truncate(before);
+        } else {
+            self.history.truncate(history.len());
+            self.history.extend_from_slice(&reply.ids[..kept]);
+            self.history.push(self.protocol.eos_id);
+        }
+        // The session stepped tokens the history no longer holds: the next feed starts it over.
+        self.session.reset();
+        self.session.clear_reply_start();
+        self.fed = 0;
+        self.pick = None;
+        self.last_unended = Some(self.unended);
     }
 
     /// One serve of [`Self::reply_history_with`]: step the history and choose the reply's ids.

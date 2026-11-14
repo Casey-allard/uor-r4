@@ -1,0 +1,29 @@
+{
+  "schema": "uor-r4.chat-script/1",
+  "turns": [
+    {"user": "Hi there!"},
+    {"user": "Keep these in mind: tolvek is 42, brimsa is corvane."},
+    {"user": "What is the capital of France?"},
+    {"user": "What is the opposite of hot?"},
+    {"user": "What is tolvek?"},
+    {"user": "What does a dog say?"},
+    {"user": "What colour is grass?"},
+    {"user": "What day comes after Monday?"},
+    {"user": "Which is bigger, 9 or 3?"},
+    {"user": "How many legs does a cat have?"},
+    {"user": "What is the first letter of apple?"},
+    {"user": "What is brimsa?"},
+    {"user": "Spell the word dog."},
+    {"user": "What is the capital of Italy?"},
+    {"user": "What is the opposite of big?"},
+    {"user": "What does a cat say?"},
+    {"user": "What colour is the sky?"},
+    {"user": "What day comes after Friday?"},
+    {"user": "Say exactly this: marlo venn tisk"},
+    {"user": "Which is bigger, 2 or 8?"},
+    {"user": "What is my name?"},
+    {"user": "What is tolvek?"},
+    {"user": "Thanks for the help."},
+    {"user": "Goodbye."}
+  ]
+}
