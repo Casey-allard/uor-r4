@@ -96,6 +96,15 @@ A caution on weight. Retrieval caused only 2.2 percent of the failing rows in th
 4. **Build an integer read kernel**: gcd or sorted-merge admission plus a table value read, in the integer serving crate.
 5. **Report address formation apart from read accuracy**, since 77.7 percent of the held-out failures were query-entity tagging.
 
+## From the earlier brief
+
+*From [archive/mechanisms/exact-addressed-memory.md](../../archive/mechanisms/exact-addressed-memory.md)* (the [exact-addressed-memory](./exact-addressed-memory.md) stub points here):
+
+- **The M1 pointer line it answered (measurements, archived at 3/3).** M1 (#2029) first used a learned pointer/copy read, not an addressed store. #2127: the value's position is kept, but the attention never lands on it. #2128: the pointer attends the sentence frame, never the varying slot. #2133: the frame carries the copy mass (trace gate 166/166). #2161: a token-identity pointer cut wrong-value answers from 17 to 12, but memory stayed at 19/40. These were negatives for a soft pointer, not for exact addressing.
+- **Direction survives the address.** The value is routed through the semiprime expert rather than multiplied into it, so "Alex's friend is Sam" does not answer "Sam's friend".
+- **What failure would look like (hypothesis):** with a correct write tagger and a trained-in read the panel does not improve, and the failures move to retrieval (right address, unused value) rather than tagging; or prime keys alias distinct facts because roles in real dialogue are not disjoint, so exact identity buys nothing over learned keys.
+- **Open design question not listed above:** a learned gate from the store's exact hit into the output, against copying the value token directly.
+
 ## Also known as
 
 Exact addressed memory; prime-keyed exact log and gcd sieve (log-sieve retrieval); semiprime expert or prime-route store; AERM exact relation store ("D2", "G v1"); product-key memory (learned or E8/H4 sub-keys); exact-pair cache; KVAR overwrite memory; "address instead of search".

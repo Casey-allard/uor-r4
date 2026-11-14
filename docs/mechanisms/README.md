@@ -1,6 +1,6 @@
 # The mechanism board
 
-Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists 28 rows for them, because Hopf observation is split into its two forms (owner ruling D72), and says where each one stands today. Status here means how far a mechanism has been built and tested. M1 is complete (1 of 8 milestones); no mechanism has produced a useful conversation yet ([PLAN](../../PLAN.md) and rendered [STATE](../../STATE.md)).
+Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists 28 rows for them, because Hopf observation is split into its two forms (owner ruling D72), and says where each one stands. Status here means how far a mechanism has been built and tested. The statuses were last set on 31 Oct 2026. The results recorded since then, and what the current model trains and serves, are in [Since 31 Oct](#since-31-oct-what-the-current-model-trains-and-serves-14-nov-2026); they change no status. M1 is complete (1 of 8 milestones); no mechanism has produced a useful conversation yet ([PLAN](../../PLAN.md) and rendered [STATE](../../STATE.md)).
 
 ![A family tree of the 27 mechanisms with lineage from 19 October 2026 and statuses current on 31 October, showing which mechanism grew out of which](../figures/mechanisms-family.svg)
 
@@ -30,6 +30,56 @@ Two model paths remain distinct. The saved discrete 19-table model has closed M1
 - **Reading by meaning:** Flock, with cell D closed at claude-144. Its independent effect remains a question for the joined model.
 
 M1 does not prove each mechanism's independent effect or useful conversation. On p-f, **62.5% of reference replies are verbatim TRAIN replies**: reference-data overlap, not a generated-copy rate or new reply kinds. Claude-217's teacher-forced p-s reply openings are 17.4%, 13.7% and 18.6% at three seeds, against about 80% on later tokens. Claude-219's point-key opening improves free generation at three seeds on fresh p-v, but reaches only 12–18% of the forced-opening lift; the sign key is inconclusive at this panel size. [Claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md) then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. [Claude-222](../loop/tasks/point-key-integer/claude-222/REPORT.md) has built the integer point table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) missed parity in every cell, so the mismatch must be localized before p-x. The parts, costs and current order are in the [pipeline map](../model/pipeline-map.md).
+
+## Since 31 Oct: what the current model trains and serves (14 Nov 2026)
+
+This section records facts at `origin/main` `085ff55d9` (14 Nov 2026), read from the code and the [float-training notebook](../research/notebook/float-training.md). It changes no status: where a fact and a status disagree, the change is a decision card, listed in [claude-375's REPORT](../loop/tasks/docs-status-refresh/claude-375/REPORT.md).
+
+### The current recipe: claude-358's `p` recipe
+
+The saved models p-s1 to p-s3 ([claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)) are the FBS trunk's current models, and later units reuse their recipe ([pair-rows sheet](../harness/prep/one-model-end-to-end-pair-rows-2026-11-13.md), "The recipe"):
+
+`--objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --context 256 --width 256 --hamming-read 4 --batch 16 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --samples 6 --reply-tokens 48 --hamming-copy-latest 1 --turn-memory-leave-copied 1 --hamming-ask 1 --hamming-place KIT --hamming-place-pull 1 --hamming-copy-longest 714,28`
+
+| In the recipe | Board row |
+|---|---|
+| One shared token table, 4,096 × 256 | [tokenizer](tokenizer.md) (A) |
+| SpiralCore/FBS routes, the Hamilton gate and the quaternion recurrence (the FBS trunk) | [spiralcore-fbs](spiralcore-fbs.md) (A), [hamilton-gate](hamilton-gate.md) (A) |
+| Retention rates (`--retain-rates 1`) | none |
+| Four Hamming reads: popcount codes keyed on the previous token, with the copy-latest, ask, place and copy-longest heads | the Hamming read form of [ternary-xor](ternary-xor.md) (R) |
+| Exact turn memory (`--turn-memory 8`) | the turn-memory form noted under [exact-memory](exact-memory.md) (P) |
+| Whole-table nearest readout, trained by the cell objective | [admission](admission.md) (A) |
+
+**Not in the recipe:**
+- [Flock read](flock-read.md) is ACTIVE and in no current FBS recipe. It is on the discrete path: the saved M1 model reads with `Flock` (`FrozenZeroV1`, [M1 close](../labs/m1-close-saved-model/README.md)). `train-in-space` has `--flock-read`; the p recipe does not pass it. The float form (cell D, claude-144) closed its configuration on 29 Oct, and the integer selector `crates/uor-r4-integer/src/stack/flock.rs` describes itself as "Standalone integer flock selector for sparse causal attention awaiting integration".
+- [Route](route-read.md), [Relation](relation-read.md), [prime-zeta-codebook](prime-zeta-codebook.md), [address-cells](address-cells.md) and [discrete-learning](discrete-learning.md) are on the discrete path, not in the FBS trunk.
+- The E8 address memory (`--address-memory`) and the pair rows (`--pair-rows`) exist as trainer flags only (below).
+- Training cuts back-to-back windows and carries no state from one window to the next. `Carry` in `crates/uor-r4-float-train/src/in_space_long.rs` (`PastWindowRule`) is a scoring rule for what a scored target sees, not a training mode.
+
+**Speed (measurement, claude-358):** decode 1,567 to 1,636 tok/s and context prefill with the read 4,309 to 4,499 tok/s on an Apple M1.
+
+### Results since 31 Oct with no board row yet
+
+These are new forms. None has a status; giving one is a decision card.
+
+| Mechanism | What it is | Results | Served? |
+|---|---|---|---|
+| E8 address memory | A learned table inside the trunk, read by the state's own E8 cell: 32 rows a layer and token, added to the residual after each layer's Hamilton block. A related form of the PARKED [E8 orbit memory](e8-orbit-memory.md) | [claude-346](../loop/tasks/one-model-end-to-end/claude-346/REPORT.md), first training run: exact replies of 1,108 rose from 188 to 218 (seed 2) and from 225 to 254 (seed 3), M +29.5 against a bar of a mean gain of 30; a table addressed by the input token alone gave 219, the same gain. **Not called.** [claude-366](../loop/tasks/one-model-end-to-end/claude-366/REPORT.md), served in integers at three seeds: good everyday replies of 235, E8 rows +6, +8, +2 (M +5.3), token rows 0, +3, +9 (M +4.0); replies that never end, saved 25, 29, 23, E8 rows 31, 32, 36. **Inconclusive.** | as `lut-stack/11`, a research schema with no stack contract, exported with `--legacy-artifact` only (`crates/uor-r4-integer/src/stack/format.rs`) |
+| Pair experts | Counts, not training: for each pair of tokens in the user's turn, the TRAIN replies seen with it | [claude-367](../loop/tasks/one-model-end-to-end/claude-367/REPORT.md): good everyday replies of 239 rose from 137, 135, 134 to 170, 171, 170 held out (M +35.0), every guard held. **Adds.** Not established: any trained form; a served read of the panel with the experts on (the bar is on a replay through the chat's own check). [claude-368](../loop/tasks/one-model-end-to-end/claude-368/REPORT.md), weighing an expert's vote by how surely it knows: **Does not add**; claude-367's setting stays. | yes, opt-in: `uor-chat --pair-experts TABLE` replaces the model's whole reply with a stored TRAIN reply when the experts agree (`crates/uor-r4-integer/src/stack/chat.rs`). With the flag, a reply can come from the table rather than the vector state |
+| Pair rows | Trained rows addressed by the pairs of tokens in the user's turn, trained by the output error | [claude-370](../loop/tasks/one-model-end-to-end/claude-370/REPORT.md): exact replies of 2,218 rose from 431 to 527 (seed 2) and from 413 to 521 (seed 3). **Adds.** Most of the gain is the turn's own words carried into the reply; facts and number work barely move. [claude-373](../loop/tasks/one-model-end-to-end/claude-373/REPORT.md), rows weighed by 1/R: **Does not add** (mean −12.0, guard fails). [claude-374](../loop/tasks/one-model-end-to-end/claude-374/REPORT.md), rows weighed by 1 + 1/R: **Does not add** (mean −6.5, guard holds). | no: the export refuses a checkpoint that holds pair rows (`a_checkpoint_with_pair_rows_is_refused`, `crates/uor-r4-float-train/src/fbs_export.rs`); the rows hold about 48 M values |
+
+The copy-read and place-read units of the same weeks (claude-345 to claude-365) refine the Hamming read heads already in the recipe; they are listed in the [pipeline map](../model/pipeline-map.md#units-since-31-oct).
+
+### Built, but off the trained and served path
+
+Checked by name: no file in `crates/uor-r4-float-train` or `crates/uor-r4-integer` refers to the `uor-r4-core` modules in the first three items. The fourth item is inside the trainer crate, in code its own header marks inactive.
+
+- **Attention modules in `crates/uor-r4-core/src/`:** `bounded_global_exact_spin_attention.rs`, `construction_causal_return_attention.rs`, `conversation_entity_spin_path_attention.rs`, `direct_causal_geometric_attention.rs`, `higher_scope_geometric_attention.rs`, `paragraph_entity_spin_path_attention.rs`, `prime_route_attention.rs`, `prime_route_geometric_attention.rs` and `recursive_geometric_attention.rs`. Other crates refer to some of them (`uor-r4-model-source`, `uor-r4-wasm-router`, `uor-r4-graph-certify`, the archived float `uor-r4-training`).
+- **`crates/uor-r4-core/src/helm_d_r4_attention.rs` is a softmax oracle.** Its header calls it "the compiler-side softmax oracle for issue #973". It is not a candidate to port.
+- **Zeta modules:** `crates/uor-r4-core/src/zeta_zeros.rs` and `zeta_projection.rs`. `zeta_zeros` is also used by the discrete path (`uor-r4-discrete`).
+- **Inactive code inside the trainer, `crates/uor-r4-float-train/src/geometric_stack_native.rs`:** the file is compiled into the trainer and holds its live CUDA FBS stack, but its header says "Historical source remains inactive; only CUDA FBS, geometric recurrence and shared writer execute." Its Starling read with a Lorentz score (`ReadScore::Lorentz`) and matched flat control is in that inactive part: the trainer refuses a checkpoint whose read is not `ReadScore::Dot` (`in_space_long.rs`).
+
+A module from `uor-r4-core` is checked for banned operations (CHARTER §3) before any port.
 
 ## The family tree
 

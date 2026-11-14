@@ -75,6 +75,14 @@ Almost all evidence below is from the **float era**, on a synthetic 512-to-1,536
 - Recall measured by distance bucket (so eviction is distinguishable).
 - More than one read layer before any multi-hop claim.
 
+*From the earlier rank-table brief, [archive/mechanisms/flock-rank-reads-2026-10-20.md](../../archive/mechanisms/flock-rank-reads-2026-10-20.md)* (the [flock-rank-reads](./flock-rank-reads.md) stub points here):
+
+- **The rank-table form.** For each query row it kept a sink (position 0), a local window of the last W positions and the exact top-K of the rest by a monotone rank score. It weighted the kept sources by rank (`w_r ∝ 1/(r+1)`) or by a learned per-head table, so a read touches at most W+K+1 value rows. Only order matters, so the score can be an integer or a Hamming distance on sign bits.
+- **Why the 10 Oct tests could judge it only in part.** There was one W/K setting. Training used a straight-through gradient equal to the flock-softmax gradient, so the forward pass trained was not the one run. Learning rates were tuned for softmax. The flock ran on the host, which kept the runs small and the context short.
+- **What still applies from its fair test:** a gradient derived from the rank forward, a GPU flock kernel, K ∈ {8, 32} at contexts 384 and at least 1,536, and three seeds. The brief framed its bar against a softmax read; the owner has since withdrawn softmax and transformer comparators ([L-006](../harness/mistakes/L-006.md)), so that bar is history.
+- **Its failure condition (hypothesis):** if rank still trails at long context and raising K toward the whole window does not close the gap, the information lives in score magnitudes, which a rank discards by design.
+- **Its open design questions:** score-bucketed tables (rank × quantized margin), learned W and K per head, a sink at a geometric address instead of position 0, and Hamming over richer codes (multi-bit or H4/icosian).
+
 ## What comes next
 
 The mechanism is ACTIVE, so this is a plan, not a reopening.

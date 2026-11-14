@@ -73,6 +73,18 @@ Verdicts follow the audit: positive, negative, inconclusive, diagnostic-stop. Ma
 
 Open questions: how much of the 149 top-1 comes from Route; whether a content-blind read can reach the 3,847 copy-successor targets (the relational-head design argues from the kernel code that it cannot, which is why [relation-read](./relation-read.md) exists); which invariant should serve as address; and whether one 16-root orbit is enough atlas.
 
+## From the earlier brief
+
+*From [archive/mechanisms/invariant-addressed-read.md](../../archive/mechanisms/invariant-addressed-read.md)* (the [invariant-addressed-read](./invariant-addressed-read.md) stub points here). These are the brief's 11 Oct arguments and measurements on the archived float stack, not results on the current model:
+
+- **Why an invariant.** The read should route by a canonical identifier rather than a learned similarity: icosian/H4 lattice points, prime/UOR addresses or the fixed zeta-phase tables. The brief cites the [murmurations result](https://arxiv.org/abs/2307.06586) (He, Lee, Oliver, Pozdnyakov) as an example of a family-level signal keyed by an arithmetic invariant, and SpiralCore's addressing schema, symbol registry and context translation as the engineering shape (hypothesis).
+- **Why it mattered then (measurement on the archived stack).** The scored read was the stack's only quadratic part: 17.6% of the model's MACs at context 384 and 40.5% at 4,096.
+- **Why a spanning tree.** An address becomes the tree path from the root to its cell: canonical, translatable by re-rooting and compared by shared prefix. A route is the single path through the nearest common ancestor, so its cost is O(depth) and it has no ties.
+- **The two nulls the tree defines.** A tangent null moves the representative inside a node, keeping the cell; a normal null changes the branch. A read that survives the normal null but dies under the tangent null is keying on an arbitrary fine coordinate, a lookup and not an invariant (owner correction, 11 Oct).
+- **What it would decide (hypothesis):** which invariant to address by (token prime, H4 phase, a family key or a composition); how to route (exact match, Hamming or phase nearest, or a small scorer over addresses); and at what grain (token, span or entity).
+
+The brief's bar was framed against a full softmax read at the same budget. The owner has since withdrawn softmax and transformer comparators ([L-006](../harness/mistakes/L-006.md)), so that part of its fair test is history.
+
 ## Also known as
 
 `ReadSpec::Route`; invariant-addressed read; spanning-tree router; route-native or prime-route attention; read lineage (phase bind, rotation, carrier); the legacy `uor-r4-router` prime router.

@@ -11,6 +11,8 @@ This page follows one token from the training data to the last word of a reply s
 
 It answers the owner's direction of 27 October 2026 (recorded verbatim in the item [`pipeline-map`](../roadmap/items/pipeline-map.md)). The goal is a local model of about GPT-4's ability, trained on less than a datacenter and served on a laptop like this one.
 
+**Update of 14 Nov 2026 (claude-375).** The stage tables below are the 31 Oct revision. Stages 5 to 11 have changed since, and [units since 31 Oct](#units-since-31-oct) lists what is different at `origin/main` `085ff55d9` and the units claude-345 to claude-374. The units claude-190 to claude-344 are not listed on this page; their results are rows of the [float-training notebook](../research/notebook/float-training.md).
+
 **This revision (31 Oct)** retains claude-159's cost-per-token map and adds:
 - claude-149 to claude-158, as listed under [what changed since the first map](#what-changed-since-the-first-map);
 - the owner's 28 Oct criterion: "I don't care what we serve at long as it is cheap";
@@ -89,6 +91,46 @@ They share:
 - the D11 runtime crate, [`crates/uor-r4-integer`](../../crates/uor-r4-integer).
 
 They share no table, no trunk and no artifact format. This page follows the FBS trunk for the current complete-reply work, while the discrete path supplies the M1 result. The M1 pair also scores 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s ([Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). The p-f reference replies are 62.5% verbatim TRAIN replies, so M1 is not useful-chat qualification.
+
+## Units since 31 Oct
+
+### What is different on 14 Nov
+
+Read at `origin/main` `085ff55d9` (proof, from the code named in each row) and from the [float-training notebook](../research/notebook/float-training.md) (measurement, by unit). The FBS trunk's current models are claude-358's p-s1 to p-s3; their recipe is listed on the [mechanism board](../mechanisms/README.md#the-current-recipe-claude-358s-p-recipe).
+
+| Stage | 31 Oct | 14 Nov |
+|---|---|---|
+| 5. Look-back | Serving had no Hamming read | The integer session serves the Hamming reads and their copy heads (`hamming` in `crates/uor-r4-integer/src/stack/session.rs`), matched by hand-written SWAR popcount (`nearest` in `stack/hamming.rs`). The p recipe trains four heads with the copy-latest, ask, place and copy-longest rules. The keys are tokens before the query (induction-keyed), not the learned state. |
+| 6. Long memory | Turn memory served on synthetic fixtures | Exact turn memory is trained and served in the p models. Two other tables exist: the E8 address memory, served only under `lut-stack/11` with `--legacy-artifact` (claude-366), and the pair experts in `uor-chat` (next row). |
+| 6, in `uor-chat` | none | `uor-chat --pair-experts TABLE` (opt-in) checks each served reply against counts taken from TRAIN. When the experts agree, the model's whole reply is replaced by a stored TRAIN reply, and the history keeps the reply given (`crates/uor-r4-integer/src/stack/chat.rs`, the pair check after `serve_reply`). A reply served this way comes from the table, not from the vector state. |
+| 7. Readout | Nearest chosen; integer parity missed (claude-232) | Whole-table nearest by integer L1 is served (`stack_whole_table_nearest`, `stack/session.rs`). On the stage 3 models and arm r, 1.0% to 1.6% of 40,719 scored rows are chosen differently from the trained model, at near ties (claude-354). |
+| 8. Decode loop | No text path for the FBS artifact | `uor-chat` serves text from a `/10` artifact whose tokenizer binding it checks (`crates/uor-r4-integer/src/bin/fbs-export.rs`, module notes). |
+| 9. Training | Windows of 192 | The p recipe trains windows of 256, cut back to back, and carries no state from one window to the next. `Carry` (`PastWindowRule` in `crates/uor-r4-float-train/src/in_space_long.rs`) is a rule for scoring, not a training mode. Serving reads the whole conversation, so training and serving see different context. |
+| 10. Integer export | `lut-stack/5`, `/6` | New exports are `uor-r4.lut-stack/10` (`STACK_FBS_BOUND_SCHEMA`), which binds the stack contract and the tokenizer; `/6` to `/9` are reproduced with `--legacy-artifact`. `uor-r4.lut-stack/11` (`STACK_FBS_ADDRESS_SCHEMA`) is the address table's research schema, with no stack contract, exported with `--legacy-artifact` only (`crates/uor-r4-integer/src/stack/format.rs`). The export refuses a checkpoint that holds pair rows (`a_checkpoint_with_pair_rows_is_refused`, `crates/uor-r4-float-train/src/fbs_export.rs`). |
+| 11. Serving on M1 | `lut-stack/5` at 4,491 / 4,504 tok/s (claude-186) | The p models decode at 1,567 to 1,636 tok/s, and prefill context with the read at 4,309 to 4,499 tok/s, on an Apple M1 (claude-358). |
+
+### Units claude-345 to claude-374
+
+All are on [`one-model-end-to-end`](../roadmap/items/one-model-end-to-end.md) unless named. The verdict is the notebook row's or the REPORT's.
+
+| Unit | Result | Stage |
+|---|---|---|
+| [claude-345](../loop/tasks/one-model-end-to-end/claude-345/REPORT.md) | T0, the memorize test: 0 of 1,072 exact (negative). The memory-line run, arms m and mk: negative. **Arm r**, the copy read under its latest exact match: positive at three seeds (E 0.749, 0.759, 0.782). Arm rk: negative. Arm rt, a three-key turn memory: positive, at the cost of recall inside copied values. | 5, 6 |
+| [claude-346](../loop/tasks/one-model-end-to-end/claude-346/REPORT.md) | The E8 address memory, built and trained: +30 and +29 exact replies of 1,108, against a bar of a mean gain of 30; a token-addressed table gives the same gain. Not called. | 6 |
+| [claude-347](../loop/tasks/one-model-end-to-end/claude-347/REPORT.md) | Readings of arms r and rt with no bar: general questions arrive almost only in TRAIN's wording; turn memory is 84.8% (arm r) and 96.1% (arm rt) of the artifact's table bytes. Inconclusive. | 6, 10 |
+| [claude-348](../loop/tasks/one-model-end-to-end/claude-348/REPORT.md) | Two serving changes: no token chosen while reading the prompt, and a nearest search that does not read the whole table. | 7, 11 |
+| [claude-349](../loop/tasks/one-model-end-to-end/claude-349/REPORT.md) | Turn admission, stage 1: negative for turn admission with arm r's copy read as written. | 5 |
+| [claude-350](../loop/tasks/one-model-end-to-end/claude-350/REPORT.md), [351](../loop/tasks/one-model-end-to-end/claude-351/REPORT.md), [352](../loop/tasks/one-model-end-to-end/claude-352/REPORT.md) | The place read: stage 1 routes the build (two configurations closed); stage 2 builds it; stage 3 trains four models and is blocked at I-f (NOT_RUN). | 5 |
+| [claude-353](../loop/tasks/one-model-end-to-end/claude-353/REPORT.md), [354](../loop/tasks/one-model-end-to-end/claude-354/REPORT.md) | The laptop reader's ask heads repaired in part; the remaining float-to-integer differences sit at near ties. | 7, 10 |
+| [claude-355](../loop/tasks/one-model-end-to-end/claude-355/REPORT.md), [356](../loop/tasks/one-model-end-to-end/claude-356/REPORT.md), [357](../loop/tasks/one-model-end-to-end/claude-357/REPORT.md) | The longest copy match at serving: negative as set (355); better on recall when a reply's first token is spared (356); built for a retrain (357). | 5 |
+| [claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md) | **The p models:** the longest-after-opening copy rule trained at three seeds, recall 314, 320, 325 of 578 against 276, 296, 265 (M +40.7). Positive. | 5, 9, 11 |
+| [claude-359](../loop/tasks/one-model-end-to-end/claude-359/REPORT.md) to [365](../loop/tasks/one-model-end-to-end/claude-365/REPORT.md) | Counted tables beside the p models (no retrain): the key read and the "not told" reply (359, inconclusive: the gain is the table's); a census of what a key must see (360); the trained key on offsets 2 and 3 (361, diagnostic stop); the reply starts on the found value (362, adds); serve again when the value was never offered (363, adds); repeat a turn's own rest (364, adds); a floor for never-told questions (365, adds). | 5, 6 |
+| [claude-366](../loop/tasks/one-model-end-to-end/claude-366/REPORT.md) | The address table's models served in integers as `lut-stack/11`, three seeds a form: inconclusive. | 6, 10 |
+| [claude-367](../loop/tasks/one-model-end-to-end/claude-367/REPORT.md), [368](../loop/tasks/one-model-end-to-end/claude-368/REPORT.md) | Pair experts counted from TRAIN check each served reply: adds, M +35.0 good everyday replies of 239 (367). Weighing their votes: does not add (368). | 6, `uor-chat` |
+| [claude-369](../loop/tasks/one-model-end-to-end/claude-369/REPORT.md) | A reply that did not end is kept out of the conversation the next turn reads: does not add; the setting stays, default `keep`. | 8 |
+| [claude-370](../loop/tasks/one-model-end-to-end/claude-370/REPORT.md) | Pair rows trained by the output error: exact replies of 2,218 from 431 to 527 and from 413 to 521. Adds. Not served: the export refuses the rows. | 6, 9, 10 |
+| [claude-371](../loop/tasks/one-model-end-to-end/claude-371/REPORT.md), [372](../loop/tasks/one-model-end-to-end/claude-372/REPORT.md) | A native-space inventory and the first parity contract on the discrete path, then its CUDA leg. The discrete native path has no generation loop or stop state; the contract's fixtures are small (vocabulary 3, 39 prefixes). | discrete path |
+| [claude-373](../loop/tasks/one-model-end-to-end/claude-373/REPORT.md), [374](../loop/tasks/one-model-end-to-end/claude-374/REPORT.md) | Pair rows weighed by 1/R (mean −12.0, guard fails) and by 1 + 1/R (mean −6.5, guard holds): neither adds. | 6, 9 |
 
 ## The chain at a glance
 

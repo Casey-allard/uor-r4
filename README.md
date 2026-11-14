@@ -52,22 +52,34 @@ new prompts into known kinds of reply. It does not show a model inventing new re
 conversation. The evidence: [M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029) and
 [M1 close](docs/labs/m1-close-saved-model/README.md).
 
-### The open research question
+### The open research questions (14 Nov 2026)
 
 **Does the model learn human-written text?** M1's panels are templated. On real human text, a
-held-out panel of 1,460,697 rows from public conversation and encyclopedia text, the model does not
-yet beat the T2 baseline:
+held-out panel of 1,460,697 rows from public conversation and encyclopedia text, counted as correct
+next-token guesses:
 
 - **First runs (6 Nov):** training loss stays flat over 8,192 steps at two model widths, and every
   run trails the unigram table
   ([report](docs/loop/tasks/scale-probe/claude-295/REPORT.md)).
-- **More data and more steps (6 Nov):** the best run (more training text, 32,768 steps) gets
-  272,867 and 234,892 rows right at its two seeds against T2's 256,660. One seed is ahead and one
-  behind, so the result is **inside the noise band, not a win**. Every run now beats the unigram
-  table, and more training text is the one change that helped beyond the noise band at both seeds,
-  at 8,192 steps ([report](docs/loop/tasks/one-model-end-to-end/claude-297/REPORT.md)).
-- **Next:** the same recipe at a four-times-larger batch, to test whether the two seeds'
-  disagreement is training noise ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)).
+- **More data and more steps (6 Nov):** the best run gets 272,867 and 234,892 rows right at its two
+  seeds against T2's 256,660, **inside the noise band**
+  ([report](docs/loop/tasks/one-model-end-to-end/claude-297/REPORT.md)).
+- **A batch of 64 with twice the training text (6 Nov):** 331,698 and 342,250 rows right against
+  T2's 256,660, **ahead of T2 at both seeds** and on every sub-panel. The gain is the larger batch
+  with twice the tokens, not the batch alone, and whether the seeds' spread is training noise is
+  undecided at two seeds ([report](docs/loop/tasks/one-model-end-to-end/claude-301/REPORT.md)).
+- **Width (8 Nov):** width 256 gets about 125,000 more rows right than width 128; width 512 did not
+  fit the GPU's memory ([notebook row](docs/research/notebook/float-training.md), claude-317).
+
+**Can the model answer in a conversation?** Next-token counts are not replies. Since 10 Nov the
+work has been recall in controlled conversations. The current models state a value told earlier in
+the conversation on 314, 320 and 325 of 578 recall questions at three seeds
+([report](docs/loop/tasks/one-model-end-to-end/claude-358/REPORT.md)). The chat program has an
+optional table counted from the training text, the pair experts: when its experts agree, it
+replaces the model's reply with a stored training reply, so a reply served that way comes from the
+table and not from the model ([report](docs/loop/tasks/one-model-end-to-end/claude-367/REPORT.md)).
+What the model trains and serves today is on the
+[mechanism board](docs/mechanisms/README.md#since-31-oct-what-the-current-model-trains-and-serves-14-nov-2026).
 
 Every result, negative ones included, is one row in the
 [research notebook](docs/research/notebook/float-training.md).
@@ -79,7 +91,8 @@ None ships today. A trained integer artifact exists; an integrated, qualified pr
 
 - **[The model](docs/products/language-model.md):** one whole-number model file for local serving,
   with integer multiply and divide allowed by D80/D81. The saved discrete M1 pair is real; so is a
-  separate `lut-stack/5` FBS export with exact rotations and its DEV export gap inside the bar. Neither is a released conversational product.
+  separate `lut-stack/5` FBS export with exact rotations and its DEV export gap inside the bar.
+  New FBS exports are `lut-stack/10`, which binds the stack contract and the tokenizer. Neither is a released conversational product.
 - **[Web client](docs/products/web-client.md):** the live Studio can load the publicly released M1
   model after an explicit click and serves top-8 next-token prediction—not chat. The synthetic
   parity harness passes; M7's accepted-model parity and a qualified product bundle remain open.
@@ -90,9 +103,9 @@ None ships today. A trained integer artifact exists; an integrated, qualified pr
 
 M2 asks for complete correct replies grounded in exact memory; M3 then qualifies durable memory.
 After that come one served model (M4), laptop cost (M5), reasoning and coding (M6), browser/API
-distribution (M7) and an alpha release (M8). The immediate work is the open question above: a
-model that beats both baselines on human-written text at every seed. Serving, speed and size work
-for that model follow once it does. This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
+distribution (M7) and an alpha release (M8). The immediate work is the second open question above:
+replies that answer from the conversation and from what the model knows, in a form the integer
+artifact serves ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)). This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
 
 ## How it works
 
@@ -113,7 +126,10 @@ tested forms failed or broke a rule while the mechanism stays open.
 Position and normalization have replacements on the FBS trunk: SpiralCore transport spin and RMS
 norm with an integer square root. M1 instead uses Flock `FrozenZeroV1`, `DiscreteHamiltonGateV1`,
 `DiscreteQuaternionRecurrenceV1`, `PositionHolonomyV1`, `OrbitRootSnapNormV1`, an orbit-root causal pointer and post-rotation `OuterL1V1`—not FBS
-projection or the FBS RMS normalization. M1 does not establish every replacement's
+projection or the FBS RMS normalization. The current FBS models (claude-358) read with the
+Hamming read, the XOR/popcount form of [Ternary/XOR](docs/mechanisms/ternary-xor.md), not the
+Route, Flock or Relation reads
+([board](docs/mechanisms/README.md#the-current-recipe-claude-358s-p-recipe)). M1 does not establish every replacement's
 independent effect. The board lists
 **28 mechanisms: 12 ACTIVE, 5 READY and 11 PARKED**. Part by part:
 [transformer vs geometry](docs/start/transformer-vs-geometry.md).
@@ -171,7 +187,7 @@ research labs read [CHARTER.md](CHARTER.md) and [AGENTS.md](AGENTS.md).
 - **Andrew Kadziolka**: development integration, assessment, analysis and conceptual design.
 - **Yazan Barakat** ([@Cyborg-Hawk-AI](https://github.com/Cyborg-Hawk-AI)): research and development work on the WebAssembly D11 integer serving runtime (#1172, PR #2654).
 - **sharmis-tp** ([@sharmis-tp](https://github.com/sharmis-tp)): the bounded `rustc --test` verifier for the frozen M6 CodeTasks panel (PR #3754, adopted and completed by the DeepSeek lab).
-- **The AI research labs** (Kimi, Claude, Antigravity, DeepSeek; Codex took part earlier and left the registry), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
+- **The AI research labs** (Kimi, Claude, Antigravity, DeepSeek and Codex; Codex left the registry on 27 Oct 2026 and rejoined on 12 Nov, PR #3942), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 
 ## Citation and license
 
