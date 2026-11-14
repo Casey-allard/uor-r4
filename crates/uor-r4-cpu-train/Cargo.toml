@@ -6,6 +6,11 @@ license = "MIT"
 description = "Isolated CPU development trainers for the UOR-R4 geometric model"
 publish = false
 
+[features]
+default = []
+cuda = ["uor-r4-discrete/cuda"]
+qualification = ["uor-r4-discrete/qualification"]
+
 [dependencies]
 blake3 = "1.5"
 hex = "0.4"

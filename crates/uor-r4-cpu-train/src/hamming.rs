@@ -7,8 +7,8 @@
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::bitcode::popcount_swar;
 use uor_r4_integer::stack::{
-    AskImage, COPY_MEAN_EXP, HAMMING_WEIGHT_EXP, HammingImage, HammingReadImage, StackHamming,
-    copy_weight_q31,
+    copy_weight_q31, AskImage, HammingImage, HammingReadImage, StackHamming, COPY_MEAN_EXP,
+    HAMMING_WEIGHT_EXP,
 };
 
 const RESIDUAL_EXP: i32 = -16;

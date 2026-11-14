@@ -138,7 +138,7 @@ fn trace(forward: &Forward) -> Result<Vec<u32>> {
 }
 fn rel_scores(forward: &Forward) -> Result<Vec<i32>> {
     forward
-        .relation_scores()?
+        .padded_relation_scores()?
         .ok_or_else(|| Error::Invalid("relation forward returned no relation scores".into()))
 }
 fn block_rel_scores(

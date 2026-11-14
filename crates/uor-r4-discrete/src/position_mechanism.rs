@@ -563,7 +563,7 @@ mod tests {
     fn cuda_snapshot_validation_launch_has_one_position_argument() {
         let source = include_str!("device.rs");
         let body = source
-            .split("pub fn from_snapshot")
+            .split("fn from_snapshot_with_provenance")
             .nth(1)
             .unwrap()
             .split("fn gpu_spec")

@@ -85,6 +85,12 @@ static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 pub const FLOCK_TRACE_HEADER_WORDS: usize = 4;
 pub const FLOCK_TRACE_LEVEL_WORDS: usize = 28;
 pub const FLOCK_TRACE_KEPT_CAPACITY: usize = 8;
+/// Route trace ABI from `discrete.cu`, ordered by row then block:
+/// `[frontier_count, output_root, completed_stages, terminal_atom]`, followed
+/// by per-stage `[frame, parent_root, selected_port, goal_root, composed_action,
+/// next_node]`.
+pub const ROUTE_TRACE_HEADER_WORDS: usize = 4;
+pub const ROUTE_TRACE_STAGE_WORDS: usize = 6;
 pub const EVALUATION_AGGREGATE_WORDS: usize = objective::AGGREGATE_WORDS;
 
 /// Exact integer observations of the same production read and shared writer.
@@ -407,6 +413,7 @@ pub struct Forward {
     trace: Option<CudaSlice<u32>>,
     trace_stride: Option<usize>,
     flock_trace_words: Option<usize>,
+    relation_node_counts: Option<Vec<u32>>,
     binding: Binding,
     epoch: u64,
     stream: Arc<CudaStream>,
@@ -425,7 +432,7 @@ impl Forward {
     /// Optional completed device trace as storage observation only. This does
     /// not reconstruct, score, select or transport any model values on the host.
     /// Normal `forward` results return None and retain no trace allocation.
-    pub fn flock_trace(&self) -> Result<Option<Vec<u32>>> {
+    pub fn read_trace(&self) -> Result<Option<Vec<u32>>> {
         let Some(trace) = self.trace.as_ref() else {
             return Ok(None);
         };
@@ -435,10 +442,14 @@ impl Forward {
         }
         Ok(Some(words))
     }
+    /// Compatibility name for the existing active-leaf trace tests.
+    pub fn flock_trace(&self) -> Result<Option<Vec<u32>>> {
+        self.read_trace()
+    }
     /// Optional completed device per-node relation scores (`rows * blocks * nodes_count`)
     /// written by `discrete_forward` in `ReadSpec::Relation` mode. Storage readback only;
     /// no host recurrence or score computation.
-    pub fn relation_scores(&self) -> Result<Option<Vec<i32>>> {
+    pub fn relation_trace_words(&self) -> Result<Option<Vec<u32>>> {
         if !matches!(self.binding.read_spec, ReadSpec::Relation { .. }) {
             return Ok(None);
         }
@@ -449,7 +460,40 @@ impl Forward {
         let tail = words
             .get(offset..)
             .ok_or_else(|| invalid("relation trace buffer truncated"))?;
-        Ok(Some(tail.iter().map(|&w| w as i32).collect()))
+        Ok(Some(tail.to_vec()))
+    }
+    /// Per-row actual binder-node counts retained only by traced Relation
+    /// forwards; ordinary forwards leave this empty.
+    pub fn relation_node_counts(&self) -> Option<&[u32]> {
+        self.relation_node_counts.as_deref()
+    }
+    pub fn relation_scores(&self) -> Result<Option<Vec<i32>>> {
+        let Some(words) = self.relation_trace_words()? else {
+            return Ok(None);
+        };
+        let counts = self
+            .relation_node_counts
+            .as_ref()
+            .ok_or_else(|| invalid("relation row counts missing"))?;
+        let max_nodes = BinderPlan::new(self.binding.spec.context as usize)?.nodes_count();
+        let blocks = self.binding.spec.blocks as usize;
+        let mut compact =
+            Vec::with_capacity(counts.iter().map(|&count| count as usize * blocks).sum());
+        for (row, &nodes) in counts.iter().enumerate() {
+            let nodes = nodes as usize;
+            for block in 0..blocks {
+                let base = (row * blocks + block) * max_nodes;
+                compact.extend(words[base..base + nodes].iter().map(|&word| word as i32));
+            }
+        }
+        Ok(Some(compact))
+    }
+    /// Padded relation-score words retained for the earlier Relation
+    /// qualification instrument's batch layout.
+    pub fn padded_relation_scores(&self) -> Result<Option<Vec<i32>>> {
+        Ok(self
+            .relation_trace_words()?
+            .map(|words| words.into_iter().map(|word| word as i32).collect()))
     }
     /// Words per (row, block), including its header and all model levels.
     pub fn trace_stride(&self) -> Option<usize> {
@@ -1264,14 +1308,33 @@ impl Device {
     }
 
     pub fn from_snapshot(snapshot: Snapshot, ordinal: usize) -> Result<Self> {
+        Self::from_snapshot_with_provenance(snapshot, ordinal, true)
+    }
+
+    /// Load an exact fixture state for finite parity. This skips the provenance
+    /// hash requirement only; the full table/route/gate inventory is still
+    /// validated on CUDA before the model can execute.
+    #[doc(hidden)]
+    #[cfg(feature = "qualification")]
+    pub fn from_snapshot_for_qualification(snapshot: Snapshot, ordinal: usize) -> Result<Self> {
+        Self::from_snapshot_with_provenance(snapshot, ordinal, false)
+    }
+
+    fn from_snapshot_with_provenance(
+        snapshot: Snapshot,
+        ordinal: usize,
+        require_provenance: bool,
+    ) -> Result<Self> {
         snapshot.read_spec.validate(snapshot.spec)?;
         let metadata = BinderPlan::new(snapshot.spec.context as usize)?;
         if snapshot.schema != SCHEMA
-            || snapshot.operator_kappa != geometry::OPERATOR_KAPPA
-            || snapshot.composition_kappa != geometry::COMPOSITION_KAPPA
-            || snapshot.kernel_sha256 != kernel_sha256()
-            || snapshot.source_sha256 != hex_digest(&source_sha256())
-            || snapshot.geometry_sha256 != hex_digest(&geometry_digest(&packed_geometry()))
+            || (require_provenance
+                && (snapshot.operator_kappa != geometry::OPERATOR_KAPPA
+                    || snapshot.composition_kappa != geometry::COMPOSITION_KAPPA
+                    || snapshot.kernel_sha256 != kernel_sha256()
+                    || snapshot.source_sha256 != hex_digest(&source_sha256())
+                    || snapshot.geometry_sha256
+                        != hex_digest(&geometry_digest(&packed_geometry()))))
         {
             return Err(invalid(
                 "snapshot schema/geometry/AOT kernel/compiler source binding differs",
@@ -1543,9 +1606,6 @@ impl Device {
     /// Qualification observation of this same production forward path. The
     /// read/loss law is unchanged; only a bounded CUDA-written trace is retained.
     pub fn forward_traced(&self, batch: &CarriedBatch, targets: &[u32]) -> Result<Forward> {
-        if self.read_spec() == ReadSpec::Route {
-            return Err(invalid("forward_traced requires a flock model"));
-        }
         self.forward_internal(batch, targets, true)
     }
 
@@ -1556,6 +1616,18 @@ impl Device {
         traced: bool,
     ) -> Result<Forward> {
         let epoch = self.admit_batch(batch, targets)?;
+        let relation_node_counts = (traced
+            && matches!(self.read_spec(), ReadSpec::Relation { .. }))
+        .then(|| {
+            batch
+                .valid_lengths()
+                .iter()
+                .map(|&length| {
+                    BinderPlan::new(length as usize).map(|plan| plan.nodes_count() as u32)
+                })
+                .collect::<Result<Vec<_>>>()
+        })
+        .transpose()?;
         let target = self.stream.clone_htod(targets).map_err(cuda)?;
         let spec = self.gpu_spec(batch.rows)?;
         let mut out = self
@@ -1582,8 +1654,14 @@ impl Device {
             .stream
             .alloc_zeros::<u32>(batch.rows as usize * 16)
             .map_err(cuda)?;
-        let trace_stride = traced
-            .then_some(FLOCK_TRACE_HEADER_WORDS + self.metadata.stages() * FLOCK_TRACE_LEVEL_WORDS);
+        let trace_stride = traced.then_some(match self.read_spec() {
+            ReadSpec::Route => {
+                ROUTE_TRACE_HEADER_WORDS + self.metadata.stages() * ROUTE_TRACE_STAGE_WORDS
+            }
+            ReadSpec::Flock { .. } | ReadSpec::Relation { .. } => {
+                FLOCK_TRACE_HEADER_WORDS + self.metadata.stages() * FLOCK_TRACE_LEVEL_WORDS
+            }
+        });
         let flock_trace_words = trace_stride
             .map(|stride| {
                 (batch.rows as usize)
@@ -1649,8 +1727,8 @@ impl Device {
         launch.arg(&mut status);
         // SAFETY: discrete_forward ABI and bounded rows/width/context checked
         // before launch; immutable inputs, disjoint owned result buffers. Trace
-        // is either the exact rows*blocks*(4+stages*28) allocation (plus
-        // rows*blocks*nodes_count in Relation mode) or a null
+        // is either the exact mode-specific rows*blocks stride allocation
+        // (plus rows*blocks*nodes_count in Relation mode) or a null
         // CUdeviceptr, which the kernel never dereferences. Its U* argument is
         // immediately before status in the explicit 64-bit driver ABI.
         unsafe { launch.launch(launch_config(batch.rows)) }.map_err(cuda)?;
@@ -1670,6 +1748,7 @@ impl Device {
             trace,
             trace_stride,
             flock_trace_words,
+            relation_node_counts,
             binding: self.binding.clone(),
             epoch,
             stream: Arc::clone(&self.stream),
@@ -2230,6 +2309,13 @@ impl Device {
         unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
         check_status(&self.stream, &status, "apply")?;
         Ok(self.epoch()? != before)
+    }
+
+    /// Finite contract observation over the same exact apply kernel.
+    #[doc(hidden)]
+    #[cfg(feature = "qualification")]
+    pub fn apply_for_qualification(&mut self, proposal: &Proposal) -> Result<bool> {
+        self.apply(proposal)
     }
 }
 

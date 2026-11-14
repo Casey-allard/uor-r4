@@ -355,6 +355,19 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
 /// Restore and validate a discrete [`Snapshot`] from a `UORLUT01` (`uor-r4.lut-discrete/1`)
 /// integer container.
 pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
+    import_d11_with_snapshot_hash(bytes, true)
+}
+
+/// Restore an exact fixture snapshot for finite parity. Container structure,
+/// table spans, root/cell identities and CUDA validation remain mandatory; only
+/// the serialized source snapshot hash is waived for synthetic fixtures.
+#[doc(hidden)]
+#[cfg(feature = "qualification")]
+pub fn import_d11_for_qualification(bytes: &[u8]) -> Result<Snapshot> {
+    import_d11_with_snapshot_hash(bytes, false)
+}
+
+fn import_d11_with_snapshot_hash(bytes: &[u8], require_snapshot_hash: bool) -> Result<Snapshot> {
     if bytes.len() < 16 || &bytes[..8] != MAGIC {
         return Err(invalid("missing UORLUT01 magic"));
     }
@@ -501,7 +514,7 @@ pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
         ));
     }
     let snapshot_bytes = serde_json::to_vec(&snapshot).map_err(|e| invalid(e.to_string()))?;
-    if sha256_hex(&snapshot_bytes) != header.source.snapshot_sha256 {
+    if require_snapshot_hash && sha256_hex(&snapshot_bytes) != header.source.snapshot_sha256 {
         return Err(invalid(
             "reconstructed snapshot SHA-256 differs from source.snapshot_sha256",
         ));

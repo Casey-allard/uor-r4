@@ -6,8 +6,8 @@
 
 use uor_r4_integer::h4_classifier::H4_ROOT_COEFFICIENTS;
 use uor_r4_integer::stack::{
-    FbsImage, FbsLayerImage, FbsMapImage, Fixed, GROUP, IntegerStackModel, PHI_Q32,
-    read_hamming_uorlut01, read_memory_uorlut01, stack_snap_select,
+    read_hamming_uorlut01, read_memory_uorlut01, stack_snap_select, FbsImage, FbsLayerImage,
+    FbsMapImage, Fixed, IntegerStackModel, GROUP, PHI_Q32,
 };
 
 use crate::hamming::{CpuHamming, CpuHammingReadTrace};
@@ -1686,11 +1686,12 @@ fn bit_length(value: u64) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uor_r4_integer::stack::synthetic::{FbsSynth, synthetic_fbs_trunk_with, synthetic_hamming};
+    use uor_r4_integer::stack::synthetic::{synthetic_fbs_trunk_with, synthetic_hamming, FbsSynth};
     use uor_r4_integer::stack::{
-        AskImage, FbsExportSnaps, FbsMemoryEntry, FbsMemorySnapshot, FbsReplyTable,
-        FbsTrunkSnapshot, IntegerStackModel, MEMORY_PAD, PointKeyImage, add_hamming_ask_uorlut01,
-        add_point_key_uorlut01, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with,
+        add_hamming_ask_uorlut01, add_point_key_uorlut01, export_fbs_trunk_uorlut01,
+        export_fbs_trunk_uorlut01_with, AskImage, FbsExportSnaps, FbsMemoryEntry,
+        FbsMemorySnapshot, FbsReplyTable, FbsTrunkSnapshot, IntegerStackModel, PointKeyImage,
+        MEMORY_PAD,
     };
 
     const ANCHOR_AUDIT_SYNTH: FbsSynth = FbsSynth {
@@ -1812,12 +1813,10 @@ mod tests {
         assert_eq!(audit.mismatch_count, expected);
         assert_eq!(audit.mismatch_tokens, 1);
         assert_eq!(audit.mismatch_rows, 1);
-        assert!(
-            audit
-                .first_mismatches
-                .iter()
-                .all(|mismatch| mismatch.token == 0 && mismatch.cell == 0 && mismatch.port == 1)
-        );
+        assert!(audit
+            .first_mismatches
+            .iter()
+            .all(|mismatch| mismatch.token == 0 && mismatch.cell == 0 && mismatch.port == 1));
     }
 
     #[test]
@@ -2001,14 +2000,18 @@ mod tests {
             .unwrap()
             .shared_table()
             .to_vec();
-        assert!(
-            CpuFbsForward::from_artifact_with_tables(&bytes, &table[..table.len() - 1], &table)
-                .is_err()
-        );
-        assert!(
-            CpuFbsForward::from_artifact_with_tables(&bytes, &table, &table[..table.len() - 1])
-                .is_err()
-        );
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &bytes,
+            &table[..table.len() - 1],
+            &table
+        )
+        .is_err());
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &bytes,
+            &table,
+            &table[..table.len() - 1]
+        )
+        .is_err());
 
         let memory = memory_artifact_with(191, CpuFbsHead::Writer, false, true, 0.5, None);
         let memory_table = CpuFbsForward::from_artifact(&memory)
@@ -2041,14 +2044,12 @@ mod tests {
             .unwrap()
             .shared_table()
             .to_vec();
-        assert!(
-            CpuFbsForward::from_artifact_with_tables(
-                &hamming_bytes,
-                &hamming_table,
-                &hamming_table
-            )
-            .is_err()
-        );
+        assert!(CpuFbsForward::from_artifact_with_tables(
+            &hamming_bytes,
+            &hamming_table,
+            &hamming_table
+        )
+        .is_err());
     }
 
     #[test]
@@ -2694,10 +2695,9 @@ mod tests {
         assert_eq!(bos.target_token, 0);
         assert_eq!(bos.target_cell, 0);
         assert_eq!(bos.admitted, bos.rank.is_some());
-        assert!(
-            bos.rank
-                .is_none_or(|rank| (1..=bos.candidate_count).contains(&rank))
-        );
+        assert!(bos
+            .rank
+            .is_none_or(|rank| (1..=bos.candidate_count).contains(&rank)));
         assert_eq!(
             bos.target_minus_chosen_distance,
             bos.target_distance - bos.chosen_distance

@@ -9,12 +9,12 @@ use std::collections::BTreeSet;
 
 use uor_r4_discrete::normalization_mechanism::{identify_orbit_root, orbit_root_coords};
 
+mod ask_head;
 pub mod ask_offset_audit;
 pub mod ask_offset_regression;
-mod ask_head;
 pub mod ask_offset_solver;
-mod content_readout;
 mod checkpoint_grade;
+mod content_readout;
 mod continuation_closure;
 mod copy_candidate_rank;
 mod copy_key_depth;
@@ -34,8 +34,8 @@ mod learned_copy_reply;
 mod memory;
 mod memory_train;
 mod panel;
-mod prompt_retrieval;
 mod prompt_reply_rank;
+mod prompt_retrieval;
 mod quant_shadow;
 mod query_cache_eval;
 mod readout_refit;
@@ -51,6 +51,11 @@ mod suffix_memory;
 mod train;
 
 pub use ask_head::{AskCellBits, AskHeadKept, AskHeadOracle, AskKeptPosition, AskOffsetFit};
+pub use checkpoint_grade::{
+    grade_checkpoint_artifact, CheckpointGradeAudit, CheckpointGradeBaseline,
+    CheckpointGradeConfig, CheckpointGradeCorpus, CheckpointGradeEvaluation, CheckpointGradeReport,
+    CheckpointGradeSettings, CHECKPOINT_GRADE_SCHEMA,
+};
 pub use content_readout::{
     audit_content_stop_phase_content_prefix, audit_content_stop_trajectory_content_prefix,
     content_continuation_gate_fires, content_continuation_gate_prediction,
@@ -73,11 +78,6 @@ pub use content_readout::{
     ContentStopDensityTraining, ContentStopGate, ContentStopPhaseAudit, ContentStopRow,
     ContentStopTraining, CONTENT_CODE_SIGNATURE_BITS, CONTENT_MIN_TARGET_VALUES,
     CONTENT_MIN_TRAINING_ROWS, CONTENT_SIGNATURE_BITS, CONTENT_TRAJECTORY_SIGNATURE_BITS,
-};
-pub use checkpoint_grade::{
-    grade_checkpoint_artifact, CheckpointGradeAudit, CheckpointGradeBaseline,
-    CheckpointGradeConfig, CheckpointGradeCorpus, CheckpointGradeEvaluation, CheckpointGradeReport,
-    CheckpointGradeSettings, CHECKPOINT_GRADE_SCHEMA,
 };
 pub use continuation_closure::{
     changed_closure_rows, compare_continuation_closure_rows, continuation_closure_changes,
@@ -120,8 +120,9 @@ pub use discrete_route::{
     CpuDiscretePanelReading, CpuDiscreteProposal, CpuDiscreteProposalApplier,
     CpuDiscreteProposalChooser, CpuDiscreteProposalKind, CpuDiscreteProposalMode,
     CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuDiscreteProposalScoring,
-    CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteSchedule, CpuDiscreteScoreError,
-    CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader, CPU_DISCRETE_CHECKPOINT_SCHEMA,
+    CpuDiscreteReadTrace, CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteSchedule,
+    CpuDiscreteScoreError, CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader,
+    CPU_DISCRETE_CHECKPOINT_SCHEMA,
 };
 pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterPortAnchorAudit,
@@ -146,9 +147,6 @@ pub use gain_train::{
     TerminationGainReading, TerminationGainStep, CPU_PORT_ROOT_TRAINER_SCHEMA,
     CPU_SERVED_GAIN_TRAINER_SCHEMA, CPU_TERMINATION_GAIN_TRAINER_SCHEMA, NEAREST_RIVAL_COUNT,
 };
-pub use hamming::{
-    CpuHammingHeadKind, CpuHammingHeadTrace, CpuHammingPositionTrace, CpuHammingReadTrace,
-};
 pub use geometric_candidate_anchor::{
     calibrate_expanded_candidate_union, compare_anchored_candidate_rows,
     derive_anchored_candidate_rankers, evaluate_anchored_candidate_replies, AnchoredCandidateArm,
@@ -165,6 +163,9 @@ pub use geometric_candidate_rank::{
     TimedGeometricCandidateReading, GEOMETRIC_CANDIDATE_EPOCHS, GEOMETRIC_CANDIDATE_FEATURES,
     GEOMETRIC_CANDIDATE_FEATURE_NAMES, GEOMETRIC_CANDIDATE_MIN_GROUPS,
     GEOMETRIC_CANDIDATE_MIN_TARGETS, GEOMETRIC_CANDIDATE_TOP_WRITER,
+};
+pub use hamming::{
+    CpuHammingHeadKind, CpuHammingHeadTrace, CpuHammingPositionTrace, CpuHammingReadTrace,
 };
 pub use joint_branch::{
     compare_joint_branch_rows, evaluate_joint_branch_selection, fit_joint_branch_selector,
@@ -190,21 +191,21 @@ pub use panel::{
     panel_admission_gate, CpuPanelEvaluator, PanelDelta, PanelExportReading, PanelGateDecision,
     PanelReading,
 };
+pub use prompt_reply_rank::{
+    compare_prompt_reply_rank_rows, derive_prompt_reply_rank_memory, evaluate_prompt_reply_ranking,
+    fit_prompt_reply_ranker, PromptReplyRankArm, PromptReplyRankFeatureSet, PromptReplyRankMemory,
+    PromptReplyRankReading, PromptReplyRankStep, PromptReplyRankTraining, PromptReplyRanker,
+    TimedPromptReplyRankReading, PROMPT_REPLY_RANK_EPOCHS, PROMPT_REPLY_RANK_FEATURES,
+    PROMPT_REPLY_RANK_FEATURE_NAMES, PROMPT_REPLY_RANK_LEARNING_RATE,
+    PROMPT_REPLY_RANK_MIN_BASELINE_WRONG, PROMPT_REPLY_RANK_MIN_GROUPS,
+    PROMPT_REPLY_RANK_SHUFFLE_SEED, PROMPT_REPLY_RANK_TOP_K, PROMPT_REPLY_RANK_WEIGHT_LIMIT,
+    PROMPT_REPLY_RANK_WRITER_FEATURE,
+};
 pub use prompt_retrieval::{
     compare_prompt_retrieval_rows, derive_prompt_retrieval_memory, evaluate_prompt_retrieval,
     shuffle_prompt_retrieval_replies, PromptRetrievalArm, PromptRetrievalCensus,
     PromptRetrievalDecision, PromptRetrievalMemory, PromptRetrievalReading, PromptRetrievalStep,
     TimedPromptRetrievalReading, PROMPT_RETRIEVAL_MAX_CAP, PROMPT_RETRIEVAL_MAX_CONTEXT,
-};
-pub use prompt_reply_rank::{
-    compare_prompt_reply_rank_rows, derive_prompt_reply_rank_memory,
-    evaluate_prompt_reply_ranking, fit_prompt_reply_ranker, PromptReplyRankArm,
-    PromptReplyRankFeatureSet, PromptReplyRankMemory, PromptReplyRankReading, PromptReplyRankStep,
-    PromptReplyRankTraining, PromptReplyRanker, TimedPromptReplyRankReading,
-    PROMPT_REPLY_RANK_EPOCHS, PROMPT_REPLY_RANK_FEATURES, PROMPT_REPLY_RANK_FEATURE_NAMES,
-    PROMPT_REPLY_RANK_LEARNING_RATE, PROMPT_REPLY_RANK_MIN_BASELINE_WRONG,
-    PROMPT_REPLY_RANK_MIN_GROUPS, PROMPT_REPLY_RANK_SHUFFLE_SEED, PROMPT_REPLY_RANK_TOP_K,
-    PROMPT_REPLY_RANK_WEIGHT_LIMIT, PROMPT_REPLY_RANK_WRITER_FEATURE,
 };
 pub use quant_shadow::{
     quantization_gate, CpuFloatPanelReading, CpuPanelGap, CpuQuantizationCheckpoint,
@@ -214,9 +215,10 @@ pub use quant_shadow::{
 pub use query_cache_eval::{
     aggregate_query_cache_reports, evaluate_query_cache, evaluate_registered_query_cache,
     CentroidEvaluationRequest, REGISTERED_CONTEXT, REGISTERED_EXPECTED_ROWS,
-    REGISTERED_MINIMUM_OBSERVATIONS, REGISTERED_MIN_FIT_OBSERVATIONS, REGISTERED_MIN_FITTED_ROWS,
+    REGISTERED_MINIMUM_OBSERVATIONS, REGISTERED_MIN_FITTED_ROWS, REGISTERED_MIN_FIT_OBSERVATIONS,
     REGISTERED_PANEL_SPLITS, REGISTERED_POOLED_ROW_IDENTITY, REGISTERED_TRAIN_MASK_SHA256,
-    REGISTERED_TRAIN_ROWS, REGISTERED_TRAIN_SPLIT, REGISTERED_TRAIN_TOKENS_SHA256, REGISTERED_WIDTH,
+    REGISTERED_TRAIN_ROWS, REGISTERED_TRAIN_SPLIT, REGISTERED_TRAIN_TOKENS_SHA256,
+    REGISTERED_WIDTH,
 };
 pub use readout_refit::{
     evaluate_output_table, observe_refit_thresholds, paired_two_sigma, refit_output_table,
@@ -236,11 +238,10 @@ pub use reply_eval::{
     evaluate_termination_cell_gate_replies, evaluate_termination_diagnostics,
     evaluate_termination_gate_replies, evaluate_termination_orbit_gate_replies, generate_reply,
     generate_reply_memory_off, generate_reply_with_prefix, normalized_reference, GeneratedReply,
-    ReplyReading, ReplyRowReading,
-    TerminationCellGate, TerminationCellTraining, TerminationClass, TerminationGateTraining,
-    TerminationOrbitCell, TerminationOrbitGate, TerminationOrbitReplyReading,
-    TerminationOrbitTraining, TerminationPointGate, TerminationReading, TerminationStepReading,
-    TimedReplyReading, TimedTerminationReading,
+    ReplyReading, ReplyRowReading, TerminationCellGate, TerminationCellTraining, TerminationClass,
+    TerminationGateTraining, TerminationOrbitCell, TerminationOrbitGate,
+    TerminationOrbitReplyReading, TerminationOrbitTraining, TerminationPointGate,
+    TerminationReading, TerminationStepReading, TimedReplyReading, TimedTerminationReading,
 };
 pub use scenario_grade::{
     grade_scenarios, ScenarioCase, ScenarioCorpusIdentity, ScenarioGradeConfig,
@@ -278,8 +279,8 @@ pub use suffix_arbitration::{
     generate_suffix_arbitration_reply_with_aligned_endpoint,
     generate_suffix_arbitration_reply_with_branch_endpoint,
     generate_suffix_arbitration_reply_with_continuation_guard, suffix_arbitration_changes,
-    SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading, SuffixArbitrationStep,
-    TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
+    SuffixArbitrationArm, SuffixArbitrationChanges, SuffixArbitrationReading,
+    SuffixArbitrationStep, TimedSuffixArbitrationReading, SUFFIX_ARBITRATION_MIN_OBSERVATIONS,
     SUFFIX_ARBITRATION_SHALLOW_LOCAL_DEPTH,
 };
 pub use suffix_fallback::{

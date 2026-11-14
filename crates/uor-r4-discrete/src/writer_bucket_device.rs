@@ -439,6 +439,7 @@ impl BucketWriterEngine {
             trace: None,
             trace_stride: None,
             flock_trace_words: None,
+            relation_node_counts: None,
             binding: model.binding.clone(),
             epoch,
             stream: Arc::clone(&model.stream),

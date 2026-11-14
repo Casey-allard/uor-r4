@@ -22,14 +22,101 @@ pub const ENTRIES: [&str; 7] = [
 ];
 
 pub fn generate(source: &str) -> Result<String, String> {
-    let writer_end = source
+    let qualified = qualified_prefix(source)?;
+    let writer_end = qualified
         .find("// Statuses added")
         .ok_or("bucket source anchor changed: writer end missing")?;
     if source.matches(ORDINARY_WRITER).count() != 1 {
         return Err("bucket source anchor changed: ordinary writer body differs".into());
     }
-    let helpers_and_writer = &source[..writer_end];
+    let helpers_and_writer = &qualified[..writer_end];
     Ok(format!("{helpers_and_writer}\n{BUCKET}"))
+}
+
+const TRACE_ROUTE_START: &str = "// Route trace, flattened by row then block:";
+const TRACE_ROUTE_END: &str = "// ---- Flock & Relation read";
+const TRACE_ROUTE_BEGIN: &str = "// TRACE-BEGIN";
+const TRACE_ROUTE_END_MARK: &str = "// TRACE-END";
+const TRACE_ROUTE_SIGNATURE: &str =
+    "__device__ bool route_vector(const int* input,const U* ids,const U* routes,const U* plan,const U* g,const U* s,U row,U kind,U index,U candidate,int* output,U* trace) {";
+const ADMITTED_ROUTE_SIGNATURE: &str =
+    "__device__ bool route_vector(const int* input,const U* ids,const U* routes,const U* plan,const U* g,const U* s,U row,U kind,U index,U candidate,int* output) {";
+const TRACE_ROUTE_BYPASS: &str = r#"    if(s[13]==1u){
+        for(U block=0;block<s[1];++block){
+            input_block(input,ids,g,row,length-1,block,s,kind,index,candidate,output+block*8);
+        }
+        return true;
+    }"#;
+const ADMITTED_ROUTE_BYPASS: &str = "    if(s[13]==1u){for(U block=0;block<s[1];++block)input_block(input,ids,g,row,length-1,block,s,kind,index,candidate,output+block*8);return true;}";
+const TRACE_ROUTE_DISPATCH: &str =
+    "    return route_vector(input,ids,routes,plan,g,s,row,kind,index,candidate,output,trace);";
+const ADMITTED_ROUTE_DISPATCH: &str =
+    "    return route_vector(input,ids,routes,plan,g,s,row,kind,index,candidate,output);";
+
+fn strip_trace_blocks(source: &str) -> Result<String, String> {
+    let mut stripped = String::with_capacity(source.len());
+    let mut in_trace = false;
+    for line in source.split_inclusive('\n') {
+        match line.trim() {
+            TRACE_ROUTE_BEGIN => {
+                if in_trace {
+                    return Err("bucket source anchor changed: nested Route trace block".into());
+                }
+                in_trace = true;
+            }
+            TRACE_ROUTE_END_MARK => {
+                if !in_trace {
+                    return Err("bucket source anchor changed: unmatched Route trace end".into());
+                }
+                in_trace = false;
+            }
+            _ if !in_trace => stripped.push_str(line),
+            _ => {}
+        }
+    }
+    if in_trace {
+        return Err("bucket source anchor changed: unterminated Route trace block".into());
+    }
+    Ok(stripped)
+}
+
+/// Reconstruct the exact helper/writer prefix that the committed RTX 5090
+/// bucket receipts qualified. The trace-only blocks are stripped from the one
+/// production Route body; any change to a decision line survives into the
+/// generated source and therefore fails the retained source-hash receipt.
+fn qualified_prefix(source: &str) -> Result<String, String> {
+    let route_comment = source
+        .find(TRACE_ROUTE_START)
+        .ok_or("bucket source anchor changed: trace route start missing")?;
+    let route_start = source[route_comment..]
+        .find(TRACE_ROUTE_SIGNATURE)
+        .map(|offset| route_comment + offset)
+        .ok_or("bucket source anchor changed: traced Route signature missing")?;
+    let route_offset = source[route_start..]
+        .find(TRACE_ROUTE_END)
+        .ok_or("bucket source anchor changed: trace route end missing")?;
+    let route_end = route_start + route_offset;
+    if source.matches(TRACE_ROUTE_START).count() != 1
+        || source.matches(TRACE_ROUTE_END).count() != 1
+        || source.matches(TRACE_ROUTE_BEGIN).count() < 1
+        || source.matches(TRACE_ROUTE_END_MARK).count() != source.matches(TRACE_ROUTE_BEGIN).count()
+        || source.matches(TRACE_ROUTE_DISPATCH).count() != 1
+    {
+        return Err("bucket source anchor changed: Route trace instrumentation differs".into());
+    }
+    let mut route = strip_trace_blocks(&source[route_start..route_end])?;
+    if route.matches(TRACE_ROUTE_SIGNATURE).count() != 1
+        || route.matches(TRACE_ROUTE_BYPASS).count() != 1
+    {
+        return Err("bucket source anchor changed: Route trace shape differs".into());
+    }
+    route = route.replace(TRACE_ROUTE_SIGNATURE, ADMITTED_ROUTE_SIGNATURE);
+    route = route.replace(TRACE_ROUTE_BYPASS, ADMITTED_ROUTE_BYPASS);
+    let mut qualified = String::with_capacity(source.len());
+    qualified.push_str(&source[..route_comment]);
+    qualified.push_str(&route);
+    qualified.push_str(&source[route_end..]);
+    Ok(qualified.replace(TRACE_ROUTE_DISPATCH, ADMITTED_ROUTE_DISPATCH))
 }
 
 /// Exact text of `writer` in `src/discrete.cu`. If `discrete.cu` changes its writer
@@ -569,8 +656,9 @@ mod tests {
     fn generated_bucket_module_keeps_helpers_and_adds_seven_entries() {
         let source = include_str!("discrete.cu");
         let generated = generate(source).expect("bucket source generated");
-        let prefix_end = source.find("// Statuses added").expect("writer end");
-        assert!(generated.starts_with(&source[..prefix_end]));
+        let qualified = qualified_prefix(source).expect("qualified prefix");
+        let prefix_end = qualified.find("// Statuses added").expect("writer end");
+        assert!(generated.starts_with(&qualified[..prefix_end]));
         assert_eq!(generated.matches("__global__").count(), ENTRIES.len());
         for entry in ENTRIES {
             assert_eq!(
@@ -582,6 +670,30 @@ mod tests {
         assert!(!generated.contains("void discrete_forward("));
         assert!(!generated.contains("void discrete_counterfactual("));
         assert!(!generated.contains("void discrete_evaluate("));
+    }
+
+    #[test]
+    fn trace_route_compatibility_anchor_matches_the_qualified_prefix() {
+        let source = include_str!("discrete.cu");
+        let qualified = qualified_prefix(source).expect("qualified prefix");
+        assert_eq!(
+            source.matches("__device__ bool route_vector(").count(),
+            1,
+            "production Route read must have one implementation"
+        );
+        assert_eq!(qualified.matches(ADMITTED_ROUTE_SIGNATURE).count(), 1);
+        assert!(!qualified.contains(TRACE_ROUTE_START));
+        assert!(!qualified.contains(TRACE_ROUTE_BEGIN));
+        assert!(!qualified.contains(TRACE_ROUTE_END_MARK));
+        assert!(!qualified.contains(TRACE_ROUTE_DISPATCH));
+
+        let changed = source.replace("if(frame>=64) return false;", "if(frame>64) return false;");
+        assert_ne!(changed, source);
+        let changed_qualified = qualified_prefix(&changed).expect("changed qualified prefix");
+        assert_ne!(
+            qualified, changed_qualified,
+            "a production Route-decision change must reach bucket generation"
+        );
     }
 
     #[test]

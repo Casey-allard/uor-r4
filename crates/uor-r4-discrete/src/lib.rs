@@ -18,14 +18,14 @@ pub mod carrier_fresh;
 pub mod controller;
 pub mod corpus;
 pub mod coverage_census;
+#[cfg(all(test, feature = "cuda"))]
+mod cpu_oracle_parity;
 pub mod d11_export;
 pub mod decomposition;
 #[cfg(test)]
 mod decomposition_source;
 #[cfg(feature = "cuda")]
 pub mod device;
-#[cfg(all(test, feature = "cuda"))]
-mod cpu_oracle_parity;
 #[cfg(feature = "cuda")]
 pub mod driver_qualification;
 pub mod driver_source_pin;
@@ -363,6 +363,53 @@ mod tests {
                 (
                     "attention_audit_qualification.rs".into(),
                     ["actual", ".", "apply", "(&proposal),"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "device.rs".into(),
+                    ["self", ".", "apply", "(proposal)"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "cpu_oracle_parity.rs".into(),
+                    [".", "apply", "(kind, index, noop)"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "cpu_oracle_parity.rs".into(),
+                    ["assert!", "(gpu", ".", "apply", "(&proposal).unwrap());"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "cpu_oracle_parity.rs".into(),
+                    [
+                        "let committed = device",
+                        ".",
+                        "apply",
+                        "(&proposal).expect(\"cuda apply\");",
+                    ]
+                    .concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "cpu_oracle_parity.rs".into(),
+                    [
+                        "let receipt = applier",
+                        ".",
+                        "apply",
+                        "(kind, index, chosen).expect(\"cpu apply\");",
+                    ]
+                    .concat(),
                 ),
                 1,
             ),
