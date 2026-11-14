@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -78,7 +78,8 @@
 //! `--pair-weight replies` (claude-373) weighs each pair row by the fixed `1 / R`, where `R` is
 //! the number of different replies that follow the TRAIN turns holding the pair (at most
 //! 4096): the bag is the weighted sum of the turn's rows. The weights are saved with the rows.
-//! It wants `--pair-rows`.
+//! It wants `--pair-rows`. `--pair-weight boost` (claude-374) weighs each row `1 + 1 / R` from the
+//! same counts, so a pair seen with thousands of replies keeps claude-370's full row.
 //!
 //! `--writer-anchor 1` anchors the writer's ports (claude-290): the shared table's first and last
 //! 8D blocks hold exactly the SpiralCore roots of each token's own cell, re-set after every main
@@ -405,13 +406,14 @@ fn pair_rows_min(value: &str) -> Result<u32> {
     }
 }
 
-/// claude-373: `--pair-weight replies` weighs the pair rows by one over their reply count; it is
-/// the only weighing.
-fn pair_weight(value: &str) -> Result<bool> {
+/// `--pair-weight replies` (claude-373) weighs the pair rows by one over their reply count;
+/// `--pair-weight boost` (claude-374) by one plus it. The pair is (weighed, boosted).
+fn pair_weight(value: &str) -> Result<(bool, bool)> {
     match value {
-        "replies" => Ok(true),
+        "replies" => Ok((true, false)),
+        "boost" => Ok((true, true)),
         _ => Err(FloatTrainError::Invalid(format!(
-            "--pair-weight wants replies, not {value:?}"
+            "--pair-weight wants replies or boost, not {value:?}"
         ))),
     }
 }
@@ -585,6 +587,7 @@ fn main() -> Result<()> {
         address_band: None,
         pair_rows: None,
         pair_weight: false,
+        pair_weight_boost: false,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -792,7 +795,9 @@ fn main() -> Result<()> {
                 })?)
             }
             "--pair-rows" => config.pair_rows = Some(pair_rows_min(&value)?),
-            "--pair-weight" => config.pair_weight = pair_weight(&value)?,
+            "--pair-weight" => {
+                (config.pair_weight, config.pair_weight_boost) = pair_weight(&value)?
+            }
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -2290,10 +2295,14 @@ mod tests {
 
     #[test]
     fn the_pair_rows_are_a_training_only_switch() {
-        assert!(pair_weight("replies").unwrap());
-        for value in ["turns", "1", ""] {
+        assert_eq!(pair_weight("replies").unwrap(), (true, false));
+        assert_eq!(pair_weight("boost").unwrap(), (true, true));
+        for value in ["turns", "1", "", "Boost"] {
             let error = pair_weight(value).unwrap_err().to_string();
-            assert!(error.contains("--pair-weight wants replies"), "{error}");
+            assert!(
+                error.contains("--pair-weight wants replies or boost"),
+                "{error}"
+            );
         }
         assert_eq!(pair_rows_min("2").unwrap(), 2);
         for value in ["0", "-1", "x", ""] {

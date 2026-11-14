@@ -317,6 +317,10 @@ pub struct LongConfig {
     /// (`--pair-weight replies`, claude-373).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub pair_weight: bool,
+    /// With `pair_weight`, each row weighs `1 + 1 / R` in place of `1 / R`
+    /// (`--pair-weight boost`, claude-374). Left out of `config.json` when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pair_weight_boost: bool,
 }
 
 /// What TRAIN's scored targets are ([`LongConfig::train_targets`], claude-296).
@@ -826,6 +830,8 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
             ),
             None => println!("[pair] loaded weight replies: none"),
         }
+        // claude-374: which weight the loaded rows carry, for I-8 to compare with training.
+        println!("[pair] loaded weight kind: {}", rows.weight_kind());
     }
     crate::pair_rows::set_pair_rows(pair);
     Ok(())
@@ -14949,6 +14955,11 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             "--pair-weight replies weighs the pair rows; turn them on with --pair-rows",
         ));
     }
+    if config.pair_weight_boost && !config.pair_weight {
+        return Err(invalid(
+            "the pair rows' boost raises their reply weight; it wants pair_weight",
+        ));
+    }
     // claude-370: the export has no section for the pair rows, so no artifact holds them.
     if config.pair_rows.is_some() && config.train_as_served {
         return Err(invalid(
@@ -15104,7 +15115,14 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
                     "[pair] weight replies: {}",
                     crate::pair_rows::reply_census(&counts)
                 );
-                rows.with_reply_weights(&counts)?
+                // claude-374: the same counts, each row at 1 + 1/R.
+                let rows = if config.pair_weight_boost {
+                    rows.with_boost_weights(&counts)?
+                } else {
+                    rows.with_reply_weights(&counts)?
+                };
+                println!("[pair] weight kind: {}", rows.weight_kind());
+                rows
             } else {
                 rows
             };
@@ -17034,6 +17052,7 @@ mod tests {
             address_band: None,
             pair_rows: None,
             pair_weight: false,
+            pair_weight_boost: false,
         }
     }
 
@@ -19768,6 +19787,18 @@ mod tests {
             "{refused:?}"
         );
         config.pair_weight = false;
+        // claude-374: the boost alone has no reply weight to raise.
+        (config.pair_rows, config.pair_weight_boost) = (Some(2), true);
+        let refused = run_long(&missing, &missing.join("out"), &config, &Device::Cpu)
+            .err()
+            .map(|e| e.to_string());
+        assert!(
+            refused
+                .as_deref()
+                .is_some_and(|e| e.contains("the pair rows' boost raises their reply weight")),
+            "{refused:?}"
+        );
+        (config.pair_rows, config.pair_weight_boost) = (None, false);
         assert!(!missing.exists());
     }
 

@@ -465,7 +465,12 @@ pub struct PairRows {
     marks: PairMarks,
     rows: Var,
     weights: Option<Tensor>,
+    /// claude-374: the rows add `(1 + w)` of themselves, `w` the stored `1 / R`, in place of `w`.
+    boost: bool,
 }
+
+/// The tensor name of a boosted file's mark (claude-374); a `replies` file has none.
+const BOOST: &str = "boost";
 
 impl PairRows {
     /// Rows for every pair of `dict`, `width` wide, all zero, so the model starts unchanged.
@@ -488,7 +493,27 @@ impl PairRows {
             marks,
             rows,
             weights: None,
+            boost: false,
         })
+    }
+
+    /// The rows at full weight with rare pairs raised (claude-374): row `r` adds
+    /// `1 + 1 / counts[r]` times itself, a constant that takes no gradient. The stored weight stays
+    /// claude-373's `1 / R`, so the counts read back exactly; the forward adds the one.
+    pub fn with_boost_weights(self, counts: &[u32]) -> Result<Self> {
+        let mut rows = self.with_reply_weights(counts)?;
+        rows.boost = true;
+        Ok(rows)
+    }
+
+    /// Which weight the rows carry: `none` (claude-370), `replies` (`1 / R`, claude-373) or
+    /// `boost` (`1 + 1 / R`, claude-374).
+    pub fn weight_kind(&self) -> &'static str {
+        match (&self.weights, self.boost) {
+            (None, _) => "none",
+            (Some(_), false) => "replies",
+            (Some(_), true) => "boost",
+        }
     }
 
     /// The rows weighed by rarity (claude-373): row `r` adds `1 / counts[r]` times itself, a
@@ -644,7 +669,13 @@ impl PairRows {
         let gathered = self.rows.as_tensor().index_select(&hit_row, 0)?;
         let gathered = match &self.weights {
             Some(weights) => {
-                gathered.broadcast_mul(&weights.index_select(&hit_row, 0)?.unsqueeze(1)?)?
+                let weights = weights.index_select(&hit_row, 0)?;
+                let weights = if self.boost {
+                    weights.affine(1.0, 1.0)?
+                } else {
+                    weights
+                };
+                gathered.broadcast_mul(&weights.unsqueeze(1)?)?
             }
             None => gathered,
         };
@@ -665,6 +696,9 @@ impl PairRows {
         tensors.insert("rows".to_owned(), self.rows.as_tensor().detach());
         if let Some(weights) = &self.weights {
             tensors.insert("weights".to_owned(), weights.clone());
+        }
+        if self.boost {
+            tensors.insert(BOOST.to_owned(), Tensor::from_slice(&[1u32], 1, &host)?);
         }
         let marks = [
             ("user", &self.marks.user),
@@ -723,10 +757,30 @@ impl PairRows {
             marks,
             rows: Var::from_tensor(rows)?,
             weights: None,
+            boost: false,
+        };
+        // claude-374: a boost mark is exactly [1] and never stands without weights.
+        let boost = match tensors.get(BOOST) {
+            None => false,
+            Some(mark) if mark.to_vec1::<u32>()? == [1] => true,
+            Some(_) => {
+                return Err(invalid(format!(
+                    "{}: a pair-rows boost mark must be [1]",
+                    path.display()
+                )))
+            }
         };
         match tensors.get("weights") {
+            None if boost => Err(invalid(format!(
+                "{}: a pair-rows boost mark without weights",
+                path.display()
+            ))),
             None => Ok(Some(pair)),
-            Some(weights) => Ok(Some(pair.with_weights(weights.to_vec1::<f32>()?)?)),
+            Some(weights) => {
+                let mut pair = pair.with_weights(weights.to_vec1::<f32>()?)?;
+                pair.boost = boost;
+                Ok(Some(pair))
+            }
         }
     }
 }
@@ -1284,5 +1338,138 @@ mod tests {
             values[15 * 4..16 * 4],
             "window A's last position adds row 3"
         );
+    }
+
+    /// claude-374: [`weighed`]'s rows and table, boosted by [`COUNTS`].
+    #[cfg(feature = "cuda")]
+    fn boosted(device: &Device) -> (PairRows, Vec<f32>) {
+        let (pair, table) = weighed(device);
+        let mut pair = pair;
+        pair.weights = None;
+        (pair.with_boost_weights(&COUNTS).unwrap(), table)
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_boosted_bag_is_the_sum_of_one_plus_inverse_count_rows() {
+        let device = device();
+        let (pair, table) = boosted(&device);
+        assert_eq!(pair.weight_kind(), "boost");
+        // The stored weight stays 1 / R; the forward adds the one.
+        let weights = pair.weights().unwrap().to_vec1::<f32>().unwrap();
+        assert_eq!(weights, vec![1.0, 0.5, 0.25, 0.125]);
+        let part = |r: usize, c: usize| table[r * 4 + c] * (1.0 + 1.0 / COUNTS[r] as f32);
+        let values = state(2, 16, 4);
+        let x = Tensor::from_vec(values.clone(), (2, 16, 4), &device).unwrap();
+        let y = pair.apply(&x, &batch_ids()).unwrap();
+        let y = y.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        let mut bag = vec![vec![0.0f32; 4]; 32];
+        for p in [6, 7, 8] {
+            bag[p] = (0..4).map(|c| part(0, c)).collect();
+        }
+        for p in [14, 15] {
+            bag[p] = (0..4).map(|c| part(3, c)).collect();
+        }
+        for p in [16 + 6, 16 + 7, 16 + 8] {
+            bag[p] = (0..4)
+                .map(|c| part(0, c) + part(1, c) + part(2, c))
+                .collect();
+        }
+        for (p, add) in bag.iter().enumerate() {
+            for c in 0..4 {
+                let expect = values[p * 4 + c] + add[c];
+                assert_eq!(y[p * 4 + c], expect, "position {p} coordinate {c}");
+            }
+        }
+        // A pair seen with one reply weighs 2: row 0 alone at position 6 adds twice itself.
+        for c in 0..4 {
+            assert_eq!(y[6 * 4 + c], values[6 * 4 + c] + 2.0 * table[c]);
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn replies_rows_are_claude_373s_and_write_no_boost_mark() {
+        let device = device();
+        let directory = scratch(0x3740);
+        let (pair, _) = weighed(&device);
+        assert_eq!(pair.weight_kind(), "replies");
+        pair.save(&directory).unwrap();
+        let tensors = candle_core::safetensors::load(directory.join(FILE), &device).unwrap();
+        let mut names: Vec<&String> = tensors.keys().collect();
+        names.sort();
+        assert_eq!(names, ["assistant", "rows", "user", "weights"]);
+        let loaded = PairRows::load(&directory, &device).unwrap().unwrap();
+        assert_eq!(loaded.weight_kind(), "replies");
+        assert_eq!(
+            PairRows::new(dict(), marks(), 4, &device)
+                .unwrap()
+                .weight_kind(),
+            "none"
+        );
+        std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn boost_round_trips_and_a_mark_without_weights_is_refused() {
+        let device = device();
+        let directory = scratch(0x3741);
+        let (pair, _) = boosted(&device);
+        pair.save(&directory).unwrap();
+        let loaded = PairRows::load(&directory, &device).unwrap().unwrap();
+        assert_eq!(loaded.weight_kind(), "boost");
+        assert_eq!(
+            loaded.reply_counts_of_weights().unwrap(),
+            Some(vec![1, 2, 4, 8])
+        );
+        let x = Tensor::from_vec(state(2, 16, 4), (2, 16, 4), &device).unwrap();
+        let a = pair.apply(&x, &batch_ids()).unwrap().flatten_all().unwrap();
+        let b = loaded
+            .apply(&x, &batch_ids())
+            .unwrap()
+            .flatten_all()
+            .unwrap();
+        assert_eq!(a.to_vec1::<f32>().unwrap(), b.to_vec1::<f32>().unwrap());
+        let path = directory.join(FILE);
+        let mut tensors = candle_core::safetensors::load(&path, &device).unwrap();
+        tensors.insert(
+            BOOST.to_owned(),
+            Tensor::from_slice(&[2u32], 1, &device).unwrap(),
+        );
+        candle_core::safetensors::save(&tensors, &path).unwrap();
+        let error = PairRows::load(&directory, &device).unwrap_err().to_string();
+        assert!(error.contains("boost mark must be [1]"), "{error}");
+        tensors.insert(
+            BOOST.to_owned(),
+            Tensor::from_slice(&[1u32], 1, &device).unwrap(),
+        );
+        tensors.remove("weights");
+        candle_core::safetensors::save(&tensors, &path).unwrap();
+        let error = PairRows::load(&directory, &device).unwrap_err().to_string();
+        assert!(error.contains("boost mark without weights"), "{error}");
+        std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_boosted_cached_step_equals_the_whole_window() {
+        let device = device();
+        let (pair, table) = boosted(&device);
+        let ids = batch_ids();
+        let values = state(2, 16, 4);
+        let x = Tensor::from_vec(values.clone(), (2, 16, 4), &device).unwrap();
+        let whole = pair.apply(&x, &ids).unwrap().narrow(1, 15, 1).unwrap();
+        let step = pair.apply_last(&x.narrow(1, 15, 1).unwrap(), &ids).unwrap();
+        let whole = whole.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        let step = step.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+        assert!(whole
+            .iter()
+            .zip(&step)
+            .all(|(a, b)| a.to_bits() == b.to_bits()));
+        // Window A's last position adds row 3 at 1 + 1/8, in the step as in the whole window.
+        for c in 0..4 {
+            assert_eq!(step[c], values[15 * 4 + c] + table[12 + c] * 1.125);
+        }
     }
 }
