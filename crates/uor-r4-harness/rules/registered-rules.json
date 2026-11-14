@@ -11,8 +11,8 @@
     "CHECK, IT IS A WRONG ONE - it would tell authors to delete guards on real rules, and it would",
     "stop being wrong only when the port finished, WHICH IS EXACTLY WHEN THE CHECK STOPS MATTERING.",
     "",
-    "WHY IT HAS 53 IDS AND NOT 40: the engine resolves guards from THREE sources, not one -",
-    "checkrules.rules() (40), each module's own register_rules() (13 more), and prlint.GATE_RULES,",
+    "WHY IT HAS 54 IDS AND NOT 40: the engine resolves guards from THREE sources, not one -",
+    "checkrules.rules() (40), each module's own register_rules() (14 more), and prlint.GATE_RULES,",
     "which are the gates raised against a PR body rather than against repo state. My first data file",
     "took only checkrules.rules(), so the four lessons whose guards name a prlint gate were reported",
     "as unregistered - the SAME false positive in a new place.",
@@ -39,6 +39,7 @@
     "harness.entry_point",
     "harness.milestones.present",
     "harness.mistakes.have_guards",
+    "harness.native_space_contract",
     "harness.skills.nonempty",
     "harness.state_formats",
     "mistakes.evidence_exists",
@@ -81,7 +82,7 @@
   ],
   "sources": {
     "checkrules.rules()": 40,
-    "module register_rules()": 13,
+    "module register_rules()": 14,
     "prlint.GATE_RULES": "the remainder"
   }
 }

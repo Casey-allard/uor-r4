@@ -974,7 +974,7 @@ mod guard_rule_tests {
         )
     }
 
-    /// **The file the bug produced.** 53 ids, not 40: the engine resolves guards from three sources,
+    /// **The file the bug produced.** 54 ids, not 40: the engine resolves guards from three sources,
     /// and taking only `checkrules.rules()` reported four real lessons as unregistered — **the same
     /// false positive, in a new place.**
     #[test]
@@ -982,8 +982,8 @@ mod guard_rule_tests {
         let ids = registered_rules(&paths());
         assert_eq!(
             ids.len(),
-            53,
-            "the engine's set is 53 ids across three sources"
+            54,
+            "the engine's set is 54 ids across three sources"
         );
         assert!(
             ids.iter().any(|i| i == "prlint.no_cpu_model_compute"),

@@ -35,6 +35,7 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
 
 | Direction | Status | Date | Note |
 |---|---|---|---|
+| "see here I thought we were training directly to vector space, carrying the same space, and serving the same space with identical attention mechanisms in training and serving"; then "yes please update your corvuswing loopkit and harness too so that you can continue down the correct path" | open | 2026-11-13 | Owner direction, D85. The default route is one persistent integer/fixed-point geometric state with the same typed training and serving operators and bit-identical transition replay. Float master weights and float-to-integer export gaps remain historical/reference work. The first bounded unit is `native-space-state-contract`; model training waits for its state/operator inventory and parity fixture. Recorded `2026-11-14T02:57:18Z`. |
 | "Can you not just go copy what claude code desktop looks like and how it works for the desktop app? the only hard one should be building the browser functionality... there are certain things you can't do in a webapp I think, like auth them to github (but maybe you can?)" | done | 2026-11-04 | Kimi's chat. The installed Claude Code desktop was inspected for observable interaction patterns, not proprietary code. The shared Studio now has a Claude-inspired session toolbar with working sidebar, initial section history, native session selection, direct Files/Changes/Terminal/New chat/view options and the existing UOR theme. Browser and Tauri share one frontend; no second desktop backend or feature-parity claim. GitHub device flow is a native candidate with a configured public OAuth client ID and no secret; ordinary web flow requires a secret, and a live direct-browser CORS probe was not established, so no sign-in control is claimed. |
 | "I think your other window froze, can you please pick the work back up over here also can you add the below to what the last session was doing? Also please try and keep local hdd space more clean because we are running out. And remember, you want it to actually serve our live chat engine we are currently using (I think its currently uor-chat) anyway, can you also please make the AI webstudio to have a conversational window that works exactly like the ones in LLMs do, where you can press up to select last input, you can press enter to send a message (etc) and if possible to track the tokens/s and all of the other openai endpoints that it should have (they may not all be setup correctly yet so its ok to build failsafes for now) but again I want the input window to like accept long pastes, or pastes of files or pictures too (although we have no algorithmim to break pictures down at all yet so we will need that part first) but yes, I want it to function like your own chat windows do" | done | 2026-11-02 | Kimi's chat. **Delivered through 3 November:** recovered/live Studio (#3593), native `uor-chat` OpenAI-compatible loopback (#3606), complete conversational Studio (#3617), mixed text/file paste (#3621), deterministic parallel integer R4 image decomposition (#3625), bounded native ingestion (#3626), experimental Studio Canvas input with memory-only blobs and explicit Send (#3628), and checked evidence (#3630). The composer covers history recall, Enter/Shift+Enter, long text, files and images; exact usage, TTFT and tok/s metrics and truthful unsupported-endpoint 501 handling are tested. Disk hygiene remains an ongoing `uor-hygiene` operation. Protocol/UX evidence only: no useful-chat or visual-understanding claim and no production publish. |
 | "dude I am the owner and I am giving you approval... please go ahead and plan to systematically repair these cpu training methods, all of them, and begin to work your way through them, remember you need to be comitting work to github main so we know it's there, and I do not want your work to directly break anything claude is doing on the main track, but we do need all of this stuff done as well, so please plan and execute this all as a goal, use subagents and whatever you need locally to install or whatever" | open | 2026-11-01 | Owner-authorized CPU training program, recorded by D84 and item `cpu-training-program`. The program repairs CPU research paths in isolated modules while Claude's current FBS/integer serving work remains untouched. GPU remains the qualification authority; CPU results label their substrate and cannot replace a GPU bar without a later owner decision. |
@@ -60,6 +61,25 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
 
 Pending owner *answers* are not directions and never enter this table. Since D65–D69 no step
 waits for one: an unanswered ask becomes the lab's own decision review, logged for the owner.
+
+## Native-space cycle
+
+<!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
+
+D85 replaces the float-master default with one persistent native geometric state. The path
+is:
+
+1. **`native-space-state-contract`:** declare every carried field and map every native
+   transition to its shared training/serving operator, with a bit-identical replay fixture.
+2. **Shared optimizer and update contract:** prove gradients and optimizer updates stay in
+   that state rather than a parallel float master.
+3. **Native CUDA training kernels:** implement the declared forward/backward/update kernels
+   with the same transition identities the served integer runtime uses.
+4. **One trained end-to-end model:** train, serialize losslessly and serve without a numeric
+   model conversion.
+
+No step may substitute a float-master export gap for the parity evidence. The historical
+float path remains preserved and may be used as an external reference/control only.
 
 ## The path to M1, by unblock count (historical completion record)
 
@@ -140,7 +160,7 @@ earlier path is free.
 - No softmax, squashing or normalized exponential anywhere, including renamed or table forms (D23).
 - No dense matrix multiplication or GEMM in training or serving, including wrappers and hand loops (D25/D30).
 - No transformer comparators (D28); no mesh as a coordination concept (L-021); codex keeps full access (P-5 dropped).
-- Research compute is GPU-first (D24/§3.5). GPU results qualify training and evaluation; the owner-authorized CPU program (D84) runs development research only. Float training is offline-only in a separately scanned module with an export gap reported (D37); serving stays D11 integer (D11).
+- Research compute is GPU-first (D24/§3.5). GPU results qualify training and evaluation; the owner-authorized CPU program (D84) runs development research only. The default model path uses one persistent native state with shared training/serving operators (D85); an F32 master plus export gap is historical/reference work. Serving stays D11 integer (D11).
 - The pooled-ranking loss (banned forms) does not return; a reply rerun needs a compliant objective.
 - Nothing is deleted: negatives, unique source and other labs' work move byte-identical to archive/ (§4.7, L-015).
 - No new infrastructure, documentation-clarification or record-hygiene unit unless a milestone item depends on it (D77). The loop's own fixes ride inside the unit that needs them.

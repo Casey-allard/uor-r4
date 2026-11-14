@@ -3,7 +3,18 @@
 The discrete model learns by trying every legal geometric move of a table entry and keeping a move
 only when the integer loss strictly improves. The method is exact and runs on the GPU. **It has now
 produced a saved model that passes M1 on two seeds.** Earlier failures remain useful negative
-evidence, not the current best. A separate FBS path trains offline in float under D37.
+evidence, not the current best.
+
+<!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
+
+**D85 status:** the persistent native state/operator implementation is pending; all float-to-integer measurements on this page are historical/export evidence.
+
+**D85 changes the default route.** The model to train next carries one persistent native
+integer/fixed-point geometric state through weights, activations, SpiralCore carry, routes,
+memory, gradients and optimizer updates. Training and serving must call the same typed
+operators and replay the same route, carry, read and token decisions bit for bit. The FBS path
+below is retained as historical/reference work; an F32 master plus export gap is not the
+default model boundary.
 
 ![The discrete learning loop: score every legal move, choose the lowest integer loss, commit only a strict gain, then verify the stored result. A side panel shows BVG-K scoring several coordinates per launch.](../figures/model/discrete-learning-loop.svg)
 
@@ -57,9 +68,9 @@ The saved model reads new prompt phrasings into known reply kinds. It does not s
 or useful conversation; 62.5% of p-f's reference replies are verbatim TRAIN replies
 ([M1 close](../labs/m1-close-saved-model/README.md), [Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f report](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)).
 
-## Offline float training under D37
+## Historical offline float training under D37
 
-The separate FBS trunk uses float forward passes, gradients and an optimizer offline, in its own
+Before D85, the separate FBS trunk used float forward passes, gradients and an optimizer offline, in its own
 scanned module. Softmax, squashing and dense matmul remain banned. Every float candidate must report
 its export gap on the same evaluator, and the shipped artifact must be integer.
 
@@ -67,6 +78,10 @@ Since claude-179, the FBS backward uses a fixed-order reduction, so two runs giv
 byte for byte. The `lut-stack/5` export is inside the gap bar at DEV scope. Determinism is not a
 quality claim: on new phrasing, the model still starts replies poorly
 ([claude-217](../loop/tasks/one-model-end-to-end/claude-217/REPORT.md)).
+
+The native-space item [`native-space-state-contract`](../roadmap/items/native-space-state-contract.md)
+now starts from the state and operator inventory. No new default-path training run may treat
+this historical float route as its model architecture.
 
 ## Pre-registration and runs
 

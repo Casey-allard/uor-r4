@@ -63,14 +63,14 @@ flowchart LR
 | D34 | Revised attention and memory sequence: reranker-first read plus a D19 object-store crate. | Merged | 5.8 (the approved sequence, kept in `NOW.md`) |
 | D35 | A seed-2 packet re-issue is required before any seed-2 go. | Retired | Superseded by D39. |
 | D36 | GitHub Pages keeps the last good deploy until a D11 WebAssembly engine lands. | Merged | 2 (web client) and 3.6; its "browser serving counts as CPU model compute" clause is replaced, and the legacy crates are repaired (2.4). |
-| D37 | Float is legal in offline training only, with a reported export gap. | Kept | 3.7; the owner's reason for the bans is quoted in 1, and archived sheets are handled in 4.5. |
+| D37 | Float is legal in offline training only, with a reported export gap. | Kept as historical/reference | 3.7 / 4.5; D85 makes the persistent native route the default, while D37's measured export-gap evidence is retained. |
 | D38 | D5 split into D5-a (residency) and D5-b (per-token sparsity). | Kept | 3.9 |
 | D39 | M1 closing bar, reachability gate, post-qualification sequence, lab self-direction. | Merged | 4.8 (bar (d) replaced), 4.2, 5.8 and 5.3 |
 | D40 | Owner-identity phrases are typed by the owner personally. | Kept | 5.1 (the K16 ratification is a retired one-off) |
 | D41 | One-time offline donor corpus exception (`distill-d1`), on binding conditions. | Kept | 3.10 (sole exception), 5.1 and 5.8 |
 | D42 | The owner adopts the charter and answers eight checkpoint questions. | Kept (as the adoption record) | The charter itself; see the [change log](changes.md). |
 
-Decisions after D42 are recorded in [`DECISIONS.md`](../integration/DECISIONS.md), not expanded into this D0-D42 map. D84 amended D24's compute placement on 1 November 2026; its full row and change-log entry are authoritative.
+Decisions after D42 are recorded in [`DECISIONS.md`](../integration/DECISIONS.md), not expanded into this D0-D42 map. D84 amended D24's compute placement on 1 November 2026; D85 makes the persistent native train/serve state the default. Their full rows and change-log entries are authoritative.
 
 ## Tally
 

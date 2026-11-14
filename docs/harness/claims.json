@@ -1,4 +1,11 @@
 {
+  "codex/native-space-cycle": {
+    "branch": "codex/native-space-cycle",
+    "claimed_at": "2026-11-13T22:17:35-05:00",
+    "head": "6e7fc4d41",
+    "lab": "codex",
+    "note": ""
+  },
   "deepseek/admission-headroom": {
     "branch": "deepseek/admission-headroom",
     "claimed_at": "2026-11-04T15:20:00-05:00",

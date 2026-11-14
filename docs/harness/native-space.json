@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "owner_decision": "D85",
+  "canonical_assertion": "Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only.",
+  "decision_suffix": "The historical float/export systems and evidence are preserved but are no longer the default route. Amends §1, §2.1, §3.6 and replaces the default-path meaning of §3.7.",
+  "charter_markers": {
+    "start": "<!-- native-space-cycle:start -->",
+    "end": "<!-- native-space-cycle:end -->"
+  },
+  "charter_phrases": [
+    "one persistent native geometric state",
+    "same typed operators",
+    "bit-identical",
+    "floating point",
+    "export gap"
+  ],
+  "skills": {
+    "protocol": ".agents/skills/native-space-cycle/SKILL.md",
+    "harness_pointer": "docs/harness/skills/native-space-cycle/SKILL.md"
+  },
+  "protocol_marker": "<!-- native-space-protocol: .agents/skills/native-space-cycle/SKILL.md -->",
+  "skill_phrases": [
+    "one persistent state",
+    "one operator definition",
+    "one transition",
+    "training updates that state",
+    "serialization is not translation"
+  ],
+  "plan_heading": "## Native-space cycle",
+  "roadmap_item": "native-space-state-contract",
+  "roadmap_phrases": [
+    "one persistent native geometric state",
+    "bit-identical"
+  ],
+  "agents_phrase": "one persistent native train/serve",
+  "agents_prefix": "5. **One persistent native train/serve space.**",
+  "milestone_rule": "D85",
+  "change_log_phrase": "one persistent native train/serve state (D85)",
+  "model_surfaces": [
+    "docs/model/STACK-CONTRACT.md",
+    "docs/model/architecture.md",
+    "docs/model/pipeline-map.md",
+    "docs/model/serving-and-export.md",
+    "docs/model/training.md"
+  ],
+  "model_status": "**D85 status:** the persistent native state/operator implementation is pending; all float-to-integer measurements on this page are historical/export evidence.",
+  "parity_fields": [
+    "route choices",
+    "carry state",
+    "read choices",
+    "memory addresses",
+    "token ids"
+  ],
+  "forbidden_default_path": [
+    "F32 master model",
+    "export gap"
+  ]
+}

@@ -14,6 +14,44 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 13 November 2026: one persistent native train/serve state (D85)
+
+<!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
+
+**Decided by:** the owner (Casey), 13 November 2026, recorded at `2026-11-14T02:57:18Z`.
+He wrote:
+
+> "see here I thought we were training directly to vector space, carrying the same space,
+> and serving the same space with identical attention mechanisms in training and serving"
+
+Then:
+
+> "yes please update your corvuswing loopkit and harness too so that you can continue down
+> the correct path"
+
+**What changed:**
+
+1. **§1 and §2.1.** The model's native state is trained, carried and serialized to D11; the
+   artifact is no longer described as the result of a different model's export.
+2. **§3.6.** Serving remains integer and now states explicitly that its artifact packages the
+   same state training updated.
+3. **§3.7.** The default route is one persistent integer/fixed-point geometric state with
+   the same typed operators in training and serving. Route choices, carry, reads, memory
+   addresses and emitted ids must replay bit for bit. Float is reference/diagnostic code
+   outside the default path. An export gap cannot qualify the default path.
+4. **Historical route preserved.** The prior §3.7 text was:
+
+   > Float forward, gradients and optimizers are legal offline, in a separately scanned
+   > module, never in the discrete crate. Every float candidate reports its export gap on
+   > the same evaluator; a gap above the two-seed noise band disqualifies it. The D32
+   > discrete path stays active; its qualification uses exact arithmetic.
+
+   D37, D73, the float trainer, exporter and all measured evidence remain. They become
+   historical/reference or diagnostic work, not the default architecture.
+5. **Control plane.** AGENTS.md, the project Codex skills and `uor-harness` now carry the same
+   invariant. `harness.native_space_contract` fails when the owner decision, charter markers,
+   milestone rule, plan section, skills or required native-parity contract disagree.
+
 ## 1 November 2026: owner-authorized CPU training program (D84)
 
 **Decided by:** the owner (Casey), in the DeepSeek/Codex session on the project workstation, recorded by the lab at `2026-11-01T21:51:23Z`. He wrote:

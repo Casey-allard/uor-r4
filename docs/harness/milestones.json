@@ -463,6 +463,12 @@
       "rule": "Floating point is legal in offline training only: float forward passes, gradients and optimizers, and offline numerical training instruments, in a separately scanned float module that names its pre-registration (R12/D31), remains geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist entry added and reviewed with that pre-registration (never by widening the discrete crate's scan), and reports its export gap. Softmax/squashing (D23/D25) and dense matrix multiplication (D25/D30) stay banned everywhere; model-compute qualification is GPU-first (D24), with only the named D84 CPU program permitted as development research; the exported/served artifact is D11 integer/table only, with no float or transcendental instruction; D80/D81 allow hardware integer multiply and divide. The October 14 complex-plane zeta-zero exception stays separate; archived float sheets return by re-registration, fresh FIT and the lab's D67 pre-run review, with D41's donor pass the named owner exception.",
       "scope": "all",
       "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D85",
+      "rule": "Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
     }
   ],
   "constraint_freeze": {

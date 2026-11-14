@@ -8,6 +8,7 @@
     {"path": "docs/integration/DECISIONS.md", "why": "the owner decision index"},
     {"path": ".github/**", "why": "CI workflows, templates and the merge path"},
     {"path": "docs/harness/labs.json", "why": "the lab registry; the harness refuses a lab not listed in it"},
+    {"path": "docs/harness/native-space.json", "why": "the owner-approved native train/serve invariant"},
     {"path": "docs/harness/owner-paths.json", "why": "this list"},
     {"path": "docs/harness/rule-sources.json", "why": "the files allowed to state a rule"},
     {"path": "docs/harness/branches.json", "why": "protected branches that are never deleted"},

@@ -20,7 +20,7 @@ use crate::statusdelivery::Github;
 /// ported; this says which ones `check` actually calls - and **the two disagreeing is exactly the
 /// defect this module exists to fix**, when `cmd_check` ran none of them while `parity` reported
 /// the set complete.
-pub const RULES: [(&str, &str); 42] = [
+pub const RULES: [(&str, &str); 43] = [
     ("arena.decisive_power", "warn"),
     ("arena.knows_what_it_cannot_measure", "warn"),
     ("arena.parents_exist", "error"),
@@ -35,6 +35,7 @@ pub const RULES: [(&str, &str); 42] = [
     ("harness.entry_point", "error"),
     ("harness.milestones.present", "error"),
     ("harness.mistakes.have_guards", "warn"),
+    ("harness.native_space_contract", "error"),
     ("harness.owner_rules_applied", "warn"),
     ("harness.skills.nonempty", "error"),
     ("harness.state_formats", "error"),
@@ -102,6 +103,7 @@ pub const MODULE_RULES: [(&str, &[&str]); 10] = [
             "harness.entry_point",
             "harness.milestones.present",
             "harness.mistakes.have_guards",
+            "harness.native_space_contract",
             "harness.owner_rules_applied",
             "harness.skills.nonempty",
             "harness.state_formats",

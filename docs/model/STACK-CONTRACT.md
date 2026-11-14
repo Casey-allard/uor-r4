@@ -5,6 +5,12 @@
 
 A stack contract makes one model composition explicit across source, configuration, artifact sections, commands, readings and probes. It is not a capability claim.
 
+<!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
+
+**D85 status:** the persistent native state/operator implementation is pending; all float-to-integer measurements on this page are historical/export evidence.
+
+**D85:** existing contracts whose training row says float32 and whose serving row uses a separate integer artifact describe the historical/export route. The default path is one persistent native geometric state with the same typed training and serving operators; these records remain valid only at their measured historical scope.
+
 ## Evidence status
 
 | Contract | State | Schema | Mechanisms | Evidence | Probes |

@@ -7,14 +7,16 @@ UOR-R4 builds a fast, non-transformer language model that predicts text with geo
 [CHARTER.md](CHARTER.md) is the single rule book. Where anything else disagrees with it, the charter wins.
 Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/rules/changes.md).
 
-## Six things every agent must do or never do
+## Seven things every agent must do or never do
 
 1. **Geometry only.** Every mechanism, training signal and fix comes from the project's geometry (CHARTER §3.1).
 2. **No softmax or squashing.** No softmax, log-softmax, softplus, sigmoid, tanh, GELU or normalized exponential anywhere, including losses, gradients, sampling and renamed or table forms (§3.2).
 3. **No matmul.** No dense matrix multiplication or GEMM in training or serving, including wrappers and hand loops (§3.3).
 4. **GPU-first research compute.** GPU results qualify training and evaluation by default. Only a named, separately scanned CPU program authorized by the owner (D84) may run CPU training or evaluation as development research; it cannot replace a GPU bar without a later owner decision. Serving the exported integer artifact on client devices remains the product and is allowed (§3.5, §3.6).
-5. **Never park; never wait.** Every step is one your lab can finish alone: a GPU or training run, held work included, goes ahead on your own pre-run review, and a bar or other decision on your own decision review, each reading the whole project first and logged for Casey, who can reverse it (§5.1).
-6. **Deliver through the full path:** PR → your own fresh-context adversarial exact-head review, in the same session → merge queue → verify on fresh `main` → delete the branch and worktree; other labs audit after the merge (§5.5).
+5. **One persistent native train/serve space.** Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only.
+   References: §3.7, D85, and `.agents/skills/native-space-cycle/SKILL.md`.
+6. **Never park; never wait.** Every step is one your lab can finish alone: a GPU or training run, held work included, goes ahead on your own pre-run review, and a bar or other decision on your own decision review, each reading the whole project first and logged for Casey, who can reverse it (§5.1).
+7. **Deliver through the full path:** PR → your own fresh-context adversarial exact-head review, in the same session → merge queue → verify on fresh `main` → delete the branch and worktree; other labs audit after the merge (§5.5).
 
 ## Lessons the project paid for — the PM's top ten from [LESSONS.md](docs/harness/LESSONS.md), rendered between the markers, never hand-edited
 
@@ -49,6 +51,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 ## How to work
 
 - Pick work from `PLAN.md` and work in the loop (§5.3, §5.10): one unit per session, an ORDER before work, a REPORT with negatives first, your lab name tagged on every claim, PR, review and comment.
+- Before model training, optimizer, carry, memory or artifact work, read `.agents/skills/native-space-cycle/SKILL.md`, `docs/harness/native-space.json` and D85. A unit with no native state schema, shared operator path and bit-identical replay oracle is an inventory unit, not a training run.
 - A change to a bar, a status, a scope or a stop rule is a decision card your top session approves after its own decision review, never a subagent's call; §3 and the caps are the owner's (§5.1, §5.2).
 - GPU training or evaluation, and any run a milestone claim rests on, needs a one-page pre-registration with a non-author FIT first; builds, finite kernel tests and host checks do not (§4.5).
 - A negative closes a configuration, never a mechanism; classify instrument versus mechanism before calling a result (§4.1, §4.2). Record each result as one row in the line's notebook (§5.6).

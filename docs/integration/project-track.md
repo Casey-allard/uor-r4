@@ -114,8 +114,9 @@ Current behavior is local by default, with only an explicit user-configured web 
   owner-authorized D84 CPU program runs development research only and cannot replace a GPU bar
   without a later owner decision. Client-device serving of the D11 artifact is the product and is
   allowed (§3.6).
-- **Float only offline (D37).** Use a separately scanned geometric module and report the export gap;
-  the discrete path stays integer.
+- **One persistent native state (D85).** Train and serve the same integer/fixed-point geometric
+  state; float is historical/reference or diagnostic work outside the default path. The historical
+  export-gap route remains evidence, not the default model boundary.
 - **D11 serving.** No float or transcendental arithmetic; D80/D81 allow integer multiply and divide.
 - **D22/D31.** A negative closes a configuration, never a mechanism. Instrument defects are not
   mechanism negatives.

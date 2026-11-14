@@ -6,6 +6,17 @@ complete**: a saved discrete model passed all six bars on two seeds. No model ho
 conversation. Two model paths exist and have not joined: the discrete M1 path and the float-trained
 FBS trunk.
 
+<!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
+
+**D85 status:** the persistent native state/operator implementation is pending; all float-to-integer measurements on this page are historical/export evidence.
+
+**D85 correction:** these two paths record how the model arrived at M1. Under D85, the default
+path is required to carry one persistent native integer/fixed-point geometric state through the
+same typed training and serving operators. The first implementation item is
+[`native-space-state-contract`](../roadmap/items/native-space-state-contract.md). The diagrams and
+measurements below remain historical evidence until that contract and a joined native-space model
+replace them.
+
 ![Two separate pipelines: the completed discrete M1 lane uses PositionHolonomyV1, Flock plus an orbit-root causal pointer, discrete Hamilton mixing, OrbitRootSnapNormV1 and OuterL1V1 readout; the float-trained FBS lane separately uses SpiralCore position, FBS recurrence, Hamming copy heads, exact turn memory and whole-table nearest readout.](../figures/model/pipeline.svg)
 
 *The upper discrete M1 lane and lower FBS research lane are different models, not one joined pipeline; only the D11 integer serving boundary is shared.*

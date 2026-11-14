@@ -151,6 +151,7 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "harness.skills.nonempty",
             "harness.mistakes.have_guards",
             "harness.state_formats",
+            "harness.native_space_contract",
             // **The last rule.** Resolved against a table taken from the runtime's own parser, and
             // compared against Python's live `argparse` over every documented command: 143 rows,
             // identical on both sides.
