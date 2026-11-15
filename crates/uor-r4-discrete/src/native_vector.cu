@@ -230,3 +230,146 @@ extern "C" __global__ void native_q31_first_pick_read(
         out[at + l] = q31_saturate(out[at + l] + scaled);
     }
 }
+
+// Gate update, twin of `Q31FirstPickRead::train_pick_step`. Every sum is
+// exact in s64 or __int128, so the order of addition cannot change a word.
+typedef __int128 s128;
+typedef unsigned __int128 u128;
+
+__device__ __forceinline__ u64 address_distance(const s64* query, const s64* key) {
+    u64 distance = 0;
+    for (unsigned c = 0; c < 16; ++c) distance += abs_word(query[c], key[c]);
+    return distance;
+}
+
+__device__ __forceinline__ s64 sign_word(s64 value) {
+    return (value > 0) - (value < 0);
+}
+
+// Kernel C: per row with a target, the rival (nearest other earlier key, a
+// tie to the latest row), the hinge `max(0, d(q, k*) + m - d(q, k_r))` with
+// `m >= 1` when the rival is later, as two u64 words, and the three sign
+// residuals (query, target key, rival key), zero when the hinge is zero.
+extern "C" __global__ void native_q31_read_pick_loss(
+    const s64* queries,
+    const s64* keys,
+    const unsigned* targets,
+    unsigned rows,
+    unsigned time,
+    u64 margin,
+    unsigned* rivals,
+    u64* loss,
+    s64* residuals
+) {
+    unsigned item = blockIdx.x * blockDim.x + threadIdx.x;
+    if (item >= rows) return;
+    unsigned t = item % time;
+    unsigned first = item - t;
+    s64* residual = residuals + (u64)item * 48ull;
+    for (unsigned c = 0; c < 48; ++c) residual[c] = 0;
+    rivals[item] = 0;
+    loss[2ull * item] = 0;
+    loss[2ull * item + 1] = 0;
+    unsigned target = targets[item];
+    if (t == 0 || target == 0) return;
+    unsigned a = target - 1;
+    const s64* query = queries + (u64)item * 16ull;
+    unsigned best = 0;
+    bool found = false;
+    u64 best_distance = ~0ull;
+    for (unsigned s = 0; s < t; ++s) {
+        if (s == a) continue;
+        u64 distance = address_distance(query, keys + (u64)(first + s) * 16ull);
+        if (distance <= best_distance) {
+            best_distance = distance;
+            best = s;
+            found = true;
+        }
+    }
+    if (!found) return;
+    rivals[item] = best + 1;
+    u64 m = best > a && margin == 0 ? 1 : margin;
+    const s64* target_key = keys + (u64)(first + a) * 16ull;
+    const s64* rival_key = keys + (u64)(first + best) * 16ull;
+    s128 gap = (s128)address_distance(query, target_key) + (s128)m - (s128)best_distance;
+    if (gap <= 0) return;
+    u128 positive = (u128)gap;
+    loss[2ull * item] = (u64)positive;
+    loss[2ull * item + 1] = (u64)(positive >> 64);
+    for (unsigned l = 0; l < 16; ++l) {
+        s64 to_target = sign_word(query[l] - target_key[l]);
+        s64 to_rival = sign_word(query[l] - rival_key[l]);
+        residual[l] = to_target - to_rival;
+        residual[16 + l] = -to_target;
+        residual[32 + l] = to_rival;
+    }
+}
+
+// Word `k` of `residual (x) conj(block * 2^shift)`, exact; the residual is in
+// sign units. Multiplying by `2^shift` avoids shifting a negative __int128.
+__device__ __forceinline__ s128 credit_word(
+    const s64* residual,
+    const s64* block,
+    unsigned shift,
+    unsigned k
+) {
+    s128 lift = (s128)1 << shift;
+    s128 a0 = residual[0], a1 = residual[1], a2 = residual[2], a3 = residual[3];
+    s128 c0 = (s128)block[0] * lift;
+    s128 c1 = -((s128)block[1] * lift);
+    s128 c2 = -((s128)block[2] * lift);
+    s128 c3 = -((s128)block[3] * lift);
+    if (k == 0) return a0 * c0 - a1 * c1 - a2 * c2 - a3 * c3;
+    if (k == 1) return a0 * c1 + a1 * c0 + a2 * c3 - a3 * c2;
+    if (k == 2) return a0 * c2 - a1 * c3 + a2 * c0 + a3 * c1;
+    return a0 * c3 + a1 * c2 - a2 * c1 + a3 * c0;
+}
+
+// Kernel D: one thread per gate word, query gates first, then key gates. It
+// runs over the rows in order and writes the candidate word
+// `sat(gate - clamp(credit >> (step_shift + 1), +-2^32))`.
+extern "C" __global__ void native_q31_read_gate_credit(
+    const s64* stream,
+    const s64* residuals,
+    const unsigned* targets,
+    const unsigned* rivals,
+    const s64* query_gates,
+    const s64* key_gates,
+    unsigned rows,
+    unsigned time,
+    unsigned width,
+    unsigned credit_shift,
+    unsigned step_shift,
+    s64* candidate_query,
+    s64* candidate_key
+) {
+    unsigned item = blockIdx.x * blockDim.x + threadIdx.x;
+    if (item >= 2 * width) return;
+    bool on_key = item >= width;
+    unsigned word = on_key ? item - width : item;
+    unsigned j = word / 4;
+    unsigned k = word % 4;
+    unsigned base = (4 * j) % 16;
+    s128 credit = 0;
+    for (unsigned row = 0; row < rows; ++row) {
+        if (rivals[row] == 0) continue;
+        const s64* residual = residuals + (u64)row * 48ull;
+        if (!on_key) {
+            const s64* block = stream + (u64)row * (u64)width + 4ull * j;
+            credit += credit_word(residual + base, block, credit_shift, k);
+            continue;
+        }
+        unsigned first = row - row % time;
+        u64 a = (u64)(first + targets[row] - 1);
+        u64 b = (u64)(first + rivals[row] - 1);
+        credit += credit_word(residual + 16 + base, stream + a * width + 4ull * j, credit_shift, k);
+        credit += credit_word(residual + 32 + base, stream + b * width + 4ull * j, credit_shift, k);
+    }
+    s128 step = credit >> (step_shift + 1);
+    s128 clamp = (s128)1 << 32;
+    if (step > clamp) step = clamp;
+    if (step < -clamp) step = -clamp;
+    const s64* gates = on_key ? key_gates : query_gates;
+    s64* candidate = on_key ? candidate_key : candidate_query;
+    candidate[word] = q31_saturate(gates[word] - (s64)step);
+}

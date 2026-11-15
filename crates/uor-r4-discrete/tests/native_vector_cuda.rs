@@ -2,7 +2,7 @@
 
 use uor_r4_discrete::native_vector::q31_hamilton_rotate;
 use uor_r4_discrete::native_vector::Q31HamiltonModel;
-use uor_r4_discrete::native_vector::{Q31FirstPickRead, Q31ReadOutput};
+use uor_r4_discrete::native_vector::{Q31FirstPickRead, Q31ReadOutput, Q31ReadTrainStep};
 use uor_r4_discrete::native_vector_device::NativeVectorEngine;
 
 fn values(seed: u64, count: usize) -> Vec<[i64; 4]> {
@@ -340,5 +340,327 @@ fn cuda_first_pick_read_tracks_a_one_lsb_key_gate_change() -> uor_r4_discrete::R
     assert_eq!(base.picks[6], 5, "the tie goes to row 4");
     assert_eq!(nudged.picks[6], 3, "row 2 is now strictly closer");
     assert_ne!(nudged, base);
+    Ok(())
+}
+
+// ---- claude-392: the read's gate update, device against host ----
+
+/// The served residual's scale at the read (claude-390): about 2^18.
+const S: i64 = 1 << 18;
+
+fn identity_read(width: usize) -> Q31FirstPickRead {
+    Q31FirstPickRead::new(
+        vec![IDENTITY; width / 4],
+        vec![IDENTITY; width / 4],
+        vec![0; width],
+        4,
+    )
+    .unwrap()
+}
+
+fn row(lane0: i64, lane1: i64) -> Vec<i64> {
+    let mut row = vec![0; 16];
+    row[0] = lane0;
+    row[1] = lane1;
+    row
+}
+
+/// claude-391's fixture: row 2's nearest earlier key is row 0's; its target is row 1.
+fn fixture(scale: i64) -> Vec<i64> {
+    [row(scale, 0), row(0, scale), row(3 * scale / 4, scale / 2)].concat()
+}
+
+/// One step on the device and through the host rule; every field must agree.
+#[allow(clippy::too_many_arguments)]
+fn train_parity(
+    engine: &NativeVectorEngine,
+    read: &Q31FirstPickRead,
+    stream: &[i64],
+    ids: &[u32],
+    table: &[i64],
+    batch: usize,
+    time: usize,
+    targets: &[u32],
+    margin: u64,
+    shift: u32,
+) -> uor_r4_discrete::Result<Q31ReadTrainStep> {
+    let cuda = engine.read_train_pick_step(
+        read, stream, ids, table, batch, time, targets, margin, shift,
+    )?;
+    let host = NativeVectorEngine::read_train_pick_step_reference(
+        read, stream, ids, table, batch, time, targets, margin, shift,
+    )?;
+    assert_eq!(cuda.rivals, host.rivals, "rivals differ");
+    assert_eq!(
+        (cuda.loss_before, cuda.loss_after, cuda.accepted),
+        (host.loss_before, host.loss_after, host.accepted),
+        "losses or accept differ"
+    );
+    assert_eq!(
+        cuda.read.query_gates(),
+        host.read.query_gates(),
+        "query gates differ"
+    );
+    assert_eq!(
+        cuda.read.key_gates(),
+        host.read.key_gates(),
+        "key gates differ"
+    );
+    assert_eq!(cuda, host);
+    Ok(cuda)
+}
+
+/// Chain steps until one is rejected, checking parity at every step.
+fn train_chain(
+    engine: &NativeVectorEngine,
+    stream: &[i64],
+    targets: &[u32],
+    shift: u32,
+) -> uor_r4_discrete::Result<(Q31FirstPickRead, usize)> {
+    let time = targets.len();
+    let ids: Vec<u32> = (0..time as u32).collect();
+    let table = vec![0; time * 16];
+    let mut read = identity_read(16);
+    for steps in 0..64 {
+        let step = train_parity(
+            engine, &read, stream, &ids, &table, 1, time, targets, 0, shift,
+        )?;
+        if !step.accepted {
+            return Ok((read, steps));
+        }
+        read = step.read;
+    }
+    panic!("training did not settle in 64 steps");
+}
+
+#[test]
+fn cuda_read_update_matches_the_host_on_claude_391_fixtures() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    // A wrong pick becomes right in 4 steps at shift 4, and 49 at shift 8.
+    let (read, steps) = train_chain(&engine, &fixture(S), &[0, 0, 2], 4)?;
+    assert_eq!(steps, 4);
+    assert_eq!(
+        engine
+            .first_pick_read(&read, &fixture(S), &[0, 1, 2], &[0; 48], 1, 3)?
+            .picks,
+        vec![0, 1, 2]
+    );
+    let (_, steps) = train_chain(&engine, &fixture(S), &[0, 0, 2], 8)?;
+    assert_eq!(steps, 49);
+    // The step count does not depend on the stream's scale.
+    for scale in [1 << 10, 1 << 28] {
+        let (_, steps) = train_chain(&engine, &fixture(scale), &[0, 0, 2], 4)?;
+        assert_eq!(steps, 4, "scale {scale}");
+    }
+    // A margin-0 tie with a later rival is a loss of 1, and trains away.
+    let tie = [row(S, 0), row(0, S), row(S / 2, S / 2)].concat();
+    let step = train_parity(
+        &engine,
+        &identity_read(16),
+        &tie,
+        &[0, 1, 2],
+        &[0; 48],
+        1,
+        3,
+        &[0, 0, 1],
+        0,
+        4,
+    )?;
+    assert_eq!(step.loss_before, 1);
+    train_chain(&engine, &tie, &[0, 0, 1], 4)?;
+    // An exact tie sends the rival to the latest row.
+    let latest = [row(S, 0), row(S, 0), row(0, S), row(3 * S / 4, S / 2)].concat();
+    let step = train_parity(
+        &engine,
+        &identity_read(16),
+        &latest,
+        &[0, 1, 2, 3],
+        &[0; 64],
+        1,
+        4,
+        &[0, 0, 0, 3],
+        0,
+        4,
+    )?;
+    assert_eq!(step.rivals, vec![0, 0, 0, 2]);
+    // A margin widens a right pick that sits too close.
+    let step = train_parity(
+        &engine,
+        &identity_read(16),
+        &fixture(S),
+        &[0, 1, 2],
+        &[0; 48],
+        1,
+        3,
+        &[0, 0, 1],
+        S as u64,
+        4,
+    )?;
+    assert!(step.accepted && step.loss_before == S as u128 / 2);
+    // Two swapped windows overshoot at shift 0, and the candidate is rejected.
+    let swapped = [fixture(S), row(0, S), row(S, 0), row(S / 2, S / 2)].concat();
+    let step = train_parity(
+        &engine,
+        &identity_read(16),
+        &swapped,
+        &[0, 1, 2, 0, 1, 2],
+        &[0; 48],
+        2,
+        3,
+        &[0, 0, 2, 0, 0, 2],
+        0,
+        0,
+    )?;
+    assert_eq!((step.loss_before, step.loss_after), (131_072, 393_216));
+    assert!(!step.accepted);
+    Ok(())
+}
+
+#[test]
+fn cuda_read_update_matches_the_host_on_seeded_batches() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let mut rng = XorShift(0xa54f_f53a_5f1d_36f1);
+    let (batch, time, vocab) = (4, 32, 40);
+    let mut accepted = 0;
+    let mut rejected = 0;
+    for width in [64, 256] {
+        for full_range in [false, true] {
+            let word = |rng: &mut XorShift| {
+                if full_range {
+                    rng.admitted()
+                } else {
+                    (rng.next() % (1 << 19)) as i64 - S
+                }
+            };
+            let quaternions = |rng: &mut XorShift| -> Vec<[i64; 4]> {
+                (0..width / 4)
+                    .map(|_| {
+                        [
+                            rng.admitted(),
+                            rng.admitted(),
+                            rng.admitted(),
+                            rng.admitted(),
+                        ]
+                    })
+                    .collect()
+            };
+            let stream: Vec<i64> = (0..batch * time * width).map(|_| word(&mut rng)).collect();
+            let table: Vec<i64> = (0..vocab * width).map(|_| rng.small()).collect();
+            let ids: Vec<u32> = (0..batch * time)
+                .map(|_| (rng.next() % vocab as u64) as u32)
+                .collect();
+            let targets: Vec<u32> = (0..batch * time)
+                .map(|row| {
+                    let t = (row % time) as u64;
+                    if t == 0 || rng.next().is_multiple_of(4) {
+                        0
+                    } else {
+                        (1 + rng.next() % t) as u32
+                    }
+                })
+                .collect();
+            let start = Q31FirstPickRead::new(
+                quaternions(&mut rng),
+                quaternions(&mut rng),
+                (0..width).map(|_| rng.small()).collect(),
+                4,
+            )?;
+            // `u64::MAX` puts every row's hinge above 2^64, into the high loss word.
+            for margin in [0, 1 << 20, u64::MAX] {
+                for shift in [0, 4, 31] {
+                    let mut read = start.clone();
+                    for _ in 0..3 {
+                        let step = train_parity(
+                            &engine, &read, &stream, &ids, &table, batch, time, &targets, margin,
+                            shift,
+                        )?;
+                        if step.accepted {
+                            accepted += 1;
+                        } else {
+                            rejected += 1;
+                        }
+                        read = step.read;
+                    }
+                }
+            }
+        }
+    }
+    // Both branches of the accept rule were compared.
+    assert!(
+        accepted > 0 && rejected > 0,
+        "accepted {accepted}, rejected {rejected}"
+    );
+    Ok(())
+}
+
+#[test]
+fn cuda_read_update_refuses_what_the_host_refuses() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let (stream, ids, table) = (fixture(S), [0, 1, 2], [0; 48]);
+    let read = identity_read(16);
+    // (name, stream, targets, step shift, the rule the refusal names)
+    type Case<'a> = (&'a str, &'a [i64], &'a [u32], u32, &'a str);
+    let cases: [Case; 5] = [
+        (
+            "short targets",
+            &stream,
+            &[0, 0],
+            4,
+            "needs batch * time targets",
+        ),
+        (
+            "target on row 0",
+            &stream,
+            &[1, 0, 0],
+            4,
+            "an earlier row of its window",
+        ),
+        (
+            "target on itself",
+            &stream,
+            &[0, 0, 3],
+            4,
+            "an earlier row of its window",
+        ),
+        (
+            "shift 32",
+            &stream,
+            &[0, 0, 2],
+            32,
+            "step shift must be in 0..=31",
+        ),
+        (
+            "short stream",
+            &stream[16..],
+            &[0, 0, 2],
+            4,
+            "batch * time * width",
+        ),
+    ];
+    for (name, words, targets, shift, rule) in cases {
+        let cuda = engine
+            .read_train_pick_step(&read, words, &ids, &table, 1, 3, targets, 0, shift)
+            .expect_err(name)
+            .to_string();
+        let host = NativeVectorEngine::read_train_pick_step_reference(
+            &read, words, &ids, &table, 1, 3, targets, 0, shift,
+        )
+        .expect_err(name)
+        .to_string();
+        assert!(
+            cuda.contains(rule),
+            "{name}: device {cuda:?} lacks {rule:?}"
+        );
+        assert!(host.contains(rule), "{name}: host {host:?} lacks {rule:?}");
+    }
+    // An empty batch is no step on both sides.
+    let empty = train_parity(&engine, &read, &[], &[], &table, 0, 3, &[], 0, 4)?;
+    assert!(!empty.accepted && empty.rivals.is_empty());
     Ok(())
 }

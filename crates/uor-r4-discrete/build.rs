@@ -37,11 +37,13 @@ const ENTRIES: [&str; 13] = [
     "discrete_count_score",
     "discrete_carrier_select",
 ];
-const NATIVE_VECTOR_ENTRIES: [&str; 4] = [
+const NATIVE_VECTOR_ENTRIES: [&str; 6] = [
     "native_q31_hamilton_rotate",
     "native_q31_hamilton_train_step",
     "native_q31_read_address",
     "native_q31_first_pick_read",
+    "native_q31_read_pick_loss",
+    "native_q31_read_gate_credit",
 ];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as
