@@ -1,0 +1,25 @@
+[package]
+name = "d41-donor-pilot"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose. This is a client
+# for the D41/D86 donor pass. It builds the prompt set, sends prompts over HTTP to
+# an external inference engine (llama.cpp's llama-server, built outside the
+# repository), keeps only the answer texts, and seals and verifies the corpus. It
+# holds no model code, so nothing banned by CHARTER §3.2-§3.4 is compiled here.
+[workspace]
+
+[lib]
+name = "d41_donor_pilot"
+path = "src/lib.rs"
+
+[[bin]]
+name = "d41-pilot"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10.8"
+ureq = { version = "3", default-features = false, features = ["json"] }
