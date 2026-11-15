@@ -62,6 +62,43 @@ fn target(snap: &FbsTrunkSnapshot, lane: usize, next: u32) -> Q31Quaternion {
     block
 }
 
+/// The next token's writer block for `lane`, normalized per block to unit Q31 scale: the largest
+/// coordinate is ±2^31 and the direction is preserved.
+fn normalized_target(snap: &FbsTrunkSnapshot, lane: usize, next: u32) -> Q31Quaternion {
+    let mut values = [0i128; 4];
+    let mut max = 0i128;
+    for (j, value) in values.iter_mut().enumerate() {
+        let v = f64::from(snap.embed[next as usize * WIDTH + lane * 4 + j]);
+        let q12 = (v * 4096.0).round() as i128;
+        *value = q12;
+        max = max.max(q12.abs());
+    }
+    if max == 0 {
+        return [0; 4];
+    }
+    let mut target = [0i64; 4];
+    for (j, value) in values.iter().enumerate() {
+        target[j] = ((*value << 31) / max) as i64;
+    }
+    target
+}
+
+fn normalized_records(
+    snap: &FbsTrunkSnapshot,
+    carries: &[Vec<(usize, Q31Quaternion)>],
+) -> (Vec<Q31Quaternion>, Vec<Q31Quaternion>) {
+    let mut values = Vec::new();
+    let mut targets = Vec::new();
+    for (i, step) in carries.iter().enumerate().take(TOKENS.len() - 1) {
+        let next = TOKENS[i + 1];
+        for &(lane, before) in step {
+            values.push(before);
+            targets.push(normalized_target(snap, lane, next));
+        }
+    }
+    (values, targets)
+}
+
 fn records(
     snap: &FbsTrunkSnapshot,
     carries: &[Vec<(usize, Q31Quaternion)>],
@@ -144,4 +181,42 @@ fn token_writer_targets_train_the_one_q31_gate() {
         dot0, dot1,
         "training did not move the measured alignment at all"
     );
+}
+
+#[test]
+fn normalized_writer_targets_train_the_one_q31_gate() {
+    let snap = synthetic_fbs_trunk(SEED);
+    let start = initial_state();
+    let start_artifact = artifact(&snap, &start);
+    let start_carries = carries(&start_artifact);
+    let (values, targets) = normalized_records(&snap, &start_carries);
+    assert_eq!(values.len(), (TOKENS.len() - 1) * 2 * LANES);
+
+    let gate0 = Q31HamiltonModel::from_bytes(start)
+        .expect("initial state")
+        .gate();
+    let dot0 = alignment(gate0, &values, &targets);
+
+    let mut model = Q31HamiltonModel::new([ONE, 0, 0, 0], 8).expect("training model");
+    for _ in 0..TRAIN_STEPS {
+        model
+            .step_reference(&values, &targets)
+            .expect("train on the normalized token records");
+    }
+    let trained = model.to_bytes();
+    assert_ne!(trained, start, "training did not change the 48-byte state");
+    let dot1 = alignment(model.gate(), &values, &targets);
+    eprintln!(
+        "normalized token objective: alignment {dot0} -> {dot1} over {} records in {TRAIN_STEPS} steps",
+        values.len()
+    );
+
+    let trained_artifact = artifact(&snap, &trained);
+    let parsed = IntegerStackModel::parse(&trained_artifact).expect("parse the trained artifact");
+    assert_eq!(parsed.native_q31_state_bytes(), Some(trained));
+    let before_tokens = served(&start_artifact);
+    let after_tokens = served(&trained_artifact);
+    eprintln!("normalized served tokens: {before_tokens:?} -> {after_tokens:?}");
+    // The sign of the delta is the result; the test asserts only that the quantity moved.
+    assert_ne!(dot0, dot1, "training did not move the measured alignment");
 }
