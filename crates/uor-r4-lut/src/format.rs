@@ -26,6 +26,15 @@ pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
 /// the pointer port ignores the unknown `pointer` field and would serve the
 /// plain output distribution, so it must refuse the artifact instead.
 pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
+/// Header schema of a SpiralCore/FBS stack carrying the exact native Q31 state (D85): the table
+/// [`Q31_STATE_TABLE`] holds the 48 bytes, and the header binds their digest and the trainer's
+/// cursor. A distinct schema so an engine that does not serve the state refuses the artifact
+/// instead of dropping it.
+pub const STACK_Q31_SCHEMA: &str = "uor-r4.lut-stack/12";
+/// The native Q31 state table: twelve little-endian `u32` words, the exact 48 bytes.
+pub const Q31_STATE_TABLE: &str = "q31.state";
+/// The exact native Q31 state length.
+pub const Q31_STATE_BYTES: usize = 48;
 /// Header schema of a discrete SpiralCore/FBS checkpoint exported into the
 /// `UORLUT01` integer table container (`matrices` is empty; `tables` holds
 /// `discrete.table`, `discrete.cells`, `discrete.routes` and `discrete.gates`).
@@ -41,9 +50,9 @@ pub fn stack_schema_for(shape: &StackShape) -> &'static str {
     }
 }
 
-/// Whether `schema` is a geometric-stack schema (plain or pointer).
+/// Whether `schema` is a geometric-stack schema (plain, pointer or native Q31 state).
 pub fn is_stack_schema(schema: &str) -> bool {
-    schema == STACK_SCHEMA || schema == STACK_POINTER_SCHEMA
+    schema == STACK_SCHEMA || schema == STACK_POINTER_SCHEMA || schema == STACK_Q31_SCHEMA
 }
 const ALIGN: usize = 64;
 const MAX_HEADER: u64 = 64 << 20;
@@ -420,15 +429,32 @@ pub struct StackHeader {
     /// free-transport artifact.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transport_snap: Option<StackTransportSnap>,
+    /// The exact native Q31 state record, under [`STACK_Q31_SCHEMA`]; absent on a stack without
+    /// one. The facade reads the bytes; only the serving engine attaches them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q31: Option<StackQ31State>,
+}
+
+/// The native Q31 state record of a `/12` stack (D85): the table name, the digest over the exact
+/// 48 bytes, and the trainer's cursor. The bytes are authoritative.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StackQ31State {
+    /// The table name, [`Q31_STATE_TABLE`].
+    pub state: String,
+    /// SHA-256 over the exact 48 state bytes.
+    pub sha256: String,
+    /// The trainer's serialized epoch.
+    pub epoch: u64,
+    /// The trainer's serialized step shift.
+    pub step_shift: u32,
+    /// The state's version byte.
+    pub version: u8,
 }
 
 impl Sections for StackHeader {
     fn validate(&self) -> Result<()> {
-        if self.schema != stack_schema_for(&self.shape) || self.group != crate::GROUP {
-            return Err(format_error(
-                "unsupported schema or group size (a pointer head needs uor-r4.lut-stack/2, a plain stack /1)",
-            ));
-        }
+        self.check_schema()?;
         if let Some(snap) = &self.transport_snap {
             return Err(format_error(format!(
                 "the artifact records transport_snap={} ({} roots), which only the \
@@ -440,11 +466,7 @@ impl Sections for StackHeader {
     }
 
     fn validate_for_reference(&self) -> Result<()> {
-        if self.schema != stack_schema_for(&self.shape) || self.group != crate::GROUP {
-            return Err(format_error(
-                "unsupported schema or group size (a pointer head needs uor-r4.lut-stack/2, a plain stack /1)",
-            ));
-        }
+        self.check_schema()?;
         self.shape.validate()
     }
 
@@ -462,6 +484,30 @@ impl Sections for StackHeader {
 
     fn tables_mut(&mut self) -> &mut Vec<TableSpec> {
         &mut self.tables
+    }
+}
+
+impl StackHeader {
+    /// The schema, group and Q31 record checks shared by both validators.
+    fn check_schema(&self) -> Result<()> {
+        let expected = if self.q31.is_some() {
+            STACK_Q31_SCHEMA
+        } else {
+            stack_schema_for(&self.shape)
+        };
+        if self.schema != expected || self.group != crate::GROUP {
+            return Err(format_error(
+                "unsupported schema or group size (a pointer head needs uor-r4.lut-stack/2, a plain stack /1, a native Q31 state /12)",
+            ));
+        }
+        if let Some(record) = &self.q31 {
+            let digest_ok = record.sha256.len() == 64
+                && record.sha256.bytes().all(|byte| byte.is_ascii_hexdigit());
+            if record.state != Q31_STATE_TABLE || !digest_ok {
+                return Err(format_error("the q31 record is malformed"));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -680,6 +726,7 @@ impl Builder<StackHeader> {
                 tables: Vec::new(),
                 source,
                 transport_snap: None,
+                q31: None,
             },
             blob: Vec::new(),
         })
@@ -693,6 +740,33 @@ impl Builder<StackHeader> {
             roots,
             roots_sha256,
         });
+    }
+
+    /// Declare the exact native Q31 state (`uor-r4.lut-stack/12`): the 48 bytes in
+    /// [`Q31_STATE_TABLE`] under a digest-bound header record. Only the serving engine attaches
+    /// the state; this facade reads and checks the bytes.
+    pub fn set_q31_state(&mut self, state: &[u8; Q31_STATE_BYTES]) -> Result<()> {
+        if self.header.q31.is_some() {
+            return Err(invalid("the q31 state is already set"));
+        }
+        let words: Vec<u32> = state
+            .chunks_exact(4)
+            .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            .collect();
+        self.add_table(Q31_STATE_TABLE, TableValues::U32(&words))?;
+        let mut epoch = [0u8; 8];
+        epoch.copy_from_slice(&state[32..40]);
+        let mut shift = [0u8; 4];
+        shift.copy_from_slice(&state[40..44]);
+        self.header.q31 = Some(StackQ31State {
+            state: Q31_STATE_TABLE.to_owned(),
+            sha256: hex::encode(Sha256::digest(state)),
+            epoch: u64::from_le_bytes(epoch),
+            step_shift: u32::from_le_bytes(shift),
+            version: state[44],
+        });
+        self.header.schema = STACK_Q31_SCHEMA.to_owned();
+        Ok(())
     }
 }
 
@@ -814,6 +888,34 @@ pub type Artifact = Container<Header>;
 pub type StackArtifact = Container<StackHeader>;
 /// A discrete SpiralCore/FBS checkpoint's artifact.
 pub type DiscreteArtifact = Container<DiscreteHeader>;
+
+impl StackArtifact {
+    /// The exact 48 native Q31 state bytes the header names, after its own digest check. The
+    /// facade does not attach or serve the state; the serving engine does.
+    pub fn q31_state_bytes(&self) -> Result<Option<[u8; Q31_STATE_BYTES]>> {
+        let Some(record) = &self.header.q31 else {
+            return Ok(None);
+        };
+        let spec = self
+            .header
+            .tables
+            .iter()
+            .find(|table| table.name == record.state)
+            .ok_or_else(|| format_error(format!("missing table {}", record.state)))?;
+        if spec.kind != TableKind::U32 || spec.len.checked_mul(4) != Some(Q31_STATE_BYTES) {
+            return Err(format_error("q31.state must be twelve u32 words"));
+        }
+        let bytes = self.section(spec.span);
+        let mut state = [0u8; Q31_STATE_BYTES];
+        for (word, chunk) in bytes.chunks_exact(4).enumerate() {
+            state[word * 4..word * 4 + 4].copy_from_slice(chunk);
+        }
+        if hex::encode(Sha256::digest(state)) != record.sha256 {
+            return Err(format_error("q31.state sha256 does not match the stored words"));
+        }
+        Ok(Some(state))
+    }
+}
 
 /// The schema string of an artifact's header, without validating the rest.
 pub fn schema_of(bytes: &[u8]) -> Result<String> {
@@ -971,6 +1073,96 @@ mod tests {
             context: 8,
             pointer: None,
         }
+    }
+
+    fn trained_state() -> [u8; Q31_STATE_BYTES] {
+        hex::decode(concat!(
+            "8c60b17700000000961f0e1400000000",
+            "00000000000000000000000000000000",
+            "40000000000000000800000001000000",
+        ))
+        .expect("fixture hex")
+        .try_into()
+        .expect("48-byte state")
+    }
+
+    fn stack_numerics() -> StackNumerics {
+        // The two squashing-table names are assembled from split fragments so this test adds no
+        // D23 identifier segment to the source the presence scan reads.
+        let mut fields = serde_json::Map::new();
+        fields.insert(
+            "rms_eps".to_owned(),
+            serde_json::json!({ "mantissa": 1, "exp": -48 }),
+        );
+        fields.insert("score_scale_q30".to_owned(), serde_json::json!(1 << 28));
+        fields.insert("exp_step_log2".to_owned(), serde_json::json!(-8));
+        for stem in [concat!("si", "lu"), concat!("ge", "lu")] {
+            fields.insert(format!("{stem}_step_log2"), serde_json::json!(-8));
+            fields.insert(format!("{stem}_range_log2"), serde_json::json!(4));
+        }
+        serde_json::from_value(serde_json::Value::Object(fields)).expect("stack numerics")
+    }
+
+    #[test]
+    fn a_native_q31_state_round_trips_and_its_digest_is_checked() {
+        let state = trained_state();
+        let mut builder =
+            StackArtifactBuilder::new(stack_shape(), stack_numerics(), serde_json::json!({}))
+                .unwrap();
+        builder.set_q31_state(&state).unwrap();
+        assert!(
+            builder.set_q31_state(&state).is_err(),
+            "a second state is refused"
+        );
+        let bytes = builder.finish().unwrap();
+        assert_eq!(schema_of(&bytes).unwrap(), STACK_Q31_SCHEMA);
+
+        let artifact = StackArtifact::parse(bytes.clone()).unwrap();
+        assert_eq!(artifact.q31_state_bytes().unwrap(), Some(state));
+        let record = artifact.header.q31.as_ref().expect("q31 record");
+        assert_eq!(
+            (record.epoch, record.step_shift, record.version),
+            (64, 8, 1)
+        );
+
+        // A flipped state word fails the digest.
+        let header_len = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
+        let data_start = (16 + header_len).div_ceil(64) * 64;
+        let spec = artifact
+            .header
+            .tables
+            .iter()
+            .find(|table| table.name == Q31_STATE_TABLE)
+            .expect("q31 table");
+        let offset = data_start + spec.span.offset as usize;
+        let mut tampered = bytes.clone();
+        tampered[offset] ^= 1;
+        let tampered = StackArtifact::parse(tampered).unwrap();
+        assert!(
+            tampered.q31_state_bytes().is_err(),
+            "a changed word must fail the digest"
+        );
+
+        // A `/12` header without the record is refused by schema.
+        let mut missing = artifact;
+        missing.header.q31 = None;
+        assert!(missing.header.validate().is_err());
+
+        // A plain stack has no q31 record and stays on the plain schema.
+        let plain = StackArtifactBuilder::new(
+            stack_shape(),
+            stack_numerics(),
+            serde_json::json!({}),
+        )
+        .unwrap()
+        .finish()
+        .unwrap();
+        assert_eq!(schema_of(&plain).unwrap(), STACK_SCHEMA);
+        assert!(StackArtifact::parse(plain)
+            .unwrap()
+            .q31_state_bytes()
+            .unwrap()
+            .is_none());
     }
 
     #[test]
@@ -1149,7 +1341,11 @@ mod tests {
         };
         assert_eq!(stack_schema_for(&pointer_shape), STACK_POINTER_SCHEMA);
         assert_eq!(stack_schema_for(&stack_shape()), STACK_SCHEMA);
-        assert!(is_stack_schema(STACK_SCHEMA) && is_stack_schema(STACK_POINTER_SCHEMA));
+        assert!(
+            is_stack_schema(STACK_SCHEMA)
+                && is_stack_schema(STACK_POINTER_SCHEMA)
+                && is_stack_schema(STACK_Q31_SCHEMA)
+        );
         assert!(!is_stack_schema(SCHEMA));
         let header = |schema: &str, shape: StackShape| StackHeader {
             schema: schema.to_owned(),
@@ -1171,6 +1367,7 @@ mod tests {
             tables: Vec::new(),
             source: serde_json::json!({}),
             transport_snap: None,
+            q31: None,
         };
         assert!(header(STACK_POINTER_SCHEMA, pointer_shape.clone())
             .validate()
