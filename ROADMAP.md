@@ -7,7 +7,7 @@ closes only when its full bar is met on a saved model. The evidence and limitati
 
 ![The project road: M1 marked complete on the saved discrete model, while the current end-to-end line works toward grounded replies, durable memory and the remaining milestones.](docs/figures/start/roadmap.svg)
 
-*M1 is complete; the current work is new-phrasing reply opening and one useful model end to end.*
+*M1 is complete; the current work is replies from the model's own state and one useful model end to end.*
 
 | Milestone | Bar to close it | Status |
 |---|---|---|
@@ -23,9 +23,19 @@ closes only when its full bar is met on a saved model. The evidence and limitati
 M1's two-seed results are **7,002 / 7,001** on DEV (T2 6,300), **7,215 / 7,228** on Fresh V2
 (T2 6,582), and **7,850 / 7,872** on the held-out-phrasing p-f panel (T2 7,375) ([M1 close](docs/labs/m1-close-saved-model/README.md), [Fresh V2](docs/labs/m1-fresh-panel-transfer/README.md), [bar-f](docs/loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). The p-f panel's
 62.5% reference-reply overlap with TRAIN means this is a scoped language-base result, not useful
-conversation. M2 is the next capability milestone. Claude-220 serves the point key inside one
-float model on fresh p-w, improving templates by +41/+40/+42 at three seeds with exact claude-219
-parity; the gain recalls TRAIN replies, not new wording. Claude-222 has built the integer point
-table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](docs/loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](docs/loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](docs/loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun.
+conversation. M2 is the next capability milestone.
+
+**Since 31 Oct (14 Nov 2026).** The work on M2 is recall in controlled conversations, on the
+separate FBS trunk. [Claude-358](docs/loop/tasks/one-model-end-to-end/claude-358/REPORT.md)'s
+three models state a told value on 314, 320 and 325 of 578 recall questions. Served without their
+exact turn memory they give 171 to 211 exact replies of 2,218, against 377 to 441 with it, and
+almost every fact comes from that memory's table, not the learned vectors
+([V0, claude-376](docs/loop/tasks/one-model-end-to-end/claude-376/REPORT.md)). Since 13 Nov the
+route is D85: one persistent integer geometric state shared by training and serving, with float
+master weights and export gaps as reference only ([PLAN](PLAN.md#native-space-cycle)). Carrying
+that state across training windows ([#3979](https://github.com/UOR-Foundation/uor-r4/pull/3979))
+and vector-native reads ([#3978](https://github.com/UOR-Foundation/uor-r4/pull/3978)) are in
+progress.
+
 Every run goes ahead on its own pre-run review (D67, [charter](CHARTER.md) §5.1). The one plan is
 [PLAN.md](PLAN.md) (D77).

@@ -1,4 +1,4 @@
-<!-- freshness: sources=PLAN.md -->
+<!-- freshness: sources=PLAN.md checked=d5eb4a55656726b04ea79b06968f91905933c925 -->
 # What is still open
 
 M1 answered a narrow question: can a saved discrete geometric model beat two simple count tables on
@@ -10,11 +10,12 @@ on new phrasing, remember across sessions, and run as one product. That remains 
 flowchart TD
   A["M1: saved integer model<br/>beats count tables"] --> B{"Can it start the right reply<br/>on new phrasing?"}
   B -- "point key gives a partial gain" --> M["claude-220: float key; claude-222/224/228: integer instruments<br/>claude-231 nearest built; claude-232 parity MISS"]
-  M --> R["Complete correct replies<br/>and durable memory"]
+  M --> V["Since 10 Nov: recall in conversations<br/>V0: facts come from the exact turn memory<br/>D85: one native state; V1, V2(a) in progress"]
+  V --> R["Complete correct replies<br/>and durable memory"]
   R --> S["Full serving, cost,<br/>distribution and release"]
 ```
 
-*M1 is complete. The current blocker is reply opening on new phrasing, not the count-table bar.*
+*M1 is complete (1 of 8). Since 10 Nov the work is recall in controlled conversations, and almost every fact the model gets right comes from the turn memory's table. Until then the blocker was reply opening on new phrasing, not the count-table bar.*
 
 Terms follow the [glossary](../start/glossary.md). Claims are **proof**, **measurement** or
 **hypothesis**.
@@ -59,7 +60,7 @@ search and `/8` record, with 380 library tests and a full serving audit. [Claude
 has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity
 within the 3% bar; [claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the
 integer session uses the native writer instead of the trained whole-table nearest readout, so all grade
-pairs are (0, 0). [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun. Useful conversation remains unproven.
+pairs are (0, 0). [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell. Since 10 Nov the work is recall in controlled conversations: [claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md)'s pure-vector baseline found 377, 380 and 441 exact replies of 2,218 as exported, but 171, 173 and 211 with the exact turn memory dropped. The open question is whether a state carried across training windows (V1, PR #3979) or vector-native reads (V2(a), PR #3978) can carry those facts; both are in progress. Useful conversation remains unproven.
 
 ## What remains open beyond that key
 

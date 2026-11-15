@@ -154,7 +154,7 @@ softmax and matrix multiplication) and are kept as historical evidence, not as t
 - **[Mechanism board](docs/mechanisms/README.md):** 28 mechanisms, one page each, with reopen conditions for the PARKED ones
 - **[Geometry](docs/geometry/README.md):** primes and zeta phases, quaternions, E8/H4 and the 600-cell, SpiralCore, the Hopf map
 - **[Research findings](docs/research/findings.md)** and **[open questions](docs/research/open-questions.md)**
-- **[History](docs/research/history.md):** how the project got here, June to October 2026
+- **[History](docs/research/history.md):** how the project got here, June to November 2026
 - **[Archive catalog](archive/CATALOG.md):** every dated record, kept byte-identical and indexed
 - **[Charter](CHARTER.md):** the rules (geometry only, no softmax, no matrix multiplication, integer serving) and why each exists
 - **[Documentation hub](docs/README.md):** every page, by question

@@ -1,4 +1,4 @@
-<!-- freshness: sources=CHARTER.md,PLAN.md -->
+<!-- freshness: sources=CHARTER.md,PLAN.md checked=d5eb4a55656726b04ea79b06968f91905933c925 -->
 # What UOR-R4 is
 
 **In one paragraph.** UOR-R4 is an attempt to build a language model, the kind of program behind chat assistants, that is cheap enough to train and run on an ordinary laptop or inside a web browser. Today's language models are *transformers*. They spend most of their effort multiplying very large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job for far less: rotations of a geometric object, exact whole-number addresses built from primes, small lookup tables, and an exact memory. This page explains that bet in about five minutes. It is a research project and it is **pre-alpha**. **M1 is complete: 1 of 8 milestones**, but no model built under its rules holds a useful conversation yet ([PLAN](../../PLAN.md), [STATE](../../STATE.md)).
@@ -80,6 +80,14 @@ M1 model ([pipeline map](../model/pipeline-map.md)). On the FBS path:
 - The model is **served as integers**. On an M1 laptop a served token runs at 4,217 to 4,504 tok/s under `lut-stack/5`, with exact rotations and its DEV export gap inside the bar, ([claude-182](../loop/tasks/d11-exporter-float-trunk/claude-182/REPORT.md), [claude-186](../loop/tasks/fbs-serving-vector-kernel/claude-186/REPORT.md)). The served model is inside the export-gap bar on both seeds: net 6 and −8 rows against F_I 24 on DEV (claude-182). The `/7` engine serves the opening and later-reply memory tables on synthetic fixtures; trained-artifact parity and memory-session restore remain open.
 - Text in and out (R7) is not built. The artifacts take token ids only.
 
+**Since 31 Oct.** The FBS line moved to recall in controlled conversations: claude-358's three
+models (13 Nov) state a told value on 314, 320 and 325 of 578 questions. Served without the exact
+turn memory they give 171 to 211 exact replies of 2,218, against 377 to 441 with it, so the
+memory's table, not the learned vectors, supplies almost every fact
+([V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md)). Since 13 Nov (D85)
+the default route is one persistent integer geometric state that training and serving share, with
+float master weights and export gaps kept only as reference ([PLAN](../../PLAN.md#native-space-cycle)).
+
 M1 is complete on the discrete model, not this FBS trunk. [Where we are](./where-we-are.md) has the
 full status and its limits.
 
@@ -91,7 +99,7 @@ full status and its limits.
 | Whole-number serving engine | Built. Native and WebAssembly audits pass; integer multiply and divide are allowed, floats remain banned | [WASM runtime record](../labs/wasm-serving-runtime-2026-10-18/README.md), [serving dossier](../mechanisms/lut-serving.md) |
 | A model trained under today's rules in that engine | The saved discrete M1 pair and a separate FBS export exist; neither is useful chat or a released product. New work uses the lab's pre-run review, not a blanket owner hold | [where we are](./where-we-are.md), [charter](../../CHARTER.md) section 5 |
 | Saved M1 model | DEV 7,002 and 7,001 of 14,287, above unigram 1,226 and T2 6,300; Fresh V2 7,215 and 7,228 of 14,479; p-f 7,850 and 7,872 of 15,953 | [M1 close](../labs/m1-close-saved-model/README.md), [Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f report](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md) |
-| Current FBS research | The point key serves in one float model; integer decode/grade exists, but nearest-readout parity missed in every cell, so localization precedes p-x | [claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md), [claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md), [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) |
+| Current FBS research | Recall in controlled conversations: 314, 320 and 325 of 578 told values stated at three seeds; the facts come almost entirely from the exact turn memory's table. In progress: one native state shared by training and serving (D85), carried across training windows (V1) | [claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md), [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md), [PLAN](../../PLAN.md#native-space-cycle) |
 | Apple M1 decode for the M1 pair | Bar-f remeasurement 10,876 and 10,566 tokens per second, with a 192-token prefill and 64-token decode; older close-grade bar (c) 11,026 and 10,573 | [bar-f report](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md), [close grade](../labs/m1-close-saved-model/README.md) |
 
 M1 reads new prompt phrasings into known reply kinds; 62.5% of p-f's reference replies are verbatim TRAIN replies, so this is not useful conversation. K16's older 65 and 463 are history, not the current best. [Where we are](./where-we-are.md) explains both the result and its limits.

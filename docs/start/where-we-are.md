@@ -1,4 +1,4 @@
-<!-- freshness: sources=PLAN.md,docs/roadmap/items/point-key-integer.md -->
+<!-- freshness: sources=PLAN.md,docs/roadmap/items/point-key-integer.md checked=d5eb4a55656726b04ea79b06968f91905933c925 -->
 # Where UOR-R4 is today
 
 **In one paragraph.** UOR-R4 is pre-alpha: **1 of 8 milestones is complete**, and no model holds a
@@ -48,40 +48,69 @@ generated-copy rate, and not new reply kinds or useful conversation.
 | Browser worker and Studio | Synthetic parity harness and live M1 top-8 next-token prediction, with self-hosted assets and stack-bound tokenizers | Language base, not chat; no qualified bundled product or M7 accepted-model parity | [web client](../products/web-client.md) |
 | Desktop shell | Native Tauri/Rust backend and durable session restore on the seed-5 synthetic artifact | No qualified trained product bundle | [desktop client](../products/desktop-client.md) |
 
-## The separate FBS trunk and the current failure
+## The separate FBS trunk: replies in conversation (since 31 Oct)
 
 The float-trained FBS trunk is a second model path; it has not joined the saved discrete M1 model.
-Its `lut-stack/5` export keeps the rotations exact and has its DEV export gap inside the bar. The current work is complete replies on new
-phrasings, not another replay of M1.
+Since M1 closed, the work on it has been the second open question: can a model answer in a
+conversation? Every number below is a measurement at its named scope.
 
-[Claude-217](../loop/tasks/one-model-end-to-end/claude-217/REPORT.md) found that cycle and echo
-decode steps end every registered loop, but every content decision is **underpowered**, so greedy
-remains the decode. On held-out p-s:
+**Human-written text.** On a held-out panel of 1,460,697 rows of public conversation and
+encyclopedia text, a batch of 64 with twice the training text gets 331,698 and 342,250 next tokens
+right at two seeds, against T2's 256,660: ahead at both seeds
+([claude-301](../loop/tasks/one-model-end-to-end/claude-301/REPORT.md), 6 Nov). Width 256 gets
+about 125,000 more rows right than width 128; width 512 did not fit the GPU's memory (claude-317,
+[notebook](../research/notebook/float-training.md)).
 
-- Exact-reference replies are only **3, 1 and 4 of 256** at three seeds, against 38–40 on DEV.
-- Teacher-forced reply openings are **17.4%, 13.7% and 18.6%**, against **80.8%, 80.2% and 79.9%**
-  on later tokens.
-- Exact turn memory keys on the turn's exact first token ids. It adds 322–337 of 1,226 openings on
-  DEV but only 14–16 of 1,400 on p-s, so a reworded known question can find no stored key.
+**Recall in controlled conversations.** Since 10 Nov the panels are conversations where a value is
+told and later asked for. [Claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)'s
+three models (p-s1 to p-s3, 13 Nov) state the told value on **314, 320 and 325 of 578** recall
+questions. One of them, p-s2, serves on an Apple M1 at 1,567 to 1,636 tok/s decode and 4,309 to 4,499 tok/s
+context prefill.
 
-[Claude-218](../loop/tasks/one-model-end-to-end/claude-218/REPORT.md) then found trunk-state memory
-keys that improved reply openings offline. [Claude-219](../loop/tasks/one-model-end-to-end/claude-219/REPORT.md) then tested them in free
-generation on fresh p-v. Serving the point key for the first reply token where exact memory misses
-improves template replies by **+13, +8 and +12** and exact replies by **+9, +8 and +12** at three
-seeds. Keyed openings are right on 27–31% of cases, so this is a partial gain, not useful chat. The
-sign key is inconclusive at this panel size. [Claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md)
-then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at
-three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing.
-[Claude-222](../loop/tasks/point-key-integer/claude-222/REPORT.md) has built the integer point table,
-search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS instruments (390 integer-library tests with one ignored and four negative gates), which held in row 0; [Claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths. [Claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell: DEV first-token agreement is 291, 285 and 284 of 310 at three seeds, and p-w agreement is 911, 777 and 64 of 1,202. The mismatch must be localized before the p-x rerun.
+**What the vectors carry alone.** [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md)
+(14 Nov) served those three models over 2,218 conversation rows twice: as exported, and with their
+exact turn memory dropped. Exact replies are **377, 380 and 441** as exported and **171, 173 and
+211** without the memory. Almost every fact the model gets right comes from the turn memory's
+table, which is keyed on the turn's exact token ids and counted from TRAIN. The vector state alone
+does not yet carry the facts.
+
+**Additions tried since 31 Oct** ([mechanism board](../mechanisms/README.md#results-since-31-oct-with-no-board-row-yet)):
+
+| Addition | Result | Served? |
+|---|---|---|
+| E8 address memory, a learned table read by the state's E8 cell | Exact replies of 1,108: 188 → 218 and 225 → 254 at two seeds, half a reply under its bar: not called ([claude-346](../loop/tasks/one-model-end-to-end/claude-346/REPORT.md)); not called either when served in integers ([claude-366](../loop/tasks/one-model-end-to-end/claude-366/REPORT.md)) | As a research schema only |
+| Pair experts, counted from TRAIN (not trained) | Good everyday replies of 239: 137, 135, 134 → 170, 171, 170 held out ([claude-367](../loop/tasks/one-model-end-to-end/claude-367/REPORT.md)) | Opt-in in `uor-chat`; a reply served this way is a stored TRAIN reply, not the model's |
+| Pair rows, trained and addressed by the turn's token pairs | Exact replies of 2,218: 431 → 527 and 413 → 521 at two seeds, mostly the turn's own words carried into the reply ([claude-370](../loop/tasks/one-model-end-to-end/claude-370/REPORT.md)); two weighings did not add (claude-373, claude-374) | No: the export refuses them |
+
+**The native-space route (D85, 13 Nov).** The owner set the default route to one persistent
+integer geometric state that training and serving share, with the same operators and bit-identical
+replay, instead of float master weights and an export gap. The first Q31 vector state has trained
+on CUDA in a 64-step contract test, CPU and CUDA equal after every step
+([codex-5](../loop/tasks/native-space-state-contract/codex-5/REPORT.md)); that is a contract test,
+not language-model training. The integer crate now restores that trained state with no numerical
+conversion and runs the same shared transition: after 64 trained steps, the restored state and its
+transition results match as raw words. No token generation is claimed ([codex-8](../loop/tasks/native-space-state-contract/codex-8/REPORT.md)). The discrete path's CUDA training, CPU training and integer serving now
+agree on the same fixture bytes, on two fixtures ([claude-372](../loop/tasks/one-model-end-to-end/claude-372/REPORT.md)).
+
+**In progress (14 Nov).** Carrying the state across training windows, V1
+([#3979](https://github.com/UOR-Foundation/uor-r4/pull/3979)); today training carries no state
+from one window to the next. Vector-native reads, V2(a)
+([#3978](https://github.com/UOR-Foundation/uor-r4/pull/3978)). Neither has a result yet.
+
+The point-key and nearest-readout units of late October (claude-217 to claude-232) are recorded
+in the [float-training notebook](../research/notebook/float-training.md) and the
+[open questions](../research/open-questions.md).
 
 ## What does not work yet
 
 - **Useful conversation.** M1's next-token bars do not establish coherent, correct complete replies.
+- **Facts from the vectors alone.** Without the exact turn memory, the current models answer almost
+  no fact questions (V0, claude-376); the memory's table supplies them.
 - **New reply kinds.** p-f has held-out prompt phrasings but 62.5% of its reference replies come
   from TRAIN. The FBS generation results make that limitation visible.
 - **A joined model.** The discrete M1 path and FBS trunk remain separate. Not every FBS part is
-  served in one integer session, and accepted-model text/chat distribution remains open.
+  served in one integer session (pair rows are refused by the export), and accepted-model
+  text/chat distribution remains open.
 - **M2–M8.** Grounded replies, durable memory, full accepted-model serving, laptop cost,
   reasoning/coding, distribution and alpha release are not complete.
 
@@ -102,9 +131,11 @@ multiplication and are historical evidence, not the D11 product.
 | Milestones complete | **1 of 8 (M1)** | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) |
 | Saved model top-1 on DEV | 7,002 / 7,001 of 14,287 | [M1 close](../labs/m1-close-saved-model/README.md) |
 | Fresh V2 / p-f | 7,215 / 7,228; 7,850 / 7,872 | [Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f report](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md) |
-| Useful conversation | Not established | [latest free-generation evidence](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md) |
+| Useful conversation | Not established | [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md) |
+| Recall of a told value | 314 / 320 / 325 of 578 questions, three seeds | [claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md) |
+| Exact replies, with / without the turn memory | 377–441 / 171–211 of 2,218, three seeds | [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md) |
 | Next capability milestone | M2: grounded complete replies | [PLAN](../../PLAN.md) |
-| Immediate gate | Localize claude-232's parity MISS layer by layer, then recheck parity before the p-x rerun | [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md), [point-key item](../roadmap/items/point-key-integer.md) |
+| Work in progress | One native integer state for training and serving (D85); carrying it across training windows (V1) and vector-native reads (V2(a)) | [PLAN](../../PLAN.md), [#3979](https://github.com/UOR-Foundation/uor-r4/pull/3979), [#3978](https://github.com/UOR-Foundation/uor-r4/pull/3978) |
 | Products shipped | None; M1 is not an alpha release | [products](../products/README.md) |
 
 ## Go deeper
