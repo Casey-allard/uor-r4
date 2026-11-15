@@ -18,7 +18,7 @@ use crate::{
 /// Largest admitted read width in lanes.
 pub const MAX_Q31_READ_WIDTH: usize = 4096;
 /// Lanes in one folded address.
-const ADDRESS_LANES: usize = 16;
+pub(crate) const ADDRESS_LANES: usize = 16;
 /// Largest admitted gain shift; the payload shift is `31 - gain_shift`.
 const MAX_GAIN_SHIFT: u32 = 31;
 const READ_VERSION: u8 = 1;
@@ -86,7 +86,7 @@ pub fn q31_read_address(gates: &[Q31Quaternion], row: &[i64]) -> Result<[i64; AD
     Ok(address)
 }
 
-fn read_distance(query: &[i64; ADDRESS_LANES], key: &[i64; ADDRESS_LANES]) -> u64 {
+pub(crate) fn read_distance(query: &[i64; ADDRESS_LANES], key: &[i64; ADDRESS_LANES]) -> u64 {
     query.iter().zip(key).fold(0u64, |total, (&q, &k)| {
         let term = q
             .checked_sub(k)

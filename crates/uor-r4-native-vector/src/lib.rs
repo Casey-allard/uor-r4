@@ -10,8 +10,10 @@
 use std::fmt;
 pub mod read;
 pub mod read_dump;
+pub mod read_train;
 pub use read::*;
 pub use read_dump::*;
+pub use read_train::*;
 
 #[derive(Debug)]
 pub enum Error {
