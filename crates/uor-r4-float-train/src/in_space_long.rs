@@ -14833,6 +14833,294 @@ fn vector_read_reading(
     })
 }
 
+/// claude-387: the run settings a saved two-class recall checkpoint is read back with: the run's
+/// `config.json` (seed and trunk flags) and `recall.json` (the form's header and held-out count).
+#[derive(Clone, Debug, Serialize)]
+pub struct PayloadProbeSettings {
+    pub seed: u64,
+    pub retain_rates: bool,
+    pub fold_scores: bool,
+    pub reflect_floor: bool,
+    pub fix_input_table: bool,
+    pub header: usize,
+    pub eval_windows: u64,
+    /// The eval payload scales; the first is the saved forward's own, 1.
+    pub scales: Vec<f32>,
+}
+
+/// claude-387: one held-out query row of the payload probe at one payload scale.
+#[derive(Clone, Debug, Serialize)]
+pub struct PayloadProbeRow {
+    pub window: usize,
+    pub bucket: usize,
+    pub slot: usize,
+    /// The asked token's score minus the best other token's, in the nearest-table decode that
+    /// [`recall_picks`] makes (negative mean L1 displacement).
+    pub margin: f32,
+    /// The decoded token.
+    pub pick: u32,
+    pub ask_value: u32,
+    pub other_value: u32,
+    /// `|x|`, `|p|` and `x · p` where the read adds, at this row.
+    pub stream_norm: f32,
+    pub payload_norm: f32,
+    pub dot: f32,
+    /// The next tokens of the read's real kept picks, best first.
+    pub next_ids: Vec<u32>,
+}
+
+/// claude-387: every held-out query row of the saved recall checkpoint `checkpoint`, decoded
+/// with the read's payload times `scale` (`None`: the read cut, `R^{-v}`, with no probe rows).
+fn payload_probe_pass(
+    model: &StackModel,
+    held: &[(CausalWindow, Vec<RecallQuery>)],
+    seed: u64,
+    scale: Option<f32>,
+) -> Result<Vec<PayloadProbeRow>> {
+    let table = table(model)?;
+    let refs: Vec<&CausalWindow> = held.iter().map(|(w, _)| w).collect();
+    let mut out = Vec::new();
+    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
+        for (c, chunk) in refs.chunks(16).enumerate() {
+            let (ids, _, _) = assemble(chunk);
+            if ids.len() != chunk.len() * SHEET_CONTEXT {
+                return Err(invalid("a held-out window is not the sheet's context"));
+            }
+            let forward = || crate::flock_read::points(model, &ids, chunk.len(), SHEET_CONTEXT);
+            let (hidden, probe) = match scale {
+                Some(s) => crate::vector_reads::with_payload_scale(s, || {
+                    crate::vector_reads::probing_payload(forward)
+                })?,
+                None => (crate::vector_reads::without_vector_read(forward)?, Vec::new()),
+            };
+            if scale.is_some() && probe.len() != ids.len() {
+                return Err(invalid(format!(
+                    "{} probe rows for {} positions: the read ran other than once",
+                    probe.len(),
+                    ids.len()
+                )));
+            }
+            let mut at = Vec::new();
+            for (j, window) in chunk.iter().enumerate() {
+                let w = c * 16 + j;
+                let queries = &held[w].1;
+                let offsets: Vec<usize> = queries.iter().map(|q| q.scored_offset).collect();
+                if offsets != window.scored_offsets {
+                    return Err(invalid("a window's scored rows are not its queries' rows"));
+                }
+                for q in queries {
+                    at.push((w, j * SHEET_CONTEXT + q.scored_offset, q));
+                }
+            }
+            let index: Vec<u32> = at.iter().map(|&(_, r, _)| r as u32).collect();
+            let index = Tensor::from_vec(index, at.len(), model.device())?;
+            let scores = nearest_scores(&hidden.index_select(&index, 0)?, &table)?.to_vec2::<f32>()?;
+            for ((w, r, q), row) in at.into_iter().zip(scores) {
+                let ask = q.ask_value as usize;
+                let (mut pick, mut best_other) = (0usize, f32::NEG_INFINITY);
+                for (t, &v) in row.iter().enumerate() {
+                    if v > row[pick] {
+                        pick = t;
+                    }
+                    if t != ask && v > best_other {
+                        best_other = v;
+                    }
+                }
+                let p = probe.get(r);
+                out.push(PayloadProbeRow {
+                    window: w,
+                    bucket: q.bucket,
+                    slot: q.slot,
+                    margin: row[ask] - best_other,
+                    pick: pick as u32,
+                    ask_value: q.ask_value,
+                    other_value: q.other_value,
+                    stream_norm: p.map_or(0.0, |p| p.stream_norm),
+                    payload_norm: p.map_or(0.0, |p| p.payload_norm),
+                    dot: p.map_or(0.0, |p| p.dot),
+                    next_ids: p.map_or_else(Vec::new, |p| p.next_ids.clone()),
+                });
+            }
+        }
+        Ok(())
+    })?;
+    Ok(out)
+}
+
+/// claude-387: the count, mean, lower median and 10th and 90th percentiles of `v`; the count
+/// alone when empty.
+fn probe_spread(mut v: Vec<f64>) -> serde_json::Value {
+    if v.is_empty() {
+        return serde_json::json!({ "n": 0 });
+    }
+    v.sort_by(f64::total_cmp);
+    let at = |f: f64| v[((v.len() - 1) as f64 * f).floor() as usize];
+    let mean = v.iter().sum::<f64>() / v.len() as f64;
+    serde_json::json!({
+        "n": v.len(), "mean": mean, "p10": at(0.1), "median": at(0.5), "p90": at(0.9)
+    })
+}
+
+/// claude-387: the summary of one pass's `rows` over the rows `keep` selects.
+fn payload_probe_summary(
+    rows: &[PayloadProbeRow],
+    keep: impl Fn(usize, &PayloadProbeRow) -> bool,
+) -> serde_json::Value {
+    let picked: Vec<(usize, &PayloadProbeRow)> =
+        rows.iter().enumerate().filter(|&(i, r)| keep(i, r)).collect();
+    let f = |g: &dyn Fn(&PayloadProbeRow) -> f64| -> serde_json::Value {
+        probe_spread(picked.iter().map(|(_, r)| g(r)).collect())
+    };
+    let (mut ask, mut oth, mut n) = ([0usize; 2], [0usize; 2], [0usize; 2]);
+    for (_, r) in &picked {
+        n[r.bucket] += 1;
+        ask[r.bucket] += usize::from(r.pick == r.ask_value);
+        oth[r.bucket] += usize::from(r.pick == r.other_value);
+    }
+    let rate = |a: [usize; 2]| -> Vec<f64> {
+        (0..2).map(|b| if n[b] == 0 { 0.0 } else { a[b] as f64 / n[b] as f64 }).collect()
+    };
+    serde_json::json!({
+        "rows": n,
+        "ask": ask,
+        "oth": oth,
+        "r_ask": rate(ask),
+        "r_oth": rate(oth),
+        "margin": f(&|r| f64::from(r.margin)),
+        "margin_positive": picked.iter().filter(|(_, r)| r.margin > 0.0).count(),
+        // Added after the first probe read, outside the fixed reading map: whether the decoded
+        // token is one of the read's kept picks' next tokens, and the first kept pick's.
+        "pick_kept": picked.iter().filter(|(_, r)| r.next_ids.contains(&r.pick)).count(),
+        "pick_first": picked.iter().filter(|(_, r)| r.next_ids.first() == Some(&r.pick)).count(),
+        "stream_norm": f(&|r| f64::from(r.stream_norm)),
+        "payload_norm": f(&|r| f64::from(r.payload_norm)),
+        "ratio": f(&|r| if r.stream_norm > 0.0 {
+            f64::from(r.payload_norm) / f64::from(r.stream_norm)
+        } else {
+            0.0
+        }),
+        "cosine": f(&|r| {
+            let d = f64::from(r.stream_norm) * f64::from(r.payload_norm);
+            if d > 0.0 { f64::from(r.dot) / d } else { 0.0 }
+        }),
+    })
+}
+
+/// claude-387: the payload probe of the saved two-class recall checkpoint `checkpoint` (a run's
+/// `models/step-*` directory) under `settings`, as `probe.json`'s value: at each held-out query
+/// row `|x|`, `|p|`, their cosine, the read's kept picks against the asked fact, and the asked
+/// token's decoded margin, at each payload scale and with the read cut. Eval only.
+pub fn recall_payload_probe(
+    checkpoint: &Path,
+    settings: &PayloadProbeSettings,
+    device: &Device,
+) -> Result<serde_json::Value> {
+    if settings.scales.first() != Some(&1.0) {
+        return Err(invalid("the probe's first payload scale is the saved forward's, 1"));
+    }
+    if settings.eval_windows == 0 {
+        return Err(invalid("the probe reads at least one held-out window"));
+    }
+    arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
+    crate::geometric_stack::set_retention_rates(settings.retain_rates);
+    crate::geometric_stack::set_folded_scores(settings.fold_scores);
+    crate::geometric_stack::set_reflected_floor(settings.reflect_floor);
+    crate::geometric_stack::set_input_table_fixed(settings.fix_input_table);
+    let _guard = ArmGuard;
+    let model = StackModel::load(checkpoint, device)?;
+    load_reads(checkpoint, device)?;
+    let read = crate::vector_reads::vector_read()
+        .ok_or_else(|| invalid("the checkpoint has no vector read to probe"))?;
+    let held_seed = settings.seed ^ RECALL_EVAL_SEED;
+    let held = (0..settings.eval_windows)
+        .map(|i| recall_query_window(held_seed, i, SHEET_CONTEXT, settings.header))
+        .collect::<Result<Vec<_>>>()?;
+    let base = payload_probe_pass(&model, &held, settings.seed, Some(1.0))?;
+    let first_right: Vec<bool> =
+        base.iter().map(|r| r.next_ids.first() == Some(&r.ask_value)).collect();
+    // How many of the kept picks point at the asked fact (and at the other fact), over all query
+    // rows and over the rows whose first pick is right.
+    let kept_max = base.iter().map(|r| r.next_ids.len()).max().unwrap_or(0);
+    let mut kept_ask = vec![[0usize; 2]; kept_max + 1];
+    let mut kept_oth = vec![[0usize; 2]; kept_max + 1];
+    for (r, &right) in base.iter().zip(&first_right) {
+        let a = r.next_ids.iter().filter(|&&t| t == r.ask_value).count();
+        let o = r.next_ids.iter().filter(|&&t| t == r.other_value).count();
+        kept_ask[a][0] += 1;
+        kept_oth[o][0] += 1;
+        if right {
+            kept_ask[a][1] += 1;
+            kept_oth[o][1] += 1;
+        }
+    }
+    let (mut passes, mut scaled_picks) = (Vec::new(), Vec::new());
+    for &scale in &settings.scales {
+        let rows = if scale == 1.0 {
+            base.clone()
+        } else {
+            payload_probe_pass(&model, &held, settings.seed, Some(scale))?
+        };
+        if rows.len() != base.len() {
+            return Err(invalid("a scaled pass read other rows than the base pass"));
+        }
+        passes.push(serde_json::json!({
+            "scale": scale,
+            "all": payload_probe_summary(&rows, |_, _| true),
+            "first_right": payload_probe_summary(&rows, |i, _| first_right[i]),
+            "first_not_right": payload_probe_summary(&rows, |i, _| !first_right[i]),
+        }));
+        scaled_picks.push(rows.iter().map(|r| r.pick).collect::<Vec<u32>>());
+    }
+    // Added after the first probe read: the payload weight's sign census.
+    let w = read.weight_values()?;
+    let weight = serde_json::json!({
+        "width": w.len(),
+        "negative": w.iter().filter(|&&v| v < 0.0).count(),
+        "zero": w.iter().filter(|&&v| v == 0.0).count(),
+        "min": w.iter().copied().fold(f32::INFINITY, f32::min),
+        "max": w.iter().copied().fold(f32::NEG_INFINITY, f32::max),
+        "abs": probe_spread(w.iter().map(|&v| f64::from(v.abs())).collect()),
+    });
+    let cut = payload_probe_pass(&model, &held, settings.seed, None)?;
+    if cut.len() != base.len() {
+        return Err(invalid("the cut pass read other rows than the base pass"));
+    }
+    let rows: Vec<serde_json::Value> = base
+        .iter()
+        .zip(&cut)
+        .enumerate()
+        .map(|(i, (r, c))| {
+            let picks: Vec<u32> = scaled_picks.iter().map(|p| p[i]).collect();
+            serde_json::json!({
+                "window": r.window, "bucket": r.bucket, "slot": r.slot,
+                "ask_value": r.ask_value, "other_value": r.other_value,
+                "pick": r.pick, "margin": r.margin, "picks_by_scale": picks,
+                "cut_pick": c.pick, "cut_margin": c.margin,
+                "stream_norm": r.stream_norm, "payload_norm": r.payload_norm, "dot": r.dot,
+                "next_ids": r.next_ids,
+            })
+        })
+        .collect();
+    Ok(serde_json::json!({
+        "checkpoint": checkpoint.display().to_string(),
+        "settings": settings,
+        "kind": read.kind().name(),
+        "depth": read.depth(),
+        "weight_mean_abs": read.weight_mean_abs()?,
+        "weight": weight,
+        "query_rows": base.len(),
+        "first_right": first_right.iter().filter(|&&r| r).count(),
+        "kept_picks_on_ask": kept_ask,
+        "kept_picks_on_other": kept_oth,
+        "passes": passes,
+        "cut": {
+            "all": payload_probe_summary(&cut, |_, _| true),
+            "first_right": payload_probe_summary(&cut, |i, _| first_right[i]),
+        },
+        "rows": rows,
+    }))
+}
+
 /// The pinned tokenizer.
 fn pinned_tokenizer(data_root: &Path) -> Result<ByteBpeTokenizer> {
     let tokenizer_bytes = fs::read(data_root.join("tokenizer.json"))?;

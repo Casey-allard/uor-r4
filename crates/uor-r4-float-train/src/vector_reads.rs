@@ -125,6 +125,56 @@ thread_local! {
     static CALIBRATE: Cell<bool> = const { Cell::new(false) };
     static CALIBRATED: Cell<Option<f32>> = const { Cell::new(None) };
     static PICKS: RefCell<Option<Vec<u32>>> = const { RefCell::new(None) };
+    static PROBE: RefCell<Option<Vec<PayloadRow>>> = const { RefCell::new(None) };
+    static PAYLOAD_SCALE: Cell<f32> = const { Cell::new(1.0) };
+}
+
+/// claude-387: one row's payload reading, recorded while a probe is open ([`probing_payload`]).
+#[derive(Clone, Debug, PartialEq)]
+pub struct PayloadRow {
+    /// `|x|`: the stream row where the read adds.
+    pub stream_norm: f32,
+    /// `|p|`: the row the read adds (`w ⊙` its kept picks' mean, times the eval payload scale).
+    pub payload_norm: f32,
+    /// `x · p`.
+    pub dot: f32,
+    /// The next token of each kept pick that is real, best first (one at most for every kind
+    /// but Flock); empty when the row read nothing.
+    pub next_ids: Vec<u32>,
+}
+
+/// claude-387: run `f` with every forward's rows recorded as [`PayloadRow`]s, in forward order,
+/// and return them with its result. Eval only: the reading is detached. The previous recording
+/// is restored on return.
+pub fn probing_payload<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, Vec<PayloadRow>)> {
+    struct Restore(Option<Vec<PayloadRow>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let old = self.0.take();
+            PROBE.with(|cell| *cell.borrow_mut() = old);
+        }
+    }
+    let _restore = Restore(PROBE.with(|cell| cell.borrow_mut().replace(Vec::new())));
+    let out = f()?;
+    let rows = PROBE.with(|cell| cell.borrow_mut().take()).unwrap_or_default();
+    Ok((out, rows))
+}
+
+/// claude-387: run `f` with the read's payload multiplied by `scale` (eval only; positive and
+/// finite). At the default 1 the forward skips the multiply, so it is the unscaled forward bit
+/// for bit. The previous scale is restored on return.
+pub fn with_payload_scale<T>(scale: f32, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    if !(scale.is_finite() && scale > 0.0) {
+        return Err(invalid("a payload scale is positive and finite"));
+    }
+    struct Restore(f32);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PAYLOAD_SCALE.with(|cell| cell.set(self.0));
+        }
+    }
+    let _restore = Restore(PAYLOAD_SCALE.with(|cell| cell.replace(scale)));
+    f()
 }
 
 /// claude-385: the next training forward (inside [`collecting`]) of a Starling read sets its
@@ -460,6 +510,11 @@ impl VectorRead {
         Ok(sum / w.elem_count().max(1) as f64)
     }
 
+    /// claude-387: the payload weight's coordinates, for the probe's census.
+    pub fn weight_values(&self) -> Result<Vec<f32>> {
+        Ok(self.weight.as_tensor().flatten_all()?.to_vec1::<f32>()?)
+    }
+
     /// The Starling offset's value; none for the other kinds.
     pub fn offset_value(&self) -> Result<Option<f32>> {
         match &self.offset {
@@ -695,8 +750,9 @@ impl VectorRead {
         let weight = self.weight.as_tensor().unsqueeze(0)?;
 
         // The score with gradient, and for every kind but Flock the chosen pair's distance,
-        // payload rows, and the chosen position + 1 (0: none) with whether the row reads.
-        let (score, contribution, plus1, reads) = match self.kind {
+        // payload rows, and the chosen position + 1 (0: none) with whether the row reads; and
+        // each kept pick's next token with whether it is real, `(rows, kept)`, for the probe.
+        let (score, contribution, plus1, reads, next_ids, next_real) = match self.kind {
             VectorReadKind::Flock { neighbours } => {
                 let score = diff.abs()?.mean(3)?.neg()?;
                 // claude-385: the K best scores, each the latest on a tie, as column + 1
@@ -717,8 +773,9 @@ impl VectorRead {
                 let distance = q.unsqueeze(1)?.broadcast_sub(&kept_keys)?.abs()?.mean(2)?;
                 let factor = distance.detach().sub(&distance)?.affine(1.0, 1.0)?;
                 let next = all.broadcast_add(&Tensor::new(&[1u32], device)?)?;
+                let next_ids = ids_t.index_select(&next, 0)?;
                 let payload = table
-                    .index_select(&ids_t.index_select(&next, 0)?, 0)?
+                    .index_select(&next_ids, 0)?
                     .reshape((rows, kept, width))?;
                 let real_f = real.to_dtype(DType::F32)?;
                 let count = real_f.sum_keepdim(1)?.maximum(1.0)?;
@@ -728,7 +785,8 @@ impl VectorRead {
                     .broadcast_div(&count)?;
                 let reads = real_f.narrow(1, 0, 1)?.squeeze(1)?;
                 let plus1 = ranked.narrow(1, 0, 1)?.squeeze(1)?;
-                (score, contribution, plus1, reads)
+                let next_ids = next_ids.reshape((rows, kept))?;
+                (score, contribution, plus1, reads, next_ids, real_f)
             }
             kind => {
                 let (score, distance) = match kind {
@@ -782,14 +840,52 @@ impl VectorRead {
                 let picked = distance.mul(&chosen)?.sum(2)?.reshape(rows)?;
                 let factor = picked.detach().sub(&picked)?.affine(1.0, 1.0)?;
                 let next = starts.add(&plus1.reshape(rows)?)?.to_dtype(DType::U32)?;
-                let payload = table.index_select(&ids_t.index_select(&next, 0)?, 0)?;
+                let next_ids = ids_t.index_select(&next, 0)?;
+                let payload = table.index_select(&next_ids, 0)?;
                 let gain = factor.mul(&reads.reshape(rows)?)?.unsqueeze(1)?;
-                (score, payload.broadcast_mul(&gain)?, plus1, reads)
+                let next_real = reads.reshape((rows, 1))?;
+                let next_ids = next_ids.reshape((rows, 1))?;
+                (score, payload.broadcast_mul(&gain)?, plus1, reads, next_ids, next_real)
             }
         };
-        let out = flat
-            .add(&contribution.broadcast_mul(&weight)?)?
-            .reshape((batch, time, width))?;
+        // claude-387: the eval payload scale, skipped at its default 1.
+        let scale = PAYLOAD_SCALE.with(Cell::get);
+        let contribution = if scale == 1.0 {
+            contribution
+        } else {
+            contribution.affine(f64::from(scale), 0.0)?
+        };
+        let added = contribution.broadcast_mul(&weight)?;
+        let out = flat.add(&added)?.reshape((batch, time, width))?;
+        // claude-387: each row's stream and payload, while a probe is open.
+        if PROBE.with(|cell| cell.borrow().is_some()) {
+            let (x, p) = (flat.detach(), added.detach());
+            let norm = |t: &Tensor| -> Result<Vec<f32>> {
+                Ok(t.sqr()?.sum(1)?.sqrt()?.to_vec1::<f32>()?)
+            };
+            let (xn, pn) = (norm(&x)?, norm(&p)?);
+            let dot = x.mul(&p)?.sum(1)?.to_vec1::<f32>()?;
+            let ids_kept = next_ids.to_vec2::<u32>()?;
+            let real_kept = next_real.to_dtype(DType::F32)?.to_vec2::<f32>()?;
+            let found: Vec<PayloadRow> = (0..rows)
+                .map(|r| PayloadRow {
+                    stream_norm: xn[r],
+                    payload_norm: pn[r],
+                    dot: dot[r],
+                    next_ids: ids_kept[r]
+                        .iter()
+                        .zip(&real_kept[r])
+                        .filter(|(_, &real)| real > 0.5)
+                        .map(|(&id, _)| id)
+                        .collect(),
+                })
+                .collect();
+            PROBE.with(|cell| {
+                if let Some(all) = cell.borrow_mut().as_mut() {
+                    all.extend(found);
+                }
+            });
+        }
         // claude-385: the choices, row by row, while a recording is open.
         if PICKS.with(|cell| cell.borrow().is_some()) {
             let picks = plus1.reshape(rows)?.to_dtype(DType::U32)?.to_vec1::<u32>()?;
@@ -1476,6 +1572,24 @@ mod tests {
         set_vector_read(None);
         assert!(!CALIBRATE.with(Cell::get));
         assert!(vector_read().is_none());
+    }
+
+    #[test]
+    fn the_payload_scale_and_probe_restore_what_they_found() {
+        // claude-387: a scale that is not positive and finite is refused; a scale is set only
+        // inside, and set back on an error inside too; a probe with no forward returns no rows.
+        for bad in [0.0, -1.0, f32::NAN, f32::INFINITY] {
+            assert!(with_payload_scale(bad, || Ok(())).is_err(), "{bad}");
+        }
+        let inside = with_payload_scale(16.0, || Ok(PAYLOAD_SCALE.with(Cell::get))).unwrap();
+        assert_eq!(inside, 16.0);
+        assert_eq!(PAYLOAD_SCALE.with(Cell::get), 1.0);
+        let failed: Result<()> = with_payload_scale(4.0, || Err(invalid("inside")));
+        assert!(failed.is_err());
+        assert_eq!(PAYLOAD_SCALE.with(Cell::get), 1.0);
+        let ((), rows) = probing_payload(|| Ok(())).unwrap();
+        assert!(rows.is_empty());
+        assert!(PROBE.with(|cell| cell.borrow().is_none()));
     }
 
     /// A small deterministic generator for the device tests below, in [-1, 1).
@@ -2178,6 +2292,62 @@ mod tests {
                     .map(|t| if rank < t { (t - rank) as f32 } else { 0.0 })
                     .collect();
                 assert_eq!(got, want, "rank {rank}");
+            }
+            Ok(())
+        }
+
+        /// claude-387: inside a probe, and at the eval scale 1, the forward is the plain forward
+        /// bit for bit. Each probe row holds the stream row's norm, the added row's norm and
+        /// their dot product, and the next tokens of the reference's chosen positions, best
+        /// first; at scale 4 the added row is four times the plain one.
+        #[test]
+        fn the_payload_probe_reads_the_forward_and_leaves_it_bit_for_bit() -> Result<()> {
+            let bits = |t: &Tensor| -> Result<Vec<u32>> {
+                Ok(t.flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect())
+            };
+            let norm = |v: &[f64]| v.iter().map(|a| a * a).sum::<f64>().sqrt();
+            for kind in kinds() {
+                let f = fixture(kind, DEFAULT_MARGIN, 387)?;
+                let forward = || f.read.apply(&f.x, &IDS, &f.table);
+                let plain = forward()?;
+                let (probed, rows) = probing_payload(forward)?;
+                let unit = with_payload_scale(1.0, forward)?;
+                assert_eq!(bits(&probed)?, bits(&plain)?, "{kind:?}");
+                assert_eq!(bits(&unit)?, bits(&plain)?, "{kind:?}");
+                assert!(PROBE.with(|cell| cell.borrow().is_none()));
+                assert_eq!(rows.len(), T, "{kind:?}");
+                let (x, out) = (host(&f.x)?, host(&plain)?);
+                let want = reference_of(&f)?;
+                let mut read_rows = 0;
+                for (r, row) in rows.iter().enumerate() {
+                    let xs = &x[r * W..(r + 1) * W];
+                    let added: Vec<f64> = out[r * W..(r + 1) * W]
+                        .iter()
+                        .zip(xs)
+                        .map(|(o, a)| o - a)
+                        .collect();
+                    let dot: f64 = xs.iter().zip(&added).map(|(a, p)| a * p).sum();
+                    let close = |got: f32, want: f64| {
+                        (f64::from(got) - want).abs() <= 1e-4 * (1.0 + want.abs())
+                    };
+                    assert!(close(row.stream_norm, norm(xs)), "{kind:?} row {r}");
+                    assert!(close(row.payload_norm, norm(&added)), "{kind:?} row {r}");
+                    assert!(close(row.dot, dot), "{kind:?} row {r}: {} vs {dot}", row.dot);
+                    let next: Vec<u32> = want.chosen[r].iter().map(|&s| IDS[s + 1]).collect();
+                    assert_eq!(row.next_ids, next, "{kind:?} row {r}");
+                    read_rows += usize::from(!next.is_empty());
+                }
+                assert!(read_rows > 0, "{kind:?}: the fixture reads somewhere");
+                let four = host(&with_payload_scale(4.0, forward)?)?;
+                for (i, ((a, o), x)) in four.iter().zip(&out).zip(&x).enumerate() {
+                    let want = 4.0 * (o - x);
+                    assert!(((a - x) - want).abs() < 1e-4, "{kind:?} [{i}]: {} vs {want}", a - x);
+                }
+                assert_eq!(PAYLOAD_SCALE.with(Cell::get), 1.0);
             }
             Ok(())
         }
