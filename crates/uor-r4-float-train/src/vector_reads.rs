@@ -127,6 +127,7 @@ thread_local! {
     static PICKS: RefCell<Option<Vec<u32>>> = const { RefCell::new(None) };
     static PROBE: RefCell<Option<Vec<PayloadRow>>> = const { RefCell::new(None) };
     static PAYLOAD_SCALE: Cell<f32> = const { Cell::new(1.0) };
+    static FIRST_PICK: Cell<bool> = const { Cell::new(false) };
 }
 
 /// claude-387: one row's payload reading, recorded while a probe is open ([`probing_payload`]).
@@ -174,6 +175,22 @@ pub fn with_payload_scale<T>(scale: f32, f: impl FnOnce() -> Result<T>) -> Resul
         }
     }
     let _restore = Restore(PAYLOAD_SCALE.with(|cell| cell.replace(scale)));
+    f()
+}
+
+/// claude-388: run `f` with Flock's payload copied from its first real kept pick alone (`w ⊙` that
+/// pick's next-token point) instead of the mean of its kept picks: the hard copy. Eval only.
+/// Every other kind already reads one pick and is unchanged. Off by default, and the default
+/// forward skips it, so it is the plain forward bit for bit. The previous setting is restored on
+/// return.
+pub fn with_first_pick_payload<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            FIRST_PICK.with(|cell| cell.set(self.0));
+        }
+    }
+    let _restore = Restore(FIRST_PICK.with(|cell| cell.replace(true)));
     f()
 }
 
@@ -778,9 +795,19 @@ impl VectorRead {
                     .index_select(&next_ids, 0)?
                     .reshape((rows, kept, width))?;
                 let real_f = real.to_dtype(DType::F32)?;
-                let count = real_f.sum_keepdim(1)?.maximum(1.0)?;
+                // claude-388: the hard copy keeps the first pick's weight alone (eval only);
+                // the default skips it.
+                let weigh = if FIRST_PICK.with(Cell::get) {
+                    let mut first = vec![0f32; kept];
+                    first[0] = 1.0;
+                    let first = Tensor::from_vec(first, (1, kept), device)?;
+                    real_f.broadcast_mul(&first)?
+                } else {
+                    real_f.clone()
+                };
+                let count = weigh.sum_keepdim(1)?.maximum(1.0)?;
                 let contribution = payload
-                    .broadcast_mul(&real_f.mul(&factor)?.unsqueeze(2)?)?
+                    .broadcast_mul(&weigh.mul(&factor)?.unsqueeze(2)?)?
                     .sum(1)?
                     .broadcast_div(&count)?;
                 let reads = real_f.narrow(1, 0, 1)?.squeeze(1)?;
@@ -1590,6 +1617,14 @@ mod tests {
         let ((), rows) = probing_payload(|| Ok(())).unwrap();
         assert!(rows.is_empty());
         assert!(PROBE.with(|cell| cell.borrow().is_none()));
+        // claude-388: the hard copy is off by default, on only inside, and off again after an
+        // error inside.
+        assert!(!FIRST_PICK.with(Cell::get));
+        assert!(with_first_pick_payload(|| Ok(FIRST_PICK.with(Cell::get))).unwrap());
+        assert!(!FIRST_PICK.with(Cell::get));
+        let failed: Result<()> = with_first_pick_payload(|| Err(invalid("inside")));
+        assert!(failed.is_err());
+        assert!(!FIRST_PICK.with(Cell::get));
     }
 
     /// A small deterministic generator for the device tests below, in [-1, 1).
@@ -2348,6 +2383,54 @@ mod tests {
                     assert!(((a - x) - want).abs() < 1e-4, "{kind:?} [{i}]: {} vs {want}", a - x);
                 }
                 assert_eq!(PAYLOAD_SCALE.with(Cell::get), 1.0);
+            }
+            Ok(())
+        }
+
+        /// claude-388: under the hard copy, Flock's added row is `w ⊙` the table row of its
+        /// first chosen position's next token alone, and the fixture has a row where that differs
+        /// from the mean the plain forward adds; every other kind is the plain forward bit for
+        /// bit. Off again after it returns.
+        #[test]
+        fn the_hard_copy_adds_the_first_pick_alone() -> Result<()> {
+            let bits = |t: &Tensor| -> Result<Vec<u32>> {
+                Ok(t.flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect())
+            };
+            for kind in kinds() {
+                let f = fixture(kind, DEFAULT_MARGIN, 388)?;
+                let forward = || f.read.apply(&f.x, &IDS, &f.table);
+                let plain = forward()?;
+                let copy = with_first_pick_payload(forward)?;
+                assert!(!FIRST_PICK.with(Cell::get));
+                if !matches!(kind, VectorReadKind::Flock { .. }) {
+                    assert_eq!(bits(&copy)?, bits(&plain)?, "{kind:?}");
+                    continue;
+                }
+                let (x, out, table) = (host(&f.x)?, host(&copy)?, host(&f.table)?);
+                let (w, plain) = (host(f.read.weight.as_tensor())?, host(&plain)?);
+                let want = reference_of(&f)?;
+                let mut differs = 0;
+                for r in 0..T {
+                    let first = want.chosen[r].first().map(|&s| IDS[s + 1] as usize);
+                    let mean_rows = want.chosen[r].len();
+                    for c in 0..W {
+                        let i = r * W + c;
+                        let added = first.map_or(0.0, |t| w[c] * table[t * W + c]);
+                        let got = out[i] - x[i];
+                        assert!((got - added).abs() < 1e-5, "row {r} [{c}]: {got} vs {added}");
+                    }
+                    if mean_rows > 1 {
+                        let gap = (0..W)
+                            .map(|c| (out[r * W + c] - plain[r * W + c]).abs())
+                            .fold(0.0, f64::max);
+                        differs += usize::from(gap > 1e-4);
+                    }
+                }
+                assert!(differs > 0, "the fixture has a row whose picks' mean is not the first");
             }
             Ok(())
         }

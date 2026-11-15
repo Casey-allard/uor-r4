@@ -14846,6 +14846,9 @@ pub struct PayloadProbeSettings {
     pub eval_windows: u64,
     /// The eval payload scales; the first is the saved forward's own, 1.
     pub scales: Vec<f32>,
+    /// claude-388: every pass with the read copies Flock's first kept pick alone (the hard copy,
+    /// [`crate::vector_reads::with_first_pick_payload`]) instead of its picks' mean.
+    pub first_only: bool,
 }
 
 /// claude-387: one held-out query row of the payload probe at one payload scale.
@@ -15035,7 +15038,17 @@ pub fn recall_payload_probe(
     let held = (0..settings.eval_windows)
         .map(|i| recall_query_window(held_seed, i, SHEET_CONTEXT, settings.header))
         .collect::<Result<Vec<_>>>()?;
-    let base = payload_probe_pass(&model, &held, settings.seed, Some(1.0))?;
+    // claude-388: every pass with the read runs under the hard copy when the settings ask.
+    let pass = |scale: Option<f32>| -> Result<Vec<PayloadProbeRow>> {
+        if settings.first_only {
+            crate::vector_reads::with_first_pick_payload(|| {
+                payload_probe_pass(&model, &held, settings.seed, scale)
+            })
+        } else {
+            payload_probe_pass(&model, &held, settings.seed, scale)
+        }
+    };
+    let base = pass(Some(1.0))?;
     let first_right: Vec<bool> =
         base.iter().map(|r| r.next_ids.first() == Some(&r.ask_value)).collect();
     // How many of the kept picks point at the asked fact (and at the other fact), over all query
@@ -15058,7 +15071,7 @@ pub fn recall_payload_probe(
         let rows = if scale == 1.0 {
             base.clone()
         } else {
-            payload_probe_pass(&model, &held, settings.seed, Some(scale))?
+            pass(Some(scale))?
         };
         if rows.len() != base.len() {
             return Err(invalid("a scaled pass read other rows than the base pass"));

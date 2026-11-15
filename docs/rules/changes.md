@@ -14,6 +14,53 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 15 November 2026: D41's donor pass released, on wick, with gpt-oss-20b (D86)
+
+**Decided by:** the owner (Casey), 15 November 2026, in Claude's chat, recorded at
+`2026-11-15T10:53Z` (claude-388). He decided this after a five-architect review of the path to
+one end-to-end served vector model. All five reviews recommended releasing D41's hard-target
+donor pass and keeping weight and logit distillation banned. Each answer below replies to a
+question that quoted its choice.
+
+To "Release D41's one-time donor pass (distill-d1)?":
+
+> "I would say yes release it, but why is it going to cost money? if we are running it locally
+> on wick, wouldn't it be free?"
+
+To "may the donor give up to 4 alternative answers per prompt (still no probabilities or
+scores)?": "Allow up to 4 (Recommended)". To the weight-distillation variants: "Defer (b), ban
+(c)(d) (Recommended)". To "Which donor?": "gpt-oss-20b on wick (Recommended)". To D41 item 3's
+order: "Drop driver math, keep pilot (Recommended)".
+
+**What changed** (the charter's text does not change; §3.10 still says hard targets only):
+
+1. **§3.10 / D41 item 5: the release.** `distill-d1` is released by the owner. The generation
+   unit still needs its own one-page sheet with a non-author FIT (§4.5). It also needs its
+   generation receipt bound at generation (D41 item 2b).
+2. **D41 item 1 and condition (a): the donor and the machine.** The donor is
+   `openai/gpt-oss-20b`, not `openai/gpt-oss-120b`. The 120B model needs about 65 GB and does
+   not fit the owner's 24 GB RTX 4090. It runs on **wick**, the owner's own RTX 4090, instead
+   of a declared `uor-pod` lease. *The lab's conditions, not owner terms:* a pinned revision
+   with the released MXFP4 weights; one offline run in the lab's own container, outside every
+   compiled module of the repository (§3.4); the receipt names the external inference engine
+   and binds wick's GPU identity in place of a pod's.
+3. **D41 item 4: the consumption contract.** The donor may give up to **four** alternative
+   answer texts per prompt. Each is a hard target: donor-chosen tokens stored as integer
+   targets, with no logits, probabilities, scores or ranks stored or consumed.
+4. **D41 item 3: the sequence.** The driver math optimization (occupancy and the BVG-K driver,
+   from the M1 era) no longer gates the donor pass. The measured ~1M-token pilot stays: it runs
+   first, on the same donor, before any production corpus is sized.
+5. **Variants the review named.** (b) a one-time donor embedding-table import, used as a native
+   starting point, is **deferred** (Casey's words: "Defer (b)"). The review recommended deciding
+   it on evidence after the first native end-to-end model; it would need a §3.10 change. (c) fitting the geometric operators to a donor's layers
+   or hidden states, and (d) a donor's logits or distributions as targets, stay **banned**
+   (§3.2, §3.3, §3.10).
+
+D41's other conditions are unchanged: (b) the receipt; (c) the donor never runs in student
+preparation, training, evaluation, serving, grading or any panel; (d) no student-side
+exception; (e) data is an instrument input, not evidence; (f) the exception expires when
+`distill-d1` is sealed.
+
 ## 13 November 2026: one persistent native train/serve state (D85)
 
 <!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->

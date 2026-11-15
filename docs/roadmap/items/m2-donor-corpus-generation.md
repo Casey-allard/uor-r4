@@ -3,7 +3,7 @@ id: m2-donor-corpus-generation
 title: Generate the one-time offline donor answer corpus (distill-d1)
 milestone: M2
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [d41-driver-math-pilot]
@@ -15,7 +15,13 @@ It is the training data for the first simple conversation.
 
 ## What is missing
 
-Stage 5 trains the student on fixed example answers produced once by a donor model; these are not yet generated. D41 allows it as a one-time owner exception: the student sees only the answers, never the donor's probabilities. It runs only after the driver math optimization (scope not detailed in these sources), and its execution gate (release or PM-dispatch wording) is a separate owner/PM item.
+Stage 5 trains the student on fixed example answers produced once by a donor model; these are not yet generated. D41 allows it as a one-time owner exception: the student sees only the answers, never the donor's probabilities. It runs only after the driver math optimization (scope not detailed in these sources), and its execution gate (release or PM-dispatch wording) is a separate owner/PM item. *(This sentence is superseded by D86 below.)*
+
+**D86 (owner, 15 Nov 2026): released.** Casey: "I would say yes release it, but why is it going to cost money? if we are running it locally on wick, wouldn't it be free?"
+- The donor is `openai/gpt-oss-20b` on wick, not gpt-oss-120b on a pod.
+- Each prompt gets up to four hard answer texts, with no probabilities, scores or ranks.
+- The driver math no longer gates the corpus. The ~1M-token pilot (`d41-driver-math-pilot`) still runs first, and this corpus is sized from it.
+- The generation unit still needs its sheet with a non-author FIT (§4.5) and its receipt bound at generation.
 
 ## Done when
 

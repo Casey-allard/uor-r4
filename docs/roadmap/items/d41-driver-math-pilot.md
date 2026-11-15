@@ -3,7 +3,7 @@ id: d41-driver-math-pilot
 title: Optimize the driver math and run the ~1M-token pilot (D41 item 3)
 milestone: M2
 area: training
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
@@ -18,7 +18,11 @@ It gates distill-d1 supplying hard targets to the D32 discrete student.
 
 D41 item 3 puts the driver math optimization and a ~1M-token pilot ahead of distillation. Neither is recorded as done in these documents, and distill-d1 does not exist yet.
 
+**D86 (owner, 15 Nov 2026).** The driver math optimization no longer gates the donor pass ("Drop driver math, keep pilot (Recommended)"). This item's remaining part is the measured ~1M-token pilot. It runs once on `openai/gpt-oss-20b` on wick, the owner's RTX 4090, with up to four hard answer texts per prompt (owner terms). The lab's conditions: a pinned revision with the released MXFP4 weights, outside every compiled module of the repository, the receipt bound at generation (D41 item 2b), and a sheet with a non-author FIT (§4.5). D86 is the §3.10 release that the pilot unit cites at dispatch.
+
 ## Done when
+
+Since D86: the ~1M-token pilot has run on gpt-oss-20b on wick under D41's conditions as amended by D86, with its receipt and its measured tokens/s and size recorded. The original text follows.
 
 The driver math optimization lands with parity controls, and the ~1M-token pilot is run and recorded.
 
