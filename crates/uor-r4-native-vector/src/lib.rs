@@ -140,6 +140,161 @@ impl Q31VectorState {
     }
 }
 
+/// Exact lossless header width of one serialized [`Q31LaneGates`]: epoch, shift, version, pad.
+pub const Q31_LANE_HEADER_BYTES: usize = 16;
+/// Exact gate width of one lane.
+pub const Q31_LANE_GATE_BYTES: usize = 32;
+const Q31_LANE_VERSION: u8 = 1;
+
+/// One persistent per-lane native state: `K` Hamilton gates (shared across layers) and one shared
+/// optimizer cursor. The gates use the same Q31 words as [`Q31VectorState`]; the cursor is not
+/// duplicated per lane.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Q31LaneGates {
+    gates: Vec<Q31VectorState>,
+    step_shift: u32,
+    epoch: u64,
+}
+
+impl Q31LaneGates {
+    /// Build `K` admitted lane gates and one shared cursor.
+    pub fn new(gates: Vec<Q31Quaternion>, step_shift: u32) -> Result<Self> {
+        if gates.is_empty() {
+            return Err(Error::Invalid(
+                "a lane-gate state needs at least one lane".into(),
+            ));
+        }
+        if step_shift > MAX_Q31_STEP_SHIFT {
+            return Err(Error::Invalid(
+                "native Q31 lane step_shift must be in 0..=31".into(),
+            ));
+        }
+        let gates = gates
+            .into_iter()
+            .map(Q31VectorState::new)
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self {
+            gates,
+            step_shift,
+            epoch: 0,
+        })
+    }
+
+    pub fn lanes(&self) -> usize {
+        self.gates.len()
+    }
+
+    pub fn gate(&self, lane: usize) -> Result<Q31Quaternion> {
+        let lanes = self.gates.len();
+        self.gates
+            .get(lane)
+            .map(|gate| gate.words())
+            .ok_or_else(|| Error::Invalid(format!("lane {lane} is outside 0..{lanes}")))
+    }
+
+    pub fn gates(&self) -> Vec<Q31Quaternion> {
+        self.gates.iter().map(|gate| gate.words()).collect()
+    }
+
+    pub fn step_shift(&self) -> u32 {
+        self.step_shift
+    }
+
+    pub fn epoch(&self) -> u64 {
+        self.epoch
+    }
+
+    /// Set the one shared cursor. It advances once per training round, never per lane.
+    pub fn set_cursor(&mut self, epoch: u64, step_shift: u32) -> Result<()> {
+        if step_shift > MAX_Q31_STEP_SHIFT {
+            return Err(Error::Invalid(
+                "native Q31 lane step_shift must be in 0..=31".into(),
+            ));
+        }
+        self.epoch = epoch;
+        self.step_shift = step_shift;
+        Ok(())
+    }
+
+    pub fn set_gate(&mut self, lane: usize, gate: Q31Quaternion) -> Result<()> {
+        let lanes = self.gates.len();
+        let state = Q31VectorState::new(gate)?;
+        let slot = self
+            .gates
+            .get_mut(lane)
+            .ok_or_else(|| Error::Invalid(format!("lane {lane} is outside 0..{lanes}")))?;
+        *slot = state;
+        Ok(())
+    }
+
+    /// The shared typed transition at one lane's gate.
+    pub fn transition(&self, lane: usize, value: Q31Quaternion) -> Result<Q31Transport> {
+        q31_hamilton_rotate(self.gate(lane)?, value)
+    }
+
+    /// Exact `32 K + 16` bytes: K gates, then the shared epoch, shift, version and zero padding.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let cursor = self.gates.len() * Q31_LANE_GATE_BYTES;
+        let mut bytes = vec![0u8; cursor + Q31_LANE_HEADER_BYTES];
+        for (lane, gate) in self.gates.iter().enumerate() {
+            let start = lane * Q31_LANE_GATE_BYTES;
+            bytes[start..start + Q31_LANE_GATE_BYTES].copy_from_slice(&gate.to_bytes());
+        }
+        bytes[cursor..cursor + 8].copy_from_slice(&self.epoch.to_le_bytes());
+        bytes[cursor + 8..cursor + 12].copy_from_slice(&self.step_shift.to_le_bytes());
+        bytes[cursor + 12] = Q31_LANE_VERSION;
+        bytes
+    }
+
+    /// Restore the exact lane gates and the shared cursor, refusing unknown bytes or domains.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        if bytes.len() < Q31_LANE_GATE_BYTES + Q31_LANE_HEADER_BYTES
+            || !(bytes.len() - Q31_LANE_HEADER_BYTES).is_multiple_of(Q31_LANE_GATE_BYTES)
+        {
+            return Err(Error::Invalid(
+                "a lane-gate state is 32 K + 16 bytes with K at least 1".into(),
+            ));
+        }
+        let lanes = (bytes.len() - Q31_LANE_HEADER_BYTES) / Q31_LANE_GATE_BYTES;
+        let mut gates = Vec::with_capacity(lanes);
+        for lane in 0..lanes {
+            let start = lane * Q31_LANE_GATE_BYTES;
+            let gate: [u8; Q31_LANE_GATE_BYTES] = bytes[start..start + Q31_LANE_GATE_BYTES]
+                .try_into()
+                .expect("fixed lane width");
+            gates.push(Q31VectorState::from_bytes(gate)?);
+        }
+        let cursor = lanes * Q31_LANE_GATE_BYTES;
+        let epoch = u64::from_le_bytes(
+            bytes[cursor..cursor + 8]
+                .try_into()
+                .expect("fixed epoch width"),
+        );
+        let step_shift = u32::from_le_bytes(
+            bytes[cursor + 8..cursor + 12]
+                .try_into()
+                .expect("fixed shift width"),
+        );
+        if bytes[cursor + 12] != Q31_LANE_VERSION
+            || bytes[cursor + 13..].iter().any(|byte| *byte != 0)
+        {
+            return Err(Error::Invalid(
+                "a lane-gate state has an unknown version or nonzero padding".into(),
+            ));
+        }
+        if step_shift > MAX_Q31_STEP_SHIFT {
+            return Err(Error::Invalid(
+                "native Q31 lane step_shift must be in 0..=31".into(),
+            ));
+        }
+        Ok(Self {
+            gates,
+            step_shift,
+            epoch,
+        })
+    }
+}
+
 impl Q31HamiltonModel {
     pub fn new(gate: Q31Quaternion, step_shift: u32) -> Result<Self> {
         if step_shift > MAX_Q31_STEP_SHIFT {
@@ -607,5 +762,68 @@ mod tests {
     fn aggregate_loss_refuses_u64_overflow() {
         let error = checked_q31_loss_sum([Ok(u64::MAX), Ok(1)]).unwrap_err();
         assert!(error.to_string().contains("exceeds u64"), "{error}");
+    }
+
+    #[test]
+    fn lane_gates_round_trip_exactly_and_dispatch_per_lane() {
+        let one = 1i64 << 31;
+        let gates = vec![[one, 0, 0, 0], [0, one, 0, 0], [0, 0, one, 0]];
+        let mut state = Q31LaneGates::new(gates.clone(), 8).unwrap();
+        state.set_cursor(3, 8).unwrap();
+        let bytes = state.to_bytes();
+        assert_eq!(bytes.len(), 32 * 3 + 16);
+        let restored = Q31LaneGates::from_bytes(&bytes).unwrap();
+        assert_eq!(restored, state);
+        assert_eq!(restored.lanes(), 3);
+        assert_eq!(restored.epoch(), 3);
+        assert_eq!(restored.step_shift(), 8);
+        assert_eq!(restored.gate(1).unwrap(), [0, one, 0, 0]);
+
+        let value = [1 << 30, -(1 << 29), 7, -(1 << 28)];
+        assert_eq!(
+            restored.transition(0, value).unwrap(),
+            q31_hamilton_rotate([one, 0, 0, 0], value).unwrap()
+        );
+        assert_eq!(
+            restored.transition(1, value).unwrap(),
+            q31_hamilton_rotate([0, one, 0, 0], value).unwrap()
+        );
+        assert!(restored.transition(3, value).is_err());
+    }
+
+    #[test]
+    fn lane_gates_refuse_bad_state() {
+        let one = 1i64 << 31;
+        let state = Q31LaneGates::new(vec![[one, 0, 0, 0]], 8).unwrap();
+        let bytes = state.to_bytes();
+        assert_eq!(bytes.len(), 48);
+
+        assert!(Q31LaneGates::from_bytes(&bytes[..47]).is_err());
+        assert!(Q31LaneGates::from_bytes(&[0u8; 17]).is_err());
+
+        let mut bad_version = bytes.clone();
+        bad_version[44] = 2;
+        assert!(Q31LaneGates::from_bytes(&bad_version).is_err());
+
+        let mut padding = bytes.clone();
+        padding[45] = 1;
+        assert!(Q31LaneGates::from_bytes(&padding).is_err());
+
+        let mut domain = bytes.clone();
+        domain[..8].copy_from_slice(&((1i64 << 31) + 1).to_le_bytes());
+        assert!(Q31LaneGates::from_bytes(&domain).is_err());
+
+        let mut shift = bytes.clone();
+        shift[40..44].copy_from_slice(&32u32.to_le_bytes());
+        assert!(Q31LaneGates::from_bytes(&shift).is_err());
+
+        assert!(Q31LaneGates::new(Vec::new(), 8).is_err());
+        assert!(Q31LaneGates::new(vec![[one, 0, 0, 0]], 32).is_err());
+
+        let mut cursor = Q31LaneGates::new(vec![[one, 0, 0, 0]], 8).unwrap();
+        assert!(cursor.set_cursor(0, 32).is_err());
+        assert!(cursor.set_gate(0, [Q31_MAX + 1, 0, 0, 0]).is_err());
+        assert!(cursor.set_gate(1, [one, 0, 0, 0]).is_err());
+        assert!(Q31LaneGates::from_bytes(&[0u8; 49]).is_err());
     }
 }
