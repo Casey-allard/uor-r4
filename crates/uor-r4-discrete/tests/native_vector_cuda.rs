@@ -664,3 +664,62 @@ fn cuda_read_update_refuses_what_the_host_refuses() -> uor_r4_discrete::Result<(
     assert!(!empty.accepted && empty.rivals.is_empty());
     Ok(())
 }
+
+// ---- claude-393: the step at a run's size ----
+
+/// One device step at the native training run's batch size: width 256, 64 windows of 192
+/// rows, the served scale. Two target densities: four target rows a window (the run's
+/// queries) and a target on every row but the first. Each checks device against host once,
+/// then prints the device step's wall time over five steps. Run with `--ignored` on a CUDA
+/// host.
+#[test]
+#[ignore = "timing at a run's size: run with --ignored on a CUDA host"]
+fn cuda_read_update_timing_at_a_run_size() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let (batch, time, width, vocab) = (64, 192, 256, 512);
+    let mut rng = XorShift(0x3930_0393_c1a0_d393);
+    let stream: Vec<i64> = (0..batch * time * width)
+        .map(|_| (rng.next() % (1 << 19)) as i64 - S)
+        .collect();
+    let table: Vec<i64> = (0..vocab * width).map(|_| rng.small()).collect();
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|_| (rng.next() % vocab as u64) as u32)
+        .collect();
+    let read = identity_read(width);
+    for dense in [false, true] {
+        let mut targets = vec![0u32; batch * time];
+        for window in 0..batch {
+            if dense {
+                for t in 1..time {
+                    targets[window * time + t] = (1 + rng.next() % t as u64) as u32;
+                }
+            } else {
+                for query in 0..4 {
+                    let t = 40 + 38 * query + (rng.next() % 8) as usize;
+                    targets[window * time + t] = (1 + rng.next() % t as u64) as u32;
+                }
+            }
+        }
+        let step = train_parity(
+            &engine, &read, &stream, &ids, &table, batch, time, &targets, 0, 8,
+        )?;
+        let mut micros = Vec::new();
+        for _ in 0..5 {
+            let start = std::time::Instant::now();
+            let timed = engine
+                .read_train_pick_step(&read, &stream, &ids, &table, batch, time, &targets, 0, 8)?;
+            micros.push(start.elapsed().as_micros());
+            assert_eq!(timed, step);
+        }
+        micros.sort_unstable();
+        let rows = targets.iter().filter(|&&t| t != 0).count();
+        println!(
+            "read_train_pick_step at width {width}, {batch} x {time} rows, {rows} target rows: \
+             median {} us, min {} us, max {} us (accepted {})",
+            micros[2], micros[0], micros[4], step.accepted
+        );
+    }
+    Ok(())
+}

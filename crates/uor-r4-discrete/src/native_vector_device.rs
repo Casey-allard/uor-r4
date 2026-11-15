@@ -24,7 +24,8 @@ const ENTRY_TRAIN_STEP: &str = "native_q31_hamilton_train_step";
 const ENTRY_READ_ADDRESS: &str = "native_q31_read_address";
 const ENTRY_FIRST_PICK_READ: &str = "native_q31_first_pick_read";
 const ENTRY_READ_PICK_LOSS: &str = "native_q31_read_pick_loss";
-const ENTRY_READ_GATE_CREDIT: &str = "native_q31_read_gate_credit";
+const ENTRY_READ_GATE_CREDIT_PARTIAL: &str = "native_q31_read_gate_credit_partial";
+const ENTRY_READ_GATE_APPLY: &str = "native_q31_read_gate_apply";
 /// Threads per block for every native-vector launch.
 const BLOCK_THREADS: u32 = 256;
 
@@ -64,7 +65,8 @@ pub struct NativeVectorEngine {
     read_address: CudaFunction,
     first_pick_read: CudaFunction,
     read_pick_loss: CudaFunction,
-    read_gate_credit: CudaFunction,
+    read_gate_credit_partial: CudaFunction,
+    read_gate_apply: CudaFunction,
 }
 
 /// One batch's addresses and pick loss under one pair of gate sets.
@@ -102,7 +104,10 @@ impl NativeVectorEngine {
         let read_address = module.load_function(ENTRY_READ_ADDRESS).map_err(cuda)?;
         let first_pick_read = module.load_function(ENTRY_FIRST_PICK_READ).map_err(cuda)?;
         let read_pick_loss = module.load_function(ENTRY_READ_PICK_LOSS).map_err(cuda)?;
-        let read_gate_credit = module.load_function(ENTRY_READ_GATE_CREDIT).map_err(cuda)?;
+        let read_gate_credit_partial = module
+            .load_function(ENTRY_READ_GATE_CREDIT_PARTIAL)
+            .map_err(cuda)?;
+        let read_gate_apply = module.load_function(ENTRY_READ_GATE_APPLY).map_err(cuda)?;
         Ok(Self {
             _context: context,
             stream,
@@ -111,7 +116,8 @@ impl NativeVectorEngine {
             read_address,
             first_pick_read,
             read_pick_loss,
-            read_gate_credit,
+            read_gate_credit_partial,
+            read_gate_apply,
         })
     }
 
@@ -599,24 +605,47 @@ impl NativeVectorEngine {
         let key_gates = self.stream.clone_htod(&key_words).map_err(cuda)?;
         let mut candidate_query = self.stream.alloc_zeros::<i64>(width).map_err(cuda)?;
         let mut candidate_key = self.stream.alloc_zeros::<i64>(width).map_err(cuda)?;
-        let mut launch = self.stream.launch_builder(&self.read_gate_credit);
+        // claude-393: each window's exact credit sum per gate word, then the
+        // windows' sums added in window order; integer sums cannot move a word.
+        let windows = batch as u32;
+        let partial_items = (2 * width)
+            .checked_mul(batch)
+            .and_then(|items| u32::try_from(items).ok())
+            .ok_or_else(|| {
+                invalid("native Q31 read training on CUDA needs 2 * width * batch to fit u32")
+            })?;
+        let mut partials = self
+            .stream
+            .alloc_zeros::<u64>(2 * partial_items as usize)
+            .map_err(cuda)?;
+        let mut launch = self.stream.launch_builder(&self.read_gate_credit_partial);
         launch
             .arg(&stream_device)
             .arg(&before.residuals)
             .arg(&targets_device)
             .arg(&before.rivals)
-            .arg(&query_gates)
-            .arg(&key_gates)
-            .arg(&rows)
+            .arg(&windows)
             .arg(&time_u32)
             .arg(&width_u32)
             .arg(&credit_shift)
+            .arg(&mut partials);
+        // SAFETY: same stream, so the residuals and rivals are written first;
+        // `rows = windows * time` (checked by `first_pick_read`), each item
+        // writes its own two words of `partials`, and a row's target and rival
+        // index rows of its own window of the stream.
+        unsafe { launch.launch(row_config(partial_items)) }.map_err(cuda)?;
+        let mut launch = self.stream.launch_builder(&self.read_gate_apply);
+        launch
+            .arg(&partials)
+            .arg(&query_gates)
+            .arg(&key_gates)
+            .arg(&windows)
+            .arg(&width_u32)
             .arg(&step_shift)
             .arg(&mut candidate_query)
             .arg(&mut candidate_key);
-        // SAFETY: same stream, so the residuals and rivals are written first;
-        // each gate and candidate buffer holds `width` words, and a row's
-        // target and rival index rows of its own window of the stream.
+        // SAFETY: same stream, so every partial is written first; each gate
+        // and candidate buffer holds `width` words.
         unsafe { launch.launch(row_config(2 * width_u32)) }.map_err(cuda)?;
         let rivals: Vec<u32> = self.stream.clone_dtoh(&before.rivals).map_err(cuda)?;
         let candidate_query: Vec<i64> = self.stream.clone_dtoh(&candidate_query).map_err(cuda)?;

@@ -394,7 +394,7 @@ fn the_score_separates_pairs_and_the_rank_weights_use_no_exponent() {
     assert!(!same.same(other), "the score does not separate pairs");
     assert!(!same.same(zero), "the score is zero on a nontrivial pair");
 
-    // The aggregation is the rank rule 1/(i+1), normalised to Q31: no exponent, no softmax.
+    // The aggregation is the rank rule 1/(i+1), normalised to Q31: no exponent anywhere.
     let mut scores = [
         score(group[0], group[1], ai, aj),
         score(group[0], group[2], ai, aj),

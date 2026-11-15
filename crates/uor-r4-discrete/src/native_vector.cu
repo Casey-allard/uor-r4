@@ -325,20 +325,60 @@ __device__ __forceinline__ s128 credit_word(
     return a0 * c3 + a1 * c2 - a2 * c1 + a3 * c0;
 }
 
-// Kernel D: one thread per gate word, query gates first, then key gates. It
-// runs over the rows in order and writes the candidate word
-// `sat(gate - clamp(credit >> (step_shift + 1), +-2^32))`.
-extern "C" __global__ void native_q31_read_gate_credit(
+// Kernel D (claude-393): one thread per (gate word, window), query gates
+// first, then key gates. It sums the window's rows in order and writes the
+// exact sum as two 64-bit words: the low word, then the high word (the sum
+// shifted right by 64). `partials` holds `windows * 2 * width * 2` words.
+extern "C" __global__ void native_q31_read_gate_credit_partial(
     const s64* stream,
     const s64* residuals,
     const unsigned* targets,
     const unsigned* rivals,
-    const s64* query_gates,
-    const s64* key_gates,
-    unsigned rows,
+    unsigned windows,
     unsigned time,
     unsigned width,
     unsigned credit_shift,
+    u64* partials
+) {
+    u64 item = (u64)blockIdx.x * (u64)blockDim.x + (u64)threadIdx.x;
+    u64 words = 2ull * (u64)width;
+    if (item >= words * (u64)windows) return;
+    unsigned window = (unsigned)(item / words);
+    unsigned slot = (unsigned)(item % words);
+    bool on_key = slot >= width;
+    unsigned word = on_key ? slot - width : slot;
+    unsigned j = word / 4;
+    unsigned k = word % 4;
+    unsigned base = (4 * j) % 16;
+    s128 credit = 0;
+    unsigned first = window * time;
+    for (unsigned row = first; row < first + time; ++row) {
+        if (rivals[row] == 0) continue;
+        const s64* residual = residuals + (u64)row * 48ull;
+        if (!on_key) {
+            const s64* block = stream + (u64)row * (u64)width + 4ull * j;
+            credit += credit_word(residual + base, block, credit_shift, k);
+            continue;
+        }
+        u64 a = (u64)(first + targets[row] - 1);
+        u64 b = (u64)(first + rivals[row] - 1);
+        credit += credit_word(residual + 16 + base, stream + a * width + 4ull * j, credit_shift, k);
+        credit += credit_word(residual + 32 + base, stream + b * width + 4ull * j, credit_shift, k);
+    }
+    partials[2ull * item] = (u64)credit;
+    partials[2ull * item + 1] = (u64)(s64)(credit >> 64);
+}
+
+// Kernel E (claude-393): one thread per gate word. It adds the windows'
+// partials in window order, each rebuilt as `high * 2^64 + low` (no shift of
+// a negative __int128), and writes the candidate word
+// `sat(gate - clamp(credit >> (step_shift + 1), +-2^32))`.
+extern "C" __global__ void native_q31_read_gate_apply(
+    const u64* partials,
+    const s64* query_gates,
+    const s64* key_gates,
+    unsigned windows,
+    unsigned width,
     unsigned step_shift,
     s64* candidate_query,
     s64* candidate_key
@@ -347,23 +387,12 @@ extern "C" __global__ void native_q31_read_gate_credit(
     if (item >= 2 * width) return;
     bool on_key = item >= width;
     unsigned word = on_key ? item - width : item;
-    unsigned j = word / 4;
-    unsigned k = word % 4;
-    unsigned base = (4 * j) % 16;
+    u64 words = 2ull * (u64)width;
+    s128 high_unit = (s128)1 << 64;
     s128 credit = 0;
-    for (unsigned row = 0; row < rows; ++row) {
-        if (rivals[row] == 0) continue;
-        const s64* residual = residuals + (u64)row * 48ull;
-        if (!on_key) {
-            const s64* block = stream + (u64)row * (u64)width + 4ull * j;
-            credit += credit_word(residual + base, block, credit_shift, k);
-            continue;
-        }
-        unsigned first = row - row % time;
-        u64 a = (u64)(first + targets[row] - 1);
-        u64 b = (u64)(first + rivals[row] - 1);
-        credit += credit_word(residual + 16 + base, stream + a * width + 4ull * j, credit_shift, k);
-        credit += credit_word(residual + 32 + base, stream + b * width + 4ull * j, credit_shift, k);
+    for (unsigned window = 0; window < windows; ++window) {
+        const u64* partial = partials + 2ull * ((u64)window * words + (u64)item);
+        credit += (s128)(s64)partial[1] * high_unit + (s128)partial[0];
     }
     s128 step = credit >> (step_shift + 1);
     s128 clamp = (s128)1 << 32;
