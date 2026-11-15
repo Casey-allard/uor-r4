@@ -4895,12 +4895,13 @@ fn stack_native_q31_lanes(
         };
         let mut after = [0i64; 4];
         for index in 0..4 {
-            let decayed = shift_wide(
-                mul_i128(i128::from(transport[index]), i128::from(lambda)),
-                31,
-            );
+            // Transport is Q31 and the decay Q31, so their product is Q62 — the exponent the
+            // ordinary recurrence's `stack_hamilton` output is at — and the one shift below takes
+            // the sum back to Q31. Shifting the product here as well would divide the trained
+            // state out of the carry.
+            let decayed = mul_i128(i128::from(transport[index]), i128::from(lambda));
             let drive = mul_i128(i128::from(keep), i128::from(pushed[index]));
-            after[index] = q31_saturate(shift_wide(i128::from(decayed) + (drive << 16), 31));
+            after[index] = q31_saturate(shift_wide(decayed + (drive << 16), 31));
             held[index] = after[index];
         }
         if let Some(trace) = trace.as_deref_mut() {
