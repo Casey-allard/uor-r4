@@ -81,6 +81,11 @@ pub const STACK_FBS_ADDRESS_SCHEMA: &str = "uor-r4.lut-stack/11";
 /// state (D85): an engine that does not serve the state refuses it by its schema instead of
 /// dropping the trained recurrence.
 pub const STACK_FBS_Q31_SCHEMA: &str = "uor-r4.lut-stack/12";
+/// Header schema of a SpiralCore/FBS stack that serves a native Q31 first-pick read
+/// (claude-390): the `q31_read` record and the read's exact bytes in the `q31.read` table. `/13`
+/// is left to the per-lane gate state (codex-13). A research schema: no stack contract names it
+/// yet.
+pub const STACK_FBS_Q31_READ_SCHEMA: &str = "uor-r4.lut-stack/14";
 /// The table holding the native Q31 state: twelve little-endian `u32` words, the exact 48 bytes.
 pub const Q31_STATE_TABLE: &str = "q31.state";
 /// The exact native Q31 model state length.
@@ -1019,6 +1024,10 @@ struct Header {
     /// The per-lane native Q31 state, under [`STACK_FBS_Q31_LANES_SCHEMA`]; absent otherwise.
     #[serde(default)]
     q31_lanes: Option<StackQ31Lanes>,
+    /// The native Q31 first-pick read, under [`STACK_FBS_Q31_READ_SCHEMA`]; absent on a stack
+    /// without one.
+    #[serde(default)]
+    q31_read: Option<super::StackQ31Read>,
 }
 
 /// One 4-bit matrix of a parsed container, borrowed from its bytes.
@@ -1054,6 +1063,8 @@ pub(crate) struct Container<'a> {
     pub q31: Option<StackQ31State>,
     /// The validated per-lane native Q31 state record, if the header carries one.
     pub q31_lanes: Option<StackQ31Lanes>,
+    /// The validated native Q31 read record, if the header carries one.
+    pub q31_read: Option<super::StackQ31Read>,
     data: &'a [u8],
     /// Sections by name (unique within each kind).
     matrices: HashMap<String, MatrixEntry>,
@@ -1097,6 +1108,9 @@ pub struct StackArtifactMetadata {
     /// Validated per-lane native Q31 state record. Left out when the stack has none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub q31_lanes: Option<StackQ31Lanes>,
+    /// Validated native Q31 read record. Left out when the stack has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub q31_read: Option<super::StackQ31Read>,
 }
 
 /// Parse and validate an artifact, then return the metadata an external audit
@@ -1119,6 +1133,7 @@ pub fn inspect_uorlut01(bytes: &[u8]) -> Result<StackArtifactMetadata, StackErro
         address: artifact.address,
         q31: artifact.q31,
         q31_lanes: artifact.q31_lanes,
+        q31_read: artifact.q31_read,
     })
 }
 
@@ -1193,7 +1208,9 @@ impl<'a> Container<'a> {
         // binding became an admission rule.
         // An address table has its own schema, so a reader from before the table refuses the
         // stack by its schema; it would otherwise pass over the record and serve without the rows.
-        let expected = if header.q31_lanes.is_some() {
+        let expected = if header.q31_read.is_some() {
+            STACK_FBS_Q31_READ_SCHEMA
+        } else if header.q31_lanes.is_some() {
             STACK_FBS_Q31_LANES_SCHEMA
         } else if header.q31.is_some() {
             STACK_FBS_Q31_SCHEMA
@@ -1421,8 +1438,25 @@ impl<'a> Container<'a> {
                 ));
             }
         }
+        if let Some(record) = &header.q31_read {
+            // One finite read path: the read's order with every other optional mechanism at the
+            // same seam is not defined yet, so this schema carries no other optional record.
+            if header.address.is_some()
+                || header.point.is_some()
+                || header.memory.is_some()
+                || header.hamming.is_some()
+                || header.memory_chain.is_some()
+                || header.q31.is_some()
+                || header.q31_lanes.is_some()
+            {
+                return Err(StackError::Shape(
+                    "a native Q31 read needs an FBS stack with no other optional record",
+                ));
+            }
+            record.check(&header.shape)?;
+        }
         sections.sort();
-        Ok(Self {
+        let container = Self {
             schema: header.schema,
             shape: header.shape,
             source: header.source,
@@ -1437,10 +1471,15 @@ impl<'a> Container<'a> {
             address: header.address,
             q31: header.q31,
             q31_lanes: header.q31_lanes,
+            q31_read: header.q31_read,
             data,
             matrices,
             tables,
-        })
+        };
+        // The read's bytes are authoritative: a table they do not restore from is refused here,
+        // so no reader or audit passes over a damaged read.
+        super::q31_read::q31_read_image(&container)?;
+        Ok(container)
     }
 
     /// The exact 48 native Q31 state bytes the header names, if it carries them. `parse`
@@ -2793,6 +2832,60 @@ pub fn add_address_uorlut01(artifact: &[u8], image: &super::AddressImage) -> Res
     out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
     out.extend_from_slice(&b.data);
     super::address::address_image(&Container::parse(&out)?)?;
+    Ok(out)
+}
+
+/// The same artifact with a native Q31 first-pick read (claude-390), schema
+/// [`STACK_FBS_Q31_READ_SCHEMA`]: the `q31_read` record and the read's exact `to_bytes()` in the
+/// `q31.read` table, appended after every earlier section, which keeps its bytes. Refuses a stack
+/// that already has a read, a bound stack, a stack with any other optional record, and a read of
+/// another width or of a depth outside `1..=layers`. The result is read back before it is returned.
+pub fn add_q31_read_uorlut01(artifact: &[u8], image: &super::Q31SessionRead) -> Result<Vec<u8>, StackError> {
+    let container = Container::parse(artifact)?;
+    if container.q31_read.is_some() {
+        return Err(StackError::Shape("a native Q31 read is added to a stack without one"));
+    }
+    if container.schema == STACK_FBS_BOUND_SCHEMA {
+        return Err(StackError::Shape("a native Q31 read is not added to a bound stack"));
+    }
+    if container.address.is_some()
+        || container.point.is_some()
+        || container.memory.is_some()
+        || container.hamming.is_some()
+        || container.memory_chain.is_some()
+        || container.q31.is_some()
+        || container.q31_lanes.is_some()
+    {
+        return Err(StackError::Shape(
+            "a native Q31 read is added to an FBS stack with no other optional record",
+        ));
+    }
+    let record = image.record();
+    record.check(&container.shape)?;
+    let declared = u64::from_le_bytes(artifact[8..16].try_into().map_err(|_| StackError::MissingData)?);
+    let header_end = 16 + usize::try_from(declared).map_err(|_| StackError::MissingData)?;
+    let data_start = header_end.div_ceil(ALIGN) * ALIGN;
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&artifact[16..header_end]).map_err(StackError::Header)?;
+    let mut b = ExportBuilder::new();
+    b.data = artifact[data_start..].to_vec();
+    b.push_u32(super::Q31_READ_TABLE, &image.words());
+    header["tables"]
+        .as_array_mut()
+        .ok_or(StackError::MissingData)?
+        .extend(b.tables);
+    header["q31_read"] = json!(record);
+    header["schema"] = json!(STACK_FBS_Q31_READ_SCHEMA);
+    let header_bytes = serde_json::to_vec(&header).map_err(StackError::Header)?;
+    let mut out = Vec::with_capacity(16 + header_bytes.len() + ALIGN + b.data.len());
+    out.extend_from_slice(MAGIC);
+    out.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+    out.extend_from_slice(&header_bytes);
+    out.resize(out.len().div_ceil(ALIGN) * ALIGN, 0);
+    out.extend_from_slice(&b.data);
+    if super::q31_read::q31_read_image(&Container::parse(&out)?)?.as_ref() != Some(image) {
+        return Err(StackError::Numerics("q31.read does not read back as written".to_owned()));
+    }
     Ok(out)
 }
 

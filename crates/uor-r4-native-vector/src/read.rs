@@ -98,6 +98,75 @@ fn read_distance(query: &[i64; ADDRESS_LANES], key: &[i64; ADDRESS_LANES]) -> u6
     })
 }
 
+/// The latest earlier row whose key is nearest the query; `keys` is nonempty.
+fn first_pick(query: &[i64; ADDRESS_LANES], keys: &[[i64; ADDRESS_LANES]]) -> usize {
+    let mut best = 0usize;
+    let mut best_distance = u64::MAX;
+    for (s, key) in keys.iter().enumerate() {
+        let distance = read_distance(query, key);
+        // `<=` sends a tie to the latest earlier row.
+        if distance <= best_distance {
+            best_distance = distance;
+            best = s;
+        }
+    }
+    best
+}
+
+fn admit_words(stream: &[i64], table: &[i64]) -> Result<()> {
+    if stream
+        .iter()
+        .chain(table)
+        .all(|&word| q31_coordinate_admitted(word))
+    {
+        Ok(())
+    } else {
+        Err(invalid(
+            "native Q31 read stream and table words must be in -2^31..=2^31",
+        ))
+    }
+}
+
+/// The table row of one read id, refused when the id is outside the table.
+fn table_row(table: &[i64], id: u32, width: usize) -> Result<&[i64]> {
+    let id = id as usize;
+    if id >= table.len() / width {
+        return Err(invalid("native Q31 read id must be below the table vocab"));
+    }
+    Ok(&table[id * width..(id + 1) * width])
+}
+
+/// One sequence's read history: the key address and token id of every row seen.
+///
+/// The next [`Q31FirstPickRead::step`] is row `len()` of the sequence.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Q31ReadHistory {
+    keys: Vec<[i64; ADDRESS_LANES]>,
+    ids: Vec<u32>,
+}
+
+impl Q31ReadHistory {
+    /// An empty history: the next step is row 0.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Rows seen so far.
+    pub fn len(&self) -> usize {
+        self.ids.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
+    }
+
+    /// Forget every row: the next step is row 0 of a new sequence.
+    pub fn clear(&mut self) {
+        self.keys.clear();
+        self.ids.clear();
+    }
+}
+
 impl Q31FirstPickRead {
     /// Construct one read only when every shape and word is admitted.
     pub fn new(
@@ -187,21 +256,8 @@ impl Q31FirstPickRead {
         if ids.len() != rows {
             return Err(invalid("native Q31 read needs batch * time ids"));
         }
-        if table.is_empty() || !table.len().is_multiple_of(width) {
-            return Err(invalid(
-                "native Q31 read table must be a nonempty multiple of width",
-            ));
-        }
-        if !stream
-            .iter()
-            .chain(table)
-            .all(|&word| q31_coordinate_admitted(word))
-        {
-            return Err(invalid(
-                "native Q31 read stream and table words must be in -2^31..=2^31",
-            ));
-        }
-        let vocab = table.len() / width;
+        self.table_vocab(table)?;
+        admit_words(stream, table)?;
 
         let mut queries = Vec::with_capacity(rows);
         let mut keys = Vec::with_capacity(rows);
@@ -210,39 +266,85 @@ impl Q31FirstPickRead {
             keys.push(q31_read_address(&self.key_gates, row)?);
         }
 
-        let shift = MAX_GAIN_SHIFT - self.gain_shift;
-        let round = if shift > 0 { 1i64 << (shift - 1) } else { 0 };
         let mut picks = vec![0u32; rows];
         let mut out = stream.to_vec();
         for window in 0..batch {
             let first = window * time;
             for t in 1..time {
                 let row = first + t;
-                let mut best = 0usize;
-                let mut best_distance = u64::MAX;
-                for s in 0..t {
-                    let distance = read_distance(&queries[row], &keys[first + s]);
-                    // `<=` sends a tie to the latest earlier row.
-                    if distance <= best_distance {
-                        best_distance = distance;
-                        best = s;
-                    }
-                }
-                let id = ids[first + best + 1] as usize;
-                if id >= vocab {
-                    return Err(invalid("native Q31 read id must be below the table vocab"));
-                }
+                let best = first_pick(&queries[row], &keys[first..row]);
+                let payload = table_row(table, ids[first + best + 1], width)?;
                 // `best + 1 <= t < rows <= 2^30`, so the pick fits `u32`.
                 picks[row] = (best + 1) as u32;
-                let payload = &table[id * width..(id + 1) * width];
-                let target = &mut out[row * width..(row + 1) * width];
-                for ((word, &weight), &value) in target.iter_mut().zip(&self.weights).zip(payload) {
-                    let scaled = q31_saturate((weight * value + round) >> shift);
-                    *word = q31_saturate(*word + scaled);
-                }
+                self.add_payload(&mut out[row * width..(row + 1) * width], payload);
             }
         }
         Ok(Q31ReadOutput { picks, out })
+    }
+
+    /// Step one row of one sequence: the incremental form of [`Self::apply`].
+    ///
+    /// `x_row` is row `t = history.len()` of the sequence and `token` its id.
+    /// Returns the pick and out row that `apply` gives for row `t` of one
+    /// window whose ids are the history's ids then `token`, and only then
+    /// appends this row's key address and token. Any refusal leaves the
+    /// history unchanged.
+    pub fn step(
+        &self,
+        history: &mut Q31ReadHistory,
+        x_row: &[i64],
+        token: u32,
+        table: &[i64],
+    ) -> Result<(u32, Vec<i64>)> {
+        let width = self.width();
+        if x_row.len() != width {
+            return Err(invalid("native Q31 read step row must hold width words"));
+        }
+        let t = history.len();
+        if t >= MAX_Q31_BATCH_ITEMS {
+            return Err(invalid("native Q31 read admits at most 2^30 rows"));
+        }
+        self.table_vocab(table)?;
+        admit_words(x_row, table)?;
+        let query = q31_read_address(&self.query_gates, x_row)?;
+        let key = q31_read_address(&self.key_gates, x_row)?;
+
+        let mut out = x_row.to_vec();
+        let mut pick = 0u32;
+        if t > 0 {
+            let best = first_pick(&query, &history.keys);
+            // `best < t`, so the read id is in the history or is `token` itself.
+            let id = if best + 1 == t {
+                token
+            } else {
+                history.ids[best + 1]
+            };
+            self.add_payload(&mut out, table_row(table, id, width)?);
+            // `best + 1 <= t < 2^30`, so the pick fits `u32`.
+            pick = (best + 1) as u32;
+        }
+        history.keys.push(key);
+        history.ids.push(token);
+        Ok((pick, out))
+    }
+
+    fn table_vocab(&self, table: &[i64]) -> Result<usize> {
+        if table.is_empty() || !table.len().is_multiple_of(self.width()) {
+            return Err(invalid(
+                "native Q31 read table must be a nonempty multiple of width",
+            ));
+        }
+        Ok(table.len() / self.width())
+    }
+
+    /// `target += sat((w * e + r) >> (31 - g))` lane by lane, saturated.
+    fn add_payload(&self, target: &mut [i64], payload: &[i64]) {
+        let shift = MAX_GAIN_SHIFT - self.gain_shift;
+        let round = if shift > 0 { 1i64 << (shift - 1) } else { 0 };
+        for ((word, &weight), &value) in target.iter_mut().zip(&self.weights).zip(payload) {
+            let scaled = q31_saturate((weight * value + round) >> shift);
+            *word = q31_saturate(*word + scaled);
+        }
     }
 
     /// Lossless little-endian bytes: version, width, gain shift, then words.
@@ -652,5 +754,137 @@ mod tests {
             .unwrap();
         assert_eq!(nudged.picks[6], 3, "row 2 is now strictly closer");
         assert_ne!(nudged, base);
+    }
+
+    /// Step every window of `stream` row by row from an empty history and
+    /// assert each pick and out word equals `apply` on the same windows.
+    fn assert_steps_match_apply(
+        read: &Q31FirstPickRead,
+        stream: &[i64],
+        ids: &[u32],
+        table: &[i64],
+        batch: usize,
+        time: usize,
+    ) {
+        let width = read.width();
+        let batched = read.apply(stream, ids, table, batch, time).unwrap();
+        let mut history = Q31ReadHistory::new();
+        for window in 0..batch {
+            history.clear();
+            assert!(history.is_empty());
+            for t in 0..time {
+                let row = window * time + t;
+                let x_row = &stream[row * width..(row + 1) * width];
+                let (pick, out) = read.step(&mut history, x_row, ids[row], table).unwrap();
+                assert_eq!(pick, batched.picks[row], "pick of row {row}");
+                assert_eq!(
+                    out.as_slice(),
+                    &batched.out[row * width..(row + 1) * width],
+                    "out of row {row}"
+                );
+                assert_eq!(history.len(), t + 1);
+            }
+        }
+    }
+
+    #[test]
+    fn step_matches_apply_on_seeded_windows() {
+        let (batch, time, vocab) = (3, 9, 7);
+        for width in [16, 64, 256] {
+            for gain_shift in [0, 4, 31] {
+                let seed = 0xD1B5_4A32_D192_ED03 ^ ((width as u64) << 8) ^ u64::from(gain_shift);
+                let mut rng = XorShift(seed);
+                let gates = |rng: &mut XorShift| -> Vec<Q31Quaternion> {
+                    (0..width / 4)
+                        .map(|_| {
+                            [
+                                rng.admitted(),
+                                rng.admitted(),
+                                rng.admitted(),
+                                rng.admitted(),
+                            ]
+                        })
+                        .collect()
+                };
+                let query_gates = gates(&mut rng);
+                let key_gates = gates(&mut rng);
+                let weights: Vec<i64> = (0..width).map(|_| rng.admitted()).collect();
+                let read =
+                    Q31FirstPickRead::new(query_gates, key_gates, weights, gain_shift).unwrap();
+                let table: Vec<i64> = (0..vocab * width).map(|_| rng.admitted()).collect();
+                let ids: Vec<u32> = (0..batch * time)
+                    .map(|_| (rng.next() % vocab as u64) as u32)
+                    .collect();
+                let mut stream: Vec<i64> = (0..batch * time * width).map(|_| rng.small()).collect();
+                // Repeat rows inside each window so exact ties occur too.
+                for window in 0..batch {
+                    let first = window * time;
+                    let row1 = stream[(first + 1) * width..(first + 2) * width].to_vec();
+                    stream[(first + 4) * width..(first + 5) * width].copy_from_slice(&row1);
+                    stream[(first + 7) * width..(first + 8) * width].copy_from_slice(&row1);
+                }
+                assert_steps_match_apply(&read, &stream, &ids, &table, batch, time);
+            }
+        }
+    }
+
+    #[test]
+    fn step_tie_goes_to_latest_like_apply() {
+        let width = 16;
+        let read = identity_read(width, vec![ONE; width], 4);
+        let table: Vec<i64> = (0..8).flat_map(|v| vec![1000 * (v + 1); width]).collect();
+        // Row 6 sits at lane 0 = 100; rows 2 and 4 sit 10 below and above it,
+        // so they tie exactly while every other earlier row is far away.
+        let lane0 = [-5000, 5000, 90, -7000, 110, 9000, 100];
+        let stream: Vec<i64> = lane0.iter().flat_map(|&x| lane0_row(width, x)).collect();
+        let ids = [0, 1, 2, 3, 4, 5, 6];
+        assert_steps_match_apply(&read, &stream, &ids, &table, 1, 7);
+
+        let mut history = Q31ReadHistory::new();
+        let mut picks = Vec::new();
+        for (row, &id) in ids.iter().enumerate() {
+            let x_row = &stream[row * width..(row + 1) * width];
+            picks.push(read.step(&mut history, x_row, id, &table).unwrap().0);
+        }
+        assert_eq!(picks[6], 5, "the tie goes to row 4");
+        assert_eq!(
+            picks,
+            read.apply(&stream, &ids, &table, 1, 7).unwrap().picks
+        );
+    }
+
+    #[test]
+    fn step_refusals_leave_the_history_unchanged() {
+        let width = 16;
+        let read = identity_read(width, vec![ONE; width], 0);
+        let table = vec![0; 2 * width];
+        let row = vec![1; width];
+        let mut history = Q31ReadHistory::new();
+        // Row 0 reads nothing, so an out-of-table id there is admitted, as in `apply`.
+        assert_eq!(read.step(&mut history, &row, 99, &table).unwrap().0, 0);
+        assert_eq!(read.step(&mut history, &row, 1, &table).unwrap().0, 1);
+        let before = history.clone();
+
+        // Row 2 picks row 1 (a tie with row 0 goes to the latest) and reads
+        // this row's own token, which is outside the table.
+        refused(
+            read.step(&mut history, &row, 2, &table),
+            "below the table vocab",
+        );
+        assert_eq!(history.len(), 2);
+        let mut bad_row = row.clone();
+        bad_row[5] = ONE + 1;
+        refused(
+            read.step(&mut history, &bad_row, 0, &table),
+            "stream and table words",
+        );
+        refused(read.step(&mut history, &row[1..], 0, &table), "width words");
+        refused(
+            read.step(&mut history, &row, 0, &table[1..]),
+            "nonempty multiple",
+        );
+        assert_eq!(history, before);
+        assert_eq!(read.step(&mut history, &row, 1, &table).unwrap().0, 2);
+        assert_eq!(history.len(), 3);
     }
 }

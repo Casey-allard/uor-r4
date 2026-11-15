@@ -62,6 +62,7 @@ pub(crate) mod kernels;
 mod memory;
 mod point_key;
 mod prompt_reply;
+mod q31_read;
 pub mod q31_serving;
 mod session;
 #[cfg(feature = "serving-wasm")]
@@ -93,6 +94,8 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{add_address_uorlut01, STACK_FBS_ADDRESS_SCHEMA};
+pub use format::{add_q31_read_uorlut01, STACK_FBS_Q31_READ_SCHEMA};
+pub use q31_read::{read_q31_read_uorlut01, Q31ReadStep, Q31SessionRead, StackQ31Read, Q31_READ_TABLE};
 pub use format::{
     add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, drop_hamming_carry_uorlut01,
     set_hamming_copy_latest_uorlut01, set_hamming_copy_longest_uorlut01,
