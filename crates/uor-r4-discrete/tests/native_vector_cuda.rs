@@ -2,6 +2,7 @@
 
 use uor_r4_discrete::native_vector::q31_hamilton_rotate;
 use uor_r4_discrete::native_vector::Q31HamiltonModel;
+use uor_r4_discrete::native_vector::{Q31FirstPickRead, Q31ReadOutput};
 use uor_r4_discrete::native_vector_device::NativeVectorEngine;
 
 fn values(seed: u64, count: usize) -> Vec<[i64; 4]> {
@@ -167,5 +168,177 @@ fn cuda_and_rust_shared_model_steps_keep_the_same_gate_and_epoch() -> uor_r4_dis
         Q31HamiltonModel::from_bytes(cuda_model.to_bytes())?,
         cuda_model
     );
+    Ok(())
+}
+
+const ONE: i64 = 1 << 31;
+const IDENTITY: [i64; 4] = [ONE, 0, 0, 0];
+
+fn engine_or_skip() -> uor_r4_discrete::Result<Option<NativeVectorEngine>> {
+    match NativeVectorEngine::new(0) {
+        Ok(engine) => Ok(Some(engine)),
+        Err(error) if std::env::var("UOR_REQUIRE_CUDA").as_deref() != Ok("1") => {
+            println!("SKIPPED (no CUDA device): {error}");
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+struct XorShift(u64);
+
+impl XorShift {
+    fn next(&mut self) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0
+    }
+
+    fn admitted(&mut self) -> i64 {
+        (self.next() % ((1 << 32) + 1)) as i64 - ONE
+    }
+
+    fn small(&mut self) -> i64 {
+        (self.next() % (1 << 21)) as i64 - (1 << 20)
+    }
+}
+
+fn read_parity(
+    engine: &NativeVectorEngine,
+    read: &Q31FirstPickRead,
+    stream: &[i64],
+    ids: &[u32],
+    table: &[i64],
+    batch: usize,
+    time: usize,
+) -> uor_r4_discrete::Result<Q31ReadOutput> {
+    let cuda = engine.first_pick_read(read, stream, ids, table, batch, time)?;
+    let oracle =
+        NativeVectorEngine::first_pick_read_reference(read, stream, ids, table, batch, time)?;
+    assert_eq!(cuda.picks, oracle.picks, "first-pick read picks differ");
+    for (index, (gpu, cpu)) in cuda.out.iter().zip(&oracle.out).enumerate() {
+        assert_eq!(gpu, cpu, "first-pick read out differs at word {index}");
+    }
+    assert_eq!(cuda, oracle);
+    Ok(cuda)
+}
+
+#[test]
+fn cuda_first_pick_read_matches_the_oracle_on_a_seeded_fixture() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let (width, batch, time, vocab) = (256, 4, 64, 50);
+    let mut rng = XorShift(0x3c6e_f372_fe94_f82b);
+    let gates = |rng: &mut XorShift| -> Vec<[i64; 4]> {
+        (0..width / 4)
+            .map(|_| {
+                [
+                    rng.admitted(),
+                    rng.admitted(),
+                    rng.admitted(),
+                    rng.admitted(),
+                ]
+            })
+            .collect()
+    };
+    let query_gates = gates(&mut rng);
+    let key_gates = gates(&mut rng);
+    let weights: Vec<i64> = (0..width).map(|_| rng.admitted()).collect();
+    let table: Vec<i64> = (0..vocab * width).map(|_| rng.admitted()).collect();
+    let stream: Vec<i64> = (0..batch * time * width).map(|_| rng.admitted()).collect();
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|_| (rng.next() % vocab as u64) as u32)
+        .collect();
+    for gain_shift in [0, 4] {
+        let read = Q31FirstPickRead::new(
+            query_gates.clone(),
+            key_gates.clone(),
+            weights.clone(),
+            gain_shift,
+        )?;
+        let output = read_parity(&engine, &read, &stream, &ids, &table, batch, time)?;
+        assert_eq!(output.picks.len(), batch * time);
+        assert!((0..batch).all(|b| output.picks[b * time] == 0));
+        assert!(output.out.iter().any(|&word| word == ONE || word == -ONE));
+    }
+    Ok(())
+}
+
+#[test]
+fn cuda_first_pick_read_matches_ties_saturation_and_refusals() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let (width, batch, time) = (16, 2, 12);
+    let read = Q31FirstPickRead::new(
+        vec![IDENTITY; width / 4],
+        vec![IDENTITY; width / 4],
+        vec![ONE; width],
+        0,
+    )?;
+    // Three row patterns repeat, so later rows tie exactly between earlier
+    // copies; the pattern words sit near +-2^31, so a full table row saturates.
+    let patterns = [
+        vec![ONE - 5; width],
+        vec![-ONE + 5; width],
+        (0..width as i64).map(|lane| lane * 1000 - 7000).collect(),
+    ];
+    let stream: Vec<i64> = (0..batch * time)
+        .flat_map(|row| patterns[row % 3].clone())
+        .collect();
+    let table = [vec![ONE; width], vec![-ONE; width], vec![17; width]].concat();
+    let ids: Vec<u32> = (0..batch * time).map(|row| (row % 3) as u32).collect();
+    let output = read_parity(&engine, &read, &stream, &ids, &table, batch, time)?;
+    // Row 9 matches rows 0, 3 and 6 exactly; the tie goes to row 6.
+    assert_eq!(output.picks[9], 7);
+    assert_eq!(output.picks[time + 9], 7);
+    assert!(output.out.iter().any(|&word| word == ONE));
+    assert!(output.out.iter().any(|&word| word == -ONE));
+
+    let bad_ids: Vec<u32> = ids.iter().map(|&id| id + 1).collect();
+    assert!(read.apply(&stream, &bad_ids, &table, batch, time).is_err());
+    assert!(engine
+        .first_pick_read(&read, &stream, &bad_ids, &table, batch, time)
+        .is_err());
+    Ok(())
+}
+
+#[test]
+fn cuda_first_pick_read_tracks_a_one_lsb_key_gate_change() -> uor_r4_discrete::Result<()> {
+    let Some(engine) = engine_or_skip()? else {
+        return Ok(());
+    };
+    let (width, batch, time, vocab) = (16, 2, 8, 5);
+    let mut rng = XorShift(0x9E37_79B9_7F4A_7C15);
+    let weights: Vec<i64> = (0..width).map(|_| rng.admitted()).collect();
+    let table: Vec<i64> = (0..vocab * width).map(|_| rng.small()).collect();
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|_| (rng.next() % vocab as u64) as u32)
+        .collect();
+    let mut stream: Vec<i64> = (0..batch * time * width).map(|_| rng.small()).collect();
+    // Rows 2 and 4 sit 1000 above and below row 6's lane 0 and tie exactly.
+    let near = 3i64 << 29;
+    stream[6 * width] = near;
+    let query_row = stream[6 * width..7 * width].to_vec();
+    for (row, lane0) in [(2, near + 1000), (4, near - 1000)] {
+        stream[row * width..(row + 1) * width].copy_from_slice(&query_row);
+        stream[row * width] = lane0;
+    }
+    let base_read = Q31FirstPickRead::new(
+        vec![IDENTITY; width / 4],
+        vec![IDENTITY; width / 4],
+        weights.clone(),
+        0,
+    )?;
+    let mut key_gates = vec![IDENTITY; width / 4];
+    key_gates[0][0] = ONE - 1;
+    let nudged_read = Q31FirstPickRead::new(vec![IDENTITY; width / 4], key_gates, weights, 0)?;
+    let base = read_parity(&engine, &base_read, &stream, &ids, &table, batch, time)?;
+    let nudged = read_parity(&engine, &nudged_read, &stream, &ids, &table, batch, time)?;
+    assert_eq!(base.picks[6], 5, "the tie goes to row 4");
+    assert_eq!(nudged.picks[6], 3, "row 2 is now strictly closer");
+    assert_ne!(nudged, base);
     Ok(())
 }

@@ -128,6 +128,7 @@ thread_local! {
     static PROBE: RefCell<Option<Vec<PayloadRow>>> = const { RefCell::new(None) };
     static PAYLOAD_SCALE: Cell<f32> = const { Cell::new(1.0) };
     static FIRST_PICK: Cell<bool> = const { Cell::new(false) };
+    static REPLAY: RefCell<Option<Vec<ReplayCapture>>> = const { RefCell::new(None) };
 }
 
 /// claude-387: one row's payload reading, recorded while a probe is open ([`probing_payload`]).
@@ -159,6 +160,50 @@ pub fn probing_payload<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, Vec<Paylo
     let out = f()?;
     let rows = PROBE.with(|cell| cell.borrow_mut().take()).unwrap_or_default();
     Ok((out, rows))
+}
+
+/// claude-389: one forward of the read, captured to host while a replay capture is open
+/// ([`capturing_replay`]): exactly the native operator's inputs, and the f32 forward's first
+/// picks and out rows to compare against.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReplayCapture {
+    /// Whether the forward was a Flock read.
+    pub flock: bool,
+    pub batch: usize,
+    pub time: usize,
+    pub width: usize,
+    /// The stream rows `x` at the read: `batch * time * width` values.
+    pub stream: Vec<f32>,
+    /// The windows' token ids: `batch * time` ids.
+    pub ids: Vec<u32>,
+    /// The first pick of each row as column + 1, 0 for none: `batch * time` values.
+    pub first_pick: Vec<u32>,
+    /// The forward's out rows: `batch * time * width` values.
+    pub out: Vec<f32>,
+    /// The raw (unnormalized) query and key rotations: `width` values each.
+    pub query_rotation: Vec<f32>,
+    pub key_rotation: Vec<f32>,
+    /// The payload weight: `width` values.
+    pub weight: Vec<f32>,
+    /// The shared token table: `vocab * width` values.
+    pub table: Vec<f32>,
+}
+
+/// claude-389: run `f` with every forward of the read captured as a [`ReplayCapture`], in forward
+/// order, and return them with its result. Eval only: the capture is detached and read to host,
+/// and the forward is unchanged. The previous capture is restored on return.
+pub fn capturing_replay<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, Vec<ReplayCapture>)> {
+    struct Restore(Option<Vec<ReplayCapture>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let old = self.0.take();
+            REPLAY.with(|cell| *cell.borrow_mut() = old);
+        }
+    }
+    let _restore = Restore(REPLAY.with(|cell| cell.borrow_mut().replace(Vec::new())));
+    let out = f()?;
+    let captures = REPLAY.with(|cell| cell.borrow_mut().take()).unwrap_or_default();
+    Ok((out, captures))
 }
 
 /// claude-387: run `f` with the read's payload multiplied by `scale` (eval only; positive and
@@ -910,6 +955,32 @@ impl VectorRead {
             PROBE.with(|cell| {
                 if let Some(all) = cell.borrow_mut().as_mut() {
                     all.extend(found);
+                }
+            });
+        }
+        // claude-389: the native operator's inputs and the f32 picks and out, while a replay
+        // capture is open.
+        if REPLAY.with(|cell| cell.borrow().is_some()) {
+            let host = |t: &Tensor| -> Result<Vec<f32>> {
+                Ok(t.detach().flatten_all()?.to_dtype(DType::F32)?.to_vec1::<f32>()?)
+            };
+            let capture = ReplayCapture {
+                flock: matches!(self.kind, VectorReadKind::Flock { .. }),
+                batch,
+                time,
+                width,
+                stream: host(&flat)?,
+                ids: ids.to_vec(),
+                first_pick: plus1.detach().flatten_all()?.to_dtype(DType::U32)?.to_vec1::<u32>()?,
+                out: host(&out)?,
+                query_rotation: host(self.query_rotation.as_tensor())?,
+                key_rotation: host(self.key_rotation.as_tensor())?,
+                weight: host(self.weight.as_tensor())?,
+                table: host(table)?,
+            };
+            REPLAY.with(|cell| {
+                if let Some(all) = cell.borrow_mut().as_mut() {
+                    all.push(capture);
                 }
             });
         }
@@ -2384,6 +2455,61 @@ mod tests {
                 }
                 assert_eq!(PAYLOAD_SCALE.with(Cell::get), 1.0);
             }
+            Ok(())
+        }
+
+        /// claude-389: under the hard copy, the replay capture of a Flock forward leaves it bit
+        /// for bit, holds exactly its x, ids, raw gates, weight, table, first picks and out, and
+        /// feeds the native replay (which refuses this fixture's width 16, the sheet's being 256).
+        #[test]
+        fn the_replay_capture_holds_the_forward_and_leaves_it_bit_for_bit() -> Result<()> {
+            let raw = |t: &Tensor| -> Result<Vec<f32>> { Ok(t.flatten_all()?.to_vec1::<f32>()?) };
+            let bits = |v: &[f32]| v.iter().map(|a| a.to_bits()).collect::<Vec<u32>>();
+            let f = fixture(VectorReadKind::Flock { neighbours: 2 }, DEFAULT_MARGIN, 389)?;
+            let forward = || f.read.apply(&f.x, &IDS, &f.table);
+            let plain = with_first_pick_payload(forward)?;
+            let ((captured, picks), captures) = with_first_pick_payload(|| {
+                capturing_replay(|| recording_picks(forward))
+            })?;
+            assert!(REPLAY.with(|cell| cell.borrow().is_none()));
+            assert_eq!(bits(&raw(&captured)?), bits(&raw(&plain)?));
+            let [c] = captures.as_slice() else {
+                panic!("{} captures for one forward", captures.len());
+            };
+            assert!(c.flock);
+            assert_eq!((c.batch, c.time, c.width), (1, T, W));
+            assert_eq!(bits(&c.stream), bits(&raw(&f.x)?));
+            assert_eq!(c.ids, IDS.to_vec());
+            assert_eq!(c.first_pick, picks);
+            assert_eq!(c.first_pick[0], 0);
+            assert_eq!(bits(&c.out), bits(&raw(&plain)?));
+            assert_eq!(bits(&c.query_rotation), bits(&raw(f.read.query_rotation.as_tensor())?));
+            assert_eq!(bits(&c.key_rotation), bits(&raw(f.read.key_rotation.as_tensor())?));
+            assert_eq!(bits(&c.weight), bits(&raw(f.read.weight.as_tensor())?));
+            assert_eq!(bits(&c.table), bits(&raw(&f.table)?));
+            assert_eq!(c.table.len(), V * W);
+            let blocks = |v: &[f32]| -> Vec<[f32; 4]> {
+                v.chunks_exact(4).map(|g| [g[0], g[1], g[2], g[3]]).collect()
+            };
+            let model = crate::native_replay::ReplayModel {
+                width: c.width,
+                query_gates_raw: blocks(&c.query_rotation),
+                key_gates_raw: blocks(&c.key_rotation),
+                weights: c.weight.clone(),
+                table: c.table.clone(),
+            };
+            let window = crate::native_replay::ReplayWindow {
+                time: c.time,
+                stream: c.stream.clone(),
+                ids: c.ids.clone(),
+                f32_first_pick: c.first_pick.clone(),
+                f32_out: c.out.clone(),
+                query: (0..T).map(|t| t + 1 == T).collect(),
+            };
+            let summary = crate::native_replay::replay(&model, &[window])?;
+            assert_eq!(W, 16);
+            let refusal = summary.refusal.expect("width 16 is not the sheet's 256");
+            assert!(refusal.contains("256"), "{refusal}");
             Ok(())
         }
 

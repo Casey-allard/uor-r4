@@ -14849,6 +14849,106 @@ pub struct PayloadProbeSettings {
     /// claude-388: every pass with the read copies Flock's first kept pick alone (the hard copy,
     /// [`crate::vector_reads::with_first_pick_payload`]) instead of its picks' mean.
     pub first_only: bool,
+    /// claude-389: one more hard-copy pass at payload scale 1 captures the read's inputs and
+    /// replays them through the native Q31 read ([`crate::native_replay::replay`]); needs
+    /// `first_only`.
+    pub native_replay: bool,
+    /// claude-389: where the replay writes its barred operator and converted words as one
+    /// [`uor_r4_native_vector::Q31ReadDump`], for control 2 (CPU against CUDA); needs
+    /// `native_replay`.
+    pub native_dump: Option<std::path::PathBuf>,
+}
+
+/// claude-389: the hard-copy forward of every held-out window at payload scale 1, each forward's
+/// read captured ([`crate::vector_reads::capturing_replay`]) and split into windows of the sheet's
+/// context, with the held-out query rows marked. Every forward must be one Flock read of all its
+/// rows, under one read state.
+fn native_replay_pass(
+    model: &StackModel,
+    held: &[(CausalWindow, Vec<RecallQuery>)],
+    seed: u64,
+) -> Result<(crate::native_replay::ReplayModel, Vec<crate::native_replay::ReplayWindow>)> {
+    use crate::native_replay::{ReplayModel, ReplayWindow};
+    let refs: Vec<&CausalWindow> = held.iter().map(|(w, _)| w).collect();
+    let mut state: Option<ReplayModel> = None;
+    let mut windows = Vec::new();
+    hs::with_gate_mode(HamiltonArm::HamiltonActive, seed, 0, false, || {
+        for (c, chunk) in refs.chunks(16).enumerate() {
+            let (ids, _, _) = assemble(chunk);
+            if ids.len() != chunk.len() * SHEET_CONTEXT {
+                return Err(invalid("a held-out window is not the sheet's context"));
+            }
+            let forward = || crate::flock_read::points(model, &ids, chunk.len(), SHEET_CONTEXT);
+            let (_, captures) = crate::vector_reads::with_first_pick_payload(|| {
+                crate::vector_reads::with_payload_scale(1.0, || {
+                    crate::vector_reads::capturing_replay(forward)
+                })
+            })?;
+            let [capture] = captures.as_slice() else {
+                return Err(invalid(format!(
+                    "{} replay captures for one forward: the read ran other than once",
+                    captures.len()
+                )));
+            };
+            let (time, width) = (capture.time, capture.width);
+            if !capture.flock {
+                return Err(invalid("the native replay reads a Flock read only"));
+            }
+            if capture.ids != ids
+                || time != SHEET_CONTEXT
+                || capture.batch * time != ids.len()
+                || capture.first_pick.len() != ids.len()
+                || capture.stream.len() != ids.len() * width
+                || capture.out.len() != ids.len() * width
+            {
+                return Err(invalid("the replay capture's rows are not the forward's"));
+            }
+            let blocks = |v: &[f32]| -> Vec<[f32; 4]> {
+                v.chunks_exact(4).map(|g| [g[0], g[1], g[2], g[3]]).collect()
+            };
+            let read = ReplayModel {
+                width,
+                query_gates_raw: blocks(&capture.query_rotation),
+                key_gates_raw: blocks(&capture.key_rotation),
+                weights: capture.weight.clone(),
+                table: capture.table.clone(),
+            };
+            match &state {
+                Some(first) if *first != read => {
+                    return Err(invalid("the read's state moved between replay forwards"));
+                }
+                Some(_) => {}
+                None => state = Some(read),
+            }
+            for (j, window) in chunk.iter().enumerate() {
+                let w = c * 16 + j;
+                let offsets: Vec<usize> = held[w].1.iter().map(|q| q.scored_offset).collect();
+                if offsets != window.scored_offsets {
+                    return Err(invalid("a window's scored rows are not its queries' rows"));
+                }
+                let mut query = vec![false; time];
+                for q in &held[w].1 {
+                    if q.scored_offset >= time {
+                        return Err(invalid("a held-out query row is outside its window"));
+                    }
+                    query[q.scored_offset] = true;
+                }
+                let rows = j * time..(j + 1) * time;
+                let lanes = j * time * width..(j + 1) * time * width;
+                windows.push(ReplayWindow {
+                    time,
+                    stream: capture.stream[lanes.clone()].to_vec(),
+                    ids: capture.ids[rows.clone()].to_vec(),
+                    f32_first_pick: capture.first_pick[rows].to_vec(),
+                    f32_out: capture.out[lanes].to_vec(),
+                    query,
+                });
+            }
+        }
+        Ok(())
+    })?;
+    let state = state.ok_or_else(|| invalid("the native replay read no forward"))?;
+    Ok((state, windows))
 }
 
 /// claude-387: one held-out query row of the payload probe at one payload scale.
@@ -15024,6 +15124,12 @@ pub fn recall_payload_probe(
     if settings.eval_windows == 0 {
         return Err(invalid("the probe reads at least one held-out window"));
     }
+    if settings.native_replay && !settings.first_only {
+        return Err(invalid("the native replay replays the hard copy: it needs first_only"));
+    }
+    if settings.native_dump.is_some() && !settings.native_replay {
+        return Err(invalid("the native dump is the replay's input: it needs native_replay"));
+    }
     arms::set_fbs_arm(Some(FbsArm::OneAtomActive));
     crate::geometric_stack::set_retention_rates(settings.retain_rates);
     crate::geometric_stack::set_folded_scores(settings.fold_scores);
@@ -15094,6 +15200,25 @@ pub fn recall_payload_probe(
         "max": w.iter().copied().fold(f32::NEG_INFINITY, f32::max),
         "abs": probe_spread(w.iter().map(|&v| f64::from(v.abs())).collect()),
     });
+    // claude-389: the native Q31 replay of the hard-copy read, once over every forward's capture.
+    let native_replay = if settings.native_replay {
+        let (state, windows) = native_replay_pass(&model, &held, settings.seed)?;
+        let (summary, dump) = crate::native_replay::replay_with_dump(&state, &windows)?;
+        if let Some(path) = &settings.native_dump {
+            let dump = dump.ok_or_else(|| invalid("a refused state has no read to dump"))?;
+            let bytes = dump.to_bytes().map_err(|e| invalid(e.to_string()))?;
+            // `create_new`: the dump never writes over a file, even one made during the run.
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)
+                .and_then(|mut file| std::io::Write::write_all(&mut file, &bytes))
+                .map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+        }
+        serde_json::to_value(summary)?
+    } else {
+        serde_json::Value::Null
+    };
     let cut = payload_probe_pass(&model, &held, settings.seed, None)?;
     if cut.len() != base.len() {
         return Err(invalid("the cut pass read other rows than the base pass"));
@@ -15131,6 +15256,7 @@ pub fn recall_payload_probe(
             "first_right": payload_probe_summary(&cut, |i, _| first_right[i]),
         },
         "rows": rows,
+        "native_replay": native_replay,
     }))
 }
 

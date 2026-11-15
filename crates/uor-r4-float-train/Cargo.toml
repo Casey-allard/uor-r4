@@ -27,4 +27,5 @@ uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-integer = { path = "../uor-r4-integer" }
 # Decodes the long run's checkpoint replies to text (in_space_long).
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
+uor-r4-native-vector = { path = "../uor-r4-native-vector" }
 uor-r4-cpu-train = { path = "../uor-r4-cpu-train", optional = true }

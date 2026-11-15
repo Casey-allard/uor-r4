@@ -2,9 +2,9 @@
 //! The module contains only admitted integer entry points and no PTX/JIT fallback.
 
 use crate::native_vector::{
-    q31_batch_len_admitted, q31_hamilton_rotate, q31_hamilton_train_step, q31_quaternion_admitted,
-    Q31HamiltonModel, Q31ModelStep, Q31Quaternion, Q31TrainingStep, Q31Transport,
-    MAX_Q31_STEP_SHIFT,
+    q31_batch_len_admitted, q31_coordinate_admitted, q31_hamilton_rotate, q31_hamilton_train_step,
+    q31_quaternion_admitted, Q31FirstPickRead, Q31HamiltonModel, Q31ModelStep, Q31Quaternion,
+    Q31ReadOutput, Q31TrainingStep, Q31Transport, MAX_Q31_BATCH_ITEMS, MAX_Q31_STEP_SHIFT,
 };
 use crate::{Error, Result};
 use cudarc::driver::{CudaContext, CudaFunction, CudaStream, LaunchConfig, Ptx, PushKernelArg};
@@ -18,6 +18,10 @@ const RESOURCES: &str = include_str!(concat!(env!("OUT_DIR"), "/native-vector-re
 const TARGET: &str = include_str!(concat!(env!("OUT_DIR"), "/cuda-image-target.txt"));
 const ENTRY_ROTATE: &str = "native_q31_hamilton_rotate";
 const ENTRY_TRAIN_STEP: &str = "native_q31_hamilton_train_step";
+const ENTRY_READ_ADDRESS: &str = "native_q31_read_address";
+const ENTRY_FIRST_PICK_READ: &str = "native_q31_first_pick_read";
+/// Threads per block for every native-vector launch.
+const BLOCK_THREADS: u32 = 256;
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -52,6 +56,8 @@ pub struct NativeVectorEngine {
     stream: Arc<CudaStream>,
     rotate: CudaFunction,
     train_step: CudaFunction,
+    read_address: CudaFunction,
+    first_pick_read: CudaFunction,
 }
 
 impl NativeVectorEngine {
@@ -71,11 +77,15 @@ impl NativeVectorEngine {
             .map_err(cuda)?;
         let rotate = module.load_function(ENTRY_ROTATE).map_err(cuda)?;
         let train_step = module.load_function(ENTRY_TRAIN_STEP).map_err(cuda)?;
+        let read_address = module.load_function(ENTRY_READ_ADDRESS).map_err(cuda)?;
+        let first_pick_read = module.load_function(ENTRY_FIRST_PICK_READ).map_err(cuda)?;
         Ok(Self {
             _context: context,
             stream,
             rotate,
             train_step,
+            read_address,
+            first_pick_read,
         })
     }
 
@@ -283,6 +293,134 @@ impl NativeVectorEngine {
         targets: &[Q31Quaternion],
     ) -> Result<Q31ModelStep> {
         Ok(model.step_reference(values, targets)?)
+    }
+
+    /// Run one first-pick read on CUDA: one thread per row computes both
+    /// addresses, then one thread per row picks, reads and adds. The refusals
+    /// and their messages are those of [`Q31FirstPickRead::apply`].
+    pub fn first_pick_read(
+        &self,
+        read: &Q31FirstPickRead,
+        stream: &[i64],
+        ids: &[u32],
+        table: &[i64],
+        batch: usize,
+        time: usize,
+    ) -> Result<Q31ReadOutput> {
+        let width = read.width();
+        let rows = batch
+            .checked_mul(time)
+            .filter(|&rows| rows <= MAX_Q31_BATCH_ITEMS)
+            .ok_or_else(|| invalid("native Q31 read admits at most 2^30 rows"))?;
+        let words = rows
+            .checked_mul(width)
+            .ok_or_else(|| invalid("native Q31 read stream length overflows usize"))?;
+        if stream.len() != words {
+            return Err(invalid(
+                "native Q31 read stream must hold batch * time * width words",
+            ));
+        }
+        if ids.len() != rows {
+            return Err(invalid("native Q31 read needs batch * time ids"));
+        }
+        if table.is_empty() || !table.len().is_multiple_of(width) {
+            return Err(invalid(
+                "native Q31 read table must be a nonempty multiple of width",
+            ));
+        }
+        if !stream
+            .iter()
+            .chain(table)
+            .all(|&word| q31_coordinate_admitted(word))
+        {
+            return Err(invalid(
+                "native Q31 read stream and table words must be in -2^31..=2^31",
+            ));
+        }
+        if rows == 0 {
+            return Ok(Q31ReadOutput {
+                picks: Vec::new(),
+                out: Vec::new(),
+            });
+        }
+        let vocab = (table.len() / width) as u64;
+        // `rows <= 2^30` and `width <= 4096`, so all three fit `u32`.
+        let rows_u32 = rows as u32;
+        let time_u32 = time as u32;
+        let width_u32 = width as u32;
+        let shift = 31 - read.gain_shift();
+        let query_words: Vec<i64> = read.query_gates().iter().flatten().copied().collect();
+        let key_words: Vec<i64> = read.key_gates().iter().flatten().copied().collect();
+        let stream_device = self.stream.clone_htod(stream).map_err(cuda)?;
+        let query_gates = self.stream.clone_htod(&query_words).map_err(cuda)?;
+        let key_gates = self.stream.clone_htod(&key_words).map_err(cuda)?;
+        let ids_device = self.stream.clone_htod(ids).map_err(cuda)?;
+        let table_device = self.stream.clone_htod(table).map_err(cuda)?;
+        let weights_device = self.stream.clone_htod(read.weights()).map_err(cuda)?;
+        let mut queries = self.stream.alloc_zeros::<i64>(rows * 16).map_err(cuda)?;
+        let mut keys = self.stream.alloc_zeros::<i64>(rows * 16).map_err(cuda)?;
+        let mut picks = self.stream.alloc_zeros::<u32>(rows).map_err(cuda)?;
+        let mut out = self.stream.alloc_zeros::<i64>(words).map_err(cuda)?;
+        let config = LaunchConfig {
+            grid_dim: (rows_u32.div_ceil(BLOCK_THREADS), 1, 1),
+            block_dim: (BLOCK_THREADS, 1, 1),
+            shared_mem_bytes: 0,
+        };
+        let mut launch = self.stream.launch_builder(&self.read_address);
+        launch
+            .arg(&stream_device)
+            .arg(&query_gates)
+            .arg(&key_gates)
+            .arg(&rows_u32)
+            .arg(&width_u32)
+            .arg(&mut queries)
+            .arg(&mut keys);
+        // SAFETY: the stream holds `rows * width` words, each gate buffer
+        // `width` words, and each address buffer `rows * 16` words.
+        unsafe { launch.launch(config) }.map_err(cuda)?;
+        let mut launch = self.stream.launch_builder(&self.first_pick_read);
+        launch
+            .arg(&queries)
+            .arg(&keys)
+            .arg(&stream_device)
+            .arg(&ids_device)
+            .arg(&table_device)
+            .arg(&weights_device)
+            .arg(&rows_u32)
+            .arg(&time_u32)
+            .arg(&width_u32)
+            .arg(&vocab)
+            .arg(&shift)
+            .arg(&mut picks)
+            .arg(&mut out);
+        // SAFETY: same stream, so the addresses are written before this read;
+        // ids and picks hold `rows` words, the table `vocab * width`, and the
+        // kernel reads a table row only for an id below `vocab`.
+        unsafe { launch.launch(config) }.map_err(cuda)?;
+        let picks: Vec<u32> = self.stream.clone_dtoh(&picks).map_err(cuda)?;
+        let out: Vec<i64> = self.stream.clone_dtoh(&out).map_err(cuda)?;
+        // The CPU refuses at the first row whose picked id is outside the
+        // vocab; any such row refuses the whole read here too.
+        let refused = (0..rows).any(|row| {
+            let t = row % time;
+            t != 0 && u64::from(ids[row - t + picks[row] as usize]) >= vocab
+        });
+        if refused {
+            return Err(invalid("native Q31 read id must be below the table vocab"));
+        }
+        Ok(Q31ReadOutput { picks, out })
+    }
+
+    /// Run the first-pick read through the Rust oracle.
+    pub fn first_pick_read_reference(
+        read: &Q31FirstPickRead,
+        stream: &[i64],
+        ids: &[u32],
+        table: &[i64],
+        batch: usize,
+        time: usize,
+    ) -> Result<Q31ReadOutput> {
+        Ok(read.apply(stream, ids, table, batch, time)?)
     }
 }
 
