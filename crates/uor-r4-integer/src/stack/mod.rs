@@ -98,10 +98,11 @@ pub use format::{
     set_hamming_copy_latest_uorlut01, set_hamming_copy_longest_uorlut01,
     StackMemoryChain, StackPointKey, POINT_KEY_EXP, STACK_FBS_CHAIN_SCHEMA, STACK_FBS_POINT_SCHEMA,
     StackQ31State, STACK_FBS_Q31_SCHEMA, Q31_STATE_TABLE,
+    StackQ31Lanes, STACK_FBS_Q31_LANES_SCHEMA, Q31_LANES_TABLE,
 };
 pub use format::{
     decode_grid_code, encode_grid_code, export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_carry, export_fbs_trunk_uorlut01_chain,
-    export_fbs_trunk_uorlut01_with, export_fbs_trunk_uorlut01_with_q31, export_fbs_trunk_uorlut01_with_provenance, export_float_trunk_uorlut01, inspect_uorlut01, stack_schema_for, FbsExportSnaps,
+    export_fbs_trunk_uorlut01_with, export_fbs_trunk_uorlut01_with_q31, export_fbs_trunk_uorlut01_with_lane_gates, export_fbs_trunk_uorlut01_with_provenance, export_float_trunk_uorlut01, inspect_uorlut01, stack_schema_for, FbsExportSnaps,
     FbsQuatMode, FbsReferenceSnaps, FbsRoutes, FbsTieMargins, FbsTrunkLayer, FbsTrunkSnapshot,
     FbsWriterOutput, Fixed, FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence,
     FloatTrunkSnapshot, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,

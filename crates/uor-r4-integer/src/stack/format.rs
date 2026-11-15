@@ -85,6 +85,11 @@ pub const STACK_FBS_Q31_SCHEMA: &str = "uor-r4.lut-stack/12";
 pub const Q31_STATE_TABLE: &str = "q31.state";
 /// The exact native Q31 model state length.
 pub const Q31_STATE_BYTES: usize = 48;
+/// Header schema of a SpiralCore/FBS stack that carries the per-lane native Q31 state (D85): an
+/// engine that serves one gate refuses it by its schema instead of dropping the other lanes.
+pub const STACK_FBS_Q31_LANES_SCHEMA: &str = "uor-r4.lut-stack/13";
+/// The table holding the per-lane state: `8K + 4` little-endian `u32` words (K gates + cursor).
+pub const Q31_LANES_TABLE: &str = "q31.gates";
 /// The memory's move weights at `2^MEMORY_WEIGHT_EXP`.
 pub const MEMORY_WEIGHT_EXP: i32 = -24;
 /// The point key's points at `2^POINT_KEY_EXP`: the writer query's Q12.
@@ -959,6 +964,25 @@ pub struct StackQ31State {
     pub version: u8,
 }
 
+/// The per-lane native Q31 state carried by a `/13` artifact (D85): the table [`Q31_LANES_TABLE`]
+/// holds the exact `32K + 16` bytes, and this record binds their digest, `K` and the shared cursor.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct StackQ31Lanes {
+    /// The table name, [`Q31_LANES_TABLE`].
+    pub state: String,
+    /// SHA-256 over the exact `32K + 16` state bytes.
+    pub sha256: String,
+    /// The number of lane gates, `K = shape.width / 4`.
+    pub lanes: usize,
+    /// The trainer's serialized epoch (one shared cursor).
+    pub epoch: u64,
+    /// The trainer's serialized step shift.
+    pub step_shift: u32,
+    /// The state's version byte.
+    pub version: u8,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 struct Header {
     schema: String,
@@ -992,6 +1016,9 @@ struct Header {
     /// without one.
     #[serde(default)]
     q31: Option<StackQ31State>,
+    /// The per-lane native Q31 state, under [`STACK_FBS_Q31_LANES_SCHEMA`]; absent otherwise.
+    #[serde(default)]
+    q31_lanes: Option<StackQ31Lanes>,
 }
 
 /// One 4-bit matrix of a parsed container, borrowed from its bytes.
@@ -1025,6 +1052,8 @@ pub(crate) struct Container<'a> {
     pub address: Option<super::StackAddress>,
     /// The validated native Q31 state record, if the header carries one.
     pub q31: Option<StackQ31State>,
+    /// The validated per-lane native Q31 state record, if the header carries one.
+    pub q31_lanes: Option<StackQ31Lanes>,
     data: &'a [u8],
     /// Sections by name (unique within each kind).
     matrices: HashMap<String, MatrixEntry>,
@@ -1065,6 +1094,9 @@ pub struct StackArtifactMetadata {
     /// Validated native Q31 state record. Left out when the stack has none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub q31: Option<StackQ31State>,
+    /// Validated per-lane native Q31 state record. Left out when the stack has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub q31_lanes: Option<StackQ31Lanes>,
 }
 
 /// Parse and validate an artifact, then return the metadata an external audit
@@ -1086,6 +1118,7 @@ pub fn inspect_uorlut01(bytes: &[u8]) -> Result<StackArtifactMetadata, StackErro
         memory_chain: artifact.memory_chain,
         address: artifact.address,
         q31: artifact.q31,
+        q31_lanes: artifact.q31_lanes,
     })
 }
 
@@ -1160,7 +1193,9 @@ impl<'a> Container<'a> {
         // binding became an admission rule.
         // An address table has its own schema, so a reader from before the table refuses the
         // stack by its schema; it would otherwise pass over the record and serve without the rows.
-        let expected = if header.q31.is_some() {
+        let expected = if header.q31_lanes.is_some() {
+            STACK_FBS_Q31_LANES_SCHEMA
+        } else if header.q31.is_some() {
             STACK_FBS_Q31_SCHEMA
         } else if header.address.is_some() {
             STACK_FBS_ADDRESS_SCHEMA
@@ -1286,6 +1321,56 @@ impl<'a> Container<'a> {
             sections.push(t.name.clone());
             tables.insert(t.name.clone(), t);
         }
+        if let Some(record) = &header.q31_lanes {
+            if record.state != Q31_LANES_TABLE
+                || header.q31.is_some()
+                || header.address.is_some()
+                || header.point.is_some()
+                || header.memory.is_some()
+                || header.hamming.is_some()
+                || header.memory_chain.is_some()
+                || !header.shape.projection_fbs()
+                || !header.shape.pattern.bytes().any(|kind| kind == b'r')
+            {
+                return Err(StackError::Shape(
+                    "a per-lane Q31 state needs an FBS stack with a recurrence layer and no other optional record",
+                ));
+            }
+            let lanes = header.shape.width / 4;
+            if lanes == 0 || record.lanes != lanes {
+                return Err(StackError::Shape(
+                    "a per-lane Q31 state needs K = width / 4 lanes",
+                ));
+            }
+            let table = tables
+                .get(&record.state)
+                .ok_or_else(|| StackError::MissingSection(record.state.clone()))?;
+            if table.kind != TableKind::U32 || table.len != 8 * lanes + 4 {
+                return Err(StackError::Numerics(
+                    "q31.gates must be 8K + 4 u32 words (32K + 16 bytes)".to_owned(),
+                ));
+            }
+            let bytes = range(table.span, data.len())
+                .map(|range| &data[range])
+                .ok_or(StackError::MissingData)?;
+            let parsed = uor_r4_native_vector::Q31LaneGates::from_bytes(bytes)
+                .map_err(|e| StackError::Numerics(format!("q31.gates: {e}")))?;
+            if parsed.lanes() != record.lanes
+                || parsed.epoch() != record.epoch
+                || parsed.step_shift() != record.step_shift
+                || bytes[bytes.len() - 4] != record.version
+            {
+                return Err(StackError::Numerics(
+                    "q31.gates metadata does not match the stored words".to_owned(),
+                ));
+            }
+            let digest = hex::encode(Sha256::digest(bytes));
+            if digest != record.sha256 {
+                return Err(StackError::Numerics(
+                    "q31.gates sha256 does not match the stored words".to_owned(),
+                ));
+            }
+        }
         if let Some(record) = &header.q31 {
             // One finite state path: this schema carries the Q31 state and no other optional
             // mechanism record, so no reader can combine two schemas under one name.
@@ -1351,6 +1436,7 @@ impl<'a> Container<'a> {
             memory_chain: header.memory_chain,
             address: header.address,
             q31: header.q31,
+            q31_lanes: header.q31_lanes,
             data,
             matrices,
             tables,
@@ -1374,6 +1460,21 @@ impl<'a> Container<'a> {
             state[word * 4..word * 4 + 4].copy_from_slice(chunk);
         }
         Ok(Some(state))
+    }
+
+    /// The exact per-lane state bytes the header names, if it carries them. `parse` validated the
+    /// digest, the domain and the cursor; this only returns the section. The serving slice reads
+    /// it; until then it is exercised by the container test.
+    #[allow(dead_code)]
+    pub fn q31_lane_state_bytes(&self) -> Result<Option<Vec<u8>>, StackError> {
+        let Some(record) = &self.q31_lanes else {
+            return Ok(None);
+        };
+        let table = self
+            .tables
+            .get(&record.state)
+            .ok_or_else(|| StackError::MissingSection(record.state.clone()))?;
+        Ok(Some(self.section(table.span)?.to_vec()))
     }
 
     fn section(&self, span: Span) -> Result<&'a [u8], StackError> {
@@ -2049,7 +2150,7 @@ pub fn export_fbs_trunk_uorlut01_with(
     snap: &FbsTrunkSnapshot,
     snaps: FbsExportSnaps,
 ) -> Result<Vec<u8>, StackError> {
-    export_fbs_trunk(snap, snaps, None, None, None, None)
+    export_fbs_trunk(snap, snaps, None, None, None, None, None)
 }
 
 /// [`export_fbs_trunk_uorlut01_with`] with the exact 48-byte native Q31 model state written under
@@ -2060,7 +2161,24 @@ pub fn export_fbs_trunk_uorlut01_with_q31(
     snaps: FbsExportSnaps,
     q31: &[u8; Q31_STATE_BYTES],
 ) -> Result<Vec<u8>, StackError> {
-    export_fbs_trunk(snap, snaps, None, None, None, Some(q31))
+    export_fbs_trunk(snap, snaps, None, None, None, Some(q31), None)
+}
+
+/// [`export_fbs_trunk_uorlut01_with`] with the exact per-lane native Q31 state under
+/// [`STACK_FBS_Q31_LANES_SCHEMA`]: `K = width / 4` gates plus the shared cursor, stored losslessly.
+pub fn export_fbs_trunk_uorlut01_with_lane_gates(
+    snap: &FbsTrunkSnapshot,
+    snaps: FbsExportSnaps,
+    state: &[u8],
+) -> Result<Vec<u8>, StackError> {
+    let parsed = uor_r4_native_vector::Q31LaneGates::from_bytes(state)
+        .map_err(|e| StackError::Numerics(format!("q31.gates: {e}")))?;
+    if parsed.lanes() != snap.width / 4 {
+        return Err(StackError::Shape(
+            "a per-lane Q31 state needs K = width / 4 lanes",
+        ));
+    }
+    export_fbs_trunk(snap, snaps, None, None, None, None, Some(state))
 }
 
 /// [`export_fbs_trunk_uorlut01_with`] served past the trained window (claude-288): the shape's
@@ -2073,7 +2191,7 @@ pub fn export_fbs_trunk_uorlut01_carry(
     context: usize,
 ) -> Result<Vec<u8>, StackError> {
     check_carry_context(snap, context)?;
-    export_fbs_trunk(snap, snaps, Some(context), None, None, None)
+    export_fbs_trunk(snap, snaps, Some(context), None, None, None, None)
 }
 
 /// [`export_fbs_trunk_uorlut01_with`] (`context: None`) or [`export_fbs_trunk_uorlut01_carry`]
@@ -2093,7 +2211,7 @@ pub fn export_fbs_trunk_uorlut01_chain(
     if let Some(context) = context {
         check_carry_context(snap, context)?;
     }
-    export_fbs_trunk(snap, snaps, context, Some(tail), None, None)
+    export_fbs_trunk(snap, snaps, context, Some(tail), None, None, None)
 }
 
 /// Export with stack-contract provenance. With no provenance this reproduces
@@ -2120,6 +2238,7 @@ pub fn export_fbs_trunk_uorlut01_with_provenance(
         (tail > 0).then_some(tail),
         provenance,
         None,
+        None,
     )
 }
 
@@ -2143,6 +2262,7 @@ fn export_fbs_trunk(
     chain: Option<usize>,
     provenance: Option<&FbsExportProvenance>,
     q31: Option<&[u8; Q31_STATE_BYTES]>,
+    q31_lanes: Option<&[u8]>,
 ) -> Result<Vec<u8>, StackError> {
     let shape = StackShape {
         vocab: snap.vocab,
@@ -2354,6 +2474,32 @@ fn export_fbs_trunk(
         }
     };
 
+    let q31_lanes = match q31_lanes {
+        None => None,
+        Some(state) => {
+            let parsed = uor_r4_native_vector::Q31LaneGates::from_bytes(state)
+                .map_err(|e| StackError::Numerics(format!("q31.gates: {e}")))?;
+            if parsed.lanes() != shape.width / 4 {
+                return Err(StackError::Shape(
+                    "a per-lane Q31 state needs K = width / 4 lanes",
+                ));
+            }
+            let words: Vec<u32> = state
+                .chunks_exact(4)
+                .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+                .collect();
+            b.push_u32(Q31_LANES_TABLE, &words);
+            Some(StackQ31Lanes {
+                state: Q31_LANES_TABLE.to_owned(),
+                sha256: hex::encode(Sha256::digest(state)),
+                lanes: parsed.lanes(),
+                epoch: parsed.epoch(),
+                step_shift: parsed.step_shift(),
+                version: state[state.len() - 4],
+            })
+        }
+    };
+
     let eps_exp = -48i32;
     let eps_mantissa = (snap.rms_eps * 2f64.powi(-eps_exp)).round() as i64;
     let score_scale_q30 = ((1.0 / (shape.head_dim() as f64).sqrt()) * 2f64.powi(30))
@@ -2378,7 +2524,9 @@ fn export_fbs_trunk(
         roots: 120,
         roots_sha256: super::ICOSIAN_ROOTS_SHA256.to_owned(),
     };
-    let schema = if q31.is_some() {
+    let schema = if q31_lanes.is_some() {
+        STACK_FBS_Q31_LANES_SCHEMA
+    } else if q31.is_some() {
         STACK_FBS_Q31_SCHEMA
     } else if provenance.is_some() {
         STACK_FBS_BOUND_SCHEMA
@@ -2423,6 +2571,10 @@ fn export_fbs_trunk(
     // And only a stack carrying the native Q31 state has its record.
     if let Some(record) = &q31 {
         header["q31"] = json!(record);
+    }
+    // And only a stack carrying the per-lane state has its record.
+    if let Some(record) = &q31_lanes {
+        header["q31_lanes"] = json!(record);
     }
     // And only a carry export records its trained window (claude-288).
     if carry.is_some() {

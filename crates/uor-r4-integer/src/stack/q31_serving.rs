@@ -67,9 +67,10 @@ fn map_q31_error(error: uor_r4_native_vector::Error) -> StackError {
 mod tests {
     use super::super::synthetic::synthetic_fbs_trunk;
     use super::super::{
-        export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with_q31, inspect_uorlut01,
-        IntegerStackModel, NativeQ31Carry, SerializedStackLayerState, FbsExportSnaps,
-        STACK_FBS_Q31_SCHEMA, Q31_STATE_TABLE,
+        export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with_lane_gates,
+        export_fbs_trunk_uorlut01_with_q31, inspect_uorlut01, IntegerStackModel, NativeQ31Carry,
+        SerializedStackLayerState, FbsExportSnaps, STACK_FBS_Q31_LANES_SCHEMA,
+        STACK_FBS_Q31_SCHEMA, Q31_STATE_TABLE, Q31_LANES_TABLE,
     };
     use super::*;
     use sha2::{Digest, Sha256};
@@ -319,6 +320,96 @@ mod tests {
             before,
             "the refused domain step changed session state"
         );
+    }
+
+
+    #[test]
+    fn lane_gates_in_the_artifact_round_trip_and_refuse_tamper() {
+        use uor_r4_native_vector::Q31LaneGates;
+        let one = 1_i64 << 31;
+        let gates: Vec<[i64; 4]> = (0..8)
+            .map(|lane| {
+                let mut gate = [0_i64; 4];
+                gate[lane % 4] = one - (lane as i64) * 1_000;
+                gate
+            })
+            .collect();
+        let mut state = Q31LaneGates::new(gates, 8).expect("lane gates");
+        state.set_cursor(5, 8).expect("cursor");
+        let bytes = state.to_bytes();
+        let artifact = export_fbs_trunk_uorlut01_with_lane_gates(
+            &synthetic_fbs_trunk(20_261_115),
+            FbsExportSnaps::SNAPPED,
+            &bytes,
+        )
+        .expect("export the /13 artifact");
+        let metadata = inspect_uorlut01(&artifact).expect("inspect");
+        assert_eq!(metadata.schema, STACK_FBS_Q31_LANES_SCHEMA);
+        let record = metadata.q31_lanes.as_ref().expect("q31_lanes record");
+        assert_eq!((record.lanes, record.epoch, record.step_shift), (8, 5, 8));
+
+        let container =
+            crate::stack::format::Container::parse(&artifact).expect("parse the /13 artifact");
+        assert_eq!(
+            container.q31_lane_state_bytes().expect("lane bytes"),
+            Some(bytes.clone())
+        );
+        let restored = Q31LaneGates::from_bytes(&bytes).expect("restore");
+        let value = [1 << 30, -(1 << 29), 7, -(1 << 28)];
+        for lane in 0..8 {
+            assert_eq!(
+                restored.transition(lane, value).expect("transition"),
+                q31_hamilton_rotate(restored.gate(lane).expect("gate"), value).expect("oracle"),
+                "lane {lane}"
+            );
+        }
+
+        // A changed in-domain state word fails the digest at parse: gate 0's second word is zero,
+        // so setting its low bit keeps the closed domain and only the recorded SHA-256 can refuse.
+        let header_len =
+            u64::from_le_bytes(artifact[8..16].try_into().expect("header length")) as usize;
+        let header: serde_json::Value =
+            serde_json::from_slice(&artifact[16..16 + header_len]).expect("header json");
+        let span = header["tables"]
+            .as_array()
+            .expect("tables")
+            .iter()
+            .find(|table| table["name"] == Q31_LANES_TABLE)
+            .expect("q31.gates table")["span"]
+            .clone();
+        let data_start = (16 + header_len).div_ceil(64) * 64;
+        let offset = data_start + span["offset"].as_u64().expect("offset") as usize;
+        let mut tampered = artifact.clone();
+        tampered[offset + 8] ^= 1;
+        assert!(crate::stack::format::Container::parse(&tampered).is_err());
+
+        // A state with the wrong K is refused by the exporter.
+        let bad = Q31LaneGates::new(vec![[one, 0, 0, 0]; 4], 8)
+            .expect("bad lane gates")
+            .to_bytes();
+        assert!(export_fbs_trunk_uorlut01_with_lane_gates(
+            &synthetic_fbs_trunk(20_261_115),
+            FbsExportSnaps::SNAPPED,
+            &bad,
+        )
+        .is_err());
+
+        // A /13 header without the record is refused by schema.
+        let mut header: serde_json::Value =
+            serde_json::from_slice(&artifact[16..16 + header_len]).expect("header json");
+        header.as_object_mut().expect("header object").remove("q31_lanes");
+        let header_bytes = serde_json::to_vec(&header).expect("header bytes");
+        let mut missing = Vec::new();
+        missing.extend_from_slice(&artifact[..8]);
+        missing.extend_from_slice(&(header_bytes.len() as u64).to_le_bytes());
+        missing.extend_from_slice(&header_bytes);
+        missing.resize(missing.len().div_ceil(64) * 64, 0);
+        missing.extend_from_slice(&artifact[data_start..]);
+        assert!(crate::stack::format::Container::parse(&missing).is_err());
+
+        // A plain export has no lane record.
+        let plain = export_fbs_trunk_uorlut01(&synthetic_fbs_trunk(20_261_115)).expect("plain");
+        assert!(inspect_uorlut01(&plain).unwrap().q31_lanes.is_none());
     }
 
     #[test]
