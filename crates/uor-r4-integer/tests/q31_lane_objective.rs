@@ -20,7 +20,8 @@
 
 use uor_r4_integer::stack::synthetic::synthetic_fbs_trunk;
 use uor_r4_integer::stack::{
-    export_fbs_trunk_uorlut01_with_lane_gates, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
+    export_fbs_trunk_uorlut01_with_lane_gates, export_fbs_trunk_uorlut01_with_q31, FbsExportSnaps,
+    FbsTrunkSnapshot, IntegerStackModel,
 };
 use uor_r4_native_vector::{q31_hamilton_rotate, Q31HamiltonModel, Q31LaneGates, Q31Quaternion};
 
@@ -40,6 +41,11 @@ fn initial_state() -> Vec<u8> {
 fn artifact(snap: &FbsTrunkSnapshot, state: &[u8]) -> Vec<u8> {
     export_fbs_trunk_uorlut01_with_lane_gates(snap, FbsExportSnaps::SNAPPED, state)
         .expect("export the /13 artifact")
+}
+
+fn single_artifact(snap: &FbsTrunkSnapshot, state: &[u8; 48]) -> Vec<u8> {
+    export_fbs_trunk_uorlut01_with_q31(snap, FbsExportSnaps::SNAPPED, state)
+        .expect("export the /12 artifact")
 }
 
 /// Per transition, the `(lane, before)` pairs the real recurrence recorded.
@@ -99,6 +105,21 @@ fn alignment(gate: Q31Quaternion, values: &[Q31Quaternion], targets: &[Q31Quater
             let transport = q31_hamilton_rotate(gate, *value).expect("Q31 transport");
             (0..4)
                 .map(|j| i128::from(transport[j]) * i128::from(target[j]))
+                .sum::<i128>()
+        })
+        .sum()
+}
+
+/// The shipped update's own quantity: the L1 distance from the transported value to the target,
+/// summed over the records.
+fn l1(gate: Q31Quaternion, values: &[Q31Quaternion], targets: &[Q31Quaternion]) -> i128 {
+    values
+        .iter()
+        .zip(targets)
+        .map(|(value, target)| {
+            let transport = q31_hamilton_rotate(gate, *value).expect("Q31 transport");
+            (0..4)
+                .map(|j| (i128::from(transport[j]) - i128::from(target[j])).abs())
                 .sum::<i128>()
         })
         .sum()
@@ -349,4 +370,122 @@ fn a_quarter_turn_state_reaches_the_carry_and_the_writer_query() {
             .any(|(a, b)| a.before == b.before && a.transport != b.transport && a.after != b.after),
         "no lane carried its quarter-turned transport"
     );
+}
+
+#[test]
+fn the_shared_gate_and_the_per_lane_gates_are_measured_on_one_fixture() {
+    let snap = synthetic_fbs_trunk(SEED);
+    let start = initial_state();
+    let start_artifact = artifact(&snap, &start);
+    let per_lane = records_by_lane(&snap, &carries(&start_artifact));
+    let (start_tokens, start_ranks, _) = served_path(&start_artifact, &snap);
+
+    // The shared-gate configuration of codex-6/7: every lane's records pooled into one gate.
+    let mut pooled_values = Vec::new();
+    let mut pooled_targets = Vec::new();
+    for (values, targets) in &per_lane {
+        pooled_values.extend_from_slice(values);
+        pooled_targets.extend_from_slice(targets);
+    }
+    let pooled_before = alignment([ONE, 0, 0, 0], &pooled_values, &pooled_targets);
+    let pooled_l1_before = l1([ONE, 0, 0, 0], &pooled_values, &pooled_targets);
+    let mut shared = Q31HamiltonModel::new([ONE, 0, 0, 0], 8).expect("shared training model");
+    for _ in 0..TRAIN_STEPS {
+        shared
+            .step_reference(&pooled_values, &pooled_targets)
+            .expect("train the shared gate");
+    }
+    let pooled_after = alignment(shared.gate(), &pooled_values, &pooled_targets);
+    let pooled_l1_after = l1(shared.gate(), &pooled_values, &pooled_targets);
+    let shared_per_lane: Vec<i128> = per_lane
+        .iter()
+        .map(|(values, targets)| alignment(shared.gate(), values, targets))
+        .collect();
+    let shared_bytes = shared.to_bytes();
+    let shared_artifact = single_artifact(&snap, &shared_bytes);
+
+    // The per-lane configuration of codex-12 A.
+    let mut lane_gates = Vec::with_capacity(LANES);
+    let mut lane_before = Vec::with_capacity(LANES);
+    let mut lane_after = Vec::with_capacity(LANES);
+    let mut lane_l1_before = 0i128;
+    let mut lane_l1_after = 0i128;
+    for (values, targets) in &per_lane {
+        lane_before.push(alignment([ONE, 0, 0, 0], values, targets));
+        lane_l1_before += l1([ONE, 0, 0, 0], values, targets);
+        let mut model = Q31HamiltonModel::new([ONE, 0, 0, 0], 8).expect("lane training model");
+        for _ in 0..TRAIN_STEPS {
+            model
+                .step_reference(values, targets)
+                .expect("train the lane");
+        }
+        lane_after.push(alignment(model.gate(), values, targets));
+        lane_l1_after += l1(model.gate(), values, targets);
+        assert_ne!(model.gate(), [ONE, 0, 0, 0], "a lane gate did not train");
+        lane_gates.push(model.gate());
+    }
+    let mut lanes_state = Q31LaneGates::new(lane_gates, 8).expect("trained lanes");
+    lanes_state
+        .set_cursor(TRAIN_STEPS as u64, 8)
+        .expect("shared cursor");
+    let lanes_artifact = artifact(&snap, &lanes_state.to_bytes());
+
+    let (shared_tokens, shared_ranks, _) = served_path(&shared_artifact, &snap);
+    let (lane_tokens, lane_ranks, _) = served_path(&lanes_artifact, &snap);
+    let mean = |ranks: &[usize]| ranks.iter().sum::<usize>() as f64 / ranks.len() as f64;
+    let moved = |tokens: &[u32]| {
+        tokens
+            .iter()
+            .zip(&start_tokens)
+            .filter(|(a, b)| a != b)
+            .count()
+    };
+    let improved = |ranks: &[usize]| {
+        ranks
+            .iter()
+            .zip(&start_ranks)
+            .filter(|(after, before)| after < before)
+            .count()
+    };
+
+    eprintln!("shared gate: pooled L1 {pooled_l1_before} -> {pooled_l1_after}");
+    eprintln!("per-lane gates: total L1 {lane_l1_before} -> {lane_l1_after}");
+    eprintln!("shared gate: pooled alignment {pooled_before} -> {pooled_after}");
+    eprintln!("shared gate: per-lane alignment {shared_per_lane:?}");
+    eprintln!(
+        "per-lane gates: total alignment {} -> {}",
+        lane_before.iter().sum::<i128>(),
+        lane_after.iter().sum::<i128>()
+    );
+    eprintln!("per-lane gates: per-lane after {lane_after:?}");
+    eprintln!("untrained tokens {start_tokens:?}, ranks {start_ranks:?}");
+    eprintln!(
+        "shared gate: tokens {shared_tokens:?} ({} moved), mean rank {:.2} ({} of {} improved)",
+        moved(&shared_tokens),
+        mean(&shared_ranks),
+        improved(&shared_ranks),
+        start_ranks.len()
+    );
+    eprintln!(
+        "per-lane gates: tokens {lane_tokens:?} ({} moved), mean rank {:.2} ({} of {} improved)",
+        moved(&lane_tokens),
+        mean(&lane_ranks),
+        improved(&lane_ranks),
+        start_ranks.len()
+    );
+
+    // Both configurations were trained and served; the signs are the result and go to the REPORT.
+    assert_ne!(
+        shared.gate(),
+        [ONE, 0, 0, 0],
+        "the shared gate did not train"
+    );
+    assert_ne!(
+        pooled_before, pooled_after,
+        "the shared alignment did not move"
+    );
+    assert_eq!(shared_tokens.len(), TOKENS.len());
+    assert_eq!(lane_tokens.len(), TOKENS.len());
+    assert_eq!(shared_ranks.len(), TOKENS.len() - 1);
+    assert_eq!(lane_ranks.len(), TOKENS.len() - 1);
 }
