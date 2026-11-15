@@ -78,8 +78,13 @@ The FBS native rates are different measurements from the M1 pair's: 4,217–4,32
 `UORLUT01` starts with an 8-byte magic string and JSON header, then aligned integer data sections.
 The reader validates offsets and lengths and computes SHA-256 as it loads. Table-native schemas
 include `lut-discrete/1` and `lut-discrete-trunk/1`. The separate FBS `lut-stack/5` is a 4-bit
-float-to-integer stack with exact rotations, not a table-native discrete schema. Older dense
-`lut-stack/1`, `/2` and `/3` families are historical and do not describe the M1 artifact
+float-to-integer stack with exact rotations, not a table-native discrete schema. `lut-stack/12`
+adds the exact 48-byte native Q31 recurrence state to a SpiralCore/FBS stack: the bytes live in
+the `q31.state` table (twelve little-endian `u32` words), the header binds their SHA-256 and the
+trainer's epoch, step shift and version, and loading attaches that same state to the real
+recurrence with no conversion. An engine that does not serve the state refuses the artifact by
+its schema instead of dropping it. Older dense `lut-stack/1`, `/2` and `/3` families are
+historical and do not describe the M1 artifact
 ([`format.rs`](../../crates/uor-r4-integer/src/stack/format.rs)).
 
 Exact geometry can be tables: the 120-element icosian Cayley table, Lorentz arcosh values and Q30
@@ -124,7 +129,7 @@ than assuming table lookup implies sparsity.
 - **M5:** full-path memory traffic and energy on the accepted model.
 - **M7:** library/CLI/browser token and session parity on the accepted model, not only the synthetic stand-in.
 - **Addressed/product-key memory:** the older exporter refuses it. The real point-key export and p-x run happened, but claude-229 was row 0's instrument fault, not a usable bar result. Claude-231 built the nearest readout on native and browser paths; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) missed greedy parity in every cell. The newer pair rows, addressed by the turn's token pairs, are refused by the export too, so they are not served ([claude-370](../loop/tasks/one-model-end-to-end/claude-370/REPORT.md)).
-- **One native train/serve state (D85, 13 Nov):** the default route is one persistent integer geometric state, trained and served by the same typed operators with bit-identical replay, so the artifact carries that state instead of an export gap. Codex trained one Q31 vector state on CUDA as a finite contract test, not language-model training ([codex-5](../loop/tasks/native-space-state-contract/codex-5/REPORT.md)). Since 14 Nov the integer crate restores that trained 48-byte state with no numerical conversion and runs the same shared transition: after 64 trained steps, the restored state and its transition results match as raw words. No token generation is claimed ([codex-8](../loop/tasks/native-space-state-contract/codex-8/REPORT.md)).
+- **One native train/serve state (D85, 13 Nov):** the default route is one persistent integer geometric state, trained and served by the same typed operators with bit-identical replay, so the artifact carries that state instead of an export gap. Codex trained one Q31 vector state on CUDA as a finite contract test, not language-model training ([codex-5](../loop/tasks/native-space-state-contract/codex-5/REPORT.md)). Since 14 Nov the integer crate restores that trained 48-byte state with no numerical conversion and runs the same shared transition: after 64 trained steps, the restored state and its transition results match as raw words. No token generation is claimed ([codex-8](../loop/tasks/native-space-state-contract/codex-8/REPORT.md)). Since 15 Nov the artifact itself carries the state under `lut-stack/12`, and parsing attaches it without a side-load ([codex-1](../loop/tasks/m4-export-uorlut01-cli/codex-1/REPORT.md)).
 
 The web client is connected to the current integer worker. DeepSeek's #3442/#3444 rebuilt and
 published the Studio; #3445 then wired the publicly released M1 trunk for top-8 next-token

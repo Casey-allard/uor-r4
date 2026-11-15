@@ -1018,7 +1018,8 @@ impl IntegerStackModel {
         } else {
             None
         };
-        Ok(Self {
+        let q31_state = artifact.q31_state_bytes()?;
+        let mut model = Self {
             head_dim: shape.head_dim(),
             lorentz: shape.lorentz(),
             l2: shape.l2(),
@@ -1047,7 +1048,13 @@ impl IntegerStackModel {
             threads: 1,
             #[cfg(not(target_arch = "wasm32"))]
             pool: None,
-        })
+        };
+        // The artifact's own Q31 state (D85): attach the exact words it carries, with no
+        // side-load. A stack without the section keeps the existing artifact-derived path.
+        if let Some(state) = q31_state {
+            model.attach_native_q31_state(&state)?;
+        }
+        Ok(model)
     }
 
     /// Attach the exact 48-byte native Q31 model state written by training.

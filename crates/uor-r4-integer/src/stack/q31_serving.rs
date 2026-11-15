@@ -67,9 +67,12 @@ fn map_q31_error(error: uor_r4_native_vector::Error) -> StackError {
 mod tests {
     use super::super::synthetic::synthetic_fbs_trunk;
     use super::super::{
-        export_fbs_trunk_uorlut01, IntegerStackModel, NativeQ31Carry, SerializedStackLayerState,
+        export_fbs_trunk_uorlut01, export_fbs_trunk_uorlut01_with_q31, inspect_uorlut01,
+        IntegerStackModel, NativeQ31Carry, SerializedStackLayerState, FbsExportSnaps,
+        STACK_FBS_Q31_SCHEMA, Q31_STATE_TABLE,
     };
     use super::*;
+    use sha2::{Digest, Sha256};
     use uor_r4_native_vector::{q31_hamilton_rotate, Q31HamiltonModel};
 
     const TRAINED_STATE_HEX: &str = concat!(
@@ -315,6 +318,72 @@ mod tests {
             out_of_domain.save_state(),
             before,
             "the refused domain step changed session state"
+        );
+    }
+
+    #[test]
+    fn the_artifact_carries_the_q31_state_and_attaches_it() {
+        let state = trained_state();
+        let snap = synthetic_fbs_trunk(20_261_117);
+        let artifact = export_fbs_trunk_uorlut01_with_q31(&snap, FbsExportSnaps::SNAPPED, &state)
+            .expect("export with the native state");
+        let metadata = inspect_uorlut01(&artifact).expect("inspect");
+        assert_eq!(metadata.schema, STACK_FBS_Q31_SCHEMA);
+        let record = metadata.q31.as_ref().expect("the q31 record");
+        assert_eq!(record.sha256, hex::encode(Sha256::digest(state)));
+        assert_eq!((record.epoch, record.step_shift, record.version), (64, 8, 1));
+
+        let attached = IntegerStackModel::parse(&artifact).expect("parse attaches the state");
+        assert_eq!(attached.native_q31_state_bytes(), Some(state));
+
+        let bare_artifact = export_fbs_trunk_uorlut01(&snap).expect("plain export");
+        assert!(inspect_uorlut01(&bare_artifact).expect("inspect").q31.is_none());
+        let mut manual = IntegerStackModel::parse(&bare_artifact).expect("bare parse");
+        assert!(manual.native_q31_state_bytes().is_none());
+        manual.attach_native_q31_state(&state).expect("side attach");
+
+        let mut left = attached.session();
+        let mut right = manual.session();
+        left.set_native_q31_trace(true).expect("trace");
+        right.set_native_q31_trace(true).expect("trace");
+        for token in [3, 5, 8, 13] {
+            let artifact_step = left.step_native(token).expect("artifact step");
+            let manual_step = right.step_native(token).expect("side-load step");
+            assert_eq!(
+                artifact_step.token, manual_step.token,
+                "the artifact and the side-load served different tokens"
+            );
+            assert_eq!(
+                left.take_native_q31_trace().expect("trace"),
+                right.take_native_q31_trace().expect("trace"),
+                "the artifact and the side-load served different raw words"
+            );
+        }
+    }
+
+    #[test]
+    fn a_tampered_q31_section_is_refused_at_parse() {
+        let state = trained_state();
+        let snap = synthetic_fbs_trunk(20_261_118);
+        let mut artifact = export_fbs_trunk_uorlut01_with_q31(&snap, FbsExportSnaps::SNAPPED, &state)
+            .expect("export with the native state");
+        let header_len =
+            u64::from_le_bytes(artifact[8..16].try_into().expect("header length")) as usize;
+        let header: serde_json::Value =
+            serde_json::from_slice(&artifact[16..16 + header_len]).expect("header json");
+        let span = header["tables"]
+            .as_array()
+            .expect("tables")
+            .iter()
+            .find(|table| table["name"] == Q31_STATE_TABLE)
+            .expect("the q31 table")["span"]
+            .clone();
+        let data_start = (16 + header_len).div_ceil(64) * 64;
+        let offset = data_start + span["offset"].as_u64().expect("offset") as usize;
+        artifact[offset] ^= 1;
+        assert!(
+            IntegerStackModel::parse(&artifact).is_err(),
+            "a changed state word must be refused by its digest"
         );
     }
 }
