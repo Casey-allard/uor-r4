@@ -1341,6 +1341,7 @@ impl<'a> Container<'a> {
         if let Some(record) = &header.q31_lanes {
             if record.state != Q31_LANES_TABLE
                 || header.q31.is_some()
+                || header.q31_read.is_some()
                 || header.address.is_some()
                 || header.point.is_some()
                 || header.memory.is_some()

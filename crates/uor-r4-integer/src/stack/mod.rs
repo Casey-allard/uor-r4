@@ -138,7 +138,7 @@ pub use prompt_reply::{
     PromptReplySignatureMapping, MAX_PROMPT_REPLY_ENTRIES, MAX_PROMPT_REPLY_PROMPT_TOKENS,
     MAX_PROMPT_REPLY_REPLY_TOKENS, MAX_PROMPT_REPLY_SIDECAR_BYTES, STACK_PROMPT_REPLY_SCHEMA,
 };
-pub use q31_serving::Q31ServingSession;
+pub use q31_serving::{Q31LaneServingSession, Q31ServingSession};
 #[cfg(not(target_arch = "wasm32"))]
 pub use session::verify_step_objdump_zero_mul_zero_float;
 pub use session::{

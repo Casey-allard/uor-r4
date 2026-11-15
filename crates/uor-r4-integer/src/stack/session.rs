@@ -54,8 +54,8 @@ use super::kernels::{
 };
 use super::memory::{memory_image, MemoryAnchors, MemoryMove, ServedTurnMemory};
 use super::q31_serving::{
-    q31_quaternion_admitted, q31_saturate, Q31Quaternion, Q31ServingSession, Q31Transport,
-    Q31_MODEL_BYTES,
+    q31_quaternion_admitted, q31_saturate, Q31LaneServingSession, Q31Quaternion,
+    Q31ServingSession, Q31Transport, Q31_MODEL_BYTES,
 };
 use super::StackError;
 use crate::fbs_snapshot::PlaceState;
@@ -592,6 +592,9 @@ pub struct IntegerStackModel {
     /// The exact native Q31 model state, when a caller has attached one. It is
     /// model state, not session state, and changes the real recurrence.
     native_q31: Option<Q31ServingSession>,
+    /// The exact per-lane native Q31 state (a `/13` artifact): one gate per lane
+    /// and one shared cursor. Exclusive with `native_q31`.
+    native_q31_lanes: Option<Q31LaneServingSession>,
     /// An optional artifact-bound nearest-example content override used by
     /// [`IntegerStackSession::serve_step`], never by the raw step paths.
     content_readout: Option<Box<ContentReadout>>,
@@ -1026,6 +1029,7 @@ impl IntegerStackModel {
             None
         };
         let q31_state = artifact.q31_state_bytes()?;
+        let q31_lane_state = artifact.q31_lane_state_bytes()?;
         let mut model = Self {
             head_dim: shape.head_dim(),
             lorentz: shape.lorentz(),
@@ -1044,6 +1048,7 @@ impl IntegerStackModel {
             fbs,
             memory,
             native_q31: None,
+            native_q31_lanes: None,
             content_readout: None,
             content_readout_sha256: None,
             exp_table,
@@ -1061,6 +1066,9 @@ impl IntegerStackModel {
         if let Some(state) = q31_state {
             model.attach_native_q31_state(&state)?;
         }
+        if let Some(state) = q31_lane_state {
+            model.attach_native_q31_lane_state(&state)?;
+        }
         Ok(model)
     }
 
@@ -1075,6 +1083,11 @@ impl IntegerStackModel {
                 "native Q31 state needs a model with a recurrence layer",
             ));
         }
+        if self.native_q31_lanes.is_some() {
+            return Err(StackError::Shape(
+                "a model holds one native Q31 state; the per-lane state is already attached",
+            ));
+        }
         let state = Q31ServingSession::from_slice(bytes)?;
         let mut digest = Sha256::new();
         digest.update(b"uor-r4.native-q31-serving/1\0");
@@ -1086,6 +1099,39 @@ impl IntegerStackModel {
         Ok(())
     }
 
+    /// Attach the exact per-lane native Q31 state written by training (`32K + 16` bytes).
+    ///
+    /// The state is parsed without numeric conversion and becomes the real recurrence's per-lane
+    /// transport: lane `i` advances through gate `i`. Attach it before creating sessions. A model
+    /// holds either this state or the single-gate state, never both.
+    pub fn attach_native_q31_lane_state(&mut self, bytes: &[u8]) -> Result<(), StackError> {
+        if !self.shape.pattern.bytes().any(|kind| kind == b'r') {
+            return Err(StackError::Shape(
+                "native Q31 state needs a model with a recurrence layer",
+            ));
+        }
+        if self.native_q31.is_some() {
+            return Err(StackError::Shape(
+                "a model holds one native Q31 state; the single-gate state is already attached",
+            ));
+        }
+        let state = Q31LaneServingSession::from_slice(bytes)?;
+        if state.lanes() != self.shape.lanes() {
+            return Err(StackError::Shape(
+                "a per-lane Q31 state needs K = width / 4 lanes",
+            ));
+        }
+        let mut digest = Sha256::new();
+        digest.update(b"uor-r4.native-q31-lanes-serving/1\0");
+        digest.update(self.sha256.as_bytes());
+        digest.update([0]);
+        digest.update((state.lanes() as u64).to_le_bytes());
+        digest.update(state.to_bytes());
+        self.session_model_sha256 = hex::encode(digest.finalize());
+        self.native_q31_lanes = Some(state);
+        Ok(())
+    }
+
     /// The attached native Q31 model handle, if any.
     pub fn native_q31_state(&self) -> Option<Q31ServingSession> {
         self.native_q31
@@ -1094,6 +1140,16 @@ impl IntegerStackModel {
     /// The exact 48 bytes of the attached native Q31 model, if any.
     pub fn native_q31_state_bytes(&self) -> Option<[u8; Q31_MODEL_BYTES]> {
         self.native_q31.map(Q31ServingSession::to_bytes)
+    }
+
+    /// The attached per-lane native Q31 handle, if any.
+    pub fn native_q31_lane_state(&self) -> Option<&Q31LaneServingSession> {
+        self.native_q31_lanes.as_ref()
+    }
+
+    /// The exact `32K + 16` bytes of the attached per-lane state, if any.
+    pub fn native_q31_lane_state_bytes(&self) -> Option<Vec<u8>> {
+        self.native_q31_lanes.as_ref().map(Q31LaneServingSession::to_bytes)
     }
 
     /// Threads that a step's weight maps run on. Every thread count computes
@@ -1152,7 +1208,11 @@ impl IntegerStackModel {
     /// evaluator of the view alone would drop the read.
     pub fn fbs_image(&self) -> Option<FbsImage<'_>> {
         let fbs = self.fbs.as_deref()?;
-        if fbs.hamming.is_some() || self.memory.is_some() || self.native_q31.is_some() {
+        if fbs.hamming.is_some()
+            || self.memory.is_some()
+            || self.native_q31.is_some()
+            || self.native_q31_lanes.is_some()
+        {
             return None;
         }
         self.fbs_trunk_image()
@@ -1168,7 +1228,11 @@ impl IntegerStackModel {
     /// layer, so no evaluator of this view can add them afterwards.
     pub fn fbs_trunk_image(&self) -> Option<FbsImage<'_>> {
         let fbs = self.fbs.as_deref()?;
-        if fbs.address.is_some() || fbs.q31_read.is_some() || self.native_q31.is_some() {
+        if fbs.address.is_some()
+            || fbs.q31_read.is_some()
+            || self.native_q31.is_some()
+            || self.native_q31_lanes.is_some()
+        {
             return None;
         }
         let layers = fbs
@@ -2259,7 +2323,7 @@ impl IntegerStackSession<'_> {
     /// post-drive carry from the next step on. Off by default and unavailable
     /// unless the model has an attached Q31 state.
     pub fn set_native_q31_trace(&mut self, on: bool) -> Result<(), StackError> {
-        if on && self.model.native_q31.is_none() {
+        if on && self.model.native_q31.is_none() && self.model.native_q31_lanes.is_none() {
             return Err(StackError::Shape(
                 "a native Q31 trace needs an attached native Q31 model",
             ));
@@ -3472,7 +3536,7 @@ fn native_q31_step_preflight(
     states: &[Box<LayerState>],
     snap_trace: bool,
 ) -> Result<(), StackError> {
-    if model.native_q31.is_none() {
+    if model.native_q31.is_none() && model.native_q31_lanes.is_none() {
         return Ok(());
     }
     if snap_trace {
@@ -4600,7 +4664,9 @@ fn stack_recurrence_core(
     let (s, n) = (&model.shape, &model.numerics);
     let d = s.width;
     let lanes = s.lanes();
-    if model.native_q31.is_some() && b.snap_trace.is_some() {
+    if (model.native_q31.is_some() || model.native_q31_lanes.is_some())
+        && b.snap_trace.is_some()
+    {
         return Err(StackError::Shape(
             "a native Q31 recurrence uses its carry trace, not the icosian snap trace",
         ));
@@ -4676,7 +4742,22 @@ fn stack_recurrence_core(
     if let Some(native_q31) = model.native_q31 {
         stack_native_q31_lanes(
             model,
-            native_q31,
+            Some(native_q31),
+            None,
+            state,
+            wide,
+            decays,
+            rates,
+            offsets,
+            b.bucket_trace.as_mut(),
+            native_q31_trace,
+            layer,
+        )?;
+    } else if let Some(native_q31_lanes) = model.native_q31_lanes.as_ref() {
+        stack_native_q31_lanes(
+            model,
+            None,
+            Some(native_q31_lanes),
             state,
             wide,
             decays,
@@ -4777,13 +4858,15 @@ fn stack_lane_weights(
 }
 
 /// The real recurrence's native-Q31 transport. Each lane calls the shipped
-/// serving transition at the one trained gate; decay and drive then advance
-/// the lane by the ordinary recurrence rule.
+/// serving transition at its gate (one shared gate for a `/12` state, its own
+/// lane gate for a `/13` state); decay and drive then advance the lane by the
+/// ordinary recurrence rule.
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
 fn stack_native_q31_lanes(
     model: &IntegerStackModel,
-    native_q31: Q31ServingSession,
+    native_q31: Option<Q31ServingSession>,
+    native_q31_lanes: Option<&Q31LaneServingSession>,
     state: &mut [i64],
     wide: &[i64],
     decays: &[i32],
@@ -4801,7 +4884,15 @@ fn stack_native_q31_lanes(
     {
         let (lambda, keep) = stack_lane_weights(model, lane, decay, rates, offsets, &mut buckets);
         let before = [held[0], held[1], held[2], held[3]];
-        let transport = native_q31.transition(before)?;
+        let transport = match (native_q31, native_q31_lanes) {
+            (Some(state), _) => state.transition(before)?,
+            (None, Some(state)) => state.transition(lane, before)?,
+            (None, None) => {
+                return Err(StackError::Shape(
+                    "a native Q31 lane range needs an attached state",
+                ));
+            }
+        };
         let mut after = [0i64; 4];
         for index in 0..4 {
             let decayed = shift_wide(

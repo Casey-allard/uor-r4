@@ -5,7 +5,7 @@
 //! state written by training and applies the same typed Q31 transition from
 //! the serving side.
 
-use uor_r4_native_vector::{q31_hamilton_rotate, Q31HamiltonModel};
+use uor_r4_native_vector::{q31_hamilton_rotate, Q31HamiltonModel, Q31LaneGates};
 pub use uor_r4_native_vector::{
     q31_quaternion_admitted, q31_saturate, Q31Quaternion, Q31Transport, Q31_MODEL_BYTES,
 };
@@ -56,6 +56,51 @@ impl Q31ServingSession {
     /// Apply the shared Q31 Hamilton transition at the loaded gate.
     pub fn transition(&self, value: Q31Quaternion) -> Result<Q31Transport, StackError> {
         q31_hamilton_rotate(self.model.gate(), value).map_err(map_q31_error)
+    }
+}
+
+/// A serving-side handle over one serialized per-lane native Q31 state (D85): `K` Hamilton gates
+/// shared across layers and one shared cursor. The state and operator live in
+/// `uor-r4-native-vector`; this adapter keeps the exact bytes and selects the gate by lane.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Q31LaneServingSession {
+    state: Q31LaneGates,
+}
+
+impl Q31LaneServingSession {
+    /// Restore the exact per-lane state supplied as a slice; no numeric conversion is performed.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, StackError> {
+        Q31LaneGates::from_bytes(bytes)
+            .map(|state| Self { state })
+            .map_err(map_q31_error)
+    }
+
+    /// Return the lossless serving state for persistence.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.state.to_bytes()
+    }
+
+    pub fn lanes(&self) -> usize {
+        self.state.lanes()
+    }
+
+    pub fn gate(&self, lane: usize) -> Result<Q31Quaternion, StackError> {
+        self.state.gate(lane).map_err(map_q31_error)
+    }
+
+    pub fn epoch(&self) -> u64 {
+        self.state.epoch()
+    }
+
+    pub fn step_shift(&self) -> u32 {
+        self.state.step_shift()
+    }
+
+    /// Apply the shared Q31 Hamilton transition at one lane's gate.
+    pub fn transition(&self, lane: usize, value: Q31Quaternion) -> Result<Q31Transport, StackError> {
+        self.state
+            .transition(lane, value)
+            .map_err(map_q31_error)
     }
 }
 
@@ -476,5 +521,202 @@ mod tests {
             IntegerStackModel::parse(&artifact).is_err(),
             "a changed state word must be refused by its digest"
         );
+    }
+
+    /// Eight distinct admitted lane gates: lane `i` rotates around axis `i % 4` with a small,
+    /// lane-specific tweak on a second coordinate.
+    fn lane_gates() -> Vec<uor_r4_native_vector::Q31Quaternion> {
+        let one = 1_i64 << 31;
+        (0..8)
+            .map(|lane| {
+                let mut gate = [0_i64; 4];
+                gate[lane % 4] = one;
+                gate[(lane + 1) % 4] = 65_536 + lane as i64;
+                gate
+            })
+            .collect()
+    }
+
+    fn lane_state(lanes: usize) -> Vec<u8> {
+        use uor_r4_native_vector::Q31LaneGates;
+        let mut state = Q31LaneGates::new(lane_gates()[..lanes].to_vec(), 8).expect("lane gates");
+        state.set_cursor(11, 8).expect("cursor");
+        state.to_bytes()
+    }
+
+    fn lane_model(bytes: &[u8], seed: u64) -> IntegerStackModel {
+        let artifact = export_fbs_trunk_uorlut01_with_lane_gates(
+            &synthetic_fbs_trunk(seed),
+            FbsExportSnaps::SNAPPED,
+            bytes,
+        )
+        .expect("export the /13 artifact");
+        IntegerStackModel::parse(&artifact).expect("parse the /13 artifact")
+    }
+
+    #[test]
+    fn a_lane_state_drives_each_lane_through_its_own_gate() {
+        let bytes = lane_state(8);
+        let model = lane_model(&bytes, 20_261_120);
+        let attached = model
+            .native_q31_lane_state()
+            .expect("the /13 artifact attaches its lanes");
+        assert_eq!(attached.lanes(), 8);
+        assert_eq!(attached.epoch(), 11);
+        assert_eq!(attached.step_shift(), 8);
+        assert_eq!(model.native_q31_lane_state_bytes(), Some(bytes.clone()));
+        assert!(model.native_q31_state().is_none());
+        assert!(
+            model.fbs_trunk_image().is_none(),
+            "no parallel image may omit the lane gates"
+        );
+        let oracle =
+            uor_r4_native_vector::Q31LaneGates::from_bytes(&bytes).expect("restore the oracle");
+
+        let mut session = model.session();
+        session
+            .set_native_q31_trace(true)
+            .expect("trace the attached lanes");
+        for token in [3, 5, 8, 13] {
+            session.step_native(token).expect("served step");
+            let carries = session.take_native_q31_trace().expect("trace enabled");
+            assert_eq!(carries.len(), 16, "two recurrence layers, eight lanes each");
+            for carry in &carries {
+                assert_eq!(
+                    carry.transport,
+                    oracle
+                        .transition(carry.lane, carry.before)
+                        .expect("lane oracle"),
+                    "layer {} lane {}",
+                    carry.layer,
+                    carry.lane
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_lane_state_with_one_repeated_gate_serves_identically_to_the_single_gate() {
+        // The shape contract makes `width` a multiple of 32, so `K = width / 4` is a multiple of
+        // 8 and `K = 1` cannot occur. The reachable exact-replay case is every lane holding the
+        // one `/12` gate: then both schemas must serve the same tokens and carry words.
+        use uor_r4_native_vector::{Q31HamiltonModel, Q31LaneGates};
+        let state = trained_state();
+        let model = Q31HamiltonModel::from_bytes(state).expect("restore the trained gate");
+        let mut lanes_state = Q31LaneGates::new(vec![model.gate(); 8], model.step_shift())
+            .expect("eight copies of the trained gate");
+        lanes_state
+            .set_cursor(model.epoch(), model.step_shift())
+            .expect("cursor");
+        let lanes_bytes = lanes_state.to_bytes();
+        assert_ne!(lanes_bytes, state.to_vec(), "the two schemas differ in width");
+
+        let snap = synthetic_fbs_trunk(20_261_121);
+        let lanes_artifact =
+            export_fbs_trunk_uorlut01_with_lane_gates(&snap, FbsExportSnaps::SNAPPED, &lanes_bytes)
+                .expect("export the /13 artifact");
+        let single_artifact =
+            export_fbs_trunk_uorlut01_with_q31(&snap, FbsExportSnaps::SNAPPED, &state)
+                .expect("export the /12 artifact");
+        let lanes = IntegerStackModel::parse(&lanes_artifact).expect("parse /13");
+        let single = IntegerStackModel::parse(&single_artifact).expect("parse /12");
+        assert_eq!(lanes.native_q31_lane_state_bytes(), Some(lanes_bytes));
+        assert_eq!(single.native_q31_state_bytes(), Some(state));
+
+        let mut lanes_session = lanes.session();
+        let mut single_session = single.session();
+        lanes_session
+            .set_native_q31_trace(true)
+            .expect("trace /13");
+        single_session
+            .set_native_q31_trace(true)
+            .expect("trace /12");
+        for token in [3, 5, 8, 13] {
+            let lanes_step = lanes_session.step_native(token).expect("/13 step");
+            let single_step = single_session.step_native(token).expect("/12 step");
+            assert_eq!(
+                lanes_step.token, single_step.token,
+                "the repeated-gate lanes served a different token than the single gate"
+            );
+            assert_eq!(
+                lanes_session.take_native_q31_trace(),
+                single_session.take_native_q31_trace(),
+                "the repeated-gate lanes served different raw words than the single gate"
+            );
+        }
+    }
+
+    #[test]
+    fn a_changed_lane_gate_changes_only_that_lane_and_is_refused_wrong_width() {
+        use uor_r4_native_vector::Q31LaneGates;
+        let bytes = lane_state(8);
+        let mut changed = Q31LaneGates::from_bytes(&bytes).expect("restore");
+        let mut gate = changed.gate(3).expect("lane 3");
+        gate[1] = 1 << 24; // zero before, well inside the closed domain and above one Q31 ulp
+        changed.set_gate(3, gate).expect("set lane 3");
+        let changed_bytes = changed.to_bytes();
+        assert_ne!(changed_bytes, bytes);
+
+        let base_model = lane_model(&bytes, 20_261_122);
+        let changed_model = lane_model(&changed_bytes, 20_261_122);
+        let mut base_session = base_model.session();
+        let mut changed_session = changed_model.session();
+        base_session
+            .set_native_q31_trace(true)
+            .expect("trace base");
+        changed_session
+            .set_native_q31_trace(true)
+            .expect("trace changed");
+        // The first carry is zero, and every gate rotates zero to zero; step once untraced so the
+        // state is nonzero, then trace the step where the changed gate must show.
+        base_session.step_native(3).expect("base warm step");
+        changed_session.step_native(3).expect("changed warm step");
+        base_session
+            .take_native_q31_trace()
+            .expect("base warm trace");
+        changed_session
+            .take_native_q31_trace()
+            .expect("changed warm trace");
+        base_session.step_native(5).expect("base step");
+        changed_session.step_native(5).expect("changed step");
+        let base = base_session.take_native_q31_trace().expect("base trace");
+        let changed = changed_session.take_native_q31_trace().expect("changed trace");
+        assert_eq!(base.len(), changed.len());
+        for (base, changed) in base.iter().zip(&changed) {
+            assert_eq!((base.layer, base.lane), (changed.layer, changed.lane));
+            if base.layer == 0 && base.lane == 3 {
+                assert_ne!(
+                    base.transport, changed.transport,
+                    "the changed lane served the old gate"
+                );
+            } else if base.layer == 0 {
+                assert_eq!(
+                    base.transport, changed.transport,
+                    "lane {} changed with a change to lane 3",
+                    base.lane
+                );
+            }
+        }
+
+        // A state with the wrong K is refused at attach.
+        let mut wrong = IntegerStackModel::parse(
+            &export_fbs_trunk_uorlut01(&synthetic_fbs_trunk(20_261_122)).expect("plain"),
+        )
+        .expect("plain model");
+        assert!(wrong.attach_native_q31_lane_state(&lane_state(4)).is_err());
+
+        // Both states on one model are refused, in either order.
+        let mut lanes_only = lane_model(&bytes, 20_261_122);
+        assert!(lanes_only.attach_native_q31_state(&trained_state()).is_err());
+        let mut single_only = IntegerStackModel::parse(
+            &export_fbs_trunk_uorlut01_with_q31(
+                &synthetic_fbs_trunk(20_261_122),
+                FbsExportSnaps::SNAPPED,
+                &trained_state(),
+            )
+            .expect("single"),
+        )
+        .expect("single model");
+        assert!(single_only.attach_native_q31_lane_state(&bytes).is_err());
     }
 }
