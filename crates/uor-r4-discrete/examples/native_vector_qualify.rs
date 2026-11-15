@@ -90,6 +90,18 @@ fn main() -> uor_r4_discrete::Result<()> {
     let final_model_loss = engine
         .train_model_step(&mut model_probe, &batch_values, &batch_targets)?
         .loss_before;
+    // The exact 48-byte state this GPU training produced: the same bytes serving reads.
+    let state = model.to_bytes();
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let state_hex = hex(&state);
+    let state_sha256 = {
+        use sha2::{Digest, Sha256};
+        hex(&Sha256::digest(state))
+    };
+    if let Some(path) = std::env::args().nth(1) {
+        std::fs::write(&path, state)
+            .map_err(|e| uor_r4_discrete::Error::Invalid(format!("state-out {path}: {e}")))?;
+    }
     println!(
         "{}",
         serde_json::json!({
@@ -111,7 +123,10 @@ fn main() -> uor_r4_discrete::Result<()> {
             "shared_model_initial_loss": first_model_step.loss_before,
             "shared_model_final_loss": final_model_loss,
             "shared_model_epoch": model.epoch(),
+            "shared_model_step_shift": model.step_shift(),
             "shared_model_gate": model.gate(),
+            "shared_model_state_hex": state_hex,
+            "shared_model_state_sha256": state_sha256,
             "image_source_ptx_cubin_report_sha256": compiled_native_vector_image(),
             "first": cuda.first(),
             "last": cuda.last(),
