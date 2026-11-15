@@ -1609,6 +1609,7 @@ impl StackModel {
                 "prompt register",
                 crate::flock_read_register::prompt_register().is_some(),
             ),
+            ("vector read", crate::vector_reads::vector_read().is_some()),
         ];
         if let Some((name, _)) = reads.iter().find(|(_, set)| *set) {
             return Some(CacheRefusal::ReadHook(name));
@@ -1680,6 +1681,20 @@ impl StackModel {
             if let Some(memory) = crate::e8_address::address_memory() {
                 x = q16(memory.apply(layer, &x, ids)?)?;
                 stage_clock::mark_with(|| format!("layer{layer}.address"));
+            }
+            // A state-keyed look-back read (claude-381), when one is set on this thread: after
+            // layer `depth`, each position reads one earlier position chosen by its own state.
+            if let Some(read) = crate::vector_reads::vector_read() {
+                if layer + 1 == read.depth() {
+                    let table = self
+                        .variables()
+                        .get("embedding.weight")
+                        .ok_or_else(|| invalid("the model has no shared vector table"))?
+                        .as_tensor()
+                        .clone();
+                    x = q16(read.apply(&x, ids, &table)?)?;
+                    stage_clock::mark_with(|| format!("layer{layer}.vector_read"));
+                }
             }
             // The turn's pair rows (claude-370), when set on this thread: added once, at the
             // first layer's seam, to every reply position of a turn whose pairs have rows. A
@@ -3953,6 +3968,67 @@ mod decode_cache_tests {
             assert_ne!(bits(&model.hidden(&windows(&rows, 10), 2, 10)?)?, plain, "{arm:?}");
             let (differing, first) = compare_steps(&model, &rows, 7, 3, None, &none)?;
             assert_eq!(differing, 0, "{arm:?}: first {first:?}");
+        }
+        Ok(())
+    }
+
+    /// claude-381: a vector read set on the thread is in the trunk's forward (a weight of 0
+    /// changes no value, a weight of 0.5 changes the points), and once cleared the trunk gives
+    /// the points it gave before the read was set, bit for bit, for every kind and at a middle
+    /// depth and the last.
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn a_set_then_cleared_vector_read_leaves_the_trunk_bit_for_bit() -> Result<()> {
+        use crate::vector_reads::{set_vector_read, VectorRead, VectorReadKind, DEFAULT_MARGIN};
+        struct Clear;
+        impl Drop for Clear {
+            fn drop(&mut self) {
+                set_vector_read(None);
+            }
+        }
+        let _clear = Clear;
+        let device = Device::new_cuda(0)?;
+        let model = small_model(&device, 64)?;
+        let mut rng = Lcg(381);
+        let rows: Vec<Vec<u32>> = (0..2)
+            .map(|_| (0..20).map(|_| (rng.next() % 4096) as u32).collect())
+            .collect();
+        let ids = windows(&rows, 10);
+        let values = |t: &Tensor| -> Result<Vec<f32>> { Ok(t.flatten_all()?.to_vec1::<f32>()?) };
+        let plain_points = model.hidden(&ids, 2, 10)?;
+        let plain = bits(&plain_points)?;
+        let layers = model.config.layers();
+        for kind in [
+            VectorReadKind::StarlingLorentz,
+            VectorReadKind::StarlingL2,
+            VectorReadKind::PrimeRoute,
+            VectorReadKind::Flock { neighbours: 2 },
+        ] {
+            for depth in [layers / 2, layers] {
+                let read =
+                    VectorRead::new(kind, depth, model.config.width, DEFAULT_MARGIN, 1.0, &device)?;
+                // A large offset: every Starling row with an earlier position reads.
+                read.set_for_test(0.0, Some(1.0e6))?;
+                set_vector_read(Some(read.clone()));
+                assert_eq!(
+                    values(&model.hidden(&ids, 2, 10)?)?,
+                    values(&plain_points)?,
+                    "{kind:?} at {depth}: a zero weight changed a value"
+                );
+                read.set_for_test(0.5, Some(1.0e6))?;
+                set_vector_read(Some(read));
+                assert_ne!(
+                    bits(&model.hidden(&ids, 2, 10)?)?,
+                    plain,
+                    "{kind:?} at {depth}: the read is not in the forward"
+                );
+                set_vector_read(None);
+                assert_eq!(
+                    bits(&model.hidden(&ids, 2, 10)?)?,
+                    plain,
+                    "{kind:?} at {depth}: the cleared trunk differs"
+                );
+            }
         }
         Ok(())
     }

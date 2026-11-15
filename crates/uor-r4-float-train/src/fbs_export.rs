@@ -2342,6 +2342,22 @@ mod tests {
         Ok(())
     }
 
+    /// claude-381: a vector read is a float reference read the export does not carry, so a
+    /// checkpoint that holds one is refused by name.
+    #[test]
+    fn a_checkpoint_with_a_vector_read_is_refused() -> Result<()> {
+        let scratch = Scratch::new("claude-381-vector-read");
+        std::fs::create_dir_all(&scratch.0)?;
+        std::fs::write(scratch.0.join("model.safetensors"), b"")?;
+        check_checkpoint_reads(&scratch.0)?;
+        std::fs::write(scratch.0.join(crate::vector_reads::FILE), b"")?;
+        let message = check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])
+            .expect_err("a vector read beside the trunk")
+            .to_string();
+        assert!(message.contains(crate::vector_reads::FILE), "{message}");
+        Ok(())
+    }
+
     #[test]
     fn geometry_tables_match_the_integer_crate() {
         check_geometry_tables().expect("the float geometry is the integer crate's");

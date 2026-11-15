@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--starling-read lorentz|l2 | --prime-route-read 1 | --state-flock-read K] [--vector-read-depth D] [--vector-read-margin X] [--vector-read-credit X] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -65,6 +65,20 @@
 //! `--train-as-served 1` are rounded to 16 bits on the residual stream's 2^-16 grid. Each
 //! checkpoint saves them as `address_memory.safetensors`, which scoring loads and the export
 //! refuses, and adds a line to `DIR/address.jsonl`. `--init-from` and `--recall` refuse the flag.
+//!
+//! `--starling-read lorentz|l2`, `--prime-route-read 1` and `--state-flock-read K` (claude-381)
+//! add one state-keyed look-back read to a training run with `--out`, after layer
+//! `--vector-read-depth D` (the last when left out): each position reads one earlier position
+//! chosen by its own state, turned and folded to a 16-coordinate address, and adds the shared
+//! table's point of the token that followed it, through a weight that starts at 0. `lorentz`
+//! scores by the hyperbolic distance of the lifted addresses and `l2` by the flat one, with no
+//! read when the best score is below 0; `--prime-route-read` names each address block's nearest
+//! icosian and picks the least zeta phase energy; `--state-flock-read K` averages the K nearest
+//! in mean L1. A margin hinge (`--vector-read-margin`, default 1; weight `--vector-read-credit`,
+//! default 1) credits the best earlier position followed by the row's own next token over every
+//! other. These are float reference reads: one at a time, never with `--init-from`, `--recall`
+//! or `--train-as-served 1`; each checkpoint saves `vector_read.safetensors`, which the export
+//! refuses, and prints a `[vread]` count line.
 //!
 //! `--pair-rows N` (claude-370) adds the pair rows to a training run with `--out`: a table of
 //! learned rows addressed by the exact unordered pairs of different tokens in a user turn. A pair
@@ -363,6 +377,7 @@ use uor_r4_float_train::in_space_long::{
     DecodeRule, LongConfig, PastWindowRule, PointObjective, ReadScope, RecallForm, TrainSplit, TrainTargets, DEFAULT_REGISTER_PICKS,
     MEMORY_DROPOUT_MAX,
 };
+use uor_r4_float_train::vector_reads::{VectorReadArm, VectorReadKind, DEFAULT_MARGIN};
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_snapshot::DecisionForce;
 
@@ -393,6 +408,88 @@ fn address_applies(address: bool, training_with_out: bool) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// claude-381: the vector read's flags as given, before they become one arm.
+#[derive(Default)]
+struct VectorReadFlags {
+    starling: Option<String>,
+    prime: bool,
+    flock: Option<usize>,
+    depth: Option<usize>,
+    margin: Option<String>,
+    credit: Option<String>,
+}
+
+/// claude-381: at most one of `--starling-read lorentz|l2`, `--prime-route-read 1` and
+/// `--state-flock-read K` names the read; `--vector-read-depth`, `--vector-read-margin` and
+/// `--vector-read-credit` set it and are refused without one.
+fn vector_read_arm(flags: &VectorReadFlags) -> Result<Option<VectorReadArm>> {
+    let mut kinds = Vec::new();
+    match flags.starling.as_deref() {
+        None => {}
+        Some("lorentz") => kinds.push(VectorReadKind::StarlingLorentz),
+        Some("l2") => kinds.push(VectorReadKind::StarlingL2),
+        Some(other) => {
+            return Err(FloatTrainError::Invalid(format!(
+                "--starling-read wants lorentz or l2, not {other}"
+            )))
+        }
+    }
+    if flags.prime {
+        kinds.push(VectorReadKind::PrimeRoute);
+    }
+    match flags.flock {
+        Some(0) => {
+            return Err(FloatTrainError::Invalid(
+                "--state-flock-read keeps at least one neighbour".to_owned(),
+            ))
+        }
+        Some(neighbours) => kinds.push(VectorReadKind::Flock { neighbours }),
+        None => {}
+    }
+    let positive = |name: &str, value: &Option<String>, default: f32| -> Result<f32> {
+        match value {
+            None => Ok(default),
+            Some(v) => v
+                .parse::<f32>()
+                .ok()
+                .filter(|x| x.is_finite() && *x >= 0.0)
+                .ok_or_else(|| {
+                    FloatTrainError::Invalid(format!("{name} wants a number of 0 or more"))
+                }),
+        }
+    };
+    let margin = positive("--vector-read-margin", &flags.margin, DEFAULT_MARGIN)?;
+    let credit = positive("--vector-read-credit", &flags.credit, 1.0)?;
+    match kinds.as_slice() {
+        [] if flags.depth.is_some() || flags.margin.is_some() || flags.credit.is_some() => {
+            Err(FloatTrainError::Invalid(
+                "--vector-read-depth, --vector-read-margin and --vector-read-credit set a vector \
+                 read; turn one on with --starling-read, --prime-route-read or --state-flock-read"
+                    .to_owned(),
+            ))
+        }
+        [] => Ok(None),
+        [kind] => {
+            if flags.depth == Some(0) {
+                return Err(FloatTrainError::Invalid(
+                    "--vector-read-depth counts layers from 1".to_owned(),
+                ));
+            }
+            Ok(Some(VectorReadArm {
+                kind: *kind,
+                depth: flags.depth,
+                margin,
+                credit,
+            }))
+        }
+        _ => Err(FloatTrainError::Invalid(
+            "one vector read at a time: --starling-read, --prime-route-read and \
+             --state-flock-read exclude each other"
+                .to_owned(),
+        )),
+    }
 }
 
 /// claude-370: `--pair-rows N` names the least number of TRAIN user turns a token pair must
@@ -505,6 +602,8 @@ fn main() -> Result<()> {
     let mut served_grade_on = false;
     let mut panel_prompts_on = false;
     let mut integer_grade_on = false;
+    // claude-381: the vector read's flags, resolved into one arm after the loop.
+    let mut vread = VectorReadFlags::default();
     let mut served_forward = None;
     let mut batched_decode = None;
     let mut decode_cache = true;
@@ -588,6 +687,7 @@ fn main() -> Result<()> {
         pair_rows: None,
         pair_weight: false,
         pair_weight_boost: false,
+        vector_read: None,
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -798,6 +898,12 @@ fn main() -> Result<()> {
             "--pair-weight" => {
                 (config.pair_weight, config.pair_weight_boost) = pair_weight(&value)?
             }
+            "--starling-read" => vread.starling = Some(value.clone()),
+            "--prime-route-read" => vread.prime = switch(&value)?,
+            "--state-flock-read" => vread.flock = Some(number(&value)?),
+            "--vector-read-depth" => vread.depth = Some(number(&value)?),
+            "--vector-read-margin" => vread.margin = Some(value.clone()),
+            "--vector-read-credit" => vread.credit = Some(value.clone()),
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -971,6 +1077,7 @@ fn main() -> Result<()> {
             }
         }
     }
+    config.vector_read = vector_read_arm(&vread)?;
     // The opening read (claude-154): its anchor is written exactly when the read is on.
     match (opening_read, opening_anchor) {
         (Some(k), anchor) => {
@@ -1076,6 +1183,12 @@ fn main() -> Result<()> {
         config.address_memory.is_some() || config.address_band.is_some(),
         modes[7] && recall == 0,
     )?;
+    // claude-381: a vector read is built by a training run, as the address memory is.
+    if config.vector_read.is_some() && !(modes[7] && recall == 0) {
+        return Err(FloatTrainError::Invalid(
+            "the vector reads apply to training with --out only".to_owned(),
+        ));
+    }
     if config.pair_weight && config.pair_rows.is_none() {
         return Err(FloatTrainError::Invalid(
             "--pair-weight replies weighs the pair rows and wants --pair-rows".to_owned(),
@@ -2291,6 +2404,71 @@ mod tests {
         assert!(address_applies(true, true).is_ok());
         let error = address_applies(true, false).unwrap_err().to_string();
         assert!(error.contains("training with --out only"), "{error}");
+    }
+
+    #[test]
+    fn the_vector_read_flags_name_one_read() {
+        let flags = |f: &dyn Fn(&mut VectorReadFlags)| {
+            let mut v = VectorReadFlags::default();
+            f(&mut v);
+            vector_read_arm(&v)
+        };
+        assert_eq!(flags(&|_| {}).unwrap(), None);
+        let lorentz = flags(&|v| v.starling = Some("lorentz".to_owned())).unwrap().unwrap();
+        assert_eq!(lorentz.kind, VectorReadKind::StarlingLorentz);
+        assert_eq!((lorentz.depth, lorentz.margin, lorentz.credit), (None, DEFAULT_MARGIN, 1.0));
+        let l2 = flags(&|v| {
+            v.starling = Some("l2".to_owned());
+            v.depth = Some(3);
+            v.margin = Some("0.5".to_owned());
+            v.credit = Some("2".to_owned());
+        })
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            (l2.kind, l2.depth, l2.margin, l2.credit),
+            (VectorReadKind::StarlingL2, Some(3), 0.5, 2.0)
+        );
+        assert_eq!(
+            flags(&|v| v.prime = true).unwrap().unwrap().kind,
+            VectorReadKind::PrimeRoute
+        );
+        assert_eq!(
+            flags(&|v| v.flock = Some(4)).unwrap().unwrap().kind,
+            VectorReadKind::Flock { neighbours: 4 }
+        );
+        type Set<'a> = &'a dyn Fn(&mut VectorReadFlags);
+        let refused: [(Set, &str); 7] = [
+            (&|v| v.starling = Some("cos".to_owned()), "wants lorentz or l2"),
+            (&|v| v.flock = Some(0), "at least one neighbour"),
+            (&|v| v.depth = Some(2), "turn one on"),
+            (&|v| v.margin = Some("1".to_owned()), "turn one on"),
+            (
+                &|v| {
+                    v.prime = true;
+                    v.flock = Some(2);
+                },
+                "one vector read at a time",
+            ),
+            (
+                &|v| {
+                    v.prime = true;
+                    v.depth = Some(0);
+                },
+                "counts layers from 1",
+            ),
+            (
+                &|v| {
+                    v.prime = true;
+                    v.credit = Some("-1".to_owned());
+                },
+                "0 or more",
+            ),
+        ];
+        for (set, fragment) in refused {
+            let error = flags(set).unwrap_err().to_string();
+            assert!(error.contains(fragment), "{error}");
+        }
     }
 
     #[test]

@@ -321,6 +321,11 @@ pub struct LongConfig {
     /// (`--pair-weight boost`, claude-374). Left out of `config.json` when false.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub pair_weight_boost: bool,
+    /// A state-keyed look-back read after one layer (claude-381, [`crate::vector_reads`]), with
+    /// its margin credit in the loss. Left out of `config.json` when absent, so a run without it
+    /// writes the same file as before.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vector_read: Option<crate::vector_reads::VectorReadArm>,
 }
 
 /// What TRAIN's scored targets are ([`LongConfig::train_targets`], claude-296).
@@ -720,6 +725,9 @@ impl Drop for ArmGuard {
         crate::flock_read_memory::set_memory_rows(None);
         crate::flock_read_memory::set_reply_rows(None);
         crate::e8_address::set_address_memory(None);
+        crate::vector_reads::set_vector_read(None);
+        crate::vector_reads::clear_credit();
+        let _ = crate::vector_reads::take_stats();
         crate::pair_rows::set_pair_rows(None);
         set_trained_cut(None);
         crate::flock_read_hamming::set_row_cut(None);
@@ -813,6 +821,7 @@ fn load_reads(directory: &Path, device: &Device) -> Result<()> {
     crate::e8_address::set_address_memory(crate::e8_address::AddressMemory::load(
         directory, device,
     )?);
+    crate::vector_reads::set_vector_read(crate::vector_reads::VectorRead::load(directory, device)?);
     let pair = crate::pair_rows::PairRows::load(directory, device)?;
     if let Some(rows) = &pair {
         let (nonzero, rms) = rows.census()?;
@@ -854,8 +863,9 @@ pub(crate) fn pair_marks() -> crate::pair_rows::PairMarks {
 
 const INIT_RECORD_SCHEMA: &str = "uor-r4.train-in-space-init/1";
 const HAMMING_SIDECAR: &str = "hamming_read.safetensors";
-const UNSUPPORTED_INIT_SIDECARS: [&str; 8] = [
+const UNSUPPORTED_INIT_SIDECARS: [&str; 9] = [
     "address_memory.safetensors",
+    crate::vector_reads::FILE,
     "pair_rows.safetensors",
     "flock_read.safetensors",
     "content_read.safetensors",
@@ -956,6 +966,12 @@ fn validate_checkpoint_selection(config: &LongConfig) -> Result<()> {
     if config.pair_rows.is_some() {
         return Err(invalid(
             "--init-from does not start the pair rows; --pair-rows trains from a fresh start",
+        ));
+    }
+    // claude-381: so does a vector read's zero weight.
+    if config.vector_read.is_some() {
+        return Err(invalid(
+            "--init-from does not start a vector read; the vector reads train from a fresh start",
         ));
     }
     if !checkpoint.is_dir() {
@@ -2326,7 +2342,11 @@ fn step_gradient(
             (!rows.is_empty()).then(|| (reads, table, rows, rows.len() as f64 / *all as f64))
         });
         let (loss, share, forward_grads) = with_training_forward(served, seed, step, || {
-            let loss = batch_loss(model, objective, &ids, &scored, &targets, hi - lo, served)?;
+            // claude-381: only this forward's credit, collected here and nowhere else.
+            crate::vector_reads::clear_credit();
+            let loss = crate::vector_reads::collecting(|| {
+                batch_loss(model, objective, &ids, &scored, &targets, hi - lo, served)
+            })?;
             let detached = loss.detach();
             let loss = match share {
                 Some(share) => loss.affine(share, 0.0)?,
@@ -2357,6 +2377,17 @@ fn step_gradient(
                         }
                         _ => loss,
                     }
+                }
+                None => loss,
+            };
+            // claude-381: a vector read's margin credit, at this forward's share of the windows
+            // (an average per window, where the cross-entropy's `share` is per scored row; a
+            // micro-batch skipped above for having no scored row adds no credit). With one
+            // forward a step, the weight is 1.
+            let loss = match crate::vector_reads::take_credit() {
+                Some(credit) => {
+                    let weight = (hi - lo) as f64 / windows.len() as f64;
+                    loss.add(&credit.affine(weight, 0.0)?)?
                 }
                 None => loss,
             };
@@ -3461,6 +3492,9 @@ fn unserved_reads() -> Vec<&'static str> {
     }
     if crate::e8_address::address_memory().is_some() {
         set.push("the address memory");
+    }
+    if crate::vector_reads::vector_read().is_some() {
+        set.push("the vector read");
     }
     if crate::pair_rows::pair_rows().is_some() {
         set.push("the pair rows");
@@ -14007,6 +14041,11 @@ pub fn run_recall(
             "the address memory trains with --out's long run, not under --recall",
         ));
     }
+    if config.vector_read.is_some() {
+        return Err(invalid(
+            "the vector reads train with --out's long run, not under --recall",
+        ));
+    }
     if config.pair_rows.is_some() {
         return Err(invalid(
             "the pair rows train with --out's long run, not under --recall",
@@ -14947,6 +14986,12 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             "--address-band sets the address memory's band; turn the memory on with --address-memory",
         ));
     }
+    // claude-381: a float reference read; the export refuses it, so it cannot train as served.
+    if config.vector_read.is_some() && config.train_as_served {
+        return Err(invalid(
+            "a vector read is a float reference read the export refuses; it does not train as served",
+        ));
+    }
     if config.pair_rows == Some(0) {
         return Err(invalid("--pair-rows wants a minimum of 1 or more"));
     }
@@ -15089,6 +15134,39 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             );
             let opt = crate::flock_read::FlockAdamW::for_vars(&memory.variables())?;
             Some((memory, opt))
+        }
+        None => None,
+    };
+    // A vector read (claude-381), when on: identity rotations and a zero weight, its own
+    // optimizer, applied inside the trunk after its layer; its margin credit joins the loss.
+    let mut vread = match config.vector_read {
+        Some(arm) => {
+            let layers = model.config.layers();
+            let depth = arm.depth.unwrap_or(layers);
+            if depth > layers {
+                return Err(invalid(format!(
+                    "--vector-read-depth {depth} is past the model's {layers} layers"
+                )));
+            }
+            let read = crate::vector_reads::VectorRead::new(
+                arm.kind,
+                depth,
+                config.width,
+                arm.margin,
+                arm.credit,
+                device,
+            )?;
+            crate::vector_reads::set_vector_read(Some(read.clone()));
+            println!(
+                "[vread] {} read after layer {} of {}, margin {}, credit x {}",
+                arm.kind.name(),
+                depth,
+                layers,
+                arm.margin,
+                arm.credit
+            );
+            let opt = crate::flock_read::FlockAdamW::for_vars(&read.variables())?;
+            Some((read, opt))
         }
         None => None,
     };
@@ -15384,6 +15462,21 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             append_line(&out.join("address.jsonl"), &serde_json::to_string(&line)?)?;
             address.save(&directory)?;
         }
+        // The vector read (claude-381): its counts over the training forwards since the last
+        // checkpoint, then the read.
+        if let Some(read) = crate::vector_reads::vector_read() {
+            if let Some(stats) = crate::vector_reads::take_stats() {
+                let get = |t: &Tensor| -> Result<f64> { Ok(f64::from(t.to_scalar::<f32>()?)) };
+                let (rows, read_rows) = (get(&stats.rows)?, get(&stats.read_rows)?);
+                let (positive, chose) = (get(&stats.positive_rows)?, get(&stats.chose_positive)?);
+                println!(
+                    "[vread] step {step}: {} read {read_rows:.0} of {rows:.0} rows, positive rows {positive:.0}, chose a positive {chose:.0}, credit terms {:.0}",
+                    read.kind().name(),
+                    get(&stats.hinge_pairs)?
+                );
+            }
+            read.save(&directory)?;
+        }
         // The pair rows (claude-370), at the values this checkpoint holds.
         if let Some(rows) = crate::pair_rows::pair_rows() {
             rows.save(&directory)?;
@@ -15525,6 +15618,10 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         // same gradient, so each steps at the rate over the block count.
         if let Some((address, opt)) = address.as_mut() {
             opt.step_vars(&address.variables(), &grads, lr * address.rate())?;
+        }
+        // The vector read (claude-381), at the trainer's rate.
+        if let Some((read, opt)) = vread.as_mut() {
+            opt.step_vars(&read.variables(), &grads, lr)?;
         }
         // The pair rows (claude-370), at the trainer's rate, only on a step that read a bag.
         if let Some((rows, opt)) = pair.as_mut() {
@@ -17053,6 +17150,7 @@ mod tests {
             pair_rows: None,
             pair_weight: false,
             pair_weight_boost: false,
+            vector_read: None,
         }
     }
 
