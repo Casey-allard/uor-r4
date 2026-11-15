@@ -1178,6 +1178,36 @@ pub fn note_body(lab: &str, target: Option<&str>, note: &str) -> String {
 
 /// Post one check-in note on `issue` with the given `gh` program. The CLI passes `gh`; tests pass
 /// a fake script, so the post pipeline (argv, body file, exit status) is asserted without a network.
+/// Run `gh` for one note. Retry only the transient `ETXTBSY` (errno 26) that a just-written
+/// script can report while the filesystem finishes with it; a persistent busy file still fails
+/// after the bounded attempts, and every other error is returned unchanged.
+fn run_note_gh(
+    gh: &Path,
+    issue: u64,
+    body: &Path,
+    root: &Path,
+) -> std::io::Result<std::process::ExitStatus> {
+    let mut delay = std::time::Duration::from_millis(10);
+    let mut attempt = 0;
+    loop {
+        let result = Command::new(gh)
+            .args(["issue", "comment", &issue.to_string(), "--body-file"])
+            .arg(body)
+            .current_dir(root)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        match result {
+            Err(error) if error.raw_os_error() == Some(26) && attempt < 4 => {
+                std::thread::sleep(delay);
+                delay *= 2;
+                attempt += 1;
+            }
+            other => return other,
+        }
+    }
+}
+
 pub fn post_note_with(
     root: &Path,
     gh: &Path,
@@ -1201,13 +1231,7 @@ pub fn post_note_with(
     };
     std::fs::write(&path, format!("{}\n", note_body(lab, target, note)))
         .map_err(|error| DriveError::Io(format!("cannot write {}: {error}", path.display())))?;
-    let status = Command::new(gh)
-        .args(["issue", "comment", &issue.to_string(), "--body-file"])
-        .arg(&path)
-        .current_dir(root)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
+    let status = run_note_gh(gh, issue, &path, root)
         .map_err(|error| DriveError::Io(format!("cannot run {}: {error}", gh.display())))?;
     if status.success() {
         Ok(())

@@ -888,6 +888,28 @@ fn post_note_with_pipes_the_body_to_gh_issue_comment() {
 }
 
 #[test]
+fn post_note_with_retries_a_transiently_busy_script() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root("note-gh-busy");
+    let script = root.join("fake-gh");
+    std::fs::write(&script, "#!/bin/sh\nexit 0\n").expect("write fake gh");
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    // Hold the script open for writing: an exec while a writer is open returns ETXTBSY. The
+    // retry must wait for this handle to close and then succeed.
+    let holder = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&script)
+        .expect("hold the script open for writing");
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        drop(holder);
+    });
+    post_note_with(&root, &script, "deepseek", 1234, None, "busy retry")
+        .expect("the retry waits out the writer");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
 fn the_model_pin_matches_whole_arguments_only() {
     let launch = vec![
         "dsh".to_string(),
