@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--starling-read lorentz|l2 | --prime-route-read 1 | --state-flock-read K] [--vector-read-depth D] [--vector-read-margin X] [--vector-read-credit X] [--vector-read-stream-grad 0|1] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--carry-windows K] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--starling-read lorentz|l2 | --prime-route-read 1 | --state-flock-read K] [--vector-read-depth D] [--vector-read-margin X] [--vector-read-credit X] [--vector-read-stream-grad 0|1] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -691,6 +691,7 @@ fn main() -> Result<()> {
         samples: 6,
         reply_tokens: 48,
         micro_batch: 0,
+        carry_windows: 0,
         fast_rivals: false,
         profile: 0,
         turn_memory: 0,
@@ -880,6 +881,7 @@ fn main() -> Result<()> {
             "--train-targets" => config.train_targets = TrainTargets::parse(&value)?,
             "--steps" => config.steps = number(&value)?,
             "--micro-batch" => config.micro_batch = number(&value)?,
+            "--carry-windows" => config.carry_windows = number(&value)?,
             "--fast-rivals" => config.fast_rivals = switch(&value)?,
             "--profile" => config.profile = number(&value)?,
             "--time-without-quantizers" => time_quantizers = switch(&value)?,

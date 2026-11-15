@@ -321,6 +321,13 @@ pub struct LongConfig {
     /// (`--pair-weight boost`, claude-374). Left out of `config.json` when false.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub pair_weight_boost: bool,
+    /// The window carry (`--carry-windows K`, claude-380): each step's batch is `batch / K`
+    /// streams of K back-to-back windows of one conversation ([`carry_stream_windows`]), each
+    /// window's recurrence starting from the state its stream's previous window ended in, with
+    /// the gradient through the step's K windows and cut between steps. 0 is off. Left out of
+    /// `config.json` when 0, so a run without it writes the same file as before.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub carry_windows: usize,
     /// A state-keyed look-back read after one layer (claude-381, [`crate::vector_reads`]), with
     /// its margin credit in the loss. Left out of `config.json` when absent, so a run without it
     /// writes the same file as before.
@@ -2435,6 +2442,268 @@ fn window_starts(windows: &[&CausalWindow]) -> Vec<Option<usize>> {
             _ => None,
         })
         .collect()
+}
+
+/// claude-380 (V1): TRAIN cut for the window carry. Each BOS-opened conversation becomes its
+/// windows of `context` inputs back to back, the first at its BOS, none overlapping and none
+/// dropped: a window with no scored target still carries the state on. The last is padded with
+/// BOS past the conversation's last input, as [`hs::build_document_windows`] pads. Returns the
+/// windows and each conversation's range of them. A conversation that fits one window is cut as
+/// [`hs::build_document_windows`] cuts it. Tokens before the first BOS are skipped, as there.
+pub fn carry_stream_windows(
+    tokens: &[u32],
+    mask: &[u8],
+    context: usize,
+    bos_id: u32,
+) -> Result<(Vec<CausalWindow>, Vec<std::ops::Range<usize>>)> {
+    if mask.len() != tokens.len() {
+        return Err(invalid("the carry's TRAIN mask is not its tokens' length"));
+    }
+    if context < 4 {
+        return Err(invalid(
+            "a window carry wants windows of at least the convolution's width",
+        ));
+    }
+    let starts: Vec<usize> = tokens
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &t)| (t == bos_id).then_some(i))
+        .collect();
+    let (mut windows, mut ranges) = (Vec::new(), Vec::new());
+    for (doc_id, &start) in starts.iter().enumerate() {
+        let end = starts.get(doc_id + 1).copied().unwrap_or(tokens.len());
+        if end - start <= 1 {
+            continue;
+        }
+        let first = windows.len();
+        let mut at = start;
+        // Inputs at `at..stop` predict the targets one position later.
+        while at < end - 1 {
+            let stop = (at + context).min(end - 1);
+            let mut input_ids = vec![bos_id; context];
+            input_ids[..stop - at].copy_from_slice(&tokens[at..stop]);
+            let (mut scored_offsets, mut scored_targets, mut scored_corpus_positions) =
+                (Vec::new(), Vec::new(), Vec::new());
+            for input in at..stop {
+                let p = input + 1;
+                if tokens[p] != bos_id && mask[p] == 1 {
+                    scored_offsets.push(input - at);
+                    scored_targets.push(tokens[p]);
+                    scored_corpus_positions.push(p);
+                }
+            }
+            windows.push(CausalWindow {
+                doc_id,
+                input_ids,
+                scored_offsets,
+                scored_targets,
+                scored_corpus_positions,
+            });
+            at = stop;
+        }
+        ranges.push(first..windows.len());
+    }
+    if ranges.is_empty() {
+        return Err(invalid("the carry's TRAIN holds no conversation"));
+    }
+    Ok((windows, ranges))
+}
+
+/// claude-380: which windows each step of a carried run trains. `lanes` streams each walk one
+/// conversation's windows in order, and take the next conversation of the epoch's shuffled order
+/// ([`epoch_order`] over conversations) when theirs ends; a new epoch reshuffles.
+#[derive(Clone, Debug)]
+pub struct CarrySchedule {
+    docs: Vec<std::ops::Range<usize>>,
+    seed: u64,
+    epoch: u64,
+    order: Vec<usize>,
+    next: usize,
+    /// Each lane's conversation and the index of its next window there.
+    lanes: Vec<(usize, usize)>,
+}
+
+impl CarrySchedule {
+    /// Refused without lanes, with fewer conversations than lanes, or with an empty conversation.
+    pub fn new(docs: Vec<std::ops::Range<usize>>, lanes: usize, seed: u64) -> Result<Self> {
+        if lanes == 0 || docs.len() < lanes || docs.iter().any(|d| d.is_empty()) {
+            return Err(invalid(
+                "a carry schedule wants lanes, and at least as many non-empty conversations",
+            ));
+        }
+        let order = epoch_order(docs.len(), seed, 0);
+        let mut schedule = Self {
+            docs,
+            seed,
+            epoch: 0,
+            order,
+            next: 0,
+            lanes: Vec::new(),
+        };
+        schedule.lanes = (0..lanes).map(|_| (schedule.draw(), 0)).collect();
+        Ok(schedule)
+    }
+
+    fn draw(&mut self) -> usize {
+        if self.next == self.order.len() {
+            self.epoch += 1;
+            self.order = epoch_order(self.docs.len(), self.seed, self.epoch);
+            self.next = 0;
+        }
+        self.next += 1;
+        self.order[self.next - 1]
+    }
+
+    /// The next step's `chunks · lanes` windows, chunk after chunk: chunk `j` holds each lane's
+    /// next window, in lane order. With each, whether it opens its conversation, so its lane's
+    /// state starts from zero.
+    pub fn step(&mut self, chunks: usize) -> Vec<(usize, bool)> {
+        let mut out = Vec::with_capacity(chunks * self.lanes.len());
+        for _ in 0..chunks {
+            for lane in 0..self.lanes.len() {
+                let (mut doc, mut k) = self.lanes[lane];
+                if k == self.docs[doc].len() {
+                    (doc, k) = (self.draw(), 0);
+                }
+                out.push((self.docs[doc].start + k, k == 0));
+                self.lanes[lane] = (doc, k + 1);
+            }
+        }
+        out
+    }
+
+    /// The epoch the next conversation is drawn from.
+    pub fn epoch(&self) -> u64 {
+        self.epoch
+    }
+}
+
+/// claude-380: the settings a carried run refuses, by flag: the reads, controls and cuts whose
+/// training forward the carry does not reach, and micro-batches, whose separate backwards would
+/// cut the gradient it carries.
+fn check_carry_flags(config: &LongConfig) -> Result<()> {
+    if config.carry_windows == 0 {
+        return Ok(());
+    }
+    if config.carry_windows > config.batch || !config.batch.is_multiple_of(config.carry_windows) {
+        return Err(invalid(format!(
+            "--carry-windows {} must divide --batch {}",
+            config.carry_windows, config.batch
+        )));
+    }
+    let refused: Vec<&str> = [
+        (config.micro_batch != 0, "--micro-batch"),
+        (config.train_targets != TrainTargets::Observed, "--train-targets"),
+        (config.hamming_attract > 0.0, "--hamming-attract"),
+        (config.hamming_place.is_some(), "--hamming-place"),
+        (config.flock_read > 0, "--flock-read"),
+        (config.content_read > 0, "--content-read"),
+        (config.opening_read > 0, "--opening-read"),
+        (config.prompt_register > 0, "--prompt-register"),
+        (config.type_spin, "--type-spin"),
+        (config.reply_read_train.is_some(), "--reply-read-train"),
+        (config.train_as_served, "--train-as-served"),
+        (config.pair_rows.is_some(), "--pair-rows"),
+        (config.address_memory.is_some(), "--address-memory"),
+        (config.profile > 0, "--profile"),
+        (config.opening_weight != 1, "--opening-weight"),
+        (
+            config.vector_read.is_some(),
+            "--starling-read, --prime-route-read and --state-flock-read",
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(on, name)| on.then_some(name))
+    .collect();
+    if refused.is_empty() {
+        return Ok(());
+    }
+    Err(invalid(format!(
+        "--carry-windows carries the recurrence only; it refuses {}",
+        refused.join(", ")
+    )))
+}
+
+/// claude-380: one carried step's loss and gradient. `windows` are `chunks · lanes` long, chunk
+/// after chunk ([`CarrySchedule::step`]); `opens[b]` says window `b` opens its conversation.
+/// Chunk `j`'s forward starts from the state chunk `j − 1` ended in (`carry` for the first
+/// chunk), each lane zeroed where its window opens a conversation. Every chunk's loss is weighted
+/// by its share of the step's scored rows, as [`step_gradient`] weights micro-batches, and one
+/// backward of their sum runs through all K chunks, so the gradient reaches K − 1 windows back.
+/// `carry` leaves holding the last chunk's state, detached: the gradient stops between steps.
+/// A chunk with no scored row still runs forward, to carry its state on.
+#[allow(clippy::too_many_arguments)]
+fn carry_step_gradient(
+    model: &StackModel,
+    objective: PointObjective,
+    windows: &[&CausalWindow],
+    opens: &[bool],
+    lanes: usize,
+    context: usize,
+    served: bool,
+    seed: u64,
+    step: usize,
+    opening_weight: Option<(&[u8], usize)>,
+    carry: &mut Vec<crate::geometric_stack::LayerCarry>,
+    mut rows: impl FnMut(usize, usize) -> Result<()>,
+) -> Result<(f64, candle_core::backprop::GradStore)> {
+    if lanes == 0 || windows.len() % lanes != 0 || opens.len() != windows.len() {
+        return Err(invalid("a carried step's windows are not whole chunks of its lanes"));
+    }
+    let chunks = windows.len() / lanes;
+    let total = opening_weighted_total(windows, opening_weight)?;
+    let (losses, shares, grads, state) = with_training_forward(served, seed, step, || {
+        let mut state = carry.clone();
+        let (mut losses, mut shares, mut sum): (Vec<Tensor>, Vec<f64>, Option<Tensor>) =
+            (Vec::new(), Vec::new(), None);
+        for chunk in 0..chunks {
+            let (lo, hi) = (chunk * lanes, (chunk + 1) * lanes);
+            rows(lo, hi)?;
+            let (ids, scored, targets) = match opening_weight {
+                Some((mask, weight)) => assemble_with_opening_weight(&windows[lo..hi], mask, weight)?,
+                None => assemble(&windows[lo..hi]),
+            };
+            if ids.len() != lanes * context {
+                return Err(invalid("a carried chunk's windows are not context-long"));
+            }
+            let keep: Vec<f32> = opens[lo..hi].iter().map(|&o| if o { 0.0 } else { 1.0 }).collect();
+            let keep = Tensor::from_vec(keep, lanes, model.device())?;
+            let incoming = state
+                .iter()
+                .map(|layer| layer.masked(&keep))
+                .collect::<Result<Vec<_>>>()?;
+            let share = (chunks > 1).then(|| scored.len() as f64 / total as f64);
+            let (loss, outgoing) = crate::geometric_stack::with_window_carry(incoming, || {
+                if scored.is_empty() {
+                    trained_points(model, &ids, lanes)?;
+                    return Ok(None);
+                }
+                Ok(Some(batch_loss(model, objective, &ids, &scored, &targets, lanes, served)?))
+            })?;
+            state = outgoing;
+            let Some(loss) = loss else {
+                continue;
+            };
+            losses.push(loss.detach());
+            shares.push(share.unwrap_or(1.0));
+            let weighted = match share {
+                Some(share) => loss.affine(share, 0.0)?,
+                None => loss,
+            };
+            sum = Some(match sum {
+                None => weighted,
+                Some(acc) => acc.add(&weighted)?,
+            });
+        }
+        let sum = sum.ok_or_else(|| invalid(format!("training step {step} has no scored row")))?;
+        let grads = variables_only(&sum, sum.backward()?)?;
+        stage_clock::mark("backward");
+        Ok((losses, shares, grads, state))
+    })?;
+    *carry = state.iter().map(|layer| layer.detached()).collect();
+    let value = weighted_step_loss(&losses, &shares, step)?;
+    stage_clock::mark("objective.readback");
+    Ok((value, grads))
 }
 
 /// claude-337: the found-copy pull's record over the steps since the last checkpoint, on a
@@ -15228,6 +15497,7 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
              refuses folded or reflected rate scores",
         ));
     }
+    check_carry_flags(config)?;
     if out.exists() {
         return Err(invalid(format!(
             "{} exists; a run never writes over one",
@@ -15247,6 +15517,37 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
             config.context,
             config.train_targets,
         )?;
+    // claude-380: under the carry, TRAIN is cut back to back instead, every window kept, and
+    // each conversation's windows are walked in order by the schedule's lanes.
+    let (usable, carry_docs) = if config.carry_windows == 0 {
+        (usable, None)
+    } else {
+        let (tokens, mask) = match config.train_split.as_ref() {
+            None => load_train_split(data_root)?,
+            Some(split) => load_named_split(split)?,
+        };
+        let (windows, docs) =
+            carry_stream_windows(&tokens, &mask, config.context, hs::SHEET_BOS_ID)?;
+        let spanning = docs.iter().filter(|d| d.len() > 1).count();
+        let longest = docs.iter().map(|d| d.len()).max().unwrap_or(0);
+        println!(
+            "[carry] K {} windows a step, {} lanes: TRAIN cut back to back into {} windows over \
+             {} conversations, {} of them past one window (longest {} windows)",
+            config.carry_windows,
+            config.batch / config.carry_windows,
+            windows.len(),
+            docs.len(),
+            spanning,
+            longest
+        );
+        if spanning == 0 {
+            return Err(invalid(
+                "--carry-windows on a TRAIN where no conversation spans two windows trains what \
+                 the carry off trains",
+            ));
+        }
+        (windows, Some(docs))
+    };
     let (dev_windows, dev_mask) = load_dev(data_root)?;
     check_run_markers(data_root, config)?;
     let prompts = sample_windows(&dev_windows, &dev_mask, config.samples);
@@ -15702,21 +16003,43 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
     // step after it, whose time it is compared with.
     let mut profiled_row: Option<ProfileRow> = None;
     let mut profile_rows: Vec<ProfileRow> = Vec::new();
+    // claude-380: the carry's schedule and the state its lanes carry between steps, detached.
+    let carry_lanes = config.batch / config.carry_windows.max(1);
+    let mut schedule = carry_docs
+        .map(|docs| CarrySchedule::new(docs, carry_lanes, config.seed))
+        .transpose()?;
+    let mut window_state = match schedule {
+        Some(_) => crate::geometric_stack::zero_window_state(
+            model.config.layers(),
+            carry_lanes,
+            model.config.width,
+            device,
+        )?,
+        None => Vec::new(),
+    };
     for step in 0..config.steps {
-        if cursor + config.batch > order.len() {
-            epoch += 1;
-            order = epoch_order(usable.len(), config.seed, epoch);
-            cursor = 0;
-        }
-        let picked = &order[cursor..cursor + config.batch];
+        let (picked, opens): (Vec<usize>, Vec<bool>) = match schedule.as_mut() {
+            Some(schedule) => schedule.step(config.carry_windows).into_iter().unzip(),
+            None => {
+                if cursor + config.batch > order.len() {
+                    epoch += 1;
+                    order = epoch_order(usable.len(), config.seed, epoch);
+                    cursor = 0;
+                }
+                cursor += config.batch;
+                (order[cursor - config.batch..cursor].to_vec(), Vec::new())
+            }
+        };
+        let picked = &picked[..];
         let windows: Vec<&CausalWindow> = picked.iter().map(|&i| &usable[i]).collect();
-        cursor += config.batch;
         // Each forward's rows, built before the step's clock starts: one forward of the whole
-        // batch, or one per micro-batch. A window the memory is dropped from (protocol I-B)
-        // names no memory row; its draw keeps its place in the whole batch.
-        let micro = match config.micro_batch {
-            0 => config.batch,
-            m => m,
+        // batch, or one per micro-batch, or under the carry one per chunk of its lanes. A window
+        // the memory is dropped from (protocol I-B) names no memory row; its draw keeps its
+        // place in the whole batch.
+        let micro = match (config.carry_windows, config.micro_batch) {
+            (0, 0) => config.batch,
+            (0, m) => m,
+            _ => carry_lanes,
         };
         let kept = |b: usize| {
             !memory_dropped(config.seed, step, b, config.batch, config.turn_memory_dropout)
@@ -15766,19 +16089,36 @@ pub fn run_long(data_root: &Path, out: &Path, config: &LongConfig, device: &Devi
         if served.is_some() {
             stage_clock::mark("served.round");
         }
-        let (value, mut grads) = step_gradient(
-            &model,
-            config.objective,
-            &windows,
-            config.micro_batch,
-            config.context,
-            config.train_as_served,
-            config.seed,
-            step,
-            Some((&train_mask, config.opening_weight)),
-            forward_rows,
-            pull_tally.as_mut(),
-        )?;
+        let (value, mut grads) = if schedule.is_some() {
+            carry_step_gradient(
+                &model,
+                config.objective,
+                &windows,
+                &opens,
+                carry_lanes,
+                config.context,
+                config.train_as_served,
+                config.seed,
+                step,
+                Some((&train_mask, config.opening_weight)),
+                &mut window_state,
+                forward_rows,
+            )?
+        } else {
+            step_gradient(
+                &model,
+                config.objective,
+                &windows,
+                config.micro_batch,
+                config.context,
+                config.train_as_served,
+                config.seed,
+                step,
+                Some((&train_mask, config.opening_weight)),
+                forward_rows,
+                pull_tally.as_mut(),
+            )?
+        };
         // The gradient, taken at the exported values, moves the float values they came from.
         if let Some(served) = served {
             served.restore()?;
@@ -17370,6 +17710,7 @@ mod tests {
             samples: 6,
             reply_tokens: 48,
             micro_batch: 0,
+            carry_windows: 0,
             fast_rivals: false,
             profile: 0,
             turn_memory: 0,
@@ -24781,6 +25122,117 @@ mod tests {
             }
         }
         crate::flock_read_hamming::set_hamming_reads(None);
+    }
+
+    /// claude-380: the carry's TRAIN cut. Two conversations, the first two windows long: each
+    /// conversation's windows lie back to back from its BOS, their inputs together are its inputs
+    /// in order, the last is BOS-padded, a target is scored where the mask says, and the first
+    /// window is [`hs::build_document_windows`]'s.
+    #[test]
+    fn the_carry_cuts_each_conversation_back_to_back() {
+        let bos = hs::SHEET_BOS_ID;
+        let tokens = vec![bos, 11, 12, 13, 14, 15, 16, 17, bos, 21, 22];
+        let mask = vec![0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1];
+        let (windows, docs) = carry_stream_windows(&tokens, &mask, 4, bos).unwrap();
+        assert_eq!(docs, vec![0..2, 2..3]);
+        assert_eq!(windows[0].input_ids, vec![bos, 11, 12, 13]);
+        assert_eq!(windows[1].input_ids, vec![14, 15, 16, bos]);
+        assert_eq!(windows[2].input_ids, vec![bos, 21, bos, bos]);
+        assert_eq!(
+            windows.iter().map(|w| w.doc_id).collect::<Vec<_>>(),
+            vec![0, 0, 1]
+        );
+        // Inputs 0..7 of the first conversation predict tokens 1..8; 1, 5 and 8 are unscored
+        // (mask 0, or the next conversation's BOS).
+        assert_eq!(windows[0].scored_offsets, vec![1, 2, 3]);
+        assert_eq!(windows[0].scored_targets, vec![12, 13, 14]);
+        assert_eq!(windows[1].scored_offsets, vec![1, 2]);
+        assert_eq!(windows[1].scored_targets, vec![16, 17]);
+        assert_eq!(windows[1].scored_corpus_positions, vec![6, 7]);
+        assert_eq!(windows[2].scored_targets, vec![21, 22]);
+        let (whole, _) = hs::build_document_windows(&tokens, &mask, 4, bos).unwrap();
+        let first = whole.iter().find(|w| w.doc_id == 0).unwrap();
+        assert_eq!(first.input_ids, windows[0].input_ids);
+        assert_eq!(first.scored_offsets, windows[0].scored_offsets);
+        // Refused: a mask of another length, and windows under the convolution's width.
+        assert!(carry_stream_windows(&tokens, &mask[1..], 4, bos).is_err());
+        assert!(carry_stream_windows(&tokens, &mask, 3, bos).is_err());
+    }
+
+    /// claude-380: each lane walks whole conversations in order, a conversation's first window
+    /// is the only one marked as opening it, a step is chunk after chunk of the lanes, and an
+    /// epoch draws every conversation once before the next reshuffles.
+    #[test]
+    fn the_carry_schedule_walks_whole_conversations_per_lane() {
+        let docs = vec![0..3, 3..4, 4..6, 6..7, 7..11];
+        let (lanes, chunks) = (2usize, 3usize);
+        let mut schedule = CarrySchedule::new(docs.clone(), lanes, 7).unwrap();
+        let mut walked: Vec<Vec<(usize, bool)>> = vec![Vec::new(); lanes];
+        for _ in 0..20 {
+            let step = schedule.step(chunks);
+            assert_eq!(step.len(), chunks * lanes);
+            for (i, &window) in step.iter().enumerate() {
+                walked[i % lanes].push(window);
+            }
+        }
+        let mut opened = vec![0usize; docs.len()];
+        for lane in &walked {
+            let mut at = 0;
+            while at < lane.len() {
+                let (start, opens) = lane[at];
+                assert!(opens, "a lane's run begins at a conversation's first window");
+                let doc = docs.iter().position(|d| d.start == start).unwrap();
+                opened[doc] += 1;
+                for k in 1..docs[doc].len() {
+                    if at + k == lane.len() {
+                        break;
+                    }
+                    assert_eq!(lane[at + k], (start + k, false));
+                }
+                at += docs[doc].len();
+            }
+        }
+        // 120 windows, 11 a pass: every conversation drawn, none more than one draw ahead.
+        let (least, most) = (opened.iter().min().unwrap(), opened.iter().max().unwrap());
+        assert!(*least > 0 && most - least <= 1, "{opened:?}");
+        assert!(schedule.epoch() > 0);
+        assert!(CarrySchedule::new(docs.clone(), 0, 7).is_err());
+        assert!(CarrySchedule::new(docs[..1].to_vec(), 2, 7).is_err());
+    }
+
+    /// claude-380: the carry's flag is left out of `config.json` when off, written when on, and
+    /// refused where it does not divide the batch, with micro-batches, or as served.
+    #[test]
+    fn the_carry_flag_is_absent_when_off_and_refused_where_it_does_not_fit() {
+        let mut off = config(0, None);
+        off.batch = 4;
+        let written = serde_json::to_string(&off).unwrap();
+        assert!(!written.contains("carry_windows"));
+        assert!(check_carry_flags(&off).is_ok());
+        let mut on = off.clone();
+        on.carry_windows = 2;
+        assert!(serde_json::to_string(&on).unwrap().contains("\"carry_windows\":2"));
+        assert!(check_carry_flags(&on).is_ok());
+        for (k, micro) in [(3, 0), (8, 0), (2, 2)] {
+            let mut bad = on.clone();
+            bad.carry_windows = k;
+            bad.micro_batch = micro;
+            assert!(check_carry_flags(&bad).is_err(), "K {k}, micro {micro}");
+        }
+        let mut served = on.clone();
+        served.train_as_served = true;
+        let refused = check_carry_flags(&served).unwrap_err().to_string();
+        assert!(refused.contains("--train-as-served"), "{refused}");
+        let mut read = on.clone();
+        read.vector_read = Some(crate::vector_reads::VectorReadArm {
+            kind: crate::vector_reads::VectorReadKind::PrimeRoute,
+            depth: None,
+            margin: 0.0,
+            credit: 0.0,
+            stream_grad: false,
+        });
+        let refused = check_carry_flags(&read).unwrap_err().to_string();
+        assert!(refused.contains("--prime-route-read"), "{refused}");
     }
 }
 
