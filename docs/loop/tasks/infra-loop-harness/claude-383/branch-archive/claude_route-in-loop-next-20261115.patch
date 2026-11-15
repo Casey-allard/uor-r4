@@ -1,0 +1,499 @@
+diff --git a/PLAN.md b/PLAN.md
+index 4d31f0bdc6a22a50d232df14311a7064b792be84..15c3aee45305a7cd12c7df2d4b37c5c56a6da1d1 100644
+--- a/PLAN.md
++++ b/PLAN.md
+@@ -31,10 +31,13 @@ A premise row's Status is `open` until its probe has run; `closed` means the pro
+ ## Owner directions
+ 
+ Directions from the owner, recorded verbatim with the time (the same day). Status: `open`,
+-`done`, `superseded`. Newest first.
++`done`, `superseded`, or `routed`. A `routed` direction is open and is carried step by step by
++the [route](#route-to-the-complete-model) below: `loop next` offers the route's current step, not
++the direction's words. Newest first.
+ 
+ | Direction | Status | Date | Note |
+ |---|---|---|---|
++| "please update loop next into our current roadmap for the current run you are working on and toward a complete model that trains and serves the same format and runs locally on the laptop with and/or in browser without matmul or other wasteful operations" | routed | 2026-11-14 | Claude's chat. Carried by the [route](#route-to-the-complete-model) below (claude-371). `loop next` gives Claude the route's first open step. The other labs' `loop next` is unchanged: it names the step, passes the route over and offers the next open direction. How the owner's words are read is written under the route and is the owner's to correct. |
+ | "Can you not just go copy what claude code desktop looks like and how it works for the desktop app? the only hard one should be building the browser functionality... there are certain things you can't do in a webapp I think, like auth them to github (but maybe you can?)" | done | 2026-11-04 | Kimi's chat. The installed Claude Code desktop was inspected for observable interaction patterns, not proprietary code. The shared Studio now has a Claude-inspired session toolbar with working sidebar, initial section history, native session selection, direct Files/Changes/Terminal/New chat/view options and the existing UOR theme. Browser and Tauri share one frontend; no second desktop backend or feature-parity claim. GitHub device flow is a native candidate with a configured public OAuth client ID and no secret; ordinary web flow requires a secret, and a live direct-browser CORS probe was not established, so no sign-in control is claimed. |
+ | "I think your other window froze, can you please pick the work back up over here also can you add the below to what the last session was doing? Also please try and keep local hdd space more clean because we are running out. And remember, you want it to actually serve our live chat engine we are currently using (I think its currently uor-chat) anyway, can you also please make the AI webstudio to have a conversational window that works exactly like the ones in LLMs do, where you can press up to select last input, you can press enter to send a message (etc) and if possible to track the tokens/s and all of the other openai endpoints that it should have (they may not all be setup correctly yet so its ok to build failsafes for now) but again I want the input window to like accept long pastes, or pastes of files or pictures too (although we have no algorithmim to break pictures down at all yet so we will need that part first) but yes, I want it to function like your own chat windows do" | done | 2026-11-02 | Kimi's chat. **Delivered through 3 November:** recovered/live Studio (#3593), native `uor-chat` OpenAI-compatible loopback (#3606), complete conversational Studio (#3617), mixed text/file paste (#3621), deterministic parallel integer R4 image decomposition (#3625), bounded native ingestion (#3626), experimental Studio Canvas input with memory-only blobs and explicit Send (#3628), and checked evidence (#3630). The composer covers history recall, Enter/Shift+Enter, long text, files and images; exact usage, TTFT and tok/s metrics and truthful unsupported-endpoint 501 handling are tested. Disk hygiene remains an ongoing `uor-hygiene` operation. Protocol/UX evidence only: no useful-chat or visual-understanding claim and no production publish. |
+ | "dude I am the owner and I am giving you approval... please go ahead and plan to systematically repair these cpu training methods, all of them, and begin to work your way through them, remember you need to be comitting work to github main so we know it's there, and I do not want your work to directly break anything claude is doing on the main track, but we do need all of this stuff done as well, so please plan and execute this all as a goal, use subagents and whatever you need locally to install or whatever" | open | 2026-11-01 | Owner-authorized CPU training program, recorded by D84 and item `cpu-training-program`. The program repairs CPU research paths in isolated modules while Claude's current FBS/integer serving work remains untouched. GPU remains the qualification authority; CPU results label their substrate and cannot replace a GPU bar without a later owner decision. |
+@@ -61,6 +64,41 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
+ Pending owner *answers* are not directions and never enter this table. Since D65–D69 no step
+ waits for one: an unanswered ask becomes the lab's own decision review, logged for the owner.
+ 
++## Route to the complete model
++
++The owner's direction of 14 Nov, as ordered steps. The complete model is one model that:
++
++- holds a multi-turn conversation: it answers the turn it was asked, from what the conversation told it;
++- trains and serves in one format;
++- runs on the laptop and in the browser from the integer artifact (D11);
++- uses no matmul, no squashing function and no other wasteful operation, in training or in serving (§3.2, §3.3).
++
++**How `loop next` reads this table.** It reads it before the owner directions. The first `open` row is the current step, and its Work cell is the line `loop next` prints. The step is offered to the lab in its Lab cell; `any` offers it to every lab. A lab the cell does not name passes the route over and is offered the next open direction above.
++
++**How a step moves.** A step becomes `done` in the PR that delivers its "Done when", with the record linked. A reading that misses keeps the step `open` and names the next configuration in the Record cell: a negative closes a configuration, never a mechanism (§4.1). Each unit's numbers are set in its own pre-registration sheet (§4.5). This table moves no bar.
++
++| Step | Work | Done when | Lab | Status | Record |
++|---|---|---|---|---|---|
++| 1 | The current run, pair rows (claude-370, PR 3961): score the four trained models (seeds 2 and 3, with and without the rows) on panels P14 and P23, read the replies, write the REPORT and merge. | The sheet's reading is recorded: Adds, Does not add or Not called, over 2,218 scored replies. | claude | open | [PR 3961](https://github.com/UOR-Foundation/uor-r4/pull/3961). The four models finished training on 14 Nov. |
++| 2 | Answer the turn that was asked: act on step 1's reading as its sheet says (a third seed, seed 1 of both arms, or the learned pair rows moved to the output cell), until a trained model answers what the turn asks. | In float, at two seeds, the unit sheet's bar passes on P14 and P23, and the gain holds on turns that are not in TRAIN word for word. | claude | open | |
++| 3 | Use what the conversation said: join the exact addressed memory read to the same trained model, so that a told value is copied and a question that was never told is answered as not told. | In float, at two seeds, against a no-memory control (L-010), the told-value and never-told readings pass their sheet's bar. Today the trained models say "not told" on 0 of 79 never-told questions ([claude-359](docs/loop/tasks/one-model-end-to-end/claude-359/REPORT.md)). | claude | open | |
++| 4 | One format for training and serving: the trainer reads the conversation layout the server feeds (memory line, reply mark, turn memory), and every trained part (trunk, memory read, pair rows) is written as the integer tables the server reads, at the same addresses. | The integer model gives the float model's replies on P14 and P23, every reply that differs is counted and shown, and no trained part is left out of the export. | claude | open | |
++| 5 | Run it on the laptop: serve step 4's artifact in `uor-chat`, where each token costs table reads, adds, compares and exact address reads only, and replace any scan that a table read can do. | A multi-turn conversation on the laptop gives the float model's replies. Tokens/s is reported for decode and for context, with the cost per token of each part. | claude | open | |
++| 6 | Run it in the browser: the same artifact through the WASM build, in the Studio chat window. | The browser gives the laptop's replies on the same conversation, and tokens/s in the browser is reported. | claude | open | |
++| 7 | Read it: a fresh multi-turn panel that no decision has used, and the model handed to the owner to talk to. | The owner has talked to it. Progress is judged by reading its replies. | claude | open | |
++
++**How the owner's words are read** (Claude's reading, 14 Nov; the owner's to correct).
++
++- "the current run you are working on" is step 1.
++- "trains and serves the same format" is step 4, and it has two parts.
++  - The conversation layout. A model served with a line of text that its training text never showed it reads that line badly, so the trainer must read exactly what the server feeds.
++  - The model's parts. A part that exists only in the float trainer is not served. claude-370's pair rows are such a part: its export refuses a checkpoint that holds them.
++  - If the owner means that the trainer itself writes the served integer tables, with no float trainer at all, step 4 changes and the order of steps 2 to 4 is the owner's to set. Today float training is offline with an export (D37).
++- "runs locally on the laptop with and/or in browser" is steps 5 and 6.
++- "without matmul or other wasteful operations" holds at every step (§3.3) and is measured at step 5 as the cost per token of each part.
++
++Steps 2 and 3 give the model M2 and M3 need, step 4 is M4's export, step 5 is M5's laptop cost, and step 6 is M7's WASM and Studio. The order of the M2–M8 route below is unchanged.
++
+ ## The path to M1, by unblock count (historical completion record)
+ 
+ All nine steps below are complete at their recorded scopes. This table preserves the original dependency plan, not a queue of future M1 work.
+@@ -133,7 +171,7 @@ earlier path is free.
+   - W3 BVG-K discrete batched-coordinate law: C1/C2 qualified and Stage T completed, reaching 5,009 of 14,287 with G-Adm/G-Occ ([record](docs/labs/m1-bvg-k-stage-t-training/README.md)).
+   - W4's conditional float-credit sheet was not needed for M1's close; its original H_law-plus-W3-failure condition remains historical.
+ - **The K16 outcome follow-ups** stay pending with fresh UNAVAILABLE_NOT_RUN (sealed).
+-- **The loop.** PRs 2–12 are merged. The reset is D76 (gates) and D77 (this plan). Next, `loop next` ranks by unblock count.
++- **The loop.** PRs 2–12 are merged. The reset is D76 (gates) and D77 (this plan). Next, `loop next` ranks by unblock count. Since 14 Nov (claude-371) it reads the [route](#route-to-the-complete-model)'s open step first.
+ 
+ ## Not doing
+ 
+diff --git a/crates/uor-r4-harness/src/loopnext.rs b/crates/uor-r4-harness/src/loopnext.rs
+index 66cf2f095ba9ec4566ed92742b84f24114aebfee..06a37b028de92b15d411e2fd91c329263ee539c6 100644
+--- a/crates/uor-r4-harness/src/loopnext.rs
++++ b/crates/uor-r4-harness/src/loopnext.rs
+@@ -1,7 +1,8 @@
+ //! `uor-harness loop next [--json] [--wait [--poll SECS] [--max SECS]]`: loop step 1, decide go, wait or stop (loop PR 7b).
+ //!
+ //! **Why this exists.** The loop page's step 1 decides go or stop and which kind of session, in a
+-//! fixed order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU
++//! fixed order of preference: the route's open step (PLAN.md's `## Route` table, when the plan has
++//! one), owner direction, repairs to the lab's own PRs, reviews, GPU
+ //! collections, premise probes, the top of the lab's lane, then `any`. It stops only on the kill
+ //! switch (`local/loop/STOP` in the main checkout, or the label `loop:pause` on issue #2028); on
+ //! held work, a full open-PR limit or an empty queue it waits (`WAIT … — check again in 600s`).
+@@ -586,6 +587,60 @@ fn owner_direction(root: &Path) -> Result<Option<(String, Vec<String>)>, String>
+     }
+     Ok(None)
+ }
++
++/// The first open step of PLAN.md's `## Route` table.
++struct RouteStep {
++    /// Its place among the table's data rows, from 1.
++    number: usize,
++    /// How many data rows the table has.
++    total: usize,
++    work: String,
++    /// The Lab cell as written: `any`, or lab names separated by commas or spaces.
++    labs: String,
++}
++
++impl RouteStep {
++    /// Whether the Lab cell names `lab` or `any`.
++    fn offered_to(&self, lab: &str) -> bool {
++        self.labs
++            .split(|c: char| c == ',' || c.is_whitespace())
++            .filter(|l| !l.is_empty())
++            .any(|l| l.eq_ignore_ascii_case("any") || l.eq_ignore_ascii_case(lab))
++    }
++}
++
++/// The route's current step: the first open row of PLAN.md's `## Route` table, which carries an
++/// owner direction as ordered steps. `Ok(None)` when PLAN.md has no such table (a plan without a
++/// route is whole) or every step is closed. The Work, Lab and Status columns are found by header
++/// name. An open row with an empty Work or Lab cell is an error and is never skipped: skipping it
++/// would offer a later step out of order.
++fn route_step(root: &Path) -> Result<Option<RouteStep>, String> {
++    let Ok(table) = plan_table(root, "Route") else {
++        return Ok(None);
++    };
++    let work = table.column("Work")?;
++    let labs = table.column("Lab")?;
++    let status = table.column("Status")?;
++    let total = table.rows.len();
++    let Some((line, row)) = table.open_rows(status).into_iter().next() else {
++        return Ok(None);
++    };
++    // `open_rows` counts the header as table row 1.
++    let number = line - 1;
++    let cell = |i: usize| row.get(i).map(String::as_str).unwrap_or("").trim();
++    if cell(work).is_empty() || cell(labs).is_empty() {
++        return Err(format!(
++            "the Route table's first open row (step {number}) has an empty Work or Lab cell"
++        ));
++    }
++    Ok(Some(RouteStep {
++        number,
++        total,
++        work: cell(work).to_string(),
++        labs: cell(labs).to_string(),
++    }))
++}
++
+ /// The lane the owner assigned this lab in the owner-only registry, if any.
+ fn lab_lane(root: &Path, lab: &str) -> Result<String, String> {
+     let Some(text) = origin_file(root, "docs/harness/labs.json") else {
+@@ -787,7 +842,35 @@ pub fn run(
+         "none",
+         format!("off (no local/loop/STOP, no {PAUSE_LABEL} on #{PAUSE_ISSUE})"),
+     ));
+-    // 2. owner direction: the first open row of PLAN.md's `## Owner directions` table.
++    // 2. the route: the first open step of PLAN.md's `## Route` table, when the plan has one. The
++    // route carries an owner direction step by step, so its step comes before any direction's own
++    // words. A step held by another lab is named and passed over; a plan without a route prints
++    // no line.
++    match route_step(root) {
++        Ok(Some(step)) => {
++            let place = format!("step {} of {}", step.number, step.total);
++            if step.offered_to(lab) {
++                let reason = format!("PLAN route {place} is open for {}", step.labs);
++                out.push(source("route", "work", reason.clone()));
++                return Ok((
++                    out,
++                    Decision::Go {
++                        kind: "route",
++                        target: format!("{place}: {}", step.work),
++                        reason,
++                    },
++                ));
++            }
++            out.push(source(
++                "route",
++                "none",
++                format!("{place} is held by {} ({})", step.labs, step.work),
++            ));
++        }
++        Ok(None) => {}
++        Err(why) => out.push(not_built("route", &why)),
++    }
++    // 3. owner direction: the first open row of PLAN.md's `## Owner directions` table.
+     match owner_direction(root) {
+         Ok(Some((target, malformed))) => {
+             let mut reason = format!("PLAN owner direction {target:?} is open");
+@@ -819,7 +902,7 @@ pub fn run(
+         .open_prs()
+         .map_err(|e| format!("cannot list open PRs: {e}"))?;
+     prs.sort_by_key(|p| p.number);
+-    // 3. repairs to the lab's own PRs.
++    // 4. repairs to the lab's own PRs.
+     let prefix = format!("{lab}/");
+     let own: Vec<&NextPr> = prs
+         .iter()
+@@ -874,7 +957,7 @@ pub fn run(
+     }
+     let detail = format!("{} own open PR(s), none needs a repair", own.len());
+     out.push(source("repairs", "none", detail));
+-    // 4. reviews.
++    // 5. reviews.
+     let mut skipped = Vec::new();
+     for pr in prs.iter().filter(|p| !p.is_draft) {
+         let order = match pr_order(root, gh, pr) {
+@@ -949,7 +1032,7 @@ pub fn run(
+         detail.push_str(&format!(" (skipped: {})", skipped.join(", ")));
+     }
+     out.push(source("reviews", "none", detail));
+-    // 5. GPU collections: the lease watcher keeps one record per leased GPU run under
++    // 6. GPU collections: the lease watcher keeps one record per leased GPU run under
+     // `local/<lab>/gpu-collections/`. A finished uncollected record is work: its artifacts must be
+     // saved off the pod before it is down. A record still `running` waits while it is recent, and
+     // is offered as stale after `STALE_COLLECTION_SECS` (a killed watcher writes no note). No
+@@ -1015,7 +1098,7 @@ pub fn run(
+             &format!("cannot read GPU collection records: {error}"),
+         )),
+     }
+-    // 6. premise probes: the first open row of PLAN.md's `## Premises` table. The probe cell
++    // 7. premise probes: the first open row of PLAN.md's `## Premises` table. The probe cell
+     // holds the command in backticks; a row is offered only when its status cell reads `open`.
+     match premise_probe(root) {
+         Ok(Some((premise, probe))) => {
+@@ -1037,7 +1120,7 @@ pub fn run(
+         )),
+         Err(why) => out.push(not_built("premise-probes", &why)),
+     }
+-    // 7. lane: the top of the lab's lane. The lab's lane comes from the owner-only registry
++    // 8. lane: the top of the lab's lane. The lab's lane comes from the owner-only registry
+     // (`docs/harness/labs.json`, an optional `lane` key); the ranking comes from the PM's
+     // `lane:` and `rank:` item keys. With either absent the source says what is missing.
+     let ready_state = ready_items(root);
+@@ -1091,7 +1174,7 @@ pub fn run(
+         },
+         Err(why) => out.push(not_built("lane", &why)),
+     }
+-    // 8. any: ready, scoped items whose dependencies are all done and that `loop claim` would
++    // 9. any: ready, scoped items whose dependencies are all done and that `loop claim` would
+     // accept, ranked by effective milestone, then unblock count, then id.
+     let (held, ready, waiting) = ready_state?;
+     let mut refused = Vec::new();
+diff --git a/crates/uor-r4-harness/tests/loop_next_sources.rs b/crates/uor-r4-harness/tests/loop_next_sources.rs
+index 6fc87203407d51a022971b61d5b0c0fb176ac179..8cdcfac539d229905ee9d49eba3e780add7dd674 100644
+--- a/crates/uor-r4-harness/tests/loop_next_sources.rs
++++ b/crates/uor-r4-harness/tests/loop_next_sources.rs
+@@ -731,3 +731,150 @@ fn any_offers_the_milestone_path_item_that_unblocks_most_first() {
+         decision(&o)
+     );
+ }
++
++const ROUTE_HEADER: &str = "| Step | Work | Lab | Status |";
++
++/// A PLAN.md whose newest owner direction is `routed` (carried by the route), with one older
++/// open direction below it, the given `## Route` table, and a later section whose heading also
++/// holds the word "route".
++fn plan_with_route(header: &str, rows: &str) -> String {
++    format!(
++        "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n| R0 the routed direction | routed | 2026-11-14 | x |\n| D1 the older open direction | open | 2026-11-01 | y |\n\n## Route to the complete model\n\n{header}\n|---|---|---|---|\n{rows}\n## The route M2 to M8\n\nProse, no table.\n"
++    )
++}
++
++fn next_with_plan(plan: &str) -> Output {
++    Repo::new(
++        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
++        &[],
++    )
++    .next()
++}
++
++#[test]
++fn the_routes_first_open_step_is_offered_before_an_owner_direction() {
++    let plan = plan_with_route(
++        ROUTE_HEADER,
++        "| 1 | score the four models | deepseek | done |\n| 2 | export every trained part | deepseek | open |\n| 3 | serve it on the laptop | deepseek | open |\n",
++    );
++    let o = next_with_plan(&plan);
++    assert_eq!(o.status.code(), Some(0), "{o:?}");
++    assert_eq!(
++        decision(&o),
++        "GO route step 2 of 3: export every trained part — PLAN route step 2 of 3 is open for deepseek",
++        "the route's first open step must be the decision"
++    );
++    assert!(
++        stdout(&o).contains("route: PLAN route step 2 of 3 is open for deepseek"),
++        "{}",
++        stdout(&o)
++    );
++    assert!(
++        !stdout(&o).contains("owner-direction"),
++        "the route decides before the owner directions are read: {}",
++        stdout(&o)
++    );
++}
++
++#[test]
++fn a_step_held_by_another_lab_is_named_and_the_next_open_direction_is_offered() {
++    let plan = plan_with_route(
++        ROUTE_HEADER,
++        "| 1 | score the four models | claude | open |\n| 2 | export every trained part | deepseek | open |\n",
++    );
++    let o = next_with_plan(&plan);
++    assert_eq!(o.status.code(), Some(0), "{o:?}");
++    assert!(
++        stdout(&o).contains("route: step 1 of 2 is held by claude (score the four models)"),
++        "{}",
++        stdout(&o)
++    );
++    assert!(
++        !stdout(&o).contains("GO route"),
++        "a later step is never offered while an earlier one is open: {}",
++        stdout(&o)
++    );
++    // The routed direction's own words are not offered; the older open direction is.
++    assert!(
++        decision(&o).starts_with("GO owner-direction D1 the older open direction"),
++        "{}",
++        decision(&o)
++    );
++}
++
++#[test]
++fn any_and_a_list_of_labs_both_offer_the_step() {
++    for labs_cell in ["any", "claude, DeepSeek", "kimi deepseek"] {
++        let plan = plan_with_route(
++            ROUTE_HEADER,
++            &format!("| 1 | read the replies | {labs_cell} | open |\n"),
++        );
++        let o = next_with_plan(&plan);
++        assert_eq!(o.status.code(), Some(0), "{labs_cell}: {o:?}");
++        assert!(
++            decision(&o).starts_with("GO route step 1 of 1: read the replies — "),
++            "{labs_cell}: {}",
++            decision(&o)
++        );
++    }
++}
++
++#[test]
++fn a_finished_route_and_a_plan_without_one_print_no_route_line() {
++    let finished = plan_with_route(
++        ROUTE_HEADER,
++        "| 1 | score the four models | deepseek | done |\n| 2 | export every trained part | deepseek | done |\n",
++    );
++    let without = "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n| D1 the older open direction | open | 2026-11-01 | y |\n\n## The route M2 to M8\n\nProse, no table.\n";
++    for plan in [finished.as_str(), without] {
++        let o = next_with_plan(plan);
++        assert_eq!(o.status.code(), Some(0), "{o:?}");
++        assert!(
++            !stdout(&o).lines().any(|l| l.starts_with("route:")),
++            "no route line without an open step: {}",
++            stdout(&o)
++        );
++        assert!(
++            decision(&o).starts_with("GO owner-direction D1 the older open direction"),
++            "{}",
++            decision(&o)
++        );
++    }
++}
++
++#[test]
++fn a_malformed_route_is_named_and_no_later_step_is_offered() {
++    // No Lab column: the route cannot say whose the step is.
++    let no_lab = plan_with_route(
++        "| Step | Work | Status |",
++        "| 1 | score the four models | open |\n",
++    );
++    let o = next_with_plan(&no_lab);
++    assert!(
++        stdout(&o)
++            .contains("route: not built — PLAN.md table `## Route` has no `Lab` column header"),
++        "{}",
++        stdout(&o)
++    );
++    assert!(!stdout(&o).contains("GO route"), "{}", stdout(&o));
++
++    // The first open step has no Work: the valid open step after it is not offered in its place.
++    let empty_work = plan_with_route(
++        ROUTE_HEADER,
++        "| 1 |  | deepseek | open |\n| 2 | export every trained part | deepseek | open |\n",
++    );
++    let o = next_with_plan(&empty_work);
++    assert!(
++        stdout(&o).contains(
++            "route: not built — the Route table's first open row (step 1) has an empty Work or Lab cell"
++        ),
++        "{}",
++        stdout(&o)
++    );
++    assert!(!stdout(&o).contains("GO route"), "{}", stdout(&o));
++    assert!(
++        decision(&o).starts_with("GO owner-direction D1 the older open direction"),
++        "{}",
++        decision(&o)
++    );
++}
+diff --git a/docs/harness/README.md b/docs/harness/README.md
+index a79b25cf1c0930e7013309ebca2201e97ac1b93c..1c3aac2428fe4238a2aaae2c68806ef5dbd047b2 100644
+--- a/docs/harness/README.md
++++ b/docs/harness/README.md
+@@ -257,7 +257,8 @@ UOR_LAB=claude uor-harness --json loop next   # {"lab","sources":[{"source","sta
+ Needs a lab (`UOR_LAB` or `--lab`). Exit codes: 0 GO, 1 STOP, 2 cannot run (usage, no lab, a git or `gh` error). It reads GitHub only; the `any` source runs `loop claim`'s checks, which fetch `origin main`. The sources, in order; the first that yields work decides:
+ 
+ - `kill-switch`: STOP when `local/loop/STOP` exists in the main checkout or issue #2028 carries the label `loop:pause`.
+-- `owner-direction`: reads PLAN.md's `## Owner directions` table and offers the first row **whose Status column header is found by name** and reads `open` (a note cell saying "open" is not a status); with no PLAN.md or no table it names what is missing instead of guessing.
++- `route`: reads PLAN.md's `## Route` table, when the plan has one, and offers its first `open` row as GO `route step <n> of <m>: <Work>`. The step goes to the labs its Lab cell names (separated by commas or spaces); `any` offers it to every lab. A step held by another lab is named and passed over, and that lab goes on to the owner directions. A plan without the table, or with every step closed, prints no `route` line. The Work, Lab and Status columns are found by header name. A first open row with an empty Work or Lab cell is named, and no later step is offered in its place.
++- `owner-direction`: reads PLAN.md's `## Owner directions` table and offers the first row **whose Status column header is found by name** and reads `open` (a note cell saying "open" is not a status); with no PLAN.md or no table it names what is missing instead of guessing. A row whose status reads `routed` is carried by the route and is not offered.
+ - `repairs`: the lab's own open PRs (head `<lab>/...`) that conflict, have a check at the head with conclusion FAILURE or TIMED_OUT, or on which a counted `uor-review v1` CHANGES stands at the head (the review gate's rule: no later APPROVE from the same lab); GO `repair #<n>`, lowest number first.
+ - `reviews`: open non-draft PRs on which the review gate would count a `uor-review v1` record from this lab (taken to carry `context: fresh`: on a setup PR under D59 `claude` only; else the ORDER lab itself (D66) or a lab of another vendor than the ORDER lab) and that have no counted record at the head from any lab (one counted APPROVE passes the gate, and one counted CHANGES waits on the author's new head); GO `review #<n>`, lowest number first. The gate's context (build-plan rows, vendors, D59) comes from `origin/main`, as in `loop review`. A PR without an ORDER is skipped.
+ - `gpu-collections`: the lease watcher writes one record per leased GPU run under `local/<lab>/gpu-collections/`; a finished record that no session has collected is offered as work (mark it collected with `loop drive --collect <id> --artifact <path>`). Each successful renewal also writes a liveness timestamp, so a record still `running` is treated as stale only after `STALE_COLLECTION_SECS` (6 h) **without a renewal** — a live watcher keeps a long run out of the stale path, while a killed watcher leaves no note and ages out; records without a heartbeat fall back to their start time. An absent directory means none.
+diff --git a/docs/loop/README.md b/docs/loop/README.md
+index ece8e377434272c94f58da46785ce1510595412b..caf9b81a9b4bcd999162e8b9aa06c36df2f50383 100644
+--- a/docs/loop/README.md
++++ b/docs/loop/README.md
+@@ -51,7 +51,7 @@ Steps that need no judgement run in the supervisor, without a model.
+ 
+ | # | Step | What happens | Command | Who |
+ |---|---|---|---|---|
+-| 1 | Next | Decide go, wait or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Only the kill switch stops. Every other no-work case is WAIT, naming what is pending and when to look again; `loop next --wait` and `loop drive` sleep and ask again. | `loop next` (built, loop PR 7b; WAIT and `--wait`, claude-31) | supervisor |
++| 1 | Next | Decide go, wait or stop, and which kind of session. Order of preference: the route's open step, owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Only the kill switch stops. Every other no-work case is WAIT, naming what is pending and when to look again; `loop next --wait` and `loop drive` sleep and ask again. | `loop next` (built, loop PR 7b; WAIT and `--wait`, claude-31) | supervisor |
+ | 2 | Arrive | Fetch; check the binary, hooks, notes and read path; render the views locally. If the repository disagrees with a note, the repository wins. | `loop arrive` (built, loop PR 7b) | session |
+ | 3 | Opener | Read the opener and the thinking skills the task needs. Name the parts used in REPORT. | — | session |
+ | 4 | Claim | Refused unless the item is ready and unclaimed, its scope overlaps no open order (notebook pages excepted), and the lab is under its open-PR limit. Create a worktree `.worktrees/<lab>-<topic>` from fresh `origin/main`, commit the ORDER, open a draft PR, then list again: of two racing drafts, the higher PR number closes before any work. Post the §5.3 intent note. | `loop claim` (built in loop PR 7a) | session |
+@@ -69,7 +69,7 @@ Steps that need no judgement run in the supervisor, without a model.
+ 
+ `loop drive` now runs this cycle for one or more sessions on the laptop, and it calls `loop next` for every stop including the kill switch.
+ 
+-`loop next`'s sources beyond the kill switch, repairs and reviews: `owner-direction` reads the first `open` row of PLAN's `## Owner directions` table and `premise-probes` read PLAN's premise table (both find their Status/Probe/Direction columns by header name; a malformed open row is skipped and named, not hidden), and `lane` reads the lab's owner-set lane plus the PM's item `lane:`/`rank:` ranking; all name what is missing when the data is absent. `any` offers the first claimable ready item ranked by effective milestone (the smallest milestone among the item and every item that depends on it, so an infra item an M1 item needs ranks as M1), then by how many not-done items it unblocks, then by id. GPU collections read the lease watcher's record under `local/<lab>/gpu-collections/`: a finished record that no session has collected is offered as work, and `loop drive --collect <id> --artifact <path>` records where the artifacts went. Each renewal updates a liveness timestamp, so a `running` record is treated as stale only after six hours **without a renewal**; a killed watcher writes no note, and a record without a heartbeat falls back to its start time. Until it is wired into every client's headless launcher, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
++`loop next`'s sources beyond the kill switch, repairs and reviews: `route` reads the first `open` row of PLAN's `## Route` table and offers it to the lab its Lab cell names (`any`: every lab); a step held by another lab is named and passed over, a plan without the table prints no line, and a malformed first open row is named with no later step offered in its place; `owner-direction` reads the first `open` row of PLAN's `## Owner directions` table and `premise-probes` read PLAN's premise table (both find their Status/Probe/Direction columns by header name; a malformed open row is skipped and named, not hidden), and `lane` reads the lab's owner-set lane plus the PM's item `lane:`/`rank:` ranking; all name what is missing when the data is absent. `any` offers the first claimable ready item ranked by effective milestone (the smallest milestone among the item and every item that depends on it, so an infra item an M1 item needs ranks as M1), then by how many not-done items it unblocks, then by id. GPU collections read the lease watcher's record under `local/<lab>/gpu-collections/`: a finished record that no session has collected is offered as work, and `loop drive --collect <id> --artifact <path>` records where the artifacts went. Each renewal updates a liveness timestamp, so a `running` record is treated as stale only after six hours **without a renewal**; a killed watcher writes no note, and a record without a heartbeat falls back to its start time. Until it is wired into every client's headless launcher, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
+ 
+ ## The notes
+ 
+diff --git a/docs/loop/tasks/infra-loop-harness/claude-371/ORDER.md b/docs/loop/tasks/infra-loop-harness/claude-371/ORDER.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..faf69360e9e7c18ea1cf0f09169f19f05d7f6970
+--- /dev/null
++++ b/docs/loop/tasks/infra-loop-harness/claude-371/ORDER.md
+@@ -0,0 +1,66 @@
++# ORDER: infra-loop-harness, claude-371 (`loop next` returns the current route to the complete model)
++
++Lab: claude. Item: [infra-loop-harness](../../../../roadmap/items/infra-loop-harness.md) (#2904).
++Base: `origin/main` at `675f5eb43b99e5ee634cd45b5fd517f69a638c52`.
++
++## Goal
++
++**Make `uor-harness loop next` return the current step of the route to the complete model, in place of the 1 Nov CPU-training sentence it has returned to every lab since.**
++
++## Owner direction
++
++Casey, in Claude's chat, 14 November 2026:
++
++> "please update loop next into our current roadmap for the current run you are working on and toward a complete model that trains and serves the same format and runs locally on the laptop with and/or in browser without matmul or other wasteful operations"
++
++`PLAN.md` is the PM's file by standing arrangement. The owner asked Claude for this change directly, so Claude writes it and says so in the PR.
++
++## Why the harness changes too
++
++`loop next` takes its line from the first `open` row of PLAN's `## Owner directions` table and prints that row's Direction cell, which holds the owner's words. Two things follow.
++
++- A direction is one sentence. It cannot say which step of a roadmap is the current one, so a new row alone would make `loop next` print the owner's request back to them.
++- An open direction decides for every lab. The 1 Nov row was given to one lab and has been offered to all five. A new open row addressed to Claude would be offered to the other four in the same way.
++
++So the plan gets a `## Route` table of ordered steps, each with the lab that holds it, and `loop next` reads it before the directions. The new direction row is recorded with status `routed`: open, and carried by the route.
++
++## Cancel probe (run first)
++
++- **What would make this unit unnecessary:** a source in `loop next` that already returns a step of a multi-step plan, or a plan table that already holds the route.
++- **Result (at base):** none. `crates/uor-r4-harness/src/loopnext.rs` reads two PLAN tables, `## Owner directions` and `## Premises`. PLAN's `## The route M2–M8` is prose with no status, and no lab's `loop next` reads it.
++
++## Claim
++
++Written by hand. No code of this unit exists at this order's commit.
++
++## Files in scope
++
++- `PLAN.md`
++- `crates/uor-r4-harness/src/loopnext.rs`, `crates/uor-r4-harness/tests/loop_next_sources.rs`
++- `docs/loop/README.md`, `docs/harness/README.md` (the two shared pages that state `loop next`'s order)
++- `docs/loop/tasks/infra-loop-harness/claude-371/**`
++
++Nothing else. `docs/integration/DECISIONS.md` is the owner's and is not touched.
++
++## Done when
++
++1. `loop next` has a `route` source with tests that fail without the rule they pin:
++   - the first open row of PLAN's `## Route` table is the decision, before any owner direction, for a lab its Lab cell names, and for every lab when the cell reads `any`;
++   - a step held by another lab is named and passed over, no later step is offered in its place, and that lab gets the next open owner direction as before;
++   - a plan with no route table, or with every step closed, prints what it printed before this unit;
++   - a route with no Lab column, or a first open row with an empty Work or Lab cell, is named and offers nothing.
++2. PLAN records the 14 Nov direction word for word, and the route: the current run (claude-370) first, then the steps to a model that holds a conversation, trains and serves in one format, runs on the laptop and in the browser, and uses no matmul.
++3. Run against this branch's PLAN, `loop next` returns step 1 of the route for `claude` and the 1 Nov direction for another lab.
++4. The two shared pages state the new order.
++
++## Decision review (the top session's own, §5.1)
++
++- **What is decided.** How the owner's sentence is laid out as steps, and a new status word, `routed`, in PLAN's direction table.
++- **What is not decided.** No bar, milestone order, scope or stop rule moves. Each step's numbers stay in its unit's own sheet. The M2–M8 order is unchanged. The 1 Nov CPU-training direction stays open and is still what the other labs are offered.
++- **What the owner can reverse in one line.** A step's order or lab (edit the row), and the reading of "trains and serves the same format" written under the route.
++
++## Stop rules
++
++- No model, GPU, pod or training run is part of this unit.
++- No existing `loop next` output changes for a plan without a route table.
++- No decision row is written: the decision index is the owner's file.

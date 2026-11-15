@@ -1,0 +1,561 @@
+diff --git a/crates/uor-r4-float-train/src/bin/hamming-base-copy.rs b/crates/uor-r4-float-train/src/bin/hamming-base-copy.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..c0a12d8d9114691ffbd3d91a768ac90cbb4212ba
+--- /dev/null
++++ b/crates/uor-r4-float-train/src/bin/hamming-base-copy.rs
+@@ -0,0 +1,133 @@
++//! claude-339: a copy of a checkpoint's `hamming_read.safetensors` with the ask heads and the
++//! question carry left out, so the laptop's `cpu-fbs-export` (claude-322's export path) can
++//! snapshot the trunk and the base Hamming reads of an ask checkpoint on the CPU.
++//!
++//! Why: `fbs-snapshot` builds the trunk tables on the pod (claude-339's I-xg, 9 Nov 2026), and
++//! one quantized atom of claude-322's seed-1 trunk came out differently there than on the laptop,
++//! so the GPU path does not reproduce claude-322's artifact. `cpu-fbs-export` does, but it refuses
++//! a Hamming inventory with the ask tensors. This tool writes the base inventory only; the ask
++//! entries are then taken from the pod's snapshot, whose `hamming_ask` is built on the CPU.
++//!
++//! Every kept tensor is copied with its dtype, shape and bytes unchanged, and the file's metadata
++//! is kept. Only `carry_rows`, `d{depth}.ask` and `d{depth}.carry` are left out; any other name
++//! outside the base inventory (`heads`, `copy_key` or `copy_keys`, and five reads per depth)
++//! refuses, so nothing is dropped silently.
++//!
++//! usage: hamming-base-copy IN.safetensors OUT.safetensors   (OUT must not exist)
++
++use std::collections::BTreeSet;
++use std::fs;
++use std::path::Path;
++
++use safetensors::tensor::{Metadata, SafeTensors};
++
++const BASE_READS: [&str; 5] = [
++    "query_rotation",
++    "key_rotation",
++    "value_rotation",
++    "margin",
++    "weight",
++];
++
++/// `Some(true)` for a tensor to keep, `Some(false)` for an ask or carry tensor to leave out, and
++/// `None` for a name this tool does not know.
++fn classify(name: &str) -> Option<bool> {
++    // The base inventory `cpu-fbs-export` checks (fbs_snapshot_cpu.rs): the head count, an
++    // optional copy key or per-head copy keys, and the five reads per depth.
++    if matches!(name, "heads" | "copy_key" | "copy_keys") {
++        return Some(true);
++    }
++    if name == "carry_rows" {
++        return Some(false);
++    }
++    let (depth, part) = name.split_once('.')?;
++    let digits = depth.strip_prefix('d')?;
++    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
++        return None;
++    }
++    if BASE_READS.contains(&part) {
++        Some(true)
++    } else if part == "ask" || part == "carry" {
++        Some(false)
++    } else {
++        None
++    }
++}
++
++fn run(input: &Path, output: &Path) -> Result<(), String> {
++    if output.exists() {
++        return Err(format!("{}: already exists", output.display()));
++    }
++    let bytes = fs::read(input).map_err(|e| format!("{}: {e}", input.display()))?;
++    let tensors =
++        SafeTensors::deserialize(&bytes).map_err(|e| format!("{}: {e}", input.display()))?;
++    let (_, metadata): (usize, Metadata) =
++        SafeTensors::read_metadata(&bytes).map_err(|e| format!("{}: {e}", input.display()))?;
++    let mut kept = Vec::new();
++    let mut dropped = BTreeSet::new();
++    for (name, view) in tensors.tensors() {
++        match classify(&name) {
++            Some(true) => kept.push((name, view)),
++            Some(false) => {
++                dropped.insert(name);
++            }
++            None => {
++                return Err(format!(
++                    "{}: unknown tensor {name}; nothing written",
++                    input.display()
++                ))
++            }
++        }
++    }
++    if kept.is_empty() {
++        return Err(format!(
++            "{}: no base Hamming tensor; nothing written",
++            input.display()
++        ));
++    }
++    kept.sort_by(|a, b| a.0.cmp(&b.0));
++    let names: Vec<String> = kept.iter().map(|(name, _)| name.clone()).collect();
++    let out = safetensors::serialize(
++        kept.iter().map(|(n, v)| (n.as_str(), v)),
++        metadata.metadata().clone(),
++    )
++    .map_err(|e| e.to_string())?;
++    fs::write(output, &out).map_err(|e| format!("{}: {e}", output.display()))?;
++    println!(
++        "{}",
++        serde_json::json!({ "kept": names, "dropped": dropped, "out": output.display().to_string() })
++    );
++    Ok(())
++}
++
++fn main() {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let result = match args.as_slice() {
++        [input, output] => run(Path::new(input), Path::new(output)),
++        _ => Err("usage: hamming-base-copy IN.safetensors OUT.safetensors".to_owned()),
++    };
++    if let Err(error) = result {
++        eprintln!("hamming-base-copy: {error}");
++        std::process::exit(1);
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::classify;
++
++    #[test]
++    fn keeps_the_base_reads_and_leaves_out_the_asks() {
++        assert_eq!(classify("d2.query_rotation"), Some(true));
++        assert_eq!(classify("d6.weight"), Some(true));
++        assert_eq!(classify("d6.ask"), Some(false));
++        assert_eq!(classify("d6.carry"), Some(false));
++        assert_eq!(classify("carry_rows"), Some(false));
++        assert_eq!(classify("d6.other"), None);
++        assert_eq!(classify("x6.weight"), None);
++        assert_eq!(classify("d.weight"), None);
++        assert_eq!(classify("weight"), None);
++        assert_eq!(classify("heads"), Some(true));
++        assert_eq!(classify("copy_keys"), Some(true));
++    }
++}
+diff --git a/crates/uor-r4-float-train/src/fbs_export.rs b/crates/uor-r4-float-train/src/fbs_export.rs
+index 396de73f64a81b5a5d2e30fc631dd4b429414a53..0bec554d2ca3a80dcbd4e114cbe1d8e9276da441 100644
+--- a/crates/uor-r4-float-train/src/fbs_export.rs
++++ b/crates/uor-r4-float-train/src/fbs_export.rs
+@@ -667,6 +667,28 @@ pub fn round_hamming_as_exported(reads: &HammingReads) -> Result<()> {
+     Ok(())
+ }
+ 
++/// claude-339: hold every read's ask table inside what its export can store, the `i16` range at
++/// `2^HAMMING_ASK_EXP` (-8 to 32767/4096). Training as served calls this before it rounds, so a
++/// weight the optimizer carries past that range sits at the end of it, and is served and trained
++/// as that value. Without it a long run stops when one of a million weights crosses -8
++/// (claude-339, at about step 14,700). Only the training path calls it: the export and the
++/// snapshot still refuse a value past the range, because a saved table should never hold one.
++pub fn hold_hamming_ask_in_exported_range(reads: &HammingReads) -> Result<()> {
++    let step = 2f64.powi(HAMMING_ASK_EXP);
++    let (low, high) = ((f64::from(i16::MIN) * step) as f32, (f64::from(i16::MAX) * step) as f32);
++    for ask in reads.reads.iter().filter_map(|read| read.ask.as_ref()) {
++        let tensor = ask.as_tensor();
++        let values = tensor.flatten_all()?.to_vec1::<f32>()?;
++        if values.iter().any(|&v| v < low || v > high) {
++            // On the host, as the rounding does. A value that is not finite stays as it is,
++            // for the rounding to refuse by name.
++            let held = values.into_iter().map(|v| v.clamp(low, high)).collect();
++            ask.set(&Tensor::from_vec(held, tensor.shape(), tensor.device())?)?;
++        }
++    }
++    Ok(())
++}
++
+ /// claude-252: round the turn memory's move weights as the integer artifact holds them
+ /// (`quantize_fixed_i32` at `2^MEMORY_WEIGHT_EXP` on [`fbs_memory_snapshot`]'s weights): the
+ /// opening weight, and the reply weight when the memory has a reply table. Its keys and stored
+diff --git a/crates/uor-r4-float-train/src/in_space_long.rs b/crates/uor-r4-float-train/src/in_space_long.rs
+index ea0e2f056981e67f86e652f544f4b9737fde22af..1cad5ab571270f6aea3c4e55de0af849a6163d61 100644
+--- a/crates/uor-r4-float-train/src/in_space_long.rs
++++ b/crates/uor-r4-float-train/src/in_space_long.rs
+@@ -335,6 +335,9 @@ impl ServedValues {
+     ) -> Result<Self> {
+         let mut vars: Vec<&candle_core::Var> = model.variables().values().collect();
+         if let Some(reads) = reads {
++            // claude-339: before the float copies, so the float master stays at the range's
++            // end too and cannot run on past what the export can hold.
++            crate::fbs_export::hold_hamming_ask_in_exported_range(reads)?;
+             vars.extend(reads.variables());
+         }
+         if let Some(memory) = memory {
+@@ -21753,6 +21756,29 @@ mod tests {
+         ])
+     }
+ 
++    /// claude-339: an ask weight past the Q12 `i16` range stopped a 16,384-step run at about
++    /// step 14,700. As served it is now held at the end of the range, in both the served value
++    /// and the float master; a weight inside the range is rounded as before.
++    #[test]
++    fn an_ask_weight_past_the_served_range_is_held_at_its_end() -> Result<()> {
++        let device = Device::Cpu;
++        let (model, reads, _memory) = served_parts(&device)?;
++        let reads = reads.with_ask(2)?;
++        let top = 32_767f32 / 4_096f32;
++        let ask = reads.reads[1].ask.as_ref().expect("the read asks");
++        let mut values = vec![0f32; ask.elem_count()];
++        values[..5].copy_from_slice(&[-8.000_233, 8.25, 7.999_9, -7.5, 0.25]);
++        ask.set(&Tensor::from_vec(values, ask.shape(), &device)?)?;
++        let head = |var: &candle_core::Var| -> Result<Vec<f32>> {
++            Ok(var.as_tensor().flatten_all()?.to_vec1::<f32>()?[..5].to_vec())
++        };
++        let guard = round_if_served(true, &model, Some(&reads), None)?.expect("the guard is on");
++        assert_eq!(head(ask)?, [-8.0, top, top, -7.5, 0.25], "the served values");
++        guard.restore()?;
++        assert_eq!(head(ask)?, [-8.0, top, top, -7.5, 0.25], "the float masters");
++        Ok(())
++    }
++
+     /// claude-258: a checkpoint saved as served is one the export's rounding leaves unchanged in
+     /// every part, and the run's own values are the float ones again after it. Saved without the
+     /// rounding, the same values are ones the export changes in every part. The training steps
+diff --git a/docs/harness/prep/one-model-end-to-end-language-carry-2026-11-09.md b/docs/harness/prep/one-model-end-to-end-language-carry-2026-11-09.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f85b4fd2eaf865890c6f627cc9e44cde2cf9ca9
+--- /dev/null
++++ b/docs/harness/prep/one-model-end-to-end-language-carry-2026-11-09.md
+@@ -0,0 +1,267 @@
++# Prep sheet: (b64L-d3mwcap6) with the ask heads, the question carry and the found-copy pull (one-model-end-to-end, claude-339, 9 Nov 2026)
++
++Lab: claude. Item: one-model-end-to-end (#3407). Order: claude-339. The run is judged by the served-reply score, under "Yes, pipeline first" (#2028 6709947526).
++
++TEST FITNESS: FIT WITH CHANGES, round 1 (a fresh non-author review, 9 Nov 2026). It had 8 findings, all applied below and listed under "FIT changes" at the end.
++
++**Why.**
++- **Recall is the gap now.** claude-322's (b64L-d3mwcap6) stops on 109 and 86 of 256 replies without collapsing (9 and 6), but 0 rows are complete at both seeds. Its most common stopped reply names the wrong relation and cuts the value short. The reply's first line holds the asked-for value in only 14 and 2 rows.
++- **The recall task's answer is the ask heads with the question carry** (claude-335, B2-aqC at `h = 4`): `R_ask` 1.000 / 0.969 against the 0.50 floor, and its `−C` cut fails at both seeds (0.105 / 0.027). So the carry is what answers.
++- **The parts are all in place:**
++  - claude-337: the language trainer's pull at its scored rows;
++  - claude-336: the integer session serves the ask table and the carry;
++  - claude-338: `served-reply-panel --engine integer` scores them, and the CPU-port path refuses an asking artifact.
++- **The named risk.** A language window has no question row, so only the scored placement (`--hamming-attract-at scored`, the default) is open. On the recall task that placement (B2-aC) passed at seed 2 and failed at seed 1 (`R_ask` 0.240 / 0.258). It was undertrained and still rising: 0.04 to 0.24 in the last 2,048 steps. The answer here is a reading, not a third seed or more steps:
++  - **The checkpoint trend** (Readings): the served first-line count and `pull.jsonl`'s pull distance at steps 8,192, 12,288 and 16,384. A rising L-aC reading at the last step, with no bar met, reads as row 4u ("not learned yet"), and its next step is the longer run.
++  - **Why not more steps here:** 16,384 steps keeps the held-out pair against claude-322 and (b64L-D3) at an equal step count, which every earlier sheet on this line kept.
++
++## Question
++
++At (b64L)'s recipe and pin, on claude-322's TRAIN (D3 + the reply-capped `mw-balp/train` × 6), with the ask heads on the 4 Hamming reads, and pulled at the scored rows:
++- **does the carry put the asked value into the served reply?** That is the first-line count and the panel's complete rows, against the no-carry arm (L-a), against the no-ask line (claude-322) and against its own `−C` cut;
++- **does stopping hold** (EOS stops and collapse, against claude-322's 109 / 86 and 9 / 6)?
++- **what does it cost on the held-out human text,** against (b64L-D3) and claude-322?
++
++## Base artifact
++
++- **Recipe:** claude-301's (b64L), unchanged. `--objective nearest --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --train-as-served 1 --context 192 --width 256 --hamming-read 4 --batch 64 --micro-batch 16`, for 16,384 steps at `--eval-every 1024`.
++- **The pin:** `fbf15e56f3ab1961b30610893392e7a97fd0ab18` (claude-338's merge). It holds claude-337's pull, claude-336's served asks and claude-338's scorer. The trainer is built at the pin on each pod; the scorer and `fbs-export` are built at the pin on the laptop.
++
++## Data split
++
++- **TRAIN:** claude-322's mix, unchanged, from the store at `results/claude/one-model-end-to-end-b64l-d3mwcap6-2026-11-08/train/`:
++  - tokens `0273173e16e805706a9b3e816c3de46b824a53daf91be3b812be360f8e8e75a7`;
++  - mask `da506e850145f55b746929e108e0fd240ddf753f6a90b23976c98e159a1cb293`;
++  - manifest `442ead2c92ae9a2e6b0b500ebbc12eb6e472f91c96465b6c1347fa80ac232ae9`.
++  - 417,421 usable TRAIN windows.
++- **DEV, the held-out panels and m2-fresh256:** claude-322's, at its pins (its sheet's Data split). Nothing is regenerated.
++
++## Arms
++
++| Arm | flags beyond the recipe | what it isolates |
++|---|---|---|
++| **L-aC** | `--hamming-ask 1 --hamming-carry-question 32 --hamming-attract 1` | the full mechanism, pulled at the scored rows |
++| **L-a** | `--hamming-ask 1 --hamming-attract 1` | the no-carry control (L-010): the ask heads and the pull, with no carry |
++| L-aC `−C` | L-aC's checkpoint, served with its carry removed (below) | the carry's share, at the same weights |
++| claude-322 | none (sealed: artifacts `86e51d5e…`, `8838cd10…`; grades `24d69af0…`, `4407e2c2…`) | the no-ask line, at the same recipe and TRAIN |
++
++- **The carry's reach is 32, not claude-335's 4.** The carry adds the last `h` rows' points at the readout read, each weighted by a learned per-token gain that starts at 0.
++  - On the recall task the question sat four rows before the answer. Here it does not.
++  - Measured on m2-fresh256 with the pin's tokenizer (`token-counts`, mode text):
++    - the question (`query_ids`) is 6 to 13 tokens (median 10);
++    - the `\nAssistant:` header after it is 6 tokens;
++    - a reply's lead-in before the value (" Your current job is") is 7 tokens.
++  - So at the last prompt row, the question's key word ("job") is 8 rows back, and the question's first token up to 19 rows back. At the row that emits the value, it is up to 26 rows back.
++  - `h = 4` would carry only the header, so 32 covers the panel's worst case with room to spare. The per-token gains let the model weight the question's words and leave the filler at 0.
++  - **TRAIN's distances are not counted.** The mix's `mw-balp` part comes from the same generator family as the panel; D3's part is not counted. The REPORT names this if the carry reads as unused (row 4c).
++  - **Cost:** claude-335 measured +1% for doubling `h` from 4 to 8. Three more doublings would be about +3% more by that slope; that is an extrapolation, and I-t records the real value.
++  - claude-335's B2-aqC8 (`h = 8`) also passed at both seeds, so a longer reach is not untested.
++- **Seeds 1 and 2** for L-aC and L-a: four runs, one RTX 5090 pod each.
++- **`−C` is a data cut, not a new run.** `jq` removes `carry` from every `hamming_ask` entry of L-aC's snapshot, and `fbs-export --run-config` exports it again. The question table and every other section are unchanged. That is checked by I-cut.
++
++## Readings
++
++At seeds 1 and 2, on each arm's served `step-016384` (and `−C`), from `served-reply-panel --engine integer` on m2-fresh256, the same measures as claude-322's sheet:
++- **Stops:** EOS, BOS, cap and context counts, of 256.
++- **The panel's own measures:** rows complete (of 256) and pairs both complete and distinct (of 128).
++- **Collapse:** among the EOS-stopped rows, the count of the most common reply text, beside the number of rows it is over. Also distinct reply texts over all rows.
++- **The first-line count**, by `firstline.jq` (`b15c778d…`): the asked-for value, the other case's value, and both. This is the recall reading. Here it is the deciding count for rows 2 and 3, not descriptive (see Bars).
++- **Reply length** (median), and EOS stops per stratum.
++
++**The checkpoint trend,** for L-aC and L-a: the first-line count and the complete rows at `step-008192`, `step-012288` and `step-016384`, each served the same way, beside `pull.jsonl`'s pull distance at those steps.
++
++**Held out:**
++- `scale-probe grade` of `step-016384` with `train=` the mix, on all 1,460,697 rows, from the pod's no-memory `--score-rows` output.
++- `scale-probe pair` against claude-301's sealed (b64L-D3) grades (`e17a1354…`, `3170c779…`): its pooled verdict and mean d, as in claude-322's sheet.
++- Descriptive: against claude-322's grades (`24d69af0…`, `4407e2c2…`).
++
++**Recorded only:** `pull.jsonl` per checkpoint, the dev curve, the last step's loss, the step time, and the carry gains' extremes on the snapshot (claude-335's sign split).
++
++## Bars
++
++Fixed before any run.
++- **The panel's bar:** at least 104 complete and 52 good pairs, at both seeds. Every model so far has 0.
++- **Recall moved,** the bar this sheet adds: at both seeds, L-aC's first-line asked count is **at least 16 above** both L-a's at that seed and claude-322's at that seed (14 and 2), **and** at least 16 above its own `−C` cut.
++  - 16 rows is about 6% of 256. At claude-322's rates (about 3% of rows), one count's binomial spread over 256 is about 2.7 rows, so the spread of a difference of two counts is about 3.9. 16 is about 4 of those.
++  - Seed-to-seed spreads have been far larger (claude-321: 25 and 76), which is why both seeds must meet it.
++  - **The paired control is `−C`:** the same checkpoint served without its carry, so seed and weights are shared exactly. L-a and claude-322 are guards against a gain that comes from the ask heads or the pull alone. A seed number does not pair separate runs.
++- **Stopping held:** at least 64 EOS stops at each seed (claude-322's lower seed, 86, less about one claude-322 seed spread), and no collapse (one text on 64 or more EOS-stopped rows).
++- **The held-out cost**, a decision rule, not a bar: claude-322's ceiling, a mean pooled d against (b64L-D3) below −58,212.
++
++## What each outcome unlocks
++
++Read top to bottom; the first row that matches decides.
++
++| # | reading | the next unit |
++|---|---|---|
++| 0a | an arm NOT_RUN at a seed after its rerun, for an instrument fault | **`blocked`.** Repair and rerun that arm and seed under this sheet. |
++| 0b | an arm NOT_RUN after its rerun, for a mechanism cause (a non-finite loss with the ask heads on) | **`diagnostic stop`** on that arm. Next: a decision review in the REPORT. |
++| 0c | I-xg, I-xa, I-cut or I-c fails | **`blocked`.** Repair the export or scorer and re-read from the seals. |
++| 1 | the panel's bar met at both seeds on L-aC | **The served model answers.** Next: the outcome map's next scale, under its own sheet. |
++| 2 | recall moved and stopping held on L-aC | **The carry puts the asked value into served replies on language.** Next: the panel's complete rows. The REPORT reads why replies hold the value but are not complete (the wrong relation, the value cut short, no EOS), and the next lever follows that. |
++| 3 | recall moved, stopping not held | **The carry carries the value, at the cost of stopping.** Next: a decision review between a stronger EOS share in TRAIN and a decode-time stop, with this arm as the base. |
++| 4c | recall not moved, and L-aC's `−C` cut reads within 4 of L-aC itself at both seeds | **The carry is not used on language at this recipe.** Next: a decision review between a question-row placement on chat windows (the `both` placement that passed at both seeds) and TRAIN's distance count (above), which says whether 32 rows reach the question in training. |
++| 4u | recall not moved, and at both seeds L-aC's rise in first-line count from `step-012288` to `step-016384` is at least 8 above L-a's rise at the same seed | **Not learned yet** (B2-aC's shape), and the rise is the carry's, not the shared recipe's. Next: L-aC alone at 32,768 steps, two seeds, under its own sheet and cost. That run is a different LR schedule: `--lr-end 0` decays linearly over the whole run, so the step-16,384 point of a 32,768-step run is at half the learning rate, not at its end. That sheet reads its trend against its own steps, not this run's. |
++| 4 | recall not moved, otherwise | **No recall gain from the ask heads and the carry at 16,384 steps,** for this configuration only. Next: a decision review in the REPORT, reading the trend, the `−C` cut and the pull distance together. |
++
++A seed that is NOT_RUN reruns once, sealing to `runs-2/` (L-002), on a fresh pod: the job refuses an existing `run/`, and the seal an existing `oh-seal/` (pre-run review, minor 2).
++
++## Instrument checks
++
++Registered before any pod. claude-322's, with these changes:
++- **I-0, I-p, I-3, I-1, I-m, I-f, I-t, I-5, I-4, the watcher:** as claude-322's, at the new pin, TRAIN unchanged (417,421 windows).
++  - Each `config.json` must name `hamming_ask` true, `hamming_attract` 1, and `hamming_carry_question` 32 (L-aC) or none (L-a).
++  - **The watcher's notice time** is set on each pod from I-t's measured step time: 1.5 × (step time × 16,384), and never under 28,800 s. It stops nothing (D67).
++- **I-5a, the asks in the no-memory scoring:** `--score-rows` serves the asks it was trained with. Checked in code at the pin:
++  - `score_rows` calls `load_reads` (`in_space_long.rs:8912`);
++  - `load_reads` restores `HammingReads::load`, which loads each read's `d{depth}.ask` (`flock_read_hamming.rs:1417`) and the readout read's `d{depth}.carry` with `carry_rows`.
++  - The run records the carry as loaded: `step-016384`'s snapshot, which `fbs-snapshot` takes through the same `HammingReads::load`. Its readout entry's `carry.rows` must be 32 (L-aC), or the entry has no carry (L-a).
++- **I-pull, from the smoke:** `pull.jsonl` exists after the smoke and its mean copy rows per step is above 0. A pull that never runs is an instrument NOT_RUN.
++- **I-xg, the export control, once on the first pod before its full run:** the served export path, run on claude-322's sealed seed-1 `step-016384`, must give claude-322's artifact `86e51d5e…`. This shows that the export path this run uses serves what claude-322's did.
++  - **As first written** the path was `fbs-snapshot` on the pod, then `fbs-export --run-config --raw-gates --raw-transition` on the laptop. Its first reading **failed** (9 Nov, 14:17Z): `9b01ed62…`. The repair is under "I-xg repair (row 0c)" below.
++  - **As repaired**, the path is the laptop snapshot. `cpu-fbs-export`, claude-322's own path, snapshots the trunk and the base Hamming reads on a copy of the checkpoint whose `hamming_read.safetensors` keeps the base inventory only (`hamming-base-copy`). The ask entries are the pod snapshot's `hamming_ask`. Then `fbs-export` serves it.
++  - **The check, at every served step:** the pod snapshot's own export has the same header and the same bytes in every `hamming.*` section. The trunk sections may differ, and their count is recorded.
++- **I-xa, the ask export, on the smoke's `step-000064`:** its snapshot has a `hamming_ask` entry per read; the readout's entry has `carry.rows` 32 (L-aC) or none (L-a); `fbs-export` accepts it; and `served-reply-panel --engine integer` scores it while the default engine refuses it by name.
++- **I-cut:** the `−C` artifact differs from L-aC's in the carry sections only.
++  - **The sections:** every artifact section other than `hamming.d{depth}.carry` is byte-equal between the two, compared section by section. `read_hamming_uorlut01` on both gives the same question tables, and carry `None` on the cut.
++  - **The snapshots:** every key other than the `carry` field of each `hamming_ask` entry is unchanged (`jq` equality after deleting that field from both).
++  - **Provenance, recorded beside the cut:** the input snapshot's sha256, the `jq` filter's text and sha256, and the cut snapshot's and cut artifact's sha256.
++  - **Where the carry comes from:** `fbs-export` takes the carry from the snapshot's `hamming_ask` entries (`quantize_hamming_ask`, `fbs-export.rs:219`). It does not compare it with the run config's `hamming_carry_question`, which still says 32 for the cut. So the snapshot, not the config, is what the cut changes, and I-cut checks the artifact.
++- **I-c, on the laptop before any reading:** claude-322's two artifacts score, under `--engine integer`, to claude-322's sealed reports without the timing fields (claude-338's parity, repeated at the pin).
++  - **Result (9 Nov, before any pod): PASS at both seeds.** The scorer was built at the pin (`c6204f66…`). The stripped reports are equal: s1 `5a27775c…` (claude-338's value), s2 `7eb8dbf5…`.
++
++**Why the export moves to the pod:** `cpu-fbs-export` (DeepSeek's CPU exporter, which claude-322 served through) does not read ask heads. Exporting an asking checkpoint through it would drop them silently, the fault claude-338 closed in the scorer. `fbs-snapshot` reads the routes through the model's CUDA projection, so it runs on the pod. `fbs-export` (CPU) then runs on the laptop.
++
++## Steps
++
++1. The ORDER, this sheet's FIT, then the D67 pre-run review of the scripts.
++2. **On the laptop:**
++   - claude-322's job, chain, seal, watch, seed and read scripts, as claude-339's, with only these changes:
++     - the arm flags;
++     - the pin;
++     - the `config.json` checks;
++     - I-pull;
++     - `fbs-snapshot` of `step-008192`, `step-012288` and `step-016384` on the pod, sealed beside the run;
++     - I-xg on seed 1's L-aC pod;
++     - the read script's serve step through `fbs-export` and `--engine integer`, plus `−C` and I-cut.
++   - Their gate tests and mutations, and `bash -n`.
++   - I-c, and the scorer and `fbs-export` built at the pin.
++3. `uor-pod status`. The caps must hold with four pods: at most 4 and $8/h. Then one RTX 5090 pod (at most $0.70/h) per arm and seed, each with its watcher before any script ships.
++   - **The order, so I-xg comes before any full run:**
++     - L-aC seed 1's pod starts first. After its build it snapshots claude-322's seed-1 checkpoint and waits, before its own full run, for the laptop's verdict.
++     - The laptop exports that snapshot and compares the artifact with `86e51d5e…`, then writes PASS or FAIL on the pod.
++     - The other three pods start only after a PASS. A FAIL stops all four before any full run (row 0c).
++4. **On each pod:** I-p, I-0, the build, the inputs, I-3, the smoke, I-m, I-f, I-pull, I-xa's snapshot, I-t. Then 16,384 steps. Then the three snapshots, and the no-memory scoring of `step-016384` with I-5.
++5. **Seal** to `results/claude/one-model-end-to-end-language-carry-2026-11-09/runs/{L-aC,L-a}/s{1,2}/`, each root empty first (L-002). Read back, then take the pod down.
++6. **On the laptop:** I-xg, I-xa, I-c. Then serve every snapshot, cut `−C`, I-cut, the panel, the first-line counts and the trend. Then grade and pair.
++
++## Minimum test power
++
++- **The first-line count** is the deciding reading. claude-322's 14 and 2 set the floor, and claude-321's 25 / 76 the seed spread. The bar is 16 rows, about 4 spreads of a difference (3.9), against the paired `−C` cut and both guards, at both seeds.
++- **The trend's 8 rows** (row 4u) is half the bar, over 4,096 steps, on the difference of two rises (L-aC's against L-a's).
++- **Stopping and collapse** as claude-322's: within 32 of the floor is "near".
++- **The held-out pair** uses `scale-probe pair`'s band, as before.
++
++## Cost
++
++- **Step time, an estimate:** claude-335 measured the ask heads at about half the no-read speed (43,852 against 89,873 context tokens a second), and the carry at about 3% more at `h = 4`.
++  - That was on the recall task's own baseline, not on (b64L)'s 4-read language recipe. So the factor of 2 is carried over, not measured here.
++  - At that factor, each run takes about 2 × claude-322's 8,046 s, about 16,100 s or 4.5 h, plus `h = 32`'s few percent.
++  - I-t records the real value on each pod, and the watcher's notice is set from it.
++- **Four pods at $0.563–0.70/h × about 4.9 h** (with setup and scoring): **$11 to $14.** The budget notice, not a cap, is 4 × 6 h × $0.70 = $16.80.
++- The snapshots add three `fbs-snapshot` runs per pod, a few minutes each.
++
++## Stop rule
++
++claude-322's, with:
++- **I-pull failing:** NOT_RUN for that arm and seed (instrument).
++- **I-xg failing:** stop before any full run. The export path is the fault (row 0c).
++- **A snapshot failing** at an intermediate step: the trend loses that point, and the REPORT says so. At `step-016384` it is row 0c.
++
++## Changes from claude-322's sheet
++
++1. **The arms:** L-aC and L-a, with the ask heads, in place of the one no-ask arm. claude-322 is the no-ask line, read from its seals.
++2. **The pin** is `fbf15e56f`.
++3. **The export** is `cpu-fbs-export`'s snapshot of the trunk and the base reads, with the pod `fbs-snapshot`'s ask entries spliced in, then `fbs-export` on the laptop, with I-xg and I-xa. As first written it was the pod snapshot alone; I-xg's first reading sent it back to the laptop for the trunk (row 0c repair, below).
++4. **The scorer** runs with `--engine integer`.
++5. **The first-line count decides** rows 2 to 4. A new recall bar is added; the stopping floor is lowered to 64 against this TRAIN's own 86.
++6. **The checkpoint trend and the `−C` cut** are new readings.
++7. **Four pods,** and a cost about four times claude-322's.
++8. **The carry's reach** is 32, from the panel's measured question and header lengths.
++
++## FIT changes (round 1, all applied)
++
++1. **The carry's reach:** measured on the panel; `h` raised from 4 to 32; TRAIN's distances named as not counted; row 4c reworded.
++2. **Row 4u** compares L-aC's rise with L-a's rise, and row 4c now comes before it.
++3. **I-5a added:** the no-memory scoring loads the asks and the carry, checked in code, and `carry_rows` is recorded on the pod.
++4. **I-cut** compares every non-carry section byte for byte and every non-carry snapshot key, records the cut's provenance, and names that `fbs-export` takes the carry from the snapshot.
++5. **Row 4u's next unit** names the different LR schedule of a 32,768-step run.
++6. **The "same-seed" justification is dropped:** `−C` is the paired control, and L-a and claude-322 are guards.
++7. **The spread of a difference** is about 3.9, so 16 is about 4 spreads, not 6.
++8. **The step-time factor** is called an estimate, and the watcher's notice is set from I-t.
++
++## Pre-run review
++
++[claude] D67 pre-run review, 9 Nov 2026: three fresh reviewers (delegate:reviewer, Opus), each given the sheet and the scripts only, in `local/claude/claude-339/`.
++
++- **Round 1** read job-339's config check (arm_want against the trainer's Config at fbf15e56, keys left out at 0 or false), I-pull (`pull.jsonl` is written at every checkpoint, so the smoke at eval-every 32 has four lines), the snapshot steps (EVERY 1,024, so 8,192, 12,288 and 16,384 are checkpoints), the I-xg handshake, seed-339's $0.70/h refusal and pin check, and seal-339's root guard (four distinct roots). It found two minor issues, both fixed: the no-file I-pull test now checks its reason, and a `runs-2` rerun goes on a fresh pod (Stop rule above). It ran out of context before the rest.
++- **Round 2a** (watcher, launcher, job's remaining parts, chain): **PASS**, with three minor findings.
++  - M2 is fixed: a failed `uor-pod run` is now reported, not hidden by the pipe.
++  - M1 is declined: I-t's projected wall is used + 1.05 × rate × 16,384 + 300, so wall − used is the remaining projected time. The watcher's time notice, the time already up + 1.5 × that, is the sheet's rule.
++  - M3 is declined: renewing while ssh is down would keep a dead pod billing (inherited from claude-322).
++  - It found that `score_one` scores through the CUDA `train-in-space --score-rows`, which loads the asks and the carry, so the CPU scorer's refusal does not apply.
++- **Round 2b** (`read-339.sh`): **FAIL** on its serve mode.
++  - **B1:** bash 3.2 treats an empty array as unbound under `set -u`, so the default-engine call stops `serve`.
++  - **M1:** `score/` is not fresh, and a scorer refusal can read an old report.
++  - **M2:** I-cut does not check that the cut's header shows no carry.
++  - **M3:** a missing step-016384 still exits 0.
++  - Its `ixg` mode, the only part used during the runs, was reviewed sound: the config pin, the refusal to overwrite, and the comparison with `86e51d5e…`.
++  - So the serve-mode findings gate the readings, not the launch. They are fixed and tested before any reading; the record of that goes in the REPORT.
++- **Tests:** test-gates 81/81, test-read 28/28, test-seal and test-watch pass. The watch mutations are 10/10 caught. In the job mutations, ipull-no-file-ok and ixg-no-timeout are now caught, after the I-pull reason check and an 8 s watchdog on the no-verdict wait. The full mutation run is re-run before the REPORT.
++
++**Pins** (SHA-256 of the shipped scripts, the same files both rounds read; `seed-339.sh` refuses any other):
++- job-339.sh `f553a7659106b8f09410fd8774549ce6aff6311ec440d85751c3df66e03029df`
++- chain-339.sh `2e4a9c66afa3f4876ab03719f63a75add3f1769eb6289e0878d172a5d1b88a52`
++- seal-339.sh `9594f63f720dd7c1cedb92df539b8282939719c6f5c1dad886c4e7affca5cb92`
++
++**Verdict: PASS for the launch.** The whole chain is present: the pin fbf15e56 is in the repo, the TRAIN mix, panels and claude-322's seal are in the HF store, and claude-322's laptop export matches. A pass unlocks rows 1 to 4u; a fail sends the cell to rows 0a to 0c. The FIT is above; the lease stays inside the caps (4 pods at no more than $0.70/h each against $8/h). L-aC seed 1 goes first; the other three cells start after its I-xg PASS.
++
++## I-xg repair (row 0c)
++
++[claude] 9 Nov 2026. The negative first.
++
++**The first I-xg failed.**
++- **The launch:** L-aC seed 1's first two pods never answered SSH; `uor-pod` deleted each. The third (`vast-59897413`) built, ran the smoke and I-xa's snapshot, and wrote I-xg's snapshot.
++- **The reading:** the laptop's export of that snapshot gave `9b01ed62…`, not `86e51d5e…`. The job stopped before its full run, as the stop rule says, and sealed to `runs/L-aC/s1/` (NOT_RUN: "I-xg, no PASS from the laptop"). The watcher took the pod down.
++
++**Classified: an instrument fault in the export path, not a mechanism result.**
++- **The two snapshots differ in four quantized entries.** The pod's snapshot and claude-322's laptop snapshot of the same checkpoint are equal in every key but `layers`. In `layers`, four quantized entries (8 values) differ, among them one projection's `rec_out` atom (31 for 30) and its state (42 for 7). In the artifacts, four trunk sections differ: `l1.rec_out.fbs`, `l4.mlp_down.fbs`, `l4.rec_out.fbs` and `l5.rec_gate.fbs` (fresh review, finding 3, corrected).
++- **Why:** `fbs-snapshot` loads the model on the GPU (`Device::new_cuda(0)`) and builds the trunk tables from it there. claude-322's served snapshot was built on the laptop by `cpu-fbs-export`. Where two nearest atoms are almost tied, the two hosts' arithmetic can choose differently.
++- **The laptop path reproduces exactly.** `cpu-fbs-export` built at the pin's crates gives claude-322's snapshot `c9fe1d91…` and artifact `86e51d5e…` byte for byte.
++
++**The repair: the laptop snapshot,** with I-xg's bar unchanged.
++- **The tool:** `cpu-fbs-export` refuses an ask checkpoint ("Hamming tensor inventory differs"). So `hamming-base-copy` (new, in this PR) writes a copy of `hamming_read.safetensors` with the base inventory only. It keeps `heads`, `copy_key` or `copy_keys`, and the five reads per depth, byte for byte. It leaves out `carry_rows`, `d{depth}.ask` and `d{depth}.carry`, and refuses any other name.
++- **The splice:** the ask entries come from the pod snapshot. `fbs-snapshot` builds them through `HammingReads::load(dir, &Device::Cpu)`, not on the GPU.
++- **The check:** at every served step (`read-339.sh`'s `laptop_snap`), the pod snapshot's own export must have the same header and the same bytes in every `hamming.*` section as the served artifact, and every served trunk section must equal `cpu-fbs-export`'s own artifact, so the splice touched no trunk number. The count of trunk sections that differ from the pod's is said. The served pair is written under staging names and moved into place only after every check passes, so a refused artifact never sits under the served name, where the `−C` block would read it.
++
++**Shown before any rerun, on the first pod's seals:**
++- **claude-322's checkpoint, with the first pod's real GPU snapshot:** the repaired I-xg passes, `86e51d5e…`, and records the pod path's `9b01ed62…`.
++- **L-aC's smoke `step-000064`** (asks on both reads, carry 32 rows): the served artifact equals the pod path's byte for byte (`c0c2edd4…`), with 0 trunk sections differing. The served snapshot keeps the pod's `hamming_ask` unchanged, and I-xa passes end to end (integer engine scores it, the default refuses it by name).
++  - The pod snapshot's JSON prints its floats through f64 when it carries asks (`serde_json::to_value`). So a `jq` comparison flags every float as different. The artifacts, which read f32, are equal.
++- **The negatives:** a pod snapshot with one base read changed fails the check, at I-xg and at `laptop_snap`.
++- **Tests:** test-read 45/45, test-seal passes; `hamming-base-copy`'s unit test passes. The negative gate: with the trunk check removed, a fake `cpu-fbs-export` that moves one embed number passes, and both its tests fail.
++- **Fresh review** (delegate:reviewer, spec and diff only): PASS with minors. Findings 1 (a refused artifact under the served name), 3 (this section's diagnosis) and 4 (no served-trunk check) are fixed above. Finding 2: `serve` reads one ROOT, so the four seals are fetched into one assembled local root, `ROOT/ARM/sS/oh/run`, with L-aC seed 1 from `runs-2/` and the other three from `runs/`; the NOT_RUN `runs/L-aC/s1` stays sealed and is named in the REPORT. The nits (`UP_FORCE=0` still forces, `seed-339.sh` overwriting `ixg/`) are left: no launch sets either.
++
++**What changes:**
++- `read-339.sh`'s `ixg` mode and every served export (I-xa, the trend, `−C`) use the laptop snapshot. The `−C` cut is taken from the served snapshot of `step-016384`.
++- `seed-339.sh` takes the seal root, so L-aC seed 1 reruns into `runs-2/` (L-002) on a fresh pod, the stop rule's one rerun. It also takes `UP_FORCE=1` for `uor-pod up --force-retry`, after the two SSH failures tripped the circuit breaker.
++- The pod scripts and their pins (job, chain, seal) are unchanged.
++
++**The order is unchanged:** L-aC seed 1 first, and the other three after its I-xg PASS.
++
++**The rerun (9 Nov):** L-aC seed 1 relaunched on `vast-59899989` ($0.563/h), sealing to `runs-2/`. I-xg passed at 14:39:34Z on the repaired path: the new pod's GPU snapshot is byte-identical to the first pod's (`6a424749…`), the pod path again gives `9b01ed62…` (recorded only), and the laptop snapshot gives `86e51d5e…`. L-a seed 1, L-aC seed 2 and L-a seed 2 then launched on three more pods at $0.563/h each, four pods and $2.24/h in all.
++
++**Pins added:**
++- `cpu-fbs-export` `6748a09f4c253d7d0af5144ade990024d373d5d0756b30a2d44895e76bd19865`
++- `hamming-base-copy` `b085a8a7d2f0fabe92ebb3c129f3fd565f63ab58dec0887bef05c856539a9da3`
++- claude-322's checkpoint files, pinned in `ixg` mode.
+diff --git a/docs/loop/tasks/one-model-end-to-end/claude-339/ORDER.md b/docs/loop/tasks/one-model-end-to-end/claude-339/ORDER.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..9a62bb53af202b2fd9fc15aea53ac43647ff78e8
+--- /dev/null
++++ b/docs/loop/tasks/one-model-end-to-end/claude-339/ORDER.md
+@@ -0,0 +1,66 @@
++# ORDER: one-model-end-to-end, claude-339
++
++Lab: claude. Item: [one-model-end-to-end](../../../../roadmap/items/one-model-end-to-end.md) (#3407). Base: `fbf15e56f`.
++
++## Goal
++
++**Train (b64L) on claude-322's TRAIN with the ask heads, the question carry and the found-copy pull, serve it, and score whether replies start to carry the asked value.**
++
++- **Why now.** Recall is the gap after stopping: no trunk puts a rare value from the prompt into its reply.
++  - On the recall task, the ask heads with carry 4 answered at both seeds when pulled at both placements (claude-335, B2-aqC).
++  - claude-337 gave the language trainer the pull at its scored rows. claude-338 made the scorer serve the ask heads and the carry (`--engine integer`).
++- **The risk, named first.** A language window has no question row, so only the scored placement is open to it. On the recall task that placement (B2-aC) passed at seed 2 and failed at seed 1. There it was undertrained and still rising at 16,384 steps (`R_ask` 0.04 to 0.24 in the last 2,048). The prep sheet must say how this run answers that: more steps, a third seed, or a reading that separates "not learned yet" from "not learned".
++
++**The work:**
++1. **A prep sheet:** `docs/harness/prep/one-model-end-to-end-language-carry-2026-11-09.md`. It covers question, arms, readings, bars, the outcome map, instrument checks, steps, cost and stop rule, with a non-author FIT before any pod.
++2. **Arms, on claude-322's (b64L) recipe and TRAIN d3mwcap6:**
++   - **L-aC:** `--hamming-ask 1 --hamming-carry-question 32 --hamming-attract 1`, the pull at the scored rows. The reach is 32, not 4: the sheet's FIT measured the question and header at up to 19 rows before the reply (the sheet's Arms section).
++   - **L-a:** `--hamming-ask 1 --hamming-attract 1`, no carry. This is the no-carry control (L-010).
++   - claude-322's sealed b64L-d3mwcap6 serves as the no-ask line.
++   - Two seeds per arm, unless the sheet's FIT says otherwise.
++3. **The −C cut:** L-aC served without its carry. If no export path drops the carry, the sheet names that as an instrument gap and the cut moves to the float scorer.
++4. **Serving:** `fbs-snapshot`, then `fbs-export --run-config`, then `served-reply-panel --engine integer` at the pin. Also the held-out human-text panels claude-322 read.
++5. **The pre-run review (D67)** before the pods, and a probe ladder: smoke, then the full run.
++
++**Claim check:**
++- **(a) Step:** step 4, one model trained, served and scored end to end, for the recall gap.
++- **(b) What it unblocks:** whether the ask heads and the carry move recall in served replies. That is the outcome map's next step once stopping holds.
++
++**Not in scope, named here:**
++- New mechanisms or new training signals.
++- The CPU port (DeepSeek's lane).
++- A content-readout or turn-memory artifact (claude-338's named limits).
++
++## Cancel probe (run first)
++
++1. No open PR touches the item's files.
++2. claude-338 is merged and verified.
++3. Disk: at least 20 GiB free.
++4. `uor-pod status`: room inside the caps (4 pods, $8/h).
++
++**Result (at claim):** pass.
++- No open PR touches the item's files.
++- claude-338 merged as `fbf15e56f3ab1961b30610893392e7a97fd0ab18` and was verified on fresh `main` (`served-reply-panel` 23 / 0).
++- 27 GiB free.
++- 0 pods running. RTX 5090 offers from $0.563/h.
++- `loop next` offers only DeepSeek's CPU-repair direction, so this ORDER is hand-written under Casey's harness exception, as claude-331 to claude-338 were.
++
++## Files in scope
++
++- `docs/harness/prep/one-model-end-to-end*`
++- `docs/loop/tasks/one-model-end-to-end/**`
++- `docs/research/notebook/float-training.md`
++- `docs/roadmap/items/one-model-end-to-end.md`
++- `docs/labs/one-model-end-to-end/**` (only if an instrument check needs a change)
++- `crates/uor-r4-float-train/src/{fbs_export.rs,in_space_long.rs}` (added 9 Nov for the ask-range repair, the sheet's row 0a)
++
++## Done when
++
++1. The sheet has a FIT and the pre-run review passed.
++2. Every arm ran at both seeds, or the stop rule ended it and the REPORT says where.
++3. Each arm is served and scored on m2-fresh256 with `--engine integer`. The REPORT reads each against the sheet's outcome map, negatives first, as one notebook row.
++4. A fresh exact-head review passes the PR, which merges and is verified on `main`.
++
++## Stop and decide
++
++Nothing waits on Casey (§5.1). A failed instrument check stops the run before the full pods, and the REPORT classifies it as an instrument fault or a mechanism result (L-007).
