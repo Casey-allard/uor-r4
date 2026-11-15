@@ -1,7 +1,7 @@
 //! `train-in-space --data-root DIR --out DIR [--objective sheet|voronoi|nearest|cell] [--steps N]
 //! [--train-split DIR --train-sha256 HEX --train-mask-sha256 HEX] [--train-targets observed|mode:K]
 //! [--batch B] [--eval-every K] [--seed S] [--lr X] [--lr-end X] [--decay-mult X]
-//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--starling-read lorentz|l2 | --prime-route-read 1 | --state-flock-read K] [--vector-read-depth D] [--vector-read-margin X] [--vector-read-credit X] [--served-forward 0|1] [--context N]`
+//! [--retain-rates 0|1] [--fold-scores 0|1] [--reflect-floor 0|1] [--fix-input-table 0|1] [--flock-read K] [--content-read K] [--hamming-read H] [--hamming-copy-key 1|2] [--hamming-copy-latest 0|1] [--opening-read K] [--opening-anchor turn|last] [--prompt-register Q] [--register-picks K] [--register-select learned|all] [--width N] [--type-spin 0|1] [--opening-weight W] [--samples N] [--reply-tokens N] [--micro-batch M] [--profile K] [--time-without-quantizers 0|1] [--fused-quantize 0|1] [--turn-memory K] [--turn-memory-empty 0|1] [--turn-memory-reply 0|1] [--turn-memory-leave-copied 0|1] [--turn-memory-dropout P] [--fbs-arm one-atom|identity|frozen] [--train-as-served 0|1] [--writer-anchor 0|1] [--init-from CHECKPOINT] [--address-memory e8|sign|collapse|token] [--address-band X] [--pair-rows N] [--pair-weight replies|boost] [--starling-read lorentz|l2 | --prime-route-read 1 | --state-flock-read K] [--vector-read-depth D] [--vector-read-margin X] [--vector-read-credit X] [--vector-read-stream-grad 0|1] [--served-forward 0|1] [--context N]`
 //!
 //! `--train-targets mode:K` (K from 1 to 4, claude-296) trains on fixed targets: each scored
 //! TRAIN target becomes the commonest scored token after its last K tokens in the whole split,
@@ -76,9 +76,14 @@
 //! icosian and picks the least zeta phase energy; `--state-flock-read K` averages the K nearest
 //! in mean L1. A margin hinge (`--vector-read-margin`, default 1; weight `--vector-read-credit`,
 //! default 1) credits the best earlier position followed by the row's own next token over every
-//! other. These are float reference reads: one at a time, never with `--init-from`, `--recall`
-//! or `--train-as-served 1`; each checkpoint saves `vector_read.safetensors`, which the export
-//! refuses, and prints a `[vread]` count line.
+//! other; since claude-385 the address reads the stream without its gradient, so the credit
+//! trains the read alone, unless `--vector-read-stream-grad 1`. These are float reference reads:
+//! one at a time, never with `--init-from` or `--train-as-served 1`; each checkpoint saves
+//! `vector_read.safetensors`, which the export refuses, and prints a `[vread]` count line. A
+//! Starling offset starts at the first forward's median nearest earlier distance (claude-385).
+//! Under `--recall` (claude-385) each reading in
+//! `recall.jsonl` adds the read's choices at the scored rows and the held-out hits with the read
+//! cut (`vector_read`).
 //!
 //! `--pair-rows N` (claude-370) adds the pair rows to a training run with `--out`: a table of
 //! learned rows addressed by the exact unordered pairs of different tokens in a user turn. A pair
@@ -399,6 +404,17 @@ fn init_from_applies(init_from: bool, training_with_out: bool) -> Result<()> {
     Ok(())
 }
 
+/// claude-381, claude-385: a vector read is built by a training run with `--out`, the long run or
+/// the recall task; a mode that trains nothing refuses it.
+fn vector_read_applies(read: bool, training_with_out: bool) -> Result<()> {
+    if read && !training_with_out {
+        return Err(FloatTrainError::Invalid(
+            "the vector reads apply to training with --out only".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 /// claude-346: the address memory is built by a training run; scoring reads it from the
 /// checkpoint, so a mode that trains nothing refuses the flags rather than ignore them.
 fn address_applies(address: bool, training_with_out: bool) -> Result<()> {
@@ -419,11 +435,13 @@ struct VectorReadFlags {
     depth: Option<usize>,
     margin: Option<String>,
     credit: Option<String>,
+    stream_grad: Option<bool>,
 }
 
 /// claude-381: at most one of `--starling-read lorentz|l2`, `--prime-route-read 1` and
 /// `--state-flock-read K` names the read; `--vector-read-depth`, `--vector-read-margin` and
-/// `--vector-read-credit` set it and are refused without one.
+/// `--vector-read-credit` set it, and `--vector-read-stream-grad 1` (claude-385) lets the credit
+/// reach the stream under the address; each is refused without a read.
 fn vector_read_arm(flags: &VectorReadFlags) -> Result<Option<VectorReadArm>> {
     let mut kinds = Vec::new();
     match flags.starling.as_deref() {
@@ -463,10 +481,15 @@ fn vector_read_arm(flags: &VectorReadFlags) -> Result<Option<VectorReadArm>> {
     let margin = positive("--vector-read-margin", &flags.margin, DEFAULT_MARGIN)?;
     let credit = positive("--vector-read-credit", &flags.credit, 1.0)?;
     match kinds.as_slice() {
-        [] if flags.depth.is_some() || flags.margin.is_some() || flags.credit.is_some() => {
+        [] if flags.depth.is_some()
+            || flags.margin.is_some()
+            || flags.credit.is_some()
+            || flags.stream_grad.is_some() =>
+        {
             Err(FloatTrainError::Invalid(
-                "--vector-read-depth, --vector-read-margin and --vector-read-credit set a vector \
-                 read; turn one on with --starling-read, --prime-route-read or --state-flock-read"
+                "--vector-read-depth, --vector-read-margin, --vector-read-credit and \
+                 --vector-read-stream-grad set a vector read; turn one on with --starling-read, \
+                 --prime-route-read or --state-flock-read"
                     .to_owned(),
             ))
         }
@@ -482,6 +505,7 @@ fn vector_read_arm(flags: &VectorReadFlags) -> Result<Option<VectorReadArm>> {
                 depth: flags.depth,
                 margin,
                 credit,
+                stream_grad: flags.stream_grad.unwrap_or(false),
             }))
         }
         _ => Err(FloatTrainError::Invalid(
@@ -904,6 +928,7 @@ fn main() -> Result<()> {
             "--vector-read-depth" => vread.depth = Some(number(&value)?),
             "--vector-read-margin" => vread.margin = Some(value.clone()),
             "--vector-read-credit" => vread.credit = Some(value.clone()),
+            "--vector-read-stream-grad" => vread.stream_grad = Some(switch(&value)?),
             "--served-forward" => served_forward = Some(switch(&value)?),
             "--batched-decode" => batched_decode = Some(switch(&value)?),
             "--decode-cache" => decode_cache = switch(&value)?,
@@ -1183,12 +1208,9 @@ fn main() -> Result<()> {
         config.address_memory.is_some() || config.address_band.is_some(),
         modes[7] && recall == 0,
     )?;
-    // claude-381: a vector read is built by a training run, as the address memory is.
-    if config.vector_read.is_some() && !(modes[7] && recall == 0) {
-        return Err(FloatTrainError::Invalid(
-            "the vector reads apply to training with --out only".to_owned(),
-        ));
-    }
+    // claude-381: a vector read is built by a training run, as the address memory is; claude-385
+    // adds the recall task, which trains with `--out` too.
+    vector_read_applies(config.vector_read.is_some(), modes[7])?;
     if config.pair_weight && config.pair_rows.is_none() {
         return Err(FloatTrainError::Invalid(
             "--pair-weight replies weighs the pair rows and wants --pair-rows".to_owned(),
@@ -2407,6 +2429,15 @@ mod tests {
     }
 
     #[test]
+    fn a_vector_read_trains_with_out_and_nowhere_else() {
+        // claude-385: training with `--out` (the long run and `--recall` alike) takes a read.
+        assert!(vector_read_applies(true, true).is_ok());
+        assert!(vector_read_applies(false, false).is_ok());
+        let refused = vector_read_applies(true, false).unwrap_err().to_string();
+        assert!(refused.contains("apply to training with --out only"), "{refused}");
+    }
+
+    #[test]
     fn the_vector_read_flags_name_one_read() {
         let flags = |f: &dyn Fn(&mut VectorReadFlags)| {
             let mut v = VectorReadFlags::default();
@@ -2417,11 +2448,13 @@ mod tests {
         let lorentz = flags(&|v| v.starling = Some("lorentz".to_owned())).unwrap().unwrap();
         assert_eq!(lorentz.kind, VectorReadKind::StarlingLorentz);
         assert_eq!((lorentz.depth, lorentz.margin, lorentz.credit), (None, DEFAULT_MARGIN, 1.0));
+        assert!(!lorentz.stream_grad);
         let l2 = flags(&|v| {
             v.starling = Some("l2".to_owned());
             v.depth = Some(3);
             v.margin = Some("0.5".to_owned());
             v.credit = Some("2".to_owned());
+            v.stream_grad = Some(true);
         })
         .unwrap()
         .unwrap();
@@ -2429,6 +2462,7 @@ mod tests {
             (l2.kind, l2.depth, l2.margin, l2.credit),
             (VectorReadKind::StarlingL2, Some(3), 0.5, 2.0)
         );
+        assert!(l2.stream_grad);
         assert_eq!(
             flags(&|v| v.prime = true).unwrap().unwrap().kind,
             VectorReadKind::PrimeRoute
@@ -2438,8 +2472,9 @@ mod tests {
             VectorReadKind::Flock { neighbours: 4 }
         );
         type Set<'a> = &'a dyn Fn(&mut VectorReadFlags);
-        let refused: [(Set, &str); 7] = [
+        let refused: [(Set, &str); 8] = [
             (&|v| v.starling = Some("cos".to_owned()), "wants lorentz or l2"),
+            (&|v| v.stream_grad = Some(true), "turn one on"),
             (&|v| v.flock = Some(0), "at least one neighbour"),
             (&|v| v.depth = Some(2), "turn one on"),
             (&|v| v.margin = Some("1".to_owned()), "turn one on"),
