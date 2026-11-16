@@ -1676,3 +1676,132 @@ thread_local! {
     /// (claude-194's hook tests). Present in test builds only, and off until a test turns it on.
     pub(super) static LAYER_TRACE: std::cell::RefCell<Option<Vec<Vec<i32>>>> = const { std::cell::RefCell::new(None) };
 }
+#[cfg(test)]
+mod code_index_tests {
+    use super::{nearest, popcount_swar};
+    use std::cell::Cell;
+    use std::collections::BTreeMap;
+
+    /// `key code -> ascending positions`, the exact index the read would keep per head.
+    struct CodeIndex {
+        buckets: BTreeMap<u64, Vec<u32>>,
+        distance_computations: Cell<usize>,
+    }
+
+    impl CodeIndex {
+        fn new() -> Self {
+            CodeIndex {
+                buckets: BTreeMap::new(),
+                distance_computations: Cell::new(0),
+            }
+        }
+
+        fn insert(&mut self, code: u64, position: u32) {
+            self.buckets.entry(code).or_default().push(position);
+        }
+
+        /// The `kept` nearest positions by `(popcount(query XOR code), position)`, the read's tie
+        /// rule. Codes are walked in ascending distance; within one distance, the first `kept`
+        /// positions of each bucket contain the smallest `kept` positions of the group.
+        fn nearest(&self, query: u64, kept: usize) -> Vec<(usize, u32)> {
+            let mut codes: Vec<(u32, u64)> = self
+                .buckets
+                .keys()
+                .map(|&code| (popcount_swar(query ^ code), code))
+                .collect();
+            self.distance_computations
+                .set(self.distance_computations.get() + codes.len());
+            codes.sort_unstable();
+            let mut out: Vec<(usize, u32)> = Vec::with_capacity(kept);
+            let mut index = 0;
+            while index < codes.len() && out.len() < kept {
+                let distance = codes[index].0;
+                let mut group: Vec<u32> = Vec::new();
+                while index < codes.len() && codes[index].0 == distance {
+                    let bucket = &self.buckets[&codes[index].1];
+                    let take = bucket.len().min(kept);
+                    group.extend_from_slice(&bucket[..take]);
+                    index += 1;
+                }
+                group.sort_unstable();
+                for position in group {
+                    if out.len() == kept {
+                        break;
+                    }
+                    out.push((position as usize, distance));
+                }
+            }
+            out
+        }
+    }
+
+    #[test]
+    fn the_index_keeps_the_position_tie_rule() {
+        // Two codes, one at distance 0 and one at distance 1 from the query, with interleaved
+        // positions. The read orders by distance, then by position.
+        let mut index = CodeIndex::new();
+        index.insert(0b0000, 3);
+        index.insert(0b0001, 2);
+        index.insert(0b0000, 1);
+        index.insert(0b0001, 4);
+        let got = index.nearest(0b0000, 4);
+        let want = nearest(0b0000, 5, 4, |s| match s {
+            1 | 3 => 0b0000,
+            2 | 4 => 0b0001,
+            _ => 0,
+        });
+        assert_eq!(got, want);
+        assert_eq!(got, vec![(1, 0), (3, 0), (2, 1), (4, 1)]);
+    }
+
+    #[test]
+    fn the_index_matches_nearest_and_counts_codes_not_positions() {
+        const VOCAB: usize = 256;
+        const LEN: usize = 4096;
+        const KEPT: usize = 16;
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let codes: Vec<u64> = (0..VOCAB).map(|_| next()).collect();
+        let tokens: Vec<u32> = (0..LEN).map(|_| (next() % VOCAB as u64) as u32).collect();
+
+        let mut index = CodeIndex::new();
+        let mut checked = 0usize;
+        let mut positions_total = 0usize;
+        let mut distance_total = 0usize;
+        for t in 1..LEN {
+            // At row `t` the eligible positions are 1 through t-1, whose keys are x_0 through
+            // x_{t-2}.
+            if t >= 2 {
+                index.insert(codes[tokens[t - 2] as usize], (t - 1) as u32);
+            }
+            if t % 16 != 0 {
+                continue;
+            }
+            let query = next();
+            let want = nearest(query, t, KEPT, |s| codes[tokens[s - 1] as usize]);
+            let before = index.distance_computations.get();
+            let got = index.nearest(query, KEPT);
+            let after = index.distance_computations.get();
+            assert_eq!(got, want, "row {t}");
+            checked += 1;
+            distance_total += after - before;
+            positions_total += t - 1;
+        }
+        let average_distance = distance_total as f64 / checked as f64;
+        let average_positions = positions_total as f64 / checked as f64;
+        eprintln!(
+            "code index: {checked} rows, kept {KEPT}; distance computations {average_distance:.1} vs positions {average_positions:.1} ({:.1}x fewer)",
+            average_positions / average_distance
+        );
+        assert!(checked > 200);
+        assert!(
+            average_distance * 8.0 < average_positions,
+            "the index is not examining fewer candidates than positions"
+        );
+    }
+}
