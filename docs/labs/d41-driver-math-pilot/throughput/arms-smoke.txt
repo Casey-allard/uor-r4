@@ -1,0 +1,7 @@
+# Smoke: the head client against llama-server, 4 prompts each, --parallel 1 (instrument check, not corpus).
+smoke-seq|-np 32 -c 131072|--mode seq
+smoke-n4|-np 32 -c 131072|--mode n4
+smoke-gn3|-np 32 -c 131072|--mode g-n3
+smoke-notok|-np 32 -c 131072|--mode seq --tokenize 0
+smoke-short|-np 32 -c 131072|--mode seq --system-file /workspace/d41/in398/short-system.txt
+smoke-bs|-np 32 -c 131072 --backend-sampling|--mode seq

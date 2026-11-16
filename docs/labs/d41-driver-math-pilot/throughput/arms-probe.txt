@@ -1,0 +1,17 @@
+# Timed arms, 300 s dispatch windows each, from the start of the pilot's prompt set (sheet d41-donor-throughput-2026-11-15).
+# Each lever is measured on its own against A0, the pilot's settings re-measured with the head client.
+A0-base|-np 32 -c 131072|--mode seq --parallel 32
+A4-short-system|-np 32 -c 131072|--mode seq --parallel 32 --system-file /workspace/d41/in398/short-system.txt
+A5-no-tokenize|-np 32 -c 131072|--mode seq --parallel 32 --tokenize 0
+A6-n4|-np 32 -c 131072|--mode n4 --parallel 16
+A7-g-n3|-np 32 -c 131072|--mode g-n3 --parallel 16
+smoke-final|-np 32 -c 131072|--mode final
+A9-final-prefill|-np 32 -c 131072|--mode final --parallel 32
+smoke-temp|-np 32 -c 131072 --samplers temperature|--mode seq
+A8a-samplers-temperature|-np 32 -c 131072 --samplers temperature|--mode seq --parallel 32
+smoke-temp-bs|-np 32 -c 131072 --samplers temperature --backend-sampling|--mode seq
+A8b-backend-sampling|-np 32 -c 131072 --samplers temperature --backend-sampling|--mode seq --parallel 32
+A1-np64|-np 64 -c 131072|--mode seq --parallel 64
+A2-np64-big-batch|-np 64 -c 131072 -b 4096 -ub 1024|--mode seq --parallel 64
+A3-np128-big-batch|-np 128 -c 262144 -b 8192 -ub 2048|--mode seq --parallel 128
+A0-repeat|-np 32 -c 131072|--mode seq --parallel 32

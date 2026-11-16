@@ -1,8 +1,10 @@
 //! `d41-pilot`: the D41/D86 donor pilot's client.
 //!
 //!   d41-pilot prompts  --seed S --count N --panels DIR --out FILE
-//!   d41-pilot generate --server URL --prompts FILE --out DIR --budget TOKENS
+//!   d41-pilot generate --server URL --prompts FILE --out DIR --budget TOKENS --instrument-commit SHA
 //!                      [--parallel P] [--seed S] [--max-tokens M] [--shard-records R] [--max-seconds T]
+//!                      [--mode seq|n4|g-n3|final] [--tokenize 0|1] [--system-file FILE]
+//!   d41-pilot count    --server URL --dir DIR
 //!   d41-pilot seal     --dir DIR --model FILE --machine FILE --engine FILE
 //!   d41-pilot verify   --dir DIR
 //!
@@ -151,14 +153,11 @@ fn cmd_prompts(m: &BTreeMap<String, String>) -> Res<()> {
     Ok(())
 }
 
-/// One answer request's outcome.
+/// One answer's outcome (one choice of a reply).
 struct Answer {
     text: Option<String>,
     truncated: bool,
     markup: bool,
-    completion_tokens: u64,
-    prompt_tokens: u64,
-    millis: u64,
 }
 
 fn post(agent: &ureq::Agent, url: &str, body: &Value) -> Res<Value> {
@@ -178,38 +177,156 @@ fn post(agent: &ureq::Agent, url: &str, body: &Value) -> Res<Value> {
     Err(format!("POST {url} failed 4 times: {last}"))
 }
 
+/// One HTTP request's outcome: its `n` answers (one per choice) and its token usage.
+struct Reply {
+    answers: Vec<Answer>,
+    completion_tokens: u64,
+    prompt_tokens: u64,
+    millis: u64,
+}
+
+/// How a prompt's four answers are requested.
+#[derive(Clone, Copy, PartialEq)]
+enum Mode {
+    /// Four requests: one greedy, then three sampled (the pilot's plan).
+    Seq,
+    /// One request with `n` = 4, all sampled at temperature 1 (no greedy answer).
+    N4,
+    /// One greedy request, then one request with `n` = 3 sampled at temperature 1.
+    GreedyN3,
+    /// The pilot's four requests, sent raw to `/completion` with the assistant turn
+    /// pre-filled up to the final channel, so the analysis channel is skipped.
+    Final,
+}
+
+/// The pre-fill `final` mode appends to the rendered prompt, which ends at the assistant turn.
+const FINAL_PREFILL: &str = "<|channel|>final<|message|>";
+const ASSISTANT_START: &str = "<|start|>assistant";
+
+impl Mode {
+    fn parse(s: &str) -> Res<Mode> {
+        match s {
+            "seq" => Ok(Mode::Seq),
+            "n4" => Ok(Mode::N4),
+            "g-n3" => Ok(Mode::GreedyN3),
+            "final" => Ok(Mode::Final),
+            other => Err(format!("--mode {other}: expected seq, n4, g-n3 or final")),
+        }
+    }
+    fn name(self) -> &'static str {
+        match self {
+            Mode::Seq => "seq",
+            Mode::N4 => "n4",
+            Mode::GreedyN3 => "g-n3",
+            Mode::Final => "final",
+        }
+    }
+    /// The requests for prompt index `idx`: (temperature, n, seed offset from base + 4*idx).
+    /// llama.cpp seeds child completion k of an `n` request with seed + k, so `g-n3` gives
+    /// the same seed per answer as `seq`, and `n4` the same seeds with alt 0 sampled.
+    fn plan(self) -> &'static [(u64, u64, u64)] {
+        match self {
+            Mode::Seq | Mode::Final => &[(0, 1, 0), (1, 1, 1), (1, 1, 2), (1, 1, 3)],
+            Mode::N4 => &[(1, 4, 0)],
+            Mode::GreedyN3 => &[(0, 1, 0), (1, 3, 1)],
+        }
+    }
+}
+
 fn ask(
     agent: &ureq::Agent,
     server: &str,
     messages: &Value,
-    alt: usize,
+    temperature: u64,
+    n: u64,
     seed: u32,
     max_tokens: u64,
-) -> Res<Answer> {
+) -> Res<Reply> {
     // JSON integers: the engine reads them as the same sampling values (0 greedy, 1 as released).
-    let temperature: u64 = if alt == 0 { 0 } else { 1 };
-    let body = json!({"model": "donor", "messages": messages, "max_tokens": max_tokens,
+    let mut body = json!({"model": "donor", "messages": messages, "max_tokens": max_tokens,
         "temperature": temperature, "top_p": 1, "top_k": 0, "min_p": 0, "seed": seed,
         "chat_template_kwargs": {"reasoning_effort": "low"}, "stream": false});
+    if n > 1 {
+        body["n"] = json!(n);
+    }
     let t = Instant::now();
     let v = post(agent, &format!("{server}/v1/chat/completions"), &body)?;
     let millis = t.elapsed().as_millis() as u64;
-    let choice = &v["choices"][0];
-    let content = choice["message"]["content"]
+    let choices = v["choices"].as_array().cloned().unwrap_or_default();
+    if choices.len() as u64 != n {
+        return Err(format!("asked for {n} choices, got {}", choices.len()));
+    }
+    let answers = choices
+        .iter()
+        .map(|choice| {
+            let content = choice["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
+            let truncated = choice["finish_reason"].as_str() != Some("stop");
+            let markup = has_markup(&content);
+            let keep = !truncated && !markup && !content.trim().is_empty();
+            Answer {
+                text: keep.then_some(content),
+                truncated,
+                markup,
+            }
+        })
+        .collect();
+    Ok(Reply {
+        answers,
+        completion_tokens: v["usage"]["completion_tokens"].as_u64().unwrap_or(0),
+        prompt_tokens: v["usage"]["prompt_tokens"].as_u64().unwrap_or(0),
+        millis,
+    })
+}
+
+/// The engine's own rendering of the chat prompt (the same body `ask` sends), with the
+/// assistant turn pre-filled up to the final channel.
+fn render_final(agent: &ureq::Agent, server: &str, messages: &Value) -> Res<String> {
+    let body = json!({"model": "donor", "messages": messages,
+        "chat_template_kwargs": {"reasoning_effort": "low"}});
+    let v = post(agent, &format!("{server}/apply-template"), &body)?;
+    let prompt = v["prompt"]
         .as_str()
-        .unwrap_or("")
-        .to_string();
-    let truncated = choice["finish_reason"].as_str() != Some("stop");
+        .ok_or("apply-template: no prompt string")?;
+    if !prompt.ends_with(ASSISTANT_START) {
+        return Err(
+            "apply-template: the rendered prompt does not end at the assistant turn".into(),
+        );
+    }
+    Ok(format!("{prompt}{FINAL_PREFILL}"))
+}
+
+/// One raw `/completion` request on a pre-filled prompt, with the same sampling values as `ask`.
+/// An answer is finished when the engine stopped on an end-of-generation token or a stop word.
+fn ask_raw(
+    agent: &ureq::Agent,
+    server: &str,
+    prompt: &str,
+    temperature: u64,
+    seed: u32,
+    max_tokens: u64,
+) -> Res<Reply> {
+    let body = json!({"prompt": prompt, "n_predict": max_tokens,
+        "temperature": temperature, "top_p": 1, "top_k": 0, "min_p": 0, "seed": seed,
+        "cache_prompt": true, "stream": false});
+    let t = Instant::now();
+    let v = post(agent, &format!("{server}/completion"), &body)?;
+    let millis = t.elapsed().as_millis() as u64;
+    let content = v["content"].as_str().unwrap_or("").to_string();
+    let stop = v["stop_type"].as_str().unwrap_or("none");
+    let truncated = stop != "eos" && stop != "word";
     let markup = has_markup(&content);
-    let completion_tokens = v["usage"]["completion_tokens"].as_u64().unwrap_or(0);
-    let prompt_tokens = v["usage"]["prompt_tokens"].as_u64().unwrap_or(0);
     let keep = !truncated && !markup && !content.trim().is_empty();
-    Ok(Answer {
-        text: keep.then_some(content),
-        truncated,
-        markup,
-        completion_tokens,
-        prompt_tokens,
+    Ok(Reply {
+        answers: vec![Answer {
+            text: keep.then_some(content),
+            truncated,
+            markup,
+        }],
+        completion_tokens: v["tokens_predicted"].as_u64().unwrap_or(0),
+        prompt_tokens: v["tokens_evaluated"].as_u64().unwrap_or(0),
         millis,
     })
 }
@@ -226,9 +343,23 @@ fn count_tokens(agent: &ureq::Agent, server: &str, text: &str) -> Res<u64> {
         .ok_or_else(|| "tokenize: no tokens array".into())
 }
 
+/// The prompt's messages with the system message's content replaced by `text`.
+fn with_system(messages: &Value, text: &str) -> Value {
+    let mut out = messages.clone();
+    if let Some(arr) = out.as_array_mut() {
+        for msg in arr.iter_mut() {
+            if msg["role"] == "system" {
+                msg["content"] = json!(text);
+            }
+        }
+    }
+    out
+}
+
 #[derive(Default)]
 struct Tally {
     requests: u64,
+    answers_returned: u64,
     truncated: u64,
     markup: u64,
     tokenize_errors: u64,
@@ -239,6 +370,10 @@ struct Tally {
     distinct: [u64; 5],
     millis: Vec<u64>,
     by_kind: BTreeMap<String, (u64, u64)>,
+    window_generated: u64,
+    window_prompts: u64,
+    window_kept_tokens: u64,
+    window_ids: Vec<Value>,
 }
 
 fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
@@ -252,9 +387,27 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
     let shard_records: usize = num(m, "shard-records", 512)?;
     // The sheet's hard stop: no new prompt is dispatched after this many seconds.
     let max_seconds: u64 = num(m, "max-seconds", 10_800)?;
+    let window_ms = max_seconds * 1000;
     if budget == 0 || parallel == 0 || shard_records == 0 {
         return Err("--budget, --parallel and --shard-records must be positive".into());
     }
+    // The client commit goes into run.json, and so into the receipt.
+    let instrument_commit = need(m, "instrument-commit")?.to_string();
+    if instrument_commit.len() != 40 || !instrument_commit.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("--instrument-commit must be a full 40-hex commit".into());
+    }
+    let mode = Mode::parse(m.get("mode").map(String::as_str).unwrap_or("seq"))?;
+    // --tokenize 0 skips the per-answer /tokenize call; `count` then tokenizes afterwards.
+    let tokenize = num::<u64>(m, "tokenize", 1)? != 0;
+    // --system-file FILE replaces the system message with the file's text, trailing newline trimmed.
+    let system: Option<String> = match m.get("system-file") {
+        Some(p) => Some(
+            String::from_utf8_lossy(&read(Path::new(p))?)
+                .trim_end()
+                .to_string(),
+        ),
+        None => None,
+    };
     fs::create_dir_all(&out).map_err(|e| format!("mkdir {}: {e}", out.display()))?;
     let prompt_bytes = read(&prompts_path)?;
     let set: Vec<Value> = String::from_utf8_lossy(&prompt_bytes)
@@ -271,7 +424,7 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
     let t0 = Instant::now();
     let mut handles = Vec::new();
     for _ in 0..parallel {
-        let (set, next, generated, results, tally, errors, server) = (
+        let (set, next, generated, results, tally, errors, server, system) = (
             set.clone(),
             next.clone(),
             generated.clone(),
@@ -279,6 +432,7 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
             tally.clone(),
             errors.clone(),
             server.clone(),
+            system.clone(),
         );
         handles.push(std::thread::spawn(move || {
             let agent: ureq::Agent =
@@ -292,26 +446,48 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
                     break;
                 }
                 let p = &set[idx];
+                let messages = match &system {
+                    Some(text) => with_system(&p["messages"], text),
+                    None => p["messages"].clone(),
+                };
                 let mut texts = Vec::new();
                 let mut failed = None;
-                for alt in 0..4usize {
-                    let s = (seed.wrapping_add(idx as u64 * 4 + alt as u64) & 0xFFFF_FFFF) as u32;
-                    match ask(&agent, &server, &p["messages"], alt, s, max_tokens) {
-                        Ok(a) => {
-                            generated.fetch_add(a.completion_tokens, Ordering::SeqCst);
+                // `final` mode: render the prompt once, then pre-fill the final channel.
+                let raw = if mode == Mode::Final {
+                    match render_final(&agent, &server, &messages) {
+                        Ok(r) => Some(r),
+                        Err(e) => {
+                            errors.lock().unwrap_or_else(|e| e.into_inner()).push(format!("{idx}: {e}"));
+                            continue;
+                        }
+                    }
+                } else {
+                    None
+                };
+                for &(temperature, n, off) in mode.plan() {
+                    let s = (seed.wrapping_add(idx as u64 * 4 + off) & 0xFFFF_FFFF) as u32;
+                    let reply = match &raw {
+                        Some(prompt) => ask_raw(&agent, &server, prompt, temperature, s, max_tokens),
+                        None => ask(&agent, &server, &messages, temperature, n, s, max_tokens),
+                    };
+                    match reply {
+                        Ok(r) => {
+                            generated.fetch_add(r.completion_tokens, Ordering::SeqCst);
                             let mut t = tally.lock().unwrap_or_else(|e| e.into_inner());
                             t.requests += 1;
-                            t.truncated += a.truncated as u64;
-                            t.markup += a.markup as u64;
-                            t.prompt_tokens += a.prompt_tokens;
-                            t.millis.push(a.millis);
+                            t.answers_returned += r.answers.len() as u64;
+                            t.truncated += r.answers.iter().filter(|a| a.truncated).count() as u64;
+                            t.markup += r.answers.iter().filter(|a| a.markup).count() as u64;
+                            t.prompt_tokens += r.prompt_tokens;
+                            t.millis.push(r.millis);
+                            if t0.elapsed().as_millis() as u64 <= window_ms {
+                                t.window_generated += r.completion_tokens;
+                            }
                             let kind = p["kind"].as_str().unwrap_or("?").to_string();
                             let row = t.by_kind.entry(kind).or_default();
-                            row.1 += a.completion_tokens;
+                            row.1 += r.completion_tokens;
                             drop(t);
-                            if let Some(x) = a.text {
-                                texts.push(x);
-                            }
+                            texts.extend(r.answers.into_iter().filter_map(|a| a.text));
                         }
                         Err(e) => {
                             failed = Some(e);
@@ -326,10 +502,12 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
                 let answers = canonical_answers(&texts);
                 let mut kept_tokens = 0u64;
                 let mut tokenize_failed = 0u64;
-                for a in &answers {
-                    match count_tokens(&agent, &server, a) {
-                        Ok(n) => kept_tokens += n,
-                        Err(_) => tokenize_failed += 1,
+                if tokenize {
+                    for a in &answers {
+                        match count_tokens(&agent, &server, a) {
+                            Ok(n) => kept_tokens += n,
+                            Err(_) => tokenize_failed += 1,
+                        }
                     }
                 }
                 let mut t = tally.lock().unwrap_or_else(|e| e.into_inner());
@@ -337,6 +515,15 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
                 t.kept_tokens += kept_tokens;
                 t.tokenize_errors += tokenize_failed;
                 t.kept_bytes += answers.iter().map(|a| a.len() as u64).sum::<u64>();
+                // The bar's rate counts only prompts whose record was complete inside the
+                // dispatch window, so the in-flight tail after it does not enter the rate.
+                if t0.elapsed().as_millis() as u64 <= window_ms {
+                    t.window_prompts += 1;
+                    t.window_kept_tokens += kept_tokens;
+                    if !answers.is_empty() {
+                        t.window_ids.push(p["id"].clone());
+                    }
+                }
                 let kind = p["kind"].as_str().unwrap_or("?").to_string();
                 let row = t.by_kind.entry(kind).or_default();
                 row.0 += 1;
@@ -345,7 +532,7 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
                     continue;
                 }
                 drop(t);
-                let rec = json!({"id": p["id"], "kind": p["kind"], "messages": p["messages"], "answers": answers});
+                let rec = json!({"id": p["id"], "kind": p["kind"], "messages": messages, "answers": answers});
                 results.lock().unwrap_or_else(|e| e.into_inner()).insert(idx, rec);
             }
         }));
@@ -385,10 +572,17 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
     // Rates in thousandths of a token per second, so every recorded number is an integer.
     let metrics = json!({
         "wall_ms": wall_ms, "prompts_dispatched": dispatched, "records_kept": recs.len(),
-        "requests": t.requests, "generated_tokens": gen, "prompt_tokens": t.prompt_tokens,
+        "requests": t.requests, "answers_returned": t.answers_returned, "kept_answers_counted": tokenize,
+        "generated_tokens": gen, "prompt_tokens": t.prompt_tokens,
         "generated_millitokens_per_second": gen * 1_000_000 / wall_ms,
         "kept_answer_tokens": t.kept_tokens, "kept_answer_bytes": t.kept_bytes,
         "kept_answer_millitokens_per_second": t.kept_tokens * 1_000_000 / wall_ms,
+        "window": {"ms": window_ms, "tail_ms": wall_ms.saturating_sub(window_ms),
+            "rule": "counts requests and prompts that finished within ms of the start",
+            "prompts_finished": t.window_prompts, "generated_tokens": t.window_generated,
+            "kept_answer_tokens": t.window_kept_tokens,
+            "generated_millitokens_per_second": t.window_generated * 1_000_000 / window_ms.max(1),
+            "kept_answer_millitokens_per_second": t.window_kept_tokens * 1_000_000 / window_ms.max(1)},
         "truncated_answers": t.truncated, "markup_answers": t.markup, "tokenize_errors": t.tokenize_errors, "prompts_with_no_answer": t.empty_prompts,
         "prompts_by_distinct_answers": {"0": t.distinct[0], "1": t.distinct[1], "2": t.distinct[2], "3": t.distinct[3], "4": t.distinct[4]},
         "request_ms": {"p50": q(50), "p95": q(95), "max": t.millis.last()},
@@ -401,11 +595,16 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
         "prompts_file": prompts_path.file_name().and_then(|s| s.to_str()), "prompts_sha256": sha256_hex(&prompt_bytes),
         "prompts_in_set": set.len(), "prompts_dispatched": dispatched,
         "stop_rule": format!("stop dispatching once generated tokens >= {budget} or {max_seconds} s have passed; finish prompts in flight"), "stopped_by_time": wall_ms >= max_seconds * 1000,
+        "instrument_commit": instrument_commit,
         "parallel_requests": parallel, "shard_records": shard_records,
+        "request_mode": mode.name(),
+        "requests_per_prompt": mode.plan().iter().map(|&(t, n, off)| json!({"temperature": t, "n": n, "seed_offset": off})).collect::<Vec<_>>(),
+        "system_message_replaced": system.is_some(), "system_message": system,
         "sampling": {
             "answers_per_prompt": 4,
-            "alt_0": {"temperature": 0, "note": "greedy"},
+            "alt_0": if mode == Mode::N4 { json!({"temperature": 1, "note": "sampled: n4 mode has no greedy answer"}) } else { json!({"temperature": 0, "note": "greedy"}) },
             "alt_1_to_3": {"temperature": 1, "top_p": 1, "top_k": 0, "min_p": 0},
+            "n_seed_rule": "llama.cpp seeds child completion k (k = 1..n-1) of an n request with seed + k",
             "max_tokens": max_tokens, "reasoning_effort": "low",
             "seed_rule": format!("seed(alt a of prompt index i) = ({seed} + 4*i + a) mod 2^32"),
             "base_seed": seed,
@@ -425,10 +624,66 @@ fn cmd_generate(m: &BTreeMap<String, String>) -> Res<()> {
             .map_err(|e| e.to_string())?
             .as_bytes(),
     )?;
+    // The ids of the kept records that finished inside the window, for `count`.
+    let window = json!({"ms": window_ms, "ids": t.window_ids});
+    write(&out.join("window.json"), window.to_string().as_bytes())?;
     println!("{metrics}");
     if recs.is_empty() {
         return Err("no record kept".into());
     }
+    Ok(())
+}
+
+/// `count`: tokenize the kept answers of a finished `generate` directory, outside its
+/// timed window, for a run made with `--tokenize 0`. Writes `count.json`.
+fn cmd_count(m: &BTreeMap<String, String>) -> Res<()> {
+    let server = need(m, "server")?.trim_end_matches('/').to_string();
+    let dir = PathBuf::from(need(m, "dir")?);
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(120)))
+        .build()
+        .into();
+    // Prompts that finished inside the generate window (window.json), when present.
+    let window_ids: Option<Vec<Value>> = match read_json(&dir.join("window.json")) {
+        Ok(w) => w["ids"].as_array().cloned(),
+        Err(_) => None,
+    };
+    let (mut records, mut answers, mut tokens, mut bytes, mut errors, mut window_tokens) =
+        (0u64, 0u64, 0u64, 0u64, 0u64, 0u64);
+    for p in shard_paths(&dir)? {
+        for line in String::from_utf8_lossy(&read(&p)?).lines() {
+            let v: Value =
+                serde_json::from_str(line).map_err(|e| format!("{}: {e}", p.display()))?;
+            records += 1;
+            let in_window = window_ids
+                .as_ref()
+                .is_some_and(|ids| ids.contains(&v["id"]));
+            for a in v["answers"].as_array().into_iter().flatten() {
+                let text = a.as_str().ok_or("an answer is not a string")?;
+                answers += 1;
+                bytes += text.len() as u64;
+                match count_tokens(&agent, &server, text) {
+                    Ok(n) => {
+                        tokens += n;
+                        if in_window {
+                            window_tokens += n;
+                        }
+                    }
+                    Err(_) => errors += 1,
+                }
+            }
+        }
+    }
+    let out = json!({"records": records, "answers": answers, "kept_answer_tokens": tokens,
+        "kept_answer_bytes": bytes, "tokenize_errors": errors,
+        "window_kept_answer_tokens": window_ids.as_ref().map(|_| window_tokens)});
+    write(
+        &dir.join("count.json"),
+        serde_json::to_string_pretty(&out)
+            .map_err(|e| e.to_string())?
+            .as_bytes(),
+    )?;
+    println!("{out}");
     Ok(())
 }
 
@@ -580,14 +835,50 @@ fn main() {
         Some((cmd, rest)) => args_map(rest).and_then(|m| match cmd.as_str() {
             "prompts" => cmd_prompts(&m),
             "generate" => cmd_generate(&m),
+            "count" => cmd_count(&m),
             "seal" => cmd_seal(&m),
             "verify" => cmd_verify(&m),
             other => Err(format!("unknown command {other}")),
         }),
-        None => Err("usage: d41-pilot prompts|generate|seal|verify --flag value ...".into()),
+        None => Err("usage: d41-pilot prompts|generate|count|seal|verify --flag value ...".into()),
     };
     if let Err(e) = res {
         eprintln!("d41-pilot: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Each answer's (temperature, seed offset) once `n` requests are expanded, as
+    /// llama.cpp seeds child completion k with seed + k.
+    fn per_answer(mode: Mode) -> Vec<(u64, u64)> {
+        mode.plan()
+            .iter()
+            .flat_map(|&(t, n, off)| (0..n).map(move |k| (t, off + k)))
+            .collect()
+    }
+
+    #[test]
+    fn every_mode_asks_four_answers_with_the_pilot_seeds() {
+        for mode in [Mode::Seq, Mode::N4, Mode::GreedyN3, Mode::Final] {
+            let seeds: Vec<u64> = per_answer(mode).iter().map(|a| a.1).collect();
+            assert_eq!(seeds, vec![0, 1, 2, 3], "{}", mode.name());
+        }
+        // g-n3 keeps the pilot's plan answer for answer; n4 samples alt 0.
+        assert_eq!(per_answer(Mode::GreedyN3), per_answer(Mode::Seq));
+        assert_eq!(per_answer(Mode::Final), per_answer(Mode::Seq));
+        assert_eq!(per_answer(Mode::N4)[0], (1, 0));
+        assert!(Mode::parse("n5").is_err());
+    }
+
+    #[test]
+    fn with_system_replaces_only_the_system_message() {
+        let m = json!([{"role": "system", "content": "long"}, {"role": "user", "content": "hi"}]);
+        let r = with_system(&m, "short");
+        assert_eq!(r[0]["content"], "short");
+        assert_eq!(r[1], m[1]);
     }
 }
