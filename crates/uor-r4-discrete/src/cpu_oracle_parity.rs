@@ -37,7 +37,7 @@ fn samples() -> Vec<CpuDiscreteProposalSample> {
     out
 }
 
-fn windows(samples: &[CpuDiscreteProposalSample]) -> Vec<Vec<Identity>> {
+pub(crate) fn windows(samples: &[CpuDiscreteProposalSample]) -> Vec<Vec<Identity>> {
     samples
         .iter()
         .map(|s| {
@@ -61,7 +61,7 @@ fn device(read: ReadSpec) -> Device {
     device_with(SPEC, read, SEED)
 }
 
-fn device_with(spec: Spec, read: ReadSpec, seed: u32) -> Device {
+pub(crate) fn device_with(spec: Spec, read: ReadSpec, seed: u32) -> Device {
     let init = match read {
         ReadSpec::Route => ReadInitialization::ZeroGatesV1,
         _ => ReadInitialization::ActiveLeafV1,
@@ -580,13 +580,13 @@ fn cuda_parity_catches_one_planted_fault_per_step() {
 // committed steps. `#[ignore]`: it needs a GPU and `UOR_STUDENT_STREAM`, the
 // folder holding `tokens.u16` and `response_mask.u8`.
 
-const STUDENT_SPEC: Spec = Spec {
+pub(crate) const STUDENT_SPEC: Spec = Spec {
     vocabulary: 4096,
     blocks: 4,
     context: 192,
     kept_cells: 8,
 };
-const STUDENT_SEED: u32 = 1;
+pub(crate) const STUDENT_SEED: u32 = 1;
 const STUDENT_ROWS: u32 = 64;
 const STUDENT_READS: [ReadSpec; 2] = [ReadSpec::Route, ReadSpec::Flock { kept: 8 }];
 /// Parameters per progress line.
@@ -598,17 +598,17 @@ const STUDENT_READ_PARAMETERS: usize = 16;
 /// The batch's first distinct target tokens whose vector blocks are listed.
 const STUDENT_TARGET_TOKENS: usize = 8;
 
-struct StudentBatch {
-    rows: Vec<CpuDiscreteProposalSample>,
+pub(crate) struct StudentBatch {
+    pub(crate) rows: Vec<CpuDiscreteProposalSample>,
     /// The corpus windows with their real identities (absolute positions,
     /// document records), as the driver would carry them.
-    corpus_windows: Vec<Vec<Identity>>,
-    pins: String,
+    pub(crate) corpus_windows: Vec<Vec<Identity>>,
+    pub(crate) pins: String,
 }
 
 /// One 64-row batch from the middle of the stream's eligible targets, through
 /// the driver's own `PreparedCorpus` admission (UORT header, binary mask, BOS).
-fn student_batch() -> StudentBatch {
+pub(crate) fn student_batch() -> StudentBatch {
     use crate::corpus::{sha256, BosIdentity, CorpusSource, FilePin, PreparedCorpus, Split};
     let dir = std::path::PathBuf::from(
         std::env::var("UOR_STUDENT_STREAM")
