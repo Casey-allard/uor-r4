@@ -16,6 +16,7 @@ use crate::place_asks::{AsksIndex, PlaceAsks};
 
 use super::format::{Container, StackHamming, HAMMING_WEIGHT_EXP};
 use super::kernels::{stack_div_u64, stack_hamilton, NORM_FINE_EXP, RESIDUAL_EXP};
+use super::read_out::ReadOut;
 use super::session::{stack_rotation, GATE_EPSILON};
 use super::StackError;
 
@@ -406,6 +407,18 @@ impl CopyHeads {
         nearest(self.query_at(tokens, t, h), t, self.kept, |s| self.key_at(tokens, s, h))
     }
 
+    /// The chosen positions and their Q31 margin weights, in the common `ReadOut` shape.
+    pub fn read_out(&self, h: usize, tokens: &[u32]) -> ReadOut {
+        let chosen = self.choose(h, tokens);
+        let weights: Vec<i128> = chosen
+            .iter()
+            .map(|&(_, distance)| {
+                i128::from(copy_weight_q31(self.margins[h], distance))
+            })
+            .collect();
+        ReadOut::selection(&chosen, weights)
+    }
+
     /// The positions [`Self::mean`] reads for head `h`, with the codes `force` names in place of
     /// the computed ones (Q5's forced replay, claude-249): the row's query, and each candidate
     /// `s`'s key. The positions are picked by the head's [`CopyRule`], as the served read picks
@@ -608,6 +621,30 @@ mod copy_rule_tests {
     }
 
     const FULL: i128 = 1 << 31;
+
+    #[test]
+    fn a_copy_head_read_out_is_its_choice_with_margin_weights() {
+        let (heads, _table) = heads(2, CopyRule::Mean);
+        let tokens = [0u32, 1, 2, 3];
+        let out = heads.read_out(0, &tokens);
+        let chosen = heads.choose(0, &tokens);
+        assert_eq!(
+            out.support,
+            chosen
+                .iter()
+                .map(|&(position, _)| position as u16)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(out.weights_q31.len(), chosen.len());
+        for (&(_, distance), &weight) in chosen.iter().zip(&out.weights_q31) {
+            assert_eq!(
+                weight,
+                i128::from(super::copy_weight_q31(heads.margins[0], distance))
+            );
+        }
+        assert!(out.payload.is_none());
+        assert_eq!(out.check(), Ok(()));
+    }
 
     #[test]
     fn the_names_round_trip() {
