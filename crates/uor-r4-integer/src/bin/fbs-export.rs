@@ -52,6 +52,12 @@
 //! `uor-r4.lut-stack/11`, a research schema with no stack contract: it is exported with
 //! `--legacy-artifact` only.
 //!
+//! `--pair-rows ROWS` (claude-384) adds the pair rows of a run trained with `--pair-rows`, by the
+//! same rule: `fbs-snapshot` writes `OUT_JSON.pair-rows` and names it under `pair_rows`, the note
+//! and the file come together, and the rows are added last. The artifact is then
+//! `uor-r4.lut-stack/15`, exported with `--legacy-artifact` only. An address table and pair rows
+//! are not exported together.
+//!
 //! It parses the artifact back before writing it, never replaces or leaves a
 //! partial `OUT_PATH` (`fbs_snapshot::write_new_file`), and prints its sha256.
 //! New exports bind the exact artifact identity under schema
@@ -84,15 +90,16 @@ use uor_r4_integer::fbs_snapshot::{
     quantize_hamming_ask, run_readout_nearest, write_new_file, FbsHammingAskRead, PlaceImage,
     FBS_HAMMING_ASK_KEY, FBS_HAMMING_PLACE_KEY,
 };
+use uor_r4_integer::fbs_pair_rows::{FbsPairRowsNote, PairRowsImage, FBS_PAIR_ROWS_KEY};
 use uor_r4_integer::stack::{
-    add_address_uorlut01, add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
+    add_address_uorlut01, add_pair_rows_uorlut01, add_hamming_ask_uorlut01, add_hamming_place_uorlut01, add_point_key_uorlut01, build_point_key, check_point_key_read_back,
     export_fbs_trunk_uorlut01_with_provenance, point_key_windows, set_hamming_copy_latest_uorlut01,
     set_hamming_copy_longest_uorlut01,
     AskImage, FbsExportProvenance, FbsExportSnaps, FbsTrunkSnapshot, IntegerStackModel,
     StackContractProvenance, POINT_KEY_BOS, POINT_KEY_WINDOW,
 };
 
-const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] --stack-contract TOML --stack-contract-semantic-blake3 HEX --tokenizer TOKENIZER_JSON [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --legacy-artifact [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] [--address-rows ROWS] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--legacy-artifact] [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
+const USAGE: &str = "usage: fbs-export [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] --stack-contract TOML --stack-contract-semantic-blake3 HEX --tokenizer TOKENIZER_JSON [--context C] SNAPSHOT_JSON OUT_PATH\n       fbs-export --legacy-artifact [--raw-gates] [--raw-transition] [--run-config CONFIG_JSON] [--context C] [--address-rows ROWS | --pair-rows ROWS] SNAPSHOT_JSON OUT_PATH\n       fbs-export --point-key [--legacy-artifact] [--point-vote-k N] ARTIFACT TOKENS_U16 RESPONSE_MASK_U8 OUT_PATH";
 
 fn check_run_export_contract(config: &str, snaps: FbsExportSnaps) -> Result<(), String> {
     let value: serde_json::Value =
@@ -230,6 +237,30 @@ fn address_table(
     }
 }
 
+/// The pair rows a snapshot's note and the `--pair-rows` file name together (claude-384), by the
+/// address table's rule: neither is served without the other, and the file is the one named.
+fn pair_rows_table(
+    note: Option<serde_json::Value>,
+    rows: Option<&[u8]>,
+) -> Result<Option<PairRowsImage>, String> {
+    match (note, rows) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(format!(
+            "the snapshot names pair rows ({FBS_PAIR_ROWS_KEY}); give their file with --pair-rows"
+        )),
+        (None, Some(_)) => Err(format!(
+            "--pair-rows: the snapshot names no pair rows ({FBS_PAIR_ROWS_KEY})"
+        )),
+        (Some(note), Some(rows)) => {
+            let note: FbsPairRowsNote = serde_json::from_value(note)
+                .map_err(|e| format!("{FBS_PAIR_ROWS_KEY}: {e}"))?;
+            note.rows(rows)
+                .map(Some)
+                .map_err(|e| format!("--pair-rows: {e}"))
+        }
+    }
+}
+
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--point-key") {
@@ -265,9 +296,20 @@ fn run() -> Result<(), String> {
     let mut legacy_artifact = false;
     // The rows file of a run trained with an address table (claude-366).
     let mut address_rows = None::<String>;
+    // The rows file of a run trained with pair rows (claude-384).
+    let mut pair_rows = None::<String>;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--pair-rows" if pair_rows.is_some() => {
+                return Err("--pair-rows given twice".to_owned())
+            }
+            "--pair-rows" => {
+                pair_rows = Some(
+                    args.next()
+                        .ok_or_else(|| format!("--pair-rows needs a path: {USAGE}"))?,
+                )
+            }
             "--address-rows" if address_rows.is_some() => {
                 return Err("--address-rows given twice".to_owned())
             }
@@ -384,6 +426,25 @@ fn run() -> Result<(), String> {
             "an address table is exported with --legacy-artifact: lut-stack/11 has no stack contract"
                 .to_owned(),
         );
+    }
+    // claude-384: the pair rows' note, and the rows in the file `--pair-rows` names.
+    let pair_note = value
+        .as_object_mut()
+        .and_then(|o| o.remove(FBS_PAIR_ROWS_KEY));
+    let pair_bytes = match &pair_rows {
+        None => None,
+        Some(rows) => Some(std::fs::read(rows).map_err(|e| format!("{rows}: {e}"))?),
+    };
+    let pair_rows = pair_rows_table(pair_note, pair_bytes.as_deref())
+        .map_err(|e| format!("{snapshot}: {e}"))?;
+    if pair_rows.is_some() && !legacy_artifact {
+        return Err(
+            "pair rows are exported with --legacy-artifact: lut-stack/15 has no stack contract"
+                .to_owned(),
+        );
+    }
+    if pair_rows.is_some() && address.is_some() {
+        return Err("an address table and pair rows are not exported together".to_owned());
     }
     let mut snap: FbsTrunkSnapshot =
         serde_json::from_value(value).map_err(|e| format!("{snapshot}: {e}"))?;
@@ -558,6 +619,12 @@ fn run() -> Result<(), String> {
             .map_err(|e| format!("the address table: {e}"))?,
         None => artifact,
     };
+    // claude-384: the pair rows are added last the same way; the result is `lut-stack/15`.
+    let artifact = match pair_rows {
+        Some(image) => add_pair_rows_uorlut01(&artifact, &image)
+            .map_err(|e| format!("the pair rows: {e}"))?,
+        None => artifact,
+    };
     IntegerStackModel::parse(&artifact)
         .map_err(|e| format!("the exported artifact does not parse: {e}"))?;
     write_new_file(Path::new(out), &artifact).map_err(|e| format!("{out}: {e}"))?;
@@ -677,6 +744,38 @@ mod tests {
         assert_eq!(validate_binding_flags(true, None, None, None), Ok(false));
         assert!(validate_binding_flags(true, Some("contract.toml"), None, None).is_err());
         assert!(validate_binding_flags(true, None, None, Some("tokenizer.json")).is_err());
+    }
+
+    /// claude-384: the pair rows' note and their file come together, and the file is the one
+    /// named.
+    #[test]
+    fn pair_rows_need_their_note_and_their_own_file() {
+        use uor_r4_integer::fbs_pair_rows::{token_primes, PairMarks};
+        let primes = token_primes(16).expect("primes");
+        let mut addresses = vec![primes[1] * primes[2], primes[3] * primes[7]];
+        addresses.sort_unstable();
+        let marks = PairMarks { user: vec![1], assistant: vec![3, 4] };
+        let values: Vec<i16> = (0..2 * 8).map(|i| i as i16 * 300 - 2_000).collect();
+        let image = PairRowsImage::checked(16, 8, marks, addresses, values).expect("rows");
+        let (bytes, note) = (image.to_bytes(), serde_json::to_value(image.note()).expect("note"));
+        assert_eq!(pair_rows_table(None, None), Ok(None));
+        assert_eq!(pair_rows_table(Some(note.clone()), Some(&bytes)), Ok(Some(image)));
+        let error = pair_rows_table(Some(note.clone()), None).unwrap_err();
+        assert!(error.contains("--pair-rows"), "{error}");
+        assert!(pair_rows_table(None, Some(&bytes)).is_err());
+        let mut other = bytes.clone();
+        *other.last_mut().unwrap() ^= 1;
+        let error = pair_rows_table(Some(note.clone()), Some(&other)).unwrap_err();
+        assert!(error.contains("SHA-256"), "{error}");
+        for (key, value) in [("width", 16), ("pairs", 3), ("vocab", 17)] {
+            let mut wrong = note.clone();
+            wrong[key] = value.into();
+            let error = pair_rows_table(Some(wrong), Some(&bytes)).unwrap_err();
+            assert!(error.contains("not the table"), "{key}: {error}");
+        }
+        let mut wrong = note;
+        wrong["band"] = 1.into();
+        assert!(pair_rows_table(Some(wrong), Some(&bytes)).is_err());
     }
 
     /// claude-366: the note and the rows file come together, and the file is the one named.

@@ -52,6 +52,7 @@
 //! instructions.
 
 mod address;
+mod pair_rows;
 mod chat;
 mod content_readout;
 mod dialogue_memory;
@@ -95,6 +96,8 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{add_address_uorlut01, STACK_FBS_ADDRESS_SCHEMA};
+pub use format::{add_pair_rows_uorlut01, STACK_FBS_PAIR_ROWS_SCHEMA};
+pub use pair_rows::{read_pair_rows_uorlut01, PairMarks, PairRowsImage, StackPairRows, PAIR_ROW_EXP};
 pub use format::{add_q31_read_uorlut01, STACK_FBS_Q31_READ_SCHEMA};
 pub use q31_read::{read_q31_read_uorlut01, Q31ReadStep, Q31SessionRead, StackQ31Read, Q31_READ_TABLE};
 pub use read_out::ReadOut;

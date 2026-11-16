@@ -336,6 +336,30 @@ pub fn check_checkpoint_reads(directory: &Path) -> Result<()> {
 /// to [`check_checkpoint_reads_carrying`].
 pub const CHECKPOINT_ADDRESS: &str = "address_memory.safetensors";
 
+/// The pair rows' tensors file in a checkpoint directory (claude-370; served since claude-384).
+/// Like the address memory, the trunk snapshot does not hold them: `fbs-snapshot` carries them in
+/// a rows file beside the snapshot (i16 at 2^-12) and names this file, and the dictionary
+/// [`CHECKPOINT_PAIR_DICT`] beside it, to [`check_checkpoint_reads_carrying`].
+pub const CHECKPOINT_PAIR_ROWS: &str = "pair_rows.safetensors";
+/// The pair rows' dictionary file (not a safetensors file, so the read check never lists it).
+pub const CHECKPOINT_PAIR_DICT: &str = "pair_rows.dict";
+
+/// Refuse pair rows with no served form (claude-384): claude-373's `1/R` weights and claude-374's
+/// boost are applied in float only; the served bag is the plain sum of the picked rows.
+pub fn check_pair_rows_servable(rows: &crate::pair_rows::PairRows) -> Result<()> {
+    check_weight_kind_servable(rows.weight_kind())
+}
+
+/// [`check_pair_rows_servable`] on the rows' weight kind, `none`, `replies` or `boost`.
+fn check_weight_kind_servable(kind: &str) -> Result<()> {
+    match kind {
+        "none" => Ok(()),
+        kind => Err(invalid(format!(
+            "weighed pair rows have no served form: these rows carry the '{kind}' weight"
+        ))),
+    }
+}
+
 /// [`check_checkpoint_reads`] for a caller that carries the files `carried` itself, beside the
 /// snapshot. Every other read is refused as before.
 pub fn check_checkpoint_reads_carrying(directory: &Path, carried: &[&str]) -> Result<()> {
@@ -381,6 +405,12 @@ pub fn check_readout_reads(directory: &Path, readouts: usize) -> Result<()> {
     if readouts > 0 && directory.join(CHECKPOINT_ADDRESS).exists() {
         return Err(invalid(
             "the float readouts do not apply the address table; write the snapshot alone, without readouts",
+        ));
+    }
+    // claude-384: nor the pair rows, which the trunk snapshot leaves out in the same way.
+    if readouts > 0 && directory.join(CHECKPOINT_PAIR_ROWS).exists() {
+        return Err(invalid(
+            "the float readouts do not apply the pair rows; write the snapshot alone, without readouts",
         ));
     }
     Ok(())
@@ -2324,22 +2354,43 @@ mod tests {
         Ok(())
     }
 
-    /// claude-370: the pair rows are a read the export does not carry, so a checkpoint that holds
-    /// them is refused by name even by the caller that carries the address memory.
+    /// claude-370, then claude-384: the pair rows are refused by name unless the caller carries
+    /// them itself (as `fbs-snapshot` now does), and float readouts beside them are refused.
     #[test]
-    fn a_checkpoint_with_pair_rows_is_refused() -> Result<()> {
-        let scratch = Scratch::new("claude-370-pair-rows");
+    fn a_checkpoint_with_pair_rows_is_refused_unless_carried() -> Result<()> {
+        let scratch = Scratch::new("claude-384-pair-rows");
         std::fs::create_dir_all(&scratch.0)?;
-        for file in ["model.safetensors", CHECKPOINT_ADDRESS] {
+        for file in ["model.safetensors", CHECKPOINT_PAIR_ROWS, CHECKPOINT_PAIR_DICT] {
             std::fs::write(scratch.0.join(file), b"")?;
         }
-        check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])?;
-        std::fs::write(scratch.0.join("pair_rows.safetensors"), b"")?;
-        let message = check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])
+        let message = check_checkpoint_reads(&scratch.0)
             .expect_err("pair rows beside the trunk")
             .to_string();
-        assert!(message.contains("pair_rows.safetensors"), "{message}");
+        assert!(message.contains(CHECKPOINT_PAIR_ROWS), "{message}");
+        let message = check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_ADDRESS])
+            .expect_err("pair rows, carrying only the address memory")
+            .to_string();
+        assert!(message.contains(CHECKPOINT_PAIR_ROWS), "{message}");
+        check_checkpoint_reads_carrying(&scratch.0, &[CHECKPOINT_PAIR_ROWS])?;
+        check_readout_reads(&scratch.0, 0)?;
+        let message = check_readout_reads(&scratch.0, 1)
+            .expect_err("readouts beside pair rows")
+            .to_string();
+        assert!(message.contains("do not apply the pair rows"), "{message}");
         Ok(())
+    }
+
+    /// claude-384: only claude-370's plain rows are served; the weights of claude-373 and
+    /// claude-374 are refused by name.
+    #[test]
+    fn weighed_pair_rows_are_refused() {
+        check_weight_kind_servable("none").expect("plain rows are served");
+        for kind in ["replies", "boost"] {
+            let message = check_weight_kind_servable(kind)
+                .expect_err("weighed rows")
+                .to_string();
+            assert!(message.contains("no served form") && message.contains(kind), "{message}");
+        }
     }
 
     /// claude-381: a vector read is a float reference read the export does not carry, so a

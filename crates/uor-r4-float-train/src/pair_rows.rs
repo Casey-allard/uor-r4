@@ -24,7 +24,7 @@
 //! The rows are active for the thread that sets them ([`set_pair_rows`]).
 use std::cell::RefCell;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::sync::Arc;
@@ -34,11 +34,21 @@ use candle_core::{DType, Device, Tensor, Var};
 
 use crate::flock_read::FlockAdamW;
 use crate::{invalid, Result};
+use uor_r4_integer::fbs_pair_rows::scan;
+pub use uor_r4_integer::fbs_pair_rows::{token_primes, PairDictionary, PairMarks};
+use uor_r4_integer::fbs_pair_rows::{quantize_q12, PairRowsImage};
+
+/// What rounding the rows to 2^-12 did (claude-384): the largest value's magnitude, the largest
+/// rounding error, both in the rows' own units, and how many values rounded to zero.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ServedCensus {
+    pub max_abs: f64,
+    pub max_error: f64,
+    pub zeros: usize,
+}
 
 const FILE: &str = "pair_rows.safetensors";
 const DICT_FILE: &str = "pair_rows.dict";
-const MAGIC: &[u8; 8] = b"UORPAIR1";
-const LIMIT: u64 = 1 << 31;
 /// The most different replies counted for one pair (claude-373): a pair seen before more keeps
 /// this count, so its weight is `1 / REPLY_CAP`.
 pub const REPLY_CAP: usize = 4096;
@@ -79,258 +89,6 @@ pub fn pair_rows() -> Option<PairRows> {
     ACTIVE.with(|cell| cell.borrow().clone())
 }
 
-/// The first `count` primes in order, or fewer: generation stops once the last two multiply to
-/// `LIMIT` or more, since no pair address may reach it.
-fn first_primes(count: usize) -> Vec<u32> {
-    let mut primes: Vec<u32> = Vec::new();
-    let mut candidate = 2u32;
-    while primes.len() < count {
-        if let [.., a, b] = primes[..] {
-            if u64::from(a) * u64::from(b) >= LIMIT {
-                break;
-            }
-        }
-        let prime = primes
-            .iter()
-            .take_while(|&&p| u64::from(p) * u64::from(p) <= u64::from(candidate))
-            .all(|&p| candidate % p != 0);
-        if prime {
-            primes.push(candidate);
-        }
-        candidate += 1;
-    }
-    primes
-}
-
-/// The first `vocab` primes in order, one per token. Refuses fewer than two tokens and a
-/// vocabulary whose two largest primes multiply to 2³¹ or more.
-pub fn token_primes(vocab: usize) -> Result<Vec<u32>> {
-    if vocab < 2 {
-        return Err(invalid(format!(
-            "pair rows want a vocabulary of at least 2 tokens, not {vocab}"
-        )));
-    }
-    let primes = first_primes(vocab);
-    let last = primes.len();
-    let top = u64::from(primes[last - 1]) * u64::from(primes[last - 2]);
-    if last < vocab {
-        return Err(invalid(format!(
-            "pair rows hold a pair address in 31 bits; a vocabulary of {vocab} tokens has an \
-             address of at least {top}"
-        )));
-    }
-    if top >= LIMIT {
-        return Err(invalid(format!(
-            "pair rows hold a pair address in 31 bits; a vocabulary of {vocab} tokens has the \
-             address {top}"
-        )));
-    }
-    Ok(primes)
-}
-
-/// The token sequences that open a user turn and an assistant reply.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PairMarks {
-    /// The user marker: a turn's tokens start after its last token.
-    pub user: Vec<u32>,
-    /// The assistant header: a turn's tokens stop before its first token, and the reply starts
-    /// at its last token.
-    pub assistant: Vec<u32>,
-}
-
-impl PairMarks {
-    fn check(&self) -> Result<()> {
-        if self.user.is_empty() || self.assistant.is_empty() {
-            return Err(invalid(
-                "pair rows want a user marker and an assistant header of at least one token",
-            ));
-        }
-        // A turn is found by the user marker first, so a user marker that begins the header
-        // would hide every header. The other order is refused too: the marks stay unambiguous.
-        if self.user.starts_with(&self.assistant) || self.assistant.starts_with(&self.user) {
-            return Err(invalid(
-                "pair rows want a user marker and an assistant header neither of which begins \
-                 the other",
-            ));
-        }
-        Ok(())
-    }
-}
-
-/// One user turn found in a token run, by position in that run.
-struct Turn {
-    /// The first position after the user marker.
-    start: usize,
-    /// The assistant header's first position: the turn's tokens are `start..header`.
-    header: usize,
-    /// The assistant header's last position: the first reply position.
-    reply: usize,
-}
-
-/// The user turns of `tokens` whose user marker and assistant header both lie inside it, and the
-/// start of every user marker. A second user marker before the header starts the turn again.
-fn scan(tokens: &[u32], marks: &PairMarks) -> (Vec<Turn>, Vec<usize>) {
-    let at = |i: usize, mark: &[u32]| tokens[i..].starts_with(mark);
-    let (mut turns, mut users) = (Vec::new(), Vec::new());
-    let mut open: Option<usize> = None;
-    let mut i = 0;
-    while i < tokens.len() {
-        if at(i, &marks.user) {
-            users.push(i);
-            i += marks.user.len();
-            open = Some(i);
-        } else if at(i, &marks.assistant) {
-            if let Some(start) = open.take() {
-                turns.push(Turn {
-                    start,
-                    header: i,
-                    reply: i + marks.assistant.len() - 1,
-                });
-            }
-            i += marks.assistant.len();
-        } else {
-            i += 1;
-        }
-    }
-    (turns, users)
-}
-
-/// The turn's different tokens, sorted.
-fn distinct(turn: &[u32]) -> Vec<u32> {
-    turn.iter()
-        .copied()
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect()
-}
-
-/// The pairs that have rows, and the row each address names.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PairDictionary {
-    primes: Vec<u32>,
-    /// The kept addresses, ascending: row `r` is `addresses[r]`.
-    addresses: Vec<u32>,
-}
-
-impl PairDictionary {
-    /// Count the pairs of the user turns in `tokens` and keep those seen in at least `min` turns.
-    /// A pair counts once per turn. Refuses a turn token outside the vocabulary.
-    pub fn count(vocab: usize, tokens: &[u32], marks: &PairMarks, min: u32) -> Result<Self> {
-        marks.check()?;
-        let primes = token_primes(vocab)?;
-        let (turns, _) = scan(tokens, marks);
-        let mut seen: HashMap<u32, u32> = HashMap::new();
-        for turn in &turns {
-            let bag = distinct(&tokens[turn.start..turn.header]);
-            if let Some(&token) = bag.last().filter(|&&t| t as usize >= vocab) {
-                return Err(invalid(format!(
-                    "a turn token {token} lies outside the vocabulary of {vocab}"
-                )));
-            }
-            for (n, &a) in bag.iter().enumerate() {
-                for &b in &bag[n + 1..] {
-                    *seen
-                        .entry(primes[a as usize] * primes[b as usize])
-                        .or_default() += 1;
-                }
-            }
-        }
-        let mut addresses: Vec<u32> = seen
-            .into_iter()
-            .filter(|&(_, turns)| turns >= min)
-            .map(|(address, _)| address)
-            .collect();
-        addresses.sort_unstable();
-        Ok(Self { primes, addresses })
-    }
-
-    /// The vocabulary the addresses are drawn from.
-    pub fn vocab(&self) -> usize {
-        self.primes.len()
-    }
-
-    /// The number of rows.
-    pub fn len(&self) -> usize {
-        self.addresses.len()
-    }
-
-    /// Whether no pair has a row.
-    pub fn is_empty(&self) -> bool {
-        self.addresses.is_empty()
-    }
-
-    /// The address of the unordered pair `a`, `b`; none for equal tokens or a token outside the
-    /// vocabulary.
-    pub fn address(&self, a: u32, b: u32) -> Option<u32> {
-        if a == b {
-            return None;
-        }
-        let (pa, pb) = (self.primes.get(a as usize)?, self.primes.get(b as usize)?);
-        Some(pa * pb)
-    }
-
-    /// The row of the pair `a`, `b`, if it has one.
-    pub fn row(&self, a: u32, b: u32) -> Option<u32> {
-        let address = self.address(a, b)?;
-        self.addresses
-            .binary_search(&address)
-            .ok()
-            .map(|r| r as u32)
-    }
-
-    /// The rows of every pair of the turn's tokens that has one, sorted and unique.
-    pub fn turn_rows(&self, turn: &[u32]) -> Vec<u32> {
-        let bag = distinct(turn);
-        let mut rows = Vec::new();
-        for (n, &a) in bag.iter().enumerate() {
-            for &b in &bag[n + 1..] {
-                rows.extend(self.row(a, b));
-            }
-        }
-        rows.sort_unstable();
-        rows.dedup();
-        rows
-    }
-
-    /// The dictionary as bytes: the magic, the vocabulary, the row count and the addresses, each
-    /// a little-endian u32.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(16 + 4 * self.addresses.len());
-        bytes.extend_from_slice(MAGIC);
-        bytes.extend_from_slice(&(self.primes.len() as u32).to_le_bytes());
-        bytes.extend_from_slice(&(self.addresses.len() as u32).to_le_bytes());
-        for address in &self.addresses {
-            bytes.extend_from_slice(&address.to_le_bytes());
-        }
-        bytes
-    }
-
-    /// The dictionary [`Self::to_bytes`] wrote. Refuses another magic, a length that is not the
-    /// one the row count names, and addresses out of order.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        let word = |n: usize| u32::from_le_bytes(bytes[n..n + 4].try_into().unwrap());
-        if bytes.len() < 16 || &bytes[..8] != MAGIC {
-            return Err(invalid("not a pair dictionary: no magic"));
-        }
-        let (vocab, count) = (word(8) as usize, word(12) as usize);
-        if bytes.len() != 16 + 4 * count {
-            return Err(invalid(format!(
-                "a pair dictionary of {count} rows wants {} bytes, not {}",
-                16 + 4 * count,
-                bytes.len()
-            )));
-        }
-        let addresses: Vec<u32> = (0..count).map(|r| word(16 + 4 * r)).collect();
-        if addresses.windows(2).any(|w| w[0] >= w[1]) {
-            return Err(invalid("a pair dictionary's addresses are not ascending"));
-        }
-        Ok(Self {
-            primes: token_primes(vocab)?,
-            addresses,
-        })
-    }
-}
-
 /// Which rows a batch of windows reads and where each turn's bag is added.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Plan {
@@ -359,7 +117,7 @@ pub fn plan(
     batch: usize,
     time: usize,
 ) -> Result<Plan> {
-    marks.check()?;
+    marks.check().map_err(invalid)?;
     if ids.len() != batch * time {
         return Err(invalid(format!(
             "pair rows want {batch} windows of {time} tokens, not {} ids",
@@ -403,6 +161,28 @@ pub fn plan(
     })
 }
 
+/// The rows the trainer's own [`plan`] of `ids` as one window adds at its last position: the
+/// `hit_row`s of the turn still open there (`open[0]`), sorted. Empty when no turn is open.
+pub fn last_position_rows(
+    dict: &PairDictionary,
+    marks: &PairMarks,
+    ids: &[u32],
+) -> Result<Vec<u32>> {
+    let plan = plan(dict, marks, ids, 1, ids.len())?;
+    let Some(turn) = plan.open[0] else {
+        return Ok(Vec::new());
+    };
+    let mut rows: Vec<u32> = plan
+        .hit_turn
+        .iter()
+        .zip(&plan.hit_row)
+        .filter(|&(&t, _)| t == turn)
+        .map(|(_, &r)| r)
+        .collect();
+    rows.sort_unstable();
+    Ok(rows)
+}
+
 /// The plan's hit vectors and the turn each output position adds, as tensors on `device`:
 /// `hit_row`, `hit_turn`, `turn_of`. They are built from host vectors and carry no gradient
 /// history.
@@ -432,7 +212,7 @@ pub fn bag_readers(dict: &PairDictionary, marks: &PairMarks, prompts: &[&[u32]])
 /// it runs from the assistant header's last position up to the next user marker or the end of
 /// `tokens`, as in [`plan`]. Each different reply counts once however many turns it follows.
 pub fn reply_counts(dict: &PairDictionary, tokens: &[u32], marks: &PairMarks) -> Result<Vec<u32>> {
-    marks.check()?;
+    marks.check().map_err(invalid)?;
     let (turns, users) = scan(tokens, marks);
     let mut replies: Vec<HashSet<u64>> = vec![HashSet::new(); dict.len()];
     for turn in &turns {
@@ -480,7 +260,7 @@ impl PairRows {
         width: usize,
         device: &Device,
     ) -> Result<Self> {
-        marks.check()?;
+        marks.check().map_err(invalid)?;
         if dict.is_empty() || width == 0 {
             return Err(invalid(format!(
                 "pair rows want at least one pair and a width, not {} pairs of width {width}",
@@ -514,6 +294,43 @@ impl PairRows {
             (Some(_), false) => "replies",
             (Some(_), true) => "boost",
         }
+    }
+
+    /// The served form of these rows (claude-384): every value rounded to i16 at 2^-12 by the
+    /// shared [`quantize_q12`], with this dictionary and these marks, and the rounding's census.
+    /// Refuses weighed rows (they have no served form) and, by row and column, the first value
+    /// the rounding refuses. The rows are copied to the host once.
+    pub fn served_image(&self) -> Result<(PairRowsImage, ServedCensus)> {
+        if self.weights.is_some() || self.boost {
+            return Err(invalid(format!(
+                "weighed pair rows have no served form: these rows carry the '{}' weight",
+                self.weight_kind()
+            )));
+        }
+        let rows = self.rows.as_tensor().to_dtype(DType::F32)?.to_vec2::<f32>()?;
+        let width = rows.first().map_or(0, Vec::len);
+        let mut values = Vec::with_capacity(rows.len() * width);
+        let mut census = ServedCensus::default();
+        for (r, row) in rows.iter().enumerate() {
+            for (c, &value) in row.iter().enumerate() {
+                let step = quantize_q12(value)
+                    .map_err(|e| invalid(format!("pair row {r}, column {c}: {e}")))?;
+                let error = (f64::from(step) / 4096.0 - f64::from(value)).abs();
+                census.max_abs = census.max_abs.max(f64::from(value.abs()));
+                census.max_error = census.max_error.max(error);
+                census.zeros += usize::from(step == 0);
+                values.push(step);
+            }
+        }
+        let image = PairRowsImage::checked(
+            self.dict.vocab(),
+            width,
+            self.marks.clone(),
+            self.dict.addresses().to_vec(),
+            values,
+        )
+        .map_err(invalid)?;
+        Ok((image, census))
     }
 
     /// The rows weighed by rarity (claude-373): row `r` adds `1 / counts[r]` times itself, a
@@ -602,7 +419,7 @@ impl PairRows {
         width: usize,
         device: &Device,
     ) -> Result<Self> {
-        let dict = PairDictionary::count(vocab, tokens, marks, min)?;
+        let dict = PairDictionary::count(vocab, tokens, marks, min).map_err(invalid)?;
         Self::new(dict, marks.clone(), width, device)
     }
 
@@ -731,7 +548,7 @@ impl PairRows {
                 )));
             }
         }
-        let dict = PairDictionary::from_bytes(&std::fs::read(directory.join(DICT_FILE))?)?;
+        let dict = PairDictionary::from_bytes(&std::fs::read(directory.join(DICT_FILE))?).map_err(invalid)?;
         let tensors = candle_core::safetensors::load(&path, device)?;
         let named = |name: &str| {
             tensors
@@ -742,7 +559,7 @@ impl PairRows {
             user: named("user")?.to_vec1::<u32>()?,
             assistant: named("assistant")?.to_vec1::<u32>()?,
         };
-        marks.check()?;
+        marks.check().map_err(invalid)?;
         let rows = named("rows")?;
         let (count, _) = rows.dims2()?;
         if count != dict.len() {
@@ -788,6 +605,172 @@ impl PairRows {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uor_r4_integer::fbs_pair_rows::{first_primes, open_picks};
+
+    const LIMIT: u64 = 1 << 31;
+
+    /// The float `plan`'s open turn at the window's last position reads exactly the rows the
+    /// shared serving rule `open_picks` names, on hand-built streams.
+    #[test]
+    fn the_open_turn_of_plan_reads_what_open_picks_names() {
+        let (dict, marks) = (dict(), marks());
+        let streams: [&[u32]; 5] = [
+            &[1, 4, 5, 6, 2, 3, 7],
+            &[1, 4, 5, 2, 3, 7, 8],
+            &[1, 4, 5, 2, 3, 7, 1, 6],
+            &[9, 1, 4, 6, 5, 2, 3],
+            &[1, 9, 2, 3, 7],
+        ];
+        for ids in streams {
+            let plan = plan(&dict, &marks, ids, 1, ids.len()).unwrap();
+            let rows = plan.open[0].map(|turn| {
+                let mut rows: Vec<u32> = plan
+                    .hit_turn
+                    .iter()
+                    .zip(&plan.hit_row)
+                    .filter(|&(&t, _)| t == turn)
+                    .map(|(_, &r)| r)
+                    .collect();
+                rows.sort_unstable();
+                rows
+            });
+            let mut picks = open_picks(&dict, &marks, ids);
+            if let Some(p) = picks.as_mut() {
+                p.sort_unstable();
+            }
+            assert_eq!(rows, picks, "stream {ids:?}");
+        }
+    }
+
+    /// `last_position_rows` is the shared serving rule `open_picks`, empty for none, on single-
+    /// and multi-turn streams: an open second turn, a closed one, a turn with no rows after one
+    /// with rows, and a stream with no turn at all.
+    #[test]
+    fn last_position_rows_are_the_open_picks() {
+        let (dict, marks) = (dict(), marks());
+        let streams: [&[u32]; 9] = [
+            &[1, 4, 5, 6, 2, 3, 7],
+            &[1, 4, 5, 2, 3, 7, 8],
+            &[1, 4, 5, 2, 3, 7, 1, 6],
+            &[9, 1, 4, 6, 5, 2, 3],
+            &[1, 9, 2, 3, 7],
+            &WINDOW_A,
+            &[1, 4, 5, 6, 2, 3, 10, 1, 4, 5, 6, 7, 2, 3, 11],
+            &[1, 4, 5, 6, 2, 3, 10, 1, 4, 9, 2, 3, 11],
+            &[9, 10, 11],
+        ];
+        let mut opened = 0;
+        for ids in streams {
+            let mut picks = open_picks(&dict, &marks, ids).unwrap_or_default();
+            picks.sort_unstable();
+            opened += usize::from(!picks.is_empty());
+            assert_eq!(
+                last_position_rows(&dict, &marks, ids).unwrap(),
+                picks,
+                "stream {ids:?}"
+            );
+        }
+        assert!(opened >= 3, "only {opened} streams name rows");
+    }
+
+    /// claude-384's review: at every position `p` of a window, the rows the float `plan` adds are
+    /// the shared serving rule `open_picks` of the window's first `p + 1` tokens, the stream a
+    /// served session has seen there. On random streams with a two-token user marker, the only
+    /// positions allowed to differ are those where the prefix ends with a beginning of the user
+    /// marker that the window does not finish (the trainer adds the rows there; a reader fed token
+    /// by token cannot know the marker will not come). The test also counts the positions where a
+    /// marker under way is finished later in the window: there the trainer adds nothing, and a
+    /// served rule that waited for the whole marker would add the turn's rows.
+    #[test]
+    fn every_position_of_plan_reads_what_open_picks_names_of_its_prefix() {
+        let vocab = 10usize;
+        let primes = first_primes(vocab);
+        let mut addresses: Vec<u32> = (0..vocab)
+            .flat_map(|a| (a + 1..vocab).map(move |b| (a, b)))
+            .filter(|&(a, b)| (a + 2 * b) % 3 != 0)
+            .map(|(a, b)| primes[a] * primes[b])
+            .collect();
+        addresses.sort_unstable();
+        let dict = PairDictionary::from_addresses(vocab, addresses).unwrap();
+        let three = PairMarks {
+            user: vec![1, 4, 5],
+            assistant: vec![2, 3],
+        };
+        for marks in [marks(), three] {
+            let mut seed = 0x384_u64;
+            let mut next = |n: u32| {
+                seed = seed
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                ((seed >> 33) % u64::from(n)) as u32
+            };
+            let (mut read, mut finished_marker, mut broken_beginning) = (0usize, 0usize, 0usize);
+            for _ in 0..300 {
+                let len = 20 + next(60) as usize;
+                // Mark tokens come often, as whole marks, beginnings of the user marker and
+                // single tokens, so turns open, close, break and restart.
+                let mut ids: Vec<u32> = Vec::new();
+                while ids.len() < len {
+                    match next(6) {
+                        0 => ids.extend_from_slice(&marks.user),
+                        1 => ids.extend_from_slice(&marks.assistant),
+                        2 => ids.extend_from_slice(
+                            &marks.user[..1 + next(marks.user.len() as u32 - 1) as usize],
+                        ),
+                        3 => ids.push(marks.user[next(marks.user.len() as u32) as usize]),
+                        _ => ids.push(next(vocab as u32)),
+                    }
+                }
+                ids.truncate(len);
+                let plan = plan(&dict, &marks, &ids, 1, len).unwrap();
+                let (_, users) = scan(&ids, &marks);
+                for p in 0..len {
+                    let turn = plan.turn_of[p];
+                    let want = (turn < plan.turns as u32).then(|| {
+                        let mut rows: Vec<u32> = plan
+                            .hit_turn
+                            .iter()
+                            .zip(&plan.hit_row)
+                            .filter(|&(&t, _)| t == turn)
+                            .map(|(_, &r)| r)
+                            .collect();
+                        rows.sort_unstable();
+                        rows
+                    });
+                    let got = open_picks(&dict, &marks, &ids[..=p]);
+                    // The proper beginnings of the user marker the prefix ends with, by length, and
+                    // whether the text after any of them finishes the whole marker.
+                    let under_way: Vec<usize> = (1..marks.user.len())
+                        .filter(|&k| ids[..=p].ends_with(&marks.user[..k]))
+                        .collect();
+                    let finishes = under_way
+                        .iter()
+                        .any(|&k| ids[p + 1 - k..].starts_with(&marks.user));
+                    if !under_way.is_empty() && !finishes && want.is_some() && got.is_none() {
+                        broken_beginning += 1;
+                        continue;
+                    }
+                    assert_eq!(got, want, "{marks:?} {ids:?} at {p}");
+                    read += usize::from(want.is_some());
+                    finished_marker += usize::from(
+                        users.contains(&p) && open_picks(&dict, &marks, &ids[..p]).is_some(),
+                    );
+                }
+            }
+            assert!(
+                read > 1_000,
+                "{marks:?}: too few positions read rows: {read}"
+            );
+            assert!(
+                finished_marker > 10,
+                "{marks:?}: too few reply positions where a marker begins: {finished_marker} (read {read}, broken {broken_beginning})"
+            );
+            assert!(
+                broken_beginning > 0,
+                "{marks:?}: no broken beginning was drawn"
+            );
+        }
+    }
 
     // Plain tests cover the address, the dictionary and the plan on the host. The tensor read is
     // tested on the GPU (`cuda`).
@@ -1141,7 +1124,12 @@ mod tests {
         assert!(check(vec![1, 4], vec![1, 4]).is_err());
         assert!(check(vec![1], vec![1, 4]).is_err());
         assert!(check(vec![2, 3, 9], vec![2, 3]).is_err());
-        assert!(check(vec![1, 4], vec![4, 1]).is_ok());
+        // A header ending with a beginning of the user marker (claude-384).
+        assert!(check(vec![1, 4], vec![4, 1]).is_err());
+        assert!(check(vec![1, 4, 5], vec![2, 1, 4]).is_err());
+        assert!(check(vec![1, 9], vec![2, 1, 9, 3]).is_err());
+        assert!(check(vec![1, 4], vec![4, 2]).is_ok());
+        assert!(check(vec![1, 9], vec![2, 1, 3, 4]).is_ok());
     }
 
     #[test]

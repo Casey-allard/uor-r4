@@ -783,4 +783,49 @@ mod tests {
             other => panic!("the same step is refused by its own rule again, got {other:?}"),
         }
     }
+
+    /// claude-384: pair rows are not served beside a native Q31 read, whichever is added first,
+    /// and a header that names both is refused by that rule.
+    #[test]
+    fn pair_rows_are_not_served_with_a_q31_read() {
+        let plain = plain_trunk();
+        let shape = Container::parse(&plain).expect("parse").shape;
+        let primes = crate::fbs_pair_rows::token_primes(shape.vocab).expect("the vocabulary");
+        let marks = super::super::PairMarks {
+            user: vec![1, 2],
+            assistant: vec![3, 4],
+        };
+        let image = super::super::PairRowsImage::checked(
+            shape.vocab,
+            shape.width,
+            marks,
+            vec![primes[1] * primes[2]],
+            vec![7; shape.width],
+        )
+        .expect("pair rows of the stack's size");
+        let read = with_read(&plain, 2, drawn_read(51, 32, 4));
+        let rows = super::super::add_pair_rows_uorlut01(&plain, &image).expect("the rows are added");
+        let rule = "a native Q31 record and pair rows are not served together";
+        let first_read = refusal(super::super::add_pair_rows_uorlut01(&read, &image));
+        assert!(first_read.contains(rule), "{first_read}");
+        let first_rows = refusal(super::super::add_q31_read_uorlut01(
+            &rows,
+            &Q31SessionRead::new(2, drawn_read(51, 32, 4)),
+        ));
+        assert!(first_rows.contains("no other optional record"), "{first_rows}");
+        let read_len = u64::from_le_bytes(read[8..16].try_into().expect("eight")) as usize;
+        let read_header: serde_json::Value =
+            serde_json::from_slice(&read[16..16 + read_len]).expect("header");
+        let len = u64::from_le_bytes(rows[8..16].try_into().expect("eight")) as usize;
+        let mut header: serde_json::Value = serde_json::from_slice(&rows[16..16 + len]).expect("header");
+        header["q31_read"] = read_header["q31_read"].clone();
+        let hb = serde_json::to_vec(&header).expect("json");
+        let mut both = rows[..8].to_vec();
+        both.extend_from_slice(&(hb.len() as u64).to_le_bytes());
+        both.extend_from_slice(&hb);
+        both.resize(both.len().div_ceil(64) * 64, 0);
+        both.extend_from_slice(&rows[(16 + len).div_ceil(64) * 64..]);
+        let named = refusal(IntegerStackModel::parse(&both).map(|_| ()));
+        assert!(named.contains(rule), "{named}");
+    }
 }

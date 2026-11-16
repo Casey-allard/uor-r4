@@ -7,6 +7,8 @@ use sha2::{Digest, Sha256};
 
 use super::format::MAX_READ_CACHE_BYTES;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
+
+mod pair_rows;
 use super::synthetic::{
     fbs_synthetic_non_square, fbs_synthetic_tiny_gain, synthetic_fbs_trunk, synthetic_fbs_trunk_with,
     synthetic_hamming, synthetic_turn_memory, FbsSynth, FBS_SYNTH_SMALL, Lcg,

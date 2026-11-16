@@ -32,6 +32,8 @@ use sha2::{Digest, Sha256};
 use crate::bitcode::{BitCode, BITCODE_LANES};
 
 use super::address::{address_image, AddressImage};
+use super::pair_rows::{pair_rows_image, PairRowsImage};
+use crate::fbs_pair_rows::PairTracker;
 use super::q31_read::{q31_read_image, Q31ReadStep, ServedQ31Read};
 use uor_r4_native_vector::Q31ReadHistory;
 use super::content_readout::{ContentReadout, CONTENT_CODE_SIGNATURE_BITS};
@@ -354,6 +356,9 @@ struct FbsModel {
     /// The address table's rows (`lut-stack/11`, claude-366), read after each layer's Hamilton
     /// block.
     address: Option<AddressImage>,
+    /// The pair rows (`lut-stack/15`, claude-384): the bag of the open turn's pair rows, added
+    /// after layer 0's Hamilton block at every reply position.
+    pair_rows: Option<PairRowsImage>,
     /// The native Q31 first-pick read (`lut-stack/14`, claude-390), read after layer `depth - 1`'s
     /// MLP add.
     q31_read: Option<ServedQ31Read>,
@@ -715,6 +720,7 @@ fn fbs_model(artifact: &Container, shape: &StackShape) -> Result<FbsModel, Stack
     Ok(FbsModel {
         hamming,
         address: address_image(artifact)?,
+        pair_rows: pair_rows_image(artifact)?,
         q31_read,
         layers,
         final_gain: codes("final_norm_gain", d)?,
@@ -1240,7 +1246,9 @@ impl IntegerStackModel {
     /// layer, so no evaluator of this view can add them afterwards.
     pub fn fbs_trunk_image(&self) -> Option<FbsImage<'_>> {
         let fbs = self.fbs.as_deref()?;
+        // claude-384: nor for one with pair rows, added inside layer 0.
         if fbs.address.is_some()
+            || fbs.pair_rows.is_some()
             || fbs.q31_read.is_some()
             || self.native_q31.is_some()
             || self.native_q31_lanes.is_some()
@@ -1386,6 +1394,19 @@ impl IntegerStackModel {
     /// drop. Without it the session no longer serves what the artifact was exported as.
     pub fn drop_turn_memory(&mut self) -> bool {
         self.memory.take().is_some()
+    }
+
+    /// Serve without the pair rows (claude-384): every later session reads no bag. Returns
+    /// whether the artifact carried any.
+    pub fn drop_pair_rows(&mut self) -> bool {
+        self.fbs
+            .as_mut()
+            .is_some_and(|fbs| fbs.pair_rows.take().is_some())
+    }
+
+    /// The pair rows the artifact carries, if any (`uor-r4.lut-stack/15`, claude-384).
+    pub fn pair_rows(&self) -> Option<&PairRowsImage> {
+        self.fbs.as_deref()?.pair_rows.as_ref()
     }
 
     /// The turn memory the artifact carries, if any (`uor-r4.lut-stack/7`): its recorded key
@@ -1737,6 +1758,7 @@ impl IntegerStackModel {
                 .and_then(|f| f.hamming.as_ref())
                 .map_or_else(Vec::new, |h| h.payload_caches(context)),
             place: PlaceState::default(),
+            pair_tracker: PairTracker::new(),
             spoken: None,
             open_reply_start: false,
             hamming_trace: None,
@@ -2217,6 +2239,9 @@ pub struct IntegerStackSession<'m> {
     /// The place read's register and the turns it has read (claude-351); idle without a place
     /// read.
     place: PlaceState,
+    /// The open turn's pair-row picks (claude-384), recomputed whenever the stream does not
+    /// grow by one token; idle without pair rows.
+    pair_tracker: PairTracker,
     /// The token the place read told the last step's row to speak (claude-359): that step's
     /// choice. `None` unless a caller set the asks.
     spoken: Option<u32>,
@@ -2666,6 +2691,14 @@ impl IntegerStackSession<'_> {
         &self.b.pointer_weights[..self.position]
     }
 
+    /// The pair rows the last step read (claude-384): the open turn's picks as row numbers of
+    /// the artifact's pair dictionary, sorted. `None` outside a reply, before any step, or for a
+    /// model without pair rows.
+    pub fn last_pair_picks(&self) -> Option<&[u32]> {
+        self.model.fbs.as_deref()?.pair_rows.as_ref()?;
+        self.pair_tracker.picks()
+    }
+
     /// Start a new stream.
     pub fn reset(&mut self) {
         self.position = 0;
@@ -2677,6 +2710,7 @@ impl IntegerStackSession<'_> {
             index.clear();
         }
         self.place = PlaceState::default();
+        self.pair_tracker = PairTracker::new();
         self.spoken = None;
         if let Some(trace) = &mut self.native_q31_trace {
             trace.clear();
@@ -3121,6 +3155,8 @@ impl IntegerStackSession<'_> {
         // Restore tokens
         self.tokens.clear();
         self.tokens.extend_from_slice(&saved.tokens);
+        // The pair picks are recomputed from the restored stream at the next step (claude-384).
+        self.pair_tracker = PairTracker::new();
         for index in &mut self.hamming_index {
             index.clear();
         }
@@ -4125,6 +4161,10 @@ fn stack_step_fbs(
         )
     });
     session.spoken = spoken;
+    // claude-384: the open turn's pair-row picks at this position, by the shared rule.
+    if let Some(pairs) = &fbs.pair_rows {
+        session.pair_tracker.push(pairs.dict(), pairs.marks(), &session.tokens);
+    }
     let b = &mut session.b;
     let native_q31_trace = &mut session.native_q31_trace;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
@@ -4190,6 +4230,13 @@ fn stack_step_fbs(
         // read, where the float trunk adds them. The projection's buffer is free here.
         if let Some(address) = &fbs.address {
             address.read(l, token, &mut b.x, &mut b.proj);
+        }
+        // claude-384: the pair rows' bag, after layer 0's Hamilton block and any address rows,
+        // before the Hamming read, where the float trunk adds it.
+        if l == 0 {
+            if let (Some(pairs), Some(picks)) = (&fbs.pair_rows, session.pair_tracker.picks()) {
+                pairs.add_bag(picks, &mut b.x[..d], &mut b.proj[..d]);
+            }
         }
         // The native Q31 read (claude-390): after layer `depth - 1`'s MLP add, where the float
         // trunk's vector read sits. A stack with a read has no address table or Hamming read.
@@ -4464,6 +4511,10 @@ fn stack_step_fbs_timed(
         )
     });
     session.spoken = spoken;
+    // claude-384: the open turn's pair-row picks at this position, by the shared rule.
+    if let Some(pairs) = &fbs.pair_rows {
+        session.pair_tracker.push(pairs.dict(), pairs.marks(), &session.tokens);
+    }
     let b = &mut session.b;
     let native_q31_trace = &mut session.native_q31_trace;
     let at = stack_mul_u64(u64::from(token), d as u64) as usize;
@@ -4525,6 +4576,13 @@ fn stack_step_fbs_timed(
         // The address table's rows, as in `stack_step_fbs`; timed inside the block they follow.
         if let Some(address) = &fbs.address {
             address.read(l, token, &mut b.x, &mut b.proj);
+        }
+        // claude-384: the pair rows' bag, after layer 0's Hamilton block and any address rows,
+        // before the Hamming read, where the float trunk adds it.
+        if l == 0 {
+            if let (Some(pairs), Some(picks)) = (&fbs.pair_rows, session.pair_tracker.picks()) {
+                pairs.add_bag(picks, &mut b.x[..d], &mut b.proj[..d]);
+            }
         }
         // The native Q31 read, as in `stack_step_fbs`; timed inside the block it follows.
         if let Some(read) = fbs.q31_read.as_ref().filter(|r| l + 1 == r.depth) {
@@ -6279,6 +6337,7 @@ mod fbs_stage_tests {
             kept_cells: 1,
             hamming: None,
             address: None,
+            pair_rows: None,
             q31_read: None,
         };
         // Rows 0 and 2 both lie 2 from the origin; rows 0 and 1 both lie 2 from (2, 2).

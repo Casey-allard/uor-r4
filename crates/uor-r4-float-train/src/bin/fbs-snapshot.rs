@@ -93,6 +93,13 @@
 //! SHA-256 and the table's record under `address_rows`. `fbs-export` then
 //! needs the file (`--address-rows`). Float readouts are refused for such a
 //! checkpoint, since they would be the trunk without the table.
+//!
+//! Pair rows (`pair_rows.safetensors` + `pair_rows.dict`, claude-370) are carried
+//! the same way (claude-384): each value rounded once to i16 at 2^-12, written to
+//! `OUT_JSON.pair-rows` with the dictionary and the turn marks, and named under
+//! `pair_rows`. Weighed rows (claude-373, claude-374) are refused, as is a
+//! checkpoint holding both an address memory and pair rows. The rounding census
+//! (largest value, largest rounding error, zeros) is printed to stderr.
 
 use std::path::{Path, PathBuf};
 
@@ -105,8 +112,9 @@ use uor_r4_float_train::fbs_export::{
     fbs_float_readout, fbs_float_readout_on, fbs_float_readout_served, fbs_float_readout_served_on,
     fbs_hamming_snapshot_with_ask, fbs_memory_snapshot, fbs_trunk_snapshot,
     round_hamming_as_exported, round_tables_as_exported, run_rate_reading, write_rounded_copy,
-    CHECKPOINT_ADDRESS, READOUT_SEQUENCES,
+    check_pair_rows_servable, CHECKPOINT_ADDRESS, CHECKPOINT_PAIR_ROWS, READOUT_SEQUENCES,
 };
+use uor_r4_float_train::pair_rows::PairRows;
 use uor_r4_float_train::flock_read_hamming::{
     set_hamming_reads, set_hamming_tie_rule, set_hamming_trace, take_hamming_trace, HammingReads,
     HAMMING_DEPTHS, HAMMING_KEPT,
@@ -124,6 +132,7 @@ use uor_r4_float_train::spiralcore_fbs_arms::FbsArm;
 use uor_r4_float_train::spiralcore_fbs_sheet::PARITY_WINDOW_STRIDE;
 use uor_r4_float_train::{FloatTrainError, Result};
 use uor_r4_integer::fbs_address::FBS_ADDRESS_KEY;
+use uor_r4_integer::fbs_pair_rows::FBS_PAIR_ROWS_KEY;
 use uor_r4_integer::fbs_snapshot::{
     run_readout_nearest, write_new_file, FbsFloatReadout, FbsReadoutMode, HammingTrace,
     FBS_HAMMING_ASK_KEY, FBS_HAMMING_PLACE_KEY, HAMMING_TRACE_SCHEMA,
@@ -724,8 +733,13 @@ fn main() -> Result<()> {
     let dir = Path::new(model_dir);
     // Every read the checkpoint holds is carried, or the export is refused (claude-198), before
     // the GPU is opened. The address memory (claude-366) is carried in a rows file beside the
-    // snapshot, written below.
-    check_checkpoint_reads_carrying(dir, &[CHECKPOINT_ADDRESS])?;
+    // snapshot, written below, and so are the pair rows (claude-384).
+    check_checkpoint_reads_carrying(dir, &[CHECKPOINT_ADDRESS, CHECKPOINT_PAIR_ROWS])?;
+    if dir.join(CHECKPOINT_ADDRESS).exists() && dir.join(CHECKPOINT_PAIR_ROWS).exists() {
+        return Err(FloatTrainError::Invalid(
+            "a checkpoint with both an address memory and pair rows has no served form".to_owned(),
+        ));
+    }
     check_readout_reads(dir, readouts.len())?;
     // The run's rate reading (integer-retention-rates, claude-226), from its `config.json` two
     // levels above `models/step-N`. The snapshot carries it, and the float readouts below are
@@ -770,9 +784,27 @@ fn main() -> Result<()> {
     let address = AddressMemory::load(dir, &device)?
         .map(|memory| memory.image())
         .transpose()?;
-    let json = match (asks, place, &address) {
-        (None, None, None) => serde_json::to_vec(&snapshot)?,
-        (asks, place, address) => {
+    // claude-384: the pair rows, rounded once to i16 at 2^-12 by the shared rule, travel in
+    // `OUT.pair-rows` and are named under `pair_rows`, as the address rows are.
+    let pair_rows = match PairRows::load(dir, &device)? {
+        Some(rows) => {
+            check_pair_rows_servable(&rows)?;
+            let (image, census) = rows.served_image()?;
+            eprintln!(
+                "pair rows: {} pairs x {} wide, largest |value| {:.6}, largest rounding {:.3e}, {} zeros",
+                image.dict().len(),
+                image.width(),
+                census.max_abs,
+                census.max_error,
+                census.zeros
+            );
+            Some(image)
+        }
+        None => None,
+    };
+    let json = match (asks, place, &address, &pair_rows) {
+        (None, None, None, None) => serde_json::to_vec(&snapshot)?,
+        (asks, place, address, pair_rows) => {
             let mut value = serde_json::to_value(&snapshot)?;
             let object = value.as_object_mut().expect("a snapshot is a JSON object");
             if let Some(asks) = asks {
@@ -784,19 +816,25 @@ fn main() -> Result<()> {
             if let Some(address) = address {
                 object.insert(FBS_ADDRESS_KEY.to_owned(), serde_json::to_value(address.note())?);
             }
+            if let Some(pair_rows) = pair_rows {
+                object.insert(FBS_PAIR_ROWS_KEY.to_owned(), serde_json::to_value(pair_rows.note())?);
+            }
             serde_json::to_vec(&value)?
         }
     };
     // The rows file is written first, so a snapshot that names rows always has them beside it,
     // and only where the snapshot itself can still be written: a snapshot refused because its
     // file exists leaves no rows file behind.
+    if (address.is_some() || pair_rows.is_some()) && Path::new(out).exists() {
+        return Err(FloatTrainError::Invalid(format!(
+            "{out}: the snapshot exists; it is not written over"
+        )));
+    }
     if let Some(address) = &address {
-        if Path::new(out).exists() {
-            return Err(FloatTrainError::Invalid(format!(
-                "{out}: the snapshot exists; it is not written over"
-            )));
-        }
         write(&format!("{out}.address-rows"), &address.to_bytes())?;
+    }
+    if let Some(pair_rows) = &pair_rows {
+        write(&format!("{out}.pair-rows"), &pair_rows.to_bytes())?;
     }
     write(out, &json)?;
     // The readouts are the float model with its Hamming reads (claude-200): `StackModel::hidden`

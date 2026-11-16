@@ -91,6 +91,15 @@
 //! gains `"turn_memory_dropped": true` and says `"has_turn_memory": false`. With 1, or with no
 //! flag, the replies and the receipt are as before.
 //!
+//! An artifact with pair rows (`lut-stack/15`, claude-384) is served with them, and each reply
+//! line gains `pair_rows` and `pair_addresses`: the open turn's picks (row numbers of the
+//! artifact's pair dictionary and their prime products) at the step that chose the reply's first
+//! id, or `null` without picks. The receipt gains `pair_rows` with the row count with picks and
+//! `picks_moved`, the reply steps whose picks were not the first id's. `--pair-rows 0` serves the
+//! artifact with the rows dropped (`IntegerStackModel::drop_pair_rows`); an artifact without pair
+//! rows is refused, and the receipt says `"dropped": true`. Without pair rows and without the
+//! flag, the replies and the receipt are as before.
+//!
 //! Every argument is a `--name value` pair; a name with no value is refused.
 //!
 //! It is an instrument: it trains nothing, changes no artifact and moves no bar.
@@ -102,7 +111,7 @@
 //!   [--place-rows 0|1 [--places KIT.json [--kit-tokens TOKENS.u16]]] \
 //!   [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] \
 //!   [--place-asks ASKS.json [--place-speak 0|1]] \
-//!   [--whole-prompt TOKENS.u16 --bos ID] [--turn-memory 0|1]
+//!   [--whole-prompt TOKENS.u16 --bos ID] [--turn-memory 0|1] [--pair-rows 0|1]
 //! ```
 //!
 //! `ROWS.json` is a JSON array of objects with a `prompt` array of token ids (a float score's
@@ -125,7 +134,7 @@ use uor_r4_integer::stack::{
 
 const SCHEMA: &str = "uor-r4.raw-id-replies/1";
 const EOS: u32 = 1;
-const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1] [--serve-again 0|1]] [--whole-prompt FILE --bos ID] [--turn-memory 0|1]";
+const USAGE: &str = "usage: raw-id-replies --stack FILE --samples FILE --out FILE --mark-reply 0|1 [--max-tokens N] [--count-visits 0|1] [--time-steps 0|1] [--trace-control 0|1 --trace-out FILE] [--place-rows 0|1 [--places FILE [--kit-tokens FILE]]] [--copy-rule mean|latest-exact|latest-nearest|longest-exact|longest-after-opening] [--place-asks FILE [--place-speak 0|1] [--serve-again 0|1]] [--whole-prompt FILE --bos ID] [--turn-memory 0|1] [--pair-rows 0|1]";
 /// How many values the early-stopping scan reads between two looks at its bound.
 const BLOCK: usize = 16;
 
@@ -201,6 +210,10 @@ struct Served {
     first_held: bool,
     /// Some step that chose a reply id was offered a place: its row was open.
     any_offered: bool,
+    /// The pair rows read at the step that chose the reply's first id (claude-384).
+    pair_picks: Option<Vec<u32>>,
+    /// Reply steps whose pair picks were not the first id's.
+    pair_moved: u64,
 }
 
 /// `--serve-again 1` (claude-363): a reply is served again with its start open when the
@@ -813,6 +826,19 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
     if !turn_memory && !model.drop_turn_memory() {
         return Err("--turn-memory 0 needs an artifact with a turn memory".to_owned());
     }
+    // claude-384: the artifact served with its pair rows dropped, the served form of claude-370's
+    // I-8 control.
+    let pair_rows = match flag(&args, "--pair-rows").as_deref() {
+        None | Some("1") => true,
+        Some("0") => false,
+        Some(other) => return Err(format!("--pair-rows takes 0 or 1, not {other}")),
+    };
+    if !pair_rows && !model.drop_pair_rows() {
+        return Err("--pair-rows 0 needs an artifact with pair rows".to_owned());
+    }
+    let pair_addresses: Option<Vec<u32>> =
+        model.pair_rows().map(|p| p.dict().addresses().to_vec());
+    let (mut rows_with_pair_picks, mut pair_picks_moved) = (0usize, 0u64);
     // The asks (claude-359): a fitted table the place read is served from, set only here.
     let place_speak = match flag(&args, "--place-speak").as_deref() {
         None => None,
@@ -957,6 +983,7 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             clock.serve_ns += started.elapsed().as_nanos();
             clock.serve_steps += 1;
             pick = served;
+            reply.pair_picks = session.last_pair_picks().map(<[u32]>::to_vec);
             let (held, offered) = session.last_place();
             // This step chose the reply's first id.
             reply.first_held = held.is_some();
@@ -1023,6 +1050,7 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             clock.serve_ns += started.elapsed().as_nanos();
             clock.serve_steps += 1;
             pick = served;
+            reply.pair_moved += u64::from(session.last_pair_picks() != reply.pair_picks.as_deref());
             let (held, offered) = session.last_place();
             reply.any_offered |= offered.is_some();
             if place_rows {
@@ -1073,6 +1101,17 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
         told_replies += reply.told_replies;
         let (ids, registers) = (reply.ids, reply.registers);
         let mut line = json!({"i": index, "ids": ids});
+        // claude-384: the pair rows the reply's first id was chosen with.
+        if let Some(addresses) = &pair_addresses {
+            rows_with_pair_picks += usize::from(reply.pair_picks.is_some());
+            pair_picks_moved += reply.pair_moved;
+            let named: Option<Vec<u32>> = reply
+                .pair_picks
+                .as_ref()
+                .map(|picks| picks.iter().map(|&r| addresses[r as usize]).collect());
+            line["pair_rows"] = json!(reply.pair_picks);
+            line["pair_addresses"] = json!(named);
+        }
         if let Some(first_ids) = first_ids {
             line["again"] = json!(true);
             line["first"] = json!(first_ids);
@@ -1136,6 +1175,17 @@ fn run_with_args(args: impl Iterator<Item = String>) -> Result<Value> {
             "ids_spoken_from_a_place": spoke_place,
             "replies_started_on_the_stored_reply": told_replies,
         });
+    }
+    if let Some(image) = model.pair_rows() {
+        receipt["pair_rows"] = json!({
+            "pairs": image.dict().len(),
+            "width": image.width(),
+            "sha256": image.sha256(),
+            "rows_with_picks": rows_with_pair_picks,
+            "picks_moved": pair_picks_moved,
+        });
+    } else if !pair_rows {
+        receipt["pair_rows"] = json!({"dropped": true});
     }
     if !turn_memory {
         receipt["turn_memory_dropped"] = json!(true);
@@ -2095,5 +2145,102 @@ mod tests {
         assert!(!written, "a refused run writes no rows");
         assert!(no_kit.contains("--kit-tokens needs --places"), "{no_kit}");
         assert!(no_place.contains("needs an artifact with a place read"), "{no_place}");
+    }
+
+    /// claude-384: an artifact with pair rows serves them and writes each reply's picks; `--pair-rows 0`
+    /// serves the artifact without them; an artifact without pair rows is refused with 0.
+    #[test]
+    fn pair_rows_are_served_and_named_and_dropped_with_zero() {
+        use uor_r4_integer::fbs_pair_rows::{open_picks, token_primes, PairMarks};
+        use uor_r4_integer::stack::{add_pair_rows_uorlut01, PairRowsImage};
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("uor-pair-rows-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&root).expect("temp directory");
+        let (stack, bare, samples) = (root.join("pairs.uorlut"), root.join("bare.uorlut"), root.join("samples.json"));
+        let mut snap = synthetic_fbs_trunk(17);
+        snap.readout_nearest = true;
+        snap.memory = None;
+        let plain = export_fbs_trunk_uorlut01(&snap).expect("bare artifact");
+        let primes = token_primes(snap.vocab).expect("primes");
+        let marks = PairMarks { user: vec![1], assistant: vec![2] };
+        let image = PairRowsImage::checked(snap.vocab, snap.width, marks, vec![primes[3] * primes[5]], vec![20_000; snap.width])
+            .expect("pair rows");
+        fs::write(&bare, &plain).expect("bare");
+        fs::write(&stack, add_pair_rows_uorlut01(&plain, &image).expect("added")).expect("artifact");
+        // A turn holding the pair, a turn holding none, and a prompt with no header yet.
+        let prompts: [&[u32]; 3] = [&[1, 3, 5, 2], &[1, 3, 4, 2], &[1, 3, 5]];
+        let rows: Vec<Value> = prompts.iter().map(|p| json!({"prompt": p})).collect();
+        fs::write(&samples, serde_json::to_vec(&rows).expect("rows")).expect("samples");
+        let run = |stack: &Path, out: &str, switch: Option<&str>| {
+            let mut args: Vec<String> = ["--stack", &stack.display().to_string(), "--samples", &samples.display().to_string()]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+            args.extend(["--out".to_owned(), root.join(out).display().to_string()]);
+            args.extend(["--mark-reply", "0", "--max-tokens", "4"].map(str::to_owned));
+            if let Some(value) = switch {
+                args.extend(["--pair-rows".to_owned(), value.to_owned()]);
+            }
+            run_with_args(args.into_iter())
+        };
+        let lines = |out: &str| -> Vec<Value> {
+            fs::read_to_string(root.join(out))
+                .expect("replies")
+                .lines()
+                .map(|line| serde_json::from_str(line).expect("reply JSON"))
+                .collect()
+        };
+        let bare_receipt = run(&bare, "bare.jsonl", None).expect("bare");
+        let default_receipt = run(&stack, "default.jsonl", None).expect("default");
+        let kept_receipt = run(&stack, "kept.jsonl", Some("1")).expect("kept");
+        let dropped_receipt = run(&stack, "dropped.jsonl", Some("0")).expect("dropped");
+        let refused = run(&bare, "refused.jsonl", Some("0")).unwrap_err();
+        let odd = run(&stack, "odd.jsonl", Some("2")).unwrap_err();
+        let (bare_lines, default, kept, dropped) =
+            (lines("bare.jsonl"), lines("default.jsonl"), lines("kept.jsonl"), lines("dropped.jsonl"));
+        let _ = fs::remove_dir_all(&root);
+        assert_eq!(kept, default);
+        assert_eq!(kept_receipt, default_receipt);
+        assert!(bare_receipt.get("pair_rows").is_none() && bare_lines[0].get("pair_rows").is_none());
+        // The picks: row 0 for the turn with the pair; null for a turn with no rows and with no turn.
+        assert_eq!(default[0]["pair_rows"], json!([0]));
+        assert_eq!(default[0]["pair_addresses"], json!([primes[3] * primes[5]]));
+        assert_eq!(default[1]["pair_rows"], Value::Null);
+        assert_eq!(default[2]["pair_rows"], Value::Null);
+        assert_eq!(default_receipt["pair_rows"]["rows_with_picks"], json!(1));
+        assert_eq!(default_receipt["pair_rows"]["sha256"], json!(image.sha256()));
+        // The bag moves the reply of the turn holding the pair and of no other.
+        assert_ne!(default[0]["ids"], bare_lines[0]["ids"], "the rows move the first reply");
+        assert_eq!(default[1]["ids"], bare_lines[1]["ids"]);
+        assert_eq!(default[2]["ids"], bare_lines[2]["ids"]);
+        // The reply steps whose picks moved, counted again by the shared rule over the prompt and
+        // the reply so far: the step that chooses reply id k (k >= 1) has seen ids 0..k.
+        let moved: usize = prompts
+            .iter()
+            .zip(&default)
+            .map(|(prompt, line)| {
+                let ids: Vec<u32> = serde_json::from_value(line["ids"].clone()).expect("ids");
+                let first = open_picks(image.dict(), image.marks(), prompt);
+                (1..ids.len())
+                    .filter(|&k| {
+                        let seen: Vec<u32> = prompt.iter().chain(&ids[..k]).copied().collect();
+                        open_picks(image.dict(), image.marks(), &seen) != first
+                    })
+                    .count()
+            })
+            .sum();
+        assert_eq!(default_receipt["pair_rows"]["picks_moved"], json!(moved));
+        // Dropped, the replies are the bare artifact's and no line names picks.
+        assert_eq!((dropped.len(), bare_lines.len()), (prompts.len(), prompts.len()));
+        for (got, want) in dropped.iter().zip(&bare_lines) {
+            assert_eq!(got["ids"], want["ids"]);
+            assert!(got.get("pair_rows").is_none());
+        }
+        assert_eq!(dropped_receipt["pair_rows"], json!({"dropped": true}));
+        assert!(refused.contains("--pair-rows 0 needs an artifact with pair rows"), "{refused}");
+        assert!(odd.contains("--pair-rows takes 0 or 1, not 2"), "{odd}");
     }
 }
