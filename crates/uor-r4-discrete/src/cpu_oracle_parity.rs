@@ -609,6 +609,12 @@ pub(crate) struct StudentBatch {
 /// One 64-row batch from the middle of the stream's eligible targets, through
 /// the driver's own `PreparedCorpus` admission (UORT header, binary mask, BOS).
 pub(crate) fn student_batch() -> StudentBatch {
+    student_batch_rows(STUDENT_ROWS)
+}
+
+/// The same batch at `rows` rows, from the same middle eligible target
+/// (claude-407).
+pub(crate) fn student_batch_rows(rows: u32) -> StudentBatch {
     use crate::corpus::{sha256, BosIdentity, CorpusSource, FilePin, PreparedCorpus, Split};
     let dir = std::path::PathBuf::from(
         std::env::var("UOR_STUDENT_STREAM")
@@ -658,7 +664,7 @@ pub(crate) fn student_batch() -> StudentBatch {
     .expect("the student stream passes the driver's corpus admission");
     let first = corpus.eligible_len() as u64 / 2;
     let batch = corpus
-        .batch(first, STUDENT_SPEC.context, STUDENT_ROWS)
+        .batch(first, STUDENT_SPEC.context, rows)
         .expect("student batch");
     let rows = batch
         .windows

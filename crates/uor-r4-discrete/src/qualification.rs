@@ -248,7 +248,7 @@ fn inventory_bounds() -> Result<()> {
     let partial = device.carry(&[identity(0, 0)])?;
     expect_invalid(
         device.forward(&partial, &[0]),
-        "forward/proposal requires 1..64 admitted nonempty row plans",
+        "forward/proposal requires 1..4096 admitted nonempty row plans",
         "incomplete context",
     )?;
     expect_invalid(

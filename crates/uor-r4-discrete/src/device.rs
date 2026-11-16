@@ -5,6 +5,7 @@
 //! is no PTX-JIT fallback, runtime source compiler, or CPU model.
 
 use crate::carrier::{CarrierMode, CarrierSelection};
+use crate::corpus::MAX_BATCH_ROWS;
 use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
     address_cells::AddressMetric,
@@ -1445,7 +1446,7 @@ impl Device {
                 "carried batch belongs to another model/source/geometry",
             ));
         }
-        if !(1..=64).contains(&batch.rows)
+        if !(1..=MAX_BATCH_ROWS).contains(&batch.rows)
             || batch.plan.is_none()
             || batch.valid_lengths.len() != batch.rows as usize
             || batch
@@ -1455,7 +1456,7 @@ impl Device {
             || batch.ids.len() != batch.rows as usize * self.spec().context as usize
         {
             return Err(invalid(
-                "forward/proposal requires 1..64 admitted nonempty row plans",
+                "forward/proposal requires 1..4096 admitted nonempty row plans",
             ));
         }
         if targets.len() != batch.rows as usize
@@ -1476,12 +1477,13 @@ impl Device {
 
     pub fn carry(&self, identities: &[Identity]) -> Result<CarriedBatch> {
         let context = self.spec().context as usize;
-        let lengths =
-            if identities.len().is_multiple_of(context) && identities.len() / context <= 64 {
-                vec![self.spec().context; identities.len() / context]
-            } else {
-                Vec::new()
-            };
+        let lengths = if identities.len().is_multiple_of(context)
+            && identities.len() / context <= MAX_BATCH_ROWS as usize
+        {
+            vec![self.spec().context; identities.len() / context]
+        } else {
+            Vec::new()
+        };
         self.encode_carried(identities, identities.to_vec(), lengths)
     }
 
@@ -1491,7 +1493,7 @@ impl Device {
     pub fn carry_windows(&self, windows: &[Vec<Identity>]) -> Result<CarriedBatch> {
         let spec = self.spec();
         if windows.is_empty()
-            || windows.len() > 64
+            || windows.len() > MAX_BATCH_ROWS as usize
             || windows.iter().any(|w| {
                 w.is_empty()
                     || w.len() > spec.context as usize
@@ -1499,7 +1501,7 @@ impl Device {
             })
         {
             return Err(invalid(
-                "carry_windows requires 1..64 nonempty causal prefixes of length1..context with valid IDs",
+                "carry_windows requires 1..4096 nonempty causal prefixes of length1..context with valid IDs",
             ));
         }
         let mut padded = Vec::with_capacity(windows.len() * spec.context as usize);

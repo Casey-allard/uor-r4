@@ -9,6 +9,10 @@ pub const WINDOW_POLICY: &str =
     "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1";
 pub const IDENTITY_POLICY: &str = "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1";
 pub const UORT_HEADER_BYTES: usize = 64;
+/// The most context rows one carried batch, forward, proposal or rows-K call
+/// admits (claude-407; 64 before). No kernel bounds rows: launches are sized
+/// from the row count and kernels loop over rows by index.
+pub const MAX_BATCH_ROWS: u32 = 4096;
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -252,9 +256,9 @@ impl PreparedCorpus {
         self.eligible.iter().map(|&p| self.tokens[p]).collect()
     }
     pub fn batch(&self, first_target: u64, context: u32, rows: u32) -> Result<CorpusBatch> {
-        if !(1..=243).contains(&context) || !(1..=64).contains(&rows) {
+        if !(1..=243).contains(&context) || !(1..=MAX_BATCH_ROWS).contains(&rows) {
             return Err(invalid(
-                "corpus batches require context1..243 and rows1..64",
+                "corpus batches require context1..243 and rows1..4096",
             ));
         }
         let first = usize::try_from(first_target)
