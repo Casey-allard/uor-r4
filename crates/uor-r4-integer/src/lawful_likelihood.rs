@@ -39,6 +39,10 @@ pub enum LikelihoodError {
     ZeroBytes,
     /// The bit accumulation overflowed `u128`.
     Overflow,
+    /// Two expert vectors of a mixture cover different vocabularies.
+    LengthMismatch { counts: usize, unigram: usize },
+    /// A mixed score does not fit the `u64` that [`mle_masses_from_counts`] takes.
+    ScoreOverflow,
 }
 
 impl fmt::Display for LikelihoodError {
@@ -55,6 +59,11 @@ impl fmt::Display for LikelihoodError {
             }
             Self::ZeroBytes => formatter.write_str("bits per byte needs a non-zero byte count"),
             Self::Overflow => formatter.write_str("the bit accumulation overflowed u128"),
+            Self::LengthMismatch { counts, unigram } => write!(
+                formatter,
+                "the counts cover {counts} candidates but the order-0 counts cover {unigram}"
+            ),
+            Self::ScoreOverflow => formatter.write_str("a mixed score does not fit u64"),
         }
     }
 }
@@ -140,6 +149,87 @@ pub fn mle_masses_from_counts(counts: &[u64]) -> Result<Vec<u64>> {
     }
     debug_assert_eq!(masses.iter().sum::<u64>(), PROBABILITY_ONE);
     Ok(masses)
+}
+
+/// Integer mixing weights for [`floor_mixed_masses`].
+///
+/// Each field is a numerator over the common denominator `count + unigram + floor`, so the
+/// weights are exact rational shares and need no normalising step of their own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FloorMixWeights {
+    /// Share of the count model's own counts.
+    pub count: u64,
+    /// Share of the order-0 (unigram) counts.
+    pub unigram: u64,
+    /// Share of the uniform floor: one count per candidate.
+    pub floor: u64,
+}
+
+/// Exact Q48 masses, each at least 1, from a count vector mixed with an order-0 expert and a
+/// uniform floor.
+///
+/// Each expert becomes exact Q48 masses through [`mle_masses_from_counts`]; the uniform
+/// floor is one count per candidate. An expert whose weight is 0, or whose counts are all 0
+/// (an unseen context), contributes nothing. The mixed score `count*mc + unigram*mu +
+/// floor*mf` is formed in `u128` and goes through [`mle_masses_from_counts`] once more.
+/// Nothing is shifted, so the floor's share is never cancelled: the scores sum to
+/// `d * 2^48`, with `d` the sum of the contributing weights, and each mass is the exact
+/// ratio `score / d` split by the largest-remainder rule, ties by the lowest index.
+///
+/// With `floor >= 1` every candidate's score is at least `floor * floor(2^48 / V)`, so its
+/// mass is at least 1 whenever `floor * floor(2^48 / V) >= d`. A result with any zero mass
+/// is refused with [`LikelihoodError::MassZero`] rather than returned, so every `Ok` result
+/// gives each target a finite [`bits_q12`].
+///
+/// It refuses, and never wraps or panics, on: vectors of different lengths
+/// ([`LikelihoodError::LengthMismatch`]); an empty vocabulary
+/// ([`LikelihoodError::EmptyScores`]); no contributing expert
+/// ([`LikelihoodError::EmptyMass`]); a mixed score above `u64::MAX`, which needs a weight
+/// sum of at least `2^16` ([`LikelihoodError::ScoreOverflow`]); and a zero mass. Counts up
+/// to `u64::MAX` are exact, since their sums are taken in `u128`.
+pub fn floor_mixed_masses(
+    counts: &[u64],
+    unigram: &[u64],
+    weights: FloorMixWeights,
+) -> Result<Vec<u64>> {
+    let vocabulary = counts.len();
+    if unigram.len() != vocabulary {
+        return Err(LikelihoodError::LengthMismatch {
+            counts: vocabulary,
+            unigram: unigram.len(),
+        });
+    }
+    if vocabulary == 0 {
+        return Err(LikelihoodError::EmptyScores);
+    }
+    let mut scores: Vec<u128> = vec![0; vocabulary];
+    add_expert(&mut scores, weights.count, counts)?;
+    add_expert(&mut scores, weights.unigram, unigram)?;
+    add_expert(&mut scores, weights.floor, &vec![1; vocabulary])?;
+    let scores = scores
+        .into_iter()
+        .map(|score| u64::try_from(score).map_err(|_| LikelihoodError::ScoreOverflow))
+        .collect::<Result<Vec<u64>>>()?;
+    let masses = mle_masses_from_counts(&scores)?;
+    if masses.contains(&0) {
+        return Err(LikelihoodError::MassZero);
+    }
+    Ok(masses)
+}
+
+/// Adds `weight` times the expert's exact Q48 masses to `scores`.
+///
+/// Each product is below `2^64 * 2^48 = 2^112` and three of them sum below `2^114`, so the
+/// `u128` additions cannot overflow.
+fn add_expert(scores: &mut [u128], weight: u64, counts: &[u64]) -> Result<()> {
+    if weight == 0 || counts.iter().all(|count| *count == 0) {
+        return Ok(());
+    }
+    let masses = mle_masses_from_counts(counts)?;
+    for (score, mass) in scores.iter_mut().zip(masses) {
+        *score += u128::from(weight) * u128::from(mass);
+    }
+    Ok(())
 }
 
 /// `-log2(mass / 2^48)` multiplied by [`LOG2_SCALE`], in integer arithmetic.
@@ -318,5 +408,212 @@ mod tests {
         assert_eq!(masses[1], 0);
         assert_eq!(bits_q12(0), Err(LikelihoodError::MassZero));
         assert!(mle_masses_from_counts(&[0, 0]).is_err());
+    }
+
+    const FIXTURE_WEIGHTS: FloorMixWeights = FloorMixWeights {
+        count: 1,
+        unigram: 2,
+        floor: 1,
+    };
+
+    #[test]
+    fn floor_mix_fixture_is_hand_computed() {
+        // Worked by hand; 2^48 = 281474976710656, 2^46 = 70368744177664.
+        //
+        // Count expert [3, 1, 0, 0], total 4: 3*2^48/4 and 2^48/4 are exact, so
+        //   mc = [211106232532992, 70368744177664, 0, 0].
+        // Order-0 expert [5, 3, 1, 1], total 10: k*2^48 / 10 floors to
+        //   [140737488355328, 84442493013196, 28147497671065, 28147497671065],
+        //   remainders (k*2^48 mod 10) [0, 8, 6, 6]; the floors sum to 2^48 - 2, so the two
+        //   largest remainders (index 1, then index 2 on the 6-tie) get one unit each:
+        //   mu = [140737488355328, 84442493013197, 28147497671066, 28147497671065].
+        // Floor expert [1, 1, 1, 1]: mf = [2^46; 4].
+        // Weights (1, 2, 1), d = 4. Score = mc + 2*mu + mf:
+        //   s0 = 211106232532992 + 281474976710656 + 70368744177664 = 562949953421312
+        //   s1 =  70368744177664 + 168884986026394 + 70368744177664 = 309622474381722
+        //   s2 =               0 +  56294995342132 + 70368744177664 = 126663739519796
+        //   s3 =               0 +  56294995342130 + 70368744177664 = 126663739519794
+        //   sum = 1125899906842624 = 4 * 2^48.
+        // Second pass: s*2^48 / (4*2^48) = s / 4, remainder ordered by s mod 4:
+        //   floors [140737488355328, 77405618595430, 31665934879949, 31665934879948],
+        //   s mod 4 = [0, 2, 0, 2]; the floors sum to 2^48 - 1, so index 1 (the lowest on
+        //   the 2-tie) gets the last unit.
+        // Masses = [140737488355328, 77405618595431, 31665934879949, 31665934879948]:
+        //   the exact shares 1/2, 0.275, 0.1125, 0.1125 on the Q48 grid.
+        let masses =
+            floor_mixed_masses(&[3, 1, 0, 0], &[5, 3, 1, 1], FIXTURE_WEIGHTS).expect("valid mix");
+        assert_eq!(
+            masses,
+            vec![
+                140_737_488_355_328,
+                77_405_618_595_431,
+                31_665_934_879_949,
+                31_665_934_879_948
+            ]
+        );
+        assert_exact_sum(&masses);
+        // Bits for targets [0, 1, 2], by hand:
+        //   m0 = 2^47: bit length gives 48 - 47 = 1 bit, fraction 0 -> 4096.
+        //   m1 in [2^46, 2^47): integer 2, mantissa m1 / 2^46 = 1.1000000000000085;
+        //     log2(1.1) = 0.1375035237, * 4096 = 563.21 -> 12 bits 563;
+        //     2*4096 - 563 = 7629 (exact -log2(0.275) * 4096 = 7628.79).
+        //   m2 in [2^44, 2^45): integer 4, mantissa m2 / 2^44 = 1.8000000000000682;
+        //     log2(1.8) = 0.8479969066, * 4096 = 3473.40 -> 3473;
+        //     4*4096 - 3473 = 12911 (exact -log2(0.1125) * 4096 = 12910.60).
+        //   total = 4096 + 7629 + 12911 = 24636; over 3 bytes the fraction is
+        //   24636 / (4096 * 3) = 24636 / 12288.
+        let total = total_bits_q12(&masses, &[0, 1, 2]).expect("every target is scorable");
+        assert_eq!(total, 24_636);
+        assert_eq!(bits_per_byte(total, 3), Ok((24_636, 12_288)));
+    }
+
+    #[test]
+    fn floor_mix_gives_every_target_a_unit_and_finite_bits() {
+        // Index 4 is unseen by the counts and by the order-0 expert: only the floor holds it.
+        let counts = [3u64, 1, 0, 0, 0];
+        let unigram = [5u64, 3, 1, 1, 0];
+        for weights in [
+            FIXTURE_WEIGHTS,
+            FloorMixWeights {
+                count: 60_000,
+                unigram: 5_000,
+                floor: 1,
+            },
+            FloorMixWeights {
+                count: 1,
+                unigram: 0,
+                floor: 1,
+            },
+        ] {
+            let masses = floor_mixed_masses(&counts, &unigram, weights).expect("floor holds");
+            assert_exact_sum(&masses);
+            for (target, mass) in masses.iter().enumerate() {
+                assert!(*mass >= 1, "target {target} has zero mass: {masses:?}");
+                assert!(bits_q12(*mass).is_ok(), "target {target}: {masses:?}");
+            }
+            let all: Vec<usize> = (0..counts.len()).collect();
+            assert!(total_bits_q12(&masses, &all).is_ok());
+        }
+        // A whole unseen context backs off to the order-0 expert and the floor.
+        let masses = floor_mixed_masses(&[0; 5], &unigram, FIXTURE_WEIGHTS).expect("backs off");
+        assert_exact_sum(&masses);
+        assert!(masses.iter().all(|mass| *mass >= 1), "{masses:?}");
+    }
+
+    #[test]
+    fn floor_mix_with_count_weight_only_is_the_existing_mle() {
+        let counts = [7u64, 1, 2, 9, 4];
+        let unigram = [0u64, 0, 5, 0, 1];
+        for count in [1u64, 3, 65_535] {
+            let weights = FloorMixWeights {
+                count,
+                unigram: 0,
+                floor: 0,
+            };
+            assert_eq!(
+                floor_mixed_masses(&counts, &unigram, weights),
+                mle_masses_from_counts(&counts)
+            );
+        }
+    }
+
+    #[test]
+    fn floor_mix_extremes_are_exact_or_refused_never_a_panic() {
+        // Counts near u64::MAX are exact: sums are u128, products stay below 2^114.
+        let masses = floor_mixed_masses(&[u64::MAX; 4], &[u64::MAX, 1, 1, 1], FIXTURE_WEIGHTS)
+            .expect("huge counts are exact");
+        assert_exact_sum(&masses);
+        assert!(masses.iter().all(|mass| *mass >= 1), "{masses:?}");
+        // Equal counts and equal order-0 weight on indices 1..3: their masses differ by at most
+        // the one rounding unit, and index 0 (order-0 weight u64::MAX) carries the most.
+        let (low, high) = (
+            masses[1..].iter().min().copied().unwrap_or(0),
+            masses[1..].iter().max().copied().unwrap_or(0),
+        );
+        assert!(high - low <= 1, "{masses:?}");
+        assert!(masses[0] > high, "{masses:?}");
+        let masses = floor_mixed_masses(
+            &[u64::MAX, 0, u64::MAX - 1, 0],
+            &[u64::MAX; 4],
+            FIXTURE_WEIGHTS,
+        )
+        .expect("huge counts are exact");
+        assert_exact_sum(&masses);
+        // Weights near u64::MAX make a score above u64::MAX: refused.
+        let huge = FloorMixWeights {
+            count: u64::MAX,
+            unigram: u64::MAX,
+            floor: u64::MAX,
+        };
+        assert_eq!(
+            floor_mixed_masses(&[u64::MAX; 4], &[u64::MAX; 4], huge),
+            Err(LikelihoodError::ScoreOverflow)
+        );
+        // A weight sum of 2^16 on a single-candidate vocabulary overflows by one unit.
+        let edge = FloorMixWeights {
+            count: 1 << 15,
+            unigram: 1 << 15,
+            floor: 0,
+        };
+        assert_eq!(
+            floor_mixed_masses(&[1], &[1], edge),
+            Err(LikelihoodError::ScoreOverflow)
+        );
+        // A weight sum just under 2^16, on one seen target in 2^13: the floor still holds a
+        // unit for every unseen target.
+        let mut counts = vec![0u64; 1 << 13];
+        counts[0] = u64::MAX;
+        let heavy = FloorMixWeights {
+            count: 65_534,
+            unigram: 0,
+            floor: 1,
+        };
+        let masses = floor_mixed_masses(&counts, &counts, heavy).expect("the floor holds");
+        assert_exact_sum(&masses);
+        assert!(masses.iter().all(|mass| *mass >= 1));
+        // A floor of weight 1 under a count weight of 2^32 on V = 2^17: the floor's share on
+        // the one unseen target rounds away, and the zero mass is refused, not returned.
+        let mut spread = vec![1u64; 1 << 17];
+        spread[0] = 0;
+        let swamped = FloorMixWeights {
+            count: 1 << 32,
+            unigram: 0,
+            floor: 1,
+        };
+        assert_eq!(
+            floor_mixed_masses(&spread, &spread, swamped),
+            Err(LikelihoodError::MassZero)
+        );
+        // With no floor, a zero mass is refused rather than returned.
+        let no_floor = FloorMixWeights {
+            count: 65_000,
+            unigram: 0,
+            floor: 0,
+        };
+        assert_eq!(
+            floor_mixed_masses(&[1, 0, 0, 0], &[1; 4], no_floor),
+            Err(LikelihoodError::MassZero)
+        );
+        // Shape refusals.
+        assert_eq!(
+            floor_mixed_masses(&[1, 2], &[1], FIXTURE_WEIGHTS),
+            Err(LikelihoodError::LengthMismatch {
+                counts: 2,
+                unigram: 1
+            })
+        );
+        assert_eq!(
+            floor_mixed_masses(&[], &[], FIXTURE_WEIGHTS),
+            Err(LikelihoodError::EmptyScores)
+        );
+        let none = FloorMixWeights {
+            count: 0,
+            unigram: 0,
+            floor: 0,
+        };
+        assert_eq!(
+            floor_mixed_masses(&[1, 2], &[1, 2], none),
+            Err(LikelihoodError::EmptyMass)
+        );
     }
 }
