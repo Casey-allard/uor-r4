@@ -10,6 +10,7 @@ use crate::bitcode::popcount_swar;
 use crate::fbs_snapshot::{CodeRole, ForcedCode, HammingTraceHead, HammingTraceRead, HammingTraceWindow};
 
 use core::ops::Range;
+use std::collections::BTreeMap;
 
 use crate::fbs_snapshot::{place_find, place_first, PlaceImage, PlaceState};
 use crate::place_asks::{AsksIndex, PlaceAsks};
@@ -419,6 +420,28 @@ impl CopyHeads {
         ReadOut::selection(&chosen, weights)
     }
 
+    /// Copy head `h`'s kept positions at the last row of `tokens`, from `index`, which catches up
+    /// to the row. Copy key 1 uses the index; a pair head falls back to the scan.
+    #[allow(dead_code)]
+    pub(crate) fn choose_indexed(
+        &self,
+        h: usize,
+        tokens: &[u32],
+        index: &mut CodeIndex,
+    ) -> Vec<(usize, u32)> {
+        let Some(t) = tokens.len().checked_sub(1) else {
+            return Vec::new();
+        };
+        // A pair head's key joins two tokens, so its buckets would be `vocab²`; it scans. The
+        // fallback is the shipped selection, so a caller that does not check the pair still gets
+        // the right answer.
+        if self.pair[h].is_some() {
+            return self.choose(h, tokens);
+        }
+        index.catch_up(tokens, t, |token| self.code(token, h));
+        index.nearest(self.query_at(tokens, t, h), self.kept)
+    }
+
     /// The positions [`Self::mean`] reads for head `h`, with the codes `force` names in place of
     /// the computed ones (Q5's forced replay, claude-249): the row's query, and each candidate
     /// `s`'s key. The positions are picked by the head's [`CopyRule`], as the served read picks
@@ -569,6 +592,79 @@ fn longest_of(query: u64, t: usize, key: impl Fn(usize) -> u64, longer: impl Fn(
     long.or(exact).map(|s| (s, 0)).into_iter().collect()
 }
 
+/// A key code to the ascending positions that carry it, so a read can find its nearest positions
+/// without scanning every earlier token. The read's query changes each row; its **keys** do not, so
+/// the index is over keys and is exact.
+///
+/// `built` is the highest position inserted (positions `1..=built`), which lets a caller catch the
+/// index up to a row by appending what it has not seen. The session wiring consumes it next; until
+/// then the tests exercise it.
+#[allow(dead_code)]
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CodeIndex {
+    buckets: BTreeMap<u64, Vec<u32>>,
+    built: usize,
+}
+
+#[allow(dead_code)]
+impl CodeIndex {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    /// Forget every position (a reset or a restored session rebuilds from its tokens).
+    pub(crate) fn clear(&mut self) {
+        self.buckets.clear();
+        self.built = 0;
+    }
+
+    fn insert(&mut self, code: u64, position: u32) {
+        self.buckets.entry(code).or_default().push(position);
+    }
+
+    /// Insert the positions the read at row `t` may choose, `1..t`, whose key at position `s` is
+    /// `code(tokens[s - 1])`. A catch-up from `built` appends only what is new.
+    pub(crate) fn catch_up(&mut self, tokens: &[u32], t: usize, code: impl Fn(u32) -> u64) {
+        while self.built + 1 < t {
+            let position = self.built + 1;
+            self.insert(code(tokens[position - 1]), position as u32);
+            self.built = position;
+        }
+    }
+
+    /// The `kept` nearest positions by `(popcount(query XOR code), position)`, the read's tie rule:
+    /// codes walked in ascending distance, and within one distance the first `kept` positions of
+    /// each bucket hold the smallest `kept` positions of the group.
+    pub(crate) fn nearest(&self, query: u64, kept: usize) -> Vec<(usize, u32)> {
+        let mut codes: Vec<(u32, u64)> = self
+            .buckets
+            .keys()
+            .map(|&code| (popcount_swar(query ^ code), code))
+            .collect();
+        codes.sort_unstable();
+        let mut out: Vec<(usize, u32)> = Vec::with_capacity(kept);
+        let mut index = 0;
+        while index < codes.len() && out.len() < kept {
+            let distance = codes[index].0;
+            let mut group: Vec<u32> = Vec::new();
+            while index < codes.len() && codes[index].0 == distance {
+                let bucket = &self.buckets[&codes[index].1];
+                let take = bucket.len().min(kept);
+                group.extend_from_slice(&bucket[..take]);
+                index += 1;
+            }
+            group.sort_unstable();
+            for position in group {
+                if out.len() == kept {
+                    break;
+                }
+                out.push((position as usize, distance));
+            }
+        }
+        out
+    }
+}
+
 /// The `min(kept, t − 1)` positions `1 ≤ s < t` nearest to `query` by `popcount(query XOR key(s))`,
 /// with their distances, in ascending distance and then ascending `s` (the design's tie rule).
 fn nearest(query: u64, t: usize, kept: usize, key: impl Fn(usize) -> u64) -> Vec<(usize, u32)> {
@@ -621,6 +717,45 @@ mod copy_rule_tests {
     }
 
     const FULL: i128 = 1 << 31;
+
+    #[test]
+    fn the_indexed_copy_head_matches_the_scan_on_a_long_stream() {
+        let (heads, _table) = heads(16, CopyRule::Mean);
+        assert!(heads.pair[0].is_none());
+        let tokens: Vec<u32> = (0..4096)
+            .map(|step| ((step * 7 + step / 3) % 4) as u32)
+            .collect();
+        let mut index = super::CodeIndex::new();
+        for t in 1..tokens.len() {
+            let row = &tokens[..=t];
+            let want = heads.choose(0, row);
+            let got = heads.choose_indexed(0, row, &mut index);
+            assert_eq!(got, want, "row {t}");
+        }
+        // A cleared index rebuilds the same answers.
+        index.clear();
+        let row = &tokens[..=2048];
+        assert_eq!(
+            heads.choose_indexed(0, row, &mut index),
+            heads.choose(0, row)
+        );
+    }
+
+    #[test]
+    fn a_pair_head_falls_back_to_the_scan() {
+        let (mut heads, _table) = heads(16, CopyRule::Mean);
+        heads.pair[0] = Some(0xffff_ffff_0000_0000);
+        let tokens: Vec<u32> = (0..256).map(|step| ((step * 5 + 1) % 4) as u32).collect();
+        let mut index = super::CodeIndex::new();
+        for t in 1..tokens.len() {
+            let row = &tokens[..=t];
+            assert_eq!(
+                heads.choose_indexed(0, row, &mut index),
+                heads.choose(0, row),
+                "row {t}"
+            );
+        }
+    }
 
     #[test]
     fn a_copy_head_read_out_is_its_choice_with_margin_weights() {
