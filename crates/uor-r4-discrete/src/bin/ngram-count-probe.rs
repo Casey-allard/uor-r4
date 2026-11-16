@@ -37,7 +37,7 @@ fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let started = std::time::Instant::now();
     let counter = NgramCounter::new(0, &tokens)?;
     println!(
-        "{{\"tokens\":{},\"upload_and_histogram_ms\":{},\"image_sha256\":{:?}}}",
+        "{{\"tokens\":{},\"upload_ms\":{},\"image_sha256\":{:?}}}",
         tokens.len(),
         started.elapsed().as_millis(),
         compiled_ngram_count_image()

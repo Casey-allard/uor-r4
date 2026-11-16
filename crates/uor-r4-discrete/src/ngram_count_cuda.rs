@@ -9,14 +9,19 @@ use crate::ngram_count_oracle::{oracle_count, plant_one_count};
 
 /// A deterministic stream: one in four ids uniform over 4,096, the rest over
 /// `narrow` ids, so high orders repeat; `narrow = 0` gives all-uniform ids.
+/// Every 61st id is BOS (0), a planted record start, so the device's
+/// document-boundary rule (claude-415) meets BOS in every slot.
 fn stream(len: usize, seed: u64, narrow: u32) -> Vec<u16> {
     let mut state = seed | 1;
     (0..len)
-        .map(|_| {
+        .map(|i| {
             state ^= state << 13;
             state ^= state >> 7;
             state ^= state << 17;
             let r = (state >> 20) as u32;
+            if i % 61 == 0 {
+                return 0;
+            }
             (if narrow == 0 || r % 4 == 0 { r % 4096 } else { r % narrow }) as u16
         })
         .collect()

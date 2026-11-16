@@ -3,7 +3,7 @@
 //! here is a product path; GPU counts are the ones that qualify (CHARTER section 3, part 5).
 
 use crate::ngram_count::{
-    check_tokens, partition_offset, NgramAssembler, NgramContext, NgramOrderDigest,
+    check_tokens, ngram_admitted, partition_offset, NgramAssembler, NgramContext, NgramOrderDigest,
     NgramPartition, NgramTriple, PrimeRouteKey, NGRAM_MAX_ORDER,
 };
 use crate::{Error, Result};
@@ -20,6 +20,9 @@ pub fn oracle_partition(tokens: &[u16], order: u32, lo: u32, hi: u32) -> Result<
     let offset = partition_offset(order);
     let mut grams: BTreeMap<(u128, u16), u32> = BTreeMap::new();
     for j in k..tokens.len() {
+        if !ngram_admitted(tokens, j, k) {
+            continue;
+        }
         let digit = u32::from(tokens[j - offset]);
         if digit < lo || digit >= hi {
             continue;

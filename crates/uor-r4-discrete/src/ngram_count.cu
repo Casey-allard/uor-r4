@@ -23,15 +23,28 @@ __device__ __forceinline__ u32 radix_digit(const u16 *tokens, u32 j, u32 back, u
     return ((u32)tokens[j - back] >> shift) & 63u;
 }
 
+// Document boundaries (claude-415): order k admits target j only when t[j] is
+// not BOS (0) and no BOS lies in t[j-k+1..j-1]. BOS may sit in the oldest
+// slot t[j-k] alone, so a record's opening n-gram keeps its start marker.
+// The host oracle's ngram_admitted is the same predicate.
+__device__ __forceinline__ bool ngram_admitted(const u16 *tokens, u32 j, u32 k) {
+    if (tokens[j] == 0u) return false;
+    for (u32 s = 1u; s < k; ++s)
+        if (tokens[j - s] == 0u) return false;
+    return true;
+}
+
 // ---------------------------------------------------------------- planning
 
-// Per-block histogram of tokens[begin..end); shared integer adds only.
-extern "C" __global__ void ngram_token_hist(const u16 *tokens, u32 begin, u32 end, u32 *block_hists) {
+// Per-block histogram of the partition token t[j-off] over the admitted
+// targets j in begin..end of order k; shared integer adds only.
+extern "C" __global__ void ngram_token_hist(const u16 *tokens, u32 begin, u32 end, u32 k, u32 off,
+                                            u32 *block_hists) {
     __shared__ u32 h[4096];
     for (u32 v = threadIdx.x; v < 4096u; v += blockDim.x) h[v] = 0;
     __syncthreads();
-    for (u32 i = begin + blockIdx.x * blockDim.x + threadIdx.x; i < end; i += gridDim.x * blockDim.x)
-        atomicAdd(&h[tokens[i] & 4095u], 1u);
+    for (u32 j = begin + blockIdx.x * blockDim.x + threadIdx.x; j < end; j += gridDim.x * blockDim.x)
+        if (ngram_admitted(tokens, j, k)) atomicAdd(&h[tokens[j - off] & 4095u], 1u);
     __syncthreads();
     for (u32 v = threadIdx.x; v < 4096u; v += blockDim.x) block_hists[blockIdx.x * 4096u + v] = h[v];
 }
@@ -47,21 +60,22 @@ extern "C" __global__ void ngram_token_hist_reduce(const u32 *block_hists, u32 b
 
 // ---------------------------------------------------------------- selection
 
-// flags[i] = 1 when target j = begin + i has its partition token in lo..hi.
-extern "C" __global__ void ngram_select_flags(const u16 *tokens, u32 begin, u32 count, u32 off, u32 lo,
-                                              u32 hi, u32 *flags) {
+// flags[i] = 1 when target j = begin + i of order k is admitted and has its
+// partition token in lo..hi.
+extern "C" __global__ void ngram_select_flags(const u16 *tokens, u32 begin, u32 count, u32 k, u32 off,
+                                              u32 lo, u32 hi, u32 *flags) {
     u32 i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= count) return;
     u32 d = tokens[begin + i - off];
-    flags[i] = (d >= lo && d < hi) ? 1u : 0u;
+    flags[i] = (d >= lo && d < hi && ngram_admitted(tokens, begin + i, k)) ? 1u : 0u;
 }
 
-extern "C" __global__ void ngram_select_scatter(const u16 *tokens, u32 begin, u32 count, u32 off, u32 lo,
-                                                u32 hi, const u32 *scan, u32 out_base, u32 *pos) {
+extern "C" __global__ void ngram_select_scatter(const u16 *tokens, u32 begin, u32 count, u32 k, u32 off,
+                                                u32 lo, u32 hi, const u32 *scan, u32 out_base, u32 *pos) {
     u32 i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= count) return;
     u32 d = tokens[begin + i - off];
-    if (d >= lo && d < hi) pos[out_base + scan[i]] = begin + i;
+    if (d >= lo && d < hi && ngram_admitted(tokens, begin + i, k)) pos[out_base + scan[i]] = begin + i;
 }
 
 // ---------------------------------------------------------------- radix sort

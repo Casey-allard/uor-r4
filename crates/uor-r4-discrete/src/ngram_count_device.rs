@@ -81,10 +81,6 @@ pub struct NgramCounter {
     functions: Vec<CudaFunction>,
     tokens: CudaSlice<u16>,
     n: u32,
-    /// The unigram histogram of the whole stream, and its edges, for planning.
-    histogram: Vec<u64>,
-    head: Vec<u16>,
-    last: u16,
 }
 
 impl NgramCounter {
@@ -109,18 +105,13 @@ impl NgramCounter {
             .map(|entry| module.load_function(entry).map_err(cuda))
             .collect::<Result<Vec<_>>>()?;
         let device_tokens = stream.clone_htod(tokens).map_err(cuda)?;
-        let mut counter = Self {
+        Ok(Self {
             _context: context,
             stream,
             functions,
             tokens: device_tokens,
             n,
-            histogram: Vec::new(),
-            head: tokens[..tokens.len().min(NGRAM_MAX_ORDER as usize)].to_vec(),
-            last: tokens[tokens.len() - 1],
-        };
-        counter.histogram = counter.token_histogram()?;
-        Ok(counter)
+        })
     }
 
     pub fn len(&self) -> u32 {
@@ -144,13 +135,19 @@ impl NgramCounter {
         Ok(words[0].clone())
     }
 
-    fn token_histogram(&self) -> Result<Vec<u64>> {
+    /// The histogram of the partition token over order k's admitted targets
+    /// (the document-boundary rule of `ngram_admitted`).
+    pub fn partition_histogram(&self, order: u32) -> Result<Vec<u64>> {
+        if self.n <= order {
+            return Ok(vec![0; NGRAM_VOCABULARY as usize]);
+        }
         let mut block_hists = self.zeros::<u32>((HIST_BLOCKS * 4096) as usize)?;
         let mut hist = self.zeros::<u64>(4096)?;
-        let (begin, end, blocks) = (0u32, self.n, HIST_BLOCKS);
+        let (begin, end, blocks) = (order, self.n, HIST_BLOCKS);
+        let off = partition_offset(order) as u32;
         let mut launch = self.stream.launch_builder(self.function("ngram_token_hist"));
-        launch.arg(&self.tokens).arg(&begin).arg(&end).arg(&mut block_hists);
-        // SAFETY: tokens hold n words; block_hists HIST_BLOCKS x 4096.
+        launch.arg(&self.tokens).arg(&begin).arg(&end).arg(&order).arg(&off).arg(&mut block_hists);
+        // SAFETY: j - off and j - (k-1) >= 0 since j >= order >= off; block_hists HIST_BLOCKS x 4096.
         unsafe { launch.launch(LaunchConfig { grid_dim: (HIST_BLOCKS, 1, 1), block_dim: (THREADS, 1, 1), shared_mem_bytes: 0 }) }
             .map_err(cuda)?;
         let mut launch = self.stream.launch_builder(self.function("ngram_token_hist_reduce"));
@@ -160,25 +157,9 @@ impl NgramCounter {
         self.stream.clone_dtoh(&hist).map_err(cuda)
     }
 
-    /// The histogram of the partition token over order k's targets.
-    pub fn partition_histogram(&self, order: u32) -> Vec<u64> {
-        if self.n <= order {
-            return vec![0; NGRAM_VOCABULARY as usize];
-        }
-        let mut histogram = self.histogram.clone();
-        if order >= 1 {
-            // Partition token t[j-1] for j in k..n, i.e. t[i] for i in k-1..n-1.
-            for &token in self.head.iter().take(order as usize - 1) {
-                histogram[token as usize] -= 1;
-            }
-            histogram[self.last as usize] -= 1;
-        }
-        histogram
-    }
-
     /// The plan of key-range partitions for `order` under `budget` targets.
     pub fn plan(&self, order: u32, budget: u64) -> Result<Vec<PartitionRange>> {
-        plan_partitions(&self.partition_histogram(order), budget)
+        plan_partitions(&self.partition_histogram(order)?, budget)
     }
 
     /// Exclusive scan of `len` u32 words in place; `data` holds len + 1 words.
@@ -235,12 +216,12 @@ impl NgramCounter {
         while begin < self.n {
             let count = (self.n - begin).min(SELECT_WINDOW);
             let mut launch = self.stream.launch_builder(self.function("ngram_select_flags"));
-            launch.arg(&self.tokens).arg(&begin).arg(&count).arg(&off).arg(&range.lo).arg(&range.hi).arg(&mut flags);
+            launch.arg(&self.tokens).arg(&begin).arg(&count).arg(&order).arg(&off).arg(&range.lo).arg(&range.hi).arg(&mut flags);
             // SAFETY: j - off >= 0 since begin >= order >= off; count flags written.
             unsafe { launch.launch(grid(count)) }.map_err(cuda)?;
             let selected = self.scan32(&mut flags, count)?;
             let mut launch = self.stream.launch_builder(self.function("ngram_select_scatter"));
-            launch.arg(&self.tokens).arg(&begin).arg(&count).arg(&off).arg(&range.lo).arg(&range.hi).arg(&flags).arg(&out_base).arg(&mut pos);
+            launch.arg(&self.tokens).arg(&begin).arg(&count).arg(&order).arg(&off).arg(&range.lo).arg(&range.hi).arg(&flags).arg(&out_base).arg(&mut pos);
             // SAFETY: out_base + scan < out_base + selected <= size, checked below.
             unsafe { launch.launch(grid(count)) }.map_err(cuda)?;
             out_base = out_base
