@@ -1804,4 +1804,49 @@ mod code_index_tests {
             "the index is not examining fewer candidates than positions"
         );
     }
+
+    #[test]
+    fn the_index_at_32k_examines_codes_not_positions() {
+        use std::time::Instant;
+        const VOCAB: usize = 256;
+        const LEN: usize = 32768;
+        const KEPT: usize = 16;
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let codes: Vec<u64> = (0..VOCAB).map(|_| next()).collect();
+        let tokens: Vec<u32> = (0..LEN).map(|_| (next() % VOCAB as u64) as u32).collect();
+
+        // Row `t` reads positions `1..t`, whose keys are `x_0..x_{t-2}`.
+        let t = LEN - 1;
+        let mut index = CodeIndex::new();
+        for s in 1..=t - 1 {
+            index.insert(codes[tokens[s - 1] as usize], s as u32);
+        }
+
+        let query = next();
+        let started = Instant::now();
+        let want = nearest(query, t, KEPT, |s| codes[tokens[s - 1] as usize]);
+        let scan = started.elapsed();
+        let before = index.distance_computations.get();
+        let started = Instant::now();
+        let got = index.nearest(query, KEPT);
+        let indexed = started.elapsed();
+        let distance_computations = index.distance_computations.get() - before;
+
+        assert_eq!(got, want, "the indexed read differs from the scan at 32k");
+        let positions = t - 1;
+        let ratio = positions as f64 / distance_computations as f64;
+        eprintln!(
+            "code index at 32k: {distance_computations} distance computations vs {positions} positions ({ratio:.1}x fewer); scan {scan:?}, indexed {indexed:?}"
+        );
+        assert!(
+            ratio > 64.0,
+            "the index examines too many codes at 32k: {distance_computations}"
+        );
+    }
 }
