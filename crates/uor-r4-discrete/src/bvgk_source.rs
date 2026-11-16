@@ -162,7 +162,7 @@ extern "C" __global__ void discrete_bvgk_decide(const U* member,const W* summary
 }
 extern "C" __global__ void discrete_bvgk_apply(int* table,U* routes,int* gates,const U* g,const U* s,const W* records,const U* commit,U kind,U k,W* epoch,U* status) {
     if(blockIdx.x || threadIdx.x)return;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     U n=0;
     for(U c=0;c<k;++c) {
         if(!commit[c])continue;++n;

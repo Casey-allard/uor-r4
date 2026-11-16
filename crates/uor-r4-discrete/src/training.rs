@@ -694,7 +694,9 @@ impl PreparedDriver {
             Coordinate {
                 kind: match self.config.read_spec {
                     ReadSpec::Route => CoordinateKind::Route,
-                    ReadSpec::Flock { .. } | ReadSpec::Relation { .. } => CoordinateKind::Gate,
+                    ReadSpec::Flock { .. } | ReadSpec::Relation { .. } | ReadSpec::Pick => {
+                        CoordinateKind::Gate
+                    }
                 },
                 index: index - vectors,
             }

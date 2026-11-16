@@ -108,6 +108,9 @@ impl ArtifactTables {
             DiscreteReadMode::Route => (READ_ROUTE, 0, 0),
             DiscreteReadMode::Flock { kept } => (READ_FLOCK, kept, 0),
             DiscreteReadMode::Relation { kept, sweeps } => (READ_RELATION, kept, sweeps),
+            DiscreteReadMode::Pick => {
+                return Err("the D11 artifact scorer does not score a Pick read (claude-408)".into())
+            }
         };
         let as_i32 = |v: u32| i32::try_from(v).map_err(|_| "shape value exceeds i32".to_string());
         let shape_words = [

@@ -22,7 +22,7 @@ pub const ENTRIES: [&str; 7] = [
 ];
 
 pub fn generate(source: &str) -> Result<String, String> {
-    let qualified = qualified_prefix(source)?;
+    let qualified = strip_pick_blocks(&qualified_prefix(source)?)?;
     let writer_end = qualified
         .find("// Statuses added")
         .ok_or("bucket source anchor changed: writer end missing")?;
@@ -30,6 +30,9 @@ pub fn generate(source: &str) -> Result<String, String> {
         return Err("bucket source anchor changed: ordinary writer body differs".into());
     }
     let helpers_and_writer = &qualified[..writer_end];
+    if helpers_and_writer.contains("MODE_PICK") {
+        return Err("bucket source anchor changed: Pick text outside its markers".into());
+    }
     Ok(format!("{helpers_and_writer}\n{BUCKET}"))
 }
 
@@ -52,6 +55,37 @@ const TRACE_ROUTE_DISPATCH: &str =
     "    return route_vector(input,ids,routes,plan,g,s,row,kind,index,candidate,output,trace);";
 const ADMITTED_ROUTE_DISPATCH: &str =
     "    return route_vector(input,ids,routes,plan,g,s,row,kind,index,candidate,output);";
+
+const PICK_BEGIN: &str = "// PICK-BEGIN";
+const PICK_END: &str = "// PICK-END";
+
+/// The Pick read (claude-408) is not part of the qualified bucket writer: its
+/// marked lines are dropped, so the generated text stays the one the GPU
+/// receipts qualified, and `writer_bucket_device` refuses a Pick model.
+fn strip_pick_blocks(source: &str) -> Result<String, String> {
+    let mut stripped = String::with_capacity(source.len());
+    let mut in_pick = false;
+    for line in source.split_inclusive('\n') {
+        let trimmed = line.trim();
+        if trimmed.starts_with(PICK_BEGIN) {
+            if in_pick {
+                return Err("bucket source anchor changed: nested Pick block".into());
+            }
+            in_pick = true;
+        } else if trimmed == PICK_END {
+            if !in_pick {
+                return Err("bucket source anchor changed: Pick end without begin".into());
+            }
+            in_pick = false;
+        } else if !in_pick {
+            stripped.push_str(line);
+        }
+    }
+    if in_pick {
+        return Err("bucket source anchor changed: unterminated Pick block".into());
+    }
+    Ok(stripped)
+}
 
 fn strip_trace_blocks(source: &str) -> Result<String, String> {
     let mut stripped = String::with_capacity(source.len());
@@ -656,9 +690,12 @@ mod tests {
     fn generated_bucket_module_keeps_helpers_and_adds_seven_entries() {
         let source = include_str!("discrete.cu");
         let generated = generate(source).expect("bucket source generated");
-        let qualified = qualified_prefix(source).expect("qualified prefix");
+        // The Pick read's marked lines are not part of the bucket writer (claude-408).
+        let qualified = strip_pick_blocks(&qualified_prefix(source).expect("qualified prefix"))
+            .expect("pick blocks stripped");
         let prefix_end = qualified.find("// Statuses added").expect("writer end");
         assert!(generated.starts_with(&qualified[..prefix_end]));
+        assert!(source.contains("MODE_PICK") && !generated.contains("MODE_PICK"));
         assert_eq!(generated.matches("__global__").count(), ENTRIES.len());
         for entry in ENTRIES {
             assert_eq!(

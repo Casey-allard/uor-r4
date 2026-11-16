@@ -93,6 +93,10 @@ pub struct DiscreteLutShape {
     pub read_mode: String,
     pub read_kept: u32,
     pub read_sweeps: u32,
+    /// Pick position transport word `s[14]` (1 prefix holonomy, 3 identity);
+    /// absent (0) for every other read, so their header bytes are unchanged.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub read_position: u32,
     pub objective_policy: String,
     pub read_initialization: String,
     pub seed: u32,
@@ -232,11 +236,38 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
             "D11 export refuses a non-default normalization_mode: the integer engine has no unit snap",
         ));
     }
-    if snapshot.position.is_some() {
+    if snapshot.position.is_some() && snapshot.read_spec != ReadSpec::Pick {
         return Err(invalid(
             "D11 export refuses position transport: the integer engine has no position read",
         ));
     }
+    // Pick carries its transport word, and for prefix holonomy the step frame
+    // of every (block, root): `position_frames[b*16+root]`, a frame index < 64
+    // (the kernel's `position_step`), never the raw candidate.
+    let (read_position, position_frames) = match (&snapshot.read_spec, &snapshot.position) {
+        (ReadSpec::Pick, Some(config)) => {
+            let word = config.mode.device_word();
+            snapshot.read_spec.admits_position_word(word)?;
+            let frames = if word == 1 {
+                let mut frames = Vec::with_capacity(snapshot.spec.blocks as usize * 16);
+                for block in 0..snapshot.spec.blocks as usize {
+                    for root in 0..16u8 {
+                        frames.push(u32::from(config.steps.step_action(block, root)?));
+                    }
+                }
+                Some(frames)
+            } else {
+                None
+            };
+            (word, frames)
+        }
+        (ReadSpec::Pick, None) => {
+            return Err(invalid(
+                "D11 export of a Pick read needs position transport 1 or 3",
+            ));
+        }
+        _ => (0, None),
+    };
     if !snapshot.address_metric.is_outer() {
         return Err(invalid(
             "D11 export refuses a full-vector address metric: the integer engine admits by the outer key",
@@ -248,6 +279,7 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
         ReadSpec::Route => ("route".to_owned(), 0, 0),
         ReadSpec::Flock { kept } => ("flock".to_owned(), kept, 0),
         ReadSpec::Relation { kept, sweeps } => ("relation".to_owned(), kept, sweeps),
+        ReadSpec::Pick => ("pick".to_owned(), 0, 0),
     };
     let objective_policy = match snapshot.objective_policy {
         ObjectivePolicy::NearestAddressMarginV1 => "nearest_address_margin_v1".to_owned(),
@@ -281,6 +313,7 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
         read_mode,
         read_kept,
         read_sweeps,
+        read_position,
         objective_policy,
         read_initialization,
         seed: snapshot.seed,
@@ -333,6 +366,16 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
         len: snapshot.gates.len(),
         span: push_section(&mut blob, &gates_bytes),
     });
+
+    if let Some(frames) = &position_frames {
+        let frames_bytes: Vec<u8> = frames.iter().flat_map(|x| x.to_le_bytes()).collect();
+        tables.push(SectionSpec {
+            name: "discrete.position_frames".to_owned(),
+            kind: SectionKind::U32,
+            len: frames.len(),
+            span: push_section(&mut blob, &frames_bytes),
+        });
+    }
 
     let header = DiscreteLutHeader {
         schema: DISCRETE_LUT_SCHEMA.to_owned(),
@@ -649,6 +692,86 @@ mod tests {
         assert_eq!(export_d11(&default).unwrap(), bytes);
     }
 
+    fn parsed_header_and_data(bytes: &[u8]) -> (DiscreteLutHeader, &[u8]) {
+        let header_len = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
+        let header: DiscreteLutHeader =
+            serde_json::from_slice(&bytes[16..16 + header_len]).unwrap();
+        let unaligned = 16 + header_len;
+        let data_start = unaligned + (ALIGN - unaligned % ALIGN) % ALIGN;
+        (header, &bytes[data_start..])
+    }
+
+    #[test]
+    fn pick_export_carries_its_transport_word_and_step_frames() {
+        use crate::position_mechanism::{
+            candidate_to_frame, PositionConfig, PositionMode, PositionStepTable,
+        };
+
+        let mut snapshot = sample_snapshot(ReadSpec::Pick, ReadInitialization::ActiveLeafV1);
+        let error = export_d11(&snapshot).unwrap_err().to_string();
+        assert!(error.contains("Pick"), "{error}");
+
+        snapshot.position = Some(PositionConfig::new(
+            PositionMode::IdentityControlV1,
+            PositionStepTable::identity(2).unwrap(),
+        ));
+        let (header, _) = parsed_header_and_data(&export_d11(&snapshot).unwrap());
+        assert_eq!(
+            (
+                header.shape.read_mode.as_str(),
+                header.shape.read_kept,
+                header.shape.read_sweeps
+            ),
+            ("pick", 0, 0)
+        );
+        assert_eq!(header.shape.read_position, 3);
+        assert!(header
+            .tables
+            .iter()
+            .all(|t| t.name != "discrete.position_frames"));
+
+        // Nonzero step candidates: the section must hold their frames, not the candidates.
+        let candidates: Vec<u8> = (0..32u8).map(|i| (i * 5 + 1) % 16).collect();
+        let steps = PositionStepTable::new(2, candidates.clone()).unwrap();
+        snapshot.position = Some(PositionConfig::new(PositionMode::PrefixHolonomyV1, steps));
+        let bytes = export_d11(&snapshot).unwrap();
+        let (header, data) = parsed_header_and_data(&bytes);
+        assert_eq!(header.shape.read_position, 1);
+        let section = header
+            .tables
+            .iter()
+            .find(|t| t.name == "discrete.position_frames")
+            .expect("position frames section");
+        assert_eq!((section.kind, section.len), (SectionKind::U32, 32));
+        let start = section.span.offset as usize;
+        let words: Vec<u32> = data[start..start + 4 * section.len]
+            .chunks_exact(4)
+            .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+            .collect();
+        let expected: Vec<u32> = candidates
+            .iter()
+            .map(|&c| u32::from(candidate_to_frame(c)))
+            .collect();
+        // In this geometry candidate_to_frame is the identity on 0..16 (the
+        // generators are frames 1..15), so the words are pinned through the map.
+        assert_eq!(words, expected);
+
+        // Endpoint control is refused for Pick; other reads keep their header bytes.
+        snapshot.position = Some(PositionConfig::new(
+            PositionMode::EndpointControlV1,
+            PositionStepTable::identity(2).unwrap(),
+        ));
+        assert!(export_d11(&snapshot).is_err());
+        let flock = export_d11(&sample_snapshot(
+            ReadSpec::Flock { kept: 2 },
+            ReadInitialization::ActiveLeafV1,
+        ))
+        .unwrap();
+        let (flock_header, _) = parsed_header_and_data(&flock);
+        assert_eq!(flock_header.shape.read_position, 0);
+        assert!(!String::from_utf8_lossy(&flock[..64]).contains("read_position"));
+    }
+
     #[test]
     fn export_refuses_a_full_vector_address_metric() {
         use crate::address_cells::AddressMetric;
@@ -707,4 +830,8 @@ mod tests {
         flipped_tail[last] ^= 1;
         assert!(import_d11(&flipped_tail).is_err());
     }
+}
+
+fn is_zero(value: &u32) -> bool {
+    *value == 0
 }

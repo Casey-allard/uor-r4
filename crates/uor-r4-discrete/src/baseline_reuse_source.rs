@@ -53,7 +53,7 @@ pub fn generate(source: &str) -> Result<String, String> {
 
 const HEADER: &str = r#"    U candidate=blockIdx.x*blockDim.x+threadIdx.x;if(candidate>=16)return;
     W sum=0;U eligible=0;losses[candidate]=~(W)0;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;

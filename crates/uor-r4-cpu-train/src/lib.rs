@@ -117,12 +117,12 @@ pub use discrete_route::{
     CpuBvgkBatchReceipt, CpuBvgkDecision, CpuBvgkRecord, CpuDiscreteApplyError,
     CpuDiscreteApplyReceipt, CpuDiscreteBlock, CpuDiscreteBlockScoring, CpuDiscreteCheckpoint,
     CpuDiscreteCheckpointDriver, CpuDiscreteFlock, CpuDiscretePanelExportReading,
-    CpuDiscretePanelReading, CpuDiscreteProposal, CpuDiscreteProposalApplier,
-    CpuDiscreteProposalChooser, CpuDiscreteProposalKind, CpuDiscreteProposalMode,
-    CpuDiscreteProposalSample, CpuDiscreteProposalScorer, CpuDiscreteProposalScoring,
-    CpuDiscreteReadTrace, CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteSchedule,
-    CpuDiscreteScoreError, CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader,
-    CPU_DISCRETE_CHECKPOINT_SCHEMA,
+    CpuDiscretePanelReading, CpuDiscretePick, CpuDiscretePickTrace, CpuDiscretePickTransport,
+    CpuDiscreteProposal, CpuDiscreteProposalApplier, CpuDiscreteProposalChooser,
+    CpuDiscreteProposalKind, CpuDiscreteProposalMode, CpuDiscreteProposalSample,
+    CpuDiscreteProposalScorer, CpuDiscreteProposalScoring, CpuDiscreteReadTrace,
+    CpuDiscreteRelation, CpuDiscreteRoute, CpuDiscreteSchedule, CpuDiscreteScoreError,
+    CpuDiscreteTrunkDecision, CpuDiscreteTrunkReader, CPU_DISCRETE_CHECKPOINT_SCHEMA,
 };
 pub use fbs::{
     CpuFbsForward, CpuFbsHead, CpuFbsStep, FbsForwardError, WriterPortAnchorAudit,

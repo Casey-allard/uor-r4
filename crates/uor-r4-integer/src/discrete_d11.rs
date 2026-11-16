@@ -285,8 +285,17 @@ const COMPOSITION_KAPPA: &str =
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DiscreteReadMode {
     Route,
-    Flock { kept: u32 },
-    Relation { kept: u32, sweeps: u32 },
+    Flock {
+        kept: u32,
+    },
+    Relation {
+        kept: u32,
+        sweeps: u32,
+    },
+    /// Hard copy read (device spec word `s[8] = 3`): picks the latest earlier
+    /// position whose `(p - 1, p)` block codes are nearest the query pair by
+    /// XOR + popcount and adds the gated successor blocks.
+    Pick,
 }
 
 /// Route trace ABI shared with `discrete.cu`.
@@ -314,6 +323,10 @@ pub struct DiscreteLutShape {
     pub read_mode: String,
     pub read_kept: u32,
     pub read_sweeps: u32,
+    /// Position transport word (device `s[14]`): 0 legacy BFS, 1 causal prefix
+    /// holonomy, 2 matched endpoint, 3 identity. Absent in the header means 0.
+    #[serde(default, skip_serializing_if = "is_zero_word")]
+    pub read_position: u32,
     pub objective_policy: String,
     pub read_initialization: String,
     pub seed: u32,
@@ -707,6 +720,8 @@ pub struct IntegerDiscreteModel {
     /// When `true`, projects intermediate tree/frame state transport to the identity frame
     /// (`A_0 = I_8`) on the local query token block and zeroes all level and relation gates.
     state_transport_knockout: bool,
+    /// Position transport of the Pick read (`None` unless `Pick`).
+    pick_transport: Option<PickTransport>,
 }
 
 fn expected_stages(context: u32) -> Option<u32> {
@@ -775,6 +790,136 @@ fn snap(x: &[i32; 8], n: usize) -> usize {
         }
     }
     best
+}
+
+fn is_zero_word(word: &u32) -> bool {
+    *word == 0
+}
+
+/// Position transport admitted by the Pick read.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum PickTransport {
+    /// `s[14] = 1`: `F_{p,b} = COMPOSE[step(b, root(p, b)), F_{p-1,b}]`,
+    /// transport `H_{t <- p, b} = COMPOSE[F_{t,b}, INVERSE[F_{p,b}]]`.
+    /// `frames[b * 16 + root]` is the step frame index `0..64`.
+    PrefixHolonomy { frames: Vec<u8> },
+    /// `s[14] = 3`: identity at every position.
+    Identity,
+}
+
+/// One row of the Pick read: the output blocks, the picked position and its distance.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct PickRead {
+    pub(crate) blocks: Vec<[i32; 8]>,
+    pub(crate) pick: Option<usize>,
+    pub(crate) distance: Option<u32>,
+}
+
+/// 16-bit code of an anchor-orbit block: bit `2d` is `x[d] > 0`, bit `2d + 1` is `x[d] < 0`.
+/// For two orbit roots, `L1(a - b) == 2 * popcount(code(a) ^ code(b))`.
+pub(crate) fn root_code(x: &[i32; 8]) -> u16 {
+    let mut code = 0u16;
+    for (d, &v) in x.iter().enumerate() {
+        if v > 0 {
+            code |= 1 << (2 * d);
+        } else if v < 0 {
+            code |= 1 << (2 * d + 1);
+        }
+    }
+    code
+}
+
+/// The Pick read for one causal prefix (`t = prefix.len() - 1`). Every block of
+/// `tok(p)` is transported from `p` to `t`; the pick is the latest `p` in
+/// `1..t` minimizing `sum_b popcount(code(p-1,b) ^ code(t-1,b)) +
+/// popcount(code(p,b) ^ code(t,b))`; block `b` reads
+/// `snap_{1+|g_b|}(query_b + g_b * successor_b)` with the level-0 gate `g_b`.
+pub(crate) fn pick_read(
+    token_blocks: &[Vec<[i32; 8]>],
+    gates0: &[i32],
+    transport: &PickTransport,
+    prefix: &[u32],
+) -> Result<PickRead> {
+    if prefix.is_empty() {
+        return Err(invalid("Pick read needs a non-empty prefix"));
+    }
+    let t = prefix.len() - 1;
+    let query = &token_blocks[prefix[t] as usize];
+    let blocks = query.len();
+    if gates0.len() != blocks {
+        return Err(invalid("Pick read gate count differs from block count"));
+    }
+    if t < 2 {
+        return Ok(PickRead {
+            blocks: query.clone(),
+            pick: None,
+            distance: None,
+        });
+    }
+    // transported[p][b]: block b of tok(p) carried from p to t.
+    let mut transported = vec![vec![[0i32; 8]; blocks]; t + 1];
+    for b in 0..blocks {
+        match transport {
+            PickTransport::Identity => {
+                for (p, slot) in transported.iter_mut().enumerate() {
+                    slot[b] = token_blocks[prefix[p] as usize][b];
+                }
+            }
+            PickTransport::PrefixHolonomy { frames } => {
+                let mut prefix_frames = Vec::with_capacity(t + 1);
+                let mut acc = usize::from(IDENTITY);
+                for &tok in prefix {
+                    let root = root_id(&token_blocks[tok as usize][b])
+                        .ok_or_else(|| invalid("Pick block outside SpiralCore orbit"))?;
+                    acc = compose(usize::from(frames[b * 16 + root]), acc);
+                    prefix_frames.push(acc);
+                }
+                for (p, slot) in transported.iter_mut().enumerate() {
+                    let h = compose(prefix_frames[t], cl06_inverse(prefix_frames[p]));
+                    slot[b] = action(h, &token_blocks[prefix[p] as usize][b]);
+                }
+            }
+        }
+    }
+    let codes: Vec<Vec<u16>> = transported
+        .iter()
+        .map(|row| row.iter().map(root_code).collect())
+        .collect();
+    let mut pick = 1usize;
+    let mut best = u32::MAX;
+    for p in 1..t {
+        let mut d = 0u32;
+        for b in 0..blocks {
+            d += (codes[p - 1][b] ^ codes[t - 1][b]).count_ones();
+            d += (codes[p][b] ^ codes[t][b]).count_ones();
+        }
+        if d <= best {
+            pick = p;
+            best = d;
+        }
+    }
+    let mut out = Vec::with_capacity(blocks);
+    for b in 0..blocks {
+        let gate = gates0[b];
+        let mut u = query[b];
+        let payload = &transported[pick + 1][b];
+        for d in 0..8 {
+            u[d] += if gate > 0 {
+                payload[d]
+            } else if gate < 0 {
+                -payload[d]
+            } else {
+                0
+            };
+        }
+        let n = 1 + gate.unsigned_abs() as usize;
+        out.push(ROOTS[snap(&u, n)].map(i32::from));
+    }
+    Ok(PickRead {
+        blocks: out,
+        pick: Some(pick),
+        distance: Some(best),
+    })
 }
 
 fn checked_scaled_add(mut value: u64, mut times: u32) -> Option<u64> {
@@ -988,8 +1133,23 @@ impl IntegerDiscreteModel {
             {
                 DiscreteReadMode::Relation { kept, sweeps }
             }
+            ("pick", 0, 0) => DiscreteReadMode::Pick,
             _ => return Err(invalid("unsupported discrete read mode or parameters")),
         };
+        match (read_mode, s.read_position) {
+            (DiscreteReadMode::Pick, 1 | 3) | (DiscreteReadMode::Route, 0) => {}
+            (DiscreteReadMode::Flock { .. } | DiscreteReadMode::Relation { .. }, 0) => {}
+            (DiscreteReadMode::Pick, _) => {
+                return Err(invalid(
+                    "Pick read admits only position transport 1 (prefix holonomy) or 3 (identity)",
+                ))
+            }
+            _ => {
+                return Err(invalid(
+                    "position transport is served only for the Pick read",
+                ))
+            }
+        }
         let objective_policy = match s.objective_policy.as_str() {
             "nearest_address_margin_v1" => DiscreteObjectivePolicy::NearestAddressMarginV1,
             "occupied_cell_rank_hinge_v1" => DiscreteObjectivePolicy::OccupiedCellRankHingeV1,
@@ -1004,7 +1164,14 @@ impl IntegerDiscreteModel {
             return Err(invalid("unsupported discrete read initialization"));
         }
 
-        if (!is_trunk && header.tables.len() != 4)
+        // A Pick read with prefix holonomy carries one more table, its step
+        // frames (`discrete.position_frames`); every other artifact is unchanged.
+        let plain_tables = if matches!(read_mode, DiscreteReadMode::Pick) && s.read_position == 1 {
+            5
+        } else {
+            4
+        };
+        if (!is_trunk && header.tables.len() != plain_tables)
             || (is_trunk && (header.tables.len() != 19 || s.blocks != 4))
         {
             return Err(invalid(
@@ -1158,6 +1325,22 @@ impl IntegerDiscreteModel {
                 relation_gates.push(rg);
             }
         }
+        let pick_transport = match (read_mode, s.read_position) {
+            (DiscreteReadMode::Pick, 3) => Some(PickTransport::Identity),
+            (DiscreteReadMode::Pick, _) => {
+                let frames: Vec<u8> =
+                    read_section("discrete.position_frames", SectionKind::U32, blocks * 16)?
+                        .chunks_exact(4)
+                        .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                        .map(|f| u8::try_from(f).ok().filter(|&f| f < 64))
+                        .collect::<Option<_>>()
+                        .ok_or_else(|| {
+                            invalid("discrete.position_frames contains frame index >= 64")
+                        })?;
+                Some(PickTransport::PrefixHolonomy { frames })
+            }
+            _ => None,
+        };
 
         let trunk = if is_trunk {
             let read_u32_any = |idx: usize, expected_name: &str| -> Result<Vec<u32>> {
@@ -1272,6 +1455,7 @@ impl IntegerDiscreteModel {
             relation_gates,
             trunk,
             state_transport_knockout: false,
+            pick_transport,
         })
     }
 
@@ -1740,6 +1924,17 @@ impl IntegerDiscreteModel {
         Ok((out, all_rel_scores, all_rel_trace))
     }
 
+    /// Run the Pick read on one causal prefix with this model's blocks, level-0
+    /// gates and position transport, returning the pick beside the read blocks.
+    pub(crate) fn pick_row(&self, prefix: &[u32]) -> Result<PickRead> {
+        let transport = self
+            .pick_transport
+            .as_ref()
+            .ok_or_else(|| invalid("Pick read requested on a model without Pick transport"))?;
+        let gates0: Vec<i32> = self.level_gates.iter().map(|g| g[0]).collect();
+        pick_read(&self.token_blocks, &gates0, transport, prefix)
+    }
+
     fn address_distance(&self, q: &[[i32; 8]], cell: u32) -> u32 {
         let a = root_cost(&q[0], (cell >> 4) as usize).0;
         let b = root_cost(&q[q.len() - 1], (cell & 15) as usize).0;
@@ -1806,6 +2001,7 @@ impl IntegerDiscreteModel {
                 true,
                 retain_trace.then_some(&mut trace_words),
             )?,
+            DiscreteReadMode::Pick => (self.pick_row(prefix)?.blocks, None, None),
         };
         if !self.state_transport_knockout {
             if let Some(ref trunk) = self.trunk {
@@ -2097,6 +2293,7 @@ mod tests {
             read_mode: "route".to_owned(),
             read_kept: 0,
             read_sweeps: 0,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".to_owned(),
             read_initialization: "zero_gates_v1".to_owned(),
             seed: 7,
@@ -2149,6 +2346,7 @@ mod tests {
             read_mode: "route".to_owned(),
             read_kept: 0,
             read_sweeps: 0,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".to_owned(),
             read_initialization: "zero_gates_v1".to_owned(),
             seed: 7,
@@ -2192,6 +2390,7 @@ mod tests {
             read_mode: "flock".to_owned(),
             read_kept: 1,
             read_sweeps: 0,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".to_owned(),
             read_initialization: "active_leaf_v1".to_owned(),
             seed: 7,
@@ -2214,6 +2413,7 @@ mod tests {
             read_mode: "relation".to_owned(),
             read_kept: 1,
             read_sweeps: 1,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".to_owned(),
             read_initialization: "active_leaf_v1".to_owned(),
             seed: 7,
@@ -2260,6 +2460,7 @@ mod tests {
             read_mode: "route".to_owned(),
             read_kept: 0,
             read_sweeps: 0,
+            read_position: 0,
             objective_policy: "occupied_cell_rank_hinge_v1".to_owned(),
             read_initialization: "zero_gates_v1".to_owned(),
             seed: 7,
@@ -2313,6 +2514,7 @@ mod tests {
             read_mode: "route".to_owned(),
             read_kept: 0,
             read_sweeps: 0,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".to_owned(),
             read_initialization: "zero_gates_v1".to_owned(),
             seed: 7,
@@ -2455,5 +2657,141 @@ mod tests {
         let mut bad_tail = container;
         bad_tail[q_offset..q_offset + 4].copy_from_slice(&99u32.to_le_bytes());
         assert!(IntegerDiscreteModel::from_bytes(&bad_tail).is_err());
+    }
+
+    fn pick_shape(read_position: u32) -> DiscreteLutShape {
+        DiscreteLutShape {
+            vocabulary: 5,
+            blocks: 2,
+            context: 6,
+            kept_cells: 2,
+            stages: 2,
+            read_mode: "pick".to_owned(),
+            read_kept: 0,
+            read_sweeps: 0,
+            read_position,
+            objective_policy: "nearest_address_margin_v1".to_owned(),
+            read_initialization: "zero_gates_v1".to_owned(),
+            seed: 7,
+            epoch: 0,
+        }
+    }
+
+    /// Five tokens whose block-0 roots and block-1 roots are pairwise distinct.
+    const PICK_TOKENS: [[[i32; 8]; 2]; 5] = [
+        [A, B],
+        [C_ROOT, NEG_B],
+        [D_ROOT, A],
+        [NEG_A, D_ROOT],
+        [B, C_ROOT],
+    ];
+
+    /// Identity-transport Pick model with level-0 gates `[gate_b0, gate_b1]`.
+    fn pick_model(gate_b0: i32, gate_b1: i32) -> IntegerDiscreteModel {
+        let bytes = build_discrete_uorlut01(
+            pick_shape(3),
+            &PICK_TOKENS,
+            &[0, 0, 0, 0],
+            &[gate_b0, 0, gate_b1, 0],
+        );
+        IntegerDiscreteModel::from_bytes(&bytes).unwrap()
+    }
+
+    #[test]
+    fn pick_code_xor_popcount_is_half_the_l1_root_distance() {
+        for a in 0..16 {
+            for b in 0..16 {
+                let ra = ROOTS[a].map(i32::from);
+                let rb = ROOTS[b].map(i32::from);
+                let l1: u32 = (0..8).map(|d| (ra[d] - rb[d]).unsigned_abs()).sum();
+                let xor = root_code(&ra) ^ root_code(&rb);
+                assert_eq!(l1, 2 * xor.count_ones(), "roots {a} and {b}");
+            }
+        }
+    }
+
+    #[test]
+    fn pick_copies_the_successor_of_the_one_earlier_query_pair() {
+        // The query pair (tok 0, tok 1) at (4, 5) occurs earlier only at (0, 1).
+        let prefix = [0u32, 1, 2, 3, 0, 1];
+        let query = PICK_TOKENS[1];
+        let successor = PICK_TOKENS[2];
+        let expected: Vec<[i32; 8]> = (0..2)
+            .map(|b| {
+                let mut sum = query[b];
+                for d in 0..8 {
+                    sum[d] += successor[b][d];
+                }
+                ROOTS[snap(&sum, 2)].map(i32::from)
+            })
+            .collect();
+        assert_ne!(expected, query.to_vec(), "fixture must move the read");
+
+        let gated = pick_model(1, 1);
+        let read = gated.pick_row(&prefix).unwrap();
+        assert_eq!(read.pick, Some(1));
+        assert_eq!(read.distance, Some(0));
+        assert_eq!(read.blocks, expected);
+        let served = gated.evaluate_prefix(&prefix).unwrap();
+        let flat: Vec<i32> = expected.iter().flatten().copied().collect();
+        assert_eq!(served.read_vector, flat);
+
+        let open = pick_model(0, 0);
+        let read = open.pick_row(&prefix).unwrap();
+        assert_eq!(read.pick, Some(1));
+        assert_eq!(read.blocks, query.to_vec());
+
+        let short = gated.pick_row(&[0, 1]).unwrap();
+        assert_eq!((short.pick, short.distance), (None, None));
+        assert_eq!(short.blocks, query.to_vec());
+    }
+
+    #[test]
+    fn pick_breaks_a_distance_tie_toward_the_latest_position() {
+        // (tok 0, tok 1) at (0, 1) and (2, 3) both match the query pair at (4, 5).
+        let read = pick_model(1, 1).pick_row(&[0, 1, 0, 1, 0, 1]).unwrap();
+        assert_eq!(read.distance, Some(0));
+        assert_eq!(read.pick, Some(3));
+    }
+
+    #[test]
+    fn pick_refuses_legacy_and_matched_endpoint_transport() {
+        for word in [0u32, 2] {
+            let bytes =
+                build_discrete_uorlut01(pick_shape(word), &PICK_TOKENS, &[0; 4], &[1, 0, 1, 0]);
+            let error = IntegerDiscreteModel::from_bytes(&bytes)
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains("Pick read admits only"), "{word}: {error}");
+        }
+        let mut flock = pick_shape(3);
+        flock.read_mode = "flock".to_owned();
+        flock.read_kept = 1;
+        let bytes = build_discrete_uorlut01(flock, &PICK_TOKENS, &[0; 4], &[0; 4]);
+        let error = IntegerDiscreteModel::from_bytes(&bytes)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("served only for the Pick read"), "{error}");
+    }
+
+    #[test]
+    fn pick_prefix_holonomy_with_identity_steps_equals_identity_transport() {
+        for a in 0..64 {
+            assert_eq!(
+                compose(a, cl06_inverse(a)),
+                usize::from(IDENTITY),
+                "frame {a}"
+            );
+        }
+        let token_blocks: Vec<Vec<[i32; 8]>> = PICK_TOKENS.iter().map(|t| t.to_vec()).collect();
+        let prefix = [0u32, 1, 2, 3, 0, 1];
+        let holonomy = PickTransport::PrefixHolonomy {
+            frames: vec![IDENTITY; 32],
+        };
+        let by_holonomy = pick_read(&token_blocks, &[1, -1], &holonomy, &prefix).unwrap();
+        let by_identity =
+            pick_read(&token_blocks, &[1, -1], &PickTransport::Identity, &prefix).unwrap();
+        assert_eq!(by_holonomy, by_identity);
+        assert_eq!(by_identity.pick, Some(1));
     }
 }

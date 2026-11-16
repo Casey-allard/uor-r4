@@ -748,6 +748,7 @@ mod tests {
             read_mode: "relation".into(),
             read_kept: 1,
             read_sweeps: 1,
+            read_position: 0,
             objective_policy: "nearest_address_margin_v1".into(),
             read_initialization: "active_leaf_v1".into(),
             seed: 7,

@@ -350,9 +350,99 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
     }
     return true;
 }
+// PICK-BEGIN
+// ---- Pick read (Claude, claude-408) ----
+// s[8] = 3. The lines between PICK-BEGIN and PICK-END are left out of the
+// generated bucket writer (bucket_source.rs), whose text stays the one its GPU
+// receipts qualified; the host refuses a Pick model there.
+// One row, t = length-1. code(x): bit 2d if x[d]>0, bit 2d+1 if x[d]<0, so for
+// orbit roots L1(a-b) = 2*popc(code(a)^code(b)). T[p][b] is block b of tok(p)
+// carried to t by s[14] (3 identity, 1 causal prefix holonomy). For 1<=p<=t-1,
+// d(p) = sum_b popc(code(T[p-1][b])^code(T[t-1][b])) + popc(code(T[p][b])^code(T[t][b]));
+// the pick is the least d, ties to the latest p. Per block, u = query_b +
+// gate_b*T[pick+1][b] (level-0 Gate trit), out = snap_{1+|gate_b|}(u). With
+// t < 2 there is no pick and the output is the query.
+// Optional trace (forward only) per (row, block), in the Flock record's first
+// words: [pick, d(pick), count of p tied at d(pick), gate+1, out root]; the
+// rest ABSENT. pick, d and ties are ABSENT, ABSENT, 0 when there is no pick.
+#define MODE_PICK 3u
+__device__ U root_code(const int* x) {
+    U code=0;
+    for(U d=0;d<8;++d){if(x[d]>0)code|=1u<<(2*d);else if(x[d]<0)code|=1u<<(2*d+1);}
+    return code;
+}
+// Block b of tok(p), carried to t. prefix holds this block's holonomy frames.
+__device__ bool pick_block(const int* input,const U* ids,const U* g,const U* s,const unsigned char* prefix,U row,U p,U t,U b,U kind,U index,U candidate,int* out) {
+    int v[8];input_block(input,ids,g,row,p,b,s,kind,index,candidate,v);
+    if(s[14]==3){for(U d=0;d<8;++d)out[d]=v[d];return true;}
+    action(g,compose(g,prefix[t],g[INVERSE+prefix[p]]),v,out);
+    return true;
+}
+__device__ bool pick_prefix(const int* input,const U* ids,const U* g,const U* s,const U* position_steps,U row,U length,U b,U kind,U index,U candidate,unsigned char* prefix) {
+    if(s[14]!=1)return true;
+    U acc=g[IDENTITY];
+    for(U p=0;p<length;++p) {
+        int fv[8];input_block(input,ids,g,row,p,b,s,kind,index,candidate,fv);
+        U root=root_id(fv,g);if(root==ABSENT)return false;
+        acc=compose(g,position_step(position_steps,b,root,g),acc);
+        prefix[p]=(unsigned char)acc;
+    }
+    return true;
+}
+__device__ bool pick_vector(const int* input,const U* ids,const int* gates,const U* plan,const U* g,const U* s,const U* position_steps,U row,U kind,U index,U candidate,int* output,U* trace) {
+    plan+=row*(3+s[6]*4+16);
+    U length=plan[0];
+    if(length==0 || length>s[2] || length>MAX_POSITIONS || (s[14]!=1 && s[14]!=3))return false;
+    U t=length-1;
+    unsigned char prefix[MAX_POSITIONS];
+    U distance[MAX_POSITIONS];
+    for(U p=0;p<length;++p)distance[p]=0;
+    U pick=ABSENT,best=ABSENT,ties=0;
+    if(t>=2) {
+        for(U b=0;b<s[1];++b) {
+            if(!pick_prefix(input,ids,g,s,position_steps,row,length,b,kind,index,candidate,prefix))return false;
+            int x[8];
+            if(!pick_block(input,ids,g,s,prefix,row,t,t,b,kind,index,candidate,x))return false;
+            U qt=root_code(x);
+            if(!pick_block(input,ids,g,s,prefix,row,t-1,t,b,kind,index,candidate,x))return false;
+            U qp=root_code(x);
+            if(!pick_block(input,ids,g,s,prefix,row,0,t,b,kind,index,candidate,x))return false;
+            U previous=root_code(x);
+            for(U p=1;p<t;++p) {
+                if(!pick_block(input,ids,g,s,prefix,row,p,t,b,kind,index,candidate,x))return false;
+                U current=root_code(x);
+                distance[p]+=(U)__popc(previous^qp)+(U)__popc(current^qt);
+                previous=current;
+            }
+        }
+        for(U p=1;p<t;++p){if(distance[p]<=best){pick=p;best=distance[p];}}
+        for(U p=1;p<t;++p)ties+=distance[p]==best;
+    }
+    for(U b=0;b<s[1];++b) {
+        int u[8];
+        input_block(input,ids,g,row,t,b,s,kind,index,candidate,u);
+        int gate=gate_value(gates,b*s[5],kind,index,candidate);
+        if(gate<-1 || gate>1)return false;
+        if(pick!=ABSENT && gate!=0) {
+            if(!pick_prefix(input,ids,g,s,position_steps,row,length,b,kind,index,candidate,prefix))return false;
+            int payload[8];
+            if(!pick_block(input,ids,g,s,prefix,row,pick+1,t,b,kind,index,candidate,payload))return false;
+            for(U d=0;d<8;++d)u[d]+=gate>0?payload[d]:-payload[d];
+        }
+        U out=snap(u,1u+(U)(gate<0?-gate:gate),g);
+        U* rec=trace ? trace+(row*s[1]+b)*(TRACE_ROW+s[5]*TRACE_LEVEL) : 0;
+        if(rec){for(U i=0;i<TRACE_ROW+s[5]*TRACE_LEVEL;++i)rec[i]=ABSENT;rec[0]=pick;rec[1]=best;rec[2]=ties;rec[3]=(U)(gate+1);rec[4]=out;}
+        for(U d=0;d<8;++d)output[b*8+d]=(int)g[ROOT+out*8+d];
+    }
+    return true;
+}
+// PICK-END
 // Mode dispatch: Route (default), Flock, or Relation. A Route proposal in
 // Flock/Relation mode and a Gate proposal in Route mode are refused (status 9).
 __device__ bool read_vector(const int* input,const U* ids,const U* routes,const int* gates,const U* plan,const U* g,const U* s,const U* position_steps,U row,U kind,U index,U candidate,int* output,U* trace) {
+// PICK-BEGIN Pick dispatches first; a Route proposal in Pick mode is refused too (status 9).
+    if(s[8]==MODE_PICK)return pick_vector(input,ids,gates,plan,g,s,position_steps,row,kind,index,candidate,output,trace);
+// PICK-END
     if(s[8]==MODE_FLOCK || s[8]==MODE_RELATION)return flock_vector(input,ids,gates,plan,g,s,position_steps,row,kind,index,candidate,output,trace);
     return route_vector(input,ids,routes,plan,g,s,row,kind,index,candidate,output,trace);
 }
@@ -487,7 +577,7 @@ extern "C" __global__ void discrete_forward(const int* table,const U* routes,con
 extern "C" __global__ void discrete_counterfactual(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,const U* position_steps,U kind,U index,W* losses,U* status) {
     U candidate=blockIdx.x*blockDim.x+threadIdx.x;if(candidate>=16)return;
     W sum=0;U eligible=0;losses[candidate]=~(W)0;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;
@@ -534,7 +624,7 @@ extern "C" __global__ void discrete_choose(const W* losses,const W* epoch,const 
 extern "C" __global__ void discrete_apply(int* table,U* routes,int* gates,const U* g,const U* s,const U* position_steps,const W* proposal,U kind,U index,W* epoch,U* status) {
     if(blockIdx.x || threadIdx.x)return;
     if(proposal[3]!=*epoch){*status=3;return;}
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if(kind==GATE_KIND) {
         if(!gated){*status=9;return;}
         if(proposal[0]>=3 || index>=gate_count(s)){*status=4;return;}
@@ -562,8 +652,9 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<gate_count(s) && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
     if(i<s[1]*16 && position_steps[i]>=16)atomicExch(status,10u);
-    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>2 || (s[12]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION) || s[13]>1 || (s[13]!=0 && s[8]!=0)
-        || s[14]>3 || (s[14]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION)
+    if(i==0 && (s[11]>1 || s[8]>MODE_PICK || s[12]>2 || (s[12]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION) || s[13]>1 || (s[13]!=0 && s[8]!=0)
+        || s[14]>3 || (s[14]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION && s[8]!=MODE_PICK)
+        || (s[8]==MODE_PICK && (s[9]!=0 || s[10]!=0 || (s[14]!=1 && s[14]!=3) || s[1]<1))
         || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[10]!=0 || s[1]<2))
         || (s[8]==MODE_RELATION && (s[9]==0 || s[9]>MAX_KEPT || s[10]==0 || s[10]>MAX_SWEEPS || s[1]<2))))atomicExch(status,10u);
 }

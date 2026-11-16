@@ -34,7 +34,7 @@ pub fn generate(source: &str) -> Result<String, String> {
 /// Exact text of the ordinary kernel body from the refusals through the final
 /// loss store (`discrete.cu`, `discrete_counterfactual`).
 pub const ORDINARY_LANE_LOOP: &str = r#"    W sum=0;U eligible=0;losses[candidate]=~(W)0;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;
@@ -67,7 +67,7 @@ const ROWS: &str = r#"
 #define ROWS_TR_BIT 0x10000u
 #define ROWS_STATUS_MASK 0xffffu
 __device__ bool rows_refused(const U* s,U kind,U index) {
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     return (kind==GATE_KIND && !gated) || (kind==0 && gated) || (kind==GATE_KIND && index>=gate_count(s));
 }
 extern "C" __global__ void discrete_counterfactual_rows_baseline(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,const U* position_steps,U* base) {
@@ -102,7 +102,7 @@ extern "C" __global__ void discrete_counterfactual_rows_eval(const int* table,co
 extern "C" __global__ void discrete_counterfactual_rows_reduce(const U* s,U kind,U index,const U* base,const W* cost,const U* flag,W* losses,U* status) {
     U candidate=blockIdx.x*blockDim.x+threadIdx.x;if(candidate>=16)return;
     W sum=0;U eligible=0;losses[candidate]=~(W)0;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;

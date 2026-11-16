@@ -75,6 +75,7 @@ impl PositionConfig {
         if read_spec == ReadSpec::Route {
             return Err(invalid("position transport needs a Flock or Relation read"));
         }
+        read_spec.admits_position_word(self.mode.device_word())?;
         self.steps.validate()?;
         if self.steps.blocks() != spec.blocks {
             return Err(invalid(

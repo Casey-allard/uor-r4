@@ -207,6 +207,16 @@ pub struct DirectTripleTimed {
     pub serving_pruned_us: u64,
 }
 
+/// The bucket writer was qualified for Route, Flock and Relation reads; its
+/// generated kernel carries no Pick read (claude-408), so a Pick model is
+/// refused before any launch.
+fn refuse_pick(model: &Device) -> Result<()> {
+    if model.read_spec() == ReadSpec::Pick {
+        return Err(invalid("the bucket writer does not run a Pick read (claude-408)"));
+    }
+    Ok(())
+}
+
 /// Loaded `bucket.cubin` kernel handles bound to a CUDA context/stream.
 pub struct BucketWriterEngine {
     context: Arc<CudaContext>,
@@ -281,6 +291,7 @@ impl BucketWriterEngine {
 
     /// Build the 256-cell CSR index on the GPU for `model`'s current codebook table.
     pub fn build_index(&self, model: &Device) -> Result<BucketIndexDevice> {
+        refuse_pick(model)?;
         let vocabulary = model.spec().vocabulary;
         let spec = model.gpu_spec(1)?;
         self.build_index_raw(&model.table, &spec, vocabulary)
@@ -337,6 +348,7 @@ impl BucketWriterEngine {
         index: &mut BucketIndexDevice,
         moved_token: u32,
     ) -> Result<u32> {
+        refuse_pick(model)?;
         if index.vocabulary != model.spec().vocabulary {
             return Err(invalid("bucket index vocabulary differs from model"));
         }
@@ -369,6 +381,7 @@ impl BucketWriterEngine {
         batch: &CarriedBatch,
         targets: &[u32],
     ) -> Result<Forward> {
+        refuse_pick(model)?;
         let epoch = model.admit_batch(batch, targets)?;
         let target = model.stream.clone_htod(targets).map_err(cuda)?;
         let spec = model.gpu_spec(batch.rows)?;
@@ -455,6 +468,7 @@ impl BucketWriterEngine {
         targets: &[u32],
         parameter: Parameter,
     ) -> Result<Proposal> {
+        refuse_pick(model)?;
         let (kind, param_index) = model.parameter(parameter)?;
         let epoch = model.admit_batch(batch, targets)?;
         let targets = model.stream.clone_htod(targets).map_err(cuda)?;
@@ -522,6 +536,7 @@ impl BucketWriterEngine {
         batch: &CarriedBatch,
         targets: &[u32],
     ) -> Result<Evaluation> {
+        refuse_pick(model)?;
         let epoch = model.admit_batch(batch, targets)?;
         let targets_gpu = model.stream.clone_htod(targets).map_err(cuda)?;
         let spec = model.gpu_spec(batch.rows)?;
@@ -617,6 +632,7 @@ impl BucketWriterEngine {
         model: &mut Device,
         proposal: &Proposal,
     ) -> Result<bool> {
+        refuse_pick(model)?;
         let (kind, index) = model.parameter(proposal.parameter)?;
         if proposal.binding != model.binding {
             return Err(invalid("proposal belongs to another model/source/geometry"));
@@ -858,6 +874,7 @@ impl BucketWriterEngine {
         queries: &[i32],
         targets: &[u32],
     ) -> Result<DirectTripleTimed> {
+        refuse_pick(model)?;
         let rows = targets.len() as u32;
         let width = (model.spec().blocks as usize) * 8;
         if rows == 0 || queries.len() != (rows as usize) * width {

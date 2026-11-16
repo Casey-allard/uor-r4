@@ -136,6 +136,11 @@ fn execute(config: &Config) -> Result<serde_json::Value, String> {
         DiscreteReadMode::Flock { .. } | DiscreteReadMode::Relation { .. } => {
             SchedulePolicy::InterleavedReadEvery8V1
         }
+        DiscreteReadMode::Pick => {
+            return Err(
+                "the CPU corpus driver does not train a Pick read artifact (claude-408)".to_owned(),
+            );
+        }
     };
     let schedule = CpuDiscreteSchedule::new(
         schedule_policy,

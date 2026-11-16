@@ -64,7 +64,7 @@ extern "C" __global__ void discrete_counterfactual_rowsk_reduce(const U* s,U kin
     U index=indices[c];U per=s[4]*16;
     const W* cost=all_cost+c*per;const U* flag=all_flag+c*per;W* losses=all_losses+c*16;U* status=all_status+c;
     W sum=0;U eligible=0;losses[candidate]=~(W)0;
-    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+    bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION || s[8]==MODE_PICK;
     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;

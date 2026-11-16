@@ -1004,12 +1004,13 @@ impl Device {
         read_spec.validate(spec)?;
         read_initialization.validate(read_spec)?;
         let snap_word = normalization_mode.device_word()?;
-        if snap_word != 0 && read_spec == ReadSpec::Route {
+        if snap_word != 0 && matches!(read_spec, ReadSpec::Route | ReadSpec::Pick) {
             return Err(invalid("snap-scale control needs a Flock or Relation read"));
         }
         if let Some(config) = &position {
             config.validate(spec, read_spec)?;
         }
+        read_spec.admits_position_word(position.as_ref().map_or(0, |c| c.mode.device_word()))?;
         let metadata = BinderPlan::new(spec.context as usize)?;
         let packed = packed_geometry();
         if packed.len() != 5120 {
@@ -1361,13 +1362,19 @@ impl Device {
         }
         // Fresh process identity even for byte-identical reloads. No carried
         // batch/proposal from another model instance becomes valid by loading.
+        // Pick admits its position word at construction; the other reads load
+        // the step table below exactly as before.
+        let construction_position = match snapshot.read_spec {
+            ReadSpec::Pick => snapshot.position.clone(),
+            _ => None,
+        };
         let mut model = Self::new_with_position(
             snapshot.spec,
             snapshot.read_spec,
             snapshot.objective_policy,
             snapshot.read_initialization,
             snapshot.normalization_mode,
-            None,
+            construction_position,
             snapshot.seed,
             ordinal,
         )?;
@@ -1660,7 +1667,8 @@ impl Device {
             ReadSpec::Route => {
                 ROUTE_TRACE_HEADER_WORDS + self.metadata.stages() * ROUTE_TRACE_STAGE_WORDS
             }
-            ReadSpec::Flock { .. } | ReadSpec::Relation { .. } => {
+            // Pick writes its five words at the start of the same per-block record.
+            ReadSpec::Flock { .. } | ReadSpec::Relation { .. } | ReadSpec::Pick => {
                 FLOCK_TRACE_HEADER_WORDS + self.metadata.stages() * FLOCK_TRACE_LEVEL_WORDS
             }
         });
