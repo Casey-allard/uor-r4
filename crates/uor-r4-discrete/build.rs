@@ -46,6 +46,25 @@ const NATIVE_VECTOR_ENTRIES: [&str; 7] = [
     "native_q31_read_gate_credit_partial",
     "native_q31_read_gate_apply",
 ];
+// The exact n-gram counter (claude-412): its own source, PTX and cubin.
+const NGRAM_COUNT_ENTRIES: [&str; 16] = [
+    "ngram_token_hist",
+    "ngram_token_hist_reduce",
+    "ngram_select_flags",
+    "ngram_select_scatter",
+    "ngram_radix_hist",
+    "ngram_radix_scatter",
+    "ngram_scan32_reduce",
+    "ngram_scan32_sums",
+    "ngram_scan32_apply",
+    "ngram_scan64_reduce",
+    "ngram_scan64_sums",
+    "ngram_scan64_apply",
+    "ngram_boundaries",
+    "ngram_run_starts",
+    "ngram_emit_grams",
+    "ngram_emit_contexts",
+];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as
 /// evidence of its instructions. Integer index products are not prohibited.
@@ -380,6 +399,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/wider_carrier_source.rs");
     println!("cargo:rerun-if-changed=src/within_cell_writer_source.rs");
     println!("cargo:rerun-if-changed=src/native_vector.cu");
+    println!("cargo:rerun-if-changed=src/ngram_count.cu");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -420,6 +440,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     admit_ptx_inventory(
         &fs::read_to_string(out.join("native-vector.ptx"))?,
         &NATIVE_VECTOR_ENTRIES,
+    )?;
+    // The exact n-gram counter (claude-412): an independent source and module.
+    let status = Command::new(env::var("NVCC").unwrap_or_else(|_| "nvcc".into()))
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .args(["-o"])
+        .arg(out.join("ngram-count.ptx"))
+        .arg("src/ngram_count.cu")
+        .status()?;
+    if !status.success() {
+        return Err(format!("ngram-count PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("ngram-count.ptx"))?,
+        &NGRAM_COUNT_ENTRIES,
     )?;
     // An independent module: the ordinary source, nvcc invocation and PTX stay
     // untouched. Only this diagnostic entry carries internal clocks/counters.
@@ -588,6 +623,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("wider-carrier", out.join("wider-carrier.ptx")),
         ("within-cell-writer", out.join("within-cell-writer.ptx")),
         ("native-vector", out.join("native-vector.ptx")),
+        ("ngram-count", out.join("ngram-count.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.

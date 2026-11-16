@@ -104,6 +104,10 @@ path = "src/bin/wider-carrier-run.rs"
 name = "within-cell-writer-run"
 path = "src/bin/within-cell-writer-run.rs"
 
+[[bin]]
+name = "ngram-count-probe"
+path = "src/bin/ngram-count-probe.rs"
+
 
 
 
