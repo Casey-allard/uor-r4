@@ -410,3 +410,77 @@ fn multiplicity_does_not_depend_on_thread_count() {
     m.sort_unstable();
     assert_eq!(m, [1, 1, 3]);
 }
+
+/// DEV-test `dd` holds a 100-token answer span; TRAIN `ta` holds all of it, `tb` only its first
+/// 60 tokens, `tc` none of it (claude-416). With `second`, TRAIN `td` in the other shard also
+/// holds all of it, inside different surrounding text.
+fn drop_fixture(threads: usize, drop: &[&str], second: bool) -> Result<(Value, Extras), String> {
+    let d = Dir::new("drop");
+    let sp = Splitter::new(Config { dev_tune: (0, 1), dev_test: (1, 2), ..Config::default() }).unwrap();
+    let s = letters(b"abcdefghijklmnopqrstuvwxyz0123456789", 7, 3, 100);
+    let trn = |id: &str, stem: &str, ans: String| rec(id, &[&prompt_in(&sp, stem, '.', Split::Train)], &[("", &ans)]);
+    let s0 = vec![
+        rec("dd", &[&prompt_in(&sp, "devd", '?', Split::DevTest)], &[("", &format!("<{s}>"))]),
+        trn("ta", "trna", format!("train a [{s}] side")),
+    ];
+    let mut s1 = vec![trn("tb", "trnb", format!("train b [{}] side", &s[..60])), trn("tc", "trnc", "nothing shared here".into())];
+    if second {
+        let pad = letters(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", 11, 5, 300);
+        s1.push(trn("td", "trnd", format!("{pad} ({s}) {pad}")));
+    }
+    let p = plan(&sp, &[d.shard("s0.jsonl", &s0), d.shard("s1.jsonl", &s1)], threads).unwrap();
+    assert_eq!(kept(&p).len(), 4 + usize::from(second), "no fixture record is a duplicate");
+    let opts = AuditOptions { drop: drop.iter().map(|s| s.to_string()).collect(), find_drop: Some(DROP_SPAN), ..AuditOptions::default() };
+    audit_opts(&p, &coder(), threads, 12, &opts)
+}
+
+#[test]
+fn a_train_record_holding_a_100_token_span_is_listed_for_drop() {
+    let (a, x) = drop_fixture(2, &[], false).unwrap();
+    assert_eq!(x.drop_found, ["ta"], "{a:#}");
+    assert_eq!(a["train_drop"]["found"]["records"], 1);
+    assert_eq!(a["contamination"]["by_span"]["100"]["contaminated"], 1);
+    assert_eq!(a["splits"]["train"]["records"], 3);
+}
+
+#[test]
+fn the_drop_list_removes_the_100_token_contamination_only() {
+    let (base, _) = drop_fixture(2, &[], false).unwrap();
+    let (a, x) = drop_fixture(2, &["ta"], false).unwrap();
+    let by = &a["contamination"]["by_span"];
+    assert_eq!((&by["100"]["contaminated"], &by["50"]["contaminated"]), (&json!(0), &json!(1)), "{a:#}");
+    assert!(x.drop_found.is_empty());
+    assert_eq!(a["splits"]["train"]["records"], 2);
+    assert_eq!(a["train_drop"]["applied"]["records"], 1);
+    let dropped = a["train_drop"]["applied"]["tokens"].as_u64().unwrap();
+    let before = base["splits"]["train"]["tokens"].as_u64().unwrap();
+    assert_eq!(a["splits"]["train"]["tokens"].as_u64().unwrap() + dropped, before);
+    assert_eq!(a["train_drop"]["applied_token_share"], json!([dropped, before]));
+}
+
+#[test]
+fn a_drop_id_that_is_not_a_kept_train_record_is_refused() {
+    for bad in [&["dd"][..], &["nope"], &["ta", "nope"]] {
+        let Err(err) = drop_fixture(2, bad, false) else { panic!("{bad:?} was accepted") };
+        assert!(err.contains("drop ids are kept TRAIN records"), "{bad:?}: {err}");
+    }
+}
+
+#[test]
+fn the_drop_list_does_not_depend_on_thread_count() {
+    let (one, x1) = drop_fixture(1, &[], false).unwrap();
+    for threads in [2, 3, 4] {
+        let (a, x) = drop_fixture(threads, &[], false).unwrap();
+        assert_eq!((a, x.drop_found), (one.clone(), x1.drop_found.clone()), "threads = {threads}");
+    }
+}
+
+/// `holds` has no early skip: a second record holding a span another record already marked is
+/// still listed, at every thread count (review LOW-1 on PR 4051).
+#[test]
+fn every_holder_of_a_shared_span_is_listed_for_drop() {
+    for threads in [1, 2, 3, 4] {
+        let (a, x) = drop_fixture(threads, &[], true).unwrap();
+        assert_eq!(x.drop_found, ["ta", "td"], "threads = {threads}: {a:#}");
+    }
+}

@@ -654,6 +654,22 @@ impl SpanSet {
         }
     }
 
+    /// Does the TRAIN record `train` hold any of the set's DEV spans (claude-416)? Every
+    /// candidate is compared token for token, spans already marked by other records included.
+    pub fn holds(&self, dev: &[Tok], train: &[u32], buf: &[u64]) -> bool {
+        let n = self.n;
+        (n..=train.len()).any(|e| {
+            let h = window(buf, self.pow, e - n, e);
+            let b = (mix(&[h, 0, 0]) >> self.shift) as usize;
+            if self.bloom[b / 64] >> (b % 64) & 1 == 0 {
+                return false;
+            }
+            let i = self.uniq.partition_point(|u| u.0 < h);
+            self.uniq[i..].iter().take_while(|u| u.0 == h)
+                .any(|&(_, r, s)| dev[r as usize].tokens[s as usize..s as usize + n] == train[e - n..e])
+        })
+    }
+
     /// The classification of a counted set's shared spans: copied (TRAIN multiplicity at most
     /// `COPIED_MAX`) or stock; a contaminated record is copied-contaminated when any of its
     /// shared spans is copied. With the `k` shared spans held by the most DEV records. None for
@@ -906,6 +922,23 @@ pub struct Extras {
     pub contaminated: Vec<Vec<String>>,
     /// The `GATE_SPAN` classification (claude-414), when asked for: its summary and top spans.
     pub classify: Option<(Value, Vec<TopSpan>)>,
+    /// With `AuditOptions::find_drop`, the sorted ids of the kept TRAIN records (outside the
+    /// applied drop list) that hold a DEV-test span of that length (claude-416).
+    pub drop_found: Vec<String>,
+}
+
+/// The span length whose TRAIN holders the span dedup drops (claude-414's decision item 2).
+pub const DROP_SPAN: usize = 100;
+
+/// What an audit does beyond the census (claude-414, claude-416).
+#[derive(Default)]
+pub struct AuditOptions {
+    /// Classify the `GATE_SPAN` shared spans, decoding the `top` held by the most DEV records.
+    pub classify_top: Option<usize>,
+    /// Kept TRAIN record ids skipped in the TRAIN pass (split v2 = split v1 minus these).
+    pub drop: HashSet<String>,
+    /// List the TRAIN records that hold a DEV-test span of this length (one of `SPANS`).
+    pub find_drop: Option<usize>,
 }
 
 /// The 13-gram census of a plan; see `audit_full`.
@@ -915,19 +948,29 @@ pub fn audit(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -> Res
 
 /// The census of a plan: DEV grams and DEV-test spans collected, TRAIN streamed against them.
 pub fn audit_full(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -> Result<(Value, Extras), String> {
-    audit_with(plan, coder, threads, bloom_log2, None)
+    audit_with(plan, coder, threads, bloom_log2, &AuditOptions::default())
 }
 
 /// `audit_full`, plus the classification of the `GATE_SPAN`-token shared spans by TRAIN
 /// multiplicity, with the `top` spans held by the most DEV-test records (claude-414).
 pub fn audit_classify(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, top: usize) -> Result<(Value, Extras), String> {
-    audit_with(plan, coder, threads, bloom_log2, Some(top))
+    audit_with(plan, coder, threads, bloom_log2, &AuditOptions { classify_top: Some(top), ..AuditOptions::default() })
 }
 
-fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, classify_top: Option<usize>) -> Result<(Value, Extras), String> {
+/// The census under `opts`: a drop list applied to TRAIN, drop candidates listed, or both.
+/// A drop id that is not a kept TRAIN record is refused.
+pub fn audit_opts(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts: &AuditOptions) -> Result<(Value, Extras), String> {
+    audit_with(plan, coder, threads, bloom_log2, opts)
+}
+
+fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts: &AuditOptions) -> Result<(Value, Extras), String> {
     if !(6..=40).contains(&bloom_log2) {
         return Err(format!("bloom_log2 {bloom_log2} is outside 6..=40"));
     }
+    if opts.find_drop.is_some_and(|n| !SPANS.contains(&n)) {
+        return Err(format!("find_drop must be one of {SPANS:?}"));
+    }
+    let classify_top = opts.classify_top;
     let paths: Vec<PathBuf> = plan.shards.iter().map(|(p, _)| p.clone()).collect();
     let fate_of = |p: &Path| &plan.fate[paths.iter().position(|q| q == p).unwrap()];
     // Pass 1: DEV grams and DEV counts; DEV-test records kept whole for the span census.
@@ -978,10 +1021,12 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, class
             bloom[b / 64] |= 1 << (b % 64);
         }
     }
-    // Pass 2: TRAIN grams against the DEV sets.
+    let finder = opts.find_drop.and_then(|n| spans.iter().find(|s| s.n == n));
+    // Pass 2: TRAIN grams against the DEV sets; a dropped record is counted apart and skipped.
     let train = par_shards(&paths, threads, |p| {
         let fate = fate_of(p);
         let (mut i, mut cnt, mut buf) = (0usize, TokCount::default(), vec![]);
+        let (mut dropped, mut found) = (TokCount::default(), vec![]);
         read_shard(p, &mut |line| {
             let f = fate[i];
             i += 1;
@@ -989,7 +1034,17 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, class
                 return Ok(());
             }
             let t = tokenize(coder, line)?;
+            if opts.drop.contains(&t.id) {
+                dropped.add(&t);
+                return Ok(());
+            }
             cnt.add(&t);
+            prefix(&t.tokens, &mut buf);
+            if let Some(s) = finder {
+                if s.holds(&dev_test, &t.tokens, &buf) {
+                    found.push(t.id.clone());
+                }
+            }
             each_gram(&t, |g, _| {
                 let b = (mix(&g) >> shift) as usize;
                 if bloom[b / 64] >> (b % 64) & 1 == 1 {
@@ -997,16 +1052,22 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, class
                     sets[1].mark(&g);
                 }
             });
-            prefix(&t.tokens, &mut buf);
             for s in &spans {
                 s.mark(&dev_test, &t.tokens, &buf);
             }
             Ok(())
         })?;
-        Ok(cnt)
+        Ok((cnt, dropped, found))
     })?;
-    for c in &train {
-        counts[0].merge(c);
+    let (mut dropped, mut drop_found) = (TokCount::default(), vec![]);
+    for (c, d, f) in train {
+        counts[0].merge(&c);
+        dropped.merge(&d);
+        drop_found.extend(f);
+    }
+    drop_found.sort_unstable();
+    if dropped.records != opts.drop.len() as u64 {
+        return Err(format!("{} of {} drop ids are kept TRAIN records", dropped.records, opts.drop.len()));
     }
     let mut total = TokCount::default();
     let mut splits = serde_json::Map::new();
@@ -1075,7 +1136,7 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, class
         half += (ag > 0 && ah * 2 >= ag) as u64;
     }
     let templates = sets[1].top_hits(Segment::Prompt as usize, 30).into_iter().map(|(c, g)| (c, unpack(&g))).collect();
-    let v = json!({
+    let mut v = json!({
         "unit": "claude-411", "gram": GRAM,
         "gram_compare": "exact: 13 ids x 12 bits packed in three u64 words, no hash; grams never cross a record",
         "bloom_log2": bloom_log2, "splits": splits, "total": total.json(), "overlap": overlap,
@@ -1096,8 +1157,20 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, class
         },
         "ratios": "every pair is an exact integer [numerator, denominator]",
     });
+    if !opts.drop.is_empty() || opts.find_drop.is_some() {
+        let kept_tokens = counts[0].tokens;
+        v["train_drop"] = json!({
+            "rule": "split v2 = split v1 with the listed kept TRAIN records skipped; `splits.train` counts what remains (claude-416)",
+            "applied": dropped.json(),
+            "applied_token_share": [dropped.tokens, dropped.tokens + kept_tokens],
+            "found": opts.find_drop.map(|n| json!({
+                "rule": "kept TRAIN records outside the applied list that hold a DEV-test span of `span` reasoning+answer tokens, compared token for token",
+                "span": n, "records": drop_found.len(),
+            })),
+        });
+    }
     let classify = classify_top.and_then(|k| spans.iter().find(|s| s.n == GATE_SPAN)?.classify(&dev_test, k));
-    Ok((v, Extras { templates, contaminated, classify }))
+    Ok((v, Extras { templates, contaminated, classify, drop_found }))
 }
 
 #[cfg(test)]

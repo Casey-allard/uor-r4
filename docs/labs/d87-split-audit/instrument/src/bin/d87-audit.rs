@@ -12,11 +12,18 @@
 //! TRAIN record multiplicity, writes `<out>/classify-summary.json` (counts only) and decodes the
 //! 200 shared spans held by the most DEV-test records to `<file>` (corpus text, never
 //! committed).
+//!
+//! The span dedup (claude-416): `--write-drop <file>` writes the sorted ids of the kept TRAIN
+//! records holding a 100-token DEV-test reasoning+answer span, one per line; `--drop-train
+//! <file>` skips the listed records in the TRAIN pass (split v2) and refuses an id that is not a
+//! kept TRAIN record. Each list's SHA-256 goes into the summary's `train_drop`; the lists hold
+//! record ids and are never committed.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use d87_split_audit::{audit_classify, audit_full, plan, Splitter, SPANS};
+use d87_split_audit::{audit_opts, plan, AuditOptions, Splitter, DROP_SPAN, SPANS};
 
 /// The number of shared spans decoded by `--classify-spans`.
 const CLASSIFY_TOP: usize = 200;
@@ -28,9 +35,12 @@ fn run() -> Result<(), String> {
     let (mut tok, mut split, mut out, mut threads, mut bloom, mut shards) =
         (None, None, None, 12usize, 30u32, vec![]);
     let mut classify: Option<PathBuf> = None;
+    let (mut write_drop, mut drop_train): (Option<PathBuf>, Option<PathBuf>) = (None, None);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--classify-spans" => classify = Some(args.next().map(PathBuf::from).ok_or("--classify-spans")?),
+            "--write-drop" => write_drop = Some(args.next().map(PathBuf::from).ok_or("--write-drop")?),
+            "--drop-train" => drop_train = Some(args.next().map(PathBuf::from).ok_or("--drop-train")?),
             "--tokenizer" => tok = args.next().map(PathBuf::from),
             "--split" => split = args.next().map(PathBuf::from),
             "--out" => out = args.next().map(PathBuf::from),
@@ -57,10 +67,38 @@ fn run() -> Result<(), String> {
     }
     let json = std::fs::read(&tok).map_err(|e| format!("{}: {e}", tok.display()))?;
     let coder = Coder::new(&json)?;
-    let (mut a, extras) = match &classify {
-        Some(_) => audit_classify(&p, &coder, threads, bloom, CLASSIFY_TOP)?,
-        None => audit_full(&p, &coder, threads, bloom)?,
+    let mut opts = AuditOptions {
+        classify_top: classify.as_ref().map(|_| CLASSIFY_TOP),
+        find_drop: write_drop.as_ref().map(|_| DROP_SPAN),
+        ..AuditOptions::default()
     };
+    let mut applied_sha = None;
+    if let Some(file) = &drop_train {
+        let list = std::fs::read(file).map_err(|e| format!("{}: {e}", file.display()))?;
+        applied_sha = Some(hex(&Sha256::digest(&list)));
+        let text = String::from_utf8(list).map_err(|e| format!("{}: {e}", file.display()))?;
+        opts.drop = text.lines().map(str::to_string).collect::<HashSet<_>>();
+        if opts.drop.is_empty() {
+            return Err(format!("{}: the drop list is empty", file.display()));
+        }
+        if opts.drop.len() != text.lines().count() || opts.drop.contains("") {
+            return Err(format!("{}: a drop id is empty or listed twice", file.display()));
+        }
+    }
+    let (mut a, extras) = audit_opts(&p, &coder, threads, bloom, &opts)?;
+    std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+    if let Some(sha) = applied_sha {
+        a["train_drop"]["applied_list_sha256"] = sha.into();
+    }
+    if let Some(file) = &write_drop {
+        let list: String = extras.drop_found.iter().map(|id| format!("{id}\n")).collect();
+        if let Some(dir) = file.parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(file, &list).map_err(|e| format!("{}: {e}", file.display()))?;
+        a["train_drop"]["found"]["list_sha256"] = hex(&Sha256::digest(list.as_bytes())).into();
+        eprintln!("d87-audit: {} TRAIN records listed for drop in {}", extras.drop_found.len(), file.display());
+    }
     std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     if let (Some(file), Some((mut cv, top))) = (&classify, extras.classify.clone()) {
         let mut tsv = String::from("rank\tdev_test_records\ttrain_records\tclass\ttext\n");
@@ -75,6 +113,9 @@ fn run() -> Result<(), String> {
         std::fs::write(file, tsv).map_err(|e| format!("{}: {e}", file.display()))?;
         cv["tokenizer_sha256"] = hex(&Sha256::digest(&json)).into();
         cv["split_summary_sha256"] = hex(&Sha256::digest(text.as_bytes())).into();
+        if let Some(drop) = a.get("train_drop") {
+            cv["train_drop"] = drop.clone();
+        }
         let body = serde_json::to_string_pretty(&cv).map_err(|e| e.to_string())? + "\n";
         std::fs::write(out.join("classify-summary.json"), body).map_err(|e| e.to_string())?;
         eprintln!("d87-audit: classify {}; {} spans decoded to {}", cv["bar"], top.len(), file.display());
