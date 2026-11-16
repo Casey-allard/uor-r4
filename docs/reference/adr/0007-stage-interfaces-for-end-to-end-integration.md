@@ -135,6 +135,27 @@ At Casey's request, after a zoomed-out read of this ADR posted on [#2028](https:
 
 The mechanism map's statuses are unchanged.
 
+## Amendment 2 (2026-11-16, codex)
+
+A factual correction to I3's site list, measured by codex-15. It changes no rule and promotes
+nothing.
+
+1. **None of the four k-means sites named above is compiled.** `addressing_arms` and
+   `joint_admission` are `#[cfg(any())]` in `crates/uor-r4-training/src/lib.rs`. The transformerless
+   compiler lives in `transformerless/mod.rs`, which the lib target does not mount: the target is
+   `src/native_support.rs`, whose `transformerless` is `native_mod.rs` (tokenizers only), and its
+   header calls `compiler.rs` "inactive evidence". `uor-r4-graph-compiler` also mounts
+   `src/native_support.rs`, which states that no Cargo feature re-enables its historical surface.
+2. **e-means is live and parity-tested, in integer arithmetic**, in
+   `crates/uor-r4-discrete/src/e_means.rs`: Q16 counts/sums, a Q16 cosine table and `i128`
+   distances; 4 epochs reach within 1.000x of Lloyd at 16 passes in the unit's synthetic test, and
+   two runs are identical.
+3. **The only live codebook, A8 address cells, is not a k-means fit.** Its placement is greedy and
+   quota-constrained; e-means on the same task measures 2.165x worse weighted cell-L1 on the
+   fixture. That arm is opt-in and must not be promoted on this evidence.
+4. **I3's site therefore needs re-naming** before it can be built: a fitted read-key codebook, or a
+   revived site whose reopen condition is met. I3's deferral until D86 step 6 stands.
+
 ## Alternatives considered
 
 - **Keep integrating bespoke.** Rejected: five selection rules already disagree, and each port costs a unit.

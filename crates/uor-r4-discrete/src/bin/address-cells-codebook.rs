@@ -43,6 +43,14 @@ fn mode(arg: Option<&String>) -> Result<AddressCellsMode, String> {
                         .map_err(|e| format!("wider-blocks-shuffled seed: {e}"))?,
                 });
             }
+            if other == "e-means" {
+                return Ok(AddressCellsMode::EMeansV1 { seed: 0 });
+            }
+            if let Some(seed) = other.strip_prefix("e-means:") {
+                return Ok(AddressCellsMode::EMeansV1 {
+                    seed: seed.parse().map_err(|e| format!("e-means seed: {e}"))?,
+                });
+            }
             Err(format!("unknown mode {other}"))
         }
     }

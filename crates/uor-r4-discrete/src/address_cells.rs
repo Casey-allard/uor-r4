@@ -77,6 +77,11 @@ pub enum AddressCellsMode {
     /// Shuffled packing control for `WiderBlocksV1`: predecessor identities are
     /// relabelled by a seeded permutation before outer and multi-stage interior pulls.
     WiderBlocksShuffledV1 { seed: u64 },
+    /// Fitted outer placement (`e-means`, ADR-0007 I3): each token's predecessor
+    /// home-cell histogram is clustered into 256 groups, each group takes a cell by
+    /// weighted cell-L1, and a deterministic quota repair fills every cell. The
+    /// interior blocks use the `StructuredV1` within-cell rank.
+    EMeansV1 { seed: u64 },
 }
 impl AddressCellsMode {
     /// The table file's `mode` string.
@@ -92,6 +97,7 @@ impl AddressCellsMode {
             Self::WiderBlocksShuffledV1 { seed } => {
                 format!("address_wider_blocks_shuffled_v1_seed_{seed}")
             }
+            Self::EMeansV1 { seed } => format!("address_e_means_v1_seed_{seed}"),
         }
     }
 }
@@ -364,7 +370,8 @@ pub fn build(
     let relabel: Vec<u32> = match mode {
         AddressCellsMode::StructuredV1
         | AddressCellsMode::FullVectorV1
-        | AddressCellsMode::WiderBlocksV1 => (0..v as u32).collect(),
+        | AddressCellsMode::WiderBlocksV1
+        | AddressCellsMode::EMeansV1 { .. } => (0..v as u32).collect(),
         AddressCellsMode::ShuffledV1 { seed }
         | AddressCellsMode::FullVectorShuffledV1 { seed }
         | AddressCellsMode::WiderBlocksShuffledV1 { seed } => permutation(v, seed),
@@ -388,87 +395,98 @@ pub fn build(
     let mut used_interior = [[false; CELLS]; CELLS];
     let mut load = [0usize; CELLS];
     let mut interior_load = [0usize; CELLS];
-    for &t in &order {
-        let placed: Vec<(usize, u64)> = counts.by_target[t]
-            .iter()
-            .filter_map(|&(s, c)| {
-                let s = *relabel.get(s as usize)? as usize;
-                cell_of[s].map(|cell| (cell, c))
-            })
-            .filter(|&(_, c)| c > 0)
-            .collect();
-        let best = if placed.is_empty() {
-            let home = usize::from(fallback_cells[t]);
-            if home >= CELLS {
-                return Err(invalid("fallback cell outside 0..256"));
-            }
-            (0..CELLS)
-                .filter(|&c| load[c] < quota)
-                .min_by_key(|&c| (cell_l1(home, c), c))
-        } else {
-            (0..CELLS).filter(|&c| load[c] < quota).min_by_key(|&c| {
-                let cost: u128 = placed
-                    .iter()
-                    .map(|&(sc, n)| u128::from(n) * u128::from(cell_l1(sc, c)))
-                    .sum();
-                (cost, c)
-            })
-        };
-        let cell = best.ok_or_else(|| invalid("no cell has quota left"))?;
-        load[cell] += 1;
-        cell_of[t] = Some(cell);
-        if use_full_vector_interior && blocks >= 3 {
-            let anchor = latin_interior_anchor(cell);
-            let placed_interior: Vec<(usize, u64)> = counts.by_target[t]
+    if let AddressCellsMode::EMeansV1 { seed } = mode {
+        for (t, cell) in e_means_cells(counts, fallback_cells, v, quota, seed)?
+            .into_iter()
+            .enumerate()
+        {
+            cell_of[t] = Some(cell);
+            load[cell] += 1;
+        }
+    } else {
+        for &t in &order {
+            let placed: Vec<(usize, u64)> = counts.by_target[t]
                 .iter()
                 .filter_map(|&(s, c)| {
                     let s = *relabel.get(s as usize)? as usize;
-                    interior_of[s].map(|ic| (ic, c))
+                    cell_of[s].map(|cell| (cell, c))
                 })
                 .filter(|&(_, c)| c > 0)
                 .collect();
-            let candidate_limit = if blocks == 3 { 16 } else { CELLS };
-            let interior_quota = if blocks == 3 { v.div_ceil(16) } else { quota };
-            let has_quota_candidate = (0..candidate_limit)
-                .any(|ic| !used_interior[cell][ic] && interior_load[ic] < interior_quota);
-            let candidates = (0..candidate_limit).filter(|&ic| {
-                !used_interior[cell][ic]
-                    && (!has_quota_candidate || interior_load[ic] < interior_quota)
-            });
-            let best_interior = if placed_interior.is_empty() {
-                candidates.min_by_key(|&ic| {
-                    let d = if blocks == 3 {
-                        root_l1(anchor / 16, ic)
-                    } else {
-                        cell_l1(anchor, ic)
-                    };
-                    (d, ic)
-                })
+            let best = if placed.is_empty() {
+                let home = usize::from(fallback_cells[t]);
+                if home >= CELLS {
+                    return Err(invalid("fallback cell outside 0..256"));
+                }
+                (0..CELLS)
+                    .filter(|&c| load[c] < quota)
+                    .min_by_key(|&c| (cell_l1(home, c), c))
             } else {
-                candidates.min_by_key(|&ic| {
-                    let cost: u128 = placed_interior
+                (0..CELLS).filter(|&c| load[c] < quota).min_by_key(|&c| {
+                    let cost: u128 = placed
                         .iter()
-                        .map(|&(sic, n)| {
-                            let d = if blocks == 3 {
-                                root_l1(sic, ic)
-                            } else {
-                                cell_l1(sic, ic)
-                            };
-                            u128::from(n) * u128::from(d)
-                        })
+                        .map(|&(sc, n)| u128::from(n) * u128::from(cell_l1(sc, c)))
                         .sum();
-                    let anchor_d = if blocks == 3 {
-                        root_l1(anchor / 16, ic)
-                    } else {
-                        cell_l1(anchor, ic)
-                    };
-                    (cost, anchor_d, ic)
+                    (cost, c)
                 })
             };
-            let ic = best_interior.ok_or_else(|| invalid("no interior root pair left in cell"))?;
-            used_interior[cell][ic] = true;
-            interior_load[ic] += 1;
-            interior_of[t] = Some(ic);
+            let cell = best.ok_or_else(|| invalid("no cell has quota left"))?;
+            load[cell] += 1;
+            cell_of[t] = Some(cell);
+            if use_full_vector_interior && blocks >= 3 {
+                let anchor = latin_interior_anchor(cell);
+                let placed_interior: Vec<(usize, u64)> = counts.by_target[t]
+                    .iter()
+                    .filter_map(|&(s, c)| {
+                        let s = *relabel.get(s as usize)? as usize;
+                        interior_of[s].map(|ic| (ic, c))
+                    })
+                    .filter(|&(_, c)| c > 0)
+                    .collect();
+                let candidate_limit = if blocks == 3 { 16 } else { CELLS };
+                let interior_quota = if blocks == 3 { v.div_ceil(16) } else { quota };
+                let has_quota_candidate = (0..candidate_limit)
+                    .any(|ic| !used_interior[cell][ic] && interior_load[ic] < interior_quota);
+                let candidates = (0..candidate_limit).filter(|&ic| {
+                    !used_interior[cell][ic]
+                        && (!has_quota_candidate || interior_load[ic] < interior_quota)
+                });
+                let best_interior = if placed_interior.is_empty() {
+                    candidates.min_by_key(|&ic| {
+                        let d = if blocks == 3 {
+                            root_l1(anchor / 16, ic)
+                        } else {
+                            cell_l1(anchor, ic)
+                        };
+                        (d, ic)
+                    })
+                } else {
+                    candidates.min_by_key(|&ic| {
+                        let cost: u128 = placed_interior
+                            .iter()
+                            .map(|&(sic, n)| {
+                                let d = if blocks == 3 {
+                                    root_l1(sic, ic)
+                                } else {
+                                    cell_l1(sic, ic)
+                                };
+                                u128::from(n) * u128::from(d)
+                            })
+                            .sum();
+                        let anchor_d = if blocks == 3 {
+                            root_l1(anchor / 16, ic)
+                        } else {
+                            cell_l1(anchor, ic)
+                        };
+                        (cost, anchor_d, ic)
+                    })
+                };
+                let ic =
+                    best_interior.ok_or_else(|| invalid("no interior root pair left in cell"))?;
+                used_interior[cell][ic] = true;
+                interior_load[ic] += 1;
+                interior_of[t] = Some(ic);
+            }
         }
     }
     let pair_stages = if use_wider_blocks_interior && blocks >= 3 {
@@ -648,6 +666,92 @@ pub fn build(
         distinct_vectors,
         occupied_cells,
     })
+}
+
+/// Fit the outer cell placement with e-means: each token's predecessor home-cell
+/// histogram (over the fallback PrimeZeta cells) is a `CELLS`-dim vector, the 256
+/// clusters are fitted on it, each cluster takes the cell of least weighted cell-L1
+/// to its members' homes, and overfull cells move their lowest-frequency tokens to
+/// the nearest cell with room.
+fn e_means_cells(
+    counts: &BigramCounts,
+    fallback_cells: &[u16],
+    v: usize,
+    quota: usize,
+    seed: u64,
+) -> Result<Vec<usize>> {
+    let mut points = vec![0i64; v * CELLS];
+    for t in 0..v {
+        let mut any = false;
+        for &(s, c) in &counts.by_target[t] {
+            let home = usize::from(
+                *fallback_cells
+                    .get(s as usize)
+                    .ok_or_else(|| invalid("predecessor outside the fallback cells"))?,
+            );
+            if home >= CELLS {
+                return Err(invalid("fallback cell outside 0..256"));
+            }
+            let weight = i64::try_from(c)
+                .map_err(|_| invalid("a predecessor count exceeds the integer fit"))?;
+            points[t * CELLS + home] += weight;
+            any = true;
+        }
+        if !any {
+            let home = usize::from(fallback_cells[t]);
+            points[t * CELLS + home] = 1;
+        }
+    }
+    let centroids = crate::e_means::fit(&points, v, CELLS, CELLS, crate::e_means::EPOCHS, seed)
+        .map_err(|message| invalid(format!("e-means placement: {message}")))?;
+    let mut members: Vec<Vec<usize>> = vec![Vec::new(); CELLS];
+    for t in 0..v {
+        let point = &points[t * CELLS..(t + 1) * CELLS];
+        let best = crate::e_means::nearest(&centroids, CELLS, point);
+        members[best].push(t);
+    }
+    let mut cluster_cell = vec![0usize; CELLS];
+    for (cluster, tokens) in members.iter().enumerate() {
+        if tokens.is_empty() {
+            continue;
+        }
+        cluster_cell[cluster] = (0..CELLS)
+            .min_by_key(|&cell| {
+                let cost: u128 = tokens
+                    .iter()
+                    .map(|&t| {
+                        u128::from(counts.frequency[t].max(1))
+                            * u128::from(cell_l1(usize::from(fallback_cells[t]), cell))
+                    })
+                    .sum();
+                (cost, cell)
+            })
+            .unwrap_or(0);
+    }
+    let mut cell_of = vec![0usize; v];
+    let mut load = [0usize; CELLS];
+    for (cluster, tokens) in members.iter().enumerate() {
+        for &t in tokens {
+            let cell = cluster_cell[cluster];
+            cell_of[t] = cell;
+            load[cell] += 1;
+        }
+    }
+    while let Some(over) = (0..CELLS).find(|&cell| load[cell] > quota) {
+        let token = (0..v)
+            .filter(|&t| cell_of[t] == over)
+            .min_by_key(|&t| (counts.frequency[t], t))
+            .ok_or_else(|| invalid("an overfull e-means cell has no token"))?;
+        let home = usize::from(fallback_cells[token]);
+        let target = (0..CELLS)
+            .filter(|&cell| load[cell] < quota)
+            .min_by_key(|&cell| (cell_l1(home, cell), cell))
+            .ok_or_else(|| invalid("no e-means cell has quota left"))?;
+        cell_of[token] = target;
+        load[over] -= 1;
+        load[target] += 1;
+    }
+    Ok(cell_of)
 }
 
 /// Serialised `uor-r4.codebook-table/1` file for a placed table (shared by the
@@ -1195,5 +1299,60 @@ mod tests {
                 "B={blocks}: expected WiderBlocksV1 admitted ({wb_adm}) > XOR-pad ({pad_adm}) and shuffled ({wbs_adm})"
             );
         }
+    }
+
+    #[test]
+    fn address_cells_e_means_placement_is_deterministic_and_reported() {
+        let (counts, fallback) = fixture();
+        let cost = |cells: &[u16]| -> u128 {
+            counts
+                .by_target
+                .iter()
+                .enumerate()
+                .map(|(t, edges)| {
+                    edges
+                        .iter()
+                        .map(|&(s, c)| {
+                            u128::from(c)
+                                * u128::from(cell_l1(
+                                    usize::from(cells[s as usize]),
+                                    usize::from(cells[t]),
+                                ))
+                        })
+                        .sum::<u128>()
+                })
+                .sum()
+        };
+        let greedy = build(spec(), &counts, &fallback, AddressCellsMode::StructuredV1)
+            .expect("greedy placement");
+        let fitted = build(
+            spec(),
+            &counts,
+            &fallback,
+            AddressCellsMode::EMeansV1 { seed: 7 },
+        )
+        .expect("e-means placement");
+        let again = build(
+            spec(),
+            &counts,
+            &fallback,
+            AddressCellsMode::EMeansV1 { seed: 7 },
+        )
+        .expect("e-means placement again");
+        assert_eq!(fitted, again, "the e-means placement is not deterministic");
+        assert_eq!(fitted.distinct_vectors, 512);
+        assert_eq!(fitted.occupied_cells, 256);
+        let (g, e) = (cost(&greedy.cells), cost(&fitted.cells));
+        let ratio = e.saturating_mul(1_000) / g.max(1);
+        eprintln!(
+            "address cells weighted cell-L1 (lower is better): greedy {g}, e-means {e} ({}.{:03}x)",
+            ratio / 1_000,
+            ratio % 1_000
+        );
+        assert_ne!(
+            greedy.cells, fitted.cells,
+            "the e-means arm must place differently"
+        );
+        assert_ne!(greedy.mode, fitted.mode);
     }
 }
