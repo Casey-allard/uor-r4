@@ -2,7 +2,8 @@
 
 - **Status:** accepted (integration architecture). Individual stage promotions remain separate decisions and keep their board status.
 - **Date:** 2026-11-15
-- **Context owner:** the owner's direction of 2026-11-15: connect the mechanisms into one end-to-end training and serving process, replace matmul and the slow parts of softmax, attach e-means where it fits, and import the CIRISKernel window/checkpoint.
+- **Context owner:** the owner's direction of 2026-11-15: connect the mechanisms into one end-to-end training and serving process, replace matmul and the slow parts of softmax, attach e-means where it fits, and import the CIRISKernel window/checkpoint. As of [Amendment 1](#amendment-1-2026-11-15-claude-394), PLAN.md's owner directions do not yet record these words. That direction does not release anything CHARTER §3 bans.
+- **Amended:** 2026-11-15 by claude-394, at Casey's request. See [Amendment 1](#amendment-1-2026-11-15-claude-394).
 
 ## Context
 
@@ -19,7 +20,7 @@ Global optimality over a portfolio is not reachable without (a) a common seam pe
 
 ### 1. Seven stage interfaces, one mechanism per stage per artifact
 
-Every model is described as a composition of seven stages. Serving is integer-only under D85; training may use float. Each stage has one Rust interface, one artifact field, and one parity test.
+Every model is described as a composition of seven stages. Training and serving share one persistent native integer state and call the same typed operators (CHARTER §3.7, D85). Gradients and optimizer updates land in that representation, and floating point is legal only in separately scanned reference or diagnostic code. Each stage has one Rust interface, one artifact field, and one parity test.
 
 | Stage | Interface (integer serving) | Reference implementation today |
 |---|---|---|
@@ -47,7 +48,7 @@ Rules:
 1. **Exactness first.** An exact mechanism must be bit-identical to its reference on the frozen corpus. A lossy mechanism states what it discards and must pass the witness-pair test for the reads it claims to preserve.
 2. **Quality second.** Frozen panels, pre-registered, the same evaluator for every arm. A promotion needs the panel and its control, not a single run.
 3. **Cost third.** `tokens/s`, `bytes/state`, `tables`, and `work/token` on the same corpus and machine. A cheaper arm that loses exactness or quality is not a candidate.
-4. **Ablations are staged.** Stage-by-stage first, then the interacting pairs (`Read × Position`, `Context × Read`, `Codebook × Embedding`), because the inventory shows these are where the rules disagree.
+4. **Ablations are staged.** Stage-by-stage first, then the interacting pairs (`Context × Read`, `Codebook × Embedding`; `Read × Position` left with I4, Amendment 1), because the inventory shows these are where the rules disagree.
 
 ### 3. The mechanism map
 
@@ -61,7 +62,7 @@ Statuses are the board's; this ADR changes none. "Action" is the integration ste
 | Hamilton gate (G2) | feed-forward gate | ACTIVE | `SequenceMixer` | Inside the mixer; expose as a gate table, not a stage |
 | Recurrence gates | gates | READY | `SequenceMixer` | Second mixer arm; parity against the FBS decay table |
 | Discrete geometric learning | optimizer | ACTIVE | `Loss`/trainer | Second training arm; no change to serving |
-| Rank-margin hinge | loss | ACTIVE | `Loss` | Reference loss; JEPA is an additional term, not a replacement |
+| Rank-margin hinge | loss | ACTIVE | `Loss` | Reference loss. The JEPA arm is parked (Amendment 1) |
 | Admission | output head | ACTIVE | `Head` | Reference head; nearest and pointer are arms |
 | Whole-table nearest | output head | ACTIVE (in recipe) | `Head` | Reference for the FBS path; measure admission-vs-nearest per corpus |
 | Prime-zeta codebook | embedding | ACTIVE | `Codebook` | Candidate encoder; already a baseline start |
@@ -83,7 +84,7 @@ Statuses are the board's; this ADR changes none. "Action" is the integration ste
 | Legal construction | optimizer | PARKED | `Loss` | Discrete-path arm only |
 | VSA | key-value memory | PARKED | `Context` | Its 4,096-bit codes fit stub identity; blocked by the banned CPU learner |
 | Geometric stack | whole model | PARKED | — | Not a stage; preserve as evidence |
-| Native geometric engine | whole model | PARKED | — | Not a stage; JEPA's trainer is the reusable part |
+| Native geometric engine | whole model | PARKED | — | Not a stage. Its JEPA trainer uses a cross-entropy term and an f64 Adam, so it cannot be reused as written (Amendment 1) |
 | R4G1 graph | whole model | PARKED | `Codebook`/`Read` | Harvest its induction as a codebook builder; do not revive the compiler as the model |
 | E8 address memory (since 31 Oct) | feed-forward table | no status | `SequenceMixer` | Arm; inconclusive at claude-366 |
 | Pair experts / pair rows (since 31 Oct) | reply memory | no status | `Read`/`Head` | Keep opt-in; they are outside the vector state and must not masquerade as one |
@@ -97,11 +98,11 @@ The map is a superset of the board's 28 rows: it splits the Hamming form out of 
 
 **CIRISKernel → `Context`.** The transferable part is the checkpoint/purge discipline: a span may be replaced by a stub only when its answer can no longer change (for the kernel, `n − t + 1` clean receipts; for us, the read-invariance criterion), and the stub keeps the digest, the fields the read consumes and the conclusion. The concrete form is a ring of `w` spans with a settlement gate before overwrite, a mergeable fold for branched sessions, and an overflow policy that replaces today's silent drop/reset. Gates: bit-identical tokens against a full-history session; a witness-pair suite for every read that claims preservation; `bytes/token` reported.
 
-**RoPE → `Position` arm.** The FBS path carries position as SpiralCore transport spin; RoPE is the dense/attention path's mechanism. As a `Position` arm, RoPE is a position-dependent unit phase applied to the query and key codes — exactly representable in Q31 with the existing phase tables. It is a candidate to compare against transport spin on the same trunk, not a drop-in and not an assumed improvement.
+**RoPE: withdrawn (Amendment 1).** As first written, RoPE would have been a `Position` arm compared against transport spin. The mechanism board (`docs/mechanisms/README.md`, its Position and positional-encoding rows) carries position as SpiralCore transport spin, "no RoPE", so the arm is withdrawn. `Position` has one mechanism, transport spin. Reopening RoPE would need an owner decision.
 
-**JEPA → `Loss` arm.** The JEPA trainer (`crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs`) is a latent-prediction objective (`L_CE + λ·d_FS + λ_fiber·d_U(1)`) with a VSA context engine. It is training-side only: it attaches as an additional loss term behind `Loss`, is judged on served quality and parity, and its latent loss is not evidence of a serving win.
+**JEPA: parked (Amendment 1).** The JEPA trainer (`crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs`) optimises `L_CE + λ·d_FS + λ_fiber·d_U(1)` with an f64 Adam. The `L_CE` term is cross-entropy, which CHARTER §3.2 names in its ban, and the optimiser's float state breaks §3.7. So the trainer cannot attach behind `Loss` as written. Its latent terms (`d_FS`, `d_U(1)`) may be proposed again as a `Loss` arm under three conditions: their loss, gradient and update are native Q31, nothing in them is cross-entropy or a normalised exponential, and they are judged on served replies.
 
-**Graph compiler → `Codebook` builder.** The graph compiler is historical. The reusable JEPA trainer and induction code live in `crates/uor-r4-core/src/native_geometric`, although the board's whole-model row *Native geometric engine* remains PARKED. Its preserved induction (content-addressed seeding, spherical mini-batch k-means, bit-identical convergence) is a usable `Codebook` builder and an e-means fit site. The compiler pipeline is not revived as the model.
+**Graph compiler → `Codebook` builder.** The graph compiler is historical. The JEPA trainer (parked above) and the induction code live in `crates/uor-r4-core/src/native_geometric`, although the board's whole-model row *Native geometric engine* remains PARKED. Its preserved induction (content-addressed seeding, spherical mini-batch k-means, bit-identical convergence) is a usable `Codebook` builder and an e-means fit site. The compiler pipeline is not revived as the model.
 
 ### 5. Unit sequence
 
@@ -109,14 +110,30 @@ Each unit is one PR, one stage, one gate; I6 is the exception, composing the sta
 
 | Unit | Stage | Deliverable and gate |
 |---|---|---|
-| **I1** | `Read` | Interfaces, `ReadOut`, reference adapters for Hamming/flock/route/relation, bit-identical parity on a recorded session. No behavior change. **Keystone.** |
-| **I2** | `Context` | Ring + settled stub + mergeable fold; overflow policy; full-history equivalence and witness-pair tests. Imports the CIRISKernel discipline. |
-| **I3** | `Codebook` | e-means behind `fit`; integer export; bit-identical table and the ≤⅓-iteration gate; applied first to one site (address cells or induction). |
-| **I4** | `Position` | RoPE-phase arm vs transport spin on one trunk; parity where exact, quality and cost where not. |
-| **I5** | `Loss` | JEPA latent term as an opt-in arm; served-quality gate. |
-| **I6** | assembly | `ModelSpec` + artifact fields naming every stage; portfolio config; one end-to-end run on the frozen corpus with the cost ledger. |
+| **I1** | `Read` | The one `Read` interface and `ReadOut` that D86 step 6 needs. Its reference implementation is the native Q31 first-pick read (`Q31FirstPickRead`, claude-389 to claude-393), shared by training and `IntegerStackSession`, with bit-identical replay. The Hamming copy and ask heads are the second implementation. Flock, route and relation adapters wait until a second consumer needs them (Amendment 1). |
+| **I2** | `Context` | Ring + settled stub + mergeable fold; overflow policy; full-history equivalence. **Required gate:** the codex-3 witness pair (two histories with the same sum and different top-1, PR #4015) or its successor must pass for every read the stub claims to preserve. Imports the CIRISKernel discipline. |
+| **I3** | `Codebook` | **Deferred until D86 step 6** (Amendment 1). e-means behind `fit`; integer export; bit-identical table and the ≤⅓-iteration gate; applied first to one site (address cells or induction). |
+| **I4** | `Position` | **Withdrawn** (Amendment 1): transport spin is the one position mechanism. |
+| **I5** | `Loss` | **Deferred until D86 step 6, and parked until it is CE-free and native** (Amendment 1). |
+| **I6** | assembly | `ModelSpec` + artifact fields naming every stage; one end-to-end run on the frozen corpus with the cost ledger, judged by its replies. It is the same run as D86 step 6, not a second one. |
 
-I1 and I2 are the critical path: without the read interface and the context seam, every later unit is another bespoke port. The paused read-index work (the exact code→positions index for single-code heads) is I1b, after I1.
+I1 is the critical path, because it is where this ADR and D86's native read meet. I2 follows once a model holds a conversation long enough to overflow its context. The paused read-index work (the exact code→positions index for single-code heads) is I1b, after I1.
+
+## Amendment 1 (2026-11-15, claude-394)
+
+At Casey's request, after a zoomed-out read of this ADR posted on [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6903557510). The amendment adds no rule. It brings the ADR in line with rules already in force and points its first unit at D86.
+
+"D86 step 6" here means step 6 of the path the D86 review set out, which is recorded in [PLAN.md](../../../PLAN.md)'s owner direction of 2026-11-15: one model trained and served natively, judged by its replies. The D86 row in DECISIONS.md records the donor release and does not list the steps.
+
+1. **Training.** The ADR first said "training may use float". CHARTER §3.7 and D85 say otherwise: gradients and optimizer updates land in the native representation, and float is reference code only. §1 now says so.
+2. **RoPE is withdrawn** from `Position`. The mechanism board carries position as transport spin, "no RoPE". I4 is withdrawn with it.
+3. **JEPA is parked** as a `Loss` arm. Its trainer's `L_CE` term is cross-entropy, which §3.2 bans by name, and its f64 Adam breaks §3.7. I5 waits for a CE-free, native form.
+4. **I1 is narrowed** to the one `Read` interface D86 step 6 needs, with the native Q31 first-pick read as its reference, so that this ADR and D86's read line meet instead of forking.
+5. **I3 and I5 are deferred until D86 step 6.** The evidence says the model's gaps are data (about 39k usable TRAIN windows, D86's review) and a read that averages the fact it found (claude-387/388). Neither is a codebook solver or a loss term. Interface units that move no reply are L-008's pattern.
+6. **The codex-3 witness pair is a required gate** for I2 and for any future compaction or summary of context. A stub that keeps a fold but not the selection loses the answer, the same failure as the averaged read.
+7. **The context line's owner direction** (e-means, CIRISKernel) has no row yet in PLAN.md's owner directions or DECISIONS.md. Its verbatim words should be recorded there (L-001). The direction as quoted releases nothing that §3 bans.
+
+The mechanism map's statuses are unchanged.
 
 ## Alternatives considered
 
@@ -131,4 +148,4 @@ I1 and I2 are the critical path: without the read interface and the context seam
 - **Easier:** a mechanism can be swapped without touching `session.rs`; every swap has a parity test and a cost entry; the portfolio question becomes measurable.
 - **Harder:** the interface must be rich enough for seven mechanisms without becoming a union of special cases; `ReadOut` may need a relation-typed variant; the context stub needs a serialization format.
 - **Riskier:** schema churn (`/N` per stage), qualification debt (each adapter needs its own evidence), and the temptation to promote on one panel. The frozen corpus and the metric vector must be fixed before I1 lands.
-- **Revisit if:** a stage cannot be expressed without floats in serving; a parity adapter cannot reach bit-identity; or a mechanism's reopen condition changes its stage. Revisit the e-means scaling laws only after a corpus of at least `10⁵` rows and `k ≥ 256` exists.
+- **Revisit if:** a stage cannot be expressed without floats in training or serving; a parity adapter cannot reach bit-identity; or a mechanism's reopen condition changes its stage. Revisit the e-means scaling laws only after a corpus of at least `10⁵` rows and `k ≥ 256` exists.
