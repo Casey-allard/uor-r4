@@ -14,6 +14,50 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 16 November 2026: the rest of D87's corpus is streamed from the DeepSeek API (D89)
+
+**Decided by:** the owner (Casey), 16 November 2026, in claude's chat (claude-402). The lab had leased a 4×B200
+and an 8×B200 for the fan-out. It then reported that DeepSeek's own API lists V4.1 Flash at $0.60 per 1M output
+tokens off-peak, so about $800–900 for 1B kept, against about $1,480 for the rented run (pod 3 plus the
+8×B200 plus the 4×B200 at $172.73/h, setup included). Casey's words,
+verbatim:
+
+- Asked about one 8×B200 at about $85/h in place of two 4×B200 pods:
+  "ok i mean yeah go for it just get it done please as quickly and cheaply as possible"
+- "i can just stream deepseek from api..."
+- To the lab's recommendation (down the two new pods, keep pod 3 generating while an API path is built and
+  checked, then finish over the API off-peak): "go with your recommendation"
+- "btw 1 million tokens from openai costs .25c so ive done like 10b before for like 200bucks"
+
+**What changed:**
+
+- **D87's means of generation (the owner's terms):**
+  - Stream the rest of the donor corpus from DeepSeek's API, as the lab recommended, instead of a rented
+    fan-out. In the owner's words: "i can just stream deepseek from api".
+  - The recommendation the owner accepted: down the two new pods, keep pod 3 (vast-60886842) generating while
+    the API path is built and checked, then down it and finish over the API off-peak.
+  - D87's donor (DeepSeek V4.1 Flash), reasoning rule, hard-text-target rule and 1B size stand.
+  - The earlier yes to one 8×B200 is superseded by this answer: no 8×B200 may be leased under it.
+- **Amends D87's lab conditions:**
+  - In place of a pinned checkpoint and the engine and GPUs, the API receipt names the endpoint, the
+    model-version string, the request dates and the off-peak window.
+  - Shards from pod 3 and from the API are tagged apart.
+  - The charter's §3.10 is unchanged.
+- **The lab's reading, not owner terms:**
+  - The two new pods (vast-60895844, vast-60895824) were deleted about 10 minutes after their lease, before
+    any file reached them (about $21.55).
+  - D88's caps still cover pod 3 until it is downed.
+  - The OpenAI note was not taken as a donor switch, since a switch needs the owner's word (D87). The lab also
+    notes that OpenAI's Services Agreement §3.3(e) bars using Output to develop competing models, while
+    DeepSeek's Open Platform Terms §4.2 allow "training other models (such as model distillation)". The $0.25
+    per 1M figure is the owner's, unverified by the lab and for a different model.
+- **The lab's conditions and means, not owner terms:**
+  - `deepseek-flash` at the published off-peak rates.
+  - The seed is recorded as absent (not replayable).
+  - The instrument takes the key from a file or environment variable; the lab never reads, prints or logs it
+    (§3.13).
+  - The production sheet's amendment and its non-author FIT come before the first API request.
+
 ## 16 November 2026: D87's corpus run may use 4 pods at $43.41/h (D88)
 
 **Decided by:** the owner (Casey), 16 November 2026, in claude's chat (claude-401). Under D87's $35/h no
