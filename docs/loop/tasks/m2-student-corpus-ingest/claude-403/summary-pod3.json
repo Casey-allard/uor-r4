@@ -1,0 +1,289 @@
+{
+  "inputs": [
+    {
+      "path": "shard-00000.jsonl",
+      "records": 2048,
+      "sha256": "cfd59785ca1f171e42768607b08737793a9a3b46eb73e4239de6b849bda4596d"
+    },
+    {
+      "path": "shard-00001.jsonl",
+      "records": 575,
+      "sha256": "4a46e8fd5c4a25a0aafbc42e8af984e19f59642f0f21477b048b32fd7c112715"
+    },
+    {
+      "path": "shard-00002.jsonl",
+      "records": 2048,
+      "sha256": "c5551bb549c6f3ae92b7f59796729dfdc58483cf7264952dda332a74ebac957b"
+    },
+    {
+      "path": "shard-00003.jsonl",
+      "records": 886,
+      "sha256": "f0c7d6f0d1e7c8e4d747ad237fafd689a48811aa64f3282e5abd1392fd33b948"
+    },
+    {
+      "path": "shard-00004.jsonl",
+      "records": 2048,
+      "sha256": "d446d8ed8a42f4fad8dfdb659704d9b16bf3af15a265b046bf2c719f52e5a39d"
+    },
+    {
+      "path": "shard-00005.jsonl",
+      "records": 2048,
+      "sha256": "f84a7ac9cfd4a30673484ca463f3148d84ff1968648fc9691f61f269dd3f31ae"
+    },
+    {
+      "path": "shard-00006.jsonl",
+      "records": 2048,
+      "sha256": "682eda955f46f75606e6d2ef27a83db4b56e69571f916f9ff48ee4573006b51f"
+    },
+    {
+      "path": "shard-00007.jsonl",
+      "records": 2048,
+      "sha256": "358577b3daacdd74c58a2be70f30043557afef279f153470809e3a7e9e568822"
+    },
+    {
+      "path": "shard-00008.jsonl",
+      "records": 2048,
+      "sha256": "a2c364af85a3babe1c4f433d5e1a1e5f2a6f8b87608f3af2e3c1fb81f5e5791c"
+    },
+    {
+      "path": "shard-00009.jsonl",
+      "records": 2048,
+      "sha256": "af710e6a3368cf6b25e9521832fd4ab0b71d8f7728e56ec757217a48e26b33fb"
+    },
+    {
+      "path": "shard-00010.jsonl",
+      "records": 2048,
+      "sha256": "96a2aecbb952012b4fd0a85353e03147590f16eaadbcf6725c2ad4833f685927"
+    },
+    {
+      "path": "shard-00011.jsonl",
+      "records": 2048,
+      "sha256": "d48caf27533982048f7a9cccb1b6b0a58c6999c4663cbe0cfb524e4631f16a1b"
+    },
+    {
+      "path": "shard-00012.jsonl",
+      "records": 1777,
+      "sha256": "286dabe1b841a589e9bff50e6eb9f53cb60d286a9d40a0e011c0fae59f8e55c7"
+    },
+    {
+      "path": "shard-00013.jsonl",
+      "records": 2048,
+      "sha256": "b04b9c6d7d835378caed94c048f5ea3a44e2ee985ad8f93faf099b173e734f0a"
+    },
+    {
+      "path": "shard-00014.jsonl",
+      "records": 2048,
+      "sha256": "049639f896bb9352a2ef79a9296f1b1c4d52bed31e8111ad11fa30cc0be56722"
+    },
+    {
+      "path": "shard-00015.jsonl",
+      "records": 2048,
+      "sha256": "5ea48f19261d7da866fee26293a405008b9e6a76673824ac38e47407cc0f8aa0"
+    },
+    {
+      "path": "shard-00016.jsonl",
+      "records": 2048,
+      "sha256": "2698c88f3403210263812e3e645356cda08c87d56ff2c303e11a08bb175eec0c"
+    }
+  ],
+  "marker_ids": {
+    "assistant": [
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "separator": [
+      201,
+      201
+    ],
+    "system": [
+      201,
+      53,
+      91,
+      353,
+      970,
+      28
+    ],
+    "user": [
+      201,
+      55,
+      2728,
+      28
+    ]
+  },
+  "odd_run_keys": 109680,
+  "odd_runs_unkeyed": 0,
+  "per_segment": {
+    "answer": {
+      "bytes_per_token": [
+        57660291,
+        29622539
+      ],
+      "dropped_bytes": 0,
+      "dropped_per_byte": [
+        0,
+        57660291
+      ],
+      "fallback_per_token": [
+        3769023,
+        29622539
+      ],
+      "fallback_tokens": 3769023,
+      "special_in_text": 0,
+      "text_bytes": 57660291,
+      "tokens": 29622539
+    },
+    "frame": {
+      "bytes_per_token": [
+        646684,
+        472252
+      ],
+      "dropped_bytes": 0,
+      "dropped_per_byte": [
+        0,
+        646684
+      ],
+      "fallback_per_token": [
+        0,
+        472252
+      ],
+      "fallback_tokens": 0,
+      "special_in_text": 0,
+      "text_bytes": 646684,
+      "tokens": 472252
+    },
+    "prompt": {
+      "bytes_per_token": [
+        31637552,
+        15324614
+      ],
+      "dropped_bytes": 0,
+      "dropped_per_byte": [
+        0,
+        31637552
+      ],
+      "fallback_per_token": [
+        890686,
+        15324614
+      ],
+      "fallback_tokens": 890686,
+      "special_in_text": 0,
+      "text_bytes": 31637552,
+      "tokens": 15324614
+    },
+    "reasoning": {
+      "bytes_per_token": [
+        171146254,
+        82620552
+      ],
+      "dropped_bytes": 0,
+      "dropped_per_byte": [
+        0,
+        171146254
+      ],
+      "fallback_per_token": [
+        6634033,
+        82620552
+      ],
+      "fallback_tokens": 6634033,
+      "special_in_text": 0,
+      "text_bytes": 171146254,
+      "tokens": 82620552
+    }
+  },
+  "ratios": "each [numerator, denominator] pair is an exact integer ratio",
+  "records": {
+    "d87/single": 29784,
+    "d87/two-turn": 2126
+  },
+  "tokenizer_ids": 4096,
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "top_odd_runs": [
+    {
+      "count": 73695,
+      "hex": "94"
+    },
+    {
+      "count": 46333,
+      "hex": "c2b2"
+    },
+    {
+      "count": 37978,
+      "hex": "c3a9"
+    },
+    {
+      "count": 36974,
+      "hex": "e289a4"
+    },
+    {
+      "count": 32354,
+      "hex": "e2889a"
+    },
+    {
+      "count": 32254,
+      "hex": "e289a5"
+    },
+    {
+      "count": 24991,
+      "hex": "ceb1"
+    },
+    {
+      "count": 23696,
+      "hex": "cf80"
+    },
+    {
+      "count": 19617,
+      "hex": "93"
+    },
+    {
+      "count": 19084,
+      "hex": "e28692"
+    },
+    {
+      "count": 16110,
+      "hex": "d981d98a"
+    },
+    {
+      "count": 15696,
+      "hex": "ceb8"
+    },
+    {
+      "count": 14438,
+      "hex": "ceb2"
+    },
+    {
+      "count": 13501,
+      "hex": "e289a1"
+    },
+    {
+      "count": 11675,
+      "hex": "cebb"
+    },
+    {
+      "count": 10991,
+      "hex": "e288a0"
+    },
+    {
+      "count": 10805,
+      "hex": "c2b7"
+    },
+    {
+      "count": 9850,
+      "hex": "c2b0"
+    },
+    {
+      "count": 8704,
+      "hex": "c3a0"
+    },
+    {
+      "count": 8331,
+      "hex": "c397"
+    }
+  ],
+  "total_tokens": 128039957,
+  "unemittable_bytes_hex": "",
+  "unit": "claude-403"
+}

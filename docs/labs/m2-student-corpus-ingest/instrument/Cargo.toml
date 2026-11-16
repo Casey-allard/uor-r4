@@ -1,0 +1,26 @@
+[package]
+name = "m2-student-corpus-ingest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose. This instrument reads
+# donor-corpus JSONL shards (the D41 pilot and the D87 production corpus) and writes the
+# native trainer's input files (`tokens.u16` with its UORT header, `response_mask.u8`,
+# `segment.u8`) plus per-segment tokenizer coverage counters. It holds no model code: no
+# training, no read, no GPU. Nothing banned by CHARTER §3.2-§3.4 is compiled here.
+[workspace]
+
+[lib]
+name = "m2_student_corpus_ingest"
+path = "src/lib.rs"
+
+[[bin]]
+name = "student-ingest"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10.8"
+zstd = "0.14"
+uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
