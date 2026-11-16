@@ -484,3 +484,92 @@ fn every_holder_of_a_shared_span_is_listed_for_drop() {
         assert_eq!(x.drop_found, ["ta", "td"], "threads = {threads}: {a:#}");
     }
 }
+
+/// DEV-test "dc" holds a 60-token answer span shared with `holders` TRAIN records (copied at 1
+/// or 2); DEV-test "ds" holds one shared with three TRAIN records (stock) (claude-417).
+fn copied_fixture(threads: usize, holders: usize, drop: &[&str], drop_dev: &[&str]) -> Result<(Value, Extras), String> {
+    let ids = |l: &[&str]| l.iter().map(|s| s.to_string()).collect();
+    let opts = AuditOptions { drop: ids(drop), drop_dev_test: ids(drop_dev), find_copied: drop.is_empty(), ..AuditOptions::default() };
+    copied_audit(threads, holders, &opts)
+}
+
+/// The audit of `copied_fixture`'s records under any options.
+fn copied_audit(threads: usize, holders: usize, opts: &AuditOptions) -> Result<(Value, Extras), String> {
+    let d = Dir::new("copied");
+    let sp = Splitter::new(Config { dev_tune: (0, 1), dev_test: (1, 2), ..Config::default() }).unwrap();
+    let c = letters(b"abcdefghijklmnopqrstuvwxyz0123456789", 7, 3, 60);
+    let st = letters(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", 11, 5, 60);
+    let trn = |id: &str, ans: String| rec(id, &[&prompt_in(&sp, &format!("trn{id}"), '.', Split::Train)], &[("", &ans)]);
+    let mut s0 = vec![
+        rec("dc", &[&prompt_in(&sp, "devc", '?', Split::DevTest)], &[("", &format!("<{c}>"))]),
+        rec("ds", &[&prompt_in(&sp, "devs", '?', Split::DevTest)], &[("", &format!("<{st}>"))]),
+        trn("tz", "nothing shared here".into()),
+    ];
+    for h in 1..=holders {
+        s0.push(trn(&format!("h{h}"), format!("train h{h} [{c}] side")));
+    }
+    let s1: Vec<String> = (1..=3).map(|k| trn(&format!("k{k}"), format!("train k{k} [{st}] side"))).collect();
+    let p = plan(&sp, &[d.shard("s0.jsonl", &s0), d.shard("s1.jsonl", &s1)], threads).unwrap();
+    assert_eq!(kept(&p).len(), 6 + holders, "no fixture record is a duplicate");
+    audit_opts(&p, &coder(), threads, 12, opts)
+}
+
+#[test]
+fn every_holder_of_a_copied_span_is_listed() {
+    for (holders, want) in [(1, &["h1"][..]), (2, &["h1", "h2"])] {
+        let (a, x) = copied_fixture(2, holders, &[], &[]).unwrap();
+        assert_eq!(x.copied_found, want, "{a:#}");
+        assert_eq!(a["train_drop"]["copied"]["records"], holders);
+        assert_eq!(x.residue, ["dc", "ds"]);
+    }
+}
+
+#[test]
+fn no_holder_of_a_stock_span_is_listed() {
+    let (a, x) = copied_fixture(2, 1, &[], &[]).unwrap();
+    assert!(x.copied_found.iter().all(|id| !id.starts_with('k')), "{:?}: {a:#}", x.copied_found);
+}
+
+#[test]
+fn both_lists_applied_leave_no_50_token_contamination() {
+    let (base, x) = copied_fixture(2, 2, &[], &[]).unwrap();
+    let drop: Vec<&str> = x.copied_found.iter().map(String::as_str).collect();
+    let (_, y) = copied_fixture(2, 2, &drop, &[]).unwrap();
+    assert_eq!(y.residue, ["ds"], "only the stock record stays contaminated");
+    let residue: Vec<&str> = y.residue.iter().map(String::as_str).collect();
+    let (a, z) = copied_fixture(2, 2, &drop, &residue).unwrap();
+    assert_eq!(a["contamination"]["by_span"]["50"]["contaminated"], 0, "{a:#}");
+    assert!(z.residue.is_empty());
+    let before = base["splits"]["dev-test"]["records"].as_u64().unwrap();
+    assert_eq!(a["splits"]["dev-test"]["records"].as_u64().unwrap() + residue.len() as u64, before);
+    assert_eq!(a["contamination"]["dev_test_records"].as_u64().unwrap() + residue.len() as u64, before);
+    assert_eq!(a["dev_test_drop"]["applied"]["records"], residue.len());
+}
+
+#[test]
+fn a_dev_test_drop_id_that_is_not_a_kept_dev_test_record_is_refused() {
+    for bad in [&["h1"][..], &["nope"], &["ds", "nope"]] {
+        let Err(err) = copied_fixture(2, 1, &[], bad) else { panic!("{bad:?} was accepted") };
+        assert!(err.contains("DEV-test drop ids are kept DEV-test records"), "{bad:?}: {err}");
+    }
+}
+
+/// Multiplicity is counted over split v1, so the copied finder refuses a TRAIN drop list
+/// (review L1 on PR 4053).
+#[test]
+fn the_copied_finder_refuses_a_train_drop_list() {
+    let (_, x) = copied_fixture(2, 2, &[], &[]).unwrap();
+    let drop: HashSet<String> = x.copied_found.into_iter().collect();
+    let opts = AuditOptions { drop, find_copied: true, ..AuditOptions::default() };
+    let Err(err) = copied_audit(2, 2, &opts) else { panic!("find_copied with a drop list was accepted") };
+    assert!(err.contains("takes no TRAIN drop list"), "{err}");
+}
+
+#[test]
+fn the_copied_and_residue_lists_do_not_depend_on_thread_count() {
+    let (one, x1) = copied_fixture(1, 2, &[], &[]).unwrap();
+    for threads in [2, 3, 4] {
+        let (a, x) = copied_fixture(threads, 2, &[], &[]).unwrap();
+        assert_eq!((a, x.copied_found, x.residue), (one.clone(), x1.copied_found.clone(), x1.residue.clone()), "threads = {threads}");
+    }
+}

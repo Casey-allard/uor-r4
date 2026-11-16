@@ -670,6 +670,27 @@ impl SpanSet {
         })
     }
 
+    /// Does the TRAIN record `train` hold a copied span of this counted set: one whose TRAIN
+    /// multiplicity, from a finished TRAIN pass, is in `1..=COPIED_MAX` (claude-417)? Compared
+    /// token for token like `holds`; false for a set that does not count.
+    pub fn holds_copied(&self, dev: &[Tok], train: &[u32], buf: &[u64]) -> bool {
+        let Some(mult) = &self.mult else { return false };
+        let n = self.n;
+        (n..=train.len()).any(|e| {
+            let h = window(buf, self.pow, e - n, e);
+            let b = (mix(&[h, 0, 0]) >> self.shift) as usize;
+            if self.bloom[b / 64] >> (b % 64) & 1 == 0 {
+                return false;
+            }
+            let i = self.uniq.partition_point(|u| u.0 < h);
+            (i..self.uniq.len()).take_while(|&j| { let (k, _, _) = self.uniq[j]; k == h }).any(|j| {
+                let (_, r, s) = self.uniq[j];
+                (1..=COPIED_MAX).contains(&mult[j].load(Ordering::Relaxed))
+                    && dev[r as usize].tokens[s as usize..s as usize + n] == train[e - n..e]
+            })
+        })
+    }
+
     /// The classification of a counted set's shared spans: copied (TRAIN multiplicity at most
     /// `COPIED_MAX`) or stock; a contaminated record is copied-contaminated when any of its
     /// shared spans is copied. With the `k` shared spans held by the most DEV records. None for
@@ -925,6 +946,11 @@ pub struct Extras {
     /// With `AuditOptions::find_drop`, the sorted ids of the kept TRAIN records (outside the
     /// applied drop list) that hold a DEV-test span of that length (claude-416).
     pub drop_found: Vec<String>,
+    /// With `AuditOptions::find_copied`, the sorted ids of the kept TRAIN records (outside the
+    /// applied drop list) that hold a copied `GATE_SPAN` span (claude-417).
+    pub copied_found: Vec<String>,
+    /// The sorted ids of the DEV-test records contaminated at `GATE_SPAN` in this run (claude-417).
+    pub residue: Vec<String>,
 }
 
 /// The span length whose TRAIN holders the span dedup drops (claude-414's decision item 2).
@@ -939,6 +965,11 @@ pub struct AuditOptions {
     pub drop: HashSet<String>,
     /// List the TRAIN records that hold a DEV-test span of this length (one of `SPANS`).
     pub find_drop: Option<usize>,
+    /// List the kept TRAIN records that hold a copied `GATE_SPAN` span (TRAIN multiplicity at
+    /// most `COPIED_MAX`), by a second TRAIN pass after the counting one (claude-417).
+    pub find_copied: bool,
+    /// DEV-test record ids left out of DEV-test entirely: spans, grams and every count (claude-417).
+    pub drop_dev_test: HashSet<String>,
 }
 
 /// The 13-gram census of a plan; see `audit_full`.
@@ -970,6 +1001,9 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
     if opts.find_drop.is_some_and(|n| !SPANS.contains(&n)) {
         return Err(format!("find_drop must be one of {SPANS:?}"));
     }
+    if opts.find_copied && !opts.drop.is_empty() {
+        return Err("find_copied counts multiplicity over split v1, so it takes no TRAIN drop list".into());
+    }
     let classify_top = opts.classify_top;
     let paths: Vec<PathBuf> = plan.shards.iter().map(|(p, _)| p.clone()).collect();
     let fate_of = |p: &Path| &plan.fate[paths.iter().position(|q| q == p).unwrap()];
@@ -978,6 +1012,7 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
         let fate = fate_of(p);
         let (mut i, mut grams, mut cnt) = (0usize, [vec![], vec![]], [TokCount::default(); 2]);
         let mut toks = vec![];
+        let mut gone = TokCount::default();
         read_shard(p, &mut |line| {
             let f = fate[i];
             i += 1;
@@ -987,6 +1022,10 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
                 _ => return Ok(()),
             };
             let t = tokenize(coder, line)?;
+            if k == 1 && opts.drop_dev_test.contains(&t.id) {
+                gone.add(&t);
+                return Ok(());
+            }
             cnt[k].add(&t);
             each_gram(&t, |g, s| grams[k].push((g, s)));
             if k == 1 {
@@ -994,21 +1033,26 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
             }
             Ok(())
         })?;
-        Ok((grams, cnt, toks))
+        Ok((grams, cnt, toks, gone))
     })?;
     let mut counts = [TokCount::default(); 3];
-    let (mut tune, mut test, mut dev_test) = (vec![], vec![], vec![]);
-    for ([gt, gs], [ct, cs], tk) in dev {
+    let (mut tune, mut test, mut dev_test, mut dev_gone) = (vec![], vec![], vec![], TokCount::default());
+    for ([gt, gs], [ct, cs], tk, g) in dev {
         tune.extend(gt);
         test.extend(gs);
         counts[1].merge(&ct);
         counts[2].merge(&cs);
         dev_test.extend(tk);
+        dev_gone.merge(&g);
     }
+    if dev_gone.records != opts.drop_dev_test.len() as u64 {
+        return Err(format!("{} of {} DEV-test drop ids are kept DEV-test records", dev_gone.records, opts.drop_dev_test.len()));
+    }
+    let counted = classify_top.is_some() || opts.find_copied;
     let spans: Vec<SpanSet> = SPANS
         .iter()
-        .map(|&n| match classify_top {
-            Some(_) if n == GATE_SPAN => SpanSet::counted(&dev_test, n, bloom_log2),
+        .map(|&n| match counted {
+            true if n == GATE_SPAN => SpanSet::counted(&dev_test, n, bloom_log2),
             _ => SpanSet::new(&dev_test, n, bloom_log2),
         })
         .collect();
@@ -1068,6 +1112,35 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
     drop_found.sort_unstable();
     if dropped.records != opts.drop.len() as u64 {
         return Err(format!("{} of {} drop ids are kept TRAIN records", dropped.records, opts.drop.len()));
+    }
+    // Pass 3 (claude-417): multiplicities are final only after pass 2, so the holders of copied
+    // spans are found by a second pass over the same kept TRAIN records.
+    let mut copied_found = vec![];
+    if opts.find_copied {
+        let s = spans.iter().find(|s| s.n == GATE_SPAN).unwrap();
+        let found = par_shards(&paths, threads, |p| {
+            let fate = fate_of(p);
+            let (mut i, mut buf, mut found) = (0usize, vec![], vec![]);
+            read_shard(p, &mut |line| {
+                let f = fate[i];
+                i += 1;
+                if f != Fate::Keep(Split::Train) {
+                    return Ok(());
+                }
+                let t = tokenize(coder, line)?;
+                if opts.drop.contains(&t.id) {
+                    return Ok(());
+                }
+                prefix(&t.tokens, &mut buf);
+                if s.holds_copied(&dev_test, &t.tokens, &buf) {
+                    found.push(t.id);
+                }
+                Ok(())
+            })?;
+            Ok(found)
+        })?;
+        copied_found = found.into_iter().flatten().collect();
+        copied_found.sort_unstable();
     }
     let mut total = TokCount::default();
     let mut splits = serde_json::Map::new();
@@ -1157,7 +1230,7 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
         },
         "ratios": "every pair is an exact integer [numerator, denominator]",
     });
-    if !opts.drop.is_empty() || opts.find_drop.is_some() {
+    if !opts.drop.is_empty() || opts.find_drop.is_some() || opts.find_copied {
         let kept_tokens = counts[0].tokens;
         v["train_drop"] = json!({
             "rule": "split v2 = split v1 with the listed kept TRAIN records skipped; `splits.train` counts what remains (claude-416)",
@@ -1168,9 +1241,25 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
                 "span": n, "records": drop_found.len(),
             })),
         });
+        if opts.find_copied {
+            v["train_drop"]["copied"] = json!({
+                "rule": "kept TRAIN records outside the applied list that hold a DEV-test span of `span` reasoning+answer tokens whose TRAIN multiplicity (distinct kept TRAIN records, from a full counting pass) is at most `max_multiplicity`; found by a second TRAIN pass, compared token for token (claude-417)",
+                "span": GATE_SPAN, "max_multiplicity": COPIED_MAX, "records": copied_found.len(),
+            });
+        }
     }
+    if !opts.drop_dev_test.is_empty() {
+        v["dev_test_drop"] = json!({
+            "rule": "split v3 DEV-test = split v1 DEV-test with the listed records left out of every DEV-test span, gram and count; `splits.dev-test` counts what remains (claude-417)",
+            "applied": dev_gone.json(),
+            "applied_token_share": [dev_gone.tokens, dev_gone.tokens + counts[2].tokens],
+        });
+    }
+    let gate_ix = SPANS.iter().position(|&n| n == GATE_SPAN).unwrap();
+    let mut residue: Vec<String> = Vec::clone(&contaminated[gate_ix]);
+    residue.sort_unstable();
     let classify = classify_top.and_then(|k| spans.iter().find(|s| s.n == GATE_SPAN)?.classify(&dev_test, k));
-    Ok((v, Extras { templates, contaminated, classify, drop_found }))
+    Ok((v, Extras { templates, contaminated, classify, drop_found, copied_found, residue }))
 }
 
 #[cfg(test)]

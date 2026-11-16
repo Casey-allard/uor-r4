@@ -18,9 +18,18 @@
 //! <file>` skips the listed records in the TRAIN pass (split v2) and refuses an id that is not a
 //! kept TRAIN record. Each list's SHA-256 goes into the summary's `train_drop`; the lists hold
 //! record ids and are never committed.
+//!
+//! The copied-span dedup (claude-417): `--write-drop-copied <file>` writes the sorted ids of the
+//! kept TRAIN records (outside `--drop-train`'s list) holding a copied 50-token DEV-test span, one
+//! held by at most 2 kept TRAIN records, found by a second TRAIN pass after the counting one;
+//! `--write-dev-residue <file>` writes the sorted ids of the DEV-test records still contaminated
+//! at 50 tokens in this run; `--drop-dev-test <file>` leaves the listed DEV-test records out of
+//! DEV-test entirely (split v3, with `--drop-train`) and refuses an id that is not a kept DEV-test
+//! record. The SHA-256 and count of each list go into the summary (`train_drop.copied`,
+//! `dev_test_residue`, `dev_test_drop`); the lists themselves are never committed.
 
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use d87_split_audit::{audit_opts, plan, AuditOptions, Splitter, DROP_SPAN, SPANS};
@@ -36,11 +45,15 @@ fn run() -> Result<(), String> {
         (None, None, None, 12usize, 30u32, vec![]);
     let mut classify: Option<PathBuf> = None;
     let (mut write_drop, mut drop_train): (Option<PathBuf>, Option<PathBuf>) = (None, None);
+    let (mut write_copied, mut write_residue, mut drop_dev): (Option<PathBuf>, Option<PathBuf>, Option<PathBuf>) = (None, None, None);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--classify-spans" => classify = Some(args.next().map(PathBuf::from).ok_or("--classify-spans")?),
             "--write-drop" => write_drop = Some(args.next().map(PathBuf::from).ok_or("--write-drop")?),
             "--drop-train" => drop_train = Some(args.next().map(PathBuf::from).ok_or("--drop-train")?),
+            "--write-drop-copied" => write_copied = Some(args.next().map(PathBuf::from).ok_or("--write-drop-copied")?),
+            "--write-dev-residue" => write_residue = Some(args.next().map(PathBuf::from).ok_or("--write-dev-residue")?),
+            "--drop-dev-test" => drop_dev = Some(args.next().map(PathBuf::from).ok_or("--drop-dev-test")?),
             "--tokenizer" => tok = args.next().map(PathBuf::from),
             "--split" => split = args.next().map(PathBuf::from),
             "--out" => out = args.next().map(PathBuf::from),
@@ -70,25 +83,40 @@ fn run() -> Result<(), String> {
     let mut opts = AuditOptions {
         classify_top: classify.as_ref().map(|_| CLASSIFY_TOP),
         find_drop: write_drop.as_ref().map(|_| DROP_SPAN),
+        find_copied: write_copied.is_some(),
         ..AuditOptions::default()
     };
     let mut applied_sha = None;
     if let Some(file) = &drop_train {
-        let list = std::fs::read(file).map_err(|e| format!("{}: {e}", file.display()))?;
-        applied_sha = Some(hex(&Sha256::digest(&list)));
-        let text = String::from_utf8(list).map_err(|e| format!("{}: {e}", file.display()))?;
-        opts.drop = text.lines().map(str::to_string).collect::<HashSet<_>>();
-        if opts.drop.is_empty() {
-            return Err(format!("{}: the drop list is empty", file.display()));
-        }
-        if opts.drop.len() != text.lines().count() || opts.drop.contains("") {
-            return Err(format!("{}: a drop id is empty or listed twice", file.display()));
-        }
+        let (sha, ids) = read_ids(file, "drop")?;
+        applied_sha = Some(sha);
+        opts.drop = ids;
+    }
+    let mut dev_sha = None;
+    if let Some(file) = &drop_dev {
+        let (sha, ids) = read_ids(file, "DEV-test drop")?;
+        dev_sha = Some(sha);
+        opts.drop_dev_test = ids;
     }
     let (mut a, extras) = audit_opts(&p, &coder, threads, bloom, &opts)?;
     std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     if let Some(sha) = applied_sha {
         a["train_drop"]["applied_list_sha256"] = sha.into();
+    }
+    if let Some(sha) = dev_sha {
+        a["dev_test_drop"]["applied_list_sha256"] = sha.into();
+    }
+    if let Some(file) = &write_copied {
+        a["train_drop"]["copied"]["list_sha256"] = write_ids(file, &extras.copied_found)?.into();
+        eprintln!("d87-audit: {} TRAIN records holding a copied span listed in {}", extras.copied_found.len(), file.display());
+    }
+    if let Some(file) = &write_residue {
+        let sha = write_ids(file, &extras.residue)?;
+        a["dev_test_residue"] = serde_json::json!({
+            "rule": "dev-test records of this run contaminated at 50 tokens (claude-417)",
+            "records": extras.residue.len(), "list_sha256": sha,
+        });
+        eprintln!("d87-audit: {} DEV-test residue records listed in {}", extras.residue.len(), file.display());
     }
     if let Some(file) = &write_drop {
         let list: String = extras.drop_found.iter().map(|id| format!("{id}\n")).collect();
@@ -141,6 +169,32 @@ fn run() -> Result<(), String> {
     std::fs::write(out.join("audit-summary.json"), body).map_err(|e| e.to_string())?;
     eprintln!("d87-audit: gate {}; written to {}", a["gate"], out.display());
     Ok(())
+}
+
+/// A list of record ids, one per line: its SHA-256 and its ids; refuses an empty list and an
+/// empty or repeated id.
+fn read_ids(file: &Path, what: &str) -> Result<(String, HashSet<String>), String> {
+    let list = std::fs::read(file).map_err(|e| format!("{}: {e}", file.display()))?;
+    let sha = hex(&Sha256::digest(&list));
+    let text = String::from_utf8(list).map_err(|e| format!("{}: {e}", file.display()))?;
+    let ids = text.lines().map(str::to_string).collect::<HashSet<_>>();
+    if ids.is_empty() {
+        return Err(format!("{}: the {what} list is empty", file.display()));
+    }
+    if ids.len() != text.lines().count() || ids.contains("") {
+        return Err(format!("{}: a {what} id is empty or listed twice", file.display()));
+    }
+    Ok((sha, ids))
+}
+
+/// Write sorted ids one per line; returns the file's SHA-256.
+fn write_ids(file: &Path, ids: &[String]) -> Result<String, String> {
+    let list: String = ids.iter().map(|id| format!("{id}\n")).collect();
+    if let Some(dir) = file.parent().filter(|d| !d.as_os_str().is_empty()) {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(file, &list).map_err(|e| format!("{}: {e}", file.display()))?;
+    Ok(hex(&Sha256::digest(list.as_bytes())))
 }
 
 fn main() -> ExitCode {

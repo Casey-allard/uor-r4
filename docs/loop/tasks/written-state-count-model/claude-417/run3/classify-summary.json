@@ -1,0 +1,101 @@
+{
+  "bar": {
+    "borderline": false,
+    "verdict": "NO-DATA"
+  },
+  "contaminated": 0,
+  "copied_contaminated": 0,
+  "copied_share": [
+    0,
+    0
+  ],
+  "copied_share_per_mille": 0,
+  "dev_test_records": 3871,
+  "most_train_records_of_a_span": 0,
+  "ratios": "every pair is an exact integer [numerator, denominator]",
+  "record_least_multiplicity_histogram": {
+    "1": 0,
+    "10-99": 0,
+    "2": 0,
+    "3-9": 0,
+    ">=100": 0
+  },
+  "rule": {
+    "bar": "copied_contaminated x 10 > contaminated: span dedup; else split v1 stands; a share of 8..=12% is borderline",
+    "multiplicity": "a shared span's TRAIN multiplicity is the number of distinct TRAIN records holding it; a span repeated inside one TRAIN record counts once",
+    "record_class": "a contaminated dev-test record is copied-contaminated when any of its shared spans is copied, else stock-only",
+    "span_class": "copied when the multiplicity is 1..=2, stock when it is at least 3"
+  },
+  "shared_spans": 0,
+  "shared_spans_by_class": {
+    "copied": 0,
+    "stock": 0
+  },
+  "span": 50,
+  "span_multiplicity_histogram": {
+    "1": 0,
+    "10-99": 0,
+    "2": 0,
+    "3-9": 0,
+    ">=100": 0
+  },
+  "split_summary_sha256": "5146fd2755fde3beacfdde6d80c51f31433f0fa73221e34299d48d669999bebd",
+  "stock_only": 0,
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "top": {
+    "copied": 0,
+    "dev_records": [],
+    "k": 0,
+    "ranked_by": "distinct dev-test records holding the span, then span order",
+    "stock": 0,
+    "text": "decoded only to the laptop-side --classify-spans file, never committed",
+    "train_records": []
+  },
+  "train_drop": {
+    "applied": {
+      "bytes_per_next_token_target": [
+        224531803,
+        119734590
+      ],
+      "bytes_per_response_token": [
+        224531803,
+        99908588
+      ],
+      "bytes_per_token": [
+        224531803,
+        119749006
+      ],
+      "next_token_targets": 119734590,
+      "per_segment": {
+        "answer": {
+          "text_bytes": 46050545,
+          "tokens": 28475023
+        },
+        "frame": {
+          "text_bytes": 299972,
+          "tokens": 218288
+        },
+        "prompt": {
+          "text_bytes": 37499526,
+          "tokens": 19668122
+        },
+        "reasoning": {
+          "text_bytes": 140681760,
+          "tokens": 71387573
+        }
+      },
+      "records": 14416,
+      "response_tokens": 99908588,
+      "text_bytes": 224531803,
+      "tokens": 119749006
+    },
+    "applied_list_sha256": "fdf8587569d64b9ada7d2892f26348588caa8b827f032d10548b4ef7ea4597bb",
+    "applied_token_share": [
+      119749006,
+      2091560001
+    ],
+    "found": null,
+    "rule": "split v2 = split v1 with the listed kept TRAIN records skipped; `splits.train` counts what remains (claude-416)"
+  },
+  "unit": "claude-414"
+}
