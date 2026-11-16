@@ -313,3 +313,100 @@ fn template_resplit_is_deterministic() {
     assert!((0..120).all(|i| k[&format!("q{i}")] == s0), "one template, one split");
     assert_eq!(serde_json::from_str::<Value>(&t1).unwrap()["prompts"], 121);
 }
+
+/// The span classification fixture (claude-414), three DEV-test records over four shards:
+/// `dc` holds span A, which one TRAIN record holds; `ds` holds B, which three TRAIN records in
+/// three shards hold; `dr` holds C, which one TRAIN record holds three times.
+fn class_fixture(threads: usize) -> (Value, Vec<TopSpan>) {
+    let d = Dir::new("class");
+    let sp = Splitter::new(Config { dev_tune: (0, 1), dev_test: (1, 2), ..Config::default() }).unwrap();
+    let a = letters(b"abcdefghijklmnopqrstuvwxyz", 7, 3, 50);
+    let b = letters(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", 11, 5, 50);
+    let c = letters(b"0123456789", 3, 1, 50);
+    let dev = |id: &str, stem: &str, s: &str| rec(id, &[&prompt_in(&sp, stem, '?', Split::DevTest)], &[("", &format!("<{s}>"))]);
+    let trn = |id: &str, stem: &str, ans: String| rec(id, &[&prompt_in(&sp, stem, '.', Split::Train)], &[("", &ans)]);
+    let s0 = vec![
+        dev("dc", "devc", &a),
+        dev("ds", "devs", &b),
+        dev("dr", "devr", &c),
+        trn("ta", "trna", format!("train a [{a}] side")),
+    ];
+    let s1 = vec![trn("tb1", "trnb one", format!("first [{b}] one"))];
+    let s2 = vec![trn("tb2", "trnb two", format!("second [{b}] two")), trn("tr", "trnr", format!("[{c}] and [{c}] and [{c}]"))];
+    let s3 = vec![trn("tb3", "trnb three", format!("third [{b}] three"))];
+    let shards = [d.shard("s0.jsonl", &s0), d.shard("s1.jsonl", &s1), d.shard("s2.jsonl", &s2), d.shard("s3.jsonl", &s3)];
+    let p = plan(&sp, &shards, threads).unwrap();
+    assert_eq!(kept(&p).len(), 8, "no fixture record is a duplicate");
+    let (_, x) = audit_classify(&p, &coder(), threads, 12, 10).unwrap();
+    x.classify.unwrap()
+}
+
+/// The top-list entry whose tokens are `text`, one token per byte (id = byte + 3).
+fn top_of<'a>(top: &'a [TopSpan], text: &str) -> &'a TopSpan {
+    let ids: Vec<u32> = text.bytes().map(|b| b as u32 + 3).collect();
+    top.iter().find(|t| t.tokens == ids).unwrap_or_else(|| panic!("{text} is not a shared span"))
+}
+
+#[test]
+fn a_span_in_one_train_record_is_copied() {
+    let (v, top) = class_fixture(2);
+    let a = top_of(&top, &letters(b"abcdefghijklmnopqrstuvwxyz", 7, 3, 50));
+    assert_eq!((a.train_records, a.copied, a.dev_records), (1, true, 1));
+    assert_eq!(v["contaminated"], 3, "{v:#}");
+    assert_eq!(v["copied_contaminated"], 2);
+    assert_eq!(v["copied_share"], json!([2, 3]));
+    assert_eq!(v["bar"]["verdict"], "SPAN-DEDUP");
+}
+
+#[test]
+fn a_span_in_three_train_records_is_stock() {
+    let (v, top) = class_fixture(2);
+    let b = top_of(&top, &letters(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", 11, 5, 50));
+    assert_eq!((b.train_records, b.copied), (3, false));
+    assert_eq!(v["stock_only"], 1);
+    assert_eq!(v["shared_spans_by_class"], json!({"copied": 2, "stock": 1}));
+    assert_eq!(v["most_train_records_of_a_span"], 3);
+}
+
+#[test]
+fn a_span_repeated_in_one_train_record_counts_once() {
+    let (v, top) = class_fixture(2);
+    let c = top_of(&top, &letters(b"0123456789", 3, 1, 50));
+    assert_eq!((c.train_records, c.copied), (1, true), "{v:#}");
+    let want = json!({"1": 2, "2": 0, "3-9": 1, "10-99": 0, ">=100": 0});
+    assert_eq!(v["span_multiplicity_histogram"], want);
+    assert_eq!(v["record_least_multiplicity_histogram"], want);
+}
+
+/// A DEV-test record holding a copied span (one TRAIN record) and a stock span (three) is
+/// copied-contaminated, and counts in the record histogram under its least multiplicity.
+#[test]
+fn a_record_with_a_copied_and_a_stock_span_is_copied() {
+    let d = Dir::new("class-mixed");
+    let sp = Splitter::new(Config { dev_tune: (0, 1), dev_test: (1, 2), ..Config::default() }).unwrap();
+    let a = letters(b"abcdefghijklmnopqrstuvwxyz", 7, 3, 50);
+    let b = letters(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", 11, 5, 50);
+    let trn = |id: &str, stem: &str, ans: String| rec(id, &[&prompt_in(&sp, stem, '.', Split::Train)], &[("", &ans)]);
+    let dm = rec("dm", &[&prompt_in(&sp, "devm", '?', Split::DevTest)], &[("", &format!("<{a}> then <{b}>"))]);
+    let s0 = vec![dm, trn("ta", "trna", format!("train a [{a}] side")), trn("tb1", "trnb one", format!("first [{b}] one"))];
+    let s1 = vec![trn("tb2", "trnb two", format!("second [{b}] two")), trn("tb3", "trnb three", format!("third [{b}] three"))];
+    let shards = [d.shard("s0.jsonl", &s0), d.shard("s1.jsonl", &s1)];
+    let p = plan(&sp, &shards, 2).unwrap();
+    let (_, x) = audit_classify(&p, &coder(), 2, 12, 10).unwrap();
+    let (v, _) = x.classify.unwrap();
+    assert_eq!((&v["contaminated"], &v["copied_contaminated"]), (&json!(1), &json!(1)), "{v:#}");
+    let want = json!({"1": 1, "2": 0, "3-9": 0, "10-99": 0, ">=100": 0});
+    assert_eq!(v["record_least_multiplicity_histogram"], want);
+}
+
+#[test]
+fn multiplicity_does_not_depend_on_thread_count() {
+    let one = class_fixture(1);
+    for threads in [2, 3, 4] {
+        assert_eq!(class_fixture(threads), one, "threads = {threads}");
+    }
+    let (_, top) = one;
+    let mut m: Vec<u32> = top.iter().map(|t| t.train_records).collect();
+    m.sort_unstable();
+    assert_eq!(m, [1, 1, 3]);
+}

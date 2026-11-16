@@ -17,7 +17,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use m2_student_corpus_ingest::{hex, parse_record, read_shard, Coder, Ingest, Segment, SEGMENTS, UORT_HEADER};
@@ -534,10 +534,49 @@ pub struct SpanSet {
     hit: Vec<AtomicU64>,
     bloom: Vec<u64>,
     shift: u32,
+    /// Per distinct span, the number of distinct TRAIN records that hold it (claude-414). Kept
+    /// only by a counted set: counting compares every candidate, found already or not.
+    mult: Option<Vec<AtomicU32>>,
+}
+
+/// The largest TRAIN multiplicity at which a shared span is copied content; from 3 it is
+/// stock wording (claude-414).
+pub const COPIED_MAX: u32 = 2;
+/// The multiplicity buckets of the span classification.
+pub const MULT_BUCKETS: [&str; 5] = ["1", "2", "3-9", "10-99", ">=100"];
+
+fn bucket(m: u32) -> usize {
+    match m {
+        0..=1 => 0,
+        2 => 1,
+        3..=9 => 2,
+        10..=99 => 3,
+        _ => 4,
+    }
+}
+
+/// One shared span of the classification's top list.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TopSpan {
+    /// Distinct DEV-test records that hold the span.
+    pub dev_records: u64,
+    /// Distinct TRAIN records that hold the span.
+    pub train_records: u32,
+    pub copied: bool,
+    pub tokens: Vec<u32>,
 }
 
 impl SpanSet {
     pub fn new(dev: &[Tok], n: usize, bloom_log2: u32) -> Self {
+        Self::build(dev, n, bloom_log2, false)
+    }
+
+    /// A set that also counts, per distinct span, the distinct TRAIN records holding it.
+    pub fn counted(dev: &[Tok], n: usize, bloom_log2: u32) -> Self {
+        Self::build(dev, n, bloom_log2, true)
+    }
+
+    fn build(dev: &[Tok], n: usize, bloom_log2: u32, counted: bool) -> Self {
         let pow = powmod(BASE, n);
         let mut entries: Vec<(u64, u32, u32)> = vec![];
         let mut buf = vec![];
@@ -570,16 +609,22 @@ impl SpanSet {
             bloom[b / 64] |= 1 << (b % 64);
         }
         let hit = (0..uniq.len().div_ceil(64)).map(|_| AtomicU64::new(0)).collect();
-        Self { n, pow, uniq, owners, hit, bloom, shift }
+        let mult = counted.then(|| (0..uniq.len()).map(|_| AtomicU32::new(0)).collect());
+        Self { n, pow, uniq, owners, hit, bloom, shift, mult }
     }
 
     fn is_hit(&self, i: usize) -> bool {
         self.hit[i / 64].load(Ordering::Relaxed) >> (i % 64) & 1 == 1
     }
 
-    /// Mark every distinct DEV span that equals one of `train`'s n-windows.
+    /// Mark every distinct DEV span that equals one of `train`'s n-windows. `train` is one
+    /// whole TRAIN record; a counted set adds one to each distinct span the record holds,
+    /// however often the record repeats it. Adds commute, so the counts do not depend on which
+    /// thread marks which record.
     pub fn mark(&self, dev: &[Tok], train: &[u32], buf: &[u64]) {
         let n = self.n;
+        let counting = self.mult.is_some();
+        let mut held: Vec<u32> = vec![];
         for e in n..=train.len() {
             let h = window(buf, self.pow, e - n, e);
             let b = (mix(&[h, 0, 0]) >> self.shift) as usize;
@@ -589,13 +634,121 @@ impl SpanSet {
             let mut i = self.uniq.partition_point(|u| u.0 < h);
             while self.uniq.get(i).is_some_and(|entry| entry.0 == h) {
                 let (_, r, s) = self.uniq[i];
-                if !self.is_hit(i) && dev[r as usize].tokens[s as usize..s as usize + n] == train[e - n..e] {
+                if (counting || !self.is_hit(i)) && dev[r as usize].tokens[s as usize..s as usize + n] == train[e - n..e] {
                     self.hit[i / 64].fetch_or(1 << (i % 64), Ordering::Relaxed);
+                    if counting {
+                        held.push(i as u32);
+                    }
                     break;
                 }
                 i += 1;
             }
         }
+        if let Some(mult) = &self.mult {
+            // One count per TRAIN record: a span repeated inside the record counts once.
+            held.sort_unstable();
+            held.dedup();
+            for &i in &held {
+                mult[i as usize].fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
+
+    /// The classification of a counted set's shared spans: copied (TRAIN multiplicity at most
+    /// `COPIED_MAX`) or stock; a contaminated record is copied-contaminated when any of its
+    /// shared spans is copied. With the `k` shared spans held by the most DEV records. None for
+    /// a set that does not count.
+    pub fn classify(&self, dev: &[Tok], k: usize) -> Option<(Value, Vec<TopSpan>)> {
+        let mult = self.mult.as_ref()?;
+        let m = |i: usize| mult[i].load(Ordering::Relaxed);
+        let (mut span_hist, mut copied_spans, mut stock_spans, mut most) = ([0u64; 5], 0u64, 0u64, 0u32);
+        for i in 0..self.uniq.len() {
+            let c = m(i);
+            if c == 0 {
+                continue;
+            }
+            span_hist[bucket(c)] += 1;
+            if c <= COPIED_MAX {
+                copied_spans += 1;
+            } else {
+                stock_spans += 1;
+            }
+            most = most.max(c);
+        }
+        // Per span, the distinct DEV records holding it; per record, its least multiplicity
+        // over its shared spans (0: it shares none).
+        let mut pairs = self.owners.clone();
+        pairs.sort_unstable();
+        pairs.dedup();
+        let (records, mut holders) = (dev.len(), vec![0u64; self.uniq.len()]);
+        let mut least = vec![0u32; records];
+        for &(u, r) in &pairs {
+            holders[u as usize] += 1;
+            let c = m(u as usize);
+            let slot = &mut least[r as usize];
+            if c > 0 && (*slot == 0 || c < *slot) {
+                *slot = c;
+            }
+        }
+        let (mut rec_hist, mut contaminated, mut copied) = ([0u64; 5], 0u64, 0u64);
+        for &c in &least {
+            if c > 0 {
+                contaminated += 1;
+                rec_hist[bucket(c)] += 1;
+                copied += (c <= COPIED_MAX) as u64;
+            }
+        }
+        let mut order: Vec<usize> = (0..self.uniq.len()).filter(|&i| m(i) > 0).collect();
+        order.sort_unstable_by(|&a, &b| holders[b].cmp(&holders[a]).then(a.cmp(&b)));
+        order.truncate(k);
+        let top: Vec<TopSpan> = order
+            .iter()
+            .map(|&i| {
+                let (_, r, s) = self.uniq[i];
+                let tokens = dev[r as usize].tokens[s as usize..s as usize + self.n].to_vec();
+                TopSpan { dev_records: holders[i], train_records: m(i), copied: m(i) <= COPIED_MAX, tokens }
+            })
+            .collect();
+        let hist = |h: &[u64; 5]| -> serde_json::Map<String, Value> {
+            MULT_BUCKETS.iter().zip(h).map(|(b, &c)| (b.to_string(), json!(c))).collect()
+        };
+        let top_copied = top.iter().filter(|t| t.copied).count() as u64;
+        let verdict = if contaminated == 0 {
+            "NO-DATA"
+        } else if copied * 10 > contaminated {
+            "SPAN-DEDUP"
+        } else {
+            "SPLIT-V1-STANDS"
+        };
+        let borderline = contaminated > 0 && copied * 100 >= contaminated * 8 && copied * 100 <= contaminated * 12;
+        let v = json!({
+            "unit": "claude-414", "span": self.n,
+            "rule": {
+                "multiplicity": "a shared span's TRAIN multiplicity is the number of distinct TRAIN records holding it; a span repeated inside one TRAIN record counts once",
+                "span_class": format!("copied when the multiplicity is 1..={COPIED_MAX}, stock when it is at least {}", COPIED_MAX + 1),
+                "record_class": "a contaminated dev-test record is copied-contaminated when any of its shared spans is copied, else stock-only",
+                "bar": "copied_contaminated x 10 > contaminated: span dedup; else split v1 stands; a share of 8..=12% is borderline",
+            },
+            "dev_test_records": records,
+            "contaminated": contaminated,
+            "copied_contaminated": copied,
+            "stock_only": contaminated - copied,
+            "copied_share": [copied, contaminated],
+            "copied_share_per_mille": if contaminated == 0 { 0 } else { copied * 1000 / contaminated },
+            "bar": {"verdict": verdict, "borderline": borderline},
+            "shared_spans": copied_spans + stock_spans,
+            "shared_spans_by_class": {"copied": copied_spans, "stock": stock_spans},
+            "most_train_records_of_a_span": most,
+            "span_multiplicity_histogram": hist(&span_hist),
+            "record_least_multiplicity_histogram": hist(&rec_hist),
+            "top": {"k": top.len(), "ranked_by": "distinct dev-test records holding the span, then span order",
+                    "copied": top_copied, "stock": top.len() as u64 - top_copied,
+                    "dev_records": top.iter().map(|t| t.dev_records).collect::<Vec<_>>(),
+                    "train_records": top.iter().map(|t| t.train_records).collect::<Vec<_>>(),
+                    "text": "decoded only to the laptop-side --classify-spans file, never committed"},
+            "ratios": "every pair is an exact integer [numerator, denominator]",
+        });
+        Some((v, top))
     }
 
     /// Per DEV record: does any of its spans occur in TRAIN; and does it have any span.
@@ -751,6 +904,8 @@ pub struct Extras {
     pub templates: Vec<(u64, Vec<u32>)>,
     /// Per span length in `SPANS`, the ids of the contaminated DEV-test records.
     pub contaminated: Vec<Vec<String>>,
+    /// The `GATE_SPAN` classification (claude-414), when asked for: its summary and top spans.
+    pub classify: Option<(Value, Vec<TopSpan>)>,
 }
 
 /// The 13-gram census of a plan; see `audit_full`.
@@ -760,6 +915,16 @@ pub fn audit(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -> Res
 
 /// The census of a plan: DEV grams and DEV-test spans collected, TRAIN streamed against them.
 pub fn audit_full(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -> Result<(Value, Extras), String> {
+    audit_with(plan, coder, threads, bloom_log2, None)
+}
+
+/// `audit_full`, plus the classification of the `GATE_SPAN`-token shared spans by TRAIN
+/// multiplicity, with the `top` spans held by the most DEV-test records (claude-414).
+pub fn audit_classify(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, top: usize) -> Result<(Value, Extras), String> {
+    audit_with(plan, coder, threads, bloom_log2, Some(top))
+}
+
+fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, classify_top: Option<usize>) -> Result<(Value, Extras), String> {
     if !(6..=40).contains(&bloom_log2) {
         return Err(format!("bloom_log2 {bloom_log2} is outside 6..=40"));
     }
@@ -797,7 +962,13 @@ pub fn audit_full(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -
         counts[2].merge(&cs);
         dev_test.extend(tk);
     }
-    let spans: Vec<SpanSet> = SPANS.iter().map(|&n| SpanSet::new(&dev_test, n, bloom_log2)).collect();
+    let spans: Vec<SpanSet> = SPANS
+        .iter()
+        .map(|&n| match classify_top {
+            Some(_) if n == GATE_SPAN => SpanSet::counted(&dev_test, n, bloom_log2),
+            _ => SpanSet::new(&dev_test, n, bloom_log2),
+        })
+        .collect();
     let sets = [GramSet::new(tune), GramSet::new(test)];
     let mut bloom = vec![0u64; 1usize << bloom_log2.saturating_sub(6)];
     let shift = 64 - bloom_log2;
@@ -925,7 +1096,8 @@ pub fn audit_full(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32) -
         },
         "ratios": "every pair is an exact integer [numerator, denominator]",
     });
-    Ok((v, Extras { templates, contaminated }))
+    let classify = classify_top.and_then(|k| spans.iter().find(|s| s.n == GATE_SPAN)?.classify(&dev_test, k));
+    Ok((v, Extras { templates, contaminated, classify }))
 }
 
 #[cfg(test)]
