@@ -28,6 +28,8 @@ struct Args {
     first_only: bool,
     native_replay: bool,
     native_dump: Option<PathBuf>,
+    native_train: Option<u64>,
+    native_picks: Option<PathBuf>,
 }
 
 fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -36,12 +38,22 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
     let mut first_only = false;
     let mut native_replay = false;
     let mut native_dump = None;
+    let mut native_train = None;
+    let mut native_picks = None;
     while let Some(flag) = argv.next() {
         let mut value = || argv.next().ok_or_else(|| format!("{flag} needs a value"));
         match flag.as_str() {
             "--first-only" => first_only = true,
             "--native-replay" => native_replay = true,
             "--native-dump" => native_dump = Some(PathBuf::from(value()?)),
+            "--native-train" => {
+                let v = value()?;
+                let n = v
+                    .parse::<u64>()
+                    .map_err(|e| format!("--native-train {v}: {e}"))?;
+                native_train = Some(n);
+            }
+            "--native-picks" => native_picks = Some(PathBuf::from(value()?)),
             "--checkpoint" => checkpoint = Some(PathBuf::from(value()?)),
             "--run" => run = Some(PathBuf::from(value()?)),
             "--out" => out = Some(PathBuf::from(value()?)),
@@ -62,6 +74,15 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
     if native_dump.is_some() && !native_replay {
         return Err("--native-dump needs --native-replay: it writes the replay's input".to_owned());
     }
+    if native_train.is_some() && native_dump.is_none() {
+        return Err("--native-train needs --native-dump: it only makes the dump".to_owned());
+    }
+    if native_train == Some(0) {
+        return Err("--native-train reads at least one window".to_owned());
+    }
+    if native_picks.is_some() && !first_only {
+        return Err("--native-picks needs --first-only: they are the hard copy's pick".to_owned());
+    }
     let out: PathBuf = out.ok_or("--out is required")?;
     if native_dump.as_ref() == Some(&out) {
         return Err("--native-dump and --out name the same file".to_owned());
@@ -74,6 +95,8 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
         first_only,
         native_replay,
         native_dump,
+        native_train,
+        native_picks,
     })
 }
 
@@ -89,6 +112,8 @@ fn settings(
     first_only: bool,
     native_replay: bool,
     native_dump: Option<PathBuf>,
+    native_train: Option<u64>,
+    native_picks: Option<PathBuf>,
 ) -> Result<PayloadProbeSettings, String> {
     let config = read_json(&run.join("config.json"))?;
     let recall = read_json(&run.join("recall.json"))?;
@@ -115,6 +140,8 @@ fn settings(
         first_only,
         native_replay,
         native_dump,
+        native_train_windows: native_train,
+        native_picks,
     })
 }
 
@@ -145,6 +172,8 @@ fn run() -> Result<(), String> {
         args.first_only,
         args.native_replay,
         args.native_dump,
+        args.native_train,
+        args.native_picks,
     )?;
     let device = candle_core::Device::new_cuda(0).map_err(|e| e.to_string())?;
     let probe =
@@ -247,5 +276,54 @@ mod tests {
             .chain(["--native-replay", "--native-dump", "o"])
             .collect();
         assert!(parse(argv(&same)).err().unwrap().contains("same file"));
+    }
+
+    #[test]
+    fn the_train_replay_needs_the_dump() {
+        let base = [
+            "--checkpoint",
+            "c",
+            "--run",
+            "r",
+            "--out",
+            "o",
+            "--first-only",
+            "--native-replay",
+        ];
+        let alone: Vec<&str> = base.iter().copied().chain(["--native-train", "8"]).collect();
+        assert!(parse(argv(&alone)).err().unwrap().contains("--native-dump"));
+        let both: Vec<&str> = base
+            .iter()
+            .copied()
+            .chain(["--native-dump", "d", "--native-train", "2048"])
+            .collect();
+        assert_eq!(parse(argv(&both)).unwrap().native_train, Some(2048));
+        let zero: Vec<&str> = base
+            .iter()
+            .copied()
+            .chain(["--native-dump", "d", "--native-train", "0"])
+            .collect();
+        assert!(parse(argv(&zero)).is_err());
+        let bad: Vec<&str> = base
+            .iter()
+            .copied()
+            .chain(["--native-dump", "d", "--native-train", "x"])
+            .collect();
+        assert!(parse(argv(&bad)).is_err());
+        assert!(parse(argv(&base)).unwrap().native_train.is_none());
+    }
+
+    #[test]
+    fn the_native_picks_need_the_hard_copy() {
+        let base = ["--checkpoint", "c", "--run", "r", "--out", "o"];
+        let alone: Vec<&str> = base.iter().copied().chain(["--native-picks", "p"]).collect();
+        assert!(parse(argv(&alone)).err().unwrap().contains("--first-only"));
+        let both: Vec<&str> = base
+            .iter()
+            .copied()
+            .chain(["--first-only", "--native-picks", "p"])
+            .collect();
+        assert_eq!(parse(argv(&both)).unwrap().native_picks, Some(PathBuf::from("p")));
+        assert!(parse(argv(&base)).unwrap().native_picks.is_none());
     }
 }

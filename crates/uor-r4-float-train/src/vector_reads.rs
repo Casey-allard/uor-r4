@@ -128,6 +128,7 @@ thread_local! {
     static PROBE: RefCell<Option<Vec<PayloadRow>>> = const { RefCell::new(None) };
     static PAYLOAD_SCALE: Cell<f32> = const { Cell::new(1.0) };
     static FIRST_PICK: Cell<bool> = const { Cell::new(false) };
+    static INJECTED: RefCell<Option<Vec<u32>>> = const { RefCell::new(None) };
     static REPLAY: RefCell<Option<Vec<ReplayCapture>>> = const { RefCell::new(None) };
 }
 
@@ -236,6 +237,25 @@ pub fn with_first_pick_payload<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
         }
     }
     let _restore = Restore(FIRST_PICK.with(|cell| cell.replace(true)));
+    f()
+}
+
+/// claude-395: run `f` with Flock's first kept pick replaced by `picks`, one per forward row in
+/// row order: a window-local position + 1, 0 for none, the native Q31 read's convention. The
+/// hard copy then adds `w ⊙` that pick's next-token point, so the decode reads the native read's
+/// choice through the float trunk (diagnostic code, D85). Eval only; it needs the hard copy
+/// ([`with_first_pick_payload`]) around the forward, and the forward refuses a count other than
+/// its rows or a pick that is not an earlier position. The previous setting is restored on
+/// return.
+pub fn with_injected_first_picks<T>(picks: Vec<u32>, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    struct Restore(Option<Vec<u32>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let previous = self.0.take();
+            INJECTED.with(|cell| *cell.borrow_mut() = previous);
+        }
+    }
+    let _restore = Restore(INJECTED.with(|cell| cell.borrow_mut().replace(picks)));
     f()
 }
 
@@ -822,6 +842,34 @@ impl VectorRead {
                 let kept = neighbours.min(time - 1).max(1);
                 let ranked = latest_best(&score.detach(), &earlier, &columns, kept)?;
                 let ranked = Tensor::stack(&ranked, 2)?.reshape((rows, kept))?;
+                // claude-395: the native read's picks replace the first column (eval only).
+                let ranked = match INJECTED.with(|cell| cell.borrow().clone()) {
+                    None => ranked,
+                    Some(picks) => {
+                        if !FIRST_PICK.with(Cell::get) {
+                            return Err(invalid("injected first picks need the hard copy"));
+                        }
+                        if picks.len() != rows {
+                            return Err(invalid(format!(
+                                "{} injected picks for {rows} rows",
+                                picks.len()
+                            )));
+                        }
+                        if let Some(r) = (0..rows).find(|&r| picks[r] as usize > r % time) {
+                            return Err(invalid(format!(
+                                "injected pick {} at row {r} is not an earlier position",
+                                picks[r]
+                            )));
+                        }
+                        let first: Vec<f32> = picks.iter().map(|&p| p as f32).collect();
+                        let first = Tensor::from_vec(first, (rows, 1), device)?;
+                        if kept == 1 {
+                            first
+                        } else {
+                            Tensor::cat(&[&first, &ranked.narrow(1, 1, kept - 1)?], 1)?
+                        }
+                    }
+                };
                 let real = ranked.gt(0.5)?;
                 // A pick that is not real points at its window's first position, so its next
                 // token stays inside the window; it carries weight 0.
@@ -1696,6 +1744,15 @@ mod tests {
         let failed: Result<()> = with_first_pick_payload(|| Err(invalid("inside")));
         assert!(failed.is_err());
         assert!(!FIRST_PICK.with(Cell::get));
+        // claude-395: injected picks are set only inside, and cleared again after an error inside.
+        let injected = || INJECTED.with(|cell| cell.borrow().clone());
+        assert!(injected().is_none());
+        let inside = with_injected_first_picks(vec![0, 1], || Ok(injected())).unwrap();
+        assert_eq!(inside, Some(vec![0, 1]));
+        assert!(injected().is_none());
+        let failed: Result<()> = with_injected_first_picks(vec![0], || Err(invalid("inside")));
+        assert!(failed.is_err());
+        assert!(injected().is_none());
     }
 
     /// A small deterministic generator for the device tests below, in [-1, 1).
@@ -2558,6 +2615,42 @@ mod tests {
                 }
                 assert!(differs > 0, "the fixture has a row whose picks' mean is not the first");
             }
+            Ok(())
+        }
+
+        /// claude-395: under the hard copy with injected picks, Flock adds `w ⊙` the table row
+        /// of each injected pick's next token, and nothing at a pick of 0; a pick that is not
+        /// an earlier position, a count other than the rows, or no hard copy is refused.
+        #[test]
+        fn injected_first_picks_choose_the_added_row() -> Result<()> {
+            let f = fixture(VectorReadKind::Flock { neighbours: 2 }, DEFAULT_MARGIN, 395)?;
+            let forward = || f.read.apply(&f.x, &IDS, &f.table);
+            let picks: Vec<u32> = vec![0, 1, 1, 2, 1, 3];
+            let copy = with_first_pick_payload(|| {
+                with_injected_first_picks(picks.clone(), forward)
+            })?;
+            let (x, out, table) = (host(&f.x)?, host(&copy)?, host(&f.table)?);
+            let w = host(f.read.weight.as_tensor())?;
+            let mut read_rows = 0;
+            for (r, &p) in picks.iter().enumerate() {
+                let next = (p > 0).then(|| IDS[p as usize] as usize);
+                read_rows += usize::from(next.is_some());
+                for c in 0..W {
+                    let i = r * W + c;
+                    let added = next.map_or(0.0, |t| w[c] * table[t * W + c]);
+                    let got = out[i] - x[i];
+                    assert!((got - added).abs() < 1e-5, "row {r} [{c}]: {got} vs {added}");
+                }
+            }
+            assert_eq!(read_rows, 5);
+            let later = with_first_pick_payload(|| {
+                with_injected_first_picks(vec![0, 1, 3, 2, 1, 3], forward)
+            });
+            assert!(later.is_err(), "a pick at or after its row is refused");
+            let short = with_first_pick_payload(|| with_injected_first_picks(vec![0, 1], forward));
+            assert!(short.is_err(), "a count other than the rows is refused");
+            let soft = with_injected_first_picks(picks.clone(), forward);
+            assert!(soft.is_err(), "injected picks need the hard copy");
             Ok(())
         }
     }
