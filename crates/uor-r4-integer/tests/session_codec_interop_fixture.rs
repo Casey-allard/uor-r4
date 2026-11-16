@@ -43,6 +43,7 @@ fn sample() -> SerializedStackSession {
         copy_scale_q16: 65_536,
         logits: vec![-3, 0, 65_536, i32::MIN, i32::MAX],
         tokens: vec![0, 5, 77, 4095],
+        hamming_payloads: Vec::new(),
         snap_trace: Some(vec![0, 119]),
         pointer_keys: vec![1, -2, 3],
         pointer_lifts: vec![u64::MAX, 0, 1 << 62],

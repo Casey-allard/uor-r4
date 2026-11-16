@@ -101,7 +101,9 @@ fn a_type_head_session_saves_and_restores_through_a_file_at_production_shape() {
         std::process::id(),
         line!()
     ));
-    original.save_session_to_file(&path).expect("save the session file");
+    original
+        .save_session_to_file(&path)
+        .expect("save the session file");
     let size = std::fs::metadata(&path).expect("metadata").len();
     assert!(size > 1_000_000, "the payloads make the file large: {size}");
 
@@ -119,4 +121,46 @@ fn a_type_head_session_saves_and_restores_through_a_file_at_production_shape() {
         );
     }
     std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn a_type_head_session_round_trips_through_the_compact_codec() {
+    let shape = FbsSynth {
+        context: 32,
+        ..FBS_SYNTH_SMALL
+    };
+    let mut snap = synthetic_fbs_trunk_with(20_261_620, shape);
+    snap.hamming = Some(synthetic_hamming(
+        snap.width,
+        snap.layers.len(),
+        4,
+        20_261_621,
+    ));
+    let bytes = export_fbs_trunk_uorlut01(&snap).expect("export a type-head trunk");
+    let ids: Vec<u32> = (0..8).map(|step| (step * 13 + 5) % 64).collect();
+
+    let model = IntegerStackModel::parse(&bytes).expect("parse");
+    let mut original = model.session();
+    for &id in &ids[..4] {
+        original.step_native(id).expect("prefix step");
+    }
+    let saved = original.save_state();
+
+    let encoded = uor_r4_integer::session_codec::encode(&saved);
+    let decoded = uor_r4_integer::session_codec::decode(&encoded).expect("decode the codec");
+    assert_eq!(decoded, saved, "the compact codec changed the snapshot");
+
+    let restored_model = IntegerStackModel::parse(&bytes).expect("parse again");
+    let mut restored = restored_model.session();
+    restored
+        .restore_state(&decoded)
+        .expect("a type-head session restores through the compact codec");
+    for (step, &id) in ids[4..].iter().enumerate() {
+        assert_eq!(
+            original.step_native(id).expect("continued step"),
+            restored.step_native(id).expect("restored step"),
+            "step {}",
+            step + 4
+        );
+    }
 }

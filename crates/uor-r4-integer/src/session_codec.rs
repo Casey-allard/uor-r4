@@ -26,6 +26,8 @@
 //! pointer_lifts    v64 len + u64 each
 //! mixture          v64 len + i32 each
 //! content hash     u32 len + bytes (v2 only)
+//! v3 only:         u8 has-content, content hash if set, v64 payload count,
+//!                  per payload v64 len + i64 each
 //! layers           v64 count, then per layer:
 //!   kind           u8 (0 recurrence, 1 read)
 //!   recurrence:    state v64 len + i64 each; history v64 len + i32 each
@@ -44,6 +46,10 @@ use crate::stack::{SerializedStackLayerState, SerializedStackSession};
 
 const MAGIC: &[u8; 8] = b"UR4SESS1";
 const MAGIC_CONTENT: &[u8; 8] = b"UR4SESS2";
+/// A session that carries a type-head read's per-position payloads (and, when
+/// present, the content-readout hash): a flags byte, then the optional hash,
+/// then one `i64` vector per read.
+const MAGIC_PAYLOADS: &[u8; 8] = b"UR4SESS3";
 
 fn put_u32(out: &mut Vec<u8>, v: u32) {
     out.extend_from_slice(&v.to_le_bytes());
@@ -101,7 +107,10 @@ fn put_u64s(out: &mut Vec<u8>, xs: &[u64]) {
 /// segment (the snapshot is small — the read caches dominate).
 pub fn encode(state: &SerializedStackSession) -> Vec<u8> {
     let mut out = Vec::new();
-    out.extend_from_slice(if state.content_readout_sha256.is_some() {
+    let payloads = !state.hamming_payloads.is_empty();
+    out.extend_from_slice(if payloads {
+        MAGIC_PAYLOADS
+    } else if state.content_readout_sha256.is_some() {
         MAGIC_CONTENT
     } else {
         MAGIC
@@ -125,7 +134,16 @@ pub fn encode(state: &SerializedStackSession) -> Vec<u8> {
     put_i32s(&mut out, &state.pointer_keys);
     put_u64s(&mut out, &state.pointer_lifts);
     put_i32s(&mut out, &state.mixture);
-    if let Some(sha256) = &state.content_readout_sha256 {
+    if payloads {
+        out.push(u8::from(state.content_readout_sha256.is_some()));
+        if let Some(sha256) = &state.content_readout_sha256 {
+            put_str(&mut out, sha256);
+        }
+        put_v64(&mut out, state.hamming_payloads.len() as u64);
+        for payload in &state.hamming_payloads {
+            put_i64s(&mut out, payload);
+        }
+    } else if let Some(sha256) = &state.content_readout_sha256 {
         put_str(&mut out, sha256);
     }
     put_v64(&mut out, state.layers.len() as u64);
@@ -260,7 +278,7 @@ impl<'a> Reader<'a> {
 pub fn decode(bytes: &[u8]) -> Result<SerializedStackSession, String> {
     let mut r = Reader { buf: bytes, at: 0 };
     let magic = r.take(8)?;
-    if magic != MAGIC && magic != MAGIC_CONTENT {
+    if magic != MAGIC && magic != MAGIC_CONTENT && magic != MAGIC_PAYLOADS {
         return Err("session codec: bad magic".to_string());
     }
     let schema = r.string()?;
@@ -280,10 +298,23 @@ pub fn decode(bytes: &[u8]) -> Result<SerializedStackSession, String> {
     let pointer_keys = r.i32s()?;
     let pointer_lifts = r.u64s()?;
     let mixture = r.i32s()?;
-    let content_readout_sha256 = if magic == MAGIC_CONTENT {
-        Some(r.string()?)
+    let (content_readout_sha256, hamming_payloads) = if magic == MAGIC_PAYLOADS {
+        let has_content = match r.u8()? {
+            0 => false,
+            1 => true,
+            other => return Err(format!("session codec: bad content tag {other}")),
+        };
+        let content = if has_content { Some(r.string()?) } else { None };
+        let count = r.checked_count(0)?;
+        let mut payloads = Vec::with_capacity(count);
+        for _ in 0..count {
+            payloads.push(r.i64s()?);
+        }
+        (content, payloads)
+    } else if magic == MAGIC_CONTENT {
+        (Some(r.string()?), Vec::new())
     } else {
-        None
+        (None, Vec::new())
     };
     let layer_count = r.checked_count(0)?;
     let mut layers = Vec::with_capacity(layer_count);
@@ -320,10 +351,7 @@ pub fn decode(bytes: &[u8]) -> Result<SerializedStackSession, String> {
         copy_scale_q16,
         logits,
         tokens,
-        // The compact codec does not carry a type-head read's per-position payloads: `encode`
-        // drops them (it is infallible by signature), a decoded session has none, and `restore`
-        // refuses a type-head model without them.
-        hamming_payloads: Vec::new(),
+        hamming_payloads,
         snap_trace,
         pointer_keys,
         pointer_lifts,
@@ -500,6 +528,33 @@ mod tests {
         let bytes = encode(&s);
         let back = decode(&bytes).expect("decode");
         assert_eq!(s, back);
+    }
+
+    #[test]
+    fn type_head_payloads_round_trip_in_version_3() {
+        let mut s = sample();
+        s.hamming_payloads = vec![vec![1, -2, i64::MIN], vec![], vec![i64::MAX]];
+        let bytes = encode(&s);
+        assert_eq!(&bytes[..8], MAGIC_PAYLOADS);
+        assert_eq!(decode(&bytes).expect("decode"), s);
+    }
+
+    #[test]
+    fn payloads_and_content_share_the_version_3_magic() {
+        let mut s = sample();
+        s.content_readout_sha256 = Some("cd".repeat(32));
+        s.hamming_payloads = vec![vec![7, 8], vec![9]];
+        let bytes = encode(&s);
+        assert_eq!(&bytes[..8], MAGIC_PAYLOADS);
+        assert_eq!(decode(&bytes).expect("decode"), s);
+    }
+
+    #[test]
+    fn a_session_without_payloads_keeps_its_old_magic() {
+        assert_eq!(&encode(&sample())[..8], MAGIC);
+        let mut content = sample();
+        content.content_readout_sha256 = Some("cd".repeat(32));
+        assert_eq!(&encode(&content)[..8], MAGIC_CONTENT);
     }
 
     #[test]
