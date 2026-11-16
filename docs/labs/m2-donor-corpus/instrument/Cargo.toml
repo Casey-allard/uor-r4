@@ -1,0 +1,27 @@
+[package]
+name = "m2-donor-corpus"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose. This is the client
+# for D87's production donor pass (claude-400). It builds the prompt bank from
+# licensed prompt sources, sends prompts over HTTP to an external inference engine
+# (vLLM on a rented pod), keeps only the teacher's reasoning and answer texts, and
+# seals and verifies the corpus. It holds no model code, so nothing banned by
+# CHARTER §3.2-§3.4 is compiled here.
+[workspace]
+
+[lib]
+name = "m2_donor_corpus"
+path = "src/lib.rs"
+
+[[bin]]
+name = "donor-corpus"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10.8"
+ureq = { version = "3", default-features = false, features = ["json", "rustls"] }
+parquet = { version = "60", default-features = false, features = ["snap", "zstd"] }
