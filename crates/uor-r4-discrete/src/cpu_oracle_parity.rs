@@ -58,16 +58,20 @@ fn windows(samples: &[CpuDiscreteProposalSample]) -> Vec<Vec<Identity>> {
 /// Route models start with zero gates. Flock models start `active_leaf_v1`:
 /// the CPU Flock oracle refuses CUDA's default Flock initialization (zero gates).
 fn device(read: ReadSpec) -> Device {
+    device_with(SPEC, read, SEED)
+}
+
+fn device_with(spec: Spec, read: ReadSpec, seed: u32) -> Device {
     let init = match read {
         ReadSpec::Route => ReadInitialization::ZeroGatesV1,
         _ => ReadInitialization::ActiveLeafV1,
     };
     Device::new_with_initialization(
-        SPEC,
+        spec,
         read,
         ObjectivePolicy::NearestAddressMarginV1,
         init,
-        SEED,
+        seed,
         0,
     )
     .expect("device")
@@ -185,11 +189,29 @@ fn compare_proposals(
     swap_lane: bool,
     r: &mut Reading,
 ) -> Option<(Parameter, CpuDiscreteProposalKind, usize)> {
+    let listed = parameters(device, read);
+    compare_proposals_over(
+        device, &listed, scorer, chooser, rows, cpu_rows, swap_lane, r,
+    )
+}
+
+/// `compare_proposals` over a parameter list fixed by the caller.
+#[allow(clippy::too_many_arguments)]
+fn compare_proposals_over(
+    device: &Device,
+    listed: &[(Parameter, CpuDiscreteProposalKind, usize)],
+    scorer: &CpuDiscreteProposalScorer,
+    chooser: &CpuDiscreteProposalChooser,
+    rows: &[CpuDiscreteProposalSample],
+    cpu_rows: &[CpuDiscreteProposalSample],
+    swap_lane: bool,
+    r: &mut Reading,
+) -> Option<(Parameter, CpuDiscreteProposalKind, usize)> {
     let batch = device.carry_windows(&windows(rows)).expect("carry");
     let targets: Vec<u32> = rows.iter().map(|s| s.target).collect();
     let epoch = device.epoch().expect("epoch");
     let mut first_commit = None;
-    for (parameter, kind, index) in parameters(device, read) {
+    for &(parameter, kind, index) in listed {
         // A parameter CUDA refuses must be one the CPU scorer refuses too.
         let proposal = match device.propose(&batch, &targets, parameter) {
             Ok(proposal) => proposal,
@@ -550,4 +572,254 @@ fn cuda_parity_catches_one_planted_fault_per_step() {
     let mut r = Reading::default();
     compare_bytes("bytes", &after_gpu, &resaved, &mut r);
     assert!(r.mismatches.is_empty(), "{:?}", r.mismatches);
+}
+
+// ---------------------------------------------------------------------------
+// claude-404: the same contract at the M1 driver's size, on a real batch of
+// the D87 student stream (claude-403's `student-ingest` output), for two
+// committed steps. `#[ignore]`: it needs a GPU and `UOR_STUDENT_STREAM`, the
+// folder holding `tokens.u16` and `response_mask.u8`.
+
+const STUDENT_SPEC: Spec = Spec {
+    vocabulary: 4096,
+    blocks: 4,
+    context: 192,
+    kept_cells: 8,
+};
+const STUDENT_SEED: u32 = 1;
+const STUDENT_ROWS: u32 = 64;
+const STUDENT_READS: [ReadSpec; 2] = [ReadSpec::Route, ReadSpec::Flock { kept: 8 }];
+/// Parameters per progress line.
+const STUDENT_PROGRESS: usize = 16;
+/// Routes and gates per read listed in the student parity (index below this).
+/// One baseline proposal on this batch takes about 4.8 s on the 4090
+/// (claude-406), so the list stays small.
+const STUDENT_READ_PARAMETERS: usize = 16;
+/// The batch's first distinct target tokens whose vector blocks are listed.
+const STUDENT_TARGET_TOKENS: usize = 8;
+
+struct StudentBatch {
+    rows: Vec<CpuDiscreteProposalSample>,
+    /// The corpus windows with their real identities (absolute positions,
+    /// document records), as the driver would carry them.
+    corpus_windows: Vec<Vec<Identity>>,
+    pins: String,
+}
+
+/// One 64-row batch from the middle of the stream's eligible targets, through
+/// the driver's own `PreparedCorpus` admission (UORT header, binary mask, BOS).
+fn student_batch() -> StudentBatch {
+    use crate::corpus::{sha256, BosIdentity, CorpusSource, FilePin, PreparedCorpus, Split};
+    let dir = std::path::PathBuf::from(
+        std::env::var("UOR_STUDENT_STREAM")
+            .expect("UOR_STUDENT_STREAM must name a student-ingest output folder"),
+    );
+    let read = |name: &str| {
+        let path = dir.join(name);
+        let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let pin = FilePin {
+            sha256: sha256(&bytes),
+            path,
+        };
+        (pin, bytes)
+    };
+    let (tokens, token_bytes) = read("tokens.u16");
+    let (mask, mask_bytes) = read("response_mask.u8");
+    let payload = (token_bytes.len() as u64 - 64) / 2;
+    // The admission recounts these and refuses the stream if they differ.
+    let eligible = token_bytes[64..]
+        .chunks_exact(2)
+        .zip(&mask_bytes)
+        .enumerate()
+        .filter(|(p, (w, m))| *p > 0 && u16::from_le_bytes([w[0], w[1]]) != 0 && **m == 1)
+        .count() as u64;
+    let pins = format!(
+        "tokens.u16 sha256 {} ({payload} tokens), response_mask.u8 sha256 {}, {eligible} eligible targets",
+        tokens.sha256, mask.sha256
+    );
+    let source = CorpusSource {
+        split: Split::Train,
+        tokens,
+        mask,
+        expected_payload_tokens: payload,
+        expected_eligible_targets: eligible,
+    };
+    let bos = BosIdentity {
+        token: "<|bos|>".into(),
+        id: 0,
+    };
+    let corpus = PreparedCorpus::from_bytes(
+        source,
+        &token_bytes,
+        &mask_bytes,
+        STUDENT_SPEC.vocabulary,
+        bos,
+    )
+    .expect("the student stream passes the driver's corpus admission");
+    let first = corpus.eligible_len() as u64 / 2;
+    let batch = corpus
+        .batch(first, STUDENT_SPEC.context, STUDENT_ROWS)
+        .expect("student batch");
+    let rows = batch
+        .windows
+        .iter()
+        .zip(&batch.targets)
+        .map(|(w, &target)| CpuDiscreteProposalSample {
+            prefix: w.iter().map(|i| i.token).collect(),
+            target,
+        })
+        .collect();
+    StudentBatch {
+        rows,
+        corpus_windows: batch.windows,
+        pins: format!("{pins}, batch from eligible target {first}"),
+    }
+}
+
+/// Routes and gates 0..16, and the vector blocks of the batch's first eight
+/// distinct target tokens (by id). Fixed before any scoring; never chosen by loss.
+fn student_parameters(
+    device: &Device,
+    read: ReadSpec,
+    rows: &[CpuDiscreteProposalSample],
+) -> Vec<(Parameter, CpuDiscreteProposalKind, usize)> {
+    let blocks = STUDENT_SPEC.blocks as usize;
+    let targets: std::collections::BTreeSet<usize> = rows
+        .iter()
+        .map(|s| s.target as usize)
+        .collect::<std::collections::BTreeSet<usize>>()
+        .into_iter()
+        .take(STUDENT_TARGET_TOKENS)
+        .collect();
+    parameters(device, read)
+        .into_iter()
+        .filter(|(parameter, _, index)| match parameter {
+            Parameter::VectorBlock(_) => targets.contains(&(index / blocks)),
+            // Bounded: the full route and gate inventory one 16-thread launch
+            // at a time ran past 40 minutes on the 4090 (c404-run1).
+            _ => *index < STUDENT_READ_PARAMETERS,
+        })
+        .collect()
+}
+
+#[test]
+#[ignore = "needs a GPU and UOR_STUDENT_STREAM (claude-404)"]
+fn student_stream_two_steps_agree_at_corpus_scale() {
+    use std::time::Instant;
+    let student = student_batch();
+    let rows = &student.rows;
+    let targets: Vec<u32> = rows.iter().map(|s| s.target).collect();
+    let window_tokens: usize = rows.iter().map(|s| s.prefix.len()).sum();
+    eprintln!(
+        "student batch: {}; {} rows, {window_tokens} window tokens",
+        student.pins,
+        rows.len()
+    );
+    assert_eq!(rows.len(), STUDENT_ROWS as usize);
+
+    for read in STUDENT_READS {
+        let mut gpu = device_with(STUDENT_SPEC, read, STUDENT_SEED);
+
+        // The CPU oracle sees tokens only. The CUDA read must not depend on
+        // the identity fields it does not see.
+        let real = gpu.carry_windows(&student.corpus_windows).expect("carry");
+        let real = gpu.forward(&real, &targets).expect("forward");
+        let synthetic = gpu.carry_windows(&windows(rows)).expect("carry");
+        let synthetic = gpu.forward(&synthetic, &targets).expect("forward");
+        assert_eq!(
+            real.vectors().expect("vectors"),
+            synthetic.vectors().expect("vectors"),
+            "{read:?}: the CUDA read depends on identity fields the CPU oracle does not see"
+        );
+
+        for step in 1..=2u32 {
+            let bytes = bytes_of(&gpu);
+            let scorer = CpuDiscreteProposalScorer::from_bytes(&bytes).expect("cpu scorer");
+            let chooser = CpuDiscreteProposalChooser::from_bytes(&bytes).expect("cpu chooser");
+            let listed = student_parameters(&gpu, read, rows);
+
+            // CUDA-only diagnostic time; not a speed claim (claude-406 times
+            // the proposals).
+            let clock = Instant::now();
+            let carried = gpu.carry_windows(&windows(rows)).expect("carry");
+            let _ = gpu.forward(&carried, &targets).expect("forward");
+            let forward_us = clock.elapsed().as_micros();
+
+            eprintln!(
+                "{read:?} step {step}: {} parameters listed; cuda carry+forward {forward_us} us",
+                listed.len()
+            );
+            let mut r = Reading::default();
+            let clock = Instant::now();
+            compare_forward(&gpu, &scorer, rows, &mut r);
+            // In chunks, so a long CPU-oracle pass shows its progress.
+            let mut pick = None;
+            for (chunk, part) in listed.chunks(STUDENT_PROGRESS).enumerate() {
+                let first = compare_proposals_over(
+                    &gpu, part, &scorer, &chooser, rows, rows, false, &mut r,
+                );
+                pick = pick.or(first);
+                eprintln!(
+                    "  {read:?} step {step}: {} of {} parameters compared, {} mismatches, {} s",
+                    (chunk * STUDENT_PROGRESS + part.len()),
+                    listed.len(),
+                    r.mismatches.len(),
+                    clock.elapsed().as_secs()
+                );
+            }
+            match pick {
+                Some(pick) => compare_apply(&mut gpu, &bytes, pick, rows, &mut r),
+                None => r
+                    .mismatches
+                    .push("apply no listed parameter's cuda proposal commits".to_string()),
+            }
+            let compare_us = clock.elapsed().as_micros();
+            eprintln!(
+                "{read:?} step {step}: {} parameters, pick {pick:?}, epoch after {}; {} forward words, {} loss words, {} choices, {} refusals both sides, {} snapshot-sha-only, {} mismatches; cuda carry+forward {forward_us} us, full comparison {compare_us} us",
+                listed.len(),
+                gpu.epoch().expect("epoch"),
+                r.forward_words,
+                r.loss_words,
+                r.choices,
+                r.refusals,
+                r.snapshot_sha_only,
+                r.mismatches.len()
+            );
+            for line in r.notes.iter().chain(&r.mismatches) {
+                eprintln!("  {line}");
+            }
+            assert!(r.forward_words > 0 && r.loss_words > 0 && r.choices > 0);
+            assert!(
+                r.mismatches.is_empty(),
+                "{read:?} step {step}: {:?}",
+                r.mismatches
+            );
+            assert_eq!(
+                gpu.epoch().expect("epoch"),
+                u64::from(step),
+                "{read:?}: step {step} did not commit"
+            );
+        }
+    }
+
+    // Not vacuous at this size: one target moved on the CPU side only is
+    // reported at the losses step and at no other.
+    let read = ReadSpec::Route;
+    let gpu = device_with(STUDENT_SPEC, read, STUDENT_SEED);
+    let bytes = bytes_of(&gpu);
+    let scorer = CpuDiscreteProposalScorer::from_bytes(&bytes).unwrap();
+    let chooser = CpuDiscreteProposalChooser::from_bytes(&bytes).unwrap();
+    let listed = student_parameters(&gpu, read, rows);
+    let mut shifted = rows.clone();
+    shifted[0].target = (shifted[0].target + 1) % STUDENT_SPEC.vocabulary;
+    let mut r = Reading::default();
+    compare_proposals_over(
+        &gpu, &listed, &scorer, &chooser, rows, &shifted, false, &mut r,
+    );
+    eprintln!(
+        "planted target shift: {} loss mismatches of {} parameters",
+        r.mismatches.len(),
+        listed.len()
+    );
+    assert_eq!(r.steps(), vec!["losses"], "{:?}", r.mismatches);
 }
