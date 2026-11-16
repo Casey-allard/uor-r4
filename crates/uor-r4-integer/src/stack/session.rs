@@ -1134,6 +1134,16 @@ impl IntegerStackModel {
         Ok(())
     }
 
+    /// Whether this model's reads ignore token positions, so a full context may drop its oldest
+    /// token: no Hamming read (and therefore no place read) and no turn memory. The recurrence and
+    /// the native Q31 state carry the history; the token vector is only a read's window.
+    pub fn can_slide_tokens(&self) -> bool {
+        self.fbs
+            .as_ref()
+            .is_some_and(|fbs| fbs.hamming.is_none())
+            && self.memory.is_none()
+    }
+
     /// The attached native Q31 model handle, if any.
     pub fn native_q31_state(&self) -> Option<Q31ServingSession> {
         self.native_q31
@@ -1720,6 +1730,7 @@ impl IntegerStackModel {
                 .and_then(|f| f.hamming.as_ref())
                 .map_or(Vec::new(), |hamming| hamming.indexes()),
             hamming_index_on: true,
+            context_slide: false,
             hamming_payloads: self
                 .fbs
                 .as_ref()
@@ -2197,6 +2208,8 @@ pub struct IntegerStackSession<'m> {
     hamming_index: Vec<HammingIndex>,
     /// Whether reads use `hamming_index` (a switch for the on/off equality test).
     hamming_index_on: bool,
+    /// Whether a full context drops its oldest token instead of refusing (read-free models only).
+    context_slide: bool,
     /// The place read's register and the turns it has read (claude-351); idle without a place
     /// read.
     place: PlaceState,
@@ -2329,6 +2342,20 @@ impl IntegerStackSession<'_> {
     /// The read's steps recorded since the trace was turned on; `None` while it is off.
     pub fn q31_read_trace(&self) -> Option<&[Q31ReadStep]> {
         self.q31_read_trace.as_deref()
+    }
+
+    /// Let a full context drop its oldest token and continue, instead of refusing at
+    /// [`StackError::ContextFull`]. Refused unless [`IntegerStackModel::can_slide_tokens`]: a read
+    /// that names token positions would see a different window. Dropping the oldest token is
+    /// `O(context)` with the session's token vector; the cost is paid at the bound, not per step.
+    pub fn set_context_slide(&mut self, on: bool) -> Result<(), StackError> {
+        if on && !self.model.can_slide_tokens() {
+            return Err(StackError::Shape(
+                "a context slide needs a model whose reads do not use token positions",
+            ));
+        }
+        self.context_slide = on;
+        Ok(())
     }
 
     /// Select the Hamming read from its per-head index (the default) or scan every earlier
@@ -4049,12 +4076,15 @@ fn stack_step_fbs(
             vocab: s.vocab,
         });
     }
-    if session.position >= s.context {
+    if session.position >= s.context && !session.context_slide {
         return Err(StackError::ContextFull { context: s.context });
     }
     native_q31_step_preflight(model, &session.states, session.b.snap_trace.is_some())?;
     q31_read_refused_preflight(session.q31_read_refused)?;
     // The Hamming read at this row needs `x_0..=x_t`.
+    if session.position >= s.context && session.tokens.len() >= s.context {
+        session.tokens.remove(0);
+    }
     session.tokens.push(token);
     let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
@@ -4386,11 +4416,14 @@ fn stack_step_fbs_timed(
             vocab: s.vocab,
         });
     }
-    if session.position >= s.context {
+    if session.position >= s.context && !session.context_slide {
         return Err(StackError::ContextFull { context: s.context });
     }
     native_q31_step_preflight(model, &session.states, session.b.snap_trace.is_some())?;
     q31_read_refused_preflight(session.q31_read_refused)?;
+    if session.position >= s.context && session.tokens.len() >= s.context {
+        session.tokens.remove(0);
+    }
     session.tokens.push(token);
     let opening = session.at_reply_opening();
     // The place read's register moves on this token, before the row's readout (claude-351).
