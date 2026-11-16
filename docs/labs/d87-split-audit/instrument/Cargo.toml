@@ -1,0 +1,32 @@
+[package]
+name = "d87-split-audit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose (claude-411). This instrument
+# reads D87 donor-corpus shards read-only, splits them by prompt into TRAIN / DEV-tune /
+# DEV-test, removes duplicates, writes manifests, and counts exact 13-gram TRAIN/DEV overlap
+# on the native token stream (tokenized by claude-403's student-ingest library). It holds no
+# model code: no training, no read, no GPU. Nothing banned by CHARTER §3.2-§3.4 is compiled.
+[workspace]
+
+[lib]
+name = "d87_split_audit"
+path = "src/lib.rs"
+
+[[bin]]
+name = "d87-split"
+path = "src/bin/d87-split.rs"
+
+[[bin]]
+name = "d87-audit"
+path = "src/bin/d87-audit.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10.8"
+m2-student-corpus-ingest = { path = "../../m2-student-corpus-ingest/instrument" }
+
+[dev-dependencies]
+zstd = "0.14"

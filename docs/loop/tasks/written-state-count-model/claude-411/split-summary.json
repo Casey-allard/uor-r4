@@ -1,0 +1,1421 @@
+{
+  "config": {
+    "bucket_modulus": 200,
+    "dev_test": [
+      1,
+      100
+    ],
+    "dev_tune": [
+      1,
+      200
+    ],
+    "key": "claude-411/d87-split/v1",
+    "near_floor": 32
+  },
+  "dropped": {
+    "exact": 0,
+    "id": 0,
+    "near": 1044
+  },
+  "inputs": [
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00000.jsonl.zst",
+      "sha256": "4b662b70c6b5c4885073bf0e5150e1c3b17347ddbc05e21603421663900642ee"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00001.jsonl.zst",
+      "sha256": "b0cb536f3dc2e9d38af0dde44fb0e69c45feddcd9e6ee9df83b6ea03e00378f8"
+    },
+    {
+      "lines": 1642,
+      "path": "/workspace/in/d87/api-a/shard-00002.jsonl.zst",
+      "sha256": "a3d91e957278057d170fced390e9416e870aafd70ce4ea24723c976618b4ae58"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00003.jsonl.zst",
+      "sha256": "f2ecdbf74673553aff76aee522cc599fddc93f73f1324c26cb489a6f234a16d0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00004.jsonl.zst",
+      "sha256": "802329f72d9cb46d81ddb74b01dc96697cee61dac1db1322710bd522683b0686"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00005.jsonl.zst",
+      "sha256": "fc54838e2b3f9e00fffc336364fa717358905836e00dfd2c7bc49f161dc44008"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00006.jsonl.zst",
+      "sha256": "6151954a3de73387165419541574f83bf85975c2388c3dc1fa2ea08fd5f80414"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00007.jsonl.zst",
+      "sha256": "a134c0515356354ac570b2b9bc6c1a675efcde016e3444cc67dd70504ee63643"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00008.jsonl.zst",
+      "sha256": "8419be1c4c95dd56176ac863a519115125ac8533689fb8f355dd0f7ce22f4dee"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00009.jsonl.zst",
+      "sha256": "1f5d5fa8a3c813625fdc2686660ad2a457c9de2907d15ee78da93b549e74b909"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00010.jsonl.zst",
+      "sha256": "60a06081c80eab50c770cda29f98a32313d53e4b9e97e47a14bf42753aa239ec"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00011.jsonl.zst",
+      "sha256": "2fdf635a87b4a20a49f33ad2b678fc219c460f435312f5d4de8dfe1fa30868c8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00012.jsonl.zst",
+      "sha256": "ab3412855a8318b053421d6b444b32ad5c84c4bc2874149302689074b395ae17"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00013.jsonl.zst",
+      "sha256": "17b4455d92770c444a500c29bef9136940f4a4b62264da66db54b81c8a9bbb30"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00014.jsonl.zst",
+      "sha256": "4988eddb531a780054d29f2c2f662319bb91d4aff6c06d99cd839ee2f93f594c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00015.jsonl.zst",
+      "sha256": "6a7d1ab8cde0700d2bff19ebc9e11ff3fbbb5bbb50e59ef65772b8f29a204fff"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00016.jsonl.zst",
+      "sha256": "c021726f2047750e0f128d7407ab8b9f15fb7ac3a9dc435113e1e6396239e5aa"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00017.jsonl.zst",
+      "sha256": "e241e6c9c884b475a8f173dfd8f08103b16d988c25b633fd27681bd239f0e397"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00018.jsonl.zst",
+      "sha256": "91f7ec805acabb690e1574c9cc66ddb1a2ae7d34d8a83418171d3fd88276b840"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00019.jsonl.zst",
+      "sha256": "23172fee55e1663f3a57ac0c023e3976838903b2397be61c21728654f9a22faa"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00020.jsonl.zst",
+      "sha256": "b3d48969ed772ca5a86bf3857f29eb447dbb0a120c699dcfa88b12a92424bb6f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00021.jsonl.zst",
+      "sha256": "74cb374a7c64ebb07a1eebb634d4ad7bea7b724b0fd1063839be16d0193424ee"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00022.jsonl.zst",
+      "sha256": "353a6bc49d95dbca8a9ebe994b42ffae841a7cbaafd9cbcbf980a4596c988f5a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00023.jsonl.zst",
+      "sha256": "d2fa2868777ae58814dc1b27e86e0e3e8e7cac8c16709d26cab29a4342543a2d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00024.jsonl.zst",
+      "sha256": "b60a5cc420054f9ac809ebd5665ac0a073e097f114a33051aa27729d80b07322"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00025.jsonl.zst",
+      "sha256": "b93aaa9fcfe289c44203cc674ccf49d193f4c3bf0cdfcf506bb574eecd33715c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00026.jsonl.zst",
+      "sha256": "d5eb7f1d0f37e4061fecfe95ef142f77ea3b064fabcb25df8b6af31aab87d453"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00027.jsonl.zst",
+      "sha256": "30beab3a8efbbf1ffac816ae441744b6210cfe6859c1e3251bb6937fac2db838"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00028.jsonl.zst",
+      "sha256": "6af995c94366f91452915de11d5bc687fb94304b4ecc5c524db60010d45eafd9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00029.jsonl.zst",
+      "sha256": "4afc511a21705b9cb0565155d72baaa78cf15781fde3ba6cb80879b365fb411d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00030.jsonl.zst",
+      "sha256": "161478b5fc1ec2faee425b5cbbfc3563af6c7cf90ee943efbbfc72726eabfc19"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00031.jsonl.zst",
+      "sha256": "88f948a29ce593bfd7394bd8f996a82d18f786dc8a58ddbbb32dfd938a376f23"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00032.jsonl.zst",
+      "sha256": "2afb3d342c4d61ea9e3da133971505abfa82ac9467c7810dd53f308e8d25429a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00033.jsonl.zst",
+      "sha256": "06d18a1a2315128fe9487c1f6f20fc94b0a3905b9e8d05eb6a745cc96f6b7893"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00034.jsonl.zst",
+      "sha256": "8b7876b7f7c5068989b2cd2d2064e9f3575ef4c89e548b21a8c36f60ac87044c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00035.jsonl.zst",
+      "sha256": "efd0057a73b228e3b5b36184877fc2943c34a6ec37cd8d750d5ff5e99638b0e3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00036.jsonl.zst",
+      "sha256": "1285da5eb7dc5e2cb7dd733dadf2a68573d46b79d8f27515e632e5ce853df2a7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00037.jsonl.zst",
+      "sha256": "ef495abba4e2b28aebe9cd2cfbbfbcf282bdc806169ff852058b42118aebe55f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00038.jsonl.zst",
+      "sha256": "a8b0f6957df93b688e387dac6859c0e22c44f002f60dd08632e21635d9909fcf"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00039.jsonl.zst",
+      "sha256": "67276375812683376b9f811246eb44f1d73339ce8797167f110595a0039a5512"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00040.jsonl.zst",
+      "sha256": "13bc7c2bb0332aeb028b031eb4f08531be0f12190bc6b39ea0c115dd8a406e41"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00041.jsonl.zst",
+      "sha256": "0a2ee78418bc775e39da156c070dcebc4910d3816c1a642acafdcab5d2409dcf"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00042.jsonl.zst",
+      "sha256": "55321a186cbe10eb673feb34b703c2654511fe3b58e86b4acdd0d131956bdc50"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00043.jsonl.zst",
+      "sha256": "d40cf2639d10547536ee0fb719e5e08aa91cbc187e87613b13b731a35d97df7e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00044.jsonl.zst",
+      "sha256": "3046d32aa77b17d2880c56e79af02c47e3ecf1db7e8361b89f0ac2f2839c45ab"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00045.jsonl.zst",
+      "sha256": "acf52013db8567454389e123ff93f97dc9bd068e9151cf3343552bf6f8cd3c47"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00046.jsonl.zst",
+      "sha256": "0f327ac45b334745e2d2cdadb7bf573f5127e7ce7afab95918cbb29f2cb946f6"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00047.jsonl.zst",
+      "sha256": "7af76872d6d0e94048bdf87d5747eabf5aede974902f164de3c3df807c03192c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00048.jsonl.zst",
+      "sha256": "21c88dd0669d2929be777e463a0f8074e50e656ef07d06c0bb39710274727ab6"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00049.jsonl.zst",
+      "sha256": "9a400bfd08ac7a6a2898bf85df5137dac6e334654ec392dfac0223122e69e68f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00050.jsonl.zst",
+      "sha256": "028ce81fe5d921f5964c38da77bb987cdcadd3e79e09a3e13318a79285819d24"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00051.jsonl.zst",
+      "sha256": "fde201976b1cc8d88eb9372045c247fde36f39dc991e6cf16d7b13b84531b868"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00052.jsonl.zst",
+      "sha256": "9192d6f4b1dc4d56e3d055a17b30ef79a2c6f57875f4d9a6a03d891b87a73a05"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00053.jsonl.zst",
+      "sha256": "1b710437d330b8cec95d63c0a7ae8b99aea10f11f1b3e27d17683df0064bb7fa"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00054.jsonl.zst",
+      "sha256": "75a94a0bd60470cc97e47f6d86c03af5e5636f8b93a7630afe9be2c99f5c54c0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00055.jsonl.zst",
+      "sha256": "7a847ba7462efc1d599292fc8c7d3046d802294b3f28e7254f8d46eb79f6ff9a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00056.jsonl.zst",
+      "sha256": "f408b214fbac9a45a5ed80349c666ba9e161e26e5d8b6e20dab9f20cbd59cd80"
+    },
+    {
+      "lines": 818,
+      "path": "/workspace/in/d87/api-a/shard-00057.jsonl.zst",
+      "sha256": "864dfbbd146e697bafe5fdaf500401dc9c1761d3c34a662b4010c9c016e1ed6d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00058.jsonl.zst",
+      "sha256": "fc9b3118e17c9ca3848b2bea4a97939a676cc57f7e696ade4db0613116ae79e2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00059.jsonl.zst",
+      "sha256": "6280f29745118b37a77969dd5986a6ab3f969967bc1dde1254392268594e7371"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00060.jsonl.zst",
+      "sha256": "50ac1958c7234cfaccccd4badc8b588bc9f6e6aad39259dbfbdd40108b090f88"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00061.jsonl.zst",
+      "sha256": "0f6be365739ebfd389067406fee2df2a4b4d90673924dcecd70093f73bb9bc0b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00062.jsonl.zst",
+      "sha256": "1d146d5676b356b28e97e0667258ef76d7ecba7e4ada967f3d26bb780295f458"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00063.jsonl.zst",
+      "sha256": "d60c04647572bd4a9a6a457da1f31e59b9dd692454e354cc9f03b58e06a2d0f0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00064.jsonl.zst",
+      "sha256": "774ad2e9a99c071d9f535929db3ae27c93be237a2acba673a59c93956020b1ee"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00065.jsonl.zst",
+      "sha256": "34d63b4f45f7f30a60108c85ede964ea4f6496857ab04368b4636c98fe4f11cd"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00066.jsonl.zst",
+      "sha256": "73d8a79cca180e4b205378d8498140b7522abd5b3905ca325c21ebf43aeb3334"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00067.jsonl.zst",
+      "sha256": "58ef23b607b40a4b73d21aa787982f42c8acf6b5acac836f78866d10b6851b97"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00068.jsonl.zst",
+      "sha256": "e36cb9bf1ac62a338bef5a22b4933b3bb4b24ae5c2855707395d380edf2a45a3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00069.jsonl.zst",
+      "sha256": "ed7bfa785c1566005d8a2a31f1e958a9278850c7811485c1a2fe3e52d7105081"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00070.jsonl.zst",
+      "sha256": "11cfc4f9ff3d842d1fe4ca320e4c45a7091a2d519f6b7393c77d7b9c7de27d70"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00071.jsonl.zst",
+      "sha256": "ef59b0496ca3fc33b3d7c2c64032350e799be064230d1537da25a385e408aec3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00072.jsonl.zst",
+      "sha256": "c7a6ce6ed589eba15384e6cbe6ae50426abb50b3ca05a3d8405b291989dec1f2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00073.jsonl.zst",
+      "sha256": "9e08a280c8dfabc58fa195321cc70efc4ce85cd914b2161ad7d25235c9810d4a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00074.jsonl.zst",
+      "sha256": "274284b873c8585bd13d77c49cce997c1aeb0a46dfe114e6a8efbd3d78a5ec54"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00075.jsonl.zst",
+      "sha256": "503a7d41116e11209f5704e69af74086f7f5c6aae3c237a70b68d2f2f0fbf7ea"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00076.jsonl.zst",
+      "sha256": "0988368a313a15b63ef614e636cf8bd8721425a512016675e3775660514b92a4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00077.jsonl.zst",
+      "sha256": "858fe8f4d043767de541984cdc9d6f5206154855b2549bf8c6472b58c80ad6d7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00078.jsonl.zst",
+      "sha256": "b1a5f9fec946b47de9e25d27d0f90b15849294b79ad79d6ab4ae6b18bbcdaf15"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00079.jsonl.zst",
+      "sha256": "58fe2c803a21a7703f54272c89cbcda883e50ab98e4b8de443aba9f2dde84ff3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00080.jsonl.zst",
+      "sha256": "dd5cde3b2df81c226046134a5167b8b81d71a59668c6e17cd0d614a9763e7066"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00081.jsonl.zst",
+      "sha256": "1ebcaba3ed6c93175a98ac87bbfba370ac9301b13a3b52af419d9632b6d2b522"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00082.jsonl.zst",
+      "sha256": "9e0ace01708bb20dd7320d8a22d2cdd20c0cb108672ed54558050c9a4b9c4b50"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00083.jsonl.zst",
+      "sha256": "d540012e0e9ebe4becce2bea86425d2efb60c7f86f05d518514722931d8eb586"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00084.jsonl.zst",
+      "sha256": "bbfcfcbd403b3aa19977c16a9a0175d7226b7749ad7e570250c72c60c6be3b6b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00085.jsonl.zst",
+      "sha256": "338519200e8d0a2290beaad28ca904851dcac972f927805da5c7180e2ecdcf6a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00086.jsonl.zst",
+      "sha256": "f1a4b68e2db4a7ed4715772e659569a5cb1678b660a0d151b4e6fda41a0e0250"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00087.jsonl.zst",
+      "sha256": "b9a7516f05387ec3b5e607dfbe975e7ed6587116afc8d72eaa23625ef3f765f6"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00088.jsonl.zst",
+      "sha256": "337b3c445dfafd6a3644e91aaf40ed5527c4963b61d13ea52d200f433e31db2c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00089.jsonl.zst",
+      "sha256": "f05ef38696257cea887899b48e5577f91cdfcc845f46ddb300c59f8343400b2c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00090.jsonl.zst",
+      "sha256": "4262b831a47dba065f24bae267fa4a767c1d2ec6a301e89ba16025c90a71b77f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00091.jsonl.zst",
+      "sha256": "80080c34f207e2ec48dc0aee028f4d55bb1d9836f4c387735cbc4655d466fcbb"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00092.jsonl.zst",
+      "sha256": "9c3a5e2b4cce2f20fa7cb0c425006a58535928ba4d2fd146f81741a8ef62dafd"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00093.jsonl.zst",
+      "sha256": "60fd22f0433ce63396b167f63b2dc64efe3c7afe39e2b75703f56fe1451a3934"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00094.jsonl.zst",
+      "sha256": "a026bd3f5b5cd3377918ea9a6732304155bba8f80d0ac5388423d380aa1f331a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00095.jsonl.zst",
+      "sha256": "df6da58036706024869479819497d88ac9ad12cb7007d459ee8303a4402678c7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00096.jsonl.zst",
+      "sha256": "1d4dbd0be472267f01487cc23d840dd4ce22d46621a7f0e0caf598f9479991dd"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00097.jsonl.zst",
+      "sha256": "f75ff2660cdf6fe61a2f73a48ee0d3e6e584dea9c6366eddc0e2d96955e6e640"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00098.jsonl.zst",
+      "sha256": "6def778517d4ec23e9d6f3ff409e3ce3ee787c954c93e48727b871da09a080f7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00099.jsonl.zst",
+      "sha256": "e7a62f5b9be07309c41e56f27ff77735bdbc651a440e676be843d442b94ab019"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00100.jsonl.zst",
+      "sha256": "0118b1cc70702f997381c073161da2454f1271c37101e7061ff2466fe4cf3588"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00101.jsonl.zst",
+      "sha256": "2fba1e0ca963fa93857782cfd8444de53ec8160a10ec6b572b03c00bf3f9574d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00102.jsonl.zst",
+      "sha256": "81b47ad63a5dc556d382dfab454617182fc13874f68d6ac18084caeca7adb122"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00103.jsonl.zst",
+      "sha256": "60f7f512a9af78590a19f35f68faf61c558182236c48081bef08db746ecc6d4a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00104.jsonl.zst",
+      "sha256": "1aead2150cd72143461fa4afaaceca62d8bd29a657f51a5d12d504bfec26f1a3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00105.jsonl.zst",
+      "sha256": "c4b28d4010aa2ee925064822092a75561c94c792edadbdf06eb836738c2ce0e0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00106.jsonl.zst",
+      "sha256": "22d2c733abfe66710612b03d80c742bb3b83a8b6eb864a80aae3e53951dd33a4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00107.jsonl.zst",
+      "sha256": "ae5983f31b991802b2bd1bbb0afc2f60afaad3a9913a70cb08428e76421992e0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00108.jsonl.zst",
+      "sha256": "0280a3c9ebd056abc5582a326107ad5affe18998032c58729587391740fff884"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00109.jsonl.zst",
+      "sha256": "7499ff65ecbb7ed238bd449c25047c883309645d5076be04c101b3698a5a1027"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00110.jsonl.zst",
+      "sha256": "2f6649281492e5747025a5394c37b06e865409d4c0a6eed0ac1d70a45a09536e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00111.jsonl.zst",
+      "sha256": "22082fbbc3b672d26677dd57f74daf5a3a74730227e3ed9225a03c421593d204"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00112.jsonl.zst",
+      "sha256": "f306b9b36166fa0ac4bda67b8ac2b62082def89f6f13f777ccd4bf467fa235bc"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00113.jsonl.zst",
+      "sha256": "b48cbe878933038e76b7fba56ac46ede4cb3cc1dff193ee861bc70ae344343cb"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00114.jsonl.zst",
+      "sha256": "65be24263423b8bd71b0660951fe52b633a14405a1b8c5a13ce021b6ef56b58e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00115.jsonl.zst",
+      "sha256": "fde67b278a9b46fff81abd6cb1436dddda85f7ac65f80bdc7579dadc04eed9d8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00116.jsonl.zst",
+      "sha256": "f7ba81889a4f78272efc7c59440db13b85580782e8a36f820193a39eba1eb5a8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00117.jsonl.zst",
+      "sha256": "37a68f5ef93cf1ec0d47b3283a41ec944c1a6d03d4391591bfd64e654fbdfff9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00118.jsonl.zst",
+      "sha256": "d58ca14f2185cb7af56479f31dd4102565f8403e643bd28ecd30aac4d8a2a41a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00119.jsonl.zst",
+      "sha256": "2a304796654af75c81f205adf62fa458570f7a4aa4d274afe08030bbd330f002"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00120.jsonl.zst",
+      "sha256": "61e8502d7ab861e8b9465aeeca045d642767e4c04b012e262bd2b67fd8ff312e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00121.jsonl.zst",
+      "sha256": "3a3bbdbfba90d2e4cba231e4d16212b1c3d8fe3201ade21377756f143d49d9c3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00122.jsonl.zst",
+      "sha256": "484f734967098a7c706ac9add5a29a49c951354d2410078e4a263c0b5c905212"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00123.jsonl.zst",
+      "sha256": "15501d1bfb8495f1d2828069585568dd4f4abbb797d63caa3c79d7940a2790ae"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00124.jsonl.zst",
+      "sha256": "c4903840d1996ff720a52d73e971b7b0f811176ff1bd1154e33ee691db3a953b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00125.jsonl.zst",
+      "sha256": "3856ce6f3696b28f85300f99eff2c227d4e603be469cdfcb156dd1d9f392dcca"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00126.jsonl.zst",
+      "sha256": "68da32416a92c449edbd4c7adf7f9953fa9f063cf8400d4a3ca76df0b2aeb00a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00127.jsonl.zst",
+      "sha256": "700f9801cdd79507d685aa52d5eb1c8c3840f7e2940ddb4be9a5846e6bc9d904"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00128.jsonl.zst",
+      "sha256": "52bf933d2dc0845a3e96c4cd3442dabda5f9245779761d0bb0b760d3255ade2d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00129.jsonl.zst",
+      "sha256": "99cf5ebc0db38440583cf4d572b860c5c12ab677b9e523de95e9d05ac94d6b66"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00130.jsonl.zst",
+      "sha256": "1cb13e45f8a99d49f63705b7c146ace9b7f010594f1cf2959efaf4d7e8a35e3f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00131.jsonl.zst",
+      "sha256": "b129aa4a23bf031b46dcf64599ad7e7ffa24d68c2b93e1503646167d3a0683e9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00132.jsonl.zst",
+      "sha256": "5268717ffde92b9dc3fcc1cb11cb573785c6c3cf0273ed81dce50e1026dfc675"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00133.jsonl.zst",
+      "sha256": "5f553e11dd59908f284313e14d0144e10fa4443e77707e26499798a527d7d1cf"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00134.jsonl.zst",
+      "sha256": "63b14d53eb95f537cedc00f5e1dbca1a145c79d789c53d8326637f20fc13b517"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00135.jsonl.zst",
+      "sha256": "e526ca8e6e244bef35a7902d651e803066ff9865f371e7c1b84484e3365f76b3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00136.jsonl.zst",
+      "sha256": "b48c82f165f6c9a007dd720f100225fdd866b5c738ec49a8066787e33bfc481c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00137.jsonl.zst",
+      "sha256": "1e915fc8f33a5360cb4fea1d9022b04e97b8b7f7bd48955e02c92d3251f415fb"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00138.jsonl.zst",
+      "sha256": "937ca53095ade708fd6d71f253637258b1b56ed31b3b85655b08c13cf826abf3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00139.jsonl.zst",
+      "sha256": "6e1316e387d9f07fa509aab13c2d6982b21ae27fabe9bb814c2ed54b32d313c2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00140.jsonl.zst",
+      "sha256": "954127cbdad2f2a83bf11555d585f2a683e4686017b1ff026daa6b92baa9d35b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00141.jsonl.zst",
+      "sha256": "ef9db9a25fd0ced3b2ec670b1a175e5171b6fd7c9c799160ec9ac27d740fd26e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00142.jsonl.zst",
+      "sha256": "1c9ef140a5c5c5b82a652559b9286c65e1578d6fb1a7e6a15aba888ccd79482c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00143.jsonl.zst",
+      "sha256": "4d05dfd7937590260dbcd1cc5a9d980c4ae9fb2f098cf906ffbe0543f4329ef8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00144.jsonl.zst",
+      "sha256": "05259b361eb32f39bb16be2a274b1f694119774592a7d1424c6bcc6bc714966b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00145.jsonl.zst",
+      "sha256": "1dd41797ba9bdbadb3c4121a3073e6d54888e78d844b33ea00da8fec4076d5a7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00146.jsonl.zst",
+      "sha256": "30da99809f151c4fe0e1aee61ef516dbdc1fee4b089531565fdbab6d9ced41f5"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00147.jsonl.zst",
+      "sha256": "fca1d41dab495d77937d5034ce3c40030392878c9d7dccf1eb384feb7d02c4d3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00148.jsonl.zst",
+      "sha256": "ff22f1432b5831b3e60870572e78909b1e1dcfd6113c8ae14bc00ed480c430f0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00149.jsonl.zst",
+      "sha256": "7aea07eb5cb67c1640215d2953235f9f21f3e50b740281aa665a410153e4e8f0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00150.jsonl.zst",
+      "sha256": "46a95a7ed7bee0c207a8f9a3ddd8e5af2b39438f6d5182db8ff2780a3d244a8a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00151.jsonl.zst",
+      "sha256": "ffa08dff33e8a683c521b5f0d2f181fa9a16f503097ec1d0014e21a98df4bd75"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00152.jsonl.zst",
+      "sha256": "7293034a2c31648f4174fa7123ddaf68f2b0479659d6406cbc3656eda83ee5e5"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00153.jsonl.zst",
+      "sha256": "14b597e1c4a0559578bece85b9e19a3410835f6b31b23fe66bfd0341f51cd1bc"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00154.jsonl.zst",
+      "sha256": "65f88602df89b14c54e6537db9dae99e2e3721a2f42ec3bbc9b7f0d3a58befa0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00155.jsonl.zst",
+      "sha256": "d650fb9ead5e9cdd97ce3eb807f65efe02e57cb11000daa5806605944c2890ed"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00156.jsonl.zst",
+      "sha256": "6d700444b48740e97e15f5ed66f18ec96a1c361b01b4d8481ced304003fef066"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00157.jsonl.zst",
+      "sha256": "73b5a7c32c43d8402ca88e5c4446513952a02dc0a7f8d0db12a236065d45662e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00158.jsonl.zst",
+      "sha256": "f6a7892bb9b2c282e36f4f2021dec3e2908d1526e2baaed61af81918ffd85d40"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00159.jsonl.zst",
+      "sha256": "63c851e73544e195f571c3bce8f1177b7eddf4dfc6bd6696215333fa08c4cf1b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00160.jsonl.zst",
+      "sha256": "88ccf1aacb0db8d7e66047f205e437fb149f734e6bccfc086c282b7665138488"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00161.jsonl.zst",
+      "sha256": "ab04bc006bff4ccf583f88f53381519566e26ef1cd1724964bae2b930632f925"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00162.jsonl.zst",
+      "sha256": "a7d463abde0725143d91e9310ff1ea69594a150213429d3a8c004245a1f69d32"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00163.jsonl.zst",
+      "sha256": "4640c061f499c26da5f320c24d8ab4ccbeb57ca603887fd4609da811e537fe98"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00164.jsonl.zst",
+      "sha256": "9bea77832fddd97408cbec25b91fced2ea41557835374e6d5c9018ed16e50940"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00165.jsonl.zst",
+      "sha256": "c0909a45e0c7e20103afd0f6b3a8e4ea8034ca566556a898f307aab98afc9b52"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00166.jsonl.zst",
+      "sha256": "4de91811fe68f9dfbb4aaf9ff80849d0ee9b8cfdb1175fa944ea30e78473a23c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00167.jsonl.zst",
+      "sha256": "0405c714ffaf520e0a410e1b7e3420daf539ad37ebab8699785481f751e3fd74"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00168.jsonl.zst",
+      "sha256": "348d86ae956a73e492726a369e6ba9d3147f92eb2cb218097a5d5f8850544412"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00169.jsonl.zst",
+      "sha256": "c1d000c6308a7a18b0f428f525d1adb0542ecb47c8d2573ef9f3351cd2e48fd6"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00170.jsonl.zst",
+      "sha256": "2fed0c143f9126aae0c0abb3920d7ee2bdd15b037ccc6594d177f9d903e074e4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00171.jsonl.zst",
+      "sha256": "af1ad4557900eb529e720a36a9ad1fdc3e8190839ffa0fe54362023d7f71550a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00172.jsonl.zst",
+      "sha256": "5d5e44b9909bf1e6828d20cce71d45f76348d8b316741ad936e711167fe4c0e9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00173.jsonl.zst",
+      "sha256": "518ff9d697b72df49fbfb8e7895cbe46f7dfcab884494569926eafff81477f8c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00174.jsonl.zst",
+      "sha256": "ab05f460bfb7ecc77a92fdde0960074e3ec0e30b055cdcb8c2ab44c3977bc2e8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00175.jsonl.zst",
+      "sha256": "266b52eab14bde19c69afac4a1edf6f46be8df0ff0f4241248c7659bee318212"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00176.jsonl.zst",
+      "sha256": "3aba736fe0b0fc400effd975c58d8a0c702eb018c2fc4544b491e814bd81e94f"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00177.jsonl.zst",
+      "sha256": "cc7aa00a6ccd869ff792b7af3b92f61109651eb07eaceb1eb0f19f801f91759d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00178.jsonl.zst",
+      "sha256": "e377820920e63d8b5bb576a1660fb58c78ef328cd9fe9358951b5d7858521770"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00179.jsonl.zst",
+      "sha256": "1a2c82134d9f567ace82b95dde48825d7136ba80cac03a29d6d537746a62abc7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00180.jsonl.zst",
+      "sha256": "634d8bd54e921d3db8964b14fa7fe1c52a43f8265d6445e14b8a222d720368f3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00181.jsonl.zst",
+      "sha256": "2b714d65739f6661db6330543fb881a2f3c57ce2bf24b8e09481d2787d912401"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00182.jsonl.zst",
+      "sha256": "b8727ba0e6e16085113564463c67a0fc82b1a285bf9a0a59489edc657da507be"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00183.jsonl.zst",
+      "sha256": "d90669205114c1cbe032b8030170699503da8a9d73494972f7a4cf064547d3c1"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00184.jsonl.zst",
+      "sha256": "68fe9b28b34dd70126b570e62c6e3a3d81f21cc0b34935c779b2bd11b65e2ef5"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00185.jsonl.zst",
+      "sha256": "ee2517aebc9b6db94aa4a7bb10fbc27134a65b5082ea57b673c03cd98b5894a7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00186.jsonl.zst",
+      "sha256": "b94848658d661abfd6095643c98ef6f6a62fae9a5c7cc59be8392778fdb87344"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00187.jsonl.zst",
+      "sha256": "4546f1667e2455ea4ee71ca2b058bbb302eb34efd2ada13a0e684ccea59a8ea0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00188.jsonl.zst",
+      "sha256": "495d008f9d6137e796226e37131a26a85d2bc1e2e36a0ec75da380db289e3aff"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00189.jsonl.zst",
+      "sha256": "518d5dfd43c37bfd3f34873f3655f15a1c423a0d3fb589800e7321122104f4d9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00190.jsonl.zst",
+      "sha256": "03b4406cbbfe7ec25943f4879bbd04ed116c1b6d5c7b8b78fac9c268ab45ae98"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00191.jsonl.zst",
+      "sha256": "cd1b29850468b79e7b9bbf7f8ec58735ac455cbf99b0423cfe2763e1fa50d6dd"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00192.jsonl.zst",
+      "sha256": "a338febdbdfe771a0d004cd854e5ace9e653cf2530c616a359239fcbcf67041e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00193.jsonl.zst",
+      "sha256": "f59eb8e3e4c8aa6a81319627021b18ab4740070ee2fa8471529248e8d81ddda2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00194.jsonl.zst",
+      "sha256": "7c1e6e7427275a02b27a62a54741997fe36d4ae0d7f3d2a9f4a79735bda453e7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00195.jsonl.zst",
+      "sha256": "553047fe5aead2eef918f119e8aebcb7f18aa7e4e5d74a094e8bf5347a0daf31"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00196.jsonl.zst",
+      "sha256": "08c07da6efd21653dbb54a147d20b5a8fed797383a001ce8a03eaa506336bacb"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00197.jsonl.zst",
+      "sha256": "8e9b9726ba5fc1fa5f147fade9c8c317de97452108e64f84a05ad79614788877"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00198.jsonl.zst",
+      "sha256": "17d52ee4a767c553437a0c7c99adb53dfa8a556b3a7f467e8c87ebfc089bdaf3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00199.jsonl.zst",
+      "sha256": "5713a7e8bab13dc693d08dcc835396f29843d78603695865f6db2bbfe5221041"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00200.jsonl.zst",
+      "sha256": "afa561720971a3233ebfd9c4b57387bc15fcfe46302ce71d2b6a3f243a328428"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00201.jsonl.zst",
+      "sha256": "abbd67ce6540e03e851f50bd142e98cb324aa817e31a2dfbac139e26dfbc19f1"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00202.jsonl.zst",
+      "sha256": "52a75b10bf672966cfa40a93e6a215b9cc26683bb3df234dc6a5bc64dad3b651"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00203.jsonl.zst",
+      "sha256": "25d4612f318e050b2974c3e47a2db5bed047a70230a4bc3f3a8c4326db6d95c4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00204.jsonl.zst",
+      "sha256": "d37eeed0f5ec5cd9a3ee9feedec77759c14faa137e7142ba4c0a1e07110943c8"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00205.jsonl.zst",
+      "sha256": "ab6a3bc192008d2fcdeea97b673cfd28df9ea62236eaf2f9a9d3c36867b3ab6e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00206.jsonl.zst",
+      "sha256": "f5e72e4f2657089629ef9999358daea68927124c119065a72635ef241cee7d39"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00207.jsonl.zst",
+      "sha256": "ae13ba492b4dc95ca90ac856102eb348c17137518f8df1d9b2c61bde5a33fb69"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00208.jsonl.zst",
+      "sha256": "6a879763d27b582d2744d99fb368511e508e64db3ea98380d8f7a8ea943dba03"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00209.jsonl.zst",
+      "sha256": "262f4c3317017e97ce5a6f4e6fb92b6c11bbfcbc86624863659a224627616842"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00210.jsonl.zst",
+      "sha256": "8293bcef6bacfe90eef5815ce28d7edaa20bbff40a50465765f4a098bbbbead4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00211.jsonl.zst",
+      "sha256": "c135af8903cfa8966e5a3e4f3e616976473540d93c93bfd041bde31084ecf313"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00212.jsonl.zst",
+      "sha256": "39eee59f6d8545b3db2f560a42c3baf35cc7ef06006d0d043e72414ba1e9d0ba"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00213.jsonl.zst",
+      "sha256": "9ca6e7603c9bd305623d197c958df34943a3c5f80ebc19414d63b6137655b0ed"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00214.jsonl.zst",
+      "sha256": "d03e45ad15b244e9c2599507afbf2b804588ea83a76c98989058e073f49c2e03"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00215.jsonl.zst",
+      "sha256": "017823da1b3a8e19aa76b82c3c3c1ce89cef0ea83ab06ca5149f1c20ef146913"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00216.jsonl.zst",
+      "sha256": "58f96f458543d1055c25a9ef85f6f46bae58d0f7168472765d3b61981e89f082"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00217.jsonl.zst",
+      "sha256": "2e079f13377707957908ccb98ce4044f55f032ef19f04ac3050b00b93a155f57"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00218.jsonl.zst",
+      "sha256": "83cf2832f4c0d7e6bbb34534cfe8145fe59c7196a8349fd318fc0af525c9c6bf"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00219.jsonl.zst",
+      "sha256": "aec65a68cc71ea2161ebada9eb8644ef0260d0e8d89370c9aee849594fd3506e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00220.jsonl.zst",
+      "sha256": "ab0be3c2f50b9404b377c63195f87c479fa29500d6574cfa4f219ae066bf6f76"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00221.jsonl.zst",
+      "sha256": "120a432c3b0df2831c2447f23178dec2f9a55e56cfca0554ca6d1f21e513bcaa"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00222.jsonl.zst",
+      "sha256": "c26b249ef1fba23d14573cdee062d91369ce3d6c870c9fafae7430c661293ef3"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/api-a/shard-00223.jsonl.zst",
+      "sha256": "2c338e7ad47f6014fbecc4e5300e0ad62d5879ef37449819c5a92b98130c1595"
+    },
+    {
+      "lines": 485,
+      "path": "/workspace/in/d87/api-a/shard-00224.jsonl.zst",
+      "sha256": "57fd0c6ecfd690255b67dfe7a2a2f73beee8913a58a8df1c3526ad9a20b3b0ef"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00000.jsonl.zst",
+      "sha256": "1d09e8206197787c15671a32eae63ade20b2f55b31578084cfb9aacfe0ff08b6"
+    },
+    {
+      "lines": 575,
+      "path": "/workspace/in/d87/part-0/shard-00001.jsonl.zst",
+      "sha256": "9574146d219d7e8fd82bfd0bafe18168501abf0d0aa11f9fbebb7128b3a46b47"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00002.jsonl.zst",
+      "sha256": "966f28a5990225205c5206e1ee568935a3e94f427a1c36ae1da8ad77604bb719"
+    },
+    {
+      "lines": 886,
+      "path": "/workspace/in/d87/part-0/shard-00003.jsonl.zst",
+      "sha256": "c30b4a5ca432c17f783781328b5be759328c6cbd6fcf1b5ce6f689eb2fd90bf5"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00004.jsonl.zst",
+      "sha256": "ac456249f87f0f65ffa2ada011bd0d282e6a67a56aedca39518c820a9f55d43b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00005.jsonl.zst",
+      "sha256": "35f914ded65f7f19fa9889a11ff87f4cbb5d896cfe448bcd61b1aac139a6803e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00006.jsonl.zst",
+      "sha256": "a3a0651370599df1aa35182f8b23c53590223a8e62524f116e54cf6feb605464"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00007.jsonl.zst",
+      "sha256": "10ee1e1b8234cfb8ed8383217ae8b8ceec2d546712540962796e3cf85cd0b167"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00008.jsonl.zst",
+      "sha256": "902d2e4750fba92ac7c7475269965eea7fde9ec4a80095f6ae73efce55760948"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00009.jsonl.zst",
+      "sha256": "024f9b7f11695d2863bf315878aa4192ac7eadb99fea9fe9c39a4289cdd6cec2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00010.jsonl.zst",
+      "sha256": "f391901c9f47b5a6816a035c5d7fa02c1d38c44f75367f8bbca82ef02393170a"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00011.jsonl.zst",
+      "sha256": "00ffd97c3802921f0844a26fe3c52e19f73802d04960d6c1de82ea8f689e618e"
+    },
+    {
+      "lines": 1777,
+      "path": "/workspace/in/d87/part-0/shard-00012.jsonl.zst",
+      "sha256": "54e4c9b9803a01d6300a109069128a1b55e1cfa7680e239acf11b6669b6b03de"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00013.jsonl.zst",
+      "sha256": "bf5aae386ae2b6a95f3e9c389d0f9de665406b66e23471fa3014ee938a5246c0"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00014.jsonl.zst",
+      "sha256": "59ed9ad2c9cc540434acc470d5d40513d89a3d148e52d1e7cbd5042c6ad483f9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00015.jsonl.zst",
+      "sha256": "7f24453d6d6b1f1eb0707138441bd067018fbbb62416c9191c063763a115bef4"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00016.jsonl.zst",
+      "sha256": "452fb5df7c8131190888b7e31a81422f997f19f3b95b5df034bd6a22e24bbf3c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00017.jsonl.zst",
+      "sha256": "45bd893e05ca88f6953b5e0b9c507cd814bd7d13e6ff0355d16dbb5042ae2b43"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00018.jsonl.zst",
+      "sha256": "c78484acaf935d3cf26acbdaa1f3d62f9f2df81d500addce1b13ad6da3d2254e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00019.jsonl.zst",
+      "sha256": "222f962a444ae34033b3be11737161618d1b9c0b1b1ddc1872af0ee548b45749"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00020.jsonl.zst",
+      "sha256": "02749f99f4a20a08119f4e122085959ced41b434d8b0e036c2ac37018782a123"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00021.jsonl.zst",
+      "sha256": "e8474a506df6c4a97ed609c678622e9d148518cbbb0fb328dcddb9b8012628a2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00022.jsonl.zst",
+      "sha256": "cd7cd1983aef97996ba8f3b10f51aa6afeb905c708a7bb522b2b0925c6e229ba"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00023.jsonl.zst",
+      "sha256": "edd005471a4af493421b64a37e722207878db5eb6e6c9ab066642a8b5d0bbac7"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00024.jsonl.zst",
+      "sha256": "4edae3920cb05bdca11a820de70192338dd2b84f4e17ba65cffb0d2e4bd1795d"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00025.jsonl.zst",
+      "sha256": "add6c913ab55b388b3f605f9a8e2a5c9937eb47f11f146c0a3f7f2aa7a5a1970"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00026.jsonl.zst",
+      "sha256": "1ae45d41c32ae8907ca4e4296b2884bc00cdbd2cf4efacdfe3ae2b7e7759db3e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00027.jsonl.zst",
+      "sha256": "8f29201de035ee4fd9964d410843398c6c27b6af5d1301da53cdc32cdc8a393b"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00028.jsonl.zst",
+      "sha256": "db4e4d8154c0292c230cf09d5c9e751f25c8cda177aa9765f85ac376241dcf16"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00029.jsonl.zst",
+      "sha256": "a2ab2b797978fb08ea97b3f8f26ed1ff94e22d37e0f182d7339c4b1acb536a53"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00030.jsonl.zst",
+      "sha256": "91252366423488340dfb1f04f002078989b635a84218d32163d7a85e55cef95e"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00031.jsonl.zst",
+      "sha256": "9c80c64936f3745f14a00661a85b415f194b274e39a8e4b1d7bd24851b0276a9"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00032.jsonl.zst",
+      "sha256": "fa9b3fb66ef64074bf487d9f9091cd18be6115c77f85f1e213d4f010f2625f8c"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00033.jsonl.zst",
+      "sha256": "92a04dcc54ec9055c437086546703a35b3558b07276de05084f2d01b8279d1f2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00034.jsonl.zst",
+      "sha256": "fce11072b7150080a31aff63a44f7ac7f54e6ba0f7e0a83a0a9689b2768a0ac2"
+    },
+    {
+      "lines": 2048,
+      "path": "/workspace/in/d87/part-0/shard-00035.jsonl.zst",
+      "sha256": "cfed9e5f6ea691374bac5f609f75c38444a95aef576fbd8b31670cbd0d61bb0f"
+    },
+    {
+      "lines": 192,
+      "path": "/workspace/in/d87/part-0/shard-00036.jsonl.zst",
+      "sha256": "1ce5cebfcb42a6aecdedf7ad04c871b67c9fea3a21d133530d2c326c4a302a0e"
+    }
+  ],
+  "lines": 528615,
+  "prompts": 527571,
+  "ratios": "every pair is an exact integer [numerator, denominator]",
+  "records": 527571,
+  "rules": {
+    "exact": "sha256 of the whole line",
+    "id": "a repeated id",
+    "near": "sha256 of normalize(every turn's answer joined by a space), when at least near_floor bytes",
+    "order": "shard paths sorted, then line order; the first record is kept",
+    "split_key": "sha256(key || 0x00 || normalize(first user message)); bucket = first 8 bytes big-endian mod bucket_modulus; bucket < dev_test cut is dev-test, then dev-tune, else train"
+  },
+  "splits": {
+    "dev-test": {
+      "dropped": {
+        "exact": 0,
+        "id": 0,
+        "near": 10
+      },
+      "ids_sha256": "65c77fcfdb58acd7890467916a2108d0ac35906a4c857a259eaebe9812a7448f",
+      "kinds": {
+        "single": 4959,
+        "two-turn": 362
+      },
+      "prompt_share": [
+        5321,
+        527571
+      ],
+      "prompts": 5321,
+      "records": 5321,
+      "sources": {
+        "gsm8k": 4,
+        "numina": 852,
+        "oasst2": 34,
+        "openthoughts": 822,
+        "wildchat": 3609
+      }
+    },
+    "dev-tune": {
+      "dropped": {
+        "exact": 0,
+        "id": 0,
+        "near": 3
+      },
+      "ids_sha256": "7dbd877ddd4f03cc11f833588589e70465d6cfdf898a1a530edb405b8927f79a",
+      "kinds": {
+        "single": 2509,
+        "two-turn": 161
+      },
+      "prompt_share": [
+        2670,
+        527571
+      ],
+      "prompts": 2670,
+      "records": 2670,
+      "sources": {
+        "gsm8k": 1,
+        "numina": 497,
+        "oasst2": 25,
+        "openthoughts": 409,
+        "wildchat": 1738
+      }
+    },
+    "train": {
+      "dropped": {
+        "exact": 0,
+        "id": 0,
+        "near": 1031
+      },
+      "ids_sha256": "5b9c3f76c77d20d533a798a403a857454a7a0981dac7e32183d7de1bf1993a6c",
+      "kinds": {
+        "single": 484696,
+        "two-turn": 34884
+      },
+      "prompt_share": [
+        519580,
+        527571
+      ],
+      "prompts": 519580,
+      "records": 519580,
+      "sources": {
+        "gsm8k": 823,
+        "numina": 87906,
+        "oasst2": 3776,
+        "openthoughts": 81601,
+        "wildchat": 345474
+      }
+    }
+  },
+  "unit": "claude-411"
+}

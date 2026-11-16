@@ -1,0 +1,295 @@
+{
+  "answer_13gram_records": {
+    "records": [
+      1110,
+      5160
+    ],
+    "records_with_an_answer_gram": 5160,
+    "rule": "dev-test records whose answer 13-grams (last token in an answer) are at least half in TRAIN"
+  },
+  "bloom_log2": 30,
+  "contamination": {
+    "by_span": {
+      "100": {
+        "contaminated": 586,
+        "records_with_a_span": 4973,
+        "share": [
+          586,
+          5160
+        ],
+        "unique_spans": 16770008,
+        "unique_spans_in_train": 50356,
+        "windows": 17204803
+      },
+      "32": {
+        "contaminated": 3058,
+        "records_with_a_span": 5156,
+        "share": [
+          3058,
+          5160
+        ],
+        "unique_spans": 16785387,
+        "unique_spans_in_train": 524820,
+        "windows": 17895897
+      },
+      "50": {
+        "contaminated": 1834,
+        "records_with_a_span": 5136,
+        "share": [
+          1834,
+          5160
+        ],
+        "unique_spans": 16933790,
+        "unique_spans_in_train": 217422,
+        "windows": 17708441
+      }
+    },
+    "dev_test_records": 5160,
+    "rule": "a dev-test record is contaminated at n when n consecutive tokens of it, all reasoning or answer, equal n consecutive tokens of one TRAIN record; candidates by a mod 2^61-1 rolling hash, every candidate compared token for token"
+  },
+  "gate": {
+    "contaminated": [
+      1834,
+      5160
+    ],
+    "rule": "dev-test records holding a >= 50-token reasoning+answer span found in TRAIN, x 100 <= dev-test records (at most 1%)",
+    "verdict": "FAIL"
+  },
+  "gram": 13,
+  "gram_compare": "exact: 13 ids x 12 bits packed in three u64 words, no hash; grams never cross a record",
+  "novel_targets": {
+    "all": {
+      "novel": 14577362,
+      "short_context": 61920,
+      "targets": 20776333,
+      "with_13_context": 20714413
+    },
+    "response_mask": {
+      "novel": 13988802,
+      "short_context": 0,
+      "targets": 18243140,
+      "with_13_context": 18243140
+    },
+    "rule": "dev-test next-token targets whose 13 preceding tokens (one record) form a gram not in TRAIN; targets with under 13 preceding tokens are counted apart"
+  },
+  "overlap": {
+    "dev-test": {
+      "overlap": [
+        6138854,
+        20719573
+      ],
+      "overlap_by_last_token_segment": {
+        "answer": [
+          1332384,
+          4840601
+        ],
+        "frame": [
+          23505,
+          50576
+        ],
+        "prompt": [
+          1869923,
+          2442031
+        ],
+        "reasoning": [
+          2913042,
+          13386365
+        ]
+      },
+      "overlapped": 6138854,
+      "positions": 20719573,
+      "unique_grams": 16253537,
+      "unique_grams_in_train": 2739785
+    },
+    "dev-tune": {
+      "overlap": [
+        3223065,
+        10254891
+      ],
+      "overlap_by_last_token_segment": {
+        "answer": [
+          693062,
+          2348679
+        ],
+        "frame": [
+          12013,
+          25178
+        ],
+        "prompt": [
+          977860,
+          1277114
+        ],
+        "reasoning": [
+          1540130,
+          6603920
+        ]
+      },
+      "overlapped": 3223065,
+      "positions": 10254891,
+      "unique_grams": 7972637,
+      "unique_grams_in_train": 1509763
+    }
+  },
+  "overlap_13gram_diagnostic": {
+    "overlap": [
+      6138854,
+      20719573
+    ],
+    "rule": "dev-test overlapped x 100 <= dev-test positions (the first bar; a diagnostic since claude-411's regroup ruling)",
+    "verdict": "FAIL"
+  },
+  "ratios": "every pair is an exact integer [numerator, denominator]",
+  "split_summary_sha256": "ba50bd07a8d7633a0870e2e380d22ec738a4fbc527ef7982136258b241cd06f6",
+  "splits": {
+    "dev-test": {
+      "bytes_per_next_token_target": [
+        42539528,
+        20776333
+      ],
+      "bytes_per_response_token": [
+        42539528,
+        18243140
+      ],
+      "bytes_per_token": [
+        42539528,
+        20781493
+      ],
+      "next_token_targets": 20776333,
+      "per_segment": {
+        "answer": {
+          "text_bytes": 9497727,
+          "tokens": 4840601
+        },
+        "frame": {
+          "text_bytes": 104633,
+          "tokens": 76404
+        },
+        "prompt": {
+          "text_bytes": 5130812,
+          "tokens": 2478123
+        },
+        "reasoning": {
+          "text_bytes": 27806356,
+          "tokens": 13386365
+        }
+      },
+      "records": 5160,
+      "response_tokens": 18243140,
+      "text_bytes": 42539528,
+      "tokens": 20781493
+    },
+    "dev-tune": {
+      "bytes_per_next_token_target": [
+        21009244,
+        10283183
+      ],
+      "bytes_per_response_token": [
+        21009244,
+        8960655
+      ],
+      "bytes_per_token": [
+        21009244,
+        10285755
+      ],
+      "next_token_targets": 10283183,
+      "per_segment": {
+        "answer": {
+          "text_bytes": 4563497,
+          "tokens": 2348679
+        },
+        "frame": {
+          "text_bytes": 52098,
+          "tokens": 38048
+        },
+        "prompt": {
+          "text_bytes": 2678048,
+          "tokens": 1295108
+        },
+        "reasoning": {
+          "text_bytes": 13715601,
+          "tokens": 6603920
+        }
+      },
+      "records": 2572,
+      "response_tokens": 8960655,
+      "text_bytes": 21009244,
+      "tokens": 10285755
+    },
+    "train": {
+      "bytes_per_next_token_target": [
+        4260650994,
+        2092137898
+      ],
+      "bytes_per_response_token": [
+        4260650994,
+        1836797870
+      ],
+      "bytes_per_token": [
+        4260650994,
+        2092657737
+      ],
+      "next_token_targets": 2092137898,
+      "per_segment": {
+        "answer": {
+          "text_bytes": 940676417,
+          "tokens": 482418510
+        },
+        "frame": {
+          "text_bytes": 10539845,
+          "tokens": 7696420
+        },
+        "prompt": {
+          "text_bytes": 515636378,
+          "tokens": 249792738
+        },
+        "reasoning": {
+          "text_bytes": 2793798354,
+          "tokens": 1352750069
+        }
+      },
+      "records": 519839,
+      "response_tokens": 1836797870,
+      "text_bytes": 4260650994,
+      "tokens": 2092657737
+    }
+  },
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "total": {
+    "bytes_per_next_token_target": [
+      4324199766,
+      2123197414
+    ],
+    "bytes_per_response_token": [
+      4324199766,
+      1864001665
+    ],
+    "bytes_per_token": [
+      4324199766,
+      2123724985
+    ],
+    "next_token_targets": 2123197414,
+    "per_segment": {
+      "answer": {
+        "text_bytes": 954737641,
+        "tokens": 489607790
+      },
+      "frame": {
+        "text_bytes": 10696576,
+        "tokens": 7810872
+      },
+      "prompt": {
+        "text_bytes": 523445238,
+        "tokens": 253565969
+      },
+      "reasoning": {
+        "text_bytes": 2835320311,
+        "tokens": 1372740354
+      }
+    },
+    "records": 527571,
+    "response_tokens": 1864001665,
+    "text_bytes": 4324199766,
+    "tokens": 2123724985
+  },
+  "unit": "claude-411"
+}
