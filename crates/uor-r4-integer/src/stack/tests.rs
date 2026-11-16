@@ -5960,20 +5960,32 @@ fn the_readout_read_adds_both_kinds_of_head() {
 /// saved session does not carry the payloads; a read with copy heads alone, whose state is the
 /// tokens, restores and continues bit for bit.
 #[test]
-fn a_session_with_type_heads_is_not_restored() {
+fn a_session_with_type_heads_restores_with_its_payloads() {
     let tokens = repeating_tokens();
     let (typed, ..) = served_read_parts(&[1, 3], 1.0, 1.0);
-    let mut session = typed.session();
+    let mut first = typed.session();
     for &token in &tokens[..8] {
-        session.step_native(token).expect("step");
+        first.step_native(token).expect("step");
     }
-    match typed.session().restore_state(&session.save_state()) {
-        Err(StackError::Shape(m)) => assert_eq!(
-            m,
-            "a session of a Hamming read with type heads cannot be restored yet: its per-position payloads are not saved"
-        ),
-        other => panic!("expected the restore refusal, got {:?}", other.err()),
+    let saved = first.save_state();
+    let mut restored = typed.session();
+    restored
+        .restore_state(&saved)
+        .expect("a type-head session restores with its payloads");
+    for (t, &token) in tokens.iter().enumerate().skip(8) {
+        assert_eq!(
+            first.step_native(token).expect("step"),
+            restored.step_native(token).expect("step"),
+            "position {t}"
+        );
     }
+    // An older snapshot without the payloads is refused, not restored differently.
+    let mut stripped = saved.clone();
+    stripped.hamming_payloads.clear();
+    assert!(
+        typed.session().restore_state(&stripped).is_err(),
+        "a type-head session without its payloads must be refused"
+    );
     let (copied, ..) = served_read_parts(&[1, 3], 1.0, 0.0);
     let mut first = copied.session();
     for &token in &tokens[..8] {

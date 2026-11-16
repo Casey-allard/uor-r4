@@ -1898,6 +1898,10 @@ pub struct SerializedStackSession {
     /// Optional sequence of tokens ingested so far (`[position]` entries).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tokens: Vec<u32>,
+    /// A Hamming read's per-position payload caches, per read (`context * width` i64 each, or
+    /// empty for a read without type heads). Saved so a type-head session restores exactly.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hamming_payloads: Vec<Vec<i64>>,
     /// Optional opt-in snap trace root indices recorded so far.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snap_trace: Option<Vec<u32>>,
@@ -2300,12 +2304,23 @@ pub(super) fn max_serialized_session_bytes(model: &IntegerStackModel) -> u64 {
     } else {
         0
     };
+    // A Hamming read's per-position payloads: `context * width` i64 for each read with type heads.
+    let payload_bytes = model
+        .fbs
+        .as_ref()
+        .and_then(|f| f.hamming.as_ref())
+        .map_or(0, |h| {
+            (h.payload_cache_elements(s.context) as u64)
+                .checked_mul(24)
+                .unwrap_or(u64::MAX / 4)
+        });
     let margin = 131072u64; // 128 KiB for schema, metadata keys, and formatting punctuation
 
     layer_bytes
         .checked_add(logits_bytes)
         .and_then(|acc| acc.checked_add(tokens_bytes))
         .and_then(|acc| acc.checked_add(trace_bytes))
+        .and_then(|acc| acc.checked_add(payload_bytes))
         .and_then(|acc| acc.checked_add(margin))
         .unwrap_or(100 * 1024 * 1024)
 }
@@ -2808,6 +2823,7 @@ impl IntegerStackSession<'_> {
             copy_scale_q16: self.copy_scale_q16,
             logits,
             tokens: self.tokens.clone(),
+            hamming_payloads: self.hamming_payloads.clone(),
             snap_trace,
             pointer_keys,
             pointer_lifts,
@@ -2841,13 +2857,22 @@ impl IntegerStackSession<'_> {
                 "a session of a native Q31 read cannot be restored yet: its read history is not saved",
             ));
         }
-        if fbs
-            .and_then(|f| f.hamming.as_ref())
-            .is_some_and(|h| h.has_type_heads())
-        {
-            return Err(StackError::Shape(
-                "a session of a Hamming read with type heads cannot be restored yet: its per-position payloads are not saved",
-            ));
+        // A type-head read's payloads are in `hamming_payloads`; a saved session without them
+        // (an older snapshot) is refused rather than restored differently.
+        if let Some(hamming) = fbs.and_then(|f| f.hamming.as_ref()) {
+            let expected = hamming.payload_caches(self.model.shape.context);
+            if hamming.has_type_heads()
+                && (saved.hamming_payloads.len() != expected.len()
+                    || saved
+                        .hamming_payloads
+                        .iter()
+                        .zip(&expected)
+                        .any(|(saved, expected)| saved.len() != expected.len()))
+            {
+                return Err(StackError::Shape(
+                    "a type-head session needs its per-position payloads, which this snapshot does not carry",
+                ));
+            }
         }
         // The place read's register and turns are not saved either (claude-351).
         if fbs
@@ -3098,6 +3123,9 @@ impl IntegerStackSession<'_> {
         self.tokens.extend_from_slice(&saved.tokens);
         for index in &mut self.hamming_index {
             index.clear();
+        }
+        if !saved.hamming_payloads.is_empty() {
+            self.hamming_payloads = saved.hamming_payloads.clone();
         }
         // No step of the restored session has spoken yet.
         self.spoken = None;

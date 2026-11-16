@@ -1664,6 +1664,17 @@ impl ServedHamming {
         self.reads.iter().any(|r| r.types.is_some())
     }
 
+    /// The number of `i64` elements a session's payload caches hold: `context * width` for each
+    /// read with type heads that brings a payload back.
+    pub(crate) fn payload_cache_elements(&self, context: usize) -> usize {
+        self.reads
+            .iter()
+            .filter(|r| r.types.as_ref().is_some_and(|t| !t.asks()))
+            .count()
+            * context
+            * self.width
+    }
+
     /// A session's payload caches: for each read, `context * width` zeros if it has type heads
     /// that bring a payload back, and nothing otherwise (a read that asks brings table points).
     pub(crate) fn payload_caches(&self, context: usize) -> Vec<Vec<i64>> {
