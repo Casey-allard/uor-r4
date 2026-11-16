@@ -42,7 +42,9 @@ use super::format::{
     Container, Fixed, MatrixView, StackNumerics, StackPointer, StackShape, StackTransportSnap,
     StackTurnMemory,
 };
-use super::hamming::{hamming_image, CopyRule, HammingStepRead, ReadForce, ServedHamming};
+use super::hamming::{
+    hamming_image, CopyRule, HammingIndex, HammingStepRead, ReadForce, ServedHamming,
+};
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_argmax, stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv,
@@ -1712,6 +1714,12 @@ impl IntegerStackModel {
             pointer_at: 0,
             copy_scale_q16: 0,
             tokens: Vec::with_capacity(context),
+            hamming_index: self
+                .fbs
+                .as_ref()
+                .and_then(|f| f.hamming.as_ref())
+                .map_or(Vec::new(), |hamming| hamming.indexes()),
+            hamming_index_on: true,
             hamming_payloads: self
                 .fbs
                 .as_ref()
@@ -2185,6 +2193,10 @@ pub struct IntegerStackSession<'m> {
     /// For each Hamming read with type heads, the payload of every position stepped so far,
     /// `context * width` (claude-195); empty for a read without them.
     hamming_payloads: Vec<Vec<i64>>,
+    /// One index per Hamming read, caught up from `tokens`; the read selects from it.
+    hamming_index: Vec<HammingIndex>,
+    /// Whether reads use `hamming_index` (a switch for the on/off equality test).
+    hamming_index_on: bool,
     /// The place read's register and the turns it has read (claude-351); idle without a place
     /// read.
     place: PlaceState,
@@ -2317,6 +2329,13 @@ impl IntegerStackSession<'_> {
     /// The read's steps recorded since the trace was turned on; `None` while it is off.
     pub fn q31_read_trace(&self) -> Option<&[Q31ReadStep]> {
         self.q31_read_trace.as_deref()
+    }
+
+    /// Select the Hamming read from its per-head index (the default) or scan every earlier
+    /// position. Two sessions of the same model and stream must serve identically either way; the
+    /// switch exists for that equality test.
+    pub fn set_hamming_index(&mut self, on: bool) {
+        self.hamming_index_on = on;
     }
 
     /// Record each real recurrence lane's native-Q31 input, transport and
@@ -2612,6 +2631,9 @@ impl IntegerStackSession<'_> {
         self.lift_at = 0;
         self.pointer_at = 0;
         self.tokens.clear();
+        for index in &mut self.hamming_index {
+            index.clear();
+        }
         self.place = PlaceState::default();
         self.spoken = None;
         if let Some(trace) = &mut self.native_q31_trace {
@@ -3047,6 +3069,9 @@ impl IntegerStackSession<'_> {
         // Restore tokens
         self.tokens.clear();
         self.tokens.extend_from_slice(&saved.tokens);
+        for index in &mut self.hamming_index {
+            index.clear();
+        }
         // No step of the restored session has spoken yet.
         self.spoken = None;
         if let Some(trace) = &mut self.native_q31_trace {
@@ -4127,6 +4152,11 @@ fn stack_step_fbs(
                 ),
                 None => (session.hamming_trace.as_mut(), None),
             };
+            let indexes: &mut [HammingIndex] = if session.hamming_index_on {
+                session.hamming_index.as_mut_slice()
+            } else {
+                &mut []
+            };
             hamming.stream(
                 l + 1,
                 &session.tokens,
@@ -4136,6 +4166,7 @@ fn stack_step_fbs(
                 trace,
                 force,
                 opening,
+                indexes,
             );
         }
         if let (Some(step), Some(decision), Some(buckets)) =
@@ -4165,6 +4196,11 @@ fn stack_step_fbs(
             ),
             None => (session.hamming_trace.as_mut(), None),
         };
+        let indexes: &mut [HammingIndex] = if session.hamming_index_on {
+            session.hamming_index.as_mut_slice()
+        } else {
+            &mut []
+        };
         hamming.readout(
             &session.tokens,
             &fbs.writer_table,
@@ -4174,6 +4210,7 @@ fn stack_step_fbs(
             force,
             offer,
             opening,
+            indexes,
         );
     }
     if let (Some(step), Some(decision)) = (traced.as_mut(), session.decision.as_deref_mut()) {
@@ -4439,6 +4476,11 @@ fn stack_step_fbs_timed(
         }
         // A Hamming read is timed inside the block it follows, so the stage list is unchanged.
         if let Some(hamming) = &fbs.hamming {
+            let indexes: &mut [HammingIndex] = if session.hamming_index_on {
+                session.hamming_index.as_mut_slice()
+            } else {
+                &mut []
+            };
             hamming.stream(
                 l + 1,
                 &session.tokens,
@@ -4448,6 +4490,7 @@ fn stack_step_fbs_timed(
                 session.hamming_trace.as_mut(),
                 None,
                 opening,
+                indexes,
             );
         }
         lap(&mut since, ns);
@@ -4455,6 +4498,11 @@ fn stack_step_fbs_timed(
     stack_rms_norm_fine(&b.x, n.rms_eps, &mut b.scratch[..d]);
     stack_norm_gain(&mut b.scratch[..d], &fbs.final_gain);
     if let Some(hamming) = &fbs.hamming {
+        let indexes: &mut [HammingIndex] = if session.hamming_index_on {
+            session.hamming_index.as_mut_slice()
+        } else {
+            &mut []
+        };
         hamming.readout(
             &session.tokens,
             &fbs.writer_table,
@@ -4464,6 +4512,7 @@ fn stack_step_fbs_timed(
             None,
             offer,
             opening,
+            indexes,
         );
     }
     // The turn memory's move (units 2-3), after the Hamming readout as in the float trunk: the

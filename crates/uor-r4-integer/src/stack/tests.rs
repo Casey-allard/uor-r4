@@ -5829,7 +5829,7 @@ fn type_heads_match_the_f64_reference() {
                     }
                 }
             }
-            let got = types.mean(&queries, &tokens[..=t], &cache[..(t + 1) * width]);
+            let got = types.mean(&queries, &tokens[..=t], &cache[..(t + 1) * width], None);
             match (got, found) {
                 (None, 0) => {}
                 (Some(got), found) if found > 0 => {
@@ -5868,7 +5868,7 @@ fn stream_with_type_heads(copy: f32, types: f32) -> (usize, usize) {
         let (_, free_trace) = traced_step(&mut without, tokens[t]);
         let x: Vec<i64> = free_trace[0].iter().map(|&v| i64::from(v)).collect();
         type_heads.payload(&x, &mut cache[t * width..][..width]);
-        let y = type_heads.mean(&type_heads.queries(&x), &tokens[..=t], &cache[..(t + 1) * width]);
+        let y = type_heads.mean(&type_heads.queries(&x), &tokens[..=t], &cache[..(t + 1) * width], None);
         let c = copy_heads.mean(&tokens[..=t], &table);
         typed += usize::from(y.is_some());
         let want: Vec<i32> = if c.is_none() && y.is_none() {
@@ -5919,7 +5919,7 @@ fn readout_with_type_heads(copy: f32, types: f32) -> (usize, usize) {
         let free_query = without.step_native(tokens[t]).expect("step").query_q12;
         let n = without.fbs_norm_output().to_vec();
         type_heads.payload(&n, &mut cache[t * width..][..width]);
-        let y = type_heads.mean(&type_heads.queries(&n), &tokens[..=t], &cache[..(t + 1) * width]);
+        let y = type_heads.mean(&type_heads.queries(&n), &tokens[..=t], &cache[..(t + 1) * width], None);
         let c = copy_heads.mean(&tokens[..=t], &table);
         typed += usize::from(y.is_some());
         let want: Vec<i64> = if c.is_none() && y.is_none() {
@@ -8423,7 +8423,7 @@ fn an_asking_read_brings_back_the_kept_tokens_points() {
                 if r == 0 {
                     let x: Vec<i32> = (0..width).map(|_| (rng.next() % (1 << 20)) as i32 - (1 << 19)).collect();
                     let mut got = x.clone();
-                    hamming.stream(1, window, table, &mut payloads, &mut got, None, None, false);
+                    hamming.stream(1, window, table, &mut payloads, &mut got, None, None, false, &mut []);
                     for k in 0..width {
                         let added = real(w_c[k]) * c.as_ref().map_or(0.0, |c| c[k]) + real(w_y[k]) * y.as_ref().map_or(0.0, |y| y[k]);
                         let want = f64::from(x[k]) + 65536.0 * added;
@@ -8433,7 +8433,7 @@ fn an_asking_read_brings_back_the_kept_tokens_points() {
                     let unit = 2f64.powi(super::kernels::NORM_FINE_EXP);
                     let n: Vec<i64> = (0..width).map(|_| (rng.next() % (1 << 40)) as i64 - (1 << 39)).collect();
                     let mut got = n.clone();
-                    hamming.readout(window, table, &mut payloads, &mut got, None, None, None, false);
+                    hamming.readout(window, table, &mut payloads, &mut got, None, None, None, false, &mut []);
                     for k in 0..width {
                         let nf = n[k] as f64 * unit;
                         let moved = |w: i32, mean: &Option<Vec<f64>>| mean.as_ref().map_or(0.0, |m| real(w) * (m[k] - nf));
@@ -9305,7 +9305,7 @@ fn the_place_read_offers_the_tokens_point_through_the_copy_mix() {
     let tokens = &PLACE_TALK[..19];
     let mut payloads = hamming.payload_caches(40);
     let mut got = n.clone();
-    hamming.readout(tokens, table, &mut payloads, &mut got, None, None, Some(4), false);
+    hamming.readout(tokens, table, &mut payloads, &mut got, None, None, Some(4), false, &mut []);
     let point = &table[PLACE_TALK[4] as usize * width..][..width];
     let mut moved = 0;
     for k in 0..width {
@@ -9321,7 +9321,7 @@ fn the_place_read_offers_the_tokens_point_through_the_copy_mix() {
     assert!(moved > 0, "the mix moves the readout");
     // Without an offer the row reads its copy heads as before.
     let mut free = n.clone();
-    hamming.readout(tokens, table, &mut payloads, &mut free, None, None, None, false);
+    hamming.readout(tokens, table, &mut payloads, &mut free, None, None, None, false, &mut []);
     assert_ne!(free, got);
 }
 
