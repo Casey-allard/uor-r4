@@ -13474,6 +13474,289 @@ pub fn recall_query_window(
     Ok((window, queries))
 }
 
+/// claude-397: the facts that a reader of one two-class window's stream cannot tell apart from a
+/// query's other fact ([`recall_other_candidates`]). Positions are value positions `p`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct OtherFactCandidates {
+    pub slot: usize,
+    pub bucket: usize,
+    pub scored_offset: usize,
+    pub asked: usize,
+    pub other: usize,
+    /// The consistent facts, ascending; `other` is one of them.
+    pub candidates: Vec<usize>,
+    /// The window's facts, ascending.
+    pub facts: Vec<usize>,
+}
+
+/// Where one read pick lands against a query's facts. A pick is stored `s + 1`, and pick `s`
+/// copies `ids[s + 1]`, so a pick equal to a fact's value position `p` picked that fact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OtherPickClass {
+    Asked,
+    Other,
+    Candidate,
+    Fact,
+    Row,
+}
+
+impl OtherFactCandidates {
+    pub fn class(&self, pick: u32) -> OtherPickClass {
+        let p = pick as usize;
+        if pick == 0 {
+            OtherPickClass::Row
+        } else if p == self.asked {
+            OtherPickClass::Asked
+        } else if p == self.other {
+            OtherPickClass::Other
+        } else if self.candidates.contains(&p) {
+            OtherPickClass::Candidate
+        } else if self.facts.contains(&p) {
+            OtherPickClass::Fact
+        } else {
+            OtherPickClass::Row
+        }
+    }
+}
+
+/// claude-397: for each query of one window ([`recall_query_window`]), the facts consistent with
+/// being its other fact, from what the stream shows before the scored row:
+/// - not the asked fact;
+/// - not asked in an earlier slot (that query is in the stream);
+/// - at a distance `q − p` from the query inside the asked fact's bucket.
+///
+/// The episode pairing itself is a hidden shuffle, so on a query with more than one consistent
+/// fact no read of the stream can know which one is the other. (The generator also clips the
+/// bucket at `q − 2`; every fact sits at `p ≥ 2`, so the clip never removes one.) Refuses a
+/// window whose facts are not distinct, or whose other fact is not consistent.
+pub fn recall_other_candidates(queries: &[RecallQuery]) -> Result<Vec<OtherFactCandidates>> {
+    let mut facts: Vec<usize> = queries
+        .iter()
+        .flat_map(|q| [q.ask_value_pos, q.other_value_pos])
+        .collect();
+    facts.sort_unstable();
+    if facts.windows(2).any(|w| w[0] == w[1]) {
+        return Err(invalid("a two-class window's facts must be distinct"));
+    }
+    let mut out = Vec::with_capacity(queries.len());
+    for q in queries {
+        let &(low, high) = RECALL_QUERY_BUCKETS
+            .get(q.bucket)
+            .ok_or_else(|| invalid(format!("recall bucket {} is out of range", q.bucket)))?;
+        let earlier: Vec<usize> = queries
+            .iter()
+            .filter(|e| e.slot < q.slot)
+            .map(|e| e.ask_value_pos)
+            .collect();
+        let candidates: Vec<usize> = facts
+            .iter()
+            .copied()
+            .filter(|&p| {
+                p != q.ask_value_pos
+                    && p < q.query_pos
+                    && (low..=high).contains(&(q.query_pos - p))
+                    && !earlier.contains(&p)
+            })
+            .collect();
+        if !candidates.contains(&q.other_value_pos) {
+            return Err(invalid(format!(
+                "slot {}'s other fact at {} is not consistent with its stream",
+                q.slot, q.other_value_pos
+            )));
+        }
+        out.push(OtherFactCandidates {
+            slot: q.slot,
+            bucket: q.bucket,
+            scored_offset: q.scored_offset,
+            asked: q.ask_value_pos,
+            other: q.other_value_pos,
+            candidates,
+            facts: facts.clone(),
+        });
+    }
+    Ok(out)
+}
+
+/// `num / den` to three decimals, rounded half up, from integers only (`den > 0`).
+fn ratio3(num: u64, den: u64) -> String {
+    let v = (num * 1000 + den / 2) / den.max(1);
+    format!("{}.{:03}", v / 1000, v % 1000)
+}
+
+/// lcm(1..=8): every `1 / K` for a window's at most 7 consistent facts is a whole number of these.
+const OTHER_CEILING_UNIT: u64 = 840;
+
+/// claude-397's settings: which windows, the run's target files to check them against, and the
+/// saved eval picks to class.
+#[derive(Clone, Debug)]
+pub struct OtherCeilingSettings {
+    pub seed: u64,
+    pub header: usize,
+    pub windows: u64,
+    /// The held-out windows (`seed ^ RECALL_EVAL_SEED`, as the probe draws them), else TRAIN.
+    pub held: bool,
+    /// A dump path whose `.ask.u32`, `.other.u32` and `.bucket.u8` must equal these windows'.
+    pub targets: Option<PathBuf>,
+    /// Named u32 pick files, one word per row (`window * SHEET_CONTEXT + offset`).
+    pub picks: Vec<(String, PathBuf)>,
+}
+
+/// R1 for one far bucket: the consistent-set sizes and the uniform-guess ceiling `mean(1 / K)`.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct OtherCeilingBucket {
+    pub rows: u64,
+    /// `k_counts[k]` rows have `K = k`.
+    pub k_counts: [u64; 9],
+    pub k1_share: String,
+    /// `sum(840 / K)`; the ceiling is this over `840 * rows`.
+    pub ceiling_840ths: u64,
+    pub ceiling: String,
+}
+
+/// R2 and R3 for one pick file and far bucket.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct OtherPicksBucket {
+    pub rows: u64,
+    pub asked: u64,
+    pub other: u64,
+    pub candidate: u64,
+    pub fact: u64,
+    pub row: u64,
+    pub k1_rows: u64,
+    pub other_on_k1: u64,
+    pub k2_rows: u64,
+    pub other_on_k2: u64,
+    /// `P` in 840ths: `sum([pick in C] * 840 / K)`, the per-fact rate on the consistent set.
+    pub per_fact_840ths: u64,
+    /// Outcome 4's test: `A <= 2 P`.
+    pub asked_at_most_twice_per_fact: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct OtherCeilingReport {
+    pub seed: u64,
+    pub header: usize,
+    pub windows: u64,
+    pub held: bool,
+    /// Rows checked against the run's target files, when given.
+    pub targets_rows_checked: Option<u64>,
+    /// Indexed by far bucket (0, 1).
+    pub buckets: Vec<OtherCeilingBucket>,
+    pub picks: BTreeMap<String, Vec<OtherPicksBucket>>,
+}
+
+fn read_words_exact(path: &Path, words: usize, width: usize) -> Result<Vec<u8>> {
+    let bytes = fs::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+    if bytes.len() != words * width {
+        return Err(invalid(format!(
+            "{} holds {} bytes, not {words} words of {width}",
+            path.display(),
+            bytes.len()
+        )));
+    }
+    Ok(bytes)
+}
+
+fn u32_words(bytes: &[u8]) -> Vec<u32> {
+    bytes
+        .chunks_exact(4)
+        .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .collect()
+}
+
+/// claude-397: R1 to R3 of the ORDER, from integer counts. Rebuilds the windows from the seed,
+/// checks them against the run's target files when given (outcome 0), and classes every saved
+/// pick at every scored row. No model and no device.
+pub fn recall_other_ceiling(s: &OtherCeilingSettings) -> Result<OtherCeilingReport> {
+    let seed = if s.held { s.seed ^ RECALL_EVAL_SEED } else { s.seed };
+    let rows = s.windows as usize * SHEET_CONTEXT;
+    let mut sets = Vec::new();
+    for w in 0..s.windows {
+        let (_, queries) = recall_query_window(seed, w, SHEET_CONTEXT, s.header)?;
+        for c in recall_other_candidates(&queries)? {
+            sets.push((w as usize * SHEET_CONTEXT + c.scored_offset, c));
+        }
+    }
+    let targets_rows_checked = match &s.targets {
+        None => None,
+        Some(dump) => {
+            let file = |ext: &str| PathBuf::from(format!("{}.{ext}", dump.display()));
+            let ask = u32_words(&read_words_exact(&file("ask.u32"), rows, 4)?);
+            let other = u32_words(&read_words_exact(&file("other.u32"), rows, 4)?);
+            let bucket = read_words_exact(&file("bucket.u8"), rows, 1)?;
+            let (mut want_ask, mut want_other, mut want_bucket) =
+                (vec![0u32; rows], vec![0u32; rows], vec![0u8; rows]);
+            for (row, c) in &sets {
+                want_ask[*row] = c.asked as u32;
+                want_other[*row] = c.other as u32;
+                want_bucket[*row] = c.bucket as u8 + 1;
+            }
+            if ask != want_ask || other != want_other || bucket != want_bucket {
+                return Err(invalid(format!(
+                    "{}'s target files differ from the rebuilt windows",
+                    dump.display()
+                )));
+            }
+            Some(rows as u64)
+        }
+    };
+    let mut buckets = vec![OtherCeilingBucket::default(); RECALL_QUERY_BUCKETS.len()];
+    for (_, c) in &sets {
+        let k = c.candidates.len();
+        let b = &mut buckets[c.bucket];
+        b.rows += 1;
+        b.k_counts[k] += 1;
+        b.ceiling_840ths += OTHER_CEILING_UNIT / k as u64;
+    }
+    for b in &mut buckets {
+        b.k1_share = ratio3(b.k_counts[1], b.rows);
+        b.ceiling = ratio3(b.ceiling_840ths, OTHER_CEILING_UNIT * b.rows);
+    }
+    let mut picks = BTreeMap::new();
+    for (name, path) in &s.picks {
+        let words = u32_words(&read_words_exact(path, rows, 4)?);
+        let mut out = vec![OtherPicksBucket::default(); RECALL_QUERY_BUCKETS.len()];
+        for (row, c) in &sets {
+            let o = &mut out[c.bucket];
+            let k = c.candidates.len() as u64;
+            let class = c.class(words[*row]);
+            o.rows += 1;
+            match class {
+                OtherPickClass::Asked => o.asked += 1,
+                OtherPickClass::Other => o.other += 1,
+                OtherPickClass::Candidate => o.candidate += 1,
+                OtherPickClass::Fact => o.fact += 1,
+                OtherPickClass::Row => o.row += 1,
+            }
+            let hit = class == OtherPickClass::Other;
+            if k == 1 {
+                o.k1_rows += 1;
+                o.other_on_k1 += u64::from(hit);
+            } else {
+                o.k2_rows += 1;
+                o.other_on_k2 += u64::from(hit);
+            }
+            if matches!(class, OtherPickClass::Other | OtherPickClass::Candidate) {
+                o.per_fact_840ths += OTHER_CEILING_UNIT / k;
+            }
+        }
+        for o in &mut out {
+            o.asked_at_most_twice_per_fact =
+                o.asked * OTHER_CEILING_UNIT <= 2 * o.per_fact_840ths;
+        }
+        picks.insert(name.clone(), out);
+    }
+    Ok(OtherCeilingReport {
+        seed: s.seed,
+        header: s.header,
+        windows: s.windows,
+        held: s.held,
+        targets_rows_checked,
+        buckets,
+        picks,
+    })
+}
+
 /// One recall checkpoint's reading, one line of `recall.jsonl` ([`run_recall`]).
 #[derive(Clone, Debug, Serialize)]
 pub struct RecallReading {
@@ -18034,6 +18317,125 @@ mod tests {
             assert!(!fh::hold_off(), "{ablation:?}");
             assert!(fh::take_row_capture().is_none(), "{ablation:?}");
         }
+    }
+
+    /// A hand-built query: slot, bucket, query position, asked and other value positions.
+    fn other_query(slot: usize, bucket: usize, q: usize, pa: usize, po: usize) -> RecallQuery {
+        RecallQuery {
+            slot,
+            bucket,
+            j: 0,
+            query_pos: q,
+            scored_offset: q + 4,
+            ask_relation: 16,
+            other_relation: 17,
+            ask_value: 528,
+            other_value: 529,
+            ask_value_pos: pa,
+            other_value_pos: po,
+            ask_distance: q - pa,
+            other_distance: q - po,
+            ask_nearer: q - pa < q - po,
+            ask_first: pa < po,
+            values: Vec::new(),
+        }
+    }
+
+    /// claude-397: the consistent sets on a hand-built window (buckets 33–96 and 97–180). Slot 2
+    /// keeps 90 and 120 but not 100, slot 0's asked fact; slot 3 likewise drops 20.
+    #[test]
+    fn recall_other_candidates_follow_the_stream() {
+        let window = [
+            other_query(0, 0, 150, 100, 90),
+            other_query(1, 1, 156, 20, 30),
+            other_query(2, 0, 162, 110, 120),
+            other_query(3, 1, 168, 40, 50),
+        ];
+        let sets = recall_other_candidates(&window).unwrap();
+        let got: Vec<Vec<usize>> = sets.iter().map(|c| c.candidates.clone()).collect();
+        assert_eq!(got, vec![vec![90, 110], vec![30, 40, 50], vec![90, 120], vec![30, 50]]);
+        assert_eq!(sets[0].facts, vec![20, 30, 40, 50, 90, 100, 110, 120]);
+        let c = &sets[0];
+        assert_eq!(c.class(100), OtherPickClass::Asked);
+        assert_eq!(c.class(90), OtherPickClass::Other);
+        assert_eq!(c.class(110), OtherPickClass::Candidate);
+        assert_eq!(c.class(20), OtherPickClass::Fact);
+        assert_eq!(c.class(0), OtherPickClass::Row);
+        assert_eq!(c.class(5), OtherPickClass::Row);
+        // K = 1: slot 2's facts move to 125 and 130, out of slot 0's range.
+        let one = [
+            other_query(0, 0, 150, 100, 90),
+            other_query(1, 1, 156, 20, 30),
+            other_query(2, 0, 162, 130, 125),
+            other_query(3, 1, 168, 40, 50),
+        ];
+        assert_eq!(recall_other_candidates(&one).unwrap()[0].candidates, vec![90]);
+        // Refusals: a repeated fact, and an other fact outside the asked fact's bucket.
+        let mut twice = window.clone();
+        twice[3].other_value_pos = 20;
+        assert!(recall_other_candidates(&twice).is_err());
+        let mut far = window.clone();
+        far[0].other_value_pos = 140;
+        let refused = recall_other_candidates(&far).unwrap_err().to_string();
+        assert!(refused.contains("not consistent"), "{refused}");
+    }
+
+    /// claude-397: on real windows the other fact is always consistent, the target check passes
+    /// on the files the run would write and fails on one changed word, and picks that copy the
+    /// other fact class as `other` everywhere.
+    #[test]
+    fn recall_other_ceiling_reads_real_windows() {
+        let dir = std::env::temp_dir().join(format!("recall-other-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let (seed, header, windows) = (1u64, 4usize, 8u64);
+        let rows = windows as usize * SHEET_CONTEXT;
+        let (mut ask, mut other, mut bucket) = (vec![0u32; rows], vec![0u32; rows], vec![0u8; rows]);
+        for w in 0..windows {
+            let (_, qs) =
+                recall_query_window(seed ^ RECALL_EVAL_SEED, w, SHEET_CONTEXT, header).unwrap();
+            for q in qs {
+                let row = w as usize * SHEET_CONTEXT + q.scored_offset;
+                ask[row] = q.ask_value_pos as u32;
+                other[row] = q.other_value_pos as u32;
+                bucket[row] = q.bucket as u8 + 1;
+            }
+        }
+        let bytes = |v: &[u32]| v.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>();
+        let dump = dir.join("held.q31");
+        fs::write(dir.join("held.q31.ask.u32"), bytes(&ask)).unwrap();
+        fs::write(dir.join("held.q31.other.u32"), bytes(&other)).unwrap();
+        fs::write(dir.join("held.q31.bucket.u8"), &bucket).unwrap();
+        fs::write(dir.join("other.picks"), bytes(&other)).unwrap();
+        let settings = OtherCeilingSettings {
+            seed,
+            header,
+            windows,
+            held: true,
+            targets: Some(dump.clone()),
+            picks: vec![("other".into(), dir.join("other.picks"))],
+        };
+        let report = recall_other_ceiling(&settings).unwrap();
+        assert_eq!(report.targets_rows_checked, Some(rows as u64));
+        let total: u64 = report.buckets.iter().map(|b| b.rows).sum();
+        assert_eq!(total, windows * RECALL_QUERY_EPISODES as u64);
+        for b in &report.buckets {
+            assert_eq!(b.k_counts[0], 0, "the other fact is always consistent");
+            assert_eq!(b.k_counts.iter().sum::<u64>(), b.rows);
+        }
+        for o in &report.picks["other"] {
+            assert_eq!(o.other, o.rows);
+            assert_eq!(o.other_on_k1, o.k1_rows);
+            assert_eq!(o.other_on_k2, o.k2_rows);
+        }
+        let mut wrong = other.clone();
+        let first = wrong.iter().position(|&x| x != 0).unwrap();
+        wrong[first] += 1;
+        fs::write(dir.join("held.q31.other.u32"), bytes(&wrong)).unwrap();
+        assert!(recall_other_ceiling(&settings).is_err(), "a changed target word is refused");
+        assert_eq!(ratio3(1, 3), "0.333");
+        assert_eq!(ratio3(2, 3), "0.667");
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     /// claude-328's I-2 balance over 10,000 windows of each form. In each bucket × slot cell (about
