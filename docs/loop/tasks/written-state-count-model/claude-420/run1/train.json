@@ -1,0 +1,34 @@
+{
+  "byte_rule": "a target's bytes are its id's decoded UTF-8 length (BOS, EOS, UNK: 0); for every record they sum to its text bytes minus its dropped bytes (bytes the vocabulary cannot emit), checked record by record",
+  "dropped_bytes": 0,
+  "files": [
+    {
+      "bytes": 4183120066,
+      "file": "train.tokens.u16",
+      "sha256": "c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460"
+    },
+    {
+      "bytes": 2091560001,
+      "file": "train.mask.u8",
+      "sha256": "2bdbb283e7dcb12709a0cc3c4ce86f3c5d7032aab0b3171f85ebe3b1bdb1a2a8"
+    },
+    {
+      "bytes": 2091560001,
+      "file": "train.segment.u8",
+      "sha256": "c08e818b0a27b7aaccdfce57b2086056e5919e5baf68dfba5bd4f7dd014b7267"
+    }
+  ],
+  "id_bytes_sha256": "befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9",
+  "novel": null,
+  "order": "shard paths sorted, then line order (claude-411's plan); each record framed BOS ... EOS, never across records",
+  "records": 519580,
+  "response_bytes": 3733901727,
+  "response_targets": 1835726031,
+  "split": "train",
+  "target_bytes": 4258944309,
+  "targets": 2091040421,
+  "text_bytes": 4258944309,
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "tokens": 2091560001,
+  "unit": "claude-420"
+}

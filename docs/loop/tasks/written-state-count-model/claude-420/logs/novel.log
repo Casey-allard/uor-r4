@@ -1,0 +1,5 @@
+{"records":5321,"tokens":21354897,"targets":21349576,"target_bytes":43326982,"dropped_bytes":0,"response_targets":18751676,"novel":{"novel":{"bytes":31328319,"response_bytes":29964782,"response_targets":14190847,"targets":14795227},"seen":{"bytes":11853818,"response_bytes":8030634,"response_targets":4560829,"targets":6490497},"short_context":{"bytes":144845,"response_bytes":0,"response_targets":0,"targets":63852}}}
+{"all":{"novel":14795227,"short_context":63852,"targets":21349576,"with_13_context":21285724},"response_mask":{"novel":14190847,"short_context":0,"targets":18751676,"with_13_context":18751676},"rule":"dev-test next-token targets whose 13 preceding tokens (one record) form a gram not in TRAIN; targets with under 13 preceding tokens are counted apart"}
+{"records":519580,"tokens":2091560001}
+{"records":2670,"tokens":10810087}
+{"records":519580,"tokens":2091560001}

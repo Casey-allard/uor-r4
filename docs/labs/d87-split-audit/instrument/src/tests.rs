@@ -27,11 +27,16 @@ fn byte_char(b: u8) -> char {
 
 /// A byte-level tokenizer with no merges: one token per text byte.
 fn coder() -> Coder {
+    coder_missing(&[])
+}
+
+/// The same tokenizer without the bytes in `missing`, which it then drops (claude-420).
+fn coder_missing(missing: &[u8]) -> Coder {
     let mut vocab = serde_json::Map::new();
     for (i, name) in ["<|bos|>", "<|eos|>", "<|unk|>"].iter().enumerate() {
         vocab.insert(name.to_string(), json!(i));
     }
-    for b in 0u16..256 {
+    for b in (0u16..256).filter(|&b| !missing.contains(&(b as u8))) {
         let id = vocab.len();
         vocab.insert(byte_char(b as u8).to_string(), json!(id));
     }
@@ -572,4 +577,202 @@ fn the_copied_and_residue_lists_do_not_depend_on_thread_count() {
         let (a, x) = copied_fixture(threads, 2, &[], &[]).unwrap();
         assert_eq!((a, x.copied_found, x.residue), (one.clone(), x1.copied_found.clone(), x1.residue.clone()), "threads = {threads}");
     }
+}
+
+// claude-420: the sealed per-split streams.
+
+const SHARED: &str = "moQWERTYUIOPLKJnp";
+const CLASS_NAMES: [&str; 3] = ["seen", "novel", "short_context"];
+
+/// Three shards with every split present.
+/// - TRAIN `t1` and DEV-test `x1` share the 19-token run " moQWERTYUIOPLKJnp ", so seven DEV-test
+///   windows are in TRAIN.
+/// - DEV-tune `u2` shares the 18-token run " moQWERTYUIOPLKJnp", so six are.
+/// - TRAIN `t2` holds 中, whose first byte 0xe4 the stream coder cannot emit.
+///
+/// No DEV record has reasoning, every TRAIN prompt ends in '.', and no DEV answer starts with a
+/// TRAIN answer's first letter (w, s, t). So no frame text makes another shared 13-gram, such as
+/// "\nAssistant: t".
+fn stream_shards(d: &Dir, sp: &Splitter) -> Vec<PathBuf> {
+    let q = |stem: &str, end: char, s: Split| prompt_in(sp, stem, end, s);
+    let (train, tune, test) = (Split::Train, Split::DevTune, Split::DevTest);
+    vec![
+        d.shard("a.jsonl", &[
+            rec("t1", &[&q("ta", '.', train)], &[("why", &format!("train {SHARED} one"))]),
+            rec("u1", &[&q("ua", '?', tune)], &[("", "one tuned answer")]),
+            rec("x1", &[&q("xa", '?', test)], &[("", &format!("dev {SHARED} tail"))]),
+        ]),
+        d.shard("b.jsonl.zst", &[
+            rec("t2", &[&q("tb", '.', train)], &[("", "second 中 record")]),
+            rec("x2", &[&q("xb", '?', test)], &[("", "fresh words only here")]),
+        ]),
+        d.shard("c.jsonl", &[
+            rec("t3", &[&q("tc", '.', train)], &[("", "third")]),
+            rec("u2", &[&q("ub", '?', tune)], &[("", SHARED)]),
+        ]),
+    ]
+}
+
+fn stream_splitter() -> Splitter {
+    Splitter::new(Config { dev_tune: (1, 3), dev_test: (1, 3), ..Config::default() }).unwrap()
+}
+
+fn stream_coder() -> Coder {
+    coder_missing(&[0xe4])
+}
+
+/// The plan and `write_streams`' summaries of the stream fixture, written to `<d>/out`.
+fn stream_run(d: &Dir, threads: usize) -> (Plan, Vec<Value>) {
+    let sp = stream_splitter();
+    let p = plan(&sp, &stream_shards(d, &sp), threads).unwrap();
+    let v = streams::write_streams(&p, &stream_coder(), threads, 12, &d.0.join("out"), "fixture").unwrap();
+    (p, v)
+}
+
+/// One split as claude-403's `Ingest` writer makes it from the same records in plan order.
+fn ingest_reference(p: &Plan, c: &Coder, s: Split) -> [Vec<u8>; 3] {
+    let mut ing = Ingest::new(Cursor::new(vec![]), vec![], vec![]).unwrap();
+    for ((path, _), fate) in p.shards.iter().zip(&p.fate) {
+        let mut i = 0usize;
+        read_shard(path, &mut |line| {
+            let f = fate[i];
+            i += 1;
+            if f == Fate::Keep(s) {
+                ing.add(c, &parse_record(line)?)?;
+            }
+            Ok(())
+        })
+        .unwrap();
+    }
+    let (t, m, g, _) = ing.finish().unwrap();
+    [t.into_inner(), m, g]
+}
+
+fn read_out(out: &Path, s: Split, ext: &str) -> Vec<u8> {
+    std::fs::read(out.join(format!("{}.{ext}", s.name()))).unwrap()
+}
+
+#[test]
+fn streams_equal_the_ingest_writer() {
+    let d = Dir::new("streams-ref");
+    let (p, v) = stream_run(&d, 2);
+    let out = d.0.join("out");
+    for (s, records) in SPLITS.iter().zip([3, 2, 2]) {
+        let w = &v[s.ix()];
+        assert_eq!(w["records"], records, "{}", s.name());
+        let want = ingest_reference(&p, &stream_coder(), *s);
+        for (k, ext) in ["tokens.u16", "mask.u8", "segment.u8"].iter().enumerate() {
+            let got = read_out(&out, *s, ext);
+            assert_eq!(got, want[k], "{} {ext}", s.name());
+            assert_eq!(w["files"][k]["sha256"], hex(&sha(&[&got])), "{} {ext}", s.name());
+        }
+        assert_eq!(w["tokens"].as_u64().unwrap() * 2 + UORT_HEADER as u64, want[0].len() as u64);
+    }
+    assert!(!out.join("parts").exists());
+    let table = std::fs::read(out.join("id-bytes.u8")).unwrap();
+    assert_eq!((table.len(), &table[..3]), (4096, &[0u8, 0, 0][..]));
+}
+
+#[test]
+fn streams_do_not_depend_on_shard_order_or_threads() {
+    let d = Dir::new("streams-order");
+    let (sp, c) = (stream_splitter(), stream_coder());
+    let mut shards = stream_shards(&d, &sp);
+    let p1 = plan(&sp, &shards, 1).unwrap();
+    shards.reverse();
+    let p3 = plan(&sp, &shards, 3).unwrap();
+    let (o1, o3) = (d.0.join("o1"), d.0.join("o3"));
+    streams::write_streams(&p1, &c, 1, 12, &o1, "fixture").unwrap();
+    streams::write_streams(&p3, &c, 3, 12, &o3, "fixture").unwrap();
+    let names = |o: &Path| {
+        let mut n: Vec<_> = std::fs::read_dir(o).unwrap().map(|e| e.unwrap().file_name()).collect();
+        n.sort();
+        n
+    };
+    // id-bytes, four TRAIN files, five per DEV split.
+    assert_eq!(names(&o1).len(), 15);
+    assert_eq!(names(&o1), names(&o3));
+    for n in names(&o1) {
+        assert_eq!(std::fs::read(o1.join(&n)).unwrap(), std::fs::read(o3.join(&n)).unwrap(), "{n:?}");
+    }
+}
+
+#[test]
+fn novel_classes_match_the_audit_and_the_hand_count() {
+    let d = Dir::new("streams-novel");
+    let (p, v) = stream_run(&d, 2);
+    let a = audit(&p, &stream_coder(), 2, 12).unwrap();
+    let (n, all, resp) = (&v[Split::DevTest.ix()]["novel"]["classes"], &a["novel_targets"]["all"], &a["novel_targets"]["response_mask"]);
+    assert_eq!(n["seen"]["targets"], 7, "{n:#}");
+    assert_eq!(n["novel"]["targets"], all["novel"]);
+    assert_eq!(n["short_context"]["targets"], all["short_context"]);
+    assert_eq!(n["novel"]["response_targets"], resp["novel"]);
+    let sum: u64 = CLASS_NAMES.iter().map(|k| n[k]["targets"].as_u64().unwrap()).sum();
+    assert_eq!(json!(sum), all["targets"]);
+    assert_eq!(v[Split::DevTest.ix()]["targets"], all["targets"]);
+    assert_eq!(v[Split::DevTune.ix()]["novel"]["classes"]["seen"]["targets"], 6);
+    assert_eq!(v[Split::Train.ix()]["novel"], json!(null));
+    // By hand: per record, BOS is 3, the next 12 positions are 2, and the rest are 0 or 1.
+    let out = d.0.join("out");
+    for s in [Split::DevTune, Split::DevTest] {
+        let nv = read_out(&out, s, "novel.u8");
+        let toks = read_out(&out, s, "tokens.u16");
+        let ids: Vec<u16> = toks[UORT_HEADER..].chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
+        assert_eq!(ids.len(), nv.len());
+        let starts: Vec<usize> = (0..ids.len()).filter(|&j| ids[j] == 0).collect();
+        assert_eq!(starts.len(), 2);
+        for (j, &k) in nv.iter().enumerate() {
+            let e = j - starts.iter().rev().find(|&&b| b <= j).unwrap();
+            match e {
+                0 => assert_eq!(k, streams::FRAME, "{} position {j}", s.name()),
+                e if e < GRAM => assert_eq!(k, streams::SHORT, "{} position {j}", s.name()),
+                _ => assert!(k == streams::SEEN || k == streams::NOVEL, "{} position {j}", s.name()),
+            }
+        }
+    }
+}
+
+#[test]
+fn target_bytes_are_text_bytes_less_the_dropped() {
+    let d = Dir::new("streams-bytes");
+    let (_, v) = stream_run(&d, 2);
+    let u = |w: &Value, k: &str| w[k].as_u64().unwrap();
+    let t = &v[Split::Train.ix()];
+    // 中 is e4 b8 ad: e4 is dropped, b8 and ad are one-byte tokens.
+    assert_eq!(u(t, "dropped_bytes"), 1);
+    assert_eq!(u(t, "target_bytes") + 1, u(t, "text_bytes"));
+    let x = &v[Split::DevTest.ix()];
+    assert_eq!((u(x, "dropped_bytes"), u(x, "target_bytes")), (0, u(x, "text_bytes")));
+    // One token per byte, so the targets are the bytes plus one EOS per record.
+    assert_eq!(u(x, "targets"), u(x, "target_bytes") + 2);
+    // Response: " dev moQWERTYUIOPLKJnp tail" (27) and " fresh words only here" (22), plus each EOS.
+    assert_eq!((u(x, "response_bytes"), u(x, "response_targets")), (49, 51));
+}
+
+#[test]
+fn a_shard_inside_out_or_a_stale_parts_folder_is_refused() {
+    let d = Dir::new("streams-refuse");
+    let (sp, c) = (stream_splitter(), stream_coder());
+    let p = plan(&sp, &stream_shards(&d, &sp), 2).unwrap();
+    // The shards sit in `d`, so an --out of `d` itself, or of `d/.` , holds them.
+    for out in [d.0.clone(), d.0.join(".")] {
+        let e = streams::write_streams(&p, &c, 2, 12, &out, "fixture").unwrap_err();
+        assert!(e.contains("is inside --out"), "{e}");
+    }
+    let out = d.0.join("out");
+    std::fs::create_dir_all(out.join("parts")).unwrap();
+    let e = streams::write_streams(&p, &c, 2, 12, &out, "fixture").unwrap_err();
+    assert!(e.contains("parts exists"), "{e}");
+}
+
+#[test]
+fn a_wrong_byte_table_is_refused() {
+    let c = stream_coder();
+    let t = tokenize(&c, &rec("r", &["hi there"], &[("", "an answer")])).unwrap();
+    let mut table = streams::id_bytes(&c).unwrap();
+    let text: u64 = t.seg_bytes.iter().sum();
+    assert_eq!(streams::target_bytes(&t, &table), Ok(text));
+    table[t.tokens[3] as usize] += 1;
+    let e = streams::target_bytes(&t, &table).unwrap_err();
+    assert!(e.contains("decode to"), "{e}");
 }

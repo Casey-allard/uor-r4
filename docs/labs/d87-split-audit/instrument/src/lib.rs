@@ -437,6 +437,8 @@ pub struct Tok {
     pub response: u64,
     pub seg_bytes: [u64; 4],
     pub seg_tokens: [u64; 4],
+    /// Text bytes the vocabulary cannot emit, so no token holds them (claude-420).
+    pub dropped_bytes: u64,
 }
 
 pub fn tokenize(coder: &Coder, line: &str) -> Result<Tok, String> {
@@ -446,14 +448,15 @@ pub fn tokenize(coder: &Coder, line: &str) -> Result<Tok, String> {
     let (t, mask, segments, stats) = ing.finish().map_err(|e| e.to_string())?;
     let t = t.into_inner();
     let tokens = t[UORT_HEADER..].chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]]) as u32).collect();
-    let (mut seg_bytes, mut seg_tokens) = ([0u64; 4], [0u64; 4]);
+    let (mut seg_bytes, mut seg_tokens, mut dropped_bytes) = ([0u64; 4], [0u64; 4], 0u64);
     for s in SEGMENTS {
         let c = &stats.per_segment[&s];
         seg_bytes[s as usize] = c.text_bytes;
         seg_tokens[s as usize] = c.tokens;
+        dropped_bytes += c.dropped_bytes;
     }
     let response = mask.iter().filter(|&&m| m == 1).count() as u64;
-    Ok(Tok { id: rec.id, tokens, segments, mask, response, seg_bytes, seg_tokens })
+    Ok(Tok { id: rec.id, tokens, segments, mask, response, seg_bytes, seg_tokens, dropped_bytes })
 }
 
 /// The unpacked ids of a packed 13-gram.
@@ -1261,6 +1264,8 @@ fn audit_with(plan: &Plan, coder: &Coder, threads: usize, bloom_log2: u32, opts:
     let classify = classify_top.and_then(|k| spans.iter().find(|s| s.n == GATE_SPAN)?.classify(&dev_test, k));
     Ok((v, Extras { templates, contaminated, classify, drop_found, copied_found, residue }))
 }
+
+pub mod streams;
 
 #[cfg(test)]
 mod tests;

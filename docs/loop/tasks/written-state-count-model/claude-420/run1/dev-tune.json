@@ -1,0 +1,61 @@
+{
+  "byte_rule": "a target's bytes are its id's decoded UTF-8 length (BOS, EOS, UNK: 0); for every record they sum to its text bytes minus its dropped bytes (bytes the vocabulary cannot emit), checked record by record",
+  "dropped_bytes": 0,
+  "files": [
+    {
+      "bytes": 21620238,
+      "file": "dev-tune.tokens.u16",
+      "sha256": "75c6d1ac479bf120bac3aa60ac160536e8146f8052aa49c002209500799b7d0a"
+    },
+    {
+      "bytes": 10810087,
+      "file": "dev-tune.mask.u8",
+      "sha256": "cf359a0ec251aef3a27f18e245699f4cb685b97c53e704857258c8629542c6f6"
+    },
+    {
+      "bytes": 10810087,
+      "file": "dev-tune.segment.u8",
+      "sha256": "202efde41523829869fe0b728f174ab04e98229d8446c17b2190ec926ec4b9b4"
+    },
+    {
+      "bytes": 10810087,
+      "file": "dev-tune.novel.u8",
+      "sha256": "7df42437260bb767e2b1bdfd0cc55a242bd6e0b632a5bcd754852a7ab8aca6af"
+    }
+  ],
+  "id_bytes_sha256": "befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9",
+  "novel": {
+    "classes": {
+      "novel": {
+        "bytes": 15995822,
+        "response_bytes": 15302949,
+        "response_targets": 7258229,
+        "targets": 7566174
+      },
+      "seen": {
+        "bytes": 5859877,
+        "response_bytes": 3983810,
+        "response_targets": 2265729,
+        "targets": 3209203
+      },
+      "short_context": {
+        "bytes": 72776,
+        "response_bytes": 0,
+        "response_targets": 0,
+        "targets": 32040
+      }
+    },
+    "rule": "per position: 0 seen (the 13 preceding tokens of one record form a 13-gram in TRAIN), 1 novel (they do not), 2 short context (under 13 preceding tokens), 3 BOS (never a target); claude-411's rule"
+  },
+  "order": "shard paths sorted, then line order (claude-411's plan); each record framed BOS ... EOS, never across records",
+  "records": 2670,
+  "response_bytes": 19286759,
+  "response_targets": 9523958,
+  "split": "dev-tune",
+  "target_bytes": 21928475,
+  "targets": 10807417,
+  "text_bytes": 21928475,
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "tokens": 10810087,
+  "unit": "claude-420"
+}

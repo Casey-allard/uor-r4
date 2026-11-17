@@ -1,0 +1,15 @@
+same dev-test.json
+same dev-test.mask.u8
+same dev-test.novel.u8
+same dev-test.segment.u8
+same dev-test.tokens.u16
+same dev-tune.json
+same dev-tune.mask.u8
+same dev-tune.novel.u8
+same dev-tune.segment.u8
+same dev-tune.tokens.u16
+same id-bytes.u8
+same train.json
+same train.mask.u8
+same train.segment.u8
+same train.tokens.u16

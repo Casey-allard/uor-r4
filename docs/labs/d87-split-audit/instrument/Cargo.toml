@@ -23,6 +23,10 @@ path = "src/bin/d87-split.rs"
 name = "d87-audit"
 path = "src/bin/d87-audit.rs"
 
+[[bin]]
+name = "d87-streams"
+path = "src/bin/d87-streams.rs"
+
 [dependencies]
 serde_json = "1"
 sha2 = "0.10.8"

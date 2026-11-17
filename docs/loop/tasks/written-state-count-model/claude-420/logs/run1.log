@@ -1,0 +1,4 @@
+d87-streams: "train": 519580 records, 2091560001 tokens, 4258944309 target bytes, 0 dropped bytes
+d87-streams: "dev-tune": 2670 records, 10810087 tokens, 21928475 target bytes, 0 dropped bytes
+d87-streams: "dev-test": 5321 records, 21354897 tokens, 43326982 target bytes, 0 dropped bytes
+run1 threads 16 seconds 376
