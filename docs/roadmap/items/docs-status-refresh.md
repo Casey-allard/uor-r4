@@ -3,7 +3,7 @@ id: docs-status-refresh
 title: Bring every status page, picture and tracker up to 31 Oct 2026
 milestone: research
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []
@@ -19,9 +19,9 @@ On 30 Oct the owner assigned Kimi the follow-up: "Please make sure the documenta
 
 ## What is missing
 
-**November 17, 2026.** The October 31 milestone facts and November 14 public updates are preserved. The November 17 unit reconciles the source roadmap, live issue and milestone text, public research guide and hosted book. Content, published read-back and the tracker each need their own verification. [claude-382 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/docs-status-refresh/claude-382/REPORT.md) · [Issue #2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)
+**Completed November 17, 2026.** The October 31 inventory and figure checks, November 14 status review, and November 17 public research guide are preserved. The official site publication and live Studio read-back passed. The merged roadmap sync updated 48 issues and the M1/M2 child checklists, then reported zero further changes. The protected PM-cover render matched its inputs on fresh main. [Closure evidence](../../loop/tasks/docs-status-refresh/codex-20/REPORT.md) · [Publication](https://github.com/UOR-Foundation/uor-r4/actions/runs/44175919468) · [Protected render](https://github.com/UOR-Foundation/uor-r4/pull/4071)
 
-**Item-start gap narrative, now historical except post-merge issue/render verification.**
+**Historical gaps at item start.**
 
 - **M1 closed after the 29 Oct refresh.** #2029 and claude-211 record two saved integer artifacts passing all six bars, but the README, root roadmap, book, milestone cache, status figures, crate READMEs and Studio text still carry earlier states. The older `m1-close-grade.json` covers bars (a)–(e); claude-211's `panel-score.json` and REPORT supply bar (f), and both parts belong in the cancel probe.
 - **Current pages and tracker inputs mix dates and model paths.** K16's dated negative is sometimes presented as the current best; the saved discrete M1 model is conflated with the separate float-trained FBS trunk; `m1-close-saved-model` still says five bars and `m1-heldout-phrasing-transfer` still says M1 stays open.
@@ -38,6 +38,8 @@ On 30 Oct the owner assigned Kimi the follow-up: "Please make sure the documenta
 6. **A source-linked facts sheet, one fresh exact-head review and one REPORT** cover the whole diff, the negative scope and any unrun checks.
 
 ## How to start
+
+The following delivery steps are retained as the original work plan. The November 17 [closure report](../../loop/tasks/docs-status-refresh/codex-20/REPORT.md) records their completion.
 
 - **Completed:** scope PR #3431 merged, #3380 was reopened, and roadmap sync ran; sync does not itself reopen closed issues. The facts sheet was then written from #2029, claude-211 and the latest merged REPORTs before public prose changed.
 - Inventory living pages and edit them in coherent front-door, book, figure and tracker commits. Do not race Claude's active research, antigravity-113's two held mechanism pages, or a competing documentation draft.

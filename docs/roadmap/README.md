@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 32 |
+| ready | 31 |
 | held | 11 |
 | decision | 0 |
-| done | 113 |
+| done | 114 |
 | total | 156 |
 
 ## Start here
@@ -153,7 +153,6 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Run and grade the bounded CPU training pilot](items/cpu-training-pilot.md) | ready | a lab | no | [cpu-discrete-training-path](items/cpu-discrete-training-path.md), [cpu-shared-vector-train](items/cpu-shared-vector-train.md), [cpu-quantization-exact-memory](items/cpu-quantization-exact-memory.md), [cpu-whole-path-exact-updates](items/cpu-whole-path-exact-updates.md) | [#3506](https://github.com/UOR-Foundation/uor-r4/issues/3506) |
 | [Book page freshness records, a staged banner, and mdBook 0.5](items/docs-site-freshness.md) | ready | a lab | no | none | [#3972](https://github.com/UOR-Foundation/uor-r4/issues/3972) |
-| [Bring every status page, picture and tracker up to 31 Oct 2026](items/docs-status-refresh.md) | ready | a lab | no | none | [#3380](https://github.com/UOR-Foundation/uor-r4/issues/3380) |
 | [Connect training and integer serving behind shared stage interfaces](items/end-to-end-integration.md) | ready | a lab | no | [integer-hamming-read](items/integer-hamming-read.md), [fbs-serving-kernels](items/fbs-serving-kernels.md), [native-space-state-contract](items/native-space-state-contract.md) | [#4064](https://github.com/UOR-Foundation/uor-r4/issues/4064) |
 | [One kernel list for the float crate, and fused kernels for the served quantizers](items/float-kernel-fusion.md) | ready | a lab | yes | none | [#3678](https://github.com/UOR-Foundation/uor-r4/issues/3678) |
 | [Build a lawful GPU comparator for the historical S1.4 icosian snap replay](items/icosian-snap-parity.md) | ready | anyone | yes | none | [#2655](https://github.com/UOR-Foundation/uor-r4/issues/2655) |
@@ -184,6 +183,7 @@ These items are ready and open to anyone.
 | [Train the CPU shared-vector path with a lawful rank margin](items/cpu-shared-vector-train.md) | done | a lab | no | [cpu-shared-vector-forward](items/cpu-shared-vector-forward.md) | [#3505](https://github.com/UOR-Foundation/uor-r4/issues/3505) |
 | [Authorize and sequence systematic CPU training repair](items/cpu-training-program.md) | done | a lab | no | none | [#3507](https://github.com/UOR-Foundation/uor-r4/issues/3507) |
 | [Resolve the whole-path update premise and retain transaction/replay evidence](items/cpu-whole-path-exact-updates.md) | done | a lab | no | [cpu-training-program](items/cpu-training-program.md), [cpu-discrete-writer-core](items/cpu-discrete-writer-core.md) | [#3510](https://github.com/UOR-Foundation/uor-r4/issues/3510) |
+| [Bring every status page, picture and tracker up to 31 Oct 2026](items/docs-status-refresh.md) | done | a lab | no | none | [#3380](https://github.com/UOR-Foundation/uor-r4/issues/3380) |
 | [Profile one training step and one served token, stage by stage](items/fbs-cost-profile.md) | done | a lab | yes | none | [#3381](https://github.com/UOR-Foundation/uor-r4/issues/3381) |
 | [Cache teacher-forced FBS queries for CPU readout experiments](items/fbs-query-cache.md) | done | a lab | no | none | [#3801](https://github.com/UOR-Foundation/uor-r4/issues/3801) |
 | [Split each served FBS layer, then make its largest parts faster, exactly](items/fbs-serving-kernels.md) | done | a lab | no | [fbs-cost-profile](items/fbs-cost-profile.md) | [#3382](https://github.com/UOR-Foundation/uor-r4/issues/3382) |
