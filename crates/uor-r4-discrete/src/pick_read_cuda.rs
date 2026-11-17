@@ -432,11 +432,11 @@ fn cuda_pick_gate_counterfactuals_equal_the_moved_models_forward_loss() {
                 .expect("gate proposal")
                 .candidate_losses()
                 .expect("losses");
-            for lane in 0..3 {
+            for (lane, &loss) in losses[..3].iter().enumerate() {
                 let mut gates = snapshot.gates.clone();
                 gates[index] = sibling(gates[index], lane);
                 let want = if index % stages == 0 { loss_of(&gates) } else { current };
-                assert_eq!(losses[lane], want, "{mode:?} gate {index} lane {lane}");
+                assert_eq!(loss, want, "{mode:?} gate {index} lane {lane}");
                 moved |= want != current;
                 lanes_compared += 1;
             }

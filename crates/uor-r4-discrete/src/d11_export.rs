@@ -565,6 +565,10 @@ fn import_d11_with_snapshot_hash(bytes: &[u8], require_snapshot_hash: bool) -> R
     Ok(snapshot)
 }
 
+fn is_zero(value: &u32) -> bool {
+    *value == 0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -830,8 +834,4 @@ mod tests {
         flipped_tail[last] ^= 1;
         assert!(import_d11(&flipped_tail).is_err());
     }
-}
-
-fn is_zero(value: &u32) -> bool {
-    *value == 0
 }

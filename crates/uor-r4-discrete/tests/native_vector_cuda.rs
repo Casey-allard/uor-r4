@@ -294,8 +294,8 @@ fn cuda_first_pick_read_matches_ties_saturation_and_refusals() -> uor_r4_discret
     // Row 9 matches rows 0, 3 and 6 exactly; the tie goes to row 6.
     assert_eq!(output.picks[9], 7);
     assert_eq!(output.picks[time + 9], 7);
-    assert!(output.out.iter().any(|&word| word == ONE));
-    assert!(output.out.iter().any(|&word| word == -ONE));
+    assert!(output.out.contains(&ONE));
+    assert!(output.out.contains(&-ONE));
 
     let bad_ids: Vec<u32> = ids.iter().map(|&id| id + 1).collect();
     assert!(read.apply(&stream, &bad_ids, &table, batch, time).is_err());

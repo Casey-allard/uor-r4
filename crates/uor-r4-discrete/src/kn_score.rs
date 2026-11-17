@@ -525,7 +525,7 @@ mod tests {
         let sum: u128 = (0..4096u16)
             .map(|w| u128::from(tables.mass(&[w], 0).expect("mass")))
             .sum();
-        assert!(sum <= M && sum >= M - 3 * 4096, "sum {sum}");
+        assert!((M - 3 * 4096..=M).contains(&sum), "sum {sum}");
     }
 
     /// Every history's 4,096 masses sum to M up to the floors: less than three
@@ -614,7 +614,7 @@ mod tests {
             state ^= state >> 7;
             state ^= state << 17;
             let r = (state >> 16) as u32;
-            stream.push(if r % 300 == 0 {
+            stream.push(if r.is_multiple_of(300) {
                 NGRAM_BOS
             } else {
                 (5 + (r >> 9) % 40) as u16

@@ -3,6 +3,10 @@
 //! or runs, and a consistent planted single-count change moves it. Run on wick's 4090
 //! with `--release` (the ten-million-token oracle is slow in a debug build).
 
+// The seeds are written `0x<unit>_<case>` (`0x412_1` is claude-412's first case), so their
+// digit groups name the unit and the case rather than bytes.
+#![allow(clippy::unusual_byte_groupings)]
+
 use crate::ngram_count::{NgramAssembler, NgramContext, NgramOrderDigest, NgramTriple, NGRAM_BOS};
 use crate::ngram_count_device::NgramCounter;
 use crate::ngram_count_oracle::{oracle_adjusted, oracle_count, plant_one_count};
@@ -22,7 +26,7 @@ fn stream(len: usize, seed: u64, narrow: u32) -> Vec<u16> {
             if i % 61 == 0 {
                 return 0;
             }
-            (if narrow == 0 || r % 4 == 0 { r % 4096 } else { r % narrow }) as u16
+            (if narrow == 0 || r.is_multiple_of(4) { r % 4096 } else { r % narrow }) as u16
         })
         .collect()
 }

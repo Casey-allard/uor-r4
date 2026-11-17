@@ -311,8 +311,8 @@ mod tests {
         let mut points = Vec::with_capacity(n * dim);
         for index in 0..n {
             let center = &centers[(index % k) * dim..(index % k + 1) * dim];
-            for j in 0..dim {
-                points.push(center[j] + (next(&mut state) % 2_001) as i64 - 1_000);
+            for &coordinate in center {
+                points.push(coordinate + (next(&mut state) % 2_001) as i64 - 1_000);
             }
         }
         points

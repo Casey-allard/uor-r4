@@ -923,7 +923,11 @@ mod tests {
                 state ^= state << 17;
                 // Skewed: most mass on a few ids so high orders repeat.
                 let r = (state >> 20) as u32;
-                (if r % 4 == 0 { r % 4096 } else { r % 13 }) as u16
+                (if r.is_multiple_of(4) {
+                    r % 4096
+                } else {
+                    r % 13
+                }) as u16
             })
             .collect();
         // r % 13 plants BOS = 0 at about one position in eighteen, so the
@@ -1250,7 +1254,7 @@ mod tests {
                 state ^= state >> 7;
                 state ^= state << 17;
                 let r = (state >> 20) as u32;
-                (if r % 4 == 0 { r % 64 } else { r % 9 }) as u16
+                (if r.is_multiple_of(4) { r % 64 } else { r % 9 }) as u16
             })
             .collect();
         stream[0] = NGRAM_BOS;

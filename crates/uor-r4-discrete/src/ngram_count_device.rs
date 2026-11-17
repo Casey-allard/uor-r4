@@ -118,6 +118,10 @@ impl NgramCounter {
         self.n
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.n == 0
+    }
+
     fn function(&self, name: &str) -> &CudaFunction {
         let at = NGRAM_COUNT_ENTRIES
             .iter()
