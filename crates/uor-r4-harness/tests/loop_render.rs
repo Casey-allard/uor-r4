@@ -341,6 +341,15 @@ fn in_order(s: &str, wants: &[&str]) {
 fn handoff_lists_open_items_by_status_with_not_recorded_for_absent_fields() {
     let r = repo();
     items(&r);
+    r.write(
+        "docs/roadmap/items/owner-decision.md",
+        &item("owner-decision", "decision", "owner", "", "", ""),
+    );
+    r.write(
+        "docs/roadmap/items/unassigned.md",
+        "---\nid: unassigned\ntitle: Unassigned\nstatus: decision\n---\n",
+    );
+    r.commit("decision ownership cases");
     let d = r.out_dir("h");
     assert!(r.render(&["--out", d.to_str().unwrap()]).status.success());
     let s = read(&d, "HANDOFF.md");
@@ -357,7 +366,9 @@ fn handoff_lists_open_items_by_status_with_not_recorded_for_absent_fields() {
             "| b | Title b | First b sentence. | not recorded | not recorded | ready; after a, c |",
             "| f | Title f | First f sentence. | not recorded | not recorded | ready |",
             "## Blocked",
-            "| c | Title c | decision | owner |",
+            "| c | Title c | decision | lab |",
+            "| owner-decision | Title owner-decision | decision | owner |",
+            "| unassigned | Unassigned | decision | not recorded |",
             "| a | Title a | held | lab |",
             "| d | Title d | held | owner |",
             "## Not doing",

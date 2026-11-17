@@ -340,12 +340,10 @@ pub fn render_handoff(c: &AtCommit) -> Result<String, String> {
         o.push_str("\nnone\n");
     }
 
-    o.push_str("\n## Blocked\n\nItems with status `held` or `decision`, each listed once. The owner is `owner` for a decision or for `open_to: owner`, otherwise the item's `open_to`.\n\n");
+    o.push_str("\n## Blocked\n\nItems with status `held` or `decision`, each listed once. The Owner column shows the item's `open_to` value.\n\n");
     o.push_str("| Item | Title | Status | Owner |\n|---|---|---|---|\n");
     for it in items.iter().filter(|i| blocked(i)) {
-        let owner = if it.status == "decision" || it.open_to == "owner" {
-            "owner"
-        } else if it.open_to.is_empty() {
+        let owner = if it.open_to.is_empty() {
             NR
         } else {
             &it.open_to
