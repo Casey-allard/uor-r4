@@ -29,6 +29,7 @@ members = [
     "crates/uor-r4-harness",
     "crates/uor-r4-claim-wording",
     "crates/uor-r4-studio-agent",
+    "crates/uor-r4-mvm",
     "crates/uor-r4-pod-provider",
     "xtask",
     "tools/lab-runner",

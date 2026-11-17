@@ -1,0 +1,14 @@
+[package]
+name = "uor-r4-mvm"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "LexLean-derived RV64IMAC Linux-userland emulator for the UOR Studio workbench (issue #3939)."
+
+[lib]
+name = "uor_r4_mvm"
+path = "src/lib.rs"
+
+[dependencies]
+sha2 = "0.10"

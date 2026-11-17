@@ -2506,6 +2506,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-mvm"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+]
+
+[[package]]
 name = "uor-r4-naf"
 version = "0.1.0"
 dependencies = [

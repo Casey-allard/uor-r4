@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - `AgentStore` is the only in-memory task/run/event/cursor authority; `AgentTaskStore` is only its durable adapter. MVM/virtual Git is a bounded per-tab sandbox, never a second task store or model runtime.
-- Pin LexLean commit `01956d5c35f268fc7d1b646d97d3dff21b9e945f` and the spec's exact file hashes. Extract only the complete 337-line vsock module. Preserve MIT/Apache-2.0/copyright/Lean-source notices and record UOR changes. Encode initramfs as hash-pinned Rust source bytes; commit no binary.
+- Pin LexLean commit `01956d5c35f268fc7d1b646d97d3dff21b9e945f` and the spec's exact file hashes. Extract only the complete 188-line vsock module. Preserve MIT/Apache-2.0/copyright/Lean-source notices and record UOR changes. Encode initramfs as hash-pinned Rust source bytes; commit no binary.
 - Do not port LexLean `api.rs`, `lib.rs`, `wasm_ast_eval.rs`, `execute_cargo_json`, generated GLLM or AST-evaluated Cargo behavior. `cc` must execute genuine RV64IMAC C-to-ELF output; Cargo/rustc without a real guest toolchain report unavailable.
 - No new default runtime dependency, public listener, Electron, dense matmul, softmax, page-shared MAC key or new external package. Existing locked SHA/WASM crates may be reused.
 - Numeric bounds: 512 files, 1 MiB/file, 16 MiB workspace, 64 KiB/command, 2 MiB/protocol message, 1 MiB/output, 256 64-KiB CoW sectors, 256 Git commits and 200 memory-only history entries. CoW snapshots go directly from worker to IndexedDB; JSON carries only snapshot ID/digest, never the 16 MiB image. Unknown/corrupt/quota-exceeded persistence refuses explicitly. A page-lifetime Web Locks lease guards each `sessionStorage` reload key; duplicated active keys refuse or rotate explicitly, never share writes.
@@ -44,7 +44,7 @@
 - Test: `crates/uor-r4-mvm/tests/mvm.rs`, `provenance.rs`
 
 **Interfaces:**
-- Consumes: pinned upstream `mvm.rs`, `mvm_cc.rs`, `mvm_initramfs.bin`, exact-output tests and only `lexlean_generated.rs:45,751-46,087` (the self-contained `r4_spiralcore_vsock` tail module); every other generated-file line is excluded.
+- Consumes: pinned upstream `mvm.rs`, `mvm_cc.rs`, `mvm_initramfs.bin`, exact-output tests and only `lexlean_generated.rs:45,751-45,938` (the self-contained 188-line `r4_spiralcore_vsock` tail module); `r4_compositional_gllm` begins at line 45,940 and every other generated-file line is excluded.
 - Produces: native `MvmSandbox` boot/status/exec/files/CoW/vsock APIs and `compile_c_to_rv64_elf`; secret/proxy/raw-sector test APIs are not WASM exports.
 
 - [ ] **Step 1: Write failing tests** for all four source hashes plus initramfs bytes; `mvm_boot_reports_rv64imac_and_zero_nic`, `mvm_exec_mutates_virtual_files`, `mvm_cow_restore_is_deterministic`, upstream fib/collatz exact stdout and `EM_RISCV=243`, a second distinct C program, invalid-C no-panic diagnostics, bounded vsock/placeholders, state-changing status and invalid ELF/CID/domain/synthetic-secret refusal.
