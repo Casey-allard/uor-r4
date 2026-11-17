@@ -1,0 +1,7 @@
+real slice order 0: grams 3988 contexts 1 kept triples 2123 contexts 1 n1..n4 [58, 64, 59, 57]
+real slice order 1: grams 570661 contexts 3988 kept triples 20556 contexts 2123 n1..n4 [295848, 95443, 45940, 26764]
+real slice order 2: grams 3029662 contexts 570489 kept triples 31745 contexts 20546 n1..n4 [1717964, 501804, 212483, 127050]
+real slice: train 20914089 tokens, query 107280 tokens, 107257 targets, gpu = oracle
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 434 filtered out; finished in 16.93s
+wall s: 17

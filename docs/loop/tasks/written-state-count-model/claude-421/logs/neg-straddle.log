@@ -1,0 +1,8 @@
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... FAILED
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 432 filtered out; finished in 0.44s
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 432 filtered out; finished in 1.24s

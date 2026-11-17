@@ -1,0 +1,7 @@
+read: train 20914089 of 2091560001 tokens, query 107280 of 10810087, 1826 ms
+order 0: 2 partitions, grams 3988 contexts 1, kept triples 2123 contexts 1, 1934 ms
+order 1: 2 partitions, grams 570661 contexts 3988, kept triples 20556 contexts 2123, 2109 ms
+order 2: 2 partitions, grams 3029662 contexts 570489, kept triples 31745 contexts 20546, 2360 ms
+gpu scored 107257 targets, 2530 ms
+host = GPU at all 107257 targets, 2554 ms
+wrote /workspace/out/c421/run3/slice-a.json, 4050 ms

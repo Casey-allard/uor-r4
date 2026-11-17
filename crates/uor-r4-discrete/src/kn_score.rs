@@ -7,6 +7,8 @@
 //!
 //! The rule, for order k (k context tokens) and highest order N:
 //! - `Dq_i = floor(M (i n_i S - (i+1) n1 n_{i+1}) / (n_i S))`, `S = n1 + 2 n2`;
+//!   an order with a zero n_i or a `Dq_i` outside `[0, i M]` takes KenLM's
+//!   fallback `(M/2, M, 3M/2)` for all three (claude-421);
 //! - `P_k = floor((a M - D(a)) / A) + floor(gamma P_{k-1} / M)`, with
 //!   `gamma = floor((Dq1 n1(h) + Dq2 n2(h) + Dq3 n3+(h)) / A)`;
 //! - a context with no record (A = 0) gives `P_k = P_{k-1}`;
@@ -46,12 +48,43 @@ pub struct KnDiscounts {
 }
 
 impl KnDiscounts {
+    /// KenLM's `--discount_fallback` default (1/2, 1, 3/2) in Q48: an order
+    /// whose spectrum gives no in-range Chen–Goodman estimate takes these
+    /// three discounts whole (claude-421; the order-0 continuation spectrum of
+    /// the whole D87 TRAIN stream is n1..n4 = [7, 6, 11, 11], so D2 < 0).
+    pub const FALLBACK: Self = Self {
+        dq: [
+            PROBABILITY_ONE / 2,
+            PROBABILITY_ONE,
+            PROBABILITY_ONE / 2 * 3,
+        ],
+    };
+
     /// Chen–Goodman's estimates from one order's count-of-counts n1..n4,
     /// floored once to Q48. Refuses a zero n_i and a discount outside
     /// `[0, i M]`.
     pub fn from_count_of_counts(count_of_counts: [u64; 4]) -> Result<Self> {
+        Self::chen_goodman(count_of_counts)?
+            .map(|dq| Self { dq })
+            .map_err(invalid)
+    }
+
+    /// The order's discounts and whether they are `FALLBACK`: Chen–Goodman
+    /// when every n_i > 0 and every estimate lies in `[0, i M]`, else the
+    /// fallback for the whole order, as KenLM does. Overflow is refused, but
+    /// only in the estimates computed before the first degenerate one (as in
+    /// KenLM's order of checks); that needs counts near 2^60.
+    pub fn with_fallback(count_of_counts: [u64; 4]) -> Result<(Self, bool)> {
+        Ok(match Self::chen_goodman(count_of_counts)? {
+            Ok(dq) => (Self { dq }, false),
+            Err(_) => (Self::FALLBACK, true),
+        })
+    }
+
+    /// The outer error is overflow; the inner one is a degenerate spectrum.
+    fn chen_goodman(count_of_counts: [u64; 4]) -> Result<std::result::Result<[u64; 3], String>> {
         if count_of_counts.contains(&0) {
-            return Err(invalid(format!(
+            return Ok(Err(format!(
                 "modified-KN discounts need n1..n4 > 0, got {count_of_counts:?}"
             )));
         }
@@ -76,13 +109,13 @@ impl KnDiscounts {
             let denominator = n[i - 1].checked_mul(s).ok_or_else(overflow)?;
             let discount = numerator.div_euclid(denominator);
             if discount < 0 || discount > ii * m {
-                return Err(invalid(format!(
+                return Ok(Err(format!(
                     "modified-KN discount D{i} = {discount} lies outside [0, {i} * 2^48] for n1..n4 {count_of_counts:?}"
                 )));
             }
             dq[i - 1] = discount as u64;
         }
-        Ok(Self { dq })
+        Ok(Ok(dq))
     }
 
     /// `D(a)`: 0 for an unseen gram, then `Dq_min(a, 3)`.
@@ -98,6 +131,8 @@ impl KnDiscounts {
 
 struct KnOrder {
     discounts: KnDiscounts,
+    /// True when `discounts` is `KnDiscounts::FALLBACK`.
+    fallback: bool,
     triples: Vec<NgramTriple>,
     contexts: Vec<NgramContext>,
 }
@@ -153,9 +188,10 @@ impl KnTables {
                     "order-{k} table holds a context with total 0"
                 )));
             }
-            let discounts = KnDiscounts::from_count_of_counts(digest.count_of_counts)?;
+            let (discounts, fallback) = KnDiscounts::with_fallback(digest.count_of_counts)?;
             tables.push(KnOrder {
                 discounts,
+                fallback,
                 triples,
                 contexts,
             });
@@ -168,6 +204,18 @@ impl KnTables {
 
     pub fn highest(&self) -> u32 {
         self.highest
+    }
+
+    /// Order k's discounts, triples and contexts, in canonical order, for the
+    /// GPU scorer's upload (claude-421).
+    pub fn order_tables(&self, k: u32) -> Option<(KnDiscounts, &[NgramTriple], &[NgramContext])> {
+        let order = self.orders.get(k as usize)?;
+        Some((order.discounts, &order.triples, &order.contexts))
+    }
+
+    /// Whether order k took `KnDiscounts::FALLBACK`.
+    pub fn discount_fallback(&self, k: u32) -> Option<bool> {
+        self.orders.get(k as usize).map(|order| order.fallback)
     }
 
     /// The Q48 mass of the target `tokens[j]` after its history. Refuses a
@@ -535,7 +583,7 @@ mod tests {
                     .map(|k| oracle_adjusted(&tokens, k, highest).expect("adjusted"))
                     .collect();
                 let tables = KnTables::new(highest, orders).expect("tables");
-                let oracle = KnOracle::new(&tokens, highest as usize).expect("oracle");
+                let oracle = KnOracle::new(&tokens, highest as usize);
                 let mut wanted = Vec::new();
                 for j in 0..tokens.len() {
                     if tokens[j] == NGRAM_BOS {
@@ -553,5 +601,79 @@ mod tests {
                 assert_eq!(tables.scored_masses(&tokens).expect("masses"), wanted);
             }
         }
+    }
+
+    /// 40 ids drawn uniformly, one draw in 300 a BOS: every unigram and
+    /// bigram follows many distinct tokens, so orders 0 and 1 have no
+    /// continuation counts 1..=4, while the raw top order's spectrum falls.
+    fn kn_score_small_vocabulary_stream(seed: u64, len: usize) -> Vec<u16> {
+        let mut state = seed | 1;
+        let mut stream = vec![NGRAM_BOS];
+        while stream.len() < len {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            let r = (state >> 16) as u32;
+            stream.push(if r % 300 == 0 {
+                NGRAM_BOS
+            } else {
+                (5 + (r >> 9) % 40) as u16
+            });
+        }
+        stream
+    }
+
+    /// claude-421: an order with a degenerate spectrum takes KenLM's
+    /// fallback discounts whole, the oracle does the same on its own counts,
+    /// and the two agree on every target.
+    #[test]
+    fn kn_score_falls_back_on_degenerate_spectra_as_the_oracle_does() {
+        let (fallback, fell_back) =
+            KnDiscounts::with_fallback([7, 6, 11, 11]).expect("D87 order 0");
+        assert!(fell_back);
+        assert_eq!(fallback.dq, [M as u64 / 2, M as u64, 3 * M as u64 / 2]);
+        let (_, zero_fell_back) = KnDiscounts::with_fallback([0, 1, 1, 1]).expect("zero");
+        assert!(zero_fell_back);
+        let (strict, fell_back) = KnDiscounts::with_fallback([2, 1, 1, 1]).expect("strict");
+        assert!(!fell_back);
+        assert_eq!(
+            strict,
+            KnDiscounts::from_count_of_counts([2, 1, 1, 1]).unwrap()
+        );
+        assert!(
+            KnDiscounts::with_fallback([u64::MAX; 4]).is_err(),
+            "overflow"
+        );
+        // The oracle's own rule agrees on each branch: in range, a zero n_i,
+        // D2 < 0 with every n_i > 0 (D87's order 0), and D3 < 0 alone.
+        let spectra = [
+            [4_132_730, 413_614, 122_848, 56_120],
+            [2, 1, 1, 1],
+            [0, 1, 1, 1],
+            [7, 6, 11, 11],
+            [1, 1, 100, 1],
+            [100, 50, 20, 1000],
+        ];
+        for n in spectra {
+            let (host, _) = KnDiscounts::with_fallback(n).expect("discounts");
+            let oracle = crate::kn_score_oracle::oracle_discounts(n.map(i128::from));
+            assert_eq!(host.dq.map(i128::from), oracle, "n1..n4 {n:?}");
+        }
+
+        let tokens = kn_score_small_vocabulary_stream(0x421f, 30_000);
+        const N: u32 = 2;
+        let orders: Vec<_> = (0..=N)
+            .map(|k| oracle_adjusted(&tokens, k, N).expect("adjusted"))
+            .collect();
+        let tables = KnTables::new(N, orders).expect("tables");
+        assert_eq!(tables.discount_fallback(0), Some(true));
+        assert_eq!(tables.discount_fallback(1), Some(true));
+        assert_eq!(tables.discount_fallback(N), Some(false));
+        let oracle = KnOracle::new(&tokens, N as usize);
+        let wanted: Vec<u64> = (0..tokens.len())
+            .filter(|&j| tokens[j] != NGRAM_BOS)
+            .map(|j| u64::try_from(oracle.mass(&tokens, j)).expect("fits"))
+            .collect();
+        assert_eq!(tables.scored_masses(&tokens).expect("masses"), wanted);
     }
 }

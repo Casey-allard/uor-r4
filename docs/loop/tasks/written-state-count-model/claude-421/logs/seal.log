@@ -1,0 +1,2 @@
+kn-reference: the query is the sealed DEV-test stream; only the sealed run (--sealed-run) scores it
+seal rc=1; json exists: no

@@ -1,0 +1,31 @@
+[package]
+name = "kn-reference"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose (claude-421), so this
+# instrument never changes what the workspace builds. It counts TRAIN's modified Kneser-Ney
+# adjusted orders on the GPU (uor-r4-discrete's exact counter), keeps only the records a query
+# stream's targets read, scores the query on the GPU (uor-r4-discrete's KnScorer, equal to the
+# host KnTables), and takes uor-r4-integer's lawful_likelihood::bits_q12 of every Q48 mass. It
+# holds no float, no softmax or squashing, no matrix product and no model.
+[workspace]
+
+[[bin]]
+name = "kn-reference"
+path = "src/main.rs"
+
+[features]
+cuda = ["uor-r4-discrete/cuda"]
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10.8"
+uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
+uor-r4-integer = { path = "../../../../crates/uor-r4-integer" }
+
+# The workspace's vendored sources, as the k16 timing instrument takes them.
+[patch.crates-io]
+cudarc = { path = "../../../../third_party/cudarc-0.19.10" }
+arrayref = { path = "../../../../third_party/arrayref" }

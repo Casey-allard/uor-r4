@@ -1,0 +1,10 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 1791 ms
+order 0: 17 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 8810 ms
+order 1: 17 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 18806 ms
+order 2: 17 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 27897 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 10807417 targets, 28282 ms
+host = GPU at all 10807417 targets, 33381 ms
+wrote /workspace/out/c421/run3/scale-n2.json, 35146 ms
+scale rc=0 wall s: 35
+peak device MiB: 8056

@@ -385,6 +385,20 @@ impl NgramCounter {
         budget: u64,
         assembler: &mut NgramAssembler,
     ) -> Result<Vec<PartitionRange>> {
+        self.count_order_adjusted_with(order, highest, budget, &mut |p| assembler.push(p))
+    }
+
+    /// [`Self::count_order_adjusted`] with each adjusted partition handed, in
+    /// canonical order, to `sink` instead of one assembler (claude-421): the
+    /// caller can push it to an assembler and also to a
+    /// [`crate::kn_filter::KnFilter`].
+    pub fn count_order_adjusted_with(
+        &self,
+        order: u32,
+        highest: u32,
+        budget: u64,
+        sink: &mut dyn FnMut(&NgramPartition) -> Result<()>,
+    ) -> Result<Vec<PartitionRange>> {
         if highest > NGRAM_MAX_ORDER || order > highest {
             return Err(invalid(format!(
                 "adjusted counts need order <= highest <= {NGRAM_MAX_ORDER}, got order {order} under N = {highest}"
@@ -404,7 +418,7 @@ impl NgramCounter {
             } else {
                 unigram_plan
             };
-            assembler.push(&continuation.adjust(highest, &unigrams)?)?;
+            sink(&continuation.adjust(highest, &unigrams)?)?;
             return Ok(plan);
         }
         let plan = self.plan(order, budget)?;
@@ -424,7 +438,7 @@ impl NgramCounter {
             };
             let adjusted =
                 adjust_partition(order, highest, range.lo, range.hi, &counted, extended.as_ref())?;
-            assembler.push(&adjusted)?;
+            sink(&adjusted)?;
         }
         Ok(plan)
     }

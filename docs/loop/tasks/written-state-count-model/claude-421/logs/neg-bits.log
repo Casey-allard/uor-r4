@@ -1,0 +1,10 @@
+read: train 20914089 of 2091560001 tokens, query 107280 of 10810087, 1822 ms
+order 0: 2 partitions, grams 3988 contexts 1, kept triples 2123 contexts 1, 1938 ms
+order 1: 2 partitions, grams 570661 contexts 3988, kept triples 20556 contexts 2123, 2114 ms
+order 2: 2 partitions, grams 3029662 contexts 570489, kept triples 31745 contexts 20546, 2367 ms
+gpu scored 107257 targets, 2539 ms
+host = GPU at all 107257 targets, 2562 ms
+wrote /root/work/c421t/neg-bits.json, 4060 ms
+neg rc=0
+slice-a:     "bits_q12": "1984097051",    "masses_sha256": "dee11f4a8ed6305fd951121df5e6826d2c2379c8917dff011e58a403f3f81967",
+neg:         "bits_q12": "1984097051",    "masses_sha256": "dee11f4a8ed6305fd951121df5e6826d2c2379c8917dff011e58a403f3f81967",

@@ -65,6 +65,8 @@ const NGRAM_COUNT_ENTRIES: [&str; 16] = [
     "ngram_emit_grams",
     "ngram_emit_contexts",
 ];
+// The modified Kneser-Ney scorer (claude-421): its own source, PTX and cubin.
+const KN_SCORE_ENTRIES: [&str; 1] = ["kn_score_targets"];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as
 /// evidence of its instructions. Integer index products are not prohibited.
@@ -400,6 +402,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/within_cell_writer_source.rs");
     println!("cargo:rerun-if-changed=src/native_vector.cu");
     println!("cargo:rerun-if-changed=src/ngram_count.cu");
+    println!("cargo:rerun-if-changed=src/kn_score.cu");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -455,6 +458,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     admit_ptx_inventory(
         &fs::read_to_string(out.join("ngram-count.ptx"))?,
         &NGRAM_COUNT_ENTRIES,
+    )?;
+    // The modified Kneser-Ney scorer (claude-421): an independent source and module.
+    let status = Command::new(env::var("NVCC").unwrap_or_else(|_| "nvcc".into()))
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .args(["-o"])
+        .arg(out.join("kn-score.ptx"))
+        .arg("src/kn_score.cu")
+        .status()?;
+    if !status.success() {
+        return Err(format!("kn-score PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("kn-score.ptx"))?,
+        &KN_SCORE_ENTRIES,
     )?;
     // An independent module: the ordinary source, nvcc invocation and PTX stay
     // untouched. Only this diagnostic entry carries internal clocks/counters.
@@ -624,6 +642,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("within-cell-writer", out.join("within-cell-writer.ptx")),
         ("native-vector", out.join("native-vector.ptx")),
         ("ngram-count", out.join("ngram-count.ptx")),
+        ("kn-score", out.join("kn-score.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.
