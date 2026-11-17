@@ -1,8 +1,7 @@
 name: docs-site
 
-# Builds the mdBook site from the same markdown GitHub renders and publishes it
-# to a gh-pages branch. A push to main only updates gh-pages-preview; only a
-# manual dispatch can choose gh-pages (the live site and the /studio app).
+# Changed documentation is built and checked on main. Only explicit manual
+# publication from main writes the live book alongside the existing Studio.
 on:
   push:
     branches: [main]
@@ -16,15 +15,15 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Branch to publish to'
+        description: 'Build only, or publish the checked book on gh-pages'
         type: choice
         options:
-          - gh-pages-preview
+          - build-only
           - gh-pages
-        default: gh-pages-preview
+        default: build-only
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: docs-site
@@ -32,22 +31,14 @@ concurrency:
 
 jobs:
   site:
-    name: build and publish the docs site
+    name: build and check the docs site
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'gh-pages-preview' }}
     steps:
-      - name: Only main publishes live
-        run: |
-          if [ "$TARGET" = gh-pages ] && [ "$GITHUB_REF" != refs/heads/main ]; then
-            echo "::error::gh-pages may only be published from main (ref is $GITHUB_REF)"
-            exit 1
-          fi
-
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -96,6 +87,56 @@ jobs:
       - name: Check the built links
         run: cargo run -q --locked -p xtask -- book-check
 
+      - name: Package the checked book
+        run: |
+          set -euo pipefail
+          test -f book/index.html
+          test ! -L book
+          test ! -e book/studio
+          unexpected=$(find book \( -iname .git -o -iname .gitignore -o -iname .gitattributes -o -iname .gitmodules \
+            -o \( ! -type f ! -type d \) \) -print -quit)
+          if [ -n "$unexpected" ]; then
+            echo "::error::Git control file, link or special file in the book"
+            exit 1
+          fi
+
+          # One regular archive carries every checked asset, including dot-directories.
+          tar -cf checked-book.tar -C book .
+
+      - name: Pass the checked book to the manual publisher
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.target == 'gh-pages'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: checked-book
+          path: checked-book.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: publish the checked book to gh-pages
+    needs: site
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.target == 'gh-pages'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/gh-pages
+          path: site
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: checked-book
+          path: incoming
+
+      - name: Unpack the checked book
+        run: |
+          set -euo pipefail
+          mkdir book
+          tar -xf incoming/checked-book.tar -C book
+
       - name: Publish
         env:
           GIT_AUTHOR_NAME: github-actions[bot]
@@ -104,19 +145,16 @@ jobs:
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
           set -euo pipefail
-          git fetch origin "$TARGET" || true
-          if git rev-parse --verify --quiet "refs/remotes/origin/$TARGET" >/dev/null; then
-            git worktree add -B "$TARGET" site "origin/$TARGET"
-          else
-            git fetch origin gh-pages
-            git worktree add -B "$TARGET" site origin/gh-pages
-          fi
-          # One time: the old Studio web app moves to studio/.
-          if [ ! -d site/studio ]; then
-            mkdir site/studio
-            git -C site ls-tree --name-only -z HEAD | while IFS= read -r -d '' e; do
-              git -C site mv "$e" "studio/$e"
-            done
+          test -f book/index.html
+          test -d site/studio
+          previous=$(git -C site rev-parse HEAD)
+          test ! -L book
+          test ! -e book/studio
+          unexpected=$(find book \( -iname .git -o -iname .gitignore -o -iname .gitattributes -o -iname .gitmodules \
+            -o \( ! -type f ! -type d \) \) -print -quit)
+          if [ -n "$unexpected" ]; then
+            echo "::error::Git control file, link or special file in the book"
+            exit 1
           fi
           # The book replaces everything except .git and studio/.
           find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
@@ -128,9 +166,25 @@ jobs:
           JS
           touch site/.nojekyll
           git -C site add -A
+          # Git's local excludes and attribute filters also apply to the index.
+          # Compare the original checked bytes with exactly what a commit would store.
+          while IFS= read -r -d '' file; do
+            expected=$(git -C site hash-object --no-filters --stdin < "$file")
+            if ! staged=$(git -C site rev-parse --verify --quiet ":0:${file#book/}") || [ "$expected" != "$staged" ]; then
+              printf 'Checked book file missing or changed in the Git index: %q\n' "$file" >&2
+              exit 1
+            fi
+          done < <(find book -type f -print0)
+          git -C site diff --cached --exit-code HEAD -- studio
           if git -C site diff --cached --quiet; then
             echo "nothing changed"
             exit 0
           fi
           git -C site commit -q -m "docs site from ${GITHUB_SHA}"
-          git -C site push origin HEAD:"$TARGET"
+          published=$(git -C site rev-parse HEAD)
+          if [ "$(git -C site show -s --format=%P "$published")" != "$previous" ]; then
+            echo "::error::the candidate must have the staged Pages head as its only parent"
+            exit 1
+          fi
+          git -C site push --force-with-lease="refs/heads/gh-pages:$previous" \
+            origin "$published:refs/heads/gh-pages"

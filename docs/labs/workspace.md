@@ -57,7 +57,7 @@ The PM posts a storage receipt on #2028 with:
 
 ## Branches
 
-`main`, `gh-pages` (the live documentation site and the Studio) and `gh-pages-preview` are long-lived and never deleted. They are listed in the registry `docs/harness/branches.json`. Every other branch is `<lab>/<topic>`, one per open PR, and is deleted after its merge.
+`main`, `gh-pages` (the live documentation site and the Studio) and `archive` (retired branch history) are long-lived and never deleted. They are listed in the registry `docs/harness/branches.json`. Every other branch is `<lab>/<topic>`, one per open PR, and is deleted after its merge.
 
 ## Not in git
 

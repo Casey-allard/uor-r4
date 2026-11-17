@@ -69,11 +69,11 @@ class TypedRuntimeContractTests(unittest.TestCase):
             try:
                 result = subprocess.run([
                     'bash', str(publisher), '--typed', '--no-build', '--skip-verify',
-                    '--target', 'gh-pages-preview', '--stage-dir', str(tmp / 'staged'), '--keep-worktree',
+                    '--stage-dir', str(tmp / 'staged'), '--keep-worktree',
                 ], cwd=REPO, text=True, capture_output=True, env={**os.environ, 'TMPDIR': tmp_name})
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn('typed Vite dist', result.stdout)
-                self.assertIn('DRY RUN: nothing pushed', result.stdout)
+                self.assertIn('target:  gh-pages (dry run, nothing pushed)', result.stdout)
                 staged = tmp / 'staged'
                 self.assertTrue((staged / 'index.html').is_file())
                 self.assertTrue((staged / 'models.json').is_file())

@@ -3,7 +3,7 @@ name: branch cleanup
 # Deletes merged PR branches, because the repository keeps them (delete_branch_on_merge is off and
 # nobody here can change it). A branch is deleted only by an atomic compare-and-delete at the merged
 # PR's final head (`git push --force-with-lease=<ref>:<sha>`), so a push made after the merge is
-# never lost. Only plain names ([A-Za-z0-9._/-]) are eligible; main, gh-pages, gh-pages-preview,
+# never lost. Only plain names ([A-Za-z0-9._/-]) are eligible; main, gh-pages, archive,
 # open PR heads and open PR bases never are. Everything else is listed, never deleted. (#3175,
 # owner 25 Oct 2026)
 
@@ -31,7 +31,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          case "$BRANCH" in main|gh-pages|gh-pages-preview) echo "kept: $BRANCH is protected"; exit 0;; esac
+          case "$BRANCH" in main|gh-pages|archive) echo "kept: $BRANCH is protected"; exit 0;; esac
           if ! printf '%s' "$BRANCH" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
             echo "::warning::kept $BRANCH: not a plain branch name"; exit 0
           fi
@@ -74,7 +74,7 @@ jobs:
           git init -q del
           deleted=0; kept=0; failed=0
           while read -r name sha; do
-            case "$name" in main|gh-pages|gh-pages-preview) continue;; esac
+            case "$name" in main|gh-pages|archive) continue;; esac
             if grep -Fqx -- "$name" open-refs.txt; then continue; fi
             if ! printf '%s' "$name" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
               echo "- kept \`$name\` (not a plain branch name): review it" >> "$GITHUB_STEP_SUMMARY"; kept=$((kept + 1)); continue

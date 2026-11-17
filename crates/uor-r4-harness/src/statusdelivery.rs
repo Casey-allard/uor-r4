@@ -128,7 +128,11 @@ pub fn merged_pr_branches(
 ) -> Vec<MergedPrBranch> {
     let mut out: Vec<MergedPrBranch> = local
         .iter()
-        .filter(|(name, _)| name != trunk && name != "master")
+        .filter(|(name, _)| {
+            name != trunk
+                && name != "master"
+                && !crate::githelp::BUILTIN_PROTECTED.contains(&name.as_str())
+        })
         .filter_map(|(name, sha)| {
             let pr = pr_of(prs, name).filter(|p| is_merged(p))?;
             Some(MergedPrBranch {
@@ -264,7 +268,10 @@ pub fn worktree_items(repo: &Path, origin_main: Option<&str>) -> Result<Vec<Work
 /// **An ancestor of origin/main is not enough**: a worktree created a minute ago for work that has
 /// not started is also one. Only a merged PR head, or 24h without a write, makes it left behind.
 pub fn classify_worktrees(items: &mut [WorktreeItem], prs: &Map<String, Value>) {
-    for item in items.iter_mut().filter(|i| !i.main) {
+    for item in items
+        .iter_mut()
+        .filter(|i| !i.main && !crate::githelp::BUILTIN_PROTECTED.contains(&i.branch.as_str()))
+    {
         item.merged_pr_head = pr_of(prs, &item.branch)
             .is_some_and(|pr| is_merged(pr) && item.head == s(pr, "headRefOid"));
         let contained = item.contained_in_origin_main == Some(true);
@@ -670,7 +677,7 @@ pub struct RemoteBranch {
 fn is_candidate(name: &str, ahead: usize, protected: &[String]) -> bool {
     !(name.is_empty()
         || name.starts_with("HEAD")
-        || ["main", "gh-pages"].contains(&name)
+        || crate::githelp::BUILTIN_PROTECTED.contains(&name)
         || protected.iter().any(|p| p == name)
         || ahead == 0)
 }
@@ -679,8 +686,8 @@ fn is_candidate(name: &str, ahead: usize, protected: &[String]) -> bool {
 /// first. `has_pr` answers `None` when it could not ask.
 ///
 /// **Two departures from Python, both toward reporting less.** A protected branch
-/// (`docs/harness/branches.json`) is never reported: Python flagged `gh-pages-preview`, which the
-/// owner's 20 October rule keeps forever. And a branch whose PR lookup FAILED is skipped rather than
+/// (`docs/harness/branches.json`) is never reported: permanent branches can legitimately have no open PR.
+/// A branch whose PR lookup FAILED is skipped rather than
 /// reported as having no PR, so an offline run cannot call every branch an orphan.
 pub fn without_pr(
     rows: &[(String, String, usize, usize)],
@@ -974,6 +981,7 @@ mod tests {
     fn a_branch_is_an_orphan_only_when_its_pr_merged() {
         let local = vec![
             ("main".to_string(), "m".to_string()),
+            ("archive".to_string(), "m".to_string()),
             ("a/old".to_string(), "h1".to_string()),
             ("a/new".to_string(), "h2".to_string()),
             ("a/open".to_string(), "h3".to_string()),
@@ -981,6 +989,7 @@ mod tests {
         ];
         let prs = snap(&[
             ("main", pr("MERGED", 1, "m", "2026-10-01T00:00:00Z")),
+            ("archive", pr("MERGED", 5, "m", "2026-10-01T00:00:00Z")),
             ("a/old", pr("MERGED", 2, "h1", "2026-10-02T00:00:00Z")),
             ("a/new", pr("merged", 3, "other", "2026-10-09T00:00:00Z")),
             ("a/open", pr("OPEN", 4, "h3", "")),
@@ -1053,14 +1062,14 @@ mod tests {
     fn remote_branches_report_only_known_prless_unprotected_work() {
         let row = |n: &str, ahead: usize| (n.to_string(), "2026-10-20".to_string(), ahead, 3usize);
         let rows = vec![
-            row("gh-pages-preview", 9),
+            row("archive", 9),
             row("gh-pages", 2),
             row("done", 0),
             row("has-pr", 2),
             row("unknown", 2),
             row("orphan", 4),
         ];
-        let protected = vec!["main".to_string(), "gh-pages-preview".to_string()];
+        let protected = vec!["main".to_string(), "archive".to_string()];
         let mut has_pr = |n: &str| match n {
             "has-pr" => Some(true),
             "unknown" => None,

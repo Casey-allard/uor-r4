@@ -14,6 +14,10 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 17 November 2026 — permanent branches and documentation publishing (§5.5)
+
+Casey chose "main, gh-pages, and a new archive branch; retire the preview and update its publishing workflow". The source of truth stays on `main`. The live documentation and Studio stay on `gh-pages`. The permanent `archive` branch preserves retired branch history. Documentation changes on main build and check the book. A manual dispatch from main publishes the book to the live branch and preserves Studio.
+
 ## 16 November 2026: the rest of D87's corpus is streamed from the DeepSeek API (D89)
 
 **Decided by:** the owner (Casey), 16 November 2026, in claude's chat (claude-402). The lab had leased a 4×B200

@@ -610,14 +610,12 @@ mod tests {
     #[test]
     fn missing_protected_names_only_the_absent_branches() {
         let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
-        let protected = s(&["main", "gh-pages", "gh-pages-preview"]);
+        let protected = s(&["main", "gh-pages", "archive"]);
         assert_eq!(
-            missing_protected(&s(&["main", "claude/x", "gh-pages-preview"]), &protected),
+            missing_protected(&s(&["main", "claude/x", "archive"]), &protected),
             s(&["gh-pages"])
         );
-        assert!(
-            missing_protected(&s(&["gh-pages-preview", "gh-pages", "main"]), &protected).is_empty()
-        );
+        assert!(missing_protected(&s(&["archive", "gh-pages", "main"]), &protected).is_empty());
         assert_eq!(missing_protected(&[], &protected), protected);
     }
 

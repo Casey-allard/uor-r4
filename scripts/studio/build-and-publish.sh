@@ -2,19 +2,12 @@
 # Build the Studio web client and publish (or dry-run publish) its runtime files to the docs
 # site's /studio/, without changing any tracked file in the current checkout.
 #
-# WHY A SCRIPT AND NOT A WORKFLOW CHANGE YET
-#   .github/workflows/docs-site.yml rebuilds the mdBook and replaces everything at the target
-#   branch root EXCEPT a directory named studio/
-#       find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
-#   so a built Studio published once to gh-pages / gh-pages-preview stays live across every later
-#   book deploy. Making the build automatic needs .github/workflows/docs-site.yml changed, and
-#   .github/** is an OWNER-ONLY path (docs/harness/owner-paths.json): a lab PR touching it fails the
-#   owner-paths gate. The Lead's report carries the proposed workflow diff for the owner; until it
-#   lands, this script is the manual publisher.
+# The manual docs publisher replaces the book on gh-pages while preserving studio/.
+# This helper stages and inspects a Studio update locally unless explicitly published.
 #
 # SAFETY
 #   * default is a DRY RUN: builds, stages, makes a local commit in a throwaway worktree of the
-#     target branch, prints the tree and the rollback line, and pushes NOTHING.
+#     target branch, prints the tree, and pushes NOTHING.
 #   * --push is the only way anything reaches the remote, and it also requires --yes. It is meant
 #     to be run by the owner/Lead from a clean, attached checkout of main after review.
 #   * the current checkout's tracked files are untouched: build outputs live in the gitignored
@@ -24,7 +17,7 @@
 #   scripts/studio/build-and-publish.sh [options]
 #     --typed                build and stage the Vite app with the public M1 predictor card
 #                            (default: legacy; --trained-manifest replaces the typed card selection)
-#     --target <branch>       gh-pages-preview (default) or gh-pages (live; requires HEAD=main)
+#     --target <branch>       gh-pages only; required explicitly for a live push
 #     --push                  push the publish commit (otherwise dry run)
 #     --no-build              reuse web/studio/pkg/ as built
 #     --skip-verify           skip the Studio verification harnesses
@@ -47,7 +40,7 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 
-target=gh-pages-preview
+target=''
 typed=0
 push=0
 yes=0
@@ -61,6 +54,32 @@ keep_worktree=0
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'build-and-publish: %s\n' "$*" >&2; exit 2; }
+
+# Emit a rollback only after a successful push. Its explicit lease fails closed
+# if another publication has advanced gh-pages, even after an intervening fetch.
+publish_studio() {
+    local checkout=$1 previous=$2 published rollback
+    published=$(git -C "$checkout" rev-parse HEAD)
+    if [ "$(git -C "$checkout" show -s --format=%P "$published")" != "$previous" ]; then
+        echo "refusing to publish: the candidate must have the staged Pages head as its only parent" >&2
+        return 1
+    fi
+    git -C "$checkout" push --force-with-lease="refs/heads/gh-pages:$previous" \
+        origin "$published:refs/heads/gh-pages" || return 1
+    rollback="git push --force-with-lease=refs/heads/gh-pages:$published origin $previous:refs/heads/gh-pages"
+    say "PUSHED gh-pages -> $published"
+    say "rollback if needed: $rollback"
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+        {
+            echo "### Studio published to gh-pages"
+            echo ""
+            echo "- previous head: \`$previous\`"
+            echo "- new head: \`$published\`"
+            echo "- rollback: \`$rollback\`"
+            echo "- the next docs-site book deploy keeps studio/"
+        } >> "$GITHUB_STEP_SUMMARY"
+    fi
+}
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -79,13 +98,20 @@ while [ "$#" -gt 0 ]; do
         *) die "unknown argument $1 (try --help)" ;;
     esac
 done
-case "$target" in gh-pages|gh-pages-preview) ;; *) die "--target must be gh-pages or gh-pages-preview" ;; esac
+if [ "$push" = 1 ] && [ -z "$target" ]; then
+    die "--push needs an explicit --target gh-pages"
+fi
+target=${target:-gh-pages}
+[ "$target" = gh-pages ] || die "--target must be gh-pages"
 if [ "$push" = 1 ] && [ "$yes" != 1 ]; then
     die "--push also needs --yes: publishing is a deliberate action (dry run is the default)"
 fi
 branch=$(git symbolic-ref -q --short HEAD || true)
-if [ "$target" = gh-pages ] && [ "$push" = 1 ]; then
+if [ "$push" = 1 ]; then
     [ "$branch" = main ] || die "refusing to push live: the checkout must be on branch main (it is '${branch:-detached}')"
+    [ -z "$(git status --porcelain)" ] || die "refusing to push live from a dirty checkout"
+    git fetch -q --no-prune --no-tags origin refs/heads/main:refs/remotes/origin/main ||
+        die "cannot verify current origin/main"
     head_sha=$(git rev-parse HEAD)
     main_sha=$(git rev-parse origin/main 2>/dev/null || true)
     [ -n "$main_sha" ] || die "origin/main is not fetched; run git fetch origin main"
@@ -222,7 +248,7 @@ fi
 # 4. Make the publish commit in a throwaway worktree of the target branch, then (optionally) push.
 say ""
 say "== fetch origin $target"
-git fetch -q origin "$target" || die "git fetch origin $target failed; is the branch present?"
+git fetch -q --no-prune --no-tags origin "refs/heads/$target:refs/remotes/origin/$target" || die "git fetch origin $target failed; is the branch present?"
 if ! git rev-parse --verify --quiet "refs/remotes/origin/$target" >/dev/null; then
     die "origin/$target does not exist"
 fi
@@ -230,7 +256,6 @@ site_wt="$staging/site"
 git worktree add -q --detach "$site_wt" "refs/remotes/origin/$target"
 prev=$(git -C "$site_wt" rev-parse HEAD)
 say "previous origin/$target head: $prev"
-say "rollback: git push --force-with-lease origin $prev:$target"
 # Replace the whole Studio directory: no file from the retired 13 Oct app may survive a publish.
 rm -rf "$site_wt/studio"
 mkdir -p "$site_wt/studio"
@@ -282,26 +307,11 @@ else
     say "staged Studio tree ($(find "$site_wt/studio" -type f | wc -l | tr -d ' ') files):"
     ( cd "$site_wt" && find studio -maxdepth 3 -type f | sort | sed -n '1,40p' )
     if [ "$push" = 1 ]; then
-        git -C "$site_wt" push origin HEAD:"$target"
-        published=$(git -C "$site_wt" rev-parse HEAD)
-        say ""
-        say "PUSHED $target -> $published"
-        say "rollback if needed: git push --force-with-lease origin $prev:$target"
-        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-            {
-                echo "### Studio published to $target"
-                echo ""
-                echo "- previous head: \`$prev\`"
-                echo "- new head: \`$published\`"
-                echo "- rollback: \`git push --force-with-lease origin $prev:$target\`"
-                echo "- the next docs-site book deploy keeps studio/ (docs-site.yml preserves it)"
-            } >> "$GITHUB_STEP_SUMMARY"
-        fi
+        publish_studio "$site_wt" "$prev"
     else
         say ""
         say "DRY RUN: nothing pushed. To publish:"
-        say "  git -C '$site_wt' push origin HEAD:$target"
-        say "or re-run this script with --push from a clean main checkout."
+        say "  Re-run this script with --target gh-pages --push --yes from a clean main checkout."
         say "The next docs-site book deploy keeps studio/: docs-site.yml deletes only non-studio root entries."
     fi
 fi

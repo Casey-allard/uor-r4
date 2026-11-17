@@ -26,11 +26,11 @@ use crate::state::StatePaths;
 use std::path::Path;
 use std::process::Command;
 
-/// Branches that are never deleted, whatever the registry file says (owner, 20 October 2026).
+/// Branches that are never deleted, whatever the registry file says (owner, 17 November 2026).
 ///
 /// The registry in `docs/harness/branches.json` is the documented list; this built-in copy is the
 /// floor, so a missing or damaged registry can add protection but never remove it.
-pub const BUILTIN_PROTECTED: [&str; 3] = ["main", "gh-pages", "gh-pages-preview"];
+pub const BUILTIN_PROTECTED: [&str; 3] = ["main", "gh-pages", "archive"];
 
 /// The protected branch names: the built-in floor plus every `protected[].name` in the registry.
 pub fn protected_branches(repo: &Path) -> Vec<String> {
@@ -62,7 +62,7 @@ pub fn protected_refusal(repo: &Path, branch: &str) -> Option<String> {
         .then(|| {
         format!(
             "refusing to delete protected branch '{name}': it is listed in \
-             docs/harness/branches.json and long-lived branches are never deleted (owner, 20 Oct 2026)"
+             docs/harness/branches.json and long-lived branches are never deleted (owner, 17 Nov 2026)"
         )
     })
 }
@@ -2813,7 +2813,7 @@ mod protected_branch_tests {
         String::from_utf8_lossy(&out.stdout).to_string()
     }
 
-    /// A temp repo with `main`, `gh-pages` and an ordinary merged branch, all at one commit.
+    /// A temp repo with the permanent branches and an ordinary merged branch, all at one commit.
     fn repo_with_protected() -> (tempfile::TempDir, StatePaths) {
         let dir = tempfile::tempdir().expect("tempdir");
         let repo = dir.path().join("repo");
@@ -2836,6 +2836,7 @@ mod protected_branch_tests {
         git_clean(&repo, &["add", "-A"]);
         git_clean(&repo, &["commit", "-qm", "init"]);
         git_clean(&repo, &["branch", "gh-pages"]);
+        git_clean(&repo, &["branch", "archive"]);
         git_clean(&repo, &["branch", "done-work"]);
         let paths = StatePaths {
             repo,
@@ -2859,14 +2860,14 @@ mod protected_branch_tests {
         // and a case-insensitive filesystem cannot be used to delete `main` as `Main`.
         assert!(protected_refusal(dir.path(), "Main").is_some());
         assert!(protected_refusal(dir.path(), "refs/heads/GH-PAGES").is_some());
-        assert!(protected_refusal(dir.path(), "gh-pages-preview").is_some());
+        assert!(protected_refusal(dir.path(), "archive").is_some());
         assert!(protected_refusal(dir.path(), "claude/topic").is_none());
     }
 
     #[test]
     fn builtin_floor_and_registry_both_protect() {
         let dir = tempfile::tempdir().expect("tempdir");
-        assert!(protected_refusal(dir.path(), "gh-pages-preview").is_some());
+        assert!(protected_refusal(dir.path(), "archive").is_some());
         assert!(protected_refusal(dir.path(), "refs/heads/main").is_some());
         assert!(protected_refusal(dir.path(), "claude/topic").is_none());
         std::fs::create_dir_all(dir.path().join("docs/harness")).expect("mkdir");
@@ -2890,10 +2891,16 @@ mod protected_branch_tests {
             removable: true,
             reason: String::new(),
         };
-        let (deleted, refused) = apply(&paths.repo, &[state("gh-pages"), state("done-work")]);
+        let (deleted, refused) = apply(
+            &paths.repo,
+            &[state("gh-pages"), state("archive"), state("done-work")],
+        );
         assert_eq!(deleted, vec!["done-work".to_string()]);
-        assert_eq!(refused.len(), 1, "{refused:?}");
-        assert!(refused[0].1.contains("protected branch"), "{refused:?}");
+        assert_eq!(refused.len(), 2, "{refused:?}");
+        assert!(refused
+            .iter()
+            .all(|(_, why)| why.contains("protected branch")));
+        assert!(heads(&paths.repo).contains("archive"));
         assert!(heads(&paths.repo).contains("gh-pages"));
     }
 

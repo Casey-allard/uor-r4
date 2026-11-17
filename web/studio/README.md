@@ -187,15 +187,7 @@ the publisher skips it with a warning only when no browser exists on the machine
 
 ## Publishing (`scripts/studio/build-and-publish.sh`)
 
-**How the docs site works today.** `.github/workflows/docs-site.yml` builds the mdBook and
-replaces the root of the target branch, but it deliberately keeps a directory named `studio/`:
-
-```sh
-find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
-```
-
-So a built Studio published once to `gh-pages` / `gh-pages-preview` **persists across every later
-book deploy**. The historical `6540e2717d3a606330dbd141e3642f3f13b87ecf` publication served an 806,759-byte M1-capable WASM bundle at SHA-256 `4a111daf…`. Its catalog contained only the synthetic fixture. The earlier `ab752d595` publish served 794,677 bytes (`e03b6cd5…`),
+A push to `main` that changes the book runs the build and link checks. To publish the checked book, manually run `docs-site` on `main` and select `gh-pages`. The publisher preserves the existing `studio/` tree. The historical `6540e2717d3a606330dbd141e3642f3f13b87ecf` publication served an 806,759-byte M1-capable WASM bundle at SHA-256 `4a111daf…`. Its catalog contained only the synthetic fixture. The earlier `ab752d595` publish served 794,677 bytes (`e03b6cd5…`),
 and `454bb30fc` and `d8e67c66` are historical identities. Publishing a newer page means replacing that directory once.
 
 **The publisher.** `scripts/studio/build-and-publish.sh` does the whole unit:
@@ -205,29 +197,18 @@ and `454bb30fc` and `d8e67c66` are historical identities. Publishing a newer pag
 2. runs the worker, static page-load, runtime page-load and wasm-instruction checks;
 3. stages the runtime files with `scripts/stage-studio-site.sh` (replacing `studio/` wholesale so
    no file from the retired app survives) and writes `models.json`;
-4. makes a publish commit in a throwaway git worktree of `origin/gh-pages` or
-   `origin/gh-pages-preview`, checks the GitHub Pages size limits, prints the staged tree, the
-   previous head and the rollback line;
+4. makes a publish commit in a throwaway git worktree of `origin/gh-pages`, checks the GitHub Pages size limits, prints the staged tree and previous head;
 5. pushes only when `--push --yes` is given. **The default is a dry run, and `--push` without
    `--yes` refuses.** Live (`--target gh-pages --push --yes`) is refused unless the checkout is
-   on an attached `main` branch whose HEAD is `origin/main`.
+   on an attached `main` branch whose HEAD is `origin/main`. After a successful push, the printed rollback command requires the remote to remain at that exact publication.
 
 ```sh
-# dry run against the preview branch: builds, stages, commits locally, pushes nothing
-scripts/studio/build-and-publish.sh --typed --target gh-pages-preview --stage-dir /tmp/studio-staged
+# preview the Studio locally against the live site
+scripts/studio/build-and-publish.sh --typed --stage-dir /tmp/studio-staged
 
 # after review, publish the live site from a clean, attached main checkout (owner/Lead only)
 scripts/studio/build-and-publish.sh --typed --target gh-pages --push --yes
 ```
-
-**Why not in CI yet.** Making the Studio build part of the workflow needs
-`.github/workflows/docs-site.yml` changed, and `.github/**` is an **owner-only path**
-(`docs/harness/owner-paths.json`): a lab PR touching it fails the `owner-paths` gate. DeepSeek's non-repository
-deploy report carries the proposed workflow diff (add the wasm/demo/verify build and a
-`studio/` replacement to the existing publish step, plus path triggers for `web/**` and
-`crates/uor-r4-integer/**`) for the owner to land. Until then this script is the manual publisher;
-the proposed workflow reuses the same `stage-studio-site.sh` helper, so the staged output cannot
-drift from the script.
 
 ### `models.json` (schema `uor-r4.studio-models/1`)
 
