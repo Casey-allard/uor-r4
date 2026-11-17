@@ -9,6 +9,7 @@
 use std::io::{self, Read as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const COMPILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 const RUN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
@@ -30,21 +31,48 @@ pub struct RowVerification {
     pub outcome: VerifyOutcome,
 }
 
+/// Per-process sequence for [`TempDir::create`]: two calls in one process never share a name,
+/// even when the clock reads the same nanosecond (issue #3876).
+static TEMP_DIR_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// Attempts before [`TempDir::create`] gives up on names that already exist.
+const TEMP_DIR_ATTEMPTS: u32 = 16;
+
 struct TempDir(PathBuf);
 
 impl TempDir {
+    /// Makes a fresh directory owned by this caller alone.
+    ///
+    /// The name is pid + label + per-process sequence + clock nanoseconds, and `create_dir`
+    /// refuses an existing path, so a collision is retried under a new sequence number instead of
+    /// silently sharing another caller's files.
     fn create(label: &str) -> io::Result<Self> {
-        let path = std::env::temp_dir().join(format!(
-            "uor-verify-{}-{}-{}",
-            std::process::id(),
-            label,
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos()
-        ));
-        std::fs::create_dir_all(&path)?;
-        Ok(Self(path))
+        Self::create_in(&std::env::temp_dir(), label)
+    }
+
+    fn create_in(root: &Path, label: &str) -> io::Result<Self> {
+        std::fs::create_dir_all(root)?;
+        for _ in 0..TEMP_DIR_ATTEMPTS {
+            let path = root.join(format!(
+                "uor-verify-{}-{}-{}-{}",
+                std::process::id(),
+                label,
+                TEMP_DIR_SEQ.fetch_add(1, Ordering::Relaxed),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
+            ));
+            match std::fs::create_dir(&path) {
+                Ok(()) => return Ok(Self(path)),
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!("no unused verifier temp dir name for label {label:?} after {TEMP_DIR_ATTEMPTS} attempts"),
+        ))
     }
 
     fn path(&self) -> &Path {
@@ -67,32 +95,19 @@ fn env_without_git() -> Vec<(String, String)> {
 fn run_bounded(
     cmd: &mut Command,
     timeout: std::time::Duration,
+    capture: &Path,
 ) -> io::Result<std::process::Output> {
-    let serial = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let stem = format!("uor-verify-io-{}-{serial}", std::process::id());
-    let out_path = std::env::temp_dir().join(format!("{stem}.stdout"));
-    let err_path = std::env::temp_dir().join(format!("{stem}.stderr"));
-
-    struct FileGuard(PathBuf);
-    impl Drop for FileGuard {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_file(&self.0);
-        }
-    }
+    let out_path = capture.with_extension("stdout");
+    let err_path = capture.with_extension("stderr");
 
     let out_file = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&out_path)?;
-    let _out_guard = FileGuard(out_path.clone());
     let err_file = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&err_path)?;
-    let _err_guard = FileGuard(err_path.clone());
 
     cmd.stdin(Stdio::null()).stdout(out_file).stderr(err_file);
 
@@ -211,6 +226,7 @@ fn verify_source(rust_source: &str) -> io::Result<VerifyOutcome> {
             .env_clear()
             .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str()))),
         COMPILE_TIMEOUT,
+        &tmp.path().join("compile"),
     );
 
     match compile {
@@ -232,6 +248,7 @@ fn verify_source(rust_source: &str) -> io::Result<VerifyOutcome> {
             .env_clear()
             .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str()))),
         RUN_TIMEOUT,
+        &tmp.path().join("run"),
     );
 
     match run {
@@ -270,4 +287,55 @@ pub fn verify_all_frozen_code_tasks() -> Vec<RowVerification> {
         }
     }
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TempDir;
+    use std::collections::HashSet;
+
+    /// Issue #3876: two directories made under one label in one process must be distinct,
+    /// so one test's `task.rs` can never be read as another's.
+    #[test]
+    fn same_label_temp_dirs_never_share_a_path() {
+        let a = TempDir::create("ct").expect("first temp dir");
+        let b = TempDir::create("ct").expect("second temp dir");
+        assert_ne!(a.path(), b.path());
+        assert!(a.path().is_dir() && b.path().is_dir());
+    }
+
+    #[test]
+    fn missing_temp_root_is_created_and_survives_child_cleanup() {
+        let parent = TempDir::create("test-root").expect("parent");
+        let root = parent.path().join("missing").join("nested");
+        let child = TempDir::create_in(&root, "ct").expect("fresh child");
+        assert_eq!(child.path().parent(), Some(root.as_path()));
+        assert!(child.path().is_dir());
+        drop(child);
+        assert!(root.is_dir());
+    }
+
+    #[test]
+    fn parallel_same_label_temp_dirs_are_all_distinct() {
+        let dirs: Vec<TempDir> = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0..16)
+                .map(|_| scope.spawn(|| TempDir::create("ct").expect("temp dir")))
+                .collect();
+            handles
+                .into_iter()
+                .map(|h| h.join().expect("thread"))
+                .collect()
+        });
+        let unique: HashSet<_> = dirs.iter().map(|d| d.path().to_path_buf()).collect();
+        assert_eq!(unique.len(), dirs.len());
+    }
+
+    #[test]
+    fn dropping_a_temp_dir_removes_it() {
+        let dir = TempDir::create("ct").expect("temp dir");
+        let path = dir.path().to_path_buf();
+        std::fs::write(path.join("task.rs"), "fn main() {}").expect("write");
+        drop(dir);
+        assert!(!path.exists());
+    }
 }
