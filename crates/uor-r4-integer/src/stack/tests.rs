@@ -9293,6 +9293,35 @@ fn the_asks_are_refused_without_a_place_read_or_with_other_marks_or_vocabulary()
     assert_eq!(model.place_asks(), Some(false));
 }
 
+/// claude-351 left the timed step unexercised with a place read. It runs the
+/// same token copy and readout, so every served decision and the register must
+/// stay bit-identical to the normal step at every row.
+#[test]
+fn the_timed_step_serves_the_place_read_like_the_normal_step() {
+    let (_, placed, _) = place_trunk();
+    let model = IntegerStackModel::parse(&placed).expect("served");
+    let mut normal = model.session();
+    let mut timed = model.session();
+    let mut stages = Vec::new();
+    let mut places = Vec::new();
+
+    for &token in &PLACE_TALK {
+        let full = normal.step_native(token).expect("normal step");
+        let clocked = timed
+            .measure_fbs_step_stages(token, &mut stages)
+            .expect("timed step");
+        assert_eq!(full, clocked.0, "the served step differs");
+        assert_eq!(normal.last_place(), timed.last_place());
+        places.push(timed.last_place());
+    }
+
+    assert_eq!(
+        places[17..20],
+        [(Some(4), None), (Some(4), Some(4)), (Some(5), Some(5))]
+    );
+    assert_eq!(places[20], (None, None));
+}
+
 /// claude-351: at an open row the readout is `n + w_c ⊙ (table[x_place] − n)`, exactly
 /// [`super::hamming::readout_sum`] with the token's Q12 point at a weight of one, and within
 /// half a step of the float form.
