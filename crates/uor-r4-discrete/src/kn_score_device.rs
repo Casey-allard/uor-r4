@@ -170,7 +170,7 @@ impl KnScorer {
         let flags = self.stream.clone_dtoh(&flags).map_err(cuda)?;
         if let Some(i) = flags.iter().position(|&flag| flag != 0) {
             return Err(invalid(format!(
-                "target {} has a KN mass of 0 or of 2^64 or more",
+                "target {} has a KN mass of 2^64 or more",
                 positions[i]
             )));
         }

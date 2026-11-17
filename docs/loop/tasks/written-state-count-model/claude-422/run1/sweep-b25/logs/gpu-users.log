@@ -1,0 +1,2 @@
+pid, process_name, used_gpu_memory [MiB]
+free device MiB at start: 21994

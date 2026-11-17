@@ -4,7 +4,8 @@
 //! hands, in canonical order, to an [`NgramAssembler`].
 
 use crate::ngram_count::{
-    adjust_partition, check_tokens, partition_offset, partition_target_bound, plan_partitions,
+    adjust_partition_from_runs, check_tokens, extension_runs, partition_offset,
+    partition_target_bound, plan_partitions,
     stream_length_bound, NgramAssembler, NgramContext, UnigramContinuation,
     NgramPartition, NgramTriple, PartitionRange, NGRAM_MAX_ORDER, NGRAM_VOCABULARY,
 };
@@ -337,6 +338,11 @@ impl NgramCounter {
                 count: counts[g],
             })
             .collect();
+        // claude-422: the host copies of the gram words are freed before the
+        // contexts are built; only `records` is read from here on.
+        drop(keys);
+        drop(next);
+        drop(counts);
         partition.contexts = (0..contexts as usize)
             .map(|c| {
                 let g0 = records[4 * c];
@@ -431,17 +437,25 @@ impl NgramCounter {
             false => None,
         };
         for range in &plan {
-            let counted = self.count_partition(order, range)?;
-            let extended = match &extended_histogram {
-                Some(histogram) => {
-                    let targets = histogram[range.lo as usize..range.hi as usize].iter().sum();
-                    let same_tokens = PartitionRange { lo: range.lo, hi: range.hi, targets };
-                    Some(self.count_partition(order + 1, &same_tokens)?)
-                }
-                None => None,
+            // claude-422: order k+1 is counted first and reduced to its runs,
+            // then freed, so it and order k are never held at once. The
+            // adjusted partition equals `adjust_partition`'s.
+            let runs = {
+                let extended = match &extended_histogram {
+                    Some(histogram) => {
+                        let targets = histogram[range.lo as usize..range.hi as usize].iter().sum();
+                        let same_tokens = PartitionRange { lo: range.lo, hi: range.hi, targets };
+                        Some(self.count_partition(order + 1, &same_tokens)?)
+                    }
+                    None => None,
+                };
+                extension_runs(order, highest, range.lo, range.hi, extended.as_ref())?
             };
+            let counted = self.count_partition(order, range)?;
             let adjusted =
-                adjust_partition(order, highest, range.lo, range.hi, &counted, extended.as_ref())?;
+                adjust_partition_from_runs(order, highest, range.lo, range.hi, &counted, &runs)?;
+            drop(runs);
+            drop(counted);
             sink(&adjusted)?;
         }
         Ok(plan)

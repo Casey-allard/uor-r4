@@ -1,0 +1,8 @@
+read: train 2091560001 of 2091560001 tokens, query 21354897 of 21354897, 4461 ms
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3993 contexts 1, 50520 ms
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 564178 contexts 3993, 88747 ms
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 2771379 contexts 563995, 143135 ms
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 4896750 contexts 2770267, 230225 ms
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 5844406 contexts 4894941, 376948 ms
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 5846243 contexts 5842419, 570527 ms
+sealed rc=137 wall s: 590 peak device MiB (whole GPU): 23985

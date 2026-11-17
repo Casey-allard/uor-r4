@@ -1,0 +1,20 @@
+read: train 2091560001 of 2091560001 tokens, query 21354897 of 21354897, 3537 ms
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3993 contexts 1, 31807 ms
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 564178 contexts 3993, 64972 ms
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 2771379 contexts 563995, 114052 ms
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 4896750 contexts 2770267, 198382 ms
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 5844406 contexts 4894941, 332729 ms
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 5846243 contexts 5842419, 515303 ms
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 5359773 contexts 5844421, 740771 ms
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 4771073 contexts 5357949, 1011519 ms
+order 8: 128 partitions, grams 1113001553 contexts 988659209, kept triples 4230781 contexts 4769399, 1305432 ms
+order 9: 128 partitions, grams 1209995770 contexts 1112709780, kept triples 3781971 contexts 4229286, 1628197 ms
+order 10: 128 partitions, grams 1286910428 contexts 1209683953, kept triples 3425574 contexts 3780632, 1846939 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 21349576 targets, 1848738 ms
+host = GPU at all 21349576 targets, 2044911 ms
+masses at the one-unit floor: 4
+wrote /workspace/out/c422/sealed.json, 2045371 ms
+sealed rc=0 wall s: 2045 peak device MiB (whole GPU): 11145
+B1 PASS (sealed)
+{"highest_order":10,"all":{"bits_q12":"251672950854","bpb_micro":"1418136","bytes":43326982,"targets":21349576},"novel":{"bits_q12":"223758978608","bpb_micro":"1743746","bytes":31328319,"targets":14795227},"masses_sha256":"59f076093c51b15469b55b01821947b7c51d8038e68d834465e29be72d56f8de"}

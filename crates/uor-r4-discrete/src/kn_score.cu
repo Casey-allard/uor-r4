@@ -44,7 +44,7 @@ __device__ __forceinline__ u128 div_u128_u64(u128 x, u64 d) {
 }
 
 // One thread per target j = positions[i]: masses[i] gets its Q48 mass and
-// flags[i] is 1 when that mass is 0 or reaches 2^64.
+// flags[i] is 1 when that mass reaches 2^64. A mass is at least 1.
 extern "C" __global__ void kn_score_targets(const u16 *tokens, const u32 *positions, u32 count, u32 highest, const u32 *ctx_off, const u64 *ctx_keys, const u64 *ctx_total, const u32 *ctx_counts, const u32 *tri_off, const u64 *tri_keys, const u16 *tri_next, const u32 *tri_count, const u64 *discounts, u64 *masses, u32 *flags) {
     u32 i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= count) return;
@@ -96,7 +96,10 @@ extern "C" __global__ void kn_score_targets(const u16 *tokens, const u32 *positi
         // M = 2^48, so floor(gamma * mass / M) is a shift of a non-negative word.
         mass = div_u128_u64(kept, total) + ((gamma * mass) >> 48);
     }
-    bool bad = mass == (u128)0 || (mass >> 64) != (u128)0;
+    // claude-422: a chain whose floors reach 0 is floored at one Q48 unit, as
+    // KnTables::mass does.
+    if (mass == (u128)0) mass = (u128)1;
+    bool bad = (mass >> 64) != (u128)0;
     masses[i] = (u64)mass;
     flags[i] = bad ? 1u : 0u;
 }

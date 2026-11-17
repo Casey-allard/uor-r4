@@ -1,0 +1,77 @@
+{
+  "all": {
+    "bits_q12": "247718594856",
+    "bpb_micro": "2757974",
+    "bytes": 21928475,
+    "targets": 10807417
+  },
+  "budget": 134217728,
+  "check_host": true,
+  "highest_order": 1,
+  "inputs": {
+    "classes_sha256": "7df42437260bb767e2b1bdfd0cc55a242bd6e0b632a5bcd754852a7ab8aca6af",
+    "id_bytes_sha256": "befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9",
+    "query_sha256": "75c6d1ac479bf120bac3aa60ac160536e8146f8052aa49c002209500799b7d0a",
+    "query_tokens": 10810087,
+    "train_sha256": "c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460",
+    "train_tokens": 2091560001
+  },
+  "masses_sha256": "acd374cb327eb14ec288b4cff3a83c3bb71ed622fefa73dd46f2911272347c45",
+  "novel": {
+    "bits_q12": "187320072771",
+    "bpb_micro": "2859024",
+    "bytes": 15995822,
+    "targets": 7566174
+  },
+  "orders": [
+    {
+      "context_sha256": "098e594630551b21a191d5ca87b4010f5a328dd5953e45279ebd9b2d53f5cd15",
+      "contexts": 1,
+      "count_of_counts": [
+        7,
+        6,
+        11,
+        11
+      ],
+      "discount_fallback": true,
+      "discounts_q48": [
+        140737488355328,
+        281474976710656,
+        422212465065984
+      ],
+      "grams": 4079,
+      "kept_contexts": 1,
+      "kept_triples": 3921,
+      "order": 0,
+      "partitions": 17,
+      "targets": 3287899,
+      "triple_sha256": "d1330562ae4fc507675fa83d78cfef91783103c625bda1a7886c323691e2ffe6"
+    },
+    {
+      "context_sha256": "3fa9f382041315ff918cbbc0984f2f8ea863a264ec1e2497d4606e001fc1dd9d",
+      "contexts": 4079,
+      "count_of_counts": [
+        702554,
+        378091,
+        233586,
+        169003
+      ],
+      "discount_fallback": false,
+      "discounts_q48": [
+        135563508947457,
+        311695061337124,
+        452095942904186
+      ],
+      "grams": 3287899,
+      "kept_contexts": 3921,
+      "kept_triples": 401191,
+      "order": 1,
+      "partitions": 17,
+      "targets": 2091040421,
+      "triple_sha256": "64e787a8ef0d93ffade259cff8aa492252f012e5d5bc678716b5ab53aecbbf11"
+    }
+  ],
+  "per_mille": 1000,
+  "sealed_run": false,
+  "unit": "claude-421"
+}

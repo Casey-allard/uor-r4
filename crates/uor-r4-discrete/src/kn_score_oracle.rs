@@ -121,6 +121,7 @@ impl KnOracle {
             let gamma = (d1 * n1 + d2 * n2 + d3 * n3) / total;
             p = (a * M - d) / total + gamma * p / M;
         }
-        p as u128
+        // claude-422: a chain whose floors reach 0 is floored at one Q48 unit.
+        p.max(1) as u128
     }
 }

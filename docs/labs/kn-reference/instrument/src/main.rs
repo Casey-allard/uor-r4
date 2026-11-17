@@ -263,6 +263,10 @@ fn run(args: &[String]) -> Result<(), Failure> {
         )));
     }
     let train_all = read_uort_tokens(&train_bytes)?;
+    // claude-422: TRAIN's file bytes are needed only for their hash. Freed
+    // here, they no longer hold 4 GB of host memory through the counting.
+    let train_sha256 = sha256_hex(&train_bytes);
+    drop(train_bytes);
     let query_all = read_uort_tokens(&query_bytes)?;
     let train = &train_all[..record_prefix(&train_all, args.per_mille)?];
     let query_len = record_prefix(&query_all, args.per_mille)?;
@@ -280,8 +284,12 @@ fn run(args: &[String]) -> Result<(), Failure> {
     let wanted = KnQuery::from_stream(query, args.highest)?;
     let mut orders: Vec<(NgramOrderDigest, _, _)> = Vec::new();
     let mut order_json = Vec::new();
+    let train_tokens = train.len();
+    let counter = NgramCounter::new(0, train)?;
+    // claude-422: the counter holds TRAIN on the device and the host copy is
+    // never read again, so its 4 GB are freed before the counting.
+    drop(train_all);
     {
-        let counter = NgramCounter::new(0, train)?;
         for k in 0..=args.highest {
             let mut assembler = NgramAssembler::new_adjusted(k, false)?;
             let mut filter = wanted.filter(k)?;
@@ -320,6 +328,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
             orders.push((digest, triples, contexts));
         }
     }
+    drop(counter);
     let tables = KnTables::new(args.highest, orders)?;
     for (k, order) in order_json.iter_mut().enumerate() {
         let k = k as u32;
@@ -361,6 +370,10 @@ fn run(args: &[String]) -> Result<(), Failure> {
         );
     }
     let (all, novel) = tally(query, &masses, &id_bytes, classes)?;
+    // claude-422: a mass of one Q48 unit is the scorer's floor under an
+    // underflowed gamma chain; the record counts the targets that sit on it.
+    let masses_at_floor = masses.iter().filter(|&&m| m == 1).count();
+    eprintln!("masses at the one-unit floor: {masses_at_floor}");
     let mass_bytes: Vec<u8> = masses.iter().flat_map(|m| m.to_le_bytes()).collect();
     let summary = serde_json::json!({
         "unit": "claude-421",
@@ -370,15 +383,16 @@ fn run(args: &[String]) -> Result<(), Failure> {
         "check_host": args.check_host,
         "sealed_run": args.sealed_run,
         "inputs": {
-            "train_sha256": sha256_hex(&train_bytes),
+            "train_sha256": train_sha256,
             "query_sha256": query_sha256,
             "id_bytes_sha256": sha256_hex(&id_bytes),
             "classes_sha256": sha256_hex(&classes_bytes),
-            "train_tokens": train.len(),
+            "train_tokens": train_tokens,
             "query_tokens": query.len(),
         },
         "orders": order_json,
         "masses_sha256": sha256_hex(&mass_bytes),
+        "masses_at_floor": masses_at_floor,
         "all": all.json(),
         "novel": novel.json(),
     });

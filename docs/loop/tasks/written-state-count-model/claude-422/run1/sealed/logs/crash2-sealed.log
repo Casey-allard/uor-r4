@@ -1,0 +1,15 @@
+read: train 2091560001 of 2091560001 tokens, query 21354897 of 21354897, 4295 ms
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3993 contexts 1, 35494 ms
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 564178 contexts 3993, 71990 ms
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 2771379 contexts 563995, 125252 ms
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 4896750 contexts 2770267, 214945 ms
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 5844406 contexts 4894941, 354628 ms
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 5846243 contexts 5842419, 546936 ms
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 5359773 contexts 5844421, 780728 ms
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 4771073 contexts 5357949, 1051433 ms
+order 8: 128 partitions, grams 1113001553 contexts 988659209, kept triples 4230781 contexts 4769399, 1350310 ms
+order 9: 128 partitions, grams 1209995770 contexts 1112709780, kept triples 3781971 contexts 4229286, 1672493 ms
+order 10: 128 partitions, grams 1286910428 contexts 1209683953, kept triples 3425574 contexts 3780632, 1893297 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+kn-reference: invalid discrete model: target 8880153 has a KN mass of 0 or of 2^64 or more
+sealed rc=1 wall s: 1895 peak device MiB (whole GPU): 22422

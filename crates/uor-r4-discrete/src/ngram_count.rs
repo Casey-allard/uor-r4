@@ -532,7 +532,7 @@ pub fn partition_from_triples(triples: Vec<NgramTriple>) -> NgramPartition {
 /// back-off key and next are (key, next). The triples of one run differ in
 /// their oldest slot alone, so `types` is N1+(. key next).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct LeftTypes {
+pub(crate) struct LeftTypes {
     key: u128,
     next: u16,
     types: u32,
@@ -578,6 +578,30 @@ pub fn adjust_partition(
     counted: &NgramPartition,
     extended: Option<&NgramPartition>,
 ) -> Result<NgramPartition> {
+    adjust_checks(order, highest, lo, hi)?;
+    check_counted(order, lo, hi, counted)?;
+    let runs = extension_runs(order, highest, lo, hi, extended)?;
+    adjusted_from_runs(order, highest, counted, &runs)
+}
+
+/// The second half of [`adjust_partition`], over the runs
+/// [`extension_runs`] took from the order-(k+1) partition (claude-422). The
+/// device counter frees that partition before it counts order k, so the two
+/// are never held at once; the output is the same partition.
+pub(crate) fn adjust_partition_from_runs(
+    order: u32,
+    highest: u32,
+    lo: u32,
+    hi: u32,
+    counted: &NgramPartition,
+    runs: &[LeftTypes],
+) -> Result<NgramPartition> {
+    adjust_checks(order, highest, lo, hi)?;
+    check_counted(order, lo, hi, counted)?;
+    adjusted_from_runs(order, highest, counted, runs)
+}
+
+fn adjust_checks(order: u32, highest: u32, lo: u32, hi: u32) -> Result<()> {
     if order == 0 || order > highest || highest > NGRAM_MAX_ORDER {
         return Err(invalid(format!(
             "adjusted counts take an order-1..={highest} partition (order 0 is a whole-order step), got order {order} under N = {highest} <= {NGRAM_MAX_ORDER}"
@@ -586,31 +610,50 @@ pub fn adjust_partition(
     if lo >= hi || hi > NGRAM_VOCABULARY {
         return Err(invalid(format!("adjusted counts need a token range lo < hi <= 4,096, got {lo}..{hi}")));
     }
-    let checked = |word: u128, want: u32| -> Result<PrimeRouteKey> {
-        let key = PrimeRouteKey::from_word(word)?;
-        if key.order() != want {
-            return Err(invalid(format!(
-                "adjusted counts: a key of order {} in an order-{want} partition",
-                key.order()
-            )));
-        }
-        let token = u32::from(key.slot(1).expect("order >= 1 has slot 1"));
-        if token < lo || token >= hi {
-            return Err(invalid(format!(
-                "adjusted counts: partition token {token} lies outside {lo}..{hi}"
-            )));
-        }
-        Ok(key)
-    };
+    Ok(())
+}
+
+fn adjust_key(word: u128, want: u32, lo: u32, hi: u32) -> Result<PrimeRouteKey> {
+    let key = PrimeRouteKey::from_word(word)?;
+    if key.order() != want {
+        return Err(invalid(format!(
+            "adjusted counts: a key of order {} in an order-{want} partition",
+            key.order()
+        )));
+    }
+    let token = u32::from(key.slot(1).expect("order >= 1 has slot 1"));
+    if token < lo || token >= hi {
+        return Err(invalid(format!(
+            "adjusted counts: partition token {token} lies outside {lo}..{hi}"
+        )));
+    }
+    Ok(key)
+}
+
+fn check_counted(order: u32, lo: u32, hi: u32, counted: &NgramPartition) -> Result<()> {
     let mut last = None;
     for triple in &counted.triples {
-        checked(triple.key, order)?;
+        adjust_key(triple.key, order, lo, hi)?;
         let at = (triple.key, triple.next);
         if last.is_some_and(|before| before >= at) {
             return Err(invalid("adjusted counts: order-k triples are not in strictly ascending order"));
         }
         last = Some(at);
     }
+    Ok(())
+}
+
+/// The left-extension runs of the order-(k+1) partition, or none when k = N
+/// (the first half of [`adjust_partition`]).
+pub(crate) fn extension_runs(
+    order: u32,
+    highest: u32,
+    lo: u32,
+    hi: u32,
+    extended: Option<&NgramPartition>,
+) -> Result<Vec<LeftTypes>> {
+    adjust_checks(order, highest, lo, hi)?;
+    let checked = |word: u128, want: u32| adjust_key(word, want, lo, hi);
     let runs = match (order < highest, extended) {
         (true, Some(extended)) => {
             let mut suffixes = Vec::with_capacity(extended.triples.len());
@@ -644,6 +687,15 @@ pub fn adjust_partition(
             )))
         }
     };
+    Ok(runs)
+}
+
+fn adjusted_from_runs(
+    order: u32,
+    highest: u32,
+    counted: &NgramPartition,
+    runs: &[LeftTypes],
+) -> Result<NgramPartition> {
     let mut at = 0usize;
     let mut adjusted = Vec::with_capacity(counted.triples.len());
     for triple in &counted.triples {

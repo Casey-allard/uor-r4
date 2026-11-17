@@ -12,7 +12,11 @@
 //! - `P_k = floor((a M - D(a)) / A) + floor(gamma P_{k-1} / M)`, with
 //!   `gamma = floor((Dq1 n1(h) + Dq2 n2(h) + Dq3 n3+(h)) / A)`;
 //! - a context with no record (A = 0) gives `P_k = P_{k-1}`;
-//! - `P_{-1} = M / 4096`.
+//! - `P_{-1} = M / 4096`;
+//! - the result is at least 1 (claude-422): a gamma chain whose floors reach
+//!   0 is floored at one Q48 unit, 2^-48. Real KN gives such a target a mass
+//!   below 2^-48, so the floor can only lower R\*'s bits; it adds at most 4,096
+//!   units (2^-36) to a history's sum.
 //!
 //! The BOS rule of claude-415 needs no separate test here. The counter never
 //! writes a context with BOS outside its oldest slot, so such a context has no
@@ -218,8 +222,8 @@ impl KnTables {
         self.orders.get(k as usize).map(|order| order.fallback)
     }
 
-    /// The Q48 mass of the target `tokens[j]` after its history. Refuses a
-    /// BOS target, which a stream never scores, and a zero mass.
+    /// The Q48 mass of the target `tokens[j]` after its history, at least 1.
+    /// Refuses a BOS target, which a stream never scores.
     pub fn score_target(&self, tokens: &[u16], j: usize) -> Result<u64> {
         let target = *tokens
             .get(j)
@@ -227,11 +231,7 @@ impl KnTables {
         if target == NGRAM_BOS {
             return Err(invalid(format!("target {j} is BOS, which is never scored")));
         }
-        let mass = self.mass(tokens, j)?;
-        if mass == 0 {
-            return Err(invalid(format!("target {j} has zero mass")));
-        }
-        Ok(mass)
+        self.mass(tokens, j)
     }
 
     /// The interpolation itself, for any target id including BOS.
@@ -268,7 +268,7 @@ impl KnTables {
             let kept = u128::from(a) * m - u128::from(order.discounts.discount(a));
             mass = kept / total + gamma * mass / m;
         }
-        u64::try_from(mass).map_err(|_| invalid("a KN mass exceeded 2^64"))
+        u64::try_from(mass.max(1)).map_err(|_| invalid("a KN mass exceeded 2^64"))
     }
 
     /// The Q48 mass of every non-BOS target of `tokens`, in stream order.
@@ -278,6 +278,41 @@ impl KnTables {
             .map(|j| self.score_target(tokens, j))
             .collect()
     }
+}
+
+/// claude-422: N = 0 tables whose gamma chain floors an unseen id to 0. One
+/// order-0 context of total 2^40 has a single follower, id 5 with count 2^20.
+/// With n1..n4 = [2, 1, 1, 1], Dq = [M/2, M/2, M], so gamma = Dq3 / 2^40 = 2^8
+/// and an unseen id gets floor(2^8 * 2^36 / 2^48) = 0 before the floor.
+/// Shared with the CUDA tests.
+#[cfg(test)]
+pub(crate) fn kn_underflow_tables() -> KnTables {
+    let key = PrimeRouteKey::from_context(&[])
+        .expect("empty context")
+        .word();
+    let digest = NgramOrderDigest {
+        order: 0,
+        targets: 1 << 20,
+        grams: 1,
+        contexts: 1,
+        count_of_counts: [2, 1, 1, 1],
+        triple_sha256: String::new(),
+        context_sha256: String::new(),
+    };
+    let triple = NgramTriple {
+        key,
+        next: 5,
+        count: 1 << 20,
+    };
+    let context = NgramContext {
+        key,
+        total: 1 << 40,
+        followers: 1,
+        n1: 0,
+        n2: 0,
+        n3_plus: 1,
+    };
+    KnTables::new(0, vec![(digest, vec![triple], vec![context])]).expect("underflow tables")
 }
 
 #[cfg(test)]
@@ -375,6 +410,16 @@ mod tests {
         let bos = tokens.iter().position(|&t| t == NGRAM_BOS).expect("bos");
         assert!(tables.score_target(&tokens, bos).is_err());
         assert!(tables.score_target(&tokens, tokens.len()).is_err());
+    }
+
+    /// claude-422: an unseen id whose chain floors to 0 scores one Q48 unit;
+    /// the seen id scores (2^20 M - M) / 2^40 = (2^20 - 1) 2^8, its gamma
+    /// share 2^8 * 2^36 / 2^48 flooring to 0.
+    #[test]
+    fn kn_score_floors_an_underflowed_chain_at_one_unit() {
+        let tables = kn_underflow_tables();
+        let masses = tables.scored_masses(&[5, 7, 5]).expect("masses");
+        assert_eq!(masses, vec![((1 << 20) - 1) << 8, 1, ((1 << 20) - 1) << 8]);
     }
 
     /// N = 2 on 12 tokens, every mass derived by hand. The count-of-counts of

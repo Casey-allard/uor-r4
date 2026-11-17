@@ -1,0 +1,16 @@
+read: train 4181335 of 2091560001 tokens, query 17139 of 10810087, 4555 ms
+order 0: 1 partitions, grams 3806 contexts 1, kept triples 1364 contexts 1, 4755 ms
+order 1: 1 partitions, grams 246797 contexts 3806, kept triples 5872 contexts 1364, 4815 ms
+order 2: 1 partitions, grams 911681 contexts 246714, kept triples 6687 contexts 5867, 4980 ms
+order 3: 1 partitions, grams 1559841 contexts 911219, kept triples 5987 contexts 6681, 5272 ms
+order 4: 1 partitions, grams 2046075 contexts 1559110, kept triples 5123 contexts 5983, 5667 ms
+order 5: 1 partitions, grams 2394696 contexts 2045203, kept triples 4357 contexts 5120, 6128 ms
+order 6: 1 partitions, grams 2642277 contexts 2393744, kept triples 3799 contexts 4355, 6630 ms
+order 7: 1 partitions, grams 2824780 contexts 2641189, kept triples 3395 contexts 3797, 7172 ms
+order 8: 1 partitions, grams 2962044 contexts 2823643, kept triples 3115 contexts 3393, 7753 ms
+order 9: 1 partitions, grams 3068159 contexts 2960882, kept triples 2903 contexts 3113, 8357 ms
+order 10: 1 partitions, grams 3153459 contexts 3066984, kept triples 2707 contexts 2901, 8753 ms
+gpu scored 17132 targets, 8918 ms
+host = GPU at all 17132 targets, 8936 ms
+wrote /workspace/out/c422/slice-n10-pm2.json, 8940 ms
+[{"kept_contexts":1,"count_of_counts":[168,153,142,95],"discount_fallback":false},{"kept_contexts":1364,"count_of_counts":[144032,39571,17906,10191],"discount_fallback":false},{"kept_contexts":5867,"count_of_counts":[718095,103617,34545,16870],"discount_fallback":false},{"kept_contexts":6681,"count_of_counts":[1366301,119445,32758,14399],"discount_fallback":false},{"kept_contexts":5983,"count_of_counts":[1883432,108438,25544,10566],"discount_fallback":false},{"kept_contexts":5120,"count_of_counts":[2264270,91371,19536,7671],"discount_fallback":false},{"kept_contexts":4355,"count_of_counts":[2537902,75945,15037,5710],"discount_fallback":false},{"kept_contexts":3797,"count_of_counts":[2741197,62772,11405,4165],"discount_fallback":false},{"kept_contexts":3393,"count_of_counts":[2894039,52457,8746,3075],"discount_fallback":false},{"kept_contexts":3113,"count_of_counts":[3011841,44018,7058,2409],"discount_fallback":false},{"kept_contexts":2901,"count_of_counts":[2794727,233310,52352,27643],"discount_fallback":false}]

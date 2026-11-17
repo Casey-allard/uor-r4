@@ -1,0 +1,14 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 3564 ms
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 29164 ms
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 53840 ms
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 92529 ms
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 2853741 contexts 1719653, 163663 ms
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 3295997 contexts 2852734, 281803 ms
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 3230893 contexts 3294901, 448436 ms
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 2927518 contexts 3229874, 658565 ms
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 2588113 contexts 2926491, 815110 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 10807417 targets, 815922 ms
+host = GPU at all 10807417 targets, 867373 ms
+wrote /workspace/out/c422/sweep-7.json, 867608 ms
+N=7 rc=0 wall s: 869 peak rss KiB: 15584224

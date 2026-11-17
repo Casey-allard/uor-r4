@@ -197,6 +197,17 @@ fn kn_score_cuda_matches_the_host_scorer_with_fallback_discounts() {
     }
 }
 
+/// claude-422: the GPU floors an underflowed chain at one Q48 unit, as the host does.
+#[test]
+fn kn_score_cuda_floors_an_underflowed_chain_as_the_host_does() {
+    let host = crate::kn_score::kn_underflow_tables();
+    let query = [5u16, 7, 5];
+    let want = host.scored_masses(&query).expect("host masses");
+    assert_eq!(want[1], 1, "the host floors the unseen id");
+    let scorer = KnScorer::new(0, &host).expect("scorer");
+    assert_eq!(scorer.score(&query).expect("gpu masses"), want);
+}
+
 #[test]
 fn kn_score_cuda_empty_and_bos_only_queries_score_nothing() {
     let train = kn_score_stream(0x421c, 6_000);
@@ -214,38 +225,53 @@ fn kn_score_cuda_empty_and_bos_only_queries_score_nothing() {
 /// cut at a record start. DEV-test is sealed and is never read here.
 /// Run: `UOR_KN_TRAIN=train.tokens.u16 UOR_KN_QUERY=dev-tune.tokens.u16
 /// cargo test --release --features cuda --lib -- --ignored kn_score_cuda_real_slice`.
+/// claude-422: `UOR_KN_N` (default 2) and `UOR_KN_PER_MILLE` (default 10) set
+/// the highest order and the slice, so the check can run at R*'s chosen N on
+/// a slice small enough for the oracle's ordered maps.
 #[test]
 #[ignore = "needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams"]
 fn kn_score_cuda_real_slice_equals_the_cpu_oracle() {
     use crate::kn_filter::KnQuery;
     use crate::kn_score_oracle::KnOracle;
-    use crate::ngram_count::{read_uort_tokens, NgramAssembler};
+    use crate::ngram_count::{read_uort_tokens, NgramAssembler, NGRAM_MAX_ORDER};
     use crate::ngram_count_device::NgramCounter;
-    const N: u32 = 2;
+    let setting = |var: &str, default: u32| {
+        std::env::var(var).map_or(default, |v| v.parse().expect("an integer setting"))
+    };
+    let n = setting("UOR_KN_N", 2);
+    let per_mille = setting("UOR_KN_PER_MILLE", 10) as usize;
+    assert!(
+        n <= NGRAM_MAX_ORDER,
+        "UOR_KN_N is at most {NGRAM_MAX_ORDER}"
+    );
+    assert!(
+        (1..=1000).contains(&per_mille),
+        "UOR_KN_PER_MILLE takes 1..=1000"
+    );
     let read = |var: &str| {
         let path = std::env::var(var).unwrap_or_else(|_| panic!("{var} names a UORT stream"));
         read_uort_tokens(&std::fs::read(&path).expect("read stream")).expect("UORT stream")
     };
     let cut = |tokens: &[u16]| {
-        let mark = tokens.len() / 100;
+        let mark = tokens.len() * per_mille / 1000;
         tokens[..=mark]
             .iter()
             .rposition(|&t| t == NGRAM_BOS)
             .filter(|&at| at > 0)
-            .expect("the first 1% holds a whole record")
+            .expect("the slice holds a whole record")
     };
     let train_all = read("UOR_KN_TRAIN");
     let train = &train_all[..cut(&train_all)];
     let query_all = read("UOR_KN_QUERY");
     let query = &query_all[..cut(&query_all)];
-    let wanted = KnQuery::from_stream(query, N).expect("query");
+    let wanted = KnQuery::from_stream(query, n).expect("query");
     let counter = NgramCounter::new(0, train).expect("counter");
     let mut orders = Vec::new();
-    for k in 0..=N {
+    for k in 0..=n {
         let mut assembler = NgramAssembler::new_adjusted(k, false).expect("assembler");
         let mut filter = wanted.filter(k).expect("filter");
         counter
-            .count_order_adjusted_with(k, N, 1 << 24, &mut |partition| {
+            .count_order_adjusted_with(k, n, 1 << 24, &mut |partition| {
                 assembler.push(partition)?;
                 filter.keep(partition)
             })
@@ -263,12 +289,12 @@ fn kn_score_cuda_real_slice_equals_the_cpu_oracle() {
         orders.push((digest, triples, contexts));
     }
     drop(counter);
-    let tables = KnTables::new(N, orders).expect("tables");
+    let tables = KnTables::new(n, orders).expect("tables");
     let gpu = KnScorer::new(0, &tables)
         .expect("scorer")
         .score(query)
         .expect("score");
-    let oracle = KnOracle::new(train, N as usize);
+    let oracle = KnOracle::new(train, n as usize);
     let expected: Vec<u64> = (0..query.len())
         .filter(|&j| query[j] != NGRAM_BOS)
         .map(|j| u64::try_from(oracle.mass(query, j)).expect("an oracle mass fits u64"))
@@ -282,7 +308,7 @@ fn kn_score_cuda_real_slice_equals_the_cpu_oracle() {
         "the slice's masses are not degenerate"
     );
     eprintln!(
-        "real slice: train {} tokens, query {} tokens, {} targets, gpu = oracle",
+        "real slice: N {n}, {per_mille} per mille, train {} tokens, query {} tokens, {} targets, gpu = oracle",
         train.len(),
         query.len(),
         gpu.len()

@@ -1,0 +1,19 @@
+oracle query sha256 75c6d1ac479bf120bac3aa60ac160536e8146f8052aa49c002209500799b7d0a train sha256 c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c422/crates/uor-r4-discrete)
+real slice order 0: grams 3806 contexts 1 kept triples 1364 contexts 1 n1..n4 [168, 153, 142, 95]
+real slice order 1: grams 246797 contexts 3806 kept triples 5872 contexts 1364 n1..n4 [144032, 39571, 17906, 10191]
+real slice order 2: grams 911681 contexts 246714 kept triples 6687 contexts 5867 n1..n4 [718095, 103617, 34545, 16870]
+real slice order 3: grams 1559841 contexts 911219 kept triples 5987 contexts 6681 n1..n4 [1366301, 119445, 32758, 14399]
+real slice order 4: grams 2046075 contexts 1559110 kept triples 5123 contexts 5983 n1..n4 [1883432, 108438, 25544, 10566]
+real slice order 5: grams 2394696 contexts 2045203 kept triples 4357 contexts 5120 n1..n4 [2264270, 91371, 19536, 7671]
+real slice order 6: grams 2642277 contexts 2393744 kept triples 3799 contexts 4355 n1..n4 [2537902, 75945, 15037, 5710]
+real slice order 7: grams 2824780 contexts 2641189 kept triples 3395 contexts 3797 n1..n4 [2741197, 62772, 11405, 4165]
+real slice order 8: grams 2962044 contexts 2823643 kept triples 3115 contexts 3393 n1..n4 [2894039, 52457, 8746, 3075]
+real slice order 9: grams 3068159 contexts 2960882 kept triples 2903 contexts 3113 n1..n4 [3011841, 44018, 7058, 2409]
+real slice order 10: grams 3153459 contexts 3066984 kept triples 2707 contexts 2901 n1..n4 [2794727, 233310, 52352, 27643]
+thread 'kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle' (416803) panicked at crates/uor-r4-discrete/src/kn_score_cuda.rs:293:5:
+assertion `left == right` failed: the GPU path differs from the CPU oracle
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle has been running for over 60 seconds
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 434 filtered out; finished in 65.19s
+N=10 per mille 2 wall s: 128 peak rss KiB: 10758644

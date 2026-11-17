@@ -1,0 +1,50 @@
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running unittests src/lib.rs (/root/work/c422t2/ws/release/deps/uor_r4_discrete-66f014575ecb7015)
+
+running 1 test
+real slice order 0: grams 3806 contexts 1 kept triples 1364 contexts 1 n1..n4 [168, 153, 142, 95]
+real slice order 1: grams 246797 contexts 3806 kept triples 5872 contexts 1364 n1..n4 [144032, 39571, 17906, 10191]
+real slice order 2: grams 911681 contexts 246714 kept triples 6687 contexts 5867 n1..n4 [718095, 103617, 34545, 16870]
+real slice order 3: grams 1559841 contexts 911219 kept triples 5987 contexts 6681 n1..n4 [1366301, 119445, 32758, 14399]
+real slice order 4: grams 2046075 contexts 1559110 kept triples 5123 contexts 5983 n1..n4 [1883432, 108438, 25544, 10566]
+real slice order 5: grams 2394696 contexts 2045203 kept triples 4357 contexts 5120 n1..n4 [2264270, 91371, 19536, 7671]
+real slice order 6: grams 2642277 contexts 2393744 kept triples 3799 contexts 4355 n1..n4 [2537902, 75945, 15037, 5710]
+real slice order 7: grams 2824780 contexts 2641189 kept triples 3395 contexts 3797 n1..n4 [2741197, 62772, 11405, 4165]
+real slice order 8: grams 2962044 contexts 2823643 kept triples 3115 contexts 3393 n1..n4 [2894039, 52457, 8746, 3075]
+real slice order 9: grams 3068159 contexts 2960882 kept triples 2903 contexts 3113 n1..n4 [3011841, 44018, 7058, 2409]
+real slice order 10: grams 3153459 contexts 3066984 kept triples 2707 contexts 2901 n1..n4 [2794727, 233310, 52352, 27643]
+real slice: N 10, 2 per mille, train 4181335 tokens, query 17139 tokens, 17132 targets, gpu = oracle
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle has been running for over 60 seconds
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 436 filtered out; finished in 65.60s
+

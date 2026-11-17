@@ -28,9 +28,15 @@ struct QueryOrder {
 }
 
 /// The keys a query stream looks up at orders 0..=highest.
+///
+/// claude-422: an order's keys are listed only when its filter is made, and
+/// the filter owns them, so one order's lists are resident at a time. Listing
+/// every order up front held about 48 bytes per query position per order
+/// (about 21 million positions x 11 orders on DEV-test, 11 GB) through the
+/// whole count.
 pub struct KnQuery {
     highest: u32,
-    orders: Vec<QueryOrder>,
+    query: Vec<u16>,
 }
 
 impl KnQuery {
@@ -44,47 +50,54 @@ impl KnQuery {
             )));
         }
         check_tokens(query)?;
-        let mut orders = Vec::with_capacity(highest as usize + 1);
-        for k in 0..=highest as usize {
-            let mut contexts = Vec::new();
-            let mut pairs = Vec::new();
-            for j in k..query.len() {
-                if query[j] == NGRAM_BOS {
-                    continue;
-                }
-                let key = PrimeRouteKey::from_context(&query[j - k..j])?.word();
-                contexts.push(key);
-                pairs.push((key, query[j]));
-            }
-            contexts.sort_unstable();
-            contexts.dedup();
-            pairs.sort_unstable();
-            pairs.dedup();
-            orders.push(QueryOrder { contexts, pairs });
-        }
-        Ok(Self { highest, orders })
+        Ok(Self {
+            highest,
+            query: query.to_vec(),
+        })
     }
 
     pub fn highest(&self) -> u32 {
         self.highest
     }
 
+    /// Order k's keys, sorted and deduplicated.
+    fn order(&self, k: u32) -> Result<QueryOrder> {
+        if k > self.highest {
+            return Err(invalid(format!(
+                "the KN query holds orders 0..={}, not {k}",
+                self.highest
+            )));
+        }
+        let (k, query) = (k as usize, &self.query);
+        let mut contexts = Vec::new();
+        let mut pairs = Vec::new();
+        for j in k..query.len() {
+            if query[j] == NGRAM_BOS {
+                continue;
+            }
+            let key = PrimeRouteKey::from_context(&query[j - k..j])?.word();
+            contexts.push(key);
+            pairs.push((key, query[j]));
+        }
+        contexts.sort_unstable();
+        contexts.dedup();
+        contexts.shrink_to_fit();
+        pairs.sort_unstable();
+        pairs.dedup();
+        pairs.shrink_to_fit();
+        Ok(QueryOrder { contexts, pairs })
+    }
+
     /// Order k's looked-up (contexts, pairs) counts.
     pub fn lookups(&self, k: u32) -> Option<(usize, usize)> {
-        let QueryOrder { contexts, pairs } = self.orders.get(k as usize)?;
+        let QueryOrder { contexts, pairs } = self.order(k).ok()?;
         Some((contexts.len(), pairs.len()))
     }
 
     /// The filter of order k, fed that order's partitions in canonical order.
-    pub fn filter(&self, k: u32) -> Result<KnFilter<'_>> {
-        let order = self.orders.get(k as usize).ok_or_else(|| {
-            invalid(format!(
-                "the KN query holds orders 0..={}, not {k}",
-                self.highest
-            ))
-        })?;
+    pub fn filter(&self, k: u32) -> Result<KnFilter> {
         Ok(KnFilter {
-            order,
+            order: self.order(k)?,
             last_triple: None,
             last_context: None,
             triples: Vec::new(),
@@ -95,15 +108,15 @@ impl KnQuery {
 
 /// Keeps one order's records that a query looks up. A refused partition
 /// leaves the filter unusable; the caller drops the whole count.
-pub struct KnFilter<'q> {
-    order: &'q QueryOrder,
+pub struct KnFilter {
+    order: QueryOrder,
     last_triple: Option<(u128, u16)>,
     last_context: Option<u128>,
     triples: Vec<NgramTriple>,
     contexts: Vec<NgramContext>,
 }
 
-impl KnFilter<'_> {
+impl KnFilter {
     /// Append the partition's looked-up triples and contexts. Refuses triples
     /// that do not strictly ascend in (key, next) and contexts whose keys fall,
     /// across partitions as within one. An equal context key (the order-0

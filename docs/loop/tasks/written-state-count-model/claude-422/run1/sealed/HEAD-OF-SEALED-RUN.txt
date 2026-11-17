@@ -1,0 +1,2 @@
+sealed.json (sha256 5c7e3f50469eccb0384532028937b5e6a2aae95556aa3612517c7263e2bad3aa) was written by job c422-fix3 at code 8ace4e23d (sheet r-star-sealed-2-2026-11-17.md); see fix2/head.txt.
+logs/head.txt names a15bb17b1, the code of crash 1, and is kept as wick wrote it.

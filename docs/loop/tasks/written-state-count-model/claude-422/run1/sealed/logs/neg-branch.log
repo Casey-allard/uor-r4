@@ -1,0 +1,4 @@
+gamma negative: the oracle's gamma set to 0
+1
+negative: pass
+oracle source restored, cmp-identical to the tarball

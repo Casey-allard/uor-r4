@@ -1,0 +1,8 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 1766 ms
+order 0: 17 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 10865 ms
+order 1: 17 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 15654 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 10807417 targets, 16108 ms
+host = GPU at all 10807417 targets, 17469 ms
+wrote /workspace/out/c422/sweep-1.json, 19182 ms
+N=1 rc=0 wall s: 20
