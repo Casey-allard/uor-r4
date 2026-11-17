@@ -21,7 +21,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 ## Lessons the project paid for — the PM's top ten from [LESSONS.md](docs/harness/LESSONS.md), rendered between the markers, never hand-edited
 
 <!-- loop:lessons-top-ten:start -->
-<!-- rendered by uor-harness loop render from e4264acf167c8552639d6f2ead4d523c1867b038; do not edit -->
+<!-- rendered by uor-harness loop render from dd96293762198fdc2ebb1bc168c32ee3403426d4; do not edit -->
 - **L-001**: Records drifted out of date ([`L-001.md`](docs/harness/mistakes/L-001.md))
 - **L-002**: A retry written into a sealed report root ([`L-002.md`](docs/harness/mistakes/L-002.md))
 - **L-003**: A folder was archived while a retained recipe still read it ([`L-003.md`](docs/harness/mistakes/L-003.md))

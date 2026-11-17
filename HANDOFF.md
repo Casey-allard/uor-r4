@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from e4264acf167c8552639d6f2ead4d523c1867b038; do not edit -->
+<!-- rendered by uor-harness loop render from dd96293762198fdc2ebb1bc168c32ee3403426d4; do not edit -->
 # HANDOFF
 
 Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each open-item row gives the first sentence of the item's `Done when` and `Cancel if` sections; blocked items are listed once, in the blocked table, with their owner; `not recorded` means the item has no such section or key yet.
@@ -7,7 +7,7 @@ Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each o
 
 Items not `held`, `decision` or `done`. Held and decision items are listed once, in the blocked table below.
 
-### ready (32)
+### ready (31)
 
 | Item | Title | Done when | Cancel if | Size | Stands |
 |---|---|---|---|---|---|
@@ -15,7 +15,6 @@ Items not `held`, `decision` or `done`. Held and decision items are listed once,
 | d5b-coaccess-assignment | Test D5-b address assignment with measured co-access and distance | Export the real co-access matrix, use the distance term in the objective, and record the comparison with the current assignment. | not recorded | not recorded | ready |
 | discrete-clippy-k16-coverage | Track discrete Clippy drift, PR coverage and the K16 timing instrument | Resolve the registered lint, CI-coverage and K16 timing findings with the corresponding verification for each, preserving source-pin integrity. | not recorded | not recorded | ready |
 | docs-site-freshness | Book page freshness records, a staged banner, and mdBook 0.5 | 1. | not recorded | not recorded | ready |
-| docs-status-refresh | Bring every status page, picture and tracker up to 31 Oct 2026 | 1. | not recorded | not recorded | ready |
 | end-to-end-integration | Connect training and integer serving behind shared stage interfaces | 1. | not recorded | not recorded | ready; after integer-hamming-read, fbs-serving-kernels, native-space-state-contract |
 | float-kernel-fusion | One kernel list for the float crate, and fused kernels for the served quantizers | 1. | - The two chains' share of wall seconds per training step at P2b's recipe, with `--train-as-served 1`, is under 5%, with their launch counts reported alongside. | not recorded | ready |
 | icosian-snap-parity | Build a lawful GPU comparator for the historical S1.4 icosian snap replay | A reviewed GPU comparator reproduces the named measurements on the pinned inputs under its own FIT-reviewed sheet. | not recorded | not recorded | ready |
