@@ -1864,15 +1864,27 @@ pub fn load_pinned_uort_split(
     Ok((tokens, mask_bytes))
 }
 
+/// A document windower's `context` of 0 (#3714): `target_cursor + 0` never moves, so the chunk
+/// loop would never end. The window comes from the checkpoint, so it is checked, not assumed.
+fn refuse_zero_window(context: usize) -> Result<()> {
+    if context == 0 {
+        return Err(invalid(
+            "a document window wants a context of 1 or more, not 0",
+        ));
+    }
+    Ok(())
+}
+
 /// Partitions a decoded `UORT` split at `<|bos|>` document boundaries into causal windows of
 /// length `context` (`192`), scoring each eligible target position (`p > doc_start && tokens[p] != bos_id && mask[p] == 1`)
-/// exactly once (`I-DEV-Denominator`).
+/// exactly once (`I-DEV-Denominator`). A `context` of 0 is refused: no chunk would advance.
 pub fn build_document_windows(
     tokens: &[u32],
     mask: &[u8],
     context: usize,
     bos_id: u32,
 ) -> Result<(Vec<CausalWindow>, usize)> {
+    refuse_zero_window(context)?;
     let doc_starts: Vec<usize> = tokens
         .iter()
         .enumerate()
@@ -1990,13 +2002,14 @@ pub fn build_document_windows_sliding(
 /// multiple of `context`. [`build_document_windows`] reads a document's last, shorter chunk from
 /// the `context` tokens before its last target, back into the block before, so that block
 /// carries part of the one before it and is no forgetting control. Every full block is the same
-/// window in both.
+/// window in both. A `context` of 0 is refused: no block would advance.
 pub fn build_document_blocks(
     tokens: &[u32],
     mask: &[u8],
     context: usize,
     bos_id: u32,
 ) -> Result<(Vec<CausalWindow>, usize)> {
+    refuse_zero_window(context)?;
     let doc_starts: Vec<usize> = tokens
         .iter()
         .enumerate()
@@ -4936,6 +4949,26 @@ mod tests {
             // At 3, 8 and 10 a document ends in a shorter block after its first.
             assert_eq!(short > 0, [3, 8, 10].contains(&w), "W {w}: {short}");
         }
+        Ok(())
+    }
+
+    /// #3714 item 4: W comes from the checkpoint, and at 0 neither windower's chunk loop would
+    /// advance. Both refuse it, as the sliding windower refuses a stride of 0, and still cut at 1.
+    #[test]
+    fn document_windowers_refuse_a_zero_window() -> Result<()> {
+        let (tokens, mask) = past_window_panel();
+        let refusal = "a document window wants a context of 1 or more, not 0";
+        for result in [
+            build_document_windows(&tokens, &mask, 0, 0),
+            build_document_blocks(&tokens, &mask, 0, 0),
+        ] {
+            match result {
+                Err(e) => assert!(e.to_string().contains(refusal), "{e}"),
+                Ok(_) => panic!("a zero window must be refused"),
+            }
+        }
+        assert!(!build_document_windows(&tokens, &mask, 1, 0)?.0.is_empty());
+        assert!(!build_document_blocks(&tokens, &mask, 1, 0)?.0.is_empty());
         Ok(())
     }
 

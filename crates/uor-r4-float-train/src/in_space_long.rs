@@ -7751,6 +7751,56 @@ fn run_objective(checkpoint: &Path) -> Result<Option<PointObjective>> {
     Ok(None)
 }
 
+/// [`run_objective`] for a `--past-window` pass (#3714): its bands' `query_loss` is R1, the
+/// deciding loss, so a checkpoint whose run config is not found is refused rather than scored
+/// with bands that carry no loss.
+fn past_window_objective(checkpoint: &Path) -> Result<PointObjective> {
+    run_objective(checkpoint)?.ok_or_else(|| {
+        invalid(format!(
+            "--past-window needs the run's objective for its bands' loss, and no run config with \
+             steps is found at {} or two levels up",
+            checkpoint.display()
+        ))
+    })
+}
+
+/// Only carry changes the loaded model's context. Use the common panel C even when
+/// the checkpoint window W is larger. Each past-window file records that same C.
+fn score_context_override<'a>(
+    rule: Option<PastWindowRule>,
+    mut panels: impl Iterator<Item = (&'a str, usize)>,
+) -> Result<Option<usize>> {
+    if rule != Some(PastWindowRule::Carry) {
+        return Ok(None);
+    }
+    let (first, c) = panels.next().ok_or_else(|| invalid("past-window rule carry needs a panel"))?;
+    if let Some((other, oc)) = panels.find(|&(_, oc)| oc != c) {
+        return Err(invalid(format!(
+            "past-window rule carry reads one context, and the panels' differ: {first} at \
+             {c}, {other} at {oc}; score them in separate runs"
+        )));
+    }
+    Ok(Some(c))
+}
+
+/// Carry panels run at C, but TRAIN cache windows were cut at W. Use W for
+/// that forward, then restore C for the following decodes and memory mode.
+fn with_train_cache_context<T>(
+    model: &mut StackModel,
+    carry_context: Option<usize>,
+    train_context: usize,
+    capture: impl FnOnce(&StackModel) -> Result<T>,
+) -> Result<T> {
+    let previous = model.config.context;
+    if carry_context.is_none() || train_context == previous {
+        return capture(model);
+    }
+    model.set_context(train_context)?;
+    let result = capture(model);
+    model.set_context(previous)?;
+    result
+}
+
 /// A panel cut by a past-window rule (claude-287): the rule, W, the context the panel's windows
 /// run at (W, or C under `carry`), each document's BOS position, and the `blocks` queries whose
 /// inputs run past W.
@@ -7775,7 +7825,8 @@ impl PastCut {
 
 /// One band of a past-window file's rows (claude-287): targets whose input's offset from their
 /// document's BOS is in `from..to`, their nearest and writer hits, and the checkpoint's own
-/// `query_loss` summed and averaged over them, none when its run's objective is not found.
+/// `query_loss` summed and averaged over them. `score_rows` refuses a past-window pass whose run
+/// objective is not found (#3714). A written band has a sum and, when it has targets, a mean.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct PastWindowBand {
     pub from: usize,
@@ -7819,8 +7870,10 @@ pub struct PastWindowReading {
     pub query_bands: Vec<PastWindowQueryBand>,
 }
 
-/// `picks`' rows by [`PastCut::band`], with `losses[band]`'s summed loss where given.
-fn past_window_bands(cut: &PastCut, picks: &[RowPick], losses: Option<&[f64]>) -> Vec<PastWindowBand> {
+/// `picks`' rows by [`PastCut::band`], with `losses[band]`'s summed loss where given. Losses
+/// that do not have one entry per band are refused (#3714): a missing band's loss would be
+/// written as `0.0`, which reads as the best rule.
+fn past_window_bands(cut: &PastCut, picks: &[RowPick], losses: Option<&[f64]>) -> Result<Vec<PastWindowBand>> {
     let mut bands: Vec<PastWindowBand> = Vec::new();
     for pick in picks {
         let band = cut.band(pick.position);
@@ -7832,15 +7885,24 @@ fn past_window_bands(cut: &PastCut, picks: &[RowPick], losses: Option<&[f64]>) -
         row.nearest_hits += usize::from(pick.nearest == pick.target);
         row.writer_hits += usize::from(pick.writer == pick.target);
     }
+    if let Some(losses) = losses {
+        if losses.len() != bands.len() {
+            return Err(invalid(format!(
+                "a past-window split has {} bands of rows and {} of losses",
+                bands.len(),
+                losses.len()
+            )));
+        }
+    }
     for (band, row) in bands.iter_mut().enumerate() {
         (row.from, row.to) = (band * cut.window, (band + 1) * cut.window);
         if let Some(losses) = losses {
-            let sum = losses.get(band).copied().unwrap_or(0.0);
+            let sum = losses[band];
             row.loss_sum = Some(sum);
             row.loss_mean = (row.targets > 0).then(|| sum / row.targets as f64);
         }
     }
-    bands
+    Ok(bands)
 }
 
 /// The queries by their note's distance in widths of `window` (claude-287), from `replies`, the
@@ -9781,6 +9843,9 @@ pub fn score_rows(
     query_cache_dev: bool,
 ) -> Result<Vec<ScoredFile>> {
     check_run_arm(checkpoint, arm)?;
+    // The run's objective, for each past-window band's `query_loss` (R1, the deciding loss);
+    // a past-window pass without it is refused here, before the model loads (#3714).
+    let mut past_objective = None;
     let context = match past_window {
         Some(rule) => {
             if keys || served_arm || !keyed.is_empty() || !traces.is_empty() || !forces.is_empty() {
@@ -9789,7 +9854,14 @@ pub fn score_rows(
                 ));
             }
             let requested = context_given.then_some(context);
-            rule.validate(checkpoint_window(checkpoint)?, requested, fresh_v2.is_some(), panels.len())?
+            let w = rule.validate(
+                checkpoint_window(checkpoint)?,
+                requested,
+                fresh_v2.is_some(),
+                panels.len(),
+            )?;
+            past_objective = Some(past_window_objective(checkpoint)?);
+            w
         }
         None => context,
     };
@@ -9969,8 +10041,10 @@ pub fn score_rows(
             past,
         });
     }
-    // Under `carry` the model reads the longest panel's C (claude-287).
-    let model_context = splits.iter().map(|s| s.context).max().unwrap_or(context).max(context);
+    let model_context = score_context_override(
+        past_window,
+        splits.iter().filter(|s| s.past.is_some()).map(|s| (s.name.as_str(), s.context)),
+    )?;
     for (i, (name, _)) in traces.iter().enumerate() {
         if !splits.iter().any(|s| s.name == *name) || traces[..i].iter().any(|(n, _)| n == name) {
             return Err(invalid(format!(
@@ -9992,21 +10066,16 @@ pub fn score_rows(
         )));
     }
     // claude-287: no weight is sized by the window, so the model reads C as it is.
-    if past_window == Some(PastWindowRule::Carry) {
-        model.set_context(model_context)?;
+    if let Some(c) = model_context {
+        model.set_context(c)?;
     }
-    let model = model;
-    // The run's objective, for each past-window band's `query_loss`; none when no run config is
-    // found, and then the bands report hits only.
-    let objective = match past_window {
-        Some(_) => run_objective(checkpoint)?,
-        None => None,
-    };
+    // The run's objective, read and required above whenever a past-window rule is set.
+    let objective = past_objective;
     if past_window.is_some() {
         println!(
             "[past-window] model reads {}; loss under {}",
             model.config.context,
-            objective.map_or("no objective: the run config is not found", |o| match o {
+            objective.map_or("none", |o| match o {
                 PointObjective::Sheet => "sheet",
                 PointObjective::Voronoi => "voronoi",
                 PointObjective::Nearest => "nearest",
@@ -10268,7 +10337,7 @@ pub fn score_rows(
                     return Err(invalid("a past-window split's losses do not cover its rows"));
                 }
                 let losses = objective.map(|_| losses.as_slice());
-                past_bands.insert(split.name.clone(), past_window_bands(cut, &picks, losses));
+                past_bands.insert(split.name.clone(), past_window_bands(cut, &picks, losses)?);
             }
             if let Some(trace) = trace {
                 let file = format!("decision-trace-{}.json", split.name);
@@ -10305,19 +10374,12 @@ pub fn score_rows(
         if cache_on {
             if let (Some(cache), Some(train)) = (query_cache.as_mut(), cache_train.as_ref()) {
                 let mut writer = cache.start_split(&train.name, label, on, train.context)?;
-                let picks = row_picks(
-                    &model,
-                    &train.windows,
-                    &train.mask,
-                    seed,
-                    step,
-                    trained_as_served,
-                    None,
-                    |query, _| {
+                let picks = with_train_cache_context(&mut model, model_context, train.context, |model| {
+                    row_picks(model, &train.windows, &train.mask, seed, step, trained_as_served, None, |query, _| {
                         writer.write_tensor(query)?;
                         Ok(())
-                    },
-                )?;
+                    })
+                })?;
                 let positions = picks
                     .iter()
                     .map(|pick| {
@@ -25525,15 +25587,94 @@ mod tests {
             pick(21, 7, 7, 7, false, false),
             pick(25, 7, 3, 3, false, false),
         ];
-        let bands = past_window_bands(&cut, &picks, Some(&[2.0, 3.0, 0.5]));
+        let bands = past_window_bands(&cut, &picks, Some(&[2.0, 3.0, 0.5])).unwrap();
         let counts: Vec<_> = bands.iter().map(|b| (b.from, b.to, b.targets, b.nearest_hits, b.writer_hits)).collect();
         assert_eq!(counts, [(0, 4, 2, 2, 1), (4, 8, 2, 0, 1), (8, 12, 1, 1, 1)]);
         assert_eq!(bands.iter().map(|b| b.loss_sum).collect::<Vec<_>>(), [Some(2.0), Some(3.0), Some(0.5)]);
         assert_eq!(bands[0].loss_mean, Some(1.0));
         assert_eq!(bands[1].loss_mean, Some(1.5));
-        let hits_only = past_window_bands(&cut, &picks, None);
+        let hits_only = past_window_bands(&cut, &picks, None).unwrap();
         assert!(hits_only.iter().all(|b| b.loss_sum.is_none() && b.loss_mean.is_none()));
         assert_eq!(hits_only.iter().map(|b| b.targets).sum::<usize>(), picks.len());
+    }
+
+    /// #3714 item 2: losses that miss a band are refused rather than written as `loss_sum: 0.0`,
+    /// which would read as the best rule; so are losses with a band the rows do not have.
+    #[test]
+    fn past_window_bands_refuse_losses_that_do_not_match_the_bands() {
+        let cut = PastCut {
+            rule: PastWindowRule::Blocks,
+            window: 4,
+            context: 4,
+            doc_starts: vec![0, 20],
+            crossing: 0,
+        };
+        let picks = [
+            pick(4, 7, 7, 1, false, false),
+            pick(5, 7, 2, 7, false, false),
+            pick(9, 7, 7, 7, false, false),
+        ];
+        for losses in [&[2.0, 3.0][..], &[2.0, 3.0, 0.5, 1.0][..], &[][..]] {
+            let refused = past_window_bands(&cut, &picks, Some(losses));
+            let message = refused
+                .expect_err("a band count mismatch must be refused")
+                .to_string();
+            assert!(message.contains("3 bands of rows"), "{message}");
+            assert!(
+                message.contains(&format!("{} of losses", losses.len())),
+                "{message}"
+            );
+        }
+        assert!(past_window_bands(&cut, &picks, Some(&[2.0, 3.0, 0.5])).is_ok());
+    }
+
+    /// #3714 item 3: `carry` reads one context, so panels at different C are refused, naming both;
+    /// a single panel or panels with the same C select exactly that C.
+    #[test]
+    fn carry_refuses_panels_at_different_contexts() {
+        let carry = |panels: &[(&str, usize)]| {
+            score_context_override(Some(PastWindowRule::Carry), panels.iter().copied())
+        };
+        let refused = carry(&[("short", 2048), ("long", 4096)])
+            .expect_err("panels at different C must be refused")
+            .to_string();
+        assert!(refused.contains("short at 2048, long at 4096"), "{refused}");
+        assert!(carry(&[("a", 2048), ("b", 2048), ("c", 4096)]).is_err());
+        assert_eq!(carry(&[("a", 4096), ("b", 4096)]).unwrap(), Some(4096));
+        assert!(carry(&[]).is_err());
+        let checkpoint_window = 4096;
+        assert_eq!(carry(&[("short", 2048)]).unwrap().unwrap_or(checkpoint_window), 2048);
+        assert_eq!(score_context_override(None, [("short", 2048)].into_iter()).unwrap(), None);
+    }
+
+    #[test]
+    fn past_window_train_cache_uses_w_then_restores_c() -> Result<()> {
+        let w = 4096;
+        let mut model = build_fbs_model_at(FbsArm::OneAtomActive, 1, 32, &Device::Cpu)?;
+        model.set_context(w)?;
+        let panel = score_context_override(Some(PastWindowRule::Carry), [("short", 2048)].into_iter())?;
+        model.set_context(panel.expect("carry panel"))?;
+        let mut tokens = vec![1; w + 1];
+        tokens[0] = 0;
+        let (windows, _) = hs::build_document_windows(&tokens, &vec![1; tokens.len()], w, 0)?;
+        assert_eq!(windows[0].input_ids.len(), w);
+        let check_train_window = |m: &StackModel| {
+            if windows[0].input_ids.len() > m.config.context {
+                return Err(invalid("TRAIN cache window exceeds the model context"));
+            }
+            Ok(m.config.context)
+        };
+        // Negative control: keeping the panel width would refuse this same TRAIN window.
+        assert!(with_train_cache_context(&mut model, None, w, check_train_window).is_err());
+        assert_eq!(with_train_cache_context(&mut model, panel, w, check_train_window)?, w);
+        assert_eq!(model.config.context, 2048);
+        let failure = with_train_cache_context(&mut model, panel, w, |m| {
+            assert_eq!(m.config.context, w);
+            Err::<(), _>(invalid("cache write failed"))
+        });
+        assert!(failure.is_err());
+        assert_eq!(model.config.context, 2048);
+        Ok(())
     }
 
     /// claude-287: the queries by their note's distance in widths of W: every query counts, a
@@ -25585,8 +25726,12 @@ mod tests {
         fs::write(step.join("config.json"), br#"{"context":2048,"width":64}"#).unwrap();
         assert_eq!(checkpoint_window(&step).unwrap(), 2048);
         assert_eq!(run_objective(&step).unwrap(), None);
+        // #3714 item 1: a past-window pass refuses a checkpoint with no run config.
+        let refused = past_window_objective(&step).expect_err("no run config must be refused");
+        assert!(refused.to_string().contains("needs the run's objective"), "{refused}");
         fs::write(dir.join("config.json"), br#"{"steps":8,"objective":"cell"}"#).unwrap();
         assert_eq!(run_objective(&step).unwrap(), Some(PointObjective::Cell));
+        assert_eq!(past_window_objective(&step).unwrap(), PointObjective::Cell);
         fs::write(dir.join("config.json"), br#"{"steps":8}"#).unwrap();
         assert!(run_objective(&step).is_err());
         fs::write(step.join("config.json"), br#"{"width":64}"#).unwrap();
