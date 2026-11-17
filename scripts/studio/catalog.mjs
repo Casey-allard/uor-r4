@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { PUBLIC_M1_ID, publicM1Card } from './public-m1.mjs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, unlinkSync } from 'node:fs';
@@ -89,7 +90,12 @@ export function writeStudioCatalog({ dest, publicUrl = '', publicLabel = 'Public
     }
     mkdirSync(join(dest, 'models'), { recursive: true });
     for (const entry of entries) {
+      if (entry && Object.hasOwn(entry, 'public_release')) {
+        manifest.models.push(publicM1Card(entry, dest));
+        continue;
+      }
       const id = String((entry && entry.id) || '').trim();
+      if (id === PUBLIC_M1_ID) throw new Error('Reserved public M1 model id: ' + id);
       if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(id)) throw new Error('trained entry id is invalid: ' + JSON.stringify(entry && entry.id));
       const label = typeof entry.label === 'string' ? entry.label.trim() : '';
       if (!label) throw new Error(id + ': label is required');
@@ -208,6 +214,11 @@ export function writeStudioCatalog({ dest, publicUrl = '', publicLabel = 'Public
       url: publicUrl,
       note: 'Optional public UORLUT01 model supplied at publish time. The browser fetches it once; the host must serve CORS headers. Its sha256 is not pinned here.',
     });
+  }
+  const ids = new Set();
+  for (const card of manifest.models) {
+    if (ids.has(card.id)) throw new Error('Duplicate Studio model id: ' + card.id);
+    ids.add(card.id);
   }
   writeFileSync(join(dest, 'models.json'), JSON.stringify(manifest, null, 2) + '\n');
   console.log('models.json: ' + manifest.models.map((m) => m.id).join(', '));

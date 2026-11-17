@@ -732,7 +732,7 @@
             if (switchTo !== false) {
                 app.activeConversationId = conversation.id;
                 if (app.composerInput) app.composerInput.reset(conversation.draft);
-                if (app.mode === 'wasm' && app.caps && app.worker) {
+                if (app.mode === 'wasm' && app.caps && !isDiscreteCapabilities(app.caps) && app.worker) {
                     app.worker.postMessage({ action: 'close_session', payload: { conversationId: conversation.id } });
                 }
             }
@@ -1001,7 +1001,7 @@
                 var input = $('#chatInput');
                 if (input && window.matchMedia('(max-width: 780px)').matches) input.focus();
             }
-            document.dispatchEvent(new CustomEvent('uor-view-changed', { detail: { view: view } }));
+            document.dispatchEvent(new CustomEvent('uor-view-changed', { detail: { view: view, typedView: options && options.typedView } }));
         }
 
         /* ------------------------------------------------------------ next-token predictor (discrete M1 model) */
@@ -1066,18 +1066,27 @@
         }
 
         function renderDiscretePrediction(message) {
-            var predictionGenerationId = app.predictionRequests[message.id];
-            if (message.id === app.activePredictionRequestId && predictionGenerationId !== undefined) {
-                delete app.predictionRequests[message.id];
-                app.activePredictionRequestId = null;
-                if (app.activeGenerationId === predictionGenerationId) app.activeGenerationId = null;
-                app.generating = false;
-                updateComposerState();
-                document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'complete', generationId: predictionGenerationId } }));
-            }
+            var request = app.predictionRequests[message.id];
             var result = $('#predictorResult');
             var list = $('#predictorTop');
             var status = $('#predictorStatus');
+            if (request && message.id === app.activePredictionRequestId) {
+                if (message.artifact_sha256 !== request.artifactSha256 || !app.caps || app.caps.artifact_sha256 !== request.artifactSha256) {
+                    var error = 'The prediction worker and the currently loaded model must both match the requested artifact SHA-256.';
+                    if (result) result.hidden = true;
+                    if (list) list.textContent = '';
+                    if (status) status.textContent = error;
+                    ['predictorTop', 'predictorTopCount', 'predictorDecoded', 'predictorPromptLength', 'predictorMs'].forEach(function (key) {
+                        delete document.documentElement.dataset[key];
+                    });
+                    finishDiscretePrediction(message.id, error);
+                    return;
+                }
+                app.lastPrediction = { generationId: request.generationId, artifactSha256: message.artifact_sha256, tokens: Array.isArray(message.decoded) ? message.decoded : [] };
+                finishDiscretePrediction(message.id);
+            } else if (message.id !== 'diagnostic-predict' || !app.caps || !app.caps.artifact_sha256 || message.artifact_sha256 !== app.caps.artifact_sha256) {
+                return;
+            }
             if (!result || !list) return;
             var rawTop = Array.isArray(message.top8) ? message.top8 : message.top;
             var top = Array.isArray(rawTop) ? rawTop.map(Number).filter(function (id) { return Number.isInteger(id) && id >= 0; }) : [];
@@ -1117,6 +1126,19 @@
             document.documentElement.dataset.predictorDecoded = JSON.stringify(decoded);
         }
 
+        function finishDiscretePrediction(id, error) {
+            var request = app.predictionRequests[id];
+            delete app.predictionRequests[id];
+            app.activePredictionRequestId = null;
+            if (app.activeGenerationId === request.generationId) app.activeGenerationId = null;
+            app.generating = false;
+            if (error) app.lastPrediction = null;
+            updateComposerState();
+            document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: {
+                outcome: error ? 'error' : 'complete', generationId: request.generationId, error: error
+            } }));
+        }
+
         function runPrediction(providedPrompt) {
             var status = $('#predictorStatus');
             if (app.activePredictionRequestId) {
@@ -1134,6 +1156,13 @@
             if (!app.tokenizerArtifact) {
                 toast('This model has no stack-bound tokenizer loaded; prediction needs it to encode the prompt.', 'error');
                 if (status) status.textContent = 'No stack-bound tokenizer is loaded for this artifact.';
+                return false;
+            }
+            var artifactSha256 = app.caps.artifact_sha256;
+            if (typeof artifactSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(artifactSha256)) {
+                var error = 'Prediction needs the loaded model’s artifact SHA-256.';
+                if (status) status.textContent = error;
+                toast(error, 'error');
                 return false;
             }
             var input = $('#predictorInput');
@@ -1157,9 +1186,9 @@
             }
             if (status) status.textContent = 'Predicting from ' + tokenIds.length + ' prompt tokens…';
             nextGenerationId();
-            var predictionRequestId = 'predict-' + Date.now().toString(36);
+            var predictionRequestId = 'predict-' + app.activeGenerationId;
             app.activePredictionRequestId = predictionRequestId;
-            app.predictionRequests[predictionRequestId] = app.activeGenerationId;
+            app.predictionRequests[predictionRequestId] = { generationId: app.activeGenerationId, artifactSha256: artifactSha256 };
             app.activeGenerationKind = 'wasm';
             app.generating = true;
             updateComposerState();
@@ -1464,14 +1493,8 @@
                         : workerError;
                     setEngineStatus('unavailable', 'err', 'Engine unavailable: ' + reason);
                 }
-                var failedPredictionId = app.predictionRequests[message.id];
-                if (message.id === app.activePredictionRequestId && failedPredictionId !== undefined) {
-                    delete app.predictionRequests[message.id];
-                    app.activePredictionRequestId = null;
-                    if (app.activeGenerationId === failedPredictionId) app.activeGenerationId = null;
-                    app.generating = false;
-                    updateComposerState();
-                    document.dispatchEvent(new CustomEvent('uor-generation-finished', { detail: { outcome: 'error', generationId: failedPredictionId, error: workerError } }));
+                if (message.id === app.activePredictionRequestId && app.predictionRequests[message.id]) {
+                    finishDiscretePrediction(message.id, workerError);
                 }
                 toast(workerError, 'error');
                 return;
@@ -1965,12 +1988,17 @@
 
         function guardModelSourceOperations(sources, doc) {
             var latestOperationId = 0;
+            sources.modelChangeBlockReason = function () {
+                if (app.activePredictionRequestId) return 'Wait for the current prediction to finish before changing models.';
+                return app.generating ? 'Stop the current reply before changing models.' : null;
+            };
             ['loadBundled', 'loadPublished', 'loadFromUrl', 'loadLocalFile'].forEach(function (name) {
                 var original = sources[name];
                 if (typeof original !== 'function') return;
                 sources[name] = function (input, operation) {
-                    if (app.generating) {
-                        toast('Stop the current reply before changing models.', 'warn');
+                    var blocked = sources.modelChangeBlockReason();
+                    if (blocked) {
+                        toast(blocked, 'warn');
                         return Promise.resolve({ blocked: true, stale: true });
                     }
                     var current = operation;
@@ -2026,10 +2054,11 @@
                     }
                     var blocked = event.target.closest('[data-action="api-use"]')
                         || event.target.closest('[data-action="api-remove"]');
-                    if (blocked && app.generating) {
+                    var reason = blocked && sources.modelChangeBlockReason();
+                    if (reason) {
                         event.preventDefault();
                         event.stopImmediatePropagation();
-                        toast('Stop the current reply before changing models.', 'warn');
+                        toast(reason, 'warn');
                     }
                 }, true);
             }
@@ -2145,7 +2174,11 @@
                     app.loadStartedAt = (window.performance && performance.now) ? performance.now() : Date.now();
                     app.worker.postMessage({ action: 'load_model', id: app.currentLoadId, payload: payload });
                 }
-                setView('chat');
+                if (detail.headerMeta && /^uor-r4\.lut-discrete(?:-trunk)?\/1$/.test(detail.headerMeta.schema)) {
+                    setView('chat', { typedView: 'model', focus: false });
+                } else {
+                    setView('chat');
+                }
                 return;
             }
             if (detail.kind === 'api' && detail.apiConfig) {
@@ -2701,6 +2734,9 @@
             },
             sendPrompt: function (text) {
                 return sendFromComposer(String(text || ''));
+            },
+            predictionResult: function (generationId) {
+                return app.lastPrediction && app.lastPrediction.generationId === generationId ? app.lastPrediction : null;
             },
             predict: function (text) {
                 return runPrediction(String(text || '')) ? app.activeGenerationId : false;

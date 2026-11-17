@@ -109,6 +109,8 @@ export function ModelPicker({ store, adapter, sources, operations, onError, onSu
         try {
             classifyEndpoint(providerDraft.baseUrl);
             if (editingId) {
+                const reason = state.selectedSource?.kind === 'api' && state.selectedSource.id === editingId && sources.modelChangeBlockReason?.();
+                if (reason) throw new Error(reason);
                 const patch: Partial<ApiProvider> = {
                     label: providerDraft.label,
                     preset: providerDraft.preset,
@@ -158,6 +160,8 @@ export function ModelPicker({ store, adapter, sources, operations, onError, onSu
         const id = removing.id;
         const operation = `provider:remove:${id}`;
         try {
+            const reason = sources.modelChangeBlockReason?.();
+            if (reason) throw new Error(reason);
             clearProviderError(operation);
             sources.removeApi(id);
             testVersions.current[id] = (testVersions.current[id] || 0) + 1;

@@ -37,6 +37,7 @@ export interface ModelSourceList {
 }
 
 export interface ModelSourcesApi {
+    modelChangeBlockReason?(): string | null;
     catalog(): { models: Array<{ id?: string; label?: string; url: string; note?: string; sha256?: string }> };
     loadModelCatalog(): Promise<void>;
     list(): ModelSourceList;

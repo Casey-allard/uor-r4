@@ -367,6 +367,7 @@ async function readArtifact(bytes, fileName, origin, options) {
         headerMeta: { schema: parsed.schema, shape: parsed.shape, synthetic: parsed.synthetic, group: parsed.group },
         expectedSha256: extra.expectedSha256 || '',
         tokenizerArtifact: extra.tokenizerArtifact || null,
+        publishedEntry: extra.publishedEntry,
         sizeBytes: meta.sizeBytes,
         format: meta.format,
         meta: clone(meta),
@@ -468,6 +469,9 @@ async function loadModelCatalog() {
                 sha256: typeof entry.sha256 === 'string' ? entry.sha256.toLowerCase() : '',
                 sizeBytes: Number.isInteger(entry.size_bytes) && entry.size_bytes > 0 ? entry.size_bytes : 0,
                 tokenizerSha256: typeof entry.tokenizer_sha256 === 'string' ? entry.tokenizer_sha256.toLowerCase() : '',
+                auditUrl: entry.audit_url,
+                auditSchema: entry.served_forward_audit_schema,
+                auditSha256: entry.served_forward_audit_sha256,
                 primary: entry.primary === true,
                 host: url.host,
             });
@@ -557,14 +561,14 @@ async function fetchTokenizerArtifact(entry, stackSha256, vocabSize) {
     if (!response.ok) {
         throw new Error('The tokenizer download from ' + url.host + ' failed with HTTP ' + response.status + '.');
     }
-    var text = await response.text();
-    var tokenizerHash = await sha256Hex(new TextEncoder().encode(text));
+    var bytes = new Uint8Array(await response.arrayBuffer());
+    var tokenizerHash = await sha256Hex(bytes);
     if (entry.tokenizerSha256 && tokenizerHash !== entry.tokenizerSha256) {
         throw new Error('Tokenizer sha256 ' + shortSha(tokenizerHash) + ' does not match the catalog pin ' + shortSha(entry.tokenizerSha256) + '; refusing to load.');
     }
     var artifact;
     try {
-        artifact = JSON.parse(text);
+        artifact = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     } catch (_error) {
         throw new Error('The tokenizer_url did not return a JSON tokenizer artifact.');
     }
@@ -582,6 +586,17 @@ async function loadPublished(idOrEntry, operation) {
         ? catalog.models.find(function (item) { return item.id === idOrEntry; })
         : idOrEntry;
     if (!entry) throw new Error('That published model is not in the catalog.');
+    if (entry.id === 'published-m1-discrete-trunk-seed-1') {
+        const matches = catalog.models.filter(item => item.id === entry.id);
+        if (matches.length !== 1) throw new Error('The M1 release must resolve to one catalog entry.');
+        entry = matches[0];
+        if (!entry.tokenizerUrl || !/^[0-9a-f]{64}$/.test(entry.tokenizerSha256) ||
+            !/^[0-9a-f]{64}$/.test(entry.sha256) || !entry.sizeBytes || !entry.schema) {
+            throw new Error('The M1 model or tokenizer is missing its release pins.');
+        }
+    }
+    // Keep the pins used by this operation together even if the catalog is refreshed.
+    entry = { ...entry };
     var host = entry.host || (new URL(entry.url)).host;
     setMessage('info', 'Downloading ' + entry.label + ' from ' + host + '…');
     var bytes = await fetchArtifactWithProgress(entry.url, {
@@ -598,6 +613,9 @@ async function loadPublished(idOrEntry, operation) {
     }
     var arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     var parsed = parseUorLutHeader(arrayBuffer);
+    if (entry.schema && parsed.schema !== entry.schema) {
+        throw new Error('Artifact schema does not match the catalog pin: expected ' + entry.schema + ', got ' + parsed.schema);
+    }
     var parsedVocab = parsed.shape ? Number(parsed.shape.vocab || parsed.shape.vocabulary || 0) : 0;
     var tokenizerArtifact = null;
     if (entry.tokenizerUrl) {
@@ -608,6 +626,7 @@ async function loadPublished(idOrEntry, operation) {
     var result = await readArtifact(bytes, fileName, { kind: 'published', id: entry.id, label: entry.label, host: host }, {
         expectedSha256: entry.sha256 || stackSha256,
         tokenizerArtifact: tokenizerArtifact,
+        publishedEntry: entry,
         sizeBytes: entry.sizeBytes || bytes.byteLength,
         format: entry.format || 'UORLUT01',
         sha256: stackSha256,

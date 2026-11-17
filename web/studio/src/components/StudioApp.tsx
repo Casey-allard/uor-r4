@@ -12,6 +12,7 @@ import { classifyEndpoint } from '../state/lifecycle.js';
 import type { LifecycleStore } from '../state/lifecycle.js';
 import { useLifecycle } from '../state/useLifecycle.js';
 import { AppShell } from './AppShell.js';
+import { DiscretePredictor } from './DiscretePredictor.js';
 import { AgentComposer } from './AgentComposer.js';
 import { ArtifactPanel } from './ArtifactPanel.js';
 import { CommandPalette } from './CommandPalette.js';
@@ -150,7 +151,8 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     const taskReadyZero = taskList.phase === 'ready' && tasks.length === 0;
     useEffect(() => {
         const viewChanged = (event: Event) => {
-            const view = (event as CustomEvent<{ view?: string }>).detail?.view;
+            const detail = (event as CustomEvent<{ view?: string; typedView?: string }>).detail;
+            const view = detail?.typedView ?? detail?.view;
             if (view === 'chat') setActiveSection('agent'); if (view === 'model') setActiveSection('models');
             if (view === 'workspace' || view === 'editor' || view === 'files') setActiveSection('workspace');
             if (view === 'changes') setActiveSection('changes'); if (view === 'terminal') setActiveSection('terminal'); if (view === 'guide') setActiveSection('guide');
@@ -213,6 +215,7 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     const selectTask = (taskId: string) => {
         if (agentClient === null) return;
         agentClient.store.selectTask(taskId);
+        setActiveSection('agent');
         if (window.innerWidth < 1024) {
             const rail = document.querySelector<HTMLElement>('[data-region="task-rail"]');
             if (rail !== null && !rail.hidden) document.querySelector<HTMLButtonElement>('[data-action="toggle-projects"]')?.click();
@@ -238,6 +241,7 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
     };
     const createTask = () => {
         if (agentClient === null || creatingTask) return;
+        setActiveSection('agent');
         setCreatingTask(true);
         void createRuntimeTask().catch(reportTaskFailure).finally(() => setCreatingTask(false));
     };
@@ -282,7 +286,16 @@ export function StudioApp({ store, adapter, sources, files, sessions, ui, downlo
         if (section === 'pr') return <PrPanel summary={null} unavailableReason="No local or imported pull request summary is available in this session." />;
         if (section === 'artifacts') return <ArtifactPanel client={agentClient} reference={null} />;
         if (section === 'terminal') return <TerminalPanel actions={desktopActions} files={files} idPrefix={idPrefix} />;
-        if (section === 'models') return <><ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} /><McpConnections ui={ui} connectRemote={mcpConnect} /></>;
+        if (section === 'models') {
+            const resident = state.residentArtifact;
+            const predictorReady = state.selectedSource?.kind === 'artifact' && state.artifact.phase === 'ready'
+                && resident?.sourceId === state.selectedSource.id && resident.canPredict && !resident.canGenerate;
+            return <>
+                <ModelPicker store={store} adapter={adapter} sources={sources} operations={operations} onError={report} onSuccess={succeed} />
+                {predictorReady && resident.sha256 && <DiscretePredictor key={resident.sha256} sessions={sessions} sha256={resident.sha256} />}
+                <McpConnections ui={ui} connectRemote={mcpConnect} />
+            </>;
+        }
         if (section === 'browser') return <section class="browser-placeholder" aria-label="Browser preview"><span class="browser-placeholder-icon" aria-hidden="true">↗</span><h1>Browser</h1><p>Browser preview requires a harness service</p><p>This static preview does not launch a browser, import cookies, or give the model access to your existing tabs. Connect the local or hosted harness service to enable an isolated preview.</p></section>;
         return <Guide />;
     };

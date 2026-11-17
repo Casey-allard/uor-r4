@@ -63,6 +63,7 @@ export interface SessionApi {
     getConversationMessages(id?: string): ChatMessage[];
     setComposerText(text: string): boolean;
     sendPrompt(prompt: string): number | false;
+    predictionResult?(generationId: number): { artifactSha256: string; tokens: { id: number; text: string }[] } | null;
     predict(prompt: string): number | false;
     stopGeneration(): void;
 }

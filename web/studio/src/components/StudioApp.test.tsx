@@ -9,6 +9,9 @@ import { createAgentStore, type AgentIncomingEvent } from '../state/agent.js';
 import type { Attachment } from '../adapters/workflow.js';
 import { createDesktopActions } from '../adapters/desktopActions.js';
 import { StudioApp } from './StudioApp.js';
+import { DiscretePredictor } from './DiscretePredictor.js';
+import { createModelSourceAdapter } from '../adapters/modelSourceAdapter.js';
+import { GENERATION_FINISHED_EVENT } from '../adapters/generation.js';
 import { makeFiles, makeModelAdapter, makeSessions, makeSources, makeUi } from './studioTestFixtures.js';
 
 vi.mock('@xterm/xterm', () => ({
@@ -1211,5 +1214,101 @@ describe('StudioApp runtime task creation', () => {
             expect(host.querySelector<HTMLButtonElement>('.send-button')?.disabled).toBe(true),
         );
         expect(host.textContent).not.toContain('Select a task before sending');
+    });
+});
+
+describe('next-token prediction prefix', () => {
+    it('keeps the resident M1 selected and displays the pending result after a refused model load', async () => {
+        const sha256 = 'a'.repeat(64);
+        const sessions = makeSessions();
+        let pending = false;
+        vi.mocked(sessions.predict).mockImplementation(() => { pending = true; return 23; });
+        sessions.predictionResult = () => ({ artifactSha256: sha256, tokens: [{ id: 223, text: ' ' }] });
+        const store = new LifecycleStore();
+        store.dispatch({ type: 'artifact/selected', sourceId: 'm1' });
+        store.dispatch({ type: 'artifact/ready', operation: store.getState().operation!, artifact: {
+            schema: 'uor-r4.lut-discrete-trunk/1', sha256, canGenerate: false, canPredict: true, engineSupported: true,
+        } });
+        const sources = makeSources();
+        sources.modelChangeBlockReason = () => pending ? 'Wait for the current prediction to finish before changing models.' : null;
+        const adapter = createModelSourceAdapter(store, sources, { postMessage: vi.fn() });
+        await act(async () => { render(<StudioApp store={store} adapter={adapter} sources={sources} files={makeFiles()} sessions={sessions} ui={makeUi()} download={vi.fn()} />, host); });
+        act(() => { destination('Models').click(); });
+        const input = host.querySelector<HTMLTextAreaElement>('[aria-label="Next-token predictor"] textarea')!;
+        act(() => { input.value = 'prefix A'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+        act(() => { button('Predict next tokens').click(); });
+        const previousOperation = store.getState().operation;
+        await act(async () => { button('Load bundled demo').click(); });
+        expect(store.getState().selectedSource?.id).toBe('m1');
+        expect(store.getState().operation).toBe(previousOperation);
+        expect(sources.loadBundled).not.toHaveBeenCalled();
+        pending = false;
+        act(() => { document.dispatchEvent(new CustomEvent(GENERATION_FINISHED_EVENT, { detail: { generationId: 23, outcome: 'complete' } })); });
+        expect(store.canRun()).toBe(true);
+        const result = host.querySelector('[aria-label="Next-token predictions"]')!;
+        expect(result.textContent).toContain('prefix A');
+        expect(result.textContent).toContain('ID 223');
+    });
+    it('labels the result with the submitted text through edits during and after prediction', () => {
+        const sha256 = 'a'.repeat(64);
+        const sessions = makeSessions();
+        vi.mocked(sessions.predict).mockReturnValue(17);
+        sessions.predictionResult = vi.fn(() => ({ artifactSha256: sha256, tokens: [{ id: 223, text: ' ' }] }));
+        act(() => { render(<DiscretePredictor sessions={sessions} sha256={sha256} />, host); });
+        const input = host.querySelector('textarea')!;
+        const edit = (value: string) => act(() => {
+            input.value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        edit('The capital of France is');
+        act(() => { button('Predict next tokens').click(); });
+        expect(sessions.predict).toHaveBeenCalledWith('The capital of France is');
+        edit('Another prefix');
+        act(() => {
+            document.dispatchEvent(new CustomEvent(GENERATION_FINISHED_EVENT, { detail: { generationId: 17, outcome: 'complete' } }));
+        });
+        const results = host.querySelector('[aria-label="Next-token predictions"]')!;
+        expect(results.querySelector('p code')?.textContent).toBe('"The capital of France is"');
+        expect(results.textContent).toContain('ID 223');
+        edit('Third prefix');
+        expect(results.textContent).toContain('"The capital of France is"');
+        expect(results.textContent).not.toContain(input.value);
+        act(() => { button('Predict next tokens').click(); });
+        expect(host.querySelector('[aria-label="Next-token predictions"]')).toBeNull();
+        expect(sessions.predict).toHaveBeenLastCalledWith('Third prefix');
+    });
+});
+
+describe('task actions with a resident next-token model', () => {
+    it.each(['New task', 'New run'])('%s still sends to the selected task', async action => {
+        const client = action === 'New run' ? runtimeClient() : new AgentClient({ transport: new FixtureTransport() });
+        if (action === 'New run') client.store.apply(runtimeEvent(2, 'run.finished', { status: 'finished', finished_at_ms: 1_794_283_200_002, duration_ms: 2 }));
+        const start = vi.spyOn(client, 'startRun');
+        const sessions = makeSessions();
+        const store = new LifecycleStore();
+        store.dispatch({ type: 'artifact/selected', sourceId: 'm1' });
+        store.dispatch({ type: 'artifact/ready', operation: store.getState().operation!, artifact: {
+            schema: 'uor-r4.lut-discrete-trunk/1', sha256: 'a'.repeat(64), canGenerate: false, canPredict: true, engineSupported: true,
+        } });
+        await act(async () => {
+            render(<StudioApp store={store} adapter={makeModelAdapter()} sources={makeSources()} files={makeFiles()} sessions={sessions} ui={makeUi()} download={vi.fn()} agentClient={client} />, host);
+        });
+        if (action === 'New run') {
+            await act(async () => { host.querySelector<HTMLButtonElement>(`[data-task-id="${RUNTIME_TASK}"] .task-select`)!.click(); });
+            await vi.waitFor(() => expect(button('New run')).toBeDefined());
+            await act(async () => { button('New run').click(); });
+        } else {
+            act(() => { destination('Models').click(); });
+            expect(host.querySelector('[aria-label="Next-token predictor"]')).not.toBeNull();
+            await vi.waitFor(() => expect(host.querySelector('[data-action="new-task"]')).not.toBeNull());
+            await act(async () => { host.querySelector<HTMLButtonElement>('[data-action="new-task"]')!.click(); });
+        }
+        await vi.waitFor(() => expect(client.store.snapshot().selectedTask).not.toBeNull());
+        const taskId = client.store.snapshot().selectedTask!.taskId;
+        const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Prompt"]')!;
+        act(() => { input.value = 'Run the selected task'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+        await act(async () => { button('Send').click(); });
+        expect(start).toHaveBeenCalledWith({ taskId, prompt: 'Run the selected task' });
+        expect(sessions.predict).not.toHaveBeenCalled();
     });
 });

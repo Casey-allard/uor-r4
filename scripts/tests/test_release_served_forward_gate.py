@@ -70,7 +70,11 @@ def write_receipt(path, artifact, report=None):
 
 def studio_source(root):
     source = root / "studio-src"
-    (source / "pkg").mkdir(parents=True)
+    subprocess.run(
+        [REPO / "scripts/studio/runtime-files.sh", "copy", REPO / "web/studio", source, "--allow-generated-missing"],
+        check=True,
+    )
+    (source / "pkg").mkdir(parents=True, exist_ok=True)
     (source / "index.html").write_text("<!doctype html>\n", encoding="utf-8")
     for name in ("uor_r4_integer.js", "uor_r4_integer_bg.wasm"):
         (source / "pkg" / name).write_bytes(name.encode())
@@ -159,6 +163,22 @@ class ReleaseReceiptTests(unittest.TestCase):
             remote = next(model for model in models["models"] if model["id"] == "remote-model")
             self.assertEqual(remote["served_forward_audit_sha256"], audit_sha)
             self.assertNotIn("audit_url", remote)
+
+            # Both source entries are independently valid, but their published IDs collide.
+            ordinary = json.loads(manifest.read_text(encoding="utf-8"))[1]
+            ordinary["id"] = "m1-discrete-trunk-seed-1"
+            fixed = {"public_release": "m1-discrete-trunk-seed-1"}
+            for entries in ([ordinary], [ordinary, fixed], [fixed, ordinary]):
+                manifest.write_text(json.dumps(entries), encoding="utf-8")
+                rejected = subprocess.run(completed.args, capture_output=True, text=True)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn("Reserved public M1 model id", rejected.stderr)
+
+            ordinary["id"] = "ordinary-duplicate"
+            manifest.write_text(json.dumps([ordinary, ordinary]), encoding="utf-8")
+            duplicate = subprocess.run(completed.args, capture_output=True, text=True)
+            self.assertNotEqual(duplicate.returncode, 0)
+            self.assertIn("Duplicate Studio model id", duplicate.stderr)
 
     def test_studio_refuses_missing_and_tampered_receipts_before_copy(self):
         with tempfile.TemporaryDirectory() as directory:

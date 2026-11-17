@@ -58,7 +58,13 @@ export function createModelSourceAdapter(
     let finishLoad: (() => void) | null = null;
     let workerQueue: Promise<void> = Promise.resolve();
 
+    function assertSourceChangeAllowed(): void {
+        const reason = sources.modelChangeBlockReason?.();
+        if (reason) throw new Error(reason);
+    }
+
     function start(sourceId: string): LoadOperation {
+        assertSourceChangeAllowed();
         store.dispatch({ type: 'artifact/selected', sourceId });
         const operation = store.getState().operation;
         if (!operation) throw new Error('artifact selection did not create an operation');
@@ -157,6 +163,7 @@ export function createModelSourceAdapter(
             return attempt(operation, () => sources.loadBundled(operation));
         },
         selectApi(sourceId, endpoint) {
+            assertSourceChangeAllowed();
             classifyEndpoint(endpoint);
             sources.setActive({ kind: 'api', id: sourceId });
             store.dispatch({ type: 'api/selected', sourceId, endpoint });

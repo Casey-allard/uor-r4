@@ -18,7 +18,7 @@ function pageHooks() {
     const app = {
         worker: { postMessage: vi.fn() },
         workerState: 'ready',
-        caps: { schema: 'uor-r4.lut-discrete-trunk/1', shape: { vocab: 17, context: 64 }, synthetic: false },
+        caps: { artifact_sha256: 'a'.repeat(64), schema: 'uor-r4.lut-discrete-trunk/1', shape: { vocab: 17, context: 64 }, synthetic: false },
         tokenizerArtifact: { sentinel: true },
         generationSerial: 0,
         conversations: [] as Array<{ id: string; messages: Array<Record<string, unknown>>; sourceKind: string }>,
@@ -118,14 +118,49 @@ describe('actual page prediction hooks', () => {
         expect(hooks.runPrediction('hello')).toBe(true);
         const request = app.worker.postMessage.mock.calls[0][0];
         expect(request.action).toBe('predict_discrete');
-        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: 'diagnostic-predict', top8: [1], decoded: [] } });
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', artifact_sha256: app.caps.artifact_sha256, id: 'diagnostic-predict', top8: [1], decoded: [] } });
         expect(completed).not.toHaveBeenCalled();
         expect(app.activeGenerationId).toBe(1);
-        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: request.id, top8: [1], decoded: [] } });
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', artifact_sha256: app.caps.artifact_sha256, id: request.id, top8: [1], decoded: [] } });
         expect(completed).toHaveBeenCalledTimes(1);
         expect(completed.mock.calls[0][0].detail).toMatchObject({ outcome: 'complete', generationId: 1 });
         expect(app.activeGenerationId).toBeNull();
         dispose();
+    });
+
+    it.each([
+        ['a'.repeat(64), undefined], ['a'.repeat(64), 'invalid'], ['a'.repeat(64), 'b'.repeat(64)],
+        ['b'.repeat(64), 'b'.repeat(64)], ['b'.repeat(64), 'a'.repeat(64)],
+    ] as const)('rejects a resident or worker mismatch against the identity captured at send time (%s, %s)', (resident, sha) => {
+        const { app, hooks } = pageHooks();
+        document.body.innerHTML = '<div id="predictorResult"></div><ol id="predictorTop"></ol><span id="predictorStatus"></span>';
+        const completed = vi.fn();
+        const dispose = events('uor-generation-finished', completed);
+        expect(hooks.runPrediction('hello')).toBe(true);
+        const request = app.worker.postMessage.mock.calls[0][0];
+        app.caps.artifact_sha256 = resident;
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: request.id, artifact_sha256: sha, top8: [99], decoded: [{ id: 99, text: 'wrong' }] } });
+        expect(completed.mock.calls[0][0].detail).toMatchObject({ outcome: 'error', generationId: 1 });
+        expect(app).toMatchObject({ activePredictionRequestId: null, generating: false, lastPrediction: null });
+        expect(document.getElementById('predictorResult')?.hidden).toBe(true);
+        expect(document.getElementById('predictorTop')?.textContent).toBe('');
+        expect(document.documentElement.dataset.predictorTop).toBeUndefined();
+        document.body.innerHTML = '';
+        app.caps.artifact_sha256 = 'a'.repeat(64);
+        expect(hooks.runPrediction('retry')).toBe(true);
+        const retry = app.worker.postMessage.mock.calls[1][0];
+        expect(retry.id).not.toBe(request.id);
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: retry.id, artifact_sha256: app.caps.artifact_sha256, top8: [1], decoded: [{ id: 1, text: 'ok' }] } });
+        expect(app).toMatchObject({ lastPrediction: { generationId: 2, artifactSha256: 'a'.repeat(64), tokens: [{ id: 1, text: 'ok' }] } });
+        expect(completed.mock.calls[1][0].detail).toMatchObject({ outcome: 'complete', generationId: 2 });
+        dispose();
+    });
+
+    it('requires a valid resident artifact hash to start a prediction', () => {
+        const { app, hooks } = pageHooks();
+        app.caps.artifact_sha256 = '';
+        expect(hooks.runPrediction('hello')).toBe(false);
+        expect(app.worker.postMessage).not.toHaveBeenCalled();
     });
 
     it('marks prediction as generating only for its correlated lifetime', () => {
@@ -133,7 +168,7 @@ describe('actual page prediction hooks', () => {
         expect(hooks.runPrediction('hello')).toBe(true);
         expect(app.generating).toBe(true);
         const request = app.worker.postMessage.mock.calls[0][0];
-        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: request.id, top8: [1], decoded: [] } });
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', artifact_sha256: app.caps.artifact_sha256, id: request.id, top8: [1], decoded: [] } });
         expect(app.generating).toBe(false);
         expect(app.activeGenerationId).toBeNull();
     });
@@ -144,7 +179,7 @@ describe('actual page prediction hooks', () => {
         const completed = vi.fn();
         const dispose = events('uor-generation-finished', completed);
         expect(hooks.runPrediction('hello')).toBe(true);
-        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', id: 'diagnostic-predict', top8: [7], decoded: [{ id: 7, text: 'x' }] } });
+        hooks.onWorkerMessage({ data: { action: 'discrete_prediction_result', artifact_sha256: app.caps.artifact_sha256, id: 'diagnostic-predict', top8: [7], decoded: [{ id: 7, text: 'x' }] } });
         expect(completed).not.toHaveBeenCalled();
         expect(app.activeGenerationId).toBe(1);
         expect(document.documentElement.dataset.predictorTop).toBe('[7]');
@@ -242,7 +277,7 @@ describe('actual page prediction hooks', () => {
         const { app, hooks, conversation, setMetrics } = pageHooks();
         app.conversations = [conversation];
         app.activeConversationId = conversation.id;
-        app.caps = { schema: 'uor-r4.lut-stack/1', shape: { vocab: 17, context: 64 }, synthetic: true };
+        app.caps = { ...app.caps, schema: 'uor-r4.lut-stack/1', shape: { vocab: 17, context: 64 }, synthetic: true };
         app.worker.postMessage = vi.fn(() => { throw new Error('clone failed'); });
         expect(hooks.sendFromComposer('chat')).toBe(false);
         expect(conversation.messages).toHaveLength(0);

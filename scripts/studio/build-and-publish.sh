@@ -22,7 +22,8 @@
 #
 # USAGE
 #   scripts/studio/build-and-publish.sh [options]
-#     --typed                build and stage the neutral Vite app from web/studio/dist (default: legacy)
+#     --typed                build and stage the Vite app with the public M1 predictor card
+#                            (default: legacy; --trained-manifest replaces the typed card selection)
 #     --target <branch>       gh-pages-preview (default) or gh-pages (live; requires HEAD=main)
 #     --push                  push the publish commit (otherwise dry run)
 #     --no-build              reuse web/studio/pkg/ as built
@@ -202,6 +203,9 @@ if [ "$typed" = 1 ]; then
 else
     say "== stage: web/studio -> $staging/studio (+ models.json)"
     stage_args=(web/studio "$staging/studio" "$public_url" "$public_label")
+fi
+if [ "$typed" = 1 ] && [ -z "$trained_manifest" ]; then
+    trained_manifest="$root/scripts/studio/public-m1.json"
 fi
 if [ -n "$trained_manifest" ]; then
     stage_args+=(--trained-manifest "$trained_manifest")

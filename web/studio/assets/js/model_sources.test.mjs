@@ -1019,3 +1019,51 @@ test('restoring the healthy model updates the visible status label and readiness
     });
     assert.equal(chatReadiness(), true);
 });
+
+test('a published model rejects a changed schema, artifact hash or tokenizer hash before selection', async () => {
+    const bytes = artifactBytes();
+    const entry = { id: 'pinned', label: 'Pinned', url: 'https://example.com/model' };
+    const { api, events } = await fresh(async (url) => String(url).endsWith('tokenizer')
+        ? new Response('{}') : response(bytes));
+    await assert.rejects(api.loadPublished({ ...entry, schema: 'uor-r4.lut-discrete-trunk/1' }), /schema does not match/);
+    await assert.rejects(api.loadPublished({ ...entry, sha256: '0'.repeat(64) }), /sha256 mismatch/);
+    await assert.rejects(api.loadPublished({ ...entry, tokenizerUrl: 'https://example.com/tokenizer', tokenizerSha256: '0'.repeat(64) }), /Tokenizer sha256/);
+    assert.equal(events.some((event) => event.type === 'uor-model-source-changed'), false);
+});
+
+test('an M1 load uses the refreshed catalog and refuses a missing tokenizer pin before downloading', async () => {
+    const card = {
+        id: 'm1-discrete-trunk-seed-1', kind: 'published', label: 'M1 seed 1',
+        url: 'https://example.com/model', tokenizer_url: 'https://example.com/tokenizer',
+        sha256: 'a'.repeat(64), tokenizer_sha256: 'b'.repeat(64),
+        size_bytes: 86536132, schema: 'uor-r4.lut-discrete-trunk/1',
+    };
+    const requests = [];
+    const { api, events } = await fresh(async url => {
+        requests.push(String(url));
+        assert.ok(String(url).endsWith('models.json'));
+        return Response.json({ schema: 'uor-r4.studio-models/1', models: [card] });
+    });
+    await api.loadModelCatalog();
+    const previous = api.catalog().models[0];
+    assert.equal(previous.tokenizerSha256, card.tokenizer_sha256);
+    delete card.tokenizer_sha256;
+    await api.loadModelCatalog();
+    await assert.rejects(api.loadPublished(previous.id), /missing its release pins/);
+    await assert.rejects(api.loadPublished(previous), /missing its release pins/);
+    assert.equal(requests.length, 2);
+    assert.equal(events.some(event => event.type === 'uor-model-source-changed'), false);
+});
+
+test('a BOM prepended to an otherwise pinned tokenizer changes its byte identity', async () => {
+    const bytes = artifactBytes();
+    const text = new TextEncoder().encode('{}');
+    const digest = Buffer.from(await crypto.subtle.digest('SHA-256', text)).toString('hex');
+    const bomTokenizer = new Uint8Array([0xef, 0xbb, 0xbf, ...text]);
+    const { api, events } = await fresh(async (url) => response(String(url).endsWith('tokenizer') ? bomTokenizer : bytes));
+    await assert.rejects(api.loadPublished({
+        id: 'pinned', label: 'Pinned', url: 'https://example.com/model',
+        tokenizerUrl: 'https://example.com/tokenizer', tokenizerSha256: digest,
+    }), /Tokenizer sha256/);
+    assert.equal(events.some((event) => event.type === 'uor-model-source-changed'), false);
+});

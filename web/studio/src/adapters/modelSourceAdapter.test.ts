@@ -89,6 +89,21 @@ describe('model source adapter', () => {
         expect(api.loadBundled).toHaveBeenCalledWith({ operationId: 3, sourceId: 'bundled-demo' });
     });
 
+    it('refuses every source change before mutating the selection while the page is busy', async () => {
+        const api = { ...sources(), modelChangeBlockReason: () => 'Current prediction is pending.' };
+        const adapter = createModelSourceAdapter(store, api, worker());
+        const original = store.getState();
+        await expect(adapter.loadBundled()).rejects.toThrow('Current prediction');
+        await expect(adapter.loadLocalFile(new File(['x'], 'x.lut'))).rejects.toThrow('Current prediction');
+        await expect(adapter.loadFromUrl('https://example.com/x.lut')).rejects.toThrow('Current prediction');
+        await expect(adapter.loadPublished('published-a')).rejects.toThrow('Current prediction');
+        expect(() => adapter.selectApi('api-a', 'https://example.com/v1')).toThrow('Current prediction');
+        expect(store.getState()).toBe(original);
+        for (const select of [api.loadBundled, api.loadLocalFile, api.loadFromUrl, api.loadPublished, api.setActive]) {
+            expect(select).not.toHaveBeenCalled();
+        }
+    });
+
     it('uses the existing API test path without an artifact-ready claim', async () => {
         const api = sources();
         const adapter = createModelSourceAdapter(store, api, worker());

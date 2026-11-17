@@ -204,6 +204,7 @@ export function AgentComposer({ store, sessions, files, ui, generation, copy, do
         : selected.kind === 'artifact' && !residentMatches ? 'Selected model; not ready'
         : selected.kind === 'api' && !store.canRun() ? 'Invalid API endpoint'
         : unavailable ? 'Generation unavailable'
+        : predictionMode && agentClient ? 'Next-token prediction is available in Models'
         : predictionMode ? 'Local next-token prediction'
         : selected.kind === 'artifact' ? 'Local generation' : 'API chat';
 

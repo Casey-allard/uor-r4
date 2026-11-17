@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: false
 notebook: docs/research/notebook/m4-serving.md
 depends_on: [m7-studio-connect-wasm-engine, m7-studio-self-host-page-assets]
-scope: [web/**, crates/uor-r4-integer/src/wasm_serve.rs, crates/uor-r4-integer/src/wasm_bindgen_exports.rs, docs/products/**, scripts/studio/**, scripts/stage-studio-site.sh, docs/research/notebook/m4-serving.md, docs/loop/tasks/m7-studio-live-model-sources/**, docs/roadmap/items/m7-studio-live-model-sources.md]
+scope: [web/**, crates/uor-r4-integer/src/wasm_serve.rs, crates/uor-r4-integer/src/wasm_bindgen_exports.rs, docs/products/**, scripts/studio/**, scripts/stage-studio-site.sh, scripts/tests/test_release_served_forward_gate.py, docs/research/notebook/m4-serving.md, docs/loop/tasks/m7-studio-live-model-sources/**, docs/roadmap/items/m7-studio-live-model-sources.md]
 done_class: host
 ---
 
