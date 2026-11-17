@@ -4,7 +4,9 @@
 
 [Research book](https://uor-foundation.github.io/uor-r4/) · [Studio](https://uor-foundation.github.io/uor-r4/studio/) · [M1 model files](https://huggingface.co/caseyallard/uor-r4-m1-model) · [Roadmap and open work](https://github.com/UOR-Foundation/uor-r4/issues/2028)
 
-![A brass geometric frame on graph paper beside a laptop, casting a shadow across a field of points.](docs/figures/start/geometric-workbench.jpg)
+[![The public Studio’s Models view. Models is selected in the left rail, and the Load M1 next-token predictor (seed 1) button appears under Published models.](docs/figures/start/m1-studio-models.png)](https://uor-foundation.github.io/uor-r4/studio/)
+
+*Open Studio and select **Models** in the sidebar. Under **Published models**, the seed-1 button loads the same integer model you can run from the command line. The other controls on this screen let you supply your own file or configure a provider.*
 
 **Pre-alpha · 1 of 8 milestones complete.** We have published a trained integer model that ranks the next token. Producing complete replies grounded in earlier turns is an open problem. The target is one model that can carry a conversation, remember across sessions and eventually reason and write code on ordinary hardware.
 
@@ -19,6 +21,25 @@ Here we can test competing designs, retain a negative and change direction withi
 
 ## Try the M1 predictor
 
+### Load and identify the model
+
+In Studio, choose **Load M1 next-token predictor (seed 1)**. The first load downloads the 86,536,132-byte model and its 265,393-byte tokenizer. Studio checks both hashes. Once loading finishes, the Models panel identifies the resident file and the operation it supports. [Public Studio](https://uor-foundation.github.io/uor-r4/studio/) · [Release files](https://huggingface.co/caseyallard/uor-r4-m1-model/tree/1fec0d4c42d4d5929a0cf08b1a0f17291d1dbc55)
+
+![Studio’s resident artifact record shows the seed-1 .d11 file, its verified SHA-256, the integer engine and the capability “Next-token prediction only”.](docs/figures/start/m1-studio-artifact.png)
+
+*Use the **File** and **Hash** fields to identify the exact model that will answer. The **Capability** field tells you which experiment you can run with it.*
+
+### Read a prediction
+
+Enter `The capital of France is` in **Prediction prefix** and choose **Predict next tokens**. In this November 17 capture the network was disabled after loading. Each row pairs a vocabulary ID with the text it decodes to.
+
+![Studio ranks eight candidates for the submitted prefix. ID 223 comes first and decodes to a space.](docs/figures/start/m1-studio-result.png)
+
+*The model picks a space as the immediate next token. The other seven rows are alternatives at that same position. A complete answer to the geography question would require additional predictions.* [Browser result and model hashes](docs/products/web-client.md#run-the-seed-1-example)
+
+<details>
+<summary>Reproduce the first-ranked token in Rust</summary>
+
 From the repository root, run the released seed-1 model on the token IDs for `The capital of France is`:
 
 ```sh
@@ -28,15 +49,15 @@ printf '%s  %s\n' 04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c14
     --discrete seed1.d11 --prompt-ids 413,2743,3695,372,3704,1651,435 --max-tokens 1 --temperature 0
 ```
 
-The JSON result contains `"generated_ids": [223]`. This is one next-token prediction.
+The JSON result contains `"generated_ids": [223]`, the same first token as the browser.
 
-The CLI returns one greedy token, ID **223** (a space). To see the eight ranked candidates for the same prefix, open **Models** in the public Studio, choose **Load M1 next-token predictor (seed 1)**, enter `The capital of France is` in **Prediction prefix**, then choose **Predict next tokens**. On November 17, the browser ranked 223 first with its network disabled after loading. [Public Studio](https://uor-foundation.github.io/uor-r4/studio/) · [Full result and model hashes](docs/products/web-client.md#run-the-seed-1-example) · [Published catalog](https://github.com/UOR-Foundation/uor-r4/blob/2878cdc029c1d232e7468e4751a610cc91fc8ab0/studio/models.json)
+</details>
 
 ## Current research direction
 
 On 16 November the lab adopted an experiment in **writing observations directly into addressed integer cells**. Counts establish what follows each token sequence. Phase P2 asks whether geometry improves which observations the model retrieves. With equal table bytes, it must use at least 1% fewer DEV-test bits than the best of token context, re-seeded transport and SplitMix, with the paired 95% interval excluding zero. Training and serving must replay the same persistent integer state. [Research decision](docs/research/reviews/pi-review-2026-11-16/DECISION.md) · [Native state and replay contract](docs/loop/tasks/written-state-count-model/claude-409/NATIVE-SPACE.md)
 
-The separate whole-model quality gate requires at most **0.80 times the bits per byte of R\*** on sealed D87 DEV-test. R\* is an unpruned modified Kneser–Ney count model. At order 2 its scorer measured **2.004736 bits per byte** on D87 DEV-tune and **2.194312** on novel targets. Lower is better. The sealed reference and the geometric model comparison still await merged results. [Calibration measurement](docs/loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Experiment sequence](PLAN.md)
+The whole-model quality gate is measured against R\*, an unpruned modified Kneser–Ney count model. Order 10 won the tuning sweep. On the sealed D87 test, R\* measured **1.418136 bits per byte** overall and **1.743746** on novel targets. Lower is better. To pass the sealed comparison, the geometric model must reach at most **1.134508** overall and **1.394996** on novel targets, 80% of the respective reference scores. That comparison remains open. [Sealed reference and quality thresholds](docs/loop/tasks/written-state-count-model/claude-422/REPORT.md) · [Experiment sequence](PLAN.md)
 
 ## Where we are
 
@@ -46,6 +67,10 @@ from its own training text:
 
 - the **unigram** table, which always guesses by overall word frequency;
 - the **T2** table, which looks at the previous word and guesses the word most often seen after it.
+
+![M1 development-panel predictions: seed 1 got 7,002 correct and seed 2 got 7,001, compared with 6,300 for the previous-token table and 1,226 for unigram.](docs/figures/start/status-vs-baselines.svg)
+
+*Each bar counts correct next-token predictions on the same 14,287 positions. The table below shows whether the gain persisted on two additional panels. [Two-seed measurement](docs/labs/m1-close-saved-model/README.md)*
 
 | Test panel | Saved model, seed 1 / seed 2 | Unigram | T2 | Outcome |
 |---|---:|---:|---:|---|
@@ -115,6 +140,12 @@ After that come one served model (M4), laptop cost (M5), reasoning and coding (M
 distribution (M7) and an alpha release (M8). The current written-state experiment tests whether geometric reads add predictive value beyond counts. Grounded replies still have to pass controls for memory and speaker roles ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)). This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
 
 ## How it works
+
+For the Studio prefix above, the tokenizer supplies seven IDs. After processing the prefix, the native evaluator records a 32-coordinate integer query and the eight address cells admitted to the final ranking. The horizontal axis below indexes the coordinates. The numbered tiles are cell IDs in the recorded order.
+
+![Serving trace for The capital of France is. The plot shows all 32 Q12 coordinates and the eight cell IDs 55, 56, 57, 71, 215, 7, 23 and 39.](docs/figures/start/m1-serving-trace.png)
+
+*The independent CPU replay and native evaluator recorded the same query and cells. The browser worker returned those eight cells and the same ranked tokens on this example.* [Machine-readable serving record](scripts/studio/public-m1-served-forward.json) · [Browser verification](web/studio/verify_public_m1.mjs)
 
 Each transformer part gets a geometric or exact replacement that avoids softmax and dense matrix
 multiplication. Statuses come from the [mechanism board](docs/mechanisms/README.md): **ACTIVE** is

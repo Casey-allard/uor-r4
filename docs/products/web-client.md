@@ -7,6 +7,14 @@
 
 Open **Models** in the public Studio and select **Load M1 next-token predictor (seed 1)**. Enter `The capital of France is` in **Prediction prefix** and choose **Predict next tokens**. After loading, the public Chrome session ranked the same eight IDs as native serving with the network disabled: **223, 952, 2359, 2471, 23, 263, 964, 1520**. The first ID is a space. This checks one prefix. Agent task replay is a separate demonstration. [Open Studio](https://uor-foundation.github.io/uor-r4/studio/) · [Browser evidence and reproduction](../loop/tasks/m7-studio-live-model-sources/codex-1/REPORT.md)
 
+![The public Studio identifies the loaded seed-1 file and its verified hash.](../figures/start/m1-studio-artifact.png)
+
+*Check the resident file and capability before entering the prefix.*
+
+![The offline browser displays eight ranked tokens for the worked example.](../figures/start/m1-studio-result.png)
+
+*Each row is one possible next token. The quoted space on the first row is the model’s first choice.*
+
 ## Publication history
 
 Before the paired loader shipped, the earlier November 17 catalog offered only the synthetic fixture. Importing the M1 model URL alone left its text tokenizer unbound. [Earlier catalog](https://github.com/UOR-Foundation/uor-r4/blob/90dea3e24042ae0ba381136d29ccdefd72b1d90f/studio/models.json)

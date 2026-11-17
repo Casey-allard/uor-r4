@@ -17,7 +17,7 @@ Terms are in the [glossary](./glossary.md). Claims are labelled **proof**, **mea
 
 ## A count baseline for the next experiment
 
-On the D87 tuning split, the order-2 modified Kneser–Ney scorer measured 2.004736 bits per byte overall and 2.194312 on novel targets. The GPU scorer agreed with an independent host oracle on the checked real-data slice. This establishes an instrument for comparing later designs. The sealed baseline and geometric-model comparison are separate steps. [Scorer report](../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Next experiment](where-were-going.md#the-current-experiment)
+On the D87 tuning split, the order-2 modified Kneser–Ney scorer measured 2.004736 bits per byte overall and 2.194312 on novel targets. The GPU scorer agreed with an independent host oracle on the checked real-data slice. This establishes an instrument for comparing later designs. The subsequent order-10 reference scored 1.418136 overall and 1.743746 on novel targets on the sealed test. The geometric model still needs its own comparison. [Scorer report](../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Next experiment](where-were-going.md#the-current-experiment)
 
 ## M1 is complete
 
@@ -136,7 +136,7 @@ multiplication and are historical evidence, not the D11 product.
 | Recall of a told value | 314 / 320 / 325 of 578 questions, three seeds | [claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md) |
 | Exact replies, with / without the turn memory | 377–441 / 171–211 of 2,218, three seeds | [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md) |
 | Next capability milestone | M2: grounded complete replies | [PLAN](../../PLAN.md) |
-| Work in progress | The November 16 written-state study measured 2.004736 bits per byte on DEV-tune with its order-2 count reference. Selecting and sealing the reference precedes the geometric comparison | [Phase order](../../PLAN.md#approved-sequences), [P0 calibration](../loop/tasks/written-state-count-model/claude-421/REPORT.md), [sealed-reference follow-up](https://github.com/UOR-Foundation/uor-r4/pull/4058) |
+| Work in progress | The selected order-10 reference measured 1.418136 bits per byte overall and 1.743746 on novel targets on the sealed DEV-test. The geometric model comparison remains open | [Phase order](../../PLAN.md#approved-sequences), [P0 calibration](../loop/tasks/written-state-count-model/claude-421/REPORT.md), [sealed reference](../loop/tasks/written-state-count-model/claude-422/REPORT.md) |
 | Products shipped | None; M1 is not an alpha release | [products](../products/README.md) |
 
 ## Go deeper

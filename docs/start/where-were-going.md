@@ -17,7 +17,7 @@ Terms are in the [glossary](./glossary.md). Labels are **proof**, **measurement*
 
 ## The current experiment
 
-The 16 November research decision starts with a count model on D87, a corpus for which training, tuning and test streams are separately sealed. Tune the reference on DEV-tune and score the frozen choice on DEV-test. Then measure what geometric routing and memory add at equal bytes. The proposed scale is one billion cells in at most 4 GB and at least 1,000 decoded tokens/s. The experiment also calls for grounded replies to beat both the no-memory and shuffled-speaker controls. These are targets. [Decision and thresholds](../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [Split construction](../loop/tasks/written-state-count-model/claude-420/REPORT.md) · [Plan](../../PLAN.md)
+The 16 November research decision starts with a count model on D87, a corpus for which training, tuning and test streams are separately sealed. The tuning sweep selected order 10. The frozen reference has now been scored on DEV-test. The remaining comparison measures what geometric routing and memory add at equal bytes. The proposed scale is one billion cells in at most 4 GB and at least 1,000 decoded tokens/s. The experiment also calls for grounded replies to beat both the no-memory and shuffled-speaker controls. These are targets. [Decision and thresholds](../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [Split construction](../loop/tasks/written-state-count-model/claude-420/REPORT.md) · [Plan](../../PLAN.md)
 
 ## The eight milestones
 
@@ -115,7 +115,7 @@ come almost entirely from the turn memory's table. Useful conversation has not b
 | Milestones complete | **1 of 8 (M1)** | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) |
 | Next milestone | M2: grounded complete replies | [PLAN](../../PLAN.md) |
 | Immediate problem | Facts come from the exact turn memory's table, not the learned state: 171–211 exact replies of 2,218 without it, 377–441 with it | [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md) |
-| Work in progress | The November 16 written-state study measured 2.004736 bits per byte on DEV-tune with its order-2 count reference. Selecting and sealing the reference precedes the geometric comparison | [Phase order](../../PLAN.md#approved-sequences), [P0 calibration](../loop/tasks/written-state-count-model/claude-421/REPORT.md), [sealed-reference follow-up](https://github.com/UOR-Foundation/uor-r4/pull/4058) |
+| Work in progress | The selected order-10 reference measured 1.418136 bits per byte overall and 1.743746 on novel targets on the sealed DEV-test. The geometric model comparison remains open | [Phase order](../../PLAN.md#approved-sequences), [P0 calibration](../loop/tasks/written-state-count-model/claude-421/REPORT.md), [sealed reference](../loop/tasks/written-state-count-model/claude-422/REPORT.md) |
 | M4 | Lawful likelihood built; full accepted-model serving and held-out score open | [serving and export](../model/serving-and-export.md) |
 | Products shipped | None | [products](../products/README.md) |
 
